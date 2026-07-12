@@ -101,7 +101,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           # Repo-root context so pnpm can resolve workspace deps inside
-          # the build (services depend on @gonogo/logger).
+          # the build (services depend on @ksp-gonogo/logger).
           context: .
           file: ./packages/${{ matrix.package }}/Dockerfile
           platforms: linux/amd64,linux/arm64

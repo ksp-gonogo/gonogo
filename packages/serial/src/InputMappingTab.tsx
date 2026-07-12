@@ -1,4 +1,4 @@
-import type { ActionDefinition } from "@gonogo/core";
+import type { ActionDefinition } from "@ksp-gonogo/core";
 import {
   Field,
   FieldHint,
@@ -7,7 +7,7 @@ import {
   GhostButton,
   Select,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { InputBinding, InputMappings } from "./bindings";

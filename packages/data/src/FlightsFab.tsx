@@ -1,6 +1,17 @@
-import { useScreen } from "@gonogo/core";
-import { Fab, HistoryIcon, useModal } from "@gonogo/ui";
+import { useScreen } from "@ksp-gonogo/core";
+import { Fab, HistoryIcon, useModal } from "@ksp-gonogo/ui";
 import { FlightsManager } from "./FlightsManager";
+
+export interface FlightsFabProps {
+  /**
+   * Mirrors the app-level mission-history settings — this package has no
+   * access to `@ksp-gonogo/app`'s `SettingsService`, so `MainScreen` reads
+   * them and passes the resolved values down. See
+   * `FlightsManagerProps.missionHistoryEnabled` for the full rationale.
+   */
+  missionHistoryEnabled?: boolean;
+  recordAllTopics?: boolean;
+}
 
 /**
  * History FAB — the lowest secondary in the FAB cluster (just above the
@@ -13,15 +24,25 @@ import { FlightsManager } from "./FlightsManager";
  * to the default "main" and the station would still see main-only
  * controls (e.g. the Replay button).
  */
-export function FlightsFab() {
+export function FlightsFab({
+  missionHistoryEnabled,
+  recordAllTopics,
+}: FlightsFabProps = {}) {
   const { open } = useModal();
   const screen = useScreen();
 
   function handleClick() {
-    open(<FlightsManager screen={screen} />, {
-      title: "Flight History",
-      width: "min(1024px, 95vw)",
-    });
+    open(
+      <FlightsManager
+        screen={screen}
+        missionHistoryEnabled={missionHistoryEnabled}
+        recordAllTopics={recordAllTopics}
+      />,
+      {
+        title: "Flight History",
+        width: "min(1024px, 95vw)",
+      },
+    );
   }
 
   return (

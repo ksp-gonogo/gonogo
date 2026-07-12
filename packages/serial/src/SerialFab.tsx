@@ -1,4 +1,4 @@
-import { Fab, JoystickIcon, useModal } from "@gonogo/ui";
+import { Fab, JoystickIcon, useModal } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import {
   type SerialAggregateStatus,

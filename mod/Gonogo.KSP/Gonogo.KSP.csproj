@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Gonogo</AssemblyName>
+    <RootNamespace>Gonogo.KSP</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- KspManaged: root for the portable KSP/Unity reference DLLs (below).
+       Defaults to the repo's local dev copy so a plain `dotnet build` with
+       no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
+       pointing at a checked-out ksp-managed reference-assembly repo instead
+       (see kerbcam's Plugin.csproj for the precedent this mirrors). -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+  </PropertyGroup>
+
+  <!-- Gonogo.KSP is the ONLY assembly in the mod that touches KSP/Unity types
+       (see mod/Sitrep.Host's IKspHost doc comment). KspHost.cs wraps
+       FlightGlobals/CelestialBody/GameEvents/Planetarium; GonogoAddon.cs is
+       the KSPAddon MonoBehaviour. Everything else (delay engine, transport,
+       record format, System-View mapping) lives in the KSP-free Sitrep.*
+       assemblies below and is headless-tested there. -->
+  <ItemGroup>
+    <!-- KSP / Unity reference assemblies (Private="false" - never copied to
+         output; KSP's own GameData/../KSP_Data/Managed copies satisfy the
+         load at runtime). The repo keeps a portable copy of the ones this
+         project needs in local_docs/telemachus-fork/references/ - see
+         mod/GonogoTelemetry/GonogoTelemetry.csproj for the precedent. -->
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- net472-flavored (Sitrep.Core/Transport/Host all multi-target
+         netstandard2.0;net472 - see their csproj comments) so this
+         net472 consumer resolves an all-net472 DLL set, with no
+         netstandard2.0.dll facade for KSP's Mono to fail to load. -->
+    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" />
+    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" />
+  </ItemGroup>
+
+</Project>

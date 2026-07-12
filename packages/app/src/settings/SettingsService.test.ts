@@ -1,4 +1,4 @@
-import { PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsService } from "./SettingsService";
 

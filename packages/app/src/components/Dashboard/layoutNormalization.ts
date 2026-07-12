@@ -1,4 +1,4 @@
-import { getComponent } from "@gonogo/core";
+import { getComponent } from "@ksp-gonogo/core";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "./index";
 

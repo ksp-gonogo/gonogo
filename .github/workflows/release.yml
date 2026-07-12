@@ -16,7 +16,9 @@ name: release
 #      from the newest release's asset),
 #   3. dispatches publish-images.yml with channel=release so all three
 #      GHCR images get `<version>` + `latest` tags,
-#   4. dispatches deploy.yml so the Pages root flips to this release
+#   4. dispatches publish-mods.yml with channel=release so the four mod
+#      GameData zips get attached to this release and pushed to SpaceDock,
+#   5. dispatches deploy.yml so the Pages root flips to this release
 #      immediately instead of on the next push to main.
 
 on:
@@ -85,7 +87,7 @@ jobs:
         run: pnpm test
 
       - name: Build production site
-        run: pnpm turbo build --filter=@gonogo/app...
+        run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /gonogo/
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
@@ -108,6 +110,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run publish-images.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.version.outputs.tag }}" \
+            -f channel=release
+
+      - name: Publish mod zips
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run publish-mods.yml \
             --repo "${{ github.repository }}" \
             --ref "${{ steps.version.outputs.tag }}" \
             -f channel=release

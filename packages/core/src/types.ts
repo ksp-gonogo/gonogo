@@ -1,5 +1,6 @@
 // Core shared types — expand as features are built
 
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { TelemaachusSchema } from "./schemas/telemachus";
 import type { GonogoTheme } from "./theme";
@@ -20,7 +21,7 @@ export type DataSourceStatus =
  * Built-in schemas are pre-populated here. Third-party packages can add their
  * own data sources by augmenting this interface via declaration merging:
  *
- *   declare module '@gonogo/core' {
+ *   declare module '@ksp-gonogo/core' {
  *     interface DataSourceRegistry {
  *       'my-source': MySourceSchema;
  *     }
@@ -206,6 +207,25 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   mobileHeight?: number;
   dataRequirements?: string[];
+  /**
+   * Topics this widget REQUIRES (Uplink architecture spec §3.2). The widget
+   * only mounts once every one of these Topics is live, so a required Topic's
+   * payload is read non-null through the manifest hook (§3.3). Typed as
+   * `readonly TopicId[]` — the same typed token the read hook is keyed by, so
+   * there is no drift between declaration and read. Authored via
+   * {@link defineTopicManifest} (`channels`), which also yields the bound
+   * `useTelemetry` hook. Coexists with the legacy `dataRequirements` during
+   * migration; the rename/removal is R7 (do-last) territory.
+   */
+  channels?: readonly TopicId[];
+  /**
+   * Topics this widget OPTIONALLY consumes (Uplink architecture spec §3.2).
+   * May be absent at runtime, so every Value read from one is `| undefined`
+   * through the manifest hook (§3.3) — a widget therefore cannot hard-depend
+   * on an optional Topic, statically. Typed as `readonly TopicId[]`. Authored
+   * via {@link defineTopicManifest} (`optionalChannels`).
+   */
+  optionalChannels?: readonly TopicId[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
   /**
@@ -235,6 +255,24 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * context reports `Unknown` and widgets stay live.
    */
   requires?: readonly ComponentRequirement[];
+  /**
+   * Addressable augment slots this widget owns (Uplink architecture spec §4.1).
+   * Each entry is a small, stable API the base widget exposes via
+   * `<AugmentSlot name="…" />`; any Uplink may contribute into it with
+   * `registerAugment`. Slot names are authored up front (`augment-slot-map.md`)
+   * and are discoverable/version-able like any contract surface. Not a
+   * core-widget privilege — an Uplink-owned widget can expose slots too (§4.6).
+   */
+  augmentSlots?: string[];
+  /**
+   * Replacement escape hatch (Uplink architecture spec §4.5): declares that this
+   * widget REPLACES the widget with the given id — the registry suppresses the
+   * original and renders this one instead. This is the "throw the whole widget
+   * away and render mine" case, distinct from (composable) augments. One active
+   * replacement wins; TWO widgets replacing the same target is a surfaced
+   * conflict ({@link getReplacementConflicts}), never silently merged.
+   */
+  replaces?: string;
 }
 
 /**

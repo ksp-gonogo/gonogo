@@ -1,5 +1,5 @@
-import type { DataKey, DataSource, DataSourceStatus } from "@gonogo/core";
-import { PerfBudget } from "@gonogo/core";
+import type { DataKey, DataSource, DataSourceStatus } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import { describe, expect, it, vi } from "vitest";
 
 // `vi.mock("peerjs", ...)` is hoisted, so the factory can't reference

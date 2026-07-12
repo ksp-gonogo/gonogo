@@ -24,25 +24,25 @@ packages/
                  registry; it is not in the station-discovery path
 ```
 
-Package names use the `@gonogo/` scope.
+Package names use the `@ksp-gonogo/` scope.
 
 ## Data flow
 
 ```
-KSP (Telemachus HTTP/WebSocket) ──► Main screen (direct, React Query)
-KSP (kOS via telnet)            ──► @gonogo/telnet-proxy (Fastify + node-pty
-                                       + system telnet) ──► Main screen (WebSocket)
+KSP + Gonogo mod (Sitrep telemetry, WS) ──► Main screen (direct, ws://host:8090)
+KSP (kOS via telnet)                    ──► @ksp-gonogo/telnet-proxy (Fastify + node-pty
+                                              + system telnet) ──► Main screen (WebSocket)
 Main screen ◄──► Station screens (PeerJS data channels, via a public broker)
 ```
 
-Telemachus is a standard HTTP/WebSocket API, so the browser talks to it directly. The telnet proxy is **only** required for kOS; without it every other feature still works. The app shows proxy connection status prominently.
+The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). The telnet proxy is **only** required for kOS; without it every other feature still works. The app shows proxy connection status prominently.
 
 Two design constraints fall out of this:
 
 - **The main screen is the sole KSP data consumer.** Stations never talk to KSP directly; they receive data exclusively from the main screen over PeerJS.
 - **The telnet proxy is optional infrastructure, not a core dependency.** The app must function (minus kOS features) without it.
 
-## `@gonogo/core`
+## `@ksp-gonogo/core`
 
 The foundation for everything extensible.
 
@@ -81,19 +81,19 @@ const execute  = useExecuteAction('telemachus');
 
 These hooks are the **PeerJS boundary**. On the main screen they call the DataSource directly; on a station screen they route through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
 
-## `@gonogo/components`
+## `@ksp-gonogo/components`
 
 The built-in widget library. Each widget file calls `registerComponent()` on import; there is no central index that lists them. The orchestrator just imports the package and registration happens as a side effect.
 
 Widgets declare their `dataRequirements` (e.g. `['vessel.altitude']`) so the orchestrator knows what to subscribe to, and their `actions` so the serial-input layer and the config modal know what they can do. Styling is [styled-components](https://styled-components.com/); widget and sub-component names follow BEM-inspired naming (`AltitudeGauge`, `AltitudeGauge__Value`).
 
-## `@gonogo/app`
+## `@ksp-gonogo/app`
 
 The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator**: a layout engine on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout). It reads the layout config and renders registered widgets by id; it hardcodes no widget. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised format stores a per-breakpoint map (`lg`, `md`, `sm`, …) so the grid reflows across screen sizes. Per-instance widget config is stored alongside the layout.
 - **Telemachus client**: direct HTTP/WS integration using React Query.
-- **kOS WebSocket client** connects to `@gonogo/telnet-proxy` and degrades gracefully if the proxy is unreachable.
+- **kOS WebSocket client** connects to `@ksp-gonogo/telnet-proxy` and degrades gracefully if the proxy is unreachable.
 - **PeerJS integration**: the main screen is the peer host; stations connect as peers. The main screen distributes a serialised data snapshot to all peers; stations can send state back (e.g. GO/NO-GO votes).
 - **Station config** is localStorage-first. Stations can request a config from the main screen over PeerJS, and the main screen can push saved configs to connecting stations.
 
@@ -102,7 +102,7 @@ The Vite SPA. Key responsibilities:
 Widgets and themes follow the same self-registration pattern. An external npm package does exactly this:
 
 ```ts
-import { registerComponent } from '@gonogo/core';
+import { registerComponent } from '@ksp-gonogo/core';
 
 registerComponent({
   id: 'my-custom-gauge',
@@ -117,7 +117,7 @@ registerComponent({
 ```
 
 ```ts
-import { registerTheme } from '@gonogo/core';
+import { registerTheme } from '@ksp-gonogo/core';
 
 registerTheme({
   id: 'retro-nasa',
@@ -126,12 +126,12 @@ registerTheme({
 });
 ```
 
-The built-in `@gonogo/components` package models this pattern exactly; the orchestrator does not treat it as special. Themes are runtime-switchable: the `ThemeProvider` is driven by the active theme from the registry, never hardcoded at build time.
+The built-in `@ksp-gonogo/components` package models this pattern exactly; the orchestrator does not treat it as special. Themes are runtime-switchable: the `ThemeProvider` is driven by the active theme from the registry, never hardcoded at build time.
 
 ## Serial input platform
 
-`@gonogo/serial` is a per-screen input layer that maps physical (or virtual) USB controllers onto widget actions. Device types are user-defined at runtime; device instances are per-screen (localStorage) and come in `web-serial` (real USB) and `virtual` (in-memory) transports. Serial events stay on the screen where the device is plugged in; they are **not** broadcast over PeerJS. See [`packages/serial/README.md`](../packages/serial/README.md) for the full walkthrough.
+`@ksp-gonogo/serial` is a per-screen input layer that maps physical (or virtual) USB controllers onto widget actions. Device types are user-defined at runtime; device instances are per-screen (localStorage) and come in `web-serial` (real USB) and `virtual` (in-memory) transports. Serial events stay on the screen where the device is plugged in; they are **not** broadcast over PeerJS. See [`packages/serial/README.md`](../packages/serial/README.md) for the full walkthrough.
 
 ## Performance budgets
 
-`@gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and fails CI when a soft cap is breached. The `Perf Budgets` dashboard widget shows every registered budget live. Any new data source must register a sample-rate or dispatch-rate budget. Data sources are the highest-frequency surface in the app, and the budget catches a runaway poll, a misconfigured socket, or a duplicated subscription.
+`@ksp-gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and fails CI when a soft cap is breached. The `Perf Budgets` dashboard widget shows every registered budget live. Any new data source must register a sample-rate or dispatch-rate budget. Data sources are the highest-frequency surface in the app, and the budget catches a runaway poll, a misconfigured socket, or a duplicated subscription.

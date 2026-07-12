@@ -1,17 +1,15 @@
 {
   "_meta": {
     "scenario": "docking-misaligned",
-    "notes": "Vessel target at 35m. ax=6.5°, ay=-5.2° — both > 1° so reticle is amber/warn and positioned off-centre. Positive relVel = opening (pilot is drifting away) — Δv row shows warn tone. Tests the extreme angular offset path."
+    "notes": "Vessel target at 35m. vessel.dock.relativePosition has large lateral offsets so the derived line-of-sight angles are well past 1° (~7.8° / -5.9°) — reticle is amber/warn and positioned off-centre. Positive radial rate = opening (pilot is drifting away) — Δv row shows warn tone. Tests the extreme angular offset path."
   },
   "tar.name": "Space Station Hub",
   "tar.type": "Vessel",
-  "tar.distance": 35,
-  "tar.o.relativeVelocity": 1.2,
-  "o.closestTgtApprUT": 0,
-  "t.universalTime": 99000,
-  "dock.ax": 6.5,
-  "dock.ay": -5.2,
-  "dock.az": 3.1,
-  "dock.x": 4.8,
-  "dock.y": -3.6
+  "tar.relativePosition": { "x": 0, "y": 0, "z": 35 },
+  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 1.2 },
+  "dock.relativePosition": { "x": 4.8, "y": -3.6, "z": 35 },
+  "dock.relativeVelocityVec": { "x": 0, "y": 0, "z": 1.2 },
+  "dock.distanceScalar": 35,
+  "dock.forwardDot": 0.985,
+  "o.closestTgtApprUT": 0
 }

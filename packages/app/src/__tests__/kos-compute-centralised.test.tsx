@@ -1,15 +1,15 @@
 /**
  * Integration tests for the centralised kOS compute fanout. Drives the kOS
  * data source through MockKosTelnet (no PeerJS, no xterm), registers a kOS
- * script via the @gonogo/core registry, and asserts that subscribers on
+ * script via the @ksp-gonogo/core registry, and asserts that subscribers on
  * `kos.compute.<id>.<field>` keys share one dispatch per cycle.
  *
  * The matching unit-level tests for the parser + registry live alongside
  * their modules — these tests are about the wiring through KosDataSource.
  */
 
-import { clearRegistry, registerKosScript } from "@gonogo/core";
-import { hashKosScript } from "@gonogo/data";
+import { clearRegistry, registerKosScript } from "@ksp-gonogo/core";
+import { hashKosScript } from "@ksp-gonogo/data";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
 import { MockKosTelnet } from "./fixtures/MockKosTelnet";

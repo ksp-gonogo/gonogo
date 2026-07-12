@@ -1,4 +1,4 @@
-import type { LogEntry } from "@gonogo/logger";
+import type { LogEntry } from "@ksp-gonogo/logger";
 
 export function recentLogsWindow(
   buffer: readonly LogEntry[],

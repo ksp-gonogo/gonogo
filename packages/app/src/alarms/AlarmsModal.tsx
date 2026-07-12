@@ -1,5 +1,5 @@
-import { ACTION_GROUPS, useDataValue } from "@gonogo/core";
-import { useDataSchema, useManeuverNodes } from "@gonogo/data";
+import { ACTION_GROUPS, useDataValue } from "@ksp-gonogo/core";
+import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import {
   Badge,
   DataKeyPicker,
@@ -9,7 +9,7 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import type {
@@ -85,16 +85,12 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
-  const schema = useDataSchema("data");
-  // Numeric-only keys — threshold alarms compare against a number, so
-  // hide enums, booleans, opaque structs and untyped raws.
-  const numericKeys = schema.filter(
-    (k) =>
-      k.unit !== "bool" &&
-      k.unit !== "enum" &&
-      k.unit !== "raw" &&
-      k.group !== "Actions",
-  );
+  // Value-restricted keys — threshold alarms compare against a scalar Value
+  // (per the Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides
+  // enums, booleans, opaque structs, untyped raws, AND any legacy key with
+  // no stream home (the alarm's `readTelemetryNumber` now reads off the
+  // stream — see `AlarmStateMachine`).
+  const numericKeys = useValueKeys("data");
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
   // a handler). Without this, two quick adds anchor to the same UT.

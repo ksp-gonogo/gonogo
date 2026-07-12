@@ -1,111 +1,68 @@
-import type { DataKey } from "@gonogo/core";
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 
-const KEYS: DataKey[] = [
-  { key: "b.o.phaseAngle[0]" },
-  { key: "b.o.phaseAngle[1]" },
-  { key: "b.o.phaseAngle[2]" },
-];
-
-const MUN: CelestialBody = makeBody(0, "Mun");
-const MINMUS: CelestialBody = makeBody(1, "Minmus");
-const DUNA: CelestialBody = makeBody(2, "Duna");
+/**
+ * `usePhaseAngles` rode Telemachus's `b.o.phaseAngle[i]` via the deleted
+ * `getDataSource("data")` source, so it already degraded to empty in the field.
+ * The migration keeps it a strict non-regression — an empty map — until the
+ * client-side phase-angle derivation is built (see the hook's doc comment).
+ * These tests pin that contract so a future derivation lands deliberately, not
+ * by accident.
+ */
 
 function makeBody(index: number, name: string): CelestialBody {
+  // Only `index` is read by any consumer keyed off this hook's result; the rest
+  // are filler so the fixture satisfies the type.
   return {
     index,
     name,
     referenceBody: null,
     radius: null,
     soi: null,
-    hasAtmosphere: null,
-    maxAtmosphere: null,
+    gravParameter: null,
     semiMajorAxis: null,
     eccentricity: null,
     inclination: null,
-    period: null,
     lan: null,
     argumentOfPeriapsis: null,
+    meanAnomalyAtEpoch: null,
+    epoch: null,
+    period: null,
     trueAnomaly: null,
     mass: null,
     geeASL: null,
+    escapeVelocity: null,
+    hillSphere: null,
     rotationPeriod: null,
     tidallyLocked: null,
-    hasOxygen: null,
+    rotates: null,
     hasOcean: null,
+    description: null,
+    atmosphere: null,
+    hasAtmosphere: null,
+    maxAtmosphere: null,
+    hasOxygen: null,
   };
 }
 
-describe("usePhaseAngles", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-
-  beforeEach(async () => {
-    clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-  });
-
-  afterEach(() => {
-    cleanup();
-    buffered.disconnect();
-  });
-
-  it("starts empty and populates as samples arrive", () => {
-    const { result } = renderHook(() => usePhaseAngles([MUN, MINMUS]));
+describe("usePhaseAngles (migration: empty until derived)", () => {
+  it("returns an empty map for any body list", () => {
+    const { result } = renderHook(() =>
+      usePhaseAngles([makeBody(0, "Mun"), makeBody(1, "Minmus")]),
+    );
     expect(result.current.size).toBe(0);
-
-    act(() => {
-      source.emit("b.o.phaseAngle[0]", 12.5);
-    });
-    expect(result.current.get(0)).toBe(12.5);
-
-    act(() => {
-      source.emit("b.o.phaseAngle[1]", 47.2);
-    });
-    expect(result.current.get(1)).toBe(47.2);
   });
 
-  it("rebuilds the subscription set when the body list changes", () => {
+  it("returns a stable map identity across re-renders (no consumer churn)", () => {
     const { result, rerender } = renderHook(
       ({ bodies }: { bodies: CelestialBody[] }) => usePhaseAngles(bodies),
-      { initialProps: { bodies: [MUN, MINMUS] } },
+      { initialProps: { bodies: [makeBody(0, "Mun")] } },
     );
-    act(() => {
-      source.emit("b.o.phaseAngle[0]", 10);
-      source.emit("b.o.phaseAngle[1]", 20);
-    });
-    expect(result.current.size).toBe(2);
-
-    rerender({ bodies: [DUNA] });
-    // Switching frame resets the cache so leftover values from the
-    // previous frame don't bleed into the new one.
-    expect(result.current.size).toBe(0);
-
-    act(() => {
-      source.emit("b.o.phaseAngle[2]", 99);
-    });
-    expect(result.current.get(2)).toBe(99);
-  });
-
-  it("ignores non-numeric / non-finite samples", () => {
-    const { result } = renderHook(() => usePhaseAngles([MUN]));
-    act(() => {
-      source.emit("b.o.phaseAngle[0]", null);
-      source.emit("b.o.phaseAngle[0]", Number.NaN);
-      source.emit("b.o.phaseAngle[0]", "12");
-    });
+    const first = result.current;
+    rerender({ bodies: [makeBody(2, "Duna")] });
+    expect(result.current).toBe(first);
     expect(result.current.size).toBe(0);
   });
 });

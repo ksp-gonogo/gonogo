@@ -1,33 +1,42 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
-import { EmptyState, Panel, PanelTitle, ToggleButton } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  EmptyState,
+  Panel,
+  PanelTitle,
+  StreamStatusBadge,
+  ToggleButton,
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 
 /**
  * Robotics Console (Breaking Ground). Lists the active vessel's robotic
- * hinges, rotation servos and pistons with current-vs-target position, an
- * at-target indicator, and motor / lock controls. The selected joint (first
- * by default) gets a target stepper and is the target of the serial actions.
+ * hinges and pistons with current-vs-target position, an at-target
+ * indicator, and motor / lock controls. The selected joint (first by
+ * default) gets a target stepper and is the target of the serial actions.
  * Rotors live in the separate Rotor Tachometer widget.
  *
- * Reads `robotics.servos` + `robotics.available`; degrades to a muted empty
- * state without Breaking Ground or when no servo is present.
+ * Reads `parts.robotics` (the hinge/piston identity list, filtered by
+ * `type`) + `robotics.available`; degrades to a muted empty state without
+ * Breaking Ground or when no servo is present.
  */
 
 type RoboticsConsoleConfig = Record<string, never>;
 
 const TARGET_STEP = 5;
+const AT_TARGET_EPSILON = 0.5;
 
-export type ServoType = "hinge" | "rotation" | "piston";
+export type ServoType = "hinge" | "piston";
 
 export interface ServoInfo {
-  partId: number;
+  partId: string;
   name: string;
   type: ServoType;
   current: number;
@@ -45,29 +54,40 @@ function num(v: unknown, fallback = 0): number {
 const unitFor = (type: ServoType) => (type === "piston" ? "%" : "°");
 
 /**
- * Parse `robotics.servos`. Returns null when the key is absent (older fork)
- * so the widget can tell "no DLC support" from "no servos on this vessel".
+ * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
+ * down to the hinge/piston entries this widget drives (`type ∈ {"hinge",
+ * "piston"}`; rotors are Rotor Tachometer's domain). `partId` is
+ * `Part.flightID` stringified — stable per-part for the life of the flight
+ * and, unlike `partName`, unique even among symmetric same-named parts (e.g.
+ * a multirotor's N identical arms). Entries with no string `partId` are
+ * dropped — they can't be selected or targeted safely. A hinge's position
+ * comes off `currentAngle`/`targetAngle`; a piston's off `currentExtension`/
+ * `targetExtension`. `atTarget` is derived (no such field on the wire):
+ * current and target within half a unit of each other.
  */
-export function parseServos(raw: unknown): ServoInfo[] | null {
-  if (raw === null || raw === undefined) return null;
-  if (!Array.isArray(raw)) return null;
+export function parseServos(raw: unknown): ServoInfo[] {
+  if (!Array.isArray(raw)) return [];
   const out: ServoInfo[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    if (typeof e.partId !== "number") continue;
-    const type: ServoType =
-      e.type === "rotation" || e.type === "piston" ? e.type : "hinge";
+    if (e.type !== "hinge" && e.type !== "piston") continue;
+    if (typeof e.partId !== "string") continue;
+    const type: ServoType = e.type;
+    const current = num(
+      type === "piston" ? e.currentExtension : e.currentAngle,
+    );
+    const target = num(type === "piston" ? e.targetExtension : e.targetAngle);
     out.push({
       partId: e.partId,
-      name: typeof e.name === "string" ? e.name : `Servo ${e.partId}`,
+      name: typeof e.partName === "string" ? e.partName : `Servo ${e.partId}`,
       type,
-      current: num(e.current),
-      target: num(e.target),
-      atTarget: e.atTarget === true,
-      motorEngaged: e.motorEngaged === true,
-      locked: e.locked === true,
-      torqueLimit: num(e.torqueLimit),
+      current,
+      target,
+      atTarget: Math.abs(current - target) < AT_TARGET_EPSILON,
+      motorEngaged: e.servoMotorIsEngaged === true,
+      locked: e.servoIsLocked === true,
+      torqueLimit: num(e.servoMotorLimit),
     });
   }
   return out;
@@ -105,20 +125,21 @@ export type RoboticsConsoleActions = typeof roboticsActions;
 function RoboticsConsoleComponent(
   _: Readonly<ComponentProps<RoboticsConsoleConfig>>,
 ) {
-  const servosRaw = useDataValue("data", "robotics.servos");
+  const roboticsRaw = useDataValue("data", "parts.robotics");
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
-  const servos = parseServos(servosRaw) ?? [];
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const servos = parseServos(roboticsRaw);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
 
-  const setTarget = (id: number, value: number) =>
+  const setTarget = (id: string, value: number) =>
     void execute(`robotics.servo.setTarget[${id},${Math.round(value)}]`);
-  const setMotor = (id: number, engaged: boolean) =>
+  const setMotor = (id: string, engaged: boolean) =>
     void execute(`robotics.servo.setMotor[${id},${engaged}]`);
-  const setLock = (id: number, locked: boolean) =>
+  const setLock = (id: string, locked: boolean) =>
     void execute(`robotics.servo.setLock[${id},${locked}]`);
 
   useActionInput<RoboticsConsoleActions>({
@@ -153,7 +174,10 @@ function RoboticsConsoleComponent(
   if (servos.length === 0 || !selected) {
     return (
       <Panel>
-        <PanelTitle>ROBOTICS</PanelTitle>
+        <TitleRow>
+          <PanelTitle>ROBOTICS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -167,7 +191,10 @@ function RoboticsConsoleComponent(
 
   return (
     <Panel>
-      <PanelTitle>ROBOTICS</PanelTitle>
+      <TitleRow>
+        <PanelTitle>ROBOTICS</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <Body>
         <Readout>
           <Current>
@@ -258,6 +285,14 @@ function RoboticsConsoleComponent(
     </Panel>
   );
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div`
   display: flex;
@@ -407,7 +442,7 @@ registerComponent<RoboticsConsoleConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },
   component: RoboticsConsoleComponent,
-  dataRequirements: ["robotics.servos", "robotics.available"],
+  dataRequirements: ["parts.robotics", "robotics.available"],
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,

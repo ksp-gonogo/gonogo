@@ -4,7 +4,7 @@
  * KOSUndefinedIdentifierException), not by transport / proxy / session
  * bookkeeping.
  *
- * Lives in @gonogo/data so both the in-process KosDataSource (app
+ * Lives in @ksp-gonogo/data so both the in-process KosDataSource (app
  * package) and the PeerClient resolver (app package) and the consumer
  * hook `useKosWidget` (data package) can construct and identify the same
  * error class without a layering inversion.

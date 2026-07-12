@@ -91,7 +91,7 @@ jobs:
           fi
 
       - name: Build dev-channel app
-        run: pnpm turbo build --filter=@gonogo/app...
+        run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /gonogo/dev/
           GONOGO_VERSION_SUFFIX: -dev.${{ steps.sha.outputs.short }}
@@ -129,7 +129,7 @@ jobs:
             VITE_BASE_PATH=/gonogo/ \
             GONOGO_VERSION_SUFFIX="-dev.${{ steps.sha.outputs.short }}" \
             VITE_AXIOM_TOKEN="${{ secrets.VITE_AXIOM_TOKEN }}" \
-              pnpm --filter @gonogo/app build
+              pnpm --filter @ksp-gonogo/app build
             cp -R packages/app/dist/. site/
           fi
           # Pages only serves the ROOT 404.html as the SPA fallback, and

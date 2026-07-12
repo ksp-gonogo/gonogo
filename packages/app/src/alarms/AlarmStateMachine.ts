@@ -1,4 +1,5 @@
-import { slopeFit } from "@gonogo/core";
+import { slopeFit } from "@ksp-gonogo/core";
+import { getContractsActive, getValue } from "@ksp-gonogo/sitrep-client";
 import type {
   Alarm,
   ContractParameterTrigger,
@@ -15,11 +16,6 @@ const THRESHOLD_SAMPLE_COUNT = 16;
 const MIN_SAMPLES_FOR_SLOPE = 4;
 const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
 
-export interface TelemetryReader {
-  getLatestValue(key: string): unknown;
-  execute(action: string): Promise<void>;
-}
-
 /**
  * Owns the per-tick alarm state derivation: contiguous-match tracking for
  * threshold triggers, the rolling sample buffers used by the warp-to ETA
@@ -28,13 +24,17 @@ export interface TelemetryReader {
  * controller queries.
  *
  * The host owns the alarm array and `observedUT`; this module reads them
- * through getter callbacks so it never holds stale copies.
+ * through getter callbacks so it never holds stale copies. Threshold
+ * `dataKey` reads and the contract-parameter trigger's `contracts.active`
+ * read both come off the stream now (`getValue`/`getContractsActive`,
+ * `@ksp-gonogo/sitrep-client`) rather than the legacy `"data"` `DataSource` —
+ * `DataKeyPicker`'s Value restriction (`useValueKeys`) guarantees a
+ * `ThresholdTrigger.dataKey` always has a stream home.
  */
 export class AlarmStateMachine {
   private thresholdSamples = new Map<string, ThresholdSample[]>();
 
   constructor(
-    private readonly telemetry: TelemetryReader | null,
     private readonly getAlarms: () => readonly Alarm[],
     private readonly getObservedUT: () => number | null,
   ) {}
@@ -189,18 +189,20 @@ export class AlarmStateMachine {
   }
 
   private evalContractParameter(t: ContractParameterTrigger): boolean {
-    const raw = this.telemetry?.getLatestValue("contracts.active");
-    if (!Array.isArray(raw)) return false;
-    for (const c of raw) {
+    const active = getContractsActive();
+    if (!Array.isArray(active)) return false;
+    for (const c of active) {
       if (!c || typeof c !== "object") continue;
-      const ce = c as Record<string, unknown>;
-      if (ce.id !== t.contractId) continue;
-      if (!Array.isArray(ce.parameters)) return false;
-      for (const p of ce.parameters) {
+      // `CareerContract.id` is a wire string; `ContractParameterTrigger
+      // .contractId` predates any real contract-id picker UI and is still
+      // `number` (see `types.ts`) — compare as strings rather than widen
+      // the trigger's own persisted shape here.
+      if (c.id !== String(t.contractId)) continue;
+      if (!Array.isArray(c.parameters)) return false;
+      for (const p of c.parameters) {
         if (!p || typeof p !== "object") continue;
-        const pe = p as Record<string, unknown>;
-        if (pe.title !== t.parameterTitle) continue;
-        return pe.state === t.targetState;
+        if (p.title !== t.parameterTitle) continue;
+        return p.state === t.targetState;
       }
       return false;
     }
@@ -248,8 +250,8 @@ export class AlarmStateMachine {
   }
 
   private readTelemetryNumber(key: string): number | null {
-    const v = this.telemetry?.getLatestValue(key);
-    return typeof v === "number" && Number.isFinite(v) ? v : null;
+    const v = getValue("data", key);
+    return v === undefined ? null : v;
   }
 }
 

@@ -1,11 +1,11 @@
-import type { BodyDefinition } from "@gonogo/core";
+import type { BodyDefinition } from "@ksp-gonogo/core";
 import {
   type DecodedBiomes,
   type DecodedHeights,
   tileToPixelRect,
   useScanBiomeGrid,
   useScanHeightGrid,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import { useEffect, useState } from "react";
 
 const BIOME_CANVAS_W = 2048;

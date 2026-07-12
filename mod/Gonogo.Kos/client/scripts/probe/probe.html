@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>kOS probe</title>
+    <style id="probe-theme">/* injected by the render driver from packages/app/src/styles/global.css */</style>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-surface-app, #0d0d0d);
+        color: var(--color-text-primary, #ccc);
+        font-family: var(--font-family-mono, ui-monospace, monospace);
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #root {
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./probe-entry.bundle.js"></script>
+  </body>
+</html>

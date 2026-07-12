@@ -2,12 +2,12 @@ import type {
   KerbcastDataChannel,
   KerbcastPeer,
   KerbcastTransport,
-} from "@jonpepler/kerbcast";
+} from "@ksp-gonogo/kerbcast";
 
 /**
  * Controllable in-process fake for kerbcast sidecar sessions.
  *
- * Prefer the SDK's `MockSidecar` (`@jonpepler/kerbcast/testing`) — the
+ * Prefer the SDK's `MockSidecar` (`@ksp-gonogo/kerbcast/testing`) — the
  * protocol-level canonical fake, which speaks the full wire protocol including
  * the dynamic slot subscription. The component tests (`CameraFeed`) and the
  * dynamic/broker `KerbcastDataSource` tests already use it.
@@ -61,7 +61,7 @@ export interface MockKerbcastSession {
    * camera order from the `/offer` answer's `cameras` array (default 0).
    *
    * Slot-aware (dynamic-mode) delivery and the subscribe → slot-map round-trip
-   * live in the SDK's canonical `MockSidecar` (`@jonpepler/kerbcast/testing`) —
+   * live in the SDK's canonical `MockSidecar` (`@ksp-gonogo/kerbcast/testing`) —
    * use that for dynamic-subscription tests rather than extending this fake.
    */
   deliverTrack(track: MediaStreamTrack, idx?: number): void;

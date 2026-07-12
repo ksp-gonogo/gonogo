@@ -6,7 +6,7 @@ import {
   PrimaryButton,
   StatusIndicator,
   useModal,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";

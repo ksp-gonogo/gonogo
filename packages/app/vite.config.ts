@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
 
-// Resolve every @gonogo/* workspace package to its TypeScript source so
+// Resolve every @ksp-gonogo/* workspace package to its TypeScript source so
 // Vite compiles it on-the-fly rather than serving pre-built dist files.
 // This eliminates the stale-dist problem: the source is always current,
 // no separate build step is needed before starting the dev server, and

@@ -1,5 +1,5 @@
-import { useGameContext } from "@gonogo/core";
-import { FabPrompt } from "@gonogo/ui";
+import { useGameContext } from "@ksp-gonogo/core";
+import { FabPrompt } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";

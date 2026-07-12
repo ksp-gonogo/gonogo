@@ -1,12 +1,12 @@
-import type { ComponentProps } from "@gonogo/core";
-import { PerfBudget, registerComponent } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { PerfBudget, registerComponent } from "@ksp-gonogo/core";
 import {
   BigReadout,
   EmptyState,
   Panel,
   PanelTitle,
   ReadoutCaption,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 

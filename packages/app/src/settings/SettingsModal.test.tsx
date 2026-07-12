@@ -2,9 +2,10 @@ import {
   clearRegistry,
   registerDataSource,
   ScreenProvider,
-} from "@gonogo/core";
-import { cleanup, render, screen } from "@testing-library/react";
+} from "@ksp-gonogo/core";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
 import { SettingsService } from "./SettingsService";
@@ -14,12 +15,12 @@ import { SettingsService } from "./SettingsService";
  * tab-gating tests don't exercise.
  */
 
-vi.mock("@gonogo/serial", () => ({
+vi.mock("@ksp-gonogo/serial", () => ({
   SerialDevicesMenu: () => null,
   useSerialAggregateStatus: () => "ok",
 }));
 
-vi.mock("@gonogo/components", () => ({
+vi.mock("@ksp-gonogo/components", () => ({
   DataSourceStatusComponent: () => null,
 }));
 
@@ -39,8 +40,9 @@ vi.mock("../logs/LogsManager", () => ({
   LogsManager: () => null,
 }));
 
-vi.mock("@gonogo/kerbcast", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@gonogo/kerbcast")>();
+vi.mock("@ksp-gonogo/kerbcast-feed", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@ksp-gonogo/kerbcast-feed")>();
   return {
     ...actual,
     KerbcastSettings: () => <div>kerbcast-settings-stub</div>,
@@ -94,7 +96,7 @@ function makeKerbcastStub() {
     setThrottleMainScreen: async () => {},
     getClient: () =>
       ({}) as unknown as ReturnType<
-        import("@gonogo/kerbcast").KerbcastDataSource["getClient"]
+        import("@ksp-gonogo/kerbcast-feed").KerbcastDataSource["getClient"]
       >,
   };
 }
@@ -132,5 +134,61 @@ describe("SettingsModal Kerbcast tab gating", () => {
     expect(
       screen.queryByRole("tab", { name: /kerbcast/i }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsModal — dependsOn (nested/inert sub-toggle)", () => {
+  const PARENT_ID = "test.parentToggle";
+  const CHILD_ID = "test.childToggle";
+
+  beforeEach(() => {
+    registerSetting({
+      id: PARENT_ID,
+      type: "boolean",
+      label: "Parent toggle",
+      category: "Test",
+      defaultValue: true,
+      screens: ["main"],
+    });
+    registerSetting({
+      id: CHILD_ID,
+      type: "boolean",
+      label: "Child toggle",
+      category: "Test",
+      defaultValue: false,
+      screens: ["main"],
+      dependsOn: PARENT_ID,
+    });
+  });
+
+  it("child switch is enabled while the parent is on, disabled the instant it's toggled off", () => {
+    renderModal("main");
+    const parentSwitch = screen.getByRole("checkbox", {
+      name: /parent toggle/i,
+    });
+    const childSwitch = screen.getByRole("checkbox", {
+      name: /child toggle/i,
+    });
+
+    expect(parentSwitch).not.toBeDisabled();
+    expect(childSwitch).not.toBeDisabled();
+
+    fireEvent.click(parentSwitch);
+    expect(childSwitch).toBeDisabled();
+  });
+
+  it("child switch starts disabled when the parent's default is off", () => {
+    registerSetting({
+      id: PARENT_ID,
+      type: "boolean",
+      label: "Parent toggle",
+      category: "Test",
+      defaultValue: false,
+      screens: ["main"],
+    });
+    renderModal("main");
+    expect(
+      screen.getByRole("checkbox", { name: /child toggle/i }),
+    ).toBeDisabled();
   });
 });

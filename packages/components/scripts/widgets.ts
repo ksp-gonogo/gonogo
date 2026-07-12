@@ -477,9 +477,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Minimum registered width — tight list, source tags wrap.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — mission head + unified list.
+      // Default registered size — unified contract-parameter list.
       { name: "default-5x8", w: 5, h: 8 },
-      // Tall — mission objectives + several contracts.
+      // Tall — several active contracts.
       { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
@@ -1019,45 +1019,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // SCANsat. Fixture is SYNTHETIC (no live capture) — structured so the
-    // biome minimap + fog swath + anomaly markers + coverage bars all render.
-    widgetId: "scanning",
-    fixturesPath: "Scanning/__fixtures__",
-    outPath: "renders/scanning-widget",
-    modes: [
-      // minSize 3×4 — coverage bars only (minimap needs more room).
-      { name: "min-3x4", w: 3, h: 4 },
-      // defaultSize 6×10 — minimap + coverage + scanner list.
-      { name: "default-6x10", w: 6, h: 10 },
-      // tall — full minimap + every section.
-      { name: "tall-6x16", w: 6, h: 16 },
-      // wide — minimap has room alongside the readouts.
-      { name: "wide-12x10", w: 12, h: 10 },
-    ],
-  },
-  {
-    // kOS Processors. Fixture is SYNTHETIC (no live LIST PROCESSORS capture)
-    // — three CPUs (tagged 'system', tagged boot, untagged idle) so the row
-    // chrome, mode dots, and pills all render. Reads the `"kos"` source +
-    // `useKosScriptStatus`; the probe registers an unbuffered ProbeKosDataSource
-    // under id "kos" with a static healthy topic status.
-    widgetId: "kos-processors",
-    fixturesPath: "KosProcessors/__fixtures__",
-    outPath: "renders/kos-processors-widget",
-    modes: [
-      // minSize 3×3 — neither full nor compact rows; compact summary count.
-      { name: "tiny-3x3", w: 3, h: 3 },
-      // rows>=4, cols<5 — compact rows (tag + mode only, no pills).
-      { name: "compact-4x5", w: 4, h: 5 },
-      // rows>=6, cols>=5 — full rows: tag, mode, part title, vol/boot pills.
-      { name: "default-6x8", w: 6, h: 8 },
-      // tall — full rows with generous scroll room.
-      { name: "tall-6x14", w: 6, h: 14 },
-      // wide — full rows, horizontal breathing room.
-      { name: "wide-10x8", w: 10, h: 8 },
-    ],
-  },
-  {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
     // `"data"` source (tar.* / b.* / o.* keys) — no probe kos wiring needed.
     // Defaults to the Bodies tab, so the base modes show the body tree +
@@ -1163,12 +1124,12 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
  * pointer emulation, so the screen's own `@media` rules engage). Driven from
  * the same `render-widget` CLI via `--screen <id>` / `--screens`.
  *
- * Why screens live here and not in `@gonogo/app`: the harness tooling
+ * Why screens live here and not in `@ksp-gonogo/app`: the harness tooling
  * (playwright / esbuild / tsx) and the probe entries all live in
- * `@gonogo/components`, and app→components is the existing dependency edge —
+ * `@ksp-gonogo/components`, and app→components is the existing dependency edge —
  * a screen driver in app would have no harness to call. The screen VIEW
  * (`StationConnectView`) is a pure presentational component exported from
- * `@gonogo/components` and imported back by app's StationScreen, so there is
+ * `@ksp-gonogo/components` and imported back by app's StationScreen, so there is
  * a single source of the markup the harness verifies.
  */
 const SCREENS: ScreenRenderConfig[] = [

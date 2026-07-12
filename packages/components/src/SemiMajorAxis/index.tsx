@@ -1,13 +1,19 @@
-import type { ComponentProps } from "@gonogo/core";
-import { formatDistance, registerComponent, useDataValue } from "@gonogo/core";
-import { useDataSeries } from "@gonogo/data";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  formatDistance,
+  registerComponent,
+  useDataStreamStatus,
+  useTelemetry,
+} from "@ksp-gonogo/core";
+import { useDataSeries } from "@ksp-gonogo/data";
 import {
   EmptyState,
   Panel,
   PanelSubtitle,
   PanelTitle,
   Sparkline,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -19,10 +25,26 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  const sma = useDataValue<number>("data", "o.sma");
-  const referenceBody = useDataValue<string>("data", "o.referenceBody");
+  // Both reads are clean-home stream Topics (no gaps left),
+  // so this widget rides the Uplink stream end-to-end. Read via `useTelemetry`
+  // (the canonical read hook — `useDataValue` is a deprecated alias): the
+  // two-arg form resolves each key through `mapTopic` to its stream home —
+  // `o.sma` -> the raw `vessel.orbit.sma` field-subtopic, `o.referenceBody` ->
+  // the derived `vessel.state.referenceBodyName` display-map (the SDK resolves
+  // `vessel.orbit.referenceBodyIndex` against `system.bodies`). Neither key is
+  // gapped anymore; the Telemachus read-fallback is exercised nowhere in this
+  // widget's own tests (see `stream.test.tsx` / `dual-run.test.tsx`).
+  const sma = useTelemetry<number>("data", "o.sma");
+  const referenceBody = useTelemetry<string>("data", "o.referenceBody");
+  // `useDataSeries` (sparkline history) carries the same stream shim — `o.sma`
+  // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
+  // is carried this sparkline reads its window straight off the
+  // `TimelineStore`'s buffered history, same as the headline `sma` value
+  // above. See `stream.test.tsx` for the end-to-end proof.
   const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
+  // Connectivity indicator keyed off the headline `o.sma` -> `vessel.orbit.sma`.
+  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const cols = w ?? 4;
   const rows = h ?? 4;
@@ -73,7 +95,10 @@ function SemiMajorAxisComponent({
   if (sma === undefined || !Number.isFinite(sma)) {
     return (
       <Panel>
-        <PanelTitle>SMA</PanelTitle>
+        <TitleRow>
+          <PanelTitle>SMA</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState>No orbit data</EmptyState>
       </Panel>
     );
@@ -81,7 +106,10 @@ function SemiMajorAxisComponent({
 
   return (
     <Panel>
-      <PanelTitle>SMA</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SMA</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle>
           Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
@@ -109,6 +137,14 @@ function SemiMajorAxisComponent({
     </Panel>
   );
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div`
   flex: 1;

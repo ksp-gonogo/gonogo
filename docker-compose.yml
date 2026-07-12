@@ -1,7 +1,7 @@
 services:
   telnet-proxy:
     build:
-      # Repo-root context so pnpm can resolve workspace deps (@gonogo/logger).
+      # Repo-root context so pnpm can resolve workspace deps (@ksp-gonogo/logger).
       context: .
       dockerfile: packages/telnet-proxy/Dockerfile
     ports:
@@ -25,7 +25,7 @@ services:
   # working relay. See packages/relay/src/coturnManager.ts.
   relay:
     build:
-      # Repo-root context so pnpm can resolve workspace deps (@gonogo/logger).
+      # Repo-root context so pnpm can resolve workspace deps (@ksp-gonogo/logger).
       context: .
       dockerfile: packages/relay/Dockerfile
     ports:

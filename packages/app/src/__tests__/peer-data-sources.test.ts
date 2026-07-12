@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceStatus } from "@gonogo/core";
+import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";

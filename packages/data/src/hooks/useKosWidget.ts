@@ -1,9 +1,9 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isKosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
 import { isScriptable } from "../kos/ScriptableDataSource";
-import { useReplayActive } from "../replay/useReplayActive";
+import { useReplaySessionActive } from "../replaySession/ReplaySessionProvider";
 
 /**
  * Interval-mode circuit breaker: after this many *consecutive* script
@@ -38,7 +38,7 @@ export type KosWidgetArg =
  * Optional bundled-script payload forwarded to executeScript so the kOS
  * data source can keep the on-volume copy of `script` in sync with the
  * bundled body — see packages/app/src/dataSources/kosWrapper.ts. Defined
- * here (rather than in @gonogo/app) so widgets can pass it through the
+ * here (rather than in @ksp-gonogo/app) so widgets can pass it through the
  * hook without an app-package dependency.
  */
 export interface KosManagedScript {
@@ -163,7 +163,7 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   // Replay-mode guard read from a ref so the dispatch closure stays
   // stable across renders. Refused dispatches surface a clear error
   // instead of returning empty data from the no-op replay stub.
-  const replayActive = useReplayActive();
+  const replayActive = useReplaySessionActive();
   const replayActiveRef = useRef(replayActive);
   replayActiveRef.current = replayActive;
   // Consecutive-script-error count for the interval breaker. Only
@@ -206,10 +206,10 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   const dispatch = useCallback(() => {
     if (pendingRef.current) return;
     if (replayActiveRef.current) {
-      // Replay mode: the kOS source is the FlightReplayDataSource, which
-      // has a no-op `executeScript`. Refusing here surfaces a clear
-      // status to the widget instead of returning an empty payload that
-      // the user might mistake for "kOS returned nothing".
+      // Replay mode: a replayed mission has no live kOS CPU to run scripts
+      // against. Refusing here surfaces a clear status to the widget
+      // instead of returning an empty payload that the user might mistake
+      // for "kOS returned nothing".
       setError(new Error("kOS dispatch disabled during flight replay"));
       return;
     }

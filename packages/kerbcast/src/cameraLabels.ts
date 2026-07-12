@@ -1,4 +1,4 @@
-// Re-exports from the shared @jonpepler/kerbcast-react package.
+// Re-exports from the shared @ksp-gonogo/kerbcast-react package.
 // gonogo consumers (CameraFeed picker, DistanceToTarget docking HUD) import
 // from this module; the implementation now lives in the shared package.
 //
@@ -9,4 +9,4 @@
 export {
   buildCameraLabeler,
   type LabelableCamera,
-} from "@jonpepler/kerbcast-react";
+} from "@ksp-gonogo/kerbcast-react";

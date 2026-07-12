@@ -1,0 +1,369 @@
+using System.Collections.Generic;
+using Sitrep.Contract;
+
+namespace Sitrep.Host
+{
+    /// <summary>
+    /// KSP-free mapping logic for the "System View" typed stream topic
+    /// (<see cref="Topic"/> = <c>"system.bodies"</c>). Reads the raw body
+    /// data an <see cref="IKspHost.Sample"/> snapshot carries and produces
+    /// the clean, typed <c>system.bodies</c> wire payload — fixing the
+    /// Telemachus orbit warts catalogued in
+    /// <c>local_docs/telemetry-mod/telemachus-api-issues.md</c> (O-1, O-7,
+    /// O-9, N-2) rather than reproducing them: an explicit parent-index tree
+    /// instead of flat <c>b.*[idx]</c> keys, no in-band numeric sentinels for
+    /// missing data, and no <c>eccentricAnomaly</c> field (Telemachus's
+    /// <c>OrbitPatchJSONFormatter</c> assigns that key the body's
+    /// eccentricity — a confirmed copy-paste bug; see O-1).
+    ///
+    /// This class does NOT touch the Courier/transport — Task 4's
+    /// MonoBehaviour pipeline calls <see cref="BuildSystemBodies"/> and
+    /// records the result with <c>courier.record("system", Topic, payload, ut)</c>.
+    ///
+    /// <para><b>Raw snapshot encoding (Task 4 must populate exactly this
+    /// shape in <see cref="KspSnapshot.Values"/>):</b></para>
+    /// <code>
+    /// snapshot.Values["bodies"] = List&lt;object?&gt;  // one entry per celestial body
+    ///   each entry = Dictionary&lt;string, object?&gt; {
+    ///     "name":                string   — body name (e.g. "Kerbin")
+    ///     "index":                int      — this body's position in the list (stable per session)
+    ///     "parentIndex":          int      — index of the body it orbits; OMITTED (or explicit null)
+    ///                                        for the root star — never a sentinel like -1
+    ///     "radius":               double   — mean radius, metres
+    ///     "sma":                  double   — semi-major axis, metres
+    ///     "ecc":                  double   — eccentricity
+    ///     "inc":                  double   — inclination, degrees
+    ///     "lan":                  double   — longitude of ascending node, degrees
+    ///     "argPe":                double   — argument of periapsis, degrees
+    ///     "meanAnomalyAtEpoch":   double   — mean anomaly at epoch, radians
+    ///     "epoch":                double   — epoch UT, seconds
+    ///   }
+    /// </code>
+    /// The seven orbital-element keys (everything but name/index/parentIndex/
+    /// radius) are meaningless for the root star and MAY be omitted there —
+    /// <see cref="BuildSystemBodies"/> ignores them whenever
+    /// <c>parentIndex</c> is absent, regardless of what else is present.
+    /// ANY field may be omitted (or explicitly <c>null</c>) when the live
+    /// game genuinely doesn't have the value yet; <see cref="BuildSystemBodies"/>
+    /// maps that to <c>null</c> in the output, never a sentinel. Numbers may
+    /// arrive as any boxed CLR numeric type (<c>int</c>/<c>long</c>/<c>float</c>/
+    /// <c>double</c>) from a live <c>KspHost</c>, or uniformly as <c>double</c>
+    /// after a <see cref="RecordedSessionCodec"/> JSON round-trip (the
+    /// <see cref="ReplayKspHost"/> path) — both are accepted.
+    ///
+    /// <para><b>The <c>system.bodies</c> payload this produces</b> (a plain
+    /// <c>Dictionary&lt;string, object?&gt;</c> / <c>List&lt;object?&gt;</c> /
+    /// scalar tree — the exact shape <c>Sitrep.Core.Serialization.JsonWriter.AppendValue</c>
+    /// already walks, so it drops straight into a
+    /// <c>StreamData&lt;object?&gt;.Payload</c> and serializes via the
+    /// existing <c>EnvelopeCodec.WriteStreamData</c> with no writer changes):
+    /// </para>
+    /// <code>
+    /// {
+    ///   "bodies": [
+    ///     {
+    ///       "name":        string | null,
+    ///       "index":       int,
+    ///       "parentIndex": int | null,       // null ONLY for the root star
+    ///       "radius":      double | null,
+    ///       "orbit": {                        // null ONLY for the root star
+    ///         "sma": double|null, "ecc": double|null, "inc": double|null,
+    ///         "lan": double|null, "argPe": double|null,
+    ///         "meanAnomalyAtEpoch": double|null, "epoch": double|null
+    ///       } | null
+    ///       // deliberately NO "eccentricAnomaly" field — see O-1 above.
+    ///     },
+    ///     ...
+    ///   ]
+    /// }
+    /// </code>
+    /// </summary>
+    public static class SystemViewProvider
+    {
+        /// <summary>The typed stream topic this provider feeds.</summary>
+        public const string Topic = "system.bodies";
+
+        /// <summary>
+        /// The M3 R3 roster capture-add — every known vessel (not just the
+        /// active one), for TargetPicker-style widgets that need to list
+        /// "what could I target" without the player having flown each one
+        /// yet. See <see cref="BuildSystemVessels"/>.
+        /// </summary>
+        public const string VesselsTopic = "system.vessels";
+
+        /// <summary>
+        /// The R6 revert-availability capture-add — whether the two stock
+        /// in-flight "revert" actions are currently available, split out
+        /// cheaply here (rather than waiting on the LARGE space-center
+        /// provider) so LaunchDirector can gate its revert controls. Feeds the
+        /// <c>ksp.revertAvailability</c> Topic; see
+        /// <see cref="BuildRevertAvailability"/>.
+        /// </summary>
+        public const string RevertTopic = "ksp.revertAvailability";
+
+        /// <summary>
+        /// The <c>game.dlc</c> capability channel — which KSP expansions are
+        /// installed (Breaking Ground / Making History). A ground-side,
+        /// scene-independent game fact (the <c>Meta.Dlc</c> path), so a widget
+        /// can tell "no DLC" apart from "DLC present, nothing deployed yet."
+        /// See <see cref="BuildGameDlc"/>.
+        /// </summary>
+        public const string DlcTopic = "game.dlc";
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"bodies"</c> value (see
+        /// the class doc for the encoding) to the clean <c>system.bodies</c>
+        /// payload. Returns <c>null</c> — not an empty-bodies payload — when
+        /// the snapshot doesn't carry a <c>"bodies"</c> list at all (e.g. no
+        /// sample has landed yet), so a caller can distinguish "no data yet"
+        /// from "zero bodies reported."
+        /// </summary>
+        public static object? BuildSystemBodies(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("bodies", out var rawBodies) || !(rawBodies is IEnumerable<object?> rawList))
+            {
+                return null;
+            }
+
+            var bodies = new List<object?>();
+            var i = 0;
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is IDictionary<string, object?> rawBody)
+                {
+                    bodies.Add(BuildBody(rawBody, i));
+                }
+                i++;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["bodies"] = bodies,
+            };
+        }
+
+        private static Dictionary<string, object?> BuildBody(IDictionary<string, object?> raw, int fallbackIndex)
+        {
+            var index = GetInt(raw, "index") ?? fallbackIndex;
+            var parentIndex = GetInt(raw, "parentIndex");
+
+            return new Dictionary<string, object?>
+            {
+                ["name"] = GetString(raw, "name"),
+                ["index"] = index,
+                ["parentIndex"] = parentIndex,
+                ["radius"] = GetDouble(raw, "radius"),
+                // Orbit is meaningless for the root star (no parent) — suppress it
+                // entirely rather than emit junk elements, per the fix for
+                // Telemachus's "sun has a bogus orbit" wart.
+                ["orbit"] = parentIndex.HasValue ? BuildOrbit(raw) : null,
+                // Almanac enrichment — the "better-than-Telemachus" field set.
+                // gravParameter is the single compute primitive; mass, surface
+                // gravity, escape velocity and period are ALL derived client-side
+                // from it (never on the wire). See the contract's BodyEntry doc.
+                ["gravParameter"] = GetDouble(raw, "gravParameter"),
+                ["sphereOfInfluence"] = GetDouble(raw, "sphereOfInfluence"),
+                ["rotationPeriod"] = GetDouble(raw, "rotationPeriod"),
+                ["tidallyLocked"] = GetBool(raw, "tidallyLocked"),
+                ["hasOcean"] = GetBool(raw, "hasOcean"),
+                ["description"] = GetString(raw, "description"),
+                // Nested atmosphere object — null when the body is airless, so a
+                // client tells "airless" apart from "no data" (same null-not-
+                // sentinel discipline the orbit block uses for the root star).
+                ["atmosphere"] = BuildAtmosphere(raw),
+            };
+        }
+
+        /// <summary>
+        /// Assembles the nested <c>atmosphere</c> object from the raw body dict's
+        /// flat atmosphere keys, or returns <c>null</c> when the body has no
+        /// atmosphere (<c>hasAtmosphere</c> not <c>true</c>) — the client then
+        /// renders "None" rather than an empty descriptor.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildAtmosphere(IDictionary<string, object?> raw)
+        {
+            if (GetBool(raw, "hasAtmosphere") != true)
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["depth"] = GetDouble(raw, "atmosphereDepth"),
+                ["hasOxygen"] = GetBool(raw, "atmosphereHasOxygen"),
+                ["seaLevelPressure"] = GetDouble(raw, "atmosphereSeaLevelPressure"),
+            };
+        }
+
+        private static Dictionary<string, object?> BuildOrbit(IDictionary<string, object?> raw)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["sma"] = GetDouble(raw, "sma"),
+                ["ecc"] = GetDouble(raw, "ecc"),
+                ["inc"] = GetDouble(raw, "inc"),
+                ["lan"] = GetDouble(raw, "lan"),
+                ["argPe"] = GetDouble(raw, "argPe"),
+                ["meanAnomalyAtEpoch"] = GetDouble(raw, "meanAnomalyAtEpoch"),
+                ["epoch"] = GetDouble(raw, "epoch"),
+                // NO "eccentricAnomaly" — Telemachus's OrbitPatchJSONFormatter
+                // assigns that key the body's ECCENTRICITY (a confirmed
+                // copy-paste bug; see telemachus-api-issues.md O-1). If a real
+                // anomaly is ever needed, compute it correctly under its own
+                // name rather than resurrect this one.
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"vessels"</c> list
+        /// (<c>Gonogo.KSP.KspHost.BuildVesselRosterEntry</c>'s shape — id/
+        /// name/vesselType/situation/mainBody, primitives only) to the
+        /// <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
+        /// name, vesselType, situation, bodyIndex }, ... ] }</c>. Follows
+        /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
+        /// (no separate Sitrep.Contract POCO — this channel isn't
+        /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
+        /// <c>system</c>-domain snapshot list, same shape class as
+        /// <c>system.bodies</c>). Returns <c>null</c> — not an empty-roster
+        /// payload — when the snapshot doesn't carry a <c>"vessels"</c> list
+        /// at all (main menu / nothing loaded yet), same "no data yet" vs.
+        /// "zero vessels" distinction <see cref="BuildSystemBodies"/> makes.
+        /// A roster entry with no resolvable <c>id</c> is dropped, never
+        /// emitted with a fabricated one (R1).
+        /// </summary>
+        public static object? BuildSystemVessels(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("vessels", out var rawVessels) || !(rawVessels is IEnumerable<object?> rawList))
+            {
+                return null;
+            }
+
+            var vessels = new List<object?>();
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is not IDictionary<string, object?> rawVessel)
+                {
+                    continue;
+                }
+
+                var id = GetString(rawVessel, "id");
+                if (string.IsNullOrEmpty(id))
+                {
+                    // No stable subject id -- can't attribute this roster
+                    // entry to anything (same R1 rule vessel.identity's
+                    // BuildIdentity applies to the active vessel).
+                    continue;
+                }
+
+                var mainBodyName = GetString(rawVessel, "mainBody");
+                int? bodyIndex = mainBodyName != null ? SharedMappers.ResolveBodyIndex(snapshot, mainBodyName) : null;
+
+                vessels.Add(new Dictionary<string, object?>
+                {
+                    ["vesselId"] = id,
+                    ["name"] = GetString(rawVessel, "name") ?? "",
+                    ["vesselType"] = (int)SharedMappers.ParseVesselType(GetString(rawVessel, "vesselType")),
+                    ["situation"] = (int)SharedMappers.ParseSituation(GetString(rawVessel, "situation")),
+                    ["bodyIndex"] = bodyIndex,
+                });
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["vessels"] = vessels,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"revert"</c> group
+        /// (<c>Gonogo.KSP.KspHost.BuildRevertAvailability</c>'s shape — two
+        /// bools, <c>canRevertToEditor</c>/<c>canRevertToLaunch</c>, from the
+        /// static <c>FlightDriver.CanRevertToPrelaunch</c>/
+        /// <c>CanRevertToPostInit</c> flags KSP's own pause menu gates its
+        /// revert buttons on) to the <c>ksp.revertAvailability</c> payload:
+        /// <c>{ "canRevertToEditor": bool, "canRevertToLaunch": bool }</c>.
+        /// Follows <see cref="BuildSystemBodies"/>'s untyped-dict convention (a
+        /// scene-side game fact, not vessel-scoped provenance). Returns
+        /// <c>null</c> — not an all-false payload — when the snapshot doesn't
+        /// carry a <c>"revert"</c> group at all (not in the flight scene, so
+        /// neither action exists), letting a caller tell "not in flight" apart
+        /// from "in flight, revert genuinely unavailable" (both bools false). A
+        /// present-but-partial group defaults each missing bool to
+        /// <c>false</c> — never offer a revert we can't confirm is available.
+        /// </summary>
+        public static object? BuildRevertAvailability(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("revert", out var rawRevert) || !(rawRevert is IDictionary<string, object?> raw))
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["canRevertToEditor"] = SnapshotDict.GetBool(raw, "canRevertToEditor") ?? false,
+                ["canRevertToLaunch"] = SnapshotDict.GetBool(raw, "canRevertToLaunch") ?? false,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"dlc"</c> value
+        /// (<c>Gonogo.KSP.KspHost.BuildDlc</c>'s shape — two bools,
+        /// <c>breakingGround</c>/<c>makingHistory</c>, from
+        /// <c>ExpansionsLoader.IsExpansionInstalled</c>) to the
+        /// <c>game.dlc</c> payload: <c>{ "breakingGround": bool,
+        /// "makingHistory": bool }</c>. Follows <see cref="BuildSystemBodies"/>'s
+        /// own untyped-dict convention (no vessel-scoped provenance — this is a
+        /// <c>game</c>-domain capability snapshot, not the <c>vessel.*</c>
+        /// family). Returns <c>null</c> — not an all-false payload — when the
+        /// snapshot doesn't carry a <c>"dlc"</c> group at all (no sample has
+        /// landed yet), so a caller distinguishes "no data yet" from "the DLC
+        /// is genuinely absent" (both bools false). A present-but-partial group
+        /// defaults each missing bool to <c>false</c> (an expansion the raw
+        /// group didn't mention is treated as not installed), never null — the
+        /// wire shape is two plain bools.
+        /// </summary>
+        public static object? BuildGameDlc(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("dlc", out var rawDlc) || !(rawDlc is IDictionary<string, object?> raw))
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["breakingGround"] = SnapshotDict.GetBool(raw, "breakingGround") ?? false,
+                ["makingHistory"] = SnapshotDict.GetBool(raw, "makingHistory") ?? false,
+            };
+        }
+
+        // Scalar readers live in the shared SnapshotDict — see that class's
+        // doc comment for the R1/F-1 non-finite-is-absent rule GetDouble
+        // applies (this is also why a body with a near-equatorial/
+        // near-circular orbit gets a null lan/argPe here rather than a
+        // NaN-carrying wire value, same as vessel.orbit).
+        private static string? GetString(IDictionary<string, object?> raw, string key) => SnapshotDict.GetString(raw, key);
+        private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
+        private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);
+        private static bool? GetBool(IDictionary<string, object?> raw, string key) => SnapshotDict.GetBool(raw, key);
+    }
+}

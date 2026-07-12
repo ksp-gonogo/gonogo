@@ -6,7 +6,7 @@ A mission control web app for [Kerbal Space Program](https://www.kerbalspaceprog
 
 gonogo is a way to play KSP through a browser dashboard instead of the main game screen. With the exception of VAB/SPH, you can run the whole game from it: take contracts, run science, spend funds, launch, and take on missions.
 
-The main screen dashboard is a widget-based interface that hooks into data in the game. It pulls from Telemachus (the gonogo build), kOS, SCANsat, and HullCameraVDS/Kerbcast. Using this data you can see a live updating map view built from your scanners, watch video feeds from on-board cameras (and control them!), and customise live-updating graphs. There are lots of widgets for lots of different uses.
+The main screen dashboard is a widget-based interface that hooks into data in the game. It pulls from the Gonogo mod (telemetry), kOS, SCANsat, and HullCameraVDS/Kerbcast. Using this data you can see a live updating map view built from your scanners, watch video feeds from on-board cameras (and control them!), and customise live-updating graphs. There are lots of widgets for lots of different uses.
 
 You can use widget profiles to dynamically switch dashboards based on what you're doing in the game. You can also **use gonogo as a multiplayer experience**. 'Stations' can register with the main screen and connect via a share code generated on the main screen. Stations get all the same data as the main screen, and can even push data for viewing on the main screen. One way to play is having the main screen as a general screen for everyone, and then everyone uses their own station screen for specialised data.
 
@@ -27,7 +27,7 @@ You can use widget profiles to dynamically switch dashboards based on what you'r
 
 To host, you need:
 
-- **Kerbal Space Program**, with the required mods installed: the gonogo build of Telemachus, kOS, and SCANsat. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full list and how to install them.
+- **Kerbal Space Program**, with the required mods installed: the Gonogo mod (telemetry), kOS, and SCANsat. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full list and how to install them.
 - **A container runtime** on the computer that runs the main screen. This is the one piece of software you install to run gonogo itself. If you don't already have one, [Docker Desktop](https://www.docker.com/products/docker-desktop/) is the usual choice; follow their install guide for your operating system.
 
 ---
@@ -70,8 +70,8 @@ gonogo runs in two modes from the same code:
 - **Station screen** (`/station`) is a connected dashboard with its own layout. Stations never touch KSP directly; they get everything from the main screen
 
 ```
-KSP (Telemachus HTTP/WebSocket) ──► Main screen (direct)
-KSP (kOS via telnet)            ──► telnet bridge ──► Main screen (WebSocket)
+KSP + Gonogo mod (telemetry, WebSocket) ──► Main screen (direct)
+KSP (kOS via telnet)                    ──► telnet bridge ──► Main screen (WebSocket)
 Main screen ◄──► Station screens (peer-to-peer data channels)
 ```
 
@@ -81,7 +81,7 @@ For the package layout and the widget / theme extension API, see [docs/ARCHITECT
 
 ## Where to go next
 
-- **[docs/KSP-SETUP.md](docs/KSP-SETUP.md)**: the required mods, installing the gonogo Telemachus build, connecting the dashboard to KSP, signal loss and CommNet, kOS, and camera feeds
+- **[docs/KSP-SETUP.md](docs/KSP-SETUP.md)**: the required mods, installing the Gonogo mod, connecting the dashboard to KSP, signal loss and CommNet, kOS, and camera feeds
 - **[docs/NETWORKING.md](docs/NETWORKING.md)**: running KSP and the main screen on two computers, and connecting stations across networks
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the package map, the data-source pattern, and the widget / theme / data-source extension API
 - **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: GitHub Pages and the backend container images (maintainer reference)

@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 
 /**
  * Soft performance budget. Tracks an event-rate (or volume per second)

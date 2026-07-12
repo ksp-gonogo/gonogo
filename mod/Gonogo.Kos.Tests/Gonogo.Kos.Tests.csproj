@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- MainThreadDispatcher (the piece under test) has zero UnityEngine
+         dependency, so it's exercised headlessly here — no KSP, no Unity
+         runtime needed. Gonogo.Kos also contains KosExtension /
+         KosMainThreadDispatcherAddon, which DO touch UnityEngine/GameObject;
+         this project must not instantiate those directly (see
+         MainThreadDispatcherTests's doc comment) — a real GameObject can't
+         be created outside a live Unity process. -->
+    <ProjectReference Include="../Gonogo.Kos/Gonogo.Kos.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-import { Fab, FullscreenEnterIcon, FullscreenExitIcon } from "@gonogo/ui";
+import { Fab, FullscreenEnterIcon, FullscreenExitIcon } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 
 /**

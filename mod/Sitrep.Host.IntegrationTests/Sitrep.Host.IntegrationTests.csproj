@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <!-- M5b Task 6: the headless end-to-end: ReplayKspHost -> SystemViewProvider
+       -> Courier -> FleckTransportListener -> a real ClientWebSocket, with NO
+       KSP anywhere in the graph. Deliberately a SEPARATE project from
+       Sitrep.Host.Tests (which stays pure headless-logic, no networking) and
+       does NOT reference Gonogo.KSP (net472, KSP/Unity asm refs); only the
+       KSP-free Sitrep.Host + Sitrep.Transport assemblies. See
+       ReplayBodiesServer.cs's doc comment for why the Courier/outbox wiring
+       here is a copy of Gonogo.KSP/GonogoBodiesServer.cs's shape rather than a
+       reference to it. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
+    <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
+  </ItemGroup>
+</Project>

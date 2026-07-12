@@ -4,13 +4,17 @@
  * SVG file in `local_docs/renders/ship-map/`. Used for visually iterating
  * on the diagram without running KSP / the dashboard.
  *
- * Run with `pnpm --filter @gonogo/components render-ship-map`.
+ * Run with `pnpm --filter @ksp-gonogo/components render-ship-map`.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { PartState, PartStateModule, VesselTopology } from "@gonogo/core";
+import type {
+  PartState,
+  PartStateModule,
+  VesselTopology,
+} from "@ksp-gonogo/core";
 import { renderShipMapToSvg } from "../src/ShipMap/render";
 import {
   buildShipMapPart,

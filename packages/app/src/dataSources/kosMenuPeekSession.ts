@@ -1,5 +1,5 @@
-import type { DataSourceStatus } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 

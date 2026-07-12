@@ -4,32 +4,36 @@
     "notes": "Two rotors: a main rotor spinning near its cap, and a stopped, braked, locked tail rotor. Exercises gauge + controls + multi-rotor list."
   },
   "robotics.available": true,
-  "robotics.rotors": [
+  "parts.robotics": [
     {
-      "partId": 101,
-      "name": "Main Rotor",
-      "rpm": 240,
+      "partName": "Main Rotor",
+      "partId": "101",
+      "type": "rotor",
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 80,
+      "currentRPM": 240,
       "rpmLimit": 300,
-      "torqueLimit": 80,
-      "maxTorque": 400,
+      "normalizedOutput": 0.8,
       "brakePercentage": 0,
-      "motorEngaged": true,
-      "locked": false,
       "counterClockwise": false,
-      "output": 0.8
+      "maxTorque": 400
     },
     {
-      "partId": 202,
-      "name": "Tail Rotor",
-      "rpm": 0,
+      "partName": "Tail Rotor",
+      "partId": "202",
+      "type": "rotor",
+      "servoIsLocked": true,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": false,
+      "servoMotorLimit": 50,
+      "currentRPM": 0,
       "rpmLimit": 120,
-      "torqueLimit": 50,
-      "maxTorque": 400,
+      "normalizedOutput": 0,
       "brakePercentage": 100,
-      "motorEngaged": false,
-      "locked": true,
       "counterClockwise": true,
-      "output": 0
+      "maxTorque": 400
     }
   ]
 }

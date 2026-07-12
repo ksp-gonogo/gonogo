@@ -1,5 +1,5 @@
-import { useTouchDevice } from "@gonogo/core";
-import type { InputMappings } from "@gonogo/serial";
+import { useTouchDevice } from "@ksp-gonogo/core";
+import type { InputMappings } from "@ksp-gonogo/serial";
 import type { Layout, Layouts } from "react-grid-layout";
 import { GridDashboard } from "./GridDashboard";
 import { MobileDashboard } from "./MobileDashboard";

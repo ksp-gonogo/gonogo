@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <!-- Sitrep.Core is BCL-only, ZERO external PackageReferences — see
+       README.md / ArchiveState for why (KSP's Unity-2019 Mono +
+       AppDomain first-assembly-name-wins collision risk). Do not add one
+       without updating that invariant deliberately and in the open. The
+       ProjectReference below is fine: Sitrep.Contract's Reinforced.Typings
+       PackageReference is PrivateAssets="all" (compile-time codegen only),
+       so it does not flow here — Sitrep.Contract.dll is the only extra
+       runtime dependency this project picks up. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+  </ItemGroup>
+  <!-- Sitrep.Host's RecordedSessionCodec reuses this project's internal
+       JsonWriter/JsonReader/NanPolicy (Serialization/) to serialize the M5b
+       recording format, rather than hand-rolling a second JSON
+       reader/writer — same friend-assembly pattern Sitrep.Skeleton already
+       uses for its own Tests project below. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sitrep.Host" />
+  </ItemGroup>
+</Project>

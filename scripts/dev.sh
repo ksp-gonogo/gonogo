@@ -64,7 +64,7 @@ fi
 # ──────────────────────────────────────────────────────────────────────
 # Hashes everything that gets baked into a container image: the
 # service's source + Dockerfile, the workspace dep we COPY in
-# (@gonogo/logger), the root manifests + lockfile + tsconfig base, and
+# (@ksp-gonogo/logger), the root manifests + lockfile + tsconfig base, and
 # .npmrc. Stored in `.dev-build-cache/<service>.hash`; if the current
 # fingerprint differs from the cached one we trigger `--build`,
 # otherwise the existing image is reused.
@@ -169,4 +169,4 @@ WATCH_PIDS="$WATCH_PIDS $!"
 watch_service relay &
 WATCH_PIDS="$WATCH_PIDS $!"
 
-turbo dev --filter='!@gonogo/telnet-proxy' --filter='!@gonogo/relay'
+turbo dev --filter='!@ksp-gonogo/telnet-proxy' --filter='!@ksp-gonogo/relay'

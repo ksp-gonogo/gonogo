@@ -1,5 +1,5 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -7,7 +7,12 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { parseInstruments, ScienceOfficerComponent } from "./index";
+import {
+  parseInstruments,
+  ScienceOfficerComponent,
+  sumExperimentDataAmount,
+} from "./index";
+import { renderWithTheme } from "./testTheme";
 
 const KEYS: DataKey[] = [{ key: "sci.instruments" }];
 
@@ -25,14 +30,14 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("shows the awaiting placeholder before any telemetry arrives", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     expect(
       screen.getByText(/Awaiting instrument telemetry/i),
     ).toBeInTheDocument();
   });
 
   it("renders 'No instruments' for an empty array", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", []);
     });
@@ -40,7 +45,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("groups instruments by expId and shows badges", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -87,6 +92,28 @@ describe("ScienceOfficerComponent", () => {
     ).toBeInTheDocument();
   });
 
+  it("derives the total data readout from sci.experiments (D3, P4a)", () => {
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 1,
+          partTitle: "Mystery Goo",
+          expId: "mysteryGoo",
+          deployed: true,
+          hasData: true,
+          rerunnable: false,
+          inoperable: false,
+        },
+      ]);
+      source.emit("sci.experiments", [
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b", dataAmount: 7.5 },
+      ]);
+    });
+    expect(screen.getByText(/12\.5 mits/i)).toBeInTheDocument();
+  });
+
   it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
@@ -94,7 +121,7 @@ describe("ScienceOfficerComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -120,7 +147,7 @@ describe("ScienceOfficerComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -143,7 +170,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("hides controls for an inoperable instrument", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -194,5 +221,32 @@ describe("parseInstruments", () => {
     ]);
     expect(parsed).toHaveLength(2);
     expect(parsed?.[1].partTitle).toBe("Unknown part");
+  });
+});
+
+describe("sumExperimentDataAmount", () => {
+  it("returns 0 for non-array input", () => {
+    expect(sumExperimentDataAmount(null)).toBe(0);
+    expect(sumExperimentDataAmount(undefined)).toBe(0);
+    expect(sumExperimentDataAmount({})).toBe(0);
+  });
+
+  it("sums dataAmount across every entry", () => {
+    expect(
+      sumExperimentDataAmount([
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b", dataAmount: 8 },
+      ]),
+    ).toBe(13);
+  });
+
+  it("skips entries with a missing/non-numeric dataAmount", () => {
+    expect(
+      sumExperimentDataAmount([
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b" },
+        { subjectId: "c", dataAmount: "not a number" },
+      ]),
+    ).toBe(5);
   });
 });

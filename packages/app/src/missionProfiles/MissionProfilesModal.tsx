@@ -5,7 +5,7 @@ import {
   Input,
   PrimaryButton,
   Switch,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";

@@ -3,6 +3,11 @@ export * from "./DataSourceWrapper";
 export * from "./derive";
 export * from "./FlightsFab";
 export * from "./FlightsManager";
+export type { AutoRecordControllerProps } from "./FlightsManager/AutoRecordController";
+export { AutoRecordController } from "./FlightsManager/AutoRecordController";
+export * from "./FlightsManager/autoRecordStatus";
+export { MissionHistorySource } from "./FlightsManager/MissionHistorySource";
+export * from "./fixtureIO";
 export * from "./flightDetector";
 export type { BodyMask } from "./fog/FogMaskCache";
 export {
@@ -36,6 +41,7 @@ export * from "./hooks/useManeuverFeasibility";
 export * from "./hooks/useManeuverNodes";
 export * from "./hooks/usePartsLive";
 export * from "./hooks/useTopology";
+export * from "./hooks/useValueKeys";
 export * from "./hooks/useVesselDeltaV";
 export * from "./kos/CpuRegistryContext";
 export * from "./kos/CpuRegistryService";
@@ -45,14 +51,9 @@ export * from "./kos/kos-data-parser";
 export * from "./kos/ScriptableDataSource";
 export * from "./ListenerSet";
 export { debugFlight } from "./logger";
-export * from "./replay/clipFixture";
-export * from "./replay/FlightFixture";
-export * from "./replay/FlightReplayDataSource";
-export * from "./replay/fixtureIO";
-export * from "./replay/ReplayBanner";
-export * from "./replay/ReplayController";
-export * from "./replay/synthesizeFlight";
-export * from "./replay/useReplayActive";
+export * from "./replaySession/ReplaySessionBanner";
+export * from "./replaySession/ReplaySessionController";
+export * from "./replaySession/ReplaySessionProvider";
 export type {
   DecodedBiomes,
   DecodedCoverage,
@@ -77,5 +78,11 @@ export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type { LocalStorageStoreOptions } from "./storage/LocalStorageStore";
 export { LocalStorageStore } from "./storage/LocalStorageStore";
 export { MemoryStore } from "./storage/MemoryStore";
+export type {
+  MissionMeta,
+  MissionRecord,
+  VideoRecordingRef,
+} from "./storage/MissionStore";
+export { MissionStore } from "./storage/MissionStore";
 export type { Store } from "./storage/Store";
 export * from "./types";

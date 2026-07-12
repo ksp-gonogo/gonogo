@@ -4,17 +4,23 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
-      "@gonogo/core/test": path.resolve(
+      "@ksp-gonogo/core/test": path.resolve(
         import.meta.dirname,
         "../core/src/test/helpers.ts",
       ),
-      "@gonogo/core": path.resolve(import.meta.dirname, "../core/src/index.ts"),
-      "@gonogo/data": path.resolve(import.meta.dirname, "../data/src/index.ts"),
-      "@gonogo/logger": path.resolve(
+      "@ksp-gonogo/core": path.resolve(
+        import.meta.dirname,
+        "../core/src/index.ts",
+      ),
+      "@ksp-gonogo/data": path.resolve(
+        import.meta.dirname,
+        "../data/src/index.ts",
+      ),
+      "@ksp-gonogo/logger": path.resolve(
         import.meta.dirname,
         "../logger/src/index.ts",
       ),
-      "@gonogo/ui": path.resolve(import.meta.dirname, "../ui/src/index.ts"),
+      "@ksp-gonogo/ui": path.resolve(import.meta.dirname, "../ui/src/index.ts"),
     },
   },
   test: {

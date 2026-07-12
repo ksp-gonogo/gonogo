@@ -1,4 +1,4 @@
-import type { StageInfo } from "@gonogo/core";
+import type { StageInfo } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { clearDerivedKeys, getDerivedKeys } from "../derive";
 import type { Sample } from "../types";

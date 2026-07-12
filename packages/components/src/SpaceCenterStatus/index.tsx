@@ -1,16 +1,37 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 type SpaceCenterStatusConfig = Record<string, never>;
+
+// Augment slots (Uplink architecture §4 / augment-slot-map: space-center-status).
+// `.sections` appends extra facility-level rows to the body (e.g. a KSC-expansion
+// Uplink's custom facilities / ground-based life-support depot); `.badges` is the
+// broad header escape-hatch that drops an inline badge next to the title. Both are
+// plain markers with no slot props. Co-located `SlotRegistry` declaration-merge
+// so parallel slot work doesn't collide on a shared central file.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "space-center-status.sections": Record<string, never>;
+    "space-center-status.badges": Record<string, never>;
+  }
+}
 
 const FACILITIES: Array<{ key: FacilityKey; label: string }> = [
   { key: "launchPad", label: "Launch Pad" },
@@ -35,6 +56,26 @@ type FacilityKey =
   | "rd"
   | "astronaut";
 
+/**
+ * `career.status.facilities` (mod/Sitrep.Host/
+ * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
+ * `SpaceCenterFacility` enum name, not this widget's short codes — maps
+ * each enum name onto its `FacilityKey`. Names match the real wire
+ * (decompile-confirmed, career-capture-extend-report.md; also the exact 9
+ * keys observed in a real `career.status` capture).
+ */
+const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
+  LaunchPad: "launchPad",
+  Runway: "runway",
+  VehicleAssemblyBuilding: "vab",
+  SpaceplaneHangar: "sph",
+  MissionControl: "mission",
+  TrackingStation: "tracking",
+  Administration: "admin",
+  ResearchAndDevelopment: "rd",
+  AstronautComplex: "astronaut",
+};
+
 interface FacilityLevel {
   level: number;
   max: number;
@@ -56,38 +97,67 @@ interface FacilityLevel {
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
- * Defensive parser for the `kc.facilityLevels` payload from the
- * GonogoTelemetry KSP plugin. Accepts the documented dict shape and
- * drops anything that doesn't read as `{ level: number, max: number,
- * upgradeFunds: number }` — sandbox saves emit zeroed entries, which
- * is fine. `upgradeFunds` is best-effort; missing → 0 means "unknown
- * or at max". `currentLevelText` / `nextLevelText` are the 2026-05-13
- * additions; missing means an older DLL — defaults to empty string so
- * downstream "show this text" code can early-out cleanly.
+ * Defensive parser for facility-level payloads. Accepts BOTH the legacy
+ * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/… —
+ * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
+ * `career.status.facilities` wire shape, keyed by the
+ * full `SpaceCenterFacility` enum name — `{ currentTier, maxTier,
+ * upgradeCost }`, career-capture-extend-report.md). The new wire's
+ * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
+ * widget already assumes for `level`/`max` (decompile-confirmed: a fully
+ * upgraded facility reports `currentTier === maxTier`, both actual-tier-
+ * minus-one — see the "Lvl N of M" comment in the render below), so they
+ * map straight across with no reinterpretation. `upgradeCost` maps to
+ * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
+ * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
+ * have no new-wire equivalent — always `""` for an enum-keyed entry,
+ * degrading exactly like an older legacy DLL that never emitted them.
+ * Drops anything that doesn't read as one of the two known shapes —
+ * sandbox saves emit zeroed entries, which is fine.
  */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: FacilityLevels = {};
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+  for (const [rawKey, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!v || typeof v !== "object") continue;
     const entry = v as Record<string, unknown>;
-    const level = typeof entry.level === "number" ? entry.level : null;
-    const max = typeof entry.max === "number" ? entry.max : null;
-    if (level === null || max === null) continue;
-    if (!FACILITIES.some((f) => f.key === k)) continue;
-    const upgradeFunds =
-      typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0;
-    const currentLevelText =
-      typeof entry.currentLevelText === "string" ? entry.currentLevelText : "";
-    const nextLevelText =
-      typeof entry.nextLevelText === "string" ? entry.nextLevelText : "";
-    out[k as FacilityKey] = {
-      level,
-      max,
-      upgradeFunds,
-      currentLevelText,
-      nextLevelText,
-    };
+
+    const key: FacilityKey | undefined = FACILITIES.some(
+      (f) => f.key === rawKey,
+    )
+      ? (rawKey as FacilityKey)
+      : ENUM_FACILITY_TO_KEY[rawKey];
+    if (key === undefined) continue;
+
+    if (typeof entry.level === "number" && typeof entry.max === "number") {
+      out[key] = {
+        level: entry.level,
+        max: entry.max,
+        upgradeFunds:
+          typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0,
+        currentLevelText:
+          typeof entry.currentLevelText === "string"
+            ? entry.currentLevelText
+            : "",
+        nextLevelText:
+          typeof entry.nextLevelText === "string" ? entry.nextLevelText : "",
+      };
+      continue;
+    }
+
+    if (
+      typeof entry.currentTier === "number" &&
+      typeof entry.maxTier === "number"
+    ) {
+      out[key] = {
+        level: entry.currentTier,
+        max: entry.maxTier,
+        upgradeFunds:
+          typeof entry.upgradeCost === "number" ? entry.upgradeCost : 0,
+        currentLevelText: "",
+        nextLevelText: "",
+      };
+    }
   }
   return out;
 }
@@ -113,6 +183,27 @@ function SpaceCenterStatusComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
+  // career.funds reads through career.status.economy.funds.
+  // kc.facilityLevels reads through career.status.facilities
+  // too — parseFacilityLevels accepts the enum-keyed
+  // currentTier/maxTier/upgradeCost shape (career-capture-extend-report.md)
+  // alongside the legacy short-code shape, so both the funds readout AND
+  // the facility tier/upgrade-cost grid stream live off career.status.
+  // kc.scene reads through spaceCenter.scene.scene
+  // too — a plain 2-segment raw-field walk (SpaceCenterScene.scene,
+  // already an enum-name string on the wire) — so this same
+  // useDataValue("data", "kc.scene") call now rides the stream via the
+  // mapTopic shim, zero code change here. partsAvailable/launchSite/
+  // padOccupied/padVesselTitle stay legacy: partsAvailable has no wire
+  // topic at all (excluded editor slice — KNOWN_GAPS), and the other
+  // three are only derivable from spaceCenter.launchSites via an
+  // array->scalar "pick the active pad" reduction that
+  // was left optional/deferred — no CLEAN_HOMES entry
+  // exists for them yet, so they keep falling back to legacy
+  // automatically. kc.upgradeFacility[...] (the spend command) still has
+  // no command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
+  // automatically — reads migrate first, commands come later.
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const facilities = parseFacilityLevels(facilitiesRaw);
@@ -173,7 +264,14 @@ function SpaceCenterStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>SPACE CENTER</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SPACE CENTER</PanelTitle>
+        {/* Header escape-hatch slot (augment-slot-map ".badges broad
+            escape-hatch"): any Uplink can drop an inline badge next to the
+            title. Renders nothing until an augment binds it. */}
+        <AugmentSlot name="space-center-status.badges" props={{}} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {padLine}
@@ -284,6 +382,12 @@ function SpaceCenterStatusComponent({
           })}
         </FacilityGrid>
 
+        {/* Body slot (augment-slot-map: appended to the facility-level list).
+            A KSC-expansion Uplink can render extra facility rows here (custom
+            facilities / ground-based life-support depot). Renders nothing until
+            an augment binds it. */}
+        <AugmentSlot name="space-center-status.sections" props={{}} />
+
         <Footer>
           <FooterCell title="Parts unlocked by current R&D tier">
             <FooterLabel>Parts unlocked</FooterLabel>
@@ -379,6 +483,15 @@ function formatTinyFunds(value: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Body = styled(ScrollArea)`
   flex: 1;
@@ -665,6 +778,7 @@ registerComponent<SpaceCenterStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["space-center-status.sections", "space-center-status.badges"],
   pushable: true,
 });
 

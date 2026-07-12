@@ -1,11 +1,11 @@
-import type { DataSourceStatus } from "@gonogo/core";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
   KosData,
   KosScriptArg,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
 
 /**
@@ -87,18 +87,6 @@ export type PeerMessage =
       v: unknown[];
       error?: string;
     }
-  | {
-      type: "kos-open";
-      sessionId: string;
-      kosHost: string;
-      kosPort: number;
-      cols: number;
-      rows: number;
-    }
-  | { type: "kos-opened"; sessionId: string }
-  | { type: "kos-data"; sessionId: string; data: string }
-  | { type: "kos-resize"; sessionId: string; cols: number; rows: number }
-  | { type: "kos-close"; sessionId: string }
   // Broadcast from host → stations so stations know which peer to connect to
   // for camera streams. Sent on initial station connect (if known) and again
   // whenever the relay is re-resolved. null means the main screen no longer
@@ -242,7 +230,7 @@ export type PeerMessage =
        * it, a station that dispatches a script the main screen has never
        * run would hit "file not found" on the kOS volume.
        */
-      managed?: import("@gonogo/data").KosManagedScript;
+      managed?: import("@ksp-gonogo/data").KosManagedScript;
     }
   | {
       type: "kos-execute-response";
@@ -314,14 +302,14 @@ export type PeerMessage =
   // ──────────────────────────────────────────────────────────────────────
   | {
       type: "trigger-snapshot";
-      snapshot: import("@gonogo/components").TriggerSnapshot;
+      snapshot: import("@ksp-gonogo/components").TriggerSnapshot;
     }
   | {
       type: "trigger-arm";
       dataKey: string;
-      op: import("@gonogo/components").ThresholdOp;
+      op: import("@ksp-gonogo/components").ThresholdOp;
       value: number;
-      inputs: import("@gonogo/components").FrozenPlanInputs;
+      inputs: import("@ksp-gonogo/components").FrozenPlanInputs;
     }
   | { type: "trigger-cancel"; id: string }
   // ──────────────────────────────────────────────────────────────────────
@@ -382,4 +370,52 @@ export type PeerMessage =
   | { type: "note-add"; body: string }
   | { type: "note-update"; id: string; body: string }
   | { type: "note-delete"; id: string }
-  | { type: "note-reorder"; id: string; afterId: string | null };
+  | { type: "note-reorder"; id: string; afterId: string | null }
+  // ──────────────────────────────────────────────────────────────────────
+  // Sitrep telemetry-stream forwarding. The host taps its own
+  // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod —
+  // never a second connection) and relays every `stream-data`/`event`
+  // frame it receives VERBATIM to connected stations, wrapped here. No
+  // re-timestamping: `message.meta.validAt`/`deliveredAt` are the exact
+  // values the mod computed for the HOST's own vantage, so a station's
+  // TimelineStore/ViewClock fits the identical UT<->wall observations the
+  // host's own clock did — see the delay-correctness note in
+  // docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §5.
+  // v1 is eager broadcast-all (mirrors this file's existing
+  // `peer-data-mode` broadcast-all default) — every carried topic is sent
+  // to every connected station unconditionally; there is no
+  // sitrep-subscribe/unsubscribe pair yet (deferred, see the plan's §2 v2
+  // note).
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "sitrep-frame";
+      message: import("@ksp-gonogo/sitrep-sdk").ServerMessage;
+    }
+  // Station -> host: fire a mapped Sitrep command (`useCommand`'s carried
+  // branch) through the host's own live TelemetryClient — the host is the
+  // only thing that ever talks to the mod server, so this is a one-way
+  // pass-through, not a second dispatch origin. Correlated by the
+  // STATION's own `TelemetryClient`-minted `requestId` (the `cN` counter
+  // already embedded in the `command-request` the station's `PeerTransport`
+  // is asked to send) — reused as the PeerJS correlation key rather than
+  // inventing a second id; safe because the host always replies
+  // per-connection (`conn.send`), never `broadcast`, so two stations'
+  // independently-counted `"c0"`s never cross paths.
+  | {
+      type: "sitrep-command-request";
+      requestId: string;
+      command: string;
+      args: unknown;
+    }
+  | {
+      type: "sitrep-command-response";
+      requestId: string;
+      result: unknown;
+      meta: import("@ksp-gonogo/sitrep-sdk").Meta;
+    }
+  | {
+      type: "sitrep-command-error";
+      requestId: string;
+      code: string;
+      message: string;
+    };

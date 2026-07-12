@@ -3,8 +3,8 @@ import {
   type AlarmManagerLookup,
   type AlarmsLauncher,
   AlarmsLauncherProvider,
-} from "@gonogo/components";
-import { useModal } from "@gonogo/ui";
+} from "@ksp-gonogo/components";
+import { useModal } from "@ksp-gonogo/ui";
 import { type ReactNode, useCallback, useMemo } from "react";
 import { AlarmsModal, type AlarmsModalProps } from "./AlarmsModal";
 import type { AlarmSnapshot, AlarmTrigger } from "./types";

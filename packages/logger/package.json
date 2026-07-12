@@ -1,5 +1,6 @@
 {
-  "name": "@gonogo/logger",
+  "name": "@ksp-gonogo/logger",
+  "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
   "type": "module",

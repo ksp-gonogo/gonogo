@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import {
   Field,
   FieldHint,
@@ -7,7 +7,7 @@ import {
   Input,
   PrimaryButton,
   Select,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useSerialDeviceService } from "../SerialDeviceContext";

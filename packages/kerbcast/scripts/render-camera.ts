@@ -6,7 +6,7 @@
  * go through that harness (it needs a live MediaStream and the kerbcast
  * session context), so this is its dedicated renderer.
  *
- * Run: `pnpm --filter @gonogo/kerbcast render-camera`
+ * Run: `pnpm --filter @ksp-gonogo/kerbcast render-camera`
  * Output: local_docs/renders/camera-feed/<scene>.png
  *
  * Each scene varies the camera's capability flags (pan / pitch / zoom) so a

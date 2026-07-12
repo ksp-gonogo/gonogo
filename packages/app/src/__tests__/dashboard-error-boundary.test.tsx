@@ -6,10 +6,10 @@
  * share the same WidgetError fallback.
  */
 
-import { clearRegistry, registerComponent } from "@gonogo/core";
-import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
-import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";

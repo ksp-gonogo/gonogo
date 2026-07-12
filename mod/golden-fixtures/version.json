@@ -1,0 +1,203 @@
+[
+  {
+    "fn": "compareVersions",
+    "args": ["1.2.0", "1.10.0"],
+    "expected": -8
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.10.0", "1.2.0"],
+    "expected": 8
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2.9", "1.10.0"],
+    "expected": -8
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2.3", "1.2.3"],
+    "expected": 0
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["0.0.0", "0.0.0"],
+    "expected": 0
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["2.0.0", "1.9.9"],
+    "expected": 1
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.3.0", "1.2.9"],
+    "expected": 1
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2.4", "1.2.3"],
+    "expected": 1
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2", "1.2.0"],
+    "expected": 0
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1", "1.0.0"],
+    "expected": 0
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2", "1.3.0"],
+    "expected": -1
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["1.2.0", "1.2"],
+    "expected": 0
+  },
+  {
+    "fn": "compareVersions",
+    "args": ["2", "1.999.999"],
+    "expected": 1
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.5.0", "1.2.0"],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.0.0", "1.2.0"],
+    "expected": false
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.2.0", "1.2.0"],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.2.0", null],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.2", "1.2.0"],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesKernel",
+    "args": ["1.1.9", "1.2"],
+    "expected": false
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "1.5.0",
+      {
+        "min": "1.0.0",
+        "max": "2.0.0"
+      }
+    ],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "1.0.0",
+      {
+        "min": "1.0.0",
+        "max": "2.0.0"
+      }
+    ],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "2.0.0",
+      {
+        "min": "1.0.0",
+        "max": "2.0.0"
+      }
+    ],
+    "expected": false
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "1.999.999",
+      {
+        "min": "1.0.0",
+        "max": "2.0.0"
+      }
+    ],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "999.0.0",
+      {
+        "min": "1.0.0"
+      }
+    ],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "1.0.0",
+      {
+        "min": "1.0.0"
+      }
+    ],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "0.9.0",
+      {
+        "min": "1.0.0",
+        "max": "2.0.0"
+      }
+    ],
+    "expected": false
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": ["1.5.0", null],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      null,
+      {
+        "min": "1.0.0"
+      }
+    ],
+    "expected": false
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [null, null],
+    "expected": true
+  },
+  {
+    "fn": "satisfiesModRange",
+    "args": [
+      "1.2",
+      {
+        "min": "1.2.0",
+        "max": "1.3.0"
+      }
+    ],
+    "expected": true
+  }
+]

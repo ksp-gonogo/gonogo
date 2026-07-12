@@ -22,7 +22,7 @@ interface FabPromptProps {
 
 /**
  * Sausage-shaped action prompt that sits next to a FAB stack. Same
- * height as the FABs from `@gonogo/ui/Fab`, wider, with a primary
+ * height as the FABs from `@ksp-gonogo/ui/Fab`, wider, with a primary
  * tap-target on the left and a small dismiss × on the right.
  *
  * Designed for transient "Switch to X?" suggestions — auto-dismisses

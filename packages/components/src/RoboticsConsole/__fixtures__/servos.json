@@ -1,42 +1,42 @@
 {
   "_meta": {
     "scenario": "servos",
-    "notes": "Hinge moving, piston at target, rotation servo locked."
+    "notes": "Hinge moving, piston at target. A rotor entry rides the same parts.robotics array to prove RoboticsConsole ignores it (Rotor Tachometer's domain)."
   },
   "robotics.available": true,
-  "robotics.servos": [
+  "parts.robotics": [
     {
-      "partId": 11,
-      "name": "Arm Hinge",
+      "partName": "Arm Hinge",
+      "partId": "11",
       "type": "hinge",
-      "current": 22,
-      "target": 60,
-      "atTarget": false,
-      "motorEngaged": true,
-      "locked": false,
-      "torqueLimit": 100
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 100,
+      "currentAngle": 22,
+      "targetAngle": 60
     },
     {
-      "partId": 12,
-      "name": "Deploy Piston",
+      "partName": "Deploy Piston",
+      "partId": "12",
       "type": "piston",
-      "current": 80,
-      "target": 80,
-      "atTarget": true,
-      "motorEngaged": true,
-      "locked": false,
-      "torqueLimit": 70
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 70,
+      "currentExtension": 80,
+      "targetExtension": 80
     },
     {
-      "partId": 13,
-      "name": "Base Rotator",
-      "type": "rotation",
-      "current": 0,
-      "target": 0,
-      "atTarget": true,
-      "motorEngaged": false,
-      "locked": true,
-      "torqueLimit": 50
+      "partName": "EM-32S Standard Rotor",
+      "partId": "13",
+      "type": "rotor",
+      "servoIsLocked": true,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": false,
+      "servoMotorLimit": 50,
+      "currentRPM": 0,
+      "rpmLimit": 200
     }
   ]
 }

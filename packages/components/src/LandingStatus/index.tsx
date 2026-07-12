@@ -1,18 +1,22 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   getBody,
   getWidgetShape,
   kelvinToCelsius,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
+import { Badge } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { formatDensity } from "../shared/formatDensity";
 
@@ -21,13 +25,49 @@ import { formatDensity } from "../shared/formatDensity";
 type LandingStatusConfig = Record<string, never>;
 
 /**
- * Telemachus Reborn returns (0, 0) for `land.predictedLat/Lon` when the
- * prediction is unavailable (no trajectory, already landed, etc.). It also
- * emits NaN for `land.timeToImpact` when no solution exists. Treat both as
- * "no prediction" at the widget layer.
+ * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot,
+ * rendered in the header row next to the title.
+ * A cheap integration seam for small inline status chips an Uplink wants beside
+ * the "LANDING" title (e.g. a landing-guidance quality chip). Badge augments
+ * read their own Topics via hooks, so only labelling context is passed down.
  */
-function isSentinel(lat: number | undefined, lon: number | undefined): boolean {
-  return (lat === 0 && lon === 0) || lat === undefined || lon === undefined;
+export interface LandingStatusBadgesContext {
+  /** Body being landed on (`v.body`), when known. */
+  bodyName: string | null;
+  /** Whether that body has an atmosphere (drives the vacuum/atmospheric split). */
+  atmospheric: boolean;
+}
+
+// Co-located declaration-merge of this widget's slot id → its props.
+// Kept next to the widget (not in a central registry file) so parallel slot
+// work on other widgets never collides on this seam.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "landing-status.badges": LandingStatusBadgesContext;
+  }
+}
+
+/**
+ * Two "no prediction" shapes to fold together at the widget layer: the
+ * legacy Telemachus Reborn `(0, 0)` sentinel (kept for a recording captured
+ * against that fallback, or a legacy DataSource still answering this key)
+ * and the stream-derived `null`/`null` (`vessel.state.landingPredicted{Lat,
+ * Lon}` — a genuine, honest "no impact found within the bounded horizon",
+ * never a fabricated `(0, 0)`; see `orbit-patches.ts`'s `findImpactPoint`).
+ * `land.timeToImpact` separately emits NaN/`null` when no solution exists —
+ * `notNumber` below handles that half.
+ */
+function isSentinel(
+  lat: number | null | undefined,
+  lon: number | null | undefined,
+): boolean {
+  return (
+    (lat === 0 && lon === 0) ||
+    lat === undefined ||
+    lon === undefined ||
+    lat === null ||
+    lon === null
+  );
 }
 
 function notNumber(v: number | undefined): boolean {
@@ -92,6 +132,20 @@ function LandingStatusComponent({
   const atmTemperature = useDataValue("data", "v.atmosphericTemperature");
   const externalTemperature = useDataValue("data", "v.externalTemperature");
 
+  // Connectivity indicator, mirroring the TitleRow pattern used elsewhere.
+  // `v.heightFromTerrain` is this widget's representative MAPPED
+  // key (-> raw `vessel.flight.altitudeTerrain`); `v.verticalSpeed` (->
+  // `vessel.flight.verticalSpeed`) and `v.atmosphericDensity` (->
+  // `vessel.flight.atmDensity`) are also mapped. Every `land.*` key EXCEPT
+  // `land.slopeAngle` (needs a terrain heightmap this client derivation has
+  // no source for — see map-topic.ts's TELEMACHUS_KNOWN_GAPS) is now mapped
+  // too — the four ballistic scalars onto `vessel.state.landing*`
+  // (`deriveLanding`) and predictedLat/Lon onto the same channel's
+  // client patch-walk (`findImpactPoint`). `v.body`/
+  // `v.atmosphericTemperature`/`v.externalTemperature` stay GAPPED/legacy.
+  // See `stream.test.tsx` for the full readout streaming end to end.
+  const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
+
   // No trajectory solution at all — hide the full readout.
   const noPrediction =
     notNumber(timeToImpact) ||
@@ -141,9 +195,20 @@ function LandingStatusComponent({
   // 4, 6, 8, 9; 28px is the intended size at the default/wide sizes.
   const suicideFontPx = cols >= 8 ? 28 : cols >= 6 ? 24 : 20;
 
+  // Slot props for the header badges escape-hatch. Labelling
+  // context only — badge augments read their own Topics via hooks.
+  const badgesContext: LandingStatusBadgesContext = {
+    bodyName: bodyName ?? null,
+    atmospheric,
+  };
+
   return (
     <Panel>
-      <PanelTitle>LANDING</PanelTitle>
+      <TitleRow>
+        <PanelTitle>LANDING</PanelTitle>
+        <AugmentSlot name="landing-status.badges" props={badgesContext} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && bodyName !== undefined && (
         <PanelSubtitle>
           {bodyName}
@@ -231,9 +296,34 @@ function LandingStatusComponent({
 
                   <MetricLabel>Predicted</MetricLabel>
                   <MetricValue>
-                    {isSentinel(predictedLat, predictedLon)
-                      ? "—"
-                      : `${(predictedLat ?? 0).toFixed(3)}°, ${(predictedLon ?? 0).toFixed(3)}°`}
+                    {isSentinel(predictedLat, predictedLon) ? (
+                      "—"
+                    ) : (
+                      <>
+                        {`${(predictedLat ?? 0).toFixed(3)}°, ${(predictedLon ?? 0).toFixed(3)}°`}
+                        {/* Vacuum-exact patch walk (findImpactPoint) ignores
+                            atmospheric drag — honest on an atmospheric body,
+                            same "treat as upper bound" spirit as the suicide-
+                            burn note above.
+                            `Badge` alone, no layout wrapper — `Inline`/
+                            `Stack` need a styled-components theme this
+                            widget isn't guaranteed to render inside of;
+                            `Badge` itself is pure CSS-custom-property,
+                            theme-free. */}
+                        {atmospheric && (
+                          <>
+                            {" "}
+                            <Badge
+                              tone="warn"
+                              size="sm"
+                              title="Vacuum-ballistic estimate — ignores atmospheric drag"
+                            >
+                              approx
+                            </Badge>
+                          </>
+                        )}
+                      </>
+                    )}
                   </MetricValue>
                 </>
               )}
@@ -259,6 +349,15 @@ function LandingStatusComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 /*
  * Scrollable so no row is ever unreachable. At the rows>=9 gate boundary the
@@ -399,6 +498,10 @@ registerComponent<LandingStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  // Broad header escape-hatch slot: a badge augment can drop an
+  // inline chip beside the title. No filler ships here — that's an Uplink
+  // augment; the slot renders nothing until one binds.
+  augmentSlots: ["landing-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

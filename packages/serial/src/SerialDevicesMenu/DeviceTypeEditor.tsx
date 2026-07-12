@@ -8,7 +8,7 @@ import {
   Input,
   PrimaryButton,
   Select,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { getSerialRenderStyles } from "../registry";

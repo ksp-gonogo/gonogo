@@ -1,9 +1,9 @@
-import { getDataSource } from "@gonogo/core";
-import type { Sample } from "@gonogo/data";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useEffect, useReducer, useRef } from "react";
 
 export interface SurveySample {
-  /** Unix ms — pair time, max(altSample.t, hftSample.t). */
+  /** Unix ms — wall-clock time this sample was received (`Date.now()` at
+   *  the moment the vessel.flight ingest that produced it landed). */
   t: number;
   /** Terrain elevation above sea level, m. Median-filtered hft. */
   terrain: number;
@@ -33,6 +33,12 @@ export interface SurveyResult {
 }
 
 export interface UseGroundSurveyOpts {
+  /** Legacy `DataSource` id `v.body`/`v.splashed`/`land.predictedLat`/
+   *  `land.predictedLon` route through (via the `useTelemetry` mapTopic
+   *  shim — see this hook's own doc comment for why these four stay on the
+   *  2-arg legacy-key overload while altitude/heightFromTerrain/
+   *  surfaceSpeed read the canonical `vessel.flight` Topic directly).
+   *  Default `"data"`. */
   sourceId?: string;
   /** Rolling time window for the strip, ms. Default 120 000 (2 min). */
   windowMs?: number;
@@ -46,8 +52,6 @@ export interface UseGroundSurveyOpts {
    * reconnaissance pass.
    */
   surveyCeilingM?: number;
-  /** alt + hft must arrive within this window to count as a pair. Default 200 ms. */
-  pairWindowMs?: number;
 }
 
 interface InternalState {
@@ -55,23 +59,12 @@ interface InternalState {
   altitude: number | null;
   heightFromTerrain: number | null;
   surfaceSpeed: number | null;
-  predictedLat: number | null;
-  predictedLon: number | null;
   body: string | null;
   splashed: boolean;
-  lastAlt: Sample<number> | null;
-  lastHft: Sample<number> | null;
-  /** Most recent paired-sample time — guards against re-pushing the same pair. */
-  lastPairedT: number;
   /** Last 3 raw heightFromTerrain values — median-filtered before terrain calc. */
   hftWindow: number[];
   /** Most recent real terrain elevation; reused while frozen. */
   lastRealTerrain: number | null;
-}
-
-interface MaybeBufferedSource {
-  subscribe(key: string, cb: (value: unknown) => void): () => void;
-  subscribeSamples?: (key: string, cb: (sample: Sample) => void) => () => void;
 }
 
 const DEFAULT_OPTS: Required<UseGroundSurveyOpts> = {
@@ -79,165 +72,139 @@ const DEFAULT_OPTS: Required<UseGroundSurveyOpts> = {
   windowMs: 120_000,
   freezeBelowM: 1000,
   surveyCeilingM: 10_000,
-  pairWindowMs: 200,
 };
 
+function freshState(): InternalState {
+  return {
+    samples: [],
+    altitude: null,
+    heightFromTerrain: null,
+    surfaceSpeed: null,
+    body: null,
+    splashed: false,
+    hftWindow: [],
+    lastRealTerrain: null,
+  };
+}
+
 /**
- * Pairs `v.altitude` and `v.heightFromTerrain` via `subscribeSamples` so the
- * (alt, hft) pair we use to compute terrain elevation comes from samples
- * within the configured pair window. Two `useDataValue` hooks would re-render
- * with whatever each key happens to hold at render time, mixing up samples
- * from different ticks and producing a noisy strip.
+ * Reads `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed — a single
+ * atomic per-tick capture, `KspHost.BuildFlight`) as a canonical Topic read
+ * (no legacy fallback, matches `useTopology`'s posture — see that hook's
+ * own doc comment). Body/splashed/predicted-landing stay on the 2-arg
+ * `useTelemetry(sourceId, key)` mapTopic-shimmed overload — those four
+ * resolve to `vessel.state.*` (a DERIVED, client-side-only channel with no
+ * `[SitrepTopic]` tag of its own, so it has no canonical single-arg Topic
+ * id to read directly) via the SAME `v.body`/`v.splashed`/
+ * `land.predictedLat`/`land.predictedLon` legacy keys every other migrated
+ * widget already uses for this shim, zero call-site change either way.
+ *
+ * The old Telemachus fork delivered `v.altitude`/`v.heightFromTerrain` as
+ * two INDEPENDENT WebSocket key pushes that could land on different
+ * network packets with different latencies, which is why this hook used to
+ * pair them by real per-sample arrival timestamp within a `pairWindowMs`
+ * tolerance (a raw `.subscribeSamples` call on the looked-up legacy
+ * source, bypassing `useDataValue` entirely — no shim exposes per-sample
+ * timestamps). The mod's
+ * `vessel.flight` Topic is a SINGLE WRAPPER OBJECT capturing both fields in
+ * the same tick (`KspHost.BuildFlight` reads `part.vessel.altitude`/
+ * `heightFromTerrain` in one pass) — every stream update already IS a
+ * pair, so the reconciliation problem this hook was built to solve no
+ * longer exists. `pairWindowMs` is gone from the options; nothing ever
+ * passed it explicitly (confirmed by grep).
  */
 export function useGroundSurveySamples(
   opts: UseGroundSurveyOpts = {},
 ): SurveyResult {
   const cfg = { ...DEFAULT_OPTS, ...opts };
-  const stateRef = useRef<InternalState>({
-    samples: [],
-    altitude: null,
-    heightFromTerrain: null,
-    surfaceSpeed: null,
-    predictedLat: null,
-    predictedLon: null,
-    body: null,
-    splashed: false,
-    lastAlt: null,
-    lastHft: null,
-    lastPairedT: 0,
-    hftWindow: [],
-    lastRealTerrain: null,
-  });
+  const flight = useTelemetry("vessel.flight");
+  const bodyRaw = useTelemetry<string>(cfg.sourceId, "v.body");
+  const splashedRaw = useTelemetry<boolean>(cfg.sourceId, "v.splashed");
+  const predictedLatRaw = useTelemetry<number>(
+    cfg.sourceId,
+    "land.predictedLat",
+  );
+  const predictedLonRaw = useTelemetry<number>(
+    cfg.sourceId,
+    "land.predictedLon",
+  );
+  const predictedLat =
+    typeof predictedLatRaw === "number" && Number.isFinite(predictedLatRaw)
+      ? predictedLatRaw
+      : null;
+  const predictedLon =
+    typeof predictedLonRaw === "number" && Number.isFinite(predictedLonRaw)
+      ? predictedLonRaw
+      : null;
+
+  const stateRef = useRef<InternalState>(freshState());
   const [, bump] = useReducer((x: number) => x + 1, 0);
 
+  // Body change (SOI transition / scene reload) resets the buffer — declared
+  // BEFORE the flight-driven effect below so a same-tick body change clears
+  // stale samples before the new pair is pushed, matching the original
+  // subscription-ordering guarantee.
+  const parentBodyName = typeof bodyRaw === "string" ? bodyRaw : null;
   useEffect(() => {
-    const source = getDataSource(cfg.sourceId) as
-      | MaybeBufferedSource
-      | undefined;
-    if (!source) return;
-
-    const tryEmitPair = () => {
-      const s = stateRef.current;
-      const a = s.lastAlt;
-      const h = s.lastHft;
-      if (!a || !h) return;
-      if (Math.abs(a.t - h.t) > cfg.pairWindowMs) return;
-      if (s.splashed) return;
-      // Above the ceiling — terrain readings sweep across hundreds of km of
-      // ground per sample and the verdict goes haywire. Skip; the widget
-      // shows an "above ceiling" idle state instead.
-      if (h.v > cfg.surveyCeilingM) return;
-      const t = a.t > h.t ? a.t : h.t;
-      if (t <= s.lastPairedT) return;
-
-      // Median filter the raw hft window — single-sample spikes (water,
-      // measurement glitches) shouldn't whip the terrain line around.
-      s.hftWindow.push(h.v);
-      if (s.hftWindow.length > 3) s.hftWindow.shift();
-      const filteredHft = median(s.hftWindow);
-      const terrain = a.v - filteredHft;
-
-      const isFrozen = h.v <= cfg.freezeBelowM;
-      const sample: SurveySample = isFrozen
-        ? { t, terrain: s.lastRealTerrain ?? terrain, kind: "frozen" }
-        : { t, terrain, kind: "real" };
-      if (!isFrozen) s.lastRealTerrain = terrain;
-
-      s.samples.push(sample);
-      s.lastPairedT = t;
-      const cutoff = t - cfg.windowMs;
-      while (s.samples.length > 0 && s.samples[0].t < cutoff) {
-        s.samples.shift();
-      }
+    const s = stateRef.current;
+    if (parentBodyName !== s.body) {
+      s.body = parentBodyName;
+      s.samples = [];
+      s.hftWindow = [];
+      s.lastRealTerrain = null;
       bump();
-    };
+    }
+  }, [parentBodyName]);
 
-    const unsubAlt = source.subscribeSamples
-      ? source.subscribeSamples("v.altitude", (sample) => {
-          if (typeof sample.v !== "number" || !Number.isFinite(sample.v)) {
-            return;
-          }
-          stateRef.current.lastAlt = { t: sample.t, v: sample.v };
-          stateRef.current.altitude = sample.v;
-          tryEmitPair();
-        })
-      : source.subscribe("v.altitude", (value) => {
-          // Fallback for non-buffered sources (tests). Use Date.now() as a
-          // stand-in timestamp; pair window is generous enough that two
-          // back-to-back values from the same source still pair.
-          if (typeof value !== "number" || !Number.isFinite(value)) return;
-          stateRef.current.lastAlt = { t: Date.now(), v: value };
-          stateRef.current.altitude = value;
-          tryEmitPair();
-        });
+  const isSplashed = splashedRaw === true;
+  useEffect(() => {
+    stateRef.current.splashed = isSplashed;
+  }, [isSplashed]);
 
-    const unsubHft = source.subscribeSamples
-      ? source.subscribeSamples("v.heightFromTerrain", (sample) => {
-          if (typeof sample.v !== "number" || !Number.isFinite(sample.v)) {
-            return;
-          }
-          stateRef.current.lastHft = { t: sample.t, v: sample.v };
-          stateRef.current.heightFromTerrain = sample.v;
-          bump();
-          tryEmitPair();
-        })
-      : source.subscribe("v.heightFromTerrain", (value) => {
-          if (typeof value !== "number" || !Number.isFinite(value)) return;
-          stateRef.current.lastHft = { t: Date.now(), v: value };
-          stateRef.current.heightFromTerrain = value;
-          bump();
-          tryEmitPair();
-        });
+  useEffect(() => {
+    if (!flight) return;
+    const s = stateRef.current;
+    const altitude = flight.altitudeAsl;
+    const hft = flight.altitudeTerrain;
+    const surfaceSpeed = flight.surfaceSpeed;
+    if (!Number.isFinite(altitude) || !Number.isFinite(hft)) return;
 
-    const unsubSpeed = source.subscribe("v.surfaceSpeed", (value) => {
-      stateRef.current.surfaceSpeed =
-        typeof value === "number" && Number.isFinite(value) ? value : null;
+    s.altitude = altitude;
+    s.heightFromTerrain = hft;
+    s.surfaceSpeed = Number.isFinite(surfaceSpeed) ? surfaceSpeed : null;
+
+    if (s.splashed) {
       bump();
-    });
-    const unsubLat = source.subscribe("land.predictedLat", (value) => {
-      stateRef.current.predictedLat =
-        typeof value === "number" && Number.isFinite(value) ? value : null;
+      return;
+    }
+    // Above the ceiling — terrain readings sweep across hundreds of km of
+    // ground per sample and the verdict goes haywire. Skip; the widget
+    // shows an "above ceiling" idle state instead.
+    if (hft > cfg.surveyCeilingM) {
       bump();
-    });
-    const unsubLon = source.subscribe("land.predictedLon", (value) => {
-      stateRef.current.predictedLon =
-        typeof value === "number" && Number.isFinite(value) ? value : null;
-      bump();
-    });
-    const unsubBody = source.subscribe("v.body", (value) => {
-      const s = stateRef.current;
-      const b = typeof value === "string" && value.length > 0 ? value : null;
-      if (b !== s.body) {
-        // SOI transition / scene reload — terrain elevations from the old
-        // body are meaningless on the new one.
-        s.body = b;
-        s.samples = [];
-        s.hftWindow = [];
-        s.lastRealTerrain = null;
-        s.lastPairedT = 0;
-        bump();
-      }
-    });
-    const unsubSplashed = source.subscribe("v.splashed", (value) => {
-      stateRef.current.splashed = value === true;
-    });
+      return;
+    }
 
-    return () => {
-      unsubAlt();
-      unsubHft();
-      unsubSpeed();
-      unsubLat();
-      unsubLon();
-      unsubBody();
-      unsubSplashed();
-    };
-  }, [
-    cfg.sourceId,
-    cfg.windowMs,
-    cfg.freezeBelowM,
-    cfg.surveyCeilingM,
-    cfg.pairWindowMs,
-  ]);
+    // Median filter the raw hft window — single-sample spikes (water,
+    // measurement glitches) shouldn't whip the terrain line around.
+    s.hftWindow.push(hft);
+    if (s.hftWindow.length > 3) s.hftWindow.shift();
+    const filteredHft = median(s.hftWindow);
+    const terrain = altitude - filteredHft;
+
+    const isFrozen = hft <= cfg.freezeBelowM;
+    const sample: SurveySample = isFrozen
+      ? { t: Date.now(), terrain: s.lastRealTerrain ?? terrain, kind: "frozen" }
+      : { t: Date.now(), terrain, kind: "real" };
+    if (!isFrozen) s.lastRealTerrain = terrain;
+
+    s.samples.push(sample);
+    const cutoff = sample.t - cfg.windowMs;
+    while (s.samples.length > 0 && s.samples[0].t < cutoff) {
+      s.samples.shift();
+    }
+    bump();
+  }, [flight, cfg.surveyCeilingM, cfg.freezeBelowM, cfg.windowMs]);
 
   const s = stateRef.current;
   const surveyState: SurveyResult["surveyState"] =
@@ -254,8 +221,8 @@ export function useGroundSurveySamples(
     altitude: s.altitude,
     heightFromTerrain: s.heightFromTerrain,
     surfaceSpeed: s.surfaceSpeed,
-    predictedLat: s.predictedLat,
-    predictedLon: s.predictedLon,
+    predictedLat,
+    predictedLon,
     body: s.body,
   };
 }

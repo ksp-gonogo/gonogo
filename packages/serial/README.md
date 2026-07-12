@@ -1,4 +1,4 @@
-# @gonogo/serial
+# @ksp-gonogo/serial
 
 Per-screen serial input platform. Lets an operator plug physical hardware
 (or a virtual stand-in) into a gonogo screen and map its buttons / knobs
@@ -218,7 +218,7 @@ the 21×8 defaults for saved types from before the generalisation.
 Register your own via:
 
 ```ts
-import { registerSerialRenderStyle } from "@gonogo/serial";
+import { registerSerialRenderStyle } from "@ksp-gonogo/serial";
 
 registerSerialRenderStyle({
   id: "my-style",
@@ -297,4 +297,4 @@ packages/serial/src/
 - Use **`MockWebSerial`** when you specifically need to exercise the
   `WebSerialTransport` code path (read loop, buffer handling).
 - Both live under `packages/serial/src/mocks/` and are exported from
-  `@gonogo/serial` for cross-package reuse.
+  `@ksp-gonogo/serial` for cross-package reuse.

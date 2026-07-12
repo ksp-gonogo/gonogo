@@ -1,5 +1,5 @@
-import type { BodyDefinition, SCANCoverageBitmap } from "@gonogo/core";
-import { SCAN_TYPE } from "@gonogo/core";
+import type { BodyDefinition, SCANCoverageBitmap } from "@ksp-gonogo/core";
+import { SCAN_TYPE } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import type { BodyMask } from "./FogMaskCache";
 import {

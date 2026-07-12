@@ -1,8 +1,8 @@
-import { seedKerbcastHost } from "@gonogo/kerbcast";
-import { logger } from "@gonogo/logger";
+import { seedKerbcastHost } from "@ksp-gonogo/kerbcast-feed";
+import { logger } from "@ksp-gonogo/logger";
 import { relayBaseUrl } from "../peer/iceServers";
+import { seedSitrepHost } from "../telemetry/sitrepRuntime";
 import { seedKosHost } from "./kos";
-import { seedTelemachusHost } from "./telemachus";
 
 /**
  * First-run seeding of "where is KSP" from the bundled container's
@@ -10,10 +10,11 @@ import { seedTelemachusHost } from "./telemachus";
  *
  * Pointing a fresh browser at the bundle should need ZERO Settings
  * spelunking: one env var on `docker run` seeds the default host for every
- * KSP-facing data source. The seeds are in-memory and per-source guarded —
- * any config the user has ever saved in Settings wins, and because nothing
- * is persisted here, changing `KSP_HOST` and restarting the container takes
- * effect on the next page load.
+ * KSP-facing data source THAT HAS A RUNTIME HOST SETTING — kOS, kerbcast,
+ * and the Sitrep telemetry stream, all seeded below. The seeds are in-memory
+ * and per-source guarded — any config the user has ever saved in Settings
+ * wins, and because nothing is persisted here, changing `KSP_HOST` and
+ * restarting the container takes effect on the next page load.
  *
  * Outside the bundle (GH Pages, dev without a relay) the fetch fails or
  * returns `{ kspHost: null }` and this is a no-op.
@@ -21,7 +22,7 @@ import { seedTelemachusHost } from "./telemachus";
 
 /**
  * Container-internal aliases for "the machine the container runs on".
- * Sources the BROWSER dials (Telemachus WS, kerbcast sidecar) can't resolve
+ * Sources the BROWSER dials (sitrep stream, kerbcast sidecar) can't resolve
  * these — the browser-side equivalent is `localhost`. The kOS seed keeps
  * the verbatim value because the in-container proxy is the dialler there.
  */
@@ -52,9 +53,11 @@ export async function seedKspHostDefaults(
     ? "localhost"
     : kspHost;
 
-  seedTelemachusHost(browserHost);
   seedKerbcastHost(browserHost);
   seedKosHost(kspHost);
+  // The browser dials the Sitrep stream directly (like kerbcast, unlike
+  // kOS's proxy-mediated dial) — use the browser-reachable host.
+  seedSitrepHost(browserHost);
 
   logger.tag("bootstrap").info("Seeded KSP host defaults from relay", {
     kspHost,

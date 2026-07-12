@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <TargetFramework>net472</TargetFramework>
     <LangVersion>12</LangVersion>
     <AssemblyName>GonogoTelemetry</AssemblyName>

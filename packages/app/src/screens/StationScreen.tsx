@@ -1,14 +1,13 @@
 import {
   ManeuverTriggerProvider,
   StationConnectView,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import {
   getDataSource,
-  KosProxyContext,
   registerDataSource,
   type SCANType,
   ScreenProvider,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
@@ -16,16 +15,16 @@ import {
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
-} from "@gonogo/data";
-import type { KerbcastDataSource } from "@gonogo/kerbcast";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import type { KerbcastDataSource } from "@ksp-gonogo/kerbcast-feed";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
   SerialPortRecoveryWatcher,
-} from "@gonogo/serial";
-import { BannerStack, FabClusterProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -49,7 +48,6 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
-import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
 import { downloadLogs } from "../logs/downloadLogs";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
 import {
@@ -60,7 +58,6 @@ import {
 } from "../missionProfiles";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
-import { KosPeerConnection } from "../peer/KosPeerConnection";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { ConnStatus } from "../peer/PeerClientService";
@@ -77,6 +74,11 @@ import {
   StationNameEditor,
   useStationName,
 } from "../stationIdentity";
+import { PeerTransport } from "../telemetry/PeerTransport";
+import {
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  SitrepTelemetryProvider,
+} from "../telemetry/SitrepTelemetryProvider";
 import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -97,6 +99,14 @@ export function StationScreen() {
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
   const [client] = useState(() => new PeerClientService());
+  // Owns its lifecycle for the life of this `client` instance — `client`
+  // itself persists across reconnects (its own retry loop rebuilds the
+  // underlying PeerJS connection internally), so a single `PeerTransport`
+  // wrapping it for the whole component lifetime is correct; only disposed
+  // on unmount, same "own its lifecycle" pattern `WebSocketTransport`
+  // follows on the main screen.
+  const [peerTransport] = useState(() => new PeerTransport(client));
+  useEffect(() => () => peerTransport.dispose(), [peerTransport]);
   // True once this station has reached "connected" at least once this
   // session. Lets the connect screen tell "host mid-reclaim after a restart"
   // (previously connected → show "Host reconnecting…") apart from "wrong
@@ -323,21 +333,6 @@ export function StationScreen() {
     };
   }, []);
 
-  const kosProxy = useMemo(
-    () => ({
-      createConnection: (params: {
-        sessionId: string;
-        kosHost: string;
-        kosPort: number;
-        cols: number;
-        rows: number;
-      }) => new KosPeerConnection(params.sessionId, client, params),
-      resize: (sessionId: string, cols: number, rows: number) =>
-        client.sendKosResize(sessionId, cols, rows),
-    }),
-    [client],
-  );
-
   if (!connected) {
     return (
       <ScreenProvider value="station">
@@ -372,10 +367,13 @@ export function StationScreen() {
             <ScopedStationIdentity>
               <StationInfoBroadcaster client={client} />
               <PeerClientProvider client={client}>
-                <ManeuverTriggerProvider service={maneuverTriggerClient}>
-                  <PushClientProvider>
-                    <FogMaskCacheProvider store={fogMaskStore}>
-                      <KosProxyContext.Provider value={kosProxy}>
+                <SitrepTelemetryProvider
+                  transport={peerTransport}
+                  carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
+                >
+                  <ManeuverTriggerProvider service={maneuverTriggerClient}>
+                    <PushClientProvider>
+                      <FogMaskCacheProvider store={fogMaskStore}>
                         <SerialDeviceProvider service={serialService}>
                           <OverlayProvider
                             addItem={dashboard.addItem}
@@ -482,7 +480,6 @@ export function StationScreen() {
                                   />
                                   <HostDisconnectBanner client={client} />
                                   <SignalLossIndicator />
-                                  <TelemachusAntennaBanner />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
                                   <FlightOutcomeBanner />
@@ -496,10 +493,10 @@ export function StationScreen() {
                             </AlarmsLauncherBridge>
                           </OverlayProvider>
                         </SerialDeviceProvider>
-                      </KosProxyContext.Provider>
-                    </FogMaskCacheProvider>
-                  </PushClientProvider>
-                </ManeuverTriggerProvider>
+                      </FogMaskCacheProvider>
+                    </PushClientProvider>
+                  </ManeuverTriggerProvider>
+                </SitrepTelemetryProvider>
               </PeerClientProvider>
             </ScopedStationIdentity>
           </MissionProfilesProvider>

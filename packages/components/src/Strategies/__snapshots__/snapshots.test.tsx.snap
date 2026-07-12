@@ -16,21 +16,21 @@ exports[`Strategies DOM snapshots > at-admin-cap @ tiny-3x3 1`] = `"<div><div><h
 
 exports[`Strategies DOM snapshots > at-admin-cap @ wide-9x12 1`] = `"<div><div><h3>Admin Building</h3><div><span>2 active</span><span>·</span><span>450,000f</span><span>·</span><span>650 rep</span><span>·</span><span>290 sci</span></div></div><div><div><section aria-label="Active"><h4>Active</h4><article><div><div>Aggressive Negotiations</div><span>Operations</span></div><p>Push harder on every deal.</p><ul><li>-1.5% Funds Off on Launch Costs and R&amp;D Purchases.</li><li>-0.05% Funds Off on Facility Repair and Construction.</li></ul><div><span>factor 25%</span><button type="button" title="Deactivate this strategy">Deactivate</button></div></article><article><div><div>Open Source Tech</div><span>Research &amp; Development</span></div><p>Share technologies with research institutes in exchange for science.</p><ul><li>Converts 5% of Funds earned into Science points.</li></ul><div><span>factor 15%</span><button type="button" title="Deactivate this strategy">Deactivate</button></div></article></section><section aria-label="Available"><h4>Available</h4><article><div><div>Fundraising Campaign</div><span>Finances</span></div><p>Deactivate the running strategy first to enable this one.</p></article></section></div><div></div><div></div></div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ compact-5x7 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ compact-5x7 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ default-5x9 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ default-5x9 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ landscape-18x5 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ landscape-18x5 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ mobile-9x8 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ mobile-9x8 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ portrait-5x18 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ portrait-5x18 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ tall-6x16 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ tall-6x16 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ tiny-3x3 1`] = `"<div><h3>Strategies</h3></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ tiny-3x3 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div></div>"`;
 
-exports[`Strategies DOM snapshots > feature-unavailable @ wide-9x12 1`] = `"<div><h3>Strategies</h3><div>Awaiting career data…</div></div>"`;
+exports[`Strategies DOM snapshots > feature-unavailable @ wide-9x12 1`] = `"<div><div><h3>Strategies</h3><span role="status" aria-live="polite">NO DATA</span></div><div>Awaiting career data…</div></div>"`;
 
 exports[`Strategies DOM snapshots > high-commitment-conversion @ compact-5x7 1`] = `"<div><div><h3>Admin Building</h3><div><span>1 active</span></div></div><div><div><section aria-label="Active"><h4>Active</h4><article><div><div>Open Source Tech</div><span>Research &amp; Development</span></div><p>Share technologies with partner research institutes in exchange for science points.</p><ul><li>Converts 5% of Funds earned into Science points.</li><li>Reduces overall funding by 15%.</li><li>Provides a 2× multiplier on Science returns from experiments.</li></ul><div><span>factor 100%</span><button type="button" title="Deactivate this strategy">Deactivate</button></div></article></section><section aria-label="Available"><h4>Available</h4><article><div><div>Fundraising Campaign</div><span>Finances</span></div><p>Deactivate the running strategy first to enable this one.</p></article><article><div><div>Aggressive Negotiations</div><span>Operations</span></div><p>Deactivate the running strategy first to enable this one.</p></article></section></div><div></div><div></div></div></div>"`;
 

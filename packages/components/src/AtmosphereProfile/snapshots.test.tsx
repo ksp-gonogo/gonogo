@@ -29,6 +29,12 @@ describe("AtmosphereProfile DOM snapshots", () => {
           Widget: AtmosphereProfileComponent,
           fixture,
           mode,
+          // AtmosphereProfile uses useDataStreamStatus — connect the raw
+          // MockDataSource so its rendered status badge reflects the
+          // realistic "connected, streaming" scenario every one of these
+          // fixtures actually depicts (see ThermalStatus/snapshots.test.tsx
+          // for the precedent).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

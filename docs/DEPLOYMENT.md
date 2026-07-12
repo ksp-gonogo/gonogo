@@ -4,7 +4,7 @@ This page is for whoever maintains the deployed gonogo. Day-to-day use runs loca
 
 ## Frontend (GitHub Pages)
 
-The app is deployed to GitHub Pages at [jonpepler.github.io/gonogo](https://jonpepler.github.io/gonogo/) on every push to `main` that passes CI. The workflow is `.github/workflows/deploy.yml`, triggered on `workflow_run` (CI succeeding on `main`). It builds with `pnpm turbo build --filter=@gonogo/app...` and the Vite base is set to `/gonogo/`.
+The app is deployed to GitHub Pages at [jonpepler.github.io/gonogo](https://jonpepler.github.io/gonogo/) on every push to `main` that passes CI. The workflow is `.github/workflows/deploy.yml`, triggered on `workflow_run` (CI succeeding on `main`). It builds with `pnpm turbo build --filter=@ksp-gonogo/app...` and the Vite base is set to `/gonogo/`.
 
 > The hosted page can't run the **main screen**. The main screen needs to reach your KSP install over a plain `ws://` connection, which a browser blocks from an `https://` page (mixed content), so the main screen always runs locally against your own KSP. What the hosted page is for is **station** screens: a station on someone else's network loads the app from here and joins with the share code.
 

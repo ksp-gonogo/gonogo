@@ -1,70 +1,25 @@
-import { getDataSource, useDataValue, type VesselTopology } from "@gonogo/core";
-import { useEffect, useState } from "react";
+import { useTelemetry, type VesselTopology } from "@ksp-gonogo/core";
+import { useMemo } from "react";
+import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
 
 /**
- * Read `v.topology` from Telemachus using the seq-driven refetch pattern:
+ * Live vessel part-tree topology — the diagram-side view `ShipMap`/
+ * `PowerSystems` build their per-part rendering off. Reads the mod's
+ * `vessel.parts` Topic (the structural part-tree stream, a SIBLING of
+ * `vessel.structure` per that channel's own doc comment) and reshapes it
+ * into the legacy `VesselTopology` shape via `deriveTopologyFromVesselParts`
+ * — the diagram code (`shipTopology.ts`) is unchanged.
  *
- * 1. Continuously subscribe to `v.topologySeq` (lightweight int).
- * 2. When the seq value changes, subscribe to `v.topology`, take the
- *    first pushed payload, then unsubscribe.
- * 3. Return the most recent topology between bumps. Nothing streams over
- *    the wire for the structural payload during stable flight — only the
- *    seq int does.
- *
- * Why this rather than `useDataValue('data', 'v.topology')`: a direct
- * subscription pulls the full topology payload at the WS rate (~4Hz)
- * regardless of whether it actually changed. For a 100-part vessel that's
- * ~7KB × 4Hz = ~28KB/s of redundant traffic. The seq-driven pattern keeps
- * the steady-state cost flat at a few bytes per tick.
- *
- * Works through `PeerBroadcastingDataSource` (station screens) without
- * modification — both subscribe calls forward through the peer channel.
- *
- * The fetch subscription is held until either the push arrives or the
- * next seq bump triggers cleanup. An earlier version had a 2s safety
- * timeout that dropped the subscription on its own; during a destruction
- * cascade Telemachus could be busy long enough for the timeout to fire,
- * and if seq then stabilised before a push arrived the hook would never
- * re-arm and the widget froze at the pre-cascade snapshot. With no timer
- * the subscription self-heals — once Telemachus catches up, its next push
- * lands on our still-live subscription and we drop the sub on the spot.
- * Per-bump bandwidth stays bounded because the handler unsubscribes on
- * the first valid push.
+ * Formerly a hand-rolled seq-driven refetch against the old Telemachus fork's
+ * `v.topologySeq`/`v.topology` key pair (to avoid streaming the full
+ * structural payload at the legacy WS's fixed ~4Hz). `vessel.parts` doesn't
+ * need that trick — the mod's channel engine is itself change-gated, so the
+ * whole payload only re-emits when the structure actually changes.
  */
-export function useTopology(dataSourceId = "data"): VesselTopology | undefined {
-  const seq = useDataValue(dataSourceId, "v.topologySeq");
-  const [topology, setTopology] = useState<VesselTopology | undefined>(
-    undefined,
+export function useTopology(): VesselTopology | undefined {
+  const wire = useTelemetry("vessel.parts");
+  return useMemo(
+    () => (wire ? deriveTopologyFromVesselParts(wire) : undefined),
+    [wire],
   );
-
-  useEffect(() => {
-    if (seq === undefined) return;
-    const source = getDataSource(dataSourceId);
-    if (!source) return;
-
-    let cancelled = false;
-    let unsub: (() => void) | undefined;
-
-    unsub = source.subscribe("v.topology", (value) => {
-      if (cancelled) return;
-      if (!value || typeof value !== "object") return;
-      // Sanity-check the shape so we don't store a paused-handler sentinel
-      // (a number) or a non-topology object.
-      const candidate = value as Partial<VesselTopology>;
-      if (!Array.isArray(candidate.parts)) return;
-
-      setTopology(value as VesselTopology);
-      // Drop the subscription as soon as we've taken a snapshot — the
-      // seq subscription will tell us when to ask again.
-      unsub?.();
-      unsub = undefined;
-    });
-
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, [seq, dataSourceId]);
-
-  return topology;
 }

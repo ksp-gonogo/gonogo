@@ -2,7 +2,7 @@ import {
   DashboardItemContext,
   type DataKey,
   type MockDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,22 +14,21 @@ import {
 import { parseServos, RoboticsConsoleComponent } from "./index";
 
 const KEYS: DataKey[] = [
-  { key: "robotics.servos" },
+  { key: "parts.robotics" },
   { key: "robotics.available" },
 ];
 
 const servo = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
-  partId: 11,
-  name: "Hinge A",
+  partId: "11",
+  partName: "Hinge A",
   type: "hinge",
-  current: 30,
-  target: 30,
-  atTarget: true,
-  motorEngaged: true,
-  locked: false,
-  torqueLimit: 100,
+  currentAngle: 30,
+  targetAngle: 30,
+  servoMotorIsEngaged: true,
+  servoIsLocked: false,
+  servoMotorLimit: 100,
   ...over,
 });
 
@@ -58,7 +57,7 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", false);
-      source.emit("robotics.servos", []);
+      source.emit("parts.robotics", []);
     });
     expect(
       screen.getByText(/Breaking Ground not installed/i),
@@ -69,14 +68,14 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.servos", []);
+      source.emit("parts.robotics", []);
     });
     expect(
       screen.getByText(/No robotic parts on this vessel/i),
     ).toBeInTheDocument();
   });
 
-  it("shows the no-parts state when the key is absent (older fork)", () => {
+  it("shows the no-parts state when the key is absent", () => {
     renderConsole();
     expect(
       screen.getByText(/No robotic parts on this vessel/i),
@@ -93,8 +92,8 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.servos", [
-        servo({ partId: 11, current: 30, target: 30 }),
+      source.emit("parts.robotics", [
+        servo({ partId: "11", currentAngle: 30, targetAngle: 30 }),
       ]);
     });
 
@@ -108,19 +107,32 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.servos", [
+      source.emit("parts.robotics", [
         servo({
-          partId: 12,
+          partId: "12",
           type: "piston",
-          current: 40,
-          target: 60,
-          atTarget: false,
+          currentExtension: 40,
+          targetExtension: 60,
         }),
       ]);
     });
     expect(screen.getByText(/MOVING/i)).toBeInTheDocument();
     // Stepper value shows the piston target with a % unit.
     expect(screen.getByText("60%")).toBeInTheDocument();
+  });
+
+  it("ignores rotor entries in the same parts.robotics array", () => {
+    renderConsole();
+    act(() => {
+      source.emit("robotics.available", true);
+      source.emit("parts.robotics", [
+        servo({ partId: "11" }),
+        { partId: "99", partName: "Main Rotor", type: "rotor" },
+      ]);
+    });
+    expect(
+      screen.queryByRole("button", { name: /Main Rotor/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("toggles the motor with the inverse of current state", async () => {
@@ -133,8 +145,8 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.servos", [
-        servo({ partId: 11, motorEngaged: true }),
+      source.emit("parts.robotics", [
+        servo({ partId: "11", servoMotorIsEngaged: true }),
       ]);
     });
 
@@ -152,9 +164,14 @@ describe("RoboticsConsoleComponent", () => {
     renderConsole();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.servos", [
-        servo({ partId: 11, name: "Hinge A", target: 30 }),
-        servo({ partId: 22, name: "Piston B", type: "piston", target: 60 }),
+      source.emit("parts.robotics", [
+        servo({ partId: "11", partName: "Hinge A", targetAngle: 30 }),
+        servo({
+          partId: "22",
+          partName: "Piston B",
+          type: "piston",
+          targetExtension: 60,
+        }),
       ]);
     });
 
@@ -165,19 +182,40 @@ describe("RoboticsConsoleComponent", () => {
 });
 
 describe("parseServos", () => {
-  it("returns null for absent or non-array input", () => {
-    expect(parseServos(undefined)).toBeNull();
-    expect(parseServos(null)).toBeNull();
-    expect(parseServos({})).toBeNull();
+  it("returns an empty list for absent or non-array input", () => {
+    expect(parseServos(undefined)).toEqual([]);
+    expect(parseServos(null)).toEqual([]);
+    expect(parseServos({})).toEqual([]);
   });
 
-  it("drops entries with no partId and defaults type to hinge", () => {
+  it("drops entries with no string partId or an unrecognized type", () => {
     const parsed = parseServos([
-      { partId: 5, current: 10 },
+      { partId: "5", type: "hinge", currentAngle: 10 },
       { type: "piston" },
+      { partId: 6, type: "hinge" },
+      { partId: "7", type: "rotor" },
     ]);
     expect(parsed).toHaveLength(1);
-    expect(parsed?.[0]?.type).toBe("hinge");
-    expect(parsed?.[0]?.current).toBe(10);
+    expect(parsed[0]?.type).toBe("hinge");
+    expect(parsed[0]?.current).toBe(10);
+  });
+
+  it("derives atTarget from current/target proximity", () => {
+    const [atTarget, moving] = parseServos([
+      {
+        partId: "1",
+        type: "hinge",
+        currentAngle: 30,
+        targetAngle: 30.2,
+      },
+      {
+        partId: "2",
+        type: "hinge",
+        currentAngle: 10,
+        targetAngle: 30,
+      },
+    ]);
+    expect(atTarget?.atTarget).toBe(true);
+    expect(moving?.atTarget).toBe(false);
   });
 });

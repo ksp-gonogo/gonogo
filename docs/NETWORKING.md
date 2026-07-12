@@ -17,7 +17,7 @@ The main screen needs the KSP computer's address on your network. Find it on the
 - **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP
 - **Linux / SteamOS / Steam Deck**: run `ip addr show`, look for an `inet` address on your active connection
 
-It usually looks like `192.168.x.x` or `10.x.x.x`. Put that address into the Telemachus data source in gonogo, as described in [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp).
+It usually looks like `192.168.x.x` or `10.x.x.x`. Set that as `VITE_SITREP_HOST` before starting gonogo, as described in [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp).
 
 If a station or the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause; Windows and macOS often block local network traffic by default.
 

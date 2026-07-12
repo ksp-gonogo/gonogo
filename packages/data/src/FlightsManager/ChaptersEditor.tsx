@@ -1,16 +1,16 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useState } from "react";
 import styled from "styled-components";
-import type { BufferedDataSource } from "../BufferedDataSource";
 import type { FlightChapterRecord, FlightRecord } from "../types";
+import type { MissionHistorySource } from "./MissionHistorySource";
 
 interface ChaptersEditorProps {
   flight: FlightRecord;
   onChange: () => void;
 }
 
-function getSource(): BufferedDataSource | undefined {
-  return getDataSource("data") as BufferedDataSource | undefined;
+function getSource(): MissionHistorySource | undefined {
+  return getDataSource("missionHistory") as MissionHistorySource | undefined;
 }
 
 /**

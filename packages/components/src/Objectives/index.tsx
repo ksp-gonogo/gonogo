@@ -1,6 +1,12 @@
-import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
-import { BellIcon, EmptyState, Panel, PanelTitle } from "@gonogo/ui";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  registerAugment,
+  registerComponent,
+  useDataValue,
+} from "@ksp-gonogo/core";
+import { BellIcon, EmptyState, Panel, PanelTitle } from "@ksp-gonogo/ui";
+import type { ComponentType, ReactNode } from "react";
 import styled from "styled-components";
 import {
   type ContractEntry,
@@ -12,13 +18,22 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
  * Objectives — a read-only, in-flight-friendly view of everything you're
- * currently trying to achieve, unified from two sources: Making History
- * mission objectives (`mh.*`) and active-contract parameters
- * (`contracts.active`). Management (accepting/declining contracts) lives in
- * the separate Contract Manager widget; this one never writes.
+ * currently trying to achieve. It is the **augment-model dogfood**: the
+ * widget itself is a pure *frame* (Panel +
+ * `OBJECTIVES` title + one `objectives.sections` slot), and its content arrives
+ * through the augment system. Active-contract parameters (`contracts.active`)
+ * are the sole source, rendered as an augment satisfying the typed "objective
+ * source" contract the frame publishes as the slot's props.
  *
- * Degrades to a muted empty state when neither source has anything active,
- * which also covers either DLC/feature being absent.
+ * Making History mission objectives (`mh.*`) were a second source here, but
+ * the `mh` keyword carries no channel on the new SDK wire — contracts are the
+ * sole objective source going forward. The frame + slot stay in place so a
+ * future Uplink source (or a revived mission channel) can bind in the same
+ * way; that's the point of exercising typed slot props and settings-merge
+ * here rather than hardcoding a single source into the frame.
+ *
+ * Degrades to a muted empty state when the source yields no items, which also
+ * covers no contracts being active.
  */
 
 type ObjectivesConfig = Record<string, never>;
@@ -37,10 +52,47 @@ export interface ObjectiveItem {
   contractId?: string;
 }
 
-export interface MissionScore {
-  current: number;
-  max: number;
-  enabled: boolean;
+// ---------------------------------------------------------------------------
+// The typed "objective source" contract
+//
+// `objectives.sections` is the first typed-contract slot. The frame publishes,
+// as the slot's props, the interface an objective-source augment must satisfy:
+// a presentational `Section` component that renders a source's contributed
+// `ObjectiveItem[]` plus an optional per-item alarm affordance. An augment
+// "satisfies the contract" by feeding the frame's `Section` structured data —
+// the frame owns all presentation so every source renders identically, and
+// the slot generic enforces the shape.
+// ---------------------------------------------------------------------------
+
+/** One source's contribution, rendered by the frame's {@link ObjectivesSection}. */
+export interface ObjectiveSection {
+  /** The source's objectives — each an {@link ObjectiveItem}. */
+  items: ObjectiveItem[];
+  /**
+   * Optional per-item alarm affordance a source may offer. Returns
+   * a control for an item, or `null` for items that cannot be alarmed. The
+   * contracts source supplies one.
+   */
+  renderAlarm?: (item: ObjectiveItem) => ReactNode;
+}
+
+/**
+ * The slot's props — the "objective source" contract itself. An augment bound to
+ * `objectives.sections` receives this and contributes by rendering `<Section …>`.
+ */
+export interface ObjectiveSourceContext {
+  Section: ComponentType<ObjectiveSection>;
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
+// §4.6 hybrid, declaration-merging base). This is what makes `registerAugment`
+// and `<AugmentSlot name="objectives.sections" …>` type-check `Section`-shaped
+// props precisely against `ObjectiveSourceContext`, rather than the loose
+// `Record<string, unknown>` fallback an unmerged slot id would get.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "objectives.sections": ObjectiveSourceContext;
+  }
 }
 
 const STATE_GLYPH: Record<ObjectiveState, string> = {
@@ -50,38 +102,10 @@ const STATE_GLYPH: Record<ObjectiveState, string> = {
   failed: "✕",
 };
 
-function missionObjectiveState(raw: unknown): ObjectiveState {
-  return raw === "active" || raw === "reached" ? raw : "pending";
-}
-
 function contractParamState(raw: string): ObjectiveState {
   if (raw === "Complete") return "reached";
   if (raw === "Failed") return "failed";
   return "pending";
-}
-
-/** Mission objectives (`mh.objectives`) → unified items, tagged by mission. */
-export function missionObjectives(
-  raw: unknown,
-  missionName: string,
-): ObjectiveItem[] {
-  if (!Array.isArray(raw)) return [];
-  const out: ObjectiveItem[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const e = entry as Record<string, unknown>;
-    const id = typeof e.id === "string" && e.id ? e.id : "";
-    const title = typeof e.title === "string" ? e.title : "";
-    out.push({
-      id: `mh:${id || title}`,
-      title: title || "Objective",
-      description:
-        typeof e.description === "string" ? e.description : undefined,
-      state: missionObjectiveState(e.state),
-      source: missionName || "Mission",
-    });
-  }
-  return out;
 }
 
 /** Active contracts → unified items: each parameter, tagged by contract. */
@@ -119,45 +143,62 @@ export function contractObjectives(
   return out;
 }
 
-export function parseScore(raw: unknown): MissionScore | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const e = raw as Record<string, unknown>;
-  return {
-    current: typeof e.current === "number" ? e.current : 0,
-    max: typeof e.max === "number" ? e.max : 0,
-    enabled: e.enabled === true,
-  };
+// ---------------------------------------------------------------------------
+// Frame-owned presentation — the `Section` component the slot hands to augments
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders one objective source's contribution: its items, or nothing when
+ * empty (letting the frame's empty state show if every source is empty). The
+ * frame owns this so every source — the built-in ones and any future Uplink
+ * source — renders identically.
+ */
+function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
+  if (items.length === 0) return null;
+  return (
+    <List aria-label="Objectives">
+      {items.map((o) => (
+        <Item key={o.id} $state={o.state}>
+          <Glyph $state={o.state} aria-hidden="true">
+            {STATE_GLYPH[o.state]}
+          </Glyph>
+          <Text>
+            <Title>
+              {o.title}
+              {o.optional && <Optional> (optional)</Optional>}
+            </Title>
+            <Sourced>{o.source}</Sourced>
+            {o.description && <Desc>{o.description}</Desc>}
+          </Text>
+          <VisuallyHidden>{o.state}</VisuallyHidden>
+          {renderAlarm?.(o)}
+        </Item>
+      ))}
+    </List>
+  );
 }
 
-function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
-  const missionAvailable = useDataValue<boolean>("data", "mh.available");
-  const missionName = useDataValue<string>("data", "mh.name");
-  const phase = useDataValue<string>("data", "mh.phase");
-  const scoreRaw = useDataValue("data", "mh.score");
-  const finished = useDataValue<boolean>("data", "mh.finished");
-  const outcome = useDataValue<string>("data", "mh.outcome");
-  const objectivesRaw = useDataValue("data", "mh.objectives");
+// ---------------------------------------------------------------------------
+// The built-in objective source — bound to the slot as an augment (§4.9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Active-contracts source. Reads `contracts.active`, maps each parameter to an
+ * item, and offers the one write affordance this widget carries: a per-item
+ * "warp-stop when this contract parameter completes" alarm — the same feature
+ * the Contract Manager exposes. Renders nothing when no contracts are active.
+ */
+function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   const contractsRaw = useDataValue("data", "contracts.active");
-  // The one write affordance: set/clear a "warp-stop when this contract
-  // parameter completes" alarm — the same feature the Contract Manager offers.
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
-  const hasMission = missionAvailable === true;
-  const items: ObjectiveItem[] = [
-    ...(hasMission
-      ? missionObjectives(objectivesRaw, missionName ?? "Mission")
-      : []),
-    ...contractObjectives(parseContracts(contractsRaw) ?? []),
-  ];
+  const items = contractObjectives(parseContracts(contractsRaw) ?? []);
+  if (items.length === 0) return null;
 
-  const score = hasMission ? parseScore(scoreRaw) : null;
-  const ended = hasMission && finished === true;
-  const failed = outcome === "fail";
-
-  // Bell toggle for an Incomplete contract parameter (mission objectives have
-  // no equivalent KSP alarm). Null for everything that can't be alarmed.
-  const renderAlarm = (o: ObjectiveItem) => {
+  // Bell toggle for an Incomplete contract parameter. Null for everything that
+  // can't be alarmed (missing provider, non-numeric id, already-complete).
+  const renderAlarm = (o: ObjectiveItem): ReactNode => {
     if (o.state !== "pending" || !o.contractId || !createAlarm) return null;
     const numericId = contractIdToSafeNumber(o.contractId);
     if (numericId === null) return null;
@@ -210,113 +251,43 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
     );
   };
 
-  if (!hasMission && items.length === 0) {
-    return (
-      <Panel>
-        <PanelTitle>OBJECTIVES</PanelTitle>
-        <EmptyState role="status">No active objectives</EmptyState>
-      </Panel>
-    );
-  }
+  return <Section items={items} renderAlarm={renderAlarm} />;
+}
 
+// The slot's props — stable reference so a re-render doesn't needlessly churn
+// the mounted augments. `Section` is the frame's presentational renderer.
+const OBJECTIVES_SLOT: ObjectiveSourceContext = { Section: ObjectivesSection };
+
+function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   return (
     <Panel>
       <PanelTitle>OBJECTIVES</PanelTitle>
-      <Body>
-        {hasMission && (
-          <MissionHead>
-            <MissionName>{missionName || "Mission"}</MissionName>
-            {ended ? (
-              <Banner
-                $failed={failed}
-                role={failed ? "alert" : "status"}
-                aria-live={failed ? "assertive" : "polite"}
-              >
-                {failed ? "MISSION FAILED" : "MISSION SUCCESS"}
-              </Banner>
-            ) : (
-              phase && <Phase>{phase}</Phase>
-            )}
-            {score?.enabled && (
-              <Score>
-                Score <strong>{Math.round(score.current)}</strong>
-                <ScoreMax> / {Math.round(score.max)}</ScoreMax>
-              </Score>
-            )}
-          </MissionHead>
-        )}
-
-        {items.length > 0 ? (
-          <List aria-label="Objectives">
-            {items.map((o) => (
-              <Item key={o.id} $state={o.state}>
-                <Glyph $state={o.state} aria-hidden="true">
-                  {STATE_GLYPH[o.state]}
-                </Glyph>
-                <Text>
-                  <Title>
-                    {o.title}
-                    {o.optional && <Optional> (optional)</Optional>}
-                  </Title>
-                  <Sourced>{o.source}</Sourced>
-                  {o.description && <Desc>{o.description}</Desc>}
-                </Text>
-                <VisuallyHidden>{o.state}</VisuallyHidden>
-                {renderAlarm(o)}
-              </Item>
-            ))}
-          </List>
-        ) : (
-          <Muted role="status">No open objectives</Muted>
-        )}
-      </Body>
+      <Sections>
+        <AugmentSlot name="objectives.sections" props={OBJECTIVES_SLOT} />
+      </Sections>
+      {/* Frame-level fallback: shown only while no bound source yields content
+          (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
+          agnostic of which sources exist — see the sibling rule on `Sections`. */}
+      <EmptyFallback role="status">No active objectives</EmptyFallback>
     </Panel>
   );
 }
 
-const Body = styled.div`
+const EmptyFallback = styled(EmptyState)``;
+
+const Sections = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 4px 8px 8px;
   overflow: auto;
-`;
 
-const MissionHead = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const MissionName = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const Banner = styled.div<{ $failed: boolean }>`
-  padding: 4px 8px;
-  border-radius: 2px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-align: center;
-  background: ${(p) =>
-    p.$failed ? "var(--color-status-nogo-bg)" : "var(--color-status-go-bg)"};
-  color: ${(p) =>
-    p.$failed ? "var(--color-status-nogo-fg)" : "var(--color-status-go-fg)"};
-`;
-
-const Phase = styled.div`
-  font-size: 11px;
-  color: var(--color-text-secondary);
-`;
-
-const Score = styled.div`
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-`;
-
-const ScoreMax = styled.span`
-  color: var(--color-text-secondary);
+  /* When any source has rendered content, hide the frame's empty fallback. When
+     every source renders nothing, this wrapper is genuinely empty (augments
+     that return null add no DOM), the rule doesn't apply, and the fallback shows. */
+  &:not(:empty) + ${EmptyFallback} {
+    display: none;
+  }
 `;
 
 const List = styled.ul`
@@ -387,11 +358,6 @@ const Desc = styled.span`
   color: var(--color-text-secondary);
 `;
 
-const Muted = styled.div`
-  font-size: 11px;
-  color: var(--color-text-secondary);
-`;
-
 const VisuallyHidden = styled.span`
   position: absolute;
   width: 1px;
@@ -405,24 +371,39 @@ registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
   description:
-    "Read-only unified list of what you're currently trying to achieve: Making History mission objectives and active-contract parameters, each tagged with its source. Manage contracts in the Contract Manager widget.",
-  tags: ["mission", "contracts", "career"],
+    "Read-only unified list of what you're currently trying to achieve: active-contract parameters, each tagged with its source contract. Manage contracts in the Contract Manager widget.",
+  tags: ["contracts", "career"],
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
-  dataRequirements: [
-    "mh.available",
-    "mh.name",
-    "mh.phase",
-    "mh.score",
-    "mh.finished",
-    "mh.outcome",
-    "mh.objectives",
-    "contracts.active",
-  ],
+  // Exposes one typed-contract slot; the built-in source below binds into it,
+  // and any future Uplink objective source can too.
+  augmentSlots: ["objectives.sections"],
+  dataRequirements: ["contracts.active"],
   defaultConfig: {},
   actions: [],
   pushable: true,
 });
 
-export { ObjectivesComponent };
+// The built-in source binds the slot as an augment. It declares a show/hide
+// setting that the host widget's settings panel merges in (§4.7); collected
+// via `getAugmentSettings("objectives.sections")`.
+registerAugment({
+  id: "objectives-contracts",
+  augments: "objectives.sections",
+  component: ContractsObjectiveSource,
+  // `contracts.active` is carried by the `career.status` Topic (see the stream
+  // dual-run tests); the legacy key is mapped onto it by the migration shim.
+  channels: ["career.status"],
+  priority: 20,
+  settings: [
+    {
+      key: "show",
+      type: "boolean",
+      label: "Show contract objectives",
+      default: true,
+    },
+  ],
+});
+
+export { ObjectivesComponent, ObjectivesSection };

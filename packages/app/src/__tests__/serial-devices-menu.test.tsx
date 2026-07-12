@@ -6,8 +6,8 @@ import {
   SerialDeviceProvider,
   SerialDeviceService,
   SerialDevicesMenu,
-} from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 

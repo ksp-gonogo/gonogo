@@ -1,9 +1,8 @@
 {
   "_meta": {
     "scenario": "contracts-only",
-    "notes": "No mission running; two active contracts. Source tags distinguish them."
+    "notes": "Two active contracts. Source tags distinguish them."
   },
-  "mh.available": false,
   "contracts.active": [
     {
       "id": "9001",

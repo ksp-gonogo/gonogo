@@ -1,4 +1,4 @@
-import type { Screen } from "@gonogo/core";
+import type { Screen } from "@ksp-gonogo/core";
 
 /**
  * Global registry of user-facing settings. Mirrors the `registerComponent`
@@ -15,6 +15,19 @@ export interface SettingDefinitionBase {
   category: string;
   /** Which screens this setting is relevant on. Omit for both. */
   screens?: readonly Screen[];
+  /**
+   * Id of a parent BOOLEAN setting this one is nested under. Purely a
+   * RENDERING/inertness hint for `SettingsModal` (indents the row, disables
+   * its `Switch`, and shows it as off, whenever the parent setting reads
+   * `false`) — the registry itself has no hierarchy concept beyond this one
+   * pointer, and does NOT enforce the dependency for consumers reading the
+   * child setting directly via `useSetting`. A consuming hook that wants the
+   * dependency enforced at the DATA level (not just the UI) must AND-combine
+   * both values itself (mirrors `useStationWakeLock`'s own
+   * `active && enabled` pattern) — see `useMissionHistorySettings` for the
+   * concrete example this field was added for.
+   */
+  dependsOn?: string;
 }
 
 export interface BooleanSetting extends SettingDefinitionBase {

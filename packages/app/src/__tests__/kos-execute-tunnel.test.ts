@@ -120,7 +120,7 @@ import {
   clearRegistry,
   type DataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import { PeerClientService } from "../peer/PeerClientService";

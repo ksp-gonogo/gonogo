@@ -1,27 +1,29 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   formatCompactCurrency,
   getWidgetShape,
   registerComponent,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   BellIcon,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
  * Trigger shape used by the Mission Director's parameter bells. Mirrors
- * `ContractParameterTrigger` in `@gonogo/app/src/alarms/types.ts`;
- * declared inline here because @gonogo/components can't import from
- * @gonogo/app (would be circular). The bridge in
+ * `ContractParameterTrigger` in `@ksp-gonogo/app/src/alarms/types.ts`;
+ * declared inline here because @ksp-gonogo/components can't import from
+ * @ksp-gonogo/app (would be circular). The bridge in
  * `AlarmsLauncherBridge.tsx` accepts the shape via the generic
  * `AlarmCreator<TTrigger>` interface.
  */
@@ -80,6 +82,36 @@ export interface ContractEntry {
   parameters: ContractParameter[];
 }
 
+/**
+ * Props passed to every `contract-manager.badges` augment — one instance per
+ * contract row (active and offered). Carries the contract's identity so a
+ * contract-pack Uplink can render custom per-contract iconography against the
+ * right one. Keyed off `agency`/`title`/`contractId` because that is all a pack
+ * needs to recognise its own contracts; `section` lets an augment style active
+ * vs. offered differently.
+ */
+export interface ContractBadgeContext {
+  /** Contract id as a string (KSP long-safe). Identity for the augment. */
+  contractId: string;
+  /** Contract title, as shown in the card header. */
+  title: string;
+  /** Sponsoring agency — the natural key for contract-pack iconography. */
+  agency: string;
+  /** Which list the row sits in. */
+  section: "active" | "offered";
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// other widgets can't collide. Makes `registerAugment({ augments:
+// "contract-manager.badges" })` and `<AugmentSlot name="contract-manager.badges"
+// props={…} />` type-check precisely against `ContractBadgeContext`.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "contract-manager.badges": ContractBadgeContext;
+  }
+}
+
 const KNOWN_PARAM_STATES = new Set<ContractParameterState>([
   "Incomplete",
   "Complete",
@@ -91,10 +123,20 @@ function isKnownParamState(value: string): value is ContractParameterState {
 }
 
 /**
- * Defensive parser for the GonogoTelemetry plugin's contract array
- * payloads (`contracts.active`, `contracts.offered`,
- * `contracts.completedRecent`). Drops malformed entries; tolerates
- * unknown parameter states by collapsing to "Incomplete".
+ * Defensive parser for contract array payloads. Accepts BOTH the legacy
+ * GonogoTelemetry shape (`contracts.active`/`contracts.offered`/
+ * `contracts.completedRecent`: `agency`/`repCompletion`/`deadlineUt`) and
+ * the career-detail wire shape (`career.status.contracts.active`/
+ * `.offered`, mod/Sitrep.Host/CareerViewProvider.cs's `BuildContractList`:
+ * `agent`/`reputationCompletion`/`dateDeadline`) — same "one parser, either
+ * wire shape" pattern ScienceBench's `parseExperiments` established
+ * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
+ * `parameters` only carry `{title, state}` (no `optional`/`parameterType`/
+ * altitude bounds — decompile-confirmed exact shape, career-capture-extend-
+ * report.md); those extra fields simply stay undefined on a new-wire
+ * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
+ * rather than breaking. Drops malformed entries; tolerates unknown
+ * parameter states by collapsing to "Incomplete".
  */
 export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -112,18 +154,39 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     else if (typeof e.id === "number" && Number.isFinite(e.id))
       id = String(e.id);
     if (id === null) continue;
+    // agency/agent, repCompletion/reputationCompletion, deadlineUt/
+    // dateDeadline: legacy vs. career.status field names for the same
+    // value — prefer whichever the payload actually carries.
+    const agency =
+      typeof e.agency === "string"
+        ? e.agency
+        : typeof e.agent === "string"
+          ? e.agent
+          : "";
+    const repCompletion =
+      typeof e.repCompletion === "number"
+        ? e.repCompletion
+        : typeof e.reputationCompletion === "number"
+          ? e.reputationCompletion
+          : 0;
+    const deadlineUt =
+      typeof e.deadlineUt === "number"
+        ? e.deadlineUt
+        : typeof e.dateDeadline === "number"
+          ? e.dateDeadline
+          : 0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
-      agency: typeof e.agency === "string" ? e.agency : "",
+      agency,
       state: typeof e.state === "string" ? e.state : "",
       fundsAdvance: typeof e.fundsAdvance === "number" ? e.fundsAdvance : 0,
       fundsCompletion:
         typeof e.fundsCompletion === "number" ? e.fundsCompletion : 0,
       scienceCompletion:
         typeof e.scienceCompletion === "number" ? e.scienceCompletion : 0,
-      repCompletion: typeof e.repCompletion === "number" ? e.repCompletion : 0,
-      deadlineUt: typeof e.deadlineUt === "number" ? e.deadlineUt : 0,
+      repCompletion,
+      deadlineUt,
       parameters: parseParameters(e.parameters),
     });
   }
@@ -198,9 +261,9 @@ function ContractManagerComponent({
   const activeRaw = useDataValue("data", "contracts.active");
   const offeredRaw = useDataValue("data", "contracts.offered");
   const recentRaw = useDataValue("data", "contracts.completedRecent");
-  const universalTime = useDataValue("data", "t.universalTime") as
-    | number
-    | undefined;
+  // t.universalTime is dropped as a data key — it was never a stream, it IS
+  // the SDK view-UT the propagation is evaluated at, so read that directly.
+  const universalTime = useViewUt();
   const vAltitude = useDataValue("data", "v.altitude") as number | undefined;
   const execute = useExecuteAction("data");
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
@@ -255,6 +318,19 @@ function ContractManagerComponent({
             <ContractCard key={c.id}>
               <ContractHeader>
                 <ContractTitle>{c.title}</ContractTitle>
+                {/* Per-contract inline badges slot. Renders nothing until a
+                    contract-pack Uplink binds — the props carry this row's
+                    contract identity so custom iconography lands on the right
+                    one. */}
+                <AugmentSlot
+                  name="contract-manager.badges"
+                  props={{
+                    contractId: c.id,
+                    title: c.title,
+                    agency: c.agency,
+                    section: "active",
+                  }}
+                />
                 <ContractDeadline>
                   {formatDeadline(c.deadlineUt, universalTime ?? 0)}
                 </ContractDeadline>
@@ -399,6 +475,18 @@ function ContractManagerComponent({
             <ContractCard key={c.id}>
               <ContractHeader>
                 <ContractTitle>{c.title}</ContractTitle>
+                {/* Per-contract inline badges slot (offered list). Same slot as
+                    the active rows; `section` distinguishes them for augments
+                    that want to style offered contracts differently. */}
+                <AugmentSlot
+                  name="contract-manager.badges"
+                  props={{
+                    contractId: c.id,
+                    title: c.title,
+                    agency: c.agency,
+                    section: "offered",
+                  }}
+                />
                 <ContractDeadline>
                   {formatDeadline(c.deadlineUt, universalTime ?? 0)}
                 </ContractDeadline>
@@ -902,7 +990,6 @@ registerComponent<ContractManagerConfig>({
     "contracts.active",
     "contracts.offered",
     "contracts.completedRecent",
-    "t.universalTime",
     // Consumed by AltitudeProgress on altitude-bounded contract
     // parameters. Without listing it here the orchestrator never
     // subscribes and the bar stays empty in production.
@@ -910,6 +997,7 @@ registerComponent<ContractManagerConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["contract-manager.badges"],
   pushable: true,
   requires: ["career"],
 });

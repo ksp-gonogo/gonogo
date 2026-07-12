@@ -1,4 +1,4 @@
-import { getBody, type OrbitPatch } from "@gonogo/core";
+import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
 import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,

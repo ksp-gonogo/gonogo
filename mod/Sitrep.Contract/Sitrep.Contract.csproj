@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- Deliberate permissive carve-out: Sitrep.Contract is the public Uplink
+         surface. Core (Sitrep.Host/Core/etc.) is GPL-3.0-only because it
+         directly links kOS (GPLv3-only), but this assembly ships no kOS
+         code and exists specifically so third-party Uplinks under ANY
+         license (GPLv2, proprietary, etc.) can reference the contract
+         without inheriting GPL obligations. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli
+       reads the [TsInterface]/[TsEnum] attributes baked into this
+       assembly's metadata to generate the TS SDK (see ../codegen.sh). It
+       must NOT flow to anything that references Sitrep.Contract (directly
+       or transitively) as a runtime dependency — PrivateAssets="all" stops
+       NuGet from propagating it to referencing projects (e.g. Sitrep.Core,
+       which must stay BCL-only). IncludeAssets keeps every asset (compile
+       included) available to THIS project, so the attributes still compile
+       and rtcli's codegen still works unchanged.
+
+       Scoped to netstandard2.0 only (Condition below): that's the only TFM
+       rtcli codegen runs against. The net472 build is what gets deployed to
+       KSP/Kopernicus, and Kopernicus reflects over every loaded assembly's
+       metadata at startup — if net472's Contract.dll carried RT attributes,
+       Kopernicus would try to resolve Reinforced.Typings.dll (never
+       deployed) and fail to load, breaking Squad/Sun. See RT usages in
+       Envelope.cs/Meta.cs/RtConfig.cs, all guarded by #if NETSTANDARD2_0. -->
+  <ItemGroup>
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+  <!-- Sitrep.Core's ChannelEmitter constructs EmissionDecision/EmissionCounters
+       via their internal factory methods/constructors (EmissionDecision.Emit/
+       Skip, EmissionCounters' 2-arg ctor) — deliberately internal so nothing
+       outside the emitter can fabricate a decision/counters snapshot.
+       EmissionPolicy and its EmissionDecision/EmissionCounters siblings moved
+       here from Sitrep.Core during the Uplink-foundation review's fix round
+       (see UplinkContract.cs's ISitrepUplink doc comment), so that
+       cross-assembly internal access needs this friend-assembly grant now,
+       same pattern Sitrep.Core.csproj already uses for Sitrep.Host. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sitrep.Core" />
+  </ItemGroup>
+</Project>

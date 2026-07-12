@@ -1,5 +1,6 @@
 {
-  "name": "@gonogo/kerbcast",
+  "name": "@ksp-gonogo/kerbcast-feed",
+  "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -20,11 +21,12 @@
     "render-camera": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-camera.ts"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*",
-    "@gonogo/logger": "workspace:*",
-    "@gonogo/ui": "workspace:*",
-    "@jonpepler/kerbcast": "^1.2.0",
-    "@jonpepler/kerbcast-react": "^1.2.0",
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/ui": "workspace:*",
+    "@ksp-gonogo/kerbcast": "^1.4.0",
+    "@ksp-gonogo/kerbcast-react": "^1.4.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {

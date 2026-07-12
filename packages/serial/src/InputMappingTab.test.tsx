@@ -1,5 +1,5 @@
-import type { ActionDefinition } from "@gonogo/core";
-import { ModalProvider, useModal } from "@gonogo/ui";
+import type { ActionDefinition } from "@ksp-gonogo/core";
+import { ModalProvider, useModal } from "@ksp-gonogo/ui";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";

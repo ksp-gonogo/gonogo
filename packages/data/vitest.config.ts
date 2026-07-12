@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
-      "@gonogo/ui": path.resolve(import.meta.dirname, "../ui/src/index.ts"),
+      "@ksp-gonogo/ui": path.resolve(import.meta.dirname, "../ui/src/index.ts"),
     },
   },
   test: {

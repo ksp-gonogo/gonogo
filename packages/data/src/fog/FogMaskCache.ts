@@ -12,7 +12,7 @@
  * independently and composes them with precedence rules at paint time.
  */
 
-import { type SCANType, safeRandomUuid } from "@gonogo/core";
+import { type SCANType, safeRandomUuid } from "@ksp-gonogo/core";
 import type { FogMaskStore } from "./FogMaskStore";
 
 export interface BodyMask {

@@ -6,10 +6,13 @@
   "n.heading": 90,
   "n.pitch": 90,
   "n.roll": 0,
+  "n.heading2": 90,
+  "n.pitch2": 90,
+  "n.roll2": 0,
   "f.sasMode": "StabilityAssist",
   "f.sasEnabled": true,
   "f.precisionControl": false,
   "v.rcsValue": false,
-  "f.throttle": 1.0,
+  "f.throttle": 1,
   "v.isControllable": true
 }

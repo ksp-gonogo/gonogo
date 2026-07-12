@@ -6,12 +6,12 @@ import { createContext, type ReactNode, useContext } from "react";
  * to avoid the round trip of opening alarms manually and re-typing the
  * action key.
  *
- * The provider lives in `@gonogo/app` (it's the only layer that has the
+ * The provider lives in `@ksp-gonogo/app` (it's the only layer that has the
  * AlarmHostService / AlarmClientService and the ModalProvider it needs to
  * portal the modal). Components stay framework-agnostic — they call the
  * launcher when present and hide the affordance otherwise. Defining the
- * contract here (rather than in app) keeps `@gonogo/components` from
- * having a circular import on `@gonogo/app`.
+ * contract here (rather than in app) keeps `@ksp-gonogo/components` from
+ * having a circular import on `@ksp-gonogo/app`.
  */
 export interface AlarmsLauncherOptions {
   /** Pre-fills the alarm name. Optional. */
@@ -34,7 +34,7 @@ const Context = createContext<AlarmsLauncher | null>(null);
  * callback.
  *
  * Generic over the trigger type so this stays in
- * `@gonogo/components/shared` (no `@gonogo/app` import) — the caller
+ * `@ksp-gonogo/components/shared` (no `@ksp-gonogo/app` import) — the caller
  * supplies a trigger of whatever shape; the host bridge unwraps it.
  */
 export interface AlarmCreateRequest<TTrigger> {

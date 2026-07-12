@@ -60,9 +60,26 @@ const { FakePeer } = vi.hoisted(() => {
 
 vi.mock("peerjs", () => ({ default: FakePeer }));
 
+import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import type { PeerMessage } from "../peer/protocol";
+
+function makeMeta(overrides: Partial<Meta> = {}): Meta {
+  return {
+    source: "test",
+    validAt: 0,
+    seq: 0,
+    deliveredAt: 0,
+    vantage: "test",
+    quality: Quality.OnRails,
+    active: false,
+    staleness: Staleness.Fresh,
+    timelineEpoch: 0,
+    ...overrides,
+  };
+}
 
 // The handleMessage logic is private. To drive it from the outside we reach in
 // via a typed cast — these tests verify the observable contract (listeners fire
@@ -128,9 +145,6 @@ describe("PeerClientService", () => {
     svc.onData(() => calls.push("data"));
     svc.onSourceStatus(() => calls.push("source-status"));
     svc.onSchema(() => calls.push("schema"));
-    svc.onKosOpened(() => calls.push("kos-opened"));
-    svc.onKosData(() => calls.push("kos-data"));
-    svc.onKosClose(() => calls.push("kos-close"));
 
     const inner = svc as unknown as PeerClientServiceInternal;
     inner.handleMessage({
@@ -141,18 +155,8 @@ describe("PeerClientService", () => {
     });
     inner.handleMessage({ type: "status", sourceId: "s", status: "connected" });
     inner.handleMessage({ type: "schema", sources: [] });
-    inner.handleMessage({ type: "kos-opened", sessionId: "x" });
-    inner.handleMessage({ type: "kos-data", sessionId: "x", data: "hi" });
-    inner.handleMessage({ type: "kos-close", sessionId: "x" });
 
-    expect(calls).toEqual([
-      "data",
-      "source-status",
-      "schema",
-      "kos-opened",
-      "kos-data",
-      "kos-close",
-    ]);
+    expect(calls).toEqual(["data", "source-status", "schema"]);
   });
 
   it("captures hello and exposes it via getHostVersion + onHostHello", () => {
@@ -231,15 +235,11 @@ describe("PeerClientService", () => {
     svc.onData(() => {});
     svc.onData(() => {});
     svc.onSchema(() => {});
-    svc.onKosData(() => {});
     expect(svc._listenerCounts()).toEqual({
       data: 2,
       sourceStatus: 0,
       connStatus: 0,
       schema: 1,
-      kosOpened: 0,
-      kosData: 1,
-      kosClose: 0,
       fogSnapshot: 0,
     });
   });
@@ -949,5 +949,93 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
       await Promise.resolve();
       expect(received).toEqual([t0Ms]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sitrep telemetry-stream forwarding — the wire-level plumbing `PeerTransport`
+// (packages/app/src/telemetry/PeerTransport.ts) builds on. `PeerTransport`
+// itself is tested against a duck-typed fake of this service
+// (`PeerTransport.test.ts`); these tests cover the real dispatcher wiring +
+// `sendSitrepCommand`'s wire message, which that fake stands in for.
+// ---------------------------------------------------------------------------
+describe("PeerClientService — sitrep frame/command dispatcher wiring", () => {
+  it("dispatches sitrep-frame to onSitrepFrame listeners, unwrapped to the raw ServerMessage", () => {
+    const svc = new PeerClientService();
+    const received: ServerMessage[] = [];
+    svc.onSitrepFrame((m) => received.push(m));
+
+    const message: ServerMessage = {
+      type: "stream-data",
+      topic: "vessel.orbit",
+      payload: { apoapsis: 1 },
+      meta: makeMeta(),
+    };
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "sitrep-frame",
+      message,
+    });
+
+    expect(received).toEqual([message]);
+  });
+
+  it("dispatches sitrep-command-response to onSitrepCommandResponse listeners", () => {
+    const svc = new PeerClientService();
+    const received: Array<[string, unknown, Meta]> = [];
+    svc.onSitrepCommandResponse((requestId, result, meta) =>
+      received.push([requestId, result, meta]),
+    );
+
+    const meta = makeMeta();
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "sitrep-command-response",
+      requestId: "c0",
+      result: { ok: true },
+      meta,
+    });
+
+    expect(received).toEqual([["c0", { ok: true }, meta]]);
+  });
+
+  it("dispatches sitrep-command-error to onSitrepCommandError listeners", () => {
+    const svc = new PeerClientService();
+    const received: Array<[string, string, string]> = [];
+    svc.onSitrepCommandError((requestId, code, message) =>
+      received.push([requestId, code, message]),
+    );
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "sitrep-command-error",
+      requestId: "c0",
+      code: "E_LOST",
+      message: "no confirmation",
+    });
+
+    expect(received).toEqual([["c0", "E_LOST", "no confirmation"]]);
+  });
+
+  it("sendSitrepCommand sends a sitrep-command-request wire message", () => {
+    FakePeer.instances = [];
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const sent: PeerMessage[] = [];
+    peer._lastConn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    svc.sendSitrepCommand("c0", "vessel.control.setSas", { enabled: true });
+
+    expect(sent).toEqual([
+      {
+        type: "sitrep-command-request",
+        requestId: "c0",
+        command: "vessel.control.setSas",
+        args: { enabled: true },
+      },
+    ]);
   });
 });

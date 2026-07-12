@@ -1,9 +1,9 @@
-import { SCAN_TYPE, type SCANType } from "@gonogo/core";
+import { SCAN_TYPE, type SCANType } from "@ksp-gonogo/core";
 import {
   DEFAULT_PROFILE_ID,
   type FogMaskStore,
   type StoredMask,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import type { PeerHostService } from "../peer/PeerHostService";

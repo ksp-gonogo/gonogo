@@ -1,5 +1,5 @@
-import { safeRandomUuid } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import { safeRandomUuid } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import { EMPTY_NOTES_SNAPSHOT, type Note, type NotesSnapshot } from "./types";
 
 const STORAGE_KEY = "gonogo.notes.v1";

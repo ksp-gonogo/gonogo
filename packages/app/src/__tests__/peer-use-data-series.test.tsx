@@ -1,5 +1,5 @@
-import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { useDataSeries } from "@gonogo/data";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { useDataSeries } from "@ksp-gonogo/data";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";

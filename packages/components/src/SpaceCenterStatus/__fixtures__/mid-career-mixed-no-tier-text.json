@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "notes": "Same underlying career state as mid-career-mixed.json (tiers/costs/pad/parts identical), but with currentLevelText/nextLevelText blanked out on every facility. Used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx): career.status.facilities (CareerViewProvider.BuildFacilities) has no currentLevelText/nextLevelText field at all — the real wire can never reproduce the rich tier-text block mid-career-mixed.json exercises for the legacy-only tests (index.test.tsx/snapshots.test.tsx), so a byte-identical dual-run needs a legacy fixture that already renders the same 'older DLL, no tier text' shape parseFacilityLevels produces for an enum-keyed entry.",
+    "scenario": "mid-career-mixed-no-tier-text"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 150000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "runway": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "vab": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "sph": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 175000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "mission": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "tracking": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 115000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "admin": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 55000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "rd": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 225000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "astronaut": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 65000,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    }
+  },
+  "kc.partsAvailable": 183,
+  "kc.launchSite": "LaunchPad",
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Mun Shot III",
+  "kc.scene": "SpaceCenter",
+  "career.funds": 78400
+}

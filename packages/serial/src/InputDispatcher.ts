@@ -1,11 +1,11 @@
-import { dispatchAction } from "@gonogo/core";
+import { dispatchAction } from "@ksp-gonogo/core";
 import type { InputBinding } from "./bindings";
 import type { SerialDeviceService } from "./SerialDeviceService";
 import type { InputEvent } from "./transports/DeviceTransport";
 
 /**
  * Minimal shape the dispatcher needs from each dashboard item — structural
- * so @gonogo/app's `DashboardItem` satisfies it without an explicit import
+ * so @ksp-gonogo/app's `DashboardItem` satisfies it without an explicit import
  * (keeps the dependency flowing app → serial, not the other way).
  */
 export interface InputMappingSource {

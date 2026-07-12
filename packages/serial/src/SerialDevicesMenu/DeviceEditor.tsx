@@ -1,4 +1,4 @@
-import { safeRandomUuid } from "@gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
   Field,
   FieldHint,
@@ -8,7 +8,7 @@ import {
   Input,
   PrimaryButton,
   Select,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DeviceInstance, DeviceTransportKind, DeviceType } from "../types";

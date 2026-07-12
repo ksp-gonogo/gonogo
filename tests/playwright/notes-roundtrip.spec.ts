@@ -20,9 +20,9 @@ import { PORTS } from "../../playwright.config";
 const MAIN_URL = "/";
 const STATION_URL = "/station";
 
-const TELEMACHUS_CONFIG = JSON.stringify({
+const SITREP_CONFIG = JSON.stringify({
   host: "localhost",
-  port: PORTS.telemachusReplay,
+  port: PORTS.sitrepReplay,
 });
 
 const NOTES_INPUT_LABEL = "New note body (use {{ to insert a variable)";
@@ -53,16 +53,16 @@ async function seedContext(
   const dashboard = JSON.stringify(dashboardWithNotes());
   await context.addInitScript(
     ({
-      teleCfg,
+      sitrepCfg,
       dashboardKey,
       dashboard,
     }: {
-      teleCfg: string;
+      sitrepCfg: string;
       dashboardKey: string;
       dashboard: string;
     }) => {
       try {
-        localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
+        localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
         // Pre-answer analytics consent so the blocking boot modal doesn't
         // sit over the dashboard and swallow the note-input click.
@@ -71,7 +71,7 @@ async function seedContext(
         /* private mode / quota — ignore */
       }
     },
-    { teleCfg: TELEMACHUS_CONFIG, dashboardKey, dashboard },
+    { sitrepCfg: SITREP_CONFIG, dashboardKey, dashboard },
   );
 }
 

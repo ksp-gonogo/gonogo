@@ -1,10 +1,10 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearBodies,
   DashboardItemContext,
   type MockDataSource,
   registerStockBodies,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

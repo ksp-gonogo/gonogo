@@ -1,4 +1,4 @@
-import { clearRegistry, registerComponent } from "@gonogo/core";
+import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
 import type { Layouts } from "react-grid-layout";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";

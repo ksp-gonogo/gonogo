@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright tests covering the browser-level surface — multi-screen
  * peer handshake, replay-driven telemetry mirror, widget-DOM mirrors,
- * notes round-trip. Boots peerjs-server + a fake Telemachus replay
+ * notes round-trip. Boots peerjs-server + a fake Sitrep stream replay
  * server + the Vite dev server automatically via webServer.
  *
  * The Vite dev server is launched with VITE_PEER_HOST/PORT/PATH set so
@@ -18,7 +18,9 @@ const BROKER_PORT = 9999;
 // VITE_PEER_HOST override) and the test would silently target the
 // developer's actual host stack instead of the test-launched one.
 const APP_PORT = 15173;
-const TELEMACHUS_REPLAY_PORT = 8086;
+// Deliberately NOT the production default 8090 — same "don't collide with a
+// developer's own dev stack" rationale as APP_PORT/RELAY_PORT above.
+const SITREP_REPLAY_PORT = 18090;
 // The relay (/ice-config + coturn + the host-discovery registry).
 //
 // Port deliberately offset from the production default (3002) so the
@@ -73,18 +75,18 @@ export default defineConfig({
       timeout: 15_000,
     },
     {
-      command: "node ./tests/playwright/telemachus-replay-server.mjs",
-      url: `http://localhost:${TELEMACHUS_REPLAY_PORT}/health`,
+      command: "node ./tests/playwright/sitrep-stream-server.mjs",
+      url: `http://localhost:${SITREP_REPLAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 15_000,
       env: {
-        TELE_REPLAY_PORT: String(TELEMACHUS_REPLAY_PORT),
+        SITREP_REPLAY_PORT: String(SITREP_REPLAY_PORT),
       },
     },
     {
-      command: "pnpm --filter @gonogo/relay exec tsx src/index.ts",
+      command: "pnpm --filter @ksp-gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -110,7 +112,7 @@ export default defineConfig({
       // `pnpm exec vite` (instead of `pnpm dev -- …`) skips pnpm's
       // arg-forwarding rules — the latter delivered `--` to vite as a
       // literal positional, which made vite treat --port as a no-op.
-      command: `pnpm --filter @gonogo/app exec vite --port ${APP_PORT} --strictPort`,
+      command: `pnpm --filter @ksp-gonogo/app exec vite --port ${APP_PORT} --strictPort`,
       port: APP_PORT,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -134,6 +136,6 @@ export default defineConfig({
 export const PORTS = {
   app: APP_PORT,
   broker: BROKER_PORT,
-  telemachusReplay: TELEMACHUS_REPLAY_PORT,
+  sitrepReplay: SITREP_REPLAY_PORT,
   relay: RELAY_PORT,
 } as const;

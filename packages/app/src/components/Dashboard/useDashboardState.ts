@@ -1,4 +1,4 @@
-import type { InputMappings } from "@gonogo/serial";
+import type { InputMappings } from "@ksp-gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";

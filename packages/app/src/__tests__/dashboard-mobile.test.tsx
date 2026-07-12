@@ -6,9 +6,9 @@
  * direction (with the first/last items respectively disabled).
  */
 
-import { clearRegistry, registerComponent } from "@gonogo/core";
-import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -1,11 +1,11 @@
-import type { ConfigField, DataSourceStatus } from "@gonogo/core";
+import type { ConfigField, DataSourceStatus } from "@ksp-gonogo/core";
 import {
   compareVersions,
   getAppVersion,
   getDataSource,
   type MismatchKind,
   useDataSources,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BigReadout,
   FieldLabel,
@@ -21,7 +21,7 @@ import {
   Placeholder,
   PrimaryButton,
   ReadoutCaption,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 

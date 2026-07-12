@@ -1,17 +1,27 @@
-import type { DataKey, OrbitPatch } from "@gonogo/core";
+import type { DataKey, OrbitPatch } from "@ksp-gonogo/core";
 import {
+  clearAugments,
   clearBodies,
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
+  registerAugment,
   registerDataSource,
   registerStockBodies,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
+import type { MapBadgesContext, MapOverlayContext } from "./index";
 import { MapViewComponent } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
@@ -29,16 +39,15 @@ const MAPVIEW_KEYS: DataKey[] = [
   { key: "o.orbitPatches" },
   { key: "o.maneuverNodes" },
   { key: "t.universalTime" },
-  { key: "a.physicsMode" },
   { key: "land.predictedLat" },
   { key: "land.predictedLon" },
-  { key: "scan.scanningVessels" },
-  { key: "scan.anomalies[Kerbin]" },
-  { key: "scan.coverage[Kerbin,2]" },
-  { key: "scan.coverage[Kerbin,1]" },
-  { key: "scan.coverage[Kerbin,8]" },
-  { key: "scan.coverage[Kerbin,256]" },
-  { key: "scan.coverage[Kerbin,128]" },
+  { key: "scansat.scanningVessels" },
+  { key: "scansat.anomalies.Kerbin" },
+  { key: "scansat.coverage.Kerbin.2" },
+  { key: "scansat.coverage.Kerbin.1" },
+  { key: "scansat.coverage.Kerbin.8" },
+  { key: "scansat.coverage.Kerbin.256" },
+  { key: "scansat.coverage.Kerbin.128" },
 ];
 
 function kerbinCircularPatch(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
@@ -132,53 +141,6 @@ describe("MapViewComponent", () => {
     expect(container.querySelector("canvas")).not.toBeNull();
   });
 
-  it("renders the N-body chip when physicsMode is n_body", async () => {
-    const { findByText } = render(
-      <Wrap>
-        <MapViewComponent config={{}} id="map-test" />
-      </Wrap>,
-    );
-    act(() => {
-      primeFlight();
-      source.emit("v.lat", 0);
-      source.emit("v.long", 0);
-      source.emit("v.body", "Kerbin");
-      source.emit("t.universalTime", 0);
-      source.emit("o.orbitPatches", [kerbinCircularPatch()]);
-      source.emit("a.physicsMode", "n_body");
-    });
-    const chip = await findByText(/Prediction unavailable/i);
-    expect(chip).not.toBeNull();
-  });
-
-  it("does NOT render the N-body chip when showPrediction is false", () => {
-    const { queryByText } = render(
-      <Wrap>
-        <MapViewComponent config={{ showPrediction: false }} id="map-test" />
-      </Wrap>,
-    );
-    act(() => {
-      primeFlight();
-      source.emit("v.body", "Kerbin");
-      source.emit("a.physicsMode", "n_body");
-    });
-    expect(queryByText(/Prediction unavailable/i)).toBeNull();
-  });
-
-  it("does NOT render the N-body chip on stock installs (patched_conics)", () => {
-    const { queryByText } = render(
-      <Wrap>
-        <MapViewComponent config={{}} id="map-test" />
-      </Wrap>,
-    );
-    act(() => {
-      primeFlight();
-      source.emit("v.body", "Kerbin");
-      source.emit("a.physicsMode", "patched_conics");
-    });
-    expect(queryByText(/Prediction unavailable/i)).toBeNull();
-  });
-
   it("renders without crashing with full prediction + impact data", () => {
     const { container } = render(
       <Wrap>
@@ -193,7 +155,6 @@ describe("MapViewComponent", () => {
       source.emit("t.universalTime", 5_000);
       source.emit("o.orbitPatches", [kerbinCircularPatch()]);
       source.emit("o.maneuverNodes", []);
-      source.emit("a.physicsMode", "patched_conics");
       source.emit("land.predictedLat", 13.2);
       source.emit("land.predictedLon", -69.5);
     });
@@ -211,8 +172,7 @@ describe("MapViewComponent", () => {
     source.emit("v.body", "Kerbin");
     source.emit("v.altitude", 100_000);
     source.emit("t.universalTime", 5_000);
-    source.emit("a.physicsMode", "patched_conics");
-    source.emit("scan.anomalies[Kerbin]", [
+    source.emit("scansat.anomalies.Kerbin", [
       // Near the vessel (lat 12, lon 35) → smallest distance.
       {
         name: "Near Site",
@@ -238,7 +198,7 @@ describe("MapViewComponent", () => {
         detail: false,
       },
     ]);
-    source.emit("scan.scanningVessels", [
+    source.emit("scansat.scanningVessels", [
       {
         vesselId: "v1",
         vesselName: "Mapper",
@@ -271,37 +231,12 @@ describe("MapViewComponent", () => {
         trackColor: { r: 0, g: 255, b: 200, a: 200 },
       },
     ]);
-    source.emit("scan.coverage[Kerbin,2]", 45.6);
-    source.emit("scan.coverage[Kerbin,1]", 67.6);
-    source.emit("scan.coverage[Kerbin,8]", 29.6);
-    source.emit("scan.coverage[Kerbin,256]", 7.4);
-    source.emit("scan.coverage[Kerbin,128]", 0);
+    source.emit("scansat.coverage.Kerbin.2", 45.6);
+    source.emit("scansat.coverage.Kerbin.1", 67.6);
+    source.emit("scansat.coverage.Kerbin.8", 29.6);
+    source.emit("scansat.coverage.Kerbin.256", 7.4);
+    source.emit("scansat.coverage.Kerbin.128", 0);
   }
-
-  it("anomaly panel lists known anomalies sorted by distance with bearing", () => {
-    render(
-      <Wrap>
-        <MapViewComponent
-          config={{ showAnomalyPanel: true }}
-          id="map-test"
-          w={14}
-          h={12}
-        />
-      </Wrap>,
-    );
-    act(() => {
-      primeScanScenario();
-    });
-    const panel = screen.getByRole("region", { name: /Anomalies near/i });
-    const items = within(panel).getAllByRole("listitem");
-    // Hidden (known=false) excluded; Near before Far (ascending distance).
-    expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent("Near Site");
-    expect(items[1]).toHaveTextContent("Far Site");
-    // Distance + a compass bearing render on the nearest entry.
-    expect(items[0]).toHaveTextContent(/km|m/);
-    expect(items[0]).toHaveTextContent(/\b\d+°/);
-  });
 
   it("coverage readout shows per-type percentages and live in-range chips", () => {
     render(
@@ -332,7 +267,7 @@ describe("MapViewComponent", () => {
     render(
       <Wrap>
         <MapViewComponent
-          config={{ bodyOverride: "Mun", showAnomalyPanel: true }}
+          config={{ bodyOverride: "Mun" }}
           id="map-test"
           w={14}
           h={12}
@@ -346,17 +281,13 @@ describe("MapViewComponent", () => {
     expect(screen.getByText(/Mun \(pinned\)/)).toBeInTheDocument();
     // Follow toggle is suppressed (vessel isn't on the mapped body).
     expect(screen.queryByLabelText("Follow")).toBeNull();
-    // Kerbin's anomaly panel does not appear under a Mun override.
-    expect(
-      screen.queryByRole("region", { name: /Anomalies near/i }),
-    ).toBeNull();
   });
 
-  it("a11y smoke: widget with anomaly + coverage panels has no violations", async () => {
+  it("a11y smoke: widget with coverage panel has no violations", async () => {
     const { container } = render(
       <Wrap>
         <MapViewComponent
-          config={{ showAnomalyPanel: true, showCoverage: true }}
+          config={{ showCoverage: true }}
           id="map-test"
           w={14}
           h={14}
@@ -388,5 +319,187 @@ describe("MapViewComponent", () => {
     expect(
       within(select).getByRole("option", { name: "Mun" }),
     ).toBeInTheDocument();
+  });
+
+  // ── Augment slots ─────────────────────────────────────────────────────
+  // MapView exposes an OVERLAY slot over the map canvases (passing the live
+  // equirectangular projection) and a BADGES escape-hatch in the header. No
+  // first-party augment fills them, so these register throwaway augments
+  // (cleared after each) to prove the slots compose and pass their props, and
+  // that the empty slots are inert when nothing is registered.
+  describe("augment slots", () => {
+    // cleanup() must unmount before clearAugments() notifies the augment
+    // registry's subscribers, else a still-mounted AugmentSlot re-renders
+    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    afterEach(() => {
+      cleanup();
+      clearAugments();
+    });
+
+    it("renders an overlay augment over the map, passed the live projection", async () => {
+      registerAugment({
+        id: "test-map-overlay",
+        augments: "map-view.overlay",
+        component: (ctx: MapOverlayContext) => {
+          const p = ctx.project(0, 0);
+          return (
+            <div data-testid="overlay-probe">
+              w={ctx.width} px={Math.round(p.x)} py={Math.round(p.y)}
+            </div>
+          );
+        },
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.lat", 0);
+        source.emit("v.long", 0);
+        source.emit("v.body", "Kerbin");
+      });
+
+      const probe = await waitFor(() => {
+        const el = container.querySelector('[data-testid="overlay-probe"]');
+        if (el === null)
+          throw new Error("overlay augment has not rendered yet");
+        return el;
+      });
+      // The map canvases still render beneath the overlay layer.
+      expect(container.querySelectorAll("canvas").length).toBeGreaterThan(0);
+      // The overlay received a real pixel width and a working `project`
+      // (numeric screen coordinates) as slot props.
+      expect(probe.textContent).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
+    });
+
+    it("passes the anomaly config toggles + raw vessel position to the overlay slot (P4c-b: AnomalyOverlay's props)", async () => {
+      registerAugment({
+        id: "test-map-overlay-anomaly-props",
+        augments: "map-view.overlay",
+        component: (ctx: MapOverlayContext) => (
+          <div data-testid="overlay-anomaly-probe">
+            showAnomalies={String(ctx.showAnomalies)} showAnomalyPanel=
+            {String(ctx.showAnomalyPanel)} vesselLat={String(ctx.vesselLat)}{" "}
+            vesselLon={String(ctx.vesselLon)}
+          </div>
+        ),
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent
+            config={{ showAnomalies: true, showAnomalyPanel: true }}
+            id="map-test"
+          />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.lat", 12.5);
+        source.emit("v.long", -70);
+        source.emit("v.body", "Kerbin");
+      });
+
+      const probe = await waitFor(() => {
+        const el = container.querySelector(
+          '[data-testid="overlay-anomaly-probe"]',
+        );
+        if (el === null)
+          throw new Error("overlay augment has not rendered yet");
+        return el;
+      });
+      expect(probe.textContent).toContain("showAnomalies=true");
+      expect(probe.textContent).toContain("showAnomalyPanel=true");
+      expect(probe.textContent).toContain("vesselLat=12.5");
+      expect(probe.textContent).toContain("vesselLon=-70");
+    });
+
+    it("clears vesselLat/vesselLon on the overlay slot when a bodyOverride diverges from the vessel's body", async () => {
+      registerAugment({
+        id: "test-map-overlay-anomaly-override",
+        augments: "map-view.overlay",
+        component: (ctx: MapOverlayContext) => (
+          <div data-testid="overlay-anomaly-probe">
+            vesselLat={String(ctx.vesselLat)} vesselLon={String(ctx.vesselLon)}
+          </div>
+        ),
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{ bodyOverride: "Mun" }} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.lat", 12.5);
+        source.emit("v.long", -70);
+        source.emit("v.body", "Kerbin");
+      });
+
+      const probe = await waitFor(() => {
+        const el = container.querySelector(
+          '[data-testid="overlay-anomaly-probe"]',
+        );
+        if (el === null)
+          throw new Error("overlay augment has not rendered yet");
+        return el;
+      });
+      expect(probe.textContent).toContain("vesselLat=undefined");
+      expect(probe.textContent).toContain("vesselLon=undefined");
+    });
+
+    it("renders a badges augment in the header, passed the body name", async () => {
+      registerAugment({
+        id: "test-map-badge",
+        augments: "map-view.badges",
+        component: (ctx: MapBadgesContext) => (
+          <span>badge:{ctx.bodyName ?? "?"}</span>
+        ),
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.body", "Kerbin");
+      });
+
+      await waitFor(() => {
+        if (!container.textContent?.includes("badge:Kerbin")) {
+          throw new Error("badge augment has not rendered with the body name");
+        }
+      });
+      expect(container.textContent).toContain("badge:Kerbin");
+    });
+
+    it("renders the map with both slots empty when no augment is registered", async () => {
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.body", "Kerbin");
+      });
+
+      // The map still renders (canvases present) with nothing composed in.
+      await waitFor(() => {
+        if (container.querySelector("canvas") === null) {
+          throw new Error("map has not rendered yet");
+        }
+      });
+      expect(
+        container.querySelector('[data-testid="overlay-probe"]'),
+      ).toBeNull();
+      expect(container.textContent).not.toContain("badge:");
+    });
   });
 });

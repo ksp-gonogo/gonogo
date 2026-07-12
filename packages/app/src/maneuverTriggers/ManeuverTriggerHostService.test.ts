@@ -1,4 +1,15 @@
-import type { FrozenPlanInputs } from "@gonogo/components";
+import type { FrozenPlanInputs } from "@ksp-gonogo/components";
+import {
+  StubTransport,
+  setActiveCarriedChannelsForTests,
+  setActiveTelemetryClientForTests,
+  setActiveTimelineStoreForTests,
+  setActiveViewClockForTests,
+  TelemetryClient,
+  TimelineStore,
+  ViewClock,
+  vesselStateChannel,
+} from "@ksp-gonogo/sitrep-client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
 
@@ -18,42 +29,87 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-interface FakeTelemetry {
-  getLatestValue: (key: string) => unknown;
-  execute: (action: string) => Promise<void>;
-  subscribe: (key: string, cb: (v: unknown) => void) => () => void;
-  set(key: string, v: unknown): void;
-  calls: string[];
+/**
+ * `readLiveOrbit()`/`readVesselName()`'s stream leg — real `TimelineStore`
+ * (with `vesselStateChannel` registered, matching `TelemetryProvider`'s own
+ * default) fed directly via `TimelineStore.ingest`/`StubTransport.emit`,
+ * registered as the accessors' source via `setActiveTimelineStoreForTests`.
+ * No React/`TelemetryProvider` needed — this is a plain-class unit test.
+ *
+ * ALSO the trigger `dataKey` read's stream leg now (`getValue`) and the
+ * maneuver-node fire's command-dispatch leg (`dispatchActiveCommand`) —
+ * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
+ * register the same client/carried-channels a mounted `TelemetryProvider`
+ * would, so `dispatchActiveCommand("data", "o.addManeuverNode[...]")` routes
+ * through `client.dispatch` instead of falling back unrouted. `calls`
+ * records every dispatched `{command, args}` pair via
+ * `transport.setCommandHandler`, replacing the old `execute()`-call log.
+ *
+ * `client.subscribe(...)` is required up front so `StubTransport.emit`
+ * actually delivers (its subscription-gating — see its own doc comment);
+ * `store.beginFrame()` after each emit both advances `currentFrame()` (what
+ * `sample()` reads relative to) and fires `subscribeFrame` listeners (what
+ * `bindVesselWatcher`'s `onActiveTimelineFrame` re-evaluates on).
+ */
+function buildOrbitStoreFixture(pinnedUt: number) {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: () => 0,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  clock.scrubTo(pinnedUt);
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(vesselStateChannel);
+  client.attachStore(store);
+  client.subscribe("vessel.orbit", () => {});
+  client.subscribe("vessel.identity", () => {});
+
+  const calls: Array<{ command: string; args: unknown }> = [];
+  transport.setCommandHandler((command, args) => {
+    calls.push({ command, args });
+    return null;
+  });
+
+  setActiveTimelineStoreForTests(store);
+  setActiveTelemetryClientForTests(client);
+  setActiveCarriedChannelsForTests(new Set(["vessel.maneuver.add"]));
+
+  return {
+    store,
+    calls,
+    emitOrbit(payload: unknown): void {
+      transport.emit("vessel.orbit", payload);
+      store.beginFrame();
+    },
+    emitIdentity(payload: unknown): void {
+      transport.emit("vessel.identity", payload);
+      store.beginFrame();
+    },
+  };
 }
 
-function fakeTelemetry(): FakeTelemetry {
-  const store = new Map<string, unknown>();
-  const subs = new Map<string, Set<(v: unknown) => void>>();
-  const calls: string[] = [];
+/**
+ * Self-consistent Kerbin-like orbit. `meanAnomalyAtEpoch: 0` + `epoch:
+ * pinnedUt` puts the vessel at periapsis exactly at the pinned view-UT.
+ * `sma`/`ecc` also drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
+ * body-radius-independent — see `vessel-state.ts`), which is what this
+ * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
+ * 707_000 at the defaults below.
+ */
+function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
   return {
-    getLatestValue: (key: string) => store.get(key),
-    execute: async (action: string) => {
-      calls.push(action);
-    },
-    subscribe: (key, cb) => {
-      let bucket = subs.get(key);
-      if (!bucket) {
-        bucket = new Set();
-        subs.set(key, bucket);
-      }
-      bucket.add(cb);
-      return () => {
-        bucket?.delete(cb);
-      };
-    },
-    set(key, v) {
-      store.set(key, v);
-      const bucket = subs.get(key);
-      if (bucket) {
-        for (const cb of bucket) cb(v);
-      }
-    },
-    calls,
+    referenceBodyIndex: 1,
+    sma,
+    ecc: 0.01,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: pinnedUt,
+    mu: 3.5316e12,
+    patches: [],
   };
 }
 
@@ -70,24 +126,17 @@ const FROZEN: FrozenPlanInputs = {
   standoffMeters: 500,
 };
 
-function seedKerbinOrbit(t: FakeTelemetry): void {
-  t.set("v.name", "Test Vessel");
-  t.set("v.body", "Kerbin");
-  t.set("o.referenceBody", "Kerbin");
-  t.set("o.sma", 700_000);
-  t.set("o.eccentricity", 0.01);
-  t.set("o.ApR", 707_000);
-  t.set("o.PeR", 693_000);
-  t.set("o.timeToAp", 900);
-  t.set("o.timeToPe", 1800);
-  t.set("o.argumentOfPeriapsis", 0);
-  t.set("o.trueAnomaly", 0);
-  t.set("o.inclination", 0);
-  t.set("o.lan", 0);
-  t.set("o.period", 3600);
-  t.set("o.orbitalSpeed", 2300);
-  t.set("o.radius", 700_000);
-  t.set("t.universalTime", 1_000_000);
+function seedKerbinOrbit(pinnedUt = 1_000_000) {
+  setActiveViewClockForTests({ viewUt: () => pinnedUt });
+  const storeFixture = buildOrbitStoreFixture(pinnedUt);
+  storeFixture.emitOrbit(kerbinOrbitPayload(pinnedUt));
+  storeFixture.emitIdentity({
+    vesselId: "test-vessel",
+    name: "Test Vessel",
+    vesselType: 0,
+    situation: 0,
+  });
+  return storeFixture;
 }
 
 describe("ManeuverTriggerHostService", () => {
@@ -98,80 +147,86 @@ describe("ManeuverTriggerHostService", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    setActiveViewClockForTests(undefined);
+    setActiveTimelineStoreForTests(undefined);
+    setActiveTelemetryClientForTests(undefined);
+    setActiveCarriedChannelsForTests(undefined);
   });
 
-  function makeService(t: FakeTelemetry) {
-    return new ManeuverTriggerHostService(null, t, {
+  function makeService() {
+    return new ManeuverTriggerHostService(null, {
       nowMs: () => 1_700_000_000_000,
       storage,
     });
   }
 
   it("adds an armed trigger and surfaces it in the snapshot", () => {
-    const t = fakeTelemetry();
-    seedKerbinOrbit(t);
-    const svc = makeService(t);
-    svc.arm({ dataKey: "o.ApA", op: ">=", value: 200_000, inputs: FROZEN });
+    seedKerbinOrbit();
+    const svc = makeService();
+    // 707_000 (baseline apoapsisRadius) stays below 800_000 — pending, not fired.
+    svc.arm({ dataKey: "o.ApR", op: ">=", value: 800_000, inputs: FROZEN });
     const snap = svc.snapshot();
     expect(snap.triggers).toHaveLength(1);
-    expect(snap.triggers[0].dataKey).toBe("o.ApA");
+    expect(snap.triggers[0].dataKey).toBe("o.ApR");
     expect(snap.triggers[0].vesselName).toBe("Test Vessel");
   });
 
   it("fires immediately when the condition is already true at arm time", () => {
-    const t = fakeTelemetry();
-    seedKerbinOrbit(t);
-    t.set("o.ApA", 250_000);
-    const svc = makeService(t);
-    svc.arm({ dataKey: "o.ApA", op: ">=", value: 200_000, inputs: FROZEN });
-    expect(t.calls.length).toBe(1);
-    expect(t.calls[0]).toMatch(/^o\.addManeuverNode\[/);
+    seedKerbinOrbit();
+    const svc = makeService();
+    // 707_000 (baseline apoapsisRadius) already clears 700_000.
+    svc.arm({ dataKey: "o.ApR", op: ">=", value: 700_000, inputs: FROZEN });
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
-  it("fires when the watched value crosses the threshold after arming", () => {
-    const t = fakeTelemetry();
-    seedKerbinOrbit(t);
-    t.set("o.ApA", 50_000);
-    const svc = makeService(t);
-    svc.arm({ dataKey: "o.ApA", op: ">=", value: 80_000, inputs: FROZEN });
-    expect(t.calls).toEqual([]);
-    t.set("o.ApA", 100_000);
-    expect(t.calls.length).toBe(1);
+  it("fires when the watched value crosses the threshold after arming", async () => {
+    const storeFixture = seedKerbinOrbit();
+    const svc = makeService();
+    // 707_000 stays below 750_000 — pending until the orbit changes.
+    svc.arm({ dataKey: "o.ApR", op: ">=", value: 750_000, inputs: FROZEN });
+    expect(storeFixture.calls).toEqual([]);
+    // Bump sma so apoapsisRadius (sma·1.01) clears 750_000.
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+    // The command dispatch settles on a microtask (StubTransport answers
+    // `command-request` via `queueMicrotask`) — drain it before asserting.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(storeFixture.calls.length).toBe(1);
+    expect(storeFixture.calls[0].command).toBe("vessel.maneuver.add");
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
   it("auto-clears triggers when the active vessel changes", () => {
-    const t = fakeTelemetry();
-    seedKerbinOrbit(t);
-    const svc = makeService(t);
-    svc.arm({ dataKey: "o.ApA", op: ">=", value: 200_000, inputs: FROZEN });
+    const storeFixture = seedKerbinOrbit();
+    const svc = makeService();
+    svc.arm({ dataKey: "o.ApR", op: ">=", value: 800_000, inputs: FROZEN });
     expect(svc.snapshot().triggers).toHaveLength(1);
-    t.set("v.name", "Different Vessel");
+    storeFixture.emitIdentity({
+      vesselId: "different-vessel",
+      name: "Different Vessel",
+      vesselType: 0,
+      situation: 0,
+    });
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
   it("persists triggers across construction and restores them on load", () => {
-    const t1 = fakeTelemetry();
-    seedKerbinOrbit(t1);
-    const svc1 = makeService(t1);
-    svc1.arm({ dataKey: "o.ApA", op: ">=", value: 999_999, inputs: FROZEN });
+    seedKerbinOrbit();
+    const svc1 = makeService();
+    svc1.arm({ dataKey: "o.ApR", op: ">=", value: 999_999, inputs: FROZEN });
     expect(svc1.snapshot().triggers).toHaveLength(1);
     svc1.dispose();
-    // New service over the same storage — same vessel name on this new
-    // telemetry so the persisted trigger isn't auto-cleared on load.
-    const t2 = fakeTelemetry();
-    seedKerbinOrbit(t2);
-    const svc2 = makeService(t2);
+    // New service over the same storage — same vessel name (still seeded)
+    // so the persisted trigger isn't auto-cleared on load.
+    const svc2 = makeService();
     expect(svc2.snapshot().triggers).toHaveLength(1);
-    expect(svc2.snapshot().triggers[0].dataKey).toBe("o.ApA");
+    expect(svc2.snapshot().triggers[0].dataKey).toBe("o.ApR");
   });
 
   it("cancel() removes a pending trigger and emits a snapshot", () => {
-    const t = fakeTelemetry();
-    seedKerbinOrbit(t);
-    const svc = makeService(t);
-    svc.arm({ dataKey: "o.ApA", op: ">=", value: 999_999, inputs: FROZEN });
+    const storeFixture = seedKerbinOrbit();
+    const svc = makeService();
+    svc.arm({ dataKey: "o.ApR", op: ">=", value: 999_999, inputs: FROZEN });
     const id = svc.snapshot().triggers[0].id;
     let lastSize = -1;
     svc.subscribe((s) => {
@@ -180,6 +235,6 @@ describe("ManeuverTriggerHostService", () => {
     svc.cancel(id);
     expect(svc.snapshot().triggers).toHaveLength(0);
     expect(lastSize).toBe(0);
-    expect(t.calls).toEqual([]);
+    expect(storeFixture.calls).toEqual([]);
   });
 });

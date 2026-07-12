@@ -1,4 +1,5 @@
-import { getComponent } from "@gonogo/core";
+import { getComponent } from "@ksp-gonogo/core";
+import { act } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component,
@@ -68,7 +69,18 @@ describe("widget a11y smoke", () => {
               mode,
             });
             try {
-              const results = await axe(container);
+              // A fixture carrying `t.universalTime` mounts a pinned
+              // `TelemetryProvider` (`widgetDomSnapshot.tsx`'s `ViewUtWrap`)
+              // whose `ViewClock` keeps ticking every frame for as long as
+              // the widget stays mounted — same live behavior a real
+              // `TelemetryProvider` has in production. `axe()` is slow enough
+              // that a tick can land mid-call; wrapping it in `act()` keeps
+              // that (otherwise value-identical, harmless) tick from
+              // triggering React's "update not wrapped in act" warning.
+              let results: Awaited<ReturnType<typeof axe>> | undefined;
+              await act(async () => {
+                results = await axe(container);
+              });
               expect(results).toHaveNoViolations();
             } finally {
               teardown();

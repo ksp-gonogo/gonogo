@@ -1,5 +1,10 @@
-import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+} from "@ksp-gonogo/core";
 import {
   BigReadout,
   EmptyState,
@@ -7,7 +12,8 @@ import {
   PanelSubtitle,
   PanelTitle,
   ReadoutCaption,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -25,12 +31,50 @@ const TinyReadout = styled(BigReadout)`
 
 type CrewManifestConfig = Record<string, never>;
 
+// ---------------------------------------------------------------------------
+// The `crew-manifest.badges` slot contract (see augment-slot-map)
+//
+// A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
+// Uplink can badge each kerbal with comfort/radiation-dose without leaving this
+// widget. Because the slot renders once PER ROW, its props MUST carry the crew
+// member's identity so the augment badges the right kerbal — `crewName` is that
+// identity (the only per-kerbal handle Telemachus/Sitrep exposes here), and
+// `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
+// ---------------------------------------------------------------------------
+
+/** Props passed to every `crew-manifest.badges` augment — one per crew row. */
+export interface CrewBadgeContext {
+  /** The crew member this badge row belongs to — its identity for the augment. */
+  crewName: string;
+  /** Position in the roster; disambiguates duplicate names. */
+  crewIndex: number;
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry`.
+// Co-located here (not in a shared central file) so parallel slot work in
+// other widgets can't collide. Makes `registerAugment({ augments:
+// "crew-manifest.badges" })` and `<AugmentSlot name="crew-manifest.badges"
+// props={…} />` type-check precisely against `CrewBadgeContext`.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "crew-manifest.badges": CrewBadgeContext;
+  }
+}
+
 /**
  * `v.crew` is documented as `string[]` ("List of crew names") in the
  * Telemachus Reborn readme. Kerbalism augments the same key with
  * per-kerbal health/stress/radiation, but gonogo doesn't support
  * Kerbalism because of the known kOS sensor incompatibility, so we
  * treat the value as a plain string array.
+ *
+ * `v.crew` is mapped on the wire — `map-topic.ts` now
+ * points it at `vessel.crew.crew`, a `CrewMember[]` (`contract.ts`'s
+ * `{name?, trait?, ...}`), so this same `useDataValue("data", "v.crew")`
+ * call rides the stream via the `mapTopic` shim with zero code change
+ * here. The object-shape branch below (already required for the
+ * Kerbalism case) is exactly what parses `CrewMember` entries too — no
+ * shape fix needed.
  *
  * Guard against unknown shapes (e.g. the server returning null before
  * the first sample or a mod replacing the payload) — extract strings
@@ -58,6 +102,14 @@ function CrewManifestComponent({
   const crewCapacity = useDataValue("data", "v.crewCapacity");
   const isEVA = useDataValue("data", "v.isEVA");
 
+  // Connectivity indicator (mirroring the WarpControl pilot):
+  // `v.crewCount`, `v.crew`, and `v.crewCapacity` are all MAPPED now —
+  // all three land on the same `vessel.crew`
+  // wire channel, so `v.crewCount`'s stream status is representative of
+  // the whole roster/capacity/count trio. `v.isEVA` remains a declared GAP
+  // (no field on any channel yet) and stays legacy regardless.
+  const streamStatus = useDataStreamStatus("data", "v.crewCount");
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -71,7 +123,10 @@ function CrewManifestComponent({
   if (!showRoster) {
     return (
       <Panel>
-        <PanelTitle>CREW</PanelTitle>
+        <TitleRow>
+          <PanelTitle>CREW</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {known ? (
           <TinyReadout $tone="go">
             {crewCount !== undefined ? `${crewCount}` : "—"}
@@ -88,7 +143,10 @@ function CrewManifestComponent({
 
   return (
     <Panel>
-      <PanelTitle>CREW</PanelTitle>
+      <TitleRow>
+        <PanelTitle>CREW</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <PanelSubtitle>
         {known
           ? formatSubtitle(isEVA, crewCount, crewCapacity)
@@ -150,10 +208,19 @@ function renderBody({
 
   return (
     <Roster>
-      {names.map((name) => (
+      {names.map((name, index) => (
         <Row key={name}>
           <Bullet />
           <Name>{name}</Name>
+          {/* Per-crew inline badges slot. Renders nothing until an Uplink (e.g.
+              Kerbalism Habitat/Radiation) binds — the props carry this row's
+              kerbal identity so the augment badges the right one. */}
+          <Badges>
+            <AugmentSlot
+              name="crew-manifest.badges"
+              props={{ crewName: name, crewIndex: index }}
+            />
+          </Badges>
         </Row>
       ))}
     </Roster>
@@ -161,6 +228,15 @@ function renderBody({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Roster = styled.ul`
   list-style: none;
@@ -191,6 +267,16 @@ const Name = styled.span`
   letter-spacing: 0.02em;
 `;
 
+// Inline container for the per-crew `crew-manifest.badges` augment slot. Sits
+// after the name, pushed to the row's trailing edge; empty (no augment bound)
+// it collapses and adds nothing to the row.
+const Badges = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+`;
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<CrewManifestConfig>({
@@ -202,6 +288,9 @@ registerComponent<CrewManifestConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewManifestComponent,
+  // Per-crew-row inline badges slot (augment-slot-map: crew-manifest.badges).
+  // Unfilled until a Kerbalism-style Uplink binds — the roster renders as before.
+  augmentSlots: ["crew-manifest.badges"],
   dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
   defaultConfig: {},
   actions: [],

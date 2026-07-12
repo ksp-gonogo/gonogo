@@ -1,4 +1,4 @@
-import { Button, GhostButton, Tabs } from "@gonogo/ui";
+import { Button, GhostButton, Tabs } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { CHROMIUM_ONLY_SURFACES } from "../capabilities";

@@ -1,10 +1,12 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   clampSafe,
   kelvinToCelsius,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Panel,
@@ -12,11 +14,24 @@ import {
   type ReadoutTone,
   ScrollArea,
   StatusPill,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 // Empty config — room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
+
+// The `thermal-status.badges` slot (augment-slot-map "thermal-status" row):
+// whole-widget context, no slot props — a header quick-glance badge (e.g. a
+// future Kerbalism Reliability "N parts at risk" indicator) sits alongside the
+// stream-status badge. Declaration-merge the slot id → props type into core's
+// `SlotRegistry`, co-located here so parallel slot work doesn't collide on a
+// shared central file. No props ⇒ empty object contract.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "thermal-status.badges": Record<string, never>;
+  }
+}
 
 // Telemachus emits readings near absolute zero (~−271°C / ~2 K) when no
 // real value is available — typically when the corresponding part isn't
@@ -118,6 +133,16 @@ function ThermalStatusComponent({
   const rawShieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
   const rawShieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
 
+  // Connectivity indicator (mirroring the WarpControl pilot).
+  // `therm.hottestPartTemp` is the widget's one representative MAPPED key
+  // (-> `vessel.thermal.hottestPart.skinTemp`). The heat-shield rows are
+  // mapped too (`vessel.thermal.heatShieldTempCelsius`/`heatShieldFlux`), but
+  // the engine rows still read GAPPED keys (map-topic.ts's
+  // TELEMACHUS_KNOWN_GAPS "thermal detail beyond headline ratios") and stay on
+  // legacy regardless, so a single representative mapped key drives this badge
+  // rather than conflating "stream carried" with "legacy connected".
+  const streamStatus = useDataStreamStatus("data", "therm.hottestPartTemp");
+
   // Sentinel guard — drop the whole group when its max (or temp) is at the
   // absolute-zero floor. The ratio is meaningless in that case and rendering
   // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
@@ -182,7 +207,15 @@ function ThermalStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>THERMAL</PanelTitle>
+      <TitleRow>
+        <PanelTitle>THERMAL</PanelTitle>
+        {/* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
+            into the header next to the stream-status badge. AugmentSlot renders
+            a fragment — nothing in the DOM — until an augment registers, so the
+            unfilled slot leaves the header's existing output untouched. */}
+        <AugmentSlot name="thermal-status.badges" props={{}} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {noData ? (
         <EmptyState>No thermal data</EmptyState>
       ) : (
@@ -286,6 +319,15 @@ function ThermalStatusComponent({
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Body = styled.div`
   flex: 1;
@@ -455,6 +497,7 @@ registerComponent<ThermalStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["thermal-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

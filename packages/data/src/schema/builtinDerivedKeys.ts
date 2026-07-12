@@ -1,4 +1,4 @@
-import type { StageInfo } from "@gonogo/core";
+import type { StageInfo } from "@ksp-gonogo/core";
 import { registerDerivedKey } from "../derive";
 
 function asStageArray(value: unknown): StageInfo[] | null {
@@ -14,7 +14,7 @@ function pickCurrentStage(
 }
 
 /**
- * Register the built-in derived keys shipped with @gonogo/data.
+ * Register the built-in derived keys shipped with @ksp-gonogo/data.
  *
  * Called once from app setup (e.g. packages/app/src/dataSources/buffered.ts).
  * Tests that do not want derived-key side-effects should NOT call this.

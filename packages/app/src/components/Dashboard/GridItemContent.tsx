@@ -1,10 +1,10 @@
-import { RequiresGuard } from "@gonogo/components";
+import { RequiresGuard } from "@ksp-gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
-} from "@gonogo/core";
-import type { InputMappings } from "@gonogo/serial";
+} from "@ksp-gonogo/core";
+import type { InputMappings } from "@ksp-gonogo/serial";
 import { memo, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";

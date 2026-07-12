@@ -4,7 +4,7 @@
  * SVG file in `local_docs/renders/navball/`. Used for visually iterating
  * on the attitude dial without running KSP / the dashboard.
  *
- * Run with `pnpm --filter @gonogo/components render-navball`.
+ * Run with `pnpm --filter @ksp-gonogo/components render-navball`.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";

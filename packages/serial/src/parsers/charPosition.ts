@@ -1,4 +1,4 @@
-import { clamp } from "@gonogo/core";
+import { clamp } from "@ksp-gonogo/core";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
 import { applyAnalogShaping } from "./analogShaping";

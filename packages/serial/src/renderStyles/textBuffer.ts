@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { registerSerialRenderStyle } from "../registry";
 import type { DeviceRenderStyle } from "../types";
 

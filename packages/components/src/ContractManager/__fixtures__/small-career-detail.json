@@ -1,0 +1,55 @@
+{
+  "_meta": {
+    "notes": "Hand-authored (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx) and stream test (stream.test.tsx). career.status.contracts entries (CareerViewProvider.BuildContractList) never carry `optional`/`parameterType`/altitude-bound fields on their parameters — decompile-confirmed exact `{title, state}` shape, career-capture-extend-report.md — so a byte-identical dual-run needs a legacy fixture whose parameters never set `optional: true` or `parameterType` either (every other ContractManager fixture has at least one optional/typed parameter, which the new wire can never reproduce).",
+    "scenario": "small-career-detail"
+  },
+  "contracts.active": [
+    {
+      "id": "8834021456123789",
+      "title": "Rescue Kerbal from orbit of Kerbin",
+      "agency": "Kerbin Space Agency Rescue Division",
+      "state": "Active",
+      "fundsAdvance": 5000,
+      "fundsCompletion": 25000,
+      "scienceCompletion": 15,
+      "repCompletion": 8,
+      "deadlineUt": 2500000,
+      "parameters": [
+        { "title": "Rescue Buzz Kerman", "state": "Incomplete" },
+        { "title": "Return to Kerbin", "state": "Incomplete" }
+      ]
+    },
+    {
+      "id": "9012345678901234",
+      "title": "Explore the Mun's surface",
+      "agency": "Global Exploration Society",
+      "state": "Active",
+      "fundsAdvance": 10000,
+      "fundsCompletion": 50000,
+      "scienceCompletion": 40,
+      "repCompletion": 12,
+      "deadlineUt": 0,
+      "parameters": [
+        { "title": "Land near the Mun's north pole", "state": "Complete" },
+        { "title": "Plant a flag", "state": "Incomplete" }
+      ]
+    }
+  ],
+  "contracts.offered": [
+    {
+      "id": "1122334455667788",
+      "title": "Test RT-10 solid fuel booster in flight",
+      "agency": "Kerbin Space Program",
+      "state": "Offered",
+      "fundsAdvance": 0,
+      "fundsCompletion": 8500,
+      "scienceCompletion": 5,
+      "repCompletion": 3,
+      "deadlineUt": 0,
+      "parameters": []
+    }
+  ],
+  "contracts.completedRecent": [],
+  "t.universalTime": 1500500,
+  "v.altitude": 85000
+}

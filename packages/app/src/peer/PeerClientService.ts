@@ -1,12 +1,12 @@
-import { safeRandomUuid } from "@gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import type {
   FlightRecord,
   KosData,
   KosManagedScript,
   KosScriptArg,
-} from "@gonogo/data";
-import { KosScriptError } from "@gonogo/data";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import { KosScriptError } from "@ksp-gonogo/data";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -208,9 +208,6 @@ type ClientEventMap = {
   sourceStatus: [sourceId: string, status: string];
   connStatus: [status: ConnStatus];
   schema: [sources: PeerSchemaSource[]];
-  kosData: [sessionId: string, data: string];
-  kosOpened: [sessionId: string];
-  kosClose: [sessionId: string];
   relayPeerId: [peerId: string | null];
   relayIceServers: [servers: RTCIceServer[]];
   hostHello: [info: { version: string; buildTime: string }];
@@ -219,7 +216,7 @@ type ClientEventMap = {
   gonogoCountdownCancel: [reason: string | undefined];
   alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
   alarmFired: [fire: { id: string; name: string; ut: number }];
-  triggerSnapshot: [snap: import("@gonogo/components").TriggerSnapshot];
+  triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
@@ -227,6 +224,19 @@ type ClientEventMap = {
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   fogSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
+  // Sitrep telemetry-stream forwarding — see protocol.ts's `sitrep-frame`/
+  // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
+  // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
+  // the command-response/error pair is kept split (not pre-synthesized into
+  // a `ServerMessage` here) because that synthesis is `PeerTransport`'s job
+  // — this service only forwards the wire fields it received.
+  sitrepFrame: [message: import("@ksp-gonogo/sitrep-sdk").ServerMessage];
+  sitrepCommandResponse: [
+    requestId: string,
+    result: unknown,
+    meta: import("@ksp-gonogo/sitrep-sdk").Meta,
+  ];
+  sitrepCommandError: [requestId: string, code: string, message: string];
 };
 
 export class PeerClientService {
@@ -254,6 +264,11 @@ export class PeerClientService {
    *  API and listener-invocation order. */
   private readonly events = new TypedListeners<ClientEventMap>();
 
+  // Current connection status, tracked alongside the `connStatus` event so
+  // a caller that constructs a listener AFTER the last transition (e.g.
+  // `PeerTransport`, built once the station is already `connected`) can
+  // read a synchronous snapshot instead of waiting for the next event.
+  private connStatus: ConnStatus = "idle";
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
@@ -458,6 +473,7 @@ export class PeerClientService {
   }
 
   private emitConnStatus(status: ConnStatus) {
+    this.connStatus = status;
     this.events.emit("connStatus", status);
   }
 
@@ -468,38 +484,6 @@ export class PeerClientService {
       sourceId,
       action,
     } satisfies PeerMessage);
-  }
-
-  sendKosOpen(
-    sessionId: string,
-    params: { kosHost: string; kosPort: number; cols: number; rows: number },
-  ) {
-    this.conn?.send({
-      type: "kos-open",
-      sessionId,
-      ...params,
-    } satisfies PeerMessage);
-  }
-
-  sendKosData(sessionId: string, data: string) {
-    this.conn?.send({
-      type: "kos-data",
-      sessionId,
-      data,
-    } satisfies PeerMessage);
-  }
-
-  sendKosResize(sessionId: string, cols: number, rows: number) {
-    this.conn?.send({
-      type: "kos-resize",
-      sessionId,
-      cols,
-      rows,
-    } satisfies PeerMessage);
-  }
-
-  sendKosClose(sessionId: string) {
-    this.conn?.send({ type: "kos-close", sessionId } satisfies PeerMessage);
   }
 
   sendStationInfo(
@@ -635,9 +619,9 @@ export class PeerClientService {
 
   sendTriggerArm(input: {
     dataKey: string;
-    op: import("@gonogo/components").ThresholdOp;
+    op: import("@ksp-gonogo/components").ThresholdOp;
     value: number;
-    inputs: import("@gonogo/components").FrozenPlanInputs;
+    inputs: import("@ksp-gonogo/components").FrozenPlanInputs;
   }) {
     this.conn?.send({ type: "trigger-arm", ...input } satisfies PeerMessage);
   }
@@ -705,6 +689,60 @@ export class PeerClientService {
       offer,
     } satisfies PeerMessage);
     return pending;
+  }
+
+  // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
+  //
+  // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
+  // consumer of these three — it wraps them into the `Transport` interface
+  // `@ksp-gonogo/sitrep-client` expects. No `RequestTracker` is needed for
+  // the command round trip: `TelemetryClient.dispatch` already keeps its own
+  // `requestId -> pending` map, so this service just needs to forward the
+  // wire fields verbatim and let `PeerTransport` re-synthesize a bare
+  // `ServerMessage` for `TelemetryClient.handleMessage` to correlate.
+
+  /** Every `sitrep-frame` the host relays, unwrapped to the raw `ServerMessage` it carries. */
+  onSitrepFrame(
+    cb: (message: import("@ksp-gonogo/sitrep-sdk").ServerMessage) => void,
+  ): () => void {
+    return this.events.on("sitrepFrame", cb);
+  }
+
+  /** A `sitrep-command-response` for a command this station dispatched. */
+  onSitrepCommandResponse(
+    cb: (
+      requestId: string,
+      result: unknown,
+      meta: import("@ksp-gonogo/sitrep-sdk").Meta,
+    ) => void,
+  ): () => void {
+    return this.events.on("sitrepCommandResponse", cb);
+  }
+
+  /** A `sitrep-command-error` for a command this station dispatched. */
+  onSitrepCommandError(
+    cb: (requestId: string, code: string, message: string) => void,
+  ): () => void {
+    return this.events.on("sitrepCommandError", cb);
+  }
+
+  /**
+   * Forward a `TelemetryClient.dispatch()` command-request to the host over
+   * PeerJS. `requestId` is the STATION's own `TelemetryClient`-minted id
+   * (the `cN` counter) — reused as-is for the PeerJS correlation key rather
+   * than minting a second one; see protocol.ts's `sitrep-command-request`
+   * doc comment for why that's safe (the host always replies per-connection,
+   * never broadcast). Fire-and-forget on the wire — `TelemetryClient` itself
+   * owns the pending-promise bookkeeping and any loss-inference timeout, not
+   * this service.
+   */
+  sendSitrepCommand(requestId: string, command: string, args: unknown): void {
+    this.conn?.send({
+      type: "sitrep-command-request",
+      requestId,
+      command,
+      args,
+    } satisfies PeerMessage);
   }
 
   private rejectPendingQueries(reason: string) {
@@ -882,18 +920,6 @@ export class PeerClientService {
     return this.events.on("fogSnapshot", cb);
   }
 
-  onKosOpened(cb: (sessionId: string) => void) {
-    return this.events.on("kosOpened", cb);
-  }
-
-  onKosData(cb: (sessionId: string, data: string) => void) {
-    return this.events.on("kosData", cb);
-  }
-
-  onKosClose(cb: (sessionId: string) => void) {
-    return this.events.on("kosClose", cb);
-  }
-
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
     const unsub = this.events.on("gonogoCountdownStart", cb);
     // Replay a countdown that's already running to late subscribers — a
@@ -928,7 +954,7 @@ export class PeerClientService {
   }
 
   onTriggerSnapshot(
-    cb: (snap: import("@gonogo/components").TriggerSnapshot) => void,
+    cb: (snap: import("@ksp-gonogo/components").TriggerSnapshot) => void,
   ) {
     return this.events.on("triggerSnapshot", cb);
   }
@@ -940,9 +966,6 @@ export class PeerClientService {
       sourceStatus: this.events.size("sourceStatus"),
       connStatus: this.events.size("connStatus"),
       schema: this.events.size("schema"),
-      kosOpened: this.events.size("kosOpened"),
-      kosData: this.events.size("kosData"),
-      kosClose: this.events.size("kosClose"),
       fogSnapshot: this.events.size("fogSnapshot"),
     };
   }
@@ -1033,15 +1056,6 @@ export class PeerClientService {
       );
       this.events.emit("schema", msg.sources);
     },
-    "kos-opened": (msg) => {
-      this.events.emit("kosOpened", msg.sessionId);
-    },
-    "kos-data": (msg) => {
-      this.events.emit("kosData", msg.sessionId, msg.data);
-    },
-    "kos-close": (msg) => {
-      this.events.emit("kosClose", msg.sessionId);
-    },
     "relay-peer-id": (msg) => {
       this.relayPeerId = msg.peerId;
       this.events.emit("relayPeerId", msg.peerId);
@@ -1091,6 +1105,25 @@ export class PeerClientService {
         `[PeerClient] host analytics consent — ${msg.enabled ? "enabled" : "disabled"}`,
       );
       this.events.emit("analyticsConsent", msg.enabled);
+    },
+    "sitrep-frame": (msg) => {
+      this.events.emit("sitrepFrame", msg.message);
+    },
+    "sitrep-command-response": (msg) => {
+      this.events.emit(
+        "sitrepCommandResponse",
+        msg.requestId,
+        msg.result,
+        msg.meta,
+      );
+    },
+    "sitrep-command-error": (msg) => {
+      this.events.emit(
+        "sitrepCommandError",
+        msg.requestId,
+        msg.code,
+        msg.message,
+      );
     },
   });
 
@@ -1147,6 +1180,17 @@ export class PeerClientService {
    */
   getHostVersion(): { version: string; buildTime: string } | null {
     return this.hostVersion;
+  }
+
+  /**
+   * Synchronous snapshot of the current connection status — for a caller
+   * constructed AFTER the last `connStatus` transition (e.g. `PeerTransport`,
+   * built once `StationScreen` has already reached its `connected` branch)
+   * and that therefore can't rely on `onConnectionStatus` alone to learn the
+   * current state.
+   */
+  getConnStatus(): ConnStatus {
+    return this.connStatus;
   }
 
   /** Notified whenever a fresh `hello` arrives from the host. */

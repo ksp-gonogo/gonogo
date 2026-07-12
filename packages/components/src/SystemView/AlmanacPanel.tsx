@@ -1,4 +1,4 @@
-import { ScrollArea } from "@gonogo/ui";
+import { ScrollArea } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";

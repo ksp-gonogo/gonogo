@@ -1,16 +1,26 @@
-import { getDataSource } from "@gonogo/core";
-import type { ChartSeries, KeyOption } from "@gonogo/ui";
-import { DataKeyMultiPicker, LineChart } from "@gonogo/ui";
+import { getDataSource } from "@ksp-gonogo/core";
+import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
+import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import type { BufferedDataSource } from "../BufferedDataSource";
 import { useDataSchema } from "../hooks/useDataSchema";
+import type { MissionHistorySource } from "./MissionHistorySource";
 
 /**
- * Post-flight graph view — pick telemetry keys, pull their samples from
- * IndexedDB via `queryRange`, render a `LineChart`. Lives alongside the
- * flight list so users can inspect any recorded flight without needing
- * the live dashboard.
+ * Post-flight graph view — pick telemetry keys, pull their samples for one
+ * recorded Mission via `queryRange` (replayed through
+ * `buildFullHistoryStore`, see `MissionHistorySource`), render a
+ * `LineChart`. Lives alongside the flight list so users can inspect any
+ * recorded flight without needing the live dashboard.
+ *
+ * Unit note: Missions are UT-**seconds**-based (`firstFrameUt`/
+ * `lastFrameUt`), but `LineChart`'s default `xTickFormat`
+ * (`timeXTickFormat`/`formatTimeLabel`) hard-assumes **milliseconds** — see
+ * `packages/ui/src/lineChartMath.ts`. So `xDomain` and every series' x-values
+ * here are **elapsed milliseconds since `firstFrameUt`**, converted once at
+ * the query-response boundary (`(validAtUt - firstFrameUt) * 1000`) — the
+ * same anchor and unit `ChaptersEditor`'s `startMs`/`endMs` already use, so
+ * a chapter's elapsed time and a graph's x-axis always agree.
  */
 
 const PALETTE = [
@@ -24,27 +34,43 @@ const PALETTE = [
   "var(--color-accent-fg)",
 ];
 
-function getSource(): BufferedDataSource | undefined {
-  return getDataSource("data") as BufferedDataSource | undefined;
+function getSource(): MissionHistorySource | undefined {
+  return getDataSource("missionHistory") as MissionHistorySource | undefined;
 }
 
 export interface FlightGraphProps {
-  flightId: string;
-  /** Flight bounds in unix ms. Becomes the chart's x-domain. */
-  launchedAt: number;
-  lastSampleAt: number;
+  missionId: string;
+  /** UT (seconds) of the first captured frame — the chart's elapsed-ms-0 anchor. */
+  firstFrameUt: number;
+  /** UT (seconds) of the last captured frame. */
+  lastFrameUt: number;
 }
 
 export function FlightGraph({
-  flightId,
-  launchedAt,
-  lastSampleAt,
+  missionId,
+  firstFrameUt,
+  lastFrameUt,
 }: FlightGraphProps) {
-  const schema = useDataSchema("data");
+  const schema = useDataSchema("missionHistory");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [series, setSeries] = useState<ChartSeries[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Drop this mission's cached full-history TimelineStore (built by
+  // buildFullHistoryStore, unbounded retention) once the graph panel that
+  // requested it collapses or unmounts. historyCache lives on the single
+  // module-level MissionHistorySource shared by the main screen AND every
+  // station's query-range-request — without this, it grows unboundedly:
+  // a full unbounded-retention TimelineStore per distinct mission ever
+  // graphed by anyone, for the host tab's lifetime. Keyed on missionId (not
+  // just "on unmount") so it's still correct if this component is ever
+  // reused across missions instead of remounted per row.
+  useEffect(() => {
+    return () => {
+      getSource()?.evictFullHistoryStore(missionId);
+    };
+  }, [missionId]);
 
   // Measure the container so the SVG chart picks a width without requiring
   // the caller to hardcode one — `useDataSchema` already re-renders on
@@ -84,10 +110,10 @@ export function FlightGraph({
       }));
   }, [schema]);
 
-  // Re-fetch whenever the selection or the flight changes. Each key is a
-  // separate IndexedDB range query; running them in parallel is fine — the
-  // store serialises inside a single transaction but the JS-side promise
-  // fan-in is cheap.
+  // Re-fetch whenever the selection or the mission changes. Each key is a
+  // separate full-history-store range query (memoized per missionId by
+  // MissionHistorySource — the fixture only replays once); running them in
+  // parallel is fine.
   useEffect(() => {
     const source = getSource();
     if (!source || selected.size === 0) {
@@ -102,14 +128,18 @@ export function FlightGraph({
     const keys = [...selected];
     Promise.all(
       keys.map((key) =>
-        source.queryRange(key, launchedAt, lastSampleAt, flightId),
+        source.queryRange(key, firstFrameUt, lastFrameUt, missionId),
       ),
     )
       .then((ranges) => {
         if (cancelled) return;
         const meta = new Map(schema.map((s) => [s.key, s]));
         // Build a series per key. Non-finite values are dropped rather than
-        // letting them wreck the LineChart's autoscale.
+        // letting them wreck the LineChart's autoscale. queryRange returns
+        // UT seconds (TimelineStore's native domain) — convert to elapsed
+        // ms since firstFrameUt here, at the display edge, so the chart
+        // (and LineChart's default ms-based tick formatter) never see a
+        // raw UT value.
         const next: ChartSeries[] = keys.map((key, i) => {
           const raw = ranges[i];
           const xs: number[] = [];
@@ -117,7 +147,7 @@ export function FlightGraph({
           for (let j = 0; j < raw.t.length; j++) {
             const v = raw.v[j];
             if (typeof v === "number" && Number.isFinite(v)) {
-              xs.push(raw.t[j]);
+              xs.push((raw.t[j] - firstFrameUt) * 1000);
               ys.push(v);
             }
           }
@@ -144,14 +174,14 @@ export function FlightGraph({
     return () => {
       cancelled = true;
     };
-  }, [selected, flightId, launchedAt, lastSampleAt, schema]);
+  }, [selected, missionId, firstFrameUt, lastFrameUt, schema]);
 
-  // LineChart wants a non-empty x-domain. Fall back to a 1-minute placeholder
-  // window if the flight has zero duration so we never divide by zero.
+  // LineChart wants a non-empty x-domain, in elapsed ms since firstFrameUt
+  // (0-based — see the unit note above). Fall back to a 1-minute placeholder
+  // window if the mission has zero duration so we never divide by zero.
+  const durationMs = Math.max(0, (lastFrameUt - firstFrameUt) * 1000);
   const xDomain: [number, number] =
-    lastSampleAt > launchedAt
-      ? [launchedAt, lastSampleAt]
-      : [launchedAt, launchedAt + 60_000];
+    durationMs > 0 ? [0, durationMs] : [0, 60_000];
 
   const anyData = series.some((s) => s.data.x.length > 0);
 

@@ -1,10 +1,10 @@
-import { ScreenProvider, useDataSources, useScreen } from "@gonogo/core";
+import { ScreenProvider, useDataSources, useScreen } from "@ksp-gonogo/core";
 import {
   SerialDeviceProvider,
   useSerialAggregateStatus,
   useSerialDeviceService,
-} from "@gonogo/serial";
-import { Fab, SettingsIcon, useModal } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";

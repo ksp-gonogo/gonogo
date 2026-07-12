@@ -1,4 +1,4 @@
-import { GhostButton, PrimaryButton, useModal } from "@gonogo/ui";
+import { GhostButton, PrimaryButton, useModal } from "@ksp-gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useSerialDeviceService } from "./SerialDeviceContext";

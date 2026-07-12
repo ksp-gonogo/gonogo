@@ -4,5 +4,5 @@
     "notes": "Breaking Ground not installed — empty state."
   },
   "robotics.available": false,
-  "robotics.servos": []
+  "parts.robotics": []
 }

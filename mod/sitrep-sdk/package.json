@@ -1,0 +1,33 @@
+{
+  "name": "@ksp-gonogo/sitrep-sdk",
+  "description": "Generated typed contract for the Gonogo (Sitrep) KSP telemetry stream",
+  "license": "MIT",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ksp-gonogo/gonogo.git",
+    "directory": "mod/sitrep-sdk"
+  },
+  "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/mod/sitrep-sdk#readme",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test-d.json"
+  }
+}

@@ -1,4 +1,4 @@
-import type { VesselTopology } from "@gonogo/core";
+import type { VesselTopology } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
@@ -11,16 +11,16 @@ import {
 } from "./shipTopology";
 
 /**
- * Fixture-driven scaffolding for Phase 2 Ship Map snapshot tests.
+ * Fixture-driven scaffolding for Ship Map snapshot tests.
  *
  * Each fixture is a raw `v.topology` payload captured from a live KSP
  * session 2026-05-15. The tests below assert the *invariants* the
- * fixtures encode — they don't yet do full DOM snapshots; that's the
- * Phase 2 deliverable. For now they at least pin the wire-shape
+ * fixtures encode — they don't yet do full DOM snapshots; that work is
+ * still pending. For now they at least pin the wire-shape
  * contract so future fixture captures can be validated.
  *
  * See `local_docs/2026-05-16-phase-2-shipmap-handoff.md` for the
- * intended Phase 2 work that extends these.
+ * intended follow-on work that extends these.
  */
 
 interface Fixture {
@@ -68,7 +68,7 @@ describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
       (p.modules ?? []).includes("CModuleFuelLine"),
     );
     expect(fuelLines).toHaveLength(2);
-    // Phase 2 Item 4: each fuel line's parentFlightId points at its
+    // Each fuel line's parentFlightId points at its
     // "from" tank. The "to" tank isn't in the topology yet — fork
     // extension needed. Lock the current contract.
     for (const line of fuelLines) {

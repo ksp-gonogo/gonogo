@@ -1,10 +1,10 @@
-import type { BodyDefinition, ComponentProps } from "@gonogo/core";
+import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   circularOrbitVelocity,
   getBody,
   registerComponent,
-  useDataValue,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
@@ -57,7 +57,19 @@ function buildReferenceCurve(
 function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
-  const bodyName = useDataValue<string>("data", "v.body");
+  // `v.body` reads through the canonical `useTelemetry`
+  // hook. The shim resolves it to the derived `vessel.state.parentBodyName`
+  // Topic (index→name display map, see `map-topic.ts`) and streams it once a
+  // `TelemetryProvider` carries `vessel.state`'s inputs — no Telemachus
+  // read-fallback is relied on for this read. The two plotted series
+  // (`v.altitude` / `v.horizontalVelocity`) are consumed only via the shared
+  // `GraphView` → `useDataSeries` path; both map to DERIVED `vessel.state.*`
+  // channels, which have a live value but NO buffered history, so
+  // `useDataSeries` structurally serves their windowed series off the legacy
+  // path (`TimelineStore.sampleRange` returns `undefined` for a derived
+  // topic — see that hook's doc). That is a shared-infra property, not a
+  // gap in this widget.
+  const bodyName = useTelemetry<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
 
   const windowSec = config?.windowSec ?? 600;

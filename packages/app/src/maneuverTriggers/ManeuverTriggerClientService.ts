@@ -3,7 +3,7 @@ import {
   EMPTY_TRIGGER_SNAPSHOT,
   type ManeuverTriggerService,
   type TriggerSnapshot,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import type { PeerClientService } from "../peer/PeerClientService";
 
 /**

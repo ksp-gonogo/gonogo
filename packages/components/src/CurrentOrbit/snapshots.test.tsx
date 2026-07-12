@@ -29,6 +29,12 @@ describe("CurrentOrbit DOM snapshots", () => {
           Widget: CurrentOrbitComponent,
           fixture,
           mode,
+          // CurrentOrbit uses useDataStreamStatus — connect the raw
+          // MockDataSource so its rendered status badge reflects the
+          // realistic "connected, streaming" scenario every one of these
+          // fixtures actually depicts (see
+          // ThermalStatus/snapshots.test.tsx for the same pattern).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

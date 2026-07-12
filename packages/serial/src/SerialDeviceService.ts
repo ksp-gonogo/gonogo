@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { getSerialRenderStyle } from "./registry";
 
 const trace = logger.tag("serial:transport");

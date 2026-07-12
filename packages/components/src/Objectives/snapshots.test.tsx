@@ -3,11 +3,9 @@ import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import contractsOnly from "./__fixtures__/contracts-only.json";
 import empty from "./__fixtures__/empty.json";
-import missionAndContracts from "./__fixtures__/mission-and-contracts.json";
 import { ObjectivesComponent } from "./index";
 
 const FIXTURES = {
-  "mission-and-contracts": missionAndContracts,
   "contracts-only": contractsOnly,
   empty,
 };

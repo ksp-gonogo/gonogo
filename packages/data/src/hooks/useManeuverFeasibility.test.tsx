@@ -1,9 +1,9 @@
-import type { ManeuverNode, StageInfo } from "@gonogo/core";
+import type { ManeuverNode, StageInfo } from "@ksp-gonogo/core";
 import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useManeuverFeasibility } from "./useManeuverFeasibility";

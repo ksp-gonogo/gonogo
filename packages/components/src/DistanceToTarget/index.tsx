@@ -1,15 +1,18 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
   resolveTargetName,
-  useDataValue,
-} from "@gonogo/core";
+  useDataStreamStatus,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   buildCameraLabeler,
   useKerbcastCameras,
   useKerbcastStream,
-} from "@gonogo/kerbcast";
+} from "@ksp-gonogo/kerbcast-feed";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   ConfigForm,
   Field,
@@ -18,11 +21,18 @@ import {
   Panel,
   PanelTitle,
   Select,
+  StreamStatusBadge,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import {
+  deriveDockAngles,
+  radialSpeed,
+  type Vec3,
+  vecMagnitude,
+} from "../shared/dockAngles";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -42,6 +52,85 @@ interface DistanceToTargetConfig {
   cameraFlightId?: number | null;
 }
 
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────
+//
+// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row).
+// Two are OVERLAY slots on the docking HUD and so PASS slot-props — an
+// overlay augment must draw in the HUD's own reticle space, so it receives
+// the parent's coordinate frame:
+//
+//   • `distance-to-target.camera`  — a video backdrop behind the reticle/HUD.
+//     The close-range docking camera is meant to become a kerbcast AUGMENT
+//     here (not a standalone CameraFeed instance). Currently this slot is
+//     only EXPOSED; the built-in `HudCamera` backdrop stays untouched until
+//     the kerbcast filler and CameraFeed-out-migration land.
+//   • `distance-to-target.overlay` — alignment markers layered on top of the
+//     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
+//     into the reticle box using the passed context. Composable by priority
+//     so several rangefinder/marker augments coexist.
+//
+// The third is the broad `.badges` escape hatch — an inline header indicator
+// (e.g. an autopilot Uplink's active docking-mode chip).
+
+/**
+ * Coordinate/context the docking-HUD overlay slots pass down so an augment
+ * can render in the HUD's own reticle space. Shared by both the camera
+ * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
+ * (`distance-to-target.overlay`).
+ */
+export interface DistanceToTargetHudContext {
+  /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
+  maxDeg: number;
+  /**
+   * Reticle-centre offset from HUD centre, each component in −1..1 (clamped
+   * alignment angle ÷ `maxDeg`; `y` already flipped for screen coords so
+   * positive is downward).
+   */
+  reticleOffset: { x: number; y: number };
+  /**
+   * Percent of the half-box the reticle travels per unit of `reticleOffset`
+   * (the `40` in the reticle's `left: 50 + dx·40 %` positioning) — an overlay
+   * places a marker at `50 + offset·reticleTravelPct` % to sit in the same space.
+   */
+  reticleTravelPct: number;
+  /** True while the two ports are within docking-alignment tolerance. */
+  aligned: boolean;
+  /** Raw docking alignment angles in degrees; undefined outside a docking scenario. */
+  ax: number | undefined;
+  ay: number | undefined;
+  /** Range to the target in metres; undefined until the stream reports position. */
+  distance: number | undefined;
+  /** kerbcast camera flightId configured for the backdrop (unset → first available). */
+  cameraFlightId: number | null | undefined;
+}
+
+/**
+ * Context the `distance-to-target.badges` header slot passes to inline-indicator
+ * augments so a badge can describe the current target without its own reads.
+ */
+export interface DistanceToTargetBadgeContext {
+  /** Current target name, or undefined when no target is set. */
+  targetName: string | undefined;
+  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, …). */
+  targetType: string | undefined;
+  /** Range to the target in metres; undefined until the stream reports position. */
+  distance: number | undefined;
+}
+
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
+// hybrid, declaration-merging approach). Co-located here per-widget — no shared
+// central registry file — so parallel slot work in other widgets never collides.
+// This is what makes `registerAugment` / `<AugmentSlot props={…}>` type-check the
+// contexts above precisely, rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would get.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "distance-to-target.camera": DistanceToTargetHudContext;
+    "distance-to-target.overlay": DistanceToTargetHudContext;
+    "distance-to-target.badges": DistanceToTargetBadgeContext;
+  }
+}
+
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;
 const HUD_EXIT_M = 150;
@@ -58,17 +147,70 @@ function DistanceToTargetComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  const tarDistance = useDataValue("data", "tar.distance");
-  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
-  const tarType = useDataValue("data", "tar.type");
-  const relVel = useDataValue("data", "tar.o.relativeVelocity");
-  const closestApproachUT = useDataValue("data", "o.closestTgtApprUT");
-  const universalTime = useDataValue("data", "t.universalTime");
-  const dockAx = useDataValue("data", "dock.ax");
-  const dockAy = useDataValue("data", "dock.ay");
-  const dockAz = useDataValue("data", "dock.az");
-  const dockX = useDataValue("data", "dock.x");
-  const dockY = useDataValue("data", "dock.y");
+  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
+  const tarType = useTelemetry("data", "tar.type");
+  // o.closestTgtApprUT is a clean home (map-topic.ts) — the SDK's two-body
+  // closest-approach solve exposed on `vessel.state.closestApproachUt`
+  // (propagation.ts). `t.universalTime` is dropped as a data key: the
+  // "current time" it carried IS the SDK view-UT the propagation is
+  // evaluated at, so read that directly via `useViewUt` instead.
+  const closestApproachUT = useTelemetry("data", "o.closestTgtApprUT");
+  const universalTime = useViewUt();
+
+  // The `vessel.target`/`vessel.dock` Vec3 reads — the widget derives every
+  // scalar/angle it needs client-side. The legacy `tar.distance`/
+  // `tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/`dock.ay` scalar
+  // reads and their `?? legacy` fallbacks are all dropped (each is cleanly
+  // derivable off these Vec3s — see shared/dockAngles.ts), and the true
+  // docking roll/az axis is dropped outright (no wire source).
+  const tarRelPos = useTelemetry<Vec3>("data", "tar.relativePosition");
+  const tarRelVelVec = useTelemetry<Vec3>("data", "tar.relativeVelocityVec");
+  // vessel.dock is null unless the target is a docking port with a free
+  // port on the active vessel — undefined here legitimately means "not a
+  // docking scenario right now", not "still loading".
+  const dockRelPos = useTelemetry<Vec3>("data", "dock.relativePosition");
+  const dockRelVelVec = useTelemetry<Vec3>("data", "dock.relativeVelocityVec");
+  const dockDistanceStream = useTelemetry<number>(
+    "data",
+    "dock.distanceScalar",
+  );
+  const dockForwardDot = useTelemetry<number>("data", "dock.forwardDot");
+  const streamStatus = useDataStreamStatus("data", "tar.relativePosition");
+
+  const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
+  const relVel =
+    tarRelPos && tarRelVelVec
+      ? radialSpeed(tarRelPos, tarRelVelVec)
+      : undefined;
+  const derivedDockAngles = dockRelPos
+    ? deriveDockAngles(dockRelPos)
+    : undefined;
+  const dockAx = derivedDockAngles?.ax;
+  const dockAy = derivedDockAngles?.ay;
+  // Docking-port roll (az) misalignment isn't on the wire at all — vessel.dock
+  // carries only RelativePosition/RelativeVelocity/Distance + a scalar
+  // ForwardDot. The true third axis is unavailable and renders "—".
+  const dockAz: number | undefined = undefined;
+  const dockX = dockRelPos?.x;
+  const dockY = dockRelPos?.y;
+  const derivedDockRelVel =
+    dockRelPos && dockRelVelVec
+      ? radialSpeed(dockRelPos, dockRelVelVec)
+      : undefined;
+  // Docking HUD's Δv row prefers the port-to-port closing rate (more
+  // accurate at close range) over the general vessel-to-vessel figure.
+  const dockingRelVel = derivedDockRelVel ?? relVel;
+  const dockingDistance = dockDistanceStream ?? tarDistance;
+
+  // Header `.badges` slot context — a fresh object each render so the indicator
+  // tracks live target data. Rendered next to the widget
+  // title (its canonical header, `TitleRow`); the specialised approach/docking
+  // modes keep their own bespoke headers.
+  const badgeContext: DistanceToTargetBadgeContext = {
+    targetName: tarName,
+    targetType: typeof tarType === "string" ? tarType : undefined,
+    distance: tarDistance,
+  };
 
   // Mode hysteresis — sticky so we don't strobe near a threshold, and the
   // upgrade direction is asymmetric (smaller window to enter than to exit).
@@ -99,7 +241,11 @@ function DistanceToTargetComponent({
   if (tarName === undefined) {
     return (
       <Panel>
-        <PanelTitle>TARGET</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TARGET</PanelTitle>
+          <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <NoTarget>No target set in KSP</NoTarget>
       </Panel>
     );
@@ -115,13 +261,14 @@ function DistanceToTargetComponent({
     return (
       <DockingHud
         name={tarName}
-        distance={tarDistance}
-        relVel={relVel}
+        distance={dockingDistance}
+        relVel={dockingRelVel}
         ax={dockAx}
         ay={dockAy}
         az={dockAz}
         x={dockX}
         y={dockY}
+        forwardDot={dockForwardDot}
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}
         cols={cols}
@@ -153,7 +300,11 @@ function DistanceToTargetComponent({
 
   return (
     <Panel>
-      <PanelTitle>TARGET</PanelTitle>
+      <TitleRow>
+        <PanelTitle>TARGET</PanelTitle>
+        <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <TrackingBody>
         {showTargetName && <TargetName>{tarName}</TargetName>}
         {tarDistance === undefined ? (
@@ -295,6 +446,13 @@ interface DockingHudProps {
   az: number | undefined;
   x: number | undefined;
   y: number | undefined;
+  /**
+   * `vessel.dock.forwardDot` — cosine of the angle between the two ports'
+   * forward vectors (1 = perfectly aligned). When present this is a more
+   * direct alignment signal than the derived `ax`/`ay` angle heuristic
+   * below and takes priority for the reticle's aligned/misaligned tint.
+   */
+  forwardDot: number | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
@@ -317,6 +475,7 @@ function DockingHud(props: DockingHudProps) {
     az,
     x,
     y,
+    forwardDot,
     showCamera,
     cameraFlightId,
     cols,
@@ -356,14 +515,34 @@ function DockingHud(props: DockingHudProps) {
   const dx = axClamped / MAX_DEG;
   const dy = -ayClamped / MAX_DEG;
 
+  // forwardDot (cosine of port-forward-vector angle) is the more direct
+  // alignment signal when available — 0.9998 ~= within ~1° of dead-on,
+  // matching the derived-angle heuristic's < 1° threshold below.
   const aligned =
-    ax !== undefined &&
-    ay !== undefined &&
-    Math.abs(ax) < 1 &&
-    Math.abs(ay) < 1;
+    forwardDot !== undefined
+      ? forwardDot > 0.9998
+      : ax !== undefined &&
+        ay !== undefined &&
+        Math.abs(ax) < 1 &&
+        Math.abs(ay) < 1;
 
   // Closing if relVel is negative (standard KSP convention: positive = opening).
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
+
+  // Overlay/camera slot context — the reticle coordinate frame an augment needs
+  // to draw in the HUD's own space. `reticleTravelPct` (40) is the
+  // `50 + dx·40 %` factor the built-in reticle uses, so an augment marker at
+  // `50 + offset·reticleTravelPct` % lands in the same space.
+  const hudContext: DistanceToTargetHudContext = {
+    maxDeg: MAX_DEG,
+    reticleOffset: { x: dx, y: dy },
+    reticleTravelPct: 40,
+    aligned,
+    ax,
+    ay,
+    distance,
+    cameraFlightId,
+  };
 
   return (
     <HudPanel
@@ -372,6 +551,12 @@ function DockingHud(props: DockingHudProps) {
       $row={wideShort}
     >
       {showCamera && showViewport && <HudCamera flightId={cameraFlightId} />}
+      {/* Camera-backdrop slot: an augment (e.g. kerbcast) draws a video layer
+          behind the reticle, in the HUD's space. Separate from the
+          built-in `HudCamera` above, which stays in place unless replaced. */}
+      {showViewport && (
+        <AugmentSlot name="distance-to-target.camera" props={hudContext} />
+      )}
       {showViewport && (
         <Viewport>
           {/* Fixed centre crosshair */}
@@ -393,6 +578,9 @@ function DockingHud(props: DockingHudProps) {
           <VertTick style={{ top: "30%" }} />
           <VertTick style={{ top: "70%" }} />
           <VertTick style={{ top: "90%" }} />
+          {/* Alignment-marker overlay slot: composable augments draw
+              on top of the reticle in the same coordinate frame via `hudContext`. */}
+          <AugmentSlot name="distance-to-target.overlay" props={hudContext} />
         </Viewport>
       )}
 
@@ -555,19 +743,22 @@ registerComponent<DistanceToTargetConfig>({
   component: DistanceToTargetComponent,
   configComponent: DistanceToTargetConfigComponent,
   dataRequirements: [
-    "tar.distance",
     "tar.name",
     "tar.type",
-    "tar.o.relativeVelocity",
     "o.closestTgtApprUT",
-    "t.universalTime",
-    "dock.ax",
-    "dock.ay",
-    "dock.az",
-    "dock.x",
-    "dock.y",
+    "tar.relativePosition",
+    "tar.relativeVelocityVec",
+    "dock.relativePosition",
+    "dock.relativeVelocityVec",
+    "dock.distanceScalar",
+    "dock.forwardDot",
   ],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
+  augmentSlots: [
+    "distance-to-target.camera",
+    "distance-to-target.overlay",
+    "distance-to-target.badges",
+  ],
   pushable: true,
   requires: ["flight"],
 });
@@ -575,6 +766,14 @@ registerComponent<DistanceToTargetConfig>({
 export { DistanceToTargetComponent };
 
 // ── Styles — compact mode ─────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const TrackingBody = styled.div`
   flex: 1;

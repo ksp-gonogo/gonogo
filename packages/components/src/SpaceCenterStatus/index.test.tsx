@@ -1,4 +1,5 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,6 +31,7 @@ describe("SpaceCenterStatusComponent", () => {
 
   afterEach(() => {
     teardownMockDataSource(fixture);
+    clearAugments();
   });
 
   it("renders the panel title and an empty pad line before any telemetry", () => {
@@ -135,6 +137,40 @@ describe("SpaceCenterStatusComponent", () => {
 
     const upgradeButtons = screen.getAllByRole("button", { name: "Upgrade" });
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Augment slots (Uplink architecture §4) — the widget exposes
+  // `space-center-status.badges` (header) and `space-center-status.sections`
+  // (body, appended to the facility list). With no augment registered the
+  // slots render nothing and the widget is unchanged; once an augment binds a
+  // slot its component appears in the widget's space.
+  it("renders with empty augment slots when nothing is registered", () => {
+    const { container } = render(
+      <SpaceCenterStatusComponent config={{}} id="ksc" />,
+    );
+    expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("LS DEPOT");
+    expect(container.textContent).not.toContain("EXPANSION READY");
+  });
+
+  it("renders augments bound to the badges and sections slots", () => {
+    registerAugment({
+      id: "test-ksc-badge",
+      augments: "space-center-status.badges",
+      component: () => <span>EXPANSION READY</span>,
+    });
+    registerAugment({
+      id: "test-ksc-section",
+      augments: "space-center-status.sections",
+      component: () => <div>LS DEPOT tier 1 of 3</div>,
+    });
+
+    const { container } = render(
+      <SpaceCenterStatusComponent config={{}} id="ksc" />,
+    );
+
+    expect(container.textContent).toContain("EXPANSION READY");
+    expect(container.textContent).toContain("LS DEPOT tier 1 of 3");
   });
 });
 

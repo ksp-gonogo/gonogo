@@ -1,4 +1,4 @@
-import { CloseIcon, PushUpIcon, RecallIcon } from "@gonogo/ui";
+import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";

@@ -4,7 +4,7 @@ import {
   GhostButton,
   StatusIndicator,
   useModal,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";

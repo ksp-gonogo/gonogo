@@ -1,5 +1,5 @@
-import type { DataKey, DataSource, DataSourceStatus } from "@gonogo/core";
-import { clearRegistry, registerDataSource } from "@gonogo/core";
+import type { DataKey, DataSource, DataSourceStatus } from "@ksp-gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";

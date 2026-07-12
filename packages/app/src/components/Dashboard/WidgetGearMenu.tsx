@@ -1,13 +1,13 @@
-import { type AnyDef, ErrorBoundary } from "@gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
-import { AppError, handleError } from "@gonogo/logger";
+import { type AnyDef, ErrorBoundary } from "@ksp-gonogo/core";
+import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/data";
+import { AppError, handleError } from "@ksp-gonogo/logger";
 import {
   type InputMappings,
   InputMappingTab,
   SerialDeviceProvider,
   useSerialDeviceService,
-} from "@gonogo/serial";
-import { GearIcon, Tabs, useModal } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { GearIcon, Tabs, useModal } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";

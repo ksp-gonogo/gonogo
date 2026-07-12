@@ -1,5 +1,5 @@
 # Build context for this Dockerfile is the REPO ROOT, not packages/telnet-proxy,
-# so pnpm can resolve workspace deps (currently @gonogo/logger). The
+# so pnpm can resolve workspace deps (currently @ksp-gonogo/logger). The
 # compose service points `context: .` + `dockerfile:
 # packages/telnet-proxy/Dockerfile`, and CI workflows do the same.
 
@@ -29,20 +29,20 @@ COPY packages/telnet-proxy/package.json packages/telnet-proxy/
 
 # Frozen install limited to telnet-proxy + transitive workspace deps.
 # `--filter` follows workspace:* edges automatically.
-RUN pnpm install --frozen-lockfile --filter @gonogo/telnet-proxy...
+RUN pnpm install --frozen-lockfile --filter @ksp-gonogo/telnet-proxy...
 
-# Now bring in source. Build @gonogo/logger first so its `dist/` exists,
+# Now bring in source. Build @ksp-gonogo/logger first so its `dist/` exists,
 # then build telnet-proxy against it. Both packages emit Node-loadable
 # ESM (logger uses NodeNext + explicit .js extensions).
 COPY packages/logger/ packages/logger/
 COPY packages/telnet-proxy/ packages/telnet-proxy/
 
-RUN pnpm --filter @gonogo/logger build
-RUN pnpm --filter @gonogo/telnet-proxy build
+RUN pnpm --filter @ksp-gonogo/logger build
+RUN pnpm --filter @ksp-gonogo/telnet-proxy build
 
 # Deploy a self-contained app dir (workspace deps inlined into
 # node_modules) for the runtime stage.
-RUN pnpm --filter @gonogo/telnet-proxy deploy --prod --legacy /app
+RUN pnpm --filter @ksp-gonogo/telnet-proxy deploy --prod --legacy /app
 
 # ── runtime ──────────────────────────────────────────────────────────────────
 FROM node:24-alpine

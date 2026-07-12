@@ -1,9 +1,9 @@
-import type { StageInfo } from "@gonogo/core";
+import type { StageInfo } from "@ksp-gonogo/core";
 import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useVesselDeltaV } from "./useVesselDeltaV";
@@ -79,5 +79,26 @@ describe("useVesselDeltaV", () => {
     expect(last?.totalVac).toBe(1750);
     expect(last?.totalASL).toBeCloseTo(1575, 5); // 0.9× sum
     expect(last?.stages).toHaveLength(3);
+  });
+
+  // `dv.stages` is UN-GAPPED (P4a shared-map batch) but rides an IDENTICAL
+  // topic key off either transport — the new mod's `StageDeltaVEntry` uses
+  // `dvVac`/`dvAsl` instead of the legacy `deltaVVac`/`deltaVASL`. Proves
+  // the hook normalizes the new field names rather than silently summing
+  // to NaN once a widget's `dv.stages` subscription starts riding the
+  // stream (mirrors FuelStatus's `parseStages` reconciliation proof).
+  it("sums ΔV across stages using the new mod StageDeltaVEntry field names", () => {
+    const renders: Array<ReturnType<typeof useVesselDeltaV>> = [];
+    render(<Probe onRender={(v) => renders.push(v)} />);
+    act(() =>
+      mock.emit("dv.stages", [
+        { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
+        { stage: 0, dvVac: 600, dvAsl: 500, dvActual: 550 },
+      ]),
+    );
+    const last = renders.at(-1);
+    expect(last?.totalVac).toBe(1800);
+    expect(last?.totalASL).toBe(1500);
+    expect(last?.stages).toHaveLength(2);
   });
 });

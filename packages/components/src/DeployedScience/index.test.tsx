@@ -1,4 +1,5 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -6,7 +7,11 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { DeployedScienceComponent, parseBases } from "./index";
+import {
+  type DeployedExperimentContext,
+  DeployedScienceComponent,
+  parseBases,
+} from "./index";
 
 const KEYS: DataKey[] = [
   { key: "deployed.bases" },
@@ -48,6 +53,7 @@ describe("DeployedScienceComponent", () => {
 
   afterEach(() => {
     teardownMockDataSource(fixture);
+    clearAugments();
   });
 
   it("shows the DLC-absent state when deployed.available is false", () => {
@@ -105,6 +111,76 @@ describe("DeployedScienceComponent", () => {
     });
     expect(screen.getByText(/Unpowered/i)).toBeInTheDocument();
     expect(screen.getByText(/Brownout/i)).toBeInTheDocument();
+  });
+
+  it("renders the augment slots with no bound augment (empty is fine)", () => {
+    // No augment registered → both slots compose nothing and the base card
+    // renders exactly as before.
+    render(<DeployedScienceComponent config={{}} id="db" />);
+    act(() => {
+      source.emit("deployed.available", true);
+      source.emit("deployed.bases", [base()]);
+    });
+    expect(screen.getByText("Seismometer")).toBeInTheDocument();
+    expect(screen.queryByTestId("deployed-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("deployed-section")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound header-badges augment next to the title", () => {
+    registerAugment<"deployed-science.badges">({
+      id: "test-deployed-badge",
+      augments: "deployed-science.badges",
+      component: () => <span data-testid="deployed-badge">RAD</span>,
+    });
+
+    render(<DeployedScienceComponent config={{}} id="db" />);
+    act(() => {
+      source.emit("deployed.available", true);
+      source.emit("deployed.bases", [base()]);
+    });
+
+    expect(screen.getByTestId("deployed-badge")).toHaveTextContent("RAD");
+  });
+
+  it("renders a bound sections augment per experiment card, carrying its datum", () => {
+    // A test Uplink binds `deployed-science.sections` and echoes back the
+    // per-card experiment props. Proves (a) the slot is exposed, (b) an
+    // augment composes into it once per experiment, and (c) the props carry
+    // the right experiment/body so a per-card augment targets correctly.
+    registerAugment<"deployed-science.sections">({
+      id: "test-deployed-section",
+      augments: "deployed-science.sections",
+      component: ({ experiment, body }: DeployedExperimentContext) => (
+        <span data-testid="deployed-section">
+          {body}:{experiment.name}:{Math.round(experiment.progress * 100)}
+        </span>
+      ),
+    });
+
+    render(<DeployedScienceComponent config={{}} id="db" />);
+    act(() => {
+      source.emit("deployed.available", true);
+      source.emit("deployed.bases", [
+        base({
+          id: 1,
+          body: "Mun",
+          experiments: [
+            { id: "a", name: "Seismometer", progress: 0.5 },
+            { id: "b", name: "Ion Detector", progress: 0.25 },
+          ],
+        }),
+      ]);
+    });
+
+    // One augment per experiment card, each carrying its own card's datum
+    // (name + progress + body) in DOM order — proves the per-card props
+    // identity is correct.
+    const sections = screen.getAllByTestId("deployed-section");
+    expect(sections).toHaveLength(2);
+    expect(sections.map((s) => s.textContent)).toEqual([
+      "Mun:Seismometer:50",
+      "Mun:Ion Detector:25",
+    ]);
   });
 });
 

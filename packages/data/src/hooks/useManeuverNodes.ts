@@ -1,5 +1,5 @@
-import type { ManeuverNode } from "@gonogo/core";
-import { useDataValue } from "@gonogo/core";
+import type { ManeuverNode } from "@ksp-gonogo/core";
+import { useDataValue } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 
 /**

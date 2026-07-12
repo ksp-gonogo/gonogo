@@ -5,13 +5,13 @@
  * BannerStack so visual issues that depend on the stack's 48 px
  * height + overflow:hidden surface in screenshots.
  *
- * The banner is in @gonogo/app; this file lives in the components
+ * The banner is in @ksp-gonogo/app; this file lives in the components
  * scripts dir so its widget-render bundling pipeline can reuse the
  * existing probe.html / esbuild path. Cross-package imports via
  * relative path are fine for a test-only entry.
  */
 
-import { BannerStack } from "@gonogo/ui";
+import { BannerStack } from "@ksp-gonogo/ui";
 import { createElement, useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import {

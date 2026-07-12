@@ -18,7 +18,7 @@
  * routes per-type so stations can render the same layers the host sees.
  */
 
-import type { SCANType } from "@gonogo/core";
+import type { SCANType } from "@ksp-gonogo/core";
 
 const DB_NAME = "gonogo-fog";
 /**

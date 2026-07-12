@@ -1,4 +1,4 @@
-import type { SeriesRange } from "@gonogo/data";
+import type { SeriesRange } from "@ksp-gonogo/data";
 
 /**
  * Tolerance for pairing a Y sample with the most recent X sample. Telemachus

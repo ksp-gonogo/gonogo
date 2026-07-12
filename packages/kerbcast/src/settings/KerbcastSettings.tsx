@@ -1,4 +1,4 @@
-import { Switch } from "@gonogo/ui";
+import { Switch } from "@ksp-gonogo/ui";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
 import type { KerbcastDataSource } from "../KerbcastDataSource";

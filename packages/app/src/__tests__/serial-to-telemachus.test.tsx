@@ -1,132 +1,53 @@
 /**
  * GOLDEN end-to-end test: a byte on the serial port triggers the ActionGroup's
- * toggle action, which fires a fetch intercepted by MSW and then reflects
- * back over the WS. No internal mocks — real WebSerialTransport (via
- * MockWebSerial), real SerialDeviceService, real InputDispatcher, real
- * dispatchAction, real useActionInput, real useExecuteAction.
+ * toggle action, which fires `useExecuteAction("data")` and then reflects
+ * back through the (fake) data source. No internal mocks for the serial
+ * half — real WebSerialTransport (via MockWebSerial), real
+ * SerialDeviceService, real InputDispatcher, real dispatchAction, real
+ * useActionInput, real useExecuteAction. The Telemachus half is a
+ * `MockDataSource`-backed fixture (see `fixtures/fakeTelemachus.ts`) instead
+ * of a real WS/HTTP round trip — the legacy `TelemachusDataSource` this test
+ * used to drive against was deleted alongside `dataSources/telemachus.ts`.
  */
 
-import { ActionGroupComponent } from "@gonogo/components";
+import { ActionGroupComponent } from "@ksp-gonogo/components";
 import {
   clearActionHandlers,
   clearRegistry,
   DashboardItemContext,
-  registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
 import {
   type DeviceInstance,
   InputDispatcher,
   MockWebSerial,
   SerialDeviceProvider,
   SerialDeviceService,
-} from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { HttpResponse, http, ws } from "msw";
-import { setupServer } from "msw/node";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
-import { telemachusSource } from "../dataSources/telemachus";
+  type FakeTelemachusHandle,
+  setupFakeTelemachus,
+} from "./fixtures/fakeTelemachus";
 
-const telemachusWs = ws.link("ws://localhost:8085/datalink");
-const server = setupServer();
+let fake: FakeTelemachusHandle | null = null;
 
-let buffered: BufferedDataSource | null = null;
+beforeEach(() => {
+  clearRegistry();
+});
 
-beforeAll(() => server.listen());
 afterEach(() => {
   cleanup();
-  server.resetHandlers();
-  telemachusSource.disconnect();
-  buffered?.disconnect();
-  buffered = null;
+  fake?.buffered.disconnect();
+  fake = null;
   clearActionHandlers();
 });
-afterAll(() => server.close());
-
-beforeEach(async () => {
-  clearRegistry();
-  registerDataSource(telemachusSource);
-  buffered = new BufferedDataSource({
-    source: telemachusSource,
-    store: new MemoryStore(),
-  });
-  registerDataSource(buffered);
-  await buffered.connect();
-});
-
-// Identical to the handler in action-group.test.tsx but duplicated so this
-// test is self-contained. Pushes state updates over WS on every execute.
-function setupTelemachus(initialState: Record<string, unknown> = {}): {
-  state: Record<string, unknown>;
-  executeSpy: ReturnType<typeof vi.fn>;
-} {
-  // Default to a healthy CommNet link so BufferedDataSource's signal gate
-  // doesn't drop our sample data.
-  const state: Record<string, unknown> = {
-    "comm.connected": true,
-    ...initialState,
-  };
-  const executeSpy = vi.fn<(actionKey: string) => void>();
-  let wsClient: { send: (data: string) => void } | null = null;
-  let subscribedKeys: string[] = [];
-
-  const pushState = () => {
-    if (!wsClient || subscribedKeys.length === 0) return;
-    const update: Record<string, unknown> = {};
-    for (const key of subscribedKeys) update[key] = state[key] ?? false;
-    wsClient.send(JSON.stringify(update));
-  };
-
-  server.use(
-    telemachusWs.addEventListener("connection", ({ client }) => {
-      wsClient = client;
-      client.addEventListener("message", ({ data }) => {
-        const msg = JSON.parse(data as string) as {
-          "+"?: string[];
-          "-"?: string[];
-        };
-        if (msg["+"]) {
-          for (const key of msg["+"]) {
-            if (!subscribedKeys.includes(key)) subscribedKeys.push(key);
-          }
-          pushState();
-        }
-        if (msg["-"]) {
-          subscribedKeys = subscribedKeys.filter((k) => !msg["-"]?.includes(k));
-        }
-      });
-    }),
-    http.get("http://localhost:8085/telemachus/datalink", ({ request }) => {
-      const actionKey = new URL(request.url).searchParams.get("a");
-      if (actionKey !== null) {
-        executeSpy(actionKey);
-        const base = actionKey.replace(/^f\./, "");
-        state[`v.${base}Value`] = !(state[`v.${base}Value`] as boolean);
-        pushState();
-        return HttpResponse.json({ a: null });
-      }
-      return new HttpResponse(null, { status: 404 });
-    }),
-  );
-
-  return { state, executeSpy };
-}
 
 describe("serial → action → telemachus end-to-end", () => {
-  it("emits bytes from a virtual serial port → toggles AG1 via MSW-intercepted fetch", async () => {
-    // ── 1. Wire up MSW + mock navigator.serial ──────────────────────────
-    const { executeSpy } = setupTelemachus({ "v.ag1Value": false });
-    await telemachusSource.connect();
+  it("emits bytes from a virtual serial port → toggles AG1 via useExecuteAction", async () => {
+    // ── 1. Wire up the fake data source + mock navigator.serial ─────────
+    fake = await setupFakeTelemachus({ "v.ag1Value": false });
 
     const mock = new MockWebSerial();
     mock.install({ force: true });
@@ -188,23 +109,28 @@ describe("serial → action → telemachus end-to-end", () => {
       </SerialDeviceProvider>,
     );
 
+    // Push the fake source's initial state now that ActionGroup has
+    // subscribed — mirrors the real source's "push current state right
+    // after the WS '+' subscribe message" round trip.
+    fake.seed();
+
     // Wait for telemachus to push initial state so ActionGroup is "OFF".
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
     // ── 4. Drive the serial port: press button A ──────────────────────
     // Drive the full cascade (serial read → parser → InputDispatcher →
-    // ActionGroup handler → fetch → MSW → WS push → subscriber → setState)
-    // inside a single act scope. The raw microtask drains that used to live
-    // here ran outside act, so the trailing setState from the WS push landed
-    // outside React's act boundary and tripped a warning.
+    // ActionGroup handler → dispatchAction → executeAction → fake source →
+    // subscriber → setState) inside a single act scope. The raw microtask
+    // drains that used to live here ran outside act, so the trailing
+    // setState landed outside React's act boundary and tripped a warning.
     await act(async () => {
       await port.emitData(" 1 0 \n");
       // Drain enough microtasks for the full async cascade to settle.
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });
 
-    // ── 5. Assert MSW saw the execute + UI reflects the toggle ────────
-    await waitFor(() => expect(executeSpy).toHaveBeenCalledWith("f.ag1"));
+    // ── 5. Assert the fake source saw the execute + UI reflects the toggle ──
+    await waitFor(() => expect(fake?.executedActions).toContain("f.ag1"));
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
 
     // Unmount so pending subscribers are torn down before we disconnect the

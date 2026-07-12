@@ -1,4 +1,4 @@
-# @gonogo/kerbcast
+# @ksp-gonogo/kerbcast
 
 Consumer of the [kerbcast](https://github.com/jonpepler/kerbcast) KSP
 camera-streaming sidecar for gonogo. Registers a `kerbcast` DataSource
@@ -8,7 +8,7 @@ Wire it into the app once, alongside the other data-source imports:
 
 ```ts
 // packages/app/src/dataSources/index.ts
-import "@gonogo/kerbcast";
+import "@ksp-gonogo/kerbcast";
 ```
 
 After that, "Kerbcast" appears in the Data Sources widget (with the

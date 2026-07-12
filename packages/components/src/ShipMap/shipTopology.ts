@@ -4,7 +4,7 @@ import type {
   PartStateModule,
   PartThermal,
   TopologyPart,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 
 /**
  * Diagram-side categories. Narrower than KSP's `PartCategories` enum
@@ -79,8 +79,9 @@ export interface ShipMapPart {
   /** Live max temperature in Kelvin (matches topology `maxTemp` unless the
    *  game adjusts it mid-flight). */
   maxTemperatureK?: number;
-  /** Live resources from `r.resourceFor[flightId]`, normalised to the same
-   *  `{n, a, c}` triplet shape the diagram uses for fuel-fill bars. */
+  /** Live resources from `usePartsLive` (sourced off the `vessel.parts`
+   *  stream), normalised to the same `{n, a, c}` triplet shape the diagram
+   *  uses for fuel-fill bars. */
   resources?: { n: string; a: number; c: number }[];
   /**
    * Net ElectricCharge flow sign on this part — drives a subtle producer /
@@ -96,12 +97,12 @@ export interface ShipMapPart {
    */
   fuelLineTarget?: number | null;
   /**
-   * Per-module behavioural state from `v.partState[flightId]`. Carries
-   * deploy / activation status for solar panels, radiators, antennas,
-   * parachutes, engines, drills, cargo bays, and landing gear. Empty
-   * array when the part has no behavioural modules; undefined when no
-   * v.partState push has landed yet (consumers should treat it as
-   * "unknown" rather than "all retracted").
+   * Per-module behavioural state from `usePartsLive` (sourced off the
+   * `vessel.parts` stream). Carries deploy / activation status for solar
+   * panels, radiators, antennas, parachutes, engines, drills, cargo bays,
+   * and landing gear. Empty array when the part has no behavioural
+   * modules; undefined when no `vessel.parts` payload has landed yet
+   * (consumers should treat it as "unknown" rather than "all retracted").
    */
   partState?: PartStateModule[];
 }

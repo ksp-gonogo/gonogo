@@ -3,8 +3,8 @@ import type {
   DataKey,
   DataSource,
   DataSourceStatus,
-} from "@gonogo/core";
-import { PerfBudget, registerDataSource } from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
 import {
   type CameraState,
   type ClientMessage,
@@ -14,7 +14,7 @@ import {
   type KerbcastPeer,
   type KerbcastTransport,
   type Layer,
-} from "@jonpepler/kerbcast";
+} from "@ksp-gonogo/kerbcast";
 
 /**
  * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the
@@ -138,7 +138,7 @@ function persistConfig(cfg: KerbcastConfig): void {
 
 // ---------------------------------------------------------------------------
 // BrowserRTCTransport — mirrors the SDK's private BrowserKerbcastTransport.
-// Copied from @jonpepler/kerbcast/dist/client.js so KeepaliveTransport can
+// Copied from @ksp-gonogo/kerbcast/dist/client.js so KeepaliveTransport can
 // wrap it without depending on the SDK's unexported class.
 // ---------------------------------------------------------------------------
 
@@ -245,7 +245,7 @@ export class BrowserRTCTransport implements KerbcastTransport {
 // ping messages on the data channel, responding with pong automatically.
 // Non-ping messages pass through to the SDK handler unchanged.
 //
-// TODO: ping→pong handling belongs in @jonpepler/kerbcast itself — move here
+// TODO: ping→pong handling belongs in @ksp-gonogo/kerbcast itself — move here
 // once the SDK supports a reconnect policy hook.
 // ---------------------------------------------------------------------------
 

@@ -1,11 +1,19 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   getSizeBucket,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -32,12 +40,49 @@ export interface TechNode {
   parts: TechPart[];
 }
 
+// ── Augment slot ──────────────────────────────────────────────────────────
+//
+// `tech-tree.badges` is a per-node inline badge slot: an Uplink can drop a
+// small indicator next to a node (the canonical use is a "which mod added this
+// node" tag once third-party parts flow through `tech.nodes`). Every node
+// surface — list rows, graph cards, and the detail panel — exposes the slot and
+// passes that node's identity as slot props, so the augment badges the right
+// node wherever it's rendered.
+
+/** Props passed to every `tech-tree.badges` augment — one per tech node. */
+export interface TechNodeBadgeContext {
+  /** The node this badge belongs to — its full identity for the augment. */
+  node: TechNode;
+}
+
+// Co-located declaration-merge of this widget's slot id → its props.
+// Kept next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam. Makes `registerAugment({
+// augments: "tech-tree.badges" })` and `<AugmentSlot name="tech-tree.badges"
+// props={…} />` type-check precisely against `TechNodeBadgeContext`.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "tech-tree.badges": TechNodeBadgeContext;
+  }
+}
+
 /**
- * Defensive parser for `tech.nodes` from the GonogoTelemetry plugin.
- * Drops malformed entries; tolerates missing optional fields (description,
- * parts) so older Telemachus DLLs degrade gracefully — the operator still
- * sees title + scienceCost + state + parents even without the 2026-05-13
- * fork additions.
+ * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
+ * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
+ * "Researchable" | "Unavailable"` string) and the career-detail wire
+ * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
+ * `unlocked: boolean`, no `state` at all — the server deliberately doesn't
+ * compute the 3-state "Researchable" distinction, career-capture-extend-
+ * report.md). When `state` is absent, derive it from `unlocked`
+ * (`true` -> "Available", `false` -> "Unavailable") — `computeResearchable`
+ * below already promotes some "Unavailable" nodes to researchable-now purely
+ * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
+ * the extend session's doc comment anticipated. `description`/`parts` stay
+ * empty on the new wire (no equivalent field) — both already default
+ * gracefully. Drops malformed entries; tolerates missing optional fields
+ * (description, parts) so older Telemachus DLLs degrade gracefully — the
+ * operator still sees title + scienceCost + state + parents even without
+ * the 2026-05-13 fork additions.
  */
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
@@ -48,7 +93,12 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
     const e = entry as Record<string, unknown>;
     const id = typeof e.id === "string" ? e.id : null;
     if (!id) continue;
-    const stateRaw = typeof e.state === "string" ? e.state : "Unavailable";
+    const stateRaw =
+      typeof e.state === "string"
+        ? e.state
+        : e.unlocked === true
+          ? "Available"
+          : "Unavailable";
     const state: TechNodeState =
       stateRaw === "Available" || stateRaw === "Researchable"
         ? stateRaw
@@ -264,9 +314,23 @@ function layoutGraph(
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
+  // career.science reads through career.status.economy.science. tech.nodes
+  // reads through career.status.tech.nodes now too — the wire's
+  // career.status.tech.nodes carries id/title/scienceCost/unlocked/parents
+  // (career-capture-extend-report.md); parseTechNodes derives the
+  // Available/Unavailable state from `unlocked` client-side (no
+  // server-computed Researchable 3rd state — this widget's own
+  // computeResearchable already does that derivation). kc.scene ->
+  // spaceCenter.scene.scene is mapped too — a plain 2-segment raw-field walk
+  // (SpaceCenterScene.scene, already an enum-name string on the wire) — so
+  // this same useDataValue("data", "kc.scene") call now rides the stream via
+  // the mapTopic shim, zero code change here. tech.unlock[...] (the spend
+  // command) still has no command home (KNOWN_COMMAND_GAPS) and falls back
+  // to legacy automatically — only the reads migrate here.
   const nodesRaw = useDataValue("data", "tech.nodes");
   const scene = useDataValue<string>("data", "kc.scene");
   const careerScience = useDataValue<number>("data", "career.science");
+  const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
   const allNodes = parseTechNodes(nodesRaw);
@@ -316,7 +380,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (allNodes === null) {
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && <PanelSubtitle>Awaiting tech telemetry</PanelSubtitle>}
       </Panel>
     );
@@ -324,7 +391,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (allNodes.length === 0) {
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && <PanelSubtitle>No tech nodes loaded</PanelSubtitle>}
       </Panel>
     );
@@ -338,7 +408,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (bucket === "tiny") {
     return (
       <Panel>
-        <PanelTitle>TECH</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <TinyBody>
           <TinyCount>
             {counts.researchable}
@@ -401,7 +474,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {subtitle}
         <GraphToolbar>
           <Legend aria-hidden="true">
@@ -468,7 +544,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
   return (
     <Panel>
-      <PanelTitle>TECH TREE</PanelTitle>
+      <TitleRow>
+        <PanelTitle>TECH TREE</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {subtitle}
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
@@ -700,6 +779,9 @@ function DetailPanel({
         <DetailTitle>
           {node.title}
           <NodeId>({node.id})</NodeId>
+          {/* Same per-node badges slot as the list rows — an augment bound to
+              `tech-tree.badges` renders here too, carrying the selected node. */}
+          <AugmentSlot name="tech-tree.badges" props={{ node }} />
         </DetailTitle>
         <CloseBtn type="button" onClick={onClose} aria-label="Close details">
           ✕
@@ -831,6 +913,10 @@ function NodeRow({
             <Cost $insufficient={unaffordable}>{node.scienceCost} sci</Cost>
           )}
           <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
+          {/* Per-node inline badges slot. Renders nothing until an Uplink binds
+              (e.g. a "which mod added this node" tag); the props carry this
+              node's identity so the badge lands on the right one. */}
+          <AugmentSlot name="tech-tree.badges" props={{ node }} />
         </NodeMeta>
       </NodeHeader>
       {expanded && (
@@ -906,6 +992,15 @@ function dsBorder(ds: DisplayState): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Controls = styled.div`
   display: flex;
@@ -1520,6 +1615,7 @@ registerComponent<TechTreeConfig>({
   dataRequirements: ["tech.nodes", "career.science", "kc.scene"],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["tech-tree.badges"],
   pushable: true,
   requires: ["career"],
 });

@@ -1,5 +1,5 @@
-import type { DataKey } from "@gonogo/core";
-import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
+import { DashboardItemContext, type MockDataSource } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {

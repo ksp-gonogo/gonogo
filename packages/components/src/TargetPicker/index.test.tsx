@@ -1,5 +1,11 @@
-import type { DataKey } from "@gonogo/core";
-import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
+import {
+  clearAugments,
+  DashboardItemContext,
+  getAugmentsForSlot,
+  type MockDataSource,
+  registerAugment,
+} from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,63 +14,104 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { TargetPickerComponent } from "./index";
 
+/**
+ * The body tree rides `system.bodies` off the stream (`useCelestialBodies`);
+ * the target-detail scalars (`tar.name` / `tar.type` / `tar.distance` /
+ * `tar.o.relativeVelocity`) and the `tar.*` actions still read through the
+ * two-arg `useTelemetry("data", …)` legacy shim, which — with the mounted
+ * provider carrying only `system.bodies` — falls back to this `MockDataSource`.
+ */
 const KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
-  { key: "b.number" },
-  { key: "b.name[0]" },
-  { key: "b.name[1]" },
-  { key: "b.name[2]" },
-  { key: "b.referenceBody[0]" },
-  { key: "b.referenceBody[1]" },
-  { key: "b.referenceBody[2]" },
   { key: "tar.name" },
   { key: "tar.type" },
   { key: "tar.distance" },
   { key: "tar.o.relativeVelocity" },
-  { key: "tar.availableVessels" },
 ];
 
 function renderPicker(
+  fixture: StreamFixture,
   config: Parameters<typeof TargetPickerComponent>[0]["config"] = {},
 ) {
   return render(
-    <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
-      <TargetPickerComponent config={config} id="tp" />
-    </DashboardItemContext.Provider>,
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
+        <TargetPickerComponent config={config} id="tp" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
   );
 }
 
 describe("TargetPickerComponent", () => {
-  let fixture: MockDataSourceFixture;
+  let dataFixture: MockDataSourceFixture;
   let source: MockDataSource;
+  let fixture: StreamFixture;
   let onExecute: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     onExecute = vi.fn();
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    dataFixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = dataFixture.source;
+    fixture = setupStreamFixture({
+      carriedChannels: ["system.bodies"],
+      pinnedUt: 0,
+    });
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    teardownMockDataSource(dataFixture);
   });
 
+  // Kerbol → Kerbin → Mun, streamed as system.bodies (parentIndex tree).
   function primeBodies() {
     act(() => {
-      source.emit("b.number", 3);
-      source.emit("b.name[0]", "Kerbol");
-      source.emit("b.name[1]", "Kerbin");
-      source.emit("b.name[2]", "Mun");
-      source.emit("b.referenceBody[1]", "Kerbol");
-      source.emit("b.referenceBody[2]", "Kerbin");
+      fixture.emit("system.bodies", {
+        bodies: [
+          { index: 0, name: "Kerbol", parentIndex: null, orbit: null },
+          {
+            index: 1,
+            name: "Kerbin",
+            parentIndex: 0,
+            gravParameter: 1.1723328e18,
+            orbit: {
+              sma: 13_599_840_256,
+              ecc: 0,
+              inc: 0,
+              lan: 0,
+              argPe: 0,
+              meanAnomalyAtEpoch: 0,
+              epoch: 0,
+            },
+          },
+          {
+            index: 2,
+            name: "Mun",
+            parentIndex: 1,
+            gravParameter: 3.5316e12,
+            orbit: {
+              sma: 12_000_000,
+              ecc: 0,
+              inc: 0,
+              lan: 0,
+              argPe: 0,
+              meanAnomalyAtEpoch: 0,
+              epoch: 0,
+            },
+          },
+        ],
+      });
     });
   }
 
   it("waits for body data on the bodies tab", () => {
-    renderPicker();
+    renderPicker(fixture);
     expect(screen.getByText(/Waiting for body data/i)).toBeInTheDocument();
   });
 
@@ -73,9 +120,11 @@ describe("TargetPickerComponent", () => {
     // or null) when nothing is targeted. The compact readout (w<4||h<6) must
     // show its no-target branch, never the sentinel as a phantom target name.
     render(
-      <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
-        <TargetPickerComponent config={{}} id="tp" w={3} h={4} />
-      </DashboardItemContext.Provider>,
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
+          <TargetPickerComponent config={{}} id="tp" w={3} h={4} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
     );
     act(() => {
       source.emit("tar.name", "No Target Selected.");
@@ -86,46 +135,55 @@ describe("TargetPickerComponent", () => {
 
   it("renders bodies grouped by reference body and targets on click", async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderPicker(fixture);
     primeBodies();
-    await user.click(screen.getByRole("button", { name: /Mun/ }));
+    await user.click(await screen.findByRole("button", { name: /Mun/ }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.setTargetBody[2]");
     });
   });
 
-  it("treats a self-referencing star as a root (b.referenceBody[0] = its own name)", () => {
-    renderPicker();
+  it("treats a root star (no parent) and its descendants as a tree", async () => {
+    // system.bodies fixes Telemachus's "star lists itself as parent" wart at
+    // the source: the root has parentIndex null, so it's a root and its
+    // children hang off it via the parentIndex tree.
+    renderPicker(fixture);
     act(() => {
-      source.emit("b.number", 3);
-      source.emit("b.name[0]", "Sun");
-      source.emit("b.name[1]", "Kerbin");
-      source.emit("b.name[2]", "Mun");
-      source.emit("b.referenceBody[0]", "Sun");
-      source.emit("b.referenceBody[1]", "Sun");
-      source.emit("b.referenceBody[2]", "Kerbin");
+      fixture.emit("system.bodies", {
+        bodies: [
+          { index: 0, name: "Sun", parentIndex: null, orbit: null },
+          { index: 1, name: "Kerbin", parentIndex: 0, orbit: null },
+          { index: 2, name: "Mun", parentIndex: 1, orbit: null },
+        ],
+      });
     });
-    expect(screen.getByRole("button", { name: /Sun/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Sun/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Kerbin/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
-  it("surfaces orphan bodies as roots when their parent name hasn't streamed", () => {
-    renderPicker();
+  it("surfaces orphan bodies as roots when their parent isn't in the tree", async () => {
+    renderPicker(fixture);
     act(() => {
-      source.emit("b.number", 3);
-      source.emit("b.name[1]", "Kerbin");
-      source.emit("b.name[2]", "Mun");
-      source.emit("b.referenceBody[1]", "Kerbol");
-      source.emit("b.referenceBody[2]", "Kerbin");
+      fixture.emit("system.bodies", {
+        bodies: [
+          // parentIndex 5 isn't present → referenceBody resolves null → root.
+          { index: 1, name: "Kerbin", parentIndex: 5, orbit: null },
+          { index: 2, name: "Mun", parentIndex: 1, orbit: null },
+        ],
+      });
     });
-    expect(screen.getByRole("button", { name: /Kerbin/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Kerbin/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
   it("filters the list as the user types", async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderPicker(fixture);
     primeBodies();
     const filter = screen.getByLabelText("Filter bodies");
     await user.clear(filter);
@@ -134,72 +192,13 @@ describe("TargetPickerComponent", () => {
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
-  it("renders vessels from tar.availableVessels sorted by distance", async () => {
-    const user = userEvent.setup();
-    renderPicker();
-    await user.click(screen.getByRole("tab", { name: "Vessels" }));
-    act(() => {
-      source.emit("tar.availableVessels", [
-        {
-          index: 5,
-          name: "Far Probe",
-          type: "Probe",
-          situation: "ORBITING",
-          body: "Kerbin",
-          // 12 km vector
-          position: [12_000, 0, 0],
-        },
-        {
-          index: 9,
-          name: "Close Sat",
-          type: "Satellite",
-          situation: "ORBITING",
-          body: "Kerbin",
-          // ~80 m vector
-          position: [80, 0, 0],
-        },
-      ]);
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Close Sat")).toBeInTheDocument();
-      expect(screen.getByText("Far Probe")).toBeInTheDocument();
-    });
-    const rows = screen.getAllByRole("button", {
-      name: /Close Sat|Far Probe/,
-    });
-    expect(rows[0]).toHaveTextContent("Close Sat");
-    expect(rows[1]).toHaveTextContent("Far Probe");
-  });
-
-  it("clicking a vessel row fires tar.setTargetVessel with its server index", async () => {
-    const user = userEvent.setup();
-    renderPicker();
-    await user.click(screen.getByRole("tab", { name: "Vessels" }));
-    act(() => {
-      source.emit("tar.availableVessels", [
-        {
-          index: 12,
-          name: "Hubble Mk II",
-          type: "Probe",
-          situation: "ORBITING",
-          body: "Kerbin",
-          position: [200, 0, 0],
-        },
-      ]);
-    });
-    await waitFor(() =>
-      expect(screen.getByText("Hubble Mk II")).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole("button", { name: /Hubble/ }));
-    await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("tar.setTargetVessel[12]");
-    });
-  });
+  // The Vessels tab reads the `system.vessels` roster canonically off the
+  // stream — roster rendering and click-to-target are covered by
+  // `stream.test.tsx`.
 
   it("renders current target details and clears via tar.clearTarget", async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderPicker(fixture);
     act(() => {
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
@@ -214,5 +213,59 @@ describe("TargetPickerComponent", () => {
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
     });
+  });
+});
+
+describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => {
+  let dataFixture: MockDataSourceFixture;
+  let fixture: StreamFixture;
+
+  beforeEach(async () => {
+    dataFixture = await setupMockDataSource({ keys: KEYS });
+    fixture = setupStreamFixture({
+      carriedChannels: ["system.bodies"],
+      pinnedUt: 0,
+    });
+  });
+
+  afterEach(() => {
+    teardownMockDataSource(dataFixture);
+    clearAugments();
+  });
+
+  it("exposes the two host slots empty by default (no augment DOM)", () => {
+    renderPicker(fixture);
+    // Neither slot has a bound augment, so nothing extra renders — the frame is
+    // unchanged from before the slots existed. Registry-side, both are exposable.
+    expect(getAugmentsForSlot("target-picker.sections")).toHaveLength(0);
+    expect(getAugmentsForSlot("target-picker.badges")).toHaveLength(0);
+    expect(screen.queryByText("FLEET FILTER")).toBeNull();
+    expect(screen.queryByText("LINK")).toBeNull();
+  });
+
+  it("renders an augment bound to the body sections slot", () => {
+    registerAugment({
+      id: "test-fleet-filter",
+      augments: "target-picker.sections",
+      component: () => <div>FLEET FILTER</div>,
+    });
+    renderPicker(fixture);
+    expect(
+      getAugmentsForSlot("target-picker.sections").map((a) => a.id),
+    ).toEqual(["test-fleet-filter"]);
+    expect(screen.getByText("FLEET FILTER")).toBeInTheDocument();
+  });
+
+  it("renders an augment bound to the header badges slot", () => {
+    registerAugment({
+      id: "test-badge",
+      augments: "target-picker.badges",
+      component: () => <span>LINK</span>,
+    });
+    renderPicker(fixture);
+    expect(getAugmentsForSlot("target-picker.badges").map((a) => a.id)).toEqual(
+      ["test-badge"],
+    );
+    expect(screen.getByText("LINK")).toBeInTheDocument();
   });
 });

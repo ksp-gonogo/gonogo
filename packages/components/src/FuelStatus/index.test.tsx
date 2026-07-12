@@ -1,11 +1,13 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
+  clearAugments,
   clearRegistry,
   MockDataSource,
+  registerAugment,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, render } from "@testing-library/react";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FuelStatusComponent } from "./index";
 
@@ -80,6 +82,11 @@ describe("FuelStatusComponent", () => {
   });
 
   afterEach(() => {
+    // cleanup() must unmount before clearAugments() notifies the augment
+    // registry's subscribers, else a still-mounted AugmentSlot re-renders
+    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    cleanup();
+    clearAugments();
     buffered.disconnect();
   });
 
@@ -279,5 +286,48 @@ describe("FuelStatusComponent", () => {
     );
     expect(stageValueTexts).toContain("2500 m/s");
     expect(stageValueTexts).toContain("1700 m/s");
+  });
+
+  // Augment slots (Uplink architecture §4) — the widget exposes
+  // `fuel-status.badges` (header) and `fuel-status.sections` (body). With no
+  // augment registered the slots render nothing and the widget is unchanged;
+  // once an augment binds a slot, its component appears in the widget's space.
+  it("renders with empty augment slots when nothing is registered", () => {
+    const { container } = render(
+      <FuelStatusComponent config={{}} id="fuel-test" />,
+    );
+
+    act(() => {
+      primeFlight();
+    });
+
+    // Panel still renders; no augment content leaks in.
+    expect(container.textContent).toContain("FUEL · ΔV");
+    expect(container.textContent).not.toContain("BOIL-OFF");
+    expect(container.textContent).not.toContain("RELIABILITY OK");
+  });
+
+  it("renders augments bound to the badges and sections slots", () => {
+    registerAugment({
+      id: "test-fuel-badge",
+      augments: "fuel-status.badges",
+      component: () => <span>RELIABILITY OK</span>,
+    });
+    registerAugment({
+      id: "test-fuel-section",
+      augments: "fuel-status.sections",
+      component: () => <div>BOIL-OFF 0.02/s</div>,
+    });
+
+    const { container } = render(
+      <FuelStatusComponent config={{}} id="fuel-test" />,
+    );
+
+    act(() => {
+      primeFlight();
+    });
+
+    expect(container.textContent).toContain("RELIABILITY OK");
+    expect(container.textContent).toContain("BOIL-OFF 0.02/s");
   });
 });

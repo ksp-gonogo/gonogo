@@ -13,7 +13,7 @@
  * prediction line connects to the ship icon exactly.
  */
 import { PerfBudget } from "../perf/PerfBudget";
-import type { OrbitPatch } from "../schemas/telemachus";
+import type { OrbitPatch } from "../schemas/orbit";
 import { degToRad, radToDeg } from "../utils/math";
 
 /**

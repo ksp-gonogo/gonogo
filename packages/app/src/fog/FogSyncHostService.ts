@@ -1,5 +1,5 @@
-import { DEFAULT_PROFILE_ID, type FogMaskStore } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+import { DEFAULT_PROFILE_ID, type FogMaskStore } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 interface Deps {

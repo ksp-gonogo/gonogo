@@ -1,0 +1,166 @@
+{
+  "$schema": "cross-language golden fixtures for Sitrep Kepler propagation (C# KeplerProvider <-> TS packages/sitrep-client kepler module)",
+  "cases": [
+    {
+      "id": "vallado-coe2rv-earth-tilted",
+      "description": "Vallado \"Fundamentals of Astrodynamics and Applications\" COE2RV worked example (Earth, mu=398600.4418 km^3/s^2). Published reference values, independent of KeplerProvider -- anchors both languages against an external source, not just each other.",
+      "source": "published-reference",
+      "tolerance": 0.001,
+      "elements": {
+        "sma": 36126.642834805163,
+        "ecc": 0.83284999999999998,
+        "inc": 1.5336208137274174,
+        "lan": 3.977430832369877,
+        "argPe": 0.9316567547145731,
+        "meanAnomalyAtEpoch": 0.13273124482975579,
+        "epoch": 0,
+        "mu": 398600.44179999997
+      },
+      "ut": 0,
+      "expected": {
+        "position": [6525.3440000000001, 6861.5349999999999, 6449.125],
+        "velocity": [
+          4.9022790000000001, 5.5331239999999999, -1.9757089999999999
+        ]
+      }
+    },
+    {
+      "id": "circular-equatorial-kerbin-lko",
+      "description": "ecc=0, inc=0 low-Kerbin-orbit case; propagated 400s forward from a non-zero epoch/meanAnomalyAtEpoch to exercise the WrapTwoPi path on a simple circular orbit.",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 700000,
+        "ecc": 0,
+        "inc": 0,
+        "lan": 0,
+        "argPe": 0,
+        "meanAnomalyAtEpoch": 1.2,
+        "epoch": 100,
+        "mu": 3531600000000
+      },
+      "ut": 500,
+      "expected": {
+        "position": [-553815.71242692985, 428121.66106032534, 0],
+        "velocity": [-1373.7442758921422, -1777.0676750187174, -0]
+      }
+    },
+    {
+      "id": "eccentric-periapsis-kerbin",
+      "description": "ecc=0.6 Kerbin orbit sampled exactly at periapsis (M=0 at epoch, evaluated at ut=epoch).",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 1000000,
+        "ecc": 0.59999999999999998,
+        "inc": 0,
+        "lan": 0,
+        "argPe": 0.5,
+        "meanAnomalyAtEpoch": 0,
+        "epoch": 0,
+        "mu": 3531600000000
+      },
+      "ut": 0,
+      "expected": {
+        "position": [351033.0247561491, 191770.21544168121, 0],
+        "velocity": [-1801.9258456418665, 3298.4031358837638, 0]
+      }
+    },
+    {
+      "id": "eccentric-apoapsis-kerbin",
+      "description": "Same ecc=0.6 Kerbin orbit as eccentric-periapsis-kerbin, sampled at the ut where M=pi exactly (apoapsis).",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 1000000,
+        "ecc": 0.59999999999999998,
+        "inc": 0,
+        "lan": 0,
+        "argPe": 0.5,
+        "meanAnomalyAtEpoch": 0,
+        "epoch": 0,
+        "mu": 3531600000000
+      },
+      "ut": 1671.7222339255395,
+      "expected": {
+        "position": [-1404132.0990245964, -767080.86176672473, 0],
+        "velocity": [450.48146141046641, -824.60078397094105, -0]
+      }
+    },
+    {
+      "id": "tilted-all-nonzero-long-propagation",
+      "description": "inc, lan, argPe all nonzero (Kerbin-scale, ecc=0.3) propagated 200000s forward -- many multiples of the orbital period, so mean anomaly wraps several times through WrapTwoPi.",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 8000000,
+        "ecc": 0.29999999999999999,
+        "inc": 0.69999999999999996,
+        "lan": 2.1000000000000001,
+        "argPe": 1.05,
+        "meanAnomalyAtEpoch": 0.40000000000000002,
+        "epoch": 50,
+        "mu": 3531600000000
+      },
+      "ut": 200000,
+      "expected": {
+        "position": [
+          4595976.2830286091, 5580947.5490227705, -5714766.1267571431
+        ],
+        "velocity": [
+          -440.21534893947398, 309.25298877849798, 188.56549674083647
+        ]
+      }
+    },
+    {
+      "id": "high-eccentricity-newton-raphson-stress",
+      "description": "ecc=0.9 exercises KeplerProvider's high-eccentricity initial guess (E0=pi) branch in SolveEccentricAnomaly.",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 2000000,
+        "ecc": 0.90000000000000002,
+        "inc": 0.29999999999999999,
+        "lan": 0.20000000000000001,
+        "argPe": 0.10000000000000001,
+        "meanAnomalyAtEpoch": 3,
+        "epoch": 0,
+        "mu": 3531600000000
+      },
+      "ut": 1500,
+      "expected": {
+        "position": [
+          -3326573.578244043, -1397586.567871578, -219269.82618302535
+        ],
+        "velocity": [
+          392.95195284653585, -167.59762870114861, -74.959701263277324
+        ]
+      }
+    },
+    {
+      "id": "negative-time-delta",
+      "description": "ut < epoch: verifies WrapTwoPi handles a negative (epoch - ut) delta correctly, not just forward propagation.",
+      "source": "csharp-generated",
+      "tolerance": 1.0000000000000001e-9,
+      "elements": {
+        "sma": 1000000,
+        "ecc": 0.20000000000000001,
+        "inc": 1,
+        "lan": 0.5,
+        "argPe": 1.5,
+        "meanAnomalyAtEpoch": 1,
+        "epoch": 1000,
+        "mu": 3531600000000
+      },
+      "ut": 200,
+      "expected": {
+        "position": [
+          387890.71578279458, 564294.66739681549, 481629.03118179634
+        ],
+        "velocity": [
+          -1856.1948216164985, -135.57812027510602, 1200.6464314477632
+        ]
+      }
+    }
+  ]
+}

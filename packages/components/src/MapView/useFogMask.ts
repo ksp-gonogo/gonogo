@@ -1,14 +1,14 @@
-import { SCAN_TYPE, type SCANType } from "@gonogo/core";
+import { SCAN_TYPE, type SCANType } from "@ksp-gonogo/core";
 import {
   type BodyMask,
   DEFAULT_MASK_HEIGHT,
   DEFAULT_MASK_WIDTH,
   FOG_SCAN_TYPES,
   useBodyFogMask,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import { useEffect, useRef, useState } from "react";
 
-export type { BodyMask } from "@gonogo/data";
+export type { BodyMask } from "@ksp-gonogo/data";
 
 /**
  * Per-scan-type display preferences. The dashboard exposes these as user
@@ -171,5 +171,5 @@ export function useFogDisplayCanvas(
 
 export type { SCANType };
 /** Re-export so callers can build the visibility map without importing
- *  @gonogo/data directly. */
+ *  @ksp-gonogo/data directly. */
 export { FOG_SCAN_TYPES, SCAN_TYPE };

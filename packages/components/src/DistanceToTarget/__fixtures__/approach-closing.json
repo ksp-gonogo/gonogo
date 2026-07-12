@@ -1,17 +1,11 @@
 {
   "_meta": {
     "scenario": "approach-closing",
-    "notes": "Vessel target at 1800m in the approach band (100m–5km). Negative relVel = closing gap — closing rate should render in green/accent tone. TCA provides a T-minus countdown. Exercises ApproachHud with TCA."
+    "notes": "Vessel target at 1800m in the approach band (100m–5km). Distance + closing rate derive from vessel.target's Vec3 fields; negative radial rate = closing gap — closing rate renders in green/accent tone. TCA (o.closestTgtApprUT minus SDK view-UT) needs a TelemetryProvider for view-UT, so under the bare snapshot harness it degrades to '—'; the stream test covers the live TCA readout."
   },
   "tar.name": "Test Station",
   "tar.type": "Vessel",
-  "tar.distance": 1800,
-  "tar.o.relativeVelocity": -4.7,
-  "o.closestTgtApprUT": 5125,
-  "t.universalTime": 5000,
-  "dock.ax": 0,
-  "dock.ay": 0,
-  "dock.az": 0,
-  "dock.x": 0,
-  "dock.y": 0
+  "tar.relativePosition": { "x": 0, "y": 0, "z": 1800 },
+  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": -4.7 },
+  "o.closestTgtApprUT": 5125
 }
