@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # `ci-dev` is a throwaway iteration branch: push CI-config / flaky-test
+    # experiments here to get real CI runs without churning main (main pushes
+    # also fire the dev-channel deploy). Fast-forward main from ci-dev only
+    # once it's green.
+    branches: [main, ci-dev]
   pull_request:
     branches: [main]
 
