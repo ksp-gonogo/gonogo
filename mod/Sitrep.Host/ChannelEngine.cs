@@ -791,7 +791,7 @@ namespace Sitrep.Host
             {
                 if (value is string enumName)
                 {
-                    return Enum.Parse(targetType, enumName, ignoreCase: true);
+                    return ParseEnumByNameMetadataOnly(targetType, enumName);
                 }
                 // Wire form is the numeric ordinal.
                 return Enum.ToObject(targetType, Convert.ToInt64(value, CultureInfo.InvariantCulture));
@@ -900,6 +900,35 @@ namespace Sitrep.Host
             t == typeof(int) || t == typeof(long) || t == typeof(short) ||
             t == typeof(byte) || t == typeof(sbyte) || t == typeof(uint) ||
             t == typeof(ulong) || t == typeof(ushort);
+
+        /// <summary>
+        /// Case-insensitive enum-name → value using ONLY metadata (each member's
+        /// <see cref="MemberInfo.Name"/> + <see cref="FieldInfo.GetRawConstantValue"/>),
+        /// never <see cref="Enum.Parse(Type,string,bool)"/>. The
+        /// <c>Sitrep.Contract</c> enums carry a Reinforced.Typings <c>[TsEnum]</c>
+        /// attribute in the netstandard2.0 (KSP) build; <see cref="Enum.Parse(Type,string,bool)"/>
+        /// constructs the enum type's custom attributes, which throws
+        /// <see cref="System.IO.FileNotFoundException"/> whenever
+        /// <c>Reinforced.Typings.dll</c> isn't on the runtime probing path — that
+        /// is BOTH the net10.0 test host AND the live KSP <c>GameData</c> deploy,
+        /// where the codegen tool ships build-time-only. So a string-form enum arg
+        /// (e.g. <c>setTarget {kind:"Vessel"}</c>) would have dead-softed the whole
+        /// command in-game, not just here. Reading FieldInfo names / raw constant
+        /// values touches metadata only — the same "don't construct the sibling
+        /// attributes" boundary <c>WirePayloadCoverageTests</c> relies on — and
+        /// <see cref="Enum.ToObject"/> just boxes the value (no name/attribute work).
+        /// </summary>
+        private static object ParseEnumByNameMetadataOnly(Type enumType, string name)
+        {
+            foreach (var f in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Enum.ToObject(enumType, f.GetRawConstantValue()!);
+                }
+            }
+            throw new ArgumentException($"'{name}' is not a valid {enumType.Name} value.");
+        }
 
         /// <summary>
         /// Reflects over <paramref name="targetType"/>'s writable public

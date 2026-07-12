@@ -221,6 +221,17 @@ namespace Sitrep.Core.Serialization
                     // got zero stream-data while an empty one silently "worked").
                     AppendKosProcessorInfo(sb, processor);
                     break;
+                case Sitrep.Contract.KosTerminalFrame terminalFrame:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // KosProcessorInfo above: kos.terminal.<coreId> publishes a
+                    // KosTerminalFrame POCO RAW (see KosExtension.cs's
+                    // _terminalManager publish lambda — .Publish(frame, ...) with
+                    // no ToWire flatten). Without this case every interactive
+                    // terminal downlink frame threw NotSupportedException at the
+                    // wire boundary and fail-softed to nothing — the client opened
+                    // a terminal that never painted.
+                    AppendKosTerminalFrame(sb, terminalFrame);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // KosProcessorInfo above: the comms.connectivity channel
@@ -366,6 +377,29 @@ namespace Sitrep.Core.Serialization
             AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
 
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.KosTerminalFrame"/> to the wire
+        /// object <c>{ coreId, chunk, fullRepaint }</c> (camelCase keys, matching
+        /// the generated SDK shape). See the <c>case</c> in
+        /// <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendKosTerminalFrame(StringBuilder sb, Sitrep.Contract.KosTerminalFrame frame)
+        {
+            sb.Append('{');
+            AppendString(sb, "coreId");
+            sb.Append(':');
+            AppendInteger(sb, frame.CoreId);
+            sb.Append(',');
+            AppendString(sb, "chunk");
+            sb.Append(':');
+            AppendString(sb, frame.Chunk ?? "");
+            sb.Append(',');
+            AppendString(sb, "fullRepaint");
+            sb.Append(':');
+            AppendBool(sb, frame.FullRepaint);
             sb.Append('}');
         }
 
