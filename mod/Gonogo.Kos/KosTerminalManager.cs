@@ -101,11 +101,20 @@ namespace Gonogo.Kos
         private readonly Func<int, IKosTerminalScreen?> _createScreen;
         private readonly Func<double> _nowUt;
         private readonly double _pollIntervalSeconds;
+        private readonly double _keyframeIntervalSeconds;
 
         private sealed class Session
         {
             public IKosTerminalScreen? Screen;
             public bool PendingReseed;
+            // UT of the last full-repaint (keyframe) published for this CPU.
+            // Drives the periodic keyframe cadence: a fresh full repaint every
+            // _keyframeIntervalSeconds resyncs the client from a self-contained
+            // frame, so a single lost incremental diff (a comms-blip reveal-gate
+            // drop, a quickload, any transit loss) self-heals within one
+            // interval instead of corrupting the screen until the next
+            // subscribe. null until the first frame is published.
+            public double? LastKeyframeUt;
         }
 
         private readonly Dictionary<int, Session> _sessions = new Dictionary<int, Session>();
@@ -130,13 +139,23 @@ namespace Gonogo.Kos
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
         /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls — harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames no longer coalesce.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
+        /// <param name="keyframeIntervalSeconds">
+        /// Periodic full-repaint (keyframe) cadence per subscribed CPU. The
+        /// read-back is a stream of non-idempotent cursor-relative diffs, so a
+        /// single lost frame (a reveal-gate drop on a comms blip, a quickload,
+        /// any transit loss) would otherwise corrupt the client screen until the
+        /// next subscribe. Forcing a self-contained full repaint every interval
+        /// lets the client re-sync from a clean frame — the video-I-frame model
+        /// — so any drop self-heals within one interval. Default 1.0s.
+        /// </param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
             Func<int, bool> isSubscribed,
             Action<int, KosTerminalFrame, double> publish,
             Func<int, IKosTerminalScreen?> createScreen,
             Func<double> nowUt,
-            double pollIntervalSeconds = 0.05)
+            double pollIntervalSeconds = 0.05,
+            double keyframeIntervalSeconds = 1.0)
         {
             _knownCoreIds = knownCoreIds ?? throw new ArgumentNullException(nameof(knownCoreIds));
             _isSubscribed = isSubscribed ?? throw new ArgumentNullException(nameof(isSubscribed));
@@ -144,6 +163,7 @@ namespace Gonogo.Kos
             _createScreen = createScreen ?? throw new ArgumentNullException(nameof(createScreen));
             _nowUt = nowUt ?? throw new ArgumentNullException(nameof(nowUt));
             _pollIntervalSeconds = pollIntervalSeconds;
+            _keyframeIntervalSeconds = keyframeIntervalSeconds;
         }
 
         /// <summary>
@@ -196,24 +216,42 @@ namespace Gonogo.Kos
                     continue;
                 }
 
+                var now = _nowUt();
+
                 // Drain this CPU's pending-reseed signal — set from
                 // NotifySubscribed, possibly from another thread, possibly
                 // several times since the last poll (each collapses to one
-                // reseed here). This is the ONLY source of the reseed
-                // decision; Poll never reads a subscriber count.
+                // reseed here).
                 var reseedEdge = _pendingReseeds.TryRemove(coreId, out _);
-                var forceReseed = reseedEdge || session.PendingReseed;
+
+                // Periodic keyframe: read-back is a stream of non-idempotent
+                // cursor-relative diffs, so a single lost frame corrupts the
+                // client screen until the next subscribe. Force a self-contained
+                // full repaint every _keyframeIntervalSeconds so any transit loss
+                // (a reveal-gate drop on a comms blip, a quickload) self-heals
+                // within one interval — the video-I-frame model.
+                var keyframeDue = !session.LastKeyframeUt.HasValue
+                    || now - session.LastKeyframeUt.Value >= _keyframeIntervalSeconds;
+
+                var forceReseed = reseedEdge || session.PendingReseed || keyframeDue;
                 session.PendingReseed = false;
 
                 var result = session.Screen.ReadChunk(forceReseed);
                 if (result.HasOutput)
                 {
+                    // A full repaint (whether from a subscribe/reseed edge or the
+                    // periodic keyframe) re-bases the interval — one keyframe per
+                    // interval, not one every poll once due.
+                    if (result.FullRepaint)
+                    {
+                        session.LastKeyframeUt = now;
+                    }
                     _publish(coreId, new KosTerminalFrame
                     {
                         CoreId = coreId,
                         Chunk = result.Chunk,
                         FullRepaint = result.FullRepaint,
-                    }, _nowUt());
+                    }, now);
                 }
             }
 

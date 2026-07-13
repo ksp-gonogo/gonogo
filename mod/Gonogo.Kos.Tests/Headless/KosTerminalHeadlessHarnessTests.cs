@@ -425,6 +425,108 @@ namespace Gonogo.Kos.Tests.Headless
             Assert.Contains("EXISTING LINE C", client.Text);
         }
 
+        /// <summary>
+        /// Runs the real pipeline under NONZERO signal delay while dropping
+        /// exactly one incremental diff in transit — the exact class the
+        /// reveal-gate discards on a comms blip / quickload — and returns the
+        /// mod's final screen (truth) next to the client's reconstruction.
+        /// Parameterised by the periodic-keyframe interval so the pair of tests
+        /// below can contrast "keyframes off" (permanent corruption) with
+        /// "keyframes on" (self-heals).
+        /// </summary>
+        private static (string truth, string client) RunWithOneDroppedDiff(double keyframeIntervalSeconds)
+        {
+            const double delay = 2.0; // nonzero signal delay — the untested path.
+            const string droppedLine = "STAGE 1 SEPARATION";
+            var clock = new ManualClock(startUt: 1000);
+            var network = new StubNetwork(delay: delay);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+
+            // Model a single lost frame in transit: the client applies every
+            // delivered frame EXCEPT the first incremental diff that renders one
+            // specific line. A non-idempotent diff lost this way leaves the
+            // screen permanently wrong unless a later self-contained frame
+            // (a periodic keyframe) repaints it.
+            var applied = new List<KosTerminalFrame>();
+            var dropped = false;
+            courier.SubscribeStream(Node, topic, Vantage, data =>
+            {
+                if (data.Payload is KosTerminalFrame frame)
+                {
+                    if (!dropped && !frame.FullRepaint && frame.Chunk.Contains(droppedLine))
+                    {
+                        dropped = true;
+                        return; // lost in transit
+                    }
+                    applied.Add(frame);
+                }
+            });
+
+            var manager = new KosTerminalManager(
+                knownCoreIds: () => new[] { CoreId },
+                isSubscribed: _ => true,
+                publish: (_, frame, ut) => courier.Record(Node, topic, frame, ut, Delivery.ReliableOrdered),
+                createScreen: _ => screen,
+                nowUt: () => clock.Now(),
+                pollIntervalSeconds: 0.05,
+                keyframeIntervalSeconds: keyframeIntervalSeconds);
+
+            // Viewer subscribes on a blank screen (reseed), then a kerboscript
+            // PRINTs the burst, one line per poll, the clock advancing between
+            // lines so frames carry distinct ValidAts and keyframes can mature.
+            manager.Poll(1.0);
+            foreach (var line in BurstLines)
+            {
+                buffer.Print(line);
+                clock.AdvanceTo(clock.Now() + 0.3);
+                manager.Poll(1.0);
+            }
+
+            // Idle well past the keyframe interval so a periodic full repaint can
+            // fire AFTER the dropped diff (when keyframes are enabled).
+            for (var i = 0; i < 12; i++)
+            {
+                clock.AdvanceTo(clock.Now() + 0.3);
+                manager.Poll(1.0);
+            }
+
+            // Drain every delayed delivery.
+            clock.AdvanceTo(clock.Now() + delay + 1);
+
+            Assert.True(dropped, "precondition: exactly one incremental diff carrying the dropped line was lost");
+            var client = Reconstruct(applied);
+            return (RenderFinalScreen(buffer, blankBaseline), client.Text);
+        }
+
+        [Fact]
+        public void DroppedDiff_WithoutPeriodicKeyframes_LeavesScreenPermanentlyCorrupted()
+        {
+            // Negative control (pre-fix behaviour: reseed only on subscribe). A
+            // single lost incremental diff under signal delay is never resent,
+            // so the client screen is missing that line forever — the exact
+            // "the terminals are not the same / not 100% reliable" divergence.
+            var (truth, client) = RunWithOneDroppedDiff(keyframeIntervalSeconds: double.PositiveInfinity);
+            Assert.NotEqual(truth, client);
+            Assert.DoesNotContain("STAGE 1 SEPARATION", client);
+        }
+
+        [Fact]
+        public void DroppedDiff_HealsAtNextPeriodicKeyframe()
+        {
+            // The fix: a periodic full repaint after the drop re-syncs the client
+            // from a self-contained frame, so the lost line reappears and the
+            // reconstructed screen matches the mod's final screen despite the
+            // transit loss.
+            var (truth, client) = RunWithOneDroppedDiff(keyframeIntervalSeconds: 1.0);
+            Assert.Equal(truth, client);
+            Assert.Contains("STAGE 1 SEPARATION", client);
+        }
+
         [Fact]
         public void Rewind_RealPipeline_AfterQuickload_TracksTheRewoundClock()
         {
