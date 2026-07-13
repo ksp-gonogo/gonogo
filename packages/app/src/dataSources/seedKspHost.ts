@@ -2,7 +2,6 @@ import { seedKerbcastHost } from "@ksp-gonogo/kerbcast-feed";
 import { logger } from "@ksp-gonogo/logger";
 import { relayBaseUrl } from "../peer/iceServers";
 import { seedSitrepHost } from "../telemetry/sitrepRuntime";
-import { seedKosHost } from "./kos";
 
 /**
  * First-run seeding of "where is KSP" from the bundled container's
@@ -10,8 +9,8 @@ import { seedKosHost } from "./kos";
  *
  * Pointing a fresh browser at the bundle should need ZERO Settings
  * spelunking: one env var on `docker run` seeds the default host for every
- * KSP-facing data source THAT HAS A RUNTIME HOST SETTING — kOS, kerbcast,
- * and the Sitrep telemetry stream, all seeded below. The seeds are in-memory
+ * KSP-facing data source THAT HAS A RUNTIME HOST SETTING — kerbcast and the
+ * Sitrep telemetry stream, seeded below. The seeds are in-memory
  * and per-source guarded — any config the user has ever saved in Settings
  * wins, and because nothing is persisted here, changing `KSP_HOST` and
  * restarting the container takes effect on the next page load.
@@ -23,8 +22,7 @@ import { seedKosHost } from "./kos";
 /**
  * Container-internal aliases for "the machine the container runs on".
  * Sources the BROWSER dials (sitrep stream, kerbcast sidecar) can't resolve
- * these — the browser-side equivalent is `localhost`. The kOS seed keeps
- * the verbatim value because the in-container proxy is the dialler there.
+ * these — the browser-side equivalent is `localhost`.
  */
 const CONTAINER_INTERNAL_HOSTS = new Set([
   "host.docker.internal",
@@ -54,9 +52,8 @@ export async function seedKspHostDefaults(
     : kspHost;
 
   seedKerbcastHost(browserHost);
-  seedKosHost(kspHost);
-  // The browser dials the Sitrep stream directly (like kerbcast, unlike
-  // kOS's proxy-mediated dial) — use the browser-reachable host.
+  // The browser dials the Sitrep stream directly (like kerbcast) — use the
+  // browser-reachable host. kOS rides this same stream (no host of its own).
   seedSitrepHost(browserHost);
 
   logger.tag("bootstrap").info("Seeded KSP host defaults from relay", {

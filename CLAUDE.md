@@ -31,7 +31,6 @@ packages/
                 InputDispatcher, VirtualDevice widget + UI (see Serial section below)
   ui/         — Reusable UI primitives (buttons, inputs, tabs, modal, icons, etc.)
   app/        — Vite + React SPA (main screen + station mode)
-  telnet-proxy/ — Fastify server: spawns system telnet via node-pty, bridges to WebSocket
   relay/      — Fastify server hosting the /ice-config endpoint, a coturn
                 TURN/STUN child process with a per-restart-rotated shared
                 secret, the host-discovery registry (/host) mapping a
@@ -58,12 +57,11 @@ Do not add a `Co-Authored-By: Claude …` (or any other Claude/Anthropic attribu
 
 ```bash
 pnpm install          # install all workspace dependencies
-pnpm dev              # run app (Vite) and proxy server in parallel
+pnpm dev              # run app (Vite) and the relay container in parallel
 pnpm build            # build all packages via Turborepo
 pnpm test             # run tests across all packages
 pnpm lint             # lint all packages
 pnpm --filter @ksp-gonogo/app dev       # run only the SPA
-pnpm --filter @ksp-gonogo/telnet-proxy dev     # run only the telnet proxy server
 pnpm --filter @ksp-gonogo/core test     # test a single package
 ```
 
@@ -94,8 +92,8 @@ Wrap every call with the perl-alarm pattern (`perl -e 'alarm shift; exec @ARGV' 
 
 ```
 KSP + Gonogo mod (Sitrep telemetry, WS)  ──→ Main screen (direct, ws://<host>:8090)
-KSP (kOS via telnet)                     ──→ @ksp-gonogo/telnet-proxy (Fastify + node-pty + system telnet)
-                                                  └──→ Main screen (WebSocket)
+KSP (kOS)                                ──→ Gonogo mod kos.run / kos.processors Uplink
+                                                  └──→ Main screen (same WS stream)
 Main screen ←──→ Station screens (PeerJS data channels, via peerjs.com broker)
 ```
 
@@ -103,7 +101,7 @@ The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") is the app's 
 
 The old Telemachus `DataSource` (`ws://host:8085/datalink`) that used to serve this role is deleted. Telemachus stays **installable in KSP as an optional debug tool** — the fork, `build telemachus`, and the `tele` CLI helpers below still work — it's just nothing the app itself reads from anymore.
 
-The proxy server is **only required for kOS integration**; without it, all other features still work. The app must display proxy connection status prominently in the UI.
+kOS integration now rides the same Sitrep WS stream as telemetry — script dispatch over the `kos.run` command, CPU discovery over the `kos.processors` channel — so there is no separate proxy process. kOS features simply degrade gracefully when no stream is mounted.
 
 ### `@ksp-gonogo/core`
 
@@ -146,13 +144,10 @@ The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator** — a layout engine built on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout) (`ResponsiveGridLayout`) that reads the current layout config and renders registered components by ID. It does not hardcode any component — it only knows about the registry. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised layout format stores a per-breakpoint map (`lg`, `md`, `sm`, etc.) so the grid reflows across screen sizes. Per-instance component config is stored alongside the layout.
 - **Sitrep telemetry client** — `SitrepTelemetryProvider` mounts a live `WebSocketTransport` to the Gonogo mod (see the Data Flow section above). Components declare data requirements the same as before; `useDataValue`/`useTelemetry` routes mapped, carried topics through the stream automatically.
-- **kOS WebSocket client** — connects to `@ksp-gonogo/telnet-proxy`. The proxy status is shown persistently in the main screen UI. If the proxy is not reachable, affected components degrade gracefully.
+- **kOS integration** — rides the Sitrep stream: `KosDataSource.executeScript` dispatches over the `kos.run` Uplink command and correlates the `kos.run.<coreId>` result; CPU discovery comes off the `kos.processors` channel (`KosCpuDiscovery` stands up the standing subscription; `onProcessorsChanged` feeds the CPU registry). If no stream is mounted, kOS features degrade gracefully.
 - **PeerJS integration** — the main screen acts as the peer host. Stations connect as peers. The main screen distributes a serialised snapshot of data to all peers; stations can also send state back (e.g. GO/NO-GO votes).
 - **Station config** — localStorage-first. Stations can request a config from the main screen over PeerJS; the main screen can push saved configs to connecting stations.
 
-### `@ksp-gonogo/telnet-proxy`
-
-A minimal Fastify server. Its only job is bridging kOS telnet sessions to a WebSocket that the browser can consume — by spawning `telnet host port` via `node-pty` so all IAC negotiation is handled by the system telnet binary. It should be runnable with a single command and have clear setup instructions in its own README. The main screen should show an unambiguous status indicator for this connection.
 
 ---
 
@@ -444,7 +439,7 @@ Serial events stay on the screen where the device is plugged in — they are **n
 ## Key Design Constraints
 
 - **Main screen is the sole KSP data consumer.** Stations never talk to KSP directly; they receive data exclusively from the main screen over PeerJS.
-- **Telnet proxy is optional infrastructure, not a core dependency.** The app must function (minus kOS features) without it. Never make the proxy a hard startup requirement.
+- **kOS is optional, not a core dependency.** kOS rides the Sitrep stream (`kos.run` / `kos.processors`); the app must function (minus kOS features) when no CPU is present or no stream is mounted. Never make kOS a hard startup requirement.
 - **PeerJS broker is configurable.** Default to `0.peerjs.com` but expose a config option (environment variable or settings UI) to point at a self-hosted broker.
 - **Themes are runtime-switchable.** The ThemeProvider must be driven by the active theme from the registry, not hardcoded at build time.
 - **Station identity is localStorage-first.** Never assume a station has a server-side identity. Server-saved configs are a convenience layer on top of a fully local-first station.

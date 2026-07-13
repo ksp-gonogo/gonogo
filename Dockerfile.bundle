@@ -1,12 +1,11 @@
 # gonogo end-user bundle: one image, one `docker run`, the whole LOCAL
-# stack. Three processes under a single supervisor:
+# stack. Two processes under a single supervisor:
 #   - static server  → app SPA on :8080
 #   - relay (node)    → /ice-config + host registry on :3002, spawns coturn
-#   - telnet-proxy    → kOS telnet↔ws bridge on :3001
 #
-# This is an ADDITIONAL artefact for end users. The per-service images
-# (packages/{relay,telnet-proxy}/Dockerfile) and the dev docker-compose.yml
-# are unchanged — contributors still use those.
+# This is an ADDITIONAL artefact for end users. The per-service relay image
+# (packages/relay/Dockerfile) and the dev docker-compose.yml are unchanged —
+# contributors still use those.
 #
 # Build context is the REPO ROOT so pnpm can resolve workspace deps.
 # Unlike the per-service Dockerfiles, the app pulls @jonpepler/kerbcast from
@@ -14,16 +13,11 @@
 # (read:packages). Pass it with `--build-arg GITHUB_TOKEN=$(gh auth token)`.
 
 # ── builder ───────────────────────────────────────────────────────────────────
-# One Debian base for all three packages: glibc compiles node-pty's native
-# bindings more reliably than musl, and coturn is a clean apt install in the
-# runtime stage built on the same base.
+# One Debian base for both packages: glibc is the reliable choice for the
+# app/relay build, and coturn is a clean apt install in the runtime stage
+# built on the same base.
 FROM node:24-bookworm-slim AS builder
 WORKDIR /repo
-
-# Toolchain for node-pty's native build (telnet-proxy dep).
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
 
 # pnpm via corepack — workspace-aware install.
 RUN corepack enable
@@ -58,13 +52,11 @@ ARG GONOGO_VERSION_SUFFIX
 ENV GONOGO_VERSION_SUFFIX=${GONOGO_VERSION_SUFFIX}
 RUN pnpm turbo build --filter=@ksp-gonogo/app...
 
-# Build the two node services and deploy self-contained dirs (workspace deps
-# inlined into node_modules) for the runtime stage — same as their
-# standalone Dockerfiles.
+# Build the relay and deploy a self-contained dir (workspace deps inlined
+# into node_modules) for the runtime stage — same as its standalone
+# Dockerfile.
 RUN pnpm --filter @ksp-gonogo/relay build \
   && pnpm --filter @ksp-gonogo/relay deploy --prod --legacy /opt/relay
-RUN pnpm --filter @ksp-gonogo/telnet-proxy build \
-  && pnpm --filter @ksp-gonogo/telnet-proxy deploy --prod --legacy /opt/telnet-proxy
 
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM node:24-bookworm-slim
@@ -72,13 +64,12 @@ WORKDIR /app
 
 # Runtime deps:
 #   coturn          — TURN/STUN, spawned by the relay (coturnManager.ts)
-#   inetutils-telnet — system `telnet` the proxy's PTY spawns
 #   tini            — PID 1 that reaps orphans (coturn is a grandchild of
 #                     the supervisor via the relay) and forwards signals
 #   ca-certificates — TLS for the relay's public-IP discovery lookup
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-    coturn inetutils-telnet tini ca-certificates \
+    coturn tini ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 # Tiny static SPA server with history-API fallback (the app routes /station
@@ -87,7 +78,6 @@ RUN npm install -g serve@14
 
 COPY --from=builder /repo/packages/app/dist /app/www
 COPY --from=builder /opt/relay /app/relay
-COPY --from=builder /opt/telnet-proxy /app/telnet-proxy
 COPY docker/gonogo-bundle/supervisor.sh /app/supervisor.sh
 RUN chmod +x /app/supervisor.sh
 
@@ -98,27 +88,22 @@ ARG GONOGO_BUILD_TIME
 ENV GONOGO_VERSION=${GONOGO_VERSION}
 ENV GONOGO_BUILD_TIME=${GONOGO_BUILD_TIME}
 
-# In-container service ports. The relay/proxy default to these; pinned here
-# for clarity and so the supervisor + healthcheck agree.
+# In-container service ports. The relay defaults to these; pinned here for
+# clarity and so the supervisor + healthcheck agree.
 ENV APP_PORT=8080
 ENV RELAY_PORT=3002
-ENV PROXY_PORT=3001
-# Where KSP is, as seen from this container. One knob for the whole stack:
-# the telnet-proxy dials it for kOS, and the relay republishes it at
-# /bootstrap-config so the SPA seeds kOS/kerbcast/Sitrep-stream defaults
-# from it (mapping container-internal names to localhost browser-side).
+# Where KSP is, as seen from this container. The relay republishes it at
+# /bootstrap-config so the SPA seeds kerbcast/Sitrep-stream defaults from it
+# (mapping container-internal names to localhost browser-side).
 # host.containers.internal reaches the host under Podman; on Docker pass
 # --add-host=host.docker.internal:host-gateway and -e KSP_HOST=host.docker.internal,
-# or point it at the KSP computer's LAN IP. KOS_HOST remains an optional
-# kOS-specific override.
+# or point it at the KSP computer's LAN IP.
 ENV KSP_HOST=host.containers.internal
-ENV KOS_PORT=5410
 
-# app SPA, telnet-proxy ws, relay http, TURN signalling (udp+tcp), TURN
-# relay range. Host port-forwards must mirror these — see run-gonogo.sh and
-# the README's TURN section.
+# app SPA, relay http, TURN signalling (udp+tcp), TURN relay range. Host
+# port-forwards must mirror these — see run-gonogo.sh and the README's TURN
+# section.
 EXPOSE 8080
-EXPOSE 3001
 EXPOSE 3002
 EXPOSE 3478/udp
 EXPOSE 3478/tcp

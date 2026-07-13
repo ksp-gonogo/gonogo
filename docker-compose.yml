@@ -1,23 +1,4 @@
 services:
-  telnet-proxy:
-    build:
-      # Repo-root context so pnpm can resolve workspace deps (@ksp-gonogo/logger).
-      context: .
-      dockerfile: packages/telnet-proxy/Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      PORT: 3001
-      # KOS_HOST: IP or hostname of the machine running KSP (kOS-specific
-      # override; falls back to KSP_HOST, then localhost).
-      # host.containers.internal reaches the host from inside a Podman container.
-      KOS_HOST: ${KOS_HOST:-host.containers.internal}
-      KOS_PORT: ${KOS_PORT:-5410}
-      # Axiom log shipping. Empty default → no transport installed.
-      AXIOM_TOKEN: ${AXIOM_TOKEN:-}
-      AXIOM_DATASET: ${AXIOM_DATASET:-gonogo}
-    restart: unless-stopped
-
   # The relay bundles the `/ice-config` endpoint (read by the main screen on
   # boot) and the coturn TURN/STUN server (spawned as a child process).
   # Bundling means one container with one rotated-per-restart secret, no init

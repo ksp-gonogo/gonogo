@@ -41,7 +41,7 @@ export function StationLinkFab() {
  * at the HTTPS GitHub Pages build instead of an unreachable
  * `http://192.168.x.x:5173`. Forks can override via VITE_STATION_URL.
  */
-const PROJECT_STATION_URL = "https://ksp-gonogo.github.io/gonogo/station";
+const PROJECT_STATION_URL = "https://jonpepler.github.io/gonogo/station";
 
 function isLocalDevOrigin(origin: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)(?::\d+)?$/.test(

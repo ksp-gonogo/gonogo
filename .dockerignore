@@ -1,4 +1,4 @@
-# Build context for the relay + telnet-proxy images is the repo root
+# Build context for the relay + bundle images is the repo root
 # (see docker-compose.yml). Without these excludes the daemon receives
 # ~2GB of context per build, even for a fully-cached layer hit.
 

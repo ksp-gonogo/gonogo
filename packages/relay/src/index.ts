@@ -241,9 +241,9 @@ fastify.get("/ice-config", async (_req, reply) => {
 const hostRegistry = new HostRegistry();
 registerHostRoutes(fastify, { registry: hostRegistry });
 
-// Analytics-config broker: the host POSTs its consent here, the relay fans
-// it out (GET + SSE) to the telnet-proxy, and gates its OWN Axiom sink on
-// it via the onChange callback.
+// Analytics-config broker: the host POSTs its consent here, the relay
+// exposes it (GET + SSE) for any service that wants to gate on it, and gates
+// its OWN Axiom sink on it via the onChange callback.
 registerAnalyticsConfigRoutes(fastify, {
   onChange: (enabled) => {
     axiomConsent.apply(enabled);
