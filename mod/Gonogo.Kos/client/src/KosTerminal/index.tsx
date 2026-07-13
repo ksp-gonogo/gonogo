@@ -234,6 +234,12 @@ function KosTerminalScreen({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  // The in-progress, not-yet-committed line-mode composition (typed since
+  // the last Enter). Shared between the onData composition handler (inside
+  // the xterm setup effect) and the downlink writer below, so a delayed
+  // server echo that arrives mid-composition can retract it, write the
+  // echo cleanly, and re-assert it — see the useStreamEvent handler.
+  const lineBufferRef = useRef<string>("");
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
   // destructured so effects can depend on it without the surrounding
@@ -269,8 +275,28 @@ function KosTerminalScreen({
   // xterm-ready (the mod mapped kOS's screen diff through TerminalXtermMapper).
   // A full-repaint frame carries its own screen clear, so a plain write resyncs
   // a late/reconnecting viewer.
+  //
+  // Line-mode composition guard (Gap C, terminal-integrity adversarial
+  // review): a delayed, authoritative echo for an ALREADY-committed line
+  // (typed + Enter) can still arrive after the operator has started
+  // composing the NEXT line locally. Writing it blind would land in the
+  // middle of that in-progress, not-yet-committed text and merge the two.
+  // Retract the local composition first (same "\r\x1b[K" the Enter
+  // handler already uses), write the server's chunk, then re-echo the
+  // composition on top so the operator's in-flight typing isn't lost —
+  // preserves line-mode's instant feedback while keeping the server's
+  // echo as the only copy that ever lands on a clean line.
   useStreamEvent<KosTerminalFrame>(`kos.terminal.${coreId}`, (frame) => {
-    termRef.current?.write(frame.chunk);
+    const term = termRef.current;
+    if (!term) return;
+    const composing = lineBufferRef.current;
+    if (composing.length > 0) {
+      term.write("\r\x1b[K");
+    }
+    term.write(frame.chunk);
+    if (composing.length > 0) {
+      term.write(composing);
+    }
   });
 
   // Lease lifecycle: acquire on attach, release on detach.
@@ -330,10 +356,13 @@ function KosTerminalScreen({
 
       if (!readOnly) {
         if (lineMode) {
-          let lineBuffer = "";
+          lineBufferRef.current = "";
           term.onData((data) => {
-            lineBuffer = handleLineModeInput(data, lineBuffer, term, (chars) =>
-              sendKeystrokeRef.current(chars),
+            lineBufferRef.current = handleLineModeInput(
+              data,
+              lineBufferRef.current,
+              term,
+              (chars) => sendKeystrokeRef.current(chars),
             );
           });
         } else {

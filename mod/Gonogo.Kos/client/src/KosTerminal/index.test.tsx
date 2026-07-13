@@ -327,6 +327,55 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     });
   });
 
+  it("line-mode: a delayed echo for a committed line does not corrupt an in-progress next-line composition", async () => {
+    // Gap C (adversarial review of Fix #3): Fix #3 only proved the
+    // SAME-line double-render case. This reproduces the deeper bug: the
+    // server's delayed, authoritative echo for a line ALREADY committed
+    // (typed + Enter) can still land in the middle of the NEXT line's
+    // in-progress, not-yet-committed composition — retract-on-Enter moves
+    // the cursor back to column 0 for the retracted line, but never
+    // accounts for whatever the operator has typed for the line AFTER
+    // that by the time the delayed echo actually arrives.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    const onData = getOnData();
+    // line1: typed and sent (Enter already pressed).
+    act(() => {
+      for (const ch of "list.") onData(ch);
+      onData("\r");
+    });
+
+    // line2: composed locally but Enter NOT pressed yet.
+    act(() => {
+      for (const ch of "printnow") onData(ch);
+    });
+
+    // line1's delayed, authoritative echo now arrives over the downlink --
+    // well after the local echo, and while line2 is still mid-composition.
+    act(() =>
+      fixture.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk: "list.\r\n",
+        fullRepaint: false,
+      }),
+    );
+
+    await waitFor(() => {
+      const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
+      const committed = replayCommittedLines(writes);
+      expect(committed).toEqual(["list."]);
+    });
+  });
+
   it("resolves the configured cpuName tagname to its coreId", async () => {
     const fixture = terminalFixture();
     render(
