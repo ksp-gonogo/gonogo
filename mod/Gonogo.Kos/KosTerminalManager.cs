@@ -99,6 +99,17 @@ namespace Gonogo.Kos
         // Archive.ReadAtVantage/Courier — see NextUt's doc comment.
         private const double UtEpsilon = 1e-6;
 
+        // How far BELOW the tracked baseline nowUt has to read before
+        // NextUt treats it as a genuine backward clock jump (an F9
+        // quickload) rather than this manager's own epsilon-bumped
+        // baseline running fractionally ahead of a nowUt clock that simply
+        // hasn't ticked forward yet. Same-tick bumps only ever accumulate
+        // at UtEpsilon scale — even a very long same-tick burst within one
+        // poll window comes nowhere near this — while a genuine rewind
+        // moves UT by real mission time (seconds at least). See NextUt's
+        // doc comment (Gap B).
+        private const double RewindThreshold = 1.0;
+
         private readonly Func<IReadOnlyList<int>> _knownCoreIds;
         private readonly Func<int, bool> _isSubscribed;
         private readonly Action<int, KosTerminalFrame, double> _publish;
@@ -257,13 +268,45 @@ namespace Gonogo.Kos
         /// Deliberately CONTAINED to this one publish site — it does not
         /// touch Archive/Courier's shared semantics, which every other
         /// (state) topic still relies on.
+        ///
+        /// <para><b>Rewind-aware (Gap B, adversarial review of Fix #1):</b>
+        /// an F9 quickload drops <c>nowUt</c> back to an earlier UT than the
+        /// pre-rewind peak this manager already published. A same-tick
+        /// COLLISION (<c>candidate &lt;= last</c>, within
+        /// <see cref="RewindThreshold"/> — either the clock hasn't ticked
+        /// since the last publish, or <paramref name="coreId"/>'s tracked
+        /// baseline is only fractionally ahead from a PRIOR epsilon bump)
+        /// still just gets nudged forward by <see cref="UtEpsilon"/>. A
+        /// genuine backward JUMP (<c>candidate</c> more than
+        /// <see cref="RewindThreshold"/> below <c>last</c> — the clock
+        /// itself rewound, not this manager's own bump) instead RESETS the
+        /// tracked baseline to the new, lower UT rather than manufacturing
+        /// a ghost <c>last + epsilon</c> stamp that stays pinned above the
+        /// stale pre-rewind peak — which would otherwise keep re-colliding
+        /// with Archive/Courier's own stale-UT clamp (forcing every
+        /// post-rewind frame back to <c>_clock.Now()</c> without this
+        /// manager ever learning the new baseline) for the whole recovery
+        /// window until real UT climbed back past the old peak.</para>
         /// </summary>
         private double NextUt(int coreId)
         {
             var candidate = _nowUt();
-            if (_lastPublishedUt.TryGetValue(coreId, out var last) && candidate <= last)
+            if (_lastPublishedUt.TryGetValue(coreId, out var last))
             {
-                candidate = last + UtEpsilon;
+                if (candidate < last - RewindThreshold)
+                {
+                    // Genuine backward jump — trust the new, lower UT.
+                    _lastPublishedUt[coreId] = candidate;
+                    return candidate;
+                }
+                if (candidate <= last)
+                {
+                    // Same-tick collision (or this manager's own prior
+                    // epsilon bump still sitting fractionally above a flat
+                    // clock) — nudge forward by the smallest margin that
+                    // still survives Archive/Courier's double comparisons.
+                    candidate = last + UtEpsilon;
+                }
             }
             _lastPublishedUt[coreId] = candidate;
             return candidate;
