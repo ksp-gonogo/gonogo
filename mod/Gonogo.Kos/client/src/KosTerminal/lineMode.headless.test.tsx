@@ -20,8 +20,11 @@ vi.mock("@xterm/xterm", async () => {
     dataHandler?: (data: string) => void;
     // biome-ignore lint/suspicious/noExplicitAny: mirroring xterm's option bag
     constructor(options?: any) {
+      // Respect the component's chosen cols/rows (its fixed size) — only
+      // default to a NARROW grid when it doesn't specify one, so a pre-fix
+      // build (no fixed size) wraps and a fixed-size build doesn't.
       // allowProposedApi: read .buffer to assert the actual rendered screen.
-      super({ ...options, cols: 40, rows: 12, allowProposedApi: true });
+      super({ cols: 40, rows: 12, ...options, allowProposedApi: true });
       hoisted.instances.push(this);
     }
     open() {
@@ -172,6 +175,26 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     expect(s2).toContain("kOS>");
     expect(s2).not.toContain("run");
     expect(compositionBar()).toContain("run.");
+  });
+
+  it("a full-width kOS line does not wrap (fixed-size terminal)", async () => {
+    // The widget is a fixed-size grid wider than any kOS screen line, so
+    // kOS output never wraps — the telnet-era learning. A pre-fix build fits
+    // to a narrow container and wraps a long line onto a second buffer row.
+    const f = await mountAttached({});
+    const line = "STATUS: ALL SYSTEMS NOMINAL - ALT 000075420 M"; // 45 chars
+    act(() =>
+      f.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk: `\x1b[2J\x1b[H${line}`,
+        fullRepaint: true,
+      }),
+    );
+    await flush(term());
+    const buf = term().buffer.active;
+    // The whole line is on row 0; row 1 is empty (no wrap).
+    expect(buf.getLine(0).translateToString(true)).toBe(line);
+    expect(buf.getLine(1).translateToString(true)).toBe("");
   });
 
   it("a cursor-positioned status diff mid-composition corrupts neither the screen nor the composition", async () => {

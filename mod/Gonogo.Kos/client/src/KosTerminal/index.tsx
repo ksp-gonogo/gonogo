@@ -27,7 +27,6 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -52,7 +51,12 @@ interface KosTerminalConfig {
   lineMode?: boolean;
 }
 
-const MIN_REASONABLE_ROWS = 3;
+// The kOS terminal is a FIXED-size grid — mirroring the telnet solution that
+// worked well. The widget never fits-to-pixels (which line-wraps kOS's output
+// in a narrow panel) and imposes this one size on the shared CPU screen once.
+// 80 cols is wider than any kOS screen line, so kOS output never wraps.
+const KOS_TERM_COLS = 80;
+const KOS_TERM_ROWS = 24;
 
 // ── CPU resolution ───────────────────────────────────────────────────────────
 
@@ -264,17 +268,6 @@ function KosTerminalScreen({
     } satisfies KosKeystrokeArgs).catch(() => {});
   };
 
-  const sendResizeRef = useRef<(cols: number, rows: number) => void>(() => {});
-  sendResizeRef.current = (cols: number, rows: number) => {
-    if (readOnly) return;
-    void sendResize({
-      coreId,
-      leaseToken,
-      cols,
-      rows,
-    } satisfies KosTerminalResizeArgs).catch(() => {});
-  };
-
   // Downlink: write each terminal frame straight into xterm. Frames are already
   // xterm-ready (the mod mapped kOS's screen diff through TerminalXtermMapper),
   // and a full-repaint frame carries its own screen clear, so a plain write
@@ -292,13 +285,21 @@ function KosTerminalScreen({
     void sendOpen({ coreId, leaseToken } satisfies KosTerminalOpenArgs).catch(
       () => {},
     );
+    // Impose the widget's FIXED terminal size on the CPU screen once (the
+    // telnet NAWS-once pattern) — no dynamic fit-to-pixels. See KOS_TERM_*.
+    void sendResize({
+      coreId,
+      leaseToken,
+      cols: KOS_TERM_COLS,
+      rows: KOS_TERM_ROWS,
+    } satisfies KosTerminalResizeArgs).catch(() => {});
     return () => {
       void sendClose({
         coreId,
         leaseToken,
       } satisfies KosTerminalCloseArgs).catch(() => {});
     };
-  }, [coreId, readOnly, leaseToken, sendOpen, sendClose]);
+  }, [coreId, readOnly, leaseToken, sendOpen, sendClose, sendResize]);
 
   // xterm setup — deferred until the container has real layout so the first
   // render lands at a sensible size.
@@ -330,11 +331,10 @@ function KosTerminalScreen({
         fontFamily: "monospace",
         fontSize: 13,
         cursorBlink: !readOnly,
+        cols: KOS_TERM_COLS,
+        rows: KOS_TERM_ROWS,
       });
-      const fitAddon = new FitAddon();
-      term.loadAddon(fitAddon);
       term.open(container);
-      fitAddon.fit();
       termRef.current = term;
 
       if (readOnly) {
@@ -361,22 +361,7 @@ function KosTerminalScreen({
         });
       }
 
-      // Track container size → xterm fit, and mirror the fitted dimensions to
-      // the shared CPU screen (kOS's NAWS analogue) while we hold the lease.
-      const observer = new ResizeObserver(() => {
-        const next = fitAddon.proposeDimensions();
-        if (next && next.rows >= MIN_REASONABLE_ROWS) {
-          fitAddon.fit();
-        }
-      });
-      observer.observe(container);
-
-      term.onResize(({ cols, rows }) => {
-        sendResizeRef.current(cols, rows);
-      });
-
       teardown = () => {
-        observer.disconnect();
         term.dispose();
         termRef.current = null;
       };
