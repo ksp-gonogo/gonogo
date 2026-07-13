@@ -201,12 +201,20 @@ namespace Gonogo.Kos
                 new CommandDeclaration { Command = KosChannels.ExecCommand, Delayed = true },
                 new CommandDeclaration { Command = KosChannels.DispatchNowCommand, Delayed = true },
                 new CommandDeclaration { Command = KosChannels.ReEnableCommand, Delayed = true },
-                // Interactive terminal uplink — all DELAYED (keystrokes ride
-                // gonogo's SignalDelay to the craft; the lease-token + idle
-                // guards are re-checked at delivery on the main thread).
+                // Interactive terminal uplink — keystrokes/open/close ride
+                // gonogo's SignalDelay to the craft (genuine remote input; the
+                // lease-token + idle guards are re-checked at delivery on the
+                // main thread).
                 new CommandDeclaration { Command = KosChannels.TerminalOpenCommand, Delayed = true },
                 new CommandDeclaration { Command = KosChannels.KeystrokeCommand, Delayed = true },
-                new CommandDeclaration { Command = KosChannels.TerminalResizeCommand, Delayed = true },
+                // Resize is NOT delayed: the render width must match between the
+                // mod's cursor-addressed screen diff and xterm on the client. A
+                // delayed resize leaves the mod diffing at a stale width for a
+                // full light-time round-trip, so the client renders those diffs
+                // at the wrong column and the terminal reads as garbled until it
+                // converges. Viewport size is a local display concern, distinct
+                // from a keystroke — apply it immediately so the two sides agree.
+                new CommandDeclaration { Command = KosChannels.TerminalResizeCommand, Delayed = false },
                 new CommandDeclaration { Command = KosChannels.TerminalCloseCommand, Delayed = true },
                 // kos.run — general-purpose ad-hoc RPC (replaces telnet
                 // executeScript). DELAYED, single-in-flight-per-CPU: a second

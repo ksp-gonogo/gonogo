@@ -43,5 +43,26 @@ namespace Gonogo.Kos.Tests
 
             Assert.Contains(discovered, d => d.Uplink.Manifest.Id == "kos");
         }
+
+        [Fact]
+        public void TerminalResizeCommand_IsNotDelayed_SoRenderWidthConvergesImmediately()
+        {
+            // The terminal downlink is a cursor-addressed screen diff computed at
+            // the mod's screen width; a delayed resize leaves the mod diffing at a
+            // stale width for a full light-time round-trip, so the client renders
+            // those diffs at the wrong column and the terminal reads as garbled.
+            // Resize is a local viewport concern, so it must reach the mod
+            // immediately — unlike a keystroke, which is genuine remote input.
+            var manifest = UplinkDiscovery
+                .Discover(new[] { typeof(KosExtension).Assembly })
+                .Single(d => d.Uplink.Manifest.Id == "kos")
+                .Uplink.Manifest;
+
+            var resize = manifest.Commands.Single(c => c.Command == KosChannels.TerminalResizeCommand);
+            Assert.False(resize.Delayed);
+
+            var keystroke = manifest.Commands.Single(c => c.Command == KosChannels.KeystrokeCommand);
+            Assert.True(keystroke.Delayed);
+        }
     }
 }
