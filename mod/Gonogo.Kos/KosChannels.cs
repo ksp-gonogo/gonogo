@@ -62,6 +62,32 @@ namespace Gonogo.Kos
         /// <summary>The full downlink topic for one CPU: <c>kos.terminal.&lt;coreId&gt;</c>.</summary>
         public static string TerminalTopic(int coreId) => TerminalPrefix + TerminalSubTopic(coreId);
 
+        /// <summary>
+        /// The reverse of <see cref="TerminalTopic"/>: recovers the
+        /// <c>coreId</c> from a concrete <c>kos.terminal.&lt;coreId&gt;</c>
+        /// topic string. Used by the <see cref="TerminalPrefix"/> dynamic
+        /// namespace's <c>IDynamicChannelSource.OnSubscribed</c> listener to
+        /// translate the subscribed TOPIC the engine hands back into the
+        /// coreId <c>KosTerminalManager.NotifySubscribed</c> expects — see
+        /// Gap A of the terminal-integrity adversarial review. Returns false for
+        /// anything not under <see cref="TerminalPrefix"/> or whose
+        /// sub-topic isn't a plain integer.
+        /// </summary>
+        public static bool TryParseTerminalCoreId(string topic, out int coreId)
+        {
+            coreId = 0;
+            if (string.IsNullOrEmpty(topic) || !topic.StartsWith(TerminalPrefix, System.StringComparison.Ordinal))
+            {
+                return false;
+            }
+            var subTopic = topic.Substring(TerminalPrefix.Length);
+            return int.TryParse(
+                subTopic,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out coreId);
+        }
+
         /// <summary>Sub-topic (relative to <see cref="ComputePrefix"/>) for one compute field: <c>"&lt;id&gt;.&lt;field&gt;"</c>.</summary>
         public static string ComputeFieldSubTopic(string scriptId, string field) => scriptId + "." + field;
 
