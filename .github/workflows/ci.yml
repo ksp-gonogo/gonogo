@@ -77,10 +77,38 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # The headless kOS terminal harness (Gonogo.Kos.Tests/Headless) needs
+      # kOS.Safe.dll + kOS.dll, which live in the private ksp-managed
+      # reference-assembly repo (GameData/kOS/Plugins/) — the same repo the
+      # release-build workflows already consume (see _build-uplink-mod.yml).
+      # continue-on-error + the presence check below mean a missing token or
+      # repo access simply SOFT-DEGRADES: Gonogo.Kos.Tests still builds and runs
+      # its 90 KSP-free tests, the 3 harness tests are dropped with a build
+      # warning. See docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md.
+      - name: Checkout kOS reference assemblies (for the terminal harness)
+        id: kspmanaged
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          repository: ksp-gonogo/ksp-managed
+          token: ${{ secrets.KSP_MANAGED_TOKEN }}
+          path: ksp-managed
+
       - name: dotnet test (KSP-independent Sitrep projects)
         working-directory: mod
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
         run: |
           set -euo pipefail
+          # Enable the headless kOS terminal harness only when the reference
+          # DLLs are actually present (the checkout above may have soft-failed).
+          kos_args=""
+          if [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.Safe.dll" ] && [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.dll" ]; then
+            kos_args="/p:KspGameData=$KSP_GAMEDATA"
+            echo "kOS reference assemblies present — headless terminal harness ENABLED"
+          else
+            echo "::warning::kOS reference assemblies absent — headless kOS terminal harness SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
+          fi
           projects=(
             Sitrep.Core.Tests
             Sitrep.Transport.Tests
@@ -116,10 +144,15 @@ jobs:
           nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
+            # Only Gonogo.Kos.Tests reads the kOS reference DLLs (its headless
+            # terminal harness); every other project is KSP-free and takes no
+            # extra args.
+            extra=""
+            if [ "$p" = "Gonogo.Kos.Tests" ]; then extra="$kos_args"; fi
             attempts=4
             ok=0
             for a in $(seq 1 "$attempts"); do
-              if dotnet test "$p/$p.csproj" --configuration Release; then ok=1; break; fi
+              if dotnet test "$p/$p.csproj" --configuration Release $extra; then ok=1; break; fi
               echo "::warning::$p failed test attempt $a/$attempts"
             done
             echo "::endgroup::"
