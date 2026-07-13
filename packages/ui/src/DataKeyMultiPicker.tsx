@@ -25,7 +25,7 @@ export function DataKeyMultiPicker({
   keys,
   value,
   onChange,
-  placeholder = "Search…",
+  placeholder = "Search...",
   emptyHint = "No matches",
 }: DataKeyMultiPickerProps) {
   const [query, setQuery] = useState("");

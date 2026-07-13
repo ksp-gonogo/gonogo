@@ -126,9 +126,9 @@ function statusLabel(status: ConnStatus): string {
     case "connected":
       return "Connected";
     case "connecting":
-      return "Connecting…";
+      return "Connecting...";
     case "reconnecting":
-      return "Reconnecting…";
+      return "Reconnecting...";
     case "disconnected":
       return "Disconnected";
     default:

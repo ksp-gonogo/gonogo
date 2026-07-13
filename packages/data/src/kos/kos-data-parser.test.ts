@@ -74,7 +74,7 @@ describe("parseKosData", () => {
     const chunk = [
       "Terminal: type = XTERM-256COLOR",
       "RUN deltav(1234).",
-      "Starting…",
+      "Starting...",
       "[KOSDATA] dv=2450;stage=2 [/KOSDATA]",
       "Program ended.",
       "kOS> ",

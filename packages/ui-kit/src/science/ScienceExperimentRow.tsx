@@ -115,7 +115,7 @@ export function ScienceExperimentRow({
             >
               {pending === "deploy" ? (
                 <>
-                  <Spinner size={10} /> Deploying…
+                  <Spinner size={10} /> Deploying...
                 </>
               ) : (
                 "Deploy"
@@ -138,7 +138,7 @@ export function ScienceExperimentRow({
               >
                 {pending === "transmit" ? (
                   <>
-                    <Spinner size={10} /> Transmitting…
+                    <Spinner size={10} /> Transmitting...
                   </>
                 ) : (
                   "Confirm transmit"

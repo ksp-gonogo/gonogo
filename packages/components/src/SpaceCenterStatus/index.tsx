@@ -98,7 +98,7 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
  * Defensive parser for facility-level payloads. Accepts BOTH the legacy
- * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/… —
+ * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/... —
  * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
  * `career.status.facilities` wire shape, keyed by the
  * full `SpaceCenterFacility` enum name — `{ currentTier, maxTier,
@@ -221,7 +221,7 @@ function SpaceCenterStatusComponent({
   // facility name + tier + the multi-line tier text without clipping. At
   // width 5 (e.g. the tall-narrow portrait aspect) three columns squeeze
   // each cell to ~115px and the full-text bodies overflow horizontally
-  // ("* Max Size: Unlimit…", "Maneuve nodes"). Reflow those to 2 columns
+  // ("* Max Size: Unlimit...", "Maneuve nodes"). Reflow those to 2 columns
   // and drop the verbose tier text — the same affordance `compact` already
   // gives the (tiny-bucketed) narrow grid. cols>=6 keeps the reviewed
   // default-6x7 / wide / mobile layouts unchanged.
@@ -762,7 +762,7 @@ registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
   description:
-    "KSC overview — facility levels (VAB, SPH, R&D, …), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
+    "KSC overview — facility levels (VAB, SPH, R&D, ...), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 2, h: 2 },

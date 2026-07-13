@@ -190,7 +190,7 @@ function KosWrapperTesterComponent({
             <GhostButton onClick={onRunAgain} disabled={running}>
               Run again (no regen)
             </GhostButton>
-            {running && <RunStatus>dispatching…</RunStatus>}
+            {running && <RunStatus>dispatching...</RunStatus>}
           </Row>
 
           <Meta>

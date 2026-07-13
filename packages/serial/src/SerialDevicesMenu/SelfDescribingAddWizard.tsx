@@ -315,7 +315,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
           <Actions>
             <GhostButton onClick={onClose}>Cancel</GhostButton>
             <PrimaryButton onClick={() => void startPick()}>
-              Pick USB port…
+              Pick USB port...
             </PrimaryButton>
           </Actions>
         </>
@@ -323,14 +323,14 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
 
       {step.kind === "connecting" && (
         <Status role="status" aria-live="polite">
-          Connecting…
+          Connecting...
         </Status>
       )}
 
       {step.kind === "awaiting" && (
         <>
           <Status role="status" aria-live="polite">
-            <PulseDot /> Press a button or move a control on your controller…
+            <PulseDot /> Press a button or move a control on your controller...
           </Status>
           <FieldHint>
             We're listening for a schema announcement or any input event so we

@@ -38,8 +38,8 @@ type KnownInputsIndex = Map<string, DeviceInput>;
  * Parse one line of the json-state protocol. Format:
  *
  *   {
- *     "btn":    { "A": 0, "B": 1, … },
- *     "analog": { "X": { "val": 100, "min": 0, "max": 1023 }, … },
+ *     "btn":    { "A": 0, "B": 1, ... },
+ *     "analog": { "X": { "val": 100, "min": 0, "max": 1023 }, ... },
  *     "screen": { "type": "txt", "w": 21, "h": 8 }
  *   }
  *

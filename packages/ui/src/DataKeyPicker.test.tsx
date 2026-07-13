@@ -26,10 +26,10 @@ describe("DataKeyPicker", () => {
         keys={KEYS}
         value={null}
         onChange={() => undefined}
-        placeholder="Pick…"
+        placeholder="Pick..."
       />,
     );
-    expect(screen.getByPlaceholderText("Pick…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Pick...")).toBeInTheDocument();
   });
 
   it("displays selected label when closed", () => {

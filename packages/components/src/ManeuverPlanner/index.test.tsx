@@ -382,7 +382,7 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(screen.getByRole("button", { name: /add node when/i }));
 
     // Pick the o.ApA telemetry key via the data-key search input.
-    const picker = screen.getByPlaceholderText("Search telemetry…");
+    const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
     await user.type(picker, "o.ApA{Enter}");
 
@@ -455,7 +455,7 @@ describe("ManeuverPlannerComponent", () => {
     await flushViewUt();
 
     await user.click(screen.getByRole("button", { name: /add node when/i }));
-    const picker = screen.getByPlaceholderText("Search telemetry…");
+    const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
     await user.type(picker, "o.ApA{Enter}");
     // Threshold below current ApA (107000) — should fire on arm.

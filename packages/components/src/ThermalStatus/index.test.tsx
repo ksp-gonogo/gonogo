@@ -114,7 +114,7 @@ describe("ThermalStatusComponent", () => {
       // is fitted (e.g. early-career rocket). These should NOT light up
       // the widget as CRITICAL — they should be treated as no data.
       source.emit("therm.hottestPartName", "");
-      source.emit("therm.hottestPartTemp", 2.05); // °C — close to 275 K, but…
+      source.emit("therm.hottestPartTemp", 2.05); // °C — close to 275 K, but...
       source.emit("therm.hottestPartMaxTemp", 2.05); // K — sentinel: max ≈ 0 K
       source.emit("therm.hottestPartTempRatio", 1.0); // bogus ratio
       source.emit("therm.hottestEngineTemp", 2.05); // K — sentinel

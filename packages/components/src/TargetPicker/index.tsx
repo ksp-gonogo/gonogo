@@ -264,7 +264,7 @@ function TargetPickerComponent({
         aria-label="Filter bodies"
       />
       {namedBodies.length === 0 ? (
-        <Hint>Waiting for body data…</Hint>
+        <Hint>Waiting for body data...</Hint>
       ) : isFiltering ? (
         <BodyList>
           {filteredBodies.length === 0 ? (
@@ -341,7 +341,7 @@ function TargetPickerComponent({
           )}
         </VesselsHeader>
         {roster === undefined ? (
-          <Hint>Waiting for vessel list…</Hint>
+          <Hint>Waiting for vessel list...</Hint>
         ) : sorted.length === 0 ? (
           <Hint>No targets in range.</Hint>
         ) : (

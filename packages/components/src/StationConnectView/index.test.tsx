@@ -72,7 +72,7 @@ describe("StationConnectView", () => {
     // The reconnect notice is a polite live region. Both it and the
     // StatusIndicator expose role=status, so match by text.
     expect(
-      screen.getByText(/Host reconnecting… The main screen is restarting/i),
+      screen.getByText(/Host reconnecting... The main screen is restarting/i),
     ).not.toBeNull();
   });
 

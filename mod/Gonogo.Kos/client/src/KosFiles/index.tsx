@@ -196,7 +196,7 @@ function KosFilesComponent({
         <ViewerWrap>
           {header}
           <Placeholder>
-            {running ? "Listing…" : `No listing yet for ${currentPath}.`}
+            {running ? "Listing..." : `No listing yet for ${currentPath}.`}
           </Placeholder>
         </ViewerWrap>
       );
@@ -231,7 +231,7 @@ function KosFilesComponent({
 
   function renderViewer(): React.ReactNode {
     if (running && contents === null) {
-      return <Placeholder>Reading file…</Placeholder>;
+      return <Placeholder>Reading file...</Placeholder>;
     }
     if (contents === null) {
       return <Placeholder>No content yet — press Run.</Placeholder>;

@@ -541,7 +541,7 @@ function SystemViewComponent({
       </TitleRow>
       <PanelSubtitle>
         {bodies.length === 0
-          ? "Waiting for body data…"
+          ? "Waiting for body data..."
           : parentName === null
             ? "Pick a frame in the widget config."
             : encounterExists !== 0 && encounterBody != null

@@ -281,7 +281,7 @@ export function CountdownAnnouncer({
 }
 
 /**
- * Fires a short audio blip on each whole-second countdown tick (T-9…T-1).
+ * Fires a short audio blip on each whole-second countdown tick (T-9...T-1).
  * The distinct T-0 commit tone is emitted by GoNoGoHostService (see the
  * guard below). MAIN-ONLY (rendered only inside MainView) and gated by the
  * "Sound effects" setting via playCountdownTone. Pairs with the on-screen
@@ -305,7 +305,7 @@ export function CountdownTone({
     if (isFirst) return;
     // T-0 is emitted by GoNoGoHostService.onCountdownReached — the component
     // unmounts the instant the countdown clears, so we can't reliably observe
-    // secondsLeft === 0 here. Only emit the per-second blips (9…1).
+    // secondsLeft === 0 here. Only emit the per-second blips (9...1).
     if (whole === 0) return;
     playCountdownTone(false);
   }, [secondsLeft]);

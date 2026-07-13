@@ -37,7 +37,7 @@ export function DataKeyPicker({
   value,
   onChange,
   clearable = false,
-  placeholder = "Search…",
+  placeholder = "Search...",
 }: DataKeyPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);

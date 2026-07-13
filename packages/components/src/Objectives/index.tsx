@@ -78,7 +78,7 @@ export interface ObjectiveSection {
 
 /**
  * The slot's props — the "objective source" contract itself. An augment bound to
- * `objectives.sections` receives this and contributes by rendering `<Section …>`.
+ * `objectives.sections` receives this and contributes by rendering `<Section ...>`.
  */
 export interface ObjectiveSourceContext {
   Section: ComponentType<ObjectiveSection>;
@@ -86,7 +86,7 @@ export interface ObjectiveSourceContext {
 
 // Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
 // §4.6 hybrid, declaration-merging base). This is what makes `registerAugment`
-// and `<AugmentSlot name="objectives.sections" …>` type-check `Section`-shaped
+// and `<AugmentSlot name="objectives.sections" ...>` type-check `Section`-shaped
 // props precisely against `ObjectiveSourceContext`, rather than the loose
 // `Record<string, unknown>` fallback an unmerged slot id would get.
 declare module "@ksp-gonogo/core" {

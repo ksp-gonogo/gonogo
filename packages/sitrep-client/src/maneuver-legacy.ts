@@ -72,7 +72,7 @@ export interface LegacyManeuverNode {
  * maneuver-node arg order" finding) — `dvRadial`/`dvNormal`/`dvPrograde` are
  * already that same frame, just named instead of positional (kills the
  * arg-order footgun `mod/Sitrep.Contract/VesselManeuver.cs`'s own doc
- * comment describes). The node-level PeA/ApA/inclination/… fields mirror
+ * comment describes). The node-level PeA/ApA/inclination/... fields mirror
  * `orbitPatches[0]` exactly — that is how Telemachus's own
  * `o.maneuverNodes` always behaved (the node's headline numbers ARE its
  * post-burn patch's numbers) — defaulting to 0/""/null when the solver

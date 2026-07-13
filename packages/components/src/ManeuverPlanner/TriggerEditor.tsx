@@ -39,7 +39,7 @@ export function TriggerEditor({
           keys={numericKeys}
           value={triggerKey}
           onChange={setTriggerKey}
-          placeholder="Search telemetry…"
+          placeholder="Search telemetry..."
           clearable
         />
       </Field>

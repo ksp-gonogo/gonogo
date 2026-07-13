@@ -108,7 +108,7 @@ function StationLinkPanel() {
   // null), but the share code IS valid — show it with a clear status so the
   // operator can already share the link; stations retry until the host's back.
   if (!peerId && !reclaiming) {
-    return <Empty>Connecting to peer network…</Empty>;
+    return <Empty>Connecting to peer network...</Empty>;
   }
 
   const url = buildStationUrl(shareCode);
@@ -184,7 +184,7 @@ function RegenerateRow() {
       )}
       {phase === "running" && (
         <GhostButton type="button" disabled>
-          Generating…
+          Generating...
         </GhostButton>
       )}
       <RegenerateHint>
@@ -235,7 +235,7 @@ function TurnStatus() {
     state.kind === "ok" ? "go" : state.kind === "fail" ? "nogo" : "info";
   return (
     <StatusIndicator tone={tone} live>
-      {state.kind === "probing" && "Checking TURN reachability…"}
+      {state.kind === "probing" && "Checking TURN reachability..."}
       {state.kind === "ok" &&
         `TURN reachable (${state.result.relayCandidates} relay candidate${
           state.result.relayCandidates === 1 ? "" : "s"

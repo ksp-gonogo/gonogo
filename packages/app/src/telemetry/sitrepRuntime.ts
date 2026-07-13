@@ -73,7 +73,7 @@ export function setSitrepHostConfig(config: SitrepHostConfig): void {
   portStore.set({ port: config.port });
   if (getGameHost() !== config.host) {
     // Host changed → setSetting cascades to refreshCache via the module's
-    // subscribeSetting(GAME_HOST_KEY, …) registration; no explicit refresh.
+    // subscribeSetting(GAME_HOST_KEY, ...) registration; no explicit refresh.
     setSetting(GAME_HOST_KEY, config.host);
   } else {
     // Port-only change: the host subscription won't fire, so refresh here.

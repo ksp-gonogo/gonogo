@@ -51,7 +51,7 @@ describe("DataKeyMultiPicker", () => {
     render(
       <DataKeyMultiPicker keys={KEYS} value={new Set()} onChange={() => {}} />,
     );
-    await user.type(screen.getByPlaceholderText("Search…"), "alt");
+    await user.type(screen.getByPlaceholderText("Search..."), "alt");
     expect(screen.getByText("Altitude")).toBeInTheDocument();
     expect(screen.queryByText("Mach")).not.toBeInTheDocument();
     expect(screen.queryByText("Latitude")).not.toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("DataKeyMultiPicker", () => {
         emptyHint="No keys found"
       />,
     );
-    await user.type(screen.getByPlaceholderText("Search…"), "xyzzy");
+    await user.type(screen.getByPlaceholderText("Search..."), "xyzzy");
     expect(screen.getByText("No keys found")).toBeInTheDocument();
   });
 });

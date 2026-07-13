@@ -125,7 +125,7 @@ export interface KosProcessorBadgeContext {
   partUid: string;
   /** The processor's kOS tag; empty string for an untagged CPU. */
   tag: string;
-  /** Current run mode (READY / STARVED / OFF / …). */
+  /** Current run mode (READY / STARVED / OFF / ...). */
   mode: string;
   /** Position in the listing; disambiguates untagged CPUs. */
   index: number;
@@ -135,7 +135,7 @@ export interface KosProcessorBadgeContext {
 // Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "kos-processors.badges" })` and `<AugmentSlot name="kos-processors.badges"
-// props={…} />` type-check precisely against `KosProcessorBadgeContext`.
+// props={...} />` type-check precisely against `KosProcessorBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "kos-processors.badges": KosProcessorBadgeContext;
@@ -212,7 +212,7 @@ function KosProcessorsComponent({
       return (
         <Placeholder>
           {status.running
-            ? "Scanning…"
+            ? "Scanning..."
             : "Press Run to list vessel processors."}
         </Placeholder>
       );

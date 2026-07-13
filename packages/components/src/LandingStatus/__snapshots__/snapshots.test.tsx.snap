@@ -16,21 +16,21 @@ exports[`LandingStatus DOM snapshots > final-approach-mun @ standard-6x9 1`] = `
 
 exports[`LandingStatus DOM snapshots > final-approach-mun @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div><div><div role="alert" aria-live="assertive"><span>Suicide burn</span><span>T−3.0s</span></div><div><span>Impact in</span><span>8.0s</span><span>Impact speed</span><span>80.0 m/s<span> · best 5.00 m/s</span></span><span>Altitude</span><span>180 m</span><span>Descent</span><span>-8.10 m/s</span><span>Slope</span><span>2.1°</span><span>Predicted</span><span>1.236°, -72.461°</span></div></div><div></div><div></div></div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ default-8x10 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ default-8x10 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ landscape-18x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ landscape-18x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ medium-6x7 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ medium-6x7 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ mobile-9x8 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ mobile-9x8 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ portrait-5x18 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ portrait-5x18 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ standard-6x9 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ standard-6x9 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > high-speed-no-solution @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > high-speed-no-solution @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
 exports[`LandingStatus DOM snapshots > kerbin-reentry-atmospheric @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div><div><div role="status" aria-live="polite"><span>Suicide burn</span><span>T−40.0s</span></div></div><div></div><div></div></div></div>"`;
 
@@ -64,21 +64,21 @@ exports[`LandingStatus DOM snapshots > landed-mun @ standard-6x9 1`] = `"<div><d
 
 exports[`LandingStatus DOM snapshots > landed-mun @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>No landing in progress</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ default-8x10 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ default-8x10 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ landscape-18x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ landscape-18x5 1`] = `"<div><div><h3>LANDING</h3></div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ medium-6x7 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ medium-6x7 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ mobile-9x8 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ mobile-9x8 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ portrait-5x18 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ portrait-5x18 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ standard-6x9 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ standard-6x9 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
-exports[`LandingStatus DOM snapshots > pre-burn-cruise @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction…</div></div>"`;
+exports[`LandingStatus DOM snapshots > pre-burn-cruise @ tall-atm-8x12 1`] = `"<div><div><h3>LANDING</h3></div><div>Mun · vacuum</div><div>Waiting for a landing prediction...</div></div>"`;
 
 exports[`LandingStatus DOM snapshots > suicide-burn-approaching @ compact-4x5 1`] = `"<div><div><h3>LANDING</h3></div><div><div><div role="status" aria-live="polite"><span>Suicide burn</span><span>T−15.0s</span></div></div><div></div><div></div></div></div>"`;
 

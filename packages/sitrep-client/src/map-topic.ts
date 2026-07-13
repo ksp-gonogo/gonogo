@@ -89,7 +89,7 @@ export function redirectKinematicSubtopic(topic: string): string {
  *
  * Extended with every literal key actually found in
  * `packages/components/src`'s `dataRequirements` arrays and
- * `useDataValue("data", …)` call sites.
+ * `useDataValue("data", ...)` call sites.
  */
 export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.state (derived, quality-picked kinematics) ---
@@ -160,7 +160,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.state (derived enum-ordinal → NAME display maps — the
   // enum-ordinal→string-name shape-mismatch migration). Each mod field is a
   // NUMERIC contract-enum ordinal on the wire (`VesselViewProvider` serializes
-  // `(int)…`); the widgets read the STRING name (or, for `comm.controlState`,
+  // `(int)...`); the widgets read the STRING name (or, for `comm.controlState`,
   // a Telemachus 0/1/2 numeric). `deriveVesselState` resolves each ordinal
   // against the contract's C#-declared enum order and exposes the widget-shaped
   // value as a `vessel.state.*` field subtopic — same client-side display-map

@@ -27,12 +27,12 @@
  *     same RUNPATH line) via the same regex/arg-splitter `MockKosTelnet`
  *     uses, looks up the registered handler by path, and converts its
  *     string return value into a `KosRunResult` the same way the mod does:
- *     an explicit `[KOSERROR]…[/KOSERROR]` wins over `[KOSDATA]` if both are
+ *     an explicit `[KOSERROR]...[/KOSERROR]` wins over `[KOSDATA]` if both are
  *     present; otherwise `parseKosData` produces `fields`.
  *
  * What it deliberately does NOT handle:
  *   - kOS's raw REPL error-dump format (`At interpreter`, `Message:`,
- *     `VERBOSE DESCRIPTION`, …) — that parsing (`kosComputeSession.ts`'s
+ *     `VERBOSE DESCRIPTION`, ...) — that parsing (`kosComputeSession.ts`'s
  *     `parseKosError`) is telnet-REPL-text-specific and, since executeScript
  *     no longer talks to telnet, is unreachable production code. The mod
  *     does its own equivalent extraction server-side and hands back an

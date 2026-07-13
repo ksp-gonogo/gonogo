@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "vessel": "synthetic (3-CPU station)",
-    "notes": "SYNTHETIC, hand-generated (no live LIST PROCESSORS capture available) — replace with a real capture: drop a vessel with multiple kOS CPUs into KSP, run the kos-processors script, and paste the [KOSDATA:kos-processors]processors=… array here. Three CPUs chosen to exercise the full row chrome: a tagged 'system' CPU (the user's named control CPU) in READY mode with a boot file, a tagged boot CPU in READY mode, and an untagged idle CPU in OFF mode (renders the italic 'untagged' label + muted ModeDot). Keys live under the kos.* prefix so the probe routes them to the 'kos' source."
+    "notes": "SYNTHETIC, hand-generated (no live LIST PROCESSORS capture available) — replace with a real capture: drop a vessel with multiple kOS CPUs into KSP, run the kos-processors script, and paste the [KOSDATA:kos-processors]processors=... array here. Three CPUs chosen to exercise the full row chrome: a tagged 'system' CPU (the user's named control CPU) in READY mode with a boot file, a tagged boot CPU in READY mode, and an untagged idle CPU in OFF mode (renders the italic 'untagged' label + muted ModeDot). Keys live under the kos.* prefix so the probe routes them to the 'kos' source."
   },
   "kos.compute.kos-processors.processors": [
     {

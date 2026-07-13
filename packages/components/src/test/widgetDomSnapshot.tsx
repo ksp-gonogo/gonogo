@@ -43,7 +43,7 @@ function resolvePinnedUt(fixture: Fixture): number | undefined {
  * does — captured before this migration) needs it reshaped onto the wire
  * shape and streamed through the SAME mounted `TelemetryProvider`, or the
  * "legacy" snapshot leg would render nothing but the "Waiting for vessel
- * topology…" empty state. Fixtures with no `v.topology` key are unaffected.
+ * topology..." empty state. Fixtures with no `v.topology` key are unaffected.
  *
  * Also overlays any `r.resourceFor[fid]`/`v.partState[fid]` legacy keys the
  * fixture carries — `usePartsLive`'s per-part `resources`/`partState` join

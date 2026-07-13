@@ -254,7 +254,7 @@ export interface TelemaachusSchema {
 
   // --- r.* — Resources ---
   // Resource amounts are indexed by resource name (LiquidFuel, Oxidizer,
-  // MonoPropellant, XenonGas, ElectricCharge, …). Both vessel-wide totals
+  // MonoPropellant, XenonGas, ElectricCharge, ...). Both vessel-wide totals
   // (`r.resource[NAME]`, `r.resourceMax[NAME]`) and current-stage figures
   // (`r.resourceCurrent[NAME]`, `r.resourceCurrentMax[NAME]`) are exposed.
   "r.resourceNameList": string;

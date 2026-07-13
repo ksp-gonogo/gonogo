@@ -139,7 +139,7 @@ function subtitleFor(
   freezeBelowM: number,
   surveyCeilingM: number,
 ): string {
-  if (survey.body === null) return "Awaiting telemetry…";
+  if (survey.body === null) return "Awaiting telemetry...";
   const parts: string[] = [];
   parts.push(`${survey.body}`);
   const hft = survey.heightFromTerrain;

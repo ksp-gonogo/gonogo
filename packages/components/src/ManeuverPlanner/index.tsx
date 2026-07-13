@@ -426,7 +426,7 @@ function ManeuverPlannerComponent({
   }
 
   // Per-field "is this telemetry ready?" map. Feeds the diagnostic
-  // waiting panel — a generic "Waiting for telemetry…" with no detail
+  // waiting panel — a generic "Waiting for telemetry..." with no detail
   // left us blind the first time it triggered, and real Telemachus
   // data can land values as null / NaN mid-scene-load that wouldn't
   // look "missing" to a simple `=== undefined` check.

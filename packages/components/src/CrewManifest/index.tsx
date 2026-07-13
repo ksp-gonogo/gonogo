@@ -54,7 +54,7 @@ export interface CrewBadgeContext {
 // Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "crew-manifest.badges" })` and `<AugmentSlot name="crew-manifest.badges"
-// props={…} />` type-check precisely against `CrewBadgeContext`.
+// props={...} />` type-check precisely against `CrewBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "crew-manifest.badges": CrewBadgeContext;
@@ -181,14 +181,14 @@ function renderBody({
   crewCount: number | undefined;
   names: string[];
 }): React.ReactNode {
-  if (!known) return <EmptyState>Waiting for telemetry…</EmptyState>;
+  if (!known) return <EmptyState>Waiting for telemetry...</EmptyState>;
 
   // Only conclude "Unmanned" once the headcount itself has arrived. If
   // `crewCapacity` (or another key) lands before `crewCount`, `known` is
   // already true but `crewCount` is still undefined — treating that as
   // unmanned flashes a wrong "no kerbals aboard" label on a crewed vessel.
   if (crewCount === undefined) {
-    return <EmptyState>Waiting for telemetry…</EmptyState>;
+    return <EmptyState>Waiting for telemetry...</EmptyState>;
   }
 
   if (crewCount === 0) {

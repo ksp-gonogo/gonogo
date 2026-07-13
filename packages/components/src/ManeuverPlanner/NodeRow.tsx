@@ -146,7 +146,7 @@ function NodeEditor({
           onClick={() => void onSave({ ut, radial, normal, prograde })}
           disabled={saving || !dirty}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving..." : "Save"}
         </PrimaryButton>
       </EditActions>
     </EditGrid>

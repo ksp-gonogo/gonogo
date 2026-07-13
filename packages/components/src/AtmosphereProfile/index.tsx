@@ -190,7 +190,7 @@ function AtmosphereProfileComponent({
           emptyState={
             body
               ? `No atmosphere on ${body.name}.`
-              : "Waiting for body telemetry…"
+              : "Waiting for body telemetry..."
           }
         />
       </GraphSlot>

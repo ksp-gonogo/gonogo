@@ -9,10 +9,10 @@
 // membership checks, never a runtime hook call) — appropriate for a `.test-d.ts`,
 // and it sidesteps the `useHookAtTopLevel` lint a top-level `use*()` call would
 // trip. Any regression is a compile error:
-//   - a required Topic that stops resolving non-null fails an `Expect<Equal<…>>`;
-//   - an optional Topic that stops being `| undefined` fails an `Expect<Equal<…>>`;
+//   - a required Topic that stops resolving non-null fails an `Expect<Equal<...>>`;
+//   - an optional Topic that stops being `| undefined` fails an `Expect<Equal<...>>`;
 //   - an undeclared Topic that becomes an accepted argument fails a membership
-//     `Expect<…>`.
+//     `Expect<...>`.
 
 import type {
   CommsDelay,

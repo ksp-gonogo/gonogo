@@ -1269,7 +1269,7 @@ export class TimelineStore {
    * Compute (or reuse the frame-memoized) value for a derived channel — the
    * SAME `memoize` seam raw `sample()` reads use, keyed by the channel's own
    * topic so N field-subtopic reads (`vessel.state.altitudeAsl`,
-   * `vessel.state.orbitalSpeed`, …) in one frame still call `derive` exactly
+   * `vessel.state.orbitalSpeed`, ...) in one frame still call `derive` exactly
    * once (memoized to once per `(topic, frame)`). `get`
    * (passed to `derive`) is `sample` bound to this SAME `token` — the
    * structural single-view-time invariant: there is no other way for

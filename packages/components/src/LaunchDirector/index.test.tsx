@@ -618,9 +618,9 @@ describe("LaunchDirectorComponent augment slots", () => {
     render(<LaunchDirectorComponent config={{}} id="ld" />);
     primePreLaunch();
 
-    // Pre-launch checklist is on screen …
+    // Pre-launch checklist is on screen ...
     expect(screen.getByText("Mun Hopper")).toBeInTheDocument();
-    // … but nothing composes into either slot.
+    // ... but nothing composes into either slot.
     expect(screen.queryByTestId("ld-badge")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ld-section")).not.toBeInTheDocument();
   });

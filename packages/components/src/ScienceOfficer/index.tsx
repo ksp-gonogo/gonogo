@@ -65,8 +65,8 @@ export interface ScienceOfficerSlotContext {
 // Declaration-merge the slot ids → props types into core's `SlotRegistry`.
 // Co-located here so parallel slot work on other widgets never collides on
 // a shared central file. This is what types
-// `registerAugment({ augments: "science-officer.sections", … })` and
-// `<AugmentSlot name="science-officer.sections" props={…} />` against the
+// `registerAugment({ augments: "science-officer.sections", ... })` and
+// `<AugmentSlot name="science-officer.sections" props={...} />` against the
 // widget's own context types rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would receive.
 declare module "@ksp-gonogo/core" {

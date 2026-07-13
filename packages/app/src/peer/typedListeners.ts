@@ -9,7 +9,7 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * mirroring the existing `ListenerSet<[...]>` generics. It is NOT a
  * message-type → payload map: the services derive listener args inside their
  * dispatcher handlers (e.g. `gonogoVote` fires `(conn.peer, msg.status)`),
- * and several events (`peerConnect`, `peerId`, `connStatus`, …) aren't wire
+ * and several events (`peerConnect`, `peerId`, `connStatus`, ...) aren't wire
  * messages at all.
  *
  * Backed by a lazily-created `Map<key, ListenerSet>` so iteration order and

@@ -193,7 +193,7 @@ export function FlightGraph({
           keys={options}
           value={selected}
           onChange={setSelected}
-          placeholder="Add a data key…"
+          placeholder="Add a data key..."
           emptyHint={
             options.length === 0
               ? "No numeric keys in the current schema"
@@ -212,7 +212,7 @@ export function FlightGraph({
         </Placeholder>
       ) : (
         <ChartWrap ref={wrapRef}>
-          {loading && <LoadingBadge>Loading…</LoadingBadge>}
+          {loading && <LoadingBadge>Loading...</LoadingBadge>}
           {!loading && !anyData && (
             <Placeholder>
               No recorded samples for the selected keys.

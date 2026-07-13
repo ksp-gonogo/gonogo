@@ -24,7 +24,7 @@ import { TargetPickerComponent } from "./index";
  * The body tree rides `system.bodies` off the stream (`useCelestialBodies`);
  * the target-detail scalars (`tar.name` / `tar.type` / `tar.distance` /
  * `tar.o.relativeVelocity`) and the `tar.*` actions still read through the
- * two-arg `useTelemetry("data", …)` legacy shim, which — with the mounted
+ * two-arg `useTelemetry("data", ...)` legacy shim, which — with the mounted
  * provider carrying only `system.bodies` — falls back to this `MockDataSource`.
  */
 const KEYS: DataKey[] = [

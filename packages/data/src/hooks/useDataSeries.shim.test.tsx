@@ -186,7 +186,7 @@ describe("useDataSeries shim — a DERIVED mapped topic streams a REAL series co
    * `TimelineStore.sampleRange` still returns `undefined` for a derived
    * topic (by design — nothing is ever stored for one), but
    * `sampleDerivedRange` replays `deriveVesselState` at every UT its raw
-   * inputs (`vessel.orbit`/`vessel.flight`/…) changed within the window, off
+   * inputs (`vessel.orbit`/`vessel.flight`/...) changed within the window, off
    * `sampleRange` reads of THOSE raw topics' own buffered ranges. No legacy
    * `DataSource` is registered anywhere in this test — a value only reaches
    * the probe if it genuinely streamed.

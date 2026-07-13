@@ -30,7 +30,7 @@ import type { ComponentType } from "react";
 //     }
 //   }
 //
-// Once merged, `registerAugment({ augments: "power-systems.sections", … })`
+// Once merged, `registerAugment({ augments: "power-systems.sections", ... })`
 // types its `component` against `{ instanceId: string }`, and
 // `<AugmentSlot name="power-systems.sections" props={{ instanceId }} />`
 // requires exactly those props.

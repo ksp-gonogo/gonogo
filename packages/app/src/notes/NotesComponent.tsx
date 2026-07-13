@@ -63,7 +63,7 @@ function StationView() {
     () => service?.snapshot() ?? { notes: [] },
   );
   useEffect(() => service?.subscribe(setSnap), [service]);
-  if (!client || !service) return <Empty>Waiting for host connection…</Empty>;
+  if (!client || !service) return <Empty>Waiting for host connection...</Empty>;
   const actions: NotesActions = {
     addNote: (body) => service.addNote(body),
     updateNote: (id, body) => service.updateNote(id, body),
@@ -111,7 +111,7 @@ function NotesView({
       <AddRow>
         <TagAutocomplete
           ariaLabel="New note body (use {{ to insert a variable)"
-          placeholder="New note… type {{ to insert a variable"
+          placeholder="New note... type {{ to insert a variable"
           value={draft}
           onChange={setDraft}
           onKeyDown={(e) => {

@@ -9,7 +9,7 @@ export interface VersionMismatchBannerProps {
   local: string;
   /** Remote version. Pass null/undefined for the "unknown" case. */
   remote?: string | null;
-  /** Optional label for the remote ("Mission Control", "kOS proxy", …). */
+  /** Optional label for the remote ("Mission Control", "kOS proxy", ...). */
   remoteLabel?: string;
 }
 

@@ -6,11 +6,11 @@
  * marker pair, parses the key/value body, and returns an object. Text
  * outside the markers (REPL prompt, RUN echo, stray PRINTs) is ignored.
  *
- * If the chunk contains multiple `[KOSDATA] … [/KOSDATA]` blocks, the last
+ * If the chunk contains multiple `[KOSDATA] ... [/KOSDATA]` blocks, the last
  * one wins. That matches the intended contract: scripts emit exactly one,
  * so if we see more than one the later one is always newer.
  *
- * Topics: blocks may optionally carry a topic id like `[KOSDATA:shipmap]…
+ * Topics: blocks may optionally carry a topic id like `[KOSDATA:shipmap]...
  * [/KOSDATA]`, used by the centralised kOS compute fanout to multiplex
  * several feeds on a single CPU's print stream. `parseKosData` ignores
  * the topic and returns the body of the last block found (matching the

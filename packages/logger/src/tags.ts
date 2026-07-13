@@ -1,5 +1,5 @@
 /**
- * Tag-based log gating. Tags name a subsystem ("peer", "camera", "serial"…)
+ * Tag-based log gating. Tags name a subsystem ("peer", "camera", "serial"...)
  * and can be toggled independently of the numeric log level. Enable at
  * runtime via `localStorage.LOG_TAGS = 'peer,camera'` (or `'*'` for all)
  * and reload.

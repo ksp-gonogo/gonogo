@@ -22,7 +22,7 @@ export interface KosScriptDefinition {
   name: string;
   /**
    * Kerboscript source. The data source RUNPATHs this on the active CPU on
-   * every cycle. Must emit exactly one `[KOSDATA:<id>]…[/KOSDATA]` block
+   * every cycle. Must emit exactly one `[KOSDATA:<id>]...[/KOSDATA]` block
    * with each declared field as a key.
    */
   script: string;

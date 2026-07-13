@@ -210,7 +210,7 @@ export function CalibrateWizard({
           </FieldHint>
         )}
         {source !== "paste" && !sampleLine && (
-          <FieldHint>Waiting for the device to send a line…</FieldHint>
+          <FieldHint>Waiting for the device to send a line...</FieldHint>
         )}
       </Field>
 
@@ -305,7 +305,7 @@ export function CalibrateWizard({
                         input.offset === undefined || input.length === undefined
                       }
                     >
-                      Capture range…
+                      Capture range...
                     </GhostButton>
                   ) : (
                     <>

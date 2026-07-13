@@ -122,7 +122,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * `useDataValue("data", group?.value ?? "v.sasValue")` from `@ksp-gonogo/core`'s
  * `ACTION_GROUPS` registry with an empty `dataRequirements: []`, so
  * `v.sasValue`/`v.rcsValue`/`v.gearValue`/`v.brakeValue`/`v.lightValue`/
- * `v.abortValue`/`v.precisionControlValue`/`v.ag1Value`…`v.ag10Value` were
+ * `v.abortValue`/`v.precisionControlValue`/`v.ag1Value`...`v.ag10Value` were
  * silently invisible to the scan — mapped-or-gapped-or-not, the coverage
  * test could never tell. Only `.value` is read through `useDataValue`
  * (mapTopic's concern); `.toggle` fires through `executeAction`, a

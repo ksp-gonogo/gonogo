@@ -615,7 +615,7 @@ export function LineChart({
           const maxChars = Math.max(1, Math.floor((chipW - 8) / 6));
           const labelText =
             s.label.length > maxChars
-              ? `${s.label.slice(0, Math.max(1, maxChars - 1))}…`
+              ? `${s.label.slice(0, Math.max(1, maxChars - 1))}...`
               : s.label;
           return (
             <React.Fragment key={s.id}>

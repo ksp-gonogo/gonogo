@@ -78,7 +78,7 @@ import { useWorldCanvas } from "./useWorldCanvas";
 
 /**
  * Resolve a CSS custom property to a concrete colour for use on a `<canvas>`
- * 2D context, which (unlike the DOM) cannot resolve `var(--…)` and silently
+ * 2D context, which (unlike the DOM) cannot resolve `var(--...)` and silently
  * paints black when handed one. Reads the computed value off the canvas
  * element so theme switches are respected; falls back to the token's default
  * if the property isn't set (e.g. before the theme stylesheet is applied).
@@ -1034,7 +1034,7 @@ function MapViewComponent({
             {(lat === undefined || lon === undefined) && (
               <NoSignal>
                 {targetBodyId === undefined
-                  ? "Waiting for telemetry…"
+                  ? "Waiting for telemetry..."
                   : "No position data"}
               </NoSignal>
             )}

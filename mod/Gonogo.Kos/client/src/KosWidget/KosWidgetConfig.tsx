@@ -94,8 +94,8 @@ export function KosWidgetConfigComponent({
         />
         <FieldHint>
           Path to the saved script kOS will run. Prefer the Archive (
-          <code>0:/…</code>) — the CPU&apos;s local volume gets wiped on reverts
-          and isn&apos;t always populated. Subdirectories are fine; the{" "}
+          <code>0:/...</code>) — the CPU&apos;s local volume gets wiped on
+          reverts and isn&apos;t always populated. Subdirectories are fine; the{" "}
           <code>.ks</code> extension is optional.
         </FieldHint>
       </Field>
@@ -206,7 +206,7 @@ export function KosWidgetConfigComponent({
                     onChange={(k) =>
                       updateArg(i, { type: "telemetry", key: k ?? "" })
                     }
-                    placeholder="Pick a data key…"
+                    placeholder="Pick a data key..."
                     clearable
                   />
                 </PickerWrap>
@@ -231,7 +231,7 @@ export function KosWidgetConfigComponent({
         </AddButton>
         <FieldHint>
           Args are passed positionally to the script:{" "}
-          <code>RUNPATH("script", a, b, …).</code>
+          <code>RUNPATH("script", a, b, ...).</code>
         </FieldHint>
       </Field>
 

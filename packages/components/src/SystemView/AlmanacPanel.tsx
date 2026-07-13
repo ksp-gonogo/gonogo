@@ -204,7 +204,7 @@ export function AlmanacPanel({
       {body.referenceBody && <Sub>orbiting {body.referenceBody}</Sub>}
       <Rows>
         {rows.length === 0 ? (
-          <Hint>Awaiting body data…</Hint>
+          <Hint>Awaiting body data...</Hint>
         ) : (
           rows.map((row) => (
             <Row key={`${row.label}=${row.value}`}>

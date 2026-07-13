@@ -219,7 +219,7 @@ function LandingStatusComponent({
       {noPrediction ? (
         <EmptyState>
           {descending
-            ? "Waiting for a landing prediction…"
+            ? "Waiting for a landing prediction..."
             : "No landing in progress"}
         </EmptyState>
       ) : (
@@ -403,7 +403,7 @@ const SuicideRow = styled.div<{
   display: grid;
   /* Wide widgets use a two-column layout (label · value) for a single
      scannable row; narrow widgets stack so the value can claim the full
-     width. minmax(0, …) lets the flexible track shrink below the value's
+     width. minmax(0, ...) lets the flexible track shrink below the value's
      min-content width — without it, the nowrap headline forces the track
      (and the whole row) wider than the container and the value clips. */
   grid-template-columns: ${({ $stack }) =>

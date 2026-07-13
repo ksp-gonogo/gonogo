@@ -132,7 +132,7 @@ export function BackupManager() {
               onClick={handleConfirmImport}
               disabled={phase === "applying"}
             >
-              {phase === "applying" ? "Restoring…" : "Replace & reload"}
+              {phase === "applying" ? "Restoring..." : "Replace & reload"}
             </PrimaryButton>
             <Button
               type="button"

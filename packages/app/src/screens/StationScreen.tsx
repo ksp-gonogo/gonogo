@@ -124,7 +124,7 @@ export function StationScreen() {
   }, [client]);
   // True once this station has reached "connected" at least once this
   // session. Lets the connect screen tell "host mid-reclaim after a restart"
-  // (previously connected → show "Host reconnecting…") apart from "wrong
+  // (previously connected → show "Host reconnecting...") apart from "wrong
   // code / host never up" (never connected → "couldn't find that code"). On
   // the wire both look like the same `peer-unavailable`.
   const [everConnected, setEverConnected] = useState(false);

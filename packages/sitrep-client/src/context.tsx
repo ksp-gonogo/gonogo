@@ -605,7 +605,7 @@ export function sampleActiveTopic<T>(topic: string): T | undefined {
 
 /**
  * Non-React equivalent of `useTelemetry("vessel.orbit")` — the vessel's own
- * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/…). For
+ * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/...). For
  * plain-class callers (`LocalManeuverTriggerService`, the maneuver-trigger
  * host service) that used to read the equivalent `o.*` legacy keys off
  * `getDataSource(...)` one field at a time.

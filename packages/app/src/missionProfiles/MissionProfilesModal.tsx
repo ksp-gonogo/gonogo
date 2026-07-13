@@ -21,7 +21,7 @@ import {
 } from "./MissionProfilesService";
 
 interface MissionProfilesModalProps {
-  /** Current dashboard state — used for the "save current as…" button. */
+  /** Current dashboard state — used for the "save current as..." button. */
   currentItems: DashboardItem[];
   currentLayouts: Layouts;
   /** Called when the user loads a profile. */

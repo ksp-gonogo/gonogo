@@ -155,7 +155,7 @@ describe("NavballComponent", () => {
     });
   });
 
-  it("formats throttle slider input as f.setThrottle[…]", async () => {
+  it("formats throttle slider input as f.setThrottle[...]", async () => {
     renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);

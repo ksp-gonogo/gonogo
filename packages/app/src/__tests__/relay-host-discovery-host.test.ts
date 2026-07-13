@@ -98,9 +98,9 @@ describe("PeerHostService — stable host id (derived from share code)", () => {
     await flush();
 
     const expectedId = `gonogo-host-${service.shareCode}`;
-    // The Peer was constructed with the derived id…
+    // The Peer was constructed with the derived id...
     expect(FakePeer.last?.id).toBe(expectedId);
-    // …and peerId is the broker id echoed on open.
+    // ...and peerId is the broker id echoed on open.
     expect(service.peerId).toBe(expectedId);
     service.stop();
   });

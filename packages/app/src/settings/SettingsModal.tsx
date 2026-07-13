@@ -284,7 +284,7 @@ function UplinkHealthList() {
   const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
 
   if (uplinkHealth === undefined) {
-    return <Placeholder>Waiting for uplink health report…</Placeholder>;
+    return <Placeholder>Waiting for uplink health report...</Placeholder>;
   }
   if (uplinkHealth === null || uplinkHealth.uplinks.length === 0) {
     return <Placeholder>No uplinks registered</Placeholder>;

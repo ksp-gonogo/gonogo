@@ -336,13 +336,13 @@ describe("AlarmsModal recommended presets", () => {
       />,
     );
 
-    // First prove the preset CAN appear for a future node…
+    // First prove the preset CAN appear for a future node...
     emitData("o.maneuverNodes", [makeNode(3000)]);
     expect(
       await screen.findByRole("button", { name: /recommended/i }),
     ).toBeDefined();
 
-    // …then a node-list with only a past node (500 < UT 1000) hides it,
+    // ...then a node-list with only a past node (500 < UT 1000) hides it,
     // proving the future-node filter rather than the default-hidden state.
     emitData("o.maneuverNodes", [makeNode(500)]);
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();

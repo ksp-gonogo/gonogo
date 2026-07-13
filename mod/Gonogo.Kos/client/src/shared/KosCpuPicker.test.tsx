@@ -106,8 +106,8 @@ describe("KosCpuPicker", () => {
     expect(service.get("newcpu")).toBeDefined();
   });
 
-  it("clicking + Add CPU… opens the inline form (not closes the dropdown)", async () => {
-    // Regression: the "+ Add CPU…" button switches mode → unmounts itself
+  it("clicking + Add CPU... opens the inline form (not closes the dropdown)", async () => {
+    // Regression: the "+ Add CPU..." button switches mode → unmounts itself
     // mid-event. The document outside-click handler then sees a detached
     // target and used to call closePicker(), snapping the dropdown shut
     // before the form could render.

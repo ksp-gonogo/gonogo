@@ -21,7 +21,7 @@ export interface RenderShipMapOptions {
  * `<style>` block carrying the dark-mode palette from
  * `packages/app/src/styles/global.css`, so the SVG renders correctly in
  * any viewer (browser, IDE preview, screenshot diff). styled-components
- * classes (non-deterministic `sc-…` hashes) are stripped so snapshot
+ * classes (non-deterministic `sc-...` hashes) are stripped so snapshot
  * tests stay stable.
  */
 export function renderShipMapToSvg(

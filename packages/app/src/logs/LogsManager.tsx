@@ -361,7 +361,7 @@ function ReportBug() {
       else tagged.error(trimmed, undefined, payload);
       // The Axiom SDK auto-batches and retries on its own. Race the flush
       // against a 10s deadline so a slow transport (e.g. backpressure on
-      // a large screenshot) doesn't trap the UI in "Submitting…" — the
+      // a large screenshot) doesn't trap the UI in "Submitting..." — the
       // user's 2026-05-17 bug-report attempt with a screenshot stalled
       // forever and the report never arrived. The entry is in the ring
       // buffer regardless, so timing out is a soft success: surface
@@ -469,7 +469,7 @@ function ReportBug() {
           fileName={screenshotName}
           onChange={handleFileChange}
         />
-        {phase === "encoding" && <FieldHint>Compressing image…</FieldHint>}
+        {phase === "encoding" && <FieldHint>Compressing image...</FieldHint>}
         {screenshot && (
           <ScreenshotPreview>
             <ScreenshotThumb
@@ -494,7 +494,7 @@ function ReportBug() {
 
       <FormActions>
         <Button type="submit" disabled={submitDisabled}>
-          {phase === "submitting" ? "Sending…" : "Send report"}
+          {phase === "submitting" ? "Sending..." : "Send report"}
         </Button>
         <Button
           type="button"
