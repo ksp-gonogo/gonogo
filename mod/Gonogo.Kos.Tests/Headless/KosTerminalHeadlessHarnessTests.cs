@@ -364,6 +364,68 @@ namespace Gonogo.Kos.Tests.Headless
         }
 
         [Fact]
+        public void LateSubscriberToBusyCpu_ReseedRepaintsTheFullExistingScreen()
+        {
+            // Regression for the reseed-against-busy-screen bug the harness
+            // surfaced: a CPU already has content BEFORE anyone subscribes, then
+            // a viewer joins (the per-subscriber reseed's exact case). The reseed
+            // full-repaint must render the CPU's EXISTING screen, not a blank.
+            //
+            // The bug: ScreenDiffMapper's reseed baseline used
+            // ScreenSnapShot.EmptyScreen, whose fresh rows carry the newest
+            // LastChangeTick — so ScreenSnapShot.DiffFrom's tick-skip discarded
+            // every already-printed row and the reseed emitted only a clear. The
+            // fix (FullRepaintBaseline, an empty-buffer baseline) makes DiffFrom
+            // emit the full current content regardless of ticks. This runs the
+            // REAL pipeline end-to-end, so a blank reseed would fail the screen
+            // equality below.
+            var clock = new ManualClock(startUt: 1000);
+            var network = new StubNetwork(delay: 0);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+
+            // The CPU is ALREADY busy before any subscriber exists.
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            buffer.Print("EXISTING LINE A");
+            buffer.Print("EXISTING LINE B");
+            buffer.Print("EXISTING LINE C");
+            var screen = new ScreenBufferTerminal(buffer);
+
+            var manager = new KosTerminalManager(
+                knownCoreIds: () => new[] { CoreId },
+                isSubscribed: _ => true,
+                publish: (_, frame, ut) => courier.Record(Node, topic, frame, ut, Delivery.ReliableOrdered),
+                createScreen: _ => screen,
+                nowUt: () => clock.Now(),
+                pollIntervalSeconds: 0.05);
+
+            // A viewer subscribes AFTER the content already exists; its first
+            // poll is the reseed full-repaint (GetOrCreateSession seeds
+            // PendingReseed for a fresh session).
+            var delivered = new List<KosTerminalFrame>();
+            courier.SubscribeStream(Node, topic, Vantage, data =>
+            {
+                if (data.Payload is KosTerminalFrame frame)
+                {
+                    delivered.Add(frame);
+                }
+            });
+            manager.Poll(1.0);
+            clock.AdvanceTo(clock.Now() + 1);
+
+            Assert.Single(delivered);
+            Assert.True(delivered[0].FullRepaint);
+
+            var client = Reconstruct(delivered);
+            // The reseed rendered the CPU's existing screen, not a blank.
+            Assert.Equal(RenderFinalScreen(buffer, blankBaseline), client.Text);
+            Assert.Contains("EXISTING LINE A", client.Text);
+            Assert.Contains("EXISTING LINE B", client.Text);
+            Assert.Contains("EXISTING LINE C", client.Text);
+        }
+
+        [Fact]
         public void Rewind_RealPipeline_AfterQuickload_TracksTheRewoundClock()
         {
             // A modest F9-quickload case through the REAL ScreenBuffer +
