@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>gonogo — mission control for Kerbal Space Program</title>
+    <meta
+      name="description"
+      content="A mission control room for Kerbal Space Program. Run your whole save from the browser — contracts, science, launches, and live telemetry, across as many screens as you want."
+    />
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --surface: #121821;
+        --text: #e6edf3;
+        --muted: #9fb0c0;
+        --accent: #00ff88;
+        --accent-ink: #04120a;
+        --border: #2a3644;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      main { max-width: 640px; text-align: center; }
+      h1 {
+        margin: 0;
+        font-size: clamp(3rem, 12vw, 5rem);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--accent);
+      }
+      .tagline {
+        margin: 0.5rem 0 0;
+        font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+        font-weight: 600;
+      }
+      .lede {
+        margin: 1.25rem auto 0;
+        max-width: 54ch;
+        font-size: 1.05rem;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .note {
+        margin: 1.5rem auto 0;
+        max-width: 50ch;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: var(--muted);
+        border-left: 2px solid var(--accent);
+        padding-left: 0.9rem;
+        text-align: left;
+      }
+      .actions {
+        margin-top: 2rem;
+        display: flex;
+        gap: 0.9rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        border-radius: 6px;
+        padding: 0.7rem 1.3rem;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: filter 0.15s, border-color 0.15s, color 0.15s;
+      }
+      a.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      a.primary { background: var(--accent); color: var(--accent-ink); }
+      a.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+      @media (hover: hover) {
+        a.primary:hover { filter: brightness(1.1); }
+        a.secondary:hover { border-color: var(--accent); color: var(--accent); }
+      }
+      .fine {
+        margin: 1.75rem auto 0;
+        max-width: 48ch;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .fine a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>gonogo</h1>
+      <p class="tagline">A mission control room for Kerbal Space Program.</p>
+      <p class="lede">
+        Run your whole save from the browser: contracts, science, the
+        administration building, launches, and live telemetry. Lay the widgets
+        out the way you want, across as many screens as you want.
+      </p>
+      <p class="note" role="note">
+        The main screen connects directly to your KSP install, so it runs on
+        your own machine, not here. This page is just the front door.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/ksp-gonogo/gonogo#readme">Set up gonogo</a>
+        <a class="btn secondary" href="https://ksp-gonogo.github.io/gonogo/station">Open a station screen</a>
+      </div>
+      <p class="fine">
+        A station screen joins a main screen that is already running on
+        someone's machine — all you need is the share code. Source and
+        releases on <a href="https://github.com/ksp-gonogo/gonogo">GitHub</a>.
+      </p>
+    </main>
+  </body>
+</html>

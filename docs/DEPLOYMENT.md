@@ -4,7 +4,7 @@ This page is for whoever maintains the deployed gonogo. Day-to-day use runs loca
 
 ## Frontend (GitHub Pages)
 
-The app is deployed to GitHub Pages at [jonpepler.github.io/gonogo](https://jonpepler.github.io/gonogo/) on every push to `main` that passes CI. The workflow is `.github/workflows/deploy.yml`, triggered on `workflow_run` (CI succeeding on `main`). It builds with `pnpm turbo build --filter=@ksp-gonogo/app...` and the Vite base is set to `/gonogo/`.
+The app is deployed to GitHub Pages at [ksp-gonogo.github.io/gonogo](https://ksp-gonogo.github.io/gonogo/) on every push to `main` that passes CI. The workflow is `.github/workflows/deploy.yml`, triggered on `workflow_run` (CI succeeding on `main`). It builds with `pnpm turbo build --filter=@ksp-gonogo/app...` and the Vite base is set to `/gonogo/`.
 
 > The hosted page can't run the **main screen**. The main screen needs to reach your KSP install over a plain `ws://` connection, which a browser blocks from an `https://` page (mixed content), so the main screen always runs locally against your own KSP. What the hosted page is for is **station** screens: a station on someone else's network loads the app from here and joins with the share code.
 
@@ -23,7 +23,7 @@ pnpm build         # output lands in packages/app/dist/
 
 The relay service is published as a multi-arch (`linux/amd64`, `linux/arm64`) image to GitHub Container Registry by `.github/workflows/publish-images.yml`:
 
-- `ghcr.io/jonpepler/gonogo-relay:latest`
+- `ghcr.io/ksp-gonogo/gonogo-relay:latest`
 
 It's also tagged by commit SHA. This lets you run the relay on a dedicated mission-control box without a Node toolchain (swap `podman` for `docker` if you prefer):
 
@@ -31,7 +31,7 @@ It's also tagged by commit SHA. This lets you run the relay on a dedicated missi
 podman run -d --name gonogo-relay \
   -p 3002:3002 -p 3478:3478/udp -p 3478:3478/tcp -p 49160-49170:49160-49170/udp \
   -e TURN_EXTERNAL_IP=<public-ip> \
-  ghcr.io/jonpepler/gonogo-relay:latest
+  ghcr.io/ksp-gonogo/gonogo-relay:latest
 ```
 
 ### Port-forwarding for off-network stations
@@ -66,7 +66,7 @@ The bundled `docker-compose.yml` builds from local source (so `pnpm dev`'s watch
 
 ## End-user bundle
 
-The end-user path is a single image, `ghcr.io/jonpepler/gonogo:latest`, that runs the app and the relay together under one supervisor (built from `Dockerfile.bundle`, published by the `publish-bundle` job in `.github/workflows/publish-images.yml`). A non-developer never installs Node or pnpm; they run the `docker run` line in the [README](../README.md). The per-service image and the dev `docker-compose.yml` above are still what contributors use day to day.
+The end-user path is a single image, `ghcr.io/ksp-gonogo/gonogo:latest`, that runs the app and the relay together under one supervisor (built from `Dockerfile.bundle`, published by the `publish-bundle` job in `.github/workflows/publish-images.yml`). A non-developer never installs Node or pnpm; they run the `docker run` line in the [README](../README.md). The per-service image and the dev `docker-compose.yml` above are still what contributors use day to day.
 
 ## Release and dev channels
 
@@ -74,8 +74,8 @@ Everything user-facing moves only when a release is cut; pushes to `main` move a
 
 | Surface | Release channel | Dev channel (every CI-green push to `main`) |
 | --- | --- | --- |
-| Pages site | `jonpepler.github.io/gonogo/` | `jonpepler.github.io/gonogo/dev/` (stations: `/gonogo/dev/station`) |
-| Bundle image | `ghcr.io/jonpepler/gonogo:<version>` + `:latest` | `ghcr.io/jonpepler/gonogo:dev` (+ `:sha-…`) |
+| Pages site | `ksp-gonogo.github.io/gonogo/` | `ksp-gonogo.github.io/gonogo/dev/` (stations: `/gonogo/dev/station`) |
+| Bundle image | `ghcr.io/ksp-gonogo/gonogo:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo:dev` (+ `:sha-…`) |
 | Service images | same pattern | same pattern |
 | App version | `X.Y.Z` | `X.Y.Z-dev.<shortsha>` |
 

@@ -26,7 +26,7 @@ export function HostedLanding() {
           your own machine, not here. This page is just the front door.
         </Note>
         <Actions>
-          <Primary href="https://github.com/jonpepler/gonogo#readme">
+          <Primary href="https://github.com/ksp-gonogo/gonogo#readme">
             Set up gonogo
           </Primary>
           <Secondary href={stationHref}>Open a station screen</Secondary>

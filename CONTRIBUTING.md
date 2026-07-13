@@ -11,7 +11,7 @@ You need **Node 24** (via nvm), **pnpm v10+**, and a container runtime (the dev 
 gonogo depends on `@jonpepler/kerbcast`, which is published to GitHub Packages. `.npmrc` reads an auth token from `$GITHUB_TOKEN`, so you need that exported in your shell before `pnpm install`, or the install fails. The token must be exported in the same shell you run `pnpm` from; pnpm reads it from the environment, not from any saved login.
 
 ```bash
-git clone https://github.com/jonpepler/gonogo.git
+git clone https://github.com/ksp-gonogo/gonogo.git
 cd gonogo
 nvm use                                # switch to Node 24 (reads .nvmrc)
 
