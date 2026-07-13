@@ -38,6 +38,7 @@
     "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",
+    "@xterm/headless": "6.0.0",
     "esbuild": "^0.28.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",

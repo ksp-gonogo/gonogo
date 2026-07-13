@@ -1,6 +1,7 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -374,6 +375,38 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       const committed = replayCommittedLines(writes);
       expect(committed).toEqual(["list."]);
     });
+  });
+
+  it("toggling line mode does NOT tear down and wipe the running terminal", async () => {
+    // Bug: the xterm setup effect lists `lineMode` in its dependency array, so
+    // flipping the Line-mode config switch disposes and recreates the whole
+    // Terminal — but the downlink subscription persists, so nothing reseeds the
+    // fresh xterm and the widget goes blank (while the real in-game CPU keeps
+    // its screen). The terminal instance must survive a line-mode toggle.
+    const fixture = terminalFixture();
+    const { rerender } = render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    // Exactly one Terminal has been constructed so far.
+    expect(vi.mocked(Terminal)).toHaveBeenCalledTimes(1);
+
+    // Operator flips Line-mode on in config → the widget re-renders with the
+    // new prop.
+    rerender(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+
+    // The live xterm must NOT have been disposed/recreated — same instance,
+    // no wipe.
+    expect(termSpies.dispose).not.toHaveBeenCalled();
+    expect(vi.mocked(Terminal)).toHaveBeenCalledTimes(1);
   });
 
   it("resolves the configured cpuName tagname to its coreId", async () => {
