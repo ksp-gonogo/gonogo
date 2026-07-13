@@ -409,6 +409,39 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     expect(vi.mocked(Terminal)).toHaveBeenCalledTimes(1);
   });
 
+  it("uses a fixed 80x24 terminal and imposes it on the CPU once (no dynamic fit)", async () => {
+    // The widget must be a fixed-size grid (like the telnet solution): never
+    // fit-to-pixels — which line-wraps kOS's output in a narrow panel — and
+    // impose that one size on the shared CPU screen exactly once, rather than
+    // streaming a resize on every container change.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    // The xterm instance is constructed at a fixed size, not left to a fit.
+    const opts = vi.mocked(Terminal).mock.calls[0][0] as {
+      cols?: number;
+      rows?: number;
+    };
+    expect(opts.cols).toBe(80);
+    expect(opts.rows).toBe(24);
+
+    // Exactly one resize command, carrying that fixed size — the CPU is set
+    // once, never streamed a per-fit resize.
+    await waitFor(() => {
+      const resizes = fixture.commands.filter(
+        (c) => c.command === "kos.terminal.resize",
+      );
+      expect(resizes).toHaveLength(1);
+      expect(resizes[0].args).toMatchObject({ cols: 80, rows: 24, coreId: 7 });
+    });
+  });
+
   it("resolves the configured cpuName tagname to its coreId", async () => {
     const fixture = terminalFixture();
     render(
