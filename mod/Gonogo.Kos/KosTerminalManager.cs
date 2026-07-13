@@ -67,10 +67,17 @@ namespace Gonogo.Kos
     /// <para><b>Downlink:</b> each poll it walks the current CPU ids, and for
     /// every one with a live <c>kos.terminal.&lt;coreId&gt;</c> subscriber reads
     /// the screen diff and publishes a <see cref="KosTerminalFrame"/>. A CPU
-    /// gaining its first subscriber (or a fresh <c>open</c>) forces a
-    /// <see cref="KosTerminalFrame.FullRepaint"/> so a late/reconnecting viewer
-    /// — which does not get the sticky replay via <c>useStreamEvent</c> —
-    /// resyncs from a clean screen.</para>
+    /// whose subscriber COUNT increases — its first subscriber, a SECOND
+    /// simultaneous viewer, or a resubscribe faster than one poll tick, not
+    /// merely a 0-&gt;1 aggregate transition — forces a
+    /// <see cref="KosTerminalFrame.FullRepaint"/> (as does a fresh
+    /// <c>open</c>), so every late/reconnecting/new viewer — none of which
+    /// get the sticky replay via <c>useStreamEvent</c> — resyncs from a
+    /// clean screen rather than an orphaned diff. Because the downlink is a
+    /// broadcast (one frame reaches every current subscriber of the topic),
+    /// this repaint is necessarily shared: an existing viewer receives one
+    /// redundant repaint whenever another viewer joins, which is harmless
+    /// (a full repaint is just a bigger diff, not a correctness issue).</para>
     ///
     /// <para><b>Uplink lease:</b> one holder per CPU, keyed by the caller's
     /// opaque lease token (<see cref="KosTerminalOpenArgs.LeaseToken"/>). A
@@ -85,7 +92,7 @@ namespace Gonogo.Kos
         private const double UtEpsilon = 1e-6;
 
         private readonly Func<IReadOnlyList<int>> _knownCoreIds;
-        private readonly Func<int, bool> _isSubscribed;
+        private readonly Func<int, int> _subscriberCount;
         private readonly Action<int, KosTerminalFrame, double> _publish;
         private readonly Func<int, IKosTerminalScreen?> _createScreen;
         private readonly Func<double> _nowUt;
@@ -105,27 +112,30 @@ namespace Gonogo.Kos
         private readonly Dictionary<int, Session> _sessions = new Dictionary<int, Session>();
         // Current single-owner write-lease holder per CPU (coreId -> token).
         private readonly Dictionary<int, string> _leases = new Dictionary<int, string>();
-        // Which CPUs had a subscriber on the previous poll (for the reseed edge).
-        private readonly HashSet<int> _wasSubscribed = new HashSet<int>();
+        // Subscriber count observed on the previous poll, per CPU — the
+        // reseed edge fires whenever the count INCREASES (0->1, but also
+        // 1->2, 2->3, ...), not merely on a 0->1 aggregate transition. See
+        // the class doc comment's "Downlink" paragraph.
+        private readonly Dictionary<int, int> _lastSubscriberCount = new Dictionary<int, int>();
 
         private double _accumulatedSeconds;
 
         /// <param name="knownCoreIds">Current CPU <c>KOSCoreId</c>s (main thread; real impl reads <c>kOSProcessor.AllInstances()</c>).</param>
-        /// <param name="isSubscribed">Whether <c>kos.terminal.&lt;coreId&gt;</c> currently has a subscriber.</param>
+        /// <param name="subscriberCount">Current subscriber count for <c>kos.terminal.&lt;coreId&gt;</c> (e.g. <c>host.SubscriberCountFor</c>). Zero means unsubscribed; an INCREASE over the previous poll (not just 0-&gt;1) is what forces a fresh full repaint — see the class doc comment.</param>
         /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT — see <see cref="NextUt"/> for why the manager computes that UT itself rather than taking the caller's raw clock read.</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
         /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive calls — see <see cref="NextUt"/>.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
-            Func<int, bool> isSubscribed,
+            Func<int, int> subscriberCount,
             Action<int, KosTerminalFrame, double> publish,
             Func<int, IKosTerminalScreen?> createScreen,
             Func<double> nowUt,
             double pollIntervalSeconds = 0.05)
         {
             _knownCoreIds = knownCoreIds ?? throw new ArgumentNullException(nameof(knownCoreIds));
-            _isSubscribed = isSubscribed ?? throw new ArgumentNullException(nameof(isSubscribed));
+            _subscriberCount = subscriberCount ?? throw new ArgumentNullException(nameof(subscriberCount));
             _publish = publish ?? throw new ArgumentNullException(nameof(publish));
             _createScreen = createScreen ?? throw new ArgumentNullException(nameof(createScreen));
             _nowUt = nowUt ?? throw new ArgumentNullException(nameof(nowUt));
@@ -155,15 +165,24 @@ namespace Gonogo.Kos
 
             foreach (var coreId in coreIds)
             {
-                var subscribed = _isSubscribed(coreId);
-                var reseedEdge = subscribed && !_wasSubscribed.Contains(coreId);
+                var count = _subscriberCount(coreId);
+                var subscribed = count > 0;
+                _lastSubscriberCount.TryGetValue(coreId, out var lastCount);
+                // A genuinely NEW subscriber — count went up, not just
+                // "still subscribed" or "fewer subscribers than before" —
+                // gets a full-repaint baseline. This also covers a
+                // resubscribe faster than one poll tick: count drops to 0
+                // (branch below removes the tracked lastCount), so the next
+                // subscribe reads lastCount as absent (0) and count > 0
+                // is an edge again.
+                var reseedEdge = subscribed && count > lastCount;
                 if (subscribed)
                 {
-                    _wasSubscribed.Add(coreId);
+                    _lastSubscriberCount[coreId] = count;
                 }
                 else
                 {
-                    _wasSubscribed.Remove(coreId);
+                    _lastSubscriberCount.Remove(coreId);
                     continue;
                 }
 
@@ -264,7 +283,7 @@ namespace Gonogo.Kos
             {
                 _sessions.Remove(coreId);
                 _leases.Remove(coreId);
-                _wasSubscribed.Remove(coreId);
+                _lastSubscriberCount.Remove(coreId);
                 _lastPublishedUt.Remove(coreId);
             }
         }

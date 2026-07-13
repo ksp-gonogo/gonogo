@@ -1795,8 +1795,17 @@ namespace Sitrep.Host
         /// <summary>Test-only visibility into one topic's emission counters — see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
-        /// <summary>Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>) gate's current subscriber count for a topic — used to prove a subscribe/unsubscribe/disconnect sequence never leaves an orphaned count behind (see the C2-3 fix).</summary>
-        internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
+        /// <summary>
+        /// <see cref="IUplinkHost.SubscriberCountFor"/> — reads the OUTER
+        /// (<see cref="SubscriptionRegistry"/>) gate's current subscriber
+        /// count for an EXACT topic. Originally test-only visibility (proving
+        /// a subscribe/unsubscribe/disconnect sequence never leaves an
+        /// orphaned count behind, see the C2-3 fix); now also the production
+        /// seam for an Uplink that needs to tell a genuinely new subscriber
+        /// apart from a topic merely staying subscribed (see the interface
+        /// doc comment).
+        /// </summary>
+        public int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
 
         // ----------------------------------------------------------------
         // Courier domain (the dedicated Courier thread)
