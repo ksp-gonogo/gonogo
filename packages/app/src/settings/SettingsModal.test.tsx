@@ -249,8 +249,15 @@ describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", (
     renderModal("main");
     await openDataSourcesTab();
     expect(
-      screen.getByText("Sitrep stream not registered"),
+      screen.getByText("Telemetry stream not registered"),
     ).toBeInTheDocument();
+  });
+
+  it("labels the host row 'Game host' and never shows the Sitrep codename", async () => {
+    renderModal("main");
+    await openDataSourcesTab();
+    expect(screen.getByText("Game host")).toBeInTheDocument();
+    expect(screen.queryByText(/sitrep/i)).not.toBeInTheDocument();
   });
 
   it("does NOT render an unrelated registered data source — no 'Other Connections' list", async () => {

@@ -42,7 +42,7 @@ import {
  * loose enough to absorb a normal keyframe burst.
  */
 const SITREP_STREAM_BUDGET = new PerfBudget({
-  name: "Sitrep stream frames/sec",
+  name: "Telemetry stream frames/sec",
   threshold: 750,
   windowMs: 1000,
   unit: "frames",

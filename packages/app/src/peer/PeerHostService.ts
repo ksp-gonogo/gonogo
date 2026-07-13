@@ -1600,7 +1600,7 @@ export class PeerHostService {
         type: "sitrep-command-error",
         requestId: msg.requestId,
         code: "E_NO_CLIENT",
-        message: "host has no live Sitrep telemetry client",
+        message: "host has no live telemetry client",
       } satisfies PeerMessage);
       return;
     }

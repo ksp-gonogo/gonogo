@@ -1,4 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getGameHost,
+  resetSettingsForTests,
+  seedSetting,
+  setSetting,
+} from "@ksp-gonogo/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   bumpSitrepReconnect,
   getSitrepHostConfig,
@@ -18,46 +24,57 @@ beforeEach(() => {
   resetSitrepRuntimeForTests();
 });
 
-describe("sitrepRuntime host config", () => {
-  it("defaults to localhost:8090 with nothing saved or seeded", () => {
-    expect(getSitrepHostConfig()).toEqual({ host: "localhost", port: 8090 });
+afterEach(() => {
+  resetSitrepRuntimeForTests();
+  resetSettingsForTests();
+  localStorage.clear();
+});
+
+describe("sitrepRuntime host = core gameHost", () => {
+  it("reads host from core gameHost, port from its own default", () => {
+    seedSetting("gameHost", "10.0.0.9");
+    expect(getSitrepHostConfig().host).toBe("10.0.0.9");
+    expect(getSitrepHostConfig().port).toBe(8090);
   });
 
-  it("a seed overrides the default but not a save", () => {
-    seedSitrepHost("192.168.1.50");
-    expect(getSitrepHostConfig()).toEqual({ host: "192.168.1.50", port: 8090 });
-
-    setSitrepHostConfig({ host: "my-box", port: 9999 });
-    expect(getSitrepHostConfig()).toEqual({ host: "my-box", port: 9999 });
+  it("setSitrepHostConfig writes host to core and persists port locally", () => {
+    setSitrepHostConfig({ host: "my-box", port: 8091 });
+    expect(getGameHost()).toBe("my-box");
+    expect(getSitrepHostConfig().port).toBe(8091);
   });
 
-  it("a save always wins over a later seed", () => {
-    setSitrepHostConfig({ host: "my-box", port: 9999 });
-    seedSitrepHost("192.168.1.50");
-    expect(getSitrepHostConfig()).toEqual({ host: "my-box", port: 9999 });
+  it("notifies host-config subscribers when core gameHost changes", () => {
+    const cb = vi.fn();
+    const unsub = subscribeSitrepHostConfig(cb);
+    setSetting("gameHost", "changed");
+    expect(cb).toHaveBeenCalled();
+    unsub();
   });
 
-  it("a save persists to localStorage; a seed does not", () => {
-    seedSitrepHost("192.168.1.50");
-    expect(localStorage.getItem("gonogo.datasource.sitrep")).toBeNull();
-
-    setSitrepHostConfig({ host: "my-box", port: 9999 });
-    expect(localStorage.getItem("gonogo.datasource.sitrep")).not.toBeNull();
+  it("returns a stable snapshot reference across reads that did not change", () => {
+    const a = getSitrepHostConfig();
+    const b = getSitrepHostConfig();
+    expect(a).toBe(b); // useSyncExternalStore identity contract
   });
 
-  it("notifies subscribers on both save and seed", () => {
+  it("seedSitrepHost delegates to the core seed layer", () => {
+    seedSitrepHost("seeded");
+    expect(getGameHost()).toBe("seeded");
+  });
+
+  it("notifies host-config subscribers exactly once per setSitrepHostConfig, and not at all for a port-only change on the same host", () => {
+    setSetting("gameHost", "box"); // establish current host
     const cb = vi.fn();
     const unsub = subscribeSitrepHostConfig(cb);
 
-    seedSitrepHost("192.168.1.50");
+    setSitrepHostConfig({ host: "box", port: 8099 }); // port-only, host unchanged
     expect(cb).toHaveBeenCalledTimes(1);
 
-    setSitrepHostConfig({ host: "my-box", port: 9999 });
-    expect(cb).toHaveBeenCalledTimes(2);
+    cb.mockClear();
+    setSitrepHostConfig({ host: "newbox", port: 8099 }); // host change
+    expect(cb).toHaveBeenCalledTimes(1);
 
     unsub();
-    setSitrepHostConfig({ host: "other-box", port: 1 });
-    expect(cb).toHaveBeenCalledTimes(2);
   });
 });
 

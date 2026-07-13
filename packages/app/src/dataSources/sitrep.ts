@@ -30,7 +30,7 @@ import {
  */
 class SitrepStreamDataSource implements DataSource {
   id = "sitrep";
-  name = "Sitrep Stream";
+  name = "Telemetry stream";
 
   get status(): DataSourceStatus {
     return getSitrepTransportStatus();
@@ -104,7 +104,7 @@ class SitrepStreamDataSource implements DataSource {
   }
 
   setupInstructions(): string {
-    return "The Gonogo mod's Sitrep stream starts automatically once KSP is running — no scene-gating, the main menu is enough. Point Host/Port at the KSP computer if it isn't this one.";
+    return "The Gonogo mod's telemetry stream starts automatically once KSP is running — no scene-gating, the main menu is enough. Point Host/Port at the KSP computer if it isn't this one.";
   }
 }
 

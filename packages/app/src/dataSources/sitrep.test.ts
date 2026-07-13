@@ -1,12 +1,12 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import { beforeEach, describe, expect, it } from "vitest";
-import "./sitrep";
 import {
   getSitrepHostConfig,
   getSitrepReconnectNonce,
   reportSitrepTransportStatus,
   resetSitrepRuntimeForTests,
 } from "../telemetry/sitrepRuntime";
+import { sitrepStreamSource } from "./sitrep";
 
 beforeEach(() => {
   localStorage.clear();
@@ -80,5 +80,10 @@ describe("SitrepStreamDataSource", () => {
     if (!source) return;
 
     await expect(source.execute("whatever")).rejects.toThrow();
+  });
+
+  it("never leaks the 'Sitrep' codename onto user-visible copy", () => {
+    expect(sitrepStreamSource.name).not.toMatch(/sitrep/i);
+    expect(sitrepStreamSource.setupInstructions()).not.toMatch(/sitrep/i);
   });
 });

@@ -33,6 +33,8 @@ export * from "./schemas/orbit";
 export * from "./schemas/scansat";
 export * from "./schemas/telemachus";
 export * from "./schemas/vessel-parts";
+export * from "./settings/gameHost";
+export * from "./settings/store";
 export * from "./stock-bodies";
 export * from "./telemachus";
 export * from "./testing/installDomStubs";

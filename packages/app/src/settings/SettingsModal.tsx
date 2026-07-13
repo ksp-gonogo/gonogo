@@ -155,7 +155,7 @@ function DataSourcesPanel() {
   return (
     <SectionStack>
       <Section>
-        <SectionTitle>Gonogo / Sitrep</SectionTitle>
+        <SectionTitle>Game host</SectionTitle>
         <SitrepConnection />
       </Section>
       <Section>
@@ -180,7 +180,7 @@ function SitrepConnection() {
   const [formValues, setFormValues] = useState<Record<string, string>>({});
 
   if (!source) {
-    return <Placeholder>Sitrep stream not registered</Placeholder>;
+    return <Placeholder>Telemetry stream not registered</Placeholder>;
   }
 
   const schema = getDataSource("sitrep")?.configSchema() ?? [];
@@ -351,7 +351,7 @@ function KerbcastHealthRow() {
       </ConnectionRow>
       <UplinkDetail>
         Separate connection — goes straight to the kerbcast sidecar, not the
-        Sitrep stream.
+        telemetry stream.
       </UplinkDetail>
     </KerbcastItem>
   );
