@@ -26,11 +26,10 @@ import { buildKosRunCommand } from "./kosWrapper";
  * discovery works whenever a sitrep stream is mounted, not only while a
  * `kos.run` dispatch is pending.
  *
- * Mirrors the proven wire pattern from
- * `mod/Gonogo.Kos/client/src/shared/useKosRun.ts` (dispatch → ack → wait
- * for the correlated channel frame → resolve/reject), but as plain,
- * non-hook code driving a `TelemetryClient` handed in by the caller —
- * `KosDataSource` is a plain class, not a React component.
+ * Follows the same wire pattern end to end: dispatch → ack → wait for the
+ * correlated channel frame → resolve/reject, as plain, non-hook code
+ * driving a `TelemetryClient` handed in by the caller — `KosDataSource` is
+ * a plain class, not a React component.
  */
 
 const PROCESSORS_TOPIC = "kos.processors";
