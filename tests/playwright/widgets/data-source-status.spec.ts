@@ -59,15 +59,22 @@ test.describe("Settings — Data Sources tab — main screen", () => {
     // it explicitly so the test is deterministic regardless of env state.
     await page.getByRole("tab", { name: "Data Sources" }).click();
 
-    // The source rows render inside that tab panel (the standalone FAB +
-    // dashboard widget were retired), so a visible `sitrep` row is itself
-    // proof the tab opened. Scope to the row that owns the `sitrep` source
-    // name so we don't match another source's status label.
-    const dataRow = page.locator("li").filter({ hasText: "Sitrep Stream" });
-    await expect(dataRow).toBeVisible({ timeout: 30_000 });
-    await expect(dataRow.getByText("connected", { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
+    // The panel (`DataSourcesPanel` in SettingsModal.tsx) leads with the
+    // single Gonogo/Sitrep connection row (`SitrepConnection`, a styled
+    // `<div>` — not an `<li>`; the per-Uplink health list below it is the
+    // only `<li>`-based list now) followed by per-Uplink health rows. Scope
+    // to the tabpanel so a visible "Sitrep Stream" name is proof the tab
+    // opened and the row rendered. "connected" (exact) only ever labels the
+    // Sitrep row here — Uplink rows report health states (healthy/degraded/
+    // unavailable), never "connected" — so asserting it within the panel is
+    // an unambiguous stand-in for "that row's status".
+    const dataSourcesPanel = page.getByRole("tabpanel");
+    await expect(
+      dataSourcesPanel.getByText("Sitrep Stream", { exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      dataSourcesPanel.getByText("connected", { exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
 
     await page.close();
     await context.close();
