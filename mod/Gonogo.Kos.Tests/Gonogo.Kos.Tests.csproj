@@ -50,4 +50,49 @@
     <Compile Include="..\Gonogo.Kos\MainThreadDispatcher.cs" />
     <Compile Include="..\Gonogo.Kos\KosExtension.cs" />
   </ItemGroup>
+
+  <!-- Headless kOS terminal harness (Gonogo.Kos.Tests/Headless/) — the ONE
+       part of this project that drives the REAL kOS.Safe screen pipeline
+       (ScreenBuffer -> ScreenSnapShot.DiffFrom -> TerminalXtermMapper) end to
+       end through a real Courier. It needs kOS.Safe.dll + kOS.dll, resolved
+       from a KSP install / the ksp-managed reference set exactly the way the
+       KSP-facing mod csprojs resolve them (KspGameData, overridable with
+       /p:KspGameData=...). Both DLLs are genuinely loadable in a plain .NET
+       process — kOS.Safe is Unity-free by design, and the mapper's body touches
+       only mscorlib + kOS.Safe types, so kOS.dll's UnityEngine references stay
+       lazily unresolved (verified: see the harness report).
+
+       SOFT-DEGRADE: when those DLLs are absent (a stock CI runner today), the
+       kOS references, the extracted ScreenDiffMapper source, and the whole
+       Headless/ folder are dropped and a build warning is emitted, so the
+       KSP-free suite still builds and passes — the visual-gate soft-pass model.
+       The CI job supplies the DLLs by checking out ksp-gonogo/ksp-managed and
+       passing /p:KspGameData; see .github/workflows/ci.yml's mod job and
+       docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md. -->
+  <PropertyGroup>
+    <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
+    <KosSafeDll>$(KspGameData)\kOS\Plugins\kOS.Safe.dll</KosSafeDll>
+    <KosDll>$(KspGameData)\kOS\Plugins\kOS.dll</KosDll>
+    <KosSafeAvailable Condition="Exists('$(KosSafeDll)') And Exists('$(KosDll)')">true</KosSafeAvailable>
+  </PropertyGroup>
+
+  <!-- The SDK auto-globs Headless/**; drop it unless the kOS DLLs are present. -->
+  <ItemGroup>
+    <Compile Remove="Headless\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(KosSafeAvailable)' == 'true'">
+    <Reference Include="kOS.Safe">
+      <HintPath>$(KosSafeDll)</HintPath>
+    </Reference>
+    <Reference Include="kOS">
+      <HintPath>$(KosDll)</HintPath>
+    </Reference>
+    <Compile Include="..\Gonogo.Kos\ScreenDiffMapper.cs" />
+    <Compile Include="Headless\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="WarnKosHarnessSkipped" BeforeTargets="Build" Condition="'$(KosSafeAvailable)' != 'true'">
+    <Warning Text="kOS.Safe.dll / kOS.dll not found under KspGameData=$(KspGameData) — the headless kOS terminal harness (Gonogo.Kos.Tests/Headless) is SKIPPED. Pass /p:KspGameData=&lt;GameData containing kOS/Plugins&gt; to compile and run it." />
+  </Target>
 </Project>
