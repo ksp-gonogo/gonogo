@@ -285,8 +285,29 @@ namespace Sitrep.Core
             }
         }
 
-        /// <summary>Record a SCET-stamped sample and schedule its delayed delivery to every current subscriber.</summary>
-        public void Record(string node, string topic, object? value, double validAtUt)
+        /// <summary>
+        /// Record a SCET-stamped sample and schedule its delayed delivery to
+        /// every current subscriber.
+        ///
+        /// <para><paramref name="delivery"/> selects the scheduled-delivery
+        /// LANE (a C#-ONLY addition, no TS reference — same class of
+        /// extension as <see cref="ResetTimeline"/>/<see cref="Archive.Snapshot"/>).
+        /// <see cref="Delivery.LossyLatest"/> (the default, and every existing
+        /// call site incl. the golden-fixture conformance tests) keeps the
+        /// exact historical behaviour: each scheduled delivery RE-READS the
+        /// archive at fire time via <see cref="Deliver"/>/<see cref="Archive.ReadAtVantage"/>,
+        /// resolving to the latest sample with <c>ValidAt &lt;= scene</c> —
+        /// correct coalescing for a state topic. <see cref="Delivery.ReliableOrdered"/>
+        /// instead FORWARDS the exact sample captured at schedule time,
+        /// exactly once, in record order — the right semantics for a
+        /// cursor-relative ORDERED DIFF stream (the kOS terminal), where two
+        /// frames sharing a <c>ValidAt</c> must both be delivered rather than
+        /// the earlier one being coalesced away by the state re-read. Delay,
+        /// scheduling (<c>fireUt = validAt + delay</c>), and the rewind/
+        /// quickload drop semantics are identical across both lanes — only
+        /// WHAT the scheduled callback delivers differs.</para>
+        /// </summary>
+        public void Record(string node, string topic, object? value, double validAtUt, Delivery delivery = Delivery.LossyLatest)
         {
             ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
 
@@ -294,6 +315,11 @@ namespace Sitrep.Core
             {
                 return;
             }
+
+            // Capture the epoch this sample was recorded under, for the
+            // ReliableOrdered forward path (see below) — mirrors what
+            // Archive.Record itself stamps.
+            var epoch = _epoch;
 
             // Snapshot the current subscriber set: later subscribes/unsubscribes
             // must not affect delivery of this already-recorded sample.
@@ -306,15 +332,38 @@ namespace Sitrep.Core
                 // than whatever clock.Now() happens to be when it fires (see
                 // Deliver()).
                 var fireUt = validAtUt + delay;
-                _clock.Schedule(fireUt, () =>
+                if (delivery == Delivery.ReliableOrdered)
                 {
-                    if (!subs.Contains(subscriber))
+                    // Ordered-diff lane: forward THIS specific sample, once, in
+                    // record order — not a fire-time archive re-read (which
+                    // would coalesce same-ValidAt frames to the latest). The
+                    // captured value/validAt/epoch are pinned in the closure so
+                    // the delivery is independent of any later Record on the
+                    // same topic. A rewind still drops this scheduled callback
+                    // wholesale (ManualClock.Reset), exactly as the re-read lane
+                    // would have returned nothing for an abandoned sample.
+                    var forwarded = new ArchiveSample(value, validAtUt, epoch);
+                    _clock.Schedule(fireUt, () =>
                     {
-                        // Unsubscribed before the delivery fired.
-                        return;
-                    }
-                    Deliver(node, topic, subscriber, fireUt);
-                });
+                        if (!subs.Contains(subscriber))
+                        {
+                            return;
+                        }
+                        DeliverSample(node, topic, subscriber, forwarded, fireUt);
+                    });
+                }
+                else
+                {
+                    _clock.Schedule(fireUt, () =>
+                    {
+                        if (!subs.Contains(subscriber))
+                        {
+                            // Unsubscribed before the delivery fired.
+                            return;
+                        }
+                        Deliver(node, topic, subscriber, fireUt);
+                    });
+                }
             }
         }
 
@@ -405,6 +454,23 @@ namespace Sitrep.Core
                 return;
             }
             subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, sample.Value, fireUt, isCatchUp));
+        }
+
+        /// <summary>
+        /// Deliver the SPECIFIC <paramref name="forwarded"/> sample captured
+        /// when this delivery was scheduled — the <see cref="Delivery.ReliableOrdered"/>
+        /// lane (see <see cref="Record"/>). Unlike <see cref="Deliver"/> this
+        /// does NOT re-read the archive at fire time, so a burst of frames
+        /// sharing a <c>ValidAt</c> each forwards its own value in record order
+        /// instead of every scheduled read resolving the coalesced latest.
+        /// Never a catch-up (the synchronous catch-up + in-flight reschedule in
+        /// <see cref="SubscribeStream"/> deliberately stay on the re-read lane —
+        /// a late joiner is reseeded, not replayed the whole diff history), so
+        /// staleness is always <see cref="Staleness.Fresh"/>.
+        /// </summary>
+        private void DeliverSample(string node, string topic, Subscriber subscriber, ArchiveSample forwarded, double fireUt)
+        {
+            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, forwarded, fireUt, isCatchUp: false));
         }
 
         private StreamData StreamDataFor(string node, string topic, string vantage, ArchiveSample sample, double deliveredAt, bool isCatchUp)
