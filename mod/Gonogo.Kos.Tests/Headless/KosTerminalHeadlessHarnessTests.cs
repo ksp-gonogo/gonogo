@@ -30,9 +30,12 @@ namespace Gonogo.Kos.Tests.Headless
     /// as of the light-lagged scene" coalescing. Here the whole chain runs, so a
     /// same-<c>ValidAt</c> collision doesn't just return a wrong number — it
     /// silently corrupts the reconstructed screen. See
-    /// <see cref="Burst_ConstantValidAt_RevertingFix1_CorruptsTheScreen"/> for
-    /// the executable proof that this harness catches the coalescing garble
-    /// class Fix #1 (strictly-increasing ValidAt) prevents; the harness report
+    /// <see cref="Burst_ConstantValidAt_LossyLatestLane_StillCoalescesAndCorruptsTheScreen"/>
+    /// for the executable proof that this harness catches the coalescing garble
+    /// class the state re-read lane produces, and
+    /// <see cref="Burst_ConstantValidAt_ReliableOrderedLane_DeliversEveryFrameAndReconstructsExactScreen"/>
+    /// for the proof the ReliableOrdered forward lane fixes it at a constant
+    /// ValidAt (making Fix #1's strictly-increasing stamp unnecessary); the harness report
     /// (docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md) pairs
     /// it with an actual git-revert-of-Fix-#1 run of the positive test.</para>
     ///
@@ -146,13 +149,19 @@ namespace Gonogo.Kos.Tests.Headless
             var screen = new ScreenBufferTerminal(buffer);
 
             var publishedUts = new List<double>();
+            var publishedChunks = new List<string>();
             var manager = new KosTerminalManager(
                 knownCoreIds: () => new[] { CoreId },
                 isSubscribed: _ => true,
                 publish: (_, frame, ut) =>
                 {
                     publishedUts.Add(ut);
-                    courier.Record(Node, topic, frame, ut);
+                    publishedChunks.Add(frame.Chunk);
+                    // The terminal is a Delivery.ReliableOrdered channel (see
+                    // KosExtension.Ksp.cs's dynamic-namespace declaration): its
+                    // frames ride the per-sample forward lane, not the state
+                    // re-read that coalesces same-ValidAt frames.
+                    courier.Record(Node, topic, frame, ut, Delivery.ReliableOrdered);
                 },
                 createScreen: _ => screen,
                 nowUt: () => clock.Now(),
@@ -181,14 +190,19 @@ namespace Gonogo.Kos.Tests.Headless
             Assert.Equal(BurstLines.Length + 1, publishedUts.Count);
             Assert.Equal(publishedUts.Count, delivered.Count);
 
-            // Order + reveal timing: the manager stamped strictly-increasing
-            // ValidAt (Fix #1), which is what let Archive/Courier keep every
-            // frame distinct and drain them in ascending fire-UT order.
+            // Order: the ReliableOrdered lane forwards each captured frame
+            // exactly once, in record order — NOT dependent on distinct
+            // ValidAt stamps (that was Fix #1's job, now retired: a same-tick
+            // burst forwards per-sample rather than re-reading the coalesced
+            // latest). ValidAt stays monotonic non-decreasing (the clock never
+            // rewinds mid-burst), and the delivered chunk sequence is exactly
+            // the published one.
             for (var k = 1; k < publishedUts.Count; k++)
             {
-                Assert.True(publishedUts[k] > publishedUts[k - 1],
-                    $"frame {k} ValidAt {publishedUts[k]} must exceed frame {k - 1}'s {publishedUts[k - 1]}");
+                Assert.True(publishedUts[k] >= publishedUts[k - 1],
+                    $"frame {k} ValidAt {publishedUts[k]} must not precede frame {k - 1}'s {publishedUts[k - 1]}");
             }
+            Assert.Equal(publishedChunks, delivered.Select(f => f.Chunk).ToList());
 
             // Exactly one reseed (the first frame) then pure incremental diffs.
             Assert.True(delivered[0].FullRepaint);
@@ -204,15 +218,17 @@ namespace Gonogo.Kos.Tests.Headless
         }
 
         [Fact]
-        public void Burst_ConstantValidAt_RevertingFix1_CorruptsTheScreen()
+        public void Burst_ConstantValidAt_LossyLatestLane_StillCoalescesAndCorruptsTheScreen()
         {
-            // The PROOF that the harness catches the coalescing garble class. It
-            // reproduces exactly what reverting Fix #1 does — every burst frame
-            // published at the SAME raw clock UT (no strictly-increasing NextUt
-            // stamp) — by recording straight onto the Courier at a constant
-            // ValidAt, bypassing KosTerminalManager.NextUt. Everything else is
-            // the REAL pipeline: real ScreenBuffer, real ScreenDiffMapper diffs,
-            // real Archive.ReadAtVantage coalescing.
+            // The negative control: proof the harness still CATCHES the
+            // coalescing garble class, and pins exactly WHERE it lives — the
+            // state re-read lane (Delivery.LossyLatest). Every burst frame is
+            // recorded at the SAME constant ValidAt on that lane. Everything
+            // else is the REAL pipeline: real ScreenBuffer, real
+            // ScreenDiffMapper diffs, real Archive.ReadAtVantage coalescing.
+            // Contrast with the ReliableOrdered test below, which records the
+            // identical burst at the identical constant ValidAt and does NOT
+            // corrupt — the whole point of the reclassify.
             var clock = new ManualClock(startUt: 1000);
             var network = new StubNetwork(delay: 0);
             var courier = new Courier(clock, network);
@@ -231,19 +247,21 @@ namespace Gonogo.Kos.Tests.Headless
             var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
             var screen = new ScreenBufferTerminal(buffer);
 
-            const double frozenUt = 1000.0; // the reverted behaviour: raw nowUt, never advanced.
+            const double frozenUt = 1000.0; // constant raw UT, never advanced.
 
             void RecordFrame(bool force)
             {
                 var result = screen.ReadChunk(force);
                 if (result.HasOutput)
                 {
+                    // Delivery.LossyLatest (the default) — the state re-read
+                    // lane, where same-ValidAt frames coalesce.
                     courier.Record(Node, topic, new KosTerminalFrame
                     {
                         CoreId = CoreId,
                         Chunk = result.Chunk,
                         FullRepaint = result.FullRepaint,
-                    }, frozenUt);
+                    }, frozenUt, Delivery.LossyLatest);
                 }
             }
 
@@ -259,17 +277,89 @@ namespace Gonogo.Kos.Tests.Headless
             var client = Reconstruct(delivered);
             var truth = RenderFinalScreen(buffer, blankBaseline);
 
-            // The heart of the proof: with a constant ValidAt, Archive coalesces
-            // the whole burst to a single sample, so the reconstructed screen is
-            // NOT the mod's final screen. If this ever became equal, the
-            // coalescing bug would have stopped being observable here and the
-            // positive test above would be a false comfort.
+            // With a constant ValidAt on the re-read lane, Archive coalesces the
+            // whole burst to a single sample, so the reconstructed screen is NOT
+            // the mod's final screen. If this ever became equal, the coalescing
+            // bug would have stopped being observable here.
             Assert.NotEqual(truth, client.Text);
 
             // Concretely: earlier burst lines were dropped from the client — the
             // reader only ever resolved the LATEST same-ValidAt sample.
             Assert.DoesNotContain("STAGE 1 IGNITION", client.Text);
             Assert.DoesNotContain("BOOT SEQUENCE COMPLETE", client.Text);
+        }
+
+        [Fact]
+        public void Burst_ConstantValidAt_ReliableOrderedLane_DeliversEveryFrameAndReconstructsExactScreen()
+        {
+            // The heart of the reclassify proof. Same real pipeline, same
+            // constant ValidAt as the LossyLatest control above — the exact
+            // shape reverting Fix #1 produces (no strictly-increasing NextUt
+            // stamp) — but on the Delivery.ReliableOrdered lane. Because that
+            // lane forwards each captured sample per-frame instead of
+            // re-reading the archive at fire time, the constant ValidAt no
+            // longer coalesces the burst: every frame is delivered, in order,
+            // and the client screen reconstructs EXACTLY. This is the executable
+            // evidence that the epsilon-bump (Fix #1) is unnecessary once the
+            // channel is on the correct lane.
+            var clock = new ManualClock(startUt: 1000);
+            var network = new StubNetwork(delay: 0);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+
+            var delivered = new List<KosTerminalFrame>();
+            courier.SubscribeStream(Node, topic, Vantage, data =>
+            {
+                if (data.Payload is KosTerminalFrame frame)
+                {
+                    delivered.Add(frame);
+                }
+            });
+
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+
+            const double frozenUt = 1000.0; // constant raw UT — the reverted-Fix-#1 shape.
+
+            void RecordFrame(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    courier.Record(Node, topic, new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    }, frozenUt, Delivery.ReliableOrdered);
+                }
+            }
+
+            RecordFrame(force: true); // blank reseed
+            foreach (var line in BurstLines)
+            {
+                buffer.Print(line);
+                RecordFrame(force: false); // incremental diff
+            }
+
+            clock.AdvanceTo(clock.Now() + 1);
+
+            var client = Reconstruct(delivered);
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+
+            // Completeness: 1 reseed + one frame per burst line, none coalesced.
+            Assert.Equal(BurstLines.Length + 1, delivered.Count);
+            // Exactly one reseed then pure incremental diffs, in order.
+            Assert.True(delivered[0].FullRepaint);
+            Assert.All(delivered.Skip(1), f => Assert.False(f.FullRepaint));
+            // Despite every frame sharing a single ValidAt, the reconstructed
+            // screen matches the mod's final screen.
+            Assert.Equal(truth, client.Text);
+            foreach (var line in BurstLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
         }
 
         [Fact]
@@ -301,7 +391,7 @@ namespace Gonogo.Kos.Tests.Headless
                 publish: (_, frame, ut) =>
                 {
                     publishedUts.Add(ut);
-                    courier.Record(Node, topic, frame, ut);
+                    courier.Record(Node, topic, frame, ut, Delivery.ReliableOrdered);
                 },
                 createScreen: _ => screen,
                 nowUt: () => clock.Now(),
