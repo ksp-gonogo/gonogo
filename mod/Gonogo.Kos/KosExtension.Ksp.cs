@@ -141,9 +141,10 @@ namespace Gonogo.Kos
             _terminalManager = new KosTerminalManager(
                 knownCoreIds: CurrentCoreIds,
                 isSubscribed: coreId => host.IsAnyTopicSubscribed(KosChannels.TerminalTopic(coreId)),
-                publish: (coreId, frame) =>
-                    _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(frame, host.NowUt()),
-                createScreen: coreId => new KosProcessorScreen(coreId, FindProcessor));
+                publish: (coreId, frame, ut) =>
+                    _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(frame, ut),
+                createScreen: coreId => new KosProcessorScreen(coreId, FindProcessor),
+                nowUt: host.NowUt);
 
             // Drive the ~20 Hz downlink poll from the same main-thread addon
             // that drains the dispatcher (headless tests call Poll() directly).

@@ -51,6 +51,12 @@ namespace Gonogo.Kos.Tests
             public HashSet<int> Subscribed = new HashSet<int>();
             public readonly Dictionary<int, FakeScreen> Screens = new Dictionary<int, FakeScreen>();
             public readonly List<KosTerminalFrame> Published = new List<KosTerminalFrame>();
+            public readonly List<double> PublishedUts = new List<double>();
+            // Constant by default: reproduces production's "the terminal's
+            // ~20Hz poll runs faster than the UT source advances" shape —
+            // see KosTerminalCourierBurstTests for the end-to-end proof this
+            // matters for.
+            public double Now;
             public readonly KosTerminalManager Manager;
 
             public Harness()
@@ -58,7 +64,11 @@ namespace Gonogo.Kos.Tests
                 Manager = new KosTerminalManager(
                     knownCoreIds: () => CoreIds,
                     isSubscribed: id => Subscribed.Contains(id),
-                    publish: (id, frame) => Published.Add(frame),
+                    publish: (id, frame, ut) =>
+                    {
+                        Published.Add(frame);
+                        PublishedUts.Add(ut);
+                    },
                     createScreen: id =>
                     {
                         if (!Screens.TryGetValue(id, out var s))
@@ -68,6 +78,7 @@ namespace Gonogo.Kos.Tests
                         }
                         return s;
                     },
+                    nowUt: () => Now,
                     pollIntervalSeconds: 0.05);
             }
 
@@ -224,6 +235,29 @@ namespace Gonogo.Kos.Tests
 
             var repaints = h.Published.FindAll(f => f.FullRepaint);
             Assert.Equal(2, repaints.Count); // first open + the re-subscribe edge
+        }
+
+        [Fact]
+        public void Poll_BurstWithConstantNowUt_AssignsStrictlyIncreasingUts()
+        {
+            // Regression for root cause #1 (see KosTerminalCourierBurstTests
+            // for the full Courier-backed proof of the delivery bug this
+            // guards against): the injected UT source can return the SAME
+            // value across several consecutive polls (its own clock hasn't
+            // ticked yet) — every published frame must still get a
+            // strictly-increasing UT so no two collide once they reach the
+            // Courier/Archive delay engine.
+            var h = new Harness();
+            h.Subscribed.Add(7);
+            h.Now = 500.0;
+
+            h.Tick();
+            h.Tick();
+            h.Tick();
+
+            Assert.Equal(3, h.PublishedUts.Count);
+            Assert.True(h.PublishedUts[0] < h.PublishedUts[1]);
+            Assert.True(h.PublishedUts[1] < h.PublishedUts[2]);
         }
 
         [Fact]

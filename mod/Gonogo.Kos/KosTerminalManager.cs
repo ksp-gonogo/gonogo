@@ -80,11 +80,21 @@ namespace Gonogo.Kos
     /// </summary>
     internal sealed class KosTerminalManager
     {
+        // Smallest bump that still survives the double comparisons in
+        // Archive.ReadAtVantage/Courier — see NextUt's doc comment.
+        private const double UtEpsilon = 1e-6;
+
         private readonly Func<IReadOnlyList<int>> _knownCoreIds;
         private readonly Func<int, bool> _isSubscribed;
-        private readonly Action<int, KosTerminalFrame> _publish;
+        private readonly Action<int, KosTerminalFrame, double> _publish;
         private readonly Func<int, IKosTerminalScreen?> _createScreen;
+        private readonly Func<double> _nowUt;
         private readonly double _pollIntervalSeconds;
+
+        // Last UT this manager published on behalf of each CPU — the seam
+        // that guarantees every kos.terminal.<coreId> frame gets a STRICTLY
+        // increasing ValidAt (see NextUt).
+        private readonly Dictionary<int, double> _lastPublishedUt = new Dictionary<int, double>();
 
         private sealed class Session
         {
@@ -102,20 +112,23 @@ namespace Gonogo.Kos
 
         /// <param name="knownCoreIds">Current CPU <c>KOSCoreId</c>s (main thread; real impl reads <c>kOSProcessor.AllInstances()</c>).</param>
         /// <param name="isSubscribed">Whether <c>kos.terminal.&lt;coreId&gt;</c> currently has a subscriber.</param>
-        /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c>.</param>
+        /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT — see <see cref="NextUt"/> for why the manager computes that UT itself rather than taking the caller's raw clock read.</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
+        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive calls — see <see cref="NextUt"/>.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
             Func<int, bool> isSubscribed,
-            Action<int, KosTerminalFrame> publish,
+            Action<int, KosTerminalFrame, double> publish,
             Func<int, IKosTerminalScreen?> createScreen,
+            Func<double> nowUt,
             double pollIntervalSeconds = 0.05)
         {
             _knownCoreIds = knownCoreIds ?? throw new ArgumentNullException(nameof(knownCoreIds));
             _isSubscribed = isSubscribed ?? throw new ArgumentNullException(nameof(isSubscribed));
             _publish = publish ?? throw new ArgumentNullException(nameof(publish));
             _createScreen = createScreen ?? throw new ArgumentNullException(nameof(createScreen));
+            _nowUt = nowUt ?? throw new ArgumentNullException(nameof(nowUt));
             _pollIntervalSeconds = pollIntervalSeconds;
         }
 
@@ -171,11 +184,51 @@ namespace Gonogo.Kos
                         CoreId = coreId,
                         Chunk = result.Chunk,
                         FullRepaint = result.FullRepaint,
-                    });
+                    }, NextUt(coreId));
                 }
             }
 
             DropStaleSessions(present);
+        }
+
+        /// <summary>
+        /// The <c>kos.terminal.&lt;coreId&gt;</c> downlink is a cursor-relative
+        /// DIFF stream, but it rides the shared Courier/Archive delay engine,
+        /// which resolves a subscriber's read to the LATEST sample with
+        /// <c>ValidAt &lt;= scene</c> (<see cref="Sitrep.Core.Archive.ReadAtVantage"/>)
+        /// — correct for state topics, but fatal for a diff stream if two
+        /// frames ever share a <c>ValidAt</c>: the earlier one is silently
+        /// dropped and the later one is delivered as if it applied cleanly,
+        /// corrupting every subsequent cursor-relative render.
+        ///
+        /// <see cref="Poll"/> runs at ~20Hz on the main thread, but the
+        /// injected <c>nowUt</c> clock (the Courier thread's ~50ms cadence in
+        /// production) advances independently — so a burst
+        /// of several frames published within one Poll-tick window can read
+        /// the exact same UT. This returns a UT that is STRICTLY greater
+        /// than the last one this manager published for
+        /// <paramref name="coreId"/>: the real clock reading when it has
+        /// already advanced, or the previous UT nudged forward by the
+        /// smallest bump that still survives the double comparisons in
+        /// Archive/Courier otherwise. The bump is negligible against reveal
+        /// timing (light-seconds) while guaranteeing no two frames collide,
+        /// and Courier's AdvanceTo drains scheduled deliveries in ascending
+        /// fire-UT order, so distinct, increasing ValidAt stamps are
+        /// sufficient for complete, in-order delivery.
+        ///
+        /// Deliberately CONTAINED to this one publish site — it does not
+        /// touch Archive/Courier's shared semantics, which every other
+        /// (state) topic still relies on.
+        /// </summary>
+        private double NextUt(int coreId)
+        {
+            var candidate = _nowUt();
+            if (_lastPublishedUt.TryGetValue(coreId, out var last) && candidate <= last)
+            {
+                candidate = last + UtEpsilon;
+            }
+            _lastPublishedUt[coreId] = candidate;
+            return candidate;
         }
 
         private Session GetOrCreateSession(int coreId)
@@ -212,6 +265,7 @@ namespace Gonogo.Kos
                 _sessions.Remove(coreId);
                 _leases.Remove(coreId);
                 _wasSubscribed.Remove(coreId);
+                _lastPublishedUt.Remove(coreId);
             }
         }
 
