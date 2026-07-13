@@ -97,7 +97,19 @@ namespace Gonogo.Kos
     {
         // Smallest bump that still survives the double comparisons in
         // Archive.ReadAtVantage/Courier — see NextUt's doc comment.
-        private const double UtEpsilon = 1e-6;
+        //
+        // Deliberately NOT a locally-hardcoded literal: this MUST stay at or
+        // below ChannelEngine.ProcessPublish's own stale-ut clamp tolerance
+        // (Sitrep.Host.ChannelEngine.PublishUtToleranceSeconds), or every
+        // epsilon-bumped frame gets clamped straight back to clock.Now(),
+        // colliding with the frame it was meant to stay ahead of and
+        // reproducing the original same-ValidAt garble with no test
+        // catching it. Both constants derive from the one shared value —
+        // see EnginePublishTolerance's doc comment for the full invariant,
+        // and Sitrep.Host.IntegrationTests.ChannelEngineTests
+        // .AnEpsilonBumpedSameTickPublishSurvivesTheStaleUtClampAndDeliversTwoDistinctFrames
+        // for the spanning test that exercises it end-to-end.
+        private const double UtEpsilon = EnginePublishTolerance.Seconds;
 
         // How far BELOW the tracked baseline nowUt has to read before
         // NextUt treats it as a genuine backward clock jump (an F9
