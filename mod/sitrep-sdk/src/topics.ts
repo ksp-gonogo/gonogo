@@ -17,13 +17,16 @@
 // additionally re-reads the C# `const string …Topic` declarations and asserts `TOPIC_IDS`
 // stays in exact sync.
 //
-// ── The scansat tail (NOT codegen-derived) ──────────────────────────────────────────
-// One Topic has no `Sitrep.Contract` payload TYPE to reflect, so it is declared by hand
-// below rather than generated — deliberately, because a fabricated contract type would
-// misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
+// ── The hand-declared tail (NOT codegen-derived) ────────────────────────────────────
+// Two Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are declared by
+// hand below rather than generated — deliberately, because a fabricated contract type
+// would misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
 //   • `scansat.available` is a bare JSON boolean (the uplink publishes `true`/`false`
 //     directly — see GonogoScansatUplink/ScansatUplink.cs), not an object, so there is
 //     no named payload type; it resolves to `boolean`.
+//   • `system.uplinks` is the engine-aggregated Uplink roster/health channel, declared
+//     by `ChannelEngine` itself and built as a dictionary in `BuildSystemUplinksPayload`
+//     (no `[SitrepTopic]` type), so its structured shape is hand-mirrored here.
 // (`scansat.scanningVessels` was previously in this tail as `unknown[]` while its element
 // shape was deferred; it now carries the wire-typed `ScanningVesselEntry` contract and is
 // codegen-derived like every other array Topic.)
@@ -43,14 +46,36 @@ export interface ScansatTopicPayloadMap {
 }
 
 /**
+ * `system.uplinks` — the engine-aggregated Uplink roster/health channel. `ChannelEngine`
+ * declares it directly (not any one Uplink's contract) and builds it as a dictionary in
+ * `BuildSystemUplinksPayload`, so it carries no `[SitrepTopic]` payload TYPE to reflect and
+ * is hand-declared here, mirroring the exact serialized wire shape. `health.state` is the
+ * integer ordinal of `UplinkHealthState` (0 Healthy / 1 Degraded / 2 Unavailable); the
+ * client decodes it in `uplink-health.ts`.
+ */
+export interface SystemUplinksTopicPayloadMap {
+  "system.uplinks": {
+    uplinks: Array<{
+      id: string;
+      version: string;
+      available: boolean;
+      reason: string | null;
+      health: { state: number; detail: string | null };
+    }>;
+  };
+}
+
+/**
  * The Topic → payload-type map. Keys are the wire Topic strings; values are the payload
  * a `stream-data` message on that Topic carries. The generated entries come from
- * `Sitrep.Contract`'s `[SitrepTopic]` tags; the two scansat entries are hand-declared
- * (see the file header). `TopicId` and `TopicPayload` are both derived from this map.
+ * `Sitrep.Contract`'s `[SitrepTopic]` tags; the `scansat.available` + `system.uplinks`
+ * entries are hand-declared (see the file header). `TopicId` and `TopicPayload` are both
+ * derived from this map.
  */
 export interface TopicPayloadMap
   extends GeneratedTopicPayloadMap,
-    ScansatTopicPayloadMap {}
+    ScansatTopicPayloadMap,
+    SystemUplinksTopicPayloadMap {}
 
 /** Every Topic the mod declares, as a string-literal union. */
 export type TopicId = keyof TopicPayloadMap;
@@ -68,6 +93,7 @@ export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
 export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "scansat.available",
+  "system.uplinks",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
