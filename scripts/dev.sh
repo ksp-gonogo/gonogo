@@ -137,15 +137,13 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 
 # Compute fingerprints up front so we can both decide what to rebuild
 # *and* persist the post-build state without recomputing.
-TELNET_FP=$(compute_fingerprint telnet-proxy)
 RELAY_FP=$(compute_fingerprint relay)
 
 REBUILD=""
 if [ "${BUILD:-0}" = "1" ]; then
-  echo "[dev] BUILD=1 — forcing rebuild of telnet-proxy + relay"
-  REBUILD="telnet-proxy relay"
+  echo "[dev] BUILD=1 — forcing rebuild of relay"
+  REBUILD="relay"
 else
-  needs_rebuild telnet-proxy "$TELNET_FP" && REBUILD="$REBUILD telnet-proxy"
   needs_rebuild relay "$RELAY_FP" && REBUILD="$REBUILD relay"
 fi
 
@@ -158,15 +156,12 @@ fi
 # without forcing a build context upload.
 podman compose up -d
 
-# Persist the just-built fingerprints so the *next* `pnpm dev` can
+# Persist the just-built fingerprint so the *next* `pnpm dev` can
 # detect what's changed since now.
-printf "%s\n" "$TELNET_FP" > "$CACHE_DIR/telnet-proxy.hash"
 printf "%s\n" "$RELAY_FP" > "$CACHE_DIR/relay.hash"
 
 WATCH_PIDS=""
-watch_service telnet-proxy &
-WATCH_PIDS="$WATCH_PIDS $!"
 watch_service relay &
 WATCH_PIDS="$WATCH_PIDS $!"
 
-turbo dev --filter='!@ksp-gonogo/telnet-proxy' --filter='!@ksp-gonogo/relay'
+turbo dev --filter='!@ksp-gonogo/relay'

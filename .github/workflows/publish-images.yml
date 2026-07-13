@@ -54,8 +54,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package: telnet-proxy
-            image: gonogo-telnet-proxy
           - package: relay
             image: gonogo-relay
     steps:
@@ -115,7 +113,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.package }}
           cache-to: type=gha,mode=max,scope=${{ matrix.package }}
 
-  # End-user bundle: app + relay + telnet-proxy in one image, served from
+  # End-user bundle: app + relay in one image, served from
   # Dockerfile.bundle (repo-root context). Separate job from the matrix
   # because it needs a GITHUB_TOKEN build-arg (the app pulls @jonpepler/
   # kerbcast from GitHub Packages) and a different Dockerfile shape.

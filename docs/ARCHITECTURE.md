@@ -15,8 +15,6 @@ packages/
   kerbcast/     — Consumer of the kerbcast camera-streaming sidecar; registers
                  a `kerbcast` data source + the Camera Feed widget
   app/         — Vite + React SPA (main screen + station mode)
-  telnet-proxy/— Fastify server: spawns system telnet via node-pty, bridges
-                 to a WebSocket the browser can consume (kOS only)
   relay/       — Fastify server hosting /ice-config (TURN credentials) and a
                  coturn TURN/STUN child process with a per-restart-rotated
                  shared secret, for the camera channel and future
@@ -30,17 +28,16 @@ Package names use the `@ksp-gonogo/` scope.
 
 ```
 KSP + Gonogo mod (Sitrep telemetry, WS) ──► Main screen (direct, ws://host:8090)
-KSP (kOS via telnet)                    ──► @ksp-gonogo/telnet-proxy (Fastify + node-pty
-                                              + system telnet) ──► Main screen (WebSocket)
+KSP (kOS)                               ──► Gonogo mod kos.run / kos.processors
+                                              Uplink (same WS stream) ──► Main screen
 Main screen ◄──► Station screens (PeerJS data channels, via a public broker)
 ```
 
-The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. The telnet proxy is **only** required for kOS; without it every other feature still works. The app shows proxy connection status prominently.
+The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). kOS integration rides this same stream now — script dispatch over the `kos.run` command and CPU discovery over the `kos.processors` channel — so there is no separate telnet proxy anymore.
 
-Two design constraints fall out of this:
+The main-screen-is-sole-consumer constraint falls out of this:
 
 - **The main screen is the sole KSP data consumer.** Stations never talk to KSP directly; they receive data exclusively from the main screen over PeerJS.
-- **The telnet proxy is optional infrastructure, not a core dependency.** The app must function (minus kOS features) without it.
 
 ## `@ksp-gonogo/core`
 
@@ -94,6 +91,7 @@ const execute = useCommand('data');           // fires a mapped action, same cal
 
 External Uplinks (mod-adjacent packages, not just built-in widgets) can also contribute UI into a host widget's named **augment slots** via `registerAugment`/`<AugmentSlot>`, without the host and the augment referencing each other directly.
 
+
 ## `@ksp-gonogo/components`
 
 The built-in widget library. Each widget file calls `registerComponent()` on import; there is no central index that lists them. The orchestrator just imports the package and registration happens as a side effect.
@@ -106,7 +104,7 @@ The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator**: a layout engine on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout). It reads the layout config and renders registered widgets by id; it hardcodes no widget. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised format stores a per-breakpoint map (`lg`, `md`, `sm`, …) so the grid reflows across screen sizes. Per-instance widget config is stored alongside the layout.
 - **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts the live `WebSocketTransport` to the Gonogo mod and feeds it into `@ksp-gonogo/sitrep-client`'s `TelemetryClient`/`TimelineStore`, which `useTelemetry`/`useCommand` read from directly (see the Data flow section above).
-- **kOS WebSocket client** connects to `@ksp-gonogo/telnet-proxy` and degrades gracefully if the proxy is unreachable.
+- **kOS integration** rides the Gonogo mod's sitrep stream: script dispatch over the `kos.run` Uplink command and CPU discovery over the `kos.processors` channel. It degrades gracefully when no stream is mounted.
 - **PeerJS integration**: the main screen is the peer host; stations connect as peers. The main screen distributes a serialised data snapshot to all peers; stations can send state back (e.g. GO/NO-GO votes).
 - **Station config** is localStorage-first. Stations can request a config from the main screen over PeerJS, and the main screen can push saved configs to connecting stations.
 

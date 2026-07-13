@@ -30,8 +30,8 @@ To run it, you have two choices:
 # Enough for the core telemetry dashboard.
 pnpm --filter @ksp-gonogo/app dev
 
-# Full stack: also brings up the telnet-proxy and relay containers via
-# `podman compose`, then runs Vite. Needed for kOS and cross-network stations.
+# Full stack: also brings up the relay container via `podman compose`, then
+# runs Vite. Needed for cross-network stations (TURN relay).
 pnpm dev
 ```
 

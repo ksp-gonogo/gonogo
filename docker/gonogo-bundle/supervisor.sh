@@ -1,12 +1,11 @@
 #!/bin/bash
-# Supervisor for the gonogo bundle image. Runs three long-lived processes:
+# Supervisor for the gonogo bundle image. Runs two long-lived processes:
 #   1. static server  — the app SPA on $APP_PORT (history-fallback for /station)
 #   2. relay (node)    — /ice-config + host registry on $RELAY_PORT; spawns coturn
-#   3. telnet-proxy    — kOS telnet↔ws bridge on $PROXY_PORT
 #
 # tini is PID 1 (see ENTRYPOINT) so orphan reaping + signal delivery are
-# handled. This script's job is to start the three, propagate a shutdown
-# signal to all of them, and exit if any one dies (so the container restarts
+# handled. This script's job is to start the two, propagate a shutdown
+# signal to both, and exit if either dies (so the container restarts
 # as a unit rather than limping along half-up).
 #
 # bash (not sh): node:24-bookworm-slim is Debian, where bash is Essential, so
@@ -39,10 +38,6 @@ pids="$pids $!"
 
 echo "[supervisor] starting relay on :${RELAY_PORT:-3002}"
 ( cd /app/relay && node dist/index.js ) &
-pids="$pids $!"
-
-echo "[supervisor] starting telnet-proxy on :${PROXY_PORT:-3001}"
-( cd /app/telnet-proxy && node dist/index.js ) &
 pids="$pids $!"
 
 # Block until the first child exits, then tear the rest down so the

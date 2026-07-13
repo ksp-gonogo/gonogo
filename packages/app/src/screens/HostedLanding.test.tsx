@@ -14,7 +14,7 @@ describe("HostedLanding", () => {
       screen.getByRole("link", { name: /set up gonogo/i }),
     ).toHaveAttribute(
       "href",
-      expect.stringContaining("github.com/ksp-gonogo/gonogo"),
+      expect.stringContaining("github.com/jonpepler/gonogo"),
     );
     expect(
       screen.getByRole("link", { name: /station screen/i }),

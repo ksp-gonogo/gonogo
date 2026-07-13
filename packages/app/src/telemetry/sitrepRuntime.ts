@@ -12,7 +12,7 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
  * Split out from `SitrepTelemetryProvider.tsx` so the panel's config
  * shim can read/write the same state without importing React-provider
  * internals, and so `seedKspHost.ts` can seed it exactly like it does
- * `seedKosHost`/`seedKerbcastHost`.
+ * `seedKerbcastHost`.
  */
 
 // --- Host + port config ------------------------------------------------
@@ -78,8 +78,8 @@ export function subscribeSitrepHostConfig(cb: () => void): () => void {
 
 /**
  * First-run seeding from the bundle's `KSP_HOST` (via the relay's
- * `/bootstrap-config`) — the Sitrep counterpart of `seedKosHost`/
- * `seedKerbcastHost` in `seedKspHost.ts`. No-op once the user has saved
+ * `/bootstrap-config`) — the Sitrep counterpart of `seedKerbcastHost` in
+ * `seedKspHost.ts`. No-op once the user has saved
  * their own config.
  */
 export function seedSitrepHost(host: string): void {

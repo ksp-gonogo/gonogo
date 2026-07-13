@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# `pnpm play` brings up the same proxy + relay containers as `pnpm dev`
+# `pnpm play` brings up the same relay container as `pnpm dev`
 # but serves the production-built SPA via `vite preview` instead of the
 # Vite dev server. No HMR, no source watchers — meant for actually
 # playing rather than coding. The browser hits `http://localhost:4173`
@@ -94,15 +94,13 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 # ──────────────────────────────────────────────────────────────────────
 # Containers — same fingerprint logic as dev.sh
 # ──────────────────────────────────────────────────────────────────────
-TELNET_FP=$(compute_fingerprint telnet-proxy)
 RELAY_FP=$(compute_fingerprint relay)
 
 REBUILD=""
 if [ "${BUILD:-0}" = "1" ]; then
-  echo "[play] BUILD=1 — forcing rebuild of telnet-proxy + relay"
-  REBUILD="telnet-proxy relay"
+  echo "[play] BUILD=1 — forcing rebuild of relay"
+  REBUILD="relay"
 else
-  needs_rebuild telnet-proxy "$TELNET_FP" && REBUILD="$REBUILD telnet-proxy"
   needs_rebuild relay "$RELAY_FP" && REBUILD="$REBUILD relay"
 fi
 
@@ -113,7 +111,6 @@ if [ -n "$REBUILD" ]; then
 fi
 podman compose up -d
 
-printf "%s\n" "$TELNET_FP" > "$CACHE_DIR/telnet-proxy.hash"
 printf "%s\n" "$RELAY_FP" > "$CACHE_DIR/relay.hash"
 
 # ──────────────────────────────────────────────────────────────────────

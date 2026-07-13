@@ -11,8 +11,8 @@ import type { FastifyInstance, FastifyReply } from "fastify";
  *   - `GET  /analytics-config`         — pull the current value.
  *   - `GET  /analytics-config/stream`  — Server-Sent Events: the current
  *                                        value on subscribe, then every
- *                                        change. The telnet-proxy subscribes
- *                                        here to gate its own Axiom sink.
+ *                                        change, for any service that wants
+ *                                        to gate its own Axiom sink on it.
  *   - `POST /analytics-config`         — host pushes `{ enabled: boolean }`.
  *
  * In-memory only, single-instance assumption — same as the host registry.

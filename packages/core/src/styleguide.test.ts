@@ -50,8 +50,7 @@ const ALLOWED_PATHS = [
   "packages/components/src/MapView/index.tsx",
 ];
 
-// Source roots to scan. Excludes telnet-proxy / relay because they're
-// servers, not UI.
+// Source roots to scan. Excludes the relay because it's a server, not UI.
 const SCAN_ROOTS = [
   "packages/app/src",
   "packages/components/src",

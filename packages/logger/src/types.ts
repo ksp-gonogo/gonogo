@@ -7,12 +7,7 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-export type DeviceRole =
-  | "host"
-  | "station"
-  | "relay"
-  | "telnet-proxy"
-  | "unknown";
+export type DeviceRole = "host" | "station" | "relay" | "unknown";
 
 export interface DeviceIdentity {
   role: DeviceRole;
