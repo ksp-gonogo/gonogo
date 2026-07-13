@@ -1,4 +1,4 @@
-import type { KosScriptArg } from "@ksp-gonogo/data";
+import type { KosManagedScript, KosScriptArg } from "@ksp-gonogo/data";
 
 /**
  * Per-dispatch wrapper that keeps the on-volume copy of a widget's
@@ -82,6 +82,47 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
     `RUNPATH(${argList}).`,
   ];
   return `${out.join("\n")}\n`;
+}
+
+/**
+ * Build the exact command text a single `executeScript` call dispatches over
+ * the `kos.run` Uplink — the managed wrapper (via {@link buildKosWrapper})
+ * when `managed` is supplied, or a bare `RUNPATH(...)` otherwise. Consumed
+ * by the `kos.run` Uplink path (`kosUplinkExecutor.ts`) — the wrapper's
+ * file-sync trick works because it's plain kerboscript, transport-agnostic.
+ */
+export function buildKosRunCommand(
+  script: string,
+  args: KosScriptArg[],
+  managed: KosManagedScript | null,
+): string {
+  if (managed) {
+    return buildKosWrapper({
+      path: script,
+      body: managed.body,
+      version: managed.version,
+      args,
+    });
+  }
+  const argList = [JSON.stringify(script), ...args.map(formatBareArg)].join(
+    ", ",
+  );
+  return `RUNPATH(${argList}).\n`;
+}
+
+/**
+ * Arg formatter for the bare (unmanaged) `RUNPATH` form — kept distinct
+ * from this file's sentinel-safe `formatArg` (used inside
+ * {@link buildKosWrapper}'s wrapper body, which must also survive
+ * `[KOSDATA]`-sentinel splitting). A bare RUNPATH argument list is never
+ * echoed back through the parser as source, so simple `"`-doubling is
+ * sufficient — this mirrors what `kosComputeSession.ts`'s `drain()` used
+ * to build inline before this function was extracted.
+ */
+function formatBareArg(arg: KosScriptArg): string {
+  if (typeof arg === "number") return String(arg);
+  if (typeof arg === "boolean") return arg ? "true" : "false";
+  return `"${arg.replace(/"/g, '""')}"`;
 }
 
 /**

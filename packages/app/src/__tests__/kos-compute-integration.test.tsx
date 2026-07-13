@@ -1,8 +1,14 @@
 /**
  * Integration tests for the kOS compute pipeline, growing scenario-by-
- * scenario as each task lands. Everything below the hook boundary (data
- * source, per-CPU session, menu selection, queueing, [KOSDATA] parsing) is
- * exercised against MockKosTelnet — no PeerJS or xterm in the loop.
+ * scenario as each task lands.
+ *
+ * `executeScript` dispatches over the `kos.run` Uplink (see
+ * `../dataSources/kosUplinkExecutor.ts`) — every scenario below runs against
+ * `FakeKosUplink`, a fake `kos.run` + `kos.processors` responder. There is
+ * no telnet path anymore; the old `MockKosTelnet` menu-peek fixture and the
+ * telnet-only `parseKosError` scenarios (#7, #8) were removed with the
+ * telnet-proxy. CPU discovery now rides `kos.processors` off the same stream
+ * (see the discovery scenarios below).
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
@@ -10,21 +16,13 @@ import { isKosScriptError, useKosWidget } from "@ksp-gonogo/data";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
-import { MockKosTelnet } from "./fixtures/MockKosTelnet";
+import { FakeKosUplink } from "./fixtures/FakeKosUplink";
 
 function makeSource(opts: { callTimeoutMs?: number } = {}) {
   return new KosDataSource(
-    {
-      host: "localhost",
-      port: 3001,
-      kosHost: "localhost",
-      kosPort: 5410,
-      activeCpu: "datastream",
-    },
+    { activeCpu: "datastream" },
     {
       callTimeoutMs: opts.callTimeoutMs ?? 2_000,
-      // MockKosTelnet doesn't simulate kOS's welcomeMenu detach race, so
-      // skip the post-attach settle delay — otherwise every test eats 300ms.
       postAttachDrainDelayMs: 0,
     },
   );
@@ -33,20 +31,13 @@ function makeSource(opts: { callTimeoutMs?: number } = {}) {
 describe("kOS compute integration", () => {
   afterEach(() => {
     cleanup();
-    MockKosTelnet.uninstall();
+    FakeKosUplink.uninstall();
     clearRegistry();
   });
 
   it("scenario #1: happy path — selects CPU by tagname, runs script, resolves parsed data", async () => {
-    const mock = MockKosTelnet.install();
-    mock.setCpus([
-      {
-        number: 1,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "datastream",
-      },
-    ]);
+    const mock = FakeKosUplink.install();
+    mock.setCpus([{ number: 1, tagname: "datastream" }]);
     mock.registerScript("deltav", (inv) => {
       const stage = Number(inv.args[0]);
       return `[KOSDATA] stage=${stage};dv=${stage * 1000};available=true [/KOSDATA]`;
@@ -69,7 +60,7 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #2: same-CPU calls serialise — second RUN waits for first [KOSDATA]", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
 
     // Boxed resolvers — TS's control-flow narrowing doesn't track
     // reassignment from inside closures, so a plain `let x: Fn | null`
@@ -109,10 +100,10 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #3: different-CPU calls run in parallel across independent sessions", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.setCpus([
-      { number: 1, vesselName: "S", partType: "K", tagname: "alpha" },
-      { number: 2, vesselName: "S", partType: "K", tagname: "beta" },
+      { number: 1, tagname: "alpha" },
+      { number: 2, tagname: "beta" },
     ]);
 
     const resolvers = new Map<string, (s: string) => void>();
@@ -143,7 +134,7 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #4: useKosWidget (command mode) — dispatch runs the script and surfaces parsed data", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript("add", (inv) => {
       const [a, b] = inv.args.map(Number);
       return `[KOSDATA] sum=${a + b} [/KOSDATA]`;
@@ -187,7 +178,7 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #5: interval mode — overlapping ticks are skipped, resumes once the current call resolves", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     const slot: { resolve?: (s: string) => void } = {};
     mock.registerScript("poll", () => {
       return new Promise<string>((resolve) => {
@@ -242,7 +233,7 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #6: telemetry-type args resolve to the current Telemachus value at dispatch time", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript("snapshot", (inv) => {
       return `[KOSDATA] echoed=${inv.args[0]} [/KOSDATA]`;
     });
@@ -301,76 +292,8 @@ describe("kOS compute integration", () => {
     source.disconnect();
   });
 
-  it("scenario #7: rejects with the kOS error message when a runtime error fires (no Message: line)", async () => {
-    const mock = MockKosTelnet.install();
-    const DIVIDER = "_".repeat(42);
-    mock.registerScript("badsuffix", () =>
-      [
-        // Inline headline kOS prints at the top of an error block.
-        `GET Suffix 'VALUEX' not found on object VESSEL("Hopper")`,
-        DIVIDER,
-        "           VERBOSE DESCRIPTION",
-        // Runtime errors restate the headline on the first verbose line.
-        `GET Suffix 'VALUEX' not found on object VESSEL("Hopper")`,
-        "An attempt was made to get a suffix called:",
-        "    valuex",
-        "from an object of type:",
-        "    VesselTarget",
-        DIVIDER,
-        DIVIDER,
-        "At interpreter, line 13",
-        "print ship:valuex.",
-        "      ^",
-      ].join("\n"),
-    );
-
-    const source = makeSource();
-    await expect(
-      source.executeScript("datastream", "badsuffix", []),
-    ).rejects.toThrow(/kOS error: GET Suffix 'VALUEX' not found/);
-
-    source.disconnect();
-  });
-
-  it("scenario #8: prefers the explicit Message: line for TinyPG-style syntax errors", async () => {
-    const mock = MockKosTelnet.install();
-    const DIVIDER = "_".repeat(42);
-    mock.registerScript("badsyntax", () =>
-      [
-        // Inline echo + headline (real kOS prints both).
-        `print "hello!"`,
-        `Syntax: Unexpected token 'EOF' found. Expected EOI at line 1`,
-        `print "hello!"`,
-        `              ^`,
-        DIVIDER,
-        "           VERBOSE DESCRIPTION",
-        "The parser used by kOS is complaining about a",
-        "part of the script it can't understand.",
-        "Error   Line: 1",
-        "Error Column: 0",
-        // Test asserts on this exact text — the parser should pull it out
-        // in preference to the verbose prose above.
-        "Message: Unexpected token 'EOF' found. Expected EOI",
-        DIVIDER,
-        `print "hello!"`,
-        DIVIDER,
-        DIVIDER,
-        "At interpreter",
-        "<<--EOF",
-        "^",
-      ].join("\n"),
-    );
-
-    const source = makeSource();
-    await expect(
-      source.executeScript("datastream", "badsyntax", []),
-    ).rejects.toThrow(/kOS error: Unexpected token 'EOF' found\. Expected EOI/);
-
-    source.disconnect();
-  });
-
   it("scenario #9: rejects with the [KOSERROR] message verbatim (no prefix — the script author owns the wording)", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       "abortburn",
       () => "[KOSERROR] engine flameout, abort burn [/KOSERROR]",
@@ -387,25 +310,16 @@ describe("kOS compute integration", () => {
 
   it("scenario #9b: KOSUndefinedIdentifierException-shaped runtime error rejects with KosScriptError so the breaker can catch it", async () => {
     // The exact shape that motivated the breaker: gonogo's wrapper
-    // bootstrap referenced `needswrite` before declaration. kOS prints
-    // a VERBOSE DESCRIPTION block restating the headline; parseKosError
-    // pulls the headline out, KosDataSource wraps it in KosScriptError,
-    // and useKosWidget's interval-mode breaker counts it.
-    const mock = MockKosTelnet.install();
-    const DIVIDER = "_".repeat(42);
-    mock.registerScript("undef", () =>
-      [
-        `Undefined Variable Name 'needswrite'.`,
-        DIVIDER,
-        "           VERBOSE DESCRIPTION",
-        `Undefined Variable Name 'needswrite'.`,
-        DIVIDER,
-        DIVIDER,
-        "At interpreter, line 8",
-        `IF needswrite {`,
-        "   ^",
-      ].join("\n"),
-    );
+    // bootstrap referenced `needswrite` before declaration. On the kos.run
+    // Uplink the mod already extracts the clean headline server-side
+    // (KosRunManager.Complete / KosComputeBlock — see the file header for
+    // why the raw-dump-parsing version of this scenario was retired), so
+    // the fake responder here hands back that same clean message directly.
+    // What this scenario still proves: KosDataSource wraps ANY kos.run
+    // error into KosScriptError, and useKosWidget's interval-mode breaker
+    // counts it.
+    const mock = FakeKosUplink.install();
+    mock.registerScript("undef", () => "Undefined Variable Name 'needswrite'.");
 
     const source = makeSource();
     let caught: unknown;
@@ -422,7 +336,7 @@ describe("kOS compute integration", () => {
   });
 
   it("scenario #10: [KOSERROR] wins over [KOSDATA] when both appear", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       "partial",
       () =>
@@ -437,126 +351,80 @@ describe("kOS compute integration", () => {
     source.disconnect();
   });
 
-  it("scenario #11: onCpusDiscovered fires with every CPU on the active vessel — even ones the session isn't targeting", async () => {
-    const mock = MockKosTelnet.install();
+  it("scenario #11: onProcessorsChanged fires with every CPU on the active vessel — including ones no script ever targets", async () => {
+    // Discovery rides the mod's native kos.processors push channel now — no
+    // widget or executeScript needed; adopting the active stream client
+    // (via connect()) stands up the standing subscription.
+    const mock = FakeKosUplink.install();
     mock.setCpus([
-      {
-        number: 1,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "datastream",
-      },
-      {
-        number: 2,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "lander",
-      },
-      {
-        number: 3,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "probe",
-      },
+      { number: 1, tagname: "datastream" },
+      { number: 2, tagname: "lander" },
+      { number: 3, tagname: "probe" },
     ]);
-    mock.registerScript("noop", () => "[KOSDATA] ok=true [/KOSDATA]");
 
     const source = makeSource();
     const seen = vi.fn();
-    source.onCpusDiscovered(seen);
+    source.onProcessorsChanged(seen);
 
-    // Trigger a session — the menu read happens during attach, before
-    // executeScript resolves.
-    await source.executeScript("datastream", "noop", []);
+    await source.connect();
 
-    // The menu fires once on attach, possibly more if the session re-parses;
-    // we just need to assert at least one call delivered the full list.
-    expect(seen).toHaveBeenCalled();
-    const cpus = seen.mock.calls[0][0];
-    expect(cpus.map((c: { tagname: string }) => c.tagname)).toEqual([
+    await waitFor(() => expect(seen).toHaveBeenCalled());
+    const procs = seen.mock.calls.at(-1)?.[0];
+    expect(procs.map((p: { tag: string }) => p.tag)).toEqual([
       "datastream",
       "lander",
       "probe",
     ]);
-
-    source.disconnect();
-  });
-
-  it("scenario #11c: menu-peek session feeds discovery on connect — no widget needed", async () => {
-    const mock = MockKosTelnet.install();
-    mock.setCpus([
-      {
-        number: 1,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "datastream",
-      },
-      {
-        number: 2,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "lander",
-      },
-    ]);
-
-    const source = makeSource();
-    const seen = vi.fn();
-    source.onCpusDiscovered(seen);
-
-    await source.connect();
-    // Mock opens + emits the menu on the next microtask.
-    await waitFor(() => expect(seen).toHaveBeenCalled());
-
-    const cpus = seen.mock.calls[0][0];
-    expect(cpus.map((c: { tagname: string }) => c.tagname)).toEqual([
-      "datastream",
-      "lander",
-    ]);
-    // We never called executeScript, so no per-CPU sessions exist — the
-    // discovery came purely from the menu peek.
+    // Discovery came purely from kos.processors — no script was dispatched.
     expect(mock.invocations()).toHaveLength(0);
 
     source.disconnect();
   });
 
-  it("scenario #11d: menu-peek refreshes discovery when the CPU list changes", async () => {
-    const mock = MockKosTelnet.install();
+  it("scenario #11c: kos.processors feeds discovery on connect — no widget needed", async () => {
+    const mock = FakeKosUplink.install();
     mock.setCpus([
-      {
-        number: 1,
-        vesselName: "Old Ship",
-        partType: "KAL9000",
-        tagname: "datastream",
-      },
+      { number: 1, tagname: "datastream" },
+      { number: 2, tagname: "lander" },
     ]);
 
     const source = makeSource();
     const seen = vi.fn();
-    source.onCpusDiscovered(seen);
+    source.onProcessorsChanged(seen);
+
+    await source.connect();
+    await waitFor(() => expect(seen).toHaveBeenCalled());
+
+    const procs = seen.mock.calls.at(-1)?.[0];
+    expect(procs.map((p: { tag: string }) => p.tag)).toEqual([
+      "datastream",
+      "lander",
+    ]);
+    expect(mock.invocations()).toHaveLength(0);
+
+    source.disconnect();
+  });
+
+  it("scenario #11d: discovery refreshes when the CPU list changes", async () => {
+    const mock = FakeKosUplink.install();
+    mock.setCpus([{ number: 1, tagname: "datastream" }]);
+
+    const source = makeSource();
+    const seen = vi.fn();
+    source.onProcessorsChanged(seen);
 
     await source.connect();
     await waitFor(() => expect(seen).toHaveBeenCalled());
 
     // Simulate a vessel switch that changes the CPU set.
     mock.setCpus([
-      {
-        number: 1,
-        vesselName: "New Ship",
-        partType: "KAL9000",
-        tagname: "lander",
-      },
-      {
-        number: 2,
-        vesselName: "New Ship",
-        partType: "KAL9000",
-        tagname: "probe",
-      },
+      { number: 1, tagname: "lander" },
+      { number: 2, tagname: "probe" },
     ]);
-    mock.emitListChanged();
 
     await waitFor(() => {
-      const last = seen.mock.calls[seen.mock.calls.length - 1][0];
-      expect(last.map((c: { tagname: string }) => c.tagname)).toEqual([
+      const last = seen.mock.calls.at(-1)?.[0];
+      expect(last.map((p: { tag: string }) => p.tag)).toEqual([
         "lander",
         "probe",
       ]);
@@ -565,23 +433,20 @@ describe("kOS compute integration", () => {
     source.disconnect();
   });
 
-  it("scenario #11b: onCpusDiscovered unsubscribe stops further callbacks", async () => {
-    const mock = MockKosTelnet.install();
-    mock.setCpus([
-      {
-        number: 1,
-        vesselName: "Test Ship",
-        partType: "KAL9000",
-        tagname: "datastream",
-      },
-    ]);
-    mock.registerScript("noop", () => "[KOSDATA] ok=true [/KOSDATA]");
+  it("scenario #11b: onProcessorsChanged unsubscribe stops further callbacks", async () => {
+    const mock = FakeKosUplink.install();
+    mock.setCpus([{ number: 1, tagname: "datastream" }]);
 
     const source = makeSource();
     const seen = vi.fn();
-    const unsub = source.onCpusDiscovered(seen);
+    const unsub = source.onProcessorsChanged(seen);
     unsub();
-    await source.executeScript("datastream", "noop", []);
+
+    // Adopt the stream (the discovery source now) and give it every chance
+    // to fire before asserting it didn't.
+    await source.connect();
+    mock.setCpus([{ number: 2, tagname: "lander" }]);
+    await new Promise((r) => setTimeout(r, 10));
     expect(seen).not.toHaveBeenCalled();
     source.disconnect();
   });

@@ -115,5 +115,68 @@ namespace Gonogo.Kos.Tests
             // The closing marker alone can't complete a block the buffer forgot.
             Assert.Empty(acc.Append(1, "[/KOSDATA]"));
         }
+
+        // --- [KOSERROR] detection (kos-uplink-full-migration.md) -----------
+
+        [Fact]
+        public void Append_ExplicitKosErrorBlock_EmitsAnErrorBlockNotData()
+        {
+            var acc = new KosComputeAccumulator();
+
+            var blocks = acc.Append(1, "[KOSERROR]engine flameout[/KOSERROR]").ToList();
+
+            var block = Assert.Single(blocks);
+            Assert.True(block.IsError);
+            Assert.Equal("engine flameout", block.ErrorMessage);
+            Assert.Empty(block.Fields);
+        }
+
+        [Fact]
+        public void Append_KosErrorBlockTrimsWhitespace()
+        {
+            var acc = new KosComputeAccumulator();
+
+            var blocks = acc.Append(1, "[KOSERROR]  padded message  [/KOSERROR]").ToList();
+
+            Assert.Equal("padded message", Assert.Single(blocks).ErrorMessage);
+        }
+
+        [Fact]
+        public void Append_KosErrorSplitAcrossFragments_EmitsWhenClosed()
+        {
+            var acc = new KosComputeAccumulator();
+
+            Assert.Empty(acc.Append(1, "[KOSERROR]enough thr"));
+            var blocks = acc.Append(1, "ust[/KOSERROR]").ToList();
+
+            Assert.Equal("enough thrust", Assert.Single(blocks).ErrorMessage);
+        }
+
+        [Fact]
+        public void Append_DataThenError_EmitsBothInOrder()
+        {
+            var acc = new KosComputeAccumulator();
+
+            var blocks = acc.Append(1,
+                "[KOSDATA:a]x=1[/KOSDATA][KOSERROR]bad[/KOSERROR]").ToList();
+
+            Assert.Equal(2, blocks.Count);
+            Assert.False(blocks[0].IsError);
+            Assert.Equal("a", blocks[0].Topic);
+            Assert.True(blocks[1].IsError);
+            Assert.Equal("bad", blocks[1].ErrorMessage);
+        }
+
+        [Fact]
+        public void Append_OrdinaryDataBlock_IsNotFlaggedAsError()
+        {
+            var acc = new KosComputeAccumulator();
+
+            var blocks = acc.Append(1, "[KOSDATA:a]x=1[/KOSDATA]").ToList();
+
+            var block = Assert.Single(blocks);
+            Assert.False(block.IsError);
+            Assert.Null(block.ErrorMessage);
+        }
     }
 }

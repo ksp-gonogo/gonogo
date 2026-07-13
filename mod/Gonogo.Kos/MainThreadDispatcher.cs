@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Gonogo.Kos
 {
@@ -39,6 +40,17 @@ namespace Gonogo.Kos
     {
         private readonly ConcurrentQueue<Action> _queue = new ConcurrentQueue<Action>();
         private readonly Action<Exception> _onActionError;
+
+        // Managed thread id of the thread that drains this dispatcher (the KSP
+        // main thread in production, where KosMainThreadDispatcherAddon.Update
+        // calls Drain every frame). Recorded on every Drain so a caller can ask
+        // — via IsOnDrainThread — whether it is ALREADY running on that thread
+        // and must therefore NOT Dispatch-and-block (which would wedge the whole
+        // main thread: the Drain that would run the queued action can never run
+        // while the same thread is parked waiting on it). -1 until the first
+        // Drain; ManagedThreadId is always >= 1, so the sentinel can never
+        // collide with a real thread.
+        private volatile int _drainThreadId = -1;
 
         /// <param name="onActionError">
         /// Invoked, on the draining thread, for every action that throws
@@ -93,6 +105,11 @@ namespace Gonogo.Kos
         /// </summary>
         public void Drain()
         {
+            // Record the draining thread so re-entrant callers already on it can
+            // detect the case and run inline instead of self-deadlocking (see
+            // IsOnDrainThread / KosExtension.RunOnMainThread).
+            _drainThreadId = Thread.CurrentThread.ManagedThreadId;
+
             var count = _queue.Count;
             for (var i = 0; i < count; i++)
             {
@@ -117,5 +134,17 @@ namespace Gonogo.Kos
 
         /// <summary>Actions currently queued, awaiting the next <see cref="Drain"/>. Test/diagnostic use.</summary>
         public int PendingCount => _queue.Count;
+
+        /// <summary>
+        /// True iff the calling thread IS the thread that drains this
+        /// dispatcher (recorded on the most recent <see cref="Drain"/>). The
+        /// reentrancy signal that lets a main-thread-marshalling caller
+        /// (<see cref="KosExtension.RunOnMainThread"/>) run inline rather than
+        /// <see cref="Dispatch"/>-and-block when it is already ON the main
+        /// thread — the production reality once the <c>ChannelEngine</c> has
+        /// marshalled a command handler onto the main-thread pump. False until
+        /// the first <see cref="Drain"/> (nothing has claimed the thread yet).
+        /// </summary>
+        public bool IsOnDrainThread => _drainThreadId == Thread.CurrentThread.ManagedThreadId;
     }
 }

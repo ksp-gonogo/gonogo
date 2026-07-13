@@ -80,5 +80,32 @@ namespace Gonogo.Kos
         /// disclosed gap, not a wiring omission.</para>
         /// </summary>
         public static string ComputeStatusSubTopic(string scriptId) => scriptId + ".status";
+
+        /// <summary>
+        /// Command: run an arbitrary, caller-supplied command line on a CPU's
+        /// REPL and correlate the resulting <c>[KOSDATA]</c>/<c>[KOSERROR]</c>
+        /// block back via <see cref="RunTopic"/> (<see cref="Sitrep.Contract.KosRunArgs"/>).
+        /// The general-purpose replacement for the standalone telnet proxy's
+        /// ad-hoc <c>executeScript</c> RPC — see
+        /// <c>kos-uplink-full-migration.md</c>. Distinct from
+        /// <see cref="ExecCommand"/>: that one triggers a fixed, pre-registered
+        /// compute-topic script by id and reports nothing back directly; this
+        /// one runs whatever command text the caller built and reports back
+        /// exactly that call's result.
+        /// </summary>
+        public const string RunCommand = "kos.run";
+
+        /// <summary>
+        /// Dynamic namespace prefix for the <c>kos.run</c> result channel:
+        /// <c>kos.run.&lt;coreId&gt;</c> (<c>Delivery.ReliableOrdered</c>,
+        /// <c>DelayRole.Delayed</c>). Payload = <see cref="Sitrep.Contract.KosRunResult"/>.
+        /// </summary>
+        public const string RunPrefix = "kos.run.";
+
+        /// <summary>The concrete result sub-topic (relative to <see cref="RunPrefix"/>) for one CPU: the <c>KOSCoreId</c> as a string.</summary>
+        public static string RunSubTopic(int coreId) => coreId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>The full result topic for one CPU: <c>kos.run.&lt;coreId&gt;</c>.</summary>
+        public static string RunTopic(int coreId) => RunPrefix + RunSubTopic(coreId);
     }
 }

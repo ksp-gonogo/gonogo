@@ -53,6 +53,7 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
+import { KosCpuDiscovery } from "../dataSources/KosCpuDiscovery";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
@@ -172,13 +173,17 @@ export function MainScreen() {
   }, [serialService]);
 
   useEffect(() => {
-    // Auto-populate the kOS CPU registry from the menu the proxy reads
-    // every time we attach. Stations don't fire this hook — they don't
-    // talk to the proxy directly.
+    // Auto-populate the kOS CPU registry from the mod's native kos.processors
+    // push channel (surfaced by KosDataSource off the sitrep stream). The
+    // standing subscription itself is stood up by <KosCpuDiscovery> inside the
+    // telemetry provider below. Stations don't fire this hook — they don't
+    // dispatch to kOS directly.
     const kos = getDataSource("kos");
     if (!(kos instanceof KosDataSource)) return;
-    return kos.onCpusDiscovered((cpus) => {
-      cpuRegistry.reportOnline(cpus.map((c) => c.tagname));
+    return kos.onProcessorsChanged((procs) => {
+      cpuRegistry.reportOnline(
+        procs.map((p) => p.tag).filter((tag): tag is string => Boolean(tag)),
+      );
     });
   }, [cpuRegistry]);
 
@@ -200,6 +205,7 @@ export function MainScreen() {
   return (
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
+      <KosCpuDiscovery />
       <ReplaySessionProvider>
         <ScreenProvider value="main">
           <SettingsProvider service={settingsService}>

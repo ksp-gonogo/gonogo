@@ -1,6 +1,6 @@
 import { hashKosScript } from "@ksp-gonogo/data";
 import { describe, expect, it } from "vitest";
-import { buildKosWrapper } from "./kosWrapper";
+import { buildKosRunCommand, buildKosWrapper } from "./kosWrapper";
 
 describe("hashKosScript", () => {
   it("is stable across calls", () => {
@@ -186,5 +186,32 @@ describe("buildKosWrapper", () => {
       args: [],
     });
     expect(out.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("buildKosRunCommand", () => {
+  it("builds a bare RUNPATH when managed is null — same text as before extraction", () => {
+    const cmd = buildKosRunCommand("0:/foo.ks", [1.5, true, "hi"], null);
+    expect(cmd).toBe('RUNPATH("0:/foo.ks", 1.5, true, "hi").\n');
+  });
+
+  it("escapes a quote in a bare string arg by doubling it (not CHAR(34))", () => {
+    const cmd = buildKosRunCommand("0:/foo.ks", [`a"b`], null);
+    expect(cmd).toBe('RUNPATH("0:/foo.ks", "a""b").\n');
+  });
+
+  it("delegates to buildKosWrapper when managed is supplied", () => {
+    const cmd = buildKosRunCommand("0:/widget_scripts/x.ks", [], {
+      body: "PRINT 1.",
+      version: "v1",
+    });
+    expect(cmd).toBe(
+      buildKosWrapper({
+        path: "0:/widget_scripts/x.ks",
+        body: "PRINT 1.",
+        version: "v1",
+        args: [],
+      }),
+    );
   });
 });
