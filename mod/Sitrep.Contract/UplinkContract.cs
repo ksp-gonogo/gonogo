@@ -70,6 +70,24 @@ namespace Sitrep.Contract
         /// reading the declaration, not inferred from silence.
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
+
+        /// <summary>
+        /// Opt-in for a channel that is LEGITIMATELY empty from its very
+        /// first tick (e.g. <c>vessel.target</c> with no target selected,
+        /// <c>vessel.dock</c> with no docking port aligned, <c>vessel.crew</c>
+        /// with no crew aboard) — a real, present subject whose value can
+        /// simply be null, as opposed to "no subject yet" (main menu, before
+        /// <c>FlightGlobals</c> is ready). Defaults to <c>false</c>, which
+        /// preserves the pre-existing behavior: <see cref="Sitrep.Host.ChannelEngine.ProcessTick"/>'s
+        /// birth-gate skips a null mapper result for a channel that has
+        /// never emitted a real value, so the client never learns the
+        /// channel is absent and shows "SYNCING" forever. Setting this
+        /// <c>true</c> makes the engine fall through to
+        /// <c>ChannelEmitter.Decide</c> even from birth, emitting a
+        /// confirmed-empty tombstone (null payload) on the first tick so
+        /// the client shows "NO DATA" instead.
+        /// </summary>
+        public bool AbsenceIsData { get; set; } = false;
     }
 
     /// <summary>
