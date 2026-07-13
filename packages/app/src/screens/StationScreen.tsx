@@ -99,14 +99,29 @@ export function StationScreen() {
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
   const [client] = useState(() => new PeerClientService());
-  // Owns its lifecycle for the life of this `client` instance — `client`
-  // itself persists across reconnects (its own retry loop rebuilds the
-  // underlying PeerJS connection internally), so a single `PeerTransport`
-  // wrapping it for the whole component lifetime is correct; only disposed
-  // on unmount, same "own its lifecycle" pattern `WebSocketTransport`
-  // follows on the main screen.
-  const [peerTransport] = useState(() => new PeerTransport(client));
-  useEffect(() => () => peerTransport.dispose(), [peerTransport]);
+  // Build the `PeerTransport` INSIDE an effect rather than as a stable
+  // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
+  // in its constructor, so its lifecycle must be tied to the effect that owns
+  // its disposal — exactly the reasoning `SitrepTelemetryProvider` gives for
+  // building its `WebSocketTransport` in `useEffect`. The old
+  // `useState(singleton)` + `useEffect(() => () => singleton.dispose())` shape
+  // was subtly broken under StrictMode: `useState` preserves the SAME instance
+  // across StrictMode's simulated unmount→remount, but the cleanup still fires
+  // `dispose()` (tearing down the `onSitrepFrame` subscription) and setup never
+  // re-subscribes — so every relayed frame is delivered to a dead transport and
+  // station widgets sit on "SYNCING" forever. Rebuilding in the effect gives a
+  // fresh, re-subscribed instance on every (real or StrictMode) remount.
+  const [peerTransport, setPeerTransport] = useState<PeerTransport | null>(
+    null,
+  );
+  useEffect(() => {
+    const transport = new PeerTransport(client);
+    setPeerTransport(transport);
+    return () => {
+      transport.dispose();
+      setPeerTransport(null);
+    };
+  }, [client]);
   // True once this station has reached "connected" at least once this
   // session. Lets the connect screen tell "host mid-reclaim after a restart"
   // (previously connected → show "Host reconnecting…") apart from "wrong
@@ -357,6 +372,14 @@ export function StationScreen() {
       </ScreenProvider>
     );
   }
+
+  // `peerTransport` is created by the mount effect above and is non-null for
+  // every render once mounted; this guard is a transient-null safety (and the
+  // type narrowing that lets us pass it as a non-null `transport` below).
+  // Passing `null`/`undefined` here would make `SitrepTelemetryProvider` build
+  // its OWN `WebSocketTransport` straight to the mod — exactly the direct
+  // station→KSP connection the peer architecture forbids.
+  if (!peerTransport) return null;
 
   return (
     <ScreenProvider value="station">
