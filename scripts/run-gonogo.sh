@@ -4,7 +4,7 @@
 #
 #   ./scripts/run-gonogo.sh           # docker (default)
 #   CONTAINER=podman ./scripts/run-gonogo.sh
-#   IMAGE=ghcr.io/jonpepler/gonogo:latest ./scripts/run-gonogo.sh
+#   IMAGE=ghcr.io/ksp-gonogo/gonogo:latest ./scripts/run-gonogo.sh
 #
 # Then open http://localhost:8080. The main screen talks to KSP directly
 # from your browser; the relay (3002) runs inside this container. The port
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 CONTAINER="${CONTAINER:-docker}"
-IMAGE="${IMAGE:-ghcr.io/jonpepler/gonogo:latest}"
+IMAGE="${IMAGE:-ghcr.io/ksp-gonogo/gonogo:latest}"
 NAME="${NAME:-gonogo}"
 
 # The relay republishes KSP_HOST at /bootstrap-config so the SPA seeds its

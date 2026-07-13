@@ -279,7 +279,7 @@ Add the data key to the widget's `dataRequirements` so the orchestrator's debug 
 ## CI/CD
 
 - `.github/workflows/ci.yml` — runs on pushes to `main` and PRs targeting `main`. Three jobs run in parallel: `test` (lint + `pnpm test`), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way — see below).
-- `.github/workflows/deploy.yml` — triggers on `workflow_run` (CI passes on `main` only). **Channel model:** every main push deploys only the DEV channel (`https://jonpepler.github.io/gonogo/dev/`, images tagged `:dev`, app version `X.Y.Z-dev.<shortsha>`); the root site (`/gonogo/`) and `:latest`/`:<version>` images move only when a release is cut via `gh workflow run prepare-release.yml --ref main` (→ `release.yml`). The version in `packages/app/package.json` changes ONLY through that flow — never bump it by hand. Details in `docs/DEPLOYMENT.md`. GitHub Pages source must be set to **GitHub Actions** in repo settings.
+- `.github/workflows/deploy.yml` — triggers on `workflow_run` (CI passes on `main` only). **Channel model:** every main push deploys only the DEV channel (`https://ksp-gonogo.github.io/gonogo/dev/`, images tagged `:dev`, app version `X.Y.Z-dev.<shortsha>`); the root site (`/gonogo/`) and `:latest`/`:<version>` images move only when a release is cut via `gh workflow run prepare-release.yml --ref main` (→ `release.yml`). The version in `packages/app/package.json` changes ONLY through that flow — never bump it by hand. Details in `docs/DEPLOYMENT.md`. GitHub Pages source must be set to **GitHub Actions** in repo settings.
 
 ### Visual regression gate
 
