@@ -220,7 +220,7 @@ export function AlarmsModal({
             $active={kind === "threshold"}
             onClick={() => setKind("threshold")}
           >
-            When telemetry…
+            When telemetry...
           </KindButton>
         </KindRow>
 
@@ -286,7 +286,7 @@ export function AlarmsModal({
                 keys={numericKeys}
                 value={dataKey || null}
                 onChange={(k) => setDataKey(k ?? "")}
-                placeholder="Search telemetry…"
+                placeholder="Search telemetry..."
                 clearable
               />
               <FieldHint>

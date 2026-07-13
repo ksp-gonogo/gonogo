@@ -302,7 +302,7 @@ export function ComponentOverlay({
             <SearchRow>
               <SearchInput
                 autoFocus
-                placeholder="Search widgets…"
+                placeholder="Search widgets..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}

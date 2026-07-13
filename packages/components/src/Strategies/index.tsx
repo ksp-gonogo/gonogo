@@ -215,7 +215,7 @@ function StrategiesComponent({
           <PanelTitle>Strategies</PanelTitle>
           <StreamStatusBadge status={streamStatus} />
         </Header>
-        {showSubtitle && <PanelSubtitle>Awaiting career data…</PanelSubtitle>}
+        {showSubtitle && <PanelSubtitle>Awaiting career data...</PanelSubtitle>}
       </Panel>
     );
   }
@@ -357,7 +357,7 @@ function StrategiesComponent({
                           : s.deactivateBlockedReason || "Cannot deactivate"
                       }
                     >
-                      {pendingId === s.id ? "Deactivating…" : "Deactivate"}
+                      {pendingId === s.id ? "Deactivating..." : "Deactivate"}
                     </Button>
                   )}
                 </CardFooter>
@@ -574,7 +574,7 @@ function AvailableRow({
                   : "Set the factor, then confirm"
             }
           >
-            {pending ? "Activating…" : "Activate"}
+            {pending ? "Activating..." : "Activate"}
           </PrimaryButton>
         )}
       </CardFooter>

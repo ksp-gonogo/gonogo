@@ -12,7 +12,7 @@ import { ViewClock } from "./view-clock";
  * `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES` table maps old per-field keys to
  * dotted SUBTOPIC strings (`"t.currentRate" -> "time.warp.warpRate"`) for
  * nearly every raw channel (`vessel.flight.*`, `vessel.orbit.*`,
- * `vessel.control.*`, `time.warp.*`, …) — everything except the handful of
+ * `vessel.control.*`, `time.warp.*`, ...) — everything except the handful of
  * `vessel.state.*` entries, which ride the DERIVED-channel `fields: true`
  * mechanism (`vessel-state.ts`).
  *

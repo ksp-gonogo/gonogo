@@ -80,7 +80,7 @@ interface NavballConfig {
 // surfacing its active mode next to SAS/RCS — a badge that reads its OWN
 // Domain's Topics, not the navball's attitude reads, so the slot passes no
 // props. Declaration-merge the slot id → props type into core's `SlotRegistry`
-// so `registerAugment` and `<AugmentSlot name="navball.badges" …>`
+// so `registerAugment` and `<AugmentSlot name="navball.badges" ...>`
 // type-check against an empty-props contract rather than the loose
 // `Record<string, unknown>` fallback. Kept co-located here (not in a shared
 // central file) so parallel per-widget slot work never collides.

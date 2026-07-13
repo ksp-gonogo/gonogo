@@ -201,7 +201,7 @@ export interface PeerClientOptions {
  * per-field `ListenerSet<[...]>` fired; the dispatcher handlers still derive
  * these args, so swapping `.fire`/`.add` for `emit`/`on` is behaviour-
  * preserving. Several keys (`connStatus`, `hostRestart`, `flightChange`,
- * `hostUnavailable`, `relayIceServers`, …) aren't wire messages.
+ * `hostUnavailable`, `relayIceServers`, ...) aren't wire messages.
  */
 type ClientEventMap = {
   data: [sourceId: string, key: string, value: unknown, t: number];
@@ -260,7 +260,7 @@ export class PeerClientService {
 
   /** Single typed event registry replacing the former ~24 hand-rolled
    *  `ListenerSet` fields. The `onX` methods wrap `events.on("x", cb)` and
-   *  the dispatcher fires via `events.emit("x", …)`, preserving the public
+   *  the dispatcher fires via `events.emit("x", ...)`, preserving the public
    *  API and listener-invocation order. */
   private readonly events = new TypedListeners<ClientEventMap>();
 
@@ -368,7 +368,9 @@ export class PeerClientService {
     }
     logger.info(
       `[PeerClient] opening peer as ${this.stationPeerId}` +
-        (this.hostPeerId ? ` (host=${this.hostPeerId})` : " (resolving host…)"),
+        (this.hostPeerId
+          ? ` (host=${this.hostPeerId})`
+          : " (resolving host...)"),
     );
     this.emitConnStatus("connecting");
     // Stations construct their Peer with no ICE config. The host's
@@ -901,7 +903,7 @@ export class PeerClientService {
    * Fires when the broker reports the configured host id as
    * `peer-unavailable` (i.e. nobody on the broker is registered with
    * that id right now). The connect screen uses this to swap the
-   * generic "reconnecting…" copy for a specific "couldn't find that
+   * generic "reconnecting..." copy for a specific "couldn't find that
    * code" message — the operator's most likely problem is a typo or a
    * stale main-screen tab.
    */

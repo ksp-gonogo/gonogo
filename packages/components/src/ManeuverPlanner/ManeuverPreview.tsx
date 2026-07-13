@@ -95,13 +95,13 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           disabled={props.committing || !plan}
           aria-expanded={props.triggerEditorOpen}
         >
-          Add Node When…
+          Add Node When...
         </GhostButton>
         <Button
           onClick={() => void props.onCommit()}
           disabled={props.committing || props.feasible === false}
         >
-          {props.committing ? "Adding…" : "Add node"}
+          {props.committing ? "Adding..." : "Add node"}
         </Button>
       </CommitRow>
     </PreviewSection>

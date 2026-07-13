@@ -14,7 +14,7 @@ describe("ErrorBoundary", () => {
 
   beforeEach(() => {
     // Three sources of noise for a caught-error test:
-    //   1. React logs its "The above error occurred in…" boundary warning to
+    //   1. React logs its "The above error occurred in..." boundary warning to
     //      console.error (we silence via spy).
     //   2. React 18 also calls globalThis.reportError, which jsdom routes
     //      through a window `'error'` event whose default handler prints the

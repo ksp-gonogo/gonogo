@@ -59,7 +59,7 @@ export interface TechNodeBadgeContext {
 // Kept next to the widget (not in a central registry file) so parallel slot work
 // on other widgets never collides on this seam. Makes `registerAugment({
 // augments: "tech-tree.badges" })` and `<AugmentSlot name="tech-tree.badges"
-// props={…} />` type-check precisely against `TechNodeBadgeContext`.
+// props={...} />` type-check precisely against `TechNodeBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "tech-tree.badges": TechNodeBadgeContext;
@@ -493,7 +493,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           </Legend>
           <SearchInput
             type="search"
-            placeholder="Highlight by name…"
+            placeholder="Highlight by name..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Highlight tech nodes by text"
@@ -575,7 +575,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
         </FilterRow>
         <SearchInput
           type="search"
-          placeholder="Filter by name or description…"
+          placeholder="Filter by name or description..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Filter tech nodes by text"
@@ -819,7 +819,7 @@ function DetailPanel({
             ))}
             {node.parts.length > 6 && (
               <PartRow $purchased={false}>
-                <PartTitle>+{node.parts.length - 6} more…</PartTitle>
+                <PartTitle>+{node.parts.length - 6} more...</PartTitle>
                 <PartMeta />
               </PartRow>
             )}
@@ -830,7 +830,7 @@ function DetailPanel({
         <UnlockRow>
           {unlock.isPending ? (
             <PendingBtn type="button" disabled aria-busy="true">
-              Unlocking…
+              Unlocking...
             </PendingBtn>
           ) : armed ? (
             <ConfirmBtn type="button" onClick={unlock.onConfirm}>
@@ -957,7 +957,7 @@ function NodeRow({
             <UnlockRow>
               {isPending ? (
                 <PendingBtn type="button" disabled aria-busy="true">
-                  Unlocking…
+                  Unlocking...
                 </PendingBtn>
               ) : armed ? (
                 <ConfirmBtn type="button" onClick={onConfirm}>

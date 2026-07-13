@@ -105,7 +105,7 @@ export interface ContractBadgeContext {
 // §4.6). Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "contract-manager.badges" })` and `<AugmentSlot name="contract-manager.badges"
-// props={…} />` type-check precisely against `ContractBadgeContext`.
+// props={...} />` type-check precisely against `ContractBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "contract-manager.badges": ContractBadgeContext;

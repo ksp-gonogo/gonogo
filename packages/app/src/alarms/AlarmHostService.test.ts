@@ -29,7 +29,7 @@ const CARRIED_COMMANDS = [
 /**
  * Reconstructs the legacy action string a dispatched `{command, args}` pair
  * used to be — keeps every one of this file's `telemetry.calls`
- * assertions (`.toContain("t.timeWarp[0]")`, `.toContain("f.ag1")`, …)
+ * assertions (`.toContain("t.timeWarp[0]")`, `.toContain("f.ag1")`, ...)
  * unchanged even though the dispatch itself now goes through
  * `dispatchActiveCommand`/`TelemetryClient.dispatch` instead of a legacy
  * `DataSource.execute(action)` call.

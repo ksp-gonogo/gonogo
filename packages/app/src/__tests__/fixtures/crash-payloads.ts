@@ -68,7 +68,7 @@ export const SHIP_CRASH_SPLASHDOWN = Object.freeze({
 // `onVesselWillDestroy` detector's reason to exist: a non-collision death that
 // fires NO `onCrash`, so the old build recorded nothing. `eventKind: "Destroyed"`,
 // `partsLost: []` (every part already cooked off before the vessel-destroy fired),
-// and the `events` log shows the thermal cascade ("… exploded due to overheating:
+// and the `events` log shows the thermal cascade ("... exploded due to overheating:
 // 2201 / 2200 K"). The banner should fire for this exactly like any other crash.
 export const BURNUP_DESTROYED = Object.freeze({
   vesselId: "f7124131-4762-4e1b-9782-b89955159838",

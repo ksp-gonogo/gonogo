@@ -9,7 +9,7 @@
  * Rendering distinguishes three failure modes so the operator can tell
  * a typo from a slow-to-arrive value:
  *   - Key isn't in the data source schema  → `[?<key>]`
- *   - Key is known but value not arrived yet → `…`
+ *   - Key is known but value not arrived yet → `...`
  *   - Value is null/NaN                     → `—`
  *
  * Tags must be `[a-zA-Z0-9._\[\]-]+` — covers Telemachus key shapes
@@ -43,7 +43,7 @@ export function renderTemplate(
   const { knownKeys } = options;
   // An empty knownKeys means "we don't know what's in the schema yet" — at
   // mount time the data source may not have registered. Falling through to
-  // formatValue's "…" placeholder is correct; flashing `[?key]` for every
+  // formatValue's "..." placeholder is correct; flashing `[?key]` for every
   // tag on every fresh load would be worse than the bug the field set out
   // to fix.
   const haveSchema = knownKeys !== undefined && knownKeys.size > 0;
@@ -60,7 +60,7 @@ export function renderTemplate(
 }
 
 function formatValue(value: unknown): string {
-  if (value === undefined) return "…";
+  if (value === undefined) return "...";
   if (value === null) return "—";
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return "—";

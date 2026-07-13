@@ -111,7 +111,7 @@ export interface DistanceToTargetHudContext {
 export interface DistanceToTargetBadgeContext {
   /** Current target name, or undefined when no target is set. */
   targetName: string | undefined;
-  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, …). */
+  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, ...). */
   targetType: string | undefined;
   /** Range to the target in metres; undefined until the stream reports position. */
   distance: number | undefined;
@@ -120,7 +120,7 @@ export interface DistanceToTargetBadgeContext {
 // Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
 // hybrid, declaration-merging approach). Co-located here per-widget — no shared
 // central registry file — so parallel slot work in other widgets never collides.
-// This is what makes `registerAugment` / `<AugmentSlot props={…}>` type-check the
+// This is what makes `registerAugment` / `<AugmentSlot props={...}>` type-check the
 // contexts above precisely, rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would get.
 declare module "@ksp-gonogo/core" {

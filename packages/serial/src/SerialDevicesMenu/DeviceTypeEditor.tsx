@@ -176,7 +176,7 @@ export function DeviceTypeEditor({
               type="button"
               onClick={() => setShowCalibrate((prev) => !prev)}
             >
-              {showCalibrate ? "Hide calibrate" : "Calibrate from sample…"}
+              {showCalibrate ? "Hide calibrate" : "Calibrate from sample..."}
             </Button>
             <Button type="button" onClick={addInput}>
               + add input

@@ -165,7 +165,7 @@ function PushedItem({
       <ItemBody>
         {def ? (
           // DashboardItemContext is required by widgets that consume
-          // `useActionInput` (MapView, ActionGroup, …) — the station's
+          // `useActionInput` (MapView, ActionGroup, ...) — the station's
           // copy has it; our mirror on main has to provide it too or the
           // hook throws. Actions won't actually fire here since there's
           // no main-side InputDispatcher bound to this instance id.

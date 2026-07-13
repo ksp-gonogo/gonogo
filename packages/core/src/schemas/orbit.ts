@@ -78,7 +78,7 @@ export interface AvailableVesselEntry {
   /** Exact argument for `tar.setTargetVessel[index]`. */
   index: number;
   name: string;
-  /** Stringified `Vessel.vesselType` enum (Probe, Lander, Ship, Plane, …). */
+  /** Stringified `Vessel.vesselType` enum (Probe, Lander, Ship, Plane, ...). */
   type: string;
   /** Stringified `Vessel.Situations` enum. */
   situation: string;

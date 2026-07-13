@@ -171,7 +171,7 @@ function KosScriptRunnerComponent({
         )}
         <StatusLine>
           {running
-            ? "Dispatching…"
+            ? "Dispatching..."
             : lastGoodAt
               ? "Last run acknowledged."
               : "Press Run to dispatch."}
@@ -234,7 +234,7 @@ function KosScriptRunnerConfigComponent({
         />
         <FieldHint>
           Path to the saved kerboscript on the target CPU&apos;s volume. The
-          widget dispatches <code>RUNPATH(&lt;path&gt;, …args)</code>.
+          widget dispatches <code>RUNPATH(&lt;path&gt;, ...args)</code>.
         </FieldHint>
         {registered.length > 0 && (
           <QuickPick>

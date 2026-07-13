@@ -62,8 +62,8 @@ export interface ScanningSlotContext {
 // Declaration-merge the slot ids → props types into core's `SlotRegistry`.
 // Co-located here so parallel slot work on other widgets never
 // collides on a shared central file — this is what types
-// `registerAugment({ augments: "scanning.sections", … })` and
-// `<AugmentSlot name="scanning.sections" props={…} />` against
+// `registerAugment({ augments: "scanning.sections", ... })` and
+// `<AugmentSlot name="scanning.sections" props={...} />` against
 // `ScanningSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {

@@ -52,7 +52,7 @@ function KosWidgetComponent({
         <HeaderActions>
           {running && (
             <Spinner role="img" aria-label="running">
-              …
+              ...
             </Spinner>
           )}
           {config?.mode !== "interval" && (
@@ -105,7 +105,7 @@ function KosWidgetComponent({
     if (!data) {
       return (
         <EmptyState layout="fill">
-          {running ? "Running…" : "No data yet. Press Run."}
+          {running ? "Running..." : "No data yet. Press Run."}
         </EmptyState>
       );
     }

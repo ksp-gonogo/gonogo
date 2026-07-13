@@ -28,7 +28,7 @@ export interface BackupPayload {
 /**
  * Only keys whose name starts with one of the gonogo separators are eligible.
  * The app uses three separators in the wild: `gonogo:` (dashboard layouts),
- * `gonogo.` (settings, datasources, alarms, …) and `gonogo-` (the legacy
+ * `gonogo.` (settings, datasources, alarms, ...) and `gonogo-` (the legacy
  * station-host-id, which is excluded as transient below). Bare keys like
  * `LOG_LEVEL` / `LOG_TAGS` have no prefix and are naturally skipped.
  */

@@ -713,7 +713,7 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
     points.push(`${x.toFixed(1)},${(-y).toFixed(1)}`);
   }
   // Build path segments — each consecutive run of points becomes one
-  // `M … L …` chain; `__BREAK__` tokens split runs.
+  // `M ... L ...` chain; `__BREAK__` tokens split runs.
   const segments: string[] = [];
   let current: string[] = [];
   for (const p of points) {

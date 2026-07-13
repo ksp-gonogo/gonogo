@@ -616,7 +616,7 @@ function GraphConfigComponent({
           keys={xKeyOptions}
           value={xKey}
           onChange={(k) => setXKey(k ?? TIME_AXIS)}
-          placeholder="Pick an X-axis key…"
+          placeholder="Pick an X-axis key..."
         />
       </Field>
       <Field>
@@ -629,7 +629,7 @@ function GraphConfigComponent({
                 value={s.key || null}
                 onChange={(k) => updateSeries(s.id, { key: k ?? "" })}
                 placeholder={
-                  s.type === "band" ? "Pick lower bound…" : "Pick a key…"
+                  s.type === "band" ? "Pick lower bound..." : "Pick a key..."
                 }
                 clearable
               />
@@ -668,7 +668,7 @@ function GraphConfigComponent({
                   keys={numericKeys}
                   value={s.keyHigh ?? null}
                   onChange={(k) => updateSeries(s.id, { keyHigh: k ?? "" })}
-                  placeholder="Pick upper bound…"
+                  placeholder="Pick upper bound..."
                   clearable
                 />
               </SeriesRow>

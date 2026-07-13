@@ -41,7 +41,7 @@ export interface StaffBadgeContext {
 // §4.6). Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "staff-roster.badges" })` and `<AugmentSlot name="staff-roster.badges"
-// props={…} />` type-check precisely against `StaffBadgeContext`.
+// props={...} />` type-check precisely against `StaffBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "staff-roster.badges": StaffBadgeContext;

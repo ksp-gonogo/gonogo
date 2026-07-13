@@ -131,7 +131,7 @@ export type ActionHandlers<TActions extends readonly ActionDefinition[]> = {
  *
  * Components that need a specific config shape should supply TConfig:
  *
- *   function MyWidget({ config }: ComponentProps<{ value: number }>) { … }
+ *   function MyWidget({ config }: ComponentProps<{ value: number }>) { ... }
  *
  * The default (`Record<string, unknown>`) is kept for backward compat and for
  * the registry, which erases the type parameter when storing components.
@@ -245,7 +245,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /**
    * Game-state preconditions for this widget to be "live". The dashboard
    * orchestrator dims the widget with an explanatory overlay when any
-   * requirement is unmet (vessel not flying, career save not active, …)
+   * requirement is unmet (vessel not flying, career save not active, ...)
    * — the widget still renders its current values underneath the dim
    * layer so the operator sees layout + last-good data, just visually
    * de-emphasised. Empty / omitted = always live.
@@ -258,7 +258,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /**
    * Addressable augment slots this widget owns (Uplink architecture spec §4.1).
    * Each entry is a small, stable API the base widget exposes via
-   * `<AugmentSlot name="…" />`; any Uplink may contribute into it with
+   * `<AugmentSlot name="..." />`; any Uplink may contribute into it with
    * `registerAugment`. Slot names are authored up front (`augment-slot-map.md`)
    * and are discoverable/version-able like any contract surface. Not a
    * core-widget privilege — an Uplink-owned widget can expose slots too (§4.6).

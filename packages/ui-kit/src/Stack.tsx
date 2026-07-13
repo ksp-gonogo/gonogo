@@ -11,7 +11,7 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * Vertical flex list — the most common container shape in the dashboard.
- * Replaces the many ad-hoc `styled.div\`flex-direction:column;gap:…\`` blocks
+ * Replaces the many ad-hoc `styled.div\`flex-direction:column;gap:...\`` blocks
  * scattered across widgets (e.g. ScienceOfficer's `Group`/`InstrumentList`/
  * `LabList`).
  */

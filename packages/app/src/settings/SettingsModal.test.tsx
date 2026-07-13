@@ -298,7 +298,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     renderModalWithStream(stream);
     await openDataSourcesTab();
     expect(
-      screen.getByText("Waiting for uplink health report…"),
+      screen.getByText("Waiting for uplink health report..."),
     ).toBeInTheDocument();
   });
 

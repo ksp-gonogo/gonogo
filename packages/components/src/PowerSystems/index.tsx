@@ -107,8 +107,8 @@ export interface PowerSystemsSlotContext {
 // Declaration-merge the slot ids → props types into core's `SlotRegistry`
 // (the declaration-merging hybrid base). Co-located here so parallel slot work
 // on other widgets never collides on a shared central file. This is what types
-// `registerAugment({ augments: "power-systems.sections", … })` and
-// `<AugmentSlot name="power-systems.sections" props={…} />` against
+// `registerAugment({ augments: "power-systems.sections", ... })` and
+// `<AugmentSlot name="power-systems.sections" props={...} />` against
 // `PowerSystemsSlotContext` rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would receive.
 declare module "@ksp-gonogo/core" {
@@ -337,7 +337,7 @@ function PowerSystemsComponent({
           <PanelTitle>POWER SYSTEMS</PanelTitle>
           <StreamStatusBadge status={streamStatus} />
         </Header>
-        <Hint>Waiting for vessel topology…</Hint>
+        <Hint>Waiting for vessel topology...</Hint>
       </Panel>
     );
   }
@@ -867,7 +867,7 @@ const CompactResource = styled.div`
    Firefox's are a hair wider and lopped off the trailing "s". Dropping the
    font-size a notch buys headroom for the common case, and max-width +
    ellipsis is the safety net for genuinely long values (3-digit rates,
-   longer unit strings) so any residual overflow degrades to a visible "…"
+   longer unit strings) so any residual overflow degrades to a visible "..."
    instead of an abruptly amputated character. */
 const CompactNet = styled.div<{ $tone: "go" | "warn" | "neutral" }>`
   max-width: 100%;

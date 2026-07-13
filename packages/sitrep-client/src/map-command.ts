@@ -209,7 +209,7 @@ const TARGET_KIND_BODY_ORDINAL = 1;
 /**
  * `kc.upgradeFacility[<shortCode>]` -> `UpgradeFacilityArgs.FacilityId`'s
  * full `SpaceCenterFacility` enum name. The widget dispatches its own short
- * code (`launchPad`/`vab`/`sph`/…, `SpaceCenterStatus/index.tsx`'s
+ * code (`launchPad`/`vab`/`sph`/..., `SpaceCenterStatus/index.tsx`'s
  * `FacilityKey`), the same short codes `career.status.facilities` reads back
  * onto via `ENUM_FACILITY_TO_KEY` — this is that table's inverse. An
  * unrecognized short code is `INVALID`.

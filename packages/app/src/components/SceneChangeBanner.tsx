@@ -30,7 +30,7 @@ const SCENE_LABELS: Record<string, string> = {
   Editor: "Editor",
   TrackingStation: "Tracking Station",
   MainMenu: "Main Menu",
-  Other: "Loading…",
+  Other: "Loading...",
 };
 
 function labelForScene(scene: string): string {

@@ -151,7 +151,7 @@ describe("FlightOutcomeBanner", () => {
 
   // Debris is filtered at the source (the fork), never by name in the banner.
   // Guard against anyone re-introducing name-based filtering here: a real
-  // vessel the operator named "… Debris" must still fire.
+  // vessel the operator named "... Debris" must still fire.
   it("fires for a crash whose vessel name ends in Debris", () => {
     const src = new MockDataSource({
       id: "data",

@@ -247,7 +247,7 @@ describe("MapViewComponent", () => {
 
   it('shows "Waiting for telemetry" before v.body arrives', () => {
     renderWidget(<MapViewComponent id="t" />);
-    expect(screen.getByText("Waiting for telemetry…")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
   });
 
   it("shows body name in header once v.body arrives", async () => {

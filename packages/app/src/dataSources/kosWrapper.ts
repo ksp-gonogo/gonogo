@@ -128,7 +128,7 @@ function formatBareArg(arg: KosScriptArg): string {
 /**
  * Sentinels the kOS data-source parser keys off. The wrapper's source is
  * echoed verbatim by the kOS REPL on dispatch, so any contiguous
- * `[KOSDATA]…[/KOSDATA]` (or KOSERROR) byte sequence in the wrapper text
+ * `[KOSDATA]...[/KOSDATA]` (or KOSERROR) byte sequence in the wrapper text
  * — even inside a string literal — gets matched by the parser BEFORE
  * the actual script runs. That captures the wrapper's source as the
  * widget's payload and the real script's [KOSDATA] never lands.
@@ -140,7 +140,7 @@ function formatBareArg(arg: KosScriptArg): string {
  *
  * The sentinels are written as prefixes (no trailing `]`) so they catch
  * both the bare `[KOSDATA]` form AND the topic-tagged `[KOSDATA:foo]`
- * form. Without that, scripts that emit `[KOSDATA:topic]…[/KOSDATA]`
+ * form. Without that, scripts that emit `[KOSDATA:topic]...[/KOSDATA]`
  * leave the open marker intact in wrapper-echoed source; a later
  * `[/KOSDATA]` from the real script's PRINT then closes it and the lazy
  * parser regex captures the wrapper source as the payload.

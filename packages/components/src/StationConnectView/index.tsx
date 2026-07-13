@@ -76,13 +76,13 @@ export function StationConnectView({
             onClick={() => onConnect(hostInput)}
             disabled={connStatus === "connecting"}
           >
-            {connStatus === "connecting" ? "Connecting…" : "Connect"}
+            {connStatus === "connecting" ? "Connecting..." : "Connect"}
           </ConnectButton>
         </Row>
         {nameEditor && <NameRow>{nameEditor}</NameRow>}
         {hostNotFound && everConnected && (
           <ReconnectMsg role="status" aria-live="polite">
-            Host reconnecting… The main screen is restarting and will be back
+            Host reconnecting... The main screen is restarting and will be back
             shortly — this station reconnects automatically.
           </ReconnectMsg>
         )}
@@ -119,14 +119,14 @@ export function describeConnStatus(
 ): string {
   if (hostNotFound) {
     return everConnected
-      ? "Host reconnecting — waiting for the main screen to come back…"
-      : "Broker doesn't know that code. Retrying in case it comes back…";
+      ? "Host reconnecting — waiting for the main screen to come back..."
+      : "Broker doesn't know that code. Retrying in case it comes back...";
   }
   switch (status) {
     case "idle":
       return "Waiting for a host ID.";
     case "connecting":
-      return "Reaching the broker and opening a peer channel…";
+      return "Reaching the broker and opening a peer channel...";
     case "connected":
       return "Connected.";
     case "reconnecting":

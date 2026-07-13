@@ -229,7 +229,7 @@ export function InputMappingTab({
                     <ListenDot />
                     Press a {action.accepts.includes("button") ? "button" : ""}
                     {action.accepts.length > 1 ? " or move an " : ""}
-                    {action.accepts.includes("analog") ? "axis" : ""}…
+                    {action.accepts.includes("analog") ? "axis" : ""}...
                     <EscHint>Esc to cancel</EscHint>
                   </ListenStatus>
                 )}

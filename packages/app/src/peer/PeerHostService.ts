@@ -210,7 +210,7 @@ export class PeerHostService {
   private connections: Set<DataConnection> = new Set();
   /** Single typed event registry replacing the former ~22 hand-rolled
    *  `ListenerSet` fields. The `onX` methods are thin wrappers over
-   *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", …)`,
+   *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", ...)`,
    *  preserving the public API and listener-invocation order. */
   private readonly events = new TypedListeners<HostEventMap>();
   // Fresh per page-load. Stations compare against the last-seen value to
@@ -234,7 +234,7 @@ export class PeerHostService {
     }
   >();
   // Refcounted upstream subscribes for demand-only keys (`v.topology`,
-  // `v.topologySeq`, `v.partState[…]`, `b.name[…]`, etc.) — keys that
+  // `v.topologySeq`, `v.partState[...]`, `b.name[...]`, etc.) — keys that
   // aren't in a source's static schema, so PeerBroadcastingDataSource
   // never subscribes to them at construction. Without this, a station's
   // `peer-data-subscribe` would only ever get a single back-fill of the
@@ -325,7 +325,7 @@ export class PeerHostService {
   private static readonly TURN_ESCALATION_MS = 6_000;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
-   *  prior tab). Drives the main-screen "Reclaiming your share code…"
+   *  prior tab). Drives the main-screen "Reclaiming your share code..."
    *  status. Cleared on the next successful `open`. */
   private reclaiming = false;
   /** Exponential-backoff state for the reclaim loop. Separate from the
@@ -725,7 +725,7 @@ export class PeerHostService {
    * Subscribe to reclaim status. Fires the current value immediately (so a
    * late subscriber — e.g. the Add Station modal opening mid-reclaim — sees
    * the right state) and on every change. The main screen surfaces a
-   * "Reclaiming your share code…" status while true.
+   * "Reclaiming your share code..." status while true.
    */
   onReclaimingChange(cb: (reclaiming: boolean) => void): () => void {
     const unsub = this.events.on("reclaiming", cb);

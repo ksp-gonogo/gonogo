@@ -192,7 +192,7 @@ function WarpControlComponent({
   // Content-priority decisions, not layout decisions — CSS handles the
   // arrangement once we've decided what's in the body.
   // Full ladder needs enough area for 8 buttons to wrap legibly. We only
-  // require the area; auto-fit handles whether it ends up 8×1, 4×2, 2×4…
+  // require the area; auto-fit handles whether it ends up 8×1, 4×2, 2×4...
   const cols = w ?? 6;
   const rows = h ?? 5;
   const showFullLadder = cols * rows >= 20 && cols >= 4 && rows >= 3;

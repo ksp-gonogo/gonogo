@@ -78,7 +78,7 @@ export interface ActionGroupSlotContext {
 // Declaration-merge the slot ids → props type into core's `SlotRegistry`.
 // Co-located here (not a central file) so
 // parallel slot work on other widgets can't collide. This makes
-// `registerAugment` and `<AugmentSlot name="action-group.badges" …>` type-check
+// `registerAugment` and `<AugmentSlot name="action-group.badges" ...>` type-check
 // against `ActionGroupSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {

@@ -37,7 +37,7 @@ export type Unit =
   | "K"
   | "W/m²"
   // "units" covers KSP's dimensionless stock-resource quantities (fuel,
-  // oxidiser, monoprop, electric charge…). They're numeric and graphable
+  // oxidiser, monoprop, electric charge...). They're numeric and graphable
   // but have no real SI unit.
   | "units"
   | "bool"

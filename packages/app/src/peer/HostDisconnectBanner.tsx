@@ -42,7 +42,7 @@ export function HostDisconnectBanner({ client }: Props) {
       pulse={reconnecting}
       role={reconnecting ? "status" : "alert"}
     >
-      {reconnecting ? "RECONNECTING TO HOST…" : "HOST DISCONNECTED"}
+      {reconnecting ? "RECONNECTING TO HOST..." : "HOST DISCONNECTED"}
     </BannerPill>
   );
 }

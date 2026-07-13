@@ -150,7 +150,7 @@ function defaultCorruptionLogger(
 ): (raw: string, error: unknown) => void {
   return (raw, error) => {
     logger.tag("storage").warn(`Corrupt JSON for ${key} — using defaults`, {
-      raw: raw.length > 200 ? `${raw.slice(0, 200)}…` : raw,
+      raw: raw.length > 200 ? `${raw.slice(0, 200)}...` : raw,
       error,
     });
   };

@@ -80,7 +80,7 @@ export interface VesselTopology {
 
 /**
  * Live per-part resource state. Keyed by resource name (LiquidFuel,
- * Oxidizer, ElectricCharge, …); empty object when the part has no
+ * Oxidizer, ElectricCharge, ...); empty object when the part has no
  * resources / contributes no flow / the flightId isn't found. Sourced from
  * the mod's `vessel.parts` stream Topic (`@ksp-gonogo/data`'s
  * `usePartsLive`/`derivePartResources`) — originally the legacy fork's

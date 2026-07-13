@@ -77,7 +77,7 @@ export function KosCpuPicker({
   value,
   onChange,
   id,
-  placeholder = "Select or add a kOS CPU…",
+  placeholder = "Select or add a kOS CPU...",
 }: Readonly<KosCpuPickerProps>) {
   const entries = useCpuRegistry();
   const service = useCpuRegistryService();
@@ -346,7 +346,7 @@ export function KosCpuPicker({
                     setMode("add");
                   }}
                 >
-                  + Add CPU…
+                  + Add CPU...
                 </GhostButton>
                 {entries.length > 0 && (
                   <GhostButton
@@ -356,7 +356,7 @@ export function KosCpuPicker({
                       setMode("manage");
                     }}
                   >
-                    Manage CPUs…
+                    Manage CPUs...
                   </GhostButton>
                 )}
               </FooterRow>

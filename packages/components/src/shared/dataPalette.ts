@@ -64,7 +64,7 @@ export function dataColor(index: number): string {
  *   `;
  *
  * Each `<li>` (or whatever the direct child is) gets its `color` set to
- * `var(--color-data-1)`, `var(--color-data-2)`, … cycling at 24.
+ * `var(--color-data-1)`, `var(--color-data-2)`, ... cycling at 24.
  *
  * @param property the CSS property to cycle — `color`, `background`,
  *   `border-color`, etc. Pass a CSS variable name (e.g. `--data-color`)

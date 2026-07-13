@@ -183,7 +183,7 @@ function KosTerminalLive({
         {processors.length === 0 ? (
           <EmptyState layout="fill" role="status" aria-live="polite">
             {cpuName
-              ? `Waiting for kOS CPU "${cpuName}"…`
+              ? `Waiting for kOS CPU "${cpuName}"...`
               : "No kOS CPUs detected. Boot a kOS processor in-flight."}
           </EmptyState>
         ) : (

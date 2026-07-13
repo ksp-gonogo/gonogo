@@ -123,7 +123,7 @@ describe("paintFogFootprint — basic geometry", () => {
       qualityAlpha: 255,
     });
     // Sub-ship point is at the pixel boundary between cols 63 and 64 when
-    // W=128, so symmetry pairs are (63, 64), (62, 65), (61, 66), …
+    // W=128, so symmetry pairs are (63, 64), (62, 65), (61, 66), ...
     const W = 128;
     let left = 0;
     let right = 0;

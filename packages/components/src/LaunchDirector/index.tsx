@@ -28,7 +28,7 @@ type LaunchDirectorConfig = Record<string, never>;
  * a header badge — e.g. Kerbalism supplies-for-duration, USI-LS habitation.
  */
 export interface LaunchDirectorSlotContext {
-  /** Current KSP scene ("Flight", "Editor", …); undefined until telemetry arrives. */
+  /** Current KSP scene ("Flight", "Editor", ...); undefined until telemetry arrives. */
   scene: string | undefined;
   /** True while a vessel is in flight (scene === "Flight"). */
   inFlight: boolean;
@@ -45,7 +45,7 @@ export interface LaunchDirectorSlotContext {
 // Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
 // §4.6). Co-located here (not a shared central file) so parallel slot work on
 // other widgets can't collide. This makes `registerAugment` and
-// `<AugmentSlot name="launch-director.sections" …>` type-check against
+// `<AugmentSlot name="launch-director.sections" ...>` type-check against
 // `LaunchDirectorSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -580,7 +580,7 @@ function LaunchDirectorComponent({
                         : `Launch ${ship.name} unmanned`
                     }
                     confirmLabel="Confirm launch"
-                    pendingLabel="Launching…"
+                    pendingLabel="Launching..."
                   />
                 </LaunchControls>
               </>
@@ -813,7 +813,7 @@ function ArmedButton({
   if (pending) {
     return (
       <ConfirmButton type="button" $kind={kind} disabled aria-busy="true">
-        <Spinner size={12} /> {pendingLabel ?? "Working…"}
+        <Spinner size={12} /> {pendingLabel ?? "Working..."}
       </ConfirmButton>
     );
   }

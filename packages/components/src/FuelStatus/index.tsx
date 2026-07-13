@@ -163,7 +163,7 @@ function fmtFixed(value: unknown, digits: number): string {
  * `dv.stages` can now arrive off either transport under the identical key
  * (map-topic.ts's whole-topic identity read): the
  * legacy Telemachus `DataSource` still ships the historical `StageInfo`
- * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/…), while the new mod
+ * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/...), while the new mod
  * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
  * same `dv.stages` topic — `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
  * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
@@ -546,9 +546,9 @@ const ResourceRow = styled.div`
   display: grid;
   /* Label column: a fixed 13em ideal (fits the longest label,
      "Liquid Fuel · STAGE") keeps every bar's left edge aligned so the
-     fills can be compared at a glance, while minmax(0, …) lets the
+     fills can be compared at a glance, while minmax(0, ...) lets the
      column shrink with an ellipsis when the cell is genuinely narrow.
-     The old 5em cap truncated "Liquid Fuel" → "Liquid …" even at
+     The old 5em cap truncated "Liquid Fuel" → "Liquid ..." even at
      default/wide sizes. The bar keeps a hard min-width (see Bar) so it
      never collapses to a sliver when the readout column claims its
      space at narrow widths. */
@@ -651,7 +651,7 @@ const StageHeader = styled.div`
 const StageRow = styled.div<{ $active?: boolean }>`
   display: grid;
   /* Bar column needs a real floor (28px, matching Bar's own min-width and
-     ResourceRow's identical column below) — not minmax(0, …). With a 0
+     ResourceRow's identical column below) — not minmax(0, ...). With a 0
      base, a narrow row (e.g. portrait-5x18) collapses this track to 0 and
      the Bar div's min-width then overflows the 0-width cell to the right,
      landing directly under the StageReadout column. StageReadout paints

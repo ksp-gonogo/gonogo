@@ -196,7 +196,7 @@ function OrbitViewComponent({
   });
 
   // Every read rides the SDK stream directly, no legacy
-  // `useDataValue("data", …)` fallback.
+  // `useDataValue("data", ...)` fallback.
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
   //  - `vessel.state` (client-side derived channel) carries
   //    `trueAnomaly` (propagated at view-UT) and `parentBodyName` (identity

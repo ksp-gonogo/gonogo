@@ -250,11 +250,11 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
 
-    // It still subscribes to the downlink (a passive viewer)…
+    // It still subscribes to the downlink (a passive viewer)...
     await waitFor(() =>
       expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
     );
-    // …but never wires input or opens the lease.
+    // ...but never wires input or opens the lease.
     await new Promise((r) => setTimeout(r, 20));
     expect(termSpies.onData).not.toHaveBeenCalled();
     expect(

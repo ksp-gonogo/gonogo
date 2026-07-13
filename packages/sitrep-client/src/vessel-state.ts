@@ -464,7 +464,7 @@ export interface VesselState {
   /**
    * Situation NAME — the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
-   * enum name string ("Landed", "Orbiting", …), the new home for the old
+   * enum name string ("Landed", "Orbiting", ...), the new home for the old
    * Telemachus `v.situationString` string ScienceBench renders. Populated in
    * BOTH bases (needs only `vessel.identity`, no propagation). `undefined`
    * while `vessel.identity` hasn't arrived or the ordinal is out of the enum's
@@ -508,7 +508,7 @@ export interface VesselState {
    * Comms control-state NAME — the display-map resolution of
    * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
    * ordinal) to its enum name string ("None", "Partial", "Full", "ProbeFull",
-   * …), the new home for the old Telemachus `comm.controlStateName` string
+   * ...), the new home for the old Telemachus `comm.controlStateName` string
    * CommSignal prefers for its label + tone. `undefined` while `vessel.comms`
    * hasn't arrived or the ordinal is out of range; `null` on a confirmed
    * tombstone. `ControlState.Unknown` (ordinal 11) resolves to "Unknown".
@@ -561,7 +561,7 @@ export interface VesselState {
    */
   isSplashed: boolean | null | undefined;
   /**
-   * Dynamic action-group state as a keyed map `{ "1": bool, … }` (group id →
+   * Dynamic action-group state as a keyed map `{ "1": bool, ... }` (group id →
    * engaged) off `vessel.control.actionGroups` — supports Action Groups
    * Extended's variable count (old Telemachus `v.ag{n}Value` family). Keys are
    * 1-based group ids as strings. Populated in BOTH bases. `undefined` while

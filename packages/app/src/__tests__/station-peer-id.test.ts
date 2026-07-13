@@ -62,7 +62,7 @@ describe("stationPeerId (per-session)", () => {
     const first = getStationPeerId(storage);
     const second = getStationPeerId(storage);
     expect(first).not.toBe(second);
-    // …but both share the same stationKey prefix.
+    // ...but both share the same stationKey prefix.
     const key = getStationKey(storage);
     expect(first.startsWith(`station-${key}-`)).toBe(true);
     expect(second.startsWith(`station-${key}-`)).toBe(true);

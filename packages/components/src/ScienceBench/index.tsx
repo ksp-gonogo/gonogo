@@ -100,7 +100,7 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
     ) {
       const names = raw[0] as string[];
       const values = raw[1] as number[];
-      // Telemachus's empty state is the literal name "No Sensors …" paired
+      // Telemachus's empty state is the literal name "No Sensors ..." paired
       // with a single 0. Surface as "no sensors" so the UI shows a friendly
       // empty row instead of the raw shape.
       if (names.length === 1 && names[0] === NO_SENSORS_SENTINEL) {

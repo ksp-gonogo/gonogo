@@ -82,7 +82,7 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
 
     // Nothing arrived yet — v.body (GAPPED, no legacy source here) is
     // undefined, so the widget shows its "waiting for body" empty state.
-    expect(container.textContent).toContain("Waiting for body telemetry…");
+    expect(container.textContent).toContain("Waiting for body telemetry...");
 
     // A real subscription must have happened for this to deliver at all —
     // StubTransport.emit is subscription-gated (see its own doc comment).
@@ -144,6 +144,6 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
     // v.body stays gapped/undefined (no legacy source in this file) —
     // the mapped altitude/density landing doesn't fabricate a body or
     // otherwise change the empty-state copy.
-    expect(container.textContent).toContain("Waiting for body telemetry…");
+    expect(container.textContent).toContain("Waiting for body telemetry...");
   });
 });
