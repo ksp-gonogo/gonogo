@@ -105,6 +105,54 @@ function getOnData(): (data: string) => void {
   return vi.mocked(termSpies.onData).mock.calls[0][0] as (d: string) => void;
 }
 
+/**
+ * Minimal single-active-line terminal emulator over the sequence of
+ * `write()` calls xterm would have received — just enough to distinguish
+ * "the typed line was committed to the terminal buffer once" from "twice",
+ * without reimplementing VT100. Interprets `\r` (return to column 0), `\n`
+ * (commit the current line and start a fresh one), `\b` (destructive
+ * backspace, as emitted by handleLineModeChar's `"\b \b"`), and `\x1b[K`
+ * (erase from the cursor to end of line — the escape a fix for the
+ * double-echo bug retracts a local composition with).
+ */
+function replayCommittedLines(writes: string[]): string[] {
+  const committed: string[] = [];
+  let line = "";
+  let col = 0;
+  for (const chunk of writes) {
+    let i = 0;
+    while (i < chunk.length) {
+      const ch = chunk[i];
+      if (ch === "\r") {
+        col = 0;
+        i++;
+        continue;
+      }
+      if (ch === "\n") {
+        committed.push(line);
+        line = "";
+        col = 0;
+        i++;
+        continue;
+      }
+      if (ch === "\x1b" && chunk.slice(i, i + 3) === "\x1b[K") {
+        line = line.slice(0, col);
+        i += 3;
+        continue;
+      }
+      if (ch === "\b") {
+        col = Math.max(0, col - 1);
+        i++;
+        continue;
+      }
+      line = line.slice(0, col) + ch + line.slice(col + 1);
+      col++;
+      i++;
+    }
+  }
+  return committed;
+}
+
 describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -236,6 +284,46 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       );
       expect(keys).toHaveLength(1);
       expect((keys[0].args as { chars: string }).chars).toBe("list.\r");
+    });
+  });
+
+  it("line-mode: does not double-render a typed line once the server's delayed echo arrives", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "list.") onData(ch);
+      onData("\r");
+    });
+
+    // Under nonzero signal delay, kOS's OWN echo of the same line arrives
+    // later over the downlink — well after the instant local echo above.
+    act(() =>
+      fixture.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk: "list.\r\n",
+        fullRepaint: false,
+      }),
+    );
+
+    await waitFor(() => {
+      const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
+      const committed = replayCommittedLines(writes);
+      // The server's echo must be the ONLY copy that ends up committed to
+      // the terminal buffer — the local composition echo is transient
+      // (visible while typing) and gets retracted on Enter rather than
+      // scrolled into history, so it must never itself count as a second
+      // committed "list." line.
+      expect(committed.filter((line) => line === "list.")).toHaveLength(1);
     });
   });
 
