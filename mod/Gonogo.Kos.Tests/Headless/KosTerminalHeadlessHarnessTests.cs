@@ -25,9 +25,10 @@ namespace Gonogo.Kos.Tests.Headless
     /// render of the mod's final screen.
     ///
     /// <para>This closes the gap the pure unit tests structurally can't: they
-    /// assert <see cref="KosTerminalManager"/>'s <c>NextUt</c> return value in
-    /// isolation and never model <c>Archive.ReadAtVantage</c>'s "latest sample
-    /// as of the light-lagged scene" coalescing. Here the whole chain runs, so a
+    /// assert <see cref="KosTerminalManager"/>'s published stamps in isolation
+    /// and never model <c>Archive.ReadAtVantage</c>'s "latest sample as of the
+    /// light-lagged scene" coalescing (the state re-read lane the terminal is
+    /// deliberately NOT on). Here the whole chain runs, so a
     /// same-<c>ValidAt</c> collision doesn't just return a wrong number — it
     /// silently corrupts the reconstructed screen. See
     /// <see cref="Burst_ConstantValidAt_LossyLatestLane_StillCoalescesAndCorruptsTheScreen"/>
@@ -294,8 +295,8 @@ namespace Gonogo.Kos.Tests.Headless
         {
             // The heart of the reclassify proof. Same real pipeline, same
             // constant ValidAt as the LossyLatest control above — the exact
-            // shape reverting Fix #1 produces (no strictly-increasing NextUt
-            // stamp) — but on the Delivery.ReliableOrdered lane. Because that
+            // shape reverting Fix #1 produces (no strictly-increasing stamp) —
+            // but on the Delivery.ReliableOrdered lane. Because that
             // lane forwards each captured sample per-frame instead of
             // re-reading the archive at fire time, the constant ValidAt no
             // longer coalesces the burst: every frame is delivered, in order,
@@ -363,18 +364,18 @@ namespace Gonogo.Kos.Tests.Headless
         }
 
         [Fact]
-        public void Rewind_RealPipeline_AfterQuickload_ResetsValidAtBaselineToTheLowerUt()
+        public void Rewind_RealPipeline_AfterQuickload_TracksTheRewoundClock()
         {
             // A modest F9-quickload case through the REAL ScreenBuffer +
-            // ScreenDiffMapper + manager: publish a burst at a high UT (so the
-            // manager's tracked baseline climbs), then rewind the clock far back
-            // and publish again. NextUt's rewind branch must RESET its baseline
-            // to the new lower UT rather than manufacturing a ghost
-            // last+epsilon stamp pinned above the stale pre-rewind peak — which
-            // would keep colliding with Archive/Courier's stale-UT clamp for the
-            // whole recovery window. We assert on the stamps the manager
-            // actually publishes (the observable NextUt output), which is what
-            // drives the engine's coalescing decision.
+            // ScreenDiffMapper + manager: publish a burst at a high UT, then
+            // rewind the clock far back and publish again. Post-reclassify the
+            // manager publishes at the raw clock UT (no baseline tracking, no
+            // epsilon bump), so a quickload is handled by the manager for free:
+            // the post-rewind stamp simply IS the rewound clock read, well
+            // below the pre-rewind peak. The Courier's own ResetTimeline (driven
+            // separately on a real quickload) drops the abandoned scheduled
+            // deliveries; here we assert the manager's published stamps track
+            // the clock across the rewind.
             var clock = new ManualClock(startUt: 5000);
             var network = new StubNetwork(delay: 0);
             var courier = new Courier(clock, network);
@@ -397,8 +398,7 @@ namespace Gonogo.Kos.Tests.Headless
                 nowUt: () => clock.Now(),
                 pollIntervalSeconds: 0.05);
 
-            // Pre-quickload burst at the parked high UT — the baseline climbs to
-            // 5000 (+ epsilon bumps for the same-tick frames).
+            // Pre-quickload burst at the parked high UT (~5000).
             manager.Poll(1.0);
             foreach (var line in new[] { "ASCENT GUIDANCE ON", "APOAPSIS 74KM", "CIRCULARISING" })
             {
@@ -413,13 +413,12 @@ namespace Gonogo.Kos.Tests.Headless
             buffer.Print("POST-QUICKLOAD LINE");
             manager.Poll(1.0);
 
-            // The post-rewind stamp is the new, lower UT — the baseline reset; it
-            // was NOT pinned at prePeak + epsilon.
+            // The post-rewind stamp is the new, lower clock UT — never a ghost
+            // stamp pinned above the stale pre-rewind peak.
             var postStamp = publishedUts.Last();
             Assert.True(postStamp < prePeak,
-                $"post-rewind ValidAt {postStamp} must reset below the stale peak {prePeak}");
-            Assert.True(postStamp <= 200 + 1e-6,
-                $"post-rewind ValidAt {postStamp} should track the rewound clock (~200), not a ghost bump");
+                $"post-rewind ValidAt {postStamp} must track the rewound clock, below the stale peak {prePeak}");
+            Assert.Equal(200.0, postStamp);
         }
     }
 }

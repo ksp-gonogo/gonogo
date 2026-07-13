@@ -7,24 +7,25 @@ using Xunit;
 namespace Gonogo.Kos.Tests
 {
     /// <summary>
-    /// Regression for kOS terminal-garble root cause #1: the
+    /// Regression for kOS terminal-garble: the
     /// <c>kos.terminal.&lt;coreId&gt;</c> downlink is a cursor-relative DIFF
-    /// stream, but it rides the shared Courier/Archive delay engine, which
-    /// models a topic as "latest sample as of the light-lagged scene"
-    /// (<see cref="Archive.ReadAtVantage"/>). That is correct for STATE
-    /// topics, but a burst of terminal frames published within a single
-    /// Courier clock tick — several <see cref="KosTerminalManager.Poll"/>
-    /// calls at ~20Hz on the main thread, all reading the SAME
-    /// (unadvanced) UT source — stamps them with an identical
-    /// <c>ValidAt</c>. <see cref="Archive.ReadAtVantage"/> then resolves
-    /// both deliveries to the LATEST sample, silently dropping the earlier
-    /// diff(s) and corrupting every subsequent cursor-relative render.
+    /// stream. It rides the shared Courier/Archive delay engine, whose STATE
+    /// (<see cref="Delivery.LossyLatest"/>) lane models a topic as "latest
+    /// sample as of the light-lagged scene" (<see cref="Archive.ReadAtVantage"/>)
+    /// — correct for state topics, but fatal for a diff stream: a burst of
+    /// terminal frames published within a single Courier clock tick (several
+    /// <see cref="KosTerminalManager.Poll"/> calls at ~20Hz on the main thread,
+    /// all reading the SAME unadvanced UT source) stamps them with an identical
+    /// <c>ValidAt</c>, and the re-read lane would coalesce them to the latest.
     ///
-    /// This wires a REAL <see cref="Courier"/> + <see cref="Archive"/> (via
+    /// The terminal is therefore declared <see cref="Delivery.ReliableOrdered"/>
+    /// (see <c>KosExtension.Ksp.cs</c>), whose lane FORWARDS each recorded
+    /// sample in order — so a same-<c>ValidAt</c> burst delivers every frame,
+    /// no strictly-increasing stamp needed. This wires a REAL
+    /// <see cref="Courier"/> + <see cref="Archive"/> (via
     /// <see cref="Courier.SubscribeStream"/>/<see cref="Courier.Record"/>) as
     /// the <see cref="KosTerminalManager"/>'s publish sink — exactly the
-    /// terminal publish path production wires in
-    /// <c>KosExtension.Ksp.cs</c> — so the proof exercises the real
+    /// terminal publish path production wires — so the proof exercises the real
     /// mechanism, not a synthetic stand-in.
     /// </summary>
     public class KosTerminalCourierBurstTests
@@ -76,13 +77,13 @@ namespace Gonogo.Kos.Tests
             // The Courier clock is deliberately never advanced between polls
             // below — nowUt returns the SAME UT across the whole burst,
             // exactly the "the terminal's ~20Hz poll outruns the Courier
-            // clock's own ~50ms cadence" scenario. KosTerminalManager (not
-            // this test) is responsible for turning that constant UT source
-            // into strictly-increasing ValidAt stamps — see NextUt.
+            // clock's own ~50ms cadence" scenario. The frames all share a
+            // ValidAt; the Delivery.ReliableOrdered lane forwards each in
+            // record order rather than re-reading the coalesced latest.
             var manager = new KosTerminalManager(
                 knownCoreIds: () => new[] { coreId },
                 isSubscribed: id => true,
-                publish: (id, frame, ut) => courier.Record(node, topic, frame, ut),
+                publish: (id, frame, ut) => courier.Record(node, topic, frame, ut, Delivery.ReliableOrdered),
                 createScreen: id => new BurstFakeScreen(outputs),
                 nowUt: () => clock.Now(),
                 pollIntervalSeconds: 0.05);

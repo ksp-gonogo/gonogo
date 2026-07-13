@@ -95,44 +95,12 @@ namespace Gonogo.Kos
     /// </summary>
     internal sealed class KosTerminalManager
     {
-        // Smallest bump that still survives the double comparisons in
-        // Archive.ReadAtVantage/Courier — see NextUt's doc comment.
-        //
-        // Deliberately NOT a locally-hardcoded literal: this MUST stay at or
-        // below ChannelEngine.ProcessPublish's own stale-ut clamp tolerance
-        // (Sitrep.Host.ChannelEngine.PublishUtToleranceSeconds), or every
-        // epsilon-bumped frame gets clamped straight back to clock.Now(),
-        // colliding with the frame it was meant to stay ahead of and
-        // reproducing the original same-ValidAt garble with no test
-        // catching it. Both constants derive from the one shared value —
-        // see EnginePublishTolerance's doc comment for the full invariant,
-        // and Sitrep.Host.IntegrationTests.ChannelEngineTests
-        // .AnEpsilonBumpedSameTickPublishSurvivesTheStaleUtClampAndDeliversTwoDistinctFrames
-        // for the spanning test that exercises it end-to-end.
-        private const double UtEpsilon = EnginePublishTolerance.Seconds;
-
-        // How far BELOW the tracked baseline nowUt has to read before
-        // NextUt treats it as a genuine backward clock jump (an F9
-        // quickload) rather than this manager's own epsilon-bumped
-        // baseline running fractionally ahead of a nowUt clock that simply
-        // hasn't ticked forward yet. Same-tick bumps only ever accumulate
-        // at UtEpsilon scale — even a very long same-tick burst within one
-        // poll window comes nowhere near this — while a genuine rewind
-        // moves UT by real mission time (seconds at least). See NextUt's
-        // doc comment (Gap B).
-        private const double RewindThreshold = 1.0;
-
         private readonly Func<IReadOnlyList<int>> _knownCoreIds;
         private readonly Func<int, bool> _isSubscribed;
         private readonly Action<int, KosTerminalFrame, double> _publish;
         private readonly Func<int, IKosTerminalScreen?> _createScreen;
         private readonly Func<double> _nowUt;
         private readonly double _pollIntervalSeconds;
-
-        // Last UT this manager published on behalf of each CPU — the seam
-        // that guarantees every kos.terminal.<coreId> frame gets a STRICTLY
-        // increasing ValidAt (see NextUt).
-        private readonly Dictionary<int, double> _lastPublishedUt = new Dictionary<int, double>();
 
         private sealed class Session
         {
@@ -158,9 +126,9 @@ namespace Gonogo.Kos
 
         /// <param name="knownCoreIds">Current CPU <c>KOSCoreId</c>s (main thread; real impl reads <c>kOSProcessor.AllInstances()</c>).</param>
         /// <param name="isSubscribed">Is <c>kos.terminal.&lt;coreId&gt;</c> CURRENTLY subscribed (e.g. <c>host.IsAnyTopicSubscribed</c>)? A pure "should I bother reading/publishing this CPU's screen at all" gate — the reseed decision is <see cref="NotifySubscribed"/>'s job, not this one.</param>
-        /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT — see <see cref="NextUt"/> for why the manager computes that UT itself rather than taking the caller's raw clock read.</param>
+        /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT (the current clock read; the terminal channel is <c>Delivery.ReliableOrdered</c>, so the engine forwards each frame in order regardless of whether several share a <c>ValidAt</c>).</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
-        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive calls — see <see cref="NextUt"/>.</param>
+        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls — harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames no longer coalesce.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
@@ -245,83 +213,11 @@ namespace Gonogo.Kos
                         CoreId = coreId,
                         Chunk = result.Chunk,
                         FullRepaint = result.FullRepaint,
-                    }, NextUt(coreId));
+                    }, _nowUt());
                 }
             }
 
             DropStaleSessions(present);
-        }
-
-        /// <summary>
-        /// The <c>kos.terminal.&lt;coreId&gt;</c> downlink is a cursor-relative
-        /// DIFF stream, but it rides the shared Courier/Archive delay engine,
-        /// which resolves a subscriber's read to the LATEST sample with
-        /// <c>ValidAt &lt;= scene</c> (<see cref="Sitrep.Core.Archive.ReadAtVantage"/>)
-        /// — correct for state topics, but fatal for a diff stream if two
-        /// frames ever share a <c>ValidAt</c>: the earlier one is silently
-        /// dropped and the later one is delivered as if it applied cleanly,
-        /// corrupting every subsequent cursor-relative render.
-        ///
-        /// <see cref="Poll"/> runs at ~20Hz on the main thread, but the
-        /// injected <c>nowUt</c> clock (the Courier thread's ~50ms cadence in
-        /// production) advances independently — so a burst
-        /// of several frames published within one Poll-tick window can read
-        /// the exact same UT. This returns a UT that is STRICTLY greater
-        /// than the last one this manager published for
-        /// <paramref name="coreId"/>: the real clock reading when it has
-        /// already advanced, or the previous UT nudged forward by the
-        /// smallest bump that still survives the double comparisons in
-        /// Archive/Courier otherwise. The bump is negligible against reveal
-        /// timing (light-seconds) while guaranteeing no two frames collide,
-        /// and Courier's AdvanceTo drains scheduled deliveries in ascending
-        /// fire-UT order, so distinct, increasing ValidAt stamps are
-        /// sufficient for complete, in-order delivery.
-        ///
-        /// Deliberately CONTAINED to this one publish site — it does not
-        /// touch Archive/Courier's shared semantics, which every other
-        /// (state) topic still relies on.
-        ///
-        /// <para><b>Rewind-aware (Gap B, adversarial review of Fix #1):</b>
-        /// an F9 quickload drops <c>nowUt</c> back to an earlier UT than the
-        /// pre-rewind peak this manager already published. A same-tick
-        /// COLLISION (<c>candidate &lt;= last</c>, within
-        /// <see cref="RewindThreshold"/> — either the clock hasn't ticked
-        /// since the last publish, or <paramref name="coreId"/>'s tracked
-        /// baseline is only fractionally ahead from a PRIOR epsilon bump)
-        /// still just gets nudged forward by <see cref="UtEpsilon"/>. A
-        /// genuine backward JUMP (<c>candidate</c> more than
-        /// <see cref="RewindThreshold"/> below <c>last</c> — the clock
-        /// itself rewound, not this manager's own bump) instead RESETS the
-        /// tracked baseline to the new, lower UT rather than manufacturing
-        /// a ghost <c>last + epsilon</c> stamp that stays pinned above the
-        /// stale pre-rewind peak — which would otherwise keep re-colliding
-        /// with Archive/Courier's own stale-UT clamp (forcing every
-        /// post-rewind frame back to <c>_clock.Now()</c> without this
-        /// manager ever learning the new baseline) for the whole recovery
-        /// window until real UT climbed back past the old peak.</para>
-        /// </summary>
-        private double NextUt(int coreId)
-        {
-            var candidate = _nowUt();
-            if (_lastPublishedUt.TryGetValue(coreId, out var last))
-            {
-                if (candidate < last - RewindThreshold)
-                {
-                    // Genuine backward jump — trust the new, lower UT.
-                    _lastPublishedUt[coreId] = candidate;
-                    return candidate;
-                }
-                if (candidate <= last)
-                {
-                    // Same-tick collision (or this manager's own prior
-                    // epsilon bump still sitting fractionally above a flat
-                    // clock) — nudge forward by the smallest margin that
-                    // still survives Archive/Courier's double comparisons.
-                    candidate = last + UtEpsilon;
-                }
-            }
-            _lastPublishedUt[coreId] = candidate;
-            return candidate;
         }
 
         private Session GetOrCreateSession(int coreId)
@@ -358,7 +254,6 @@ namespace Gonogo.Kos
                 _sessions.Remove(coreId);
                 _leases.Remove(coreId);
                 _pendingReseeds.TryRemove(coreId, out _);
-                _lastPublishedUt.Remove(coreId);
             }
         }
 

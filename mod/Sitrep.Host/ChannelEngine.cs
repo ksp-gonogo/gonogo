@@ -45,17 +45,13 @@ namespace Sitrep.Host
         /// <summary>
         /// C1-pub tolerance: <see cref="ProcessPublish"/> clamps a
         /// caller-stamped <c>ut</c> that lands meaningfully ahead of the
-        /// clock's current position at processing time. A tiny epsilon
-        /// (rather than an exact `&gt;`) absorbs floating-point noise only --
-        /// it is NOT meant to tolerate genuine slack between when an
-        /// uplink reads "now" and when its Publish call is processed.
-        ///
-        /// Deliberately NOT a locally-hardcoded literal: <c>Gonogo.Kos.KosTerminalManager</c>'s
-        /// same-tick epsilon bump depends on landing at or below this exact
-        /// value to survive this clamp — see <see cref="EnginePublishTolerance"/>'s
-        /// doc comment for the full invariant this protects.
+        /// clock's current position at processing time (a ghost publish from
+        /// before a quickload rewind — see ProcessPublish's own comment). A
+        /// tiny epsilon (rather than an exact `&gt;`) absorbs floating-point
+        /// noise only — it is NOT meant to tolerate genuine slack between when
+        /// an uplink reads "now" and when its Publish call is processed.
         /// </summary>
-        private const double PublishUtToleranceSeconds = EnginePublishTolerance.Seconds;
+        private const double PublishUtToleranceSeconds = 1e-6;
 
         private readonly ManualClock _clock;
         private readonly INetwork _network;

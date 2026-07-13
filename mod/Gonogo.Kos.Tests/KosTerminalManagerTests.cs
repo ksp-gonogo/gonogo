@@ -346,8 +346,7 @@ namespace Gonogo.Kos.Tests
             // the PRE-fix Harness, which had no Subscribe/NotifySubscribed
             // seam — h.Subscribed.Add(7)/.Remove(7)/.Add(7) directly, i.e.
             // exactly the aggregate-count shape that failed to net out. This
-            // is the fix's necessary API reshape (same methodology as Fix
-            // #1's NextUt/publish signature change): the bug can only be
+            // is the fix's necessary API reshape: the bug can only be
             // fixed by adding a genuinely thread-safe transition seam, so the
             // GREEN test targets that new seam directly rather than the
             // aggregate count the bug lived in.
@@ -363,15 +362,17 @@ namespace Gonogo.Kos.Tests
         }
 
         [Fact]
-        public void Poll_BurstWithConstantNowUt_AssignsStrictlyIncreasingUts()
+        public void Poll_BurstWithConstantNowUt_PublishesEachFrameAtTheRawClockUt()
         {
-            // Regression for root cause #1 (see KosTerminalCourierBurstTests
-            // for the full Courier-backed proof of the delivery bug this
-            // guards against): the injected UT source can return the SAME
-            // value across several consecutive polls (its own clock hasn't
-            // ticked yet) — every published frame must still get a
-            // strictly-increasing UT so no two collide once they reach the
-            // Courier/Archive delay engine.
+            // Post-reclassify: the terminal is a Delivery.ReliableOrdered
+            // channel, so the engine forwards each frame per-sample, in order,
+            // regardless of whether several share a ValidAt. The manager
+            // therefore no longer manufactures strictly-increasing stamps — it
+            // publishes at the raw clock UT. A constant nowUt across a burst
+            // yields identical stamps, which is fine (see
+            // KosTerminalCourierBurstTests for the Courier-backed proof the
+            // burst still delivers in order). This pins that the Fix #1 bump is
+            // gone: same nowUt -> same published UT, no epsilon drift.
             var h = new Harness();
             h.Subscribed.Add(7);
             h.Now = 500.0;
@@ -380,45 +381,7 @@ namespace Gonogo.Kos.Tests
             h.Tick();
             h.Tick();
 
-            Assert.Equal(3, h.PublishedUts.Count);
-            Assert.True(h.PublishedUts[0] < h.PublishedUts[1]);
-            Assert.True(h.PublishedUts[1] < h.PublishedUts[2]);
-        }
-
-        [Fact]
-        public void NextUt_RewindToLowerNowUt_TrustsTheNewLowerUt_NotAGhostAboveTheOldPeak()
-        {
-            // Gap B (adversarial review of Fix #1): _lastPublishedUt has no
-            // rewind hook. After an F9 quickload, host.NowUt() drops, but
-            // the pre-fix NextUt sees candidate <= last (the old pre-rewind
-            // peak) and manufactures a ghost last+epsilon — which keeps
-            // re-colliding with the STALE peak (via Archive/Courier's own
-            // stale-ut clamp) for the whole post-rewind recovery window,
-            // instead of resuming from the genuinely lower, post-rewind UT.
-            var h = new Harness();
-            h.Subscribed.Add(7);
-            h.Now = 500.0;
-
-            h.Tick(); // baseline publish at ~500.
-            h.Tick(); // same-tick collision -> bumped forward, still ~500.
-
-            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] > 500.0);
-            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] < 500.001);
-
-            // Quickload rewind: NowUt drops well below the pre-rewind peak.
-            h.Now = 10.0;
-            h.Tick();
-
-            // Must trust the new, lower UT -- NOT a ghost stamp still above
-            // the old (pre-rewind) peak.
-            Assert.Equal(10.0, h.PublishedUts[h.PublishedUts.Count - 1]);
-
-            // A same-tick burst right after the rewind must still get
-            // strictly increasing, distinct stamps from the NEW baseline.
-            h.Tick();
-            h.Tick();
-            Assert.True(h.PublishedUts[h.PublishedUts.Count - 2] > 10.0);
-            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] > h.PublishedUts[h.PublishedUts.Count - 2]);
+            Assert.Equal(new[] { 500.0, 500.0, 500.0 }, h.PublishedUts.ToArray());
         }
 
         [Fact]
