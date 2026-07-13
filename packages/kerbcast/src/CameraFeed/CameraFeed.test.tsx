@@ -262,10 +262,7 @@ async function buildConnectedSource(
   for (const c of cameras) {
     sidecar.addCamera(toInit(c));
   }
-  const ds = new KerbcastDataSource(
-    { host: "h", port: 1 },
-    sidecar.createTransport(),
-  );
+  const ds = new KerbcastDataSource({ port: 1 }, sidecar.createTransport());
 
   registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
 
@@ -673,10 +670,7 @@ describe("CameraFeed — empty state and status", () => {
     // the transport but never call connect()/open(). The widget shows the same
     // neutral empty state and surfaces no in-widget connection status.
     const sidecar = new MockSidecar();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = new KerbcastDataSource({ port: 1 }, sidecar.createTransport());
     registerDataSource(
       ds as unknown as Parameters<typeof registerDataSource>[0],
     );
@@ -1004,10 +998,7 @@ describe("CameraFeed — station (brokered) mode", () => {
         supportsZoom: false,
       });
     }
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = new KerbcastDataSource({ port: 1 }, sidecar.createTransport());
     // Brokered: the offer→answer round-trips through the (faked) host instead
     // of a localhost POST; TURN would come from the relay broadcast (none here).
     ds.attachBroker({

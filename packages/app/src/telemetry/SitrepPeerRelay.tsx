@@ -18,7 +18,7 @@ import { DEFAULT_SITREP_CARRIED_TOPICS } from "./SitrepTelemetryProvider";
  * station count itself).
  */
 const SITREP_PEER_RELAY_BUDGET = new PerfBudget({
-  name: "SitrepPeerRelay frames relayed/sec",
+  name: "Telemetry relay frames/sec",
   threshold: 3000,
   windowMs: 1000,
   unit: "frames",

@@ -4,7 +4,13 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@ksp-gonogo/core";
-import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
+import {
+  GAME_HOST_KEY,
+  getGameHost,
+  PerfBudget,
+  registerDataSource,
+  subscribeSetting,
+} from "@ksp-gonogo/core";
 import {
   type CameraState,
   type ClientMessage,
@@ -28,7 +34,6 @@ import {
  */
 
 export interface KerbcastConfig extends Record<string, unknown> {
-  host: string;
   port: number;
 }
 
@@ -53,7 +58,7 @@ export interface KerbcastBroker {
   onIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void;
 }
 
-const DEFAULT_CONFIG: KerbcastConfig = { host: "127.0.0.1", port: 8088 };
+const DEFAULT_CONFIG: KerbcastConfig = { port: 8088 };
 
 const STORAGE_KEY = "gonogo.datasource.kerbcast";
 
@@ -119,7 +124,6 @@ function loadConfig(): KerbcastConfig {
     if (!raw) return DEFAULT_CONFIG;
     const parsed = JSON.parse(raw) as Partial<KerbcastConfig>;
     return {
-      host: typeof parsed.host === "string" ? parsed.host : DEFAULT_CONFIG.host,
       port: typeof parsed.port === "number" ? parsed.port : DEFAULT_CONFIG.port,
     };
   } catch {
@@ -367,11 +371,17 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private reconnectEnabled = false;
+  private unsubGameHost: (() => void) | null = null;
 
   constructor(config?: KerbcastConfig, transport?: KerbcastTransport) {
     this.cfg = config ?? loadConfig();
     this.baseTransport = transport;
     this.client = this.buildClient();
+    this.unsubGameHost = subscribeSetting(GAME_HOST_KEY, () => {
+      // Host moved — same effect as a reconfigure: rebuild the client against
+      // the new host, preserving the connected/disconnected state.
+      this.applyConfig({ ...this.cfg });
+    });
   }
 
   /** Underlying client (hooks reach in directly via this). */
@@ -536,7 +546,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     cameras: number[];
     slots?: number;
   }): Promise<{ sdp: string; cameras: number[] }> {
-    const res = await fetch(`http://${this.cfg.host}:${this.cfg.port}/offer`, {
+    const res = await fetch(`http://${getGameHost()}:${this.cfg.port}/offer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(offer),
@@ -589,6 +599,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     this.turnEscalated = false;
     this.clearTimers();
     this.client.disconnect();
+    this.unsubGameHost?.();
   }
 
   schema(): DataKey[] {
@@ -663,12 +674,6 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   configSchema(): ConfigField[] {
     return [
       {
-        key: "host",
-        label: "Sidecar host",
-        type: "text",
-        placeholder: "127.0.0.1",
-      },
-      {
         key: "port",
         label: "Sidecar port",
         type: "number",
@@ -682,8 +687,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   }
 
   configure(config: Record<string, unknown>): void {
-    const next = {
-      host: typeof config.host === "string" ? config.host : this.cfg.host,
+    const next: KerbcastConfig = {
       port:
         typeof config.port === "number"
           ? config.port
@@ -691,15 +695,6 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     };
     persistConfig(next);
     this.applyConfig(next);
-  }
-
-  /**
-   * Apply a first-run seeded sidecar host WITHOUT persisting — see
-   * `seedKerbcastHost`.
-   */
-  applySeededHost(host: string): void {
-    if (host === this.cfg.host) return;
-    this.applyConfig({ ...this.cfg, host });
   }
 
   private applyConfig(next: KerbcastConfig): void {
@@ -730,7 +725,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     const broker = this.broker;
     const client = new KerbcastClient(
       {
-        host: this.cfg.host,
+        host: getGameHost(),
         port: this.cfg.port,
         // Pass the relay's TURN servers when we have them; `undefined` lets
         // the SDK apply its STUN-only default (LAN / no relay).
@@ -902,25 +897,6 @@ function parseAction(action: string): [string, string[]] {
 
 export const kerbcastSource = new KerbcastDataSource();
 registerDataSource(kerbcastSource);
-
-/**
- * First-run seeding from the bundle's `KSP_HOST` (via the relay's
- * `/bootstrap-config`). In-memory only; skipped when the user has ever
- * saved a kerbcast config, so an explicit Settings save always wins.
- */
-export function seedKerbcastHost(host: string): void {
-  try {
-    if (
-      typeof localStorage !== "undefined" &&
-      localStorage.getItem(STORAGE_KEY) !== null
-    ) {
-      return;
-    }
-  } catch {
-    return;
-  }
-  kerbcastSource.applySeededHost(host);
-}
 
 // Dev-only debug handle: inspect the live stream-routing state from the console
 // (or via automation) to diagnose black-feed / no-track issues.

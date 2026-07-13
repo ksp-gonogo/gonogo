@@ -26,7 +26,6 @@ import type {
   SCANCoverageBitmap,
   SCANHeightGrid,
   SCANScanningVessel,
-  SCANType,
 } from "./scansat";
 import type { VesselTopology } from "./vessel-parts";
 

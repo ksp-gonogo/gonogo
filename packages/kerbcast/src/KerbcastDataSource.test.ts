@@ -1,3 +1,8 @@
+import {
+  GAME_HOST_KEY,
+  resetSettingsForTests,
+  setSetting,
+} from "@ksp-gonogo/core";
 import { Layer } from "@ksp-gonogo/kerbcast";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act } from "@testing-library/react";
@@ -8,17 +13,34 @@ import {
   kerbcastFetchImpl,
 } from "./test/MockKerbcastSession";
 
+// Every KerbcastDataSource subscribes to the shared gameHost in its
+// constructor, so a test that never disconnect()s leaks that subscription into
+// the module-scoped listener registry across tests. Build them through this
+// factory and tear every instance down in afterEach so no test has to remember
+// (disconnect() is idempotent, so tests that already call it stay fine).
+const createdSources: KerbcastDataSource[] = [];
+function makeTracked(
+  ...args: ConstructorParameters<typeof KerbcastDataSource>
+): KerbcastDataSource {
+  const ds = new KerbcastDataSource(...args);
+  createdSources.push(ds);
+  return ds;
+}
+
 beforeEach(() => {
   vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
+});
+
+afterEach(() => {
+  for (const ds of createdSources.splice(0)) ds.disconnect();
+  resetSettingsForTests();
+  localStorage.clear();
 });
 
 describe("KerbcastDataSource", () => {
   it("maps client state-change events onto DataSource status", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     expect(ds.status).toBe("disconnected");
 
     const seen: string[] = [];
@@ -34,10 +56,7 @@ describe("KerbcastDataSource", () => {
 
   it("routes set-fov execute() onto the control channel", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     await ds.connect();
     session.openChannel();
     session.sentMessages.length = 0; // drop the hello
@@ -54,10 +73,7 @@ describe("KerbcastDataSource", () => {
 
   it("routes set-layers execute() with NEAR / SCALED layer args", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     await ds.connect();
     session.openChannel();
     session.sentMessages.length = 0;
@@ -74,10 +90,7 @@ describe("KerbcastDataSource", () => {
 
   it("subscribe('kerbcast.cameras') replays the current snapshot", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     const received: unknown[] = [];
     ds.subscribe("kerbcast.cameras", (v) => received.push(v));
@@ -86,6 +99,30 @@ describe("KerbcastDataSource", () => {
 
     expect(received).toHaveLength(1);
     expect(received[0]).toEqual([]);
+  });
+
+  it("dials the sidecar at the shared core gameHost", async () => {
+    setSetting(GAME_HOST_KEY, "192.168.5.5");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ sdp: "answer", cameras: [] }), {
+        status: 200,
+      }),
+    );
+    const ds = makeTracked();
+    await ds.relayOffer({ sdp: "offer", cameras: [] });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://192.168.5.5:8088/offer",
+      expect.anything(),
+    );
+    fetchSpy.mockRestore();
+    ds.disconnect();
+  });
+
+  it("configSchema exposes only port (host is core-owned)", () => {
+    const ds = makeTracked();
+    const keys = ds.configSchema().map((f) => f.key);
+    expect(keys).toEqual(["port"]);
+    ds.disconnect();
   });
 });
 
@@ -115,10 +152,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
     );
 
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     await ds.connect();
 
     expect(session.iceServers).toEqual([STUN_DEFAULT]);
@@ -136,10 +170,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
     );
 
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     await ds.connect();
     expect(session.iceServers).toEqual([STUN_DEFAULT]); // STUN-only first
 
@@ -163,10 +194,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
     );
 
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     const clientBefore = ds.getClient();
     await ds.connect();
 
@@ -187,10 +215,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
     vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
 
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
     await ds.connect();
     expect(session.iceServers).toEqual([STUN_DEFAULT]);
 
@@ -216,10 +241,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 
   it("responds to ping with pong", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     await ds.connect();
     session.openChannel();
@@ -232,10 +254,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 
   it("ping resets the watchdog so no reconnect fires within 15s of last ping", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     await ds.connect();
     session.setState("connected");
@@ -264,10 +283,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 
   it("watchdog fires after 15s and triggers reconnect", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     await ds.connect();
     session.setState("connected");
@@ -288,10 +304,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 
   it("explicit disconnect() prevents reconnect after watchdog fires", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     await ds.connect();
     session.setState("connected");
@@ -311,10 +324,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 
   it("WebRTC 'failed' triggers exponential backoff", async () => {
     const session = createMockKerbcastSession();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      session.transport,
-    );
+    const ds = makeTracked({ port: 1 }, session.transport);
 
     await ds.connect();
     session.setState("connected");
@@ -360,10 +370,7 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
       sidecar.addCamera({ flightId });
     });
     mockFetch();
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = makeTracked({ port: 1 }, sidecar.createTransport());
     await ds.connect();
     sidecar.open();
     sidecar.setConnectionState("connected");
@@ -427,10 +434,7 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
     sidecar.addCamera({ flightId: 42 });
     mockFetch();
     const fetchSpy = vi.mocked(globalThis.fetch);
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = makeTracked({ port: 1 }, sidecar.createTransport());
 
     // A widget mounts before the sidecar is reachable.
     ds.subscribeCamera(42);
@@ -465,6 +469,7 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
 
 describe("KerbcastDataSource — relayOffer (station broker)", () => {
   it("POSTs the offer to the sidecar /offer and returns the answer", async () => {
+    setSetting(GAME_HOST_KEY, "sidehost");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42, 43] }), {
         status: 200,
@@ -472,7 +477,7 @@ describe("KerbcastDataSource — relayOffer (station broker)", () => {
     );
     fetchSpy.mockClear();
 
-    const ds = new KerbcastDataSource({ host: "sidehost", port: 9090 });
+    const ds = makeTracked({ port: 9090 });
     const answer = await ds.relayOffer({
       sdp: "offer-sdp",
       cameras: [42, 43],
@@ -495,7 +500,7 @@ describe("KerbcastDataSource — relayOffer (station broker)", () => {
       new Response("unavailable", { status: 503 }),
     );
 
-    const ds = new KerbcastDataSource({ host: "h", port: 1 });
+    const ds = makeTracked({ port: 1 });
     await expect(ds.relayOffer({ sdp: "o", cameras: [] })).rejects.toThrow(
       /503/,
     );
@@ -532,10 +537,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
     const negotiate = vi.fn((offer: { sdp: string; cameras: number[] }) =>
       sidecar.negotiate(offer),
     );
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = makeTracked({ port: 1 }, sidecar.createTransport());
     ds.attachBroker({
       negotiate,
       iceServers: () => [TURN],
@@ -560,10 +562,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
       MockSidecar.makeOfferResponse([]),
     );
 
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = makeTracked({ port: 1 }, sidecar.createTransport());
     ds.attachBroker({
       negotiate: (offer) => sidecar.negotiate(offer),
       iceServers: () => [],
@@ -591,10 +590,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
       sidecar.negotiate(offer),
     );
 
-    const ds = new KerbcastDataSource(
-      { host: "h", port: 1 },
-      sidecar.createTransport(),
-    );
+    const ds = makeTracked({ port: 1 }, sidecar.createTransport());
     ds.attachBroker({
       negotiate,
       iceServers: () => [],
