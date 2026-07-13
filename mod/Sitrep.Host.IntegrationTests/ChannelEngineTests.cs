@@ -3077,5 +3077,141 @@ namespace Sitrep.Host.IntegrationTests
                 return new KspSnapshot { Values = new Dictionary<string, object?> { ["v"] = v } };
             }
         }
+
+        /// <summary>
+        /// The mod-side half of Uplink health self-reporting: the built-in
+        /// <c>system.uplinks</c> channel (declared directly by
+        /// <see cref="ChannelEngine"/>, not any uplink's <see cref="UplinkManifest"/>
+        /// — see <c>ChannelEngine.UplinksTopic</c>'s doc comment) mixes THREE
+        /// registered uplinks to exercise every health-resolution path
+        /// <c>BuildSystemUplinksPayload</c>/<c>BuildUplinkHealthPayload</c>
+        /// cover:
+        /// <list type="bullet">
+        /// <item><description><see cref="HealthReportingTestUplink"/> implements
+        /// <see cref="IUplinkHealthReporter"/> and self-reports
+        /// <see cref="UplinkHealthState.Degraded"/> with its own Detail text —
+        /// the uplink-authored "what ready means for me" case.</description></item>
+        /// <item><description><see cref="PlainNoHealthTestUplink"/> implements
+        /// NO health interface at all (proving the 14 built-ins need no
+        /// change) — its health is DERIVED from a successful registration:
+        /// <see cref="UplinkHealthState.Healthy"/>, no detail.</description></item>
+        /// <item><description><see cref="ThrowingRegisterTestUplink"/>'s
+        /// <see cref="ISitrepUplink.Register"/> throws, so
+        /// <see cref="ChannelEngine.RegisterUplink"/>'s own existing fail-soft
+        /// marks it Unavailable — health is DERIVED from that:
+        /// <see cref="UplinkHealthState.Unavailable"/>, carrying the same
+        /// registration-failure reason as its <c>detail</c>.</description></item>
+        /// </list>
+        /// </summary>
+        [Fact]
+        public async Task SystemUplinksReportsMixedSelfReportedAndDerivedHealth()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(new HealthReportingTestUplink());
+            engine.RegisterUplink(new PlainNoHealthTestUplink());
+            engine.RegisterUplink(new ThrowingRegisterTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinksTopic, Timeout);
+
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(ChannelEngine.UplinksTopic, delivered.Topic);
+
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var uplinks = Assert.IsType<List<object?>>(payload["uplinks"]);
+
+                var byId = new Dictionary<string, Dictionary<string, object?>>();
+                foreach (var raw in uplinks)
+                {
+                    var entry = Assert.IsType<Dictionary<string, object?>>(raw);
+                    byId[(string)entry["id"]!] = entry;
+                }
+
+                Assert.Contains(HealthReportingTestUplink.UplinkId, byId.Keys);
+                Assert.Contains(PlainNoHealthTestUplink.UplinkId, byId.Keys);
+                Assert.Contains(ThrowingRegisterTestUplink.UplinkId, byId.Keys);
+
+                var reporting = byId[HealthReportingTestUplink.UplinkId];
+                Assert.Equal(true, reporting["available"]);
+                Assert.Null(reporting["reason"]);
+                var reportingHealth = Assert.IsType<Dictionary<string, object?>>(reporting["health"]);
+                Assert.Equal((double)(int)UplinkHealthState.Degraded, reportingHealth["state"]);
+                Assert.Equal(HealthReportingTestUplink.DetailText, reportingHealth["detail"]);
+
+                var plain = byId[PlainNoHealthTestUplink.UplinkId];
+                Assert.Equal(true, plain["available"]);
+                Assert.Null(plain["reason"]);
+                var plainHealth = Assert.IsType<Dictionary<string, object?>>(plain["health"]);
+                Assert.Equal((double)(int)UplinkHealthState.Healthy, plainHealth["state"]);
+                Assert.Null(plainHealth["detail"]);
+
+                var throwing = byId[ThrowingRegisterTestUplink.UplinkId];
+                Assert.Equal(false, throwing["available"]);
+                Assert.NotNull(throwing["reason"]);
+                var throwingHealth = Assert.IsType<Dictionary<string, object?>>(throwing["health"]);
+                Assert.Equal((double)(int)UplinkHealthState.Unavailable, throwingHealth["state"]);
+                Assert.Equal(throwing["reason"], throwingHealth["detail"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private sealed class HealthReportingTestUplink : ISitrepUplink, IUplinkHealthReporter
+        {
+            public const string UplinkId = "test-health-reporting";
+            public const string DetailText = "no CPU selected";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                // No channels/commands needed -- this uplink exists purely
+                // to prove the IUplinkHealthReporter self-report path.
+            }
+
+            public UplinkHealth Health() => new UplinkHealth(UplinkHealthState.Degraded, DetailText);
+        }
+
+        private sealed class PlainNoHealthTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-plain-no-health";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                // Implements NO IUplinkHealthReporter -- proves the
+                // derive-from-availability fallback every pre-existing
+                // built-in Uplink relies on.
+            }
+        }
+
+        private sealed class ThrowingRegisterTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-throwing-register";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host) =>
+                throw new InvalidOperationException("boom -- register throws");
+        }
     }
 }

@@ -51,6 +51,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.surface",
   "system.bodies",
   "system.vessels",
+  // system.uplinks: the mod-side Uplink health self-report (ChannelEngine's
+  // built-in system.uplinks channel — see uplink-health.ts's derived
+  // systemUplinkHealthChannel). Must be carried or Settings' per-Uplink
+  // health rows silently fall back to nothing (there is no legacy
+  // Telemachus equivalent).
+  "system.uplinks",
   "time.warp",
   // Comms signal-delay channel (CommsCoreUplink, TrueNow) — the headline
   // delay readout behind CommSignal's comm.signalDelay.

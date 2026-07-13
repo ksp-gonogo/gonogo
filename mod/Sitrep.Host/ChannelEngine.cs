@@ -112,6 +112,18 @@ namespace Sitrep.Host
         // the topic is duplicated here rather than referenced.
         internal const string CommsDelayTopic = "comms.delay";
 
+        // The built-in uplink-health-self-report channel (see
+        // BuildSystemUplinksPayload's doc comment). Unlike every other
+        // channel on this class, it is NOT owned by any ISitrepUplink's
+        // Manifest — the engine declares and sources it directly in the
+        // constructor, because it is the only component that ever sees
+        // EVERY registered uplink at once. No _channelOwner entry is ever
+        // recorded for it, so IsChannelAvailable treats it as always
+        // available (untracked topic == available, per that method's doc
+        // comment) — appropriate here since the channel reports on OTHER
+        // uplinks' availability rather than having any of its own.
+        internal const string UplinksTopic = "system.uplinks";
+
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
         // — CommsDelaySource.None / signal-delay-disabled / pre-first-emit —
@@ -211,6 +223,20 @@ namespace Sitrep.Host
         // state here, deliberately kept to a single atomic flag.
         private readonly List<SampledSource> _sampledSources = new List<SampledSource>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
+
+        // Retained uplink instances, keyed by Manifest.Id — populated in
+        // RegisterUplink alongside _availability/_channelOwner/_commandOwner.
+        // Unlike those maps (which only track ownership/status BY id), this
+        // one keeps the actual ISitrepUplink reference, because the built-in
+        // system.uplinks channel source (see BuildSystemUplinksPayload) needs
+        // to poll each uplink's own IUplinkHealthReporter.Health() — the
+        // engine is the only component that ever sees every registered
+        // uplink at once, so this is the sole place that self-report can be
+        // aggregated. Single-writer-before-start, same discipline as every
+        // other registration collection on this class (see the NOTE above
+        // Start()) — read-only after Start(), safe for the Courier thread to
+        // enumerate without locking.
+        private readonly Dictionary<string, ISitrepUplink> _registeredUplinks = new Dictionary<string, ISitrepUplink>();
 
         // Thread-safe MIRROR of "which topics currently have >=1 subscriber",
         // maintained on the Courier thread (the only writer — Process
@@ -331,6 +357,31 @@ namespace Sitrep.Host
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
             _emitter = new ChannelEmitter(topic => _channelDeclarations[topic].Emission);
+
+            // Built-in system.uplinks declaration + source — see
+            // UplinksTopic's doc comment for why this is registered directly
+            // here rather than through an ISitrepUplink.Manifest. Declared
+            // (and its mapper wired) BEFORE Start(), same single-writer-
+            // before-start rule every other _channelDeclarations/
+            // _channelSources entry follows.
+            _channelDeclarations[UplinksTopic] = new ChannelDeclaration
+            {
+                Topic = UplinksTopic,
+                Delivery = Delivery.LossyLatest,
+                // A registered-uplink roster with mostly-static health barely
+                // changes tick to tick — same cadence class as system.bodies.
+                // BuildSystemUplinksPayload hands back a fresh
+                // Dictionary/List every call, so every considered sample
+                // reads as "changed" against the emitter's reference/Equals
+                // fallback; the 30s keyframe floor covers the steady state.
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // Uplink health/availability is a ground-side fact about the
+                // MOD itself (is this uplink even working), not something
+                // that flows through a vessel's comms link — same class as
+                // system.bodies/scansat.available, so TrueNow.
+                Delay = DelayRole.TrueNow,
+            };
+            _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().
@@ -406,6 +457,8 @@ namespace Sitrep.Host
                 _availability[id] = Availability.Available;
             }
 
+            _registeredUplinks[id] = uplink;
+
             foreach (var channel in uplink.Manifest.Channels)
             {
                 _channelDeclarations[channel.Topic] = channel;
@@ -443,6 +496,92 @@ namespace Sitrep.Host
             return _availability.TryGetValue(uplinkId, out var availability)
                 ? availability
                 : Availability.Unavailable("unknown uplink \"" + uplinkId + "\"");
+        }
+
+        /// <summary>
+        /// <see cref="UplinksTopic"/>'s mapper — the mod-side half of the
+        /// Uplink health self-reporting feature. Walks every currently
+        /// <see cref="_registeredUplinks"/> entry and produces one wire entry
+        /// per uplink: <c>{ id, version, available, reason, health: { state,
+        /// detail } }</c>. <c>available</c>/<c>reason</c> come straight from
+        /// <see cref="AvailabilityOf"/> (the registration-time fail-soft
+        /// status this engine already tracked before this feature existed).
+        /// <c>health</c> comes from <see cref="IUplinkHealthReporter.Health"/>
+        /// when the uplink implements it — wrapped in try/catch, same
+        /// fail-soft shape <see cref="RegisterUplink"/>'s own Register() call
+        /// uses, so a throwing Health() reports as
+        /// <see cref="UplinkHealthState.Degraded"/> rather than taking down
+        /// this whole channel (or the uplink's OWN availability/other
+        /// channels — this is a read, not a registration step). An uplink
+        /// that does NOT implement <see cref="IUplinkHealthReporter"/>
+        /// derives its health straight from availability: Available →
+        /// <see cref="UplinkHealthState.Healthy"/>, Unavailable →
+        /// <see cref="UplinkHealthState.Unavailable"/> carrying the same
+        /// reason — so every uplink shows SOME health, even the 14 built-ins
+        /// that predate this interface and need no change to appear here.
+        /// Ignores <paramref name="snapshot"/> entirely — this reads engine
+        /// registration state, not KSP telemetry.
+        /// </summary>
+        private object? BuildSystemUplinksPayload(KspSnapshot? snapshot)
+        {
+            var entries = new List<object?>();
+            foreach (var kvp in _registeredUplinks)
+            {
+                var id = kvp.Key;
+                var uplink = kvp.Value;
+                var availability = AvailabilityOf(id);
+                entries.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["version"] = uplink.Manifest.Version,
+                    ["available"] = availability.IsAvailable,
+                    ["reason"] = availability.Reason,
+                    ["health"] = BuildUplinkHealthPayload(uplink, availability),
+                });
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["uplinks"] = entries,
+            };
+        }
+
+        /// <summary>
+        /// Resolves one uplink's <see cref="UplinkHealth"/> — self-reported
+        /// via <see cref="IUplinkHealthReporter"/> when implemented (fail-soft
+        /// wrapped), else derived from <paramref name="availability"/> — and
+        /// packs it into the wire shape <see cref="BuildSystemUplinksPayload"/>
+        /// uses. <see cref="UplinkHealthState"/> is serialized as its integer
+        /// ordinal, matching every other enum in this codec (see
+        /// <c>CareerViewProvider.ToWire(CareerMode)</c> for the identical
+        /// convention).
+        /// </summary>
+        private static Dictionary<string, object?> BuildUplinkHealthPayload(ISitrepUplink uplink, Availability availability)
+        {
+            UplinkHealth health;
+            if (uplink is IUplinkHealthReporter reporter)
+            {
+                try
+                {
+                    health = reporter.Health();
+                }
+                catch (Exception ex)
+                {
+                    health = new UplinkHealth(UplinkHealthState.Degraded, "Health() threw: " + SafeExceptionMessage(ex));
+                }
+            }
+            else
+            {
+                health = availability.IsAvailable
+                    ? new UplinkHealth(UplinkHealthState.Healthy)
+                    : new UplinkHealth(UplinkHealthState.Unavailable, availability.Reason);
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["state"] = (int)health.State,
+                ["detail"] = health.Detail,
+            };
         }
 
         /// <summary>

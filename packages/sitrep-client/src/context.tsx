@@ -29,6 +29,7 @@ import { spaceCenterStateChannel } from "./space-center-state";
 import { systemStateChannel } from "./system-state";
 import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
+import { systemUplinkHealthChannel } from "./uplink-health";
 import type { VesselState } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock, type ViewClockOptions } from "./view-clock";
@@ -323,6 +324,7 @@ export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
   [
     vesselStateChannel as DerivedChannelDefinition<unknown>,
     systemStateChannel as DerivedChannelDefinition<unknown>,
+    systemUplinkHealthChannel as DerivedChannelDefinition<unknown>,
     spaceCenterStateChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceMaxChannel as DerivedChannelDefinition<unknown>,

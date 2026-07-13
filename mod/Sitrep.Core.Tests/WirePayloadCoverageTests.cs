@@ -138,6 +138,13 @@ namespace Sitrep.Core.Tests
             // and has its own JsonWriter case (exercised by this test).
             "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
             "KosTerminalCloseArgs",
+            // kos.run command args — inbound only (KosExtension.Ksp.cs's Run
+            // handler, AddCommandHandler<KosRunArgs, CommandResult>);
+            // deserialized client → server, never serialized outbound as a raw
+            // POCO. The OUTBOUND KosRunResult is NOT allowlisted — it's
+            // published raw on kos.run.<coreId> and has its own JsonWriter case
+            // (exercised by this test).
+            "KosRunArgs",
         };
 
         private static IEnumerable<Type> ContractPayloadTypes() =>

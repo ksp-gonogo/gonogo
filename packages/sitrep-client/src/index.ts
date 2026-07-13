@@ -150,6 +150,15 @@ export type {
 } from "./timeline-store";
 export { lerpPayload, TimelineStore } from "./timeline-store";
 export type { Transport, TransportStatus } from "./transport";
+export type {
+  SystemUplinkHealth,
+  UplinkHealthEntry,
+  UplinkHealthStateName,
+} from "./uplink-health";
+export {
+  deriveSystemUplinkHealth,
+  systemUplinkHealthChannel,
+} from "./uplink-health";
 export { useCertainty } from "./use-certainty";
 export { type UseCommandResult, useCommand } from "./use-command";
 export { useStream } from "./use-stream";
