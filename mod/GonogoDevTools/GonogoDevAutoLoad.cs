@@ -55,6 +55,20 @@ namespace Gonogo.DevTools
         private const float CfgPollIntervalSeconds = 0.5f;
         private const float CfgPollTimeoutSeconds = 20f;
 
+        /// <summary>
+        /// Poll cadence/timeout for confirming the target scene (FLIGHT or
+        /// SPACE CENTER) has actually finished loading after <see cref="LoadSave"/>
+        /// triggers it. <c>HighLogic.LoadScene</c>/<c>FlightDriver.StartAndFocusVessel</c>
+        /// only queue the transition - Unity's scene load, and for FLIGHT
+        /// specifically FlightDriver's own internal vessel-restore coroutine,
+        /// both run asynchronously over the following frames. See the doc
+        /// comment on <see cref="WaitUntilFlightReady"/> for why this addon
+        /// used to declare success before that transition had actually
+        /// finished.
+        /// </summary>
+        private const float FlightReadyPollIntervalSeconds = 0.25f;
+        private const float FlightReadyTimeoutSeconds = 60f;
+
         private void Start()
         {
             Debug.Log(LogPrefix + "Start() fired on MainMenu (_attempted=" + _attempted + ")");
@@ -201,7 +215,139 @@ namespace Gonogo.DevTools
                 yield break;
             }
 
-            LoadSave(saveName!, restoreFlight);
+            if (!LoadSave(saveName!, restoreFlight, out var enteredFlight))
+            {
+                yield break;
+            }
+
+            // LoadSave only QUEUED the scene transition (HighLogic.LoadScene,
+            // reached either directly via FlightDriver.StartAndFocusVessel or
+            // indirectly via Game.Start()) - it does not block until the new
+            // scene is actually up. The old code returned here and let this
+            // MonoBehaviour (and its coroutine) get destroyed with the
+            // MainMenu scene the instant Unity tore it down, which raced that
+            // transition: on a heavily-modded boot the FLIGHT scene can take
+            // many seconds to finish restoring the vessel, and this addon's
+            // "auto-load done" log line - the signal the test harness waits
+            // on before driving the game further - fired long before that,
+            // producing exactly the broken scene this addon exists to avoid
+            // (empty space, no vessel, HUD/SAS icons stacked in the corner).
+            // Survive the scene swap and wait for the real readiness signal.
+            DontDestroyOnLoad(gameObject);
+            yield return WaitUntilSceneReady(enteredFlight);
+
+            // Job done either way (confirmed ready, or gave up after logging
+            // why) - nothing further for this addon to do. Clean up the
+            // DontDestroyOnLoad object rather than leaving an inert
+            // MonoBehaviour attached for the rest of the KSP process.
+            Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// Waits for the scene <see cref="LoadSave"/> just triggered to
+        /// actually finish loading, dispatching to the FLIGHT- or SPACE
+        /// CENTER-specific wait depending on which path <see cref="LoadSave"/>
+        /// actually took (its <c>enteredFlight</c> out-param, not the
+        /// requested <c>restoreFlight</c> cfg flag - a save with zero
+        /// protoVessels falls back to Space Center even when flight was
+        /// requested, and waiting on the wrong scene here would just time out).
+        /// </summary>
+        private IEnumerator WaitUntilSceneReady(bool enteredFlight)
+        {
+            if (enteredFlight)
+            {
+                yield return WaitUntilFlightReady();
+            }
+            else
+            {
+                yield return WaitUntilSpaceCenterReady();
+            }
+        }
+
+        /// <summary>
+        /// Confirms the FLIGHT scene triggered by <c>FlightDriver.StartAndFocusVessel</c>
+        /// has actually finished restoring a vessel, rather than assuming it
+        /// the instant the call returned.
+        ///
+        /// <c>GameEvents.onFlightReady</c> is stock KSP's own "the flight
+        /// scene is done" signal - decompiled, it fires from FlightDriver's
+        /// internal setup coroutine only after the vessel/UI restore has
+        /// completed, so it is the cleanest true-completion hook available.
+        /// It is combined with a poll of the same three flags stock's own
+        /// <c>FlightGlobals</c> uses internally to track its own readiness
+        /// (<c>HighLogic.LoadedSceneIsFlight</c>, <c>FlightGlobals.ready</c>,
+        /// <c>FlightGlobals.ActiveVessel</c>) as a belt-and-braces fallback in
+        /// case some load path never fires the event, and a hard timeout so a
+        /// genuinely broken load is loud in KSP.log instead of hanging this
+        /// coroutine forever.
+        /// </summary>
+        private IEnumerator WaitUntilFlightReady()
+        {
+            var flightReady = false;
+            void OnFlightReady()
+            {
+                flightReady = true;
+            }
+
+            GameEvents.onFlightReady.Add(OnFlightReady);
+            var waited = 0f;
+            try
+            {
+                while (!flightReady)
+                {
+                    if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && FlightGlobals.ActiveVessel != null)
+                    {
+                        flightReady = true;
+                        break;
+                    }
+
+                    if (waited >= FlightReadyTimeoutSeconds)
+                    {
+                        Debug.LogError(LogPrefix + "FLIGHT scene did not report ready within " + FlightReadyTimeoutSeconds
+                            + "s of triggering the load (no onFlightReady; LoadedSceneIsFlight=" + HighLogic.LoadedSceneIsFlight
+                            + ", FlightGlobals.ready=" + FlightGlobals.ready + ") - scene is likely broken (no vessel, "
+                            + "empty space); giving up");
+                        yield break;
+                    }
+
+                    yield return new WaitForSeconds(FlightReadyPollIntervalSeconds);
+                    waited += FlightReadyPollIntervalSeconds;
+                }
+            }
+            finally
+            {
+                GameEvents.onFlightReady.Remove(OnFlightReady);
+            }
+
+            Debug.Log(LogPrefix + "FLIGHT scene confirmed ready after " + waited + "s (vessel='"
+                + FlightGlobals.ActiveVessel!.vesselName + "')");
+        }
+
+        /// <summary>
+        /// Confirms the SPACE CENTER scene triggered (indirectly, via
+        /// <c>Game.Start()</c>) by the non-restoreFlight path has actually
+        /// finished loading. Lighter-weight than <see cref="WaitUntilFlightReady"/>
+        /// since Space Center doesn't restore a vessel, but still avoids
+        /// declaring success before <c>HighLogic.LoadScene</c>'s async
+        /// transition has landed.
+        /// </summary>
+        private IEnumerator WaitUntilSpaceCenterReady()
+        {
+            var waited = 0f;
+            while (HighLogic.LoadedScene != GameScenes.SPACECENTER)
+            {
+                if (waited >= FlightReadyTimeoutSeconds)
+                {
+                    Debug.LogError(LogPrefix + "SPACE CENTER scene did not become ready within " + FlightReadyTimeoutSeconds
+                        + "s of calling HighLogic.CurrentGame.Start() (LoadedScene=" + HighLogic.LoadedScene + ") - giving up");
+                    yield break;
+                }
+
+                yield return new WaitForSeconds(FlightReadyPollIntervalSeconds);
+                waited += FlightReadyPollIntervalSeconds;
+            }
+
+            Debug.Log(LogPrefix + "SPACE CENTER scene confirmed ready after " + waited + "s");
         }
 
         /// <summary>
@@ -224,9 +370,24 @@ namespace Gonogo.DevTools
         /// Kept as a plain (non-coroutine) method so the whole sequence is
         /// covered by a single try/catch: any exception is logged WITH its
         /// stack trace and swallowed so nothing ever throws out of the addon.
+        ///
+        /// Only QUEUES the scene transition (via <c>FlightDriver.StartAndFocusVessel</c>
+        /// or <c>Game.Start()</c>, both of which just call <c>HighLogic.LoadScene</c>
+        /// under the hood, decompiled) - it does not wait for the new scene
+        /// to actually finish loading. The caller is responsible for that;
+        /// see <see cref="WaitUntilSceneReady"/>.
+        ///
+        /// Returns <c>false</c> if the load was aborted before any scene
+        /// transition was triggered (bad/incompatible save, exception) - the
+        /// caller should not wait for scene readiness in that case, there is
+        /// nothing to wait for. On <c>true</c>, <paramref name="enteredFlight"/>
+        /// reports which scene was ACTUALLY queued, which is not always what
+        /// was requested: a save with zero protoVessels falls back to Space
+        /// Center even when <paramref name="restoreFlight"/> was true.
         /// </summary>
-        private static void LoadSave(string saveName, bool restoreFlight)
+        private static bool LoadSave(string saveName, bool restoreFlight, out bool enteredFlight)
         {
+            enteredFlight = false;
             try
             {
                 Debug.Log(LogPrefix + "invoking GamePersistence.LoadSFSFile for save '" + saveName + "'"
@@ -236,7 +397,7 @@ namespace Gonogo.DevTools
                 if (node == null)
                 {
                     Debug.LogError(LogPrefix + "LoadSFSFile returned null for save '" + saveName + "'");
-                    return;
+                    return false;
                 }
 
                 Debug.Log(LogPrefix + "LoadSFSFile ok; calling GamePersistence.LoadGameCfg");
@@ -244,7 +405,7 @@ namespace Gonogo.DevTools
                 if (HighLogic.CurrentGame == null)
                 {
                     Debug.LogError(LogPrefix + "LoadGameCfg returned null (incompatible save '" + saveName + "')");
-                    return;
+                    return false;
                 }
 
                 if (!HighLogic.CurrentGame.compatible || HighLogic.CurrentGame.flightState == null)
@@ -252,7 +413,7 @@ namespace Gonogo.DevTools
                     Debug.LogError(LogPrefix + "save '" + saveName + "' not compatible / no flight state (compatible="
                         + HighLogic.CurrentGame.compatible + ", flightState=" + (HighLogic.CurrentGame.flightState != null) + ")");
                     HighLogic.CurrentGame = null;
-                    return;
+                    return false;
                 }
 
                 Debug.Log(LogPrefix + "save compatible; updating scenario modules + persisting");
@@ -280,18 +441,24 @@ namespace Gonogo.DevTools
 
                     Debug.Log(LogPrefix + "calling FlightDriver.StartAndFocusVessel(idx=" + focusIdx + ")");
                     FlightDriver.StartAndFocusVessel(HighLogic.CurrentGame, focusIdx);
-                    Debug.Log(LogPrefix + "entered FLIGHT from save '" + saveName + "' focusing vessel #" + focusIdx);
+                    Debug.Log(LogPrefix + "queued FLIGHT load from save '" + saveName + "' focusing vessel #" + focusIdx
+                        + " - waiting for the scene to actually finish loading");
+                    enteredFlight = true;
                 }
                 else
                 {
                     Debug.Log(LogPrefix + "calling HighLogic.CurrentGame.Start()");
                     HighLogic.CurrentGame.Start();
-                    Debug.Log(LogPrefix + "entered game from save '" + saveName + "'");
+                    Debug.Log(LogPrefix + "queued scene load from save '" + saveName
+                        + "' - waiting for the scene to actually finish loading");
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "load failed: " + ex);
+                return false;
             }
         }
     }

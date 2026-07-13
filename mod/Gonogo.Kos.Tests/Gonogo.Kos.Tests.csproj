@@ -46,6 +46,7 @@
     <Compile Include="..\Gonogo.Kos\KosDataParser.cs" />
     <Compile Include="..\Gonogo.Kos\KosVersionGuard.cs" />
     <Compile Include="..\Gonogo.Kos\KosTerminalManager.cs" />
+    <Compile Include="..\Gonogo.Kos\KosRunManager.cs" />
     <Compile Include="..\Gonogo.Kos\MainThreadDispatcher.cs" />
     <Compile Include="..\Gonogo.Kos\KosExtension.cs" />
   </ItemGroup>

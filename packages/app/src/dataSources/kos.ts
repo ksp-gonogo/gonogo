@@ -7,27 +7,15 @@ import type {
   ScriptableDataSource,
 } from "@ksp-gonogo/data";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import type { KosCpu } from "./kos-menu-parser";
+import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
 import { KosComputeManager, type KosTopicStatus } from "./kosCompute";
-import { KosComputeSession } from "./kosComputeSession";
-import { KosMenuPeekSession } from "./kosMenuPeekSession";
+import { KosUplinkExecutor } from "./kosUplinkExecutor";
 
-// Re-export the session collaborators so existing `from "./kos"` consumers
-// continue to resolve the same symbols after they moved to sibling modules.
-export { KosComputeSession } from "./kosComputeSession";
-export type { KosMenuPeekInit } from "./kosMenuPeekSession";
-export { KosMenuPeekSession } from "./kosMenuPeekSession";
 export type { KosManagedScript, KosScriptArg };
 
 export interface KosConfig extends Record<string, unknown> {
-  /** Proxy host (our @ksp-gonogo/telnet-proxy server). */
-  host: string;
-  /** Proxy port. */
-  port: number;
-  /** kOS telnet host, as reached from the proxy. */
-  kosHost: string;
-  /** kOS telnet port. */
-  kosPort: number;
   /**
    * CPU tagname that the centralised compute fanout dispatches to. Empty
    * string = none selected, loops surface a "no CPU" error and idle. The
@@ -38,10 +26,6 @@ export interface KosConfig extends Record<string, unknown> {
 }
 
 const DEFAULT_CONFIG: KosConfig = {
-  host: "localhost",
-  port: 3001,
-  kosHost: "localhost",
-  kosPort: 5410,
   activeCpu: "",
 };
 /**
@@ -80,29 +64,27 @@ const KOS_DISPATCH_BUDGET = new PerfBudget({
   unit: "dispatches",
 });
 
-/**
- * Default delay between detecting attach and draining the queue. Lets
- * kOS's Unity update loop detach the welcomeMenu so RUNPATH lands in the
- * CPU REPL and not the still-attached welcome menu input pump. Tests
- * override this to 0 since MockKosTelnet doesn't simulate the race.
- */
-const DEFAULT_POST_ATTACH_DRAIN_DELAY_MS = 300;
-
 interface KosDataSourceOptions {
   callTimeoutMs?: number;
+  /**
+   * Accepted for source-construction back-compat (existing tests pass it);
+   * no longer used now that dispatch rides the `kos.run` Uplink rather than a
+   * telnet REPL that needed a post-attach settle delay.
+   */
   postAttachDrainDelayMs?: number;
 }
 
 /**
- * Single kOS data source: holds the proxy + kOS endpoint config, exposes
- * `executeScript(cpu, script, args)` for widgets that need to run kOS
- * scripts on individual CPUs, and notifies subscribers when the config
- * changes so live terminals can reconnect against the new endpoint.
+ * Single kOS data source: exposes `executeScript(cpu, script, args)` for
+ * widgets that run kOS scripts on individual CPUs (dispatched over the
+ * `kos.run` Uplink — see `kosUplinkExecutor.ts`), owns the centralised
+ * `kos.compute.*` fanout, and surfaces CPU discovery off the mod's native
+ * `kos.processors` push channel (`onProcessorsChanged`).
  *
- * No persistent ws is held by this source. The KosTerminal widget opens
- * its own ws via `KosProxyContext`; per-CPU executeScript sessions open
- * lazily on demand and tear down when the source disconnects. This keeps
- * the proxy from holding a permanent telnet session that nothing reads.
+ * No persistent socket is held by this source. Everything rides the sitrep
+ * telemetry stream: `executeScript` correlates a `kos.run.<coreId>` result,
+ * and discovery stands up the moment a `TelemetryClient` is adopted
+ * (`attachTelemetryClient`, driven by the `KosCpuDiscovery` mount).
  */
 export class KosDataSource implements ScriptableDataSource<KosConfig> {
   id = "kos";
@@ -119,157 +101,74 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   private readonly configListeners = new Set<() => void>();
   private cfg: KosConfig;
   private readonly callTimeoutMs: number;
-  private readonly postAttachDrainDelayMs: number;
-  private remoteVersion: { version: string; buildTime: string } | null = null;
-  private readonly remoteVersionListeners = new Set<
-    (info: { version: string; buildTime: string } | null) => void
-  >();
-  private remoteVersionFetchInFlight = false;
 
-  // Per-CPU executeScript sessions, keyed by tagname.
-  private readonly sessions = new Map<string, KosComputeSession>();
+  // The ONLY transport executeScript() dispatches through: the kos.run
+  // Uplink command + kos.run.<coreId> channel. Also owns the standing
+  // kos.processors subscription that feeds CPU discovery. See
+  // kosUplinkExecutor.ts.
+  private readonly uplinkExecutor: KosUplinkExecutor;
 
   // Centralised compute fanout — owns kos.compute.* schema/subscribe/execute.
   // Constructed eagerly (no I/O on its own) so subscribe() can route topics
   // before the source is connect()ed.
   private readonly compute: KosComputeManager;
 
-  // Long-lived menu-peek session — populates discovery without needing a
-  // widget. Re-created in configure() against the new endpoint.
-  private peekSession: KosMenuPeekSession | null = null;
-  private peekSessionStatusUnsub: (() => void) | null = null;
-  // Cached menu-peek status so recomputeStatus can factor in "kOS proxy
-  // is reachable even if no compute session is mid-cycle" — matches the
-  // KosTerminal widget's lived experience that the proxy is up.
-  private peekSessionStatus: DataSourceStatus = "disconnected";
-
-  /**
-   * Subscribers notified every time a session has a fresh CPU menu —
-   * the parsed list of every kOS CPU on the active vessel. Used by
-   * the screen-side discovery hook to populate the registry; sessions
-   * fan out into here so a single subscriber sees menus from every
-   * open CPU session.
-   */
-  private readonly cpuDiscoveryListeners = new Set<(cpus: KosCpu[]) => void>();
-
   constructor(config?: KosConfig, opts: KosDataSourceOptions = {}) {
     this.cfg = config ?? configStore.get();
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
-    this.postAttachDrainDelayMs =
-      opts.postAttachDrainDelayMs ?? DEFAULT_POST_ATTACH_DRAIN_DELAY_MS;
+    this.uplinkExecutor = new KosUplinkExecutor({
+      timeoutMs: this.callTimeoutMs,
+    });
     this.compute = new KosComputeManager({
       executeScript: (cpu, script, args, managed) =>
         this.executeScript(cpu, script, args, managed),
       getActiveCpu: () => this.cfg.activeCpu,
     });
+    // Drive the status pill off kos.processors liveness — a fresh CPU list
+    // (or its disappearance) is exactly the signal that the stream is up and
+    // kOS is present.
+    this.uplinkExecutor.onProcessorsChanged(() => this.recomputeStatus());
   }
 
-  // --- Connection (no-op; sessions open lazily) ---
+  // --- Connection ---
+  //
+  // No socket of its own — the sitrep stream is mounted by
+  // `SitrepTelemetryProvider`. Discovery and dispatch both ride whichever
+  // `TelemetryClient` is adopted (see `attachTelemetryClient`). Status is
+  // derived from `kos.processors` liveness once a stream is present.
 
   connect(): Promise<void> {
-    void this.refreshRemoteVersion();
-    this.startPeekSession();
+    const client = getActiveTelemetryClient();
+    if (client) this.attachTelemetryClient(client);
     return Promise.resolve();
   }
 
-  private startPeekSession(): void {
-    if (this.peekSession) return;
-    const peek = new KosMenuPeekSession({
-      proxyHost: this.cfg.host,
-      proxyPort: this.cfg.port,
-      kosHost: this.cfg.kosHost,
-      kosPort: this.cfg.kosPort,
-      onCpusDiscovered: (cpus) => {
-        for (const cb of this.cpuDiscoveryListeners) cb(cpus);
-      },
-    });
-    this.peekSession = peek;
-    this.peekSessionStatusUnsub = peek.onStatusChange((status) => {
-      this.peekSessionStatus = status;
-      this.recomputeStatus();
-    });
-    this.peekSessionStatus = peek.status;
-    peek.open();
-    this.recomputeStatus();
-  }
-
-  private stopPeekSession(): void {
-    if (!this.peekSession) return;
-    this.peekSession.close();
-    this.peekSession = null;
-    this.peekSessionStatusUnsub?.();
-    this.peekSessionStatusUnsub = null;
-    this.peekSessionStatus = "disconnected";
+  /**
+   * Adopt the active sitrep `TelemetryClient` for kOS discovery + dispatch.
+   * Establishes the STANDING `kos.processors` subscription so CPU discovery
+   * works whenever a stream is mounted — not only while a `kos.run` dispatch
+   * is pending. Idempotent for the same client; driven eagerly by the
+   * `KosCpuDiscovery` mount on every client change.
+   */
+  attachTelemetryClient(client: TelemetryClient): void {
+    this.uplinkExecutor.adopt(client);
     this.recomputeStatus();
   }
 
   /**
-   * One-shot HTTP probe of the proxy's `/version` endpoint. Stored on the
-   * source for the DataSourceStatus widget to surface a per-source pill.
-   * Errors are swallowed — an unreachable proxy already shows "disconnected"
-   * via the per-session status; the version probe shouldn't add noise.
+   * Subscribe to CPU-list changes off the mod's native `kos.processors`
+   * push channel. Fires with the full processor snapshot (each entry
+   * carries `tag`/`coreId`) whenever the list changes, and replays the
+   * current snapshot synchronously on subscribe. The screen-side discovery
+   * hook maps `procs.map(p => p.tag)` into the CPU registry.
    */
-  private async refreshRemoteVersion(): Promise<void> {
-    if (this.remoteVersionFetchInFlight) return;
-    this.remoteVersionFetchInFlight = true;
-    try {
-      const res = await fetch(
-        `http://${this.cfg.host}:${this.cfg.port}/version`,
-        { method: "GET" },
-      );
-      if (!res.ok) return;
-      const body = (await res.json()) as {
-        version?: string;
-        buildTime?: string;
-      };
-      if (typeof body.version !== "string") return;
-      const next = {
-        version: body.version,
-        buildTime: typeof body.buildTime === "string" ? body.buildTime : "",
-      };
-      const prev = this.remoteVersion;
-      if (prev?.version === next.version && prev.buildTime === next.buildTime) {
-        return;
-      }
-      this.remoteVersion = next;
-      for (const cb of this.remoteVersionListeners) cb(next);
-    } catch {
-      /* proxy unreachable — handled by per-session status */
-    } finally {
-      this.remoteVersionFetchInFlight = false;
-    }
-  }
-
-  getRemoteVersion(): { version: string; buildTime: string } | null {
-    return this.remoteVersion;
-  }
-
-  onRemoteVersionChange(
-    cb: (info: { version: string; buildTime: string } | null) => void,
-  ): () => void {
-    this.remoteVersionListeners.add(cb);
-    return () => this.remoteVersionListeners.delete(cb);
-  }
-
-  /**
-   * Subscribe to CPU-menu discovery events. Fires every time any open
-   * session parses a complete kOS top-level menu — the list represents
-   * every CPU on the currently-loaded vessel(s). Subscribers can
-   * stamp these into a per-screen registry.
-   *
-   * Note: only fires while a kOS session is alive. If no widget is
-   * attached, no menu is read and no discovery happens.
-   */
-  onCpusDiscovered(cb: (cpus: KosCpu[]) => void): () => void {
-    this.cpuDiscoveryListeners.add(cb);
-    return () => this.cpuDiscoveryListeners.delete(cb);
+  onProcessorsChanged(cb: (procs: KosProcessorInfo[]) => void): () => void {
+    return this.uplinkExecutor.onProcessorsChanged(cb);
   }
 
   disconnect(): void {
     this.compute.dispose();
-    for (const s of this.sessions.values()) s.close();
-    this.sessions.clear();
-    this.stopPeekSession();
+    this.uplinkExecutor.dispose();
     this.setStatus("disconnected");
   }
 
@@ -308,11 +207,8 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   /**
-   * Subscribe to config changes (host/port/kosHost/kosPort updates). The
-   * callback fires every time `configure()` persists a new value. Used
-   * by KosTerminal to drop and reopen its xterm session against the new
-   * endpoint, otherwise an open terminal would stay pinned to whatever
-   * host it connected against at mount.
+   * Subscribe to config changes (the active-CPU selection). The callback
+   * fires every time `configure()` persists a new value.
    */
   onConfigChange(cb: () => void): () => void {
     this.configListeners.add(cb);
@@ -329,17 +225,17 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     );
   }
 
-  setupInstructions(): string {
-    return "The kOS proxy bridges telnet to WebSocket. Run it locally:\n\n  podman compose up -d\n\n(or: docker compose up -d)\n\nfrom the gonogo project root.";
-  }
-
   // --- Public widget API ---
 
   /**
    * Run a script on the named CPU and resolve with its parsed [KOSDATA]
-   * object. Calls to the same CPU are serialised by a per-session FIFO
-   * queue; calls to different CPUs run in parallel. Rejects if no
-   * [KOSDATA] arrives within the call timeout or the session dies.
+   * object, dispatched over the `kos.run` Uplink command (see
+   * `kosUplinkExecutor.ts`) — the ONLY transport this method uses. Calls
+   * to the same CPU are serialised by a per-core FIFO queue; calls to
+   * different CPUs run in parallel. Rejects if the CPU's tagname doesn't
+   * resolve to a known `coreId`, no `kos.run.<coreId>` result arrives
+   * within the call timeout, or no telemetry stream is mounted at all
+   * (`kOS Uplink not connected`).
    *
    * If `managed` is provided, the dispatch is wrapped in a check-and-write
    * preamble that keeps `script` on the kOS volume in sync with the
@@ -354,33 +250,21 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     managed?: KosManagedScript,
   ): Promise<KosData> {
     KOS_DISPATCH_BUDGET.record();
-    const session = this.getOrCreateSession(cpu);
-    return session.enqueue(script, args, managed);
+    const client = getActiveTelemetryClient();
+    if (!client) {
+      return Promise.reject(
+        new Error(
+          "kOS Uplink not connected — no telemetry stream is mounted, so executeScript has no transport to dispatch on.",
+        ),
+      );
+    }
+    return this.uplinkExecutor.run(client, cpu, script, args, managed ?? null);
   }
 
   // --- Config ---
 
   configSchema(): ConfigField[] {
     return [
-      {
-        key: "host",
-        label: "Proxy Host",
-        type: "text",
-        placeholder: "localhost",
-      },
-      { key: "port", label: "Proxy Port", type: "number", placeholder: "3001" },
-      {
-        key: "kosHost",
-        label: "kOS Host",
-        type: "text",
-        placeholder: "localhost",
-      },
-      {
-        key: "kosPort",
-        label: "kOS Port",
-        type: "number",
-        placeholder: "5410",
-      },
       {
         key: "activeCpu",
         label: "Active CPU",
@@ -392,10 +276,6 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
 
   getConfig(): KosConfig {
     return {
-      host: this.cfg.host,
-      port: this.cfg.port,
-      kosHost: this.cfg.kosHost,
-      kosPort: this.cfg.kosPort,
       activeCpu: this.cfg.activeCpu,
     };
   }
@@ -405,9 +285,8 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   /**
-   * Apply a first-run seeded kOS host WITHOUT persisting — see
-   * `seedKosHost`. Same teardown/notify path as `configure`, so any live
-   * terminal or compute loop re-dials against the seeded endpoint.
+   * Apply a first-run seeded config WITHOUT persisting — same notify path as
+   * `configure`.
    */
   applySeededConfig(config: Record<string, unknown>): void {
     this.applyConfig(config, false);
@@ -416,102 +295,36 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   private applyConfig(config: Record<string, unknown>, persist: boolean): void {
     const prevActiveCpu = this.cfg.activeCpu;
     this.cfg = {
-      host: typeof config.host === "string" ? config.host : this.cfg.host,
-      port:
-        typeof config.port === "number"
-          ? config.port
-          : Number(config.port) || this.cfg.port,
-      kosHost:
-        typeof config.kosHost === "string" ? config.kosHost : this.cfg.kosHost,
-      kosPort:
-        typeof config.kosPort === "number"
-          ? config.kosPort
-          : Number(config.kosPort) || this.cfg.kosPort,
       activeCpu:
         typeof config.activeCpu === "string"
           ? config.activeCpu
           : this.cfg.activeCpu,
     };
     if (persist) configStore.set(this.cfg);
-    // Tear down any open per-CPU sessions — they'd still be pointed at the
-    // old endpoint. Next executeScript() will open fresh sessions against
-    // the new config. Then notify config listeners (KosTerminal) so live
-    // terminals reconnect too.
-    for (const s of this.sessions.values()) s.close();
-    this.sessions.clear();
     if (this.cfg.activeCpu !== prevActiveCpu) {
       this.compute.onActiveCpuChanged();
     }
-    // Restart the menu-peek against the new endpoint. Skipped on the
-    // disconnected branch (peekSession is null then).
-    if (this.peekSession) {
-      this.stopPeekSession();
-      this.startPeekSession();
-    }
-    // Drop the cached proxy version — next /version probe runs against the
-    // new endpoint.
-    if (this.remoteVersion !== null) {
-      this.remoteVersion = null;
-      for (const cb of this.remoteVersionListeners) cb(null);
-    }
-    void this.refreshRemoteVersion();
     this.recomputeStatus();
     this.configListeners.forEach((cb) => {
       cb();
     });
   }
 
-  // --- executeScript session management ---
-
-  private getOrCreateSession(cpu: string): KosComputeSession {
-    let session = this.sessions.get(cpu);
-    if (session) return session;
-    session = new KosComputeSession({
-      cpu,
-      proxyHost: this.cfg.host,
-      proxyPort: this.cfg.port,
-      kosHost: this.cfg.kosHost,
-      kosPort: this.cfg.kosPort,
-      callTimeoutMs: this.callTimeoutMs,
-      postAttachDrainDelayMs: this.postAttachDrainDelayMs,
-      onStatusChange: () => this.recomputeStatus(),
-      onCpusDiscovered: (cpus) => {
-        for (const cb of this.cpuDiscoveryListeners) cb(cpus);
-      },
-    });
-    this.sessions.set(cpu, session);
-    this.recomputeStatus();
-    return session;
-  }
+  // --- Status ---
 
   private recomputeStatus(): void {
-    // Aggregate across BOTH the menu-peek session (long-lived, no CPU
-    // attached — proves "proxy reachable") AND every per-CPU compute
-    // session. The KosTerminal widget connects via KosProxyContext
-    // independently of this aggregation; its working state is reflected
-    // here through the menu-peek which talks to the same proxy/URL.
-    //
-    // Pre-rework: status was driven only by `this.sessions` (compute
-    // sessions). Every compute-session close flipped the source to
-    // "disconnected" between the WS close and the next executeScript-
-    // triggered ensureOpen ~5s later, so the data-source banner spent
-    // most of its life lying about a working kOS connection. Including
-    // the menu-peek's connected state holds the banner stable while
-    // compute sessions cycle through reconnects in the background.
-    const statuses: Array<DataSourceStatus> = [
-      this.peekSessionStatus,
-      ...[...this.sessions.values()].map((s) => s.status),
-    ];
-    if (statuses.some((s) => s === "connected")) {
+    // Derived from the sitrep stream / kos.processors liveness the executor
+    // tracks — connected once a CPU list has landed on the stream,
+    // reconnecting while a stream is mounted but no CPU has reported yet,
+    // disconnected when no stream is adopted at all.
+    if (this.uplinkExecutor.hasLiveProcessors) {
       this.setStatus("connected");
-    } else if (statuses.some((s) => s === "reconnecting")) {
+    } else if (this.uplinkExecutor.hasClient) {
       this.setStatus("reconnecting");
     } else {
       this.setStatus("disconnected");
     }
   }
-
-  // --- Status ---
 
   private setStatus(status: DataSourceStatus): void {
     if (status === this.status) return;
@@ -534,18 +347,3 @@ function readStoredPartial(key: string): Partial<KosConfig> {
 
 export const kosSource = new KosDataSource();
 registerDataSource(kosSource);
-
-/**
- * First-run seeding from the bundle's `KSP_HOST` (via the relay's
- * `/bootstrap-config`). Seeds the KSP-side telnet host VERBATIM — the
- * in-container proxy is the thing dialling it, so container-internal names
- * like `host.containers.internal` are correct here (unlike the browser-side
- * Telemachus/kerbcast seeds). In-memory only; any user-saved kOS config
- * (current or legacy kos-compute key) wins.
- */
-export function seedKosHost(kosHost: string): void {
-  if (configStore.isStored()) return;
-  if (Object.keys(readStoredPartial(LEGACY_KOS_COMPUTE_KEY)).length > 0) return;
-  if (kosSource.getConfig().kosHost === kosHost) return;
-  kosSource.applySeededConfig({ kosHost });
-}

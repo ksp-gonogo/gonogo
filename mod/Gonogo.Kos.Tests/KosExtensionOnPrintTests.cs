@@ -147,5 +147,101 @@ namespace Gonogo.Kos.Tests
             Assert.Equal(1, counter.Calls);
             Assert.Contains(("feed.v", (object?)2.0), source.Published);
         }
+
+        // --- kos.run routing (kos-uplink-full-migration.md) ---------------
+
+        [Fact]
+        public void OnPrint_ArmedRun_RoutesTheCompletedBlockToTheRunManagerNotCompute()
+        {
+            var source = new RecordingChannelSource();
+            var counter = new CoreIdCounter();
+            var ext = NewExtension(source, counter, () => true);
+            var runResults = new List<(int coreId, KosRunResult result)>();
+            ext.WireRunForTests((coreId, result) => runResults.Add((coreId, result)));
+            Assert.True(ext.ArmRunForTests(42, "req-1"));
+            var screen = new object();
+
+            ext.OnPrint(screen, "[KOSDATA]v=1[/KOSDATA]");
+
+            // CoreIdCounter.Resolve always returns 42 — matches the armed CPU.
+            var (coreId, result) = Assert.Single(runResults);
+            Assert.Equal(42, coreId);
+            Assert.Equal("req-1", result.RequestId);
+            Assert.NotNull(result.Fields);
+            Assert.Equal(1.0, result.Fields!["v"]);
+
+            // The block went to the run manager, NOT the compute fanout.
+            Assert.Empty(source.Published);
+        }
+
+        [Fact]
+        public void OnPrint_ArmedRun_ExplicitKosErrorBlock_RoutesAsAnErrorResult()
+        {
+            var source = new RecordingChannelSource();
+            var counter = new CoreIdCounter();
+            var ext = NewExtension(source, counter, () => true);
+            var runResults = new List<KosRunResult>();
+            ext.WireRunForTests((_, result) => runResults.Add(result));
+            ext.ArmRunForTests(42, "req-1");
+
+            ext.OnPrint(new object(), "[KOSERROR]engine flameout[/KOSERROR]");
+
+            var result = Assert.Single(runResults);
+            Assert.Null(result.Fields);
+            Assert.Equal("engine flameout", result.Error);
+        }
+
+        [Fact]
+        public void OnPrint_NoArmedRunForThatCpu_StillFansOutToCompute()
+        {
+            var source = new RecordingChannelSource();
+            var counter = new CoreIdCounter();
+            var ext = NewExtension(source, counter, () => true);
+            var runResults = new List<KosRunResult>();
+            ext.WireRunForTests((_, result) => runResults.Add(result));
+            // No ArmRunForTests call — ordinary kos.compute / kos.exec path.
+
+            ext.OnPrint(new object(), "[KOSDATA:feed]v=1[/KOSDATA]");
+
+            Assert.Empty(runResults);
+            Assert.Contains(("feed.v", (object?)1.0), source.Published);
+        }
+
+        [Fact]
+        public void OnPrint_ArmedRunWithNoComputeSubscribers_StillAccumulatesAndCompletes()
+        {
+            var source = new RecordingChannelSource();
+            var counter = new CoreIdCounter();
+            // No kos.compute.* subscriber — without the gate-widening fix this
+            // would short-circuit before accumulation ever ran, and the
+            // caller's kos.run promise would hang forever.
+            var ext = NewExtension(source, counter, () => false);
+            var runResults = new List<KosRunResult>();
+            ext.WireRunForTests((_, result) => runResults.Add(result));
+            ext.ArmRunForTests(42, "req-1");
+
+            ext.OnPrint(new object(), "[KOSDATA]v=1[/KOSDATA]");
+
+            var result = Assert.Single(runResults);
+            Assert.Equal(1.0, result.Fields!["v"]);
+        }
+
+        [Fact]
+        public void OnPrint_NoArmedRunAndNoComputeSubscribers_StillShortCircuits()
+        {
+            var source = new RecordingChannelSource();
+            var counter = new CoreIdCounter();
+            var ext = NewExtension(source, counter, () => false);
+            var runResults = new List<KosRunResult>();
+            ext.WireRunForTests((_, result) => runResults.Add(result));
+
+            // Neither gate is open — the original I1 short-circuit still
+            // applies when nothing is armed and nobody subscribes.
+            ext.OnPrint(new object(), "[KOSDATA]v=1[/KOSDATA]");
+
+            Assert.Equal(0, counter.Calls);
+            Assert.Empty(runResults);
+            Assert.Empty(source.Published);
+        }
     }
 }

@@ -1,8 +1,10 @@
 /**
  * Integration tests for the centralised kOS compute fanout. Drives the kOS
- * data source through MockKosTelnet (no PeerJS, no xterm), registers a kOS
- * script via the @ksp-gonogo/core registry, and asserts that subscribers on
- * `kos.compute.<id>.<field>` keys share one dispatch per cycle.
+ * data source through FakeKosUplink (a fake `kos.run` Uplink responder —
+ * no PeerJS, no xterm, and since `executeScript` cut over from telnet, no
+ * MockKosTelnet either), registers a kOS script via the @ksp-gonogo/core
+ * registry, and asserts that subscribers on `kos.compute.<id>.<field>` keys
+ * share one dispatch per cycle.
  *
  * The matching unit-level tests for the parser + registry live alongside
  * their modules — these tests are about the wiring through KosDataSource.
@@ -12,7 +14,7 @@ import { clearRegistry, registerKosScript } from "@ksp-gonogo/core";
 import { hashKosScript } from "@ksp-gonogo/data";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
-import { MockKosTelnet } from "./fixtures/MockKosTelnet";
+import { FakeKosUplink } from "./fixtures/FakeKosUplink";
 
 const SCRIPT_ID = "shipmap";
 const SCRIPT_PATH = `0:/widget_scripts/${SCRIPT_ID}.ks`;
@@ -30,13 +32,7 @@ function registerSampleScript(intervalMs = 50) {
 
 function makeSource() {
   return new KosDataSource(
-    {
-      host: "localhost",
-      port: 3001,
-      kosHost: "localhost",
-      kosPort: 5410,
-      activeCpu: "datastream",
-    },
+    { activeCpu: "datastream" },
     {
       callTimeoutMs: 2_000,
       postAttachDrainDelayMs: 0,
@@ -65,12 +61,12 @@ async function waitFor(
 
 describe("kOS compute centralised fanout", () => {
   afterEach(() => {
-    MockKosTelnet.uninstall();
+    FakeKosUplink.uninstall();
     clearRegistry();
   });
 
   it("delivers parsed JSON values to a subscriber", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       SCRIPT_PATH,
       () => `[KOSDATA:${SCRIPT_ID}]parts=[{"uid":"1"},{"uid":"2"}][/KOSDATA]`,
@@ -91,7 +87,7 @@ describe("kOS compute centralised fanout", () => {
   });
 
   it("collapses two subscribers onto a single dispatch per cycle", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     let dispatchCount = 0;
     mock.registerScript(SCRIPT_PATH, () => {
       dispatchCount += 1;
@@ -122,7 +118,7 @@ describe("kOS compute centralised fanout", () => {
   });
 
   it("replays the last value to a late subscriber via the sticky cache", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       SCRIPT_PATH,
       () => `[KOSDATA:${SCRIPT_ID}]parts=[{"uid":"X"}][/KOSDATA]`,
@@ -151,7 +147,7 @@ describe("kOS compute centralised fanout", () => {
   });
 
   it("kos.compute.<id>.dispatchNow forces an immediate run", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       SCRIPT_PATH,
       () => `[KOSDATA:${SCRIPT_ID}]parts=[][/KOSDATA]`,
@@ -205,7 +201,7 @@ describe("kOS compute centralised fanout", () => {
   });
 
   it("getTopicStatus / onTopicStatusChange surface lastGoodAt after a successful run", async () => {
-    const mock = MockKosTelnet.install();
+    const mock = FakeKosUplink.install();
     mock.registerScript(
       SCRIPT_PATH,
       () => `[KOSDATA:${SCRIPT_ID}]parts=[][/KOSDATA]`,

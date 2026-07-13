@@ -81,6 +81,20 @@ namespace Gonogo.Kos
         private KosTerminalManager? _terminalManager;
 #pragma warning restore CS0649
 
+        // kos.run — general-purpose "type this command line, correlate the
+        // resulting [KOSDATA]/[KOSERROR] block back" RPC that replaces the
+        // standalone telnet proxy's ad-hoc executeScript path (see
+        // kos-uplink-full-migration.md). _runManager is pure bookkeeping,
+        // constructed unconditionally (mirrors _accumulator) so headless
+        // tests can wire a recording publisher via WireRunForTests without
+        // needing KosExtension.Register at all. _runSource (the actual wire
+        // publisher) is assigned only in RegisterKspBindings — same
+        // "assigned in the other half" story as _terminalSource above.
+        private readonly KosRunManager _runManager = new KosRunManager();
+#pragma warning disable CS0169 // field is never read in this compilation unit (RegisterKspBindings is the only reader)
+        private IDynamicChannelSource? _runSource;
+#pragma warning restore CS0169
+
         // Subscription short-circuit for OnPrint (adversarial-review I1): true
         // iff at least one kos.compute.* topic currently has a subscriber. Wired
         // to the host's subscription mirror in Register; null (→ treated as "no
@@ -194,6 +208,13 @@ namespace Gonogo.Kos
                 new CommandDeclaration { Command = KosChannels.KeystrokeCommand, Delayed = true },
                 new CommandDeclaration { Command = KosChannels.TerminalResizeCommand, Delayed = true },
                 new CommandDeclaration { Command = KosChannels.TerminalCloseCommand, Delayed = true },
+                // kos.run — general-purpose ad-hoc RPC (replaces telnet
+                // executeScript). DELAYED, single-in-flight-per-CPU: a second
+                // kos.run for a CPU that already has one in flight is
+                // rejected (KosRunManager.TryArm), mirroring the idle-prompt
+                // guard every other CPU-targeted command re-checks at
+                // delivery on the main thread.
+                new CommandDeclaration { Command = KosChannels.RunCommand, Delayed = true },
             },
         };
 
@@ -259,6 +280,22 @@ namespace Gonogo.Kos
             _computeSubscribed = computeSubscribed;
         }
 
+        /// <summary>
+        /// Test-only: arm a <c>kos.run</c> request and/or wire a recording
+        /// publisher directly against <see cref="_runManager"/>, bypassing the
+        /// KSP-touching <c>Run</c> command handler (<c>KosExtension.Ksp.cs</c>)
+        /// entirely — that handler's own guard (idle-prompt check, kOS type
+        /// access) can't run headlessly. Pair with <see cref="OnPrint"/> to
+        /// exercise the block-routing / gate-widening behaviour end to end.
+        /// </summary>
+        internal void WireRunForTests(Action<int, KosRunResult> publish)
+        {
+            _runManager.SetPublisher(publish);
+        }
+
+        /// <summary>Test-only: arm a run directly, bypassing the KSP-touching Run command handler.</summary>
+        internal bool ArmRunForTests(int coreId, string requestId) => _runManager.TryArm(coreId, requestId);
+
         // ----------------------------------------------------------------
         // kos.processors
         // ----------------------------------------------------------------
@@ -302,9 +339,14 @@ namespace Gonogo.Kos
         /// id — so <c>kOSProcessor.AllInstances()</c> is never walked per
         /// fragment);</item>
         /// <item>resolves the owning CPU's <c>KOSCoreId</c> exactly ONCE, only
-        /// when at least one <c>[KOSDATA]</c> block has completed and is about
-        /// to publish (spec §4.2), stamps it onto the completed blocks, and
-        /// publishes each field to <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c>.</item>
+        /// when at least one <c>[KOSDATA]</c>/<c>[KOSERROR]</c> block has
+        /// completed and is about to publish (spec §4.2), stamps it onto the
+        /// completed blocks, and — for each block — either hands it to
+        /// <see cref="_runManager"/> (a <c>kos.run</c> is armed for that CPU:
+        /// the block IS that call's correlated result, not a compute sample)
+        /// or publishes each field to
+        /// <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c> (the ordinary
+        /// centralised-feed / <c>kos.exec</c> path).</item>
         /// </list>
         /// Must be cheap and non-blocking (it is inside PRINT). Entirely
         /// KSP-free — <paramref name="screen"/> is an opaque <see cref="object"/>
@@ -317,10 +359,14 @@ namespace Gonogo.Kos
                 return;
             }
 
-            // I1: burn nothing while no client is looking. Every terminal PRINT
-            // hits this; without the gate even a zero-subscriber session would
-            // accumulate + reverse-map on the main thread.
-            if (_computeSubscribed != null && !_computeSubscribed())
+            // I1: burn nothing while no client is looking — WIDENED to also stay
+            // open while any kos.run is in flight (on ANY CPU): a kos.run caller
+            // never subscribes to kos.compute.*, so without this a run armed on
+            // a CPU with no compute subscriber would starve here and its
+            // promise would hang forever (see kos-uplink-full-migration.md's
+            // "Subscription-gate fix"). Overhead is bounded to a run's
+            // lifetime — typically well under a second.
+            if (_computeSubscribed != null && !_computeSubscribed() && !_runManager.HasAnyArmed())
             {
                 return;
             }
@@ -338,6 +384,16 @@ namespace Gonogo.Kos
             foreach (var block in blocks)
             {
                 block.CoreId = coreId;
+                if (_runManager.IsArmed(coreId))
+                {
+                    // This CPU has an in-flight kos.run — the completed block
+                    // (data OR explicit error) IS that call's result, consumed
+                    // here rather than fanned to kos.compute.*. A CPU's
+                    // interpreter runs one command at a time, so there is no
+                    // ambiguity about which in-flight call produced this block.
+                    _runManager.Complete(coreId, block);
+                    continue;
+                }
                 foreach (var kv in block.Fields)
                 {
                     var sub = KosChannels.ComputeFieldSubTopic(block.Topic, kv.Key);
@@ -388,6 +444,34 @@ namespace Gonogo.Kos
         /// </summary>
         internal CommandResult RunOnMainThread(Func<CommandResult> work)
         {
+            // Reentrancy guard (kos-uplink-gap self-deadlock). In production the
+            // ChannelEngine is built executeCommandsOnMainThread:true, so it has
+            // ALREADY marshalled this command handler onto the KSP main thread
+            // (drained by GonogoAddon.Update -> ChannelEngine.RunPendingCommands)
+            // before the handler body runs. Dispatcher.Drain runs on that SAME
+            // Unity main thread (KosMainThreadDispatcherAddon.Update). So when we
+            // reach here we are frequently ALREADY on the dispatcher's drain
+            // thread — and Dispatch-and-block would park that thread inside
+            // Done.Wait, where it can never reach the Drain that would run
+            // `work`. The whole main thread wedges; the engine's own 4s backstop
+            // fires first and the client sees CommandErrorCode.Timeout while the
+            // kOS side effect (TypeCommand/RUNPATH) is abandoned and never runs —
+            // exactly the live kos.run failure. When already on the drain thread,
+            // run inline: no second hop, no block, no deadlock. The Courier-thread
+            // / headless path (Dispatch + bounded wait below) is unchanged.
+            if (Dispatcher.IsOnDrainThread)
+            {
+                try
+                {
+                    return work();
+                }
+                catch (Exception ex)
+                {
+                    _logError("[Gonogo.Kos] command main-thread work threw: " + ex);
+                    return CommandResult.Fail(CommandErrorCode.Unknown);
+                }
+            }
+
             var job = new MainThreadJob();
             Dispatcher.Dispatch(() =>
             {

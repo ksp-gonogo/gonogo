@@ -156,6 +156,23 @@ namespace Gonogo.Kos
             host.AddCommandHandler<KosKeystrokeArgs, CommandResult>(KosChannels.KeystrokeCommand, Keystroke);
             host.AddCommandHandler<KosTerminalResizeArgs, CommandResult>(KosChannels.TerminalResizeCommand, TerminalResize);
             host.AddCommandHandler<KosTerminalCloseArgs, CommandResult>(KosChannels.TerminalCloseCommand, TerminalClose);
+
+            // kos.run — general-purpose ad-hoc RPC (replaces the standalone
+            // telnet proxy's executeScript path, see
+            // kos-uplink-full-migration.md). ReliableOrdered: a lost result
+            // frame would strand the caller's promise until its own client-
+            // side timeout, same posture as the terminal downlink.
+            _runSource = host.RegisterDynamicNamespace(
+                KosChannels.RunPrefix,
+                new ChannelDeclaration
+                {
+                    Delivery = Delivery.ReliableOrdered,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                });
+            _runManager.SetPublisher((coreId, result) =>
+                _runSource?.Publisher(KosChannels.RunSubTopic(coreId)).Publish(result, host.NowUt()));
+            host.AddCommandHandler<KosRunArgs, CommandResult>(KosChannels.RunCommand, Run);
         }
 
         /// <summary>Current CPU <c>KOSCoreId</c>s (main thread) — the terminal manager's discovery set.</summary>
@@ -250,6 +267,66 @@ namespace Gonogo.Kos
         }
 
         /// <summary>
+        /// <c>kos.run</c> command handler — the general-purpose replacement
+        /// for the standalone telnet proxy's ad-hoc <c>executeScript</c> RPC
+        /// (see <c>kos-uplink-full-migration.md</c>). Unlike <see cref="Exec"/>
+        /// (a fixed, pre-registered compute-topic script id with no
+        /// correlated response), this types the caller's own literal
+        /// <see cref="KosRunArgs.Command"/> text and arms
+        /// <see cref="_runManager"/> so <see cref="KosExtension.OnPrint"/>
+        /// routes the resulting completed block back to
+        /// <c>kos.run.&lt;coreId&gt;</c> instead of the compute fanout.
+        ///
+        /// <para><b>Unverified against live KSP</b> — this file has no
+        /// reference DLLs to build against in a headless environment (see the
+        /// migration plan's "What's left"). Written mirroring <see cref="Exec"/>
+        /// exactly (same guard, same <c>RunOnMainThread</c> marshalling), but
+        /// only a real kOS smoke test proves <see cref="TypeCommand"/>'s
+        /// multi-line handling is correct.</para>
+        /// </summary>
+        private CommandResult Run(KosRunArgs args)
+        {
+            if (args == null || string.IsNullOrEmpty(args.RequestId) || string.IsNullOrEmpty(args.Command))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            return RunOnMainThread(() =>
+            {
+                var proc = FindProcessor(args.CoreId);
+                if (proc == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
+                }
+
+                // Guard: never type into a booting or busy prompt — same
+                // posture as Exec.
+                if (!proc.HasBooted || !(proc.GetScreen() is IInterpreter interp) || !interp.IsWaitingForCommand())
+                {
+                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                }
+
+                // Arm BEFORE typing: a trivial one-tick script could complete
+                // its [KOSDATA] block synchronously inside ProcessOneInputChar
+                // below (OnPrint runs inline inside kOS's PRINT), so the
+                // manager must already be expecting this request's result
+                // before any character reaches the interpreter.
+                if (!_runManager.TryArm(args.CoreId, args.RequestId))
+                {
+                    // Another kos.run is already in flight for this CPU. The
+                    // client's own per-CPU serialization (mirroring
+                    // KosComputeSession's FIFO queue) is expected to prevent
+                    // this in the steady state — reject rather than silently
+                    // clobbering the earlier request's correlation.
+                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                }
+
+                TypeCommand(proc, args.Command);
+                return CommandResult.Ok();
+            });
+        }
+
+        /// <summary>
         /// Types <paramref name="line"/> into <paramref name="proc"/>'s
         /// interpreter followed by Enter, via the pinned 4-arg
         /// <c>ProcessOneInputChar</c> overload (spec §7). <c>forceQueue: true</c>
@@ -268,6 +345,43 @@ namespace Gonogo.Kos
                 window.ProcessOneInputChar(ch, null, true, true);
             }
             window.ProcessOneInputChar('\r', null, true, true);
+        }
+
+        /// <summary>
+        /// Types <paramref name="command"/> — potentially several kerboscript
+        /// statements separated by <c>\n</c> (the shape
+        /// <c>packages/app/src/dataSources/kosWrapper.ts</c>'s managed-sync
+        /// wrapper already builds for the telnet path) — into
+        /// <paramref name="proc"/>'s interpreter. Unlike <see cref="TypeLine"/>
+        /// (exactly one line, one trailing Enter), every embedded <c>\n</c>
+        /// here is itself converted to an Enter press (<c>\r</c> via
+        /// <c>ProcessOneInputChar</c>) so each statement submits to the REPL
+        /// in turn, the same way a human pasting multi-line input would; a
+        /// final Enter is appended when <paramref name="command"/> doesn't
+        /// already end with one. A stray <c>\r</c> in the input is dropped
+        /// (never double-submits) — <c>Command</c> is caller-built kerboscript
+        /// text, not raw keyboard bytes, so CRLF normalisation is the mod's
+        /// job, not the caller's.
+        /// </summary>
+        private static void TypeCommand(kOSProcessor proc, string command)
+        {
+            var window = proc.GetWindow();
+            if (window == null)
+            {
+                return;
+            }
+            foreach (var ch in command)
+            {
+                if (ch == '\r')
+                {
+                    continue;
+                }
+                window.ProcessOneInputChar(ch == '\n' ? '\r' : ch, null, true, true);
+            }
+            if (command.Length == 0 || command[command.Length - 1] != '\n')
+            {
+                window.ProcessOneInputChar('\r', null, true, true);
+            }
         }
 
         private static kOSProcessor? FindProcessor(int coreId)

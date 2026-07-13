@@ -28,11 +28,38 @@ namespace Gonogo.Kos
         public string Topic { get; }
         public IReadOnlyDictionary<string, object> Fields { get; }
 
-        public KosComputeBlock(string topic, IReadOnlyDictionary<string, object> fields)
+        /// <summary>
+        /// True when this block came from an explicit
+        /// <c>[KOSERROR]message[/KOSERROR]</c> marker rather than
+        /// <c>[KOSDATA]</c> — the mod-side mirror of the telnet path's
+        /// <c>KosComputeSession.parseKosExplicitError</c>. Script authors print
+        /// this to deliberately fail an RPC call (e.g. <c>kos.run</c>) with a
+        /// domain-level message, distinct from a script crash or timeout.
+        /// <see cref="Fields"/> is always empty when this is true.
+        /// </summary>
+        public bool IsError { get; }
+
+        /// <summary>The <c>[KOSERROR]</c> body, trimmed — null unless <see cref="IsError"/>.</summary>
+        public string? ErrorMessage { get; }
+
+        private static readonly IReadOnlyDictionary<string, object> EmptyFields =
+            new Dictionary<string, object>();
+
+        public KosComputeBlock(
+            string topic,
+            IReadOnlyDictionary<string, object> fields,
+            bool isError = false,
+            string? errorMessage = null)
         {
             Topic = topic;
             Fields = fields;
+            IsError = isError;
+            ErrorMessage = errorMessage;
         }
+
+        /// <summary>Convenience factory for an explicit <c>[KOSERROR]</c> block — mirrors the TS <c>parseKosExplicitError</c> shape (message only, no topic).</summary>
+        public static KosComputeBlock ForError(string message) =>
+            new KosComputeBlock(KosDataParser.DefaultTopic, EmptyFields, isError: true, errorMessage: message.Trim());
     }
 
     /// <summary>
@@ -71,11 +98,19 @@ namespace Gonogo.Kos
 
         private readonly Dictionary<object, StringBuilder> _buffers = new Dictionary<object, StringBuilder>();
 
-        // Matches ONE complete block and captures the index just past its
-        // close, so we can drop everything up to and including the last
-        // consumed block. Same grammar as KosDataParser.BlockRe.
+        // Matches ONE complete block (either a [KOSDATA] data block or an
+        // explicit [KOSERROR] failure marker) and captures the index just past
+        // its close, so we can drop everything up to and including the last
+        // consumed block. The [KOSDATA] half is the same grammar as
+        // KosDataParser.BlockRe; [KOSERROR] is new here — the mod-side mirror
+        // of the telnet path's KosComputeSession.parseKosExplicitError, needed
+        // so kos.run can reject a call the same way the telnet RPC did (see
+        // kos-uplink-full-migration.md). Alternation order matters: an error
+        // group match takes the "errorBody" branch, a data group match takes
+        // "topic"/"dataBody" — exactly one side's groups succeed per match.
         private static readonly Regex BlockRe = new Regex(
-            @"\[KOSDATA(?::([\w-]+))?\]([\s\S]*?)\[/KOSDATA\]",
+            @"\[KOSERROR\](?<errorBody>[\s\S]*?)\[/KOSERROR\]" +
+            @"|\[KOSDATA(?::(?<topic>[\w-]+))?\](?<dataBody>[\s\S]*?)\[/KOSDATA\]",
             RegexOptions.Compiled);
 
         /// <summary>
@@ -106,9 +141,16 @@ namespace Gonogo.Kos
             var lastEnd = -1;
             foreach (Match m in BlockRe.Matches(current))
             {
-                var topic = m.Groups[1].Success ? m.Groups[1].Value : KosDataParser.DefaultTopic;
-                var fields = KosDataParser.ParseBody(m.Groups[2].Value);
-                blocks.Add(new KosComputeBlock(topic, fields));
+                if (m.Groups["errorBody"].Success)
+                {
+                    blocks.Add(KosComputeBlock.ForError(m.Groups["errorBody"].Value));
+                }
+                else
+                {
+                    var topic = m.Groups["topic"].Success ? m.Groups["topic"].Value : KosDataParser.DefaultTopic;
+                    var fields = KosDataParser.ParseBody(m.Groups["dataBody"].Value);
+                    blocks.Add(new KosComputeBlock(topic, fields));
+                }
                 lastEnd = m.Index + m.Length;
             }
 
