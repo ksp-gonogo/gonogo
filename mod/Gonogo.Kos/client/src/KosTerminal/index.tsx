@@ -90,6 +90,17 @@ type TermWriter = { write(data: string): void };
  * updated buffer. On Enter the whole line (+ `\r`) is flushed through
  * `sendChars` as one message; other printable chars echo and append; Backspace
  * edits locally. Pasted / multi-char input is processed char-by-char.
+ *
+ * The keystroke command rides the delayed uplink, so kOS ALSO echoes the
+ * typed line into its own ScreenBuffer — that echo flows back over the
+ * downlink and lands in the terminal a full round trip later. Left alone,
+ * that means the line renders twice: once instantly here, once again from
+ * the delayed echo. On Enter, instead of committing "\r\n" (which would
+ * scroll the locally-echoed text into terminal history), this retracts the
+ * local composition — return to column 0 and erase to end of line — so the
+ * user still gets instant per-character feedback WHILE composing, but only
+ * the server's later, authoritative echo ever becomes part of the
+ * persisted terminal buffer.
  */
 function handleLineModeChar(
   ch: string,
@@ -99,7 +110,7 @@ function handleLineModeChar(
 ): string {
   if (ch === "\r" || ch === "\n") {
     sendChars(`${buffer}\r`);
-    term.write("\r\n");
+    term.write("\r\x1b[K");
     return "";
   }
   if (ch === "\x7f" || ch === "\b") {
