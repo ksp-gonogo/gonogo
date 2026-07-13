@@ -386,6 +386,42 @@ namespace Gonogo.Kos.Tests
         }
 
         [Fact]
+        public void NextUt_RewindToLowerNowUt_TrustsTheNewLowerUt_NotAGhostAboveTheOldPeak()
+        {
+            // Gap B (adversarial review of Fix #1): _lastPublishedUt has no
+            // rewind hook. After an F9 quickload, host.NowUt() drops, but
+            // the pre-fix NextUt sees candidate <= last (the old pre-rewind
+            // peak) and manufactures a ghost last+epsilon — which keeps
+            // re-colliding with the STALE peak (via Archive/Courier's own
+            // stale-ut clamp) for the whole post-rewind recovery window,
+            // instead of resuming from the genuinely lower, post-rewind UT.
+            var h = new Harness();
+            h.Subscribed.Add(7);
+            h.Now = 500.0;
+
+            h.Tick(); // baseline publish at ~500.
+            h.Tick(); // same-tick collision -> bumped forward, still ~500.
+
+            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] > 500.0);
+            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] < 500.001);
+
+            // Quickload rewind: NowUt drops well below the pre-rewind peak.
+            h.Now = 10.0;
+            h.Tick();
+
+            // Must trust the new, lower UT -- NOT a ghost stamp still above
+            // the old (pre-rewind) peak.
+            Assert.Equal(10.0, h.PublishedUts[h.PublishedUts.Count - 1]);
+
+            // A same-tick burst right after the rewind must still get
+            // strictly increasing, distinct stamps from the NEW baseline.
+            h.Tick();
+            h.Tick();
+            Assert.True(h.PublishedUts[h.PublishedUts.Count - 2] > 10.0);
+            Assert.True(h.PublishedUts[h.PublishedUts.Count - 1] > h.PublishedUts[h.PublishedUts.Count - 2]);
+        }
+
+        [Fact]
         public void Poll_SubThreshold_DoesNotPublish()
         {
             var h = new Harness();
