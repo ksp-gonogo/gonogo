@@ -49,8 +49,13 @@ namespace Sitrep.Host
         /// (rather than an exact `&gt;`) absorbs floating-point noise only --
         /// it is NOT meant to tolerate genuine slack between when an
         /// uplink reads "now" and when its Publish call is processed.
+        ///
+        /// Deliberately NOT a locally-hardcoded literal: <c>Gonogo.Kos.KosTerminalManager</c>'s
+        /// same-tick epsilon bump depends on landing at or below this exact
+        /// value to survive this clamp — see <see cref="EnginePublishTolerance"/>'s
+        /// doc comment for the full invariant this protects.
         /// </summary>
-        private const double PublishUtToleranceSeconds = 1e-6;
+        private const double PublishUtToleranceSeconds = EnginePublishTolerance.Seconds;
 
         private readonly ManualClock _clock;
         private readonly INetwork _network;
