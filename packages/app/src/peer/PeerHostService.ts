@@ -967,8 +967,8 @@ export class PeerHostService {
   /**
    * Set the operator's technical-analytics consent. Retains the value,
    * broadcasts it to every connected station, and POSTs it to the relay
-   * config broker so the services (relay + telnet-proxy) learn the new
-   * state. Idempotent on no-change — but always re-POSTs so a relay that
+   * config broker so the relay learns the new state. Idempotent on
+   * no-change — but always re-POSTs so a relay that
    * restarted re-learns the current value even if it didn't flip here.
    * Called by the main screen's AnalyticsConsentHost on mount + change.
    */
@@ -1033,17 +1033,13 @@ export class PeerHostService {
   }
 
   broadcast(msg: PeerMessage) {
-    // Skip the trace when no station is listening — at telemetry rates
-    // (~700 broadcasts/sec) this fills the persistent log buffer in
-    // seconds, drowning out any signal from an actual incident.
-    if (this.connections.size > 0) {
-      debugPeer("host broadcast", {
-        type: msg.type,
-        sourceId: "sourceId" in msg ? msg.sourceId : undefined,
-        key: "key" in msg ? msg.key : undefined,
-        connections: this.connections.size,
-      });
-    }
+    // No per-broadcast trace here: at telemetry rates a connected station
+    // drives ~700 broadcasts/sec (mostly `sitrep-frame`), which fills the
+    // 5000-entry persistent ring buffer in seconds and buries every other
+    // signal. Broadcast rate/volume is already tracked by the
+    // PEER_BROADCAST_COUNT/BYTES budgets below, and genuinely interesting
+    // broadcasts (connect/disconnect, alarms, gonogo state) are logged at
+    // their own call sites — so the generic per-message trace was pure noise.
 
     // Data messages run through `broadcastData` so they can be filtered
     // per peer. Everything else (status, alarm, gonogo, etc.) goes to
