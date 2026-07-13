@@ -161,6 +161,7 @@ function DataSourcesPanel() {
       <Section>
         <SectionTitle>Uplinks</SectionTitle>
         <UplinkHealthList />
+        <KerbcastHealthRow />
       </Section>
     </SectionStack>
   );
@@ -314,6 +315,45 @@ function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
       </ConnectionRow>
       {detail && <UplinkDetail>{detail}</UplinkDetail>}
     </UplinkItem>
+  );
+}
+
+/**
+ * Kerbcast's camera stream, surfaced as a first-class health row alongside
+ * the mod-side Uplinks above it — the minimum-viable "Kerbcast health"
+ * agreed in `docs/superpowers/plans/2026-07-13-kerbcast-uplink-evaluation.md`
+ * §6, NOT the deeper contractual-Uplink registration that doc evaluates and
+ * defers. Unlike every row in `UplinkHealthList`, which all read the same
+ * self-reported `system.uplinkHealth` off the one Sitrep WebSocket, this
+ * status comes straight from `KerbcastDataSource.status` — a genuinely
+ * separate WebRTC/HTTP connection to the kerbcast sidecar. The row is kept
+ * visually distinct (a dashed divider + an explicit "separate connection"
+ * note) so a user debugging it doesn't mistake it for a free,
+ * already-open-connection Uplink read. Renders nothing when no `kerbcast`
+ * source is registered — Kerbcast is optional.
+ */
+function KerbcastHealthRow() {
+  const dataSources = useDataSources();
+  const source = dataSources.find((s) => s.id === "kerbcast");
+
+  if (!source) return null;
+
+  const healthy = source.status === "connected";
+
+  return (
+    <KerbcastItem>
+      <ConnectionRow>
+        <Indicator $status={source.status} />
+        <Name>Camera stream (Kerbcast)</Name>
+        <StatusLabel $status={source.status}>
+          {healthy ? "healthy" : source.status}
+        </StatusLabel>
+      </ConnectionRow>
+      <UplinkDetail>
+        Separate connection — goes straight to the kerbcast sidecar, not the
+        Sitrep stream.
+      </UplinkDetail>
+    </KerbcastItem>
   );
 }
 
@@ -600,6 +640,20 @@ const UplinkItem = styled.li`
   display: flex;
   flex-direction: column;
   gap: 4px;
+`;
+
+/**
+ * Kerbcast's health row sits below the Uplink list rather than inside its
+ * `<ul>` — it isn't sourced from `system.uplinkHealth` — so a dashed divider
+ * marks it as a related-but-distinct entry rather than just another Uplink.
+ */
+const KerbcastItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border-subtle);
 `;
 
 const UplinkVersion = styled.span`
