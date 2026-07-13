@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
@@ -954,6 +955,10 @@ namespace Sitrep.Host.IntegrationTests
 
         private IDynamicChannelSource? _source;
 
+        // THREAD-SAFE: OnSubscribed's callback runs on the Courier thread;
+        // a test asserts on this from its own async/test thread.
+        private readonly ConcurrentQueue<string> _subscribeNotifications = new ConcurrentQueue<string>();
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "dyn-test",
@@ -968,11 +973,21 @@ namespace Sitrep.Host.IntegrationTests
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
             });
+            // Gap A structural proof (terminal-integrity adversarial
+            // review): records every topic OnSubscribed fires for, so a
+            // test can assert it fires once per INDIVIDUAL session
+            // subscribe, not once per aggregate 0->1 transition -- entirely
+            // via this push seam, never by reading the engine's
+            // Courier-thread-only subscription registry.
+            _source.OnSubscribed(topic => _subscribeNotifications.Enqueue(topic));
         }
 
         /// <summary>Publish to <c>Prefix + subTopic</c> — the sub-topic need not have been used before.</summary>
         public void PublishTo(string subTopic, object? payload, double ut) =>
             (_source ?? throw new InvalidOperationException("Register was never called")).Publisher(subTopic).Publish(payload, ut);
+
+        /// <summary>Every topic <c>OnSubscribed</c> has fired for so far, in order.</summary>
+        public string[] SubscribeNotifications => _subscribeNotifications.ToArray();
     }
 
     /// <summary>

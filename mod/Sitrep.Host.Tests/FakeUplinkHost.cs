@@ -56,8 +56,6 @@ namespace Sitrep.Host.Tests
 
         public bool IsAnyTopicSubscribed(string topicPrefix) => false;
 
-        public int SubscriberCountFor(string topic) => 0;
-
         public IChannelPublisher Publisher(string topic) => throw new NotSupportedException();
 
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();

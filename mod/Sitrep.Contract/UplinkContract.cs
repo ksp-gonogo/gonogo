@@ -195,6 +195,34 @@ namespace Sitrep.Contract
     {
         /// <summary>Publisher for one concrete sub-topic (<c>prefix + subTopic</c>) under this dynamic namespace.</summary>
         IChannelPublisher Publisher(string subTopic);
+
+        /// <summary>
+        /// Registers <paramref name="callback"/> to run on the COURIER
+        /// thread every time ANY concrete sub-topic under this namespace's
+        /// prefix sees an individual, PER-SESSION subscribe transition —
+        /// one call per <c>ProcessSubscribe</c>, regardless of whether the
+        /// topic's aggregate subscriber count actually changed (a second
+        /// viewer joining an already-subscribed topic, or a resubscribe
+        /// faster than a polling consumer's own cadence, both still fire
+        /// it). This is the thread-safe seam a consumer that needs to react
+        /// to "a specific viewer just subscribed" — e.g. seeding a full
+        /// repaint baseline for a fresh terminal viewer — should use
+        /// INSTEAD of polling a subscriber count from another thread; it
+        /// deliberately does not expose (and its caller must never read)
+        /// the engine's Courier-thread-only <c>_subscriptions</c> registry.
+        ///
+        /// <para>Call only during the owning uplink's
+        /// <see cref="ISitrepUplink.Register"/>, before the engine starts —
+        /// same registration-time-only discipline as
+        /// <see cref="IUplinkHost.AddSampler"/> /
+        /// <see cref="IUplinkHost.AddChannelSource"/>. The callback itself
+        /// runs on the Courier thread (never the registering thread) and
+        /// must be safe to call from there; an exception it throws is
+        /// caught and logged by the engine so it can never wedge the
+        /// Courier thread, but the callback will, in effect, silently
+        /// no-op for that invocation.</para>
+        /// </summary>
+        void OnSubscribed(Action<string> callback);
     }
 
     /// <summary>
@@ -303,20 +331,6 @@ namespace Sitrep.Contract
         /// archive catch-up).</para>
         /// </summary>
         bool IsAnyTopicSubscribed(string topicPrefix);
-
-        /// <summary>
-        /// Point-in-time query: exactly how many current subscribers does
-        /// <paramref name="topic"/> (an EXACT topic string, not a prefix)
-        /// have? Unlike <see cref="IsAnyTopicSubscribed"/>'s boolean, this
-        /// lets a caller distinguish a genuinely NEW subscriber joining an
-        /// already-subscribed topic (the count increases) from the topic
-        /// merely staying subscribed across a poll (the count is
-        /// unchanged) — the seam an Uplink needs when its "subscribed"
-        /// signal must trigger a per-subscriber action (e.g. a full
-        /// repaint baseline for a fresh terminal viewer) rather than a
-        /// once-per-topic one. Returns 0 for a topic with no subscribers.
-        /// </summary>
-        int SubscriberCountFor(string topic);
 
         /// <summary>
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the

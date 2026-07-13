@@ -192,6 +192,57 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// Gap A (terminal-integrity adversarial review) structural proof:
+        /// <see cref="IDynamicChannelSource.OnSubscribed"/> fires once per
+        /// INDIVIDUAL session subscribe under the namespace's prefix, not
+        /// once per aggregate 0-&gt;1 subscriber-count transition. Two
+        /// separate client sessions subscribing to the SAME already-
+        /// subscribed sub-topic must both be reported — a main-thread poll
+        /// of a subscriber COUNT sampled once per tick can miss the second
+        /// one if a net-zero flip (unsubscribe+resubscribe) happens between
+        /// samples; this push-based seam cannot, because it is driven
+        /// directly off <c>ChannelEngine.ProcessSubscribe</c>, which runs
+        /// once per session subscribe by construction. Nothing in this test
+        /// (or the production call site — see <c>ProcessSubscribe</c>'s own
+        /// comment) ever reads the Courier-owned <c>_subscriptions</c>
+        /// registry; the notification is the sole source of truth.
+        /// </summary>
+        [Fact]
+        public async Task DynamicNamespaceOnSubscribedFiresOncePerSessionSubscribeNotJustOncePerAggregateTransition()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new DynamicNamespaceTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                var topic = DynamicNamespaceTestUplink.Prefix + "Kerbin";
+
+                await using var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(clientA, topic, Timeout);
+
+                // A SECOND session subscribing to the SAME already-subscribed
+                // topic is a per-session transition a main-thread-polled
+                // AGGREGATE subscriber count can miss net-across-a-window
+                // (Gap A) -- OnSubscribed must still fire for it.
+                await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(clientB, topic, Timeout);
+
+                var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+                while (uplink.SubscribeNotifications.Length < 2 && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(25);
+                }
+
+                Assert.Equal(new[] { topic, topic }, uplink.SubscribeNotifications);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Proves the <see cref="Delivery"/> split: a <c>reliable-ordered</c>
         /// channel's outbox lane is an unbounded FIFO queue that is NEVER
         /// overwritten, so every emitted sample WILL eventually reach the

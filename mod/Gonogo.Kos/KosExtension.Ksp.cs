@@ -140,11 +140,25 @@ namespace Gonogo.Kos
 
             _terminalManager = new KosTerminalManager(
                 knownCoreIds: CurrentCoreIds,
-                subscriberCount: coreId => host.SubscriberCountFor(KosChannels.TerminalTopic(coreId)),
+                isSubscribed: coreId => host.IsAnyTopicSubscribed(KosChannels.TerminalTopic(coreId)),
                 publish: (coreId, frame, ut) =>
                     _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(frame, ut),
                 createScreen: coreId => new KosProcessorScreen(coreId, FindProcessor),
                 nowUt: host.NowUt);
+
+            // Gap A (adversarial review): the full-repaint reseed decision
+            // must come from a genuinely per-subscription-transition,
+            // thread-safe signal (fired on the Courier thread for EVERY
+            // individual session subscribe), not a main-thread poll of a
+            // subscriber count sampled once per ~20Hz tick — see
+            // KosTerminalManager.NotifySubscribed's doc comment.
+            _terminalSource.OnSubscribed(topic =>
+            {
+                if (KosChannels.TryParseTerminalCoreId(topic, out var terminalCoreId))
+                {
+                    _terminalManager?.NotifySubscribed(terminalCoreId);
+                }
+            });
 
             // Drive the ~20 Hz downlink poll from the same main-thread addon
             // that drains the dispatcher (headless tests call Poll() directly).

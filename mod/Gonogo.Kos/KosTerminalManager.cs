@@ -2,6 +2,7 @@
 // licence/linkage rationale.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -65,19 +66,26 @@ namespace Gonogo.Kos
     /// unit-testable headlessly.
     ///
     /// <para><b>Downlink:</b> each poll it walks the current CPU ids, and for
-    /// every one with a live <c>kos.terminal.&lt;coreId&gt;</c> subscriber reads
-    /// the screen diff and publishes a <see cref="KosTerminalFrame"/>. A CPU
-    /// whose subscriber COUNT increases — its first subscriber, a SECOND
-    /// simultaneous viewer, or a resubscribe faster than one poll tick, not
-    /// merely a 0-&gt;1 aggregate transition — forces a
-    /// <see cref="KosTerminalFrame.FullRepaint"/> (as does a fresh
-    /// <c>open</c>), so every late/reconnecting/new viewer — none of which
-    /// get the sticky replay via <c>useStreamEvent</c> — resyncs from a
-    /// clean screen rather than an orphaned diff. Because the downlink is a
-    /// broadcast (one frame reaches every current subscriber of the topic),
-    /// this repaint is necessarily shared: an existing viewer receives one
-    /// redundant repaint whenever another viewer joins, which is harmless
-    /// (a full repaint is just a bigger diff, not a correctness issue).</para>
+    /// every one currently subscribed (<c>host.IsAnyTopicSubscribed</c>, a
+    /// main-thread-safe read of the engine's thread-safe subscribed-topics
+    /// mirror — never the Courier-owned subscriber registry) reads the
+    /// screen diff and publishes a <see cref="KosTerminalFrame"/>. A full
+    /// repaint (<see cref="KosTerminalFrame.FullRepaint"/>) is forced for a
+    /// CPU whenever <see cref="NotifySubscribed"/> was called for it since
+    /// the last poll — the THREAD-SAFE seam the terminal's dynamic-namespace
+    /// registration wires to <c>IDynamicChannelSource.OnSubscribed</c>,
+    /// which the engine invokes on the COURIER thread for EVERY individual
+    /// session subscribe (a first subscriber, a SECOND simultaneous viewer,
+    /// or a resubscribe faster than one poll tick), never gated on whether
+    /// some aggregate subscriber count merely stayed the same across a
+    /// sampling window. So every late/reconnecting/new viewer — none of
+    /// which get the sticky replay via <c>useStreamEvent</c> — resyncs from
+    /// a clean screen rather than an orphaned diff. Because the downlink is
+    /// a broadcast (one frame reaches every current subscriber of the
+    /// topic), this repaint is necessarily shared: an existing viewer
+    /// receives one redundant repaint whenever another viewer joins, which
+    /// is harmless (a full repaint is just a bigger diff, not a correctness
+    /// issue).</para>
     ///
     /// <para><b>Uplink lease:</b> one holder per CPU, keyed by the caller's
     /// opaque lease token (<see cref="KosTerminalOpenArgs.LeaseToken"/>). A
@@ -92,7 +100,7 @@ namespace Gonogo.Kos
         private const double UtEpsilon = 1e-6;
 
         private readonly Func<IReadOnlyList<int>> _knownCoreIds;
-        private readonly Func<int, int> _subscriberCount;
+        private readonly Func<int, bool> _isSubscribed;
         private readonly Action<int, KosTerminalFrame, double> _publish;
         private readonly Func<int, IKosTerminalScreen?> _createScreen;
         private readonly Func<double> _nowUt;
@@ -112,35 +120,56 @@ namespace Gonogo.Kos
         private readonly Dictionary<int, Session> _sessions = new Dictionary<int, Session>();
         // Current single-owner write-lease holder per CPU (coreId -> token).
         private readonly Dictionary<int, string> _leases = new Dictionary<int, string>();
-        // Subscriber count observed on the previous poll, per CPU — the
-        // reseed edge fires whenever the count INCREASES (0->1, but also
-        // 1->2, 2->3, ...), not merely on a 0->1 aggregate transition. See
-        // the class doc comment's "Downlink" paragraph.
-        private readonly Dictionary<int, int> _lastSubscriberCount = new Dictionary<int, int>();
+
+        // THREAD-SAFE: the set of CPUs with an individual subscribe
+        // transition pending a reseed, as reported by NotifySubscribed
+        // (called from the Courier thread in production — see that
+        // method's doc comment and the class doc comment's "Downlink"
+        // paragraph). Poll (main thread) drains this every tick. This is
+        // the Gap A fix's seam: it deliberately carries no subscriber
+        // COUNT, just "this CPU had a subscribe transition since the last
+        // drain" — Poll never reads any Courier-owned subscription state.
+        private readonly ConcurrentDictionary<int, byte> _pendingReseeds = new ConcurrentDictionary<int, byte>();
 
         private double _accumulatedSeconds;
 
         /// <param name="knownCoreIds">Current CPU <c>KOSCoreId</c>s (main thread; real impl reads <c>kOSProcessor.AllInstances()</c>).</param>
-        /// <param name="subscriberCount">Current subscriber count for <c>kos.terminal.&lt;coreId&gt;</c> (e.g. <c>host.SubscriberCountFor</c>). Zero means unsubscribed; an INCREASE over the previous poll (not just 0-&gt;1) is what forces a fresh full repaint — see the class doc comment.</param>
+        /// <param name="isSubscribed">Is <c>kos.terminal.&lt;coreId&gt;</c> CURRENTLY subscribed (e.g. <c>host.IsAnyTopicSubscribed</c>)? A pure "should I bother reading/publishing this CPU's screen at all" gate — the reseed decision is <see cref="NotifySubscribed"/>'s job, not this one.</param>
         /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT — see <see cref="NextUt"/> for why the manager computes that UT itself rather than taking the caller's raw clock read.</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
         /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive calls — see <see cref="NextUt"/>.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
-            Func<int, int> subscriberCount,
+            Func<int, bool> isSubscribed,
             Action<int, KosTerminalFrame, double> publish,
             Func<int, IKosTerminalScreen?> createScreen,
             Func<double> nowUt,
             double pollIntervalSeconds = 0.05)
         {
             _knownCoreIds = knownCoreIds ?? throw new ArgumentNullException(nameof(knownCoreIds));
-            _subscriberCount = subscriberCount ?? throw new ArgumentNullException(nameof(subscriberCount));
+            _isSubscribed = isSubscribed ?? throw new ArgumentNullException(nameof(isSubscribed));
             _publish = publish ?? throw new ArgumentNullException(nameof(publish));
             _createScreen = createScreen ?? throw new ArgumentNullException(nameof(createScreen));
             _nowUt = nowUt ?? throw new ArgumentNullException(nameof(nowUt));
             _pollIntervalSeconds = pollIntervalSeconds;
         }
+
+        /// <summary>
+        /// THREAD-SAFE — call from ANY thread (in production, the Courier
+        /// thread, via the callback wired to
+        /// <c>IDynamicChannelSource.OnSubscribed</c> for the
+        /// <c>kos.terminal.</c> namespace) to record that <paramref name="coreId"/>
+        /// just saw an individual subscribe transition. The next
+        /// <see cref="Poll"/> drains this and forces a full repaint for
+        /// every CPU it names — see the class doc comment's "Downlink"
+        /// paragraph. Deliberately just a set of pending coreIds, not a
+        /// count: every notification, however many arrive between polls,
+        /// collapses to "reseed this CPU once" on the next drain, which is
+        /// exactly the desired effect (one full-repaint baseline is enough
+        /// to resync any number of transitions since the last poll).
+        /// </summary>
+        public void NotifySubscribed(int coreId) => _pendingReseeds[coreId] = 0;
 
         // ---- Downlink poll (main thread, from the dispatcher addon Update) ----
 
@@ -165,24 +194,8 @@ namespace Gonogo.Kos
 
             foreach (var coreId in coreIds)
             {
-                var count = _subscriberCount(coreId);
-                var subscribed = count > 0;
-                _lastSubscriberCount.TryGetValue(coreId, out var lastCount);
-                // A genuinely NEW subscriber — count went up, not just
-                // "still subscribed" or "fewer subscribers than before" —
-                // gets a full-repaint baseline. This also covers a
-                // resubscribe faster than one poll tick: count drops to 0
-                // (branch below removes the tracked lastCount), so the next
-                // subscribe reads lastCount as absent (0) and count > 0
-                // is an edge again.
-                var reseedEdge = subscribed && count > lastCount;
-                if (subscribed)
+                if (!_isSubscribed(coreId))
                 {
-                    _lastSubscriberCount[coreId] = count;
-                }
-                else
-                {
-                    _lastSubscriberCount.Remove(coreId);
                     continue;
                 }
 
@@ -192,6 +205,12 @@ namespace Gonogo.Kos
                     continue;
                 }
 
+                // Drain this CPU's pending-reseed signal — set from
+                // NotifySubscribed, possibly from another thread, possibly
+                // several times since the last poll (each collapses to one
+                // reseed here). This is the ONLY source of the reseed
+                // decision; Poll never reads a subscriber count.
+                var reseedEdge = _pendingReseeds.TryRemove(coreId, out _);
                 var forceReseed = reseedEdge || session.PendingReseed;
                 session.PendingReseed = false;
 
@@ -283,7 +302,7 @@ namespace Gonogo.Kos
             {
                 _sessions.Remove(coreId);
                 _leases.Remove(coreId);
-                _lastSubscriberCount.Remove(coreId);
+                _pendingReseeds.TryRemove(coreId, out _);
                 _lastPublishedUt.Remove(coreId);
             }
         }

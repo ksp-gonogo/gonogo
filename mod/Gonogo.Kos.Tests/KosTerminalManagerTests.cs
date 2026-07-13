@@ -47,13 +47,20 @@ namespace Gonogo.Kos.Tests
 
         /// <summary>
         /// Multiple-subscriber-aware stand-in for the production
-        /// <c>host.SubscriberCountFor(topic)</c> read. Deliberately exposes
-        /// the same <c>Add</c>/<c>Remove</c> call shape a plain
-        /// <c>HashSet&lt;int&gt;</c> would (so every pre-existing
-        /// single-subscriber test — one <c>Add</c>, one <c>Remove</c> —
-        /// keeps compiling and behaving identically) while ALSO letting a
-        /// test model a second simultaneous subscriber by calling
-        /// <c>Add</c> twice for the same id.
+        /// <c>host.IsAnyTopicSubscribed(topic)</c> read that gates
+        /// <see cref="KosTerminalManager.Poll"/>'s "is anyone watching this
+        /// CPU" check. Deliberately exposes the same <c>Add</c>/<c>Remove</c>
+        /// call shape a plain <c>HashSet&lt;int&gt;</c> would (so every
+        /// pre-existing single-subscriber test — one <c>Add</c>, one
+        /// <c>Remove</c> — keeps compiling and behaving identically) while
+        /// ALSO letting a test model a second simultaneous subscriber by
+        /// calling <c>Add</c> twice for the same id. NOTE: this is
+        /// deliberately NOT the reseed signal (Gap A) — that is
+        /// <see cref="KosTerminalManager.NotifySubscribed"/>, modelled by
+        /// <see cref="Harness.Subscribe"/> below, which mirrors production's
+        /// separation between "is this CPU currently subscribed at all"
+        /// (a boolean, main-thread-safe) and "did a subscribe TRANSITION
+        /// just happen" (a Courier-thread push, per individual session).
         /// </summary>
         private sealed class SubscriberCounter
         {
@@ -77,6 +84,8 @@ namespace Gonogo.Kos.Tests
                 }
             }
 
+            public bool IsSubscribed(int id) => CountFor(id) > 0;
+
             public int CountFor(int id) => _counts.TryGetValue(id, out var c) ? c : 0;
         }
 
@@ -98,7 +107,7 @@ namespace Gonogo.Kos.Tests
             {
                 Manager = new KosTerminalManager(
                     knownCoreIds: () => CoreIds,
-                    subscriberCount: id => Subscribed.CountFor(id),
+                    isSubscribed: id => Subscribed.IsSubscribed(id),
                     publish: (id, frame, ut) =>
                     {
                         Published.Add(frame);
@@ -118,6 +127,24 @@ namespace Gonogo.Kos.Tests
             }
 
             public void Tick() => Manager.Poll(1.0);
+
+            /// <summary>
+            /// Models a session subscribing: bumps the aggregate count
+            /// (Poll's "is anyone watching" gate) AND fires the production
+            /// per-session subscribe-transition signal
+            /// (<see cref="KosTerminalManager.NotifySubscribed"/>) exactly
+            /// as ChannelEngine.ProcessSubscribe does for EVERY individual
+            /// session subscribe, on the Courier thread, regardless of
+            /// whether the aggregate count actually changed.
+            /// </summary>
+            public void Subscribe(int coreId)
+            {
+                Subscribed.Add(coreId);
+                Manager.NotifySubscribed(coreId);
+            }
+
+            /// <summary>Models a session unsubscribing — never itself a reseed trigger.</summary>
+            public void Unsubscribe(int coreId) => Subscribed.Remove(coreId);
         }
 
         // ---- Lease ----
@@ -261,11 +288,11 @@ namespace Gonogo.Kos.Tests
             var h = new Harness();
 
             // Subscribe, poll (full repaint), unsubscribe, resubscribe.
-            h.Subscribed.Add(7);
+            h.Subscribe(7);
             h.Tick();
-            h.Subscribed.Remove(7);
+            h.Unsubscribe(7);
             h.Tick();
-            h.Subscribed.Add(7);
+            h.Subscribe(7);
             h.Tick();
 
             var repaints = h.Published.FindAll(f => f.FullRepaint);
@@ -284,7 +311,7 @@ namespace Gonogo.Kos.Tests
             var h = new Harness();
 
             // Subscriber A joins; gets the expected full repaint.
-            h.Subscribed.Add(7);
+            h.Subscribe(7);
             h.Tick();
             Assert.Single(h.Published.FindAll(f => f.FullRepaint));
 
@@ -292,11 +319,47 @@ namespace Gonogo.Kos.Tests
             // the aggregate "is CPU 7 subscribed at all" was already true,
             // so this must be recognised as a genuinely new subscriber
             // (not a no-op) and force another full repaint for B's benefit.
-            h.Subscribed.Add(7);
+            h.Subscribe(7);
             h.Tick();
 
             var repaints = h.Published.FindAll(f => f.FullRepaint);
             Assert.Equal(2, repaints.Count);
+        }
+
+        [Fact]
+        public void Poll_FastUnsubscribeThenResubscribeWithinOnePollWindow_StillForcesAFullRepaint()
+        {
+            // Gap A (adversarial review of Fix #2): a StrictMode remount or a
+            // CPU-picker `key` toggle unsubscribes and resubscribes the SAME
+            // viewer within a single ~20Hz poll window. Sampling an
+            // AGGREGATE subscriber count once per poll nets right back to
+            // what it was before the flip, so a main-thread count comparison
+            // sees "unchanged" and never forces a fresh full-repaint baseline
+            // for the new xterm. The fix drives the reseed decision from a
+            // THREAD-SAFE per-transition signal (NotifySubscribed, fired once
+            // per individual subscribe on the Courier thread in production)
+            // instead — Subscribe below models exactly that per-call
+            // notification, so a fast unsub-&gt;resub genuinely fires it
+            // twice, not "once, net of the flip".
+            //
+            // The RED run of this test (see the report) was recorded against
+            // the PRE-fix Harness, which had no Subscribe/NotifySubscribed
+            // seam — h.Subscribed.Add(7)/.Remove(7)/.Add(7) directly, i.e.
+            // exactly the aggregate-count shape that failed to net out. This
+            // is the fix's necessary API reshape (same methodology as Fix
+            // #1's NextUt/publish signature change): the bug can only be
+            // fixed by adding a genuinely thread-safe transition seam, so the
+            // GREEN test targets that new seam directly rather than the
+            // aggregate count the bug lived in.
+            var h = new Harness();
+            h.Subscribe(7);
+            h.Tick(); // establishes the baseline poll (full repaint #1).
+
+            h.Unsubscribe(7);
+            h.Subscribe(7); // fast resubscribe, all before the NEXT poll runs.
+            h.Tick();
+
+            Assert.True(h.Published[h.Published.Count - 1].FullRepaint);
         }
 
         [Fact]

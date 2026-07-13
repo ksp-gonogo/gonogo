@@ -43,6 +43,12 @@ namespace Gonogo.Kos.Tests
                 }
                 return p;
             }
+
+            public void OnSubscribed(Action<string> callback)
+            {
+                // Not exercised by the OnPrint compute-hot-path tests this
+                // fake serves — nothing here subscribes to kos.compute.*.
+            }
         }
 
         private sealed class RecordingPublisher : IChannelPublisher

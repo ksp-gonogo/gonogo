@@ -201,6 +201,16 @@ namespace Sitrep.Host
         private readonly Dictionary<string, ChannelDeclaration> _dynamicNamespaces = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, string> _dynamicNamespaceOwner = new Dictionary<string, string>();
 
+        // Per-prefix listeners registered via IDynamicChannelSource.OnSubscribed
+        // (Gap A of the terminal-integrity adversarial review) — invoked from
+        // ProcessSubscribe, on the COURIER thread, once per individual session
+        // subscribe under the owning prefix. Populated only during Register()
+        // (before Start()), same single-writer-before-start discipline as
+        // _dynamicNamespaces/_dynamicNamespaceOwner above; read-only (well,
+        // appended to via AddDynamicNamespaceSubscribeListener before Start(),
+        // then only enumerated) on the Courier thread afterward.
+        private readonly Dictionary<string, List<Action<string>>> _dynamicNamespaceSubscribeListeners = new Dictionary<string, List<Action<string>>>();
+
         private readonly Dictionary<string, CommandDeclaration> _commandDeclarations = new Dictionary<string, CommandDeclaration>();
         private readonly Dictionary<string, Func<object?, object?>> _commandHandlers = new Dictionary<string, Func<object?, object?>>();
 
@@ -808,6 +818,53 @@ namespace Sitrep.Host
             _dynamicNamespaces[prefix] = template;
             _dynamicNamespaceOwner[prefix] = _currentRegisteringUplinkId ?? "";
             return new DynamicChannelSource(this, prefix);
+        }
+
+        /// <summary>
+        /// <see cref="IDynamicChannelSource.OnSubscribed"/>'s engine-side
+        /// bookkeeping — see <see cref="_dynamicNamespaceSubscribeListeners"/>'s
+        /// field doc comment and <see cref="NotifyDynamicNamespaceSubscribed"/>.
+        /// </summary>
+        private void AddDynamicNamespaceSubscribeListener(string prefix, Action<string> callback)
+        {
+            if (!_dynamicNamespaceSubscribeListeners.TryGetValue(prefix, out var listeners))
+            {
+                listeners = new List<Action<string>>();
+                _dynamicNamespaceSubscribeListeners[prefix] = listeners;
+            }
+            listeners.Add(callback);
+        }
+
+        /// <summary>
+        /// Courier-thread-only: fires every listener registered via
+        /// <see cref="IDynamicChannelSource.OnSubscribed"/> for the dynamic
+        /// namespace <paramref name="topic"/> falls under (a no-op if it
+        /// falls under none, or none registered a listener). Called from
+        /// <see cref="ProcessSubscribe"/> for EVERY individual session
+        /// subscribe — see that call site's comment for why this must not
+        /// be gated on <c>_subscriptions.Subscribe</c>'s aggregate 0-&gt;1
+        /// return. A throwing listener is caught and logged here (not left
+        /// to the CourierLoop's outer backstop) so it can never skip the
+        /// ack/bookkeeping that follows this call in ProcessSubscribe.
+        /// </summary>
+        private void NotifyDynamicNamespaceSubscribed(string topic)
+        {
+            var prefix = FindDynamicNamespaceForTopic(topic);
+            if (prefix == null || !_dynamicNamespaceSubscribeListeners.TryGetValue(prefix, out var listeners))
+            {
+                return;
+            }
+            foreach (var listener in listeners)
+            {
+                try
+                {
+                    listener(topic);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("[ChannelEngine] dynamic-namespace subscribe listener for \"" + prefix + "\" threw: " + ex);
+                }
+            }
         }
 
         /// <summary>
@@ -1796,16 +1853,23 @@ namespace Sitrep.Host
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
         /// <summary>
-        /// <see cref="IUplinkHost.SubscriberCountFor"/> — reads the OUTER
-        /// (<see cref="SubscriptionRegistry"/>) gate's current subscriber
-        /// count for an EXACT topic. Originally test-only visibility (proving
-        /// a subscribe/unsubscribe/disconnect sequence never leaves an
-        /// orphaned count behind, see the C2-3 fix); now also the production
-        /// seam for an Uplink that needs to tell a genuinely new subscriber
-        /// apart from a topic merely staying subscribed (see the interface
-        /// doc comment).
+        /// Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>)
+        /// gate's current subscriber count for a topic — used to prove a
+        /// subscribe/unsubscribe/disconnect sequence never leaves an
+        /// orphaned count behind (see the C2-3 fix). Deliberately NOT part
+        /// of <see cref="IUplinkHost"/>: it wraps <c>_subscriptions</c>,
+        /// which — per that field's own doc comment — must never be read
+        /// off the Courier thread. It was briefly promoted to a public
+        /// <c>IUplinkHost</c> member so <c>KosTerminalManager.Poll</c>
+        /// (main thread) could read it directly; that was itself the Gap A
+        /// bug (a main-thread read of Courier-owned state, plus a reseed
+        /// signal that only sampled the aggregate once per poll). The fix
+        /// is <see cref="IDynamicChannelSource.OnSubscribed"/> — a genuinely
+        /// thread-safe, per-subscription-transition push instead of a
+        /// cross-thread pull — so this reverts to its original test-only
+        /// shape.
         /// </summary>
-        public int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
+        internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
 
         // ----------------------------------------------------------------
         // Courier domain (the dedicated Courier thread)
@@ -2594,6 +2658,19 @@ namespace Sitrep.Host
 
             session.Unsubscribers[topic] = unsubscribe;
 
+            // Gap A (terminal-integrity adversarial review): notify EVERY
+            // individual session subscribe, not just a genuine aggregate
+            // 0->1 transition (_subscriptions.Subscribe's return above) --
+            // a second simultaneous viewer, or a resubscribe faster than a
+            // polling consumer's own cadence, both still need to be seen as
+            // distinct events by a listener like the kOS terminal's
+            // full-repaint reseed. Placed AFTER the subscribe stream setup
+            // succeeds (mirroring the C2-3 rollback above) so a throw
+            // during SubscribeStream's synchronous catch-up still rolls
+            // back cleanly without ever notifying a listener for a
+            // subscribe that didn't actually complete.
+            NotifyDynamicNamespaceSubscribed(topic);
+
             var ack = new EventMsg
             {
                 Topic = topic,
@@ -3127,6 +3204,15 @@ namespace Sitrep.Host
                 var fullTopic = _prefix + subTopic;
                 _engine.EnsureDynamicTopicDeclared(_prefix, fullTopic);
                 return new ChannelPublisher(_engine, fullTopic);
+            }
+
+            public void OnSubscribed(Action<string> callback)
+            {
+                if (callback == null)
+                {
+                    throw new ArgumentNullException(nameof(callback));
+                }
+                _engine.AddDynamicNamespaceSubscribeListener(_prefix, callback);
             }
         }
     }
