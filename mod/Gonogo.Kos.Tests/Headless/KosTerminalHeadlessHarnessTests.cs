@@ -1,0 +1,335 @@
+// Gonogo.Kos — GPLv3. See Gonogo.Kos.csproj's header comment for the
+// licence/linkage rationale.
+
+using System.Collections.Generic;
+using System.Linq;
+using Gonogo.Kos;
+using kOS.Safe.Screen;
+using kOS.UserIO;
+using Sitrep.Contract;
+using Sitrep.Core;
+using Xunit;
+
+namespace Gonogo.Kos.Tests.Headless
+{
+    /// <summary>
+    /// The KSP-free, end-to-end terminal harness: it drives a REAL
+    /// <c>kOS.Safe.Screen.ScreenBuffer</c> (the same screen type a live kOS CPU
+    /// runs), runs its snapshots through the REAL <see cref="ScreenDiffMapper"/>
+    /// — real <c>ScreenSnapShot.DiffFrom</c> + real
+    /// <c>kOS.UserIO.TerminalXtermMapper</c>, no KSP/Unity process — through the
+    /// REAL <see cref="KosTerminalManager"/> and into a REAL
+    /// <see cref="Courier"/>/<c>Archive</c> delay engine driven by a
+    /// <see cref="ManualClock"/>, then reconstructs the client-side screen from
+    /// the delivered chunks and asserts it matches an independent real-pipeline
+    /// render of the mod's final screen.
+    ///
+    /// <para>This closes the gap the pure unit tests structurally can't: they
+    /// assert <see cref="KosTerminalManager"/>'s <c>NextUt</c> return value in
+    /// isolation and never model <c>Archive.ReadAtVantage</c>'s "latest sample
+    /// as of the light-lagged scene" coalescing. Here the whole chain runs, so a
+    /// same-<c>ValidAt</c> collision doesn't just return a wrong number — it
+    /// silently corrupts the reconstructed screen. See
+    /// <see cref="Burst_ConstantValidAt_RevertingFix1_CorruptsTheScreen"/> for
+    /// the executable proof that this harness catches the coalescing garble
+    /// class Fix #1 (strictly-increasing ValidAt) prevents; the harness report
+    /// (docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md) pairs
+    /// it with an actual git-revert-of-Fix-#1 run of the positive test.</para>
+    ///
+    /// <para><b>Interpreter vs ScreenBuffer:</b> this drives the ScreenBuffer
+    /// directly rather than standing up the full kOS interpreter headlessly —
+    /// the sanctioned fallback. It exercises the exact real pipeline the
+    /// terminal-garble class lives in (screen state → diff → xterm map → delay
+    /// engine); printing to the ScreenBuffer is precisely what a kerboscript
+    /// <c>PRINT</c> does to a CPU's screen. A subscriber joins on a blank screen
+    /// (its reseed frame is a clean clear) and then watches a burst of PRINTed
+    /// lines arrive as cursor-relative incremental diffs — which is exactly the
+    /// frame shape that coalesces on ValidAt.</para>
+    /// </summary>
+    public class KosTerminalHeadlessHarnessTests
+    {
+        private const int Rows = 12;
+        private const int Cols = 40;
+
+        private const string Node = "vessel-1";
+        private const string Vantage = "KSC";
+        private const int CoreId = 7;
+
+        private static readonly string[] BurstLines =
+        {
+            "BOOT SEQUENCE COMPLETE",
+            "STAGE 1 IGNITION",
+            "STAGE 1 SEPARATION",
+            "STAGE 2 IGNITION",
+            "ORBIT ACHIEVED 80x80KM",
+        };
+
+        /// <summary>
+        /// Adapts a live <see cref="ScreenBuffer"/> to the manager's
+        /// <see cref="IKosTerminalScreen"/> port by delegating to a real
+        /// <see cref="ScreenDiffMapper"/> — the same delegation the production
+        /// <c>KosProcessorScreen</c> shell does, minus the <c>kOSProcessor</c>
+        /// resolution. The test mutates the shared buffer between polls, exactly
+        /// as a running kerboscript would mutate a CPU's screen.
+        /// </summary>
+        private sealed class ScreenBufferTerminal : IKosTerminalScreen
+        {
+            private readonly ScreenBuffer _buffer;
+            private readonly ScreenDiffMapper _mapper = new ScreenDiffMapper();
+
+            public ScreenBufferTerminal(ScreenBuffer buffer) => _buffer = buffer;
+
+            public TerminalReadResult ReadChunk(bool forceReseed) => _mapper.MapNext(_buffer, forceReseed);
+
+            public bool TypeChars(string chars) => true;
+
+            public void Resize(int cols, int rows) => _buffer.SetSize(rows, cols);
+        }
+
+        private static ScreenBuffer NewScreen()
+        {
+            var buffer = new ScreenBuffer();
+            buffer.SetSize(Rows, Cols);
+            return buffer;
+        }
+
+        /// <summary>Reconstruct a client screen by applying the delivered frames in order (honouring full-repaint clears).</summary>
+        private static TerminalEmulator Reconstruct(IEnumerable<KosTerminalFrame> frames)
+        {
+            var client = new TerminalEmulator(Rows, Cols);
+            foreach (var frame in frames)
+            {
+                if (frame.FullRepaint)
+                {
+                    client.Clear();
+                }
+                client.Apply(frame.Chunk);
+            }
+            return client;
+        }
+
+        /// <summary>
+        /// The canonical rendered screen for <paramref name="buffer"/>: the REAL
+        /// pipeline's one-shot full render (final snapshot diffed against a blank
+        /// baseline captured before any content, then xterm-mapped) applied to a
+        /// fresh client. Independent of the incremental burst path, so it is a
+        /// fair oracle for what the client SHOULD end up showing.
+        /// </summary>
+        private static string RenderFinalScreen(IScreenBuffer buffer, IScreenSnapShot blankBaseline)
+        {
+            var mapper = TerminalUnicodeMapper.TerminalMapperFactory("xterm");
+            var raw = new ScreenSnapShot(buffer).DiffFrom(blankBaseline);
+            var truth = new TerminalEmulator(Rows, Cols);
+            truth.Apply(new string(mapper.OutputConvert(raw)));
+            return truth.Text;
+        }
+
+        [Fact]
+        public void Burst_RealPipeline_AllFramesDeliveredInOrder_ReconstructsExactScreen()
+        {
+            var clock = new ManualClock(startUt: 1000);
+            var network = new StubNetwork(delay: 0);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+
+            var delivered = new List<KosTerminalFrame>();
+            courier.SubscribeStream(Node, topic, Vantage, data =>
+            {
+                if (data.Payload is KosTerminalFrame frame)
+                {
+                    delivered.Add(frame);
+                }
+            });
+
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+
+            var publishedUts = new List<double>();
+            var manager = new KosTerminalManager(
+                knownCoreIds: () => new[] { CoreId },
+                isSubscribed: _ => true,
+                publish: (_, frame, ut) =>
+                {
+                    publishedUts.Add(ut);
+                    courier.Record(Node, topic, frame, ut);
+                },
+                createScreen: _ => screen,
+                nowUt: () => clock.Now(),
+                pollIntervalSeconds: 0.05);
+
+            // A viewer subscribes on a blank screen: the first poll is a clean
+            // full-repaint reseed.
+            manager.Poll(1.0);
+
+            // Then a kerboscript PRINTs a burst of lines: one line per ~20Hz
+            // poll, while the Courier clock stays PARKED at a single tick
+            // (production: the ~50ms Courier cadence is outrun by the main-thread
+            // poll). Each poll is a cursor-relative incremental diff — exactly
+            // the frames that collide on ValidAt without Fix #1.
+            foreach (var line in BurstLines)
+            {
+                buffer.Print(line);
+                manager.Poll(1.0);
+            }
+
+            // Drain every scheduled (zero-delay) delivery.
+            clock.AdvanceTo(clock.Now() + 1);
+
+            // Completeness: every published frame was delivered — none dropped
+            // or duplicated (1 reseed + one per burst line).
+            Assert.Equal(BurstLines.Length + 1, publishedUts.Count);
+            Assert.Equal(publishedUts.Count, delivered.Count);
+
+            // Order + reveal timing: the manager stamped strictly-increasing
+            // ValidAt (Fix #1), which is what let Archive/Courier keep every
+            // frame distinct and drain them in ascending fire-UT order.
+            for (var k = 1; k < publishedUts.Count; k++)
+            {
+                Assert.True(publishedUts[k] > publishedUts[k - 1],
+                    $"frame {k} ValidAt {publishedUts[k]} must exceed frame {k - 1}'s {publishedUts[k - 1]}");
+            }
+
+            // Exactly one reseed (the first frame) then pure incremental diffs.
+            Assert.True(delivered[0].FullRepaint);
+            Assert.All(delivered.Skip(1), f => Assert.False(f.FullRepaint));
+
+            // The reconstructed client screen matches the mod's final screen.
+            var client = Reconstruct(delivered);
+            Assert.Equal(RenderFinalScreen(buffer, blankBaseline), client.Text);
+            foreach (var line in BurstLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
+        }
+
+        [Fact]
+        public void Burst_ConstantValidAt_RevertingFix1_CorruptsTheScreen()
+        {
+            // The PROOF that the harness catches the coalescing garble class. It
+            // reproduces exactly what reverting Fix #1 does — every burst frame
+            // published at the SAME raw clock UT (no strictly-increasing NextUt
+            // stamp) — by recording straight onto the Courier at a constant
+            // ValidAt, bypassing KosTerminalManager.NextUt. Everything else is
+            // the REAL pipeline: real ScreenBuffer, real ScreenDiffMapper diffs,
+            // real Archive.ReadAtVantage coalescing.
+            var clock = new ManualClock(startUt: 1000);
+            var network = new StubNetwork(delay: 0);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+
+            var delivered = new List<KosTerminalFrame>();
+            courier.SubscribeStream(Node, topic, Vantage, data =>
+            {
+                if (data.Payload is KosTerminalFrame frame)
+                {
+                    delivered.Add(frame);
+                }
+            });
+
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+
+            const double frozenUt = 1000.0; // the reverted behaviour: raw nowUt, never advanced.
+
+            void RecordFrame(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    courier.Record(Node, topic, new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    }, frozenUt);
+                }
+            }
+
+            RecordFrame(force: true); // blank reseed
+            foreach (var line in BurstLines)
+            {
+                buffer.Print(line);
+                RecordFrame(force: false); // incremental diff
+            }
+
+            clock.AdvanceTo(clock.Now() + 1);
+
+            var client = Reconstruct(delivered);
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+
+            // The heart of the proof: with a constant ValidAt, Archive coalesces
+            // the whole burst to a single sample, so the reconstructed screen is
+            // NOT the mod's final screen. If this ever became equal, the
+            // coalescing bug would have stopped being observable here and the
+            // positive test above would be a false comfort.
+            Assert.NotEqual(truth, client.Text);
+
+            // Concretely: earlier burst lines were dropped from the client — the
+            // reader only ever resolved the LATEST same-ValidAt sample.
+            Assert.DoesNotContain("STAGE 1 IGNITION", client.Text);
+            Assert.DoesNotContain("BOOT SEQUENCE COMPLETE", client.Text);
+        }
+
+        [Fact]
+        public void Rewind_RealPipeline_AfterQuickload_ResetsValidAtBaselineToTheLowerUt()
+        {
+            // A modest F9-quickload case through the REAL ScreenBuffer +
+            // ScreenDiffMapper + manager: publish a burst at a high UT (so the
+            // manager's tracked baseline climbs), then rewind the clock far back
+            // and publish again. NextUt's rewind branch must RESET its baseline
+            // to the new lower UT rather than manufacturing a ghost
+            // last+epsilon stamp pinned above the stale pre-rewind peak — which
+            // would keep colliding with Archive/Courier's stale-UT clamp for the
+            // whole recovery window. We assert on the stamps the manager
+            // actually publishes (the observable NextUt output), which is what
+            // drives the engine's coalescing decision.
+            var clock = new ManualClock(startUt: 5000);
+            var network = new StubNetwork(delay: 0);
+            var courier = new Courier(clock, network);
+            var topic = KosChannels.TerminalTopic(CoreId);
+            courier.SubscribeStream(Node, topic, Vantage, _ => { });
+
+            var buffer = NewScreen();
+            var screen = new ScreenBufferTerminal(buffer);
+
+            var publishedUts = new List<double>();
+            var manager = new KosTerminalManager(
+                knownCoreIds: () => new[] { CoreId },
+                isSubscribed: _ => true,
+                publish: (_, frame, ut) =>
+                {
+                    publishedUts.Add(ut);
+                    courier.Record(Node, topic, frame, ut);
+                },
+                createScreen: _ => screen,
+                nowUt: () => clock.Now(),
+                pollIntervalSeconds: 0.05);
+
+            // Pre-quickload burst at the parked high UT — the baseline climbs to
+            // 5000 (+ epsilon bumps for the same-tick frames).
+            manager.Poll(1.0);
+            foreach (var line in new[] { "ASCENT GUIDANCE ON", "APOAPSIS 74KM", "CIRCULARISING" })
+            {
+                buffer.Print(line);
+                manager.Poll(1.0);
+            }
+            var prePeak = publishedUts.Max();
+            Assert.True(prePeak >= 5000);
+
+            // F9 quickload: the clock jumps far back.
+            clock.Reset(200);
+            buffer.Print("POST-QUICKLOAD LINE");
+            manager.Poll(1.0);
+
+            // The post-rewind stamp is the new, lower UT — the baseline reset; it
+            // was NOT pinned at prePeak + epsilon.
+            var postStamp = publishedUts.Last();
+            Assert.True(postStamp < prePeak,
+                $"post-rewind ValidAt {postStamp} must reset below the stale peak {prePeak}");
+            Assert.True(postStamp <= 200 + 1e-6,
+                $"post-rewind ValidAt {postStamp} should track the rewound clock (~200), not a ghost bump");
+        }
+    }
+}
