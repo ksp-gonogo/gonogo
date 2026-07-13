@@ -1,9 +1,31 @@
+import type {
+  ConfigField,
+  DataSource,
+  DataSourceStatus,
+} from "@ksp-gonogo/core";
 import {
   clearRegistry,
   registerDataSource,
   ScreenProvider,
 } from "@ksp-gonogo/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  createFakeWallClock,
+  StubTransport,
+  systemUplinkHealthChannel,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-client";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
@@ -18,10 +40,6 @@ import { SettingsService } from "./SettingsService";
 vi.mock("@ksp-gonogo/serial", () => ({
   SerialDevicesMenu: () => null,
   useSerialAggregateStatus: () => "ok",
-}));
-
-vi.mock("@ksp-gonogo/components", () => ({
-  DataSourceStatusComponent: () => null,
 }));
 
 vi.mock("../analytics/AnalyticsConsentService", () => ({
@@ -101,6 +119,112 @@ function makeKerbcastStub() {
   };
 }
 
+/**
+ * A fixture shaped like `packages/app/src/dataSources/sitrep.ts`'s
+ * `sitrepStreamSource` singleton — same id/name production uses, so the
+ * Data Sources tab's "just this one connection" behaviour is exercised
+ * against the real production id, not an arbitrary test id.
+ */
+function makeSitrepStub(configureSpy = vi.fn()): DataSource {
+  const listeners = new Set<(s: DataSourceStatus) => void>();
+  return {
+    id: "sitrep",
+    name: "Sitrep Stream",
+    status: "disconnected" as DataSourceStatus,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: (): ConfigField[] => [
+      { key: "host", label: "Host", type: "text", placeholder: "localhost" },
+      { key: "port", label: "Port", type: "number", placeholder: "8090" },
+    ],
+    getConfig: () => ({ host: "localhost", port: 8090 }),
+    configure: configureSpy,
+    onStatusChange(cb) {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+  };
+}
+
+/**
+ * An arbitrary OTHER registered `DataSource` — used to prove the reworked
+ * Data Sources tab does NOT fall back to an "Other Connections" list the
+ * way the old `DataSourceStatusComponent` did (it rendered every registered
+ * source).
+ */
+function makeOtherSourceStub(id: string, name: string): DataSource {
+  return {
+    id,
+    name,
+    status: "disconnected" as DataSourceStatus,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    getConfig: () => ({}),
+    configure: () => {},
+    onStatusChange: () => () => {},
+  };
+}
+
+/**
+ * Mounts a real `TelemetryProvider` (a `TimelineStore` with
+ * `systemUplinkHealthChannel` registered, over a `StubTransport`) around
+ * `SettingsModal` — mirrors `telemetry-components.test.tsx`'s
+ * `setupTelemetryStream` helper. `emit` pushes a raw `system.uplinks`
+ * stream-data frame once the mounted `UplinkHealthList` has subscribed.
+ */
+function setupTelemetryStream() {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(systemUplinkHealthChannel);
+
+  function Provider({ children }: { children: ReactNode }) {
+    return (
+      <TelemetryProvider client={client} store={store}>
+        {children}
+      </TelemetryProvider>
+    );
+  }
+
+  return {
+    emit: (payload: unknown) => transport.emit("system.uplinks", payload),
+    Provider,
+  };
+}
+
+function renderModalWithStream(
+  stream: ReturnType<typeof setupTelemetryStream>,
+) {
+  const service = new SettingsService(memoryStorage());
+  return render(
+    <ScreenProvider value="main">
+      <SettingsProvider service={service}>
+        <stream.Provider>
+          <SettingsModal />
+        </stream.Provider>
+      </SettingsProvider>
+    </ScreenProvider>,
+  );
+}
+
+async function openDataSourcesTab() {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("tab", { name: /data sources/i }));
+}
+
 beforeEach(() => {
   clearRegistry();
 });
@@ -108,6 +232,135 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   clearRegistry();
+});
+
+describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", () => {
+  it("shows the Sitrep Stream connection row when registered", async () => {
+    registerDataSource(makeSitrepStub());
+    renderModal("main");
+    await openDataSourcesTab();
+    expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
+    expect(screen.getByText("disconnected")).toBeInTheDocument();
+  });
+
+  it("shows a placeholder when the sitrep source isn't registered", async () => {
+    renderModal("main");
+    await openDataSourcesTab();
+    expect(
+      screen.getByText("Sitrep stream not registered"),
+    ).toBeInTheDocument();
+  });
+
+  it("does NOT render an unrelated registered data source — no 'Other Connections' list", async () => {
+    registerDataSource(makeSitrepStub());
+    registerDataSource(makeOtherSourceStub("kos", "kOS"));
+    renderModal("main");
+    await openDataSourcesTab();
+    expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
+    expect(screen.queryByText("kOS")).not.toBeInTheDocument();
+  });
+
+  it("opens the config form, pre-filled from getConfig(), and saves via configure()", async () => {
+    const configureSpy = vi.fn();
+    registerDataSource(makeSitrepStub(configureSpy));
+    renderModal("main");
+    await openDataSourcesTab();
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: /configure sitrep stream/i }),
+    );
+    expect(screen.getByLabelText("Host")).toHaveValue("localhost");
+    expect(screen.getByLabelText("Port")).toHaveValue(8090);
+
+    const portInput = screen.getByLabelText("Port");
+    await user.clear(portInput);
+    await user.type(portInput, "9091");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(configureSpy).toHaveBeenCalledWith({
+      host: "localhost",
+      port: 9091,
+    });
+  });
+});
+
+describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHealth)", () => {
+  it("shows a waiting placeholder before any report has arrived", async () => {
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+    expect(
+      screen.getByText("Waiting for uplink health report…"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders each reported Uplink's id, version and health state", async () => {
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "kos",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 1, detail: "no active CPU selected" },
+        },
+        {
+          id: "system",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+      ],
+    });
+
+    await waitFor(() => expect(screen.getByText("kos")).toBeInTheDocument());
+    expect(screen.getByText("degraded")).toBeInTheDocument();
+    expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
+    expect(screen.getByText("system")).toBeInTheDocument();
+    expect(screen.getByText("healthy")).toBeInTheDocument();
+    expect(screen.getAllByText("v1.0.0")).toHaveLength(2);
+  });
+
+  it("shows the registration-failure reason as detail for an Unavailable uplink", async () => {
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "broken",
+          version: "1.0.0",
+          available: false,
+          reason: "registration threw: boom",
+          health: { state: 2, detail: "registration threw: boom" },
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("unavailable")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("registration threw: boom")).toBeInTheDocument();
+  });
+
+  it("shows a placeholder when the reported uplink list is empty", async () => {
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({ uplinks: [] });
+
+    await waitFor(() =>
+      expect(screen.getByText("No uplinks registered")).toBeInTheDocument(),
+    );
+  });
 });
 
 describe("SettingsModal Kerbcast tab gating", () => {

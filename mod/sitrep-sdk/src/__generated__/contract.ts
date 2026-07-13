@@ -417,6 +417,19 @@ export interface KosReEnableArgs
 {
 	scriptId: string;
 }
+export interface KosRunArgs
+{
+	coreId: number;
+	requestId: string;
+	command: string;
+}
+export interface KosRunResult
+{
+	coreId: number;
+	requestId: string;
+	fields?: { [key:string]: any };
+	error?: string;
+}
 export interface KosTerminalFrame
 {
 	coreId: number;

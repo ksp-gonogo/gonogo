@@ -1,4 +1,4 @@
-import { DataSourceStatusComponent } from "@ksp-gonogo/components";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
 import { getDataSource, useDataSources, useScreen } from "@ksp-gonogo/core";
 import {
   type KerbcastDataSource,
@@ -8,9 +8,28 @@ import {
   SerialDevicesMenu,
   useSerialAggregateStatus,
 } from "@ksp-gonogo/serial";
-import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
+import type {
+  SystemUplinkHealth,
+  UplinkHealthEntry,
+  UplinkHealthStateName,
+} from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  FieldLabel,
+  FieldRow,
+  FormActions,
+  GearIcon,
+  GhostButton,
+  IconButton,
+  Input,
+  Placeholder,
+  PrimaryButton,
+  Switch,
+  type TabDescriptor,
+  Tabs,
+} from "@ksp-gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
@@ -36,12 +55,22 @@ export function SettingsModal() {
   // PeerJS and have nothing to manage locally.
   const showDataSources = screen === "main";
 
+  // Data Sources now leads with the single Gonogo/Sitrep connection (no
+  // more "Other Connections" list of every registered DataSource — see
+  // DataSourcesPanel) plus per-Uplink health rows fed by the mod-side
+  // self-report (system.uplinkHealth). The tab's attention dot reflects
+  // both: the stream connection itself, and any Uplink reporting worse
+  // than Healthy.
   const dataSources = useDataSources();
+  const sitrepSource = dataSources.find((s) => s.id === "sitrep");
+  const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const uplinkIssue =
+    uplinkHealth?.uplinks.some((u) => u.health.state !== "healthy") ?? false;
   const dataSourceIssue =
     showDataSources &&
-    dataSources.some(
-      (s) => s.status === "disconnected" || s.status === "error",
-    );
+    (sitrepSource?.status === "disconnected" ||
+      sitrepSource?.status === "error" ||
+      uplinkIssue);
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
@@ -67,8 +96,7 @@ export function SettingsModal() {
     tabs.push({
       id: "data-sources",
       label: "Data Sources",
-      // Renders its own "DATA SOURCES" header, so no extra section title.
-      content: <DataSourceStatusComponent />,
+      content: <DataSourcesPanel />,
       indicator: dataSourceIssue,
     });
   }
@@ -109,6 +137,183 @@ export function SettingsModal() {
     <Wrap>
       <Tabs tabs={tabs} activeId={activeId} onChange={setActiveId} />
     </Wrap>
+  );
+}
+
+/**
+ * The Data Sources tab. Leads with the single Gonogo/Sitrep connection
+ * (host/port config, connect status, setup instructions) — the app's sole
+ * live telemetry source — then lists every registered mod-side Uplink's
+ * self-reported health beneath it. Deliberately does NOT list every
+ * registered `DataSource` the way the old `DataSourceStatusComponent` did:
+ * stations don't reach this tab (`showDataSources` gates it main-only), and
+ * on main there is exactly one telemetry connection to manage now — the
+ * per-Uplink rows are the finer-grained detail that replaces the old
+ * "other connections" list.
+ */
+function DataSourcesPanel() {
+  return (
+    <SectionStack>
+      <Section>
+        <SectionTitle>Gonogo / Sitrep</SectionTitle>
+        <SitrepConnection />
+      </Section>
+      <Section>
+        <SectionTitle>Uplinks</SectionTitle>
+        <UplinkHealthList />
+      </Section>
+    </SectionStack>
+  );
+}
+
+/**
+ * The single Gonogo/Sitrep connection row — reuses `sitrepStreamSource`
+ * (`packages/app/src/dataSources/sitrep.ts`) for status/config exactly the
+ * way the old `DataSourceStatusComponent` did for every source, narrowed to
+ * just this one.
+ */
+function SitrepConnection() {
+  const dataSources = useDataSources();
+  const source = dataSources.find((s) => s.id === "sitrep");
+  const [editingConfig, setEditingConfig] = useState(false);
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
+
+  if (!source) {
+    return <Placeholder>Sitrep stream not registered</Placeholder>;
+  }
+
+  const schema = getDataSource("sitrep")?.configSchema() ?? [];
+
+  const openConfig = () => {
+    const current = getDataSource("sitrep")?.getConfig() ?? {};
+    setFormValues(
+      Object.fromEntries(
+        Object.entries(current).map(([k, v]) => [k, String(v)]),
+      ),
+    );
+    setEditingConfig(true);
+  };
+
+  const saveConfig = () => {
+    const parsed: Record<string, unknown> = {};
+    for (const field of schema) {
+      parsed[field.key] =
+        field.type === "number"
+          ? Number(formValues[field.key])
+          : formValues[field.key];
+    }
+    getDataSource("sitrep")?.configure(parsed);
+    setEditingConfig(false);
+  };
+
+  const instructions =
+    source.status === "disconnected"
+      ? getDataSource("sitrep")?.setupInstructions?.()
+      : undefined;
+
+  return (
+    <Item>
+      <ConnectionRow>
+        <Indicator $status={source.status} />
+        <Name>{source.name}</Name>
+        <StatusLabel $status={source.status}>{source.status}</StatusLabel>
+        {source.status === "disconnected" && (
+          <RetryButton
+            onClick={() => {
+              void getDataSource("sitrep")?.connect();
+            }}
+            aria-label={`Reconnect ${source.name}`}
+          >
+            Reconnect
+          </RetryButton>
+        )}
+        {schema.length > 0 && (
+          <ConfigButton
+            onClick={() =>
+              editingConfig ? setEditingConfig(false) : openConfig()
+            }
+            aria-label={`Configure ${source.name}`}
+            $active={editingConfig}
+          >
+            <GearIcon size={14} />
+          </ConfigButton>
+        )}
+      </ConnectionRow>
+      {instructions && <SetupInstructions>{instructions}</SetupInstructions>}
+      {editingConfig && (
+        <ConfigForm>
+          {schema.map((field) => {
+            const inputId = `config-sitrep-${field.key}`;
+            return (
+              <FieldRow key={field.key}>
+                <FieldLabel htmlFor={inputId}>{field.label}</FieldLabel>
+                <Input
+                  id={inputId}
+                  type={field.type === "number" ? "number" : "text"}
+                  placeholder={field.placeholder}
+                  value={formValues[field.key] ?? ""}
+                  onChange={(e) =>
+                    setFormValues((prev) => ({
+                      ...prev,
+                      [field.key]: e.target.value,
+                    }))
+                  }
+                />
+              </FieldRow>
+            );
+          })}
+          <FormActions>
+            <PrimaryButton onClick={saveConfig}>Save</PrimaryButton>
+            <GhostButton onClick={() => setEditingConfig(false)}>
+              Cancel
+            </GhostButton>
+          </FormActions>
+        </ConfigForm>
+      )}
+    </Item>
+  );
+}
+
+/**
+ * Per-Uplink health rows, fed by `system.uplinkHealth` — the client-derived
+ * reader over the mod's `system.uplinks` self-report (see
+ * `@ksp-gonogo/sitrep-client`'s `uplink-health.ts`). Each Uplink reports its
+ * OWN health; this never infers readiness from topic staleness.
+ */
+function UplinkHealthList() {
+  const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+
+  if (uplinkHealth === undefined) {
+    return <Placeholder>Waiting for uplink health report…</Placeholder>;
+  }
+  if (uplinkHealth === null || uplinkHealth.uplinks.length === 0) {
+    return <Placeholder>No uplinks registered</Placeholder>;
+  }
+
+  return (
+    <UplinkList>
+      {uplinkHealth.uplinks.map((entry) => (
+        <UplinkRow key={entry.id} entry={entry} />
+      ))}
+    </UplinkList>
+  );
+}
+
+function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
+  const detail =
+    entry.health.detail ?? (!entry.available ? entry.reason : null);
+  return (
+    <UplinkItem>
+      <ConnectionRow>
+        <HealthIndicator $state={entry.health.state} />
+        <Name>{entry.id}</Name>
+        <UplinkVersion>v{entry.version}</UplinkVersion>
+        <HealthLabel $state={entry.health.state}>
+          {entry.health.state}
+        </HealthLabel>
+      </ConnectionRow>
+      {detail && <UplinkDetail>{detail}</UplinkDetail>}
+    </UplinkItem>
   );
 }
 
@@ -293,4 +498,139 @@ const Empty = styled.div`
   font-size: var(--font-size-sm);
   padding: 20px;
   text-align: center;
+`;
+
+// --- Data Sources tab (Gonogo/Sitrep connection + per-Uplink health) ---
+
+const Item = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const ConnectionRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Name = styled.span`
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-primary);
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+`;
+
+const statusColor: Record<DataSourceStatus, string> = {
+  connected: "var(--color-accent-fg)",
+  disconnected: "var(--color-text-faint)",
+  reconnecting: "var(--color-status-warning-bg)",
+  error: "var(--color-status-nogo-bg)",
+};
+
+const Indicator = styled.span<{ $status: DataSourceStatus }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ $status }) => statusColor[$status]};
+  animation: ${({ $status }) =>
+    $status === "connected" || $status === "reconnecting" ? pulse : "none"}
+    ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")} ease-in-out
+    infinite;
+`;
+
+const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
+  font-size: 11px;
+  color: ${({ $status }) => statusColor[$status]};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const RetryButton = styled(GhostButton)`
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  padding: 2px 6px;
+`;
+
+const ConfigButton = styled(IconButton)<{ $active: boolean }>`
+  color: ${({ $active }) =>
+    $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
+  font-size: 13px;
+  padding: 0 2px;
+`;
+
+const ConfigForm = styled.div`
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const SetupInstructions = styled.pre`
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  white-space: pre-wrap;
+  line-height: 1.5;
+`;
+
+const UplinkList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const UplinkItem = styled.li`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const UplinkVersion = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+  white-space: nowrap;
+`;
+
+const uplinkHealthColor: Record<UplinkHealthStateName, string> = {
+  healthy: "var(--color-accent-fg)",
+  degraded: "var(--color-status-warning-bg)",
+  unavailable: "var(--color-status-nogo-bg)",
+};
+
+const HealthIndicator = styled.span<{ $state: UplinkHealthStateName }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ $state }) => uplinkHealthColor[$state]};
+`;
+
+const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
+  font-size: 11px;
+  color: ${({ $state }) => uplinkHealthColor[$state]};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const UplinkDetail = styled.span`
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dim);
+  margin-left: 16px;
 `;

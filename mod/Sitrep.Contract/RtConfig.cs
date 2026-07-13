@@ -116,6 +116,9 @@ public static class RtConfig
                 typeof(KosKeystrokeArgs),
                 typeof(KosTerminalResizeArgs),
                 typeof(KosTerminalCloseArgs),
+                // kos.run.<coreId> ad-hoc RPC (kos-uplink-full-migration.md) — command args + result
+                typeof(KosRunArgs),
+                typeof(KosRunResult),
                 // command args
                 typeof(AddManeuverNodeArgs),
                 typeof(UpdateManeuverNodeArgs),
