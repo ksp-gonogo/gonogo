@@ -2323,6 +2323,51 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The AbsenceIsData opt-in (bug fix: mod never emitted the
+        /// null-payload frame for a topic absent from its very first tick,
+        /// so the client's "no point at all yet" -> resyncing -> SYNCING
+        /// mapping applied forever to topics like vessel.target/dock/crew
+        /// that are LEGITIMATELY empty at birth — no target selected, not
+        /// docked, no crew). A channel that declares
+        /// <see cref="ChannelDeclaration.AbsenceIsData"/> = true must emit a
+        /// confirmed-empty tombstone on the very first tick even though it
+        /// has never been "born" (never had a non-null value) — unlike
+        /// <see cref="ChannelThatHasNeverEmittedProducesNoTombstoneForANullMapperResult"/>,
+        /// where the same never-born null-from-birth shape correctly stays
+        /// silent because that topic does NOT opt in.
+        /// </summary>
+        [Fact]
+        public async Task BornAbsentTopicThatOptsIntoAbsenceIsDataEmitsATombstoneFromTheVeryFirstTick()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BornAbsentTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BornAbsentTestUplink.Topic, Timeout);
+
+                // Never born (the mapper returns null on the very first
+                // tick, same main-menu-shaped null as the sibling test
+                // above) -- but THIS topic declares AbsenceIsData, so the
+                // engine must not take the birth-gate skip: it falls
+                // through to Decide and emits a confirmed-empty tombstone
+                // right away, giving the client "NO DATA" instead of an
+                // eternal "SYNCING".
+                engine.TickAndWait(0.0, BornAbsentTestUplink.Snapshot(null), Timeout);
+
+                var tombstone = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Null(tombstone.Payload);
+                Assert.Equal(BornAbsentTestUplink.Topic, tombstone.Topic);
+                Assert.Equal(1, engine.ChannelCounters(BornAbsentTestUplink.Topic).Emitted);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp()
         {
@@ -2395,6 +2440,46 @@ namespace Sitrep.Host.IntegrationTests
                         Topic = Topic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("t", out var v) ? v : null);
+            }
+
+            public static KspSnapshot Snapshot(double? t)
+            {
+                return new KspSnapshot { Values = new Dictionary<string, object?> { ["t"] = t } };
+            }
+        }
+
+        /// <summary>
+        /// A second nullable-valued channel, otherwise identical to
+        /// <see cref="TombstoneTestUplink"/>, whose sole difference is
+        /// declaring <see cref="ChannelDeclaration.AbsenceIsData"/> = true —
+        /// exercises the opt-in for a topic that is legitimately empty from
+        /// the very first tick (the real-world shape of vessel.target/
+        /// vessel.dock/vessel.crew: a vessel is present, but there is no
+        /// target/dock/crew right now).
+        /// </summary>
+        private sealed class BornAbsentTestUplink : ISitrepUplink
+        {
+            public const string Topic = "chan.born-absent";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "test-born-absent",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                        AbsenceIsData = true,
                     },
                 },
             };

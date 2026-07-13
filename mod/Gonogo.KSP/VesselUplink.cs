@@ -96,8 +96,15 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.CommsTopic),
                 Channel(VesselViewProvider.PropulsionTopic),
                 Channel(VesselViewProvider.ManeuverTopic),
-                Channel(VesselViewProvider.TargetTopic),
-                Channel(VesselViewProvider.CrewTopic),
+                // vessel.target/crew — legitimately null with a present,
+                // active vessel (no target selected / no crew aboard), not
+                // just "no subject yet" — opt into AbsenceIsData so the
+                // client sees a confirmed "NO DATA" tombstone instead of
+                // hanging on "SYNCING" forever. vessel.maneuver stays OFF:
+                // "no node" is already signalled via an empty Nodes = []
+                // array, never a null mapper result.
+                Channel(VesselViewProvider.TargetTopic, absenceIsData: true),
+                Channel(VesselViewProvider.CrewTopic, absenceIsData: true),
                 Channel(VesselViewProvider.StructureTopic),
                 // time.warp -- see WarpState's doc comment for why this
                 // vessel-gated channel is still declared/registered here
@@ -105,7 +112,10 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.WarpTopic),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
-                Channel(VesselViewProvider.DockTopic),
+                // vessel.dock — legitimately null when a present, active
+                // vessel isn't currently docking (same AbsenceIsData
+                // reasoning as vessel.target/crew above).
+                Channel(VesselViewProvider.DockTopic, absenceIsData: true),
                 Channel(VesselViewProvider.SurfaceTopic),
                 // vessel.parts (P1b slice 2) — the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
@@ -233,7 +243,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetPausedArgs, CommandResult>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
         }
 
-        private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
+        private static ChannelDeclaration Channel(string topic, bool absenceIsData = false) => new ChannelDeclaration
         {
             Topic = topic,
             Delivery = Delivery.LossyLatest,
@@ -245,6 +255,7 @@ namespace Gonogo.KSP
             // rather than relying on the default so this is provable, not
             // inferred from silence — see ChannelDeclaration.Delay's doc comment.
             Delay = DelayRole.Delayed,
+            AbsenceIsData = absenceIsData,
         };
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration

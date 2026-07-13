@@ -2319,7 +2319,9 @@ namespace Sitrep.Host
 
                 if (value == null)
                 {
-                    if (!_born.Contains(topic))
+                    var absenceIsData = _channelDeclarations.TryGetValue(topic, out var declaration)
+                        && declaration.AbsenceIsData;
+                    if (!_born.Contains(topic) && !absenceIsData)
                     {
                         // No data yet for this topic this tick, AND it has
                         // never had a real value (e.g. main menu, before
@@ -2327,6 +2329,14 @@ namespace Sitrep.Host
                         // there is nothing to tombstone. Skip this topic
                         // entirely, same as before this fix; other topics/
                         // the clock advance below are unaffected.
+                        //
+                        // Exception: a channel that opts into
+                        // AbsenceIsData (see ChannelDeclaration.AbsenceIsData)
+                        // is a genuinely-sometimes-empty subject (e.g.
+                        // vessel.target/dock/crew) rather than "no subject
+                        // yet" — for those, fall through to Decide even
+                        // from birth so the client learns "NO DATA" instead
+                        // of hanging on "SYNCING" forever.
                         continue;
                     }
                     // else: this channel WAS born (has emitted a real value
