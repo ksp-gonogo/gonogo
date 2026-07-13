@@ -305,6 +305,20 @@ namespace Sitrep.Contract
         bool IsAnyTopicSubscribed(string topicPrefix);
 
         /// <summary>
+        /// Point-in-time query: exactly how many current subscribers does
+        /// <paramref name="topic"/> (an EXACT topic string, not a prefix)
+        /// have? Unlike <see cref="IsAnyTopicSubscribed"/>'s boolean, this
+        /// lets a caller distinguish a genuinely NEW subscriber joining an
+        /// already-subscribed topic (the count increases) from the topic
+        /// merely staying subscribed across a poll (the count is
+        /// unchanged) — the seam an Uplink needs when its "subscribed"
+        /// signal must trigger a per-subscriber action (e.g. a full
+        /// repaint baseline for a fresh terminal viewer) rather than a
+        /// once-per-topic one. Returns 0 for a topic with no subscribers.
+        /// </summary>
+        int SubscriberCountFor(string topic);
+
+        /// <summary>
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the
         /// calling uplink owns, plus a <paramref name="template"/>
         /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>

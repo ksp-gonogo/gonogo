@@ -45,10 +45,45 @@ namespace Gonogo.Kos.Tests
             public void Resize(int cols, int rows) => LastResize = (cols, rows);
         }
 
+        /// <summary>
+        /// Multiple-subscriber-aware stand-in for the production
+        /// <c>host.SubscriberCountFor(topic)</c> read. Deliberately exposes
+        /// the same <c>Add</c>/<c>Remove</c> call shape a plain
+        /// <c>HashSet&lt;int&gt;</c> would (so every pre-existing
+        /// single-subscriber test — one <c>Add</c>, one <c>Remove</c> —
+        /// keeps compiling and behaving identically) while ALSO letting a
+        /// test model a second simultaneous subscriber by calling
+        /// <c>Add</c> twice for the same id.
+        /// </summary>
+        private sealed class SubscriberCounter
+        {
+            private readonly Dictionary<int, int> _counts = new Dictionary<int, int>();
+
+            public void Add(int id) => _counts[id] = _counts.TryGetValue(id, out var c) ? c + 1 : 1;
+
+            public void Remove(int id)
+            {
+                if (!_counts.TryGetValue(id, out var c) || c <= 0)
+                {
+                    return;
+                }
+                if (c <= 1)
+                {
+                    _counts.Remove(id);
+                }
+                else
+                {
+                    _counts[id] = c - 1;
+                }
+            }
+
+            public int CountFor(int id) => _counts.TryGetValue(id, out var c) ? c : 0;
+        }
+
         private sealed class Harness
         {
             public List<int> CoreIds = new List<int> { 7 };
-            public HashSet<int> Subscribed = new HashSet<int>();
+            public SubscriberCounter Subscribed = new SubscriberCounter();
             public readonly Dictionary<int, FakeScreen> Screens = new Dictionary<int, FakeScreen>();
             public readonly List<KosTerminalFrame> Published = new List<KosTerminalFrame>();
             public readonly List<double> PublishedUts = new List<double>();
@@ -63,7 +98,7 @@ namespace Gonogo.Kos.Tests
             {
                 Manager = new KosTerminalManager(
                     knownCoreIds: () => CoreIds,
-                    isSubscribed: id => Subscribed.Contains(id),
+                    subscriberCount: id => Subscribed.CountFor(id),
                     publish: (id, frame, ut) =>
                     {
                         Published.Add(frame);
@@ -235,6 +270,33 @@ namespace Gonogo.Kos.Tests
 
             var repaints = h.Published.FindAll(f => f.FullRepaint);
             Assert.Equal(2, repaints.Count); // first open + the re-subscribe edge
+        }
+
+        [Fact]
+        public void Poll_SecondSubscriberJoiningAnAlreadySubscribedCpu_AlsoForcesAFullRepaint()
+        {
+            // Root cause #2: the reseed decision was a 0->1 AGGREGATE
+            // transition for the whole CPU (host.IsAnyTopicSubscribed),
+            // sampled once per poll. A second, simultaneous viewer never
+            // saw that transition — the aggregate was already "subscribed"
+            // — so their fresh xterm got incremental diffs onto a blank
+            // canvas instead of a full-repaint baseline.
+            var h = new Harness();
+
+            // Subscriber A joins; gets the expected full repaint.
+            h.Subscribed.Add(7);
+            h.Tick();
+            Assert.Single(h.Published.FindAll(f => f.FullRepaint));
+
+            // Subscriber B joins the SAME CPU while A is still attached —
+            // the aggregate "is CPU 7 subscribed at all" was already true,
+            // so this must be recognised as a genuinely new subscriber
+            // (not a no-op) and force another full repaint for B's benefit.
+            h.Subscribed.Add(7);
+            h.Tick();
+
+            var repaints = h.Published.FindAll(f => f.FullRepaint);
+            Assert.Equal(2, repaints.Count);
         }
 
         [Fact]

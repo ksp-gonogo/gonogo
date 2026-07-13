@@ -81,7 +81,7 @@ namespace Gonogo.Kos.Tests
             // into strictly-increasing ValidAt stamps — see NextUt.
             var manager = new KosTerminalManager(
                 knownCoreIds: () => new[] { coreId },
-                isSubscribed: id => true,
+                subscriberCount: id => 1,
                 publish: (id, frame, ut) => courier.Record(node, topic, frame, ut),
                 createScreen: id => new BurstFakeScreen(outputs),
                 nowUt: () => clock.Now(),

@@ -140,7 +140,7 @@ namespace Gonogo.Kos
 
             _terminalManager = new KosTerminalManager(
                 knownCoreIds: CurrentCoreIds,
-                isSubscribed: coreId => host.IsAnyTopicSubscribed(KosChannels.TerminalTopic(coreId)),
+                subscriberCount: coreId => host.SubscriberCountFor(KosChannels.TerminalTopic(coreId)),
                 publish: (coreId, frame, ut) =>
                     _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(frame, ut),
                 createScreen: coreId => new KosProcessorScreen(coreId, FindProcessor),
