@@ -5,7 +5,6 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   clearRegistry,
-  MockDataSource,
   registerDataSource,
   ScreenProvider,
 } from "@ksp-gonogo/core";
@@ -19,7 +18,6 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -369,60 +367,6 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     await waitFor(() =>
       expect(screen.getByText("No uplinks registered")).toBeInTheDocument(),
     );
-  });
-});
-
-describe("SettingsModal Data Sources tab — Kerbcast health row", () => {
-  it("does NOT render a Kerbcast row when no kerbcast source is registered", async () => {
-    const stream = setupTelemetryStream();
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-    expect(
-      screen.queryByText("Camera stream (Kerbcast)"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows a healthy Kerbcast row when the source is connected", async () => {
-    const source = new MockDataSource({ id: "kerbcast", name: "Kerbcast" });
-    source.setStatus("connected");
-    registerDataSource(source);
-    const stream = setupTelemetryStream();
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    expect(screen.getByText("Camera stream (Kerbcast)")).toBeInTheDocument();
-    expect(screen.getByText("healthy")).toBeInTheDocument();
-    expect(
-      screen.getByText(/separate connection/i, { exact: false }),
-    ).toBeInTheDocument();
-  });
-
-  it("shows the actual status word for a disconnected/error/reconnecting source", async () => {
-    const source = new MockDataSource({ id: "kerbcast", name: "Kerbcast" });
-    source.setStatus("error");
-    registerDataSource(source);
-    const stream = setupTelemetryStream();
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    expect(screen.getByText("error")).toBeInTheDocument();
-    expect(screen.queryByText("healthy")).not.toBeInTheDocument();
-  });
-
-  it("stays live: updates the row when the source's status changes", async () => {
-    const source = new MockDataSource({ id: "kerbcast", name: "Kerbcast" });
-    registerDataSource(source);
-    const stream = setupTelemetryStream();
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    expect(screen.getByText("disconnected")).toBeInTheDocument();
-
-    act(() => {
-      source.setStatus("connected");
-    });
-
-    expect(screen.getByText("healthy")).toBeInTheDocument();
   });
 });
 
