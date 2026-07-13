@@ -12,7 +12,8 @@
       "!**/test/recorded_fixtures",
       "!**/dist",
       "!.claude",
-      "!**/__generated__"
+      "!**/__generated__",
+      "!docs/homepage"
     ]
   },
   "formatter": {
