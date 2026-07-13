@@ -1964,7 +1964,7 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
-                _courier.Record(NodeId, topic, value, ut);
+                _courier.Record(NodeId, topic, value, ut, DeliveryFor(topic));
                 return;
             }
 
@@ -1985,6 +1985,25 @@ namespace Sitrep.Host
         /// non-finite or negative delay collapses to 0 (reveal live — never
         /// worse than today).
         /// </summary>
+        /// <summary>
+        /// The declared <see cref="Delivery"/> lane for <paramref name="topic"/>,
+        /// threaded into <see cref="Courier.Record"/> so a
+        /// <see cref="Delivery.ReliableOrdered"/> channel (the kOS terminal's
+        /// ordered-diff stream) forwards every recorded sample in order instead
+        /// of the state-topic re-read that coalesces same-<c>ValidAt</c> frames.
+        /// Fail-soft to <see cref="Delivery.LossyLatest"/> (the historical
+        /// behaviour) for any topic with no declaration — every real Record
+        /// call site has one (it went through <see cref="ProcessPublish"/>/a
+        /// declared source), but the default keeps state topics on the exact
+        /// path they used before this gate existed.
+        /// </summary>
+        private Delivery DeliveryFor(string topic)
+        {
+            return _channelDeclarations.TryGetValue(topic, out var decl)
+                ? decl.Delivery
+                : Delivery.LossyLatest;
+        }
+
         private double RevealDelayFor(string topic)
         {
             if (topic == CommsDelayTopic)
@@ -2230,7 +2249,7 @@ namespace Sitrep.Host
                     // still-future sample.
                     if (entry.Ut <= now - entry.Delay)
                     {
-                        _courier.Record(NodeId, topic, entry.Value, entry.Ut);
+                        _courier.Record(NodeId, topic, entry.Value, entry.Ut, DeliveryFor(topic));
                     }
                     else
                     {
