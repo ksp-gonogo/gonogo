@@ -32,6 +32,7 @@ export {
   formatCountdown,
   formatDuration,
 } from "./formatDuration";
+export { formatKspDate } from "./formatKspDate";
 export { GonogoTokens } from "./GonogoTokens";
 export { Grid, type GridProps } from "./Grid";
 export { Inline, type InlineProps } from "./Inline";
