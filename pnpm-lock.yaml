@@ -286,6 +286,9 @@ importers:
       '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.97.0(react@18.3.1)

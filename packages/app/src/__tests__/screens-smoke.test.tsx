@@ -60,6 +60,19 @@ describe("MainScreen smoke", () => {
     // internals, just that the screen rendered past error boundary.
     expect(container.querySelector("div")).not.toBeNull();
   });
+
+  it("renders the mission banner above the dashboard", () => {
+    // Lightweight wiring check only — MissionBanner's own behaviour (live
+    // UT updates, field content) is covered in
+    // `components/MissionBanner.test.tsx` against a real stream fixture.
+    // Full MainScreen has no telemetry stream mounted here, so the time
+    // field reads its "no sample yet" placeholder.
+    renderScreen(<MainScreen />);
+    expect(
+      screen.getByRole("group", { name: "Mission status" }),
+    ).not.toBeNull();
+    expect(screen.getByText("KSC")).not.toBeNull();
+  });
 });
 
 describe("StationScreen smoke", () => {

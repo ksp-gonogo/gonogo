@@ -25,6 +25,7 @@
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/ui": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "peerjs": "^1.5.0",
     "qrcode.react": "^4.2.0",
