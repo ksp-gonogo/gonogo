@@ -52,7 +52,7 @@ describe("formatDuration", () => {
     expect(formatDuration(0)).toBe("0s");
   });
 
-  it("rounds sub-second durations into the seconds path without opts.ms", () => {
+  it("floors sub-second durations to 0s without opts.ms", () => {
     expect(formatDuration(0.4)).toBe("0s");
     expect(formatDuration(0.9)).toBe("0s");
   });
