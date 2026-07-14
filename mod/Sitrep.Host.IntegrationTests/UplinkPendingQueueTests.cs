@@ -147,6 +147,116 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task DelayedCommandDispatchCarriesTopicOntoTheQueueEntry()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var birthFrame = await ReceiveStreamDataAsync(client, Timeout);
+                var birthPayload = Assert.IsType<Dictionary<string, object?>>(birthFrame.Payload);
+                Assert.Empty(Assert.IsType<List<object?>>(birthPayload["pending"]));
+
+                // Topic threads the same way Label already does (see the
+                // sibling test above) -- dispatch-time addressing carried
+                // verbatim onto the PendingUplink entry, never inspected by
+                // the engine.
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300),
+                    label: "run.",
+                    topic: "kos/7");
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var enqueuedFrame = await ReceiveStreamDataAsync(client, Timeout);
+                var enqueuedPayload = Assert.IsType<Dictionary<string, object?>>(enqueuedFrame.Payload);
+                var pending = Assert.IsType<List<object?>>(enqueuedPayload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal("c1", entry["id"]);
+                Assert.Equal("run.", entry["label"]);
+                Assert.Equal("kos/7", entry["topic"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task DelayedCommandDispatchWithNoTopicStillEnqueues()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var birthFrame = await ReceiveStreamDataAsync(client, Timeout);
+                var birthPayload = Assert.IsType<Dictionary<string, object?>>(birthFrame.Payload);
+                Assert.Empty(Assert.IsType<List<object?>>(birthPayload["pending"]));
+
+                // No topic passed at all -- Topic is purely carried metadata,
+                // never a gate on whether the dispatch enqueues (that's the
+                // uplinkDelay/comms-loss gates above it in
+                // ProcessDispatchCommand, unrelated to topic).
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300),
+                    label: "run.");
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var enqueuedFrame = await ReceiveStreamDataAsync(client, Timeout);
+                var enqueuedPayload = Assert.IsType<Dictionary<string, object?>>(enqueuedFrame.Payload);
+                var pending = Assert.IsType<List<object?>>(enqueuedPayload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal("c1", entry["id"]);
+                Assert.Equal("", entry["topic"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private sealed class PendingQueueTestUplink : ISitrepUplink
         {
             public const string Command = "pending-queue-test.dispatch";
