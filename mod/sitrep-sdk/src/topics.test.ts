@@ -10,7 +10,11 @@ import { isTopicId, TOPIC_IDS, type TopicPayloadMap } from "./topics";
  * contract type) — a bare JSON boolean. See the topics.ts header. Everything else in
  * the registry MUST come from the generated map.
  */
-const HAND_DECLARED_TOPICS = ["scansat.available", "system.uplinks"];
+const HAND_DECLARED_TOPICS = [
+  "scansat.available",
+  "system.uplinks",
+  "system.uplink.pending",
+];
 
 // mod/sitrep-sdk/src -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");

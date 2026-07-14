@@ -172,6 +172,12 @@ public static class RtConfig
                 // science.experimentBreakdown per-subject rollup
                 typeof(ExperimentBreakdownEntry),
                 // system.* channel payloads + entries (P0.5)
+                // system.uplink.pending — the in-transit command queue snapshot
+                // (engine-declared channel, no [SitrepTopic]; hand-declared in
+                // topics.ts). Registered here for AutoI(false) so the generated
+                // interfaces stay I-prefix-free like every other payload.
+                typeof(PendingUplink),
+                typeof(PendingUplinkQueue),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),

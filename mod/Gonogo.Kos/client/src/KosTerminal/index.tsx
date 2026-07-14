@@ -8,13 +8,13 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type {
-  IPendingUplinkQueue,
   KosKeystrokeArgs,
   KosProcessorInfo,
   KosTerminalCloseArgs,
   KosTerminalFrame,
   KosTerminalOpenArgs,
   KosTerminalResizeArgs,
+  PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
@@ -265,7 +265,7 @@ function KosTerminalScreen({
   // decided a command "completed". `utNow` is the SAME reactive view-UT
   // every other live countdown in the app reads (`useViewUt`) — never a
   // locally-interpolated wall clock.
-  const queue = useStream<IPendingUplinkQueue>("system.uplink.pending");
+  const queue = useStream<PendingUplinkQueue>("system.uplink.pending");
   const utNow = useViewUt();
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
@@ -429,7 +429,8 @@ function KosTerminalScreen({
   // Threshold split (spec §4): char-mode always gets the badge; line-mode
   // gets the badge ONLY when the delay is too short for a strip to be worth
   // it (<=1s one-way), otherwise the full in-transit strip. The two are
-  // mutually exclusive — never both, never neither once a delay is known.
+  // mutually exclusive — never both. A read-only viewer in line mode with a
+  // long delay gets neither (it dispatches no commands, so nothing to queue).
   const showBadge =
     commsDelay !== undefined &&
     commsDelay.oneWaySeconds > 0 &&
@@ -454,7 +455,7 @@ function KosTerminalScreen({
           round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
         </DelayBadge>
       )}
-      {stripUtNow !== undefined && (
+      {stripUtNow !== undefined && (queue?.pending?.length ?? 0) > 0 && (
         <UplinkStrip aria-label="Uplink queue">
           {(queue?.pending ?? []).map((item) => {
             const reachUt = item.dispatchedAt + item.oneWaySeconds;

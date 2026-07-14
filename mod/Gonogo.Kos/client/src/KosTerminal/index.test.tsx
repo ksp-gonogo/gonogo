@@ -1,7 +1,7 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import type {
-  IPendingUplinkQueue,
   KosProcessorInfo,
+  PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Terminal } from "@xterm/xterm";
@@ -650,7 +650,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
             oneWaySeconds: 3.8,
           },
         ],
-      } satisfies IPendingUplinkQueue),
+      } satisfies PendingUplinkQueue),
     );
 
     await waitFor(() =>
@@ -697,7 +697,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
             oneWaySeconds: 1,
           },
         ],
-      } satisfies IPendingUplinkQueue),
+      } satisfies PendingUplinkQueue),
     );
 
     await waitFor(() =>
