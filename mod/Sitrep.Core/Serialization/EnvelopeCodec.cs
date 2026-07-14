@@ -185,6 +185,9 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "command");
             JsonWriter.AppendString(sb, msg.Command);
 
+            AppendField(sb, "label");
+            JsonWriter.AppendString(sb, msg.Label);
+
             AppendField(sb, "args");
             JsonWriter.AppendValue(sb, msg.Args);
 
@@ -203,6 +206,10 @@ namespace Sitrep.Core.Serialization
                 Type = "command-request",
                 RequestId = RequireString(raw, "requestId"),
                 Command = RequireString(raw, "command"),
+                // Optional for backward compatibility with a pre-Label client:
+                // defaults to "" (PendingUplink.Label's own fallback-to-Command
+                // contract), never RequireString'd.
+                Label = TryGetString(raw, "label") ?? "",
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };

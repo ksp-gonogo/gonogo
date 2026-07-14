@@ -145,6 +145,14 @@ namespace Sitrep.Core.Tests
             // published raw on kos.run.<coreId> and has its own JsonWriter case
             // (exercised by this test).
             "KosRunArgs",
+            // system.uplink.pending — PendingUplink is only ever nested inside
+            // PendingUplinkQueue.Pending, flattened element-by-element by
+            // AppendPendingUplinkQueue's own loop (AppendPendingUplink); it is
+            // never handed to AppendValue on its own. PendingUplinkQueue itself
+            // is NOT allowlisted — it IS published raw (ChannelEngine's
+            // UplinkPendingTopic channel-source mapper) and has its own
+            // JsonWriter case, exercised by this test.
+            "PendingUplink",
         };
 
         private static IEnumerable<Type> ContractPayloadTypes() =>
