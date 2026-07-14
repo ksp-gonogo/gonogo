@@ -26,8 +26,13 @@ registerComponent<CameraFeedConfig>({
   // kerbcast.cameras is pulled direct from the kerbcast DataSource via
   // custom hooks — not listed here to avoid a duplicate subscription.
   // CommNet keys are listed so the orchestrator knows to subscribe
-  // the "data" source for signal strength / connection status.
-  dataRequirements: ["comm.signalStrength", "comm.connected"],
+  // the "data" source for signal strength / connection status / one-way
+  // signal delay (the always-on delay + quality badges in the feed header).
+  dataRequirements: [
+    "comm.signalStrength",
+    "comm.connected",
+    "comm.signalDelay",
+  ],
   // Exposes an overlay slot (drawn over the video, passed the feed's pixel
   // dimensions + displayed camera id) and a broad badges escape-hatch slot in
   // the feed header. No first-party augment fills either yet (Uplink spec §4).

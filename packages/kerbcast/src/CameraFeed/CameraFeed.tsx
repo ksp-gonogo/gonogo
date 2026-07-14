@@ -11,6 +11,7 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
+import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   useCallback,
@@ -231,6 +232,13 @@ export function CameraFeed({
 
   const signalStrength = useDataValue<number>("data", "comm.signalStrength");
   const commConnected = useDataValue<boolean>("data", "comm.connected");
+  // One-way light-time delay for THIS downlink (the footage left the craft
+  // this long ago) — NOT round-trip. Round-trip doubling only applies to
+  // interactive command/response paths (e.g. the kOS terminal), which this
+  // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
+  // (gonogo's own SignalDelay authority) — same clean-name convention as
+  // `comm.signalStrength`/`comm.connected` above.
+  const signalDelay = useDataValue<number>("data", "comm.signalDelay");
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -270,6 +278,12 @@ export function CameraFeed({
   };
   const badgesContext: CameraBadgesContext = { flightId: effectiveFlightId };
 
+  // Always-on status chips, intrinsic to a delayed downlink feed (not a
+  // cross-mod augment) — every camera feed shows both, unobtrusively, next to
+  // whatever a `camera-feed.badges` augment contributes.
+  const delayBadge = describeSignalDelay(signalDelay);
+  const qualityBadge = describeSignalQuality(commConnected, signalStrength);
+
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
   // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
   // hook, satisfying the seam's rules-of-hooks contract. Its signature matches
@@ -302,11 +316,75 @@ export function CameraFeed({
           <AugmentSlot name="camera-feed.overlay" props={overlayContext} />
         </div>
         <div style={FEED_BADGES_STYLE}>
+          {delayBadge && (
+            <Badge tone="neutral" aria-label={delayBadge.ariaLabel}>
+              {delayBadge.label}
+            </Badge>
+          )}
+          {qualityBadge && (
+            <Badge tone={qualityBadge.tone} aria-label={qualityBadge.ariaLabel}>
+              {qualityBadge.label}
+            </Badge>
+          )}
           <AugmentSlot name="camera-feed.badges" props={badgesContext} />
         </div>
       </div>
     </KerbcastProvider>
   );
+}
+
+interface StatusBadgeInfo {
+  label: string;
+  ariaLabel: string;
+}
+
+interface QualityBadgeInfo extends StatusBadgeInfo {
+  tone: BadgeTone;
+}
+
+// Signal-delay badge: ONE-WAY light-time only. This is a downlink — the
+// footage on screen left the craft `signalDelay` seconds ago — so unlike an
+// interactive command/response path (e.g. the kOS terminal) there is no
+// round-trip to double. Hidden at 0/undefined (LAN / no delay authority
+// mounted), matching the "unobtrusive" brief: nothing to show, show nothing.
+function describeSignalDelay(
+  signalDelay: number | undefined,
+): StatusBadgeInfo | null {
+  if (
+    typeof signalDelay !== "number" ||
+    !Number.isFinite(signalDelay) ||
+    signalDelay <= 0
+  ) {
+    return null;
+  }
+  const label = formatDuration(signalDelay);
+  return { label, ariaLabel: `Signal delay: ${label} one-way` };
+}
+
+// Signal-quality badge: craft-side CommNet strength, 0..1 -> percentage.
+// `connected === false` always wins (a lost link has no meaningful strength
+// percentage, even if a stale value is still cached). Hidden only when
+// neither key has ever arrived — the same "no CommNet data" guard the
+// degrade effect above uses — so the badge appears as soon as there's
+// anything to say.
+function describeSignalQuality(
+  connected: boolean | undefined,
+  signalStrength: number | undefined,
+): QualityBadgeInfo | null {
+  if (connected === undefined && signalStrength === undefined) return null;
+  if (connected === false) {
+    return {
+      label: "NO SIGNAL",
+      tone: "nogo",
+      ariaLabel: "Signal quality: no signal",
+    };
+  }
+  if (typeof signalStrength !== "number" || !Number.isFinite(signalStrength)) {
+    return null;
+  }
+  const pct = Math.round(Math.max(0, Math.min(1, signalStrength)) * 100);
+  const tone: BadgeTone = pct >= 66 ? "go" : pct >= 33 ? "warn" : "nogo";
+  return { label: `${pct}%`, tone, ariaLabel: `Signal quality: ${pct}%` };
 }
 
 // Positioned wrapper that lets the augment slots layer over the SDK feed. The
