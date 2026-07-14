@@ -507,6 +507,53 @@ export function useViewUt(): number | undefined {
 }
 
 /**
+ * The current REAL-time "vessel now" (UT seconds) as a reactive value —
+ * `ViewClock.utNowEstimate()`, NOT the delay-gated `confirmedEdgeUt()`
+ * `useViewUt` tracks. Every other live countdown in the app is rightly
+ * delay-consistent (it's timing DELAYED craft telemetry, so it must lag by
+ * the one-way light-time same as the data it's counting against) — but a
+ * few channels are command-centre real-time bookkeeping instead of delayed
+ * craft telemetry (e.g. `system.uplink.pending`'s dispatch/prediction
+ * timestamps, stamped in real UT the instant a command leaves the ground
+ * station). Timing THOSE against `useViewUt` makes them appear, and clear,
+ * one whole one-way-delay late — this hook is the fix: it reads the same
+ * `ViewClock` instance's `utNowEstimate()` (the undelayed UT(wall) fit)
+ * instead, so a real-time bookkeeping value renders in step with the real
+ * event, not the delayed view.
+ *
+ * Modeled directly on `useViewUt` — same `onFrame` subscription, same
+ * seed-then-subscribe shape — except the per-frame callback recomputes
+ * `clock.utNowEstimate()` itself rather than using the `viewUt` argument
+ * `onFrame` hands it (that argument IS `clock.viewUt()`, the delayed/
+ * scrubbable value `useViewUt` wants — not what this hook needs).
+ *
+ * `undefined` when no `TelemetryProvider` is mounted. Unlike `useViewUt`,
+ * this is NOT gated on "before the first confirmed sample" — `utNowEstimate()`
+ * has a well-defined value (0, or the last observed sample UT) from the
+ * moment a clock exists, since real-time bookkeeping has no "confirmed vs.
+ * predicted" distinction to wait out.
+ */
+export function useUtNow(): number | undefined {
+  const store = useTelemetryStoreOptional();
+  const clock = store?.clock;
+  const [utNow, setUtNow] = useState<number | undefined>(() => {
+    const seed = clock?.utNowEstimate();
+    return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
+  });
+  useEffect(() => {
+    if (!clock) {
+      setUtNow(undefined);
+      return;
+    }
+    return clock.onFrame(() => {
+      const estimate = clock.utNowEstimate();
+      setUtNow(Number.isFinite(estimate) ? estimate : undefined);
+    });
+  }, [clock]);
+  return utNow;
+}
+
+/**
  * Non-React `useViewUt()` equivalent — for callers that can't use hooks
  * (plain classes like `LocalManeuverTriggerService`, the maneuver-trigger and
  * alarm host services). Reads `viewUt()` off whichever `TelemetryProvider`

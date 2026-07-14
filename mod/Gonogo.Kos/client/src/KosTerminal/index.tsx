@@ -3,11 +3,13 @@ import { registerComponent, safeRandomUuid } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
 import {
   useCommand,
+  useLatestValue,
   useStream,
   useStreamEvent,
-  useViewUt,
+  useUtNow,
 } from "@ksp-gonogo/sitrep-client";
 import type {
+  CommsConnectivity,
   KosKeystrokeArgs,
   KosProcessorInfo,
   KosTerminalCloseArgs,
@@ -252,22 +254,35 @@ function KosTerminalScreen({
     setComposition("");
   }, [lineMode]);
 
-  // Reads the server-enforced one-way light-time delay off the stream; a
-  // round-trip (send + reply) is 2x that. Char-mode (and line-mode at <=1s
-  // one-way) gets the compact badge below; line-mode above that threshold
-  // gets the full in-transit strip instead — see the render block.
-  const commsDelay = useStream<{ oneWaySeconds: number }>("comms.delay");
+  // `comms.delay`/`system.uplink.pending`/`comms.connectivity` are all
+  // command-centre REAL-TIME bookkeeping, never delayed craft telemetry:
+  // the delay figure and the pending-uplink queue's `dispatchedAt` are
+  // stamped in real UT the instant a command leaves the ground station
+  // (`DelayRole.TrueNow`), and connectivity is a fact about the link
+  // itself. Reading any of them through `useStream`/`useViewUt` — the
+  // certainty-gated, delay-consistent path meant for the vessel's own
+  // (genuinely delayed) telemetry — makes the strip appear, and clear, one
+  // whole one-way-delay late: the queue entry isn't visible until the
+  // delayed view frame reaches its `validAt`, and the countdown is
+  // computed against a `utNow` that's already lagging by the same amount.
+  // `useLatestValue`/`useUtNow` read the client's raw sticky value / the
+  // clock's undelayed `utNowEstimate()` directly, so the strip tracks real
+  // dispatch time instead of the delayed view.
+  const commsDelay = useLatestValue<{ oneWaySeconds: number }>("comms.delay");
 
-  // The engine's dispatch-time-only bookkeeping of in-flight delayed
-  // commands (`system.uplink.pending`) — PURE prediction fuel for the strip
-  // below. Nothing here is ever read for anything execution/result-shaped:
-  // the payload has no such field, and a row disappears only because the
-  // engine pruned it from a later snapshot, never because this widget
-  // decided a command "completed". `utNow` is the SAME reactive view-UT
-  // every other live countdown in the app reads (`useViewUt`) — never a
-  // locally-interpolated wall clock.
-  const queue = useStream<PendingUplinkQueue>("system.uplink.pending");
-  const utNow = useViewUt();
+  // PURE prediction fuel for the strip below. Nothing here is ever read for
+  // anything execution/result-shaped: the payload has no such field, and a
+  // row disappears only because the engine pruned it from a later snapshot,
+  // never because this widget decided a command "completed".
+  const queue = useLatestValue<PendingUplinkQueue>("system.uplink.pending");
+  const utNow = useUtNow();
+
+  // Whether the ground station currently has a path to the craft — also
+  // real-time command-centre bookkeeping, not delayed telemetry. `undefined`
+  // (no connectivity data yet) is treated as connected: only a CONFIRMED
+  // `connected === false` blocks a send / shows the warning below.
+  const connectivity = useLatestValue<CommsConnectivity>("comms.connectivity");
+  const noPath = connectivity?.connected === false;
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
   // destructured so effects can depend on it without the surrounding
@@ -288,11 +303,19 @@ function KosTerminalScreen({
   // keystrokes stay label-less. Purely cosmetic on the wire — it plays no
   // role in dispatch/correlation and never feeds the prediction-only strip
   // beyond what the server already echoed back onto the pending-queue entry.
+  //
+  // Blocks the dispatch outright when `noPath` (a confirmed
+  // `comms.connectivity.connected === false`) — the server used to silently
+  // drop a command sent with no line of sight; blocking client-side instead
+  // means the operator sees why nothing happened (the "No path" warning
+  // below) rather than a command vanishing into a queue that will never
+  // move. Char-mode keystrokes are blocked the same way as a line-mode
+  // Enter — the CPU is equally unreachable either way.
   const sendKeystrokeRef = useRef<(chars: string, label?: string) => void>(
     () => {},
   );
   sendKeystrokeRef.current = (chars: string, label?: string) => {
-    if (readOnly) return;
+    if (readOnly || noPath) return;
     void sendKeystroke(
       { coreId, leaseToken, chars } satisfies KosKeystrokeArgs,
       label ? { label, topic: terminalTopic } : undefined,
@@ -461,6 +484,11 @@ function KosTerminalScreen({
   return (
     <TerminalShell>
       <Container ref={containerRef} $readOnly={readOnly} />
+      {!readOnly && noPath && (
+        <NoPathBadge role="status" aria-label="No comms path">
+          No path — commands are not being sent
+        </NoPathBadge>
+      )}
       {badgeDelay && (
         <DelayBadge aria-label="Signal delay">
           round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
@@ -652,6 +680,25 @@ const CompositionBar__Cursor = styled.span`
       opacity: 0;
     }
   }
+`;
+
+// Steady-state warning while `comms.connectivity.connected === false` — a
+// confirmed line-of-sight loss, not merely "no connectivity data yet" (see
+// `noPath`'s own doc comment). Error/danger tone (the same
+// `--color-status-nogo-*` pair `CommSignal` uses for its "lost" state) so it
+// reads unambiguously as a blocking condition, not an informational badge
+// like `DelayBadge` below it.
+const NoPathBadge = styled.div`
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--color-status-nogo-fg);
+  background: var(--color-status-nogo-bg);
+  border: 1px solid var(--color-status-nogo-bg);
+  border-radius: 4px;
 `;
 
 // Compact delay readout: char-mode always, line-mode only when the delay is

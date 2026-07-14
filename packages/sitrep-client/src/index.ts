@@ -32,6 +32,7 @@ export {
   useTelemetryClientOptional,
   useTelemetryStore,
   useTelemetryStoreOptional,
+  useUtNow,
   useViewClock,
   useViewClockOptional,
   useViewUt,
@@ -161,7 +162,7 @@ export {
 } from "./uplink-health";
 export { useCertainty } from "./use-certainty";
 export { type UseCommandResult, useCommand } from "./use-command";
-export { useStream } from "./use-stream";
+export { useLatestValue, useStream } from "./use-stream";
 export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";

@@ -617,8 +617,8 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     clearRegistry();
   });
 
-  async function mountLineMode(pinnedUt: number) {
-    const fixture = terminalFixture({ pinnedUt });
+  async function mountLineMode() {
+    const fixture = terminalFixture();
     render(
       <fixture.Provider>
         <KosTerminalComponent config={{ lineMode: true }} />
@@ -631,29 +631,37 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     return fixture;
   }
 
-  it("renders a predicted up-arrow row in transit, then flips to a down-arrow row once UT passes dispatchedAt + oneWaySeconds", async () => {
-    const fixture = await mountLineMode(100);
+  it("renders a predicted up-arrow row in transit, then flips to a down-arrow row once real UT passes dispatchedAt + oneWaySeconds", async () => {
+    const fixture = await mountLineMode();
 
+    // Stamp both the delay fact and the queue entry at real UT 100 — the
+    // fixture's wall clock hasn't advanced, so this establishes "now" as
+    // UT 100 for the strip's real-time clock (`useUtNow`).
     act(() =>
-      fixture.emit("comms.delay", {
-        oneWaySeconds: 3.8,
-        source: "SignalDelay",
-      }),
+      fixture.emit(
+        "comms.delay",
+        { oneWaySeconds: 3.8, source: "SignalDelay" },
+        { validAt: 100, deliveredAt: 100 },
+      ),
     );
     act(() =>
-      fixture.emit("system.uplink.pending", {
-        pending: [
-          {
-            id: "c1",
-            command: "kos.keystroke",
-            label: "run.",
-            topic: "kos/7",
-            vantage: "vessel",
-            dispatchedAt: 100,
-            oneWaySeconds: 3.8,
-          },
-        ],
-      } satisfies PendingUplinkQueue),
+      fixture.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "c1",
+              command: "kos.keystroke",
+              label: "run.",
+              topic: "kos/7",
+              vantage: "vessel",
+              dispatchedAt: 100,
+              oneWaySeconds: 3.8,
+            },
+          ],
+        } satisfies PendingUplinkQueue,
+        { validAt: 100, deliveredAt: 100 },
+      ),
     );
 
     await waitFor(() =>
@@ -670,11 +678,12 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     // mutually exclusive above the 1s threshold.
     expect(screen.queryByLabelText("Signal delay")).toBeNull();
 
-    // Advance the UT reference past dispatchedAt (100) + oneWaySeconds (3.8)
-    // = 103.8 — the predicted arrival at the craft. Nothing about the
-    // engine's actual delivery is consulted; this is purely the client's own
-    // clock crossing the predicted threshold.
-    act(() => fixture.store.clock.scrubTo(104));
+    // Advance REAL time (the fixture's wall clock — NOT a view-clock scrub)
+    // past dispatchedAt (100) + oneWaySeconds (3.8) = 103.8, the predicted
+    // arrival at the craft. Nothing about the engine's actual delivery is
+    // consulted; this is purely the client's own real-time clock crossing
+    // the predicted threshold.
+    act(() => fixture.wall.advanceBy(4));
 
     await waitFor(() =>
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓"),
@@ -686,7 +695,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
   });
 
   it("shows the badge, not the strip, when oneWaySeconds <= 1 in line mode", async () => {
-    const fixture = await mountLineMode(100);
+    const fixture = await mountLineMode();
 
     act(() =>
       fixture.emit("comms.delay", { oneWaySeconds: 1, source: "SignalDelay" }),
@@ -714,30 +723,36 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
   });
 
   it("shows a humanised countdown (formatCountdown), never raw seconds or the old prose", async () => {
-    const fixture = await mountLineMode(100);
+    const fixture = await mountLineMode();
 
     act(() =>
-      fixture.emit("comms.delay", {
-        oneWaySeconds: 80,
-        source: "SignalDelay",
-      }),
+      fixture.emit(
+        "comms.delay",
+        { oneWaySeconds: 80, source: "SignalDelay" },
+        { validAt: 100, deliveredAt: 100 },
+      ),
     );
     act(() =>
-      fixture.emit("system.uplink.pending", {
-        pending: [
-          {
-            id: "c1",
-            command: "kos.keystroke",
-            label: "run.",
-            topic: "kos/7",
-            vantage: "vessel",
-            // dispatchedAt (100) + oneWaySeconds (80) - pinnedUt (100) = 80s
-            // remaining until predicted arrival at the craft.
-            dispatchedAt: 100,
-            oneWaySeconds: 80,
-          },
-        ],
-      } satisfies PendingUplinkQueue),
+      fixture.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "c1",
+              command: "kos.keystroke",
+              label: "run.",
+              topic: "kos/7",
+              vantage: "vessel",
+              // dispatchedAt (100) + oneWaySeconds (80) - real "now" (100,
+              // stamped by this same emit's validAt) = 80s remaining until
+              // predicted arrival at the craft.
+              dispatchedAt: 100,
+              oneWaySeconds: 80,
+            },
+          ],
+        } satisfies PendingUplinkQueue,
+        { validAt: 100, deliveredAt: 100 },
+      ),
     );
 
     await waitFor(() =>
@@ -750,7 +765,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
   });
 
   it("filters the strip to this terminal's own CPU (topic), never a sibling CPU's uplinks", async () => {
-    const fixture = await mountLineMode(100);
+    const fixture = await mountLineMode();
 
     act(() =>
       fixture.emit("comms.delay", {
@@ -789,5 +804,246 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
       "print other.",
     );
+  });
+
+  it("(Issue A regression) renders and clears the strip in REAL time — never one delay-period late behind the delayed view clock", async () => {
+    // A non-zero view delay: `useViewUt`'s confirmed edge lags real UT by
+    // 20s. If the strip (queue read or countdown) were still riding that
+    // delayed clock, a command dispatched (and pruned) in real time would
+    // not appear — or clear — until the view clock's confirmed edge caught
+    // up 20s of WALL time later. Deliberately no `pinnedUt` (per
+    // `setupStreamFixture`'s own doc: a non-zero `delaySeconds` requires a
+    // live, unscrubbed clock).
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      delaySeconds: 20,
+    });
+    fixture.transport.setCommandHandler(() => ({ success: true }));
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    // `kos.processors` is genuine delayed CRAFT telemetry (read via
+    // `useStream`, correctly certainty-gated) — it only becomes visible once
+    // the confirmed edge reaches its own `validAt` (0), which needs at least
+    // `delaySeconds` (20s) of real time to elapse. Advance the fixture's
+    // wall clock past that and force a frame refresh (`setupStreamFixture`'s
+    // own doc: "nothing else triggers a frame between ingests") before the
+    // CPU picker resolves and this terminal mounts/subscribes.
+    act(() => {
+      fixture.wall.advanceBy(25);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    // Real UT is 25 right now (wall hasn't moved since the advance above) —
+    // stamp the delay fact and the queue entry at that same real "now" via
+    // explicit `validAt`/`deliveredAt` overrides (the default `emit()`
+    // stamps 0, which would wrongly rewind the clock's UT<->wall anchor).
+    // The delayed view's confirmed edge sits at 25 - 20s = 5. A command
+    // dispatched at real UT 25 must show up NOW, off the real-time read —
+    // not once the confirmed edge reaches 25 (20s of wall time later).
+    act(() =>
+      fixture.emit(
+        "comms.delay",
+        { oneWaySeconds: 5, source: "SignalDelay" },
+        { validAt: 25, deliveredAt: 25 },
+      ),
+    );
+    act(() =>
+      fixture.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "c1",
+              command: "kos.keystroke",
+              label: "run.",
+              topic: "kos/7",
+              vantage: "vessel",
+              dispatchedAt: 25,
+              oneWaySeconds: 5,
+            },
+          ],
+        } satisfies PendingUplinkQueue,
+        { validAt: 25, deliveredAt: 25 },
+      ),
+    );
+
+    // No wall-time advance is needed here — proving this doesn't depend on
+    // 20s of (fake) wall time elapsing the way the pre-fix delayed-clock
+    // read would have.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("run."),
+    );
+    expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑");
+
+    // Sanity check on the bug this guards against: the delayed view clock
+    // genuinely IS still stuck at 5 right now (confirming the fixture models
+    // the lag the bug depended on, not that delaySeconds is a no-op) — well
+    // short of the queue entry's own `validAt` (25), so the OLD
+    // `useStream("system.uplink.pending")` read would have returned
+    // `undefined` (nothing confirmed yet) at this exact point, showing no
+    // strip at all.
+    expect(fixture.store.clock.confirmedEdgeUt()).toBeCloseTo(5, 5);
+
+    // The engine prunes the entry once it predicts the round trip complete
+    // — modelled here as a later real-time snapshot with an empty queue.
+    // The strip must clear immediately off that real-time read too, not
+    // wait for the delayed view to catch up.
+    act(() =>
+      fixture.emit(
+        "system.uplink.pending",
+        { pending: [] } satisfies PendingUplinkQueue,
+        { validAt: 26, deliveredAt: 26 },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Uplink queue")).toBeNull(),
+    );
+  });
+});
+
+describe("KosTerminal — blocks a send with no comms path", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearRegistry();
+  });
+  afterEach(() => {
+    cleanup();
+    clearRegistry();
+  });
+
+  const CARRIED_WITH_CONNECTIVITY = [...CARRIED, "comms.connectivity"];
+
+  function connectivityFixture() {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_WITH_CONNECTIVITY,
+      pinnedUt: 10,
+    });
+    const commands: Array<{ command: string; args: unknown }> = [];
+    fixture.transport.setCommandHandler((command, args) => {
+      commands.push({ command, args });
+      return { success: true };
+    });
+    return { ...fixture, commands };
+  }
+
+  it("line-mode: does not dispatch and shows a No path warning when comms.connectivity reports connected: false", async () => {
+    const fixture = connectivityFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => fixture.emit("comms.connectivity", { connected: false }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("No comms path")).toBeInTheDocument(),
+    );
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "run.") onData(ch);
+      onData("\r");
+    });
+
+    // Give any (incorrect) dispatch a chance to land before asserting none
+    // did. `sentCommands` also carries the lease-lifecycle `kos.terminal.open`/
+    // `kos.terminal.resize` requests sent on mount, so filter to the command
+    // under test rather than asserting on the raw envelope count.
+    await Promise.resolve();
+    expect(
+      fixture.commands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "kos.keystroke",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("line-mode: dispatches normally and shows no warning when comms.connectivity reports connected: true", async () => {
+    const fixture = connectivityFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => fixture.emit("comms.connectivity", { connected: true }));
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "run.") onData(ch);
+      onData("\r");
+    });
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+      expect((keys[0].args as { chars: string }).chars).toBe("run.\r");
+    });
+    expect(screen.queryByLabelText("No comms path")).toBeNull();
+  });
+
+  it("line-mode: dispatches normally when comms.connectivity has not reported yet (undefined treated as connected)", async () => {
+    const fixture = connectivityFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    expect(screen.queryByLabelText("No comms path")).toBeNull();
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "run.") onData(ch);
+      onData("\r");
+    });
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+    });
+  });
+
+  it("char-mode: also blocks keystrokes and shows the warning with no comms path", async () => {
+    const fixture = connectivityFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => fixture.emit("comms.connectivity", { connected: false }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("No comms path")).toBeInTheDocument(),
+    );
+
+    act(() => getOnData()("a"));
+    await Promise.resolve();
+
+    expect(
+      fixture.commands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
   });
 });
