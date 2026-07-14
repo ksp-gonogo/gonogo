@@ -25,6 +25,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { formatDuration } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -419,20 +420,13 @@ function ApproachHud({
 
         <ApproachLabel>TCA</ApproachLabel>
         <ApproachValue>
-          {tcaSeconds === null ? "—" : formatTca(tcaSeconds)}
+          {tcaSeconds === null
+            ? "—"
+            : formatDuration(tcaSeconds, { sign: true })}
         </ApproachValue>
       </ApproachGrid>
     </Panel>
   );
-}
-
-function formatTca(seconds: number): string {
-  if (!Number.isFinite(seconds)) return "—";
-  const sign = seconds < 0 ? "T+" : "T−";
-  const abs = Math.abs(seconds);
-  const m = Math.floor(abs / 60);
-  const s = Math.floor(abs % 60);
-  return `${sign}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ── Docking HUD ───────────────────────────────────────────────────────────────

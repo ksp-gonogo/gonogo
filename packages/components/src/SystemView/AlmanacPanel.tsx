@@ -1,4 +1,5 @@
 import { ScrollArea } from "@ksp-gonogo/ui";
+import { formatDuration } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -237,19 +238,6 @@ function formatMass(kg: number): string {
   if (abs >= 1e15) return `${(kg / 1e15).toFixed(2)} Pg`;
   if (abs >= 1e12) return `${(kg / 1e12).toFixed(2)} Tg`;
   return `${kg.toFixed(0)} kg`;
-}
-
-function formatDuration(seconds: number): string {
-  const abs = Math.abs(seconds);
-  // KSP day = 6 h, year = 426 days. Use those rather than Earth equivalents.
-  const HOUR = 3600;
-  const DAY = 6 * HOUR;
-  const YEAR = 426 * DAY;
-  if (abs >= YEAR) return `${(seconds / YEAR).toFixed(2)} y`;
-  if (abs >= DAY) return `${(seconds / DAY).toFixed(2)} d`;
-  if (abs >= HOUR) return `${(seconds / HOUR).toFixed(2)} h`;
-  if (abs >= 60) return `${(seconds / 60).toFixed(1)} min`;
-  return `${seconds.toFixed(0)} s`;
 }
 
 function normalizeAngle(deg: number): number {

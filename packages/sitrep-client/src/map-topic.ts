@@ -345,8 +345,8 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "comm.connected": "vessel.comms.connected",
   "comm.signalStrength": "vessel.comms.signalStrength",
   // comm.signalDelay -> comms.delay.oneWaySeconds: gonogo's OWN SignalDelay
-  // authority (TrueNow), live on the wire via CommsCoreUplink. CommSignal's
-  // formatDelay reads a plain seconds number.
+  // authority (TrueNow), live on the wire via CommsCoreUplink. CommSignal
+  // reads a plain seconds number through the shared formatDuration helper.
   "comm.signalDelay": "comms.delay.oneWaySeconds",
 
   // --- vessel.resources (parametric — see PARAMETRIC_RULES below for the
