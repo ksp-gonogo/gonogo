@@ -987,15 +987,15 @@ describe("CameraFeed — CommNet degrade", () => {
 // ---------------------------------------------------------------------------
 
 describe("CameraFeed — signal delay + signal quality badges", () => {
-  it("shows the one-way signal delay badge, formatted via the shared formatDuration helper", async () => {
+  it("shows the one-way signal delay badge as a one-decimal readout (sub-minute)", async () => {
     await buildConnectedSource();
 
     const dataSource = makeDataSource("data", {
       "comm.signalStrength": 1.0,
       "comm.connected": true,
-      // formatDuration truncates to whole seconds once the value reaches 1s
-      // (no sub-second tier outside its `{ ms: true }` <1s path) — 3.8 -> "3s",
-      // matching CommSignal's own established use of the same helper.
+      // A delay is a readout, not a countdown: sub-minute keeps one decimal
+      // (3.8 -> "3.8s"), NOT formatDuration's whole-unit truncation, so the
+      // operator sees the real light-time.
       "comm.signalDelay": 3.8,
     });
     registerDataSource(
@@ -1004,8 +1004,8 @@ describe("CameraFeed — signal delay + signal quality badges", () => {
 
     renderFeed({ flightId: 42 });
 
-    expect(await screen.findByText("3s")).toBeTruthy();
-    expect(screen.getByLabelText("Signal delay: 3s one-way")).toBeTruthy();
+    expect(await screen.findByText("3.8s")).toBeTruthy();
+    expect(screen.getByLabelText("Signal delay: 3.8s one-way")).toBeTruthy();
   });
 
   it("shows a multi-unit one-way signal delay (e.g. deep-space distances)", async () => {

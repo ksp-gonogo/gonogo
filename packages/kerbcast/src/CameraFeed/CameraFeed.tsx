@@ -357,7 +357,12 @@ function describeSignalDelay(
   ) {
     return null;
   }
-  const label = formatDuration(signalDelay);
+  // A delay is a READOUT, not a countdown, so keep one decimal where it
+  // matters (sub-minute — the common case) instead of formatDuration's
+  // whole-unit truncation (3.8s must not read as "3s"). Above a minute the
+  // decimal is noise, so hand off to the shared scaled formatter.
+  const label =
+    signalDelay < 60 ? `${signalDelay.toFixed(1)}s` : formatDuration(signalDelay);
   return { label, ariaLabel: `Signal delay: ${label} one-way` };
 }
 
