@@ -226,6 +226,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/sitrep-sdk/src/topics.test-d.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
     "mod/sitrep-sdk/src/topics.ts",
+    // dispatch()'s label doc-comment cites `kos.keystroke` as the example
+    // line-mode command whose composed text becomes the queue label —
+    // comment-only, no kOS coupling in the client spine.
+    "packages/sitrep-client/src/client.ts",
     "packages/sitrep-client/src/default-carried-topics.ts",
     "packages/sitrep-client/src/map-command.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
@@ -467,6 +471,8 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
 
       expect(newViolations).toEqual([]);
       expect(staleEntries).toEqual([]);
-    });
+      // Walks packages/*/src + mod/ once per token; under concurrent
+      // core-suite load a single walk can exceed vitest's 5s default.
+    }, 30_000);
   }
 });
