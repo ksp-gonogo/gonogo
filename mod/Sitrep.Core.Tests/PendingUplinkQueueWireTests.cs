@@ -64,6 +64,7 @@ namespace Sitrep.Core.Tests
                         Id = "c1",
                         Command = "kos.run",
                         Label = "run.",
+                        Topic = "kos/7",
                         Vantage = "KSC",
                         DispatchedAt = 0,
                         OneWaySeconds = 5,
@@ -75,6 +76,7 @@ namespace Sitrep.Core.Tests
             Assert.Equal("c1", entry.GetProperty("id").GetString());
             Assert.Equal("kos.run", entry.GetProperty("command").GetString());
             Assert.Equal("run.", entry.GetProperty("label").GetString());
+            Assert.Equal("kos/7", entry.GetProperty("topic").GetString());
             Assert.Equal("KSC", entry.GetProperty("vantage").GetString());
             Assert.Equal(0, entry.GetProperty("dispatchedAt").GetDouble());
             Assert.Equal(5, entry.GetProperty("oneWaySeconds").GetDouble());

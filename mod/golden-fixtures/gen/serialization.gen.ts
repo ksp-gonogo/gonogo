@@ -178,6 +178,7 @@ const commandRequest: CommandRequest<Record<string, unknown>> = {
   requestId: "req-1",
   command: "deploy",
   label: "",
+  topic: "",
   args: { part: "solar-panel-1" },
   sentAt: 100,
 };

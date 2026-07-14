@@ -293,6 +293,7 @@ export interface CommandRequest<TArgs>
 	requestId: string;
 	command: string;
 	label: string;
+	topic: string;
 	args: TArgs;
 	sentAt: number;
 }
@@ -886,6 +887,7 @@ export interface PendingUplink
 	id: string;
 	command: string;
 	label: string;
+	topic: string;
 	vantage: string;
 	dispatchedAt: number;
 	oneWaySeconds: number;

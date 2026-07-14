@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// acknowledgement of vessel-side effect. <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c>
 /// (a G1 shape ratchet with NO additive carve-out, unlike
 /// <c>ContractShapeGateTests</c>) enforces the field set stays exactly this
-/// six.</para>
+/// seven.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -34,6 +34,15 @@ public class PendingUplink
 
     /// <summary>Caller-supplied envelope label; empty ⇒ the renderer falls back to <see cref="Command"/>.</summary>
     public string Label { get; set; } = "";
+
+    /// <summary>
+    /// Dispatch-time addressing — which part/route the command was sent to
+    /// (an opaque MQTT-style route, e.g. <c>kos/7</c>), known at the command
+    /// centre at send time. NOT vessel state and NOT an execution result, so
+    /// it stays inside the prediction-only invariant; it lets a renderer
+    /// scope entries to one part/terminal. Empty ⇒ unscoped.
+    /// </summary>
+    public string Topic { get; set; } = "";
 
     /// <summary>
     /// Which command centre / ground station dispatched this command
