@@ -155,7 +155,7 @@ function KosTerminalLive({
 }: Readonly<ComponentProps<KosTerminalConfig>>) {
   const readOnly = config?.readOnly ?? false;
   const cpuName = config?.cpuName;
-  const lineMode = config?.lineMode ?? false;
+  const lineMode = config?.lineMode ?? true;
 
   // Live CPU list from the mod's kos.processors channel (no telnet menu-scrape).
   const processors = useStream<KosProcessorInfo[]>("kos.processors") ?? [];
@@ -248,6 +248,11 @@ function KosTerminalScreen({
     lineBufferRef.current = "";
     setComposition("");
   }, [lineMode]);
+
+  // Char-mode only: line mode gets a full queue strip in a later task. Reads
+  // the server-enforced one-way light-time delay off the stream; a
+  // round-trip (send + reply) is 2x that.
+  const commsDelay = useStream<{ oneWaySeconds: number }>("comms.delay");
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
   // destructured so effects can depend on it without the surrounding
@@ -398,6 +403,11 @@ function KosTerminalScreen({
   return (
     <TerminalShell>
       <Container ref={containerRef} $readOnly={readOnly} />
+      {!lineMode && commsDelay && commsDelay.oneWaySeconds > 0 && (
+        <DelayBadge aria-label="Signal delay">
+          round-trip ~{(2 * commsDelay.oneWaySeconds).toFixed(1)}s
+        </DelayBadge>
+      )}
       {lineMode && !readOnly && (
         <CompositionBar aria-label="Line-mode input">
           <CompositionBar__Prompt aria-hidden="true">❯</CompositionBar__Prompt>
@@ -414,7 +424,7 @@ function KosTerminalConfigComponent({
   onSave,
 }: Readonly<ConfigComponentProps<KosTerminalConfig>>) {
   const [readOnly, setReadOnly] = useState(config?.readOnly ?? false);
-  const [lineMode, setLineMode] = useState(config?.lineMode ?? false);
+  const [lineMode, setLineMode] = useState(config?.lineMode ?? true);
   const [cpuName, setCpuName] = useState(config?.cpuName ?? "");
 
   const candidate = useMemo<KosTerminalConfig>(
@@ -481,7 +491,7 @@ registerComponent<KosTerminalConfig>({
   component: KosTerminalComponent,
   configComponent: KosTerminalConfigComponent,
   dataRequirements: [],
-  defaultConfig: {},
+  defaultConfig: { lineMode: true },
 });
 
 export { KosTerminalComponent };
@@ -561,6 +571,21 @@ const CompositionBar__Cursor = styled.span`
       opacity: 0;
     }
   }
+`;
+
+// Char-mode-only badge: surfaces the current signal round-trip so an
+// operator typing one keystroke per uplink knows what they're waiting on.
+// Line mode gets a full queue strip instead (later task).
+const DelayBadge = styled.div`
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
 `;
 
 const CpuPicker = styled.div`

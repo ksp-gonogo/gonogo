@@ -83,7 +83,12 @@ const TWO_CPUS: KosProcessorInfo[] = [
   },
 ];
 
-const CARRIED = ["kos.processors", "kos.terminal.7", "kos.terminal.9"];
+const CARRIED = [
+  "kos.processors",
+  "kos.terminal.7",
+  "kos.terminal.9",
+  "comms.delay",
+];
 
 /**
  * A fixture wired to record every command the widget dispatches, so the tests
@@ -261,6 +266,44 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     expect(
       fixture.commands.some((c) => c.command === "kos.terminal.open"),
     ).toBe(false);
+  });
+
+  it("defaults to line mode when no lineMode is configured", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Line-mode input")).toBeInTheDocument(),
+    );
+  });
+
+  it("char-mode: shows a signal-delay badge with the round-trip time", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 3.8,
+        source: "SignalDelay",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Signal delay")).toHaveTextContent("~7.6s"),
+    );
   });
 
   it("line-mode: sends the whole composed line as one keystroke on Enter", async () => {
