@@ -30,6 +30,7 @@ export interface SentCommand {
   command: string;
   args: unknown;
   label: string;
+  topic: string;
 }
 
 /**
@@ -78,6 +79,7 @@ export class StubTransport implements Transport {
           command: message.command,
           args: message.args,
           label: message.label,
+          topic: message.topic,
         });
         // Answer on a later microtask, not inline within this `send()` call.
         // Even at zero simulated latency, a command response must not

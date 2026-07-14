@@ -14,8 +14,15 @@ export interface UseCommandResult {
    * (e.g. line-mode's composed line text) threaded straight through to
    * `TelemetryClient.dispatch`'s envelope — it plays no role in dispatch,
    * correlation, or loss inference.
+   *
+   * `opts.topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>`
+   * for a terminal-scoped command), threaded through the same way — no role
+   * in dispatch, correlation, or loss inference.
    */
-  send: (args?: unknown, opts?: { label?: string }) => Promise<unknown>;
+  send: (
+    args?: unknown,
+    opts?: { label?: string; topic?: string },
+  ) => Promise<unknown>;
   status: CommandStatus;
 }
 
@@ -51,12 +58,13 @@ export function useCommand(command: string): UseCommandResult {
   const status = useSyncExternalStore(subscribe, getSnapshot);
 
   const send = useCallback(
-    (args?: unknown, opts?: { label?: string }) => {
+    (args?: unknown, opts?: { label?: string; topic?: string }) => {
       if (!client) return Promise.resolve(undefined);
       const { requestId: newRequestId, result } = client.dispatch(
         command,
         args,
         opts?.label,
+        opts?.topic,
       );
       setRequestId(newRequestId);
       return result;

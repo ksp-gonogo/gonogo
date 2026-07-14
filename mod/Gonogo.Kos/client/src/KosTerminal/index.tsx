@@ -29,6 +29,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { formatCountdown } from "@ksp-gonogo/ui-kit";
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -277,6 +278,11 @@ function KosTerminalScreen({
   const { send: sendClose } = useCommand("kos.terminal.close");
   const { send: sendResize } = useCommand("kos.terminal.resize");
 
+  // Scopes this terminal's uplinks to its own CPU — used both to tag
+  // outgoing line-mode sends and to filter the in-transit strip below, so
+  // the two never drift apart.
+  const terminalTopic = `kos/${coreId}`;
+
   // `label` is only ever non-empty for a line-mode Enter (the composed line
   // IS the label, see `reduceLineModeInput`'s callsite below); char-mode
   // keystrokes stay label-less. Purely cosmetic on the wire — it plays no
@@ -289,7 +295,7 @@ function KosTerminalScreen({
     if (readOnly) return;
     void sendKeystroke(
       { coreId, leaseToken, chars } satisfies KosKeystrokeArgs,
-      label ? { label } : undefined,
+      label ? { label, topic: terminalTopic } : undefined,
     ).catch(() => {});
   };
 
@@ -446,6 +452,11 @@ function KosTerminalScreen({
   // `commsDelay`/`utNow` at the read sites; only-render-when-defined instead.
   const badgeDelay = showBadge ? commsDelay : undefined;
   const stripUtNow = showStrip ? utNow : undefined;
+  // Scope the strip to THIS terminal's CPU — the queue is a single
+  // server-wide snapshot shared across every open terminal.
+  const myPending = (queue?.pending ?? []).filter(
+    (item) => item.topic === terminalTopic,
+  );
 
   return (
     <TerminalShell>
@@ -455,15 +466,13 @@ function KosTerminalScreen({
           round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
         </DelayBadge>
       )}
-      {stripUtNow !== undefined && (queue?.pending?.length ?? 0) > 0 && (
+      {stripUtNow !== undefined && myPending.length > 0 && (
         <UplinkStrip aria-label="Uplink queue">
-          {(queue?.pending ?? []).map((item) => {
+          {myPending.map((item) => {
             const reachUt = item.dispatchedAt + item.oneWaySeconds;
             const replyUt = item.dispatchedAt + 2 * item.oneWaySeconds;
             const inTransit = stripUtNow < reachUt;
-            const remaining = Math.ceil(
-              (inTransit ? reachUt : replyUt) - stripUtNow,
-            );
+            const remaining = (inTransit ? reachUt : replyUt) - stripUtNow;
             return (
               <UplinkStrip__Row key={item.id} $inTransit={inTransit}>
                 <UplinkStrip__Arrow aria-hidden="true">
@@ -473,9 +482,7 @@ function KosTerminalScreen({
                   {item.label || item.command}
                 </UplinkStrip__Label>
                 <UplinkStrip__Phase>
-                  {inTransit
-                    ? `reaching craft ${remaining}s`
-                    : `reply inbound ${remaining}s`}
+                  {formatCountdown(remaining)}
                 </UplinkStrip__Phase>
               </UplinkStrip__Row>
             );
