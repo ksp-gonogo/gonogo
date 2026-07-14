@@ -46,6 +46,14 @@ public class CommandRequest<TArgs>
     public string Type { get; set; } = "command-request";
     public string RequestId { get; set; } = "";
     public string Command { get; set; } = "";
+
+    /// <summary>
+    /// Caller-supplied, generic display label for this dispatch — carried
+    /// verbatim into the corresponding <see cref="Sitrep.Contract.PendingUplink.Label"/>
+    /// entry on <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back
+    /// to <see cref="Command"/>. Never inspected/parsed by the engine.
+    /// </summary>
+    public string Label { get; set; } = "";
     public TArgs Args { get; set; } = default!;
     public double SentAt { get; set; }
 }

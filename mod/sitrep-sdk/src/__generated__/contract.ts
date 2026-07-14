@@ -292,6 +292,7 @@ export interface CommandRequest<TArgs>
 	type: "command-request";
 	requestId: string;
 	command: string;
+	label: string;
 	args: TArgs;
 	sentAt: number;
 }
@@ -879,6 +880,19 @@ export interface VesselRosterEntry
 	vesselType: VesselType;
 	situation: Situation;
 	bodyIndex?: number;
+}
+export interface IPendingUplink
+{
+	id: string;
+	command: string;
+	label: string;
+	vantage: string;
+	dispatchedAt: number;
+	oneWaySeconds: number;
+}
+export interface IPendingUplinkQueue
+{
+	pending: IPendingUplink[];
 }
 export interface Vec3
 {
