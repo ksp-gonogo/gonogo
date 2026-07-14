@@ -27,6 +27,11 @@ export {
 } from "./EmptyState";
 // ── Formatters ───────────────────────────────────────────────────────────────
 export { type FormatNumberOptions, formatNumber } from "./format";
+export {
+  type FormatDurationOptions,
+  formatCountdown,
+  formatDuration,
+} from "./formatDuration";
 export { GonogoTokens } from "./GonogoTokens";
 export { Grid, type GridProps } from "./Grid";
 export { Inline, type InlineProps } from "./Inline";
