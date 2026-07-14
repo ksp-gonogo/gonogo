@@ -255,9 +255,13 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/kos-execute-uplink.test.ts",
     "packages/app/src/__tests__/peer-client-service.test.ts",
+    // peer label/topic tunnel tests use "kos.run" as the sample command and
+    // cite a kOS command in a doc-comment — test/doc-only, no coupling.
+    "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
     "packages/app/src/dataSources/kosUplinkExecutor.test.ts",
     "packages/app/src/dataSources/kosWrapper.test.ts",
     "packages/app/src/settings/SettingsModal.test.tsx",
+    "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     "packages/components/src/DataSourceStatus/index.test.tsx",
     "packages/components/src/ManeuverPlanner/index.test.tsx",
