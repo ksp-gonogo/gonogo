@@ -30,7 +30,18 @@ fi
 
 # --force is load-bearing: see the header. Do not drop it for speed — that is
 # precisely how a cross-package regression slips past to CI.
-if ! CI=true pnpm exec turbo run test --force; then
+#
+# --concurrency=1 runs the packages one at a time. --force reruns EVERY
+# package's vitest fresh, and at turbo's default concurrency that starts ~all
+# the heavy jsdom suites (core/app/components/sitrep-client/…) at once, each
+# spawning its own worker pool — the machine oversubscribes and starved tests
+# trip vitest's 5s per-test timeout even though every suite is green when run
+# alone. Serialising the packages gives each the same isolated condition it
+# passes under (each suite still parallelises its own files internally), so the
+# gate is reliable instead of load-flaky. CI runs the same suites on dedicated
+# runners, so the parity the header cares about (fresh, snapshot-readonly,
+# cross-package) is unchanged — only the local scheduling differs.
+if ! CI=true pnpm exec turbo run test --force --concurrency=1; then
   echo "✖ pre-push: tests failed (this is what CI would have caught)."
   exit 1
 fi
