@@ -1616,7 +1616,12 @@ export class PeerHostService {
       timelineEpoch: 0,
     };
     try {
-      const { result } = client.dispatch(msg.command, msg.args);
+      const { result } = client.dispatch(
+        msg.command,
+        msg.args,
+        msg.label ?? "",
+        msg.topic ?? "",
+      );
       const value = await result;
       conn.send({
         type: "sitrep-command-response",
