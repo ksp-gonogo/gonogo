@@ -385,6 +385,13 @@ function FuelStatusComponent({
               const dv = pickDeltaV(s, mode);
               const twr = pickTWR(s, mode);
               const active = s.stage === currentStage;
+              // parseStages yields NaN burnTime for a stage with no burn data;
+              // show "0s" for that (and for a non-positive value) rather than
+              // the helper's "—", matching the pre-refactor local formatter.
+              const burn =
+                Number.isFinite(s.burnTime) && s.burnTime > 0
+                  ? formatDuration(s.burnTime)
+                  : "0s";
               return (
                 <StageRow key={s.stage} $active={active}>
                   <StageLabel>
@@ -404,12 +411,12 @@ function FuelStatusComponent({
                     <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
                     {compactStageMeta ? (
                       <>
-                        <StageMeta>{formatDuration(s.burnTime)}</StageMeta>
+                        <StageMeta>{burn}</StageMeta>
                         <StageMeta>TWR {fmtFixed(twr, 2)}</StageMeta>
                       </>
                     ) : (
                       <StageMeta>
-                        {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
+                        {burn} · TWR {fmtFixed(twr, 2)}
                       </StageMeta>
                     )}
                   </StageReadout>
