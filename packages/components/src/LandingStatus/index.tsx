@@ -16,7 +16,7 @@ import {
   ScrollArea,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
-import { Badge } from "@ksp-gonogo/ui-kit";
+import { Badge, formatDuration } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { formatDensity } from "../shared/formatDensity";
 
@@ -72,15 +72,6 @@ function isSentinel(
 
 function notNumber(v: number | undefined): boolean {
   return v === undefined || !Number.isFinite(v);
-}
-
-function formatSeconds(s: number | undefined): string {
-  if (s === undefined || !Number.isFinite(s) || s <= 0) return "—";
-  if (s < 1) return `${s.toFixed(2)}s`;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s - m * 60);
-  return `${m}m ${sec}s`;
 }
 
 function formatMps(v: number | undefined): string {
@@ -244,7 +235,7 @@ function LandingStatusComponent({
                 ? "—"
                 : suicideBurn <= 0
                   ? "IGNITE"
-                  : `T−${formatSeconds(suicideBurn)}`}
+                  : `T−${formatDuration(suicideBurn, { ms: true })}`}
             </SuicideValue>
             {atmospheric && showAtmosphericNote && (
               <SuicideNote>
@@ -258,7 +249,13 @@ function LandingStatusComponent({
               {showImpactRows && (
                 <>
                   <MetricLabel>Impact in</MetricLabel>
-                  <MetricValue>{formatSeconds(timeToImpact)}</MetricValue>
+                  <MetricValue>
+                    {timeToImpact === undefined ||
+                    !Number.isFinite(timeToImpact) ||
+                    timeToImpact <= 0
+                      ? "—"
+                      : formatDuration(timeToImpact, { ms: true })}
+                  </MetricValue>
 
                   <MetricLabel>Impact speed</MetricLabel>
                   <MetricValue>

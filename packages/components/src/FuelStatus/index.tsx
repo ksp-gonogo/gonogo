@@ -25,6 +25,7 @@ import {
   StreamStatusBadge,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { formatDuration } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -478,16 +479,6 @@ function formatAmount(value: number): string {
   if (value >= 10_000) return value.toFixed(0);
   if (value >= 100) return value.toFixed(1);
   return value.toFixed(2);
-}
-
-function formatDuration(s: number): string {
-  if (!Number.isFinite(s) || s <= 0) return "0s";
-  if (s < 60) return `${s.toFixed(0)}s`;
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s - m * 60);
-  if (m < 60) return `${m}m ${sec}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m - h * 60}m`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

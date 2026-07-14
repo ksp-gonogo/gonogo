@@ -222,7 +222,7 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
       legacyAux.source.emit("tar.name", "Rendezvous Target");
       legacyAux.source.emit("tar.type", "Vessel");
       // closest approach at UT 1125 → 125 s from the pinned view-UT (1000) →
-      // T−02:05.
+      // T−2m 5s.
       legacyAux.source.emit("o.closestTgtApprUT", 1125);
       // 2000 m puts the widget in approach mode (100 m – 5 km); z-only Vec3
       // so |relPos| = 2000 and the radial rate is −5 (closing).
@@ -237,7 +237,7 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(screen.getByText(/T−02:05/)).toBeTruthy();
+    expect(screen.getByText(/T−2m 5s/)).toBeTruthy();
 
     teardownMockDataSource(legacyAux);
   });

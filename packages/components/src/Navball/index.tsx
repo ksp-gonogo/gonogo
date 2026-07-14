@@ -25,7 +25,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Badge, StatusIndicator } from "@ksp-gonogo/ui-kit";
+import { Badge, formatDuration, StatusIndicator } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -36,22 +36,11 @@ import { AttitudeIndicator } from "./AttitudeIndicator";
  * back), so 1s one-way ≈ 2s round-trip — the point past which closed-loop
  * stick flying stops working. Below that FBW is sloppy but usable; holding
  * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
- * mirrors `CommSignal`'s own `formatDelay` unit-switch breakpoint — an
+ * mirrors the shared `formatDuration` helper's ms-below-1s breakpoint — an
  * already-meaningful threshold in this codebase, tunable here if a live
  * session says otherwise.
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
-
-/** Mirrors `CommSignal`'s own `formatDelay` — ms below 1s, seconds below a
- * minute, `m s` beyond that. */
-function formatDelaySeconds(seconds: number): string {
-  if (seconds < 0.001) return "0 ms";
-  if (seconds < 1) return `${(seconds * 1000).toFixed(0)} ms`;
-  if (seconds < 60) return `${seconds.toFixed(1)} s`;
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds - m * 60);
-  return `${m}m ${s}s`;
-}
 
 const SAS_MODES = [
   "StabilityAssist",
@@ -417,7 +406,7 @@ function NavballComponent({
             {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
             {showFbwDelayWarning && typeof delaySeconds === "number" && (
               <Badge tone="warn" size="sm">
-                FBW · {formatDelaySeconds(delaySeconds)} DELAY
+                FBW · {formatDuration(delaySeconds, { ms: true })} DELAY
               </Badge>
             )}
             {/* Header badge slot (augment-slot-map.md): an autopilot Uplink can
@@ -645,8 +634,8 @@ function ControlSurface({
         </FbwRow>
         {showFbwDelayWarning && delaySeconds !== null && (
           <StatusIndicator tone="warn" live>
-            High signal delay ({formatDelaySeconds(delaySeconds)}) — fly-by-wire
-            stick input lags round-trip; expect to overcorrect.
+            High signal delay ({formatDuration(delaySeconds, { ms: true })}) —
+            fly-by-wire stick input lags round-trip; expect to overcorrect.
           </StatusIndicator>
         )}
       </Group>

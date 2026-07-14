@@ -21,7 +21,7 @@ import { CommSignalComponent } from "./index";
  * A fixture that carries only `vessel.comms` therefore streams
  * connected/signalStrength but leaves control state + delay unresolved (their
  * derived/other homes aren't carried, and no legacy source exists here) — the
- * widget renders the `describeControl`/`formatDelay` "—" placeholders. The
+ * widget renders the `describeControl`/delay "—" placeholders. The
  * final test carries the full set to prove control state + delay stream too.
  */
 afterEach(() => {
@@ -77,8 +77,8 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control state (derived, needs the full vessel.state input set) and delay
     // (comms.delay) aren't carried in THIS fixture, and there's no legacy
-    // source, so `describeControl` falls through to "—" and `formatDelay`
-    // renders its "—" placeholder — two independent "—" cells.
+    // source, so `describeControl` falls through to "—" and the delay
+    // readout renders its "—" placeholder — two independent "—" cells.
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
@@ -276,7 +276,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
     // ceil(0.4 * 4) = 2 lit bars.
     expect(screen.getByLabelText("Signal 2 of 4")).toBeTruthy();
-    // formatDelay(1.2) -> "1.2 s".
-    expect(screen.getByText("1.2 s")).toBeTruthy();
+    // formatDuration(1.2, { ms: true }) -> "1s".
+    expect(screen.getByText("1s")).toBeTruthy();
   });
 });

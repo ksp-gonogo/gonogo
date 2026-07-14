@@ -13,6 +13,7 @@ import {
   PanelTitle,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { formatDuration } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -67,16 +68,6 @@ function describeControl(
   if (lower === "partial" || lower.includes("partial"))
     return { label: resolved, tone: "warn" };
   return { label: resolved, tone: "ok" };
-}
-
-function formatDelay(seconds: number | undefined): string {
-  if (seconds === undefined || !Number.isFinite(seconds)) return "—";
-  if (seconds < 0.001) return "0 ms";
-  if (seconds < 1) return `${(seconds * 1000).toFixed(0)} ms`;
-  if (seconds < 60) return `${seconds.toFixed(1)} s`;
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds - m * 60);
-  return `${m}m ${s}s`;
 }
 
 function CommSignalComponent({
@@ -216,7 +207,9 @@ function CommSignalComponent({
             <GridLabel>Control</GridLabel>
             <GridValue $tone={control.tone}>{control.label}</GridValue>
             <GridLabel>Delay</GridLabel>
-            <GridValue>{formatDelay(delay)}</GridValue>
+            <GridValue>
+              {delay === undefined ? "—" : formatDuration(delay, { ms: true })}
+            </GridValue>
           </Grid>
         )}
       </Body>
