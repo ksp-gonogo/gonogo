@@ -266,6 +266,7 @@ export class TelemetryClient {
       type: "command-request",
       requestId,
       command,
+      label: "",
       args,
       sentAt: 0,
     });

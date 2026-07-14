@@ -125,6 +125,17 @@ namespace Sitrep.Host
         // uplinks' availability rather than having any of its own.
         internal const string UplinksTopic = "system.uplinks";
 
+        // The ground-side pending-uplink queue self-report channel (see
+        // Sitrep.Contract.PendingUplink's doc comment for the prediction-only
+        // invariant this carries). Same "engine declares/sources it directly"
+        // treatment as UplinksTopic above, for the same reason: no single
+        // ISitrepUplink owns the whole in-flight-dispatch roster across every
+        // uplink. THIS TASK declares the channel with an EMPTY-queue source
+        // only — a declared channel must have a source or sampling
+        // KeyNotFounds — the real pending list is wired up in a follow-on
+        // task once dispatch bookkeeping exists to populate it.
+        internal const string UplinkPendingTopic = "system.uplink.pending";
+
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
         // — CommsDelaySource.None / signal-delay-disabled / pre-first-emit —
@@ -393,6 +404,26 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
+
+            // Built-in system.uplink.pending declaration + source — see
+            // UplinkPendingTopic's doc comment. Declared (and its source
+            // wired) BEFORE Start(), same single-writer-before-start rule as
+            // UplinksTopic above.
+            _channelDeclarations[UplinkPendingTopic] = new ChannelDeclaration
+            {
+                Topic = UplinkPendingTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // Ground-side bookkeeping — what the CENTRE dispatched and
+                // when — not vessel telemetry, so it does not ride gonogo's
+                // reveal clock. Same class as UplinksTopic/comms.connectivity/
+                // system.bodies: TrueNow.
+                Delay = DelayRole.TrueNow,
+            };
+            // Empty queue for now: a declared channel must have a source
+            // (sampling KeyNotFounds otherwise). The real pending list is
+            // populated once dispatch bookkeeping exists (follow-on task).
+            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue();
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().
