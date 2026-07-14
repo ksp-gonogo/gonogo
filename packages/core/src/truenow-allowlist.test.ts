@@ -29,8 +29,9 @@ import { describe, expect, it } from "vitest";
  * declares a TrueNow channel lives in a KSP-dependent assembly
  * (Gonogo.KSP, GonogoScansatUplink, GonogoRealAntennasUplink) that no test
  * project references — there is no way to load the real registered
- * declarations at test time. See docs/superpowers/sdd for the full G2
- * design note.
+ * declarations at test time. This is the same ratchet shape as its sibling
+ * uplink-boundary.test.ts, keyed on the TrueNow declaration form instead of
+ * a mod token.
  *
  * The walk/root helpers below are intentionally copied from
  * uplink-boundary.test.ts rather than shared — each ratchet keeps its own
@@ -200,5 +201,7 @@ describe("TrueNow allowlist: delay-bypassing channels are a reviewed, ratcheted 
 
     expect(newOrChangedFiles).toEqual([]);
     expect(staleFiles).toEqual([]);
-  });
+    // Walks all of mod/; under concurrent core-suite load this can exceed
+    // vitest's 5s default (it runs alongside uplink-boundary's repo walk).
+  }, 30_000);
 });
