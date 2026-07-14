@@ -1888,14 +1888,14 @@ namespace Sitrep.Host
         /// uplink/downlink delay, resolving only once <see cref="Tick"/>
         /// advances the clock far enough.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "") =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "") =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic));
 
         /// <summary>Test-only deterministic variant of <see cref="DispatchCommand"/>.</summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "")
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "")
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic));
             barrier.Wait(timeout);
         }
 
@@ -2673,6 +2673,7 @@ namespace Sitrep.Host
                     Id = requestId,
                     Command = job.Command,
                     Label = job.Label ?? "",
+                    Topic = job.Topic ?? "",
                     // job.Vantage is a non-nullable readonly string (see
                     // DispatchCommandJob) -- no ?? needed, and adding one here
                     // regressed Roslyn's nullable-flow confidence for the
@@ -3036,7 +3037,7 @@ namespace Sitrep.Host
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                             }
-                        }, req.Label);
+                        }, req.Label, req.Topic);
                         break;
                 }
             }
@@ -3246,9 +3247,10 @@ namespace Sitrep.Host
             public readonly object? Args;
             public readonly string Vantage;
             public readonly string Label;
+            public readonly string Topic;
             public readonly Action<object?> OnResult;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "")
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "")
             {
                 Command = command;
                 Args = args;
@@ -3256,6 +3258,7 @@ namespace Sitrep.Host
                 OnResult = onResult;
                 Done = done;
                 Label = label;
+                Topic = topic;
             }
         }
 
