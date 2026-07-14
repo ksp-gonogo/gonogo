@@ -183,6 +183,19 @@ const DISCRETE_NUMERIC_FIELD_NAMES: ReadonlySet<string> = new Set([
   "referenceBodyIndex",
 ]);
 
+/**
+ * Genuinely-whole raw wire topics that happen to have 3+ dot-segments —
+ * the escape hatch for `resolveRawFieldSubtopic`'s "every raw channel is
+ * `domain.channel`" assumption, which `system.uplink.pending`
+ * (`ChannelEngine.UplinkPendingTopic`) breaks: it's a first-class topic in
+ * its own right, not a `.pending` field of some `system.uplink` record (no
+ * such record exists). Extend this set deliberately, same reasoning as
+ * `ANGULAR_DEGREE_FIELD_NAMES` above — never infer from a topic's shape.
+ */
+const WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS: ReadonlySet<string> = new Set([
+  "system.uplink.pending",
+]);
+
 /** Normalize a degree value into `(-180, 180]`. */
 function normalizeDegrees(deg: number): number {
   const wrapped = ((((deg + 180) % 360) + 360) % 360) - 180;
@@ -1188,6 +1201,17 @@ export class TimelineStore {
    * `undefined` for a topic with fewer than 3 segments — a 2-segment topic
    * (`"vessel.orbit"` itself) IS the real raw topic, not a field subtopic of
    * one; that case is left to the ordinary raw-literal path in `sample()`.
+   * Also `undefined` for `WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS` — the "every raw
+   * channel is domain.channel" assumption above isn't universal: ChannelEngine
+   * declares a handful of genuinely-3-segment TOPICS (not field-subtopics of
+   * a 2-segment parent), e.g. `system.uplink.pending`
+   * (`ChannelEngine.UplinkPendingTopic`) — there is no `system.uplink`
+   * record for `.pending` to be a field of. Without this exemption,
+   * `collectSubscriptionTopics` would resolve a `useStream` subscription for
+   * `"system.uplink.pending"` down to the non-existent `"system.uplink"`,
+   * silently starving the subscription on both the stub and a real
+   * transport (matches `stub-transport.ts`'s "only delivers once
+   * subscribed" gating — the exact symptom that surfaced this).
    * Never consulted for a topic `resolveDerivedTopic` already matched
    * (checked first at every call site) — a registered derived channel's own
    * `fields: true` subtopics keep using that mechanism unchanged.
@@ -1195,6 +1219,7 @@ export class TimelineStore {
   private resolveRawFieldSubtopic(
     topic: string,
   ): { rawTopic: string; fieldPath: string[] } | undefined {
+    if (WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS.has(topic)) return undefined;
     const segments = topic.split(".");
     if (segments.length < 3) return undefined;
     return {

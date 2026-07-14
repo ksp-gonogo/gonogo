@@ -24,6 +24,14 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
 
 type CommandHandler = (command: string, args: unknown) => unknown;
 
+/** One recorded `command-request` envelope, verbatim — see `StubTransport.sentCommands`. */
+export interface SentCommand {
+  requestId: string;
+  command: string;
+  args: unknown;
+  label: string;
+}
+
 /**
  * In-memory, scriptable `Transport` used to fake a telemetry source in tests.
  *
@@ -43,6 +51,19 @@ export class StubTransport implements Transport {
   private readonly subscribedTopics = new Set<string>();
   private commandHandler: CommandHandler | undefined;
 
+  /**
+   * Every `command-request` envelope this transport has been asked to send,
+   * verbatim, in send order — a test-only introspection log independent of
+   * `commandHandler`. Exists so a test can assert on envelope fields
+   * `CommandHandler`'s 2-arg `(command, args)` shape doesn't see (e.g.
+   * `label`) WITHOUT widening `CommandHandler` itself — a prior attempt at
+   * that broke every pre-existing `toHaveBeenCalledWith(command, args)`
+   * exact-arity assertion built on `setCommandHandler(vi.fn())` across the
+   * `components` package. Keep this the ONE place a new envelope field gets
+   * surfaced to tests.
+   */
+  readonly sentCommands: SentCommand[] = [];
+
   send(message: ClientMessage): void {
     switch (message.type) {
       case "subscribe":
@@ -52,6 +73,12 @@ export class StubTransport implements Transport {
         this.subscribedTopics.delete(message.topic);
         break;
       case "command-request": {
+        this.sentCommands.push({
+          requestId: message.requestId,
+          command: message.command,
+          args: message.args,
+          label: message.label,
+        });
         // Answer on a later microtask, not inline within this `send()` call.
         // Even at zero simulated latency, a command response must not
         // settle synchronously in the same call stack as the request — that

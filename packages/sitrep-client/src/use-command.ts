@@ -9,7 +9,13 @@ import type { CommandStatus } from "./lifecycle";
 const IDLE: CommandStatus = { phase: "idle" };
 
 export interface UseCommandResult {
-  send: (args?: unknown) => Promise<unknown>;
+  /**
+   * `opts.label` is an opaque, operator-facing description of the command
+   * (e.g. line-mode's composed line text) threaded straight through to
+   * `TelemetryClient.dispatch`'s envelope — it plays no role in dispatch,
+   * correlation, or loss inference.
+   */
+  send: (args?: unknown, opts?: { label?: string }) => Promise<unknown>;
   status: CommandStatus;
 }
 
@@ -45,11 +51,12 @@ export function useCommand(command: string): UseCommandResult {
   const status = useSyncExternalStore(subscribe, getSnapshot);
 
   const send = useCallback(
-    (args?: unknown) => {
+    (args?: unknown, opts?: { label?: string }) => {
       if (!client) return Promise.resolve(undefined);
       const { requestId: newRequestId, result } = client.dispatch(
         command,
         args,
+        opts?.label,
       );
       setRequestId(newRequestId);
       return result;
