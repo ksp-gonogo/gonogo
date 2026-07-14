@@ -25,6 +25,7 @@
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/ui": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
     "@ksp-gonogo/kerbcast": "^1.4.0",
     "@ksp-gonogo/kerbcast-react": "^1.4.0",
     "styled-components": "^6.0.0"

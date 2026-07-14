@@ -978,6 +978,127 @@ describe("CameraFeed — CommNet degrade", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Signal delay + signal quality badges — always-on header chrome, distinct
+// from the CommNet-degrade effect above (that drives the SDK's video
+// degradation; these are purely readouts). `comm.signalDelay` maps to
+// `comms.delay.oneWaySeconds` — the badge is ONE-WAY, never doubled for
+// round-trip (that's only for interactive command paths like the kOS
+// terminal, which a camera downlink is not).
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed — signal delay + signal quality badges", () => {
+  it("shows the one-way signal delay badge, formatted via the shared formatDuration helper", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": true,
+      // formatDuration truncates to whole seconds once the value reaches 1s
+      // (no sub-second tier outside its `{ ms: true }` <1s path) — 3.8 -> "3s",
+      // matching CommSignal's own established use of the same helper.
+      "comm.signalDelay": 3.8,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    expect(await screen.findByText("3s")).toBeTruthy();
+    expect(screen.getByLabelText("Signal delay: 3s one-way")).toBeTruthy();
+  });
+
+  it("shows a multi-unit one-way signal delay (e.g. deep-space distances)", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": true,
+      "comm.signalDelay": 80,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    expect(await screen.findByText("1m 20s")).toBeTruthy();
+    expect(screen.getByLabelText("Signal delay: 1m 20s one-way")).toBeTruthy();
+  });
+
+  it("hides the delay badge when the delay is zero (LAN / no delay authority)", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": true,
+      "comm.signalDelay": 0,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    await screen.findByRole("button", { name: /starboard cam/i });
+    expect(screen.queryByLabelText(/signal delay/i)).toBeNull();
+  });
+
+  it("hides the delay badge when no delay data has ever arrived", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": true,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    await screen.findByRole("button", { name: /starboard cam/i });
+    expect(screen.queryByLabelText(/signal delay/i)).toBeNull();
+  });
+
+  it("shows the signal quality badge as a percentage", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 0.72,
+      "comm.connected": true,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    expect(await screen.findByText("72%")).toBeTruthy();
+    expect(screen.getByLabelText("Signal quality: 72%")).toBeTruthy();
+  });
+
+  it("shows a clear no-signal state when comm.connected is false", async () => {
+    await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 0.72,
+      "comm.connected": false,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    expect(await screen.findByText("NO SIGNAL")).toBeTruthy();
+    expect(screen.getByLabelText("Signal quality: no signal")).toBeTruthy();
+    // The stale strength percentage is not shown alongside a lost link.
+    expect(screen.queryByText("72%")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Station (brokered) mode — the widget runs the SAME hooks, but the data source
 // is in brokered mode: the WebRTC handshake relays through the host (the
 // `negotiate` seam) and TURN comes from the relay broadcast. Driven by the
