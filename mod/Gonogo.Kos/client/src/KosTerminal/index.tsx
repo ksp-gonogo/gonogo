@@ -485,7 +485,7 @@ function KosTerminalScreen({
     <TerminalShell>
       <Container ref={containerRef} $readOnly={readOnly} />
       {!readOnly && noPath && (
-        <NoPathBadge role="status" aria-label="No comms path">
+        <NoPathBadge role="status">
           No path — commands are not being sent
         </NoPathBadge>
       )}
@@ -697,7 +697,7 @@ const NoPathBadge = styled.div`
   font-weight: bold;
   color: var(--color-status-nogo-fg);
   background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-bg);
+  border: 1px solid var(--color-status-nogo-fg);
   border-radius: 4px;
 `;
 
