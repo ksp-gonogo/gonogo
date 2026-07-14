@@ -2575,11 +2575,27 @@ namespace Sitrep.Host
                 return;
             }
 
+            // Uplink signal delay: a delayed command must reach the craft at
+            // t0 + the LIVE one-way signal delay, symmetric with the downlink
+            // reveal gate (RevealDelayFor). Without this the Courier used its
+            // fixed network hop (0 in production), so keystrokes and vessel
+            // actuation reached the craft near-instantly while the downlink
+            // respected the full delay. When there is no live signal delay
+            // (source absent, or magnitude NaN/Inf/≤0 — same cases RevealDelayFor
+            // collapses to "reveal live"), pass null so the Courier keeps its
+            // historical network-hop delay.
+            double? uplinkDelay = null;
+            var signalDelay = _signalDelaySeconds;
+            if (!double.IsNaN(signalDelay) && !double.IsInfinity(signalDelay) && signalDelay > 0.0)
+            {
+                uplinkDelay = signalDelay;
+            }
+
             _courier.DispatchCommand(NodeId, NextRequestId(), job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
                 job.Done?.Set();
-            });
+            }, uplinkDelaySeconds: uplinkDelay);
         }
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
