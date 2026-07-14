@@ -218,6 +218,9 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Sitrep.Contract/KosTerminal.cs",
     "mod/Sitrep.Contract/RtConfig.cs",
     "mod/Sitrep.Contract/UplinkContract.cs",
+    // pending-uplink contract: its Command field doc-comment gives
+    // `kos.run` as the example wire command name — doc-mention only.
+    "mod/Sitrep.Contract/UplinkPending.cs",
     "mod/sitrep-sdk/src/__generated__/contract.ts",
     "mod/sitrep-sdk/src/__generated__/topic-map.ts",
     "mod/sitrep-sdk/src/topics.test-d.ts",
@@ -229,9 +232,15 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/sitrep-client/src/map-topic.ts",
 
     // -- TEST-only --
+    // pending-uplink wire tests use "kos.run" as the sample command name;
+    // CommsGateCommandTests's doc-comment cites a kOS keystroke as the
+    // canonical delayed command gated during a blackout — test/doc only.
+    "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
     "mod/Sitrep.Core.Tests/KosProcessorInfoWireTests.cs",
+    "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
     "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+    "mod/Sitrep.Host.IntegrationTests/CommsGateCommandTests.cs",
     "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
     "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs",
     "mod/sitrep-sdk/src/generated.test.ts",
@@ -279,6 +288,9 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // -- Doc/comment-only mentions elsewhere (kOS is a documented Key
     // Design Constraint — "optional, not a hard dependency" — so it is
     // named in prose across many otherwise-unrelated files) --
+    // dev-only comms override: its doc-comment cites `kos.keystroke` as an
+    // example command to gate during a blackout — comment-only.
+    "mod/Gonogo.KSP/DevCommsOverride.cs",
     "mod/Gonogo.KSP/VesselUplink.cs",
     "mod/GonogoTelemetry/src/TechTreeApi.cs",
     "mod/Sitrep.Contract/SitrepUplinkAttribute.cs",
@@ -324,7 +336,12 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // -- Judgment calls, all resolved clean (audit §4) --
     "mod/Gonogo.KSP/CommNetBackend.cs",
     "mod/Gonogo.KSP/CommsCoreUplink.cs",
+    // dev-only comms override + its DevTools driver both name the stock
+    // comms backends ("CommNet / RealAntennas") in doc-comments explaining
+    // what they force — comment-only, no RA coupling.
+    "mod/Gonogo.KSP/DevCommsOverride.cs",
     "mod/Gonogo.KSP/GonogoAddon.cs",
+    "mod/GonogoDevTools/GonogoDevForceComms.cs",
     "mod/Sitrep.Contract/UplinkContract.cs",
     "mod/Sitrep.Host/ChannelEngine.cs",
     "mod/Sitrep.Host/Comms/CommsElection.cs",
