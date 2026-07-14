@@ -31,8 +31,8 @@ export interface FormatDurationOptions {
  * (exactly 2h renders as `2h`, not `2h 0m`).
  *
  * The smaller unit is *truncated*, not rounded. This is a deliberate choice
- * for the countdown use case this formatter primarily serves (the kOS
- * terminal in-transit strip): rounding up could display "1m 30s remaining"
+ * for the countdown use case this formatter primarily serves (an in-transit
+ * command / event countdown): rounding up could display "1m 30s remaining"
  * when only 89.6s have actually elapsed/remain, i.e. show progress that
  * hasn't happened yet. Truncating means the displayed value has always
  * actually been reached. `89.9` -> `1m 29s`, not `1m 30s`.
@@ -82,7 +82,7 @@ export function formatDuration(
 }
 
 /**
- * Countdown convenience for the kOS terminal in-transit strip: never
+ * Countdown convenience for an in-transit / time-remaining strip: never
  * negative, never sub-second noise, no sign prefix (a countdown is always
  * "time remaining", not a launch-clock T+/T− reading).
  */
