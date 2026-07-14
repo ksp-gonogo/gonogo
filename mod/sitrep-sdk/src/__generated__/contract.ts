@@ -881,7 +881,7 @@ export interface VesselRosterEntry
 	situation: Situation;
 	bodyIndex?: number;
 }
-export interface IPendingUplink
+export interface PendingUplink
 {
 	id: string;
 	command: string;
@@ -890,9 +890,9 @@ export interface IPendingUplink
 	dispatchedAt: number;
 	oneWaySeconds: number;
 }
-export interface IPendingUplinkQueue
+export interface PendingUplinkQueue
 {
-	pending: IPendingUplink[];
+	pending: PendingUplink[];
 }
 export interface Vec3
 {

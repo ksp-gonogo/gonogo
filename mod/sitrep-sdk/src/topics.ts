@@ -33,6 +33,7 @@
 // It does not resolve to `unknown` — the registry has no `unknown` Topics (proven at
 // compile time by `_AssertNoTopicResolvesToUnknown` below).
 
+import type { PendingUplinkQueue } from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 
@@ -66,6 +67,17 @@ export interface SystemUplinksTopicPayloadMap {
 }
 
 /**
+ * `system.uplink.pending` — the in-transit command queue (prediction-only bookkeeping).
+ * `ChannelEngine` declares it directly (not any one Uplink's contract), so like
+ * `system.uplinks` it carries no `[SitrepTopic]` payload TYPE to reflect and is
+ * hand-declared here. Its payload IS a real reflected contract type (`PendingUplinkQueue`),
+ * so this maps to that generated interface rather than re-describing the shape inline.
+ */
+export interface SystemUplinkPendingTopicPayloadMap {
+  "system.uplink.pending": PendingUplinkQueue;
+}
+
+/**
  * The Topic → payload-type map. Keys are the wire Topic strings; values are the payload
  * a `stream-data` message on that Topic carries. The generated entries come from
  * `Sitrep.Contract`'s `[SitrepTopic]` tags; the `scansat.available` + `system.uplinks`
@@ -75,7 +87,8 @@ export interface SystemUplinksTopicPayloadMap {
 export interface TopicPayloadMap
   extends GeneratedTopicPayloadMap,
     ScansatTopicPayloadMap,
-    SystemUplinksTopicPayloadMap {}
+    SystemUplinksTopicPayloadMap,
+    SystemUplinkPendingTopicPayloadMap {}
 
 /** Every Topic the mod declares, as a string-literal union. */
 export type TopicId = keyof TopicPayloadMap;
@@ -94,6 +107,7 @@ export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "scansat.available",
   "system.uplinks",
+  "system.uplink.pending",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
