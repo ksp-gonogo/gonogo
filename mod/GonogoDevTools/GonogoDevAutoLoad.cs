@@ -28,13 +28,22 @@ namespace Gonogo.DevTools
     /// MainMenu and never loaded the save, with no log line saying why).
     ///
     /// The cfg is read via a short poll loop rather than a single
-    /// <c>File.Exists</c> check: the test controller writes the file into a
-    /// syncthing-mirrored GameData tree immediately before launching KSP, and
-    /// on a heavily-modded boot (SCANsat, ContractConfigurator, ...) that
-    /// write/sync can still be landing when this addon's <c>Start()</c> fires.
-    /// A single-shot check racing that write is the leading suspect for the
+    /// <c>File.Exists</c> check: on a heavily-modded boot (SCANsat,
+    /// ContractConfigurator, ...) a syncthing write/sync landing right around
+    /// launch can still be in flight when this addon's <c>Start()</c> fires.
+    /// A single-shot check racing that write is the leading suspect for a
     /// prior silent failure - polling for up to <see cref="CfgPollTimeoutSeconds"/>
     /// closes that window while still logging loudly if the file never shows up.
+    ///
+    /// <para><b>RECOMMENDED WORKFLOW (also the crash-safe one):</b> launch KSP
+    /// with NO <c>dev-autoload.cfg</c> present, wait for the main menu to
+    /// visibly come up, THEN write the cfg over SSH. Do NOT stage the cfg
+    /// before/during launch - see <see cref="MenuSettleDelaySeconds"/>'s doc
+    /// comment for why an already-present cfg used to crash the game outright
+    /// (raced MainMenu's own not-yet-finished setup) rather than merely
+    /// failing to load. The settle delay now guards against a pre-staged file
+    /// too, but the request-after-menu-is-up workflow remains the intended
+    /// one and needs no reliance on that guard.</para>
     ///
     /// <c>once: false</c> means KSP re-instantiates this every time the main
     /// menu scene loads; a process-wide <see cref="_attempted"/> guard ensures
@@ -54,6 +63,33 @@ namespace Gonogo.DevTools
 
         private const float CfgPollIntervalSeconds = 0.5f;
         private const float CfgPollTimeoutSeconds = 20f;
+
+        /// <summary>
+        /// CRASH FIX: MainMenu is not done initialising the instant this
+        /// MonoBehaviour's <see cref="Start"/> fires — its own UI/dialog
+        /// setup continues over the following seconds. If the request cfg is
+        /// ALREADY sitting on disk at that instant (staged over SSH before
+        /// KSP was even launched, or left over from a prior run that never
+        /// got cleaned up), the old code raced straight through
+        /// <see cref="CfgPollIntervalSeconds"/>'s poll loop (it never waits
+        /// when the file already exists) and called <see cref="LoadSave"/>
+        /// roughly one frame after <see cref="Start"/> — which crashed KSP
+        /// outright (not a load failure, a hard crash), because it raced
+        /// MainMenu's own not-yet-finished setup.
+        ///
+        /// This unconditional delay runs EVERY time, before anything else in
+        /// <see cref="AutoLoadRoutine"/> — including before the cfg-presence
+        /// poll — regardless of whether the request file is already present.
+        /// It is what makes the addon safe against a pre-staged request AND
+        /// is what the intended workflow relies on: launch KSP with NO
+        /// request file present, wait for MainMenu to visibly come up, THEN
+        /// write <c>dev-autoload.cfg</c> over SSH. This addon has already
+        /// been polling since boot, so it picks the fresh file up within
+        /// <see cref="CfgPollIntervalSeconds"/> of the write — but even a
+        /// request staged before launch now always waits out this settle
+        /// window first.
+        /// </summary>
+        private const float MenuSettleDelaySeconds = 3f;
 
         /// <summary>
         /// Poll cadence/timeout for confirming the target scene (FLIGHT or
@@ -95,6 +131,13 @@ namespace Gonogo.DevTools
             // inside Game.Start() because the menu isn't fully initialised
             // yet.
             yield return null;
+
+            // See MenuSettleDelaySeconds' doc comment: unconditional, runs
+            // whether or not the cfg is already present. This is the actual
+            // crash fix - closing the window where an already-staged request
+            // used to fire the load before MainMenu had settled.
+            Debug.Log(LogPrefix + "settling " + MenuSettleDelaySeconds + "s before looking for a request cfg");
+            yield return new WaitForSeconds(MenuSettleDelaySeconds);
 
             string? assemblyDir;
             try

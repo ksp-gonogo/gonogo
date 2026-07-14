@@ -149,6 +149,20 @@ namespace Gonogo.KSP
         /// </summary>
         internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
         {
+            // DEV-ONLY: see DevCommsOverride's doc comment. Resolves to null
+            // (no-op) unless the GonogoDevTools assembly is loaded in this
+            // process, so a real player install always falls through to the
+            // real elected backend below, unchanged. When armed, this takes
+            // priority over the real backend so a forced blackout reliably
+            // freezes the reveal gate (SetConnectivitySource) even while a
+            // real link is up - the whole point of a deterministic test
+            // fixture instead of waiting on real occlusion/range.
+            var devOverride = DevCommsOverride.Current;
+            if (devOverride.HasValue)
+            {
+                return devOverride.Value;
+            }
+
             var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
@@ -238,6 +252,28 @@ namespace Gonogo.KSP
                     path.Meta?.Source ?? "",
                     path.Meta?.Quality ?? Quality.OnRails);
                 var connectivity = backend.Connectivity();
+
+                // DEV-ONLY: mirror the same override ComputeConnectedOnMain
+                // applies to the reveal gate into the comms.connectivity
+                // CHANNEL payload too, so the app's own connectivity readout
+                // agrees with the gate that is driving it - a forced
+                // blackout that froze delayed channels while
+                // comms.connectivity itself kept reporting "connected" would
+                // be exactly the confusing half-state a real bug repro needs
+                // to avoid. HasLocalControl is left untouched: local control
+                // is a function of crew/probe core, not the comms link, so a
+                // forced blackout should not also fake losing it.
+                var devOverride = DevCommsOverride.Current;
+                if (devOverride.HasValue)
+                {
+                    connectivity = new CommsConnectivity
+                    {
+                        Connected = devOverride.Value,
+                        ControlSource = devOverride.Value ? connectivity.ControlSource : CommsControlSource.None,
+                        HasLocalControl = connectivity.HasLocalControl,
+                        Meta = connectivity.Meta,
+                    };
+                }
 
                 return new CommsCapture
                 {
