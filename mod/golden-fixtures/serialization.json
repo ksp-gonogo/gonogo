@@ -37,7 +37,7 @@
   {
     "name": "command-request",
     "kind": "commandRequest",
-    "json": "{\"type\":\"command-request\",\"requestId\":\"req-1\",\"command\":\"deploy\",\"args\":{\"part\":\"solar-panel-1\"},\"sentAt\":100}"
+    "json": "{\"type\":\"command-request\",\"requestId\":\"req-1\",\"command\":\"deploy\",\"label\":\"\",\"args\":{\"part\":\"solar-panel-1\"},\"sentAt\":100}"
   },
   {
     "name": "command-response",

@@ -197,6 +197,18 @@ namespace Sitrep.Host
         private readonly Dictionary<string, List<BufferedReveal>> _revealBuffer =
             new Dictionary<string, List<BufferedReveal>>();
 
+        // Ground-side pending-uplink roster backing system.uplink.pending (see
+        // UplinkPendingTopic's doc comment). Courier-thread-only, same
+        // discipline as _signalDelaySeconds above: EVERY mutation/read happens
+        // inside a job the single-threaded CourierLoop dequeues one at a
+        // time -- ProcessDispatchCommand (appends), the UplinkPendingTopic
+        // channel-source mapper and the prune step (both run inside
+        // ProcessTick) -- so no lock is needed; the Courier thread itself is
+        // the mutual-exclusion boundary. Confirmed by RefreshSignalDelayFromCapability's
+        // own doc comment ("Mapper runs on the Courier thread") for the
+        // identical _channelSources[topic] invocation pattern.
+        private readonly List<PendingUplink> _pending = new List<PendingUplink>();
+
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
 
@@ -420,10 +432,16 @@ namespace Sitrep.Host
                 // system.bodies: TrueNow.
                 Delay = DelayRole.TrueNow,
             };
-            // Empty queue for now: a declared channel must have a source
-            // (sampling KeyNotFounds otherwise). The real pending list is
-            // populated once dispatch bookkeeping exists (follow-on task).
-            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue();
+            // Live pruned pending list -- populated by ProcessDispatchCommand's
+            // delayed branch, pruned every Tick (see PrunePendingUplinks,
+            // called from ProcessTick before this loop runs). _pending.ToList()
+            // hands back a fresh List reference every call (same
+            // always-reads-as-changed shape as BuildSystemUplinksPayload
+            // above), and this mapper itself runs on the Courier thread (see
+            // _pending's doc comment) -- same thread that
+            // ProcessDispatchCommand appends on, so no synchronization is
+            // needed here either.
+            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.ToList() };
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().
@@ -1870,14 +1888,14 @@ namespace Sitrep.Host
         /// uplink/downlink delay, resolving only once <see cref="Tick"/>
         /// advances the clock far enough.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "") =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label));
 
         /// <summary>Test-only deterministic variant of <see cref="DispatchCommand"/>.</summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "")
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label));
             barrier.Wait(timeout);
         }
 
@@ -2316,6 +2334,12 @@ namespace Sitrep.Host
                 // new one (the reveal-gate analogue of ResetTimeline dropping
                 // in-flight Courier deliveries — §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
+                // Same abandoned-timeline treatment for the pending-uplink
+                // roster: every in-flight prediction belonged to the pre-rewind
+                // timeline (its DispatchedAt/OneWaySeconds no longer mean
+                // anything against the new one), so it is dropped rather than
+                // carried forward or pruned normally.
+                _pending.Clear();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
             }
@@ -2404,6 +2428,14 @@ namespace Sitrep.Host
             // a down link withholds every buffered sample, and a reconnect drops
             // the backlog). See RefreshConnectivityFromCapability.
             RefreshConnectivityFromCapability(tick);
+
+            // Prune the pending-uplink roster BEFORE the channel loop below so
+            // the UplinkPendingTopic mapper (run inside that loop) always
+            // observes the current, already-pruned list — see PendingUplink's
+            // prediction-only doc comment: entries age out on the PREDICTED
+            // round trip (DispatchedAt + 2*OneWaySeconds), independent of
+            // whether anything is subscribed.
+            PrunePendingUplinks(tick.Ut);
 
             foreach (var channelSource in _channelSources)
             {
@@ -2622,7 +2654,37 @@ namespace Sitrep.Host
                 uplinkDelay = signalDelay;
             }
 
-            _courier.DispatchCommand(NodeId, NextRequestId(), job.Command, job.Args, job.Vantage, response =>
+            var requestId = NextRequestId();
+
+            // Ground-side pending-uplink bookkeeping (system.uplink.pending) --
+            // prediction-only, dispatch-time facts only (see PendingUplink's
+            // doc comment). Only a genuinely delayed dispatch (a live signal
+            // delay > 0) is worth predicting a round trip for; uplinkDelay is
+            // null both when there is no live delay authority AND when it
+            // resolved to <= 0 -- either way there is no meaningful "in
+            // flight" window to show, so nothing is enqueued (D==0 is not
+            // enqueued). Reuses the SAME requestId passed to
+            // _courier.DispatchCommand below so PendingUplink.Id correlates
+            // with the underlying dispatch.
+            if (uplinkDelay is > 0)
+            {
+                _pending.Add(new PendingUplink
+                {
+                    Id = requestId,
+                    Command = job.Command,
+                    Label = job.Label ?? "",
+                    // job.Vantage is a non-nullable readonly string (see
+                    // DispatchCommandJob) -- no ?? needed, and adding one here
+                    // regressed Roslyn's nullable-flow confidence for the
+                    // later job.Vantage read passed to
+                    // _courier.DispatchCommand below (CS8604).
+                    Vantage = job.Vantage,
+                    DispatchedAt = _clock.Now(),
+                    OneWaySeconds = uplinkDelay.Value,
+                });
+            }
+
+            _courier.DispatchCommand(NodeId, requestId, job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
                 job.Done?.Set();
@@ -2630,6 +2692,24 @@ namespace Sitrep.Host
         }
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
+
+        /// <summary>
+        /// Ages out every <see cref="PendingUplink"/> whose PREDICTED round
+        /// trip (<c>DispatchedAt + 2*OneWaySeconds</c>) is now in the past —
+        /// called every <see cref="ProcessTick"/>, BEFORE the channel loop, so
+        /// <see cref="_pending"/> stays bounded even with zero subscribers and
+        /// a subscriber always sees the current pruned list. Deliberately NOT
+        /// tied to the real command completing/executing — see
+        /// <see cref="PendingUplink"/>'s prediction-only doc comment.
+        /// </summary>
+        private void PrunePendingUplinks(double ut)
+        {
+            if (_pending.Count == 0)
+            {
+                return;
+            }
+            _pending.RemoveAll(entry => ut > entry.DispatchedAt + (2 * entry.OneWaySeconds));
+        }
 
         private void ProcessSubscribe(ClientSession session, string topic)
         {
@@ -2956,7 +3036,7 @@ namespace Sitrep.Host
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                             }
-                        });
+                        }, req.Label);
                         break;
                 }
             }
@@ -3165,15 +3245,17 @@ namespace Sitrep.Host
             public readonly string Command;
             public readonly object? Args;
             public readonly string Vantage;
+            public readonly string Label;
             public readonly Action<object?> OnResult;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done)
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "")
             {
                 Command = command;
                 Args = args;
                 Vantage = vantage;
                 OnResult = onResult;
                 Done = done;
+                Label = label;
             }
         }
 

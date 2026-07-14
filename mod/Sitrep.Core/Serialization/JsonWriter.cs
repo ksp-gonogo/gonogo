@@ -308,6 +308,16 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.FlightVesselChanged flightVesselChanged:
                     AppendFlightVesselChanged(sb, flightVesselChanged);
                     break;
+                case Sitrep.Contract.PendingUplinkQueue pendingUplinkQueue:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // KosProcessorInfo above: system.uplink.pending's channel
+                    // source (ChannelEngine's UplinkPendingTopic mapper)
+                    // returns a PendingUplinkQueue POCO directly. Without this
+                    // case a populated (or even empty) queue threw
+                    // NotSupportedException at the wire boundary and every
+                    // subscriber got zero stream-data for this topic.
+                    AppendPendingUplinkQueue(sb, pendingUplinkQueue);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -589,6 +599,72 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "ut");
             sb.Append(':');
             AppendNumber(sb, f.Ut);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.PendingUplinkQueue"/> to the
+        /// wire object <c>{ pending: [...] }</c>. See the <c>case</c> in
+        /// <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendPendingUplinkQueue(StringBuilder sb, Sitrep.Contract.PendingUplinkQueue queue)
+        {
+            sb.Append('{');
+            AppendString(sb, "pending");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; i < queue.Pending.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendPendingUplink(sb, queue.Pending[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens one <see cref="Sitrep.Contract.PendingUplink"/> entry to
+        /// the wire object <c>{ id, command, label, vantage, dispatchedAt,
+        /// oneWaySeconds }</c> — the SAME six fields
+        /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> ratchets on
+        /// <see cref="Sitrep.Contract.PendingUplink"/> itself (prediction-only:
+        /// dispatch-time facts only, never an execution/result field).
+        /// </summary>
+        private static void AppendPendingUplink(StringBuilder sb, Sitrep.Contract.PendingUplink entry)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, entry.Id);
+
+            sb.Append(',');
+            AppendString(sb, "command");
+            sb.Append(':');
+            AppendString(sb, entry.Command);
+
+            sb.Append(',');
+            AppendString(sb, "label");
+            sb.Append(':');
+            AppendString(sb, entry.Label);
+
+            sb.Append(',');
+            AppendString(sb, "vantage");
+            sb.Append(':');
+            AppendString(sb, entry.Vantage);
+
+            sb.Append(',');
+            AppendString(sb, "dispatchedAt");
+            sb.Append(':');
+            AppendNumber(sb, entry.DispatchedAt);
+
+            sb.Append(',');
+            AppendString(sb, "oneWaySeconds");
+            sb.Append(':');
+            AppendNumber(sb, entry.OneWaySeconds);
+
             sb.Append('}');
         }
 
