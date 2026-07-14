@@ -235,10 +235,17 @@ export class TelemetryClient {
    * `lost` and the promise rejects. Any real settle (response or error)
    * cancels that timer first, so a confirmed/failed command can never later
    * flip to `lost`.
+   *
+   * `label` is an opaque, operator-facing description of the command
+   * (e.g. the composed line text for a line-mode `kos.keystroke`) carried
+   * straight through on the envelope — it plays no role in dispatch,
+   * correlation, or loss inference. Defaults to `""` when omitted, matching
+   * every pre-existing caller.
    */
   dispatch(
     command: string,
     args?: unknown,
+    label?: string,
   ): { requestId: string; result: Promise<unknown> } {
     const requestId = `c${this.nextRequestId++}`;
     const predictedEta = this.transport.predictConfirmEta?.();
@@ -266,7 +273,7 @@ export class TelemetryClient {
       type: "command-request",
       requestId,
       command,
-      label: "",
+      label: label ?? "",
       args,
       sentAt: 0,
     });

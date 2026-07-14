@@ -145,6 +145,24 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   const compositionBar = () =>
     screen.getByLabelText("Line-mode input").textContent ?? "";
 
+  it("a real Enter keypress through the VT engine sends the composed line as the label", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+
+    await waitFor(() => {
+      const key = f.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("run.");
+      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+    });
+  });
+
   it("line-mode composition stays OFF the terminal screen and survives a keyframe", async () => {
     const f = await mountAttached({ lineMode: true });
     // Server draws the kOS prompt (a full-repaint keyframe).

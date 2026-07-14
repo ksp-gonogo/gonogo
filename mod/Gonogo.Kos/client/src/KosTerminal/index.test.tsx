@@ -1,5 +1,8 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  IPendingUplinkQueue,
+  KosProcessorInfo,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -88,16 +91,21 @@ const CARRIED = [
   "kos.terminal.7",
   "kos.terminal.9",
   "comms.delay",
+  "system.uplink.pending",
 ];
 
 /**
  * A fixture wired to record every command the widget dispatches, so the tests
- * assert the real open/keystroke/close/resize round-trips (not a mocked hook).
+ * assert the real open/keystroke/close/resize round-trips (not a mocked
+ * hook). `commands` mirrors `setCommandHandler`'s `(command, args)` calls,
+ * same shape every existing test here already asserts against; a test that
+ * also needs the envelope's `label` reads `fixture.transport.sentCommands`
+ * directly (see that field's own doc comment on `StubTransport`).
  */
-function terminalFixture() {
+function terminalFixture(opts?: { pinnedUt?: number }) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
-    pinnedUt: 10,
+    pinnedUt: opts?.pinnedUt ?? 10,
   });
   const commands: Array<{ command: string; args: unknown }> = [];
   fixture.transport.setCommandHandler((command, args) => {
@@ -331,6 +339,52 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     });
   });
 
+  it("line-mode: the composed line is sent as the command's label", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "run.") onData(ch);
+      onData("\r");
+    });
+
+    await waitFor(() => {
+      const key = fixture.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("run.");
+    });
+  });
+
+  it("char-mode: keystrokes carry no label", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("a"));
+
+    await waitFor(() => {
+      const key = fixture.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("");
+    });
+  });
+
   it("line-mode: does not double-render a typed line once the server's delayed echo arrives", async () => {
     const fixture = terminalFixture();
     render(
@@ -548,5 +602,107 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+});
+
+describe("KosTerminal — in-transit uplink queue strip (prediction-only, never execution-shaped)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearRegistry();
+  });
+  afterEach(() => {
+    cleanup();
+    clearRegistry();
+  });
+
+  async function mountLineMode(pinnedUt: number) {
+    const fixture = terminalFixture({ pinnedUt });
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+    return fixture;
+  }
+
+  it("renders a predicted up-arrow row in transit, then flips to a down-arrow reply-inbound row once UT passes dispatchedAt + oneWaySeconds", async () => {
+    const fixture = await mountLineMode(100);
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 3.8,
+        source: "SignalDelay",
+      }),
+    );
+    act(() =>
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "c1",
+            command: "kos.keystroke",
+            label: "run.",
+            vantage: "vessel",
+            dispatchedAt: 100,
+            oneWaySeconds: 3.8,
+          },
+        ],
+      } satisfies IPendingUplinkQueue),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("run."),
+    );
+    const strip = screen.getByLabelText("Uplink queue");
+    expect(strip).toHaveTextContent("reaching craft");
+    expect(strip).not.toHaveTextContent("reply inbound");
+    // The char-mode-only badge must NOT also be showing — the two are
+    // mutually exclusive above the 1s threshold.
+    expect(screen.queryByLabelText("Signal delay")).toBeNull();
+
+    // Advance the UT reference past dispatchedAt (100) + oneWaySeconds (3.8)
+    // = 103.8 — the predicted arrival at the craft. Nothing about the
+    // engine's actual delivery is consulted; this is purely the client's own
+    // clock crossing the predicted threshold.
+    act(() => fixture.store.clock.scrubTo(104));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent(
+        "reply inbound",
+      ),
+    );
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
+      "reaching craft",
+    );
+  });
+
+  it("shows the badge, not the strip, when oneWaySeconds <= 1 in line mode", async () => {
+    const fixture = await mountLineMode(100);
+
+    act(() =>
+      fixture.emit("comms.delay", { oneWaySeconds: 1, source: "SignalDelay" }),
+    );
+    act(() =>
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "c1",
+            command: "kos.keystroke",
+            label: "run.",
+            vantage: "vessel",
+            dispatchedAt: 100,
+            oneWaySeconds: 1,
+          },
+        ],
+      } satisfies IPendingUplinkQueue),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Signal delay")).toBeInTheDocument(),
+    );
+    expect(screen.queryByLabelText("Uplink queue")).toBeNull();
   });
 });

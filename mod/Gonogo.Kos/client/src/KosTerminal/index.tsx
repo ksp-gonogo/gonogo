@@ -5,8 +5,10 @@ import {
   useCommand,
   useStream,
   useStreamEvent,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type {
+  IPendingUplinkQueue,
   KosKeystrokeArgs,
   KosProcessorInfo,
   KosTerminalCloseArgs,
@@ -249,10 +251,22 @@ function KosTerminalScreen({
     setComposition("");
   }, [lineMode]);
 
-  // Char-mode only: line mode gets a full queue strip in a later task. Reads
-  // the server-enforced one-way light-time delay off the stream; a
-  // round-trip (send + reply) is 2x that.
+  // Reads the server-enforced one-way light-time delay off the stream; a
+  // round-trip (send + reply) is 2x that. Char-mode (and line-mode at <=1s
+  // one-way) gets the compact badge below; line-mode above that threshold
+  // gets the full in-transit strip instead — see the render block.
   const commsDelay = useStream<{ oneWaySeconds: number }>("comms.delay");
+
+  // The engine's dispatch-time-only bookkeeping of in-flight delayed
+  // commands (`system.uplink.pending`) — PURE prediction fuel for the strip
+  // below. Nothing here is ever read for anything execution/result-shaped:
+  // the payload has no such field, and a row disappears only because the
+  // engine pruned it from a later snapshot, never because this widget
+  // decided a command "completed". `utNow` is the SAME reactive view-UT
+  // every other live countdown in the app reads (`useViewUt`) — never a
+  // locally-interpolated wall clock.
+  const queue = useStream<IPendingUplinkQueue>("system.uplink.pending");
+  const utNow = useViewUt();
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
   // destructured so effects can depend on it without the surrounding
@@ -263,14 +277,20 @@ function KosTerminalScreen({
   const { send: sendClose } = useCommand("kos.terminal.close");
   const { send: sendResize } = useCommand("kos.terminal.resize");
 
-  const sendKeystrokeRef = useRef<(chars: string) => void>(() => {});
-  sendKeystrokeRef.current = (chars: string) => {
+  // `label` is only ever non-empty for a line-mode Enter (the composed line
+  // IS the label, see `reduceLineModeInput`'s callsite below); char-mode
+  // keystrokes stay label-less. Purely cosmetic on the wire — it plays no
+  // role in dispatch/correlation and never feeds the prediction-only strip
+  // beyond what the server already echoed back onto the pending-queue entry.
+  const sendKeystrokeRef = useRef<(chars: string, label?: string) => void>(
+    () => {},
+  );
+  sendKeystrokeRef.current = (chars: string, label?: string) => {
     if (readOnly) return;
-    void sendKeystroke({
-      coreId,
-      leaseToken,
-      chars,
-    } satisfies KosKeystrokeArgs).catch(() => {});
+    void sendKeystroke(
+      { coreId, leaseToken, chars } satisfies KosKeystrokeArgs,
+      label ? { label } : undefined,
+    ).catch(() => {});
   };
 
   // Downlink: write each terminal frame straight into xterm. Frames are already
@@ -356,7 +376,13 @@ function KosTerminalScreen({
             const next = reduceLineModeInput(
               data,
               lineBufferRef.current,
-              (chars) => sendKeystrokeRef.current(chars),
+              // `chars` carries the trailing `\r` `reduceLineModeChar` appends
+              // for the wire (kOS needs the Enter byte); the label is the
+              // operator-facing composed line, so it's trimmed of that
+              // control character — the queue strip renders the label
+              // verbatim and must not show a raw CR.
+              (chars) =>
+                sendKeystrokeRef.current(chars, chars.replace(/[\r\n]+$/, "")),
             );
             lineBufferRef.current = next;
             setComposition(next);
@@ -400,13 +426,60 @@ function KosTerminalScreen({
     // line-mode toggle never tears down and wipes the terminal.
   }, [readOnly]);
 
+  // Threshold split (spec §4): char-mode always gets the badge; line-mode
+  // gets the badge ONLY when the delay is too short for a strip to be worth
+  // it (<=1s one-way), otherwise the full in-transit strip. The two are
+  // mutually exclusive — never both, never neither once a delay is known.
+  const showBadge =
+    commsDelay !== undefined &&
+    commsDelay.oneWaySeconds > 0 &&
+    (!lineMode || commsDelay.oneWaySeconds <= 1);
+  const showStrip =
+    lineMode &&
+    !readOnly &&
+    commsDelay !== undefined &&
+    commsDelay.oneWaySeconds > 1 &&
+    utNow !== undefined;
+  // Narrowed, non-optional locals for the JSX below — `showBadge`/`showStrip`
+  // are plain booleans, so TS can't carry their truthiness back onto
+  // `commsDelay`/`utNow` at the read sites; only-render-when-defined instead.
+  const badgeDelay = showBadge ? commsDelay : undefined;
+  const stripUtNow = showStrip ? utNow : undefined;
+
   return (
     <TerminalShell>
       <Container ref={containerRef} $readOnly={readOnly} />
-      {!lineMode && commsDelay && commsDelay.oneWaySeconds > 0 && (
+      {badgeDelay && (
         <DelayBadge aria-label="Signal delay">
-          round-trip ~{(2 * commsDelay.oneWaySeconds).toFixed(1)}s
+          round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
         </DelayBadge>
+      )}
+      {stripUtNow !== undefined && (
+        <UplinkStrip aria-label="Uplink queue">
+          {(queue?.pending ?? []).map((item) => {
+            const reachUt = item.dispatchedAt + item.oneWaySeconds;
+            const replyUt = item.dispatchedAt + 2 * item.oneWaySeconds;
+            const inTransit = stripUtNow < reachUt;
+            const remaining = Math.ceil(
+              (inTransit ? reachUt : replyUt) - stripUtNow,
+            );
+            return (
+              <UplinkStrip__Row key={item.id} $inTransit={inTransit}>
+                <UplinkStrip__Arrow aria-hidden="true">
+                  {inTransit ? "↑" : "↓"}
+                </UplinkStrip__Arrow>
+                <UplinkStrip__Label>
+                  {item.label || item.command}
+                </UplinkStrip__Label>
+                <UplinkStrip__Phase>
+                  {inTransit
+                    ? `reaching craft ${remaining}s`
+                    : `reply inbound ${remaining}s`}
+                </UplinkStrip__Phase>
+              </UplinkStrip__Row>
+            );
+          })}
+        </UplinkStrip>
       )}
       {lineMode && !readOnly && (
         <CompositionBar aria-label="Line-mode input">
@@ -573,9 +646,8 @@ const CompositionBar__Cursor = styled.span`
   }
 `;
 
-// Char-mode-only badge: surfaces the current signal round-trip so an
-// operator typing one keystroke per uplink knows what they're waiting on.
-// Line mode gets a full queue strip instead (later task).
+// Compact delay readout: char-mode always, line-mode only when the delay is
+// too short (<=1s one-way) for a strip to be worth it — see `showBadge`.
 const DelayBadge = styled.div`
   flex: 0 0 auto;
   align-self: flex-start;
@@ -586,6 +658,62 @@ const DelayBadge = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
+`;
+
+// Line-mode, oneWaySeconds > 1: one row per in-flight command from
+// `system.uplink.pending`, predicting its transit/reply phase from
+// `dispatchedAt + oneWaySeconds` against the live view UT — never anything
+// execution/result-shaped (the payload carries none). Rows disappear only
+// because the engine pruned them from a later snapshot.
+const UplinkStrip = styled.div`
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  font-family: monospace;
+  font-size: 11px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  box-sizing: border-box;
+`;
+
+const UplinkStrip__Row = styled.div<{ $inTransit: boolean }>`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: ${({ $inTransit }) =>
+    $inTransit ? "var(--color-text-primary)" : "var(--color-text-muted)"};
+`;
+
+const UplinkStrip__Arrow = styled.span`
+  flex: 0 0 auto;
+  color: var(--color-accent-fg);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: kos-uplink-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes kos-uplink-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+`;
+
+const UplinkStrip__Label = styled.span`
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const UplinkStrip__Phase = styled.span`
+  flex: 0 0 auto;
+  color: inherit;
+  opacity: 0.85;
 `;
 
 const CpuPicker = styled.div`
