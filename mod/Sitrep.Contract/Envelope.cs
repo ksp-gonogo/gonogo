@@ -54,6 +54,13 @@ public class CommandRequest<TArgs>
     /// to <see cref="Command"/>. Never inspected/parsed by the engine.
     /// </summary>
     public string Label { get; set; } = "";
+
+    /// <summary>
+    /// Dispatch-time addressing — carried verbatim into the corresponding
+    /// <see cref="Sitrep.Contract.PendingUplink.Topic"/> entry on
+    /// <c>system.uplink.pending</c>. Never inspected/parsed by the engine.
+    /// </summary>
+    public string Topic { get; set; } = "";
     public TArgs Args { get; set; } = default!;
     public double SentAt { get; set; }
 }

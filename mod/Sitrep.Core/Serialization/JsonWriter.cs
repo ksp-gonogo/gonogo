@@ -627,8 +627,8 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.PendingUplink"/> entry to
-        /// the wire object <c>{ id, command, label, vantage, dispatchedAt,
-        /// oneWaySeconds }</c> — the SAME six fields
+        /// the wire object <c>{ id, command, label, topic, vantage,
+        /// dispatchedAt, oneWaySeconds }</c> — the SAME seven fields
         /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> ratchets on
         /// <see cref="Sitrep.Contract.PendingUplink"/> itself (prediction-only:
         /// dispatch-time facts only, never an execution/result field).
@@ -649,6 +649,11 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "label");
             sb.Append(':');
             AppendString(sb, entry.Label);
+
+            sb.Append(',');
+            AppendString(sb, "topic");
+            sb.Append(':');
+            AppendString(sb, entry.Topic);
 
             sb.Append(',');
             AppendString(sb, "vantage");

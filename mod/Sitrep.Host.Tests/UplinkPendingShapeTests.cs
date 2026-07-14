@@ -11,8 +11,11 @@ namespace Sitrep.Host.Tests
     /// queue entry that will back <c>system.uplink.pending</c> (Task 3).
     /// Locks the field set to EXACTLY the dispatch-time facts the spec's
     /// prediction-only invariant allows: <c>Id</c>, <c>Command</c>,
-    /// <c>Label</c>, <c>Vantage</c>, <c>DispatchedAt</c>,
-    /// <c>OneWaySeconds</c>. Any
+    /// <c>Label</c>, <c>Topic</c>, <c>Vantage</c>, <c>DispatchedAt</c>,
+    /// <c>OneWaySeconds</c>. <c>Topic</c> is dispatch-time addressing — which
+    /// part/route the command was sent to, known at the command centre at
+    /// send time — not vessel state and not an execution result, so it is
+    /// prediction-safe. Any
     /// execution/result/vessel-derived field ever added here — even
     /// additively — must fail this test and force a deliberate edit, since
     /// (unlike <see cref="ContractShapeGateTests"/>'s Major-bump escape
@@ -29,6 +32,7 @@ namespace Sitrep.Host.Tests
                 "Id:System.String",
                 "Command:System.String",
                 "Label:System.String",
+                "Topic:System.String",
                 "Vantage:System.String",
                 "DispatchedAt:System.Double",
                 "OneWaySeconds:System.Double",

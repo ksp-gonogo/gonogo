@@ -27,6 +27,7 @@ describe("StubTransport", () => {
       requestId: "r1",
       command: "deploy",
       label: "",
+      topic: "",
       args: 42,
       sentAt: 0,
     });

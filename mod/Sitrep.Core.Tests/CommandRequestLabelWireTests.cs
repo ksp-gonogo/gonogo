@@ -68,5 +68,60 @@ namespace Sitrep.Core.Tests
 
             Assert.Equal("", parsed.Label);
         }
+
+        [Fact]
+        public void TopicSurvivesWriteThenParseRoundTrip()
+        {
+            var original = new CommandRequest<object?>
+            {
+                Type = "command-request",
+                RequestId = "req-1",
+                Command = "kos.run",
+                Label = "run.",
+                Topic = "kos/7",
+                Args = null,
+                SentAt = 100,
+            };
+
+            var wire = EnvelopeCodec.WriteCommandRequest(original);
+            var parsed = EnvelopeCodec.ParseCommandRequest(wire);
+
+            Assert.Equal("kos/7", parsed.Topic);
+            Assert.Equal(original.RequestId, parsed.RequestId);
+            Assert.Equal(original.Command, parsed.Command);
+            Assert.Equal(original.SentAt, parsed.SentAt);
+        }
+
+        [Fact]
+        public void WriteEmitsTopicOnTheWire()
+        {
+            var wire = EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+            {
+                Type = "command-request",
+                RequestId = "req-1",
+                Command = "kos.run",
+                Label = "run.",
+                Topic = "kos/7",
+                Args = null,
+                SentAt = 100,
+            });
+
+            Assert.Contains("\"topic\":\"kos/7\"", wire);
+        }
+
+        [Fact]
+        public void ParseDefaultsTopicToEmptyStringWhenAbsent_BackwardCompatibleWithAPreTopicClient()
+        {
+            // A pre-Topic client's wire message simply won't carry this key --
+            // must not throw (unlike requestId/command/sentAt, which ARE
+            // required) and must default to "" (PendingUplink.Topic's own
+            // unscoped fallback).
+            const string wireWithoutTopic =
+                "{\"type\":\"command-request\",\"requestId\":\"req-1\",\"command\":\"kos.run\",\"args\":null,\"sentAt\":100}";
+
+            var parsed = EnvelopeCodec.ParseCommandRequest(wireWithoutTopic);
+
+            Assert.Equal("", parsed.Topic);
+        }
     }
 }

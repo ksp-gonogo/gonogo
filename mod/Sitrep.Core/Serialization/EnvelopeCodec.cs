@@ -188,6 +188,9 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "label");
             JsonWriter.AppendString(sb, msg.Label);
 
+            AppendField(sb, "topic");
+            JsonWriter.AppendString(sb, msg.Topic);
+
             AppendField(sb, "args");
             JsonWriter.AppendValue(sb, msg.Args);
 
@@ -210,6 +213,10 @@ namespace Sitrep.Core.Serialization
                 // defaults to "" (PendingUplink.Label's own fallback-to-Command
                 // contract), never RequireString'd.
                 Label = TryGetString(raw, "label") ?? "",
+                // Optional for backward compatibility with a pre-Topic client:
+                // defaults to "" (PendingUplink.Topic's own unscoped fallback),
+                // never RequireString'd.
+                Topic = TryGetString(raw, "topic") ?? "",
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };

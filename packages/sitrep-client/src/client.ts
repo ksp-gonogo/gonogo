@@ -274,6 +274,10 @@ export class TelemetryClient {
       requestId,
       command,
       label: label ?? "",
+      // `topic` (dispatch-time part/route addressing) has no app-side
+      // producer yet — always "" (unscoped) until a caller needs to target
+      // a specific part/terminal, mirroring `label`'s own rollout.
+      topic: "",
       args,
       sentAt: 0,
     });

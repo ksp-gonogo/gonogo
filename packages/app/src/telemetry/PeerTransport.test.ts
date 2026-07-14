@@ -186,6 +186,7 @@ describe("PeerTransport", () => {
       requestId: "c3",
       command: "vessel.control.setSas",
       label: "",
+      topic: "",
       args: { enabled: true },
       sentAt: 0,
     });
@@ -288,6 +289,7 @@ describe("PeerTransport", () => {
       requestId: "c9",
       command: "vessel.control.setSas",
       label: "",
+      topic: "",
       args: { enabled: true },
       sentAt: 0,
     });
