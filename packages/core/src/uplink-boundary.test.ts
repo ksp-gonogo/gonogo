@@ -185,6 +185,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // borderline/soft per audit: only imports the SCANType *type* from core,
     // which is itself the schema-location violation tracked above.
     "packages/data/src/fog/FogMaskStore.ts",
+    // G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
+    // justification comment while inventorying every TrueNow declaration
+    // in mod/ — doc-mention only, same class as CareerUplink.cs above.
+    "packages/core/src/truenow-allowlist.test.ts",
   ],
 
   // === kos — owning dir mod/Gonogo.Kos/
@@ -327,6 +331,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Sitrep.Host/Comms/SignalDelay.cs",
     "packages/components/src/CommSignal/index.tsx",
     "packages/components/src/SystemView/index.tsx",
+    // G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in
+    // a justification comment while inventorying every TrueNow
+    // declaration in mod/ — doc-mention only.
+    "packages/core/src/truenow-allowlist.test.ts",
 
     // -- GRAY — Sitrep.Contract/Comms.cs carries three RA-only payload types --
     "mod/Sitrep.Contract/Comms.cs",
