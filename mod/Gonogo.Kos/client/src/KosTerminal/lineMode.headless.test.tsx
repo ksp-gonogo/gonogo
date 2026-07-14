@@ -145,7 +145,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   const compositionBar = () =>
     screen.getByLabelText("Line-mode input").textContent ?? "";
 
-  it("a real Enter keypress through the VT engine sends the composed line as the label", async () => {
+  it("a real Enter keypress through the VT engine sends the composed line as the label, tagged with this terminal's topic", async () => {
     const f = await mountAttached({ lineMode: true });
 
     act(() => {
@@ -159,6 +159,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
       );
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
+      expect(key?.topic).toBe("kos/7");
       expect((key?.args as { chars: string }).chars).toBe("run.\r");
     });
   });

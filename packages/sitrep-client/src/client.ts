@@ -241,11 +241,17 @@ export class TelemetryClient {
    * straight through on the envelope — it plays no role in dispatch,
    * correlation, or loss inference. Defaults to `""` when omitted, matching
    * every pre-existing caller.
+   *
+   * `topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>` for
+   * a terminal-scoped command) carried straight through on the envelope —
+   * same rollout shape as `label`, no role in dispatch, correlation, or loss
+   * inference. Defaults to `""` (unscoped) when omitted.
    */
   dispatch(
     command: string,
     args?: unknown,
     label?: string,
+    topic?: string,
   ): { requestId: string; result: Promise<unknown> } {
     const requestId = `c${this.nextRequestId++}`;
     const predictedEta = this.transport.predictConfirmEta?.();
@@ -274,10 +280,7 @@ export class TelemetryClient {
       requestId,
       command,
       label: label ?? "",
-      // `topic` (dispatch-time part/route addressing) has no app-side
-      // producer yet — always "" (unscoped) until a caller needs to target
-      // a specific part/terminal, mirroring `label`'s own rollout.
-      topic: "",
+      topic: topic ?? "",
       args,
       sentAt: 0,
     });

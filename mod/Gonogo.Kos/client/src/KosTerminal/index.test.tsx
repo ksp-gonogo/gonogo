@@ -361,10 +361,11 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       );
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
+      expect(key?.topic).toBe("kos/7");
     });
   });
 
-  it("char-mode: keystrokes carry no label", async () => {
+  it("char-mode: keystrokes carry no label and no topic", async () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
@@ -382,6 +383,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       );
       expect(key).toBeDefined();
       expect(key?.label).toBe("");
+      expect(key?.topic).toBe("");
     });
   });
 
@@ -629,7 +631,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     return fixture;
   }
 
-  it("renders a predicted up-arrow row in transit, then flips to a down-arrow reply-inbound row once UT passes dispatchedAt + oneWaySeconds", async () => {
+  it("renders a predicted up-arrow row in transit, then flips to a down-arrow row once UT passes dispatchedAt + oneWaySeconds", async () => {
     const fixture = await mountLineMode(100);
 
     act(() =>
@@ -645,6 +647,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
             id: "c1",
             command: "kos.keystroke",
             label: "run.",
+            topic: "kos/7",
             vantage: "vessel",
             dispatchedAt: 100,
             oneWaySeconds: 3.8,
@@ -656,9 +659,13 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     await waitFor(() =>
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("run."),
     );
-    const strip = screen.getByLabelText("Uplink queue");
-    expect(strip).toHaveTextContent("reaching craft");
-    expect(strip).not.toHaveTextContent("reply inbound");
+    expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑");
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent("↓");
+    // The row drops the old "reaching craft"/"reply inbound" prose entirely
+    // in favor of a bare humanised countdown.
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
+      "reaching craft",
+    );
     // The char-mode-only badge must NOT also be showing — the two are
     // mutually exclusive above the 1s threshold.
     expect(screen.queryByLabelText("Signal delay")).toBeNull();
@@ -670,12 +677,11 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     act(() => fixture.store.clock.scrubTo(104));
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent(
-        "reply inbound",
-      ),
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓"),
     );
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent("↑");
     expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
-      "reaching craft",
+      "reply inbound",
     );
   });
 
@@ -692,6 +698,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
             id: "c1",
             command: "kos.keystroke",
             label: "run.",
+            topic: "kos/7",
             vantage: "vessel",
             dispatchedAt: 100,
             oneWaySeconds: 1,
@@ -704,5 +711,83 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
       expect(screen.getByLabelText("Signal delay")).toBeInTheDocument(),
     );
     expect(screen.queryByLabelText("Uplink queue")).toBeNull();
+  });
+
+  it("shows a humanised countdown (formatCountdown), never raw seconds or the old prose", async () => {
+    const fixture = await mountLineMode(100);
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 80,
+        source: "SignalDelay",
+      }),
+    );
+    act(() =>
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "c1",
+            command: "kos.keystroke",
+            label: "run.",
+            topic: "kos/7",
+            vantage: "vessel",
+            // dispatchedAt (100) + oneWaySeconds (80) - pinnedUt (100) = 80s
+            // remaining until predicted arrival at the craft.
+            dispatchedAt: 100,
+            oneWaySeconds: 80,
+          },
+        ],
+      } satisfies PendingUplinkQueue),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("1m 20s"),
+    );
+    const strip = screen.getByLabelText("Uplink queue");
+    expect(strip).not.toHaveTextContent("80s");
+    expect(strip).not.toHaveTextContent("reaching craft");
+    expect(strip).not.toHaveTextContent("reply inbound");
+  });
+
+  it("filters the strip to this terminal's own CPU (topic), never a sibling CPU's uplinks", async () => {
+    const fixture = await mountLineMode(100);
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 3.8,
+        source: "SignalDelay",
+      }),
+    );
+    act(() =>
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "c1",
+            command: "kos.keystroke",
+            label: "run.",
+            topic: "kos/7",
+            vantage: "vessel",
+            dispatchedAt: 100,
+            oneWaySeconds: 3.8,
+          },
+          {
+            id: "c2",
+            command: "kos.keystroke",
+            label: "print other.",
+            topic: "kos/9",
+            vantage: "vessel",
+            dispatchedAt: 100,
+            oneWaySeconds: 3.8,
+          },
+        ],
+      } satisfies PendingUplinkQueue),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("run."),
+    );
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
+      "print other.",
+    );
   });
 });
