@@ -2559,6 +2559,22 @@ namespace Sitrep.Host
                 return;
             }
 
+            // Comms-loss uplink gate — honest silence. A DELAYED command (a kOS
+            // keystroke, a vessel actuation) dispatched while the link is DOWN
+            // must be DROPPED (no execute, no response), symmetric with the
+            // reveal gate freezing the DOWNLINK on disconnect (see
+            // RevealDelayFor's !_commsConnected freeze). Without this the command
+            // would ride the Courier's light-time delay and reach the vessel
+            // after the blackout as if it never happened — the live-observed bug
+            // where keystrokes still reached the CPU during signal loss.
+            // _commsConnected is Courier-thread state (set by the tick job in
+            // ApplyConnectivity), read here on that same thread.
+            if (!_commsConnected)
+            {
+                job.Done?.Set();
+                return;
+            }
+
             _courier.DispatchCommand(NodeId, NextRequestId(), job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
