@@ -45,6 +45,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { MissionBanner } from "../components/MissionBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
@@ -411,6 +412,7 @@ export function StationScreen() {
                               onDelete={(id) => alarmClient.deleteAlarm(id)}
                             >
                               <Layout as="main" aria-label="Station dashboard">
+                                <MissionBanner />
                                 <Dashboard
                                   items={dashboard.items}
                                   layouts={dashboard.layouts}
