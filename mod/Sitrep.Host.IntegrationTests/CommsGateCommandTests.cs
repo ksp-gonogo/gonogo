@@ -92,6 +92,54 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void DelayedCommandExecutesAfterTheLiveSignalDelayNotInstantly()
+        {
+            // The uplink asymmetry bug: a delayed command (a keystroke, a vessel
+            // actuation) was delivered to the craft near-instantly — the Courier's
+            // network delay defaults to 0 and the live signal delay was only ever
+            // applied to the DOWNLINK reveal gate, never to command dispatch. The
+            // command must reach the craft at t0 + the live one-way signal delay,
+            // symmetric with the downlink. networkDelaySeconds:0 is the production
+            // shape (see GonogoAddon).
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new CommsGateTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                engine.DispatchCommandAndWait(
+                    CommsGateTestUplink.Command, "x", "vantage-1", _ => { },
+                    TimeSpan.FromMilliseconds(300));
+
+                // At UT 2 (< the 5s signal delay) the command must NOT have
+                // reached the craft yet — it rides the signal-delay uplink, not
+                // the zero network delay.
+                engine.TickAndWait(
+                    2.0,
+                    FreezeGateTestUplink.Snapshot(2.0, connected: true, delay: signalDelay),
+                    Timeout);
+                Assert.Equal(0, uplink.HandledCount);
+
+                // At UT 5 (= the signal delay) it reaches the craft.
+                engine.TickAndWait(
+                    5.0,
+                    FreezeGateTestUplink.Snapshot(5.0, connected: true, delay: signalDelay),
+                    Timeout);
+                Assert.Equal(1, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private sealed class CommsGateTestUplink : ISitrepUplink
         {
             public const string Command = "gate.keystroke";
@@ -117,6 +165,10 @@ namespace Sitrep.Host.IntegrationTests
                     return "pong:" + args;
                 });
                 host.SetConnectivitySource(ComputeConnected);
+                // Same production-shape signal-delay source the bundled
+                // CommsCoreUplink registers — reads a one-way delay off the
+                // tick snapshot's "delay" key (absent ⇒ no delay).
+                host.SetSignalDelaySource(ComputeDelay);
             }
 
             private static bool? ComputeConnected(KspSnapshot? snapshot)
@@ -128,6 +180,21 @@ namespace Sitrep.Host.IntegrationTests
                     return null;
                 }
                 return Convert.ToBoolean(value);
+            }
+
+            private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
+            {
+                if (snapshot == null
+                    || !snapshot.Values.TryGetValue("delay", out var value)
+                    || value == null)
+                {
+                    return null;
+                }
+                return new CommsDelay
+                {
+                    OneWaySeconds = Convert.ToDouble(value),
+                    Source = CommsDelaySource.SignalDelay,
+                };
             }
         }
     }

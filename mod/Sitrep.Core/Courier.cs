@@ -149,14 +149,22 @@ namespace Sitrep.Core
             string command,
             object? args,
             string vantage,
-            Action<CommandResponse> onResponse)
+            Action<CommandResponse> onResponse,
+            double? uplinkDelaySeconds = null)
         {
             if (!_network.Reachable(vantage, node))
             {
                 return;
             }
 
-            var up = _network.DelayTo(vantage, node);
+            // uplinkDelaySeconds is a C#-ONLY extension (no TS reference, same
+            // class as ResetTimeline / the ReliableOrdered lane): the caller
+            // can override the one-way delay with a LIVE value — the host's
+            // signal delay — so a delayed command reaches the craft at
+            // t0 + signalDelay, symmetric with the downlink reveal gate, rather
+            // than the fixed network hop. Omitted (every golden-fixture call
+            // site) ⇒ the historical _network.DelayTo, byte-for-byte unchanged.
+            var up = uplinkDelaySeconds ?? _network.DelayTo(vantage, node);
             var down = up;
             var t0 = _clock.Now();
             var executeUt = t0 + up;
