@@ -1027,13 +1027,21 @@ describe("PeerClientService — sitrep frame/command dispatcher wiring", () => {
       sent.push(msg);
     };
 
-    svc.sendSitrepCommand("c0", "vessel.control.setSas", { enabled: true });
+    svc.sendSitrepCommand(
+      "c0",
+      "vessel.control.setSas",
+      { enabled: true },
+      "Enable SAS",
+      "vessel/control",
+    );
 
     expect(sent).toEqual([
       {
         type: "sitrep-command-request",
         requestId: "c0",
         command: "vessel.control.setSas",
+        label: "Enable SAS",
+        topic: "vessel/control",
         args: { enabled: true },
       },
     ]);

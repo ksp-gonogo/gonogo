@@ -405,6 +405,8 @@ export type PeerMessage =
       type: "sitrep-command-request";
       requestId: string;
       command: string;
+      label: string;
+      topic: string;
       args: unknown;
     }
   | {

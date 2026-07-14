@@ -25,6 +25,8 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     requestId: string;
     command: string;
     args: unknown;
+    label: string;
+    topic: string;
   }> = [];
 
   const fake = {
@@ -49,8 +51,14 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
     },
-    sendSitrepCommand: (requestId: string, command: string, args: unknown) => {
-      sentCommands.push({ requestId, command, args });
+    sendSitrepCommand: (
+      requestId: string,
+      command: string,
+      args: unknown,
+      label: string,
+      topic: string,
+    ) => {
+      sentCommands.push({ requestId, command, args, label, topic });
     },
     // Test-only helpers to drive the fake from outside — not part of the
     // real PeerClientService surface PeerTransport reads.
@@ -196,6 +204,33 @@ describe("PeerTransport", () => {
         requestId: "c3",
         command: "vessel.control.setSas",
         args: { enabled: true },
+        label: "",
+        topic: "",
+      },
+    ]);
+  });
+
+  it("send() forwards label and topic from the command-request envelope", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(client as unknown as PeerClientService);
+
+    transport.send({
+      type: "command-request",
+      requestId: "c4",
+      command: "kos.run",
+      label: "Run boot script",
+      topic: "kos/cpu-1",
+      args: { script: "boot.ks" },
+      sentAt: 0,
+    });
+
+    expect(client.sentCommands).toEqual([
+      {
+        requestId: "c4",
+        command: "kos.run",
+        args: { script: "boot.ks" },
+        label: "Run boot script",
+        topic: "kos/cpu-1",
       },
     ]);
   });
@@ -267,7 +302,13 @@ describe("PeerTransport", () => {
     );
 
     expect(client.sentCommands).toEqual([
-      { requestId, command: "vessel.control.setSas", args: { enabled: true } },
+      {
+        requestId,
+        command: "vessel.control.setSas",
+        args: { enabled: true },
+        label: "",
+        topic: "",
+      },
     ]);
 
     // Simulate the host relaying back the station's OWN requestId (per

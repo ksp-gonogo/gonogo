@@ -123,7 +123,13 @@ export class PeerTransport implements Transport {
         return;
       }
       this.pendingCommandIds.add(requestId);
-      this.client.sendSitrepCommand(requestId, message.command, message.args);
+      this.client.sendSitrepCommand(
+        requestId,
+        message.command,
+        message.args,
+        message.label,
+        message.topic,
+      );
       return;
     }
     // subscribe/unsubscribe: no-op on the wire. `SitrepPeerRelay` already

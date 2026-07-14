@@ -738,11 +738,19 @@ export class PeerClientService {
    * owns the pending-promise bookkeeping and any loss-inference timeout, not
    * this service.
    */
-  sendSitrepCommand(requestId: string, command: string, args: unknown): void {
+  sendSitrepCommand(
+    requestId: string,
+    command: string,
+    args: unknown,
+    label: string,
+    topic: string,
+  ): void {
     this.conn?.send({
       type: "sitrep-command-request",
       requestId,
       command,
+      label,
+      topic,
       args,
     } satisfies PeerMessage);
   }
