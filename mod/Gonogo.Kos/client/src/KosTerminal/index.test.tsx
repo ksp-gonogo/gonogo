@@ -946,7 +946,9 @@ describe("KosTerminal — blocks a send with no comms path", () => {
 
     act(() => fixture.emit("comms.connectivity", { connected: false }));
     await waitFor(() =>
-      expect(screen.getByLabelText("No comms path")).toBeInTheDocument(),
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeInTheDocument(),
     );
 
     const onData = getOnData();
@@ -995,7 +997,9 @@ describe("KosTerminal — blocks a send with no comms path", () => {
       expect(keys).toHaveLength(1);
       expect((keys[0].args as { chars: string }).chars).toBe("run.\r");
     });
-    expect(screen.queryByLabelText("No comms path")).toBeNull();
+    expect(
+      screen.queryByText(/No path — commands are not being sent/),
+    ).toBeNull();
   });
 
   it("line-mode: dispatches normally when comms.connectivity has not reported yet (undefined treated as connected)", async () => {
@@ -1008,7 +1012,9 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("kos.processors", ONE_CPU));
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
-    expect(screen.queryByLabelText("No comms path")).toBeNull();
+    expect(
+      screen.queryByText(/No path — commands are not being sent/),
+    ).toBeNull();
 
     const onData = getOnData();
     act(() => {
@@ -1036,7 +1042,9 @@ describe("KosTerminal — blocks a send with no comms path", () => {
 
     act(() => fixture.emit("comms.connectivity", { connected: false }));
     await waitFor(() =>
-      expect(screen.getByLabelText("No comms path")).toBeInTheDocument(),
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeInTheDocument(),
     );
 
     act(() => getOnData()("a"));
