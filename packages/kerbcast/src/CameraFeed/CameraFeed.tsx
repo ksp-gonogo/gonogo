@@ -252,7 +252,7 @@ export function CameraFeed({
   // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
   // (gonogo's own SignalDelay authority) — same clean-name convention as
   // `comm.signalStrength`/`comm.connected` above.
-  const signalDelay = useDataValue<number>("data", "comm.signalDelay");
+  const signalDelay = useDataValue<number | null>("data", "comm.signalDelay");
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -359,10 +359,11 @@ interface QualityBadgeInfo extends StatusBadgeInfo {
 // Signal-delay badge: ONE-WAY light-time only. This is a downlink — the
 // footage on screen left the craft `signalDelay` seconds ago — so unlike an
 // interactive command/response path (e.g. the kOS terminal) there is no
-// round-trip to double. Hidden at 0/undefined (LAN / no delay authority
-// mounted), matching the "unobtrusive" brief: nothing to show, show nothing.
+// round-trip to double. Hidden at 0/null/undefined (LAN, no measurable
+// path, or no delay authority mounted — comms-delay-nullable-when-no-path
+// fix), matching the "unobtrusive" brief: nothing to show, show nothing.
 function describeSignalDelay(
-  signalDelay: number | undefined,
+  signalDelay: number | null | undefined,
 ): StatusBadgeInfo | null {
   if (
     typeof signalDelay !== "number" ||
@@ -393,7 +394,16 @@ function describeSignalQuality(
   signalStrength: number | undefined,
 ): QualityBadgeInfo | null {
   if (connected === undefined && signalStrength === undefined) return null;
-  if (connected === false) {
+  // NO SIGNAL when the link is down OR the strength has decayed to
+  // effectively zero (0%): a 0% link carries nothing, so it reads as no
+  // signal rather than a "0%" quality badge (comms-delay-model-consistency
+  // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
+  // link" threshold — a real 1% link still shows its percentage.
+  const zeroSignal =
+    typeof signalStrength === "number" &&
+    Number.isFinite(signalStrength) &&
+    signalStrength <= 1e-6;
+  if (connected === false || zeroSignal) {
     return {
       label: "NO SIGNAL",
       tone: "nogo",

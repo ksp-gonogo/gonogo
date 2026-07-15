@@ -61,8 +61,11 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   // CareerViewProvider.cs's ModeTopic (client-derivations, D1).
   "career.mode",
   // Comms uplink channels (CommsCoreUplink / RealAntennasUplink). comms.delay
-  // is the TrueNow signal-delay channel behind comm.signalDelay.
+  // is the TrueNow signal-delay channel behind comm.signalDelay; comms.link is
+  // the Delayed, freeze-exempt connectivity MetaTopic behind comm.connected
+  // (comms-delay-model-consistency spec).
   "comms.delay",
+  "comms.link",
   // Remaining raw-field-walk roots.
   // SystemViewProvider.cs's DlcTopic (deployed.available).
   "game.dlc",

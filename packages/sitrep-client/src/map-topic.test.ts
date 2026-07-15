@@ -62,7 +62,10 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     );
     expect(mapTopic("data", "o.sma")).toBe("vessel.orbit.sma");
     expect(mapTopic("data", "v.lat")).toBe("vessel.flight.latitude");
-    expect(mapTopic("data", "comm.connected")).toBe("vessel.comms.connected");
+    // comm.connected now maps to the dedicated freeze-exempt connectivity
+    // MetaTopic (comms-delay-model-consistency spec), NOT the frozen
+    // vessel.comms struct — so the disconnect edge reaches the client.
+    expect(mapTopic("data", "comm.connected")).toBe("comms.link.connected");
     expect(mapTopic("data", "t.currentRate")).toBe("time.warp.warpRate");
   });
 

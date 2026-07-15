@@ -314,6 +314,34 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("char-mode: no measurable path (null oneWaySeconds) hides the badge instead of crashing", async () => {
+    // comms-delay-nullable-when-no-path fix: `oneWaySeconds` is null when
+    // there is no measurable ControlPath (as opposed to 0 for the
+    // delay-disabled-but-connected case). The badge must treat null the same
+    // as the old 0 sentinel — hidden, never a runtime crash on `null * 2`.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: null,
+        source: "None",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Signal delay")).not.toBeInTheDocument();
+    });
+  });
+
   it("line-mode: sends the whole composed line as one keystroke on Enter", async () => {
     const fixture = terminalFixture();
     render(
@@ -919,7 +947,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     clearRegistry();
   });
 
-  const CARRIED_WITH_CONNECTIVITY = [...CARRIED, "comms.connectivity"];
+  const CARRIED_WITH_CONNECTIVITY = [...CARRIED, "comms.link"];
 
   function connectivityFixture() {
     const fixture = setupStreamFixture({
@@ -934,7 +962,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     return { ...fixture, commands };
   }
 
-  it("line-mode: does not dispatch and shows a No path warning when comms.connectivity reports connected: false", async () => {
+  it("line-mode: does not dispatch and shows a No path warning when comms.link reports connected: false", async () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
@@ -944,7 +972,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("kos.processors", ONE_CPU));
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
-    act(() => fixture.emit("comms.connectivity", { connected: false }));
+    act(() => fixture.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
         screen.getByText(/No path — commands are not being sent/),
@@ -972,7 +1000,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     ).toHaveLength(0);
   });
 
-  it("line-mode: dispatches normally and shows no warning when comms.connectivity reports connected: true", async () => {
+  it("line-mode: dispatches normally and shows no warning when comms.link reports connected: true", async () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
@@ -982,7 +1010,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("kos.processors", ONE_CPU));
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
-    act(() => fixture.emit("comms.connectivity", { connected: true }));
+    act(() => fixture.emit("comms.link", { connected: true }));
 
     const onData = getOnData();
     act(() => {
@@ -1002,7 +1030,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     ).toBeNull();
   });
 
-  it("line-mode: dispatches normally when comms.connectivity has not reported yet (undefined treated as connected)", async () => {
+  it("line-mode: dispatches normally when comms.link has not reported yet (undefined treated as connected)", async () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
@@ -1040,7 +1068,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("kos.processors", ONE_CPU));
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
-    act(() => fixture.emit("comms.connectivity", { connected: false }));
+    act(() => fixture.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
         screen.getByText(/No path — commands are not being sent/),

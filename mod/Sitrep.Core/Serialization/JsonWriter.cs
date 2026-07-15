@@ -246,6 +246,17 @@ namespace Sitrep.Core.Serialization
                     // the field map itself.
                     AppendKosRunResult(sb, runResult);
                     break;
+                case Sitrep.Contract.CommsLink link:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // CommsConnectivity below: the comms.link connectivity
+                    // MetaTopic publishes a CommsLink POCO (see
+                    // Gonogo.KSP.CommsCoreUplink's link publisher). Without this
+                    // case a populated payload would throw NotSupportedException
+                    // at the wire boundary and the client's "NO SIGNAL" edge
+                    // would never arrive. Flattened to { connected, meta } with
+                    // camelCase keys, matching every sibling below.
+                    AppendCommsLink(sb, link);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // KosProcessorInfo above: the comms.connectivity channel
@@ -371,7 +382,13 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
         /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
-        /// Enum values (<c>source</c>, <c>meta.quality</c>) are emitted as their
+        /// <c>oneWaySeconds</c> is nullable (R7 typed absence — see
+        /// <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>'s own doc
+        /// comment): written as JSON <c>null</c> when there is no measurable
+        /// path, the same nullable-double wire path as
+        /// <see cref="AppendCommsHop"/>'s <c>distanceMeters</c>/
+        /// <c>bandRateBitsPerSec</c>, never collapsed to a 0 sentinel. Enum
+        /// values (<c>source</c>, <c>meta.quality</c>) are emitted as their
         /// integer ordinal, the same convention as <c>Meta.quality</c>/
         /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
         /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
@@ -381,7 +398,14 @@ namespace Sitrep.Core.Serialization
             sb.Append('{');
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
-            AppendNumber(sb, delay.OneWaySeconds);
+            if (delay.OneWaySeconds.HasValue)
+            {
+                AppendNumber(sb, delay.OneWaySeconds.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
 
             sb.Append(',');
             AppendString(sb, "source");
@@ -747,6 +771,19 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "quality");
             sb.Append(':');
             AppendInteger(sb, (long)(meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
+            sb.Append('}');
+        }
+
+        private static void AppendCommsLink(StringBuilder sb, Sitrep.Contract.CommsLink l)
+        {
+            sb.Append('{');
+            AppendString(sb, "connected");
+            sb.Append(':');
+            AppendBool(sb, l.Connected);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, l.Meta);
             sb.Append('}');
         }
 

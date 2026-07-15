@@ -166,7 +166,8 @@ namespace Sitrep.Host.IntegrationTests
                 new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 },
                 path, "game", Quality.Loaded);
             Assert.Equal(CommsDelaySource.SignalDelay, delay.Source);
-            Assert.Equal(uplink.ExpectedOneWaySeconds, delay.OneWaySeconds, precision: 6);
+            Assert.NotNull(delay.OneWaySeconds);
+            Assert.Equal(uplink.ExpectedOneWaySeconds, delay.OneWaySeconds!.Value, precision: 6);
 
             // This test never Start()s the engine (pure election/contract
             // inspection), so Dispose()'s Stop() would Join a never-started
