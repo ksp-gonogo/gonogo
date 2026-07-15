@@ -54,6 +54,14 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
   onRelease(frame: StampedFrame<T>): void;
   /** Called once per `flush()` — the feed UI's resync marker (§5.4). */
   onResync?(): void;
+  /** Called for every queued frame discarded WITHOUT being released — an
+   *  over-cap eviction (`enforceCap`), a `flush()`, or leftover frames still
+   *  queued at `dispose()`. Never called for a frame that reached
+   *  `onRelease` (that frame's lifecycle is the caller's from that point).
+   *  Optional — generic, not video-specific — but the caller MUST wire it
+   *  when `T` holds an external resource (e.g. a WebCodecs `VideoFrame`)
+   *  that needs `.close()`ing, or every discard path leaks it. */
+  onDrop?(frame: StampedFrame<T>): void;
   /** Over this, drop-oldest-non-keyframe frames until back under cap
    *  (§5.3). Buffered size is the sum of each queued frame's `bytes`
    *  (default 1 per frame when unset). */
@@ -118,6 +126,7 @@ export class DelayedPlayoutBuffer<T = unknown> {
    * those old UTs — they were discarded, not merely held.
    */
   flush(): void {
+    for (const dropped of this.queue) this.opts.onDrop?.(dropped);
     this.queue = [];
     this.bufferedBytes = 0;
     this.lastReleased = undefined;
@@ -137,12 +146,17 @@ export class DelayedPlayoutBuffer<T = unknown> {
     return this.queue;
   }
 
-  /** Unsubscribe from `view.onFrame` and stop accepting new frames. Call
-   *  on unmount / camera switch to avoid leaking the per-frame subscription. */
+  /** Unsubscribe from `view.onFrame`, stop accepting new frames, and drop
+   *  (via `onDrop`) whatever's still queued — a camera switch or unmount
+   *  mid-delay would otherwise strand held frames (and any resource they
+   *  hold, e.g. a `VideoFrame`) forever. */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
     this.unsubscribeFrame();
+    for (const dropped of this.queue) this.opts.onDrop?.(dropped);
+    this.queue = [];
+    this.bufferedBytes = 0;
   }
 
   /**
@@ -163,7 +177,10 @@ export class DelayedPlayoutBuffer<T = unknown> {
         dropIdx = 0; // last resort: oldest keyframe
       }
       const [dropped] = this.queue.splice(dropIdx, 1);
-      if (dropped) this.bufferedBytes -= dropped.bytes ?? 1;
+      if (dropped) {
+        this.bufferedBytes -= dropped.bytes ?? 1;
+        this.opts.onDrop?.(dropped);
+      }
     }
   }
 }

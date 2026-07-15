@@ -1,17 +1,29 @@
 /**
  * `useKerbcastStream`'s optional delayed-playout wiring (M2 design §5 —
- * "media delay (kerbcast)"). `DelayedPlayoutBuffer` itself is exhaustively
- * covered by `../DelayedPlayoutBuffer.test.ts`; this file only proves the
- * hook plumbs a delay option through to it correctly.
+ * "media delay (kerbcast)"), post kerbcast-per-frame-video-delay
+ * (2026-07-15). `useDelayedPlayout` now builds a real per-frame pipeline
+ * (`../frameDelay.ts`) instead of stamping once per raw `MediaStream`
+ * *reference* — see that file's docstring for the fixed history.
  *
- * jsdom can't produce a real WebRTC `MediaStream`/track (see
- * `CameraFeed.test.tsx`'s docstring, and the SDK's `MockSidecar.deliverTrack`
- * needing a real `MediaStreamTrack`), so — rather than fighting that —
- * this uses a minimal fake `KerbcastDataSource`-shaped data source that
- * exposes an opaque stream-reference token through the exact surface the
- * hook reads (`getClient().camera(id).mediaStream` + `.on("stream", cb)`).
- * The delay clock is a manually-driven double, same discipline as
- * `DelayedPlayoutBuffer.test.ts`'s `manualClock`.
+ * jsdom can't produce a real WebRTC `MediaStream`/track, and (as of
+ * writing) doesn't implement the WebCodecs track-IO APIs
+ * (`MediaStreamTrackProcessor`/`MediaStreamTrackGenerator`) the real
+ * pipeline needs — so in THIS test environment, requesting delay always
+ * hits the documented "unsupported browser" fallback path. That's not a
+ * gap: it's the exact path real Safari/Firefox users hit too, and it's
+ * worth covering directly (per the spec's risk note — "flag which, don't
+ * silently drop" — rather than silently falling through to a black feed).
+ *
+ * The genuine per-frame delay-TIMING proof (frame N released only once the
+ * clock reaches frame N's own stamped UT) lives at the pipeline level in
+ * `../frameDelay.blockColour.test.ts`, where the source/sink are injectable
+ * fakes and no real browser API is needed. This file only proves the hook
+ * plumbs options through and degrades safely when the real pipeline can't
+ * be built.
+ *
+ * Same no-hook-mocking discipline as before: a fake `KerbcastDataSource`-
+ * shaped data source stands in for the SDK, and a manually-driven clock
+ * double stands in for the delay clock.
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
@@ -104,39 +116,7 @@ function StreamProbe({
 }
 
 describe("useKerbcastStream — delayed playout wiring", () => {
-  it("holds a fresh stream reference back until confirmedEdgeUt reaches its stamped capture UT, then surfaces it", () => {
-    const cam = fakeCameraHandle(null);
-    registerFakeKerbcastSource(cam);
-    const clock = manualClock(0);
-
-    let latest: unknown = "unset";
-    const streams: unknown[] = [];
-    render(
-      <StreamProbe
-        flightId={7}
-        clock={clock}
-        captureUt={() => 100}
-        onStream={(s) => {
-          latest = s;
-          streams.push(s);
-        }}
-      />,
-    );
-    expect(latest).toBeNull(); // nothing released yet — buffer just built
-
-    act(() => {
-      cam.emit("stream-token-A");
-    });
-    // Stream arrived (stamped ut=100) but the clock hasn't caught up.
-    expect(latest).toBeNull();
-
-    act(() => {
-      clock.setEdge(100);
-    });
-    expect(latest).toBe("stream-token-A");
-  });
-
-  it("without a delay option, behaves as the unchanged strict passthrough", () => {
+  it("without a delay option, behaves as the unchanged strict passthrough — no pipeline attempted", () => {
     const cam = fakeCameraHandle("live-token");
     registerFakeKerbcastSource(cam);
 
@@ -151,96 +131,38 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     expect(latest).toBe("live-token");
   });
 
-  it("flushes the buffer on a resetEpoch bump — a pre-reset stream never surfaces after", () => {
+  it("with a delay option, on a browser lacking the WebCodecs track-IO pipeline (this test env), falls back to LIVE passthrough — never a black feed, never a throw", () => {
     const cam = fakeCameraHandle(null);
     registerFakeKerbcastSource(cam);
     const clock = manualClock(0);
 
     let latest: unknown = "unset";
-    const { rerender } = render(
-      <StreamProbe
-        flightId={7}
-        clock={clock}
-        captureUt={() => 500}
-        onStream={(s) => {
-          latest = s;
-        }}
-      />,
-    );
+    expect(() => {
+      render(
+        <StreamProbe
+          flightId={7}
+          clock={clock}
+          captureUt={() => 100}
+          onStream={(s) => {
+            latest = s;
+          }}
+        />,
+      );
+    }).not.toThrow();
+    expect(latest).toBeNull(); // no camera stream yet
 
     act(() => {
-      cam.emit("pre-reset-token");
+      cam.emit("stream-token-A");
     });
-    expect(latest).toBeNull(); // held — edge hasn't reached ut=500
-
-    // Timeline reset: bump resetEpoch (rerender with the new option value,
-    // same component/view identity so the buffer instance is preserved and
-    // the flush-on-resetEpoch effect — not an unmount/remount — is what's
-    // under test).
-    rerender(
-      <StreamProbe
-        flightId={7}
-        clock={clock}
-        captureUt={() => 500}
-        resetEpoch={1}
-        onStream={(s) => {
-          latest = s;
-        }}
-      />,
-    );
-
-    // Even once the clock sweeps far past the discarded frame's UT, the
-    // pre-reset stream never surfaces.
-    act(() => {
-      clock.setEdge(10_000);
-    });
-    expect(latest).toBeNull();
+    // Fallback path: the opaque token (a stand-in for a real MediaStream
+    // with no video track / no WebCodecs support) surfaces immediately —
+    // NOT held back — because a real per-frame pipeline could not be built
+    // here. This is the same "unsupported browser" path a real
+    // Safari/Firefox user hits.
+    expect(latest).toBe("stream-token-A");
   });
 
-  it("clears an already-surfaced stream on reset — stale frame doesn't linger on screen", () => {
-    const cam = fakeCameraHandle(null);
-    registerFakeKerbcastSource(cam);
-    const clock = manualClock(0);
-
-    let latest: unknown = "unset";
-    const { rerender } = render(
-      <StreamProbe
-        flightId={7}
-        clock={clock}
-        captureUt={() => 200}
-        onStream={(s) => {
-          latest = s;
-        }}
-      />,
-    );
-
-    act(() => {
-      cam.emit("pre-reset-token");
-    });
-    act(() => {
-      clock.setEdge(200);
-    });
-    // Frame released and on screen before the reset happens.
-    expect(latest).toBe("pre-reset-token");
-
-    rerender(
-      <StreamProbe
-        flightId={7}
-        clock={clock}
-        captureUt={() => 200}
-        resetEpoch={1}
-        onStream={(s) => {
-          latest = s;
-        }}
-      />,
-    );
-
-    // The stale pre-reset frame must not linger on screen — the feed goes
-    // to "no frame / resyncing" rather than showing outdated video.
-    expect(latest).toBeNull();
-  });
-
-  it("clears delayedStream when the raw stream disconnects (goes null) under delayed mode", () => {
+  it("clears delayedStream when the raw stream disconnects (goes null), even on the fallback path", () => {
     const cam = fakeCameraHandle(null);
     registerFakeKerbcastSource(cam);
     const clock = manualClock(0);
@@ -260,9 +182,6 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     act(() => {
       cam.emit("live-token");
     });
-    act(() => {
-      clock.setEdge(50);
-    });
     expect(latest).toBe("live-token");
 
     act(() => {
@@ -270,5 +189,71 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     });
     // Delayed mode must go to null on disconnect too, matching passthrough.
     expect(latest).toBeNull();
+  });
+
+  it("a resetEpoch bump never throws, whether or not a real pipeline exists", () => {
+    const cam = fakeCameraHandle(null);
+    registerFakeKerbcastSource(cam);
+    const clock = manualClock(0);
+
+    let latest: unknown = "unset";
+    const { rerender } = render(
+      <StreamProbe
+        flightId={7}
+        clock={clock}
+        captureUt={() => 500}
+        onStream={(s) => {
+          latest = s;
+        }}
+      />,
+    );
+
+    act(() => {
+      cam.emit("some-token");
+    });
+
+    expect(() => {
+      rerender(
+        <StreamProbe
+          flightId={7}
+          clock={clock}
+          captureUt={() => 500}
+          resetEpoch={1}
+          onStream={(s) => {
+            latest = s;
+          }}
+        />,
+      );
+    }).not.toThrow();
+    // Fallback path is unaffected by a reset — still live.
+    expect(latest).toBe("some-token");
+  });
+
+  it("switching cameras (a new raw stream reference) tears down and rebuilds cleanly, with no stale frame lingering", () => {
+    const cam = fakeCameraHandle(null);
+    registerFakeKerbcastSource(cam);
+    const clock = manualClock(0);
+
+    let latest: unknown = "unset";
+    render(
+      <StreamProbe
+        flightId={7}
+        clock={clock}
+        captureUt={() => 10}
+        onStream={(s) => {
+          latest = s;
+        }}
+      />,
+    );
+
+    act(() => {
+      cam.emit("camera-A-token");
+    });
+    expect(latest).toBe("camera-A-token");
+
+    act(() => {
+      cam.emit("camera-B-token");
+    });
+    expect(latest).toBe("camera-B-token");
   });
 });
