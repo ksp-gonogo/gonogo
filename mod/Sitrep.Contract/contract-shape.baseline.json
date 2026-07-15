@@ -1,6 +1,6 @@
 {
-  "Major": 3,
-  "Minor": 2,
+  "Major": 4,
+  "Minor": 0,
   "Types": {
     "Sitrep.Contract.ActivateStrategyArgs": [
       "Factor:System.Double",
@@ -17,6 +17,11 @@
       "PartId:System.String",
       "PartName:System.String"
     ],
+    "Sitrep.Contract.AtmosphereEntry": [
+      "Depth:System.Nullable\u00601[System.Double]",
+      "HasOxygen:System.Nullable\u00601[System.Boolean]",
+      "SeaLevelPressure:System.Nullable\u00601[System.Double]"
+    ],
     "Sitrep.Contract.BatteryEntry": [
       "Current:System.Nullable\u00601[System.Double]",
       "Max:System.Nullable\u00601[System.Double]",
@@ -24,11 +29,18 @@
       "PartName:System.String"
     ],
     "Sitrep.Contract.BodyEntry": [
+      "Atmosphere:Sitrep.Contract.AtmosphereEntry",
+      "Description:System.String",
+      "GravParameter:System.Nullable\u00601[System.Double]",
+      "HasOcean:System.Nullable\u00601[System.Boolean]",
       "Index:System.Int32",
       "Name:System.String",
       "Orbit:Sitrep.Contract.OrbitEntry",
       "ParentIndex:System.Nullable\u00601[System.Int32]",
-      "Radius:System.Nullable\u00601[System.Double]"
+      "Radius:System.Nullable\u00601[System.Double]",
+      "RotationPeriod:System.Nullable\u00601[System.Double]",
+      "SphereOfInfluence:System.Nullable\u00601[System.Double]",
+      "TidallyLocked:System.Nullable\u00601[System.Boolean]"
     ],
     "Sitrep.Contract.CareerContract": [
       "Agent:System.String",
@@ -114,8 +126,10 @@
     "Sitrep.Contract.CommandRequest\u00601": [
       "Args:TArgs",
       "Command:System.String",
+      "Label:System.String",
       "RequestId:System.String",
       "SentAt:System.Double",
+      "Topic:System.String",
       "Type:System.String"
     ],
     "Sitrep.Contract.CommandResponse\u00601": [
@@ -147,7 +161,7 @@
     ],
     "Sitrep.Contract.CommsDelay": [
       "Meta:Sitrep.Contract.PayloadMeta",
-      "OneWaySeconds:System.Double",
+      "OneWaySeconds:System.Nullable\u00601[System.Double]",
       "Source:Sitrep.Contract.CommsDelaySource"
     ],
     "Sitrep.Contract.CommsHop": [
@@ -156,6 +170,10 @@
       "From:System.String",
       "Kind:Sitrep.Contract.CommsHopKind",
       "To:System.String"
+    ],
+    "Sitrep.Contract.CommsLink": [
+      "Connected:System.Boolean",
+      "Meta:Sitrep.Contract.PayloadMeta"
     ],
     "Sitrep.Contract.CommsLinkMargin": [
       "ClosesLink:System.Boolean",
@@ -302,6 +320,32 @@
       "Title:System.String",
       "TransmitBonus:System.Nullable\u00601[System.Double]"
     ],
+    "Sitrep.Contract.FlightCurrent": [
+      "FlightId:System.String",
+      "Phase:Sitrep.Contract.Situation",
+      "VesselId:System.String",
+      "VesselName:System.String"
+    ],
+    "Sitrep.Contract.FlightEnded": [
+      "FlightId:System.String",
+      "Reason:Sitrep.Contract.FlightEndReason",
+      "Ut:System.Double",
+      "VesselId:System.String",
+      "VesselName:System.String"
+    ],
+    "Sitrep.Contract.FlightStarted": [
+      "FlightId:System.String",
+      "Ut:System.Double",
+      "VesselId:System.String",
+      "VesselName:System.String"
+    ],
+    "Sitrep.Contract.FlightVesselChanged": [
+      "FlightId:System.String",
+      "PreviousVesselId:System.String",
+      "Ut:System.Double",
+      "VesselId:System.String",
+      "VesselName:System.String"
+    ],
     "Sitrep.Contract.FuelCellEntry": [
       "Active:System.Nullable\u00601[System.Boolean]",
       "PartId:System.String",
@@ -334,6 +378,11 @@
       "CoreId:System.Int32",
       "ScriptId:System.String"
     ],
+    "Sitrep.Contract.KosKeystrokeArgs": [
+      "Chars:System.String",
+      "CoreId:System.Int32",
+      "LeaseToken:System.String"
+    ],
     "Sitrep.Contract.KosProcessorInfo": [
       "BootFilePath:System.String",
       "CoreId:System.Int32",
@@ -342,6 +391,36 @@
       "Tag:System.String"
     ],
     "Sitrep.Contract.KosReEnableArgs": ["ScriptId:System.String"],
+    "Sitrep.Contract.KosRunArgs": [
+      "Command:System.String",
+      "CoreId:System.Int32",
+      "RequestId:System.String"
+    ],
+    "Sitrep.Contract.KosRunResult": [
+      "CoreId:System.Int32",
+      "Error:System.String",
+      "Fields:System.Collections.Generic.Dictionary\u00602[System.String,System.Object]",
+      "RequestId:System.String"
+    ],
+    "Sitrep.Contract.KosTerminalCloseArgs": [
+      "CoreId:System.Int32",
+      "LeaseToken:System.String"
+    ],
+    "Sitrep.Contract.KosTerminalFrame": [
+      "Chunk:System.String",
+      "CoreId:System.Int32",
+      "FullRepaint:System.Boolean"
+    ],
+    "Sitrep.Contract.KosTerminalOpenArgs": [
+      "CoreId:System.Int32",
+      "LeaseToken:System.String"
+    ],
+    "Sitrep.Contract.KosTerminalResizeArgs": [
+      "Cols:System.Int32",
+      "CoreId:System.Int32",
+      "LeaseToken:System.String",
+      "Rows:System.Int32"
+    ],
     "Sitrep.Contract.LabEntry": [
       "DataStorage:System.Nullable\u00601[System.Double]",
       "DataStored:System.Nullable\u00601[System.Double]",
@@ -449,6 +528,18 @@
     "Sitrep.Contract.PayloadMeta": [
       "Quality:Sitrep.Contract.Quality",
       "Source:System.String"
+    ],
+    "Sitrep.Contract.PendingUplink": [
+      "Command:System.String",
+      "DispatchedAt:System.Double",
+      "Id:System.String",
+      "Label:System.String",
+      "OneWaySeconds:System.Double",
+      "Topic:System.String",
+      "Vantage:System.String"
+    ],
+    "Sitrep.Contract.PendingUplinkQueue": [
+      "Pending:System.Collections.Generic.List\u00601[Sitrep.Contract.PendingUplink]"
     ],
     "Sitrep.Contract.RecoveryCrewEntry": [
       "IsTourist:System.Boolean",
@@ -911,6 +1002,12 @@
       "ProbeNone:5",
       "ProbePartial:6",
       "Unknown:11"
+    ],
+    "Sitrep.Contract.FlightEndReason": [
+      "Crashed:1",
+      "Destroyed:3",
+      "Recovered:0",
+      "Reverted:2"
     ],
     "Sitrep.Contract.GameMode": [
       "Career:1",

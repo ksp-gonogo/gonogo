@@ -382,7 +382,13 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
         /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
-        /// Enum values (<c>source</c>, <c>meta.quality</c>) are emitted as their
+        /// <c>oneWaySeconds</c> is nullable (R7 typed absence — see
+        /// <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>'s own doc
+        /// comment): written as JSON <c>null</c> when there is no measurable
+        /// path, the same nullable-double wire path as
+        /// <see cref="AppendCommsHop"/>'s <c>distanceMeters</c>/
+        /// <c>bandRateBitsPerSec</c>, never collapsed to a 0 sentinel. Enum
+        /// values (<c>source</c>, <c>meta.quality</c>) are emitted as their
         /// integer ordinal, the same convention as <c>Meta.quality</c>/
         /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
         /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
@@ -392,7 +398,14 @@ namespace Sitrep.Core.Serialization
             sb.Append('{');
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
-            AppendNumber(sb, delay.OneWaySeconds);
+            if (delay.OneWaySeconds.HasValue)
+            {
+                AppendNumber(sb, delay.OneWaySeconds.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
 
             sb.Append(',');
             AppendString(sb, "source");

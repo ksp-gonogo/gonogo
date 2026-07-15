@@ -206,11 +206,26 @@ public enum CommsDelaySource
 /// <summary>
 /// The <c>comms.delay</c> payload — the CORE SignalDelay capability's output
 /// (comms-uplink-design.md §3), gated by the <c>comms.signalDelay.enabled</c>
-/// config flag. When the flag is off, <see cref="OneWaySeconds"/> is 0 and
-/// <see cref="Source"/> is <see cref="CommsDelaySource.None"/> ("no delay").
-/// When on, gonogo's own light-time math over the elected backend's hop
-/// geometry fills it. TRUE-NOW sim-meta: this value drives the release of
-/// every other delayed channel and is therefore never itself delay-gated.
+/// config flag. <see cref="OneWaySeconds"/> distinguishes two DIFFERENT
+/// "no delay" cases by value (R7: typed absence, never a single overloaded
+/// sentinel):
+/// <list type="bullet">
+/// <item><description><b>null</b> — no measurable <see cref="CommsPath"/>
+/// (no path home, or incomplete hop geometry). There is nothing to measure,
+/// so nothing is reported. <see cref="Source"/> is
+/// <see cref="CommsDelaySource.None"/>.</description></item>
+/// <item><description><b>0</b> — the delay feature is disabled
+/// (<c>comms.signalDelay.enabled = false</c>) but the vessel IS connected. A
+/// genuine "zero delay applied", not an absence. <see cref="Source"/> is
+/// also <see cref="CommsDelaySource.None"/> here — the two cases share the
+/// same <c>Source</c> and are told apart only by whether the value is
+/// null.</description></item>
+/// <item><description>a real number — <see cref="Source"/> is
+/// <see cref="CommsDelaySource.SignalDelay"/>; gonogo's own light-time math
+/// over the elected backend's hop geometry.</description></item>
+/// </list>
+/// TRUE-NOW sim-meta: this value drives the release of every other delayed
+/// channel and is therefore never itself delay-gated.
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -219,7 +234,7 @@ public enum CommsDelaySource
 [SitrepTopic("comms.delay")]
 public class CommsDelay
 {
-    public double OneWaySeconds { get; set; }
+    public double? OneWaySeconds { get; set; }
     public CommsDelaySource Source { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }

@@ -23,22 +23,35 @@ namespace Sitrep.Contract
     public static class ContractVersion
     {
         /// <summary>
-        /// Bumped 2 -&gt; 3 (Minor reset to 0): the Principia mod-seam revert.
-        /// Removed <see cref="VesselPhysicsMode.IsPrincipiaActive"/> from the
+        /// Bumped 3 -&gt; 4 (Minor reset to 0): <see cref="CommsDelay.OneWaySeconds"/>
+        /// retyped <c>double</c> -&gt; <c>double?</c> (comms-delay-nullable-when-no-path
+        /// fix). The old <c>0</c> sentinel for "no measurable path" read as
+        /// "instant" to a naive reader — the opposite of a lost link — and
+        /// violated this contract's own R7 discipline (absence is a nullable,
+        /// never a 0/-1 sentinel). Now <c>null</c> means no measurable
+        /// <see cref="CommsPath"/>; <c>0</c> is reserved for the OTHER "None"
+        /// case (delay feature disabled but connected — a genuine zero
+        /// applied); a real number means <see cref="CommsDelaySource.SignalDelay"/>.
+        /// A genuine wire retype, sanctioned because the mod is still
+        /// pre-release with NO external Uplinks yet. See
+        /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.
+        /// </summary>
+        public const int Major = 4;
+
+        /// <summary>
+        /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>).
+        /// The Minor history below belongs to the Major-1/2/3 lines and is
+        /// retained for provenance; every one of those additive changes is
+        /// carried forward into Major 4.
+        ///
+        /// <para>Major-3 history — Bumped 2 -&gt; 3 (Minor reset to 0): the
+        /// Principia mod-seam revert. Removed
+        /// <see cref="VesselPhysicsMode.IsPrincipiaActive"/> from the
         /// wire-visible <see cref="VesselPhysicsMode"/> Value — core detecting
         /// a specific third-party mod (Principia) was a mod-seam violation;
         /// that awareness belongs to a future Principia Uplink instead. The
         /// <c>Mode</c> field (OnRails/Packed/Unpacked, genuine stock KSP data)
-        /// is unaffected. Sanctioned because the mod is still pre-release with
-        /// NO external Uplinks yet.
-        /// </summary>
-        public const int Major = 3;
-
-        /// <summary>
-        /// Reset to 0 alongside the Major 2 -&gt; 3 bump (see <see cref="Major"/>).
-        /// The Minor history below belongs to the Major-1 and Major-2 lines
-        /// and is retained for provenance; every one of those additive
-        /// changes is carried forward into Major 3.
+        /// is unaffected.</para>
         ///
         /// <para>Major-3 history — Bumped 2 -&gt; 3: additive-only Minor for the
         /// flight-lifecycle domain (<see cref="FlightCurrent"/>/
@@ -135,6 +148,6 @@ namespace Sitrep.Contract
         /// older Minor. See
         /// <c>local_docs/Wednesday Work/2026-07-15-comms-delay-model-consistency.md</c>.</para>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 0;
     }
 }

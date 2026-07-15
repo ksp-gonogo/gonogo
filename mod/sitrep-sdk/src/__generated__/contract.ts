@@ -210,7 +210,7 @@ export enum CommsDelaySource {
 }
 export interface CommsDelay
 {
-	oneWaySeconds: number;
+	oneWaySeconds?: number;
 	source: CommsDelaySource;
 	meta: PayloadMeta;
 }
