@@ -11,6 +11,7 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
+import { logger } from "@ksp-gonogo/logger";
 import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -147,6 +148,19 @@ export function CameraFeed({
   useEffect(() => {
     ds?.ensureConnected();
   }, [ds]);
+
+  // Diagnostic: which client instance does the provider hold right now? Pairs
+  // with the connected-client `kerbcast:clock` logs — if this `instanceId`
+  // differs from the one logging advancing `captureUt`, a reconnect/TURN
+  // rebuild orphaned the clock onto an instance the provider no longer reads.
+  useEffect(() => {
+    if (!client) return;
+    const instanceId = (client as unknown as { __kcInstanceId?: number })
+      .__kcInstanceId;
+    logger
+      .tag("kerbcast:clock")
+      .debug("CameraFeed provider client", { context: { instanceId } });
+  }, [client]);
 
   // Build the subscriptions adapter once per data source so acquire/release
   // calls are stable across re-renders.
