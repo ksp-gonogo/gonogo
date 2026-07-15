@@ -318,6 +318,17 @@ function KosTerminalScreen({
     historyIndexRef.current = null;
     historyDraftRef.current = "";
   }, [lineMode]);
+  // Keep xterm's own cursor blink in sync with which surface owns input —
+  // see the matching comment on the `cursorBlink` constructor option above.
+  // Separate from the composition-clearing effect above (different deps:
+  // this one legitimately reacts to `readOnly` too) and gated on
+  // `termRef.current` existing, since a runtime lineMode/readOnly flip can
+  // land before or after the terminal's own mount-time setup effect.
+  useEffect(() => {
+    if (termRef.current) {
+      termRef.current.options.cursorBlink = !readOnly && !lineMode;
+    }
+  }, [lineMode, readOnly]);
 
   // `comms.delay`/`system.uplink.pending`/`comms.connectivity` are all
   // command-centre REAL-TIME bookkeeping, never delayed craft telemetry:
@@ -449,7 +460,16 @@ function KosTerminalScreen({
         },
         fontFamily: "monospace",
         fontSize: 13,
-        cursorBlink: !readOnly,
+        // Line mode hands the active caret to `CompositionBar` (its own
+        // blinking cursor sits on the composed line); leaving xterm's native
+        // cursor ALSO blinking at the last-painted `kOS>` position reads as
+        // two disagreeing cursors. Suppress it whenever the bar owns input —
+        // char mode has no bar, so the terminal cursor stays the sole one.
+        // Read via the ref (not the `lineMode` prop) so this initial value
+        // doesn't become an exhaustive-deps dependency of the mount-only
+        // setup effect below; the reactive toggle sync effect keeps it
+        // current after mount.
+        cursorBlink: !readOnly && !lineModeRef.current,
         cols: KOS_TERM_COLS,
         rows: KOS_TERM_ROWS,
       });
@@ -598,16 +618,18 @@ function KosTerminalScreen({
 
   return (
     <TerminalShell>
-      <Container ref={containerRef} $readOnly={readOnly} />
+      <TerminalFrame>
+        <Container ref={containerRef} $readOnly={readOnly} />
+        {badgeDelay && (
+          <DelayBadge role="status" aria-label="Signal delay">
+            round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
+          </DelayBadge>
+        )}
+      </TerminalFrame>
       {!readOnly && noPath && (
         <NoPathBadge role="status">
           No path — commands are not being sent
         </NoPathBadge>
-      )}
-      {badgeDelay && (
-        <DelayBadge aria-label="Signal delay">
-          round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
-        </DelayBadge>
       )}
       {stripUtNow !== undefined && myPending.length > 0 && (
         <UplinkStrip aria-label="Uplink queue">
@@ -729,10 +751,22 @@ const TerminalShell = styled.div`
   gap: 6px;
 `;
 
-const Container = styled.div<{ $readOnly?: boolean }>`
-  width: 100%;
+// Wraps the terminal pane so the delay badge can be pinned INSIDE its
+// bordered box (an absolutely-positioned corner overlay) instead of floating
+// below it as a separate flex sibling — a badge floating past the pane's own
+// border reads as rendering outside the widget's visual bounds. Carries the
+// flex-sizing props `Container` used to own directly; `Container` itself is
+// now a plain 100%-of-frame box so xterm's own mount target is unaffected.
+const TerminalFrame = styled.div`
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+`;
+
+const Container = styled.div<{ $readOnly?: boolean }>`
+  width: 100%;
+  height: 100%;
   background: var(--color-surface-panel);
   border: 1px solid ${({ $readOnly }) => ($readOnly ? "var(--color-status-info-bg)" : "var(--color-border-subtle)")};
   border-radius: 4px;
@@ -757,7 +791,6 @@ const CompositionBar = styled.div`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
   padding: 6px 8px;
   min-height: 1.6em;
   background: var(--color-surface-panel);
@@ -768,9 +801,15 @@ const CompositionBar = styled.div`
   box-sizing: border-box;
 `;
 
+// No gap here — the cursor block must sit flush against the trailing
+// character of `CompositionBar__Text`, not offset by a flex gap (that read
+// as the cursor sitting one character off the actual trailing character).
+// The prompt keeps its own breathing room via `margin-right` instead of a
+// container-wide `gap` that would otherwise apply between every child.
 const CompositionBar__Prompt = styled.span`
   color: var(--color-accent-fg);
   font-weight: bold;
+  margin-right: 8px;
 `;
 
 const CompositionBar__Text = styled.span`
@@ -818,9 +857,16 @@ const NoPathBadge = styled.div`
 
 // Compact delay readout: char-mode always, line-mode only when the delay is
 // too short (<=1s one-way) for a strip to be worth it — see `showBadge`.
+// Pinned as an absolutely-positioned corner overlay INSIDE `TerminalFrame`
+// (a sibling of `Container`, not a descendant — `Container`'s own
+// `overflow: hidden` is reserved for xterm's content) rather than a flex
+// item below the terminal pane, so it always renders within the terminal's
+// own bordered box instead of floating past it.
 const DelayBadge = styled.div`
-  flex: 0 0 auto;
-  align-self: flex-start;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
   padding: 2px 8px;
   font-family: monospace;
   font-size: 11px;

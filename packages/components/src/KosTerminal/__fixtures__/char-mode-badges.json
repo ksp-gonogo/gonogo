@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "capturedAt": "2026-07-15",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "TEMP repro fixture for the visual-backlog pass (bounds/layout items) - adds comms.delay + comms.connectivity emits on top of basic-session so the char-mode RTT badge and no-path badge actually render."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "kos.processors",
+      "kos.terminal.7",
+      "comms.delay",
+      "comms.connectivity"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "kos.processors",
+        "value": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "bootFilePath": "boot/ascent.ks",
+            "processorMode": "READY"
+          }
+        ]
+      },
+      {
+        "channel": "kos.terminal.7",
+        "value": {
+          "coreId": 7,
+          "chunk": "\u001b[2J\u001b[HKerboScript v1.3.2.0 - Core 7 (lander)\r\n\r\n[LOG] Ascent program running - MET 00:04:12\r\n[LOG] Stage 2 separation confirmed at ALT 42,300m\r\n[LOG] Circularization burn scheduled at AP 80,000m\r\n\r\nkOS> ",
+          "fullRepaint": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 3.2
+        }
+      },
+      {
+        "channel": "comms.connectivity",
+        "value": {
+          "connected": false
+        }
+      }
+    ]
+  }
+}
