@@ -214,6 +214,11 @@ export interface CommsDelay
 	source: CommsDelaySource;
 	meta: PayloadMeta;
 }
+export interface CommsLink
+{
+	connected: boolean;
+	meta: PayloadMeta;
+}
 export interface CommsLinkQuality
 {
 	value: number;

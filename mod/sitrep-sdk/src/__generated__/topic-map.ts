@@ -16,6 +16,7 @@ import type {
   CommsControlState,
   CommsDataRate,
   CommsDelay,
+  CommsLink,
   CommsLinkMargin,
   CommsLinkQuality,
   CommsNetwork,
@@ -78,6 +79,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.controlState": CommsControlState;
   "comms.dataRate": CommsDataRate;
   "comms.delay": CommsDelay;
+  "comms.link": CommsLink;
   "comms.linkMargin": CommsLinkMargin;
   "comms.linkQuality": CommsLinkQuality;
   "comms.network": CommsNetwork;
@@ -140,6 +142,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.controlState",
   "comms.dataRate",
   "comms.delay",
+  "comms.link",
   "comms.linkMargin",
   "comms.linkQuality",
   "comms.network",

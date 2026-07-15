@@ -124,7 +124,17 @@ namespace Sitrep.Contract
         /// downlink + its single-owner keystroke/resize/open/close commands,
         /// replacing the standalone telnet proxy. Brand-new
         /// <c>[SitrepContract]</c> types only, no existing type touched.</para>
+        ///
+        /// <para>Bumped 4 -&gt; 5: additive-only Minor for the comms connectivity
+        /// MetaTopic (<see cref="CommsLink"/>) — the Delayed, freeze-exempt
+        /// <c>comms.link</c> channel that carries the client-facing link
+        /// up/down, letting the disconnect edge escape the reveal-gate freeze
+        /// while the de-publicised TrueNow observation channels leave the wire.
+        /// A brand-new <c>[SitrepContract]</c> type only, no existing type
+        /// touched — additive, so it cannot break an Uplink built against an
+        /// older Minor. See
+        /// <c>local_docs/Wednesday Work/2026-07-15-comms-delay-model-consistency.md</c>.</para>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

@@ -113,6 +113,18 @@ namespace Sitrep.Host
         // the topic is duplicated here rather than referenced.
         internal const string CommsDelayTopic = "comms.delay";
 
+        // The connectivity MetaTopic (comms.link) — a Delayed channel that is
+        // EXEMPT from the freeze-on-disconnect gate, exactly as CommsDelayTopic
+        // is exempt from its own delay. It REPORTS the freeze (link up/down), so
+        // it must escape it: it reveals the disconnect edge at now-delay and
+        // keeps reporting connected:false through the blackout, so the client's
+        // "NO SIGNAL" flips at the correct delayed instant. Every OTHER Delayed
+        // channel still freezes. The literal MUST match
+        // Gonogo.KSP.CommsCoreUplink.LinkTopic (duplicated for the same
+        // KSP-DLL-free reason as CommsDelayTopic above) and
+        // Sitrep.Contract.CommsLink's [SitrepTopic].
+        internal const string ConnectivityMetaTopic = "comms.link";
+
         // The built-in uplink-health-self-report channel (see
         // BuildSystemUplinksPayload's doc comment). Unlike every other
         // channel on this class, it is NOT owned by any ISitrepUplink's
@@ -142,6 +154,19 @@ namespace Sitrep.Host
         // which reveals everything live, byte-identical to the pre-gate LAN
         // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
         private double _signalDelaySeconds;
+
+        // The last _signalDelaySeconds observed while CONNECTED (see
+        // CaptureSignalDelay's snapshot). A genuine disconnect collapses the
+        // LIVE _signalDelaySeconds to 0 (no path ⇒ SignalDelay.Compute returns
+        // None ⇒ 0 — see RevealDelayFor's doc comment), so a freeze-EXEMPT
+        // topic (ChannelDeclaration.FreezeExempt — the connectivity MetaTopic)
+        // reads THIS field instead while disconnected: it must still reveal
+        // its disconnect edge at the REAL last-known light-time horizon, not
+        // instantly at delay=0, which would defeat the whole point of the
+        // channel being Delayed rather than TrueNow. Frozen for the outage's
+        // duration (stops updating the instant _commsConnected goes false),
+        // resumes tracking live once reconnected.
+        private double _lastConnectedDelaySeconds;
 
         // AUTHORITATIVE, subscription-independent server-side delay source (see
         // IUplinkHost.SetSignalDelaySource): the closure the bundled comms
@@ -188,6 +213,20 @@ namespace Sitrep.Host
         private Func<KspSnapshot?, bool?>? _connectivitySource;
         private string _connectivitySourceOwnerId = "";
         private volatile bool _connectivitySourceDisabled;
+
+        // Connectivity history (UT-ascending): every CONNECTED/DISCONNECTED
+        // TRANSITION the live source reported, stamped with the tick UT it took
+        // effect. FlushReveal's per-entry gate consults ConnectivityAt(entry.Ut)
+        // to decide whether a buffered Delayed sample was captured while the
+        // link was up (reveal — the pre-outage tail) or during the blackout
+        // (withhold — frozen). Bounded to a small window behind the current
+        // horizon (PruneConnectivityHistory): once every buffered sample older
+        // than a transition has revealed or been dropped, that transition can
+        // never be queried again. Courier-thread-only, same discipline as
+        // _commsConnected. Seeded with the default-connected state at UT 0 so a
+        // lookup before the first real transition fails soft to CONNECTED.
+        private readonly List<(double Ut, bool Connected)> _connectivityHistory =
+            new List<(double, bool)> { (double.NegativeInfinity, true) };
 
         // Per-topic buffer of change-gated (UT,value) decisions for Delayed
         // channels not yet past their reveal horizon. Flushed to the Courier in
@@ -2060,6 +2099,37 @@ namespace Sitrep.Host
                 return 0.0;
             }
 
+            // Connectivity MetaTopic (comms.link): Delayed but FREEZE-EXEMPT. It
+            // must NOT take the !_commsConnected → +Inf branch below — a link
+            // sample emitted DURING a blackout (connected:false) would otherwise
+            // buffer with an infinite horizon and never mature, so the disconnect
+            // edge could never reach the client and "NO SIGNAL" would never fire.
+            // Instead it rides the ordinary finite delay (revealed at now-delay),
+            // computed the same way as the connected path below. Placed BEFORE
+            // the !_commsConnected check precisely because it applies while
+            // disconnected. (The FlushReveal per-entry gate carries the matching
+            // topic == ConnectivityMetaTopic exemption.)
+            //
+            // Reads _lastConnectedDelaySeconds, NOT the live _signalDelaySeconds:
+            // a genuine disconnect collapses the live delay to 0 in the SAME tick
+            // (no path ⇒ SignalDelay.Compute returns None ⇒ 0 — the backend that
+            // stops reporting connectivity is the same one that stops reporting
+            // hop geometry), so using the live value here would reveal the
+            // disconnect edge almost instantly instead of at the real last-known
+            // light-time horizon. _lastConnectedDelaySeconds freezes at the value
+            // in force the moment the link was last known up, which is the
+            // physically honest number: KSC cannot learn of the outage faster
+            // than light already in transit.
+            if (topic == ConnectivityMetaTopic)
+            {
+                var metaDelay = _lastConnectedDelaySeconds;
+                if (double.IsNaN(metaDelay) || double.IsInfinity(metaDelay) || metaDelay <= 0.0)
+                {
+                    return 0.0;
+                }
+                return metaDelay;
+            }
+
             // Freeze-on-disconnect: a down control link means nothing new can
             // reach KSC, so a Delayed channel is withheld as if the reveal
             // horizon were infinitely far off — Emit buffers it (Inf is not
@@ -2095,6 +2165,16 @@ namespace Sitrep.Host
         {
             if (value is CommsDelay commsDelay)
             {
+                // Snapshot the delay in force while CONNECTED, before this
+                // tick's fresh read overwrites it -- see
+                // _lastConnectedDelaySeconds's doc comment. This runs BEFORE
+                // RefreshConnectivityFromCapability (same tick), so
+                // _commsConnected here still reflects connectivity as of the
+                // outgoing value about to be replaced.
+                if (_commsConnected)
+                {
+                    _lastConnectedDelaySeconds = _signalDelaySeconds;
+                }
                 _signalDelaySeconds = commsDelay.OneWaySeconds;
             }
         }
@@ -2204,13 +2284,13 @@ namespace Sitrep.Host
             if (tick.Connectivity.Error != null)
             {
                 FailSoftConnectivitySource(tick.Connectivity.Error);
-                SetCommsConnected(true);
+                SetCommsConnected(true, tick.Ut);
                 return;
             }
 
             if (tick.Connectivity.Value.HasValue)
             {
-                SetCommsConnected(tick.Connectivity.Value.Value);
+                SetCommsConnected(tick.Connectivity.Value.Value, tick.Ut);
             }
         }
 
@@ -2223,13 +2303,128 @@ namespace Sitrep.Host
         /// state via their current value, and reconstructing the gap is the
         /// client's job — never the API's. Courier-thread-only.
         /// </summary>
-        private void SetCommsConnected(bool connected)
+        private void SetCommsConnected(bool connected, double ut)
         {
             var wasConnected = _commsConnected;
             _commsConnected = connected;
+
+            // Record the transition edge into the connectivity history so
+            // FlushReveal's per-entry gate can tell a pre-outage sample (reveal)
+            // from an in-blackout one (withhold) by the UT it was captured at.
+            // Only genuine transitions are recorded — a steady state adds no new
+            // information and would grow the list without bound.
+            if (connected != wasConnected)
+            {
+                _connectivityHistory.Add((ut, connected));
+            }
+
             if (!wasConnected && connected)
             {
-                _revealBuffer.Clear();
+                // Reconnect: drop only the genuinely-in-blackout backlog — the
+                // pre-outage tail already flushed through the outage via the
+                // per-entry gate, so what remains is the +Inf-horizon entries
+                // emitted while the link was down (RevealDelayFor's !_commsConnected
+                // branch), which must never surface post-reconnect. The
+                // freeze-exempt MetaTopic's own entries are NOT +Inf, so keep
+                // them (they carry the disconnect/reconnect edges the client
+                // still needs revealed at their delayed instants).
+                DropInBlackoutBacklog();
+            }
+        }
+
+        /// <summary>
+        /// The link CONNECTED state as of <paramref name="ut"/> — the connected
+        /// flag of the latest transition at or before that UT. Fail-soft to
+        /// CONNECTED when the lookup precedes all recorded history (the seed
+        /// entry at -Inf guarantees this can't miss). Courier-thread-only.
+        /// </summary>
+        private bool ConnectivityAt(double ut)
+        {
+            var connected = true;
+            for (var i = 0; i < _connectivityHistory.Count; i++)
+            {
+                if (_connectivityHistory[i].Ut <= ut)
+                {
+                    connected = _connectivityHistory[i].Connected;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return connected;
+        }
+
+        /// <summary>
+        /// Drop every buffered entry that was emitted with an infinite horizon
+        /// (RevealDelayFor's <c>!_commsConnected</c> branch) — the genuine
+        /// in-blackout backlog that can never mature and must never surface
+        /// post-reconnect. Freeze-exempt MetaTopic entries (finite horizon) are
+        /// retained. This is the bounded, reconnect-time GC (fix #3): without it
+        /// the +Inf entries accumulate for the whole session.
+        /// </summary>
+        private void DropInBlackoutBacklog()
+        {
+            foreach (var topic in new List<string>(_revealBuffer.Keys))
+            {
+                if (topic == ConnectivityMetaTopic)
+                {
+                    continue;
+                }
+                var list = _revealBuffer[topic];
+                list.RemoveAll(entry => double.IsInfinity(entry.Delay));
+                if (list.Count == 0)
+                {
+                    _revealBuffer.Remove(topic);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Prune connectivity transitions that no buffered sample can ever query
+        /// again — every entry strictly older than the oldest still-buffered
+        /// sample's UT is unreachable by ConnectivityAt. Keeps the LAST such
+        /// entry (the state in force at the oldest buffered UT) so a lookup at
+        /// that boundary still resolves. Called each tick after FlushReveal.
+        /// Bounds the history by the reveal window, never by session length.
+        /// </summary>
+        private void PruneConnectivityHistory()
+        {
+            if (_connectivityHistory.Count <= 1)
+            {
+                return;
+            }
+
+            var oldestBufferedUt = double.PositiveInfinity;
+            foreach (var list in _revealBuffer.Values)
+            {
+                foreach (var entry in list)
+                {
+                    if (entry.Ut < oldestBufferedUt)
+                    {
+                        oldestBufferedUt = entry.Ut;
+                    }
+                }
+            }
+
+            // Find the last transition at or before the oldest buffered UT —
+            // everything strictly before it is unreachable. If nothing is
+            // buffered, collapse to the current state alone.
+            var keepFrom = 0;
+            for (var i = 0; i < _connectivityHistory.Count; i++)
+            {
+                if (_connectivityHistory[i].Ut <= oldestBufferedUt)
+                {
+                    keepFrom = i;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (keepFrom > 0)
+            {
+                _connectivityHistory.RemoveRange(0, keepFrom);
             }
         }
 
@@ -2267,21 +2462,20 @@ namespace Sitrep.Host
                 return;
             }
 
-            // Freeze-on-disconnect: while the link is down, release NOTHING —
-            // not even an entry buffered BEFORE the outage whose finite
-            // pre-outage horizon the advancing clock would otherwise overtake.
-            // You can't receive what never arrived; delivery stays frozen at
-            // last-known until reconnect. (New emits during the outage were
-            // buffered with an infinite horizon by RevealDelayFor, so this guard
-            // is what additionally freezes the still-in-flight finite ones.)
-            if (!_commsConnected)
-            {
-                return;
-            }
-
+            // Freeze-on-disconnect is now PER-ENTRY, not a global early-return.
+            // The pre-outage in-flight tail (finite horizon, captured while the
+            // link was up) MUST still reveal as the advancing clock overtakes it
+            // — that is the "last delaySeconds of pre-outage telemetry arrives,
+            // THEN freezes" behaviour. Only samples captured DURING the blackout
+            // are withheld: non-MetaTopic ones carry an infinite horizon
+            // (RevealDelayFor's !_commsConnected branch) so they never mature,
+            // and the connectivity gate below is the belt-and-braces guard. The
+            // connectivity MetaTopic (comms.link) is exempt so its disconnect
+            // edge + through-blackout state reveal at now-delay.
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
                 var list = _revealBuffer[topic];
+                var isMetaTopic = topic == ConnectivityMetaTopic;
 
                 var writeIdx = 0;
                 for (var readIdx = 0; readIdx < list.Count; readIdx++)
@@ -2292,7 +2486,14 @@ namespace Sitrep.Host
                     // not the current delay re-read here. A later drop of the
                     // delay authority to 0 therefore cannot prematurely reveal a
                     // still-future sample.
-                    if (entry.Ut <= now - entry.Delay)
+                    var horizonReached = entry.Ut <= now - entry.Delay;
+                    // Per-entry freeze gate: the MetaTopic always passes; every
+                    // other topic reveals only samples captured while the link
+                    // was up at their UT. A finite-horizon non-MetaTopic entry
+                    // is only ever buffered while connected, so ConnectivityAt is
+                    // true for it — this gate's real work is letting the MetaTopic
+                    // through (whose blackout samples carry connected:false).
+                    if (horizonReached && (isMetaTopic || ConnectivityAt(entry.Ut)))
                     {
                         _courier.Record(NodeId, topic, entry.Value, entry.Ut, DeliveryFor(topic));
                     }
@@ -2334,6 +2535,12 @@ namespace Sitrep.Host
                 // new one (the reveal-gate analogue of ResetTimeline dropping
                 // in-flight Courier deliveries — §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
+                // The connectivity history's UTs belong to the abandoned
+                // timeline too — collapse it to the current link state seeded at
+                // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
+                // state rather than querying pre-rewind transitions.
+                _connectivityHistory.Clear();
+                _connectivityHistory.Add((double.NegativeInfinity, _commsConnected));
                 // Same abandoned-timeline treatment for the pending-uplink
                 // roster: every in-flight prediction belonged to the pre-rewind
                 // timeline (its DispatchedAt/OneWaySeconds no longer mean
@@ -2543,6 +2750,7 @@ namespace Sitrep.Host
             // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
             // Courier schedules fire within this same clock advance (§7.3 Step 1/3).
             FlushReveal(tick.Ut);
+            PruneConnectivityHistory();
 
             _clock.AdvanceTo(tick.Ut);
             tick.Done?.Set();
