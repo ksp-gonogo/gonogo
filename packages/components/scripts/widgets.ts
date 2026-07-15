@@ -1075,6 +1075,25 @@ const WIDGETS: WidgetRenderConfig[] = [
       // wide — generous horizontal room; the terminal itself stays a fixed
       // 80×24 grid (KOS_TERM_COLS/ROWS) regardless of container size.
       { name: "wide-24x15", w: 24, h: 15 },
+      // Char-mode + comms.delay + no-path repro (`char-mode-badges` fixture
+      // only) — exercises the DelayBadge/NoPathBadge chrome the happy-path
+      // `basic-session` fixture never triggers (no comms.* emits). Two sizes
+      // catch the "badge renders outside the widget box" bug at both the
+      // tightest placement and the common operator view.
+      {
+        name: "char-mode-8x6",
+        w: 8,
+        h: 6,
+        config: { lineMode: false },
+        forFixtures: ["char-mode-badges"],
+      },
+      {
+        name: "char-mode-18x15",
+        w: 18,
+        h: 15,
+        config: { lineMode: false },
+        forFixtures: ["char-mode-badges"],
+      },
     ],
   },
 ];
