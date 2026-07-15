@@ -61,6 +61,19 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // Comms signal-delay channel (CommsCoreUplink, TrueNow) — the headline
   // delay readout behind CommSignal's comm.signalDelay.
   "comms.delay",
+  // System View / Fleet-Comms augment (Phase 1 spine,
+  // docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md):
+  // the active-vessel comms-path highlight + connectivity styling and the
+  // command-traffic (pending-uplink) overlay. All three are read via
+  // `useLatestValue` (TrueNow command-centre bookkeeping, not delayed craft
+  // telemetry — same class as `comms.delay` above), but promoted here anyway
+  // per this file's own "every mod-served raw topic is catalogued"
+  // convention. `comms.network` is deliberately NOT listed — the Phase 1
+  // augment doesn't read it (no per-node positions to draw a relay graph
+  // with yet; deferred to Phase 2).
+  "comms.path",
+  "comms.connectivity",
+  "system.uplink.pending",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —
