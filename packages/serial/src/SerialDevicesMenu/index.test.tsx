@@ -98,4 +98,37 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     renderMenu();
     expect(screen.queryByRole("status")).toBeNull();
   });
+
+  it("still offers a gamepad device Connect button when web-serial is unsupported — the Gamepad API is cross-browser", async () => {
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: undefined,
+    });
+    setSecureContext(true);
+    const svc = new SerialDeviceService({
+      screenKey: "gp-no-web-serial",
+      storage: memoryStorage(),
+      renderDebounceMs: 0,
+    });
+    svc.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+    render(
+      <SerialDeviceProvider service={svc}>
+        <SerialDevicesMenu />
+      </SerialDeviceProvider>,
+    );
+
+    // The unsupported-browser banner is still there (this is genuinely a
+    // browser without web-serial)...
+    expect(screen.getByRole("status").textContent).toMatch(
+      /not available in this browser/i,
+    );
+    // ...but it does not block the gamepad device from getting a Connect
+    // affordance.
+    expect(screen.getByRole("button", { name: "Connect" })).not.toBeNull();
+  });
 });
