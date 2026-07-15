@@ -90,12 +90,19 @@ export function useDelayedKerbcastStream(
   });
   useEffect(() => {
     sampleRef.current = { ut: captureUt, warpRate, atMs: performance.now() };
-    // Diagnostic: what does the consumer's `useKerbcastClock` actually yield?
-    // If this stays null while the connected client logs advancing
-    // `captureUt` (same `kerbcast:clock` tag), the delay path is starved
-    // downstream of the SDK client — the break kerbcast's reply pinpointed.
+    // Diagnostic: what does the consumer's `useKerbcastClock` actually yield,
+    // and how much delay is the ViewClock applying to it? `captureUt` null
+    // while the connected client logs advancing `captureUt` would mean the
+    // path is starved downstream of the SDK client (kerbcast's suspicion).
+    // `utNow - edge` is the delay in seconds the buffer holds each frame by
+    // (a frame stamped `captureUt` releases when `edge` sweeps past it), so
+    // it directly answers "is the camera actually delayed, and by how much".
     logger.tag("kerbcast:clock").debug("consumer clock sample", {
-      context: { captureUt, warpRate, hasView: view !== undefined },
+      captureUt,
+      warpRate,
+      hasView: view !== undefined,
+      utNow: view?.utNowEstimate() ?? null,
+      edgeUt: view?.confirmedEdgeUt() ?? null,
     });
   }, [captureUt, warpRate, view]);
 
