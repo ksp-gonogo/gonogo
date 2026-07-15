@@ -1053,6 +1053,30 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-9x12", w: 9, h: 12 },
     ],
   },
+  {
+    // kOS Terminal (mod/Gonogo.Kos/client/src/KosTerminal). A STREAM-DRIVEN
+    // widget — it reads `kos.processors` / `kos.terminal.<coreId>` straight
+    // off a mounted TelemetryProvider via `useStream`/`useStreamEvent`, never
+    // through the `"data"`/`"kos"` DataSource registry the rest of this file
+    // assumes. Its fixture therefore carries a top-level `_stream` block
+    // (carriedChannels + pinnedUt + emits) instead of plain data keys — see
+    // probe-entry.tsx's `_stream` fixture path. Fixture lives under
+    // `packages/components/src/KosTerminal/__fixtures__` purely because
+    // `fixturesPath` resolves against `packages/components/src/`, not
+    // because the widget's source lives there (it doesn't).
+    widgetId: "kos-terminal",
+    fixturesPath: "KosTerminal/__fixtures__",
+    outPath: "renders/kos-terminal-widget",
+    modes: [
+      // minSize 8×6 — tightest placement the widget allows.
+      { name: "min-8x6", w: 8, h: 6 },
+      // defaultSize 18×15 — the common operator view.
+      { name: "default-18x15", w: 18, h: 15 },
+      // wide — generous horizontal room; the terminal itself stays a fixed
+      // 80×24 grid (KOS_TERM_COLS/ROWS) regardless of container size.
+      { name: "wide-24x15", w: 24, h: 15 },
+    ],
+  },
 ];
 
 /**
