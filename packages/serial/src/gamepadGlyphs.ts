@@ -22,7 +22,7 @@
 //     files — left as-is, a later-parsed glyph's rules would clobber an
 //     earlier one's fills/strokes the moment more than one glyph is on
 //     the page at once.
-//   - `#fff` was replaced with `currentColor` so glyphs recolour with the
+//   - the white fill was replaced with `currentColor` so glyphs recolour with the
 //     active theme instead of always rendering white.
 //
 // Only the White/Outline set is vendored — `currentColor` covers both

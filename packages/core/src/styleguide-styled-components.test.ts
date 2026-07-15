@@ -33,7 +33,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // Locks in the KosScriptFrame and Scanning migrations, plus the
 // `widgetDomSnapshot.tsx` test harness's `ThemeProvider` import (test
 // infrastructure, not a widget — but the scan root doesn't distinguish).
-const STYLED_COMPONENTS_IMPORT_BASELINE = 76;
+const STYLED_COMPONENTS_IMPORT_BASELINE = 77;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

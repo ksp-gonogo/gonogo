@@ -230,6 +230,18 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // line-mode command whose composed text becomes the queue label —
     // comment-only, no kOS coupling in the client spine.
     "packages/sitrep-client/src/client.ts",
+    // -- comment/doc + pending-topic mentions (no kOS coupling) --
+    // FleetComms + CameraFeed doc-comments reference `KosTerminal`'s
+    // in-transit-strip / command-response pattern; Comms.cs's CommsLink doc
+    // mentions the kOS terminal reading comms.link. FleetComms/pendingPulse
+    // render `system.uplink.pending` entries whose commands include
+    // kos.run/kos.keystroke (topic-string mention, like UplinkPending.cs).
+    "packages/components/src/FleetComms/index.tsx",
+    "packages/components/src/FleetComms/pendingPulse.ts",
+    "packages/components/src/FleetComms/slot.test.tsx",
+    "packages/kerbcast/src/CameraFeed/CameraFeed.tsx",
+    "packages/kerbcast/src/CameraFeed/CameraFeed.test.tsx",
+    "mod/Sitrep.Contract/Comms.cs",
     "packages/sitrep-client/src/default-carried-topics.ts",
     "packages/sitrep-client/src/map-command.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
