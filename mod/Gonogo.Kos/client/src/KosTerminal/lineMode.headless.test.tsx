@@ -297,4 +297,26 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     act(() => term().dataHandler("\x1b[B"));
     expect(compositionText()).toBe("");
   });
+
+  it("Ctrl+C clears the composition bar and sends an interrupt keystroke", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    expect(compositionText()).toBe("run.");
+
+    act(() => term().dataHandler("\x03"));
+
+    expect(compositionText()).toBe("");
+    await waitFor(() => {
+      const interrupt = f.transport.sentCommands.find(
+        (c) =>
+          c.command === "kos.keystroke" &&
+          (c.args as { chars: string }).chars === "\x03",
+      );
+      expect(interrupt).toBeDefined();
+      expect(interrupt?.topic).toBe("kos/7");
+    });
+  });
 });
