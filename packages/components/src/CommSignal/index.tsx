@@ -208,7 +208,12 @@ function CommSignalComponent({
             <GridValue $tone={control.tone}>{control.label}</GridValue>
             <GridLabel>Delay</GridLabel>
             <GridValue>
-              {delay === undefined ? "—" : formatDuration(delay, { ms: true })}
+              {/* null (no measurable ControlPath) reads the same as
+                  undefined (nothing arrived yet) — comms-delay-nullable-
+                  when-no-path fix: neither is a number to format. */}
+              {typeof delay === "number"
+                ? formatDuration(delay, { ms: true })
+                : "—"}
             </GridValue>
           </Grid>
         )}

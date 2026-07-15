@@ -269,7 +269,13 @@ function KosTerminalScreen({
   // `useLatestValue`/`useUtNow` read the client's raw sticky value / the
   // clock's undelayed `utNowEstimate()` directly, so the strip tracks real
   // dispatch time instead of the delayed view.
-  const commsDelay = useLatestValue<{ oneWaySeconds: number }>("comms.delay");
+  // `oneWaySeconds` is nullable — null when there is no measurable
+  // ControlPath, as opposed to 0 for the delay-feature-disabled-but-
+  // connected case (comms-delay-nullable-when-no-path fix). Both read as
+  // "nothing to show" below, same as the pre-fix 0 sentinel did.
+  const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
+    "comms.delay",
+  );
 
   // PURE prediction fuel for the strip below. Nothing here is ever read for
   // anything execution/result-shaped: the payload has no such field, and a
@@ -467,13 +473,13 @@ function KosTerminalScreen({
   // long delay gets neither (it dispatches no commands, so nothing to queue).
   const showBadge =
     commsDelay !== undefined &&
-    commsDelay.oneWaySeconds > 0 &&
-    (!lineMode || commsDelay.oneWaySeconds <= 1);
+    (commsDelay.oneWaySeconds ?? 0) > 0 &&
+    (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
   const showStrip =
     lineMode &&
     !readOnly &&
     commsDelay !== undefined &&
-    commsDelay.oneWaySeconds > 1 &&
+    (commsDelay.oneWaySeconds ?? 0) > 1 &&
     utNow !== undefined;
   // Narrowed, non-optional locals for the JSX below — `showBadge`/`showStrip`
   // are plain booleans, so TS can't carry their truthiness back onto
@@ -496,7 +502,7 @@ function KosTerminalScreen({
       )}
       {badgeDelay && (
         <DelayBadge aria-label="Signal delay">
-          round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
+          round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
         </DelayBadge>
       )}
       {stripUtNow !== undefined && myPending.length > 0 && (

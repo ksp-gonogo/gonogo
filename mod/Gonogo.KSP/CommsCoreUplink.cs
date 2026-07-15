@@ -245,9 +245,11 @@ namespace Gonogo.KSP
             }
 
             // A transient backend-read THROW must PROPAGATE, not be swallowed
-            // into NoneDelay (OneWaySeconds=0). Dropping the delay to 0 on a
-            // one-tick read blip would momentarily collapse the reveal horizon
-            // and prematurely reveal a still-in-flight Delayed sample. The
+            // into a None result (OneWaySeconds null/0, per
+            // CommsDelay.OneWaySeconds's typed-absence split). Dropping the
+            // delay on a one-tick read blip would momentarily collapse the
+            // reveal horizon and prematurely reveal a still-in-flight Delayed
+            // sample. The
             // engine's recoverable delay fail-soft
             // (ChannelEngine.CaptureSignalDelayOnMain →
             // RefreshSignalDelayFromCapability → FailSoftSignalDelaySource)

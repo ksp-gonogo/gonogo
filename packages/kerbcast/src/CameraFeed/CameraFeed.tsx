@@ -252,7 +252,7 @@ export function CameraFeed({
   // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
   // (gonogo's own SignalDelay authority) — same clean-name convention as
   // `comm.signalStrength`/`comm.connected` above.
-  const signalDelay = useDataValue<number>("data", "comm.signalDelay");
+  const signalDelay = useDataValue<number | null>("data", "comm.signalDelay");
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -359,10 +359,11 @@ interface QualityBadgeInfo extends StatusBadgeInfo {
 // Signal-delay badge: ONE-WAY light-time only. This is a downlink — the
 // footage on screen left the craft `signalDelay` seconds ago — so unlike an
 // interactive command/response path (e.g. the kOS terminal) there is no
-// round-trip to double. Hidden at 0/undefined (LAN / no delay authority
-// mounted), matching the "unobtrusive" brief: nothing to show, show nothing.
+// round-trip to double. Hidden at 0/null/undefined (LAN, no measurable
+// path, or no delay authority mounted — comms-delay-nullable-when-no-path
+// fix), matching the "unobtrusive" brief: nothing to show, show nothing.
 function describeSignalDelay(
-  signalDelay: number | undefined,
+  signalDelay: number | null | undefined,
 ): StatusBadgeInfo | null {
   if (
     typeof signalDelay !== "number" ||

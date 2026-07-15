@@ -314,6 +314,34 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("char-mode: no measurable path (null oneWaySeconds) hides the badge instead of crashing", async () => {
+    // comms-delay-nullable-when-no-path fix: `oneWaySeconds` is null when
+    // there is no measurable ControlPath (as opposed to 0 for the
+    // delay-disabled-but-connected case). The badge must treat null the same
+    // as the old 0 sentinel — hidden, never a runtime crash on `null * 2`.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: null,
+        source: "None",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Signal delay")).not.toBeInTheDocument();
+    });
+  });
+
   it("line-mode: sends the whole composed line as one keystroke on Enter", async () => {
     const fixture = terminalFixture();
     render(

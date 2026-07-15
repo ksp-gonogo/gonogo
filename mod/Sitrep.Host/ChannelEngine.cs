@@ -2154,12 +2154,18 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Update <see cref="_signalDelaySeconds"/> from a just-emitted
-        /// <c>comms.delay</c> payload. <see cref="CommsDelaySource.None"/> (and
-        /// the flag-off / no-geometry cases that produce it) already carries
-        /// <c>OneWaySeconds == 0</c>, so the raw value is used directly. An
-        /// unrecognized payload leaves the previous delay untouched (fail-soft
-        /// — never reveals a Delayed channel earlier than the last known-good
-        /// horizon by accident).
+        /// <c>comms.delay</c> payload. <see cref="CommsDelaySource.None"/>
+        /// now covers two DIFFERENT values (comms-delay-nullable-when-no-path
+        /// fix — see <see cref="CommsDelay.OneWaySeconds"/>'s own doc
+        /// comment): 0 for delay-disabled-but-connected, null for no
+        /// measurable path. This gate is UNCHANGED by that split — it only
+        /// ever cared about "is there a positive delay to enforce", and both
+        /// None cases collapse to "no" the same way 0 always did, so null
+        /// coalesces to 0 here (<see cref="RevealDelayFor"/>'s ≤0 branch
+        /// handles the rest via <see cref="_commsConnected"/>, not this
+        /// magnitude). An unrecognized payload leaves the previous delay
+        /// untouched (fail-soft — never reveals a Delayed channel earlier than
+        /// the last known-good horizon by accident).
         /// </summary>
         private void CaptureSignalDelay(object? value)
         {
@@ -2175,7 +2181,7 @@ namespace Sitrep.Host
                 {
                     _lastConnectedDelaySeconds = _signalDelaySeconds;
                 }
-                _signalDelaySeconds = commsDelay.OneWaySeconds;
+                _signalDelaySeconds = commsDelay.OneWaySeconds ?? 0.0;
             }
         }
 
