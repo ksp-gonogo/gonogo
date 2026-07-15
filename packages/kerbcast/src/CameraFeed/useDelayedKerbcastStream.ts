@@ -103,6 +103,11 @@ export function useDelayedKerbcastStream(
       hasView: view !== undefined,
       utNow: view?.utNowEstimate() ?? null,
       edgeUt: view?.confirmedEdgeUt() ?? null,
+      // Pure one-way signal delay, separate from the sample-cadence clamp in
+      // `confirmedEdgeUt` — `utNow - edge` is `max(delaySeconds, sample lag)`,
+      // so log `delaySeconds` too to tell a light-time hold from mere
+      // telemetry-cadence certainty lag.
+      delaySeconds: view?.delaySeconds() ?? null,
     });
   }, [captureUt, warpRate, view]);
 
