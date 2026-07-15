@@ -159,7 +159,7 @@ export function CameraFeed({
       .__kcInstanceId;
     logger
       .tag("kerbcast:clock")
-      .debug("CameraFeed provider client", { context: { instanceId } });
+      .debug("CameraFeed provider client", { instanceId });
   }, [client]);
 
   // Build the subscriptions adapter once per data source so acquire/release

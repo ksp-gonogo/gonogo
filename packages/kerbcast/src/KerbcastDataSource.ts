@@ -749,9 +749,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     const instanceId = ++KerbcastDataSource.clientInstanceSeq;
     (client as unknown as { __kcInstanceId?: number }).__kcInstanceId =
       instanceId;
-    logger
-      .tag("kerbcast:clock")
-      .debug("built KerbcastClient", { context: { instanceId } });
+    logger.tag("kerbcast:clock").debug("built KerbcastClient", { instanceId });
     this.clientUnsubs.push(
       client.on("state-change", (s) => {
         const status = mapStatus(s);
@@ -785,11 +783,9 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
         logger
           .tag("kerbcast:clock")
           .debug("settings-change on connected client", {
-            context: {
-              instanceId,
-              payloadCaptureUt: payload.captureUt ?? null,
-              clockCaptureUt: client.clock.captureUt,
-            },
+            instanceId,
+            payloadCaptureUt: payload.captureUt ?? null,
+            clockCaptureUt: client.clock.captureUt,
           });
         this.throttleListeners.forEach((cb) => {
           cb(payload.throttleMainScreen);
