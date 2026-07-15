@@ -3,6 +3,11 @@ import { useState } from "react";
 import styled from "styled-components";
 import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
 import {
+  CC_BY_3_LICENSE_URL,
+  GAMEPAD_ART_CHANGES_NOTE,
+  GAMEPAD_ART_CREDITS,
+} from "../gamepadAttribution";
+import {
   useSerialDeviceService,
   useSerialDeviceStatus,
   useSerialDevices,
@@ -45,7 +50,38 @@ export function SerialDevicesMenu() {
           { id: "types", label: "Device Types", content: <TypesTab /> },
         ]}
       />
+      <GamepadArtCredit />
     </Wrap>
+  );
+}
+
+/**
+ * CC BY 3.0 attribution for the vendored gamepad button glyphs — required
+ * by the licence, not a nicety (it's also prescriptive about the wording;
+ * see gamepadAttribution.ts). Always visible, not gated on having a
+ * gamepad device configured — cheap, and avoids the credit disappearing
+ * the moment a device is removed.
+ */
+function GamepadArtCredit() {
+  return (
+    <Credit>
+      Gamepad button glyphs:{" "}
+      {GAMEPAD_ART_CREDITS.map((c, i) => (
+        <span key={c.productTitle}>
+          {i > 0 && " · "}
+          {c.productTitle} by {c.author} (
+          <a href={c.sourceUrl} target="_blank" rel="noreferrer">
+            {c.sourceUrl}
+          </a>
+          )
+        </span>
+      ))}
+      , licensed{" "}
+      <a href={CC_BY_3_LICENSE_URL} target="_blank" rel="noreferrer">
+        CC BY 3.0
+      </a>
+      . {GAMEPAD_ART_CHANGES_NOTE}
+    </Credit>
   );
 }
 
@@ -97,11 +133,7 @@ function DevicesTab() {
               + add self-describing
             </Button>
           )}
-          <Button
-            type="button"
-            onClick={() => setEditing("new")}
-            disabled={types.length === 0}
-          >
+          <Button type="button" onClick={() => setEditing("new")}>
             + add device
           </Button>
         </ToolbarButtons>
@@ -134,15 +166,17 @@ function WebSerialBanner({
         <code>http://localhost</code>. Either open the app via{" "}
         <code>localhost</code>/HTTPS, or whitelist this origin at{" "}
         <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>{" "}
-        and relaunch. Virtual devices work regardless.
+        and relaunch. Virtual and gamepad devices work regardless — this only
+        affects USB serial hardware.
       </WebSerialUnavailableBanner>
     );
   }
   return (
     <WebSerialUnavailableBanner role="status">
       <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable —</BannerLabel> Web
-      Serial is not available in this browser. Virtual devices still work; real
-      USB hardware needs a Chromium-based browser on desktop or Android.
+      Serial is not available in this browser. Virtual and gamepad devices still
+      work here — the Gamepad API is cross-browser; only USB serial hardware
+      needs a Chromium-based browser on desktop or Android.
     </WebSerialUnavailableBanner>
   );
 }
@@ -194,16 +228,18 @@ function DeviceRow({
         </PendingPicker>
       )}
       <RowActions>
-        {device.transport === "web-serial" && status !== "connected" && (
-          <Button
-            type="button"
-            onClick={() => {
-              void svc.connect(device.id);
-            }}
-          >
-            Connect
-          </Button>
-        )}
+        {(device.transport === "web-serial" ||
+          device.transport === "gamepad") &&
+          status !== "connected" && (
+            <Button
+              type="button"
+              onClick={() => {
+                void svc.connect(device.id);
+              }}
+            >
+              Connect
+            </Button>
+          )}
         {status === "connected" && (
           <GhostButton
             onClick={() => {
@@ -313,6 +349,20 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 440px;
+`;
+
+const Credit = styled.p`
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+  line-height: 1.5;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
 `;
 
 const List = styled.div`

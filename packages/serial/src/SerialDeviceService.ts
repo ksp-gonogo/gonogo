@@ -1,4 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
+import { detectGamepadPack } from "./detectGamepadPack";
 import { getSerialRenderStyle } from "./registry";
 
 const trace = logger.tag("serial:transport");
@@ -6,21 +7,22 @@ const trace = logger.tag("serial:transport");
 // service can resolve `text-buffer-168` without the caller opting in.
 // Do not remove without first moving registration elsewhere.
 import "./renderStyles/textBuffer";
-import { defaultVirtualDevice, VIRTUAL_CONTROLLER_TYPE } from "./seeds";
+import {
+  defaultVirtualDevice,
+  GAMEPAD_PLACEHOLDER_TYPE,
+  VIRTUAL_CONTROLLER_TYPE,
+} from "./seeds";
 import type {
   DeviceTransport,
   InputEvent,
+  SchemaUpdate,
   TransportStatus,
 } from "./transports/DeviceTransport";
+import { GamepadTransport } from "./transports/GamepadTransport";
 import { VirtualTransport } from "./transports/VirtualTransport";
 import { WebSerialTransport } from "./transports/WebSerialTransport";
 import { TypedListeners } from "./typedListeners";
-import type {
-  DeviceInput,
-  DeviceInstance,
-  DeviceRenderStyle,
-  DeviceType,
-} from "./types";
+import type { DeviceInstance, DeviceRenderStyle, DeviceType } from "./types";
 
 const DEVICE_TYPES_KEY = "gonogo.serial.device-types";
 const DEFAULT_RENDER_DEBOUNCE_MS = 100;
@@ -31,14 +33,31 @@ export type TransportFactory = (
 ) => DeviceTransport;
 
 const defaultTransportFactory: TransportFactory = (instance, deviceType) => {
-  if (instance.transport === "virtual")
-    return new VirtualTransport(instance.id);
-  return new WebSerialTransport({
-    id: instance.id,
-    deviceType,
-    baudRate: instance.baudRate,
-    filters: instance.filters,
-  });
+  switch (instance.transport) {
+    case "virtual":
+      return new VirtualTransport(instance.id);
+    case "gamepad":
+      return new GamepadTransport({
+        id: instance.id,
+        deviceType,
+        gamepadId: instance.gamepadId,
+      });
+    case "web-serial":
+      return new WebSerialTransport({
+        id: instance.id,
+        deviceType,
+        baudRate: instance.baudRate,
+        filters: instance.filters,
+      });
+    default: {
+      // Exhaustiveness check — a new DeviceTransportKind that isn't handled
+      // above is a compile error here, not a silent fallthrough to
+      // WebSerialTransport (the bug this switch replaced a fallthrough
+      // `else` to guard against).
+      const _never: never = instance.transport;
+      throw new Error(`Unhandled device transport kind: ${_never}`);
+    }
+  }
 };
 
 interface ManagedDevice {
@@ -122,7 +141,22 @@ export class SerialDeviceService {
     this.loadDeviceTypes();
     this.loadDevices();
     this.seedDefaultsIfEmpty();
+    this.ensureGamepadPlaceholderType();
     this.attachNavigatorListeners();
+  }
+
+  /**
+   * Unlike `seedDefaultsIfEmpty` (which only seeds on a truly empty
+   * install), this always makes sure the gamepad placeholder type exists —
+   * a screen that already has other device types (the common case after
+   * first run) still needs somewhere for a brand new gamepad device to
+   * point before it has ever paired with a physical pad. Idempotent and
+   * purely additive: never touches an existing saved type or instance.
+   */
+  private ensureGamepadPlaceholderType(): void {
+    if (this.deviceTypes.has(GAMEPAD_PLACEHOLDER_TYPE.id)) return;
+    this.deviceTypes.set(GAMEPAD_PLACEHOLDER_TYPE.id, GAMEPAD_PLACEHOLDER_TYPE);
+    this.saveDeviceTypes();
   }
 
   /**
@@ -440,8 +474,14 @@ export class SerialDeviceService {
     // Self-describing device types belong to a single instance — when that
     // instance goes, the type would otherwise dangle in the type editor with
     // no way to manage it. Drop it once the last referring device is gone.
+    // Exempt the gamepad placeholder: it's a shared landing type for every
+    // brand new (never-yet-paired) gamepad device, not a per-device type —
+    // deleting it here would break the *next* "add device" until the next
+    // page load re-seeds it (ensureGamepadPlaceholderType runs once, in the
+    // constructor, not on every removeDevice).
     if (
       isDeviceAuthored &&
+      orphanedTypeId !== GAMEPAD_PLACEHOLDER_TYPE.id &&
       this.deviceTypes.has(orphanedTypeId) &&
       !Array.from(this.managed.values()).some(
         (m) => m.instance.typeId === orphanedTypeId,
@@ -766,33 +806,73 @@ export class SerialDeviceService {
    * marks the type as device-authored, and swaps the transport's cached
    * reference so the next tick parses against the new shape.
    */
-  private handleSchemaUpdate(
-    deviceId: string,
-    update: {
-      inputs?: DeviceInput[] | null;
-      screen?: { type: string; [key: string]: unknown } | null;
-    },
-  ): void {
+  private handleSchemaUpdate(deviceId: string, update: SchemaUpdate): void {
     const managed = this.managed.get(deviceId);
     if (!managed) return;
     const current = managed.deviceType;
-    let changed = false;
-    const next: DeviceType = { ...current, authoredBy: "device" };
-    if (current.authoredBy !== "device") changed = true;
+
+    // Resolve which DeviceType this update targets. json-state devices
+    // never send `typeId`, so `targetTypeId` defaults to "the type this
+    // instance already has" — unchanged behaviour. GamepadTransport does
+    // send it (shape-derived — see gamepadShape.ts), so pads reporting the
+    // same shape land on the same type instead of each connection
+    // breeding a near-duplicate.
+    const targetTypeId = update.typeId ?? current.id;
+    const targetBase =
+      targetTypeId === current.id
+        ? current
+        : (this.deviceTypes.get(targetTypeId) ?? current);
+
+    let typeChanged = false;
+    const next: DeviceType = {
+      ...targetBase,
+      id: targetTypeId,
+      authoredBy: "device",
+    };
+    if (targetBase.authoredBy !== "device") typeChanged = true;
+    if (targetTypeId !== current.id) typeChanged = true;
 
     if (update.inputs) {
       next.inputs = update.inputs;
-      changed = true;
+      typeChanged = true;
     }
     if (update.screen) {
       const { type: screenType, ...rest } = update.screen;
       if (screenType === "txt") {
         next.renderStyleId = "text-buffer";
         next.renderStyleConfig = rest;
-        changed = true;
+        typeChanged = true;
       }
     }
-    if (!changed) return;
+
+    let nextInstance = managed.instance;
+    let instanceChanged = false;
+    if (targetTypeId !== nextInstance.typeId) {
+      nextInstance = { ...nextInstance, typeId: targetTypeId };
+      instanceChanged = true;
+    }
+    if (update.gamepadId && update.gamepadId !== nextInstance.gamepadId) {
+      // First-ever pairing for this instance — preselect a label pack from
+      // the pad's id. A hint, not authority: only fires once (gamepadId
+      // transitioning unset -> set) and only if the user hasn't already
+      // chosen a pack, so an explicit choice is never re-detected over.
+      const isFirstPairing = !nextInstance.gamepadId;
+      nextInstance = { ...nextInstance, gamepadId: update.gamepadId };
+      if (isFirstPairing && nextInstance.labelPack === undefined) {
+        nextInstance = {
+          ...nextInstance,
+          labelPack: detectGamepadPack(update.gamepadId),
+        };
+      }
+      instanceChanged = true;
+    }
+    if (instanceChanged) {
+      managed.instance = nextInstance;
+      this.saveDevices();
+      this.emitDevicesChange();
+    }
+
+    if (!typeChanged) return;
 
     this.deviceTypes.set(next.id, next);
     managed.deviceType = next;

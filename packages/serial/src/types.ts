@@ -4,6 +4,9 @@
 // via the SerialDeviceService in @ksp-gonogo/app). RenderStyles are code-defined
 // and live in a singleton registry here (see ./registry.ts).
 
+import type { LabelPack } from "./gamepadLabels";
+import type { GamepadRole } from "./gamepadRoles";
+
 export type DeviceInputKind = "button" | "analog";
 
 /**
@@ -42,6 +45,23 @@ export interface DeviceInput {
   deadzone?: number;
   /** Response curve applied after deadzone. Default `linear`. */
   curve?: AnalogCurve;
+  /**
+   * Analog range convention. `bipolar` (default) spans -1..1 — sticks,
+   * which rest at centre. `unipolar` spans 0..1 — triggers, which rest at
+   * zero. Ignored for buttons. Independent of `role`: under a non-standard
+   * gamepad mapping a trigger may arrive as either, so this stays a
+   * separate, explicitly-set field rather than something derived.
+   */
+  polarity?: "bipolar" | "unipolar";
+  /**
+   * Canonical physical position (gamepad transport only) — e.g.
+   * `face-south`, `stick-left-x`. Assigned automatically when a live pad
+   * reports the W3C standard mapping; absent for non-standard pads and for
+   * every non-gamepad transport. Display metadata only: never implies
+   * `kind`/`polarity`, and `inputId` (not `role`) remains the binding key,
+   * so re-labelling never touches a saved binding.
+   */
+  role?: GamepadRole;
 }
 
 export type DeviceParserId = "char-position" | "json-state";
@@ -73,12 +93,13 @@ export interface DeviceType {
   authoredBy?: DeviceTypeAuthor;
 }
 
-export type DeviceTransportKind = "web-serial" | "virtual";
+export type DeviceTransportKind = "web-serial" | "virtual" | "gamepad";
 
 /**
  * A user-registered physical or virtual device on a given screen. `transport`
  * selects how the SerialDeviceService opens the device; web-serial options
- * are only relevant when `transport === "web-serial"`.
+ * are only relevant when `transport === "web-serial"`, gamepad options only
+ * when `transport === "gamepad"`.
  */
 export interface DeviceInstance {
   id: string;
@@ -88,6 +109,23 @@ export interface DeviceInstance {
   baudRate?: number;
   filters?: SerialPortFilter[];
   portInfo?: { vendorId?: number; productId?: number };
+  /**
+   * Vendor button-label pack for a gamepad device. `undefined` means
+   * "not yet chosen" — preselected once from `gamepad.id` the first time
+   * this instance pairs with a physical pad (see
+   * SerialDeviceService.handleSchemaUpdate), and never re-detected over an
+   * explicit choice afterwards. Renders as `positional` (name-only, no
+   * glyphs) until then.
+   */
+  labelPack?: LabelPack;
+  /**
+   * `gamepad.id` of the physical pad this instance last paired with.
+   * `index` isn't stable across reconnects and `id` alone isn't unique, so
+   * this plus a per-poller claimed-index set is how a reconnect finds the
+   * right physical pad without stealing one already claimed by another
+   * instance. Learned automatically on first pairing; never user-edited.
+   */
+  gamepadId?: string;
 }
 
 /**

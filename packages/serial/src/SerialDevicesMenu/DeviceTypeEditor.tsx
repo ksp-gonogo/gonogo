@@ -112,6 +112,7 @@ export function DeviceTypeEditor({
             max: i.max,
             deadzone: i.deadzone,
             curve: i.curve,
+            polarity: i.polarity,
           })),
       renderStyleConfig: initial?.renderStyleConfig,
       authoredBy: initial?.authoredBy,
@@ -311,6 +312,23 @@ export function DeviceTypeEditor({
                     <option value="linear">linear</option>
                     <option value="squared">squared</option>
                     <option value="cubic">cubic</option>
+                  </Select>
+                </TinyField>
+                <TinyField>
+                  <FieldLabel htmlFor={`input-polarity-${idx}`}>
+                    Range
+                  </FieldLabel>
+                  <Select
+                    id={`input-polarity-${idx}`}
+                    value={input.polarity ?? "bipolar"}
+                    onChange={(e) =>
+                      updateInput(idx, {
+                        polarity: e.target.value as "bipolar" | "unipolar",
+                      })
+                    }
+                  >
+                    <option value="bipolar">bipolar (-1..1)</option>
+                    <option value="unipolar">unipolar (0..1)</option>
                   </Select>
                 </TinyField>
               </>
