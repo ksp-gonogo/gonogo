@@ -95,7 +95,7 @@ describe("SerialDevicesMenu", () => {
     expect(devices[0].typeId).toBe("panel");
   });
 
-  it("disables add-device when no types are registered", async () => {
+  it("keeps add-device enabled with no types (a gamepad is always creatable)", async () => {
     const svc = await makeEmptyService();
     render(
       <SerialDeviceProvider service={svc}>
@@ -105,7 +105,9 @@ describe("SerialDevicesMenu", () => {
       </SerialDeviceProvider>,
     );
 
+    // The gamepad transport needs no pre-existing user type, so add-device is
+    // always available now — the old "disabled when no types" guard was removed.
     const addBtn = screen.getByRole("button", { name: /add device/i });
-    expect(addBtn).toBeDisabled();
+    expect(addBtn).toBeEnabled();
   });
 });

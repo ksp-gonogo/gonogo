@@ -5,7 +5,7 @@
 //
 // `gamepad.id` is the only signal the Gamepad API exposes (the spec
 // deliberately withholds structured vendor/product/name fields — see
-// w3c/gamepad#199, open and stalled), so detection has to read an
+// w3c/gamepad issue 199, open and stalled), so detection has to read an
 // unstructured, browser-specific string. Ordered from most to least
 // reliable; falls through to `positional` when nothing matches.
 import type { LabelPack } from "./gamepadLabels";
