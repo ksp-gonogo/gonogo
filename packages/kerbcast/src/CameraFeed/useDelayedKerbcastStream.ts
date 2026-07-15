@@ -90,24 +90,19 @@ export function useDelayedKerbcastStream(
   });
   useEffect(() => {
     sampleRef.current = { ut: captureUt, warpRate, atMs: performance.now() };
-    // Diagnostic: what does the consumer's `useKerbcastClock` actually yield,
-    // and how much delay is the ViewClock applying to it? `captureUt` null
-    // while the connected client logs advancing `captureUt` would mean the
-    // path is starved downstream of the SDK client (kerbcast's suspicion).
-    // `utNow - edge` is the delay in seconds the buffer holds each frame by
-    // (a frame stamped `captureUt` releases when `edge` sweeps past it), so
-    // it directly answers "is the camera actually delayed, and by how much".
+    // Diagnostic: does the consumer's `useKerbcastClock` actually yield a
+    // `captureUt`? Null here while the connected client logs advancing
+    // `captureUt` would mean the path is starved downstream of the SDK client.
+    // NOTE: this proves the CLOCK reaches the consumer — it does NOT prove the
+    // video is delayed. The video delay is per-frame playout, which is not yet
+    // implemented (only stream-appearance is delayed); see the memory
+    // `project_camera_video_delay_not_implemented`. `confirmedEdgeUt` is the
+    // only ViewClock method `ViewClockView` exposes.
     logger.tag("kerbcast:clock").debug("consumer clock sample", {
       captureUt,
       warpRate,
       hasView: view !== undefined,
-      utNow: view?.utNowEstimate() ?? null,
       edgeUt: view?.confirmedEdgeUt() ?? null,
-      // Pure one-way signal delay, separate from the sample-cadence clamp in
-      // `confirmedEdgeUt` — `utNow - edge` is `max(delaySeconds, sample lag)`,
-      // so log `delaySeconds` too to tell a light-time hold from mere
-      // telemetry-cadence certainty lag.
-      delaySeconds: view?.delaySeconds() ?? null,
     });
   }, [captureUt, warpRate, view]);
 
