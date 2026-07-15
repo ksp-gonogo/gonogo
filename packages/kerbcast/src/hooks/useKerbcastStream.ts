@@ -1,12 +1,9 @@
 import { getDataSource } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import { useEffect, useRef, useState } from "react";
-import {
-  type DelayClockLike,
-  DelayedPlayoutBuffer,
-} from "../DelayedPlayoutBuffer";
+import type { DelayClockLike } from "../DelayedPlayoutBuffer";
+import { createFrameDelayStream, type FrameDelayStream } from "../frameDelay";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
-
-const DEFAULT_MAX_BUFFERED_BYTES = 64;
 
 /**
  * Live `MediaStream` for one kerbcast camera. Returns `null` while
@@ -59,98 +56,128 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
  * "media delay (kerbcast)"). Omit this argument entirely for the existing
  * LAN passthrough behaviour (zero regression, scenario 6).
  *
- * The kerbcast wire protocol doesn't yet carry a real per-frame capture-UT
- * stamp (that's a kerbcast-SDK-side add, §5.2, out of scope for this
- * package) — so today each new `MediaStream` reference the SDK hands back
- * (a camera switch, a reconnect) is treated as one keyframe stamped with
- * `captureUt()`. That's coarser than true per-video-frame delay, but it's
- * the honest, currently-available granularity: it correctly delays *when a
- * stream becomes visible* against the shared clock, which is what keeps a
- * camera switch in sync with the telemetry it's shown alongside.
+ * A REAL per-frame delay (2026-07-15 fix): every video frame read off the
+ * track is individually stamped with the live interpolated capture UT and
+ * gated on the shared clock — see `../frameDelay.ts`. This replaced an
+ * earlier design that stamped once per `MediaStream` *reference* (only a
+ * camera switch/reconnect was delayed; ongoing motion inside a stream
+ * played live) — see the memory `project_camera_video_delay_not_implemented`
+ * for the now-fixed history.
  */
 export interface KerbcastStreamDelayOptions {
   /** THE delay clock — pass the SAME instance telemetry reads
    *  (`ViewClock` from `@ksp-gonogo/sitrep-client`, or an equivalent). Kept as
    *  a structural type here so this package never imports sitrep-client. */
   view: DelayClockLike;
-  /** Capture-UT to stamp the current stream reference with. */
+  /** Capture-UT to stamp EACH captured video frame with — called once per
+   *  frame the pipeline reads off the track, not once per stream
+   *  reference. */
   captureUt(): number;
   /** Bumped (any change) to flush the buffer on a timeline reset — pass the
    *  session's epoch/reset counter. Omit if the caller doesn't model resets. */
   resetEpoch?: number;
-  maxBufferedBytes?: number;
+  /** Frame-count cap forwarded to the pipeline — see `frameDelay.ts`'s
+   *  module docstring for the default and rationale. */
+  maxBufferedFrames?: number;
 }
 
 /**
- * Route a raw `MediaStream` through a {@link DelayedPlayoutBuffer} sharing the
- * app's telemetry delay clock (M2 design §5). Without `delay` (the default)
- * this is a strict passthrough — it returns `raw` unchanged, so the LAN case
- * is bit-for-bit the old behaviour. With `delay`, the buffer only releases a
- * frame on `view.confirmedEdgeUt()` reaching its stamped capture UT — never on
- * `arrival + delay` — so a media frame and a telemetry sample stamped the same
- * UT surface at the same clock crossing (the single-authority guarantee).
+ * Route a raw `MediaStream` through the real per-frame delay pipeline
+ * (`../frameDelay.ts`), sharing the app's telemetry delay clock (M2 design
+ * §5). Without `delay` (the default) this is a strict passthrough — it
+ * returns `raw` unchanged, so the LAN case is bit-for-bit the old
+ * behaviour, with NO pipeline spun up. With `delay`, each frame only
+ * releases once `view.confirmedEdgeUt()` reaches its stamped capture UT —
+ * never on `arrival + delay` — so a media frame and a telemetry sample
+ * stamped the same UT surface at the same clock crossing (the
+ * single-authority guarantee).
+ *
+ * Falls back to live passthrough (never a black feed) when the browser
+ * lacks the WebCodecs track-IO APIs the pipeline needs, or `raw` has no
+ * video track — flagged via a one-time warning log, not a silent drop; see
+ * `frameDelay.ts`'s `isFrameDelaySupported`.
  */
 export function useDelayedPlayout(
   raw: MediaStream | null,
   delay?: KerbcastStreamDelayOptions,
 ): MediaStream | null {
   const [delayedStream, setDelayedStream] = useState<MediaStream | null>(null);
-  const bufferRef = useRef<DelayedPlayoutBuffer<MediaStream> | null>(null);
+  const pipelineRef = useRef<FrameDelayStream | null>(null);
   const view = delay?.view;
-  const maxBufferedBytes =
-    delay?.maxBufferedBytes ?? DEFAULT_MAX_BUFFERED_BYTES;
-  // Always-current handle so the push effect below doesn't need `delay`
-  // itself (a fresh object identity most renders) in its dependency array.
+  const maxBufferedFrames = delay?.maxBufferedFrames;
+  // Always-current handle so the effect below doesn't need `delay` itself
+  // (a fresh object identity most renders) in its dependency array.
   const captureUtRef = useRef(delay?.captureUt);
   captureUtRef.current = delay?.captureUt;
+  // Warn once per hook lifetime, not once per unsupported render — avoids
+  // log spam while an undelayable feed sits open.
+  const warnedUnsupportedRef = useRef(false);
 
-  // Build/tear down the buffer whenever the clock instance (or its cap)
-  // changes. Callers should pass a stable `view` (e.g. memoised).
+  // Build/tear down the per-frame pipeline whenever the raw stream
+  // reference or the clock instance changes. A `raw` change (camera switch,
+  // reconnect) always gets a fresh pipeline reading the new track — no
+  // cross-camera frame bleed, and no stale frame lingers past teardown.
   useEffect(() => {
-    if (!view) return;
-    const buffer = new DelayedPlayoutBuffer<MediaStream>({
-      view,
-      onRelease: (frame) => setDelayedStream(frame.data ?? null),
-      // A flush (timeline reset, or the disconnect handling below) must
-      // not leave a stale frame on screen — drop back to "no frame /
-      // resyncing" so a stale pre-reset stream never lingers (§5.4).
-      onResync: () => setDelayedStream(null),
-      maxBufferedBytes,
-    });
-    bufferRef.current = buffer;
-    return () => {
-      buffer.dispose();
-      bufferRef.current = null;
+    if (!view || !raw) {
+      pipelineRef.current = null;
       setDelayedStream(null);
-    };
-  }, [view, maxBufferedBytes]);
-
-  // Push each new raw stream reference in as one keyframe, stamped with the
-  // caller-provided capture UT.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `view` is needed even though the body only reads `bufferRef` — a `view` change (re)builds the buffer in the effect above, and this must re-push the already-current raw stream into that fresh buffer instead of waiting on the next stream event.
-  useEffect(() => {
-    if (!bufferRef.current) return;
-    if (raw === null) {
-      // Camera disconnected — drop whatever's buffered/held so a stale
-      // frame from the previous stream can't surface later, and go to
-      // null immediately, matching the strict-passthrough path.
-      bufferRef.current.flush();
       return;
     }
     const captureUt = captureUtRef.current;
-    if (!captureUt) return;
-    bufferRef.current.push({
-      ut: captureUt(),
-      keyframe: true,
-      data: raw,
-    });
-  }, [raw, view]);
+    if (!captureUt) {
+      pipelineRef.current = null;
+      setDelayedStream(null);
+      return;
+    }
 
-  // Timeline-reset: flush whatever's buffered + emit the resync marker.
+    const pipeline = createFrameDelayStream(raw, {
+      view,
+      captureUt: () => captureUtRef.current?.() ?? 0,
+      maxBufferedFrames,
+      onError: (err) => {
+        logger
+          .tag("kerbcast:frame-delay")
+          .warn("frame pipeline error", { err });
+      },
+    });
+
+    if (!pipeline) {
+      pipelineRef.current = null;
+      if (!warnedUnsupportedRef.current) {
+        warnedUnsupportedRef.current = true;
+        logger
+          .tag("kerbcast:frame-delay")
+          .warn(
+            "per-frame video delay could not be built here (no MediaStreamTrackProcessor/Generator, no video track, or pipeline construction failed) — falling back to live passthrough for the camera feed",
+          );
+      }
+      // Flagged, not silent: no delay is possible here, so show the feed
+      // live rather than black it out.
+      setDelayedStream(raw);
+      return;
+    }
+
+    pipelineRef.current = pipeline;
+    // Set ONCE per pipeline build, not per frame: `pipeline.stream` is a
+    // stable `MediaStream` wrapping the generator's output track, which
+    // keeps updating on its own as the pump loop writes released frames to
+    // it — the same way any live `<video srcObject>` renders a continuously
+    // updating WebRTC track. No further React state churn per frame.
+    setDelayedStream(pipeline.stream);
+
+    return () => {
+      pipeline.dispose();
+      if (pipelineRef.current === pipeline) pipelineRef.current = null;
+      setDelayedStream(null);
+    };
+  }, [raw, view, maxBufferedFrames]);
+
+  // Timeline-reset: flush the buffer (drop stale pre-reset frames) WITHOUT
+  // tearing down the pipeline — the track keeps flowing.
   const resetEpoch = delay?.resetEpoch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `resetEpoch` is the intentional trigger-only dependency — the effect body doesn't read it, it just needs to re-fire flush() on every bump.
   useEffect(() => {
-    bufferRef.current?.flush();
+    pipelineRef.current?.flush();
   }, [resetEpoch]);
 
   return delay ? delayedStream : raw;

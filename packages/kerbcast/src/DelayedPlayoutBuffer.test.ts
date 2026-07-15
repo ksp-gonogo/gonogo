@@ -282,4 +282,85 @@ describe("DelayedPlayoutBuffer", () => {
     clock.setEdge(0);
     expect(released).toEqual([]);
   });
+
+  // -- onDrop: the resource-cleanup hook a caller wires when T holds an
+  // external resource (e.g. a WebCodecs VideoFrame) that must be closed on
+  // every discard path, not just on release. Added for the kerbcast
+  // per-frame video delay pipeline (frameDelay.ts) — see its
+  // MEMORY-LEAK-TRAP doc comment.
+  describe("onDrop", () => {
+    it("fires for a frame evicted by the over-cap eviction, never for a released frame", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const released: StampedFrame[] = [];
+      const dropped: StampedFrame[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: (f) => released.push(f),
+        onDrop: (f) => dropped.push(f),
+        maxBufferedBytes: 2,
+      });
+
+      buffer.push({ ut: 1, keyframe: false, data: "a", bytes: 1 });
+      buffer.push({ ut: 2, keyframe: false, data: "b", bytes: 1 });
+      buffer.push({ ut: 3, keyframe: false, data: "c", bytes: 1 }); // over cap — evicts ut=1
+
+      expect(dropped.map((f) => f.data)).toEqual(["a"]);
+      expect(released).toEqual([]);
+    });
+
+    it("fires for every frame still queued at flush(), and NOT for the already-released current frame", () => {
+      const clock = manualClock(0);
+      const released: StampedFrame[] = [];
+      const dropped: StampedFrame[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: (f) => released.push(f),
+        onDrop: (f) => dropped.push(f),
+        maxBufferedBytes: 10_000,
+      });
+
+      buffer.push({ ut: 0, keyframe: true, data: "shown" }); // releases immediately (edge=0)
+      buffer.push({ ut: 10, keyframe: false, data: "queued-1" });
+      buffer.push({ ut: 20, keyframe: false, data: "queued-2" });
+
+      buffer.flush();
+
+      expect(dropped.map((f) => f.data)).toEqual(["queued-1", "queued-2"]);
+      expect(released.map((f) => f.data)).toEqual(["shown"]);
+    });
+
+    it("fires for every frame still queued at dispose(), so a mid-delay teardown never strands a held resource", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const dropped: StampedFrame[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        onDrop: (f) => dropped.push(f),
+        maxBufferedBytes: 10_000,
+      });
+
+      buffer.push({ ut: 100, keyframe: false, data: "held-1" });
+      buffer.push({ ut: 200, keyframe: false, data: "held-2" });
+
+      buffer.dispose();
+
+      expect(dropped.map((f) => f.data)).toEqual(["held-1", "held-2"]);
+    });
+
+    it("is optional — omitting it doesn't throw on eviction, flush, or dispose", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        maxBufferedBytes: 1,
+      });
+
+      expect(() => {
+        buffer.push({ ut: 1, keyframe: false, data: "a" });
+        buffer.push({ ut: 2, keyframe: false, data: "b" }); // evicts "a"
+        buffer.flush();
+        buffer.dispose();
+      }).not.toThrow();
+    });
+  });
 });
