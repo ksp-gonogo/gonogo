@@ -500,6 +500,17 @@ function KosTerminalScreen({
             }
             return;
           }
+          // Ctrl+C: clear the in-progress line locally AND forward the
+          // interrupt itself so a running kOS program actually breaks — this
+          // is a control signal, not a composed line, so it never joins line
+          // history.
+          if (data === "\x03") {
+            historyIndexRef.current = null;
+            lineBufferRef.current = "";
+            setComposition("");
+            sendKeystrokeRef.current("\x03", "^C");
+            return;
+          }
           // Any regular edit leaves history-browse mode — recalling a line
           // then typing continues editing it as the new live draft.
           historyIndexRef.current = null;
