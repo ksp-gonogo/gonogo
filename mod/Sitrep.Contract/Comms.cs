@@ -225,6 +225,37 @@ public class CommsDelay
 }
 
 /// <summary>
+/// The <c>comms.link</c> connectivity MetaTopic — the ONE client-facing
+/// answer to "is there a control link home right now?", carried as a
+/// <b>Delayed, freeze-EXEMPT</b> channel (see
+/// <c>ChannelEngine.ConnectivityMetaTopic</c>). It is the delayed successor to
+/// the de-publicised TrueNow <see cref="CommsConnectivity"/> observation
+/// channel: clients (the app's SignalLossIndicator/CameraFeed, the kOS
+/// terminal's line-mode gate) read <c>comms.link.connected</c> instead of any
+/// raw <c>comms.*</c> observation.
+///
+/// <para><b>Why its own topic, freeze-exempt:</b> the link state is what
+/// REPORTS the freeze, so — exactly parallel to <c>comms.delay</c> being exempt
+/// from its own delay — it must be exempt from the freeze it drives. It reveals
+/// the disconnect edge at <c>T+delay</c> (you learn of the outage one light-time
+/// after it happens) and keeps reporting <c>connected:false</c> through the
+/// blackout, so the client's "NO SIGNAL" flips at the correct delayed instant.
+/// The <see cref="VesselComms"/> observation struct (signalStrength/controlState)
+/// stays Delayed AND freeze-gated — it freezes at last-known through the
+/// outage.</para>
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+[SitrepTopic("comms.link")]
+public class CommsLink
+{
+    public bool Connected { get; set; }
+    public PayloadMeta Meta { get; set; } = new();
+}
+
+/// <summary>
 /// The <c>comms.linkQuality</c> payload — RealAntennas-ONLY (absent without
 /// RA). Link margin normalised to 0..1 (comms-uplink-design.md §2.2/§4.3).
 /// </summary>

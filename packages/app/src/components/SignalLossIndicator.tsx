@@ -4,27 +4,44 @@ import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Wires `SignalLossBanner` to the live CommNet state, read canonically off the
- * `vessel.comms` stream Topic (`Sitrep.Contract.VesselComms`) — no legacy
- * Telemachus `"data"` read and no read-fallback (R6 de-Telemachus).
+ * Wires `SignalLossBanner` to the live CommNet state.
  *
  * Signal state is derived from:
- *  - `vessel.comms.connected` — is there a link to KSC at all?
+ *  - `comms.link.connected` — is there a link to KSC at all? Read off the
+ *    dedicated Delayed, freeze-EXEMPT `comms.link` MetaTopic (NOT the frozen
+ *    `vessel.comms` struct), so a disconnect edge actually reaches the client
+ *    through a blackout and flips the banner (comms-delay-model-consistency
+ *    spec — a Delayed `vessel.comms.connected` froze at last-known, so the
+ *    banner could never fire).
+ *  - `vessel.comms.signalStrength` — 0..1 link strength. A last-known reading
+ *    of ~0 ("0% signal") reads as no-signal even if `connected` was never
+ *    observed false, so a link that decays to nothing still shows SIGNAL LOSS.
  *  - `vessel.comms.controlState` — the raw `ControlState` enum, collapsed to
  *    CommSignal's 0/1/2 level via the SharedLib `collapseControlStateLevel`
  *    (the same collapse behind the derived `vessel.state.commsControlStateOrdinal`
- *    channel): 0 no control, 1 partial, 2 full.
+ *    channel): 0 no control, 1 partial, 2 full. Stays on the frozen
+ *    `vessel.comms` struct — control state SHOULD freeze at last-known.
  *
- * Until the stream reports `vessel.comms` (warmup, no vessel active, or no
+ * Until the stream reports these topics (warmup, no vessel active, or no
  * provider mounted) we stay in the "connected" state so the banner stays
  * hidden — the banner is for genuine blackouts, not absence of data.
  *
  * Elapsed time is measured from the moment the state last left "connected".
  * A 1s interval ticks a render to keep the timer label fresh.
  */
+
+/**
+ * Strength at or below this reads as "0% signal" ⇒ no-signal. Tiny (a
+ * float-noise guard), not a "weak link" threshold: a genuinely weak-but-present
+ * link (e.g. 1%) must NOT flash the banner — only an effectively-zero reading.
+ */
+const NO_SIGNAL_STRENGTH_EPSILON = 1e-6;
+
 export function SignalLossIndicator() {
+  const link = useTelemetry("comms.link");
   const comms = useTelemetry("vessel.comms");
-  const connected = comms?.connected;
+  const connected = link?.connected;
+  const signalStrength = comms?.signalStrength;
   const controlState =
     comms === undefined
       ? undefined
@@ -39,7 +56,12 @@ export function SignalLossIndicator() {
     if (connected === true) setHasConfirmedConnection(true);
   }, [connected]);
 
-  const state = deriveState(connected, controlState, hasConfirmedConnection);
+  const state = deriveState(
+    connected,
+    signalStrength,
+    controlState,
+    hasConfirmedConnection,
+  );
 
   const lostSinceRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -72,24 +94,32 @@ export function SignalLossIndicator() {
 }
 
 /**
- * "Lost" is deliberately bound to `comm.connected === false` only — the same
- * condition that triggers `BufferedDataSource`'s signal-loss gate. This keeps
- * the banner honest: when it says SIGNAL LOSS, telemetry really has stopped
- * flowing. `controlState` low without disconnection (crewed ship missing its
- * pilot etc.) is informational only and shown as PARTIAL.
+ * "Lost" is bound to a confirmed disconnect (`comms.link.connected === false`)
+ * OR an effectively-zero signal strength — both gated on having seen a
+ * confirmed-true link first, so a cold-start false / 0% (no vessel, CommNet
+ * off, no antenna) never flashes the banner. This keeps it honest: when it says
+ * SIGNAL LOSS, the link really is down or at 0%. `controlState` low without
+ * disconnection (crewed ship missing its pilot etc.) is informational only and
+ * shown as PARTIAL.
  */
 export function deriveState(
   connected: boolean | undefined,
+  signalStrength: number | undefined,
   controlState: number | undefined,
   hasConfirmedConnection: boolean,
 ): SignalState {
-  // "Lost" only when we've seen a confirmed-true previously and it flipped
-  // to false. Matches `BufferedDataSource`'s gate: if the user's KSP never
-  // asserts `comm.connected: true` (CommNet off, no antenna, no vessel),
-  // the banner stays hidden and data continues to flow — the UI being
-  // quiet is more honest than flashing SIGNAL LOSS while live samples
-  // arrive.
-  if (connected === false && hasConfirmedConnection) return "lost";
+  // "Lost" only when we've seen a confirmed-true previously. Matches
+  // `BufferedDataSource`'s gate: if the user's KSP never asserts a link
+  // (CommNet off, no antenna, no vessel), the banner stays hidden and data
+  // continues to flow — the UI being quiet is more honest than flashing SIGNAL
+  // LOSS while live samples arrive. 0% strength is equivalent to not-connected
+  // (a link that decayed to nothing), so it trips the same "lost" state.
+  const zeroSignal =
+    signalStrength !== undefined &&
+    signalStrength <= NO_SIGNAL_STRENGTH_EPSILON;
+  if ((connected === false || zeroSignal) && hasConfirmedConnection) {
+    return "lost";
+  }
   // "Partial" only when we've heard an affirmative connect. A stray
   // `controlState: 0` arriving before `connected` doesn't flash the banner.
   if (connected === true && (controlState === 0 || controlState === 1)) {

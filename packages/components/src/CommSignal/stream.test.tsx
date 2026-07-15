@@ -10,8 +10,10 @@ import { CommSignalComponent } from "./index";
  * `DataSource` is registered anywhere in this file.
  *
  * All five reads are clean homes now (`map-topic.ts`):
- * - `comm.connected` -> `vessel.comms.connected`, `comm.signalStrength` ->
- *   `vessel.comms.signalStrength` (raw field subtopics of `vessel.comms`).
+ * - `comm.connected` -> `comms.link.connected` (the dedicated Delayed,
+ *   freeze-exempt connectivity MetaTopic — comms-delay-model-consistency spec),
+ *   `comm.signalStrength` -> `vessel.comms.signalStrength` (raw field subtopic
+ *   of the `vessel.comms` struct).
  * - `comm.controlState` -> `vessel.state.commsControlStateOrdinal`,
  *   `comm.controlStateName` -> `vessel.state.commsControlStateName` (both
  *   SDK-derived off `vessel.comms.controlState`'s rich `ControlState` enum —
@@ -87,8 +89,10 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     "reflects a signal-loss transition (connected True->False->True) as LOS, " +
       "never a stuck-stale 'connected' readout",
     async () => {
+      // Connectivity now rides the dedicated comms.link MetaTopic (comm.connected
+      // -> comms.link.connected); signalStrength still rides vessel.comms.
       const fixture = setupStreamFixture({
-        carriedChannels: ["vessel.comms"],
+        carriedChannels: ["vessel.comms", "comms.link"],
         pinnedUt: 10,
       });
       const { container } = render(
@@ -100,14 +104,16 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
       );
 
       act(() => {
+        fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
       });
       await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
 
-      // Signal lost — the wire actively reports connected:false (not
-      // silence/absence). The widget must show LOS, not hold the stale 87%.
+      // Signal lost — the wire actively reports connected:false on comms.link
+      // (not silence/absence). The widget must show LOS, not hold the stale 87%.
       act(() => {
+        fixture.emit("comms.link", { connected: false });
         fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
       });
       await waitFor(() => {
@@ -125,6 +131,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
 
       // Signal regained.
       act(() => {
+        fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       });
       await waitFor(() => expect(screen.getByText("60%")).toBeTruthy());

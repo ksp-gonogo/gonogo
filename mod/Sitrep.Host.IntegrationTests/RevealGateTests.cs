@@ -836,5 +836,76 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        /// <summary>
+        /// Connectivity MetaTopic (comms-delay-model-consistency spec): a signal
+        /// loss must (1) still deliver the pre-outage in-flight TAIL of an
+        /// ordinary Delayed channel as the horizon overtakes it, then FREEZE
+        /// (no in-blackout samples), while (2) the freeze-EXEMPT connectivity
+        /// MetaTopic (<c>comms.link</c>) reveals its <c>connected:false</c>
+        /// disconnect edge THROUGH the blackout at the last-known light-time
+        /// horizon — the whole point: "NO SIGNAL" reaches the client even though
+        /// every other Delayed channel is frozen. This is the behaviour the OLD
+        /// global <c>if (!_commsConnected) return;</c> in FlushReveal made
+        /// impossible (it withheld the MetaTopic's own disconnect edge along with
+        /// everything else, so the client could never learn the link dropped).
+        ///
+        /// <para>NOTE: this is a NEW test, distinct from
+        /// <see cref="DisconnectFreezesDelayedChannelWhileTrueNowKeepsFlowing"/>
+        /// (which uses a generic delayed channel and guards the delay-0-disconnect
+        /// freeze — it must stay green and does).</para>
+        /// </summary>
+        [Fact]
+        public async Task ConnectivityMetaTopicRevealsDisconnectEdgeThroughFreeze()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.LinkTopic, Timeout);
+
+                // CONNECTED, delay 4. Establish the delay authority + a link
+                // sample (connected:true) at UT 0..1, and buffer delayed=10 at
+                // UT 1 (horizon 1+4=5). The link channel emits connected:true.
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+
+                // DISCONNECT at UT 2: connected:false, delay collapses to 0 (no
+                // path). The link channel emits connected:false — its disconnect
+                // edge. Keep ticking the outage UT 3..9 with delayed values that
+                // must NEVER be delivered (in-blackout, +Inf horizon).
+                foreach (var ut in new[] { 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 })
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 999.0), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+
+                // (1) The pre-outage tail: delayed=10 (buffered at UT 1, horizon
+                // UT 5) IS revealed as the clock advances through the blackout.
+                var delayedFrames = frames.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
+                Assert.Contains(delayedFrames, f => Convert.ToDouble(f.Payload) == 10.0);
+                // ...then FROZEN: no in-blackout delayed sample (999) ever arrives.
+                Assert.DoesNotContain(delayedFrames, f => Convert.ToDouble(f.Payload) == 999.0);
+
+                // (2) The connectivity MetaTopic's disconnect edge escapes the
+                // freeze: a comms.link frame carrying connected:false is revealed
+                // (at the last-known horizon, UT 2 + delay 4 = 6, reached by the
+                // UT-9 tick). The plain global-freeze gate could never deliver
+                // this — the disconnect edge would be withheld with everything else.
+                var linkFrames = frames.Where(f => f.Topic == FreezeGateTestUplink.LinkTopic).ToList();
+                Assert.NotEmpty(linkFrames);
+                var lastLink = linkFrames.Last();
+                var linkPayload = Assert.IsType<Dictionary<string, object?>>(lastLink.Payload);
+                Assert.Equal(false, linkPayload["connected"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

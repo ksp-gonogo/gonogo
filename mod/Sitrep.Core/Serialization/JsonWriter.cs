@@ -246,6 +246,17 @@ namespace Sitrep.Core.Serialization
                     // the field map itself.
                     AppendKosRunResult(sb, runResult);
                     break;
+                case Sitrep.Contract.CommsLink link:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // CommsConnectivity below: the comms.link connectivity
+                    // MetaTopic publishes a CommsLink POCO (see
+                    // Gonogo.KSP.CommsCoreUplink's link publisher). Without this
+                    // case a populated payload would throw NotSupportedException
+                    // at the wire boundary and the client's "NO SIGNAL" edge
+                    // would never arrive. Flattened to { connected, meta } with
+                    // camelCase keys, matching every sibling below.
+                    AppendCommsLink(sb, link);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // KosProcessorInfo above: the comms.connectivity channel
@@ -747,6 +758,19 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "quality");
             sb.Append(':');
             AppendInteger(sb, (long)(meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
+            sb.Append('}');
+        }
+
+        private static void AppendCommsLink(StringBuilder sb, Sitrep.Contract.CommsLink l)
+        {
+            sb.Append('{');
+            AppendString(sb, "connected");
+            sb.Append(':');
+            AppendBool(sb, l.Connected);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, l.Meta);
             sb.Append('}');
         }
 

@@ -393,7 +393,16 @@ function describeSignalQuality(
   signalStrength: number | undefined,
 ): QualityBadgeInfo | null {
   if (connected === undefined && signalStrength === undefined) return null;
-  if (connected === false) {
+  // NO SIGNAL when the link is down OR the strength has decayed to
+  // effectively zero (0%): a 0% link carries nothing, so it reads as no
+  // signal rather than a "0%" quality badge (comms-delay-model-consistency
+  // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
+  // link" threshold — a real 1% link still shows its percentage.
+  const zeroSignal =
+    typeof signalStrength === "number" &&
+    Number.isFinite(signalStrength) &&
+    signalStrength <= 1e-6;
+  if (connected === false || zeroSignal) {
     return {
       label: "NO SIGNAL",
       tone: "nogo",

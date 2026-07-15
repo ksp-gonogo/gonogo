@@ -811,6 +811,14 @@ namespace Sitrep.Host.IntegrationTests
         public const string DelayedTopic = "freeze.delayed";
         public const string TrueNowTopic = "freeze.truenow";
 
+        // The connectivity MetaTopic — Delayed, but FREEZE-EXEMPT in the engine
+        // (matched by topic name against ChannelEngine.ConnectivityMetaTopic). It
+        // carries a CommsLink payload whose Connected mirrors the tick's
+        // `connected` value, exactly as the bundled CommsCoreUplink's link
+        // publisher does. A test proves its disconnect edge is REVEALED through a
+        // blackout at now-delay while DelayedTopic freezes.
+        public const string LinkTopic = ChannelEngine.ConnectivityMetaTopic;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "freeze-gate-test",
@@ -838,6 +846,13 @@ namespace Sitrep.Host.IntegrationTests
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = LinkTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
             },
         };
 
@@ -846,10 +861,28 @@ namespace Sitrep.Host.IntegrationTests
             host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
             host.AddChannelSource(TrueNowTopic, snapshot => Read(snapshot, "truenow"));
             host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+            host.AddChannelSource(LinkTopic, MapLink);
 
             // Production-shape, subscription-independent server-side seams.
             host.SetSignalDelaySource(ComputeDelay);
             host.SetConnectivitySource(ComputeConnected);
+        }
+
+        // The MetaTopic payload: a CommsLink whose Connected mirrors the tick's
+        // `connected` value. Emits nothing until a `connected` value is present,
+        // so a test can control exactly when the link channel starts reporting.
+        private static object? MapLink(KspSnapshot? snapshot)
+        {
+            var connected = ComputeConnected(snapshot);
+            if (connected == null)
+            {
+                return null;
+            }
+            return new CommsLink
+            {
+                Connected = connected.Value,
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
         }
 
         private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
