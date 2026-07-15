@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
 import { SerialDeviceProvider } from "./SerialDeviceContext";
 import { SerialDeviceService } from "./SerialDeviceService";
+import { axe } from "./test/axe";
 import type { VirtualTransport } from "./transports/VirtualTransport";
 
 // The tab's Save button now lives in the modal's sticky footer (registered via
@@ -159,6 +160,125 @@ describe("InputMappingTab press-to-map", () => {
       throttle: { deviceId: "d1", inputId: "x" },
     });
 
+    await svc.destroy();
+  });
+
+  it("shows a glyph + resolved pack name for an already-bound gamepad input", async () => {
+    const { svc } = await setup();
+    svc.upsertDeviceType({
+      id: "gamepad-standard-17b-4a",
+      name: "Gamepad",
+      parser: "json-state",
+      authoredBy: "device",
+      inputs: [
+        {
+          id: "button-0",
+          name: "Face South",
+          kind: "button",
+          role: "face-south",
+        },
+      ],
+    });
+    svc.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-standard-17b-4a",
+      transport: "gamepad",
+      labelPack: "playstation",
+    });
+
+    render(
+      <SerialDeviceProvider service={svc}>
+        <InputMappingTab
+          actions={[buttonAction]}
+          mappings={{ fire: { deviceId: "gp1", inputId: "button-0" } }}
+          onSave={() => {}}
+        />
+      </SerialDeviceProvider>,
+    );
+
+    expect(screen.getByText(/bound to my pad · cross/i)).not.toBeNull();
+    // Decorative glyph, aria-hidden — the text above carries the meaning.
+    const glyphHost = document.querySelector('[aria-hidden="true"] svg');
+    expect(glyphHost).not.toBeNull();
+
+    await svc.destroy();
+  });
+
+  it("resolves pack names (not positional wording) in the option list for a gamepad device", async () => {
+    const { svc } = await setup();
+    svc.upsertDeviceType({
+      id: "gamepad-standard-17b-4a",
+      name: "Gamepad",
+      parser: "json-state",
+      authoredBy: "device",
+      inputs: [
+        {
+          id: "button-0",
+          name: "Face South",
+          kind: "button",
+          role: "face-south",
+        },
+      ],
+    });
+    svc.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-standard-17b-4a",
+      transport: "gamepad",
+      labelPack: "xbox",
+    });
+
+    render(
+      <SerialDeviceProvider service={svc}>
+        <InputMappingTab
+          actions={[buttonAction]}
+          mappings={{}}
+          onSave={() => {}}
+        />
+      </SerialDeviceProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: "My Pad · A" })).not.toBeNull();
+
+    await svc.destroy();
+  });
+
+  it("has no axe violations with a gamepad binding + glyph readout rendered", async () => {
+    const { svc } = await setup();
+    svc.upsertDeviceType({
+      id: "gamepad-standard-17b-4a",
+      name: "Gamepad",
+      parser: "json-state",
+      authoredBy: "device",
+      inputs: [
+        {
+          id: "button-0",
+          name: "Face South",
+          kind: "button",
+          role: "face-south",
+        },
+      ],
+    });
+    svc.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-standard-17b-4a",
+      transport: "gamepad",
+      labelPack: "playstation",
+    });
+
+    const { container } = render(
+      <SerialDeviceProvider service={svc}>
+        <InputMappingTab
+          actions={[buttonAction]}
+          mappings={{ fire: { deviceId: "gp1", inputId: "button-0" } }}
+          onSave={() => {}}
+        />
+      </SerialDeviceProvider>,
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
     await svc.destroy();
   });
 

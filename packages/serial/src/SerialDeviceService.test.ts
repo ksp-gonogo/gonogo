@@ -1,6 +1,9 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MockGamepadAPI } from "./mocks/mockGamepad";
 import { SerialDeviceService } from "./SerialDeviceService";
+import { GamepadPoller } from "./transports/GamepadPoller";
+import { GamepadTransport } from "./transports/GamepadTransport";
 import type { VirtualTransport } from "./transports/VirtualTransport";
 import type { DeviceInstance, DeviceType } from "./types";
 
@@ -335,6 +338,200 @@ describe("SerialDeviceService — json-state schema updates", () => {
     });
     const type = svc.getDeviceType(BARE_JSON_TYPE.id);
     expect(type?.renderStyleId).toBeUndefined();
+  });
+});
+
+describe("SerialDeviceService — gamepad wiring", () => {
+  // Real GamepadTransport + MockGamepadAPI end-to-end, per the repo's
+  // testing philosophy — mock only the network/browser boundary
+  // (navigator.getGamepads / gamepadconnected), not the transport itself.
+  const mock = new MockGamepadAPI();
+  let svc: SerialDeviceService | null = null;
+
+  afterEach(async () => {
+    await svc?.destroy();
+    svc = null;
+    mock.restore();
+    GamepadPoller.resetForTests();
+  });
+
+  async function makeGamepadService(): Promise<SerialDeviceService> {
+    const storage = memoryStorage();
+    const created = new SerialDeviceService({
+      screenKey: "gamepad-test",
+      storage,
+      renderDebounceMs: 0,
+    });
+    for (const d of created.getDevices()) await created.removeDevice(d.id);
+    svc = created;
+    return created;
+  }
+
+  it("always ensures the gamepad placeholder type exists, even with other types already present", async () => {
+    const created = await makeGamepadService();
+    created.upsertDeviceType(TYPE);
+    expect(created.getDeviceType("gamepad-unconfigured")).toBeDefined();
+  });
+
+  it("re-points a device at a shape-derived type on first pairing, and preselects a label pack from the pad id", async () => {
+    mock.install();
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+
+    await created.connect("gp1");
+    mock.connectPad(0, {
+      id: "054c-0ce6-DualSense Wireless Controller",
+      buttonCount: 18,
+      axisCount: 4,
+    });
+
+    const device = created.getDevices().find((d) => d.id === "gp1");
+    expect(device?.typeId).toBe("gamepad-standard-18b-4a");
+    expect(device?.gamepadId).toBe("054c-0ce6-DualSense Wireless Controller");
+    expect(device?.labelPack).toBe("playstation");
+
+    const type = created.getDeviceType("gamepad-standard-18b-4a");
+    expect(type?.inputs).toHaveLength(22);
+    expect(type?.authoredBy).toBe("device");
+  });
+
+  it("shares one type between two pads of the same shape", async () => {
+    mock.install();
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "Pad 1",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+    created.addDevice({
+      id: "gp2",
+      name: "Pad 2",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+
+    await created.connect("gp1");
+    mock.connectPad(0, { id: "Pad A", buttonCount: 17, axisCount: 4 });
+    await created.connect("gp2");
+    mock.connectPad(1, { id: "Pad B", buttonCount: 17, axisCount: 4 });
+
+    const d1 = created.getDevices().find((d) => d.id === "gp1");
+    const d2 = created.getDevices().find((d) => d.id === "gp2");
+    expect(d1?.typeId).toBe(d2?.typeId);
+    // Only one type was created for the shape, not two.
+    expect(
+      created.getDeviceTypes().filter((t) => t.id.startsWith("gamepad-")),
+    ).toHaveLength(2); // the placeholder + the one shape type
+  });
+
+  it("never re-detects the label pack once a pairing already set one", async () => {
+    mock.install();
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+      labelPack: "xbox", // user's explicit override, pre-set
+    });
+
+    await created.connect("gp1");
+    // A Sony vendor id would normally detect "playstation" — but a pack is
+    // already set, so it must survive untouched.
+    mock.connectPad(0, {
+      id: "054c-0ce6-DualSense Wireless Controller",
+      buttonCount: 18,
+      axisCount: 4,
+    });
+
+    const device = created.getDevices().find((d) => d.id === "gp1");
+    expect(device?.labelPack).toBe("xbox");
+  });
+
+  it("survives removing a never-paired gamepad device — the placeholder stays available for the next add", async () => {
+    mock.install();
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "Unpaired",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+    await created.removeDevice("gp1");
+    expect(created.getDeviceType("gamepad-unconfigured")).toBeDefined();
+
+    // Confirms it's still usable, not just present.
+    expect(() =>
+      created.addDevice({
+        id: "gp2",
+        name: "Second",
+        typeId: "gamepad-unconfigured",
+        transport: "gamepad",
+      }),
+    ).not.toThrow();
+  });
+
+  it("defaultTransportFactory constructs a real GamepadTransport for transport: 'gamepad'", async () => {
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+    });
+    expect(created.getTransport("gp1")).toBeInstanceOf(GamepadTransport);
+  });
+
+  it("loads a pre-existing (pre-gamepad-feature) localStorage payload unchanged, and still adds the placeholder type", async () => {
+    // Shape of gonogo.serial.device-types / gonogo.serial.devices as saved
+    // by a build before this feature existed — no polarity/role/labelPack/
+    // gamepadId fields anywhere, no "gamepad-unconfigured" type.
+    const preExistingType: DeviceType = {
+      id: "legacy-panel",
+      name: "Legacy Panel",
+      parser: "char-position",
+      inputs: [
+        { id: "a", name: "A", kind: "button" },
+        { id: "x", name: "X", kind: "analog", min: -100, max: 100 },
+      ],
+    };
+    const preExistingDevice: DeviceInstance = {
+      id: "legacy-1",
+      name: "Legacy 1",
+      typeId: "legacy-panel",
+      transport: "web-serial",
+      baudRate: 9600,
+    };
+    const storage = memoryStorage();
+    storage.setItem(
+      "gonogo.serial.device-types",
+      JSON.stringify([preExistingType]),
+    );
+    storage.setItem(
+      "gonogo.serial.devices.legacy-screen",
+      JSON.stringify([preExistingDevice]),
+    );
+
+    const created = new SerialDeviceService({
+      screenKey: "legacy-screen",
+      storage,
+      renderDebounceMs: 0,
+    });
+    svc = created;
+
+    // The pre-existing type and device load byte-for-byte, untouched.
+    expect(created.getDeviceType("legacy-panel")).toEqual(preExistingType);
+    expect(created.getDevices().find((d) => d.id === "legacy-1")).toEqual(
+      preExistingDevice,
+    );
+    // The gamepad placeholder is additive, not a migration of anything.
+    expect(created.getDeviceType("gamepad-unconfigured")).toBeDefined();
   });
 });
 

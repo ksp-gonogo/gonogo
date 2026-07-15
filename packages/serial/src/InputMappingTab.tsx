@@ -11,6 +11,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { InputBinding, InputMappings } from "./bindings";
+import { GamepadGlyph } from "./GamepadGlyph";
+import { describeGamepadInput } from "./gamepadDisplay";
+import type { LabelPack } from "./gamepadLabels";
+import type { GamepadRole } from "./gamepadRoles";
 import { useSerialDeviceService } from "./SerialDeviceContext";
 import type { DeviceInstance, DeviceType } from "./types";
 
@@ -47,13 +51,48 @@ function optionsForAction(
     if (!type) continue;
     for (const input of type.inputs) {
       if (!action.accepts.includes(input.kind)) continue;
+      // A native <select><option> can only hold plain text — no glyph here
+      // (see the readout below the select for that). Still resolve the
+      // pack's name (e.g. "Cross" instead of "Face South") so the
+      // text-only list reads better for a gamepad with a chosen pack.
+      const { name } = describeGamepadInput(device, input);
       opts.push({
         value: encode(device.id, input.id),
-        label: `${device.name} · ${input.name}`,
+        label: `${device.name} · ${name}`,
       });
     }
   }
   return opts;
+}
+
+/** Resolve everything the readout needs for the currently-bound input, if
+ *  any — shown next to the (text-only) select so a gamepad binding reads
+ *  at a glance instead of parsing "Face South" out of the dropdown text. */
+function resolveBoundDisplay(
+  binding: InputBinding | null | undefined,
+  devices: DeviceInstance[],
+  typeById: Map<string, DeviceType>,
+): {
+  deviceName: string;
+  name: string;
+  glyph?: string;
+  role?: GamepadRole;
+  pack: LabelPack;
+} | null {
+  if (!binding) return null;
+  const device = devices.find((d) => d.id === binding.deviceId);
+  if (!device) return null;
+  const type = typeById.get(device.typeId);
+  const input = type?.inputs.find((i) => i.id === binding.inputId);
+  if (!input) return null;
+  const { name, glyph } = describeGamepadInput(device, input);
+  return {
+    deviceName: device.name,
+    name,
+    glyph,
+    role: input.role,
+    pack: device.labelPack ?? "positional",
+  };
 }
 
 /**
@@ -179,6 +218,7 @@ export function InputMappingTab({
           const currentValue = current
             ? encode(current.deviceId, current.inputId)
             : "";
+          const bound = resolveBoundDisplay(current, devices, typeById);
           const selectId = `input-mapping-${action.id}`;
           const isListening = listeningFor === action.id;
           const otherListening =
@@ -233,6 +273,16 @@ export function InputMappingTab({
                     <EscHint>Esc to cancel</EscHint>
                   </ListenStatus>
                 )}
+                {!isListening && bound?.glyph && bound.role && (
+                  // The select's <option> text already carries the name
+                  // (native <option> can't hold arbitrary markup) — this
+                  // readout adds the glyph so a gamepad binding is
+                  // recognisable at a glance, not just readable.
+                  <BoundReadout>
+                    <GamepadGlyph role={bound.role} pack={bound.pack} />
+                    Bound to {bound.deviceName} · {bound.name}
+                  </BoundReadout>
+                )}
               </Field>
             </Row>
           );
@@ -279,6 +329,15 @@ const ListenStatus = styled.div`
   margin-top: 6px;
   font-size: var(--font-size-xs);
   color: var(--color-status-info-fg);
+`;
+
+const BoundReadout = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
 `;
 
 const EscHint = styled.span`

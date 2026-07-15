@@ -30,6 +30,24 @@ export interface InputEvent {
 export interface SchemaUpdate {
   inputs?: DeviceInput[] | null;
   screen?: { type: string; [key: string]: unknown } | null;
+  /**
+   * Optional shape-derived type id. When present and different from the
+   * instance's current typeId, the service ensures a DeviceType with this
+   * id exists (creating one from `inputs` if needed) and re-points the
+   * instance at it. Used by GamepadTransport so pads reporting the same
+   * button/axis shape share one type instead of each connection breeding a
+   * near-duplicate. Absent (falls back to the current type id) for
+   * json-state devices, so their existing "one type per device" behaviour
+   * is unaffected.
+   */
+  typeId?: string;
+  /**
+   * Physical-pad identity learned at this update (gamepad transport only).
+   * The service persists it onto the owning DeviceInstance and, the first
+   * time an instance ever learns one, preselects its label pack from it —
+   * see SerialDeviceService.handleSchemaUpdate.
+   */
+  gamepadId?: string;
 }
 
 export interface DeviceTransport {

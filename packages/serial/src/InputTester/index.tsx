@@ -10,6 +10,9 @@ import {
 } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { GamepadGlyph } from "../GamepadGlyph";
+import { describeGamepadInput } from "../gamepadDisplay";
+import type { GamepadRole } from "../gamepadRoles";
 import {
   useSerialDeviceService,
   useSerialDeviceStatus,
@@ -138,9 +141,19 @@ function InputTesterComponent({
                 const raw = values[input.id];
                 const v = typeof raw === "number" ? raw : 0;
                 const live = typeof raw === "number";
+                const display = describeGamepadInput(device, input);
                 return (
                   <AnalogRow key={input.id}>
-                    <AnalogName>{input.name}</AnalogName>
+                    <AnalogName>
+                      {display.glyph && (
+                        <GamepadGlyph
+                          role={input.role as GamepadRole}
+                          pack={device.labelPack ?? "positional"}
+                          size={13}
+                        />
+                      )}
+                      {display.name}
+                    </AnalogName>
                     <AnalogTrack>
                       <AnalogCentre />
                       <AnalogFill
@@ -170,10 +183,18 @@ function InputTesterComponent({
               <ButtonGrid>
                 {buttons.map((input) => {
                   const pressed = values[input.id] === true;
+                  const display = describeGamepadInput(device, input);
                   return (
                     <ButtonPill key={input.id} $pressed={pressed}>
                       <ButtonDot $pressed={pressed} />
-                      <ButtonName>{input.name}</ButtonName>
+                      {display.glyph && (
+                        <GamepadGlyph
+                          role={input.role as GamepadRole}
+                          pack={device.labelPack ?? "positional"}
+                          size={13}
+                        />
+                      )}
+                      <ButtonName>{display.name}</ButtonName>
                     </ButtonPill>
                   );
                 })}
