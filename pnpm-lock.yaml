@@ -399,6 +399,9 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@ksp-gonogo/kos':
+        specifier: workspace:*
+        version: link:../../mod/Gonogo.Kos/client
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk

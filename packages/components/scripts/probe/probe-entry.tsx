@@ -19,6 +19,19 @@
  * `kos.` to it. It is registered *unbuffered* — buffer-wrapping would hide
  * the topic-status methods so `useKosScriptStatus` would silently fall back
  * to the empty status.
+ *
+ * A different family of widget — mod-client widgets riding the Sitrep
+ * WEBSOCKET STREAM directly (`useStream`/`useStreamEvent` from
+ * `@ksp-gonogo/sitrep-client`, e.g. the kOS terminal) — never touches the
+ * `"data"`/`"kos"` `DataSource` registry at all, so neither of the above
+ * paths can drive it. A fixture for one of these widgets carries a
+ * top-level `_stream` block (see `StreamFixtureBlock` below) instead of
+ * (or alongside) plain data keys. When present, the probe builds a real
+ * `setupStreamFixture` — the same test-adapter the widgets' own headless
+ * tests use — mounts the widget inside its `Provider`, and replays the
+ * fixture's `emits` through `StubTransport.emit` post-mount. This keeps the
+ * harness generic: any stream-driven widget gets coverage by authoring a
+ * fixture, no probe changes required.
  */
 import {
   DashboardItemContext,
@@ -29,6 +42,9 @@ import {
   unregisterDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+// Side-effect import: mod-client widgets (kOS terminal, processors, …)
+// self-register on module load, same contract as the built-in library.
+import "@ksp-gonogo/kos";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -36,7 +52,10 @@ import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
 import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
-import { setupStreamFixture } from "../../src/test/setupStreamFixture";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../../src/test/setupStreamFixture";
 
 // Stock-body registry needs to be populated before any widget that calls
 // getBody(v.body) tries to read it. The live app does this in main.tsx;
@@ -101,6 +120,36 @@ class ProbeKosDataSource extends MockDataSource {
 export interface ProbeSeriesSample {
   t: number;
   v: unknown;
+}
+
+/** One `StubTransport.emit(topic, payload)` call, replayed post-mount. */
+export interface StreamEmit {
+  channel: string;
+  value: unknown;
+}
+
+/**
+ * Fixture block for stream-driven mod-client widgets — see this file's top
+ * doc comment. Keyed `_stream` so it is filtered out of the plain-key
+ * `MockDataSource` path the same way every other `_`-prefixed fixture key is.
+ */
+export interface StreamFixtureBlock {
+  /** Forwarded to `setupStreamFixture` — topics this fixture carries. */
+  carriedChannels: string[];
+  /** Forwarded to `setupStreamFixture` — UT to pin the view clock at. */
+  pinnedUt?: number;
+  /** Forwarded to `setupStreamFixture` — fixed network/display delay. */
+  delaySeconds?: number;
+  /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
+  emits: StreamEmit[];
+}
+
+/** Extracts and narrows the optional `_stream` block off a fixture. */
+function resolveStreamBlock(
+  fixture: Record<string, unknown>,
+): StreamFixtureBlock | undefined {
+  const raw = (fixture as { _stream?: StreamFixtureBlock })._stream;
+  return raw ?? undefined;
 }
 
 export interface ProbePayload {
@@ -193,6 +242,19 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   }
   activeSource = null;
   activeStore = null;
+
+  // Stream-driven mod-client widgets (kOS terminal, …) carry their fixture
+  // data in `_stream` rather than plain data keys — see this file's top doc
+  // comment and `StreamFixtureBlock`. Resolved once up-front so both the
+  // provider-wrap choice below and the post-mount emit loop share it.
+  const streamBlock = resolveStreamBlock(payload.fixture);
+  const streamFixture: StreamFixture | undefined = streamBlock
+    ? setupStreamFixture({
+        carriedChannels: streamBlock.carriedChannels,
+        pinnedUt: streamBlock.pinnedUt,
+        delaySeconds: streamBlock.delaySeconds,
+      })
+    : undefined;
 
   const fixtureKeys = Object.keys(payload.fixture).filter(
     (k) => !k.startsWith("_"),
@@ -321,15 +383,38 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   root.style.background = "var(--color-surface-app)";
 
   const instanceId = payload.instanceId ?? "probe";
-  // Wrap with a no-op AlarmsLauncherProvider so widgets that opt into
-  // alarm chrome (`useAlarmsLauncher` / `useAlarmCreator` /
-  // `useAlarmManager`) get a real launcher reference and render their
-  // bell affordance. Without the provider those hooks return null and
-  // the bell vanishes from harness PNGs even though it's the operator
-  // workflow in live use. The launcher / creator / manager fns are
-  // probe-only stubs — clicking them does nothing because there's no
-  // alarm pipeline in the probe page; but the rendered chrome is the
-  // thing we want to verify.
+
+  // The widget tree proper — shared by both provider-wrap branches below.
+  function buildWidgetTree(): React.ReactNode {
+    // Wrap with a no-op AlarmsLauncherProvider so widgets that opt into
+    // alarm chrome (`useAlarmsLauncher` / `useAlarmCreator` /
+    // `useAlarmManager`) get a real launcher reference and render their
+    // bell affordance. Without the provider those hooks return null and
+    // the bell vanishes from harness PNGs even though it's the operator
+    // workflow in live use. The launcher / creator / manager fns are
+    // probe-only stubs — clicking them does nothing because there's no
+    // alarm pipeline in the probe page; but the rendered chrome is the
+    // thing we want to verify.
+    return createElement(
+      AlarmsLauncherProvider,
+      {
+        launcher: () => {},
+        creator: () => {},
+        manager: { find: () => null, remove: () => {} },
+      },
+      createElement(
+        DashboardItemContext.Provider,
+        { value: { instanceId } },
+        createElement(WidgetComponent, {
+          config: payload.config ?? def.defaultConfig ?? {},
+          id: instanceId,
+          w: payload.w,
+          h: payload.h,
+        }),
+      ),
+    );
+  }
+
   activeRoot = createRoot(root);
   activeRoot.render(
     // ui-kit-composed widgets read design tokens off the styled-components
@@ -339,32 +424,17 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     createElement(
       ThemeProvider,
       { theme: defaultDarkTheme },
-      wrapWithPinnedViewUt(
-        resolvePinnedUt(payload.fixture),
-        createElement(
-          AlarmsLauncherProvider,
-          {
-            launcher: () => {},
-            creator: () => {},
-            manager: { find: () => null, remove: () => {} },
-          },
-          createElement(
-            DashboardItemContext.Provider,
-            { value: { instanceId } },
-            createElement(WidgetComponent, {
-              config: payload.config ?? def.defaultConfig ?? {},
-              id: instanceId,
-              w: payload.w,
-              h: payload.h,
-            }),
+      streamFixture
+        ? createElement(streamFixture.Provider, null, buildWidgetTree())
+        : wrapWithPinnedViewUt(
+            resolvePinnedUt(payload.fixture),
+            buildWidgetTree(),
           ),
-        ),
-      ),
     ),
   );
 
-  // Let React commit + useEffect run (so useDataValue actually subscribes)
-  // before we start emitting values.
+  // Let React commit + useEffect run (so useDataValue / useStream actually
+  // subscribe) before we start emitting values.
   await rafTick();
 
   for (const key of dataFixtureKeys) {
@@ -373,6 +443,20 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   if (activeKos) {
     for (const key of kosKeys) {
       activeKos.emit(key, payload.fixture[key]);
+    }
+  }
+  if (streamFixture && streamBlock) {
+    // One `rafTick` between emits (not just at the end): several stream
+    // emits are causally chained through a React re-render — e.g. the kOS
+    // terminal only subscribes to `kos.terminal.<coreId>` once a
+    // `kos.processors` emit resolves `coreId`, and `StubTransport.emit` is
+    // subscription-gated (silently drops if nothing has subscribed yet, see
+    // that method's own doc comment). Letting each emit's effects commit
+    // before the next keeps the fixture's `emits` order meaningful without
+    // the fixture author needing to know the widget's internal timing.
+    for (const e of streamBlock.emits) {
+      streamFixture.emit(e.channel, e.value);
+      await rafTick();
     }
   }
 

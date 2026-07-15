@@ -25,8 +25,13 @@ const termSpies = vi.hoisted(() => ({
 }));
 
 vi.mock("@xterm/xterm", () => ({
-  Terminal: vi.fn(function (this: object) {
+  Terminal: vi.fn(function (this: { options: Record<string, unknown> }) {
     Object.assign(this, termSpies);
+    // Real xterm exposes a live, settable `.options` bag (see the widget's
+    // cursor-blink sync effect, which writes `term.options.cursorBlink`
+    // whenever line mode toggles) — mirror that shape here rather than
+    // defensively guarding the component for a test-only gap.
+    this.options = {};
   }),
 }));
 

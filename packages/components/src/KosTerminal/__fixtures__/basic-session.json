@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "capturedAt": "2026-07-15",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the kOS Terminal widget. The widget's actual source lives at mod/Gonogo.Kos/client/src/KosTerminal \u2014 this fixture lives under packages/components/src/KosTerminal/__fixtures__ only because widgetRenderHarness resolves `fixturesPath` against packages/components/src/. Drives the widget over a REAL setupStreamFixture (TelemetryProvider + StubTransport) via probe-entry.tsx's `_stream` fixture path, not the legacy MockDataSource route \u2014 see that file's top doc comment. Shapes mirror mod/Gonogo.Kos/client/src/KosTerminal/lineMode.headless.test.tsx: a single READY CPU on kos.processors (auto-selected, no picker needed) plus one full-repaint kos.terminal.<coreId> frame painting a representative kOS session screen."
+  },
+  "_stream": {
+    "carriedChannels": ["kos.processors", "kos.terminal.7"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "kos.processors",
+        "value": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "bootFilePath": "boot/ascent.ks",
+            "processorMode": "READY"
+          }
+        ]
+      },
+      {
+        "channel": "kos.terminal.7",
+        "value": {
+          "coreId": 7,
+          "chunk": "\u001b[2J\u001b[HKerboScript v1.3.2.0 - Core 7 (lander)\r\n\r\n[LOG] Ascent program running - MET 00:04:12\r\n[LOG] Stage 2 separation confirmed at ALT 42,300m\r\n[LOG] Circularization burn scheduled at AP 80,000m\r\n\r\nkOS> ",
+          "fullRepaint": true
+        }
+      }
+    ]
+  }
+}
