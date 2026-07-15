@@ -21,6 +21,7 @@ import {
   type KerbcastTransport,
   type Layer,
 } from "@ksp-gonogo/kerbcast";
+import { logger } from "@ksp-gonogo/logger";
 
 /**
  * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the
@@ -330,6 +331,14 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   private baseTransport: KerbcastTransport | undefined;
   private client: KerbcastClient;
   private clientUnsubs: Array<() => void> = [];
+  /**
+   * Monotonic id stamped on every `KerbcastClient` we build, so the
+   * `kerbcast:clock` diagnostic can tell whether the instance that receives
+   * `settings-state` (this data source's connected client) is the same one
+   * `CameraFeed`'s provider holds and `useKerbcastClock` reads. A mismatch
+   * means a reconnect/TURN rebuild orphaned the clock onto a dead instance.
+   */
+  private static clientInstanceSeq = 0;
   // TURN creds: on the main screen, fetched from the relay's /ice-config; on a
   // brokered station, pushed in from the host's relay broadcast. Empty until
   // resolved (SDK then uses its STUN-only default).
@@ -737,6 +746,12 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
       },
       keepaliveTransport,
     );
+    const instanceId = ++KerbcastDataSource.clientInstanceSeq;
+    (client as unknown as { __kcInstanceId?: number }).__kcInstanceId =
+      instanceId;
+    logger
+      .tag("kerbcast:clock")
+      .debug("built KerbcastClient", { context: { instanceId } });
     this.clientUnsubs.push(
       client.on("state-change", (s) => {
         const status = mapStatus(s);
@@ -762,6 +777,20 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
         });
       }),
       client.on("settings-change", (payload) => {
+        // Diagnostic: is THIS connected instance receiving + applying the
+        // ~1Hz capture clock? Pairs with the `CameraFeed`/consumer-side
+        // `kerbcast:clock` logs (same `instanceId`) to localise a null
+        // `useKerbcastClock().captureUt` to either "clock never reaches the
+        // connected client" or "a different client instance is read".
+        logger
+          .tag("kerbcast:clock")
+          .debug("settings-change on connected client", {
+            context: {
+              instanceId,
+              payloadCaptureUt: payload.captureUt ?? null,
+              clockCaptureUt: client.clock.captureUt,
+            },
+          });
         this.throttleListeners.forEach((cb) => {
           cb(payload.throttleMainScreen);
         });

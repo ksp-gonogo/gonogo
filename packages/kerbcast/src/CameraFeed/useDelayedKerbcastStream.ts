@@ -1,4 +1,5 @@
 import { useKerbcastClock } from "@ksp-gonogo/kerbcast-react";
+import { logger } from "@ksp-gonogo/logger";
 import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { useCallback, useEffect, useRef } from "react";
 import {
@@ -89,7 +90,14 @@ export function useDelayedKerbcastStream(
   });
   useEffect(() => {
     sampleRef.current = { ut: captureUt, warpRate, atMs: performance.now() };
-  }, [captureUt, warpRate]);
+    // Diagnostic: what does the consumer's `useKerbcastClock` actually yield?
+    // If this stays null while the connected client logs advancing
+    // `captureUt` (same `kerbcast:clock` tag), the delay path is starved
+    // downstream of the SDK client — the break kerbcast's reply pinpointed.
+    logger.tag("kerbcast:clock").debug("consumer clock sample", {
+      context: { captureUt, warpRate, hasView: view !== undefined },
+    });
+  }, [captureUt, warpRate, view]);
 
   const liveCaptureUt = useCallback(
     () => interpolateCaptureUt(sampleRef.current, performance.now()) ?? 0,
