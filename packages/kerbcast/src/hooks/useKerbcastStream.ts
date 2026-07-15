@@ -148,7 +148,7 @@ export function useDelayedPlayout(
         logger
           .tag("kerbcast:frame-delay")
           .warn(
-            "per-frame video delay unsupported here (no MediaStreamTrackProcessor/Generator, or no video track) — falling back to live passthrough for the camera feed",
+            "per-frame video delay could not be built here (no MediaStreamTrackProcessor/Generator, no video track, or pipeline construction failed) — falling back to live passthrough for the camera feed",
           );
       }
       // Flagged, not silent: no delay is possible here, so show the feed
