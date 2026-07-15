@@ -144,6 +144,10 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
 
   const compositionBar = () =>
     screen.getByLabelText("Line-mode input").textContent ?? "";
+  // The bar always renders a leading prompt glyph ("❯") ahead of the actual
+  // composition text — strip it so history-recall assertions can compare the
+  // composed line itself.
+  const compositionText = () => compositionBar().replace("❯", "");
 
   it("a real Enter keypress through the VT engine sends the composed line as the label, tagged with this terminal's topic", async () => {
     const f = await mountAttached({ lineMode: true });
@@ -247,5 +251,50 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     expect(text).not.toContain("MET 00:12run.");
     // The composition is intact in its bar.
     expect(compositionBar()).toContain("run.");
+  });
+
+  it("up/down arrow walks line-mode composition history, most recent first", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+    await waitFor(() => {
+      const sent = f.transport.sentCommands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(sent).toHaveLength(1);
+    });
+
+    act(() => {
+      for (const ch of "list.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+    await waitFor(() => {
+      const sent = f.transport.sentCommands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(sent).toHaveLength(2);
+    });
+
+    // Up recalls the most recently sent line first, then walks further back.
+    act(() => term().dataHandler("\x1b[A"));
+    expect(compositionText()).toBe("list.");
+
+    act(() => term().dataHandler("\x1b[A"));
+    expect(compositionText()).toBe("run.");
+
+    // Further up at the oldest entry stays put (nothing further back).
+    act(() => term().dataHandler("\x1b[A"));
+    expect(compositionText()).toBe("run.");
+
+    // Down walks back toward the present...
+    act(() => term().dataHandler("\x1b[B"));
+    expect(compositionText()).toBe("list.");
+
+    // ...and past the newest entry returns to the empty in-progress draft.
+    act(() => term().dataHandler("\x1b[B"));
+    expect(compositionText()).toBe("");
   });
 });
