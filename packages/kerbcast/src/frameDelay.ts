@@ -192,8 +192,11 @@ export interface FrameDelayStream {
  * Browser-facing wrapper: builds a real `MediaStreamTrackProcessor` →
  * `runFrameDelayPipeline` → `MediaStreamTrackGenerator` chain for `raw`'s
  * first video track. Returns `null` (never throws) when per-frame delay
- * isn't possible here — unsupported browser, or `raw` has no video track —
- * so the caller can fall back to live passthrough instead of a black feed.
+ * isn't possible here — unsupported browser, `raw` has no video track, or
+ * building the processor/generator pair threw (e.g. a same-track rebuild
+ * racing the prior pipeline's un-awaited `cancel()` — see the try/catch
+ * below) — so the caller can fall back to live passthrough instead of a
+ * black feed or an escaped exception.
  */
 export function createFrameDelayStream(
   raw: MediaStream,
@@ -203,21 +206,36 @@ export function createFrameDelayStream(
   const track = raw.getVideoTracks()[0];
   if (!track) return null;
 
-  const processor = new MediaStreamTrackProcessor({ track });
-  const generator = new MediaStreamTrackGenerator({ kind: "video" });
+  try {
+    const processor = new MediaStreamTrackProcessor({ track });
+    const generator = new MediaStreamTrackGenerator({ kind: "video" });
 
-  const pipeline = runFrameDelayPipeline<VideoFrame>({
-    view: opts.view,
-    captureUt: opts.captureUt,
-    maxBufferedFrames: opts.maxBufferedFrames,
-    source: processor.readable.getReader(),
-    sink: generator.writable.getWriter(),
-    onError: opts.onError,
-  });
+    const pipeline = runFrameDelayPipeline<VideoFrame>({
+      view: opts.view,
+      captureUt: opts.captureUt,
+      maxBufferedFrames: opts.maxBufferedFrames,
+      source: processor.readable.getReader(),
+      sink: generator.writable.getWriter(),
+      onError: opts.onError,
+    });
 
-  return {
-    stream: new MediaStream([generator]),
-    dispose: pipeline.dispose,
-    flush: pipeline.flush,
-  };
+    return {
+      stream: new MediaStream([generator]),
+      dispose: pipeline.dispose,
+      flush: pipeline.flush,
+    };
+  } catch (err) {
+    // Fail OPEN, not through: pipeline construction runs synchronously right
+    // after the PRIOR pipeline's un-awaited `source.cancel()` (fired from
+    // `dispose()`, never awaited — see `runFrameDelayPipeline`'s own
+    // `dispose`). When a build effect rebuilds on the SAME track before that
+    // release has actually landed — React StrictMode's mount→unmount→mount
+    // cycle, or any effect dep change that isn't `raw` — Chrome can throw
+    // `InvalidStateError` ("a MediaStreamTrack may only have one processor
+    // at a time"). Treat it exactly like every other can't-build-a-pipeline
+    // case: report via `onError` and return null so the caller falls back to
+    // live passthrough instead of the throw escaping the effect.
+    opts.onError?.(err);
+    return null;
+  }
 }

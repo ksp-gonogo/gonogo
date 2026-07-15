@@ -139,6 +139,41 @@ describe("createFrameDelayStream", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("fails OPEN — returns null, reports via onError, never throws — when building the processor/generator pair throws", () => {
+    // Models the plausible real-world case: a build effect rebuilds on the
+    // SAME track before the PRIOR pipeline's un-awaited `source.cancel()`
+    // has actually released it (React StrictMode's mount→unmount→mount
+    // cycle, or any dep change that isn't `raw`) — Chrome can throw
+    // `InvalidStateError` from `new MediaStreamTrackProcessor(...)` because a
+    // `MediaStreamTrack` may have only one processor at a time. Review
+    // finding #3 (`2026-07-15-kerbcast-per-frame-video-delay-review.md`).
+    class ThrowingProcessor {
+      constructor() {
+        throw new Error("InvalidStateError: track already has a processor");
+      }
+    }
+    vi.stubGlobal("MediaStreamTrackProcessor", ThrowingProcessor);
+    vi.stubGlobal("MediaStreamTrackGenerator", class {});
+    try {
+      const clock = manualClock();
+      const raw = { getVideoTracks: () => [{}] } as unknown as MediaStream;
+      const onError = vi.fn();
+      let result: ReturnType<typeof createFrameDelayStream>;
+      expect(() => {
+        result = createFrameDelayStream(raw, {
+          view: clock,
+          captureUt: () => 0,
+          onError,
+        });
+      }).not.toThrow();
+      expect(result).toBeNull();
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("runFrameDelayPipeline — memory safety (every frame closed exactly once)", () => {
