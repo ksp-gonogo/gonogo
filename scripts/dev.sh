@@ -164,4 +164,7 @@ WATCH_PIDS=""
 watch_service relay &
 WATCH_PIDS="$WATCH_PIDS $!"
 
-turbo dev --filter='!@ksp-gonogo/relay'
+# Concurrency must exceed the number of persistent dev tasks (one per package
+# with a `dev` script). Turbo's default of 10 is now below the package count,
+# so set headroom explicitly or `turbo dev` refuses to start.
+turbo dev --filter='!@ksp-gonogo/relay' --concurrency=16
