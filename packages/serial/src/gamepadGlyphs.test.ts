@@ -54,4 +54,59 @@ describe("GAMEPAD_GLYPHS (vendored)", () => {
     const faceSouthXbox = getGamepadGlyph("xbox", "face-south");
     expect(faceSouthXbox).toContain("currentColor");
   });
+
+  // Regression for the "renders solid black or invisible" defect: the
+  // vendoring transform inlined a `style="stroke-width:Npx;"`-only
+  // attribute onto ~51 drawable elements across the 63 glyphs, with no
+  // `fill`/`stroke` colour at all. SVG initial values then apply — `fill`
+  // defaults to black (not `currentColor`), `stroke` defaults to `none` —
+  // so those elements rendered as solid black blobs (fill shapes) or were
+  // fully invisible (stroked-only shapes with no stroke colour). The prior
+  // mechanical test only sampled one glyph (`xbox/face-south`) for
+  // `currentColor` presence, which a glyph with this defect still passes
+  // (its *other* elements carry `currentColor` fine). This audits every
+  // drawable element in all 63 glyphs, not just one sampled glyph per pack.
+  describe("every drawable element resolves to currentColor (no default-black-fill, no default-none-stroke)", () => {
+    const DRAWABLE_TAG =
+      /<(circle|ellipse|line|rect|polyline|polygon|path)\b([^>]*)\/>/g;
+    const STYLE_ATTR = /style="([^"]*)"/;
+
+    function findBrokenElements(svg: string): string[] {
+      const broken: string[] = [];
+      for (const match of svg.matchAll(DRAWABLE_TAG)) {
+        const [full, , attrs] = match;
+        const styleMatch = STYLE_ATTR.exec(attrs);
+        const style = styleMatch?.[1] ?? "";
+        const hasFillColor = /fill:\s*currentColor/.test(style);
+        const hasFillNone = /fill:\s*none/.test(style);
+        const hasStrokeColor = /stroke:\s*currentColor/.test(style);
+
+        if (!hasFillColor && !hasFillNone) {
+          // No fill declared at all -> defaults to black.
+          broken.push(`${full} — no fill declared (defaults to black)`);
+          continue;
+        }
+        if (hasFillNone && !hasStrokeColor) {
+          // fill:none with no stroke colour -> fully invisible.
+          broken.push(`${full} — fill:none with no stroke colour (invisible)`);
+        }
+      }
+      return broken;
+    }
+
+    it("has no broken drawable element in any of the 63 role x pack glyphs", () => {
+      const failures: string[] = [];
+      for (const pack of GLYPH_PACKS) {
+        for (const role of GAMEPAD_ROLES) {
+          const svg = getGamepadGlyph(pack, role);
+          if (!svg) continue;
+          const broken = findBrokenElements(svg);
+          for (const b of broken) {
+            failures.push(`${pack}/${role}: ${b}`);
+          }
+        }
+      }
+      expect(failures).toEqual([]);
+    });
+  });
 });
