@@ -135,6 +135,60 @@ function reduceLineModeInput(
   return next;
 }
 
+// ── Line-mode history recall ─────────────────────────────────────────────────
+
+// Shell-style recall over lines THIS terminal session has sent via line-mode
+// Enter — kept in a plain ref (not persisted, not shared across terminals).
+// Capped well beyond any realistic single-session line count.
+const LINE_HISTORY_CAP = 100;
+
+/**
+ * Appends a just-sent line to the session's recall history, dropping the
+ * oldest entry once past `LINE_HISTORY_CAP`.
+ */
+function pushLineHistory(history: readonly string[], line: string): string[] {
+  const next = [...history, line];
+  return next.length > LINE_HISTORY_CAP
+    ? next.slice(next.length - LINE_HISTORY_CAP)
+    : next;
+}
+
+interface HistoryNav {
+  /** Steps back from the most recent entry (0 = most recent). */
+  index: number;
+  value: string;
+}
+
+/**
+ * Up-arrow: walks one entry further into the past. No-ops on empty history;
+ * pins at the oldest entry rather than wrapping.
+ */
+function recallOlder(
+  history: readonly string[],
+  index: number | null,
+): HistoryNav | null {
+  if (history.length === 0) return null;
+  const nextIndex =
+    index === null ? 0 : Math.min(index + 1, history.length - 1);
+  return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
+}
+
+/**
+ * Down-arrow: walks one entry back toward the present. Past the newest entry
+ * this restores the pre-recall draft (signalled by a `null` index) rather
+ * than continuing to recall. No-op when not currently browsing history.
+ */
+function recallNewer(
+  history: readonly string[],
+  index: number | null,
+  draft: string,
+): { index: number | null; value: string } | null {
+  if (index === null) return null;
+  if (index === 0) return { index: null, value: draft };
+  const nextIndex = index - 1;
+  return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function KosTerminalComponent(
@@ -239,11 +293,20 @@ function KosTerminalScreen({
   // state mirrors it for the bar's render.
   const lineBufferRef = useRef<string>("");
   const [composition, setComposition] = useState("");
+  // Shell-style history recall over lines sent via line-mode Enter this
+  // session (see `recallOlder`/`recallNewer`). `historyIndexRef` is `null`
+  // while editing the live draft; `historyDraftRef` snapshots that draft the
+  // moment up-arrow starts browsing, so down-arrow can restore it past the
+  // newest entry.
+  const lineHistoryRef = useRef<string[]>([]);
+  const historyIndexRef = useRef<number | null>(null);
+  const historyDraftRef = useRef<string>("");
   // lineMode can flip at runtime (a config edit) and must NOT tear down the
   // live xterm — the onData handler reads this ref per keystroke instead of
   // capturing lineMode in its setup effect, so the running terminal (and its
   // on-screen content) survives the switch. Clear any in-progress composition
-  // on a mode change so a stale line doesn't linger in the bar.
+  // (and history-browse position) on a mode change so a stale line doesn't
+  // linger in the bar.
   const lineModeRef = useRef(lineMode);
   lineModeRef.current = lineMode;
   // Intentionally keyed on lineMode: this effect exists to clear the
@@ -252,7 +315,20 @@ function KosTerminalScreen({
   useEffect(() => {
     lineBufferRef.current = "";
     setComposition("");
+    historyIndexRef.current = null;
+    historyDraftRef.current = "";
   }, [lineMode]);
+  // Keep xterm's own cursor blink in sync with which surface owns input —
+  // see the matching comment on the `cursorBlink` constructor option above.
+  // Separate from the composition-clearing effect above (different deps:
+  // this one legitimately reacts to `readOnly` too) and gated on
+  // `termRef.current` existing, since a runtime lineMode/readOnly flip can
+  // land before or after the terminal's own mount-time setup effect.
+  useEffect(() => {
+    if (termRef.current) {
+      termRef.current.options.cursorBlink = !readOnly && !lineMode;
+    }
+  }, [lineMode, readOnly]);
 
   // `comms.delay`/`system.uplink.pending`/`comms.link` are all read through
   // `useLatestValue`, NOT the certainty-gated `useStream`/`useViewUt` path.
@@ -395,7 +471,16 @@ function KosTerminalScreen({
         },
         fontFamily: "monospace",
         fontSize: 13,
-        cursorBlink: !readOnly,
+        // Line mode hands the active caret to `CompositionBar` (its own
+        // blinking cursor sits on the composed line); leaving xterm's native
+        // cursor ALSO blinking at the last-painted `kOS>` position reads as
+        // two disagreeing cursors. Suppress it whenever the bar owns input —
+        // char mode has no bar, so the terminal cursor stays the sole one.
+        // Read via the ref (not the `lineMode` prop) so this initial value
+        // doesn't become an exhaustive-deps dependency of the mount-only
+        // setup effect below; the reactive toggle sync effect keeps it
+        // current after mount.
+        cursorBlink: !readOnly && !lineModeRef.current,
         cols: KOS_TERM_COLS,
         rows: KOS_TERM_ROWS,
       });
@@ -412,23 +497,73 @@ function KosTerminalScreen({
         // Line mode accumulates into the composition bar (no echo into this
         // screen); char mode forwards each keystroke straight to the CPU.
         term.onData((data) => {
-          if (lineModeRef.current) {
-            const next = reduceLineModeInput(
-              data,
-              lineBufferRef.current,
-              // `chars` carries the trailing `\r` `reduceLineModeChar` appends
-              // for the wire (kOS needs the Enter byte); the label is the
-              // operator-facing composed line, so it's trimmed of that
-              // control character — the queue strip renders the label
-              // verbatim and must not show a raw CR.
-              (chars) =>
-                sendKeystrokeRef.current(chars, chars.replace(/[\r\n]+$/, "")),
-            );
-            lineBufferRef.current = next;
-            setComposition(next);
-          } else {
+          if (!lineModeRef.current) {
             sendKeystrokeRef.current(data);
+            return;
           }
+          // Up-arrow: recall history, one entry further into the past.
+          if (data === "\x1b[A") {
+            if (historyIndexRef.current === null) {
+              historyDraftRef.current = lineBufferRef.current;
+            }
+            const nav = recallOlder(
+              lineHistoryRef.current,
+              historyIndexRef.current,
+            );
+            if (nav) {
+              historyIndexRef.current = nav.index;
+              lineBufferRef.current = nav.value;
+              setComposition(nav.value);
+            }
+            return;
+          }
+          // Down-arrow: walk history back toward the present / live draft.
+          if (data === "\x1b[B") {
+            const nav = recallNewer(
+              lineHistoryRef.current,
+              historyIndexRef.current,
+              historyDraftRef.current,
+            );
+            if (nav) {
+              historyIndexRef.current = nav.index;
+              lineBufferRef.current = nav.value;
+              setComposition(nav.value);
+            }
+            return;
+          }
+          // Ctrl+C: clear the in-progress line locally AND forward the
+          // interrupt itself so a running kOS program actually breaks — this
+          // is a control signal, not a composed line, so it never joins line
+          // history.
+          if (data === "\x03") {
+            historyIndexRef.current = null;
+            lineBufferRef.current = "";
+            setComposition("");
+            sendKeystrokeRef.current("\x03", "^C");
+            return;
+          }
+          // Any regular edit leaves history-browse mode — recalling a line
+          // then typing continues editing it as the new live draft.
+          historyIndexRef.current = null;
+          const next = reduceLineModeInput(
+            data,
+            lineBufferRef.current,
+            // `chars` carries the trailing `\r` `reduceLineModeChar` appends
+            // for the wire (kOS needs the Enter byte); the label is the
+            // operator-facing composed line, so it's trimmed of that
+            // control character — the queue strip renders the label
+            // verbatim and must not show a raw CR.
+            (chars) => {
+              const label = chars.replace(/[\r\n]+$/, "");
+              lineHistoryRef.current = pushLineHistory(
+                lineHistoryRef.current,
+                label,
+              );
+              sendKeystrokeRef.current(chars, label);
+            },
+          );
+          lineBufferRef.current = next;
+          setComposition(next);
         });
       }
 
@@ -494,16 +629,18 @@ function KosTerminalScreen({
 
   return (
     <TerminalShell>
-      <Container ref={containerRef} $readOnly={readOnly} />
+      <TerminalFrame>
+        <Container ref={containerRef} $readOnly={readOnly} />
+        {badgeDelay && (
+          <DelayBadge role="status" aria-label="Signal delay">
+            round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
+          </DelayBadge>
+        )}
+      </TerminalFrame>
       {!readOnly && noPath && (
         <NoPathBadge role="status">
           No path — commands are not being sent
         </NoPathBadge>
-      )}
-      {badgeDelay && (
-        <DelayBadge aria-label="Signal delay">
-          round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
-        </DelayBadge>
       )}
       {stripUtNow !== undefined && myPending.length > 0 && (
         <UplinkStrip aria-label="Uplink queue">
@@ -625,10 +762,22 @@ const TerminalShell = styled.div`
   gap: 6px;
 `;
 
-const Container = styled.div<{ $readOnly?: boolean }>`
-  width: 100%;
+// Wraps the terminal pane so the delay badge can be pinned INSIDE its
+// bordered box (an absolutely-positioned corner overlay) instead of floating
+// below it as a separate flex sibling — a badge floating past the pane's own
+// border reads as rendering outside the widget's visual bounds. Carries the
+// flex-sizing props `Container` used to own directly; `Container` itself is
+// now a plain 100%-of-frame box so xterm's own mount target is unaffected.
+const TerminalFrame = styled.div`
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+`;
+
+const Container = styled.div<{ $readOnly?: boolean }>`
+  width: 100%;
+  height: 100%;
   background: var(--color-surface-panel);
   border: 1px solid ${({ $readOnly }) => ($readOnly ? "var(--color-status-info-bg)" : "var(--color-border-subtle)")};
   border-radius: 4px;
@@ -653,7 +802,6 @@ const CompositionBar = styled.div`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
   padding: 6px 8px;
   min-height: 1.6em;
   background: var(--color-surface-panel);
@@ -664,9 +812,15 @@ const CompositionBar = styled.div`
   box-sizing: border-box;
 `;
 
+// No gap here — the cursor block must sit flush against the trailing
+// character of `CompositionBar__Text`, not offset by a flex gap (that read
+// as the cursor sitting one character off the actual trailing character).
+// The prompt keeps its own breathing room via `margin-right` instead of a
+// container-wide `gap` that would otherwise apply between every child.
 const CompositionBar__Prompt = styled.span`
   color: var(--color-accent-fg);
   font-weight: bold;
+  margin-right: 8px;
 `;
 
 const CompositionBar__Text = styled.span`
@@ -714,9 +868,16 @@ const NoPathBadge = styled.div`
 
 // Compact delay readout: char-mode always, line-mode only when the delay is
 // too short (<=1s one-way) for a strip to be worth it — see `showBadge`.
+// Pinned as an absolutely-positioned corner overlay INSIDE `TerminalFrame`
+// (a sibling of `Container`, not a descendant — `Container`'s own
+// `overflow: hidden` is reserved for xterm's content) rather than a flex
+// item below the terminal pane, so it always renders within the terminal's
+// own bordered box instead of floating past it.
 const DelayBadge = styled.div`
-  flex: 0 0 auto;
-  align-self: flex-start;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
   padding: 2px 8px;
   font-family: monospace;
   font-size: 11px;

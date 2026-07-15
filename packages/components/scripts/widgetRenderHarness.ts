@@ -13,7 +13,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { build, type Plugin } from "esbuild";
 import { chromium, firefox, type Page, webkit } from "playwright";
 
 const require = createRequire(import.meta.url);
@@ -444,6 +444,46 @@ interface PreparePageOpts {
   slug: string;
 }
 
+/**
+ * A widget's own bare `import "some.css"` (e.g. `@xterm/xterm/css/xterm.css`
+ * in the kOS terminal) needs to actually land in the page as a `<style>` tag
+ * — `loader: "text"` alone just turns the file into an inert string module
+ * that nothing reads, which esbuild's tree-shaking then elides outright
+ * whenever the imported package declares `sideEffects: false` (as
+ * `@xterm/xterm` does), producing an "ignored bare import" warning and a
+ * fully unstyled render. This plugin rewrites every `.css` import into a JS
+ * module whose OWN top-level code appends a `<style>` tag with the file's
+ * contents, and marks the resolved import `sideEffects: true` so esbuild
+ * never drops it regardless of the source package's own declaration.
+ */
+const cssSideEffectPlugin: Plugin = {
+  name: "css-side-effect",
+  setup(pluginBuild) {
+    pluginBuild.onResolve({ filter: /\.css$/ }, (args) => {
+      // Resolve via NODE's own resolver (the same `require.resolve` approach
+      // `jetbrainsMonoFontFace` below uses for its woff2 files) rather than
+      // `pluginBuild.resolve()`. The latter re-enters esbuild's onResolve
+      // pipeline — including THIS callback, which matches the same `.css`
+      // filter — and esbuild does not dedupe that self-recursion; it hung /
+      // crashed the esbuild service (goroutine explosion) the first time
+      // this plugin ran against a real `.css` import.
+      const resolvedPath = require.resolve(args.path, {
+        paths: [args.resolveDir],
+      });
+      return { path: resolvedPath, sideEffects: true };
+    });
+    pluginBuild.onLoad({ filter: /\.css$/ }, async (args) => {
+      const css = await readFile(args.path, "utf8");
+      return {
+        loader: "js",
+        contents: `const __style = document.createElement("style");
+__style.textContent = ${JSON.stringify(css)};
+document.head.appendChild(__style);`,
+      };
+    });
+  },
+};
+
 /** Build a probe bundle, inline it + the theme CSS into the HTML template,
  *  write to tmpdir. Shared by the widget and screen render paths — they
  *  differ only in entry point + HTML template. Returns the generated HTML
@@ -460,7 +500,7 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
     write: false,
     sourcemap: "inline",
     define: { "process.env.NODE_ENV": '"production"' },
-    loader: { ".css": "text" },
+    plugins: [cssSideEffectPlugin],
   });
   const bundleJs = bundleResult.outputFiles[0].text;
 
