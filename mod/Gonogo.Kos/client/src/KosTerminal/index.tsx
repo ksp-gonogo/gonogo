@@ -135,6 +135,60 @@ function reduceLineModeInput(
   return next;
 }
 
+// ── Line-mode history recall ─────────────────────────────────────────────────
+
+// Shell-style recall over lines THIS terminal session has sent via line-mode
+// Enter — kept in a plain ref (not persisted, not shared across terminals).
+// Capped well beyond any realistic single-session line count.
+const LINE_HISTORY_CAP = 100;
+
+/**
+ * Appends a just-sent line to the session's recall history, dropping the
+ * oldest entry once past `LINE_HISTORY_CAP`.
+ */
+function pushLineHistory(history: readonly string[], line: string): string[] {
+  const next = [...history, line];
+  return next.length > LINE_HISTORY_CAP
+    ? next.slice(next.length - LINE_HISTORY_CAP)
+    : next;
+}
+
+interface HistoryNav {
+  /** Steps back from the most recent entry (0 = most recent). */
+  index: number;
+  value: string;
+}
+
+/**
+ * Up-arrow: walks one entry further into the past. No-ops on empty history;
+ * pins at the oldest entry rather than wrapping.
+ */
+function recallOlder(
+  history: readonly string[],
+  index: number | null,
+): HistoryNav | null {
+  if (history.length === 0) return null;
+  const nextIndex =
+    index === null ? 0 : Math.min(index + 1, history.length - 1);
+  return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
+}
+
+/**
+ * Down-arrow: walks one entry back toward the present. Past the newest entry
+ * this restores the pre-recall draft (signalled by a `null` index) rather
+ * than continuing to recall. No-op when not currently browsing history.
+ */
+function recallNewer(
+  history: readonly string[],
+  index: number | null,
+  draft: string,
+): { index: number | null; value: string } | null {
+  if (index === null) return null;
+  if (index === 0) return { index: null, value: draft };
+  const nextIndex = index - 1;
+  return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function KosTerminalComponent(
@@ -239,11 +293,20 @@ function KosTerminalScreen({
   // state mirrors it for the bar's render.
   const lineBufferRef = useRef<string>("");
   const [composition, setComposition] = useState("");
+  // Shell-style history recall over lines sent via line-mode Enter this
+  // session (see `recallOlder`/`recallNewer`). `historyIndexRef` is `null`
+  // while editing the live draft; `historyDraftRef` snapshots that draft the
+  // moment up-arrow starts browsing, so down-arrow can restore it past the
+  // newest entry.
+  const lineHistoryRef = useRef<string[]>([]);
+  const historyIndexRef = useRef<number | null>(null);
+  const historyDraftRef = useRef<string>("");
   // lineMode can flip at runtime (a config edit) and must NOT tear down the
   // live xterm — the onData handler reads this ref per keystroke instead of
   // capturing lineMode in its setup effect, so the running terminal (and its
   // on-screen content) survives the switch. Clear any in-progress composition
-  // on a mode change so a stale line doesn't linger in the bar.
+  // (and history-browse position) on a mode change so a stale line doesn't
+  // linger in the bar.
   const lineModeRef = useRef(lineMode);
   lineModeRef.current = lineMode;
   // Intentionally keyed on lineMode: this effect exists to clear the
@@ -252,6 +315,8 @@ function KosTerminalScreen({
   useEffect(() => {
     lineBufferRef.current = "";
     setComposition("");
+    historyIndexRef.current = null;
+    historyDraftRef.current = "";
   }, [lineMode]);
 
   // `comms.delay`/`system.uplink.pending`/`comms.connectivity` are all
@@ -401,23 +466,62 @@ function KosTerminalScreen({
         // Line mode accumulates into the composition bar (no echo into this
         // screen); char mode forwards each keystroke straight to the CPU.
         term.onData((data) => {
-          if (lineModeRef.current) {
-            const next = reduceLineModeInput(
-              data,
-              lineBufferRef.current,
-              // `chars` carries the trailing `\r` `reduceLineModeChar` appends
-              // for the wire (kOS needs the Enter byte); the label is the
-              // operator-facing composed line, so it's trimmed of that
-              // control character — the queue strip renders the label
-              // verbatim and must not show a raw CR.
-              (chars) =>
-                sendKeystrokeRef.current(chars, chars.replace(/[\r\n]+$/, "")),
-            );
-            lineBufferRef.current = next;
-            setComposition(next);
-          } else {
+          if (!lineModeRef.current) {
             sendKeystrokeRef.current(data);
+            return;
           }
+          // Up-arrow: recall history, one entry further into the past.
+          if (data === "\x1b[A") {
+            if (historyIndexRef.current === null) {
+              historyDraftRef.current = lineBufferRef.current;
+            }
+            const nav = recallOlder(
+              lineHistoryRef.current,
+              historyIndexRef.current,
+            );
+            if (nav) {
+              historyIndexRef.current = nav.index;
+              lineBufferRef.current = nav.value;
+              setComposition(nav.value);
+            }
+            return;
+          }
+          // Down-arrow: walk history back toward the present / live draft.
+          if (data === "\x1b[B") {
+            const nav = recallNewer(
+              lineHistoryRef.current,
+              historyIndexRef.current,
+              historyDraftRef.current,
+            );
+            if (nav) {
+              historyIndexRef.current = nav.index;
+              lineBufferRef.current = nav.value;
+              setComposition(nav.value);
+            }
+            return;
+          }
+          // Any regular edit leaves history-browse mode — recalling a line
+          // then typing continues editing it as the new live draft.
+          historyIndexRef.current = null;
+          const next = reduceLineModeInput(
+            data,
+            lineBufferRef.current,
+            // `chars` carries the trailing `\r` `reduceLineModeChar` appends
+            // for the wire (kOS needs the Enter byte); the label is the
+            // operator-facing composed line, so it's trimmed of that
+            // control character — the queue strip renders the label
+            // verbatim and must not show a raw CR.
+            (chars) => {
+              const label = chars.replace(/[\r\n]+$/, "");
+              lineHistoryRef.current = pushLineHistory(
+                lineHistoryRef.current,
+                label,
+              );
+              sendKeystrokeRef.current(chars, label);
+            },
+          );
+          lineBufferRef.current = next;
+          setComposition(next);
         });
       }
 
