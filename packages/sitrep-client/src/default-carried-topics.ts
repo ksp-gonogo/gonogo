@@ -67,6 +67,17 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // carried or the disconnect edge never reaches the client and "NO SIGNAL"
   // never fires — see comms-delay-model-consistency spec.
   "comms.link",
+  // System View / Fleet-Comms augment (Phase 1 spine,
+  // docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md):
+  // active-vessel comms-path highlight + connectivity styling + command-traffic
+  // (pending-uplink) overlay, read via `useLatestValue`. NOTE `comms.connectivity`
+  // is a TEMPORARY bootstrap — the augment should migrate to the `comms.link`
+  // MetaTopic above now that it's carried (follow-up:
+  // 2026-07-16-fleetcomms-use-comms-link.md). `comms.network` deliberately NOT
+  // listed (Phase 1 doesn't draw the relay graph — Phase 2).
+  "comms.path",
+  "comms.connectivity",
+  "system.uplink.pending",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —
