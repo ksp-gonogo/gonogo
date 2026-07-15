@@ -34,6 +34,24 @@ namespace Gonogo.KSP
         public const string NetworkTopic = "comms.network";
         public const string DelayTopic = "comms.delay";
 
+        /// <summary>
+        /// The client-facing connectivity MetaTopic (comms-delay-model-
+        /// consistency spec) — a Delayed channel the engine special-cases as
+        /// freeze-EXEMPT (see <see cref="Sitrep.Host.ChannelEngine.ConnectivityMetaTopic"/>,
+        /// which this literal must match, and <see cref="Sitrep.Contract.CommsLink"/>).
+        /// It carries the same link up/down the TrueNow <c>comms.connectivity</c>
+        /// observation channel does, but Delayed + freeze-exempt so the
+        /// DISCONNECT EDGE escapes the reveal-gate freeze and reaches the client
+        /// (revealed at the last-known light-time horizon), where a plain
+        /// Delayed channel would freeze at last-known and the client's
+        /// "NO SIGNAL" could never fire. Sourced from the SAME
+        /// <see cref="CaptureOnMain"/> connectivity read that drives the freeze
+        /// gate, so the client-visible link state and the gate can never
+        /// disagree. This is the connectivity channel clients SHOULD read
+        /// (via the <c>comm.connected</c> mapped key / <c>comms.link.connected</c>).
+        /// </summary>
+        public const string LinkTopic = "comms.link";
+
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1) — that
         // literal is a config/onboarding decision, so core ships it off and the
@@ -51,6 +69,7 @@ namespace Gonogo.KSP
         private IChannelPublisher? _path;
         private IChannelPublisher? _network;
         private IChannelPublisher? _delay;
+        private IChannelPublisher? _link;
 
         private Kernel? _kernel;
 
@@ -77,6 +96,19 @@ namespace Gonogo.KSP
                 TrueNow(PathTopic),
                 TrueNow(NetworkTopic),
                 TrueNow(DelayTopic),
+                // comms.link: Delayed (rides the normal light-time horizon) but
+                // the ENGINE special-cases it as freeze-EXEMPT by topic identity
+                // (ChannelEngine.ConnectivityMetaTopic), matching how comms.delay
+                // is special-cased as always-live. Declared Delayed here for
+                // accuracy even though the exemption itself is topic-identity-
+                // keyed, not a read of this Delay disposition.
+                new ChannelDeclaration
+                {
+                    Topic = LinkTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
             },
         };
 
@@ -107,6 +139,7 @@ namespace Gonogo.KSP
             _path = host.Publisher(PathTopic);
             _network = host.Publisher(NetworkTopic);
             _delay = host.Publisher(DelayTopic);
+            _link = host.Publisher(LinkTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -116,7 +149,8 @@ namespace Gonogo.KSP
                 ControlStateTopic,
                 PathTopic,
                 NetworkTopic,
-                DelayTopic);
+                DelayTopic,
+                LinkTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -211,9 +245,11 @@ namespace Gonogo.KSP
             }
 
             // A transient backend-read THROW must PROPAGATE, not be swallowed
-            // into NoneDelay (OneWaySeconds=0). Dropping the delay to 0 on a
-            // one-tick read blip would momentarily collapse the reveal horizon
-            // and prematurely reveal a still-in-flight Delayed sample. The
+            // into a None result (OneWaySeconds null/0, per
+            // CommsDelay.OneWaySeconds's typed-absence split). Dropping the
+            // delay on a one-tick read blip would momentarily collapse the
+            // reveal horizon and prematurely reveal a still-in-flight Delayed
+            // sample. The
             // engine's recoverable delay fail-soft
             // (ChannelEngine.CaptureSignalDelayOnMain →
             // RefreshSignalDelayFromCapability → FailSoftSignalDelaySource)
@@ -310,6 +346,15 @@ namespace Gonogo.KSP
             _path?.Publish(capture.Path, capture.Ut);
             _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
+            // comms.link: the client-facing, freeze-exempt-Delayed connectivity
+            // successor. Same Connected the TrueNow comms.connectivity carries,
+            // but on the topic clients read so the disconnect edge survives the
+            // reveal-gate freeze. See LinkTopic's doc comment.
+            _link?.Publish(new CommsLink
+            {
+                Connected = capture.Connectivity.Connected,
+                Meta = capture.Connectivity.Meta,
+            }, capture.Ut);
         }
 
         /// <summary>Plain cross-thread payload bundle — no live KSP references.</summary>

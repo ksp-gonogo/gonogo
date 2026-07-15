@@ -158,6 +158,53 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void DelaySerializesOneWaySecondsAsNumberWhenComputed()
+        {
+            var el = Write(new CommsDelay
+            {
+                OneWaySeconds = 3.8,
+                Source = CommsDelaySource.SignalDelay,
+                Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
+            });
+
+            Assert.Equal(3.8, el.GetProperty("oneWaySeconds").GetDouble());
+            Assert.Equal((int)CommsDelaySource.SignalDelay, el.GetProperty("source").GetInt32());
+        }
+
+        [Fact]
+        public void DelaySerializesOneWaySecondsAsJsonNullWhenNoMeasurablePath()
+        {
+            // R7 typed absence: no path home is null, NEVER the 0 sentinel
+            // (comms-delay-nullable-when-no-path.md).
+            var el = Write(new CommsDelay
+            {
+                OneWaySeconds = null,
+                Source = CommsDelaySource.None,
+                Meta = new PayloadMeta(),
+            });
+
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("oneWaySeconds").ValueKind);
+            Assert.Equal((int)CommsDelaySource.None, el.GetProperty("source").GetInt32());
+        }
+
+        [Fact]
+        public void DelaySerializesOneWaySecondsAsZeroWhenDisabledButConnected()
+        {
+            // The OTHER "None" case: delay feature off, vessel still
+            // connected — a real "zero applied", distinguishable from the
+            // no-path null case above only by this value.
+            var el = Write(new CommsDelay
+            {
+                OneWaySeconds = 0.0,
+                Source = CommsDelaySource.None,
+                Meta = new PayloadMeta(),
+            });
+
+            Assert.Equal(JsonValueKind.Number, el.GetProperty("oneWaySeconds").ValueKind);
+            Assert.Equal(0.0, el.GetProperty("oneWaySeconds").GetDouble());
+        }
+
+        [Fact]
         public void RealAntennasOnlyPayloadsSerialize()
         {
             var lq = Write(new CommsLinkQuality { Value = 0.9, Meta = new PayloadMeta() });

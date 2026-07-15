@@ -342,7 +342,17 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "therm.anyEnginesOverheating": "vessel.thermal.anyEnginesOverheating",
 
   // --- vessel.comms ---
-  "comm.connected": "vessel.comms.connected",
+  // comm.connected -> comms.link.connected (NOT vessel.comms.connected):
+  // connectivity moved to the dedicated Delayed, freeze-EXEMPT comms.link
+  // MetaTopic (comms-delay-model-consistency spec). vessel.comms is a single
+  // Delayed struct topic subject to the reveal-gate freeze, so its .connected
+  // field froze at last-known through a blackout and the disconnect edge never
+  // reached the client. comms.link escapes the freeze, so remapping this one
+  // alias flips CameraFeed / CommSignal / ActionGroup (all read the mapped
+  // comm.connected key) onto the edge that actually fires "NO SIGNAL". The
+  // observation field below (signalStrength) stays on the frozen vessel.comms
+  // struct — it SHOULD freeze at last-known through the outage.
+  "comm.connected": "comms.link.connected",
   "comm.signalStrength": "vessel.comms.signalStrength",
   // comm.signalDelay -> comms.delay.oneWaySeconds: gonogo's OWN SignalDelay
   // authority (TrueNow), live on the wire via CommsCoreUplink. CommSignal

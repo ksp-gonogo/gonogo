@@ -295,11 +295,16 @@ export interface TelemaachusSchema {
   // Telemachus Reborn reads these straight from stock `Vessel.Connection`
   // (CommNet). RemoteTech is not supported. `signalDelay` is always 0 on
   // vanilla; becomes meaningful only with third-party signal-delay mods.
+  // `comm.signalDelay` maps (raw-field walk) onto gonogo's own
+  // `comms.delay.oneWaySeconds`, which is nullable — null when there is no
+  // measurable ControlPath, as opposed to 0 for the delay-feature-disabled
+  // case (comms-delay-nullable-when-no-path fix). Every reader already
+  // treats "not a number" (null included) as "nothing to show".
   "comm.connected": boolean;
   "comm.signalStrength": number;
   "comm.controlState": number;
   "comm.controlStateName": string;
-  "comm.signalDelay": number;
+  "comm.signalDelay": number | null;
 
   // --- tar.* — Target ---
   "tar.name": string;

@@ -28,11 +28,14 @@ namespace Sitrep.Host.Comms
     /// registration calls <see cref="Compute"/> from a channel-source closure
     /// after resolving the backend via the Kernel.
     ///
-    /// <para>R7 typed absence: when delay cannot be computed (flag off, no
-    /// path, or any hop missing geometry), the result is
-    /// <see cref="CommsDelaySource.None"/> with <c>OneWaySeconds = 0</c> — a
-    /// consumer reads that as "no delay authority", never mistaking 0 for a
-    /// measured zero-distance delay.</para>
+    /// <para>R7 typed absence: <see cref="CommsDelaySource.None"/> covers TWO
+    /// distinct cases, told apart by <c>OneWaySeconds</c>'s value (see
+    /// <see cref="CommsDelay.OneWaySeconds"/>'s own doc comment) — the flag
+    /// being off is a genuine "zero delay applied" while connected
+    /// (<c>OneWaySeconds = 0</c>); no measurable path (no path home, a
+    /// non-positive light-speed scale, or any hop missing geometry) has
+    /// nothing to report at all (<c>OneWaySeconds = null</c>). Neither case
+    /// is ever mistaken for a measured zero-distance delay.</para>
     /// </summary>
     public static class SignalDelay
     {
@@ -56,18 +59,21 @@ namespace Sitrep.Host.Comms
         {
             var meta = new PayloadMeta { Source = source ?? "", Quality = quality };
 
-            // Flag off ⇒ delay is 0 / source:none. The core ViewClock then
-            // releases everything live (§3.1).
+            // Flag off ⇒ delay-DISABLED-but-connected: a genuine "zero delay
+            // applied", not an absence. The core ViewClock then releases
+            // everything live (§3.1).
             if (config == null || !config.Enabled)
             {
-                return None(meta);
+                return Disabled(meta);
             }
 
             // A non-positive scale would divide by zero / go negative — treat
-            // as "cannot compute" rather than emitting a garbage delay.
+            // as "cannot compute" rather than emitting a garbage delay. This
+            // is a no-measurable-path case (null), not the delay-disabled
+            // case (0): the flag IS on, there's just nothing honest to report.
             if (config.LightSpeedScale <= 0.0)
             {
-                return None(meta);
+                return NoPath(meta);
             }
 
             IReadOnlyList<CommsHop>? hops = path?.Hops;
@@ -76,7 +82,7 @@ namespace Sitrep.Host.Comms
                 // No path home ⇒ no geometry ⇒ no computable delay. (The link
                 // being down is reported by comms.connectivity/path; delay
                 // simply has nothing to measure.)
-                return None(meta);
+                return NoPath(meta);
             }
 
             double totalMeters = 0.0;
@@ -87,7 +93,7 @@ namespace Sitrep.Host.Comms
                     // Typed absence on any hop ⇒ incomplete geometry ⇒ cannot
                     // honestly compute a total light-time. Do NOT treat a
                     // missing hop distance as 0.
-                    return None(meta);
+                    return NoPath(meta);
                 }
                 totalMeters += hop.DistanceMeters.Value;
             }
@@ -103,9 +109,18 @@ namespace Sitrep.Host.Comms
             };
         }
 
-        private static CommsDelay None(PayloadMeta meta) => new CommsDelay
+        /// <summary>Delay feature is off but the vessel IS connected — a real "zero applied", so <c>OneWaySeconds = 0</c> (never null).</summary>
+        private static CommsDelay Disabled(PayloadMeta meta) => new CommsDelay
         {
             OneWaySeconds = 0.0,
+            Source = CommsDelaySource.None,
+            Meta = meta,
+        };
+
+        /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale) — nothing to report, so <c>OneWaySeconds = null</c> (never 0).</summary>
+        private static CommsDelay NoPath(PayloadMeta meta) => new CommsDelay
+        {
+            OneWaySeconds = null,
             Source = CommsDelaySource.None,
             Meta = meta,
         };

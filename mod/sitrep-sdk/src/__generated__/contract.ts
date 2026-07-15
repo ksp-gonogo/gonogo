@@ -210,8 +210,13 @@ export enum CommsDelaySource {
 }
 export interface CommsDelay
 {
-	oneWaySeconds: number;
+	oneWaySeconds?: number;
 	source: CommsDelaySource;
+	meta: PayloadMeta;
+}
+export interface CommsLink
+{
+	connected: boolean;
 	meta: PayloadMeta;
 }
 export interface CommsLinkQuality

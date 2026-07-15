@@ -61,6 +61,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // Comms signal-delay channel (CommsCoreUplink, TrueNow) — the headline
   // delay readout behind CommSignal's comm.signalDelay.
   "comms.delay",
+  // Comms connectivity MetaTopic (CommsCoreUplink, Delayed + freeze-EXEMPT) —
+  // the client-facing link up/down behind the comm.connected mapped key
+  // (SignalLossIndicator / CameraFeed / CommSignal / ActionGroup). MUST be
+  // carried or the disconnect edge never reaches the client and "NO SIGNAL"
+  // never fires — see comms-delay-model-consistency spec.
+  "comms.link",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —

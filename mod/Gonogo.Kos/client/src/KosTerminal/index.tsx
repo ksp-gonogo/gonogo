@@ -9,7 +9,7 @@ import {
   useUtNow,
 } from "@ksp-gonogo/sitrep-client";
 import type {
-  CommsConnectivity,
+  CommsLink,
   KosKeystrokeArgs,
   KosProcessorInfo,
   KosTerminalCloseArgs,
@@ -254,12 +254,13 @@ function KosTerminalScreen({
     setComposition("");
   }, [lineMode]);
 
-  // `comms.delay`/`system.uplink.pending`/`comms.connectivity` are all
-  // command-centre REAL-TIME bookkeeping, never delayed craft telemetry:
-  // the delay figure and the pending-uplink queue's `dispatchedAt` are
-  // stamped in real UT the instant a command leaves the ground station
-  // (`DelayRole.TrueNow`), and connectivity is a fact about the link
-  // itself. Reading any of them through `useStream`/`useViewUt` — the
+  // `comms.delay`/`system.uplink.pending`/`comms.link` are all read through
+  // `useLatestValue`, NOT the certainty-gated `useStream`/`useViewUt` path.
+  // comms.delay and the pending-uplink queue's `dispatchedAt` are TrueNow
+  // command-centre bookkeeping stamped in real UT; comms.link is Delayed but
+  // freeze-EXEMPT, so useLatestValue reads its most-recent arrived frame (the
+  // link edge at the light-time horizon) directly. Reading any of them through
+  // `useStream`/`useViewUt` — the
   // certainty-gated, delay-consistent path meant for the vessel's own
   // (genuinely delayed) telemetry — makes the strip appear, and clear, one
   // whole one-way-delay late: the queue entry isn't visible until the
@@ -268,7 +269,13 @@ function KosTerminalScreen({
   // `useLatestValue`/`useUtNow` read the client's raw sticky value / the
   // clock's undelayed `utNowEstimate()` directly, so the strip tracks real
   // dispatch time instead of the delayed view.
-  const commsDelay = useLatestValue<{ oneWaySeconds: number }>("comms.delay");
+  // `oneWaySeconds` is nullable — null when there is no measurable
+  // ControlPath, as opposed to 0 for the delay-feature-disabled-but-
+  // connected case (comms-delay-nullable-when-no-path fix). Both read as
+  // "nothing to show" below, same as the pre-fix 0 sentinel did.
+  const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
+    "comms.delay",
+  );
 
   // PURE prediction fuel for the strip below. Nothing here is ever read for
   // anything execution/result-shaped: the payload has no such field, and a
@@ -277,11 +284,15 @@ function KosTerminalScreen({
   const queue = useLatestValue<PendingUplinkQueue>("system.uplink.pending");
   const utNow = useUtNow();
 
-  // Whether the ground station currently has a path to the craft — also
-  // real-time command-centre bookkeeping, not delayed telemetry. `undefined`
-  // (no connectivity data yet) is treated as connected: only a CONFIRMED
-  // `connected === false` blocks a send / shows the warning below.
-  const connectivity = useLatestValue<CommsConnectivity>("comms.connectivity");
+  // Whether the ground station has a path to the craft — read off the
+  // client-facing `comms.link` connectivity MetaTopic (the de-publicised
+  // TrueNow `comms.connectivity` successor; comms-delay-model-consistency
+  // spec). comms.link is Delayed + freeze-EXEMPT, so its disconnect edge
+  // reveals at the light-time horizon — delay-consistent with this terminal's
+  // own (delayed) screen rather than a real-time TrueNow read. `undefined` (no
+  // link data yet) is treated as connected: only a CONFIRMED `connected ===
+  // false` blocks a send / shows the warning below.
+  const connectivity = useLatestValue<CommsLink>("comms.link");
   const noPath = connectivity?.connected === false;
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
@@ -462,13 +473,13 @@ function KosTerminalScreen({
   // long delay gets neither (it dispatches no commands, so nothing to queue).
   const showBadge =
     commsDelay !== undefined &&
-    commsDelay.oneWaySeconds > 0 &&
-    (!lineMode || commsDelay.oneWaySeconds <= 1);
+    (commsDelay.oneWaySeconds ?? 0) > 0 &&
+    (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
   const showStrip =
     lineMode &&
     !readOnly &&
     commsDelay !== undefined &&
-    commsDelay.oneWaySeconds > 1 &&
+    (commsDelay.oneWaySeconds ?? 0) > 1 &&
     utNow !== undefined;
   // Narrowed, non-optional locals for the JSX below — `showBadge`/`showStrip`
   // are plain booleans, so TS can't carry their truthiness back onto
@@ -491,7 +502,7 @@ function KosTerminalScreen({
       )}
       {badgeDelay && (
         <DelayBadge aria-label="Signal delay">
-          round-trip ~{(2 * badgeDelay.oneWaySeconds).toFixed(1)}s
+          round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
         </DelayBadge>
       )}
       {stripUtNow !== undefined && myPending.length > 0 && (
@@ -682,8 +693,8 @@ const CompositionBar__Cursor = styled.span`
   }
 `;
 
-// Steady-state warning while `comms.connectivity.connected === false` — a
-// confirmed line-of-sight loss, not merely "no connectivity data yet" (see
+// Steady-state warning while `comms.link.connected === false` — a
+// confirmed line-of-sight loss, not merely "no link data yet" (see
 // `noPath`'s own doc comment). Error/danger tone (the same
 // `--color-status-nogo-*` pair `CommSignal` uses for its "lost" state) so it
 // reads unambiguously as a blocking condition, not an informational badge

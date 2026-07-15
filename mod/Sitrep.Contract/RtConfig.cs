@@ -102,6 +102,8 @@ public static class RtConfig
                 typeof(CommsNetworkNode),
                 typeof(CommsNetworkEdge),
                 typeof(CommsDelay),
+                // comms.link connectivity MetaTopic (Delayed, freeze-exempt)
+                typeof(CommsLink),
                 typeof(CommsLinkQuality),
                 typeof(CommsDataRate),
                 typeof(CommsLinkMargin),
