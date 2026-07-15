@@ -74,6 +74,11 @@ export class GamepadTransport implements DeviceTransport {
 
   private connectedListener: ((evt: Event) => void) | null = null;
   private disconnectedListener: ((evt: Event) => void) | null = null;
+  /** Unsubscribe from the shared poller's frame loop. Set by `adopt()`,
+   *  cleared by `disconnect()` — without this the poller's subscriber Set
+   *  never returns to zero and its rAF loop never stops (see the
+   *  gamepad-transport review, finding #1). */
+  private frameUnsubscribe: (() => void) | null = null;
 
   constructor(opts: GamepadTransportOptions) {
     this.id = opts.id;
@@ -102,6 +107,10 @@ export class GamepadTransport implements DeviceTransport {
   disconnect(): Promise<void> {
     this.detachConnectedListener();
     this.detachDisconnectedListener();
+    if (this.frameUnsubscribe) {
+      this.frameUnsubscribe();
+      this.frameUnsubscribe = null;
+    }
     if (this.resolvedIndex !== null) {
       GamepadPoller.get().release(this.resolvedIndex);
     }
@@ -222,7 +231,14 @@ export class GamepadTransport implements DeviceTransport {
     this.detachConnectedListener();
     this.primeBaseline(pad);
     this.emitSchema(pad);
-    GamepadPoller.get().subscribe((pads) => {
+    // Defensive against double-subscribe: if a previous subscription is
+    // still live (shouldn't happen in the normal connect/disconnect flow,
+    // but re-adoption paths are cheap to guard), drop it before adding a
+    // new one so re-adopt/rebuild never accumulates listeners.
+    if (this.frameUnsubscribe) {
+      this.frameUnsubscribe();
+    }
+    this.frameUnsubscribe = GamepadPoller.get().subscribe((pads) => {
       this.handleFrame(pads);
     });
     this.setStatus("connected");

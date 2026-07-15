@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockGamepadAPI } from "../mocks/mockGamepad";
 import type { DeviceType } from "../types";
 import type { SchemaUpdate } from "./DeviceTransport";
@@ -158,6 +158,61 @@ describe("GamepadTransport", () => {
     await t.disconnect();
     expect(t.status).toBe("disconnected");
     expect(GamepadPoller.get().isClaimed(0)).toBe(false);
+  });
+
+  // Regression for the rAF-leak defect: adopt() used to discard the
+  // unsubscribe returned by GamepadPoller.subscribe(), so disconnect()
+  // never removed the frame listener — the poller's subscriber count (and
+  // therefore its shared rAF loop) never returned to zero, even though the
+  // *poller* unit tests passed (they call unsub() by hand, never drive it
+  // through a real transport connect/disconnect).
+  it("stops the shared rAF loop when the transport disconnects (subscriberCount back to 0, cancelAnimationFrame fires)", async () => {
+    mock.install();
+    const raf = vi.fn(() => 1);
+    const caf = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", caf);
+
+    const t = createTransport({ id: "d1", deviceType: EMPTY_TYPE });
+    await t.connect();
+    mock.connectPad(0, { id: "Pad A" });
+    expect(t.status).toBe("connected");
+    expect(GamepadPoller.get().subscriberCount).toBe(1);
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    await t.disconnect();
+
+    expect(GamepadPoller.get().subscriberCount).toBe(0);
+    expect(caf).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllGlobals();
+  });
+
+  // Regression for the same defect's second symptom: every reconnect (or a
+  // SerialDeviceService.updateDevice teardown/register rebuild) used to add
+  // another closure to the poller's listener Set without ever removing the
+  // previous one. Drive several connect/disconnect cycles on one transport
+  // (the same shape as a rebuild: teardown -> gamepad disconnect -> new
+  // adopt) and assert the subscriber count never exceeds one live
+  // subscriber and always returns to zero.
+  it("does not accumulate poller listeners across repeated reconnect/rebuild", async () => {
+    mock.install();
+    mock.connectPad(0, { id: "Pad A" });
+    const t = createTransport({
+      id: "d1",
+      deviceType: EMPTY_TYPE,
+      gamepadId: "Pad A",
+    });
+
+    for (let i = 0; i < 4; i++) {
+      await t.connect();
+      expect(t.status).toBe("connected");
+      expect(GamepadPoller.get().subscriberCount).toBe(1);
+
+      await t.disconnect();
+      expect(t.status).toBe("disconnected");
+      expect(GamepadPoller.get().subscriberCount).toBe(0);
+    }
   });
 
   it("flips to disconnected on a real gamepaddisconnected event for its own pad", async () => {
