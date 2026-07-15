@@ -93,11 +93,11 @@ export function useDelayedKerbcastStream(
     // Diagnostic: does the consumer's `useKerbcastClock` actually yield a
     // `captureUt`? Null here while the connected client logs advancing
     // `captureUt` would mean the path is starved downstream of the SDK client.
-    // NOTE: this proves the CLOCK reaches the consumer — it does NOT prove the
-    // video is delayed. The video delay is per-frame playout, which is not yet
-    // implemented (only stream-appearance is delayed); see the memory
-    // `project_camera_video_delay_not_implemented`. `confirmedEdgeUt` is the
-    // only ViewClock method `ViewClockView` exposes.
+    // NOTE: this proves the CLOCK reaches the consumer — it does NOT by itself
+    // prove a given frame was held/released correctly; that's `frameDelay.ts`'s
+    // real per-frame pipeline (`useDelayedPlayout`), which this hook composes
+    // below. `confirmedEdgeUt` is the only ViewClock method `ViewClockView`
+    // exposes.
     logger.tag("kerbcast:clock").debug("consumer clock sample", {
       captureUt,
       warpRate,
