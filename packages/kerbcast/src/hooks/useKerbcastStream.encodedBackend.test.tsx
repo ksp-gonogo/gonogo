@@ -21,7 +21,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {
@@ -29,8 +29,10 @@ import {
   useDelayedPlayout,
 } from "./useKerbcastStream";
 
+// Testing Library auto-cleans the DOM after every test — no manual
+// cleanup() needed here, only the registry/global teardown this file
+// actually owns.
 afterEach(() => {
-  cleanup();
   clearRegistry();
   vi.unstubAllGlobals();
 });
