@@ -1,4 +1,4 @@
-import { Button, GhostButton, Tabs } from "@ksp-gonogo/ui";
+import { Button, GhostButton, Tabs, useModal } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
@@ -8,6 +8,7 @@ import {
   GAMEPAD_ART_CREDITS,
 } from "../gamepadAttribution";
 import {
+  SerialDeviceProvider,
   useSerialDeviceService,
   useSerialDeviceStatus,
   useSerialDevices,
@@ -18,6 +19,7 @@ import type { DeviceInstance, DeviceType } from "../types";
 import { getWebSerialSupport } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
+import { GamepadLearnWizard } from "./GamepadLearnWizard";
 import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
 
 // The capability registry is the source of truth for "what's Chromium-only" —
@@ -143,7 +145,7 @@ function DevicesTab() {
         <DeviceRow
           key={device.id}
           device={device}
-          typeName={types.find((t) => t.id === device.typeId)?.name ?? "?"}
+          type={types.find((t) => t.id === device.typeId)}
           pendingChoices={pendingChoices.get(device.id)}
           onEdit={() => setEditing(device)}
         />
@@ -183,17 +185,45 @@ function WebSerialBanner({
 
 function DeviceRow({
   device,
-  typeName,
+  type,
   pendingChoices,
   onEdit,
 }: Readonly<{
   device: DeviceInstance;
-  typeName: string;
+  type: DeviceType | undefined;
   pendingChoices?: readonly SerialPort[];
   onEdit: () => void;
 }>) {
   const svc = useSerialDeviceService();
   const status = useSerialDeviceStatus(device.id);
+  const { open, close } = useModal();
+
+  // Offered whenever the device's type has at least one input with no
+  // assigned role — the shipped end state for a non-standard
+  // (`mapping === ""`) pad, and re-runnable any time (a pad may keep a
+  // permanently role-less extra button, e.g. a DualSense's touchpad click
+  // past index 16 — that's expected, not a reason to hide the offer).
+  const hasRoleLessInput =
+    device.transport === "gamepad" &&
+    !!type &&
+    type.inputs.some((i) => !i.role);
+
+  const openLearnWizard = () => {
+    if (!type) return;
+    const modalId = open(
+      <SerialDeviceProvider service={svc}>
+        <GamepadLearnWizard
+          device={device}
+          type={type}
+          onApply={(nextInputs) => {
+            svc.upsertDeviceType({ ...type, inputs: nextInputs });
+          }}
+          onClose={() => close(modalId)}
+        />
+      </SerialDeviceProvider>,
+      { title: `Learn roles — ${device.name}` },
+    );
+  };
 
   return (
     <Row>
@@ -202,7 +232,7 @@ function DeviceRow({
         <Status $status={status}>{status}</Status>
       </RowHead>
       <RowMeta>
-        {typeName} · {device.transport}
+        {type?.name ?? "?"} · {device.transport}
       </RowMeta>
       {pendingChoices && pendingChoices.length > 1 && (
         <PendingPicker role="status" aria-live="polite">
@@ -247,6 +277,15 @@ function DeviceRow({
             }}
           >
             Disconnect
+          </GhostButton>
+        )}
+        {hasRoleLessInput && (
+          <GhostButton
+            type="button"
+            onClick={openLearnWizard}
+            title="Walk each role in turn and record which raw button/axis it lands on — restores real labels on a non-standard-mapping pad"
+          >
+            Learn roles...
           </GhostButton>
         )}
         {device.transport === "web-serial" && status === "error" && (
