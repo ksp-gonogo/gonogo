@@ -22,7 +22,10 @@ import {
   useState,
 } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
-import { useDelayedKerbcastStream } from "./useDelayedKerbcastStream";
+import {
+  useDelayedKerbcastStream,
+  useDelayedPlaybackStatus,
+} from "./useDelayedKerbcastStream";
 
 export interface CameraFeedConfig extends Record<string, unknown> {
   /**
@@ -280,6 +283,20 @@ export function CameraFeed({
     };
   }, [effectiveFlightId, signalStrength, commConnected, client]);
 
+  // Cross-browser kerbcast video-delay design (2026-07-16), decision 5:
+  // "can't delay -> no video". `useDelayedKerbcastStream` (passed to the SDK
+  // below as `useStream`) can only return `MediaStream | null` — it has no
+  // channel back to THIS component to say "delay was expected here but no
+  // backend could build a pipeline". `useDelayedPlaybackStatus` is that
+  // side channel (see that hook's module doc): when it reports
+  // `"unavailable"`, render an explicit "delayed feed unavailable" state
+  // INSTEAD of the SDK's own feed — never the live stream underneath it.
+  // Called unconditionally, alongside every other hook above, BEFORE the
+  // `!client` early return below (rules of hooks).
+  const playoutStatus = useDelayedPlaybackStatus(effectiveFlightId);
+  const unavailableReason =
+    playoutStatus.kind === "unavailable" ? playoutStatus.reason : null;
+
   if (!client || !subscriptions) return null;
 
   // Slot props (spec §4.4). Both carry the displayed camera's flightID; the
@@ -326,6 +343,16 @@ export function CameraFeed({
           enableFullscreen
           enablePictureInPicture
         />
+        {unavailableReason && (
+          <div role="status" aria-live="polite" style={FEED_UNAVAILABLE_STYLE}>
+            <Badge tone="nogo" aria-label="Delayed feed unavailable">
+              DELAYED FEED UNAVAILABLE
+            </Badge>
+            <span style={FEED_UNAVAILABLE_REASON_STYLE}>
+              {unavailableReason}
+            </span>
+          </div>
+        )}
         <div style={FEED_OVERLAY_STYLE}>
           <AugmentSlot name="camera-feed.overlay" props={overlayContext} />
         </div>
@@ -447,4 +474,33 @@ const FEED_BADGES_STYLE: CSSProperties = {
   gap: 4,
   padding: 4,
   pointerEvents: "none",
+};
+
+// Cross-browser kerbcast video-delay design (2026-07-16), decision 5:
+// "can't delay -> no video" — a full-cover scrim replacing the SDK's own
+// feed whenever `useDelayedPlaybackStatus` reports `"unavailable"`. Opaque
+// (unlike FEED_OVERLAY_STYLE) and above every other layer: the whole point
+// is that the operator must never see live, undelayed pixels here — the
+// dark background + centred reason IS the "no signal" visual language this
+// package already uses for a disconnected feed, reused for the "can't
+// delay" case rather than invented fresh.
+const FEED_UNAVAILABLE_STYLE: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 2,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  padding: 16,
+  textAlign: "center",
+  background: "rgba(0, 0, 0, 0.92)",
+  pointerEvents: "auto",
+};
+
+const FEED_UNAVAILABLE_REASON_STYLE: CSSProperties = {
+  color: "#c9c9c9",
+  fontSize: "0.8rem",
+  maxWidth: "80%",
 };

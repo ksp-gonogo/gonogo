@@ -114,6 +114,16 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/sitrep-client/src/map-command.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
     "packages/sitrep-client/src/map-topic.ts",
+    // view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
+    // video-delay design (2026-07-16) extracted ViewClock's
+    // confirmedEdgeUt()/utNowEstimate() formula into pure functions
+    // (view-clock-formula.ts) so the kerbcast per-frame delay WORKER can
+    // mirror it exactly instead of forking it — see ViewClock.snapshot().
+    // Comment/doc mentions only; neither file imports anything
+    // kerbcast-specific, and sitrep-client stays mod-agnostic — same GRAY
+    // shape as the other entries in this block.
+    "packages/sitrep-client/src/view-clock-formula.ts",
+    "packages/sitrep-client/src/view-clock.ts",
 
     // -- TEST-only, exercising the HARD cluster above --
     "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",

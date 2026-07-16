@@ -1,9 +1,18 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { useEffect, useRef, useState } from "react";
+import type { CaptureClockSample } from "../captureClock";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
-import { createFrameDelayStream, type FrameDelayStream } from "../frameDelay";
+import {
+  createFrameDelayStream,
+  type FrameDelayStream,
+  isFrameDelaySupported,
+} from "../frameDelay";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
+import {
+  createWorkerFrameDelayStream,
+  type SnapshottableDelayClock,
+} from "../worker/kerbcastDelayWorkerClient";
 
 /**
  * Live `MediaStream` for one kerbcast camera. Returns `null` while
@@ -54,15 +63,17 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
 /**
  * Opt-in delayed playout for a raw kerbcast `MediaStream` (M2 design §5 —
  * "media delay (kerbcast)"). Omit this argument entirely for the existing
- * LAN passthrough behaviour (zero regression, scenario 6).
+ * LAN passthrough behaviour (zero regression, scenario 6) — see
+ * `DelayedPlayoutResult`'s `"raw"` kind, the one retained live-video path
+ * (cross-browser kerbcast video-delay design, 2026-07-16).
  *
- * A REAL per-frame delay (2026-07-15 fix): every video frame read off the
- * track is individually stamped with the live interpolated capture UT and
- * gated on the shared clock — see `../frameDelay.ts`. This replaced an
- * earlier design that stamped once per `MediaStream` *reference* (only a
- * camera switch/reconnect was delayed; ongoing motion inside a stream
- * played live) — see the memory `project_camera_video_delay_not_implemented`
- * for the now-fixed history.
+ * A REAL per-frame delay (2026-07-15 fix, made cross-browser 2026-07-16):
+ * every video frame read off the track is individually stamped with the
+ * live interpolated capture UT and gated on the shared clock — see
+ * `../frameDelay.ts` (main-thread backend, Chrome) and `../worker/`
+ * (worker-hosted backend, Safari today / Firefox once its worker-side
+ * Breakout Box lands — see the video-worker report for the per-engine
+ * verification this dual-backend split rests on).
  */
 export interface KerbcastStreamDelayOptions {
   /** THE delay clock — pass the SAME instance telemetry reads
@@ -73,6 +84,14 @@ export interface KerbcastStreamDelayOptions {
    *  frame the pipeline reads off the track, not once per stream
    *  reference. */
   captureUt(): number;
+  /** The raw (un-interpolated) capture-clock sample backing `captureUt`.
+   *  Only needed by the worker backend, which interpolates locally at
+   *  frame-read time inside the worker rather than calling a main-thread
+   *  closure per frame (Clock seam, "captureUt: same treatment"). Omit if
+   *  the caller never expects the worker backend to be reachable (e.g. a
+   *  test that only exercises the main-thread path) — the worker backend
+   *  simply won't be attempted without it. */
+  getCaptureSample?(): CaptureClockSample;
   /** Bumped (any change) to flush the buffer on a timeline reset — pass the
    *  session's epoch/reset counter. Omit if the caller doesn't model resets. */
   resetEpoch?: number;
@@ -82,93 +101,206 @@ export interface KerbcastStreamDelayOptions {
 }
 
 /**
- * Route a raw `MediaStream` through the real per-frame delay pipeline
- * (`../frameDelay.ts`), sharing the app's telemetry delay clock (M2 design
- * §5). Without `delay` (the default) this is a strict passthrough — it
- * returns `raw` unchanged, so the LAN case is bit-for-bit the old
- * behaviour, with NO pipeline spun up. With `delay`, each frame only
- * releases once `view.confirmedEdgeUt()` reaches its stamped capture UT —
- * never on `arrival + delay` — so a media frame and a telemetry sample
- * stamped the same UT surface at the same clock crossing (the
- * single-authority guarantee).
+ * `useDelayedPlayout`'s result — a discriminated union rather than
+ * `MediaStream | null` (cross-browser kerbcast video-delay design,
+ * 2026-07-16) so a caller can distinguish "still connecting" from
+ * "genuinely can't be delayed here", which a bare nullable stream cannot:
  *
- * Falls back to live passthrough (never a black feed) when the browser
- * lacks the WebCodecs track-IO APIs the pipeline needs, or `raw` has no
- * video track — flagged via a one-time warning log, not a silent drop; see
- * `frameDelay.ts`'s `isFrameDelaySupported`.
+ * - `"raw"` — no `delay` options were supplied at all (the one retained
+ *   live-video path — "there is genuinely nothing to delay", not a delay
+ *   failure). `stream` may itself be `null` while the camera connects.
+ * - `"connecting"` — delay WAS requested, but there's nothing to show yet:
+ *   the raw stream hasn't arrived, or a pipeline build is in flight.
+ * - `"delayed"` — a real per-frame delay pipeline is up; `stream` is its
+ *   output.
+ * - `"unavailable"` — delay was requested and expected, but no backend
+ *   could build a pipeline here. Per decision 5 of the design doc, this is
+ *   NEVER papered over with the live stream — the caller must render an
+ *   explicit "can't delay" state instead (see `CameraFeed.tsx`).
+ */
+export type DelayedPlayoutResult =
+  | { kind: "raw"; stream: MediaStream | null }
+  | { kind: "connecting" }
+  | { kind: "delayed"; stream: MediaStream }
+  | { kind: "unavailable"; reason: string };
+
+const RAW_NULL: DelayedPlayoutResult = { kind: "raw", stream: null };
+const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
+
+/**
+ * Route a raw `MediaStream` through the real per-frame delay pipeline,
+ * sharing the app's telemetry delay clock (M2 design §5). Without `delay`
+ * (the default) this is a strict passthrough — it returns `{kind: "raw",
+ * stream: raw}` unchanged, so the LAN case is bit-for-bit the old
+ * behaviour, with NO pipeline spun up.
+ *
+ * With `delay`, two backends are tried in order, matching what's actually
+ * usable in THIS browser (see `local_docs/reports/video-worker-report.md`
+ * for the empirical per-engine breakdown this ordering rests on):
+ *
+ *  1. **Main-thread Breakout Box** (`isFrameDelaySupported()` /
+ *     `createFrameDelayStream`) — Chrome today. Tried first and exclusively
+ *     when available: it needs no worker at all, so there's no reason to
+ *     route Chrome through the worker backend.
+ *  2. **Worker-hosted Breakout Box** (`createWorkerFrameDelayStream`) —
+ *     tried only when (1) is unavailable. Safari/WebKit supports this
+ *     today; Firefox does not yet (as of the 2026-07-16 verification —
+ *     neither the main-thread nor the worker-side track-IO APIs exist in
+ *     the build checked), so Firefox currently falls through to
+ *     `"unavailable"` here. Feature-detected, not engine-sniffed, so
+ *     Firefox picks this up automatically once it ships the API.
+ *
+ * If NEITHER backend can build a pipeline, resolves `{kind: "unavailable",
+ * reason}` — **never** the raw stream. The old silent
+ * `setDelayedStream(raw)` fallback (and its one-time warning) is deleted;
+ * "can't delay" is now a first-class, visible state the caller renders
+ * explicitly (decision 5).
  */
 export function useDelayedPlayout(
   raw: MediaStream | null,
   delay?: KerbcastStreamDelayOptions,
-): MediaStream | null {
-  const [delayedStream, setDelayedStream] = useState<MediaStream | null>(null);
+): DelayedPlayoutResult {
+  const [result, setResult] = useState<DelayedPlayoutResult>(() =>
+    delay ? CONNECTING : { kind: "raw", stream: raw },
+  );
   const pipelineRef = useRef<FrameDelayStream | null>(null);
   const view = delay?.view;
   const maxBufferedFrames = delay?.maxBufferedFrames;
-  // Always-current handle so the effect below doesn't need `delay` itself
+  // Always-current handles so the effect below doesn't need `delay` itself
   // (a fresh object identity most renders) in its dependency array.
   const captureUtRef = useRef(delay?.captureUt);
   captureUtRef.current = delay?.captureUt;
-  // Warn once per hook lifetime, not once per unsupported render — avoids
-  // log spam while an undelayable feed sits open.
-  const warnedUnsupportedRef = useRef(false);
+  const getCaptureSampleRef = useRef(delay?.getCaptureSample);
+  getCaptureSampleRef.current = delay?.getCaptureSample;
 
   // Build/tear down the per-frame pipeline whenever the raw stream
   // reference or the clock instance changes. A `raw` change (camera switch,
   // reconnect) always gets a fresh pipeline reading the new track — no
   // cross-camera frame bleed, and no stale frame lingers past teardown.
   useEffect(() => {
-    if (!view || !raw) {
+    if (!view) {
       pipelineRef.current = null;
-      setDelayedStream(null);
+      setResult(raw === null ? RAW_NULL : { kind: "raw", stream: raw });
+      return;
+    }
+    if (!raw) {
+      pipelineRef.current = null;
+      setResult(CONNECTING);
       return;
     }
     const captureUt = captureUtRef.current;
     if (!captureUt) {
+      // Delay was structurally requested (a `view` was passed) but the
+      // caller has no capture clock yet — mirrors `useDelayedKerbcastStream`'s
+      // own "no capture clock yet -> passthrough" case (old kerbcast
+      // plugin/sidecar, or before the first ~1Hz sample): there is nothing
+      // to stamp frames with, so this is the retained-live-path case, not
+      // an "unavailable" failure.
       pipelineRef.current = null;
-      setDelayedStream(null);
+      setResult({ kind: "raw", stream: raw });
       return;
     }
 
-    const pipeline = createFrameDelayStream(raw, {
-      view,
-      captureUt: () => captureUtRef.current?.() ?? 0,
-      maxBufferedFrames,
-      onError: (err) => {
-        logger
-          .tag("kerbcast:frame-delay")
-          .warn("frame pipeline error", { err });
-      },
-    });
+    let cancelled = false;
+    setResult(CONNECTING);
 
-    if (!pipeline) {
-      pipelineRef.current = null;
-      if (!warnedUnsupportedRef.current) {
-        warnedUnsupportedRef.current = true;
-        logger
-          .tag("kerbcast:frame-delay")
-          .warn(
-            "per-frame video delay could not be built here (no MediaStreamTrackProcessor/Generator, no video track, or pipeline construction failed) — falling back to live passthrough for the camera feed",
-          );
+    const onPipelineError = (err: unknown) => {
+      logger.tag("kerbcast:frame-delay").warn("frame pipeline error", { err });
+    };
+
+    async function build() {
+      // Backend 1: Chrome's main-thread Breakout Box — tried first and
+      // exclusively when present (no reason to route through a worker).
+      if (isFrameDelaySupported()) {
+        let onErrorReason: string | null = null;
+        const pipeline = createFrameDelayStream(raw as MediaStream, {
+          view: view as DelayClockLike,
+          captureUt: () => captureUtRef.current?.() ?? 0,
+          maxBufferedFrames,
+          onError: (err) => {
+            onErrorReason = String(err);
+            onPipelineError(err);
+          },
+        });
+        if (cancelled) {
+          pipeline?.dispose();
+          return;
+        }
+        if (pipeline) {
+          pipelineRef.current = pipeline;
+          setResult({ kind: "delayed", stream: pipeline.stream });
+          return;
+        }
+        setResult({
+          kind: "unavailable",
+          reason:
+            onErrorReason ??
+            "per-frame delay pipeline could not be built on this camera",
+        });
+        return;
       }
-      // Flagged, not silent: no delay is possible here, so show the feed
-      // live rather than black it out.
-      setDelayedStream(raw);
-      return;
+
+      // Backend 2: worker-hosted Breakout Box — Safari today; Firefox once
+      // it lands (feature-detected, see the module doc above).
+      const snapshotCapableView = view as DelayClockLike & {
+        snapshot?(): unknown;
+      };
+      if (typeof snapshotCapableView.snapshot !== "function") {
+        if (!cancelled) {
+          setResult({
+            kind: "unavailable",
+            reason:
+              "this browser has no main-thread per-frame delay support, and the supplied clock does not support the worker backend (no snapshot())",
+          });
+        }
+        return;
+      }
+
+      let workerErrorReason: string | null = null;
+      const workerPipeline = await createWorkerFrameDelayStream(
+        raw as MediaStream,
+        {
+          // Narrowed by the runtime `typeof snapshot === "function"` check
+          // just above — `DelayClockLike` is deliberately narrower than
+          // `SnapshottableDelayClock` (kerbcast never hard-depends on
+          // `snapshot()` existing; only the worker backend needs it).
+          view: view as unknown as SnapshottableDelayClock,
+          getCaptureSample: () =>
+            getCaptureSampleRef.current?.() ?? {
+              ut: null,
+              warpRate: 1,
+              atMs: 0,
+            },
+          maxBufferedFrames,
+          onError: (err) => {
+            workerErrorReason = String(err);
+            onPipelineError(err);
+          },
+        },
+      );
+      if (cancelled) {
+        workerPipeline?.dispose();
+        return;
+      }
+      if (workerPipeline) {
+        pipelineRef.current = workerPipeline;
+        setResult({ kind: "delayed", stream: workerPipeline.stream });
+        return;
+      }
+      setResult({
+        kind: "unavailable",
+        reason:
+          workerErrorReason ??
+          "no per-frame video delay backend is available in this browser",
+      });
     }
 
-    pipelineRef.current = pipeline;
-    // Set ONCE per pipeline build, not per frame: `pipeline.stream` is a
-    // stable `MediaStream` wrapping the generator's output track, which
-    // keeps updating on its own as the pump loop writes released frames to
-    // it — the same way any live `<video srcObject>` renders a continuously
-    // updating WebRTC track. No further React state churn per frame.
-    setDelayedStream(pipeline.stream);
+    void build();
 
     return () => {
-      pipeline.dispose();
-      if (pipelineRef.current === pipeline) pipelineRef.current = null;
-      setDelayedStream(null);
+      cancelled = true;
+      pipelineRef.current?.dispose();
+      pipelineRef.current = null;
     };
   }, [raw, view, maxBufferedFrames]);
 
@@ -180,5 +312,5 @@ export function useDelayedPlayout(
     pipelineRef.current?.flush();
   }, [resetEpoch]);
 
-  return delay ? delayedStream : raw;
+  return result;
 }
