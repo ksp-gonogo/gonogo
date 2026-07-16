@@ -105,13 +105,24 @@ function resolveCoreId(
  * char); kOS's own echo of that line lands in the terminal a round trip later
  * as the sole persisted copy. Backspace edits the buffer; other C0 control
  * chars are ignored. Pasted / multi-char input is processed char-by-char.
+ *
+ * `canSend` gates Enter specifically (kos-nopath-block-input fix): with no
+ * comms path, `sendChars` would no-op at the dispatch layer anyway (the
+ * `sendKeystrokeRef` guard), but by then the line had already been cleared
+ * and pushed to history — the command visibly "vanished" even though it was
+ * never sent. Refusing Enter HERE, at input-acceptance, before either of
+ * those side effects, is what actually keeps the typed command in the box.
+ * Regular typing/backspace still edits the buffer while blocked, so the
+ * operator can keep composing for when the path returns.
  */
 function reduceLineModeChar(
   ch: string,
   buffer: string,
   sendChars: (chars: string) => void,
+  canSend: boolean,
 ): string {
   if (ch === "\r" || ch === "\n") {
+    if (!canSend) return buffer;
     sendChars(`${buffer}\r`);
     return "";
   }
@@ -127,10 +138,11 @@ function reduceLineModeInput(
   data: string,
   buffer: string,
   sendChars: (chars: string) => void,
+  canSend: boolean,
 ): string {
   let next = buffer;
   for (const ch of data) {
-    next = reduceLineModeChar(ch, next, sendChars);
+    next = reduceLineModeChar(ch, next, sendChars, canSend);
   }
   return next;
 }
@@ -309,6 +321,14 @@ function KosTerminalScreen({
   // linger in the bar.
   const lineModeRef = useRef(lineMode);
   lineModeRef.current = lineMode;
+  // Mirrors `noPath` (computed further down, once `connectivity` is read) for
+  // the same reason as `lineModeRef`: the Enter handler lives inside the
+  // mount-only xterm setup effect below, so it can't close over a fresh
+  // `noPath` each render — it reads this ref instead. Declared here (ahead of
+  // `noPath`) so the assignment site next to `noPath` itself reads as the
+  // natural "keep this ref current" companion, matching `sendKeystrokeRef`'s
+  // own reassign-every-render pattern just below (kos-nopath-block-input fix).
+  const noPathRef = useRef(false);
   // Intentionally keyed on lineMode: this effect exists to clear the
   // composition WHEN the mode flips, not to react to values it reads.
   // biome-ignore lint/correctness/useExhaustiveDependencies: lineMode is the trigger, not a read dependency
@@ -370,6 +390,7 @@ function KosTerminalScreen({
   // false` blocks a send / shows the warning below.
   const connectivity = useLatestValue<CommsLink>("comms.link");
   const noPath = connectivity?.connected === false;
+  noPathRef.current = noPath;
 
   // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
   // destructured so effects can depend on it without the surrounding
@@ -561,6 +582,14 @@ function KosTerminalScreen({
               );
               sendKeystrokeRef.current(chars, label);
             },
+            // Refuses Enter at the point the line would otherwise be
+            // committed — the fix for kos-nopath-block-input: with no comms
+            // path, this keeps the buffer untouched (no clear, no history
+            // push) instead of relying on the dispatch-layer guard below,
+            // which by then is too late to save the typed line. Read via the
+            // ref (not `noPath` directly) for the same mount-only-closure
+            // reason as `lineModeRef` throughout this handler.
+            !noPathRef.current,
           );
           lineBufferRef.current = next;
           setComposition(next);
@@ -636,12 +665,19 @@ function KosTerminalScreen({
             round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
           </DelayBadge>
         )}
+        {/* Pinned inside `TerminalFrame`'s own bordered box, same as
+            `DelayBadge` above — a flex sibling below the frame (its previous
+            spot) added its own row height on top of everything else in
+            `TerminalShell`, which could push later siblings (the composition
+            bar) past the widget's visible bounds on a short widget. See
+            `TerminalFrame`'s doc comment for the same reasoning applied to
+            `DelayBadge` originally. */}
+        {!readOnly && noPath && (
+          <NoPathBadge role="status">
+            No path — commands are not being sent
+          </NoPathBadge>
+        )}
       </TerminalFrame>
-      {!readOnly && noPath && (
-        <NoPathBadge role="status">
-          No path — commands are not being sent
-        </NoPathBadge>
-      )}
       {stripUtNow !== undefined && myPending.length > 0 && (
         <UplinkStrip aria-label="Uplink queue">
           {myPending.map((item) => {
@@ -666,7 +702,7 @@ function KosTerminalScreen({
         </UplinkStrip>
       )}
       {lineMode && !readOnly && (
-        <CompositionBar aria-label="Line-mode input">
+        <CompositionBar aria-label="Line-mode input" $noPath={noPath}>
           <CompositionBar__Prompt aria-hidden="true">❯</CompositionBar__Prompt>
           <CompositionBar__Text>{composition}</CompositionBar__Text>
           <CompositionBar__Cursor aria-hidden="true" />
@@ -797,15 +833,22 @@ const Container = styled.div<{ $readOnly?: boolean }>`
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
 // server-authoritative terminal screen so absolutely-positioned frames can
 // never collide with it. Cleared on Enter (the line is sent; kOS's own echo
-// lands in the terminal above a round-trip later).
-const CompositionBar = styled.div`
+// lands in the terminal above a round-trip later) — or, with no comms path,
+// left untouched and Enter refused (`reduceLineModeChar`'s `canSend` guard).
+// The outline itself carries that state: the same error/danger tone as
+// `NoPathBadge` (`--color-status-nogo-fg`) replaces the normal accent border
+// whenever `noPath`, so the box reads as blocked on sight — not just after a
+// refused Enter — instead of staying green (kos-nopath-block-input fix).
+const CompositionBar = styled.div<{ $noPath: boolean }>`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   padding: 6px 8px;
   min-height: 1.6em;
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-accent-fg);
+  border: 1px solid
+    ${({ $noPath }) =>
+      $noPath ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
   border-radius: 4px;
   font-family: monospace;
   font-size: 13px;
@@ -852,10 +895,19 @@ const CompositionBar__Cursor = styled.span`
 // `noPath`'s own doc comment). Error/danger tone (the same
 // `--color-status-nogo-*` pair `CommSignal` uses for its "lost" state) so it
 // reads unambiguously as a blocking condition, not an informational badge
-// like `DelayBadge` below it.
+// like `DelayBadge` below it. Pinned as an absolutely-positioned corner
+// overlay INSIDE `TerminalFrame` — same fix, same reasoning as `DelayBadge`
+// (see its own doc comment): as a flex sibling in `TerminalShell` this added
+// its own row height on top of the composition bar beneath it, which could
+// push that bar past the widget's visible bounds on a short widget instead
+// of staying within the terminal's own bordered box (kos-nopath-block-input
+// fix). Opposite corner from `DelayBadge` so the two never overlap on the
+// (rare) render where both are showing.
 const NoPathBadge = styled.div`
-  flex: 0 0 auto;
-  align-self: flex-start;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
   padding: 2px 8px;
   font-family: monospace;
   font-size: 11px;
