@@ -164,7 +164,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // crash.*/recovery.* above. AutoRecordController/useFlight read these
   // natively (useOptionalStreamEvent/useStream, bypassing the legacy "data"
   // DataSource + mapTopic shim entirely), so this entry is for any future
-  // useDataValue("data", "flight.*") consumer, not those two.
+  // useTelemetry consumer of the flight.* topics, not those two.
   "flight.current",
   "flight.started",
   "flight.ended",

@@ -80,7 +80,7 @@ export function redirectKinematicSubtopic(topic: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Old Telemachus key (as it appears in `dataRequirements`/`useDataValue`
+ * Old Telemachus key (as it appears in `dataRequirements`/`useTelemetry`
  * calls in `packages/components/src`) → new stream topic. "derived" entries
  * are SDK-computed values (elements propagated at view-UT, quality-picked,
  * etc.) exposed as plain topic strings via `vessel.state`'s `fields: true`
@@ -89,7 +89,7 @@ export function redirectKinematicSubtopic(topic: string): string {
  *
  * Extended with every literal key actually found in
  * `packages/components/src`'s `dataRequirements` arrays and
- * `useDataValue("data", ...)` call sites.
+ * `useTelemetry` read call sites.
  */
 export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.state (derived, quality-picked kinematics) ---
