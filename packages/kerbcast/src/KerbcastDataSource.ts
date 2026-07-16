@@ -188,6 +188,32 @@ function wrapRTCDataChannel(dc: RTCDataChannel): KerbcastDataChannel {
 }
 
 export class BrowserRTCTransport implements KerbcastTransport {
+  /**
+   * `RTCRtpReceiver` for every track this transport has ever delivered via
+   * `ontrack`, keyed by the exact `MediaStreamTrack` object reference —
+   * encoded-transform video-delay work, 2026-07-16 (see
+   * `local_docs/reports/encoded-video-delay-report.md`'s reconciliation:
+   * the SDK's own `KerbcastClient` wraps this SAME track reference into
+   * `cam.mediaStream` via `new MediaStream([track])`, never cloning it —
+   * confirmed against the installed `@ksp-gonogo/kerbcast` dist — so a
+   * `WeakMap` keyed by that reference is an exact, leak-free correlation
+   * from a `MediaStream` handed to a widget back to the `RTCRtpReceiver`
+   * needed to attach `receiver.transform = new RTCRtpScriptTransform(...)`.
+   * `WeakMap` rather than a `Map`: entries fall out on their own once a
+   * track is GC'd (camera switch / teardown), no manual eviction needed.
+   */
+  private readonly receiversByTrack = new WeakMap<
+    MediaStreamTrack,
+    RTCRtpReceiver
+  >();
+
+  /** Look up the `RTCRtpReceiver` for a track this transport delivered.
+   *  `undefined` for a track from anywhere else (a different transport
+   *  instance, a test fixture, or a track this transport never saw). */
+  getReceiverForTrack(track: MediaStreamTrack): RTCRtpReceiver | undefined {
+    return this.receiversByTrack.get(track);
+  }
+
   createPeer(iceServers: RTCIceServer[]): KerbcastPeer {
     const pc = new RTCPeerConnection({ iceServers });
     let trackIdx = 0;
@@ -196,6 +222,7 @@ export class BrowserRTCTransport implements KerbcastTransport {
       | null = null;
     let onStateChange: ((state: KerbcastConnectionState) => void) | null = null;
     pc.ontrack = (ev) => {
+      this.receiversByTrack.set(ev.track, ev.receiver);
       // mid is the stable transceiver id the sidecar keys SlotMap on (set by
       // the time ontrack fires, post-answer); the SDK routes dynamic-mode
       // tracks by it.
@@ -329,6 +356,13 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
 
   private cfg: KerbcastConfig;
   private baseTransport: KerbcastTransport | undefined;
+  /** The concrete `BrowserRTCTransport` `buildClient()` actually wired up
+   *  (main-screen AND station/broker mode both use it — see that method).
+   *  `undefined` when a test supplied a `baseTransport` that isn't one
+   *  (e.g. a mock) — `getReceiverForStream` degrades to `undefined` then,
+   *  matching "can't attach the encoded transform here" rather than
+   *  throwing. Encoded-transform video-delay work, 2026-07-16. */
+  private rtcTransport: BrowserRTCTransport | undefined;
   private client: KerbcastClient;
   private clientUnsubs: Array<() => void> = [];
   /**
@@ -396,6 +430,25 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   /** Underlying client (hooks reach in directly via this). */
   getClient(): KerbcastClient {
     return this.client;
+  }
+
+  /**
+   * The `RTCRtpReceiver` behind a camera's `MediaStream` — the encoded
+   * transform's attach point (`receiver.transform = new
+   * RTCRtpScriptTransform(...)`, `encodedFrameDelay.ts`). Correlates via
+   * the stream's first video track's object identity against the registry
+   * `BrowserRTCTransport` populated in `ontrack` (see that class's doc for
+   * why this is exact, not fuzzy matching). Returns `undefined` when there
+   * is no video track, the current transport isn't a `BrowserRTCTransport`
+   * (a test-injected mock), or the track wasn't delivered by THIS
+   * transport instance (a stale reference from a torn-down connection) —
+   * every case degrades to "encoded backend unavailable here", never a
+   * throw, matching every other backend-selection guard in this pipeline.
+   */
+  getReceiverForStream(stream: MediaStream): RTCRtpReceiver | undefined {
+    const track = stream.getVideoTracks()[0];
+    if (!track) return undefined;
+    return this.rtcTransport?.getReceiverForTrack(track);
   }
 
   /* Current plugin-reported throttle state. False until the first SettingsState arrives. */
@@ -721,8 +774,16 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   // -- private --
 
   private buildClient(): KerbcastClient {
+    // Same transport instance for main-screen AND station/broker mode —
+    // only `negotiate` below differs by mode; the RTCPeerConnection/ontrack
+    // wiring (and therefore the receiver registry) is identical either way.
+    const innerTransport = this.baseTransport ?? new BrowserRTCTransport();
+    this.rtcTransport =
+      innerTransport instanceof BrowserRTCTransport
+        ? innerTransport
+        : undefined;
     const keepaliveTransport = new KeepaliveTransport(
-      this.baseTransport ?? new BrowserRTCTransport(),
+      innerTransport,
       (sendFn) => {
         sendFn({ type: "pong" });
         this.startWatchdog();

@@ -62,3 +62,29 @@ declare var VideoTrackGenerator: {
   prototype: VideoTrackGenerator;
   new (): VideoTrackGenerator;
 };
+
+/**
+ * The standard WebRTC Encoded Transform API — `RTCRtpScriptTransform`,
+ * assigned to `RTCRtpReceiver.transform` (or `RTCRtpSender.transform`) to
+ * attach a worker-hosted transform to that receiver/sender's encoded frame
+ * stream. Confirmed present via `typeof RTCRtpScriptTransform !==
+ * "undefined"` on Chromium/Firefox/WebKit — see
+ * `local_docs/reports/encoded-video-delay-report.md`. Not yet in this
+ * repo's pinned TS DOM lib (checked against the TS version pinned in this
+ * repo), so declared here for the same "ambient, minimal surface" reason
+ * as the rest of this file. `RTCRtpReceiver` itself IS already in
+ * `lib.dom.d.ts` — this only adds the `transform` member that lib is
+ * missing, via interface merging.
+ *
+ * https://w3c.github.io/webrtc-encoded-transform/
+ */
+type RTCRtpScriptTransform = {};
+
+declare var RTCRtpScriptTransform: {
+  prototype: RTCRtpScriptTransform;
+  new (worker: Worker, options?: unknown): RTCRtpScriptTransform;
+};
+
+interface RTCRtpReceiver {
+  transform: RTCRtpScriptTransform | null;
+}
