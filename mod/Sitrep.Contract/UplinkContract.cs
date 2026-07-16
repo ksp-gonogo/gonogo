@@ -88,6 +88,28 @@ namespace Sitrep.Contract
         /// the client shows "NO DATA" instead.
         /// </summary>
         public bool AbsenceIsData { get; set; } = false;
+
+        /// <summary>
+        /// Opt-in predicate for a <see cref="Delivery.ReliableOrdered"/>
+        /// channel whose samples are a CURSOR-RELATIVE DIFF STREAM (e.g. the
+        /// kOS terminal's full-repaint-or-incremental-diff frames) rather
+        /// than a sequence of independently-meaningful discrete events (e.g.
+        /// <c>crash.lastCrash</c>). When set, <see cref="Sitrep.Host.ChannelEngine"/>
+        /// tracks the last REVEALED (i.e. already past the reveal gate — see
+        /// <c>ChannelEngine.FlushReveal</c>) sample for which this predicate
+        /// returns <c>true</c> as a per-topic sticky catch-up baseline (see
+        /// <see cref="Sitrep.Core.Courier"/>'s sticky-keyframe cache). A
+        /// late or returning subscriber's synchronous catch-up then always
+        /// resolves to that self-contained keyframe instead of Courier's
+        /// plain "whatever's latest in the archive" read — which, for a diff
+        /// stream, can otherwise resolve to a bare positional diff with no
+        /// baseline to apply it to (screen corruption / the terminal
+        /// "black screen" bug — see
+        /// local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
+        /// connection" section). Null (default) leaves every existing
+        /// channel's catch-up behavior byte-for-byte unchanged.
+        /// </summary>
+        public Func<object?, bool>? IsKeyframe { get; set; }
     }
 
     /// <summary>

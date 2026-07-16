@@ -136,6 +136,14 @@ namespace Gonogo.Kos
                     // reveal clock exactly like vessel.flight (comms authority).
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
+                    // Sticky-reveal fix (2026-07-15 feedback, "black screen for
+                    // one signal-delay after a CPU button press"): the screen
+                    // is a cursor-relative diff stream, so a late/returning
+                    // subscriber's catch-up must land on a self-contained
+                    // FullRepaint frame, never a bare incremental diff with no
+                    // baseline — see ChannelDeclaration.IsKeyframe and
+                    // Sitrep.Core.Courier's sticky-keyframe cache.
+                    IsKeyframe = value => value is KosTerminalFrame frame && frame.FullRepaint,
                 });
 
             _terminalManager = new KosTerminalManager(
