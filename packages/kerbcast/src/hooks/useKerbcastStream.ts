@@ -10,6 +10,7 @@ import {
 } from "../frameDelay";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 import {
+  attachEncodedWorkerFrameDelay,
   createWorkerFrameDelayStream,
   type SnapshottableDelayClock,
 } from "../worker/kerbcastDelayWorkerClient";
@@ -134,23 +135,27 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  * stream: raw}` unchanged, so the LAN case is bit-for-bit the old
  * behaviour, with NO pipeline spun up.
  *
- * With `delay`, two backends are tried in order, matching what's actually
- * usable in THIS browser (see `local_docs/reports/video-worker-report.md`
- * for the empirical per-engine breakdown this ordering rests on):
+ * With `delay`, THREE backends are tried in order (2026-07-16, encoded-transform
+ * video-delay work — `local_docs/reports/encoded-video-delay-report.md`):
  *
+ *  0. **Encoded transform on the receiver** (`attachEncodedWorkerFrameDelay`)
+ *     — tried first when `getDataSource("kerbcast")` can resolve an
+ *     `RTCRtpReceiver` for `raw` (via `KerbcastDataSource.getReceiverForStream`)
+ *     AND `RTCRtpScriptTransform` exists. Empirically confirmed cross-browser
+ *     correct (Chromium/Firefox/WebKit, Phase 1 of that report) — the ONLY
+ *     backend that can reach Firefox at all. Delays IN PLACE (no new track):
+ *     on success the result's `stream` is `raw` itself, unchanged — the delay
+ *     happens transparently upstream of decode.
  *  1. **Main-thread Breakout Box** (`isFrameDelaySupported()` /
- *     `createFrameDelayStream`) — Chrome today. Tried first and exclusively
- *     when available: it needs no worker at all, so there's no reason to
- *     route Chrome through the worker backend.
+ *     `createFrameDelayStream`) — Chrome, tried when (0) can't attach (no
+ *     receiver resolvable — e.g. a test fixture, or a future non-`BrowserRTCTransport`
+ *     transport — or the browser lacks `RTCRtpScriptTransform`).
  *  2. **Worker-hosted Breakout Box** (`createWorkerFrameDelayStream`) —
- *     tried only when (1) is unavailable. Safari/WebKit supports this
- *     today; Firefox does not yet (as of the 2026-07-16 verification —
- *     neither the main-thread nor the worker-side track-IO APIs exist in
- *     the build checked), so Firefox currently falls through to
- *     `"unavailable"` here. Feature-detected, not engine-sniffed, so
- *     Firefox picks this up automatically once it ships the API.
+ *     tried only when (0) and (1) are both unavailable. Safari/WebKit
+ *     supports this today (see `local_docs/reports/video-worker-report.md`
+ *     for the per-engine breakdown backends 1/2's ordering rests on).
  *
- * If NEITHER backend can build a pipeline, resolves `{kind: "unavailable",
+ * If NO backend can build a pipeline, resolves `{kind: "unavailable",
  * reason}` — **never** the raw stream. The old silent
  * `setDelayedStream(raw)` fallback (and its one-time warning) is deleted;
  * "can't delay" is now a first-class, visible state the caller renders
@@ -209,8 +214,54 @@ export function useDelayedPlayout(
     };
 
     async function build() {
-      // Backend 1: Chrome's main-thread Breakout Box — tried first and
-      // exclusively when present (no reason to route through a worker).
+      // Backend 0: encoded transform, attached directly to the RTCRtpReceiver
+      // behind `raw` — see the module doc above. `getReceiverForStream` is
+      // called optionally (`?.`) because a data source under test may not
+      // implement it at all (a fake registered via `registerDataSource` in
+      // a unit test, matching the "unknown methods degrade to undefined,
+      // never throw" convention this hook already follows elsewhere).
+      const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+      const receiver = ds?.getReceiverForStream?.(raw as MediaStream);
+      if (receiver && typeof RTCRtpScriptTransform !== "undefined") {
+        const encodedCapableView = view as DelayClockLike & {
+          snapshot?(): unknown;
+        };
+        if (typeof encodedCapableView.snapshot === "function") {
+          const encodedHandle = attachEncodedWorkerFrameDelay(receiver, {
+            view: view as unknown as SnapshottableDelayClock,
+            getCaptureSample: () =>
+              getCaptureSampleRef.current?.() ?? {
+                ut: null,
+                warpRate: 1,
+                atMs: 0,
+              },
+            onError: onPipelineError,
+          });
+          if (cancelled) {
+            encodedHandle?.dispose();
+            return;
+          }
+          if (encodedHandle) {
+            // No new track: the delay happens in place on `raw`'s existing
+            // track, upstream of decode — surface `raw` itself, unchanged.
+            pipelineRef.current = {
+              stream: raw as MediaStream,
+              dispose: encodedHandle.dispose,
+              flush: encodedHandle.flush,
+            };
+            setResult({ kind: "delayed", stream: raw as MediaStream });
+            return;
+          }
+          // Falls through to backend 1/2 below — never a hard failure on
+          // its own (a receiver resolving but the platform's
+          // RTCRtpScriptTransform constructor still throwing is exactly
+          // the "try the next backend" case, same as backends 1/2's own
+          // null-return handling).
+        }
+      }
+
+      // Backend 1: Chrome's main-thread Breakout Box — tried when backend 0
+      // couldn't attach.
       if (isFrameDelaySupported()) {
         let onErrorReason: string | null = null;
         const pipeline = createFrameDelayStream(raw as MediaStream, {

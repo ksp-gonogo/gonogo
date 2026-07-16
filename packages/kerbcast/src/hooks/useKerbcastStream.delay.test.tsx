@@ -33,7 +33,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {
@@ -429,7 +429,7 @@ describe("useKerbcastStream — delayed playout wiring", () => {
       cam.emit("camera-A-token");
     });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(latest).toMatchObject({ kind: "unavailable" });
     });
     // The reason should reflect "no backend in this browser", not the
@@ -575,7 +575,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     const staleFrame = fakeFrame("stale");
     track.push(staleFrame);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(staleFrame.closeCount).toBe(0); // pulled off source, queued
     });
     expect(gen?.written).toEqual([]); // not released — edge is -Infinity
