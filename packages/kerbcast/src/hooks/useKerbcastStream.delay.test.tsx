@@ -33,7 +33,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {
@@ -42,8 +42,9 @@ import {
   useKerbcastStream,
 } from "./useKerbcastStream";
 
+// Testing Library auto-cleans the DOM after every test — no manual cleanup()
+// needed here, only the registry teardown this file actually owns.
 afterEach(() => {
-  cleanup();
   clearRegistry();
 });
 

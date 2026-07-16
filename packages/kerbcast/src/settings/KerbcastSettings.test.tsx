@@ -1,12 +1,6 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { kerbcastFetchImpl } from "../test/MockKerbcastSession";
@@ -16,11 +10,23 @@ function isChecked(el: HTMLElement): boolean {
   return (el as HTMLInputElement).checked;
 }
 
-// Sources created during a test are torn down in afterEach AFTER cleanup() so
-// KerbcastSettings is already unmounted when disconnect() fires. Disconnecting a
-// live source while the component is still mounted triggers useSyncExternalStore
-// state updates outside act() -- the documented anti-pattern.
+// Sources created during a test are torn down in afterEach AFTER the component
+// is unmounted, so KerbcastSettings is already gone when disconnect() fires.
+// Disconnecting a live source while the component is still mounted triggers
+// useSyncExternalStore state updates outside act() -- the documented
+// anti-pattern.
 const createdSources: Array<{ disconnect: () => void }> = [];
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
+// sources. RTL's auto-cleanup runs after this file's afterEach, so it can't be
+// relied on to unmount first -- we do it explicitly here.
+const renderedTrees: Array<() => void> = [];
+
+function renderSettings(source: KerbcastDataSource): ReturnType<typeof render> {
+  const result = render(<KerbcastSettings source={source} />);
+  renderedTrees.push(result.unmount);
+  return result;
+}
 
 /*
  * Helper: set up a connected MockSidecar + KerbcastDataSource pair.
@@ -48,7 +54,8 @@ async function connectedFixture(): Promise<{
 }
 
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   for (const ds of createdSources) ds.disconnect();
   createdSources.length = 0;
   clearRegistry();
@@ -61,14 +68,14 @@ describe("KerbcastSettings", () => {
 
   it("renders a switch that defaults to off before any SettingsState arrives", async () => {
     const { source } = await connectedFixture();
-    render(<KerbcastSettings source={source} />);
+    renderSettings(source);
     const toggle = screen.getByRole("checkbox");
     expect(isChecked(toggle)).toBe(false);
   });
 
   it("sends set-throttle-main-screen when the switch is toggled on", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcastSettings source={source} />);
+    renderSettings(source);
 
     fireEvent.click(screen.getByRole("checkbox"));
 
@@ -79,7 +86,7 @@ describe("KerbcastSettings", () => {
 
   it("reflects state pushed by a SettingsState broadcast", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcastSettings source={source} />);
+    renderSettings(source);
 
     act(() => {
       sidecar.fireSettingsState({ throttleMainScreen: true });
@@ -90,7 +97,7 @@ describe("KerbcastSettings", () => {
 
   it("reflects an externally-originated change (another client toggled it off)", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcastSettings source={source} />);
+    renderSettings(source);
 
     /* Sidecar pushes throttle-on (e.g. from Hello or another client). */
     act(() => {
