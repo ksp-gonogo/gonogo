@@ -43,12 +43,17 @@ import {
 } from "./DelayedPlayoutBuffer";
 import { PresentationPacer } from "./worker/presentationPacer";
 
-/** Minimal contract a queued frame payload must satisfy. Real usage is a
- *  WebCodecs `VideoFrame` (holds GPU/decoder resources — MUST be closed
- *  exactly once); kept generic so tests can drive the pipeline with a
- *  lightweight fake instead of a real browser. */
+/** Minimal contract a queued frame payload must satisfy. A WebCodecs
+ *  `VideoFrame` (the decoded backend) holds GPU/decoder resources — MUST be
+ *  closed exactly once, so `close` is called wherever this interface's
+ *  contract is exercised. `close` is OPTIONAL because an encoded-domain
+ *  frame (`RTCEncodedVideoFrame`, the encoded-transform backend,
+ *  2026-07-16) holds no such resource and has no `close()` method at all —
+ *  it's a plain data object; every call site here uses `data.close?.()`,
+ *  a no-op for that case. Kept generic so tests can drive the pipeline with
+ *  a lightweight fake instead of a real browser. */
 export interface FrameLike {
-  close(): void;
+  close?(): void;
 }
 
 /** The pull side — satisfied directly by a real
@@ -76,11 +81,28 @@ export interface FrameDelayPipelineOptions<T extends FrameLike> {
   captureUt(): number;
   source: FrameSource<T>;
   sink: FrameSink<T>;
-  /** Frame-count cap — see module docstring. Defaults to 300. */
+  /** Frame-count cap — see module docstring. Defaults to 300. Encoded
+   *  backends should size this as a real byte cap (paired with `frameBytes`
+   *  below) rather than a frame count — see `attachEncodedFrameDelay`'s doc. */
   maxBufferedFrames?: number;
   /** Non-fatal pipeline errors (a read/write rejection) — reported here,
    *  never thrown across the internal pump loop. */
   onError?(error: unknown): void;
+  /** Classify a frame read off `source` as a keyframe, forwarded to
+   *  `DelayedPlayoutBuffer`'s `keyframe` field. Defaults to `() => false` —
+   *  correct for decoded `VideoFrame`s (no GOP dependency, see
+   *  `DelayedPlayoutBuffer.gopSafeEviction`'s doc). Encoded backends should
+   *  supply `(f) => f.type === "key"`. */
+  isKeyframe?(frame: T): boolean;
+  /** Byte-size estimate for cap accounting, forwarded to
+   *  `DelayedPlayoutBuffer`'s `bytes` field. Defaults to `() => 1` (a
+   *  frame-count cap). Encoded backends should supply the real payload
+   *  size, e.g. `(f) => f.data.byteLength`. */
+  frameBytes?(frame: T): number;
+  /** Forwarded to `DelayedPlayoutBuffer` — see its own doc. MUST be `true`
+   *  for encoded video (GOP-dependent); leave unset (the default) for
+   *  decoded video. */
+  gopSafeEviction?: boolean;
   /**
    * Opt into the presentation pacer (cross-browser kerbcast video-delay
    * design, 2026-07-16, finding F3 + "Paced release" — see
@@ -141,7 +163,7 @@ export function runFrameDelayPipeline<T extends FrameLike>(
       .write(data)
       .catch((err) => opts.onError?.(err))
       .finally(() => {
-        data.close();
+        data.close?.();
       });
   };
 
@@ -152,13 +174,14 @@ export function runFrameDelayPipeline<T extends FrameLike>(
     ? new PresentationPacer<T>({
         maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
         onPresent: (f) => writeAndClose(f.data),
-        onSkip: (f) => f.data.close(),
+        onSkip: (f) => f.data.close?.(),
       })
     : null;
 
   const buffer = new DelayedPlayoutBuffer<T>({
     view: opts.view,
     maxBufferedBytes: opts.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
+    gopSafeEviction: opts.gopSafeEviction,
     onRelease: (frame) => {
       const data = frame.data;
       if (!data) return;
@@ -169,7 +192,7 @@ export function runFrameDelayPipeline<T extends FrameLike>(
       }
     },
     onDrop: (frame) => {
-      frame.data?.close();
+      frame.data?.close?.();
     },
   });
 
@@ -185,14 +208,14 @@ export function runFrameDelayPipeline<T extends FrameLike>(
       if (result.done) return;
       const frame = result.value;
       if (disposed) {
-        frame.close();
+        frame.close?.();
         return;
       }
       buffer.push({
         ut: opts.captureUt(),
-        keyframe: false,
+        keyframe: opts.isKeyframe?.(frame) ?? false,
         data: frame,
-        bytes: 1,
+        bytes: opts.frameBytes?.(frame) ?? 1,
       });
     }
   }

@@ -341,3 +341,97 @@ describe("runFrameDelayPipeline — memory safety (every frame closed exactly on
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
 });
+
+// -- Encoded-domain frame shape (2026-07-16 encoded-transform video-delay
+// work). An RTCEncodedVideoFrame has no `.close()` (a plain data object,
+// no GPU/decoder resource), a `.type` of "key"/"delta", and a real
+// `.data.byteLength` — this section proves the pipeline handles that shape
+// correctly: no crash on the optional `close?.()` calls, `isKeyframe`/
+// `frameBytes` correctly classify frames for `DelayedPlayoutBuffer`, and
+// `gopSafeEviction` protects a GOP under cap pressure end-to-end.
+describe("runFrameDelayPipeline — encoded frame shape (no close(), keyframe/bytes classification)", () => {
+  /** Minimal stand-in for RTCEncodedVideoFrame: NO close() method, a
+   *  `type` discriminant, and a byte-sized `data` payload. */
+  function fakeEncodedFrame(type: "key" | "delta", byteLength: number) {
+    return { type, data: new ArrayBuffer(byteLength) };
+  }
+  type FakeEncodedFrame = ReturnType<typeof fakeEncodedFrame>;
+
+  it("releases and writes an encoded frame without ever calling close() (it has none)", async () => {
+    const clock = manualClock(0); // edge already caught up
+    const frame = fakeEncodedFrame("key", 100);
+    const source = queuedSource<FakeEncodedFrame>([frame]);
+    const sink = recordingSink<FakeEncodedFrame>();
+
+    const pipeline = runFrameDelayPipeline({
+      view: clock,
+      captureUt: () => 0,
+      source,
+      sink,
+      maxBufferedFrames: 10_000,
+      isKeyframe: (f) => f.type === "key",
+      frameBytes: (f) => f.data.byteLength,
+    });
+
+    await vi.waitFor(() => {
+      expect(sink.written).toEqual([frame]);
+    });
+    pipeline.dispose();
+  });
+
+  it("forwards isKeyframe/frameBytes/gopSafeEviction to the buffer for every ingested frame (wiring — eviction semantics themselves are DelayedPlayoutBuffer.test.ts's gopSafeEviction suite)", async () => {
+    const clock = manualClock(Number.NEGATIVE_INFINITY); // nothing releases; only ingest/classification under test
+    const k1 = fakeEncodedFrame("key", 40);
+    const d1 = fakeEncodedFrame("delta", 20);
+    const source = queuedSource<FakeEncodedFrame>([k1, d1]);
+    const sink = recordingSink<FakeEncodedFrame>();
+    const isKeyframe = vi.fn((f: FakeEncodedFrame) => f.type === "key");
+    const frameBytes = vi.fn((f: FakeEncodedFrame) => f.data.byteLength);
+
+    const pipeline = runFrameDelayPipeline({
+      view: clock,
+      captureUt: () => 1,
+      source,
+      sink,
+      maxBufferedFrames: 10_000,
+      isKeyframe,
+      frameBytes,
+      gopSafeEviction: true,
+    });
+
+    await vi.waitFor(() => {
+      expect(source.readCount).toBe(2);
+    });
+
+    expect(isKeyframe).toHaveBeenCalledWith(k1);
+    expect(isKeyframe).toHaveBeenCalledWith(d1);
+    expect(frameBytes).toHaveBeenCalledWith(k1);
+    expect(frameBytes).toHaveBeenCalledWith(d1);
+    // Nothing released (edge = -Infinity) — ingest/classification only.
+    expect(sink.written).toEqual([]);
+    pipeline.dispose();
+  });
+
+  it("defaults isKeyframe/frameBytes to false/1 when omitted — decoded backend's existing behaviour, unchanged", async () => {
+    const clock = manualClock(Number.NEGATIVE_INFINITY);
+    const frame = fakeFrame("f1");
+    const sink = recordingSink<FakeFrame>();
+
+    // maxBufferedFrames: 1 with the OLD default (frame-count cap, `bytes`
+    // defaults to 1) means a second push evicts the first — proves
+    // `frameBytes` really defaults to 1, not something encoded-shaped.
+    const second = fakeFrame("f2");
+    runFrameDelayPipeline({
+      view: clock,
+      captureUt: () => 1,
+      source: queuedSource<FakeFrame>([frame, second]),
+      sink,
+      maxBufferedFrames: 1,
+    });
+
+    await vi.waitFor(() => {
+      expect(frame.closeCount).toBe(1); // evicted (over cap), closed via onDrop
+    });
+    expect(sink.written).toEqual([]);
+  });
+});
