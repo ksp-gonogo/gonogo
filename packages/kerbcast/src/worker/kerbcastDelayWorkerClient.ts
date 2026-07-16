@@ -121,11 +121,14 @@ function post(
  *  pipeline on the shared worker reads the same clock — matches the app's
  *  ONE real `ViewClock`) and `captureSample` (per-pipeline, only when the
  *  sample reference actually changed) for one pipeline. Returns a stop
- *  function. */
+ *  function. Shared by both backends this file exposes — narrowed to just
+ *  the two members either needs, so `AttachEncodedFrameDelayOptions`
+ *  satisfies it structurally without a nominal relationship to
+ *  `CreateWorkerFrameDelayStreamOptions`. */
 function startPipelineTicker(
   worker: Worker,
   pipelineId: string,
-  opts: CreateWorkerFrameDelayStreamOptions,
+  opts: Pick<CreateWorkerFrameDelayStreamOptions, "view" | "getCaptureSample">,
 ): () => void {
   let lastSample: CaptureClockSample | null = null;
   return startPacingTicker(() => {
@@ -207,6 +210,99 @@ export async function createWorkerFrameDelayStream(
       stopTicker();
       nonFatalErrorHandlers.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
+    },
+    flush: () => {
+      post(worker, { type: "flush", pipelineId });
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Encoded-transform backend (2026-07-16, `local_docs/reports/encoded-video-delay-report.md`).
+// Empirically validated cross-browser (Chromium/Firefox/WebKit) in Phase 1
+// of that report, gated on a real confirmedEdgeUt() computation. Reachable
+// from the main-screen and station/broker camera path via
+// `KerbcastDataSource.getReceiverForStream` — see that method's doc for the
+// reconciliation of why this is wireable gonogo-side, no SDK change needed.
+// ---------------------------------------------------------------------------
+
+export interface AttachEncodedFrameDelayOptions {
+  view: SnapshottableDelayClock;
+  /** Read fresh on every ~60Hz tick — same contract as
+   *  `CreateWorkerFrameDelayStreamOptions.getCaptureSample`. */
+  getCaptureSample(): CaptureClockSample;
+  /** Real byte cap — see `encodedFrameDelay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
+  maxBufferedBytes?: number;
+  maxPacingBacklogSeconds?: number;
+  onError?(error: unknown): void;
+}
+
+export interface EncodedFrameDelayHandle {
+  /** Detach the transform (`receiver.transform = null`) and tear down this
+   *  pipeline's worker-side state. Idempotent from the caller's
+   *  perspective — safe to call once, matching every other backend's
+   *  `dispose()` contract in this package. */
+  dispose(): void;
+  flush(): void;
+}
+
+/**
+ * Attach the encoded-transform backend directly to `receiver`. UNLIKE
+ * `createWorkerFrameDelayStream`, this is effectively SYNCHRONOUS and
+ * produces no new stream: `receiver.transform = new
+ * RTCRtpScriptTransform(worker, options)` either succeeds immediately
+ * (this function returns a handle) or throws (caught here, reported via
+ * `onError`, returns `null`) — there's no async "pipelineReady" handshake
+ * to await, because attaching a script transform doesn't move any track;
+ * `self.onrtctransform` on the worker side has no message to reply with
+ * (see `kerbcastDelayWorker.ts`'s `handleRtcTransform` doc). The delay
+ * happens transparently, upstream of decode, on the SAME track the caller
+ * already has — the caller should keep using its existing `MediaStream`
+ * reference (e.g. `raw`, unchanged) once this resolves non-null, not swap
+ * to a new one.
+ *
+ * Resolves `null` (never throws) whenever the pipeline can't be attached
+ * here — no `Worker` support, or the platform's `RTCRtpScriptTransform`
+ * constructor itself threw (e.g. the receiver already has a transform, or
+ * the engine's `RTCRtpScriptTransform` is absent — check
+ * `typeof RTCRtpScriptTransform !== "undefined"` before calling if the
+ * caller wants to skip the attempt instead of taking the throw+report
+ * round trip). The caller treats a `null` resolution exactly like every
+ * other backend's `null`/`unavailable` case (decision 5 — never a silent
+ * live fallback).
+ */
+export function attachEncodedWorkerFrameDelay(
+  receiver: RTCRtpReceiver,
+  opts: AttachEncodedFrameDelayOptions,
+): EncodedFrameDelayHandle | null {
+  const worker = getSharedWorker();
+  if (!worker) return null;
+
+  pipelineCounter += 1;
+  const pipelineId = `kerbcast-encoded-${pipelineCounter}`;
+
+  try {
+    receiver.transform = new RTCRtpScriptTransform(worker, {
+      pipelineId,
+      maxBufferedBytes: opts.maxBufferedBytes,
+      maxPacingBacklogSeconds: opts.maxPacingBacklogSeconds,
+    });
+  } catch (err) {
+    opts.onError?.(err);
+    return null;
+  }
+
+  nonFatalErrorHandlers.set(pipelineId, (reason) => {
+    opts.onError?.(new Error(reason));
+  });
+  const stopTicker = startPipelineTicker(worker, pipelineId, opts);
+
+  return {
+    dispose: () => {
+      stopTicker();
+      nonFatalErrorHandlers.delete(pipelineId);
+      post(worker, { type: "dispose", pipelineId });
+      receiver.transform = null;
     },
     flush: () => {
       post(worker, { type: "flush", pipelineId });
