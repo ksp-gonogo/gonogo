@@ -6,7 +6,8 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { ScanningComponent } from "./index";
@@ -32,6 +33,19 @@ describe("ScanningComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
+  // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
+  // the buffered source. RTL auto-cleanup runs after this file's afterEach, so
+  // it can't be relied on to unmount first — disconnecting a live source while
+  // the widget is still mounted fires a status change into it, a state update
+  // outside act() (the documented anti-pattern in CLAUDE.md).
+  const renderedTrees: Array<() => void> = [];
+
+  function renderScanning(ui: ReactElement) {
+    const result = renderWithTheme(ui);
+    renderedTrees.push(result.unmount);
+    return result;
+  }
+
   beforeEach(async () => {
     clearRegistry();
     registerStockBodies();
@@ -42,12 +56,13 @@ describe("ScanningComponent", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     buffered.disconnect();
   });
 
   it("shows the empty state when SCANsat is not installed", () => {
-    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
+    renderScanning(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", false);
     });
@@ -55,7 +70,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders the coverage / vessels / anomalies layout when SCANsat is present", () => {
-    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
+    renderScanning(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -69,7 +84,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders coverage percentages for each scan type when values are emitted", () => {
-    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
+    renderScanning(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -89,7 +104,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders anomaly names according to discovery state", () => {
-    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
+    renderScanning(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -127,7 +142,7 @@ describe("ScanningComponent", () => {
   });
 
   it("passes an a11y smoke when SCANsat is unavailable", async () => {
-    const { container } = renderWithTheme(
+    const { container } = renderScanning(
       <ScanningComponent config={{}} id="scanning" />,
     );
     act(() => {
