@@ -13,14 +13,7 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -64,8 +57,17 @@ function overlayProps(
   };
 }
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
+// the buffered source. RTL auto-cleanup runs after this file's afterEach, so it
+// can't be relied on to unmount first — disconnecting a live source while the
+// widget is still mounted fires a status change into it, a state update outside
+// act() (the documented anti-pattern in CLAUDE.md).
+const renderedTrees: Array<() => void> = [];
+
 function renderSlot(ui: ReactElement) {
-  return render(ui);
+  const result = render(ui);
+  renderedTrees.push(result.unmount);
+  return result;
 }
 
 describe("AnomalyOverlay — map-view.overlay slot", () => {
@@ -82,7 +84,8 @@ describe("AnomalyOverlay — map-view.overlay slot", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     buffered.disconnect();
   });
 

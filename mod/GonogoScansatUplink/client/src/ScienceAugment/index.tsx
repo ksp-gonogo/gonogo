@@ -16,7 +16,7 @@
 
 import type {} from "@ksp-gonogo/components"; // pulls ScienceOfficer's "science-officer.badges" SlotRegistry merge into this program (see that module's own declare-module comment)
 import type { SlotProps } from "@ksp-gonogo/core";
-import { registerAugment, useDataValue } from "@ksp-gonogo/core";
+import { registerAugment, useTelemetry } from "@ksp-gonogo/core";
 import {
   Badge,
   ScienceExperimentRow,
@@ -79,7 +79,7 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
-  const raw = useDataValue("data", "scansat.science");
+  const raw = useTelemetry("scansat.science");
   const experiments = parseScanScience(raw);
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();

@@ -9,7 +9,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";
 import { renderWithTheme } from "./testTheme";
@@ -39,6 +39,13 @@ describe("Scanning — augment slots (spec §4)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
+  // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
+  // the buffered source. RTL auto-cleanup runs after this file's afterEach, so
+  // it can't be relied on to unmount first — disconnecting a live source while
+  // the widget is still mounted fires a status change into it, a state update
+  // outside act() (the documented anti-pattern in CLAUDE.md).
+  const renderedTrees: Array<() => void> = [];
+
   beforeEach(async () => {
     clearRegistry();
     registerStockBodies();
@@ -49,7 +56,8 @@ describe("Scanning — augment slots (spec §4)", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     buffered.disconnect();
     // Wipe any test augment so it never leaks into other suites.
     clearAugments();
@@ -58,7 +66,10 @@ describe("Scanning — augment slots (spec §4)", () => {
   // Drive the widget to the present-SCANsat layout, where both the `badges`
   // header slot and the `sections` coverage slot render.
   function renderPresent() {
-    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
+    const result = renderWithTheme(
+      <ScanningComponent config={{}} id="scanning" />,
+    );
+    renderedTrees.push(result.unmount);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");

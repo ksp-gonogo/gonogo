@@ -1,11 +1,4 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { AugmentSlot, clearRegistry } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -15,14 +8,14 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import {
   act,
-  cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { ThemeProvider } from "styled-components";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once — the same way the app
@@ -53,21 +46,8 @@ function renderSlot(ui: ReactElement) {
 }
 
 describe("SCANsat science augment — science-officer.badges slot", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     clearRegistry();
-    const keys: DataKey[] = [{ key: "scansat.science" }];
-    source = new MockDataSource({ keys });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-  });
-
-  afterEach(() => {
-    cleanup();
-    buffered.disconnect();
   });
 
   it("does not render while the scansat domain has not announced availability", () => {
@@ -83,7 +63,10 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
       </TelemetryProvider>,
     );
     act(() => {
-      source.emit("scansat.science", [SCAN_ENTRY]);
+      transport.emit("scansat.science", [SCAN_ENTRY], {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
     });
 
     expect(screen.queryByText(/SCANSAT/)).toBeNull();
@@ -102,9 +85,23 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
       </TelemetryProvider>,
     );
 
+    // Announce availability first so the presence-gated augment mounts and its
+    // `scansat.science` subscription goes live — `StubTransport.emit` is
+    // subscription-gated and drops a frame nothing has subscribed to yet, and
+    // the augment isn't rendered (so doesn't subscribe) until `available` is
+    // true. The provider commits frames on a rAF, so wait for the subscription
+    // to actually appear before emitting the science frame.
     act(() => {
-      source.emit("scansat.science", [SCAN_ENTRY]);
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.science")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.science", [SCAN_ENTRY], {
         quality: Quality.Loaded,
         source: "scansat",
       });
@@ -150,7 +147,10 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
         quality: Quality.Loaded,
         source: "scansat",
       });
-      source.emit("scansat.science", []);
+      transport.emit("scansat.science", [], {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
     });
 
     expect(screen.queryByText(/SCANSAT/)).toBeNull();
@@ -159,16 +159,14 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
   it("stays absent when the scansat domain is unavailable but other augments would render", () => {
     // No TelemetryProvider at all — the app-realistic case of a KSP install
     // with no SCANsat mod present: `scansat.available` never arrives, so
-    // the presence gate's `available` stays permanently `undefined`.
+    // the presence gate's `available` stays permanently `undefined` (and with
+    // no store mounted, the `scansat.science` read never resolves either).
     renderSlot(
       <AugmentSlot
         name="science-officer.badges"
         props={{ instruments: null, dataAmount: 0 }}
       />,
     );
-    act(() => {
-      source.emit("scansat.science", [SCAN_ENTRY]);
-    });
 
     expect(screen.queryByText(/SCANSAT/)).toBeNull();
   });
@@ -186,9 +184,20 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
       </TelemetryProvider>,
     );
 
+    // Availability first (mounts the augment + its science subscription), then
+    // the science frame — see the sibling test's note on subscription-gating
+    // and the rAF frame commit.
     act(() => {
-      source.emit("scansat.science", [SCAN_ENTRY]);
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.science")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.science", [SCAN_ENTRY], {
         quality: Quality.Loaded,
         source: "scansat",
       });
