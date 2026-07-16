@@ -21,10 +21,25 @@ namespace Sitrep.Contract;
 /// <para><see cref="FullRepaint"/> marks a self-contained repaint frame (the
 /// client clears its terminal before applying <see cref="Chunk"/>). The mod
 /// emits one on session open, on a new subscriber, and after a CPU
-/// reboot/unload/CPU-switch, so a late-joining or reconnecting viewer — which
-/// does NOT receive the sticky replay via <c>useStreamEvent</c> — always
+/// reboot/unload/CPU-switch, so a late-joining or reconnecting viewer always
 /// resyncs from a clean full screen rather than an orphaned diff. Ordinary
 /// incremental frames carry <c>FullRepaint = false</c>.</para>
+///
+/// <para>The channel's <c>ChannelDeclaration.IsKeyframe</c> predicate
+/// (<c>KosExtension.Ksp.cs</c>) is wired to <see cref="FullRepaint"/>: the
+/// engine's sticky-keyframe cache (<c>Sitrep.Core.Courier</c>) always
+/// replays the last already-REVEALED FullRepaint frame synchronously to a
+/// new subscriber, rather than whatever the channel's plain "latest archived
+/// sample" happens to be (which, mid-session, is usually an ordinary
+/// incremental diff with no baseline of its own to apply it to). This is
+/// what lets a late/returning viewer see something immediately instead of
+/// waiting out a fresh reveal-delay window for its own forced reseed to
+/// mature — see local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
+/// connection" section for the full root-cause writeup. A genuinely
+/// first-ever subscribe to a CPU's terminal (nothing has EVER been recorded
+/// for it) still has to wait out that first reseed's own delay window —
+/// there is no way around that; there is nothing earlier to be sticky
+/// about.</para>
 ///
 /// <para><see cref="CoreId"/> echoes the emitting CPU's
 /// <see cref="KosProcessorInfo.CoreId"/> so a client reading several CPUs can

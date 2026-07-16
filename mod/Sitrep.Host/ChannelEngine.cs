@@ -981,6 +981,7 @@ namespace Sitrep.Host
                 Delivery = template.Delivery,
                 Emission = template.Emission,
                 Delay = template.Delay,
+                IsKeyframe = template.IsKeyframe,
             };
             _channelOwner[fullTopic] = _dynamicNamespaceOwner[prefix];
         }
@@ -2048,7 +2049,7 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
-                _courier.Record(NodeId, topic, value, ut, DeliveryFor(topic));
+                _courier.Record(NodeId, topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
                 return;
             }
 
@@ -2058,6 +2059,33 @@ namespace Sitrep.Host
                 _revealBuffer[topic] = list;
             }
             list.Add(new BufferedReveal(ut, value, delay));
+        }
+
+        /// <summary>
+        /// Whether <paramref name="value"/> is a self-contained "keyframe"
+        /// baseline for <paramref name="topic"/>'s cursor-relative diff
+        /// stream — see <see cref="ChannelDeclaration.IsKeyframe"/> and
+        /// <see cref="Sitrep.Core.Courier"/>'s sticky-keyframe cache. Fail-soft:
+        /// an undeclared topic or a throwing predicate (uplink-authored code,
+        /// same discipline as every other Decide/map call in this class) is
+        /// treated as "not a keyframe" — never worse than before this hook
+        /// existed, and never a reason to fail the Record call it gates.
+        /// </summary>
+        private bool IsKeyframeFor(string topic, object? value)
+        {
+            if (!_channelDeclarations.TryGetValue(topic, out var declaration) || declaration.IsKeyframe == null)
+            {
+                return false;
+            }
+            try
+            {
+                return declaration.IsKeyframe(value);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[ChannelEngine] IsKeyframe predicate for \"" + topic + "\" threw (treated as not-a-keyframe): " + SafeExceptionMessage(ex));
+                return false;
+            }
         }
 
         /// <summary>
@@ -2501,7 +2529,7 @@ namespace Sitrep.Host
                     // through (whose blackout samples carry connected:false).
                     if (horizonReached && (isMetaTopic || ConnectivityAt(entry.Ut)))
                     {
-                        _courier.Record(NodeId, topic, entry.Value, entry.Ut, DeliveryFor(topic));
+                        _courier.Record(NodeId, topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
                     }
                     else
                     {
