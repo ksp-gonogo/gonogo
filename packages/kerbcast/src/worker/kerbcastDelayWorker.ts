@@ -42,11 +42,29 @@
  *                               "can't delay -> no video" case (decision 5).
  *  - `pipelineNonFatalError` — a post-construction read/write rejection,
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
+ *
+ * Encoded-transform path (2026-07-16, `local_docs/reports/encoded-video-delay-report.md`):
+ * `self.onrtctransform` (native platform event, NOT one of the message
+ * types above) is the entry point for the encoded-domain backend — see
+ * `handleRtcTransform`'s doc. It reuses the SAME `pipelines` map,
+ * `sharedClock`, and `captureSample`/`clockSnapshot` messages this file
+ * already handles; only pipeline CONSTRUCTION differs (no handshake, no
+ * transferred track). NOT YET REACHABLE from the real app — the main thread
+ * has no `RTCRtpReceiver` to call `receiver.transform = new
+ * RTCRtpScriptTransform(worker, {pipelineId})` on (the `@ksp-gonogo/kerbcast`
+ * SDK discards it in `onTrack` today) — see the report's "what's blocked"
+ * section. This handler is therefore unreachable in production until that
+ * SDK seam exists, but is structurally complete and ready to wire the
+ * moment it does.
  */
 
 import type { ClockFormulaSnapshot } from "@ksp-gonogo/sitrep-client";
 import type { CaptureClockSample } from "../captureClock";
 import { interpolateCaptureUt } from "../captureClock";
+import {
+  attachEncodedFrameDelayTransform,
+  type EncodedTransformerLike,
+} from "../encodedFrameDelay";
 import {
   type FrameDelayPipeline,
   runFrameDelayPipeline,
@@ -134,9 +152,33 @@ export type WorkerToMainMessage =
 // for this one file, cast the ambient `self` down to the narrow slice this
 // file actually needs — the same "minimal ambient surface" spirit as
 // `webcodecs-track-io.d.ts`.
+// `RTCTransformEvent`/`RTCRtpScriptTransform` are the standard WebRTC
+// Encoded Transform API (encoded-transform video-delay work, 2026-07-16 —
+// see `../encodedFrameDelay.ts`'s module doc). Declared locally, narrowed to
+// just what `handleRtcTransform` reads, for the same "minimal ambient
+// surface, no full webworker lib" reason as `WorkerGlobalSurface` itself —
+// this repo's default DOM lib doesn't reliably ship these types across TS
+// versions, and a full declaration isn't needed.
+interface RtcTransformEventLike {
+  transformer: EncodedTransformerLike & {
+    /** Structured-cloned from `new RTCRtpScriptTransform(worker, options)`'s
+     *  second argument — the main thread's only channel to key this
+     *  pipeline, since (unlike `createPipeline`) attaching a script
+     *  transform has no message-based handshake of its own. */
+    options?: {
+      pipelineId?: string;
+      maxBufferedBytes?: number;
+      maxPacingBacklogSeconds?: number;
+    };
+  };
+}
+
 interface WorkerGlobalSurface {
   postMessage(message: WorkerToMainMessage, transfer?: Transferable[]): void;
   onmessage: ((ev: MessageEvent<MainToWorkerMessage>) => void) | null;
+  /** Fires once per `receiver.transform = new RTCRtpScriptTransform(worker,
+   *  options)` on the main thread — see `handleRtcTransform`. */
+  onrtctransform: ((ev: RtcTransformEventLike) => void) | null;
 }
 const workerSelf = self as unknown as WorkerGlobalSurface;
 
@@ -292,6 +334,68 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
   }
 }
 
+/**
+ * Encoded-transform attach (encoded-transform video-delay work,
+ * 2026-07-16). UNLIKE `handleCreatePipeline`, there is no message-based
+ * handshake: `receiver.transform = new RTCRtpScriptTransform(worker,
+ * options)` on the main thread fires this event directly, synchronously
+ * from the platform's perspective — there is no "pipelineReady"/
+ * "pipelineError" round trip to send, because attaching a script transform
+ * either works (this handler runs) or the constructor itself throws on the
+ * MAIN thread, before this file ever sees anything (mirrors this file's own
+ * module-doc note about `MediaStreamTrack` transfer failures).
+ *
+ * Reuses the exact same `pipelines` map, `sharedClock`, and `captureSample`
+ * per-pipeline state as `handleCreatePipeline` — `attachEncodedFrameDelayTransform`
+ * returns the same `FrameDelayPipeline` shape (`flush`/`dispose`/
+ * `tickPacing`) `runFrameDelayPipeline` does, so `handleFlush`/`handleDispose`/
+ * `handleCaptureSample` all work unchanged regardless of which kind of
+ * pipeline `pipelineId` maps to.
+ */
+function handleRtcTransform(event: RtcTransformEventLike): void {
+  const clock = sharedClock;
+  const clockNowWall = nowWall;
+  if (!clock || !clockNowWall) {
+    // No `pipelineError` channel to report through here (see doc above) —
+    // the transform is attached either way; frames will simply never
+    // release (no clock to gate on) until `init` arrives. Matches
+    // `handleCreatePipeline`'s equivalent guard in spirit, not in wire shape.
+    return;
+  }
+
+  const options = event.transformer.options ?? {};
+  const pipelineId =
+    typeof options.pipelineId === "string"
+      ? options.pipelineId
+      : `encoded-${pipelines.size}-${Date.now()}`;
+
+  const entry: PipelineEntry = {
+    // Filled in immediately below — same "closes over `entry`, not the
+    // local `pipeline` const" reasoning as `handleCreatePipeline`.
+    pipeline: null as unknown as FrameDelayPipeline,
+    captureSample: DEFAULT_MS,
+    stopPacingTicker: () => {},
+  };
+  pipelines.set(pipelineId, entry);
+
+  const pipeline = attachEncodedFrameDelayTransform(event.transformer, {
+    view: clock,
+    captureUt: () =>
+      interpolateCaptureUt(entry.captureSample, nowWallMs(clockNowWall)) ?? 0,
+    maxBufferedBytes: options.maxBufferedBytes,
+    maxPacingBacklogSeconds: options.maxPacingBacklogSeconds,
+    onError: (err) => {
+      workerSelf.postMessage({
+        type: "pipelineNonFatalError",
+        pipelineId,
+        reason: String(err),
+      });
+    },
+  });
+  entry.pipeline = pipeline;
+  entry.stopPacingTicker = startPacingTicker(pipeline.tickPacing, clockNowWall);
+}
+
 function handleFlush(msg: FlushMessage): void {
   pipelines.get(msg.pipelineId)?.pipeline.flush();
 }
@@ -327,3 +431,5 @@ workerSelf.onmessage = (ev) => {
       return;
   }
 };
+
+workerSelf.onrtctransform = handleRtcTransform;
