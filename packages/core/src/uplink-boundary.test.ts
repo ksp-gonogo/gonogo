@@ -218,6 +218,11 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Sitrep.Contract/KosTerminal.cs",
     "mod/Sitrep.Contract/RtConfig.cs",
     "mod/Sitrep.Contract/UplinkContract.cs",
+    // Engine sticky-reveal integration test: the diff-channel keyframe-retention
+    // feature is generic engine behaviour, but its canonical test case is the kOS
+    // terminal, so the test names KosTerminalFrame as the concrete diff-channel
+    // example. Engine test, not engine shipping code — the boundary holds. (2026-07-16)
+    "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
     // pending-uplink contract: its Command field doc-comment gives
     // `kos.run` as the example wire command name — doc-mention only.
     "mod/Sitrep.Contract/UplinkPending.cs",
