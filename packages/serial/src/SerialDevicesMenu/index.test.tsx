@@ -1,3 +1,4 @@
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
@@ -60,9 +61,15 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
       renderDebounceMs: 0,
     });
     render(
-      <SerialDeviceProvider service={svc}>
-        <SerialDevicesMenu />
-      </SerialDeviceProvider>,
+      // SerialDevicesMenu is always opened inside a Modal in production (see
+      // SerialFab.tsx), and a gamepad DeviceRow now offers its own nested
+      // "Learn roles..." modal — so it needs a real ModalProvider ancestor
+      // here too, not just SerialDeviceProvider.
+      <ModalProvider>
+        <SerialDeviceProvider service={svc}>
+          <SerialDevicesMenu />
+        </SerialDeviceProvider>
+      </ModalProvider>,
     );
   }
 
@@ -117,9 +124,11 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
       transport: "gamepad",
     });
     render(
-      <SerialDeviceProvider service={svc}>
-        <SerialDevicesMenu />
-      </SerialDeviceProvider>,
+      <ModalProvider>
+        <SerialDeviceProvider service={svc}>
+          <SerialDevicesMenu />
+        </SerialDeviceProvider>
+      </ModalProvider>,
     );
 
     // The unsupported-browser banner is still there (this is genuinely a

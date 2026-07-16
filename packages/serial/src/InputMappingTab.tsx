@@ -100,8 +100,13 @@ function resolveBoundDisplay(
  * capture mode. Without it, idle stick noise around centre would auto-bind
  * the wrong axis on a row that accepts analog. Buttons must be true (press,
  * not release); analogs must clear half-deflection.
+ *
+ * Exported so `SerialDevicesMenu/GamepadLearnWizard.tsx` can reuse the same
+ * threshold verbatim instead of inventing a second one — see that file for
+ * why it passes `["button", "analog"]` for button-shaped roles too (a
+ * non-standard pad's trigger may arrive as an axis, not a button).
  */
-function isCapturable(
+export function isCapturable(
   accepts: readonly ActionDefinition["accepts"][number][],
   value: boolean | number,
 ): boolean {
