@@ -1,5 +1,8 @@
 import type { ManeuverNode } from "@ksp-gonogo/core";
-import { useDataValue } from "@ksp-gonogo/core";
+import {
+  useStream,
+  type VesselManeuverLegacyState,
+} from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 
 /**
@@ -24,12 +27,14 @@ const EMPTY: readonly ParsedManeuverNode[] = [];
  * source hasn't produced a value yet.
  *
  * Consumers that want a live "time to burn" countdown should combine the
- * node's `UT` with a `useDataValue('data', 't.universalTime')` — we don't
- * bake the subtraction in so the hook stays pure and only re-renders on
- * actual node-list changes, not every clock tick.
+ * node's `UT` with the current universal time — we don't bake the
+ * subtraction in so the hook stays pure and only re-renders on actual
+ * node-list changes, not every clock tick.
  */
 export function useManeuverNodes(): readonly ParsedManeuverNode[] {
-  const nodes = useDataValue("data", "o.maneuverNodes");
+  const nodes = useStream<VesselManeuverLegacyState>(
+    "vessel.maneuver.legacy",
+  )?.nodes;
   return useMemo(() => {
     if (!Array.isArray(nodes) || nodes.length === 0) return EMPTY;
     return nodes.map((node, id) => ({

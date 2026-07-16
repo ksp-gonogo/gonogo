@@ -4,7 +4,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { cleanup, render } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataKeyMeta } from "../types";
 import { useDataSchema } from "./useDataSchema";
@@ -27,7 +27,6 @@ describe("useDataSchema", () => {
   });
 
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

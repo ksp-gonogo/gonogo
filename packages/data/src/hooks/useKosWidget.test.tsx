@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KosScriptError } from "../kos/KosScriptError";
 import { type UseKosWidgetResult, useKosWidget } from "./useKosWidget";
@@ -64,7 +64,6 @@ describe("useKosWidget interval-mode breaker", () => {
   });
 
   afterEach(() => {
-    cleanup();
     clearRegistry();
     vi.useRealTimers();
   });

@@ -1,31 +1,16 @@
-import type { ManeuverNode, StageInfo } from "@ksp-gonogo/core";
+import type { StageInfo } from "@ksp-gonogo/core";
 import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+  type ManeuverNodeWirePayload,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-client";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { useManeuverFeasibility } from "./useManeuverFeasibility";
 
-function node(ut: number, dv: number): ManeuverNode {
-  return {
-    UT: ut,
-    deltaV: [dv, 0, 0],
-    PeA: 0,
-    ApA: 0,
-    inclination: 0,
-    eccentricity: 0,
-    epoch: 0,
-    period: 0,
-    argumentOfPeriapsis: 0,
-    sma: 0,
-    lan: 0,
-    maae: 0,
-    referenceBody: "Kerbin",
-    closestEncounterBody: null,
-    orbitPatches: [],
-  };
+function wireNode(id: string, ut: number, dv: number): ManeuverNodeWirePayload {
+  return { id, ut, dvRadial: dv, dvNormal: 0, dvPrograde: 0, patches: [] };
 }
 
 function stage(deltaVVac: number): StageInfo {
@@ -62,83 +47,90 @@ function Probe({
   return null;
 }
 
+/**
+ * `useManeuverFeasibility` composes `useManeuverNodes` (`vessel.maneuver.legacy`)
+ * and `useVesselDeltaV` (`dv.stages`) — both now real stream reads, so these
+ * tests emit the raw `vessel.maneuver`/`dv.stages` wire topics through a real
+ * `TelemetryProvider`/`TelemetryClient` instead of a `MockDataSource` under id
+ * `"data"` (which never backed either read in production).
+ */
 describe("useManeuverFeasibility", () => {
-  let mock: MockDataSource;
-
-  beforeEach(() => {
-    clearRegistry();
-    mock = new MockDataSource({
-      id: "data",
-      keys: [{ key: "o.maneuverNodes" }, { key: "dv.stages" }],
-    });
-    registerDataSource(mock);
-    void mock.connect();
-  });
-
-  afterEach(() => {
-    cleanup();
-    clearRegistry();
-  });
-
-  it("empty plan → allOk with zero required", () => {
+  function renderProbe() {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
     const renders: Array<ReturnType<typeof useManeuverFeasibility>> = [];
-    render(<Probe onRender={(f) => renders.push(f)} />);
+    render(
+      <TelemetryProvider client={client}>
+        <Probe onRender={(f) => renders.push(f)} />
+      </TelemetryProvider>,
+    );
+    return { transport, renders };
+  }
+
+  it("empty plan → allOk with zero required", async () => {
+    const { transport, renders } = renderProbe();
     act(() => {
-      mock.emit("o.maneuverNodes", []);
-      mock.emit("dv.stages", [stage(2000)]);
+      transport.emit("vessel.maneuver", { nodes: [] });
+      transport.emit("dv.stages", [stage(2000)]);
     });
+    await waitFor(() => expect(renders.at(-1)?.available).toBe(2000));
     const last = renders.at(-1);
     expect(last?.allOk).toBe(true);
     expect(last?.totalRequired).toBe(0);
-    expect(last?.available).toBe(2000);
   });
 
-  it("two feasible nodes → allOk and remaining decreases", () => {
-    const renders: Array<ReturnType<typeof useManeuverFeasibility>> = [];
-    render(<Probe onRender={(f) => renders.push(f)} />);
+  it("two feasible nodes → allOk and remaining decreases", async () => {
+    const { transport, renders } = renderProbe();
     act(() => {
-      mock.emit("dv.stages", [stage(2000)]);
-      mock.emit("o.maneuverNodes", [node(100, 500), node(200, 500)]);
+      transport.emit("dv.stages", [stage(2000)]);
+      transport.emit("vessel.maneuver", {
+        nodes: [wireNode("a", 100, 500), wireNode("b", 200, 500)],
+      });
     });
+    await waitFor(() => expect(renders.at(-1)?.totalRequired).toBe(1000));
     const last = renders.at(-1);
     expect(last?.allOk).toBe(true);
-    expect(last?.totalRequired).toBe(1000);
     expect(last?.nodes[0].remainingDeltaV).toBe(1500);
     expect(last?.nodes[1].remainingDeltaV).toBe(1000);
   });
 
-  it("last node goes short when cumulative ΔV exceeds available", () => {
-    const renders: Array<ReturnType<typeof useManeuverFeasibility>> = [];
-    render(<Probe onRender={(f) => renders.push(f)} />);
+  it("last node goes short when cumulative ΔV exceeds available", async () => {
+    const { transport, renders } = renderProbe();
     act(() => {
-      mock.emit("dv.stages", [stage(800)]);
-      mock.emit("o.maneuverNodes", [node(100, 500), node(200, 500)]);
+      transport.emit("dv.stages", [stage(800)]);
+      transport.emit("vessel.maneuver", {
+        nodes: [wireNode("a", 100, 500), wireNode("b", 200, 500)],
+      });
     });
+    await waitFor(() => expect(renders.at(-1)?.anyShort).toBe(true));
     const last = renders.at(-1);
-    expect(last?.anyShort).toBe(true);
     expect(last?.nodes[0].ok).toBe(true);
     expect(last?.nodes[1].ok).toBe(false);
   });
 
-  it("sorts by UT so feasibility reflects execution order", () => {
-    const renders: Array<ReturnType<typeof useManeuverFeasibility>> = [];
-    render(<Probe onRender={(f) => renders.push(f)} />);
+  it("sorts by UT so feasibility reflects execution order", async () => {
+    const { transport, renders } = renderProbe();
     act(() => {
-      mock.emit("dv.stages", [stage(800)]);
+      transport.emit("dv.stages", [stage(800)]);
       // Emit out of UT order — the hook should sort.
-      mock.emit("o.maneuverNodes", [node(200, 500), node(100, 500)]);
+      transport.emit("vessel.maneuver", {
+        nodes: [wireNode("b", 200, 500), wireNode("a", 100, 500)],
+      });
     });
-    const last = renders.at(-1);
-    expect(last?.nodes.map((n) => n.node.UT)).toEqual([100, 200]);
+    await waitFor(() =>
+      expect(renders.at(-1)?.nodes.map((n) => n.node.UT)).toEqual([100, 200]),
+    );
   });
 
-  it("returns ok=null when ΔV telemetry is absent", () => {
-    const renders: Array<ReturnType<typeof useManeuverFeasibility>> = [];
-    render(<Probe onRender={(f) => renders.push(f)} />);
+  it("returns ok=null when ΔV telemetry is absent", async () => {
+    const { transport, renders } = renderProbe();
     act(() => {
-      mock.emit("o.maneuverNodes", [node(100, 500)]);
+      transport.emit("vessel.maneuver", {
+        nodes: [wireNode("a", 100, 500)],
+      });
       // Never emit dv.stages — useVesselDeltaV returns totalVac=0.
     });
+    await waitFor(() => expect(renders.at(-1)?.nodes).toHaveLength(1));
     const last = renders.at(-1);
     expect(last?.nodes[0].ok).toBeNull();
     expect(last?.allOk).toBe(false);

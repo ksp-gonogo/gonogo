@@ -395,7 +395,7 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
   "dv.stageCount": { label: "Stage count", unit: "raw", group: "Stages" },
   // `dv.stages` is the whole-vessel stage array (complex object). Labelled
   // "raw" so graphs / pickers filter it out — consumers read it with
-  // `useDataValue("data", "dv.stages")` and project the field they need.
+  // `useTelemetry("dv.stages")` and project the field they need.
   "dv.stages": { label: "Stages (all)", unit: "raw", group: "Stages" },
 
   // --- Orbit: patch list + maneuvers (complex objects) ---
