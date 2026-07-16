@@ -92,6 +92,24 @@ namespace Sitrep.Core
         private readonly Dictionary<string, Dictionary<string, double>> _linkDownSince =
             new Dictionary<string, Dictionary<string, double>>();
 
+        // node -> topic -> the last REVEALED (i.e. already-Record()ed, so
+        // already past whatever reveal gate the caller runs in front of this
+        // Courier — see Record's isKeyframe parameter) sample explicitly
+        // flagged as a self-contained "keyframe" for a cursor-relative diff
+        // stream (Delivery.ReliableOrdered channels like the kOS terminal —
+        // see ChannelDeclaration.IsKeyframe). C#-ONLY addition, no TS
+        // reference (same class as ResetTimeline / the ReliableOrdered lane
+        // itself): mirrors, for an event/diff stream, what Archive's plain
+        // "latest recorded sample" ALREADY gives a value/LossyLatest channel
+        // for free (see ReadAtVantage) -- a diff stream additionally needs
+        // the catch-up to be specifically the last KEYFRAME, never a bare
+        // diff with no baseline to apply it to. Empty unless a caller
+        // explicitly passes isKeyframe:true to Record, so every existing
+        // call site (including every golden-fixture conformance test) is
+        // byte-for-byte unaffected.
+        private readonly Dictionary<string, Dictionary<string, ArchiveSample>> _stickyKeyframes =
+            new Dictionary<string, Dictionary<string, ArchiveSample>>();
+
         private long _seq;
         private CommandHandler _commandHandler = (_, __, ___) => null;
 
@@ -250,6 +268,13 @@ namespace Sitrep.Core
         /// that pinned peak survives a prune, freezing outright) forever.
         /// This is what makes a rewind fully clean rather than merely
         /// stopping the wedge.
+        ///
+        /// Also prunes <see cref="_stickyKeyframes"/> the same way (a sticky
+        /// keyframe recorded on the abandoned timeline, at a UT ahead of the
+        /// rewind target, must never leak to a late subscriber's catch-up
+        /// post-rewind — the same forever-erased guarantee
+        /// <see cref="Archive.ResetTimeline"/> gives ordinary archived
+        /// samples).
         /// </summary>
         public void ResetTimeline(double ut)
         {
@@ -263,6 +288,16 @@ namespace Sitrep.Core
             foreach (var archive in _archives.Values)
             {
                 archive.ResetTimeline(ut);
+            }
+            foreach (var stickyByTopic in _stickyKeyframes.Values)
+            {
+                foreach (var topic in new List<string>(stickyByTopic.Keys))
+                {
+                    if (stickyByTopic[topic].ValidAt > ut)
+                    {
+                        stickyByTopic.Remove(topic);
+                    }
+                }
             }
             _clock.Reset(ut);
         }
@@ -314,10 +349,30 @@ namespace Sitrep.Core
         /// scheduling (<c>fireUt = validAt + delay</c>), and the rewind/
         /// quickload drop semantics are identical across both lanes — only
         /// WHAT the scheduled callback delivers differs.</para>
+        ///
+        /// <para><paramref name="isKeyframe"/> — a C#-ONLY addition, no TS
+        /// reference (same class as <paramref name="delivery"/> above) —
+        /// flags THIS sample as a self-contained sticky catch-up baseline for
+        /// <paramref name="topic"/> (see <see cref="_stickyKeyframes"/> and
+        /// <see cref="ChannelDeclaration.IsKeyframe"/>). Defaults to
+        /// <c>false</c>: every existing call site is unaffected, and the
+        /// sticky cache stays permanently empty for any topic no caller ever
+        /// opts in for, leaving <see cref="SubscribeStream"/>'s catch-up on
+        /// its original plain-archive-read path.</para>
         /// </summary>
-        public void Record(string node, string topic, object? value, double validAtUt, Delivery delivery = Delivery.LossyLatest)
+        public void Record(string node, string topic, object? value, double validAtUt, Delivery delivery = Delivery.LossyLatest, bool isKeyframe = false)
         {
             ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
+
+            if (isKeyframe)
+            {
+                if (!_stickyKeyframes.TryGetValue(node, out var stickyByTopic))
+                {
+                    stickyByTopic = new Dictionary<string, ArchiveSample>();
+                    _stickyKeyframes[node] = stickyByTopic;
+                }
+                stickyByTopic[topic] = new ArchiveSample(value, validAtUt, _epoch);
+            }
 
             if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
             {
@@ -407,7 +462,27 @@ namespace Sitrep.Core
             // late/reconnecting subscriber served an archived sample from
             // before a gap, per the M2 design's server-stampable half of
             // the staleness model.
-            Deliver(node, topic, subscriber, now, isCatchUp: true);
+            //
+            // Sticky-keyframe override (C#-ONLY, no TS reference — see
+            // _stickyKeyframes' doc comment): if this topic has an opted-in
+            // sticky keyframe, catch-up on THAT specifically rather than
+            // Archive's plain "latest recorded sample" read. For a
+            // cursor-relative diff stream, the two can diverge — the latest
+            // recorded sample may be an ordinary incremental diff (recorded
+            // after the last keyframe, while some earlier subscriber was
+            // watching), which has no baseline for a brand-new subscriber to
+            // apply it to. The sticky cache is only ever populated with
+            // already-Record()ed (i.e. already past whatever reveal gate the
+            // caller runs) samples, so this is never a "reveal early" leak —
+            // see Record's isKeyframe parameter.
+            if (_stickyKeyframes.TryGetValue(node, out var stickyByTopic) && stickyByTopic.TryGetValue(topic, out var sticky))
+            {
+                subscriber.OnData(StreamDataFor(node, topic, vantage, sticky, now, isCatchUp: true));
+            }
+            else
+            {
+                Deliver(node, topic, subscriber, now, isCatchUp: true);
+            }
 
             // Also schedule delivery for every sample recorded before this
             // subscribe that is still in flight (validAt + delay > now).

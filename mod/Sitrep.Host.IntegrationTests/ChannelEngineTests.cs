@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
@@ -24,6 +25,132 @@ namespace Sitrep.Host.IntegrationTests
     public class ChannelEngineTests
     {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+
+        /// <summary>
+        /// The kOS terminal "black screen" bug (local_docs/kos-terminal-feedback-2026-07-15.md,
+        /// "Loading / connection" section) — reproduced generically at the
+        /// engine level, no <c>Gonogo.Kos</c> involved. <see cref="TerminalLikeTestUplink"/>
+        /// mirrors <c>kos.terminal.&lt;coreId&gt;</c>'s exact shape: Delayed +
+        /// ReliableOrdered, with an event-driven <see cref="IChannelPublisher"/>
+        /// (not a tick-mapped source) carrying a cursor-relative diff stream —
+        /// periodic self-contained FULL-REPAINT frames, interleaved with
+        /// incremental DIFF frames that only make sense applied on top of the
+        /// most recent repaint.
+        ///
+        /// <para>Root cause (confirmed): <c>KosTerminalManager</c> reseeds a
+        /// full repaint on every individual subscribe, stamped at "now" — so
+        /// EVERY subscribe (not just the very first ever) waits out a fresh
+        /// <c>delaySeconds</c> horizon before anything arrives, even when the
+        /// channel already has perfectly good, already-matured history sitting
+        /// in the archive from an earlier viewing session. Worse: the
+        /// PRE-EXISTING generic "latest archived sample" catch-up
+        /// (<c>Sitrep.Core.Courier.SubscribeStream</c>'s synchronous
+        /// <c>Deliver(isCatchUp:true)</c>) has no notion of "keyframe" vs
+        /// "diff" — if the latest matured sample happens to be a bare diff
+        /// (the realistic case: diffs accumulate continuously while someone's
+        /// watching, keyframes are only periodic), a late/returning subscriber
+        /// catches up on a positional diff with NO baseline to apply it to —
+        /// exactly as corrupting as the black screen it was meant to fix.</para>
+        ///
+        /// <para>This test proves BOTH halves: (1) the reveal gate's baseline
+        /// wait-for-the-first-ever-reseed behavior is genuine and untouched by
+        /// the fix (a fresh topic's FIRST subscriber legitimately has nothing
+        /// to catch up on — there is no time machine for content that was
+        /// never captured), and (2) a LATE/RETURNING subscriber joining AFTER
+        /// history already exists must get the sticky, already-REVEALED
+        /// full-repaint keyframe — never a bare trailing diff, and never
+        /// forced to wait out another full delay window for its own redundant
+        /// reseed.</para>
+        /// </summary>
+        [Fact]
+        public async Task LateSubscriberToATerminalStyleDiffStreamGetsTheStickyFullRepaintNotABareTrailingDiff()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TerminalLikeTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(first, TerminalLikeTestUplink.Topic, Timeout);
+
+                // Establish the delay authority: 4s one-way.
+                engine.TickAndWait(0.0, TerminalLikeTestUplink.Snapshot(0.0, delay: 4.0), Timeout);
+
+                // T=1: the initial full-repaint reseed ("operator presses the
+                // CPU button" for the very first time). Horizon = 1 + 4 = 5.
+                engine.TickAndWait(1.0, TerminalLikeTestUplink.Snapshot(1.0, delay: 4.0), Timeout);
+                uplink.PublishFrame("BOOT>", fullRepaint: true, ut: 1.0);
+
+                // (1) BASELINE, unchanged by the fix: short of the horizon,
+                // the already-subscribed client sees NOTHING yet -- this is
+                // the genuine "black screen for one signal-delay" symptom,
+                // and it is correct/inherent for a channel's first-ever
+                // sample. There is no prior history to be sticky about.
+                engine.TickAndWait(2.0, TerminalLikeTestUplink.Snapshot(2.0, delay: 4.0), Timeout);
+                var beforeHorizon = await DrainAllStreamDataAsync(first, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == TerminalLikeTestUplink.Topic);
+
+                // Advance to and past the horizon: the reseed matures, `first`
+                // sees it, then keeps watching while two more DIFFS land
+                // (simulating live kOS output while the operator's terminal is
+                // open) -- both matured by UT 9.
+                engine.TickAndWait(5.0, TerminalLikeTestUplink.Snapshot(5.0, delay: 4.0), Timeout);
+                uplink.PublishFrame("BOOT> RUN", fullRepaint: false, ut: 5.0);
+                engine.TickAndWait(6.0, TerminalLikeTestUplink.Snapshot(6.0, delay: 4.0), Timeout);
+                uplink.PublishFrame("BOOT> RUN PROG.KS", fullRepaint: false, ut: 6.0);
+                foreach (var ut in new[] { 7.0, 8.0, 9.0, 10.0 })
+                {
+                    engine.TickAndWait(ut, TerminalLikeTestUplink.Snapshot(ut, delay: 4.0), Timeout);
+                }
+                var whileWatching = await DrainAllStreamDataAsync(first, Quiet);
+                Assert.Contains(whileWatching, f => f.Topic == TerminalLikeTestUplink.Topic);
+
+                // (2) THE FIX: a second viewer (a station watching the SAME
+                // CPU, or the SAME operator switching back after looking at a
+                // different CPU tab) subscribes at UT 10 -- long after every
+                // sample above matured. The synchronous catch-up MUST be the
+                // sticky full repaint ("BOOT>"), never the bare trailing diff
+                // ("BOOT> RUN PROG.KS" applied with no baseline).
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TerminalLikeTestUplink.Topic }));
+                var catchUp = await DrainAllStreamDataAsync(late, Quiet);
+                var keyframe = catchUp.LastOrDefault(f => f.Topic == TerminalLikeTestUplink.Topic);
+                Assert.NotNull(keyframe);
+                var frame = Assert.IsType<Dictionary<string, object?>>(keyframe!.Payload);
+                Assert.True((bool)frame["fullRepaint"]!, "late subscriber's catch-up must be a self-contained full repaint, not a bare cursor-relative diff");
+                Assert.Equal("BOOT>", frame["content"]);
+
+                // No TrueNow leak: the delivered sticky frame carries its
+                // TRUE original capture UT (1.0, when the repaint was
+                // actually written) -- not "now" (10.0), and not the later
+                // diffs' UT either.
+                Assert.Equal(1.0, keyframe.Meta.ValidAt);
+
+                // Chains cleanly onto live diffs: a NEW diff published after
+                // the late subscribe must reach it in order, on top of the
+                // sticky baseline it already has -- no re-request, no gap.
+                engine.TickAndWait(11.0, TerminalLikeTestUplink.Snapshot(11.0, delay: 4.0), Timeout);
+                uplink.PublishFrame("BOOT> RUN PROG.KS OK", fullRepaint: false, ut: 11.0);
+                foreach (var ut in new[] { 12.0, 13.0, 14.0, 15.0 })
+                {
+                    engine.TickAndWait(ut, TerminalLikeTestUplink.Snapshot(ut, delay: 4.0), Timeout);
+                }
+                var chained = await DrainAllStreamDataAsync(late, Quiet);
+                var liveDiff = chained.LastOrDefault(f => f.Topic == TerminalLikeTestUplink.Topic);
+                Assert.NotNull(liveDiff);
+                var liveFrame = Assert.IsType<Dictionary<string, object?>>(liveDiff!.Payload);
+                Assert.Equal("BOOT> RUN PROG.KS OK", liveFrame["content"]);
+                Assert.False((bool)liveFrame["fullRepaint"]!);
+                Assert.Equal(11.0, liveDiff.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
 
         [Fact]
         public async Task MultipleRegisteredChannelsEmitAndSubscriptionGateIndependently()
@@ -3348,6 +3475,89 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host) =>
                 throw new InvalidOperationException("boom -- register throws");
+        }
+
+        /// <summary>
+        /// A minimal stand-in for <c>kos.terminal.&lt;coreId&gt;</c>
+        /// (<c>Gonogo.Kos.KosTerminalManager</c>) — Delayed + ReliableOrdered,
+        /// published event-driven via <see cref="IChannelPublisher"/> (never
+        /// tick-mapped), carrying payloads that are EITHER a self-contained
+        /// full repaint or a cursor-relative diff, exactly like the real
+        /// <c>KosTerminalFrame</c>'s <c>FullRepaint</c> flag.
+        /// <see cref="ChannelDeclaration.IsKeyframe"/> is wired to that flag,
+        /// mirroring <c>KosExtension.Ksp.cs</c>'s real registration — see
+        /// <see cref="LateSubscriberToATerminalStyleDiffStreamGetsTheStickyFullRepaintNotABareTrailingDiff"/>.
+        /// </summary>
+        private sealed class TerminalLikeTestUplink : ISitrepUplink
+        {
+            public const string Topic = "term.screen";
+
+            private IChannelPublisher? _publisher;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "terminal-like-test",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = ChannelEngine.CommsDelayTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                        Delay = DelayRole.TrueNow,
+                    },
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        // Delayed + ReliableOrdered, same shape as
+                        // kos.terminal.<coreId> -- a cursor-relative diff
+                        // stream, not a set of independently-meaningful
+                        // discrete events.
+                        Delay = DelayRole.Delayed,
+                        Delivery = Delivery.ReliableOrdered,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                        // Payload is a plain Dictionary<string, object?> --
+                        // JsonWriter.AppendValue only recognizes a fixed set
+                        // of CLR shapes (primitives, string, Dictionary,
+                        // IEnumerable, a handful of known Contract types), not
+                        // an arbitrary POCO -- mirrors how the REAL
+                        // KosTerminalFrame is a [SitrepContract]-attributed
+                        // type; a bare test POCO here would throw
+                        // "unsupported CLR value type" inside the engine.
+                        IsKeyframe = value => value is Dictionary<string, object?> frame
+                            && frame.TryGetValue("fullRepaint", out var fr) && fr is bool isKeyframe && isKeyframe,
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+                _publisher = host.Publisher(Topic);
+            }
+
+            /// <summary>Publish one screen frame at an explicit UT — the direct <see cref="IChannelPublisher.Publish"/> path, independent of the tick snapshot, exactly like <c>KosTerminalManager.Poll</c>'s downlink.</summary>
+            public void PublishFrame(string content, bool fullRepaint, double ut) =>
+                (_publisher ?? throw new InvalidOperationException("Register was never called"))
+                    .Publish(new Dictionary<string, object?> { ["content"] = content, ["fullRepaint"] = fullRepaint }, ut);
+
+            private static object? MapDelay(KspSnapshot? snapshot)
+            {
+                if (snapshot == null || !snapshot.Values.TryGetValue("delay", out var raw) || raw == null)
+                {
+                    return null;
+                }
+                return new CommsDelay
+                {
+                    OneWaySeconds = Convert.ToDouble(raw),
+                    Source = CommsDelaySource.SignalDelay,
+                };
+            }
+
+            /// <summary>Build a tick snapshot carrying just the comms.delay-driving value — the terminal channel is never tick-mapped, only published via <see cref="PublishFrame"/>.</summary>
+            public static KspSnapshot Snapshot(double ut, double delay) =>
+                new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["delay"] = delay } };
         }
     }
 }
