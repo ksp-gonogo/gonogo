@@ -1,6 +1,6 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -48,7 +48,6 @@ describe("GamepadLearnWizard", () => {
   const mock = new MockGamepadAPI();
 
   afterEach(() => {
-    cleanup();
     mock.restore();
     GamepadPoller.resetForTests();
   });
