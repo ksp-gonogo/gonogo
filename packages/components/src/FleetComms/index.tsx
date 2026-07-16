@@ -32,14 +32,26 @@ import {
  * separate, later spec — see the design doc's "Out of scope").
  *
  * Draws:
- * - the active vessel as a dot, projected via `vessel.orbit` at the current
- *   view-UT (the SAME delayed-frame projection `SystemView`'s own diagram
- *   uses for its vessel marker — see `projection.ts`'s doc for why
- *   `SystemDiagram.tsx` itself is left untouched);
  * - a comms-path highlight from the vessel to its command centre, styled by
  *   `comms.connectivity`;
  * - a command-traffic overlay: one pulse per `system.uplink.pending` entry,
  *   predicted (never confirmed) from `dispatchedAt`/`oneWaySeconds`.
+ *
+ * **Does NOT draw the vessel itself.** `SystemDiagram.tsx`'s own
+ * `VesselMarker` already renders the active vessel unconditionally (it needs
+ * no augment — see the design doc's 2026-07-16 AMENDMENT: "the fleet is core
+ * telemetry ... with no comms Uplink mounted you still see the fleet"). This
+ * augment used to draw a SECOND copy of that same marker at the identical
+ * projected point (`projectOrbitPosition` mirrors `SystemDiagram`'s private
+ * `bodyPosition` exactly, by design, so the two dots always coincided) —
+ * that duplicate render is the root cause of the live-reported "green dots
+ * stacked in the centre" bug: two accent-coloured circles stacked exactly on
+ * top of each other, and — because a realistic low-orbit vessel projects only
+ * a few px from the origin once the diagram's auto-fit scale is set by a
+ * farther-out moon — that stacked pair sits inside the frame body's own dot
+ * at the origin. The projected point (`vesselDot` below) is still computed
+ * and still used, but purely as an internal anchor for the commlink
+ * line/pulses' endpoints, never rendered as its own marker.
  *
  * **Ground/Vantage anchor simplification (Phase 1):** `comms.network`'s nodes
  * carry no positions (design doc grounding), so there is no honest way yet to
@@ -66,7 +78,6 @@ import {
 
 const COMMLINK_ACCENT = "var(--color-status-go-fg)";
 const COMMLINK_NO_PATH = "var(--color-status-nogo-fg)";
-const VESSEL_DOT_R = 5;
 const PULSE_DOT_R = 3.5;
 
 function degToRad(deg: number): number {
@@ -276,26 +287,6 @@ function FleetCommsOverlay({
             />
           </radialGradient>
         </defs>
-      )}
-
-      {vesselDot && (
-        <circle
-          cx={vesselDot.x}
-          cy={vesselDot.y}
-          r={VESSEL_DOT_R}
-          fill="var(--color-accent-fg)"
-          stroke="var(--color-text-inverse)"
-          strokeWidth={1}
-          style={{ pointerEvents: "auto" }}
-          data-testid="fleet-comms-vessel-dot"
-        >
-          <title>
-            {identity?.name ?? "Active vessel"}
-            {linkConnected === false
-              ? " — no comms link (last-known position)"
-              : ""}
-          </title>
-        </circle>
       )}
     </svg>
   );
