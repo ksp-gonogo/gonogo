@@ -9,7 +9,7 @@
       "kos.processors",
       "kos.terminal.7",
       "comms.delay",
-      "comms.connectivity"
+      "comms.link"
     ],
     "pinnedUt": 10,
     "emits": [
@@ -40,7 +40,7 @@
         }
       },
       {
-        "channel": "comms.connectivity",
+        "channel": "comms.link",
         "value": {
           "connected": false
         }

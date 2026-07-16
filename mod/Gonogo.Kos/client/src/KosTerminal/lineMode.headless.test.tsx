@@ -320,3 +320,203 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     });
   });
 });
+
+// kos-nopath-block-input fix: with no comms path, Enter used to clear the
+// buffer and push it to history BEFORE the dispatch-layer guard
+// (`sendKeystrokeRef`) blocked the send — the command visibly vanished even
+// though nothing was ever sent. These tests exercise the real VT engine
+// (same as the suite above) so a regression that only shows up through
+// xterm's actual `onData` batching wouldn't be masked by a simplified mock.
+describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.instances.length = 0;
+    clearRegistry();
+  });
+  afterEach(() => {
+    cleanup();
+    clearRegistry();
+  });
+
+  function fixture() {
+    return setupStreamFixture({
+      carriedChannels: ["kos.processors", "kos.terminal.7", "comms.link"],
+      pinnedUt: 10,
+    });
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: the live TestTerminal instance
+  const term = (): any => hoisted.instances[hoisted.instances.length - 1];
+
+  async function mountAttached(config: Record<string, unknown>) {
+    const f = fixture();
+    render(
+      <f.Provider>
+        <KosTerminalComponent config={config} />
+      </f.Provider>,
+    );
+    act(() => f.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(hoisted.instances.length).toBeGreaterThan(0));
+    await waitFor(() => expect(term().dataHandler).toBeTruthy());
+    return f;
+  }
+
+  const compositionBarEl = () => screen.getByLabelText("Line-mode input");
+  const compositionText = () =>
+    (compositionBarEl().textContent ?? "").replace("❯", "");
+
+  it("refuses Enter with no path: the typed line stays in the box, nothing is sent, nothing joins history", async () => {
+    const f = await mountAttached({ lineMode: true });
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeVisible(),
+    );
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+
+    // The line is still sitting in the composition bar, un-cleared — this is
+    // the actual bug: pre-fix, Enter cleared it here regardless of dispatch.
+    expect(compositionText()).toBe("run.");
+
+    // Give any (incorrect) dispatch a chance to land before asserting none
+    // did.
+    await Promise.resolve();
+    expect(
+      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+
+    // Proof the line never joined history either: up-arrow must NOT recall
+    // it (recall only works if pushLineHistory ran, which only happens
+    // inside the sendChars callback this fix must never invoke here).
+    act(() => term().dataHandler("\x1b[A"));
+    expect(compositionText()).toBe("run.");
+  });
+
+  it("typing/backspace still edit the buffer while blocked, only Enter is refused", async () => {
+    const f = await mountAttached({ lineMode: true });
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeVisible(),
+    );
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\x7f"); // backspace
+    });
+    expect(compositionText()).toBe("run");
+
+    await Promise.resolve();
+    expect(
+      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+  });
+
+  it("once the path returns, the preserved line sends normally on the next Enter", async () => {
+    const f = await mountAttached({ lineMode: true });
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeVisible(),
+    );
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+    expect(compositionText()).toBe("run.");
+
+    act(() => f.emit("comms.link", { connected: true }));
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/No path — commands are not being sent/),
+      ).toBeNull(),
+    );
+
+    act(() => term().dataHandler("\r"));
+
+    await waitFor(() => {
+      const key = f.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("run.");
+      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+    });
+    expect(compositionText()).toBe("");
+
+    // And it's now in history, same as any other sent line.
+    act(() => term().dataHandler("\x1b[A"));
+    expect(compositionText()).toBe("run.");
+  });
+
+  it("with a path, Enter behaves exactly as before (no regression)", async () => {
+    const f = await mountAttached({ lineMode: true });
+    act(() => f.emit("comms.link", { connected: true }));
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+      term().dataHandler("\r");
+    });
+
+    await waitFor(() => {
+      const key = f.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("run.");
+    });
+    expect(compositionText()).toBe("");
+  });
+
+  // jsdom's CSS engine doesn't resolve (or even preserve) `var(...)` inside a
+  // shorthand `border` declaration through `getComputedStyle` — it silently
+  // falls back to the initial value, so `toHaveStyle` can't see which token
+  // is active. Read the actual rule styled-components injected instead: its
+  // dynamic (non-"sc-*") class name is a direct function of the `$noPath`
+  // prop, so finding that class's declaration block in the injected
+  // stylesheet and checking which colour token it names is the faithful
+  // check — same information a browser's computed style would give, without
+  // depending on jsdom's incomplete CSS custom-property support.
+  function compositionBorderRule(): string {
+    const dynamicClass = Array.from(compositionBarEl().classList).find(
+      (c) => !c.startsWith("sc-"),
+    );
+    if (!dynamicClass) throw new Error("no styled-components class found");
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent ?? "")
+      .join("\n");
+    const escaped = dynamicClass.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rule = css.match(new RegExp(`\\.${escaped}[^{]*{([^}]*)}`));
+    if (!rule) throw new Error(`no CSS rule found for .${dynamicClass}`);
+    return rule[1];
+  }
+
+  it("the composition bar's outline switches to the error/danger tone while there is no path, and back on reconnect", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    // Connected (or unreported) — the normal accent tone, never the danger
+    // one: a green/accent outline is what let this bug through unnoticed.
+    expect(compositionBorderRule()).toContain("--color-accent-fg");
+    expect(compositionBorderRule()).not.toContain("--color-status-nogo-fg");
+
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() =>
+      expect(compositionBorderRule()).toContain("--color-status-nogo-fg"),
+    );
+    expect(compositionBorderRule()).not.toContain("--color-accent-fg");
+
+    act(() => f.emit("comms.link", { connected: true }));
+    await waitFor(() =>
+      expect(compositionBorderRule()).toContain("--color-accent-fg"),
+    );
+    expect(compositionBorderRule()).not.toContain("--color-status-nogo-fg");
+  });
+});
