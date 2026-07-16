@@ -1,10 +1,10 @@
 import type { ActionDefinition } from "@ksp-gonogo/core";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
 import { SerialDeviceProvider } from "./SerialDeviceContext";
 import { SerialDeviceService } from "./SerialDeviceService";
@@ -88,10 +88,6 @@ const analogAction: ActionDefinition = {
 };
 
 describe("InputMappingTab press-to-map", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("captures a button binding from the next press and writes it on Save", async () => {
     const { svc, transport } = await setup();
     const onSave = vi.fn();

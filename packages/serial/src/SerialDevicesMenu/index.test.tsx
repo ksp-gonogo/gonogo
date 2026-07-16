@@ -1,5 +1,5 @@
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
@@ -41,7 +41,6 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
   });
 
   afterEach(() => {
-    cleanup();
     if (originalSerial) {
       Object.defineProperty(navigator, "serial", originalSerial);
     } else {
