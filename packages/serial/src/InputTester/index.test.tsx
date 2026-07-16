@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
 import { axe } from "../test/axe";
@@ -31,8 +31,6 @@ async function makeService(): Promise<SerialDeviceService> {
   for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
   return svc;
 }
-
-afterEach(() => cleanup());
 
 describe("InputTesterComponent — gamepad glyph rendering", () => {
   it("renders the pack's name + glyph for a gamepad input with a role", async () => {
@@ -66,7 +64,7 @@ describe("InputTesterComponent — gamepad glyph rendering", () => {
       labelPack: "nintendo",
     });
 
-    render(
+    const { unmount } = render(
       <SerialDeviceProvider service={svc}>
         <InputTesterComponent config={{ deviceId: "gp1" }} />
       </SerialDeviceProvider>,
@@ -77,6 +75,7 @@ describe("InputTesterComponent — gamepad glyph rendering", () => {
     expect(screen.getByText("Left Stick X")).not.toBeNull();
     expect(document.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
 
+    unmount();
     await svc.destroy();
   });
 
@@ -111,13 +110,14 @@ describe("InputTesterComponent — gamepad glyph rendering", () => {
       labelPack: "xbox",
     });
 
-    const { container } = render(
+    const { container, unmount } = render(
       <SerialDeviceProvider service={svc}>
         <InputTesterComponent config={{ deviceId: "gp1" }} />
       </SerialDeviceProvider>,
     );
 
     expect(await axe(container)).toHaveNoViolations();
+    unmount();
     await svc.destroy();
   });
 
@@ -136,7 +136,7 @@ describe("InputTesterComponent — gamepad glyph rendering", () => {
       transport: "virtual",
     });
 
-    render(
+    const { unmount } = render(
       <SerialDeviceProvider service={svc}>
         <InputTesterComponent config={{ deviceId: "v1" }} />
       </SerialDeviceProvider>,
@@ -145,6 +145,7 @@ describe("InputTesterComponent — gamepad glyph rendering", () => {
     expect(screen.getByText("Stage")).not.toBeNull();
     expect(document.querySelector("svg")).toBeNull();
 
+    unmount();
     await svc.destroy();
   });
 });

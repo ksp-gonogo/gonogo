@@ -1,6 +1,6 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
 import type { VirtualTransport } from "../transports/VirtualTransport";
@@ -49,10 +49,6 @@ async function setup(initialInputs: DeviceInput[]) {
 }
 
 describe("CalibrateWizard", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("captures live raw lines from the selected device and previews parsed values", async () => {
     const { svc, transport } = await setup([
       {

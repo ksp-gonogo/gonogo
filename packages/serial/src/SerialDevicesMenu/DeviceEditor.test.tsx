@@ -1,6 +1,6 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import type { DeviceInstance, DeviceType } from "../types";
 import { DeviceEditor } from "./DeviceEditor";
@@ -11,8 +11,6 @@ const REAL_TYPE: DeviceType = {
   parser: "char-position",
   inputs: [],
 };
-
-afterEach(() => cleanup());
 
 describe("DeviceEditor — gamepad transport", () => {
   it("offers gamepad alongside virtual and web-serial", () => {
