@@ -363,4 +363,104 @@ describe("DelayedPlayoutBuffer", () => {
       }).not.toThrow();
     });
   });
+
+  // -- gopSafeEviction: the fix for encoded video's GOP-dependency hazard
+  // flagged in local_docs/reports/encoded-transform-spike-report.md
+  // ("frame ordering / GOP dependency survival") — an encoded delta frame
+  // depends on a prior reference frame, so evicting a single mid-GOP delta
+  // frame (the default eviction unit) would corrupt the decode chain.
+  describe("gopSafeEviction", () => {
+    it("evicts a complete oldest GOP (keyframe + its deltas) as one atomic unit, never a lone mid-GOP delta", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const dropped: string[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        onDrop: (f) => dropped.push(String(f.data)),
+        maxBufferedBytes: 5,
+        gopSafeEviction: true,
+      });
+
+      // GOP 1: keyframe + 2 deltas (3 bytes). GOP 2: keyframe + 2 deltas (3
+      // bytes). Pushing all 6 frames (6 bytes) exceeds the 5-byte cap.
+      buffer.push({ ut: 1, keyframe: true, data: "k1", bytes: 1 });
+      buffer.push({ ut: 2, keyframe: false, data: "d1a", bytes: 1 });
+      buffer.push({ ut: 3, keyframe: false, data: "d1b", bytes: 1 });
+      buffer.push({ ut: 4, keyframe: true, data: "k2", bytes: 1 });
+      buffer.push({ ut: 5, keyframe: false, data: "d2a", bytes: 1 });
+      buffer.push({ ut: 6, keyframe: false, data: "d2b", bytes: 1 });
+
+      // The ENTIRE oldest GOP (k1, d1a, d1b) was dropped together, never a
+      // lone delta pulled from the middle — the retained queue starts
+      // exactly at a keyframe boundary (k2), a valid decodable prefix.
+      expect(dropped).toEqual(["k1", "d1a", "d1b"]);
+      expect(buffer.peekQueue().map((f) => f.data)).toEqual([
+        "k2",
+        "d2a",
+        "d2b",
+      ]);
+    });
+
+    it("drops a leading delta-only run (no owning keyframe in the buffer) up to the next keyframe, not a single frame from it", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const dropped: string[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        onDrop: (f) => dropped.push(String(f.data)),
+        maxBufferedBytes: 2,
+        gopSafeEviction: true,
+      });
+
+      // Buffer's head is a delta with no keyframe before it in the queue
+      // (its owning keyframe already released/expired) — still must not be
+      // evicted alone if a later delta in the SAME run is kept.
+      buffer.push({ ut: 1, keyframe: false, data: "d0a", bytes: 1 });
+      buffer.push({ ut: 2, keyframe: false, data: "d0b", bytes: 1 });
+      buffer.push({ ut: 3, keyframe: true, data: "k1", bytes: 1 }); // over cap
+
+      expect(dropped).toEqual(["d0a", "d0b"]);
+      expect(buffer.peekQueue().map((f) => f.data)).toEqual(["k1"]);
+    });
+
+    it("never evicts the single remaining frame, even if it alone still exceeds the cap", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const dropped: string[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        onDrop: (f) => dropped.push(String(f.data)),
+        maxBufferedBytes: 1,
+        gopSafeEviction: true,
+      });
+
+      buffer.push({ ut: 1, keyframe: true, data: "only", bytes: 5 }); // already over cap alone
+      expect(dropped).toEqual([]);
+      expect(buffer.peekQueue().map((f) => f.data)).toEqual(["only"]);
+    });
+
+    it("does not change the default (gopSafeEviction unset) frame-at-a-time behaviour — no regression for the decoded backend", () => {
+      const clock = manualClock(Number.NEGATIVE_INFINITY);
+      const dropped: string[] = [];
+      const buffer = new DelayedPlayoutBuffer({
+        view: clock,
+        onRelease: () => {},
+        onDrop: (f) => dropped.push(String(f.data)),
+        maxBufferedBytes: 3,
+        // gopSafeEviction intentionally omitted
+      });
+
+      // Matches the decoded backend's real usage: every frame tagged
+      // `keyframe: false` (frameDelay.ts never marks decoded VideoFrames as
+      // keyframes — see its module doc), so eviction is plain FIFO,
+      // ONE frame per push, not a GOP-sized batch.
+      buffer.push({ ut: 1, keyframe: false, data: "f1", bytes: 1 });
+      buffer.push({ ut: 2, keyframe: false, data: "f2", bytes: 1 });
+      buffer.push({ ut: 3, keyframe: false, data: "f3", bytes: 1 });
+      buffer.push({ ut: 4, keyframe: false, data: "f4", bytes: 1 }); // over cap by 1
+
+      expect(dropped).toEqual(["f1"]); // exactly one frame, not a whole run
+      expect(buffer.peekQueue().map((f) => f.data)).toEqual(["f2", "f3", "f4"]);
+    });
+  });
 });

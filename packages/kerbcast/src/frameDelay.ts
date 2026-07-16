@@ -41,13 +41,19 @@ import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
 } from "./DelayedPlayoutBuffer";
+import { PresentationPacer } from "./worker/presentationPacer";
 
-/** Minimal contract a queued frame payload must satisfy. Real usage is a
- *  WebCodecs `VideoFrame` (holds GPU/decoder resources — MUST be closed
- *  exactly once); kept generic so tests can drive the pipeline with a
- *  lightweight fake instead of a real browser. */
+/** Minimal contract a queued frame payload must satisfy. A WebCodecs
+ *  `VideoFrame` (the decoded backend) holds GPU/decoder resources — MUST be
+ *  closed exactly once, so `close` is called wherever this interface's
+ *  contract is exercised. `close` is OPTIONAL because an encoded-domain
+ *  frame (`RTCEncodedVideoFrame`, the encoded-transform backend,
+ *  2026-07-16) holds no such resource and has no `close()` method at all —
+ *  it's a plain data object; every call site here uses `data.close?.()`,
+ *  a no-op for that case. Kept generic so tests can drive the pipeline with
+ *  a lightweight fake instead of a real browser. */
 export interface FrameLike {
-  close(): void;
+  close?(): void;
 }
 
 /** The pull side — satisfied directly by a real
@@ -75,11 +81,50 @@ export interface FrameDelayPipelineOptions<T extends FrameLike> {
   captureUt(): number;
   source: FrameSource<T>;
   sink: FrameSink<T>;
-  /** Frame-count cap — see module docstring. Defaults to 300. */
+  /** Frame-count cap — see module docstring. Defaults to 300. Encoded
+   *  backends should size this as a real byte cap (paired with `frameBytes`
+   *  below) rather than a frame count — see `attachEncodedFrameDelay`'s doc. */
   maxBufferedFrames?: number;
   /** Non-fatal pipeline errors (a read/write rejection) — reported here,
    *  never thrown across the internal pump loop. */
   onError?(error: unknown): void;
+  /** Classify a frame read off `source` as a keyframe, forwarded to
+   *  `DelayedPlayoutBuffer`'s `keyframe` field. Defaults to `() => false` —
+   *  correct for decoded `VideoFrame`s (no GOP dependency, see
+   *  `DelayedPlayoutBuffer.gopSafeEviction`'s doc). Encoded backends should
+   *  supply `(f) => f.type === "key"`. */
+  isKeyframe?(frame: T): boolean;
+  /** Byte-size estimate for cap accounting, forwarded to
+   *  `DelayedPlayoutBuffer`'s `bytes` field. Defaults to `() => 1` (a
+   *  frame-count cap). Encoded backends should supply the real payload
+   *  size, e.g. `(f) => f.data.byteLength`. */
+  frameBytes?(frame: T): number;
+  /** Forwarded to `DelayedPlayoutBuffer` — see its own doc. MUST be `true`
+   *  for encoded video (GOP-dependent); leave unset (the default) for
+   *  decoded video. */
+  gopSafeEviction?: boolean;
+  /**
+   * Opt into the presentation pacer (cross-browser kerbcast video-delay
+   * design, 2026-07-16, finding F3 + "Paced release" — see
+   * `worker/presentationPacer.ts`'s module doc for the full rationale).
+   * Omit (the default) for the original behaviour: each released frame is
+   * written to `sink` immediately, synchronously, on release — exactly
+   * what every pre-existing test in this file and
+   * `frameDelay.blockColour.test.ts` exercises.
+   *
+   * When supplied, released frames are queued into a `PresentationPacer`
+   * instead, spaced by their own UT deltas rather than dumped in a burst.
+   * The caller MUST drive `pipeline.tickPacing(nowWall)` periodically (the
+   * Chrome main-thread backend from `requestAnimationFrame`; the
+   * worker-hosted backend from its own ~60Hz clock-poll loop) — this
+   * module deliberately never reads a wall clock itself, matching the
+   * "injected clock, no bench in the engine" testing convention the rest
+   * of this pipeline already follows.
+   */
+  pacing?: {
+    /** See `PresentationPacerOptions.maxBacklogSeconds`. */
+    maxBacklogSeconds: number;
+  };
 }
 
 export interface FrameDelayPipeline {
@@ -92,6 +137,11 @@ export interface FrameDelayPipeline {
   /** Stop reading, close the sink, and drop (closing) anything still
    *  queued. Idempotent — safe to call more than once. */
   dispose(): void;
+  /** No-op when `pacing` wasn't supplied to `runFrameDelayPipeline`.
+   *  Otherwise drains any presentation due at `nowWall` (wall-clock
+   *  seconds, same basis the caller's own clock reads) through the
+   *  pacer — see `pacing`'s doc above. */
+  tickPacing(nowWall: number): void;
 }
 
 const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps — see module docstring
@@ -108,21 +158,41 @@ export function runFrameDelayPipeline<T extends FrameLike>(
 ): FrameDelayPipeline {
   let disposed = false;
 
+  const writeAndClose = (data: T) => {
+    opts.sink
+      .write(data)
+      .catch((err) => opts.onError?.(err))
+      .finally(() => {
+        data.close?.();
+      });
+  };
+
+  // See `FrameDelayPipelineOptions.pacing`'s doc: omitted (the default)
+  // preserves the exact pre-pacer behaviour every existing test here
+  // exercises — write-and-close synchronously, on release.
+  const pacer = opts.pacing
+    ? new PresentationPacer<T>({
+        maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
+        onPresent: (f) => writeAndClose(f.data),
+        onSkip: (f) => f.data.close?.(),
+      })
+    : null;
+
   const buffer = new DelayedPlayoutBuffer<T>({
     view: opts.view,
     maxBufferedBytes: opts.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
+    gopSafeEviction: opts.gopSafeEviction,
     onRelease: (frame) => {
       const data = frame.data;
       if (!data) return;
-      opts.sink
-        .write(data)
-        .catch((err) => opts.onError?.(err))
-        .finally(() => {
-          data.close();
-        });
+      if (pacer) {
+        pacer.submit({ ut: frame.ut, data });
+      } else {
+        writeAndClose(data);
+      }
     },
     onDrop: (frame) => {
-      frame.data?.close();
+      frame.data?.close?.();
     },
   });
 
@@ -138,14 +208,14 @@ export function runFrameDelayPipeline<T extends FrameLike>(
       if (result.done) return;
       const frame = result.value;
       if (disposed) {
-        frame.close();
+        frame.close?.();
         return;
       }
       buffer.push({
         ut: opts.captureUt(),
-        keyframe: false,
+        keyframe: opts.isKeyframe?.(frame) ?? false,
         data: frame,
-        bytes: 1,
+        bytes: opts.frameBytes?.(frame) ?? 1,
       });
     }
   }
@@ -159,9 +229,44 @@ export function runFrameDelayPipeline<T extends FrameLike>(
       if (disposed) return;
       disposed = true;
       buffer.dispose();
+      pacer?.dispose();
       void Promise.resolve(opts.source.cancel()).catch(() => {});
       void Promise.resolve(opts.sink.close()).catch(() => {});
     },
+    tickPacing(nowWall: number) {
+      pacer?.tick(nowWall);
+    },
+  };
+}
+
+/**
+ * Drives `tickPacing` on a ~60Hz loop until stopped — `requestAnimationFrame`
+ * where available (the real main thread), a plain `setTimeout(16)` fallback
+ * otherwise (a worker context has no `requestAnimationFrame`; nor does a
+ * non-browser test environment). Shared by the main-thread backend
+ * (`createFrameDelayStream`, below) and the worker-hosted backend
+ * (`worker/`), so there's one implementation of "how often do we drain the
+ * pacer" — mirrors `ViewClock.onFrame`'s own rAF/setTimeout duality.
+ */
+export function startPacingTicker(
+  tickPacing: (nowWall: number) => void,
+  nowWall: () => number = () => performance.now() / 1000,
+): () => void {
+  const hasRaf = typeof requestAnimationFrame === "function";
+  let cancelled = false;
+  let handle: number | ReturnType<typeof setTimeout>;
+
+  const tick = () => {
+    if (cancelled) return;
+    tickPacing(nowWall());
+    handle = hasRaf ? requestAnimationFrame(tick) : setTimeout(tick, 16);
+  };
+  handle = hasRaf ? requestAnimationFrame(tick) : setTimeout(tick, 16);
+
+  return () => {
+    cancelled = true;
+    if (hasRaf) cancelAnimationFrame(handle as number);
+    else clearTimeout(handle as ReturnType<typeof setTimeout>);
   };
 }
 
@@ -174,11 +279,25 @@ export function isFrameDelaySupported(): boolean {
   );
 }
 
+/** Default backlog threshold for the main-thread backend's presentation
+ *  pacer (see `runFrameDelayPipeline`'s `pacing` option) — generous enough
+ *  to never trip during normal sample-clamped bursts (telemetry confirms
+ *  at up to ~10Hz, i.e. ~100ms between edge steps) while still catching a
+ *  genuine stall (a backgrounded tab, GC pause, etc.) well before it grows
+ *  into visible added latency. */
+const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
+
 export interface CreateFrameDelayStreamOptions {
   view: DelayClockLike;
   captureUt(): number;
   maxBufferedFrames?: number;
   onError?(error: unknown): void;
+  /** Override the presentation pacer's backlog threshold — see
+   *  `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. Pacing itself can't be disabled
+   *  here: this backend always paces (that's the actual jank fix — see
+   *  `worker/presentationPacer.ts`'s module doc), only the threshold is
+   *  tunable. */
+  maxPacingBacklogSeconds?: number;
 }
 
 export interface FrameDelayStream {
@@ -217,11 +336,27 @@ export function createFrameDelayStream(
       source: processor.readable.getReader(),
       sink: generator.writable.getWriter(),
       onError: opts.onError,
+      pacing: {
+        maxBacklogSeconds:
+          opts.maxPacingBacklogSeconds ?? DEFAULT_PACING_MAX_BACKLOG_SECONDS,
+      },
     });
+
+    // Drive the pacer from a ~60Hz loop for as long as this pipeline lives
+    // — the F3 jank fix applies here too (main-thread Breakout Box has no
+    // sample-rate limitation of its own; the stutter comes from
+    // `ViewClock.confirmedEdgeUt()`'s sample clamp, which affects every
+    // backend equally). `requestAnimationFrame` is always available on the
+    // real main thread this backend runs on; the `setTimeout` fallback only
+    // matters for a non-browser/SSR-like test context.
+    const stopTicking = startPacingTicker(pipeline.tickPacing);
 
     return {
       stream: new MediaStream([generator]),
-      dispose: pipeline.dispose,
+      dispose: () => {
+        stopTicking();
+        pipeline.dispose();
+      },
       flush: pipeline.flush,
     };
   } catch (err) {
