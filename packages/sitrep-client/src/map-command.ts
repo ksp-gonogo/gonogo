@@ -110,7 +110,7 @@ interface CommandHome {
  * same stream topic a migrated `useDataValue` read of the sibling `v.<x>
  * Value` key would use — the SAME `ActionGroupComponent` instance that fires
  * this toggle already reads that topic for its own state pill
- * (`useDataValue("data", group.value)`), so by the time a user can click the
+ * (`useTelemetry(group.value)`), so by the time a user can click the
  * toggle button the read subscription (and therefore the store's cached
  * value) is already live. `getCurrentValue` returning anything other than a
  * `boolean` (nothing arrived yet, or a shape surprise) is `INVALID` — never

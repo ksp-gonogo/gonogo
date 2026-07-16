@@ -614,7 +614,7 @@ export class TimelineStore {
    * — e.g. `"vessel.resources.resources.<name>.current"`). A raw fieldpath
    * that's wrong or has drifted would otherwise serve a permanent
    * `undefined` with no fallback (the FuelStatus-class
-   * bug: `useDataValue("data", vesselKey) ?? 0` turning a silent resolution
+   * bug: `useTelemetry(vesselKey) ?? 0` turning a silent resolution
    * failure into an empty gauge). The second branch below applies the exact
    * same "whole-but-missing-field = unresolvable" check to a raw parent,
    * walking the FULL fieldpath (which may be 1+ segments, unlike the

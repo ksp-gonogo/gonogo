@@ -734,7 +734,7 @@ export function getWarpState(): WarpState | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("data", "contracts.active")` — the
+ * Non-React equivalent of `useTelemetry("career.status.contracts.active")` — the
  * career mode's currently-active contract list, off `career.status`'s
  * `contracts.active` raw-field subtopic. Replaces the legacy
  * `getLatestValue("contracts.active")` read `AlarmStateMachine`'s
