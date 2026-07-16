@@ -1,5 +1,5 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import type { OrbitElements, Vector3 } from "./kepler";
+import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
 import {
   findImpactPoint,
@@ -684,6 +684,33 @@ function magnitude(v: Vector3): number {
   return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
+/**
+ * `kepler.solve`/`solveAnomalies` throw a `RangeError` for `ecc >= 1` —
+ * elliptical-only, matching the C# side (see their own doc comments); that
+ * throwing contract is intentional and NOT something this file changes. A
+ * genuine hyperbolic OnRails trajectory (a fast escape/flyby while
+ * time-warping) is real, though, and letting the throw escape into
+ * derived-channel resolution would take out every `vessel.state` consumer at
+ * once. Full hyperbolic anomaly support is out of scope here (see the class
+ * doc) — this just names the boundary so call sites can check it explicitly.
+ */
+function isHyperbolic(ecc: number): boolean {
+  return ecc >= 1;
+}
+
+/** Non-throwing `kepler.solve` — `null` on a hyperbolic orbit instead of a RangeError. See `isHyperbolic`. */
+function trySolve(elements: OrbitElements, ut: number): StateVector | null {
+  return isHyperbolic(elements.ecc) ? null : solve(elements, ut);
+}
+
+/** Non-throwing `kepler.solveAnomalies` — `null` on a hyperbolic orbit instead of a RangeError. See `isHyperbolic`. */
+function trySolveAnomalies(
+  elements: OrbitElements,
+  ut: number,
+): Anomalies | null {
+  return isHyperbolic(elements.ecc) ? null : solveAnomalies(elements, ut);
+}
+
 function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
@@ -768,7 +795,14 @@ function deriveApsides(
   }
 
   return {
-    apoapsisAlt: finiteOrNull(orbit.sma * (1 + orbit.ecc) - radius),
+    // Apoapsis doesn't exist on a hyperbolic orbit (ecc >= 1) — sma < 0 there
+    // makes `sma·(1+ecc) - radius` a finite but MEANINGLESS number, which
+    // `finiteOrNull` can't catch, so this is an explicit check, not a
+    // by-product of the finite guard. Periapsis stays valid: sma < 0,
+    // ecc > 1 makes `sma·(1-ecc)` a positive radius, same formula either way.
+    apoapsisAlt: isHyperbolic(orbit.ecc)
+      ? null
+      : finiteOrNull(orbit.sma * (1 + orbit.ecc) - radius),
     periapsisAlt: finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius),
   };
 }
@@ -977,12 +1011,19 @@ function deriveTargetOrbit(
   }
 
   const elements = buildElements(orbit);
-  const anomalies = solveAnomalies(elements, viewUt);
+  // A hyperbolic target (ecc >= 1) is real (an escaping/flyby target vessel
+  // or body) — trySolveAnomalies degrades to null instead of throwing;
+  // targetPeriapsisAlt below stays valid regardless (see isHyperbolic doc).
+  const anomalies = trySolveAnomalies(elements, viewUt);
 
-  const targetPeriod = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
-  const targetTrueAnomaly = finiteOrNull(
-    wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
-  );
+  const targetPeriod =
+    anomalies == null
+      ? null
+      : finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
+  const targetTrueAnomaly =
+    anomalies == null
+      ? null
+      : finiteOrNull(wrapDegrees360(radToDeg(anomalies.trueAnomaly)));
 
   const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
   const targetPeriapsisAlt =
@@ -1639,23 +1680,37 @@ export function deriveVesselState(
 
   if (quality === Quality.OnRails) {
     const elements: OrbitElements = buildElements(orbit);
-    const { position, velocity } = solve(elements, viewUt);
-    const anomalies = solveAnomalies(elements, viewUt);
+    // A hyperbolic orbit (ecc >= 1, real on a fast escape/flyby while
+    // time-warping) can't go through kepler's elliptical-only solver —
+    // trySolve/trySolveAnomalies degrade to null instead of throwing, and
+    // every field below that depends on them degrades to null in step
+    // (never a bogus number). Full hyperbolic anomaly support is out of
+    // scope; see `isHyperbolic`'s doc.
+    const solved = trySolve(elements, viewUt);
+    const anomalies = trySolveAnomalies(elements, viewUt);
+    const position = solved?.position ?? null;
+    const velocity = solved?.velocity ?? null;
 
-    const period = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
-    const trueAnomaly = finiteOrNull(
-      wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
-    );
-    const timeToAp = timeToMeanAnomaly(
-      anomalies.meanAnomaly,
-      Math.PI,
-      anomalies.meanMotion,
-    );
-    const timeToPe = timeToMeanAnomaly(
-      anomalies.meanAnomaly,
-      0,
-      anomalies.meanMotion,
-    );
+    const period =
+      anomalies == null
+        ? null
+        : finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
+    const trueAnomaly =
+      anomalies == null
+        ? null
+        : finiteOrNull(wrapDegrees360(radToDeg(anomalies.trueAnomaly)));
+    const timeToAp =
+      anomalies == null
+        ? null
+        : timeToMeanAnomaly(
+            anomalies.meanAnomaly,
+            Math.PI,
+            anomalies.meanMotion,
+          );
+    const timeToPe =
+      anomalies == null
+        ? null
+        : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
 
     // A secondary input: its own absence nulls ONLY `met`, not the whole
     // record (contrast `vessel.orbit`/`vessel.flight` above, whose absence
@@ -1682,7 +1737,7 @@ export function deriveVesselState(
       altitudeAsl: null,
       verticalSpeed: null,
       surfaceSpeed: null,
-      orbitalSpeed: magnitude(velocity),
+      orbitalSpeed: velocity == null ? null : magnitude(velocity),
       met,
       period,
       trueAnomaly,
@@ -1695,9 +1750,16 @@ export function deriveVesselState(
       ...deriveEncounter(get, orbit),
       targetRelativeSpeed: deriveTargetRelativeSpeed(get),
       // Radii straight off the elements (no body table) — always finite here.
-      apoapsisRadius: finiteOrNull(orbit.sma * (1 + orbit.ecc)),
+      // Apoapsis doesn't exist on a hyperbolic orbit (see isHyperbolic's
+      // doc) — explicit check, not a by-product of finiteOrNull, since
+      // sma·(1+ecc) is still a finite (just meaningless) number there.
+      // Periapsis stays valid: sma·(1-ecc) is a positive radius either way.
+      apoapsisRadius: isHyperbolic(orbit.ecc)
+        ? null
+        : finiteOrNull(orbit.sma * (1 + orbit.ecc)),
       periapsisRadius: finiteOrNull(orbit.sma * (1 - orbit.ecc)),
-      orbitalRadius: finiteOrNull(magnitude(position)),
+      orbitalRadius:
+        position == null ? null : finiteOrNull(magnitude(position)),
       ...deriveNextApsis(timeToAp, timeToPe),
       // Surface-frame horizontal speed is a MEASURED quantity — null in the
       // propagated basis, exactly like surfaceSpeed/verticalSpeed above.

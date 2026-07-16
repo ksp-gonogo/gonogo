@@ -1686,6 +1686,113 @@ describe("R6 closestApproachUt — vessel.state.closestApproachUt (o.closestTgtA
   });
 });
 
+describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory never throws (ecc >= 1 crash fix)", () => {
+  // A genuine hyperbolic orbit (fast escape/flyby): ecc > 1, and by the same
+  // convention `orbitalPeriod`/vis-viva use everywhere else in this package,
+  // sma < 0. `kepler.solveAnomalies`/`solve` throw a RangeError for this —
+  // elliptical-only, matching the C# side — so `deriveVesselState` must guard
+  // around them rather than let the throw escape derived-channel resolution.
+  const HYPERBOLIC_ORBIT: VesselOrbitPayload = {
+    referenceBodyIndex: 1,
+    sma: -1_000_000,
+    ecc: 1.2,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: 0,
+    mu: 3.5316e12,
+  };
+
+  it("an OnRails vessel on a hyperbolic orbit does not throw; anomaly/period/apoapsis/time-to-apsis/closest-approach fields degrade to null, periapsis + non-orbital fields still resolve", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(HYPERBOLIC_ORBIT, {
+        quality: Quality.OnRails,
+      }),
+      "vessel.identity": identityPoint({
+        vesselId: "vessel:abc-123",
+        name: "Escaping Ship",
+        vesselType: 0,
+        situation: 0,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+      // An elliptical target sharing the same reference body -- exercises
+      // deriveClosestApproachUt's self-conic (hyperbolic) side too.
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 100, y: 0, z: 0 },
+        orbit: { ...CIRCULAR_ORBIT },
+      }),
+    });
+
+    let state: ReturnType<typeof deriveVesselState>;
+    expect(() => {
+      state = deriveVesselState(get, 500);
+    }).not.toThrow();
+
+    expect(state).not.toBeNull();
+    expect(state).not.toBeUndefined();
+
+    // Anomaly-derived fields degrade to null -- never a bogus finite number.
+    expect(state?.period).toBeNull();
+    expect(state?.trueAnomaly).toBeNull();
+    expect(state?.timeToAp).toBeNull();
+    expect(state?.timeToPe).toBeNull();
+    expect(state?.apoapsisAlt).toBeNull();
+    expect(state?.apoapsisRadius).toBeNull();
+    expect(state?.nextApsisType).toBeNull();
+    expect(state?.timeToNextApsis).toBeNull();
+    // closestApproachUt needs a propagated self conic; hyperbolic self can't
+    // provide one -- same "not resolvable" outcome as a different reference
+    // body (see the sibling describe block above).
+    expect(state?.closestApproachUt).toBeUndefined();
+
+    // Periapsis is still valid on a hyperbolic orbit -- sma < 0, ecc > 1, so
+    // sma * (1 - ecc) is still a positive radius.
+    const expectedPeriapsisRadius =
+      HYPERBOLIC_ORBIT.sma * (1 - HYPERBOLIC_ORBIT.ecc);
+    expect(state?.periapsisRadius).toBeCloseTo(expectedPeriapsisRadius, 6);
+    expect(state?.periapsisAlt).toBeCloseTo(
+      expectedPeriapsisRadius - KERBIN_RADIUS,
+      6,
+    );
+
+    // Non-orbital fields are entirely unaffected.
+    expect(state?.basis).toBe("propagated");
+    expect(state?.subjectId).toBe("vessel:abc-123");
+    expect(state?.parentBodyName).toBe("Kerbin");
+  });
+
+  it("a hyperbolic vessel.target orbit does not throw; targetPeriod/targetTrueAnomaly degrade to null, targetPeriapsisAlt still resolves", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: HYPERBOLIC_ORBIT,
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+
+    let state: ReturnType<typeof deriveVesselState>;
+    expect(() => {
+      state = deriveVesselState(get, 0);
+    }).not.toThrow();
+
+    expect(state?.targetPeriod).toBeNull();
+    expect(state?.targetTrueAnomaly).toBeNull();
+
+    const expectedTargetPeriapsisAlt =
+      HYPERBOLIC_ORBIT.sma * (1 - HYPERBOLIC_ORBIT.ecc) - KERBIN_RADIUS;
+    expect(state?.targetPeriapsisAlt).toBeCloseTo(
+      expectedTargetPeriapsisAlt,
+      6,
+    );
+  });
+});
+
 describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtImpact/bestSpeedAtImpact/suicideBurnCountdown)", () => {
   // Synthetic body chosen so gravity is a round g = mu/(radius+altitudeAsl)²:
   // mu = 8e10, radius = 200_000, altitudeAsl = 0 → g = 8e10/200000² = 2.0 m/s².
