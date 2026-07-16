@@ -1,3 +1,15 @@
+import {
+  type ClockFormulaInputs,
+  type ClockFormulaSnapshot,
+  computeConfirmedEdgeUt,
+  computeUtNowEstimate,
+} from "./view-clock-formula";
+
+export type {
+  ClockFormulaInputs,
+  ClockFormulaSnapshot,
+} from "./view-clock-formula";
+
 /** Which regime `viewUt()` is currently drawn from — set via `ViewClock.setMode`. */
 export type ViewClockMode = "confirmed" | "predicted";
 
@@ -118,29 +130,52 @@ export class ViewClock {
     return this.options.delaySeconds?.() ?? 0;
   }
 
-  /** Estimated "vessel now": a piecewise-linear UT(wall) fit, coasting on the last observed slope between observations. */
+  /** Estimated "vessel now": a piecewise-linear UT(wall) fit, coasting on
+   *  the last observed slope between observations. Delegates to the shared
+   *  pure formula (`view-clock-formula.ts`) so a second context (the
+   *  kerbcast per-frame video-delay worker) can mirror this exactly — see
+   *  that module's doc. */
   utNowEstimate(): number {
-    if (this.anchorWall === undefined || this.anchorUt === undefined) {
-      return this.maxSampleUt === Number.NEGATIVE_INFINITY
-        ? 0
-        : this.maxSampleUt;
-    }
-    const elapsed = this.now() - this.anchorWall;
-    return this.anchorUt + elapsed * this.warpRate();
+    return computeUtNowEstimate(this.formulaInputs(), this.now());
   }
 
   /**
    * The certainty horizon: `min(utNowEstimate() - delaySeconds(), maxBufferedSampleUt + slack)`.
    * Never ahead of the max sample UT actually observed — see the class doc.
    * Returns `-Infinity` before any sample has ever been observed (nothing
-   * confirmed yet — the "resynchronizing" state after a rewind).
+   * confirmed yet — the "resynchronizing" state after a rewind). Delegates
+   * to the shared pure formula — see `utNowEstimate()`'s doc.
    */
   confirmedEdgeUt(): number {
-    if (this.maxSampleUt === Number.NEGATIVE_INFINITY)
-      return Number.NEGATIVE_INFINITY;
-    const estimatedEdge = this.utNowEstimate() - this.delaySeconds();
-    const sampleClamp = this.maxSampleUt + (this.options.slackSeconds ?? 0);
-    return Math.min(estimatedEdge, sampleClamp);
+    return computeConfirmedEdgeUt(this.formulaInputs(), this.now());
+  }
+
+  /** This clock's formula inputs, as of right now — the shared shape both
+   *  `utNowEstimate`/`confirmedEdgeUt` (via `view-clock-formula.ts`) and
+   *  `snapshot()` (below) read from, so the two can never drift apart. */
+  private formulaInputs(): ClockFormulaInputs {
+    return {
+      anchorWall: this.anchorWall,
+      anchorUt: this.anchorUt,
+      maxSampleUt: this.maxSampleUt,
+      delaySeconds: this.delaySeconds(),
+      warpRate: this.warpRate(),
+      slackSeconds: this.options.slackSeconds ?? 0,
+    };
+  }
+
+  /**
+   * Serializable snapshot of this clock's formula inputs, for a SECOND
+   * context to mirror `confirmedEdgeUt()`/`utNowEstimate()` locally against
+   * its own wall clock — the kerbcast per-frame video-delay worker's "Clock
+   * seam" (cross-browser kerbcast video-delay design, 2026-07-16). The
+   * receiving side evaluates the exact same `view-clock-formula.ts`
+   * functions this class uses, so there is one implementation, never a
+   * fork. `epoch` lets a stale-epoch snapshot be discarded the same way
+   * `observeSample` discards a stale-epoch straggler.
+   */
+  snapshot(): ClockFormulaSnapshot {
+    return { epoch: this.epoch, ...this.formulaInputs() };
   }
 
   /**
