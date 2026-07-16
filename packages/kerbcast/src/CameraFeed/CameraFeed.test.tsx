@@ -38,7 +38,6 @@ import type { CameraLifecycle, Layer } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import {
   act,
-  cleanup,
   fireEvent,
   render,
   screen,
@@ -66,11 +65,17 @@ import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 const TEST_INSTANCE_ID = "camera-feed-test";
 
-// Sources created during a test are torn down in afterEach AFTER cleanup() so
-// the CameraFeed is already unmounted when disconnect() fires. Disconnecting a
-// live source while the widget is still mounted triggers useKerbcastStream state
-// updates outside act() — the documented anti-pattern in CLAUDE.md.
+// Sources created during a test are torn down in afterEach AFTER the widget is
+// unmounted, so the CameraFeed is already gone when disconnect() fires.
+// Disconnecting a live source while the widget is still mounted triggers
+// useKerbcastStream state updates outside act() — the documented anti-pattern in
+// CLAUDE.md.
 const createdSources: Array<{ disconnect: () => void }> = [];
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
+// sources. RTL's auto-cleanup runs after this file's afterEach, so it can't be
+// relied on to unmount first — the render helpers below push their unmount here.
+const renderedTrees: Array<() => void> = [];
 
 // Fill the config defaults so individual tests only spell out the fields they
 // care about (flightId, and occasionally showDebugInfo).
@@ -82,7 +87,7 @@ function renderFeed(
   config: Partial<CameraFeedConfig>,
   onConfigChange?: ComponentProps<CameraFeedConfig>["onConfigChange"],
 ): ReturnType<typeof render> {
-  return render(
+  const result = render(
     <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
       <CameraFeed
         config={fullConfig(config)}
@@ -91,6 +96,8 @@ function renderFeed(
       />
     </DashboardItemContext.Provider>,
   );
+  renderedTrees.push(result.unmount);
+  return result;
 }
 
 // A stateful wrapper that holds `config` in React state and feeds its own
@@ -113,7 +120,9 @@ function renderStatefulFeed(
       </DashboardItemContext.Provider>
     );
   }
-  return render(<Harness />);
+  const result = render(<Harness />);
+  renderedTrees.push(result.unmount);
+  return result;
 }
 
 // Note: importing KerbcastDataSource class directly (not the barrel index)
@@ -235,8 +244,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
-  // Disconnect tracked sources AFTER cleanup so the widget is unmounted first.
+  // Unmount every rendered tree first so the widget is gone before disconnect()
+  // fires (RTL auto-cleanup runs after this hook, too late for that ordering).
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  // Disconnect tracked sources AFTER unmount so the widget is unmounted first.
   for (const ds of createdSources) ds.disconnect();
   createdSources.length = 0;
   clearActionHandlers(); // tests share one instanceId — handlers would leak

@@ -10,7 +10,7 @@
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { useKerbcastStream } from "./useKerbcastStream";
@@ -20,8 +20,9 @@ function StreamProbe({ flightId }: { flightId: number | null }): null {
   return null;
 }
 
+// Testing Library auto-cleans the DOM after every test — no manual cleanup()
+// needed here, only the registry/mock teardown this file actually owns.
 afterEach(() => {
-  cleanup();
   clearRegistry();
   vi.restoreAllMocks();
 });
