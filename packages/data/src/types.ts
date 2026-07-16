@@ -1,9 +1,10 @@
 import type { DataKey, TelemaachusSchema } from "@ksp-gonogo/core";
 
 // ---------------------------------------------------------------------------
-// DataSourceRegistry extension — declaration-merged so `useDataValue('data',
-// key)` is strongly typed. The schema starts as a passthrough of the wrapped
-// telemachus schema; as derived keys land (Phase 2), they extend this type.
+// DataSourceRegistry extension — declaration-merged so the two-arg legacy
+// `('data', key)` read/status/series overloads stay strongly typed. The schema
+// starts as a passthrough of the wrapped telemachus schema; as derived keys
+// land (Phase 2), they extend this type.
 // ---------------------------------------------------------------------------
 
 declare module "@ksp-gonogo/core" {

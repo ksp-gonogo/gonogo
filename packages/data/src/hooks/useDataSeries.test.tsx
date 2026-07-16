@@ -3,7 +3,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BufferedDataSource } from "../BufferedDataSource";
 import { MemoryStore } from "../storage/MemoryStore";
@@ -21,6 +21,7 @@ describe("useDataSeries", () => {
   let store: MemoryStore;
   let clock: number;
   let buffered: BufferedDataSource;
+  let view: ReturnType<typeof render> | undefined;
 
   beforeEach(async () => {
     clearRegistry();
@@ -49,13 +50,17 @@ describe("useDataSeries", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    // Unmount the tree before tearing the source down — disconnecting while
+    // a subscribed component is still mounted flips the source status and
+    // fires a state update outside act().
+    view?.unmount();
+    view = undefined;
     buffered.disconnect();
   });
 
   it("returns empty on mount, then appends live samples", async () => {
     const renders: SeriesRange[] = [];
-    render(<Probe onRender={(r) => renders.push(r)} />);
+    view = render(<Probe onRender={(r) => renders.push(r)} />);
 
     expect(renders[0]).toEqual({ t: [], v: [] });
 
@@ -86,7 +91,7 @@ describe("useDataSeries", () => {
     await store.flush();
 
     const renders: SeriesRange[] = [];
-    render(<Probe onRender={(r) => renders.push(r)} />);
+    view = render(<Probe onRender={(r) => renders.push(r)} />);
 
     await waitFor(() => {
       const latest = renders[renders.length - 1];
@@ -97,7 +102,7 @@ describe("useDataSeries", () => {
 
   it("trims samples older than the window", async () => {
     const renders: SeriesRange[] = [];
-    render(<Probe onRender={(r) => renders.push(r)} />);
+    view = render(<Probe onRender={(r) => renders.push(r)} />);
 
     await act(async () => {
       clock += 1000;
@@ -115,7 +120,7 @@ describe("useDataSeries", () => {
 
   it("clears on upstream disconnect", async () => {
     const renders: SeriesRange[] = [];
-    render(<Probe onRender={(r) => renders.push(r)} />);
+    view = render(<Probe onRender={(r) => renders.push(r)} />);
 
     // Let the backfill subscription settle before emitting — mirrors the
     // "appends live samples" test above which does the same.

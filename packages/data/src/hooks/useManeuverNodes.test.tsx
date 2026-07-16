@@ -1,33 +1,18 @@
-import type { ManeuverNode } from "@ksp-gonogo/core";
 import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+  type ManeuverNodeWirePayload,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-client";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { useManeuverNodes } from "./useManeuverNodes";
 
-function fakeNode(
-  partial: Partial<ManeuverNode> & {
-    UT: number;
-    deltaV: [number, number, number];
-  },
-): ManeuverNode {
+function fakeWireNode(
+  partial: Partial<ManeuverNodeWirePayload> & { id: string; ut: number },
+): ManeuverNodeWirePayload {
   return {
-    PeA: 0,
-    ApA: 0,
-    inclination: 0,
-    eccentricity: 0,
-    epoch: 0,
-    period: 0,
-    argumentOfPeriapsis: 0,
-    sma: 0,
-    lan: 0,
-    maae: 0,
-    referenceBody: "Kerbin",
-    closestEncounterBody: null,
-    orbitPatches: [],
+    patches: [],
     ...partial,
   };
 }
@@ -42,43 +27,58 @@ function Probe({
   return null;
 }
 
+/**
+ * `useManeuverNodes` reads the `vessel.maneuver.legacy` derived channel
+ * (`maneuver-legacy.ts`, reshaping the raw `vessel.maneuver` wire topic) via
+ * `useStream` — the retired `("data", "o.maneuverNodes")` shim read never had
+ * a live legacy `DataSource` behind it in production, so these tests exercise
+ * the real `TelemetryProvider`/`TelemetryClient` stream pipeline (emitting raw
+ * `vessel.maneuver`) instead of a `MockDataSource` under id `"data"`.
+ */
 describe("useManeuverNodes", () => {
-  let mock: MockDataSource;
-
-  beforeEach(() => {
-    clearRegistry();
-    mock = new MockDataSource({
-      id: "data",
-      keys: [{ key: "o.maneuverNodes" }],
-    });
-    registerDataSource(mock);
-    void mock.connect();
-  });
-
-  afterEach(() => {
-    cleanup();
-    clearRegistry();
-  });
-
-  it("returns an empty array when no nodes are present", () => {
+  function renderProbe() {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
     const renders: Array<ReturnType<typeof useManeuverNodes>> = [];
-    render(<Probe onRender={(n) => renders.push(n)} />);
-    act(() => mock.emit("o.maneuverNodes", []));
-    expect(renders.at(-1)).toEqual([]);
+    render(
+      <TelemetryProvider client={client}>
+        <Probe onRender={(n) => renders.push(n)} />
+      </TelemetryProvider>,
+    );
+    return { transport, renders };
+  }
+
+  it("returns an empty array when no nodes are present", async () => {
+    const { transport, renders } = renderProbe();
+    act(() => transport.emit("vessel.maneuver", { nodes: [] }));
+    await waitFor(() => expect(renders.at(-1)).toEqual([]));
   });
 
-  it("parses nodes and derives deltaVMagnitude + id", () => {
-    const renders: Array<ReturnType<typeof useManeuverNodes>> = [];
-    render(<Probe onRender={(n) => renders.push(n)} />);
+  it("parses nodes and derives deltaVMagnitude + id", async () => {
+    const { transport, renders } = renderProbe();
     act(() =>
-      mock.emit("o.maneuverNodes", [
-        fakeNode({ UT: 100, deltaV: [3, 4, 0] }),
-        fakeNode({ UT: 200, deltaV: [0, 0, 12] }),
-      ]),
+      transport.emit("vessel.maneuver", {
+        nodes: [
+          fakeWireNode({
+            id: "a",
+            ut: 100,
+            dvRadial: 3,
+            dvNormal: 4,
+            dvPrograde: 0,
+          }),
+          fakeWireNode({
+            id: "b",
+            ut: 200,
+            dvRadial: 0,
+            dvNormal: 0,
+            dvPrograde: 12,
+          }),
+        ],
+      }),
     );
 
+    await waitFor(() => expect(renders.at(-1)).toHaveLength(2));
     const last = renders.at(-1);
-    expect(last).toHaveLength(2);
     expect(last?.[0]).toMatchObject({
       id: 0,
       UT: 100,
@@ -91,22 +91,26 @@ describe("useManeuverNodes", () => {
     });
   });
 
-  it("returns a new list when the underlying array changes", () => {
-    const renders: Array<ReturnType<typeof useManeuverNodes>> = [];
-    render(<Probe onRender={(n) => renders.push(n)} />);
+  it("returns a new list when the underlying array changes", async () => {
+    const { transport, renders } = renderProbe();
     act(() =>
-      mock.emit("o.maneuverNodes", [fakeNode({ UT: 10, deltaV: [1, 0, 0] })]),
+      transport.emit("vessel.maneuver", {
+        nodes: [fakeWireNode({ id: "a", ut: 10, dvRadial: 1 })],
+      }),
     );
+    await waitFor(() => expect(renders.at(-1)).toHaveLength(1));
     const first = renders.at(-1);
+
     act(() =>
-      mock.emit("o.maneuverNodes", [
-        fakeNode({ UT: 10, deltaV: [1, 0, 0] }),
-        fakeNode({ UT: 20, deltaV: [0, 2, 0] }),
-      ]),
+      transport.emit("vessel.maneuver", {
+        nodes: [
+          fakeWireNode({ id: "a", ut: 10, dvRadial: 1 }),
+          fakeWireNode({ id: "b", ut: 20, dvNormal: 2 }),
+        ],
+      }),
     );
+    await waitFor(() => expect(renders.at(-1)).toHaveLength(2));
     const second = renders.at(-1);
-    expect(first).toHaveLength(1);
-    expect(second).toHaveLength(2);
     expect(second).not.toBe(first);
   });
 });

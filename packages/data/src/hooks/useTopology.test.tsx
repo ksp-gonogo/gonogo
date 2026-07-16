@@ -6,9 +6,9 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useTopology } from "./useTopology";
 
 /**
@@ -73,8 +73,6 @@ function Probe() {
 function readProbe(): string {
   return screen.getByTestId("topology").textContent ?? "";
 }
-
-afterEach(() => cleanup());
 
 describe("useTopology", () => {
   it("is undefined until vessel.parts arrives", () => {

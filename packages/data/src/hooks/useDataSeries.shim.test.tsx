@@ -13,9 +13,9 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { BufferedDataSource } from "../BufferedDataSource";
 import { MemoryStore } from "../storage/MemoryStore";
 import { useDataSeries } from "./useDataSeries";
@@ -110,7 +110,6 @@ async function buildLegacySource(key: string) {
 }
 
 beforeEach(() => clearRegistry());
-afterEach(() => cleanup());
 
 describe("useDataSeries shim — mapped + carried key streams from the ClientTimeline", () => {
   it("builds the series from the real TimelineStore, not the legacy DataSource — RED before the shim, GREEN after", async () => {

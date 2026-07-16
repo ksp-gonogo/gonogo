@@ -1,5 +1,5 @@
 import type { StageInfo } from "@ksp-gonogo/core";
-import { useDataValue } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 
 export interface VesselDeltaV {
@@ -75,7 +75,7 @@ function normalizeStage(raw: unknown): StageInfo | null {
  * what the maneuver planner's feasibility check needs out of the box.
  */
 export function useVesselDeltaV(): VesselDeltaV {
-  const raw = useDataValue("data", "dv.stages");
+  const raw = useTelemetry("dv.stages");
   return useMemo(() => {
     if (!Array.isArray(raw) || raw.length === 0) return EMPTY;
     const stages = raw

@@ -1,6 +1,6 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import { mapTopic } from "@ksp-gonogo/sitrep-client";
-import { cleanup, render } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataKeyMeta } from "../types";
 import { useValueKeys } from "./useValueKeys";
@@ -23,7 +23,6 @@ describe("useValueKeys", () => {
   });
 
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 
