@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>harness B — decoded VideoFrame pool exhaustion</title>
+</head>
+<body>
+<h1>Decoded VideoFrame pool-exhaustion spike</h1>
+<canvas id="src" width="1024" height="576" style="display:none"></canvas>
+<pre id="log"></pre>
+<script>
+// Tests the mediacapture-transform spec's warning: holding many open
+// VideoFrames from a live MediaStreamTrackProcessor can "deplete a
+// system-wide pool of GPU-memory-backed frames" and cause the source to
+// stop emitting new frames. We hold ~150 decoded VideoFrames (never
+// close()ing them, exactly the pattern the current design's
+// DelayedPlayoutBuffer uses while frames sit in queue) from a real live
+// canvas-captured track and time every read to see whether reads stall,
+// slow down, or the track effectively stops delivering once the hold
+// count passes what the current design buffers (~120 frames for 4s@30fps).
+
+const HOLD_TARGET = 150; // current design holds ~120 for a 4s@30fps buffer
+const CONTINUE_READS = 60; // keep reading (still holding everything) to see if it recovers/stalls further
+const FPS = 30;
+
+const logEl = document.getElementById("log");
+function log(...args) {
+  const line = args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+  logEl.textContent += `${line}\n`;
+  console.log("[harnessB]", line);
+}
+
+window.__harnessBResult = { done: false };
+
+function finish(result) {
+  if (window.__harnessBResult.done) return;
+  window.__harnessBResult = { ...result, done: true };
+  log("DONE", JSON.stringify({ ...result, held: undefined }));
+}
+
+setTimeout(() => {
+  if (!window.__harnessBResult.done) {
+    finish({ timedOut: true });
+  }
+}, 60000);
+
+async function run() {
+  const caps = {
+    MediaStreamTrackProcessor: typeof MediaStreamTrackProcessor !== "undefined",
+  };
+  log("capabilities", caps);
+
+  if (!caps.MediaStreamTrackProcessor) {
+    finish({ capabilities: caps, error: "No MediaStreamTrackProcessor on this engine (main thread)." });
+    return;
+  }
+
+  const canvas = document.getElementById("src");
+  const ctx = canvas.getContext("2d");
+  let frameCounter = 0;
+  function draw() {
+    // Deliberately noisy/high-entropy content so the encoder/pipeline
+    // can't shortcut on a static frame — closer to real camera content.
+    ctx.fillStyle = `hsl(${(frameCounter * 7) % 360}, 80%, 50%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(${Math.random() * 255 | 0},${Math.random() * 255 | 0},${Math.random() * 255 | 0},0.5)`;
+      ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 30, 30);
+    }
+    frameCounter++;
+  }
+  draw();
+  const drawTimer = setInterval(draw, Math.round(1000 / FPS));
+
+  const stream = canvas.captureStream(FPS);
+  const track = stream.getVideoTracks()[0];
+  const processor = new MediaStreamTrackProcessor({ track });
+  const reader = processor.readable.getReader();
+
+  const held = [];
+  const readLog = [];
+  let allocationSizeTotal = 0;
+  let firstAllocationSize = null;
+
+  const overallStart = performance.now();
+  let stalled = false;
+  let error = null;
+
+  try {
+    for (let i = 0; i < HOLD_TARGET + CONTINUE_READS; i++) {
+      const readStart = performance.now();
+      const { value, done } = await reader.read();
+      const readEnd = performance.now();
+      if (done) {
+        readLog.push({ i, event: "stream-done", tSinceStart: readEnd - overallStart });
+        break;
+      }
+      const waitMs = readEnd - readStart;
+      readLog.push({ i, waitMs, tSinceStart: readEnd - overallStart, held: held.length });
+
+      // NEVER close() — this is the exact "hold without releasing" pattern
+      // under test.
+      held.push(value);
+
+      if (typeof value.allocationSize === "function") {
+        try {
+          const size = value.allocationSize();
+          allocationSizeTotal += size;
+          if (firstAllocationSize === null) firstAllocationSize = size;
+        } catch (_e) {
+          // ignore
+        }
+      }
+
+      if (i % 20 === 0) log(`read ${i}: waitMs=${waitMs.toFixed(1)} held=${held.length}`);
+
+      // Flag a stall: any single read taking > 5x the expected frame
+      // interval once we're past the hold target is evidence of the
+      // pool-exhaustion hypothesis.
+      if (i > HOLD_TARGET && waitMs > (1000 / FPS) * 5) {
+        stalled = true;
+      }
+    }
+  } catch (err) {
+    error = String(err);
+    log("read loop threw", error);
+  }
+
+  clearInterval(drawTimer);
+
+  // Compute per-read-interval stats before/after the hold threshold to
+  // show whether cadence degrades once many frames are held.
+  const before = readLog.filter((r) => r.i !== undefined && r.i < HOLD_TARGET && r.waitMs !== undefined);
+  const after = readLog.filter((r) => r.i !== undefined && r.i >= HOLD_TARGET && r.waitMs !== undefined);
+  const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b.waitMs, 0) / arr.length : null);
+  const max = (arr) => (arr.length ? Math.max(...arr.map((b) => b.waitMs)) : null);
+
+  finish({
+    capabilities: caps,
+    heldCount: held.length,
+    stalled,
+    error,
+    firstAllocationSize,
+    allocationSizeTotalForHeld: allocationSizeTotal,
+    avgWaitMsBeforeHoldTarget: avg(before),
+    maxWaitMsBeforeHoldTarget: max(before),
+    avgWaitMsAfterHoldTarget: avg(after),
+    maxWaitMsAfterHoldTarget: max(after),
+    readLogTail: readLog.slice(-30),
+    totalElapsedMs: performance.now() - overallStart,
+  });
+}
+
+run().catch((err) => {
+  log("run() threw", String(err), err.stack);
+  finish({ error: String(err), stack: err.stack });
+});
+</script>
+</body>
+</html>

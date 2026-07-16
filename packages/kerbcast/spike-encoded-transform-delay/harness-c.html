@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>harness C — decoded WebRTC VideoFrame pool exhaustion (real remote track)</title>
+</head>
+<body>
+<h1>Decoded WebRTC-remote-track VideoFrame pool-exhaustion spike</h1>
+<canvas id="src" width="1024" height="576" style="display:none"></canvas>
+<video id="remote" autoplay playsinline muted></video>
+<pre id="log"></pre>
+<script>
+// Same hypothesis as harness B, but sourced from a REAL WebRTC remote
+// track (after hardware/software decode via RTCPeerConnection), not a
+// canvas-captured track directly. This matters because the
+// mediacapture-transform spec's warning is specifically about a
+// "system-wide pool of GPU-memory-backed frames" — a canvas-captured
+// track's VideoFrames may not be backed by that same limited decoder pool,
+// so harness B alone under-tests the real risk. This is architecturally
+// identical to what the CURRENT production design's Chrome main-thread
+// Breakout Box backend does: MediaStreamTrackProcessor reading a decoded
+// remote video track, held frames un-closed while queued for delayed
+// release.
+
+const HOLD_TARGET = 150;
+const CONTINUE_READS = 60;
+const FPS = 30;
+
+const logEl = document.getElementById("log");
+function log(...args) {
+  const line = args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+  logEl.textContent += `${line}\n`;
+  console.log("[harnessC]", line);
+}
+
+window.__harnessCResult = { done: false };
+function finish(result) {
+  if (window.__harnessCResult.done) return;
+  window.__harnessCResult = { ...result, done: true };
+  log("DONE", JSON.stringify(result));
+}
+setTimeout(() => {
+  if (!window.__harnessCResult.done) finish({ timedOut: true });
+}, 60000);
+
+async function run() {
+  const caps = { MediaStreamTrackProcessor: typeof MediaStreamTrackProcessor !== "undefined" };
+  log("capabilities", caps);
+  if (!caps.MediaStreamTrackProcessor) {
+    finish({ capabilities: caps, error: "No MediaStreamTrackProcessor on this engine (main thread)." });
+    return;
+  }
+
+  const canvas = document.getElementById("src");
+  const ctx = canvas.getContext("2d");
+  let frameCounter = 0;
+  function draw() {
+    ctx.fillStyle = `hsl(${(frameCounter * 7) % 360}, 80%, 50%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(${Math.random() * 255 | 0},${Math.random() * 255 | 0},${Math.random() * 255 | 0},0.5)`;
+      ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 30, 30);
+    }
+    frameCounter++;
+  }
+  draw();
+  const drawTimer = setInterval(draw, Math.round(1000 / FPS));
+
+  const srcStream = canvas.captureStream(FPS);
+  const srcTrack = srcStream.getVideoTracks()[0];
+  // Discourage Chrome's automatic CPU/bandwidth-adaptive downscaling so
+  // the decoded remote track actually arrives near the requested
+  // 1024x576 (production resolution) instead of being silently
+  // downgraded — a real risk on a headless/CPU-constrained runner.
+  try { srcTrack.contentHint = "motion"; } catch {}
+
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  pc1.onicecandidate = (e) => e.candidate && pc2.addIceCandidate(e.candidate).catch(() => {});
+  pc2.onicecandidate = (e) => e.candidate && pc1.addIceCandidate(e.candidate).catch(() => {});
+  const sender = pc1.addTrack(srcTrack, srcStream);
+
+  const remoteVideo = document.getElementById("remote");
+  let remoteTrack = null;
+  const trackPromise = new Promise((resolve) => {
+    pc2.ontrack = (event) => {
+      remoteVideo.srcObject = event.streams[0];
+      remoteTrack = event.track;
+      resolve();
+    };
+  });
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+
+  try {
+    const params = sender.getParameters();
+    params.encodings = params.encodings?.length ? params.encodings : [{}];
+    params.encodings[0].scaleResolutionDownBy = 1;
+    params.encodings[0].maxBitrate = 4_000_000; // match kerbcast's unpinned hardware-encoder default (~4Mbps/camera)
+    await sender.setParameters(params);
+  } catch (err) {
+    log("setParameters failed", String(err));
+  }
+
+  await trackPromise;
+
+  await new Promise((resolve) => {
+    if (remoteVideo.readyState >= 2) return resolve();
+    remoteVideo.addEventListener("loadeddata", () => resolve(), { once: true });
+  });
+  log("remote video ready", remoteVideo.videoWidth, remoteVideo.videoHeight);
+
+  const processor = new MediaStreamTrackProcessor({ track: remoteTrack });
+  const reader = processor.readable.getReader();
+
+  const held = [];
+  const readLog = [];
+  let allocationSizeTotal = 0;
+  let firstAllocationSize = null;
+  const overallStart = performance.now();
+  let stalled = false;
+  let error = null;
+
+  try {
+    for (let i = 0; i < HOLD_TARGET + CONTINUE_READS; i++) {
+      const readStart = performance.now();
+      const { value, done } = await reader.read();
+      const readEnd = performance.now();
+      if (done) {
+        readLog.push({ i, event: "stream-done", tSinceStart: readEnd - overallStart });
+        break;
+      }
+      const waitMs = readEnd - readStart;
+      readLog.push({ i, waitMs, tSinceStart: readEnd - overallStart, held: held.length });
+      held.push(value); // never close()
+      if (typeof value.allocationSize === "function") {
+        try {
+          const size = value.allocationSize();
+          allocationSizeTotal += size;
+          if (firstAllocationSize === null) firstAllocationSize = size;
+        } catch {}
+      }
+      if (i % 20 === 0) log(`read ${i}: waitMs=${waitMs.toFixed(1)} held=${held.length}`);
+      if (i > HOLD_TARGET && waitMs > (1000 / FPS) * 5) stalled = true;
+    }
+  } catch (err) {
+    error = String(err);
+    log("read loop threw", error);
+  }
+
+  clearInterval(drawTimer);
+
+  const before = readLog.filter((r) => r.i !== undefined && r.i < HOLD_TARGET && r.waitMs !== undefined);
+  const after = readLog.filter((r) => r.i !== undefined && r.i >= HOLD_TARGET && r.waitMs !== undefined);
+  const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b.waitMs, 0) / arr.length : null);
+  const max = (arr) => (arr.length ? Math.max(...arr.map((b) => b.waitMs)) : null);
+
+  let decoderImplementation = null;
+  let powerEfficientDecoder = null;
+  try {
+    const report = await pc2.getStats();
+    report.forEach((r) => {
+      if (r.type === "inbound-rtp" && r.kind === "video") {
+        decoderImplementation = r.decoderImplementation ?? null;
+        powerEfficientDecoder = r.powerEfficientDecoder ?? null;
+      }
+    });
+  } catch {}
+
+  finish({
+    capabilities: caps,
+    heldCount: held.length,
+    stalled,
+    error,
+    firstAllocationSize,
+    allocationSizeTotalForHeld: allocationSizeTotal,
+    avgWaitMsBeforeHoldTarget: avg(before),
+    maxWaitMsBeforeHoldTarget: max(before),
+    avgWaitMsAfterHoldTarget: avg(after),
+    maxWaitMsAfterHoldTarget: max(after),
+    decoderImplementation,
+    powerEfficientDecoder,
+    readLogTail: readLog.slice(-15),
+    totalElapsedMs: performance.now() - overallStart,
+  });
+}
+
+run().catch((err) => {
+  log("run() threw", String(err), err.stack);
+  finish({ error: String(err), stack: err.stack });
+});
+</script>
+</body>
+</html>
