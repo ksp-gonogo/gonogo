@@ -10,7 +10,7 @@ import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
@@ -73,7 +73,6 @@ describe("Dashboard widget error boundary", () => {
     window.addEventListener("error", suppressErrorEvent);
   });
   afterEach(() => {
-    cleanup();
     consoleErrorSpy.mockRestore();
     window.removeEventListener("error", suppressErrorEvent);
   });

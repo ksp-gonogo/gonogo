@@ -3,7 +3,7 @@ import {
   AlarmsLauncherProvider,
 } from "@ksp-gonogo/components";
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,7 +27,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup(); // unmount before disconnect to avoid out-of-act state updates
   fake?.buffered.disconnect();
   fake = null;
 });

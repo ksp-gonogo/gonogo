@@ -8,8 +8,8 @@ import {
   registerComponent,
   useActionInput,
   useScreen,
-  useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   Field,
   FieldLabel,
@@ -73,12 +73,12 @@ function GoNoGoComponent({
 
 function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
-  // Clean home (R6 §1): `v.missionTime` streams from the SDK-derived
+  // Clean home (R6 §1): the mission clock reads the SDK-derived
   // `vessel.state.met` field (launch clock reconstructed from
-  // `vessel.identity`'s `launchUt`, see `vessel-state.ts`). `useTelemetry`'s
-  // legacy two-arg form routes through `mapTopic` onto that derived topic and
-  // rides the stream when carried, falling back to nothing off-pipeline.
-  const missionTime = useTelemetry("data", "v.missionTime");
+  // `vessel.identity`'s `launchUt`, see `vessel-state.ts`). `vessel.state` is a
+  // client-derived channel (not a raw wire Topic), so it's read via `useStream`
+  // rather than the canonical `useTelemetry(<TopicId>)`.
+  const missionTime = useStream<VesselState>("vessel.state")?.met;
   const launched = typeof missionTime === "number" && missionTime > 0;
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);

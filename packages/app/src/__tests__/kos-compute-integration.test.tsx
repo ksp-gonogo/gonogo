@@ -13,7 +13,7 @@
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { isKosScriptError, useKosWidget } from "@ksp-gonogo/data";
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
 import { FakeKosUplink } from "./fixtures/FakeKosUplink";
@@ -30,7 +30,6 @@ function makeSource(opts: { callTimeoutMs?: number } = {}) {
 
 describe("kOS compute integration", () => {
   afterEach(() => {
-    cleanup();
     FakeKosUplink.uninstall();
     clearRegistry();
   });

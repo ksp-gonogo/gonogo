@@ -16,8 +16,8 @@ import {
   SerialDeviceService,
   VirtualDeviceComponent,
 } from "@ksp-gonogo/serial";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -36,7 +36,6 @@ function memoryStorage(): Storage {
 }
 
 beforeEach(() => clearActionHandlers());
-afterEach(() => cleanup());
 
 describe("VirtualDevice widget", () => {
   it("pressing a button dispatches the mapped action", async () => {

@@ -1,5 +1,5 @@
 import { DashboardItemContext, ScreenProvider } from "@ksp-gonogo/core";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
@@ -62,7 +62,6 @@ describe("GO/NO-GO sounds", () => {
   });
 
   afterEach(() => {
-    cleanup();
     unsub?.();
     unsub = null;
     soundSvc?.dispose();
