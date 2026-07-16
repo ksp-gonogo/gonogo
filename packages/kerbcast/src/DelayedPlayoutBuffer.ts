@@ -62,10 +62,39 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
    *  when `T` holds an external resource (e.g. a WebCodecs `VideoFrame`)
    *  that needs `.close()`ing, or every discard path leaks it. */
   onDrop?(frame: StampedFrame<T>): void;
-  /** Over this, drop-oldest-non-keyframe frames until back under cap
-   *  (§5.3). Buffered size is the sum of each queued frame's `bytes`
-   *  (default 1 per frame when unset). */
+  /** Over this, evict queued frames until back under cap (§5.3). Buffered
+   *  size is the sum of each queued frame's `bytes` (default 1 per frame
+   *  when unset). Eviction UNIT depends on `gopSafeEviction` — see that
+   *  option's doc. */
   maxBufferedBytes: number;
+  /**
+   * Eviction safety mode (encoded-transform video-delay work, 2026-07-16 —
+   * `local_docs/reports/encoded-transform-spike-report.md`'s "frame
+   * ordering / GOP dependency survival" finding).
+   *
+   * Default `false`/unset — **drop-oldest-non-keyframe, one frame at a
+   * time.** Correct for payloads with no inter-frame dependency (a decoded
+   * `VideoFrame`: each is independently displayable, so `frameDelay.ts`
+   * always tags them `keyframe: false` and any single one is a safe
+   * eviction candidate). This is the ORIGINAL, unchanged behaviour — every
+   * pre-existing caller keeps it exactly as before.
+   *
+   * `true` — **drop a complete GOP run at a time, from the oldest end.**
+   * REQUIRED for encoded video: an `RTCEncodedVideoFrame` delta frame is
+   * compressed relative to a prior reference frame via motion compensation,
+   * so evicting a single mid-GOP delta frame breaks the decode chain for
+   * every subsequent delta frame until the next keyframe — silent picture
+   * corruption, not a clean drop. In this mode `enforceCap` always removes
+   * the queue's leading run up to (but not including) the next keyframe —
+   * whether that run starts with a keyframe or is a leftover delta-only
+   * prefix — as one atomic unit. The retained queue therefore always either
+   * starts exactly at a keyframe or is empty: a valid decodable prefix,
+   * never a partial one. Costs coarser-grained eviction (a whole GOP,
+   * rather than one frame, leaves at a time) — acceptable because encoded
+   * buffers are tiny relative to decoded ones (see the spike report's
+   * memory finding), so eviction should be rare-to-never in practice.
+   */
+  gopSafeEviction?: boolean;
 }
 
 /**
@@ -160,27 +189,54 @@ export class DelayedPlayoutBuffer<T = unknown> {
   }
 
   /**
-   * Over cap: drop-oldest non-keyframe frames first (mirrors telemetry's
-   * lossy channel-keyframe coalescing — §5.3). A keyframe is only ever
-   * dropped as a last resort, when every remaining queued frame is itself
-   * a keyframe and the cap is still exceeded (never stall the release
-   * clock waiting on a frame that can't fit).
+   * Over cap: evict queued frames until back under cap. See
+   * `gopSafeEviction`'s doc for the two available eviction units.
    */
   private enforceCap(): void {
     while (
       this.bufferedBytes > this.opts.maxBufferedBytes &&
       this.queue.length > 0
     ) {
-      let dropIdx = this.queue.findIndex((f) => !f.keyframe);
-      if (dropIdx === -1) {
-        if (this.queue.length <= 1) break; // nothing left to trade away
-        dropIdx = 0; // last resort: oldest keyframe
-      }
-      const [dropped] = this.queue.splice(dropIdx, 1);
-      if (dropped) {
-        this.bufferedBytes -= dropped.bytes ?? 1;
-        this.opts.onDrop?.(dropped);
-      }
+      const evicted = this.opts.gopSafeEviction
+        ? this.evictOldestGop()
+        : this.evictOldestFrame();
+      if (!evicted) break; // nothing left to trade away
     }
+  }
+
+  /** Original eviction unit: drop-oldest-non-keyframe, one frame at a time.
+   *  A keyframe is only ever dropped as a last resort, when every remaining
+   *  queued frame is itself a keyframe and the cap is still exceeded
+   *  (never stall the release clock waiting on a frame that can't fit).
+   *  Returns `false` when there's nothing left to trade away. */
+  private evictOldestFrame(): boolean {
+    let dropIdx = this.queue.findIndex((f) => !f.keyframe);
+    if (dropIdx === -1) {
+      if (this.queue.length <= 1) return false;
+      dropIdx = 0; // last resort: oldest keyframe
+    }
+    const [dropped] = this.queue.splice(dropIdx, 1);
+    if (dropped) {
+      this.bufferedBytes -= dropped.bytes ?? 1;
+      this.opts.onDrop?.(dropped);
+    }
+    return true;
+  }
+
+  /** GOP-safe eviction unit: drop the queue's leading run up to (but not
+   *  including) the next keyframe — see `gopSafeEviction`'s doc. Returns
+   *  `false` when only one frame remains (never evict the last one). */
+  private evictOldestGop(): boolean {
+    if (this.queue.length <= 1) return false; // nothing left to trade away
+    let dropCount = 1;
+    while (dropCount < this.queue.length && !this.queue[dropCount]?.keyframe) {
+      dropCount++;
+    }
+    const dropped = this.queue.splice(0, dropCount);
+    for (const frame of dropped) {
+      this.bufferedBytes -= frame.bytes ?? 1;
+      this.opts.onDrop?.(frame);
+    }
+    return dropped.length > 0;
   }
 }
