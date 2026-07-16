@@ -240,4 +240,60 @@ describe("SystemViewComponent", () => {
       expect(screen.getByText(/next encounter:\s*Mun/i)).toBeInTheDocument(),
     );
   });
+
+  // ── Vessel-marker "honest degradation" ────────────────────────────────────
+  // Regression coverage for the live-reported "green dots stacked in the
+  // centre" bug (see FleetComms/slot.test.tsx for the duplicate-render half
+  // of the fix). The vessel marker itself (`SystemDiagram`'s `VesselMarker`)
+  // is the sole surface that draws the active vessel's dot now that
+  // `FleetComms` no longer renders its own copy — it must never fabricate a
+  // position: no `vessel.orbit` sample yet (or one with a non-numeric `sma`)
+  // must draw NOTHING rather than a dot at the origin.
+
+  it("draws no vessel marker before vessel.orbit has ever been emitted", async () => {
+    const { container } = render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
+    // primeStream() with no orbit arg never emits vessel.orbit at all.
+    primeStream();
+    await waitFor(() =>
+      expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
+    );
+    expect(
+      container.querySelectorAll('circle[fill="var(--color-accent-fg)"]'),
+    ).toHaveLength(0);
+  });
+
+  it("draws exactly one vessel marker, at a real (non-origin) position, once vessel.orbit lands", async () => {
+    const { container } = render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
+    primeStream({
+      referenceBodyIndex: 0,
+      sma: 8_000_000,
+      ecc: 0.4,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 100,
+      mu: KERBIN_MU,
+    });
+    await waitFor(() => {
+      const dots = container.querySelectorAll(
+        'circle[fill="var(--color-accent-fg)"]',
+      );
+      expect(dots).toHaveLength(1);
+      const [dot] = Array.from(dots);
+      const x = Number(dot.getAttribute("cx"));
+      const y = Number(dot.getAttribute("cy"));
+      expect(Number.isFinite(x)).toBe(true);
+      expect(Number.isFinite(y)).toBe(true);
+      expect(x !== 0 || y !== 0).toBe(true);
+    });
+  });
 });
