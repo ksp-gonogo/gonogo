@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>harness D — encoded transform capture-UT mapping</title>
+</head>
+<body>
+<h1>Encoded transform capture-UT mapping spike (Phase 1)</h1>
+<canvas id="src" width="320" height="180" style="display:none"></canvas>
+<video id="remote" autoplay playsinline muted width="320" height="180"></video>
+<canvas id="render" style="display:none"></canvas>
+<pre id="log"></pre>
+<script>
+// This harness gates release on a REAL confirmedEdgeUt() computation (the
+// exact production formula, ported verbatim into worker-d.js), fed by a
+// capture-clock sample stream that is INDEPENDENT of the RTP timestamp and
+// independent of wall-clock == UT (UT is offset by an arbitrary epoch to
+// prove the mapping does not depend on UT tracking real time 1:1). This is
+// the empirical test of "approach 1" from the report — NOT arrival+delayMs.
+
+const DELAY_SECONDS = 4;
+const UT_EPOCH_OFFSET = 1_000_000; // arbitrary, deliberately not wall-clock-aligned
+const TOTAL_RUN_MS = 15000;
+const HARD_TIMEOUT_MS = 30000;
+const BITS = 32;
+const COLS = 8;
+const ROWS = 4;
+const CAPTURE_SAMPLE_INTERVAL_MS = 1000; // mirrors ~1Hz production capture-clock cadence
+const SNAPSHOT_INTERVAL_MS = 16; // mirrors ~60Hz production clock-snapshot cadence
+
+const logEl = document.getElementById("log");
+function log(...args) {
+  const line = args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+  logEl.textContent += `${line}\n`;
+  console.log("[harnessD]", line);
+}
+
+window.__harnessDResult = { done: false };
+window.__workerStats = null;
+
+function finish(result) {
+  if (window.__harnessDResult.done) return;
+  window.__harnessDResult = { ...result, done: true };
+  log("DONE", JSON.stringify(window.__harnessDResult));
+}
+
+setTimeout(() => {
+  if (!window.__harnessDResult.done) {
+    finish({ timedOut: true, partial: window.__harnessDResult, workerStats: window.__workerStats });
+  }
+}, HARD_TIMEOUT_MS);
+
+function probeCapabilities() {
+  return {
+    RTCRtpScriptTransform: typeof RTCRtpScriptTransform !== "undefined",
+    getSynchronizationSources:
+      typeof RTCRtpReceiver !== "undefined" &&
+      typeof RTCRtpReceiver.prototype.getSynchronizationSources === "function",
+  };
+}
+
+function drawSourceFrame(ctx, elapsedMs) {
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, 320, 180);
+  const blockW = 320 / COLS;
+  const blockH = 180 / ROWS;
+  for (let i = 0; i < BITS; i++) {
+    const bit = (elapsedMs >>> (BITS - 1 - i)) & 1;
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    ctx.fillStyle = bit ? "#ffffff" : "#000000";
+    ctx.fillRect(col * blockW, row * blockH, blockW, blockH);
+  }
+  ctx.fillStyle = "#ff00ff";
+  ctx.fillRect(0, 0, 6, 6);
+}
+
+function decodeRenderedFrame(ctx, width, height) {
+  const blockW = width / COLS;
+  const blockH = height / ROWS;
+  let value = 0;
+  for (let i = 0; i < BITS; i++) {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const cx = Math.floor(col * blockW + blockW / 2);
+    const cy = Math.floor(row * blockH + blockH / 2);
+    const [r, g, b] = ctx.getImageData(cx, cy, 1, 1).data;
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    const bit = luma > 128 ? 1 : 0;
+    value = (value * 2 + bit) >>> 0;
+  }
+  return value;
+}
+
+// Approach 2 probe: dump whatever RTCP/getStats fields actually exist on
+// this engine, so the report can build a real per-engine availability
+// table instead of trusting docs.
+async function probeApproach2(pc1, pc2) {
+  const probe = { getSynchronizationSources: null, pc2StatsReportTypes: {}, pc1StatsReportTypes: {} };
+  try {
+    const receiver = pc2.getReceivers().find((r) => r.track && r.track.kind === "video");
+    if (receiver && typeof receiver.getSynchronizationSources === "function") {
+      probe.getSynchronizationSources = receiver.getSynchronizationSources();
+    } else {
+      probe.getSynchronizationSources = "unsupported";
+    }
+  } catch (err) {
+    probe.getSynchronizationSources = `error: ${err}`;
+  }
+  try {
+    const report = await pc2.getStats();
+    report.forEach((r) => {
+      if (r.type === "remote-outbound-rtp" || r.type === "inbound-rtp") {
+        probe.pc2StatsReportTypes[r.type] = Object.keys(r);
+      }
+    });
+  } catch (err) {
+    probe.pc2StatsReportTypes.error = String(err);
+  }
+  try {
+    const report = await pc1.getStats();
+    report.forEach((r) => {
+      if (r.type === "remote-inbound-rtp" || r.type === "outbound-rtp") {
+        probe.pc1StatsReportTypes[r.type] = Object.keys(r);
+      }
+    });
+  } catch (err) {
+    probe.pc1StatsReportTypes.error = String(err);
+  }
+  return probe;
+}
+
+async function run() {
+  const caps = probeCapabilities();
+  log("capabilities", caps);
+
+  if (!caps.RTCRtpScriptTransform) {
+    finish({ capabilities: caps, error: "No RTCRtpScriptTransform on this engine." });
+    return;
+  }
+
+  const mainTimeOriginMs = performance.timeOrigin;
+  const worker = new Worker("./worker-d.js");
+  const workerReady = new Promise((resolve) => {
+    worker.addEventListener("message", function onReady(e) {
+      if (e.data?.kind === "worker-ready") {
+        worker.removeEventListener("message", onReady);
+        resolve();
+      }
+    });
+  });
+  worker.addEventListener("message", (e) => {
+    if (e.data?.kind === "stats") window.__workerStats = e.data;
+    else if (e.data?.kind === "error") log("worker error", e.data);
+    else if (e.data?.kind === "onrtctransform-fired") log("onrtctransform fired");
+    else if (e.data?.kind === "init-ack") log("worker init-ack, offsetMs=", e.data.offsetMs);
+  });
+  worker.addEventListener("error", (e) => log("worker.onerror", e.message, e.filename, e.lineno));
+  await workerReady;
+  worker.postMessage({ kind: "init", mainTimeOriginMs });
+
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate).catch(() => {}); };
+  pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate).catch(() => {}); };
+
+  const remoteVideo = document.getElementById("remote");
+  const renderCanvas = document.getElementById("render");
+  const renderCtx = renderCanvas.getContext("2d", { willReadFrequently: true });
+
+  let transformAttached = false;
+  let transformAttachError = null;
+
+  pc2.ontrack = (event) => {
+    log("pc2 ontrack fired");
+    remoteVideo.srcObject = event.streams[0];
+    try {
+      event.receiver.transform = new RTCRtpScriptTransform(worker, {});
+      transformAttached = true;
+    } catch (err) {
+      transformAttachError = String(err);
+      log("transform attach threw", transformAttachError);
+    }
+  };
+
+  const srcCanvas = document.getElementById("src");
+  const srcCtx = srcCanvas.getContext("2d");
+  const t0 = performance.now();
+  const elapsedMsNow = () => performance.now() - t0;
+  const trueUt = (elapsedMs) => UT_EPOCH_OFFSET + elapsedMs / 1000;
+
+  drawSourceFrame(srcCtx, 0);
+  const srcStream = srcCanvas.captureStream(10);
+  const srcTrack = srcStream.getVideoTracks()[0];
+  pc1.addTrack(srcTrack, srcStream);
+
+  const drawTimer = setInterval(() => drawSourceFrame(srcCtx, elapsedMsNow()), 50);
+
+  // --- capture-clock sample stream (~1Hz), independent of the snapshot loop ---
+  const captureTimer = setInterval(() => {
+    worker.postMessage({
+      kind: "capture-sample",
+      ut: trueUt(elapsedMsNow()),
+      warpRate: 1,
+      atMs: performance.now(),
+    });
+  }, CAPTURE_SAMPLE_INTERVAL_MS);
+  // fire one immediately so the worker isn't stalled a full second at start
+  worker.postMessage({ kind: "capture-sample", ut: trueUt(elapsedMsNow()), warpRate: 1, atMs: performance.now() });
+
+  // --- ClockFormulaSnapshot stream (~60Hz), advancing maxSampleUt every
+  // tick (delay-limited regime — sample-limited/jank pacing is a separate,
+  // already-unit-tested concern, out of scope here) ---
+  const epoch = 0;
+  const snapshotTimer = setInterval(() => {
+    const nowElapsed = elapsedMsNow();
+    const ut = trueUt(nowElapsed);
+    worker.postMessage({
+      kind: "clock-snapshot",
+      snapshot: {
+        epoch,
+        anchorWall: performance.now() / 1000,
+        anchorUt: ut,
+        maxSampleUt: ut,
+        delaySeconds: DELAY_SECONDS,
+        warpRate: 1,
+        slackSeconds: 0,
+      },
+    });
+  }, SNAPSHOT_INTERVAL_MS);
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+
+  await new Promise((resolve) => {
+    if (pc2.connectionState === "connected") return resolve();
+    pc2.addEventListener("connectionstatechange", () => { if (pc2.connectionState === "connected") resolve(); });
+    pc2.addEventListener("iceconnectionstatechange", () => {
+      if (pc2.iceConnectionState === "connected" || pc2.iceConnectionState === "completed") resolve();
+    });
+  });
+  log("pc2 connected, iceConnectionState=", pc2.iceConnectionState);
+
+  await new Promise((resolve) => {
+    if (remoteVideo.readyState >= 2) return resolve();
+    remoteVideo.addEventListener("loadeddata", () => resolve(), { once: true });
+  });
+  log("remote video has data", remoteVideo.videoWidth, remoteVideo.videoHeight);
+
+  renderCanvas.width = remoteVideo.videoWidth || 320;
+  renderCanvas.height = remoteVideo.videoHeight || 180;
+
+  const samples = [];
+  let rvfcHandle = null;
+  function sampleOnce() {
+    try {
+      renderCtx.drawImage(remoteVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+      const decodedElapsed = decodeRenderedFrame(renderCtx, renderCanvas.width, renderCanvas.height);
+      const nowElapsed = elapsedMsNow();
+      samples.push({ nowElapsed, decodedElapsed, observedDelayMs: nowElapsed - decodedElapsed });
+    } catch (err) {
+      log("sample error", String(err));
+    }
+  }
+  if (typeof remoteVideo.requestVideoFrameCallback === "function") {
+    const loop = () => {
+      remoteVideo.requestVideoFrameCallback(() => {
+        sampleOnce();
+        if (elapsedMsNow() < TOTAL_RUN_MS) loop();
+      });
+    };
+    loop();
+  } else {
+    rvfcHandle = setInterval(() => {
+      sampleOnce();
+      if (elapsedMsNow() >= TOTAL_RUN_MS) clearInterval(rvfcHandle);
+    }, 33);
+  }
+
+  // Approach 2 probe partway through, once RTP/RTCP has had time to establish.
+  await new Promise((resolve) => setTimeout(resolve, Math.min(3000, TOTAL_RUN_MS / 3)));
+  const approach2Probe = await probeApproach2(pc1, pc2);
+  log("approach2Probe", approach2Probe);
+
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, TOTAL_RUN_MS - elapsedMsNow()) + 500));
+  if (rvfcHandle) clearInterval(rvfcHandle);
+  clearInterval(drawTimer);
+  clearInterval(captureTimer);
+  clearInterval(snapshotTimer);
+
+  worker.postMessage({ kind: "get-stats" });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const steady = samples.filter((s) => s.nowElapsed > DELAY_SECONDS * 1000 + 1000 && s.nowElapsed < TOTAL_RUN_MS - 500);
+  const delays = steady.map((s) => s.observedDelayMs);
+  const mean = delays.length ? delays.reduce((a, b) => a + b, 0) / delays.length : null;
+  const variance = delays.length ? delays.reduce((a, b) => a + (b - mean) ** 2, 0) / delays.length : null;
+  const stdDev = variance !== null ? Math.sqrt(variance) : null;
+
+  let statsSnapshot = null;
+  try {
+    const report = await pc2.getStats();
+    report.forEach((r) => {
+      if (r.type === "inbound-rtp" && r.kind === "video") {
+        statsSnapshot = {
+          framesDecoded: r.framesDecoded,
+          framesReceived: r.framesReceived,
+          freezeCount: r.freezeCount,
+          packetsLost: r.packetsLost,
+        };
+      }
+    });
+  } catch (err) {
+    log("getStats error", String(err));
+  }
+
+  finish({
+    capabilities: caps,
+    delaySecondsTarget: DELAY_SECONDS,
+    transformAttached,
+    transformAttachError,
+    sampleCount: samples.length,
+    steadySampleCount: steady.length,
+    meanDelayMs: mean,
+    stdDevDelayMs: stdDev,
+    minDelayMs: delays.length ? Math.min(...delays) : null,
+    maxDelayMs: delays.length ? Math.max(...delays) : null,
+    firstFewSamples: samples.slice(0, 8),
+    lastFewSamples: samples.slice(-8),
+    statsSnapshot,
+    workerStats: window.__workerStats,
+    approach2Probe,
+  });
+}
+
+run().catch((err) => {
+  log("run() threw", String(err), err.stack);
+  finish({ error: String(err), stack: err.stack });
+});
+</script>
+</body>
+</html>

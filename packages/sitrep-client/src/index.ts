@@ -186,6 +186,14 @@ export type {
 } from "./view-clock";
 export { ViewClock } from "./view-clock";
 export type {
+  ClockFormulaInputs,
+  ClockFormulaSnapshot,
+} from "./view-clock-formula";
+export {
+  computeConfirmedEdgeUt,
+  computeUtNowEstimate,
+} from "./view-clock-formula";
+export type {
   StreamFrameInfo,
   WebSocketCtor,
   WebSocketLike,
