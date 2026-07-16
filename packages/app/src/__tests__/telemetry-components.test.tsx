@@ -27,7 +27,7 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -51,7 +51,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
   fake?.buffered.disconnect();
   fake = null;
   clearBodies();

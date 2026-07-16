@@ -13,7 +13,7 @@ import {
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -77,7 +77,6 @@ function registerTrivial() {
 
 describe("ComponentOverlay — add → configure → persist", () => {
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

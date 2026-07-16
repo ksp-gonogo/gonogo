@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AnalyticsConsentModal } from "./AnalyticsConsentModal";
@@ -8,7 +8,6 @@ import {
 } from "./AnalyticsConsentService";
 
 afterEach(() => {
-  cleanup();
   localStorage.clear();
 });
 

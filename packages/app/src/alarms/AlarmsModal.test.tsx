@@ -3,9 +3,9 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmsModal } from "./AlarmsModal";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
@@ -60,10 +60,6 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
 
 describe("AlarmsModal onFire editor", () => {
   beforeEach(registerStubDataSource);
-  afterEach(() => {
-    cleanup();
-    clearRegistry();
-  });
 
   it("attaches an action group to a new alarm and forwards it via onAdd", async () => {
     const user = userEvent.setup();
@@ -186,10 +182,6 @@ function emitData(key: string, value: unknown) {
 
 describe("AlarmsModal recommended presets", () => {
   beforeEach(registerStubDataSource);
-  afterEach(() => {
-    cleanup();
-    clearRegistry();
-  });
 
   it("hides the Recommended section when no preset data is live", () => {
     render(
@@ -356,10 +348,6 @@ describe("AlarmsModal threshold trigger key picker", () => {
   // here and the picker showed nothing but "No matches", making it
   // impossible to set a threshold alarm at all.
   beforeEach(clearRegistry);
-  afterEach(() => {
-    cleanup();
-    clearRegistry();
-  });
 
   it("offers real telemetry keys with no 'data' DataSource registered", async () => {
     const user = userEvent.setup();

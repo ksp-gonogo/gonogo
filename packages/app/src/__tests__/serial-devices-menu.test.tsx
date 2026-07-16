@@ -8,8 +8,8 @@ import {
   SerialDevicesMenu,
 } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -37,8 +37,6 @@ async function makeEmptyService(): Promise<SerialDeviceService> {
   for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
   return svc;
 }
-
-afterEach(() => cleanup());
 
 describe("SerialDevicesMenu", () => {
   it("creates a device type via the UI and reflects it in the service", async () => {

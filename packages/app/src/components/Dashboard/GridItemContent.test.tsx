@@ -14,7 +14,7 @@ import {
   clearRegistry,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
@@ -58,7 +58,6 @@ describe("GridItemContent — draggableCancel structural guard", () => {
   });
 
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

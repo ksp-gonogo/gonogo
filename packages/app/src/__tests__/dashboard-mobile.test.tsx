@@ -9,7 +9,7 @@
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";
@@ -90,7 +90,6 @@ describe("Dashboard — mobile / touch path", () => {
   });
 
   afterEach(() => {
-    cleanup();
     vi.unstubAllGlobals();
   });
 

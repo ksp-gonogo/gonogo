@@ -1,5 +1,6 @@
-import { useDataValue } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
+import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useModal } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -195,10 +196,10 @@ function parseStringArray(raw: unknown): string[] {
 // ── Component ────────────────────────────────────────────────────────────
 
 export function FlightOutcomeBanner() {
-  const recoveryHasRecent = useDataValue("data", "recovery.hasRecent") === true;
-  const recoveryRaw = useDataValue("data", "recovery.lastSummary");
-  const crashHasRecent = useDataValue("data", "crash.hasRecent") === true;
-  const crashRaw = useDataValue("data", "crash.lastCrash");
+  const recoveryHasRecent = useStream<boolean>("recovery.hasRecent") === true;
+  const recoveryRaw = useTelemetry("recovery.lastSummary");
+  const crashHasRecent = useStream<boolean>("crash.hasRecent") === true;
+  const crashRaw = useTelemetry("crash.lastCrash");
   const currentFlight = useFlight();
 
   const recovery = useMemo(

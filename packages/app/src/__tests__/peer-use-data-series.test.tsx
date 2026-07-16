@@ -1,7 +1,7 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
-import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, render } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";
 
@@ -48,14 +48,10 @@ function LastValue({ sourceId, k }: { sourceId: "data"; k: string }) {
 
 describe("useDataSeries against PeerClientDataSource", () => {
   beforeEach(() => {
-    clearRegistry();
-  });
-
-  afterEach(() => {
-    // Unmount before clearing so the registry-change listener inside
-    // useDataSourceSubscription doesn't fire a setState into a still-
-    // mounted component (which would land outside any act() scope).
-    cleanup();
+    // Clear at the START of each test, not in an afterEach: Testing Library's
+    // auto-cleanup unmounts AFTER any file-level afterEach, so clearing on
+    // teardown would fire useDataSourceSubscription's registry-change listener
+    // into a still-mounted component (an out-of-act update).
     clearRegistry();
   });
 

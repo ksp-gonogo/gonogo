@@ -5,9 +5,9 @@ import {
   useActionInput,
   useDashboardItemId,
 } from "@ksp-gonogo/core";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import type {
@@ -63,8 +63,10 @@ function makeFakeHost(initial: PushedWidget[]): PushHostService {
 }
 
 describe("PushedDashboardOverlay", () => {
-  afterEach(() => {
-    cleanup();
+  beforeEach(() => {
+    // Clear at the START of each test, not in an afterEach: Testing Library's
+    // auto-cleanup unmounts AFTER any file-level afterEach, so clearing on
+    // teardown would re-render a still-mounted overlay (an out-of-act update).
     clearRegistry();
   });
 

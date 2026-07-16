@@ -1,4 +1,4 @@
-import { useDataValue } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -54,7 +54,7 @@ function writeStoredScene(scene: string): void {
 }
 
 export function SceneChangeBanner() {
-  const sceneRaw = useDataValue("data", "kc.scene");
+  const sceneRaw = useTelemetry("spaceCenter.scene")?.scene;
   const scene = typeof sceneRaw === "string" ? sceneRaw : null;
 
   // Seed prev-scene from localStorage so a station that reloads (or just

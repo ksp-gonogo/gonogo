@@ -24,7 +24,7 @@ import {
   SerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type FakeTelemachusHandle,
@@ -38,7 +38,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
   fake?.buffered.disconnect();
   fake = null;
   clearActionHandlers();

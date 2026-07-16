@@ -10,9 +10,9 @@ import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   Dashboard,
   type DashboardConfig,
@@ -126,10 +126,6 @@ const CONFIG: DashboardConfig = {
 beforeEach(() => {
   clearRegistry();
   localStorage.clear();
-});
-
-afterEach(() => {
-  cleanup();
 });
 
 describe("Dashboard tabbed config modal", () => {
