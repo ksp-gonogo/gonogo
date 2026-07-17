@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -14,8 +14,10 @@ import { WarpControlComponent } from "./index";
  * fires" — the test-green-but-semantically-drifted risk this adapter
  * exists to close.
  */
-afterEach(() => {
-  cleanup();
+// Reset the action-handler registry at the START of each test — the prior
+// test's tree is already unmounted (RTL auto-cleanup) by then, so this never
+// fires against a live component.
+beforeEach(() => {
   clearActionHandlers();
 });
 

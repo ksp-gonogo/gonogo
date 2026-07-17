@@ -1,38 +1,29 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import reentryWarning from "./__fixtures__/reentry-warning.json";
 import { ThermalStatusComponent } from "./index";
 
 /**
- * ThermalStatus's behavior-preservation golden dual-run (mirrors
- * `WarpControl/dual-run.test.tsx`, the pilot): the SAME thermal state,
- * rendered once off the legacy `DataSource` and once off the stream, must
- * produce byte-identical DOM at `delay=0`.
+ * ThermalStatus's reads (`index.tsx`: `useTelemetry("vessel.thermal")?.<field>`)
+ * are ALL ONE-ARG canonical reads now — none of them has a legacy fallback at
+ * all. The original version of this test rendered the SAME reentry-warning
+ * state once off a legacy `DataSource` (`snapshotWidgetMode`, which mounts no
+ * `TelemetryProvider`) and once off the stream, asserting byte-identical DOM;
+ * that comparison is no longer possible — the legacy leg now renders nothing
+ * but "No thermal data", since every one of its reads is stream-only. Same
+ * underlying cause (full canonical migration, not a test bug) as every other
+ * widget's own `dual-run.test.tsx` dropping its now-impossible legacy leg.
  *
- * `reentry-warning` exercises the "warm" band (0.81 ratio — yellow tone,
- * distinct from "nominal") on the hottest-part row. Every `therm.*` key this
- * widget reads is now MAPPED (`map-topic.ts`'s thermal-detail batch un-gapped
- * `hottestPartName` + the engine quartet on top of the headline-ratio/
- * heat-shield keys already mapped) — no legacy AUX source is needed
- * alongside the `TelemetryProvider` any more.
+ * What remains, and is still worth its own file: the real recorded
+ * `reentry-warning` fixture — hottest part in the "warm" band (81% ratio,
+ * distinct yellow tone from "nominal"), hot heat shield under flux, cool
+ * throttled-off engine — run genuinely through the stream pipeline.
  */
-afterEach(() => {
-  cleanup();
-});
-
-describe("ThermalStatus — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same thermal state", async () => {
+describe("ThermalStatus — real reentry-warning fixture render off the stream (delay=0)", () => {
+  it("renders the hottest-part warm band, heat shield flux, and cool engine off the stream, no legacy leg", async () => {
     const mode = { name: "default-8x7", w: 8, h: 7 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: ThermalStatusComponent,
-      fixture: reentryWarning,
-      mode,
-      connectSource: true,
-    });
 
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.thermal"],
@@ -70,8 +61,15 @@ describe("ThermalStatus — behavior-preservation golden dual-run (delay=0)", ()
       }
     });
 
-    const streamHtml = stripVolatile(container.innerHTML);
-
-    expect(streamHtml).toBe(legacyHtml);
+    expect(screen.getByText("Heat Shield (2.5m)")).toBeInTheDocument();
+    // "warm" appears twice — the compact pill and the hottest-part row's tag.
+    expect(screen.getAllByText("warm").length).toBe(2);
+    // skinMaxTemp (2400 K) -> kelvinToCelsius -> 2127°C.
+    expect(screen.getByText("/ 2127°C max")).toBeInTheDocument();
+    expect(screen.getByText("1280°C")).toBeInTheDocument();
+    expect(screen.getByText("· flux 3.25 MW")).toBeInTheDocument();
+    expect(screen.getByText("76.9°C")).toBeInTheDocument();
+    // Cool engine, no alert banner.
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

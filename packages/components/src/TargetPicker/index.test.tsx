@@ -3,9 +3,9 @@ import {
   clearAugments,
   DashboardItemContext,
   getAugmentsForSlot,
-  type MockDataSource,
   registerAugment,
 } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,10 +22,13 @@ import { TargetPickerComponent } from "./index";
 
 /**
  * The body tree rides `system.bodies` off the stream (`useCelestialBodies`);
- * the target-detail scalars (`tar.name` / `tar.type` / `tar.distance` /
- * `tar.o.relativeVelocity`) and the `tar.*` actions still read through the
- * two-arg `useTelemetry("data", ...)` legacy shim, which — with the mounted
- * provider carrying only `system.bodies` — falls back to this `MockDataSource`.
+ * the target-detail scalars now read canonically too — `tarName` off
+ * `vessel.target.name` and `tarType`/`tarDistance`/`tarRelVel` off the
+ * `vessel.state` derived channel (`targetKind`/`targetDistance`/
+ * `targetRelativeSpeed`), both via one-arg stream reads with no legacy
+ * fallback. `MockDataSource` stays wired only for the `tar.*` command
+ * execution (`useExecuteAction("data")`) and the `tar.availableVessels`
+ * legacy status read (`useDataStreamStatus`, no one-arg form yet).
  */
 const KEYS: DataKey[] = [
   { key: "v.name" },
@@ -51,14 +54,12 @@ function renderPicker(
 
 describe("TargetPickerComponent", () => {
   let dataFixture: MockDataSourceFixture;
-  let source: MockDataSource;
   let fixture: StreamFixture;
   let onExecute: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     onExecute = vi.fn();
     dataFixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = dataFixture.source;
     fixture = setupStreamFixture({
       carriedChannels: ["system.bodies"],
       pinnedUt: 0,
@@ -127,7 +128,7 @@ describe("TargetPickerComponent", () => {
       </fixture.Provider>,
     );
     act(() => {
-      source.emit("tar.name", "No Target Selected.");
+      fixture.emit("vessel.target", { name: "No Target Selected." });
     });
     expect(screen.getByText(/No target set/i)).toBeInTheDocument();
     expect(screen.queryByText(/No Target Selected\./)).not.toBeInTheDocument();
@@ -200,14 +201,37 @@ describe("TargetPickerComponent", () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     act(() => {
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 1500);
-      source.emit("tar.o.relativeVelocity", -2.5);
+      // tarType/tarDistance/tarRelVel read off the `vessel.state` derived
+      // channel, which stays a whole-record `undefined` until its
+      // `vessel.orbit`/`vessel.flight` inputs land (deriveVesselState's own
+      // "not whole yet" gate) — Loaded quality skips the OnRails Kepler
+      // solve entirely, same minimal-unblock pattern as AtmosphereProfile/
+      // MapView's stream tests.
+      fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
+      fixture.emit("vessel.flight", {
+        altitudeAsl: 0,
+        verticalSpeed: 0,
+        surfaceSpeed: 0,
+        orbitalSpeed: 0,
+      });
+      // kind: 0 -> targetKind "Vessel" (TARGET_KIND_NAMES). relativePosition
+      // magnitude 1500 -> targetDistance; dot(relPos, relVel)/|relPos| ==
+      // -2.5 -> targetRelativeSpeed (closing).
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: 0,
+        relativePosition: { x: 1500, y: 0, z: 0 },
+        relativeVelocity: { x: -2.5, y: 0, z: 0 },
+      });
     });
     await user.click(screen.getByRole("tab", { name: "Current" }));
-    expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
-    expect(screen.getByText("Vessel")).toBeInTheDocument();
+    // The target-detail fields land off the derived `vessel.state` channel,
+    // one scheduled store frame after the raw `vessel.target` emit — waitFor
+    // tolerates that microtask hop instead of asserting synchronously.
+    await waitFor(() => {
+      expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
+      expect(screen.getByText("Vessel")).toBeInTheDocument();
+    });
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
     await waitFor(() => {

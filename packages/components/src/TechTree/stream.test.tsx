@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
 
@@ -12,8 +12,10 @@ import { TechTreeComponent } from "./index";
  * `spaceCenter.scene.scene`) all stream now — no legacy `DataSource` aux
  * needed for this widget any more.
  */
-afterEach(() => {
-  cleanup();
+// Reset the action-handler registry at the START of each test — the prior
+// test's tree is already unmounted (RTL auto-cleanup) by then, so this never
+// fires against a live component.
+beforeEach(() => {
   clearActionHandlers();
 });
 

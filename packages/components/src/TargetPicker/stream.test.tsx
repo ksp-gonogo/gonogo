@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -22,8 +22,11 @@ import { TargetPickerComponent } from "./index";
  * `bodyIndex` to "Kerbin". A small `setupMockDataSource` AUX still feeds the
  * legacy-shim target-detail reads (`tar.name`/`tar.type`).
  */
-afterEach(() => {
-  cleanup();
+// Reset the action-handler registry at the START of each test — the prior
+// test's component is already unmounted by then (RTL auto-cleanup, plus each
+// test's own inline teardownMockDataSource), so this never fires against a
+// live component.
+beforeEach(() => {
   clearActionHandlers();
 });
 

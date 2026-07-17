@@ -5,7 +5,7 @@ import {
   kelvinToCelsius,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
@@ -120,18 +120,20 @@ function ThermalStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  const rawHottestName = useDataValue("data", "therm.hottestPartName");
-  const rawHottestTempC = useDataValue("data", "therm.hottestPartTemp");
-  const rawHottestMaxK = useDataValue("data", "therm.hottestPartMaxTemp");
-  const rawHottestRatio = useDataValue("data", "therm.hottestPartTempRatio");
+  const rawHottestName = useTelemetry("vessel.thermal")?.hottestPart?.name;
+  const rawHottestTempC = useTelemetry("vessel.thermal")?.hottestPart?.skinTemp;
+  const rawHottestMaxK =
+    useTelemetry("vessel.thermal")?.hottestPart?.skinMaxTemp;
+  const rawHottestRatio = useTelemetry("vessel.thermal")?.maxInternalTempRatio;
 
-  const rawEngineTempK = useDataValue("data", "therm.hottestEngineTemp");
-  const rawEngineMaxK = useDataValue("data", "therm.hottestEngineMaxTemp");
-  const rawEngineRatio = useDataValue("data", "therm.hottestEngineTempRatio");
-  const rawEngineOverheat = useDataValue("data", "therm.anyEnginesOverheating");
+  const rawEngineTempK = useTelemetry("vessel.thermal")?.hottestEngineTemp;
+  const rawEngineMaxK = useTelemetry("vessel.thermal")?.hottestEngineMaxTemp;
+  const rawEngineRatio = useTelemetry("vessel.thermal")?.hottestEngineTempRatio;
+  const rawEngineOverheat =
+    useTelemetry("vessel.thermal")?.anyEnginesOverheating;
 
-  const rawShieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
-  const rawShieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
+  const rawShieldTempC = useTelemetry("vessel.thermal")?.heatShieldTempCelsius;
+  const rawShieldFluxKw = useTelemetry("vessel.thermal")?.heatShieldFlux;
 
   // Connectivity indicator (mirroring the WarpControl pilot).
   // `therm.hottestPartTemp` is the widget's one representative MAPPED key

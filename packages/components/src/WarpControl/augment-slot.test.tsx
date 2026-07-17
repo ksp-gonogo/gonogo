@@ -5,8 +5,8 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -18,8 +18,10 @@ import { WarpControlComponent } from "./index";
  * hatch). This only EXPOSES the slots; no built-in augment fills them, so an
  * unaugmented widget renders exactly as before — the slots compose nothing.
  */
-afterEach(() => {
-  cleanup();
+// Reset the action-handler + augment registries at the START of each test —
+// the prior test's tree is already unmounted (RTL auto-cleanup) by then, so
+// these mutations never fire against a live component.
+beforeEach(() => {
   clearActionHandlers();
   clearAugments();
 });

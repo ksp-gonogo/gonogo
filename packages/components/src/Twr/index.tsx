@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   EmptyState,
   Gauge,
@@ -50,7 +51,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // client-side off `vessel.propulsion`. Once that channel is carried the
   // headline value reads straight off the stream; no Telemachus read remains
   // for this widget's live value.
-  const twr = useTelemetry<number>("data", "dv.currentTWR");
+  const twr = useStream<VesselState>("vessel.state")?.twr ?? undefined;
   // The sparkline history stays on `useDataSeries` (its own stream shim).
   // A DERIVED topic has a live value but no buffered history, so this series
   // resolves off the legacy path until a raw-input-backed history exists —

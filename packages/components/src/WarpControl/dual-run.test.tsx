@@ -10,8 +10,8 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, cleanup, render, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -38,8 +38,11 @@ import { WarpControlComponent } from "./index";
  * TelemetryProvider, exercising the shim's MIXED-source coexistence: warp
  * state streams, scene stays legacy, on the very same render.
  */
-afterEach(() => {
-  cleanup();
+// Reset the action-handler registry at the START of each test — the prior
+// test's tree is already unmounted (RTL auto-cleanup, plus each test's own
+// inline teardownMockDataSource) by then, so this never fires against a live
+// component.
+beforeEach(() => {
   clearActionHandlers();
 });
 
