@@ -1,22 +1,41 @@
-import {
-  DashboardItemContext,
-  type DataKey,
-  type MockDataSource,
-} from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { act, render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactElement } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { parseRotors, RotorTachometerComponent } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "parts.robotics" },
-  { key: "robotics.available" },
-];
+/**
+ * RotorTachometer runs genuinely off the real `TelemetryProvider`/
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` —
+ * `parts.robotics` is its whole identity list (filtered to `type === "rotor"`)
+ * and `robotics.available` its DLC-presence flag, both canonical stream reads
+ * (`useTelemetry`, no legacy fallback). Command dispatch (`robotics.rotor.*`)
+ * still routes through the legacy `DataSource`'s `execute()` — no mod command
+ * handler exists for it yet — so a plain `setupMockDataSource` registered
+ * under `"data"` captures those calls; it carries no keys of its own.
+ */
+
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearActionHandlers();
+});
+
+const CARRIED = ["parts.robotics", "robotics.available"];
 
 const rotor = (
   over: Record<string, unknown> = {},
@@ -36,127 +55,165 @@ const rotor = (
   ...over,
 });
 
-function renderRotor() {
+function renderRotor(fixture: ReturnType<typeof setupStreamFixture>) {
   return render(
-    <DashboardItemContext.Provider value={{ instanceId: "rt" }}>
-      <RotorTachometerComponent config={{}} id="rt" />
-    </DashboardItemContext.Provider>,
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "rt" }}>
+        <RotorTachometerComponent config={{}} id="rt" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
   );
 }
 
 describe("RotorTachometerComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-  });
-
-  it("shows the DLC-absent state when robotics.available is false", () => {
-    renderRotor();
+  it("shows the DLC-absent state when robotics.available is false", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    renderRotor(fixture);
     act(() => {
-      source.emit("robotics.available", false);
-      source.emit("parts.robotics", []);
+      fixture.emit("robotics.available", { available: false });
+      fixture.emit("parts.robotics", []);
     });
     expect(
-      screen.getByText(/Breaking Ground not installed/i),
+      await screen.findByText(/Breaking Ground not installed/i),
     ).toBeInTheDocument();
   });
 
-  it("shows the no-rotors state when available but the list is empty", () => {
-    renderRotor();
-    act(() => {
-      source.emit("robotics.available", true);
-      source.emit("parts.robotics", []);
+  it("shows the no-rotors state when available but the list is empty", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
     });
-    expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
-  });
-
-  it("shows the no-rotors state when the key is absent", () => {
-    renderRotor();
-    // Nothing emitted — both keys undefined.
-    expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
-  });
-
-  it("ignores hinge/piston entries in the same parts.robotics array", () => {
-    renderRotor();
+    renderRotor(fixture);
     act(() => {
-      source.emit("robotics.available", true);
-      source.emit("parts.robotics", [
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("parts.robotics", []);
+    });
+    expect(
+      await screen.findByText(/No rotors on this vessel/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the no-rotors state when nothing has arrived", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    renderRotor(fixture);
+    expect(
+      await screen.findByText(/No rotors on this vessel/i),
+    ).toBeInTheDocument();
+  });
+
+  it("ignores hinge/piston entries in the same parts.robotics array", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    renderRotor(fixture);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("parts.robotics", [
         { partId: "5", partName: "Arm Hinge", type: "hinge" },
       ]);
     });
-    expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/No rotors on this vessel/i),
+    ).toBeInTheDocument();
   });
 
   it("renders live RPM and fires setRpmLimit when raising the cap", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [],
+      onExecute,
+      connectSource: true,
+    });
 
-    renderRotor();
+    renderRotor(fixture);
     act(() => {
-      source.emit("robotics.available", true);
-      source.emit("parts.robotics", [
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("parts.robotics", [
         rotor({ currentRPM: 120, rpmLimit: 200 }),
       ]);
     });
 
-    expect(screen.getByText("120")).toBeInTheDocument(); // gauge value label
+    expect(await screen.findByText("120")).toBeInTheDocument(); // gauge value label
 
     await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
     expect(onExecute).toHaveBeenCalledWith(
       "robotics.rotor.setRpmLimit[101,210]",
     );
+
+    teardownMockDataSource(legacyAux);
   });
 
   it("toggles the motor with the inverse of current state", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    renderRotor();
-    act(() => {
-      source.emit("robotics.available", true);
-      source.emit("parts.robotics", [rotor({ servoMotorIsEngaged: true })]);
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [],
+      onExecute,
+      connectSource: true,
     });
 
-    await user.click(screen.getByRole("button", { name: /Motor on/i }));
+    renderRotor(fixture);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("parts.robotics", [rotor({ servoMotorIsEngaged: true })]);
+    });
+
+    await user.click(await screen.findByRole("button", { name: /Motor on/i }));
     expect(onExecute).toHaveBeenCalledWith(
       "robotics.rotor.setMotor[101,false]",
     );
+
+    teardownMockDataSource(legacyAux);
   });
 
   it("selects a rotor from the list and targets it", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [],
+      onExecute,
+      connectSource: true,
+    });
 
-    renderRotor();
+    renderRotor(fixture);
     act(() => {
-      source.emit("robotics.available", true);
-      source.emit("parts.robotics", [
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("parts.robotics", [
         rotor({ partId: "101", partName: "Rotor A", rpmLimit: 200 }),
         rotor({ partId: "202", partName: "Rotor B", rpmLimit: 50 }),
       ]);
     });
 
-    await user.click(screen.getByRole("button", { name: /Rotor B/i }));
+    await user.click(await screen.findByRole("button", { name: /Rotor B/i }));
     await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
     expect(onExecute).toHaveBeenCalledWith(
       "robotics.rotor.setRpmLimit[202,60]",
     );
+
+    teardownMockDataSource(legacyAux);
   });
 });
 
