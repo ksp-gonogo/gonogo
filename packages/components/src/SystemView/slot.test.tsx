@@ -4,7 +4,7 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -33,6 +33,10 @@ const KERBIN_MU = 3.5316e12;
 
 describe("SystemView — augment slots (spec §4)", () => {
   let fixture: StreamFixture;
+  // Unmount each rendered tree BEFORE clearing the augment registry — a clear
+  // firing on a still-mounted widget is a state update outside act(). RTL
+  // auto-cleanup runs after this file's afterEach, too late to unmount first.
+  const renderedTrees: Array<() => void> = [];
 
   beforeEach(() => {
     clearRegistry();
@@ -49,18 +53,20 @@ describe("SystemView — augment slots (spec §4)", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearAugments();
   });
 
   // Drive the widget into its diagram layout (frame = Kerbin, children present)
   // so both the header slots AND the diagram-overlay slot render.
   async function renderDiagram() {
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
     act(() => {
       fixture.emit("system.bodies", {
         bodies: [

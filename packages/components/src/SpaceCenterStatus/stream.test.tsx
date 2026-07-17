@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -24,8 +24,15 @@ import { SpaceCenterStatusComponent } from "./index";
  * `spaceCenter.launchSites` and proves `kc.padVesselTitle` reads the streamed
  * pad-occupancy entry rather than the legacy AUX.
  */
+// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// clearActionHandlers() firing on a still-mounted widget is a state update
+// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
+// to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearActionHandlers();
 });
 
@@ -49,13 +56,14 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       connectSource: true,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-stream" }}>
           <SpaceCenterStatusComponent id="scs-stream" w={6} h={7} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
     expect(fixture.transport.isSubscribed("spaceCenter.partsAvailable")).toBe(
@@ -97,13 +105,14 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       connectSource: true,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-tiny" }}>
           <SpaceCenterStatusComponent id="scs-tiny" w={2} h={3} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       legacyAux.source.emit("kc.padOccupied", false);
@@ -136,13 +145,14 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       connectSource: true,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-facilities" }}>
           <SpaceCenterStatusComponent id="scs-facilities" w={6} h={7} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
@@ -196,13 +206,14 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       connectSource: true,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-pad-vessel" }}>
           <SpaceCenterStatusComponent id="scs-pad-vessel" w={6} h={7} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     expect(fixture.transport.isSubscribed("spaceCenter.launchSites")).toBe(
       true,

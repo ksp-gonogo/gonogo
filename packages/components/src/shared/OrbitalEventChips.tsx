@@ -1,4 +1,5 @@
-import { formatDuration, useDataValue } from "@ksp-gonogo/core";
+import { formatDuration } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import styled from "styled-components";
 
 /**
@@ -13,11 +14,12 @@ import styled from "styled-components";
  * `o.nextApsisType`: -1 = Pe, 1 = Ap, 0 = N/A (hyperbolic past Pe).
  */
 export function OrbitalEventChips() {
-  const enc = useDataValue("data", "o.encounterExists");
-  const encBody = useDataValue("data", "o.encounterBody");
-  const encTime = useDataValue("data", "o.encounterTime");
-  const apsisType = useDataValue("data", "o.nextApsisType");
-  const timeToApsis = useDataValue("data", "o.timeToNextApsis");
+  const vesselState = useStream<VesselState>("vessel.state");
+  const enc = vesselState?.encounterExists;
+  const encBody = vesselState?.encounterBody;
+  const encTime = vesselState?.encounterTime;
+  const apsisType = vesselState?.nextApsisType;
+  const timeToApsis = vesselState?.timeToNextApsis;
 
   const encounterKind: "encounter" | "escape" | null =
     typeof enc === "number" && enc === 1

@@ -1,5 +1,5 @@
 import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
-import { AugmentSlot, registerComponent, useDataValue } from "@ksp-gonogo/core";
+import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -81,20 +81,17 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // channel engine is itself change-gated, so no separate seq-driven
   // refetch is needed to keep steady-state wire bytes down.
   const topology = useTopology();
-  const hottestPartName = useDataValue("data", "therm.hottestPartName");
+  const hottestPartName = useTelemetry("vessel.thermal")?.hottestPart?.name;
   // Ambient skin temperature — drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
-  // still show on top.
-  // `v.externalTemperature` is mapped on the wire
-  // (map-topic.ts's TELEMACHUS_CLEAN_HOMES routes it to the raw field
-  // `vessel.flight.externalTemperature`, the same channel AtmosphereProfile's
-  // skin-temp read now rides) and streams with zero call-site change here
-  // too.
-  const externalTemperature = useDataValue("data", "v.externalTemperature");
+  // still show on top. Read straight off `vessel.flight` (the same channel
+  // AtmosphereProfile's skin-temp read rides).
+  const externalTemperature =
+    useTelemetry("vessel.flight")?.externalTemperature;
   // Current throttle — gates the engine-flame overlay so a staged-but-
   // idle engine doesn't render thrust. Forwarded through ShipDiagram
   // to ShipDiagramSvg.
-  const throttleRaw = useDataValue<number>("data", "f.throttle");
+  const throttleRaw = useTelemetry("vessel.control")?.throttle;
   const throttle =
     typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
       ? throttleRaw

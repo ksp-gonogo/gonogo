@@ -4,7 +4,7 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
@@ -26,6 +26,12 @@ import {
 const TOPOLOGY = fuellinePostStage2["v.topology"];
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 
+// Unmount each rendered tree BEFORE clearing the action-handler/augment
+// registries — a clear firing on a still-mounted widget is a state update
+// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
+// to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 // Drive the widget to its diagram layout (topology present with parts), where
 // both the `badges` header slot and the `overlay` diagram slot render.
 async function renderDiagram() {
@@ -33,11 +39,12 @@ async function renderDiagram() {
     carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
   });
-  render(
+  const { unmount } = render(
     <fixture.Provider>
       <ShipMapComponent id="ship-map-slot" w={8} h={10} />
     </fixture.Provider>,
   );
+  renderedTrees.push(unmount);
   act(() => {
     fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
   });
@@ -49,7 +56,8 @@ async function renderDiagram() {
 
 describe("ShipMap — augment slots (spec §4)", () => {
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearActionHandlers();
     // Wipe any test augment so it never leaks into the snapshot suite.
     clearAugments();

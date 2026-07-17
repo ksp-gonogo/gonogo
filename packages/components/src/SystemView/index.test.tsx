@@ -1,5 +1,5 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -113,10 +113,6 @@ describe("SystemViewComponent", () => {
       ],
       pinnedUt: 100,
     });
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   // Body tree + vessel identity + orbit — everything off the stream.

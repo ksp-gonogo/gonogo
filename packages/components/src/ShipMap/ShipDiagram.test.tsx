@@ -1,5 +1,5 @@
-import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 
@@ -66,8 +66,6 @@ const PARTS: ShipMapPart[] = [
 ];
 
 describe("ShipDiagram", () => {
-  afterEach(cleanup);
-
   it("renders one group per part and edges between parent/child pairs", () => {
     const { container } = render(
       <ShipDiagram parts={PARTS} width={200} height={200} />,
