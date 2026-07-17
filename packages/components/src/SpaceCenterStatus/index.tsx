@@ -5,9 +5,10 @@ import {
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
+import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
@@ -168,41 +169,32 @@ function SpaceCenterStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
-  const facilitiesRaw = useDataValue("data", "kc.facilityLevels");
-  const partsAvailable = useDataValue("data", "kc.partsAvailable");
-  const launchSite = useDataValue("data", "kc.launchSite") as
-    | string
-    | undefined;
-  const padOccupied = useDataValue("data", "kc.padOccupied") as
-    | boolean
-    | undefined;
-  const padVesselTitle = useDataValue("data", "kc.padVesselTitle") as
-    | string
-    | undefined;
-  const scene = useDataValue("data", "kc.scene") as string | undefined;
-  const careerFunds = useDataValue("data", "career.funds") as
-    | number
-    | undefined;
-  // career.funds reads through career.status.economy.funds.
-  // kc.facilityLevels reads through career.status.facilities
-  // too — parseFacilityLevels accepts the enum-keyed
-  // currentTier/maxTier/upgradeCost shape (career-capture-extend-report.md)
-  // alongside the legacy short-code shape, so both the funds readout AND
-  // the facility tier/upgrade-cost grid stream live off career.status.
-  // kc.scene reads through spaceCenter.scene.scene
-  // too — a plain 2-segment raw-field walk (SpaceCenterScene.scene,
-  // already an enum-name string on the wire) — so this same
-  // useDataValue("data", "kc.scene") call now rides the stream via the
-  // mapTopic shim, zero code change here. partsAvailable/launchSite/
-  // padOccupied/padVesselTitle stay legacy: partsAvailable has no wire
-  // topic at all (excluded editor slice — KNOWN_GAPS), and the other
-  // three are only derivable from spaceCenter.launchSites via an
-  // array->scalar "pick the active pad" reduction that
-  // was left optional/deferred — no CLEAN_HOMES entry
-  // exists for them yet, so they keep falling back to legacy
-  // automatically. kc.upgradeFacility[...] (the spend command) still has
-  // no command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
-  // automatically — reads migrate first, commands come later.
+  // Canonical Topic reads (former Telemachus kc.*/career.* keys resolved
+  // through map-topic.ts):
+  //  - kc.facilityLevels -> career.status.facilities; parseFacilityLevels
+  //    accepts the enum-keyed currentTier/maxTier/upgradeCost shape
+  //    (career-capture-extend-report.md) alongside the legacy short-code shape.
+  //  - career.funds -> career.status.economy.funds (both off the one
+  //    career.status Topic read).
+  //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
+  //    (plain fields on the one SpaceCenterScene Topic).
+  //  - kc.partsAvailable -> spaceCenter.partsAvailable.count.
+  //  - kc.padOccupied / kc.padVesselTitle -> the DERIVED spaceCenter.state
+  //    channel (space-center-state.ts, off spaceCenter.launchSites) — read
+  //    via useStream, not a canonical one-arg Topic read.
+  // kc.upgradeFacility[...] (the spend command) still has no command home
+  // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically —
+  // reads migrate first, commands come later.
+  const careerStatus = useTelemetry("career.status");
+  const facilitiesRaw = careerStatus?.facilities;
+  const careerFunds = careerStatus?.economy?.funds;
+  const partsAvailable = useTelemetry("spaceCenter.partsAvailable")?.count;
+  const sceneTopic = useTelemetry("spaceCenter.scene");
+  const launchSite = sceneTopic?.launchSite;
+  const scene = sceneTopic?.scene;
+  const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
+  const padOccupied = spaceCenterState?.padOccupied;
+  const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
   const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
