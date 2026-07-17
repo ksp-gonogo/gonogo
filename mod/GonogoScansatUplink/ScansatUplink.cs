@@ -100,6 +100,10 @@ namespace Gonogo.ScansatUplink
         {
             Id = "scansat",
             Version = "1.0.0",
+            // Null when the generated const is empty (dev / never-released) so the loader
+            // degrades to the two-way check; a real sha256-… once the release build bakes it
+            // (mod/scripts/bake-client-hash.mjs → ExpectedClientHash.g.cs).
+            ExpectedClientHash = string.IsNullOrEmpty(ExpectedClientHash.Value) ? null : ExpectedClientHash.Value,
             Channels = new List<ChannelDeclaration>
             {
                 // Ground-side fact (mod/sensor presence) - true-now, per
