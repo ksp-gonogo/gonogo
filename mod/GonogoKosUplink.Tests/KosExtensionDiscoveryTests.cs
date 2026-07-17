@@ -45,6 +45,21 @@ namespace GonogoKosUplink.Tests
         }
 
         [Fact]
+        public void Manifest_ExpectedClientHash_IsNull_WhenGeneratedConstIsEmpty()
+        {
+            // The two-pass client-hash bake (mod/scripts/bake-client-hash.mjs) only fills
+            // ExpectedClientHash.g.cs at RELEASE build. In dev / CI-unit the committed const
+            // is empty, so the manifest must report null → the loader degrades to the
+            // two-way index==bytes check with the mod-hash arm recorded as pending.
+            var manifest = UplinkDiscovery
+                .Discover(new[] { typeof(KosExtension).Assembly })
+                .Single(d => d.Uplink.Manifest.Id == "kos")
+                .Uplink.Manifest;
+
+            Assert.Null(manifest.ExpectedClientHash);
+        }
+
+        [Fact]
         public void TerminalResizeCommand_IsNotDelayed_SoRenderWidthConvergesImmediately()
         {
             // The terminal downlink is a cursor-addressed screen diff computed at
