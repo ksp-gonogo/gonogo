@@ -129,20 +129,50 @@ namespace Sitrep.Host.IntegrationTests
         internal sealed class TestClient : IAsyncDisposable
         {
             private readonly ClientWebSocket _socket = new ClientWebSocket();
-            private readonly Channel<string> _incoming = Channel.CreateUnbounded<string>();
+
+            // AllowSynchronousContinuations: when the pump thread hands a frame
+            // to a test that is already parked in ReceiveAsync, run that
+            // reader's continuation INLINE on the pump thread instead of
+            // queuing it to the thread pool. Together with the dedicated pump
+            // thread below, this takes the whole server->client delivery path
+            // off the thread pool. That is the fix for this suite's flake: the
+            // failures were never a server/engine wedge (the engine's Courier
+            // and Outbox run on dedicated threads and were always found idle at
+            // the stall) — they were the async CLIENT pipeline starving under
+            // CPU contention, so a frame the server had already sent was not
+            // picked up before the 10s per-op deadline.
+            private readonly Channel<string> _incoming = Channel.CreateUnbounded<string>(
+                new UnboundedChannelOptions
+                {
+                    AllowSynchronousContinuations = true,
+                    SingleWriter = true,
+                    SingleReader = false,
+                });
             private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
-            private Task? _pump;
+            private Thread? _pumpThread;
 
             public static async Task<TestClient> ConnectAsync(int port, TimeSpan timeout)
             {
                 var client = new TestClient();
                 using var connectCts = new CancellationTokenSource(timeout);
                 await client._socket.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/"), connectCts.Token);
-                client._pump = Task.Run(client.PumpAsync);
+                client._pumpThread = new Thread(client.PumpLoop)
+                {
+                    IsBackground = true,
+                    Name = "WsTestHarness-Pump",
+                };
+                client._pumpThread.Start();
                 return client;
             }
 
-            private async Task PumpAsync()
+            // Runs on a DEDICATED thread and BLOCKS on each receive rather than
+            // awaiting it. The socket engine signals this thread's blocked wait
+            // directly on completion, so frame delivery no longer depends on a
+            // thread-pool worker being schedulable — the property that made the
+            // suite robust to the CPU-starvation flake. Writes land via
+            // TryWrite (the channel is unbounded, so it always succeeds and
+            // never blocks the pump).
+            private void PumpLoop()
             {
                 var buffer = new byte[16384];
                 try
@@ -153,7 +183,10 @@ namespace Sitrep.Host.IntegrationTests
                         WebSocketReceiveResult result;
                         do
                         {
-                            result = await _socket.ReceiveAsync(new ArraySegment<byte>(buffer), _pumpCts.Token);
+                            result = _socket
+                                .ReceiveAsync(new ArraySegment<byte>(buffer), _pumpCts.Token)
+                                .GetAwaiter()
+                                .GetResult();
                             if (result.MessageType == WebSocketMessageType.Close)
                             {
                                 return;
@@ -161,17 +194,16 @@ namespace Sitrep.Host.IntegrationTests
                             ms.Write(buffer, 0, result.Count);
                         } while (!result.EndOfMessage);
 
-                        await _incoming.Writer.WriteAsync(Encoding.UTF8.GetString(ms.ToArray()), _pumpCts.Token);
+                        _incoming.Writer.TryWrite(Encoding.UTF8.GetString(ms.ToArray()));
                     }
                 }
-                catch (OperationCanceledException)
+                catch (Exception)
                 {
-                }
-                catch (WebSocketException)
-                {
-                }
-                catch (ChannelClosedException)
-                {
+                    // Best-effort pump on a background thread: ANY exception
+                    // (cancellation, WebSocketException, ObjectDisposedException
+                    // from a torn-down socket on teardown, a faulted-task
+                    // AggregateException from GetResult) just ends the loop.
+                    // It must never escape and fault the thread.
                 }
             }
 
@@ -194,21 +226,22 @@ namespace Sitrep.Host.IntegrationTests
                     await _incoming.Reader.ReadAsync(cts.Token));
             }
 
-            public async ValueTask DisposeAsync()
+            public ValueTask DisposeAsync()
             {
                 _pumpCts.Cancel();
+                // Abort() (not just Dispose) forces a pending blocking
+                // ReceiveAsync on the pump thread to throw RIGHT NOW rather than
+                // waiting on token propagation, so teardown doesn't stall while
+                // the pump sits in a receive that has no more data coming.
+                try { _socket.Abort(); } catch { }
                 _socket.Dispose();
-                if (_pump != null)
-                {
-                    try
-                    {
-                        await _pump;
-                    }
-                    catch
-                    {
-                        // best-effort cleanup only
-                    }
-                }
+                // Deliberately NOT joining the pump thread here. It is a
+                // background thread that unblocks off the Abort/Dispose above
+                // and exits on its own; it holds no shared state past this
+                // point and dies with the process. Joining would stall teardown
+                // whenever ClientWebSocket.Abort doesn't interrupt the blocking
+                // receive promptly — which, across ~100 tests, added ~minutes.
+                return ValueTask.CompletedTask;
             }
         }
     }
