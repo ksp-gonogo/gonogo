@@ -633,6 +633,7 @@ namespace Sitrep.Host
                 {
                     ["id"] = id,
                     ["version"] = uplink.Manifest.Version,
+                    ["expectedClientHash"] = uplink.Manifest.ExpectedClientHash,   // H_mod (null for mod-only / older / dev DLL)
                     ["available"] = availability.IsAvailable,
                     ["reason"] = availability.Reason,
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),

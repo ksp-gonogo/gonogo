@@ -3401,6 +3401,8 @@ namespace Sitrep.Host.IntegrationTests
                 var reporting = byId[HealthReportingTestUplink.UplinkId];
                 Assert.Equal(true, reporting["available"]);
                 Assert.Null(reporting["reason"]);
+                // H_mod — the manifest-baked client hash rides on the roster entry.
+                Assert.Equal("sha256-deadbeef", reporting["expectedClientHash"]);
                 var reportingHealth = Assert.IsType<Dictionary<string, object?>>(reporting["health"]);
                 Assert.Equal((double)(int)UplinkHealthState.Degraded, reportingHealth["state"]);
                 Assert.Equal(HealthReportingTestUplink.DetailText, reportingHealth["detail"]);
@@ -3408,6 +3410,8 @@ namespace Sitrep.Host.IntegrationTests
                 var plain = byId[PlainNoHealthTestUplink.UplinkId];
                 Assert.Equal(true, plain["available"]);
                 Assert.Null(plain["reason"]);
+                // A manifest that sets no hash → null, so the app degrades to the two-way check.
+                Assert.Null(plain["expectedClientHash"]);
                 var plainHealth = Assert.IsType<Dictionary<string, object?>>(plain["health"]);
                 Assert.Equal((double)(int)UplinkHealthState.Healthy, plainHealth["state"]);
                 Assert.Null(plainHealth["detail"]);
@@ -3434,6 +3438,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Id = UplinkId,
                 Version = "1.0.0",
+                ExpectedClientHash = "sha256-deadbeef",
             };
 
             public void Register(IUplinkHost host)
