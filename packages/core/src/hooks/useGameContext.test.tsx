@@ -48,32 +48,40 @@ function makeSource(id = "data") {
 beforeEach(() => clearRegistry());
 
 /**
- * P4a D1: `career.mode` reads through two possible shapes — a legacy
- * STRING off the Telemachus `DataSource` ("CAREER"/"SCIENCE"/"SANDBOX", any
- * casing) or, once streamed + carried, the mod's `GameMode` enum ORDINAL
- * (a number) mapped onto `career.mode.mode`. `useGameContext` must resolve
- * both to the same `CareerMode` string.
+ * All three reads are canonical now — `career.mode` (-> `career.mode.mode`,
+ * the `GameMode` enum ORDINAL `resolveCareerMode` maps to a display string),
+ * `kc.scene` (-> `spaceCenter.scene.scene`) and `kc.padOccupied` (-> the
+ * derived `spaceCenter.state` channel) — with NO legacy `DataSource` fallback.
+ * So with no `TelemetryProvider` mounted (a station tree with no stream, or
+ * the warmup window before the first frame) every read is `undefined` and the
+ * context sits at its Unknown/false defaults; a legacy `DataSource` carrying
+ * the old Telemachus keys is never consulted.
  */
-describe("useGameContext — career.mode legacy string path (no TelemetryProvider)", () => {
-  it("uppercases a known legacy string", () => {
-    const source = makeSource();
-    registerDataSource(source);
-
+describe("useGameContext — no TelemetryProvider mounted", () => {
+  it("sits at Unknown/false defaults", () => {
     const { result } = renderHook(() => useGameContext());
     expect(result.current.careerMode).toBe("Unknown");
-
-    act(() => source.emit("career.mode", "career"));
-    expect(result.current.careerMode).toBe("CAREER");
-    expect(result.current.isCareerLike).toBe(true);
+    expect(result.current.scene).toBe("Unknown");
+    expect(result.current.padOccupied).toBe(false);
+    expect(result.current.inFlight).toBe(false);
+    expect(result.current.isCareerLike).toBe(false);
+    expect(result.current.hasGameSignal).toBe(false);
   });
 
-  it("falls back to Unknown for an unrecognised string", () => {
+  it("ignores a legacy DataSource carrying the old Telemachus keys", () => {
     const source = makeSource();
     registerDataSource(source);
 
     const { result } = renderHook(() => useGameContext());
-    act(() => source.emit("career.mode", "SCENARIO"));
+    act(() => {
+      source.emit("career.mode", "career");
+      source.emit("kc.scene", "Flight");
+      source.emit("kc.padOccupied", true);
+    });
+    // No provider, canonical reads only — the legacy emits never surface.
     expect(result.current.careerMode).toBe("Unknown");
+    expect(result.current.scene).toBe("Unknown");
+    expect(result.current.padOccupied).toBe(false);
   });
 });
 
