@@ -3,7 +3,7 @@
 Throwaway harness for the investigation answered in
 `local_docs/reports/encoded-transform-spike-report.md` (in the main
 `gonogo` repo, not this worktree). Not part of the production build —
-lives inside `packages/kerbcast/` only so its Playwright driver scripts can
+lives inside `mod/GonogoKerbcastUplink/client/` only so its Playwright driver scripts can
 resolve the package's `node_modules/playwright` via normal Node ESM
 resolution; nothing here is imported by kerbcast's own source or tests.
 
@@ -36,7 +36,7 @@ resolution; nothing here is imported by kerbcast's own source or tests.
 ## Running
 
 ```
-cd packages/kerbcast/spike-encoded-transform-delay
+cd mod/GonogoKerbcastUplink/client/spike-encoded-transform-delay
 node run-a.mjs            # all three engines
 node run-a.mjs firefox    # one engine
 node run-b.mjs chromium
@@ -44,5 +44,5 @@ node run-c.mjs chromium
 ```
 
 Requires `nvm use` first (Node 24) and a `pnpm install` at the repo root so
-`packages/kerbcast/node_modules/playwright` exists with its cached browser
+`mod/GonogoKerbcastUplink/client/node_modules/playwright` exists with its cached browser
 binaries.

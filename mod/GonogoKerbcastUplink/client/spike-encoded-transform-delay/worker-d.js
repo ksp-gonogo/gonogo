@@ -10,7 +10,7 @@
 //      periodic ClockFormulaSnapshot from the main thread — the exact same
 //      pure formula already shipped in
 //      packages/sitrep-client/src/view-clock-formula.ts and mirrored by
-//      packages/kerbcast/src/worker/workerDelayClock.ts, ported verbatim
+//      mod/GonogoKerbcastUplink/client/src/worker/workerDelayClock.ts, ported verbatim
 //      here (plain JS, no bundler in this throwaway harness).
 //
 // The RTP timestamp on the frame is never read for timing purposes — only
@@ -41,7 +41,7 @@ const COLD_SNAPSHOT = {
 let currentSnapshot = COLD_SNAPSHOT;
 let captureSample = { ut: null, warpRate: 1, atMs: 0 };
 
-// --- ported verbatim from packages/kerbcast/src/worker/timeBase.ts ---
+// --- ported verbatim from mod/GonogoKerbcastUplink/client/src/worker/timeBase.ts ---
 function computeTimeOriginOffsetMs(mainTimeOriginMs, localTimeOriginMs) {
   return localTimeOriginMs - mainTimeOriginMs;
 }
@@ -69,7 +69,7 @@ function computeConfirmedEdgeUt(inputs, nw) {
   return Math.min(estimatedEdge, sampleClamp);
 }
 
-// --- ported verbatim from packages/kerbcast/src/captureClock.ts ---
+// --- ported verbatim from mod/GonogoKerbcastUplink/client/src/captureClock.ts ---
 function interpolateCaptureUt(sample, nowMs) {
   if (sample.ut == null) return null;
   const elapsedSec = Math.max(0, (nowMs - sample.atMs) / 1000);

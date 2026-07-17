@@ -7,11 +7,6 @@ import {
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  buildCameraLabeler,
-  useKerbcastCameras,
-  useKerbcastStream,
-} from "@ksp-gonogo/kerbcast-feed";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   ConfigForm,
@@ -26,7 +21,7 @@ import {
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
 import { formatDuration } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   deriveDockAngles,
@@ -47,8 +42,12 @@ interface DistanceToTargetConfig {
   /** Which HUD variant auto-switch promotes to. Default "hud-with-camera". */
   hudMode?: DockingHudMode;
   /**
-   * kerbcast camera flightId used for the video backdrop. Unset → first
-   * available. Meaningful only when `hudMode === "hud-with-camera"`.
+   * Optional camera id pinning which feed backs the video backdrop. Unset →
+   * the filling augment chooses (a camera Uplink is far better placed to pick
+   * than this widget — it can see which camera is actually a docking camera).
+   * Meaningful only when `hudMode === "hud-with-camera"`. Kept as an opaque
+   * number so this widget stays camera-vendor-agnostic; it is passed straight
+   * through to the augment via `DistanceToTargetHudContext`.
    */
   cameraFlightId?: number | null;
 }
@@ -61,10 +60,15 @@ interface DistanceToTargetConfig {
 // the parent's coordinate frame:
 //
 //   • `distance-to-target.camera`  — a video backdrop behind the reticle/HUD.
-//     The close-range docking camera is meant to become a kerbcast AUGMENT
-//     here (not a standalone CameraFeed instance). Currently this slot is
-//     only EXPOSED; the built-in `HudCamera` backdrop stays untouched until
-//     the kerbcast filler and CameraFeed-out-migration land.
+//     FILLED: a camera Uplink's augment now draws the close-range docking
+//     view here (not a standalone CameraFeed instance). The built-in
+//     `HudCamera` backdrop this slot once carried has been REMOVED along with
+//     it — it hard-wired one specific camera mod into the core widget, which
+//     is precisely what the slot exists to avoid. This widget no longer knows
+//     what a camera is: it decides WHETHER a backdrop should show
+//     (`hudMode`/viewport size) and passes its reticle frame down; the augment
+//     decides WHICH camera and renders it. An install with no camera Uplink
+//     composes the HUD with no video layer.
 //   • `distance-to-target.overlay` — alignment markers layered on top of the
 //     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
 //     into the reticle box using the passed context. Composable by priority
@@ -101,7 +105,10 @@ export interface DistanceToTargetHudContext {
   ay: number | undefined;
   /** Range to the target in metres; undefined until the stream reports position. */
   distance: number | undefined;
-  /** kerbcast camera flightId configured for the backdrop (unset → first available). */
+  /**
+   * Camera id the operator pinned for the backdrop, or unset to let the
+   * augment choose. Opaque to this widget — the filling augment interprets it.
+   */
   cameraFlightId: number | null | undefined;
 }
 
@@ -544,11 +551,12 @@ function DockingHud(props: DockingHudProps) {
       aria-label={`Docking HUD for ${name}`}
       $row={wideShort}
     >
-      {showCamera && showViewport && <HudCamera flightId={cameraFlightId} />}
-      {/* Camera-backdrop slot: an augment (e.g. kerbcast) draws a video layer
-          behind the reticle, in the HUD's space. Separate from the
-          built-in `HudCamera` above, which stays in place unless replaced. */}
-      {showViewport && (
+      {/* Camera-backdrop slot: an augment draws a video layer behind the
+          reticle, in the HUD's space. Gated on `showCamera` (the "HUD only
+          (no video)" variant must stay video-free) and on `showViewport`
+          (too small to be worth a backdrop) — the same two conditions the
+          built-in HudCamera this slot replaced was gated on. */}
+      {showCamera && showViewport && (
         <AugmentSlot name="distance-to-target.camera" props={hudContext} />
       )}
       {showViewport && (
@@ -615,30 +623,6 @@ function DockingHud(props: DockingHudProps) {
   );
 }
 
-function HudCamera({ flightId }: { flightId: number | null | undefined }) {
-  const cameras = useKerbcastCameras();
-  // Pick the configured camera if it's still available, otherwise first.
-  const resolved =
-    flightId != null && cameras.some((c) => c.flightId === flightId)
-      ? flightId
-      : (cameras[0]?.flightId ?? null);
-  const stream = useKerbcastStream(resolved);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.srcObject = stream;
-    if (stream) {
-      // play() can reject when srcObject is reassigned mid-flight — benign.
-      void v.play().catch(() => {});
-    }
-  }, [stream]);
-
-  if (!stream) return null;
-  return <HudVideo ref={videoRef} autoPlay muted playsInline />;
-}
-
 // ── Config component ──────────────────────────────────────────────────────────
 
 function DistanceToTargetConfigComponent({
@@ -649,20 +633,25 @@ function DistanceToTargetConfigComponent({
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
   );
-  const [cameraFlightId, setCameraFlightId] = useState<number | null>(
-    config?.cameraFlightId ?? null,
-  );
-  const cameras = useKerbcastCameras();
-  // Same docking-port name disambiguation as the CameraFeed picker.
-  const cameraLabel = useMemo(() => buildCameraLabeler(cameras), [cameras]);
+  // Carried through untouched rather than edited here. The camera PICKER left
+  // with the built-in HudCamera: listing and labelling cameras needs a camera
+  // mod's SDK, and this widget deliberately no longer depends on one. The
+  // augment that fills `distance-to-target.camera` now selects the camera
+  // itself — for a DOCKING HUD it can identify the actual docking camera,
+  // which is strictly better than the manual pick this replaced (that existed
+  // only because nothing could tell docking cameras apart). An operator who
+  // had pinned a camera keeps it: the value still round-trips through config
+  // and reaches the augment via `DistanceToTargetHudContext`, which honours it
+  // as an override.
+  const pinnedCameraId = config?.cameraFlightId;
 
   const candidate = useMemo<DistanceToTargetConfig>(
     () => ({
       autoSwitch,
       hudMode,
-      cameraFlightId: cameraFlightId ?? undefined,
+      cameraFlightId: pinnedCameraId ?? undefined,
     }),
-    [autoSwitch, hudMode, cameraFlightId],
+    [autoSwitch, hudMode, pinnedCameraId],
   );
 
   useModalSaveBar({
@@ -694,32 +683,11 @@ function DistanceToTargetConfigComponent({
           <option value="hud-with-camera">HUD over camera stream</option>
           <option value="hud">HUD only (no video)</option>
         </Select>
+        <FieldHint>
+          The camera view needs a camera mod installed. Its docking camera is
+          picked automatically for the backdrop.
+        </FieldHint>
       </Field>
-      {hudMode === "hud-with-camera" && (
-        <Field>
-          <FieldLabel htmlFor="dtt-camera">Camera stream</FieldLabel>
-          <Select
-            id="dtt-camera"
-            value={cameraFlightId == null ? "" : String(cameraFlightId)}
-            onChange={(e) =>
-              setCameraFlightId(
-                e.target.value === "" ? null : Number(e.target.value),
-              )
-            }
-          >
-            <option value="">(first available)</option>
-            {cameras.map((c) => (
-              <option key={c.flightId} value={c.flightId}>
-                {cameraLabel(c)} ({c.vesselName})
-              </option>
-            ))}
-          </Select>
-          <FieldHint>
-            Point at a HullCam docking camera for a live view behind the
-            reticle.
-          </FieldHint>
-        </Field>
-      )}
     </ConfigForm>
   );
 }
@@ -856,15 +824,6 @@ const HudPanel = styled.div<{ $row?: boolean }>`
   background: var(--color-surface-app);
   border-radius: 2px;
   overflow: hidden;
-`;
-
-const HudVideo = styled.video`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.55;
 `;
 
 const Viewport = styled.div`
