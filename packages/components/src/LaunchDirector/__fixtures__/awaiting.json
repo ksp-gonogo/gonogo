@@ -1,6 +1,43 @@
 {
   "_meta": {
     "scenario": "awaiting",
-    "notes": "No kc.savedShips yet — widget shows awaiting-telemetry placeholder. career.funds intentionally absent (short-circuits before subtitle)."
+    "notes": "No kc.savedShips yet — widget shows awaiting-telemetry placeholder. career.funds intentionally absent (short-circuits before subtitle). The legacy kc.*/v.* keys below drive snapshots.test.tsx via emitLegacyFixture; the `_stream` block drives the probe render harness (widgetRenderHarness/probe-entry) since LaunchDirector now reads stream topics (spaceCenter.state/scene, vessel.state, career.status, crash.*) rather than the legacy `data` keys. The two blocks are the SAME translation — keep them in sync with emitLegacyFixture."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": null, "launchSite": null }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      }
+    ]
   }
 }
