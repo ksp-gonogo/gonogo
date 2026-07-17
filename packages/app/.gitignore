@@ -1,0 +1,4 @@
+# Generated at build by the gonogo-uplink-bundles plugin (vite.config.ts):
+# the standalone Uplink client bundles + the local registry fixture the loader
+# reads in Phase A. Rebuilt on every `vite build`; never committed.
+public/uplinks/

@@ -30,6 +30,11 @@ const SITREP_REPLAY_PORT = 18090;
 // `DEFAULT_RELAY_URL` is overridden to match via `VITE_RELAY_URL` on the
 // vite dev server below.
 const RELAY_PORT = 13002;
+// The Uplink loader is a BUILD-time mechanism (external-entry chunks + a baked
+// import map exist only in `vite build`, not in the dev server), so its e2e spec
+// runs against a production `vite preview` on this dedicated port — separate from
+// the dev server on APP_PORT that every other spec uses. See uplink-loader.spec.ts.
+const PREVIEW_PORT = 15273;
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -129,6 +134,27 @@ export default defineConfig({
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
+    {
+      // A PRODUCTION build served by `vite preview` — the only way to exercise
+      // the Uplink loader (the external-entry chunks + baked import map exist
+      // only in a real build). Builds once, then serves dist/ on PREVIEW_PORT;
+      // uplink-loader.spec.ts targets this URL explicitly (not baseURL). Peer
+      // env is baked so the previewed main screen uses the test broker, not the
+      // public one, if it initialises PeerJS.
+      command: `pnpm --filter @ksp-gonogo/app exec vite build && pnpm --filter @ksp-gonogo/app exec vite preview --port ${PREVIEW_PORT} --strictPort`,
+      port: PREVIEW_PORT,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 180_000,
+      env: {
+        VITE_PEER_HOST: "localhost",
+        VITE_PEER_PORT: String(BROKER_PORT),
+        VITE_PEER_PATH: "/myapp",
+        VITE_PEER_SECURE: "false",
+        VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+      },
+    },
   ],
 });
 
@@ -138,4 +164,5 @@ export const PORTS = {
   broker: BROKER_PORT,
   sitrepReplay: SITREP_REPLAY_PORT,
   relay: RELAY_PORT,
+  preview: PREVIEW_PORT,
 } as const;
