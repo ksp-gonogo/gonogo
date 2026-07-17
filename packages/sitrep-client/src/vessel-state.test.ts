@@ -1573,23 +1573,16 @@ describe("R6 identity flags — isEVA / isSplashed off vessel.identity (v.isEVA 
 });
 
 describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v.ag{n}Value)", () => {
-  it("splits the bool[] into a keyed map + per-index booleans", () => {
+  it("splits the named list into a keyed map + per-index booleans", () => {
     const get = getFrom({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
       "vessel.control": pt<VesselControlPayload>({
         sasMode: 0,
-        actionGroups: [
-          true,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-        ],
+        actionGroups: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((index) => ({
+          index,
+          name: `AG${index}`,
+          state: index === 1 || index === 3 || index === 10,
+        })),
       }),
     });
     const state = deriveVesselState(get, 0);
@@ -1611,18 +1604,50 @@ describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v
     });
   });
 
-  it("supports Action Groups Extended (more than ten groups) in the map", () => {
-    const arr = new Array(12).fill(false);
-    arr[11] = true;
+  /**
+   * The AGX-readiness guarantee. Keys must come from each entry's OWN `index`,
+   * never from array position — under AGX the reported range is legitimately
+   * sparse and unsorted, so a position-derived key would silently mislabel
+   * every group. (This is exactly what the old positional `bool[]` could not
+   * express, and why the contract was retyped.)
+   */
+  it("keys by each group's own index, not array position (sparse, unsorted, >10)", () => {
     const get = getFrom({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
       "vessel.control": pt<VesselControlPayload>({
         sasMode: 0,
-        actionGroups: arr,
+        actionGroups: [
+          { index: 250, name: "Abort Sequence", state: true },
+          { index: 3, name: "Solar Panels", state: true },
+          { index: 42, name: "Science Bay", state: false },
+        ],
       }),
     });
     const state = deriveVesselState(get, 0);
-    expect(state?.actionGroups?.["12"]).toBe(true);
+    expect(state?.actionGroups).toEqual({
+      "250": true,
+      "3": true,
+      "42": false,
+    });
+    // Position 0 is group 250 — a positional read would have called it group 1.
+    expect(state?.actionGroup1).toBeUndefined();
+    expect(state?.actionGroup3).toBe(true);
+  });
+
+  it("passes the named list through verbatim for the registry to derive from", () => {
+    const groups = [
+      { index: 1, name: "Solar Panels", state: true },
+      { index: 2, name: "Radiators", state: false },
+    ];
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.control": pt<VesselControlPayload>({
+        sasMode: 0,
+        actionGroups: groups,
+      }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.actionGroupsNamed).toEqual(groups);
   });
 
   it("undefined (all) when the array is absent; keys still present", () => {

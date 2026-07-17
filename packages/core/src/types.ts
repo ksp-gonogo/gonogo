@@ -46,13 +46,33 @@ export interface ConfigField {
   placeholder?: string;
 }
 
+/**
+ * One entry in the action-group registry (`@ksp-gonogo/core/actionGroups`).
+ *
+ * Note there is no longer a `value:` Telemachus read key. That field
+ * (`"v.sasValue"`, `"v.ag1Value"`, …) was the last thing forcing `ActionGroup`
+ * to resolve its read dynamically off this registry — which made it the
+ * mapTopic coverage scan's own blind spot AND kept a legacy
+ * `useDataValue("data", …)` shim read alive in the widget. The widget now reads
+ * the canonical `vessel.control` / `vessel.structure` topics directly and
+ * resolves each group's value from the payload, so the registry only has to
+ * describe WHICH group an entry is, not how to read it.
+ */
 export interface ActionGroup {
+  /** Display name. Stock singletons: "SAS"/"Gear"/…. Customs: whatever the elected backend called it ("AG1" under stock, "Solar Panels" under AGX). */
   name: string;
-  /** Telemachus action key to toggle, or null for read-only groups. */
+  /** Telemachus-era action key to toggle (bridged to a typed command by `map-command.ts`), or null for read-only indicators like Precision Control. */
   toggle: string | null;
-  /** Telemachus value key to read current state. Must be a key in TelemaachusSchema. */
-  value: keyof TelemaachusSchema;
   description: string;
+  /**
+   * CUSTOM groups only: the backend's own 1-based group index — the same number
+   * `vessel.control.setActionGroup` takes, and the key by which the widget
+   * finds this group in `vessel.control.actionGroups`. Absent for the stock
+   * singletons, which are read from their own typed `vessel.control` fields.
+   * Two AGX groups may legitimately share a NAME, so this (never the name) is
+   * the identity.
+   */
+  index?: number;
 }
 
 /**

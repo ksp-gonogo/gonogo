@@ -241,6 +241,9 @@ public static class RtConfig
                 typeof(FlightStarted),
                 typeof(FlightEnded),
                 typeof(FlightVesselChanged),
+                // One NAMED custom action group on vessel.control.actionGroups —
+                // the element type that replaced the positional bool[].
+                typeof(ActionGroupState),
             },
             c => c.AutoI(false).WithPublicProperties());
 

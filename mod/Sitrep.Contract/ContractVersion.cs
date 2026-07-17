@@ -23,7 +23,25 @@ namespace Sitrep.Contract
     public static class ContractVersion
     {
         /// <summary>
-        /// Bumped 3 -&gt; 4 (Minor reset to 0): <see cref="CommsDelay.OneWaySeconds"/>
+        /// Bumped 4 -&gt; 5 (Minor reset to 0): NAMED action groups. Retyped
+        /// <see cref="VesselControl.ActionGroups"/> from a positional
+        /// <c>bool[]</c> (<c>[ag1..ag10]</c>, identity carried by array
+        /// POSITION) to <see cref="ActionGroupState"/><c>[]</c>, where each
+        /// entry carries its own <c>Index</c> + <c>Name</c> + <c>State</c>.
+        /// A retype of a wire-visible member on a <c>[TsInterface]</c> type is
+        /// breaking by definition — the "lying minor" gate fails the build
+        /// unless Major bumps in the same commit, which is exactly this.
+        ///
+        /// <para>Why: a positional array can carry STATE but never a NAME, and
+        /// names are what both vanilla (which shipped anonymous customs the
+        /// client had to hardcode as "AG1".."AG10") and Action Groups Extended
+        /// (up to 250 player-named groups) need. The list is also no longer
+        /// fixed-length — see <see cref="ActionGroupState"/>. Sanctioned as a
+        /// breaking bump on the same standing grounds as the Major 2 -&gt; 3
+        /// revert: the mod is still pre-release with NO external Uplinks yet.</para>
+        ///
+        /// <para>Major-4 history — Bumped 3 -&gt; 4 (Minor reset to 0):
+        /// <see cref="CommsDelay.OneWaySeconds"/>
         /// retyped <c>double</c> -&gt; <c>double?</c> (comms-delay-nullable-when-no-path
         /// fix). The old <c>0</c> sentinel for "no measurable path" read as
         /// "instant" to a naive reader — the opposite of a lost link — and
@@ -34,15 +52,15 @@ namespace Sitrep.Contract
         /// applied); a real number means <see cref="CommsDelaySource.SignalDelay"/>.
         /// A genuine wire retype, sanctioned because the mod is still
         /// pre-release with NO external Uplinks yet. See
-        /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.
+        /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.</para>
         /// </summary>
-        public const int Major = 4;
+        public const int Major = 5;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>).
-        /// The Minor history below belongs to the Major-1/2/3 lines and is
+        /// Reset to 0 alongside the Major 4 -&gt; 5 bump (see <see cref="Major"/>).
+        /// The Minor history below belongs to the Major-1/2/3/4 lines and is
         /// retained for provenance; every one of those additive changes is
-        /// carried forward into Major 4.
+        /// carried forward into Major 5.
         ///
         /// <para>Major-3 history — Bumped 2 -&gt; 3 (Minor reset to 0): the
         /// Principia mod-seam revert. Removed

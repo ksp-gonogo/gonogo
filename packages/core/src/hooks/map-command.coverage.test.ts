@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hasCommandHome, isKnownCommandGap } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
-import { ACTION_GROUPS } from "../actionGroups";
+import { STOCK_ACTION_GROUPS } from "../actionGroups";
 
 /**
  * Coverage gate for the M3 `mapCommand` command table — the write-half twin
@@ -93,12 +93,13 @@ function collectWidgetCommandActions(): Set<string> {
 /**
  * Action keys resolved dynamically instead of as a literal
  * `execute("<key>")`/`` execute(`<key>`) `` call, so the regex scan above
- * can never see them — the write-half analog of `mapTopic.coverage.test
- * .ts`'s `collectDynamicTelemachusKeys`.
+ * can never see them.
  *
  * - `ActionGroup` (`packages/components/src/ActionGroup/index.tsx`) fires
- *   `execute(group.toggle)`, resolved at runtime from `@ksp-gonogo/core`'s
- *   `ACTION_GROUPS` registry.
+ *   `execute(group.toggle)`, resolved at runtime from the action-group
+ *   registry. Note the READ half of this blind spot is gone (the widget now
+ *   reads canonical Topics — see `mapTopic.coverage.test.ts`); only the WRITE
+ *   half survives, because a toggle is still registry-resolved.
  * - `ManeuverPlanner` (`packages/components/src/ManeuverPlanner/index.tsx`)
  *   builds `o.addManeuverNode[...]`/`o.updateManeuverNode[...]` into a local
  *   `const action` before calling `execute(action)` (`dispatchPlanBurns`/
@@ -106,11 +107,28 @@ function collectWidgetCommandActions(): Set<string> {
  *   `o.removeManeuverNode[...]` is called directly as a template literal at
  *   every one of its call sites (`ManeuverPlanner/index.tsx`,
  *   `BurnCompletionTracker.ts`) and IS caught by the scan above.
+ *
+ * The registry is no longer a static literal this can iterate: its CUSTOM half
+ * derives from live telemetry (`useActionGroups`), so the toggles a running app
+ * can produce depend on which backend the mod elected. This enumerates what
+ * STOCK can emit — the stock singletons, plus `f.ag1`..`f.ag10` for stock's ten
+ * customs (`useActionGroups` builds each custom toggle as `f.ag{index}`).
+ *
+ * An AGX backend would extend that to `f.ag250`. Those are deliberately NOT
+ * enumerated here: `mapCommand` routes the whole `f.ag{n}` family through one
+ * parametric rule, so pinning the stock range is what actually guards the
+ * mapping, and asserting 250 hardcoded keys would test the arithmetic rather
+ * than the routing.
  */
+const STOCK_CUSTOM_GROUP_COUNT = 10;
+
 function collectDynamicCommandActions(): Set<string> {
   const keys = new Set<string>();
-  for (const group of ACTION_GROUPS) {
+  for (const group of STOCK_ACTION_GROUPS) {
     if (group.toggle) keys.add(group.toggle);
+  }
+  for (let i = 1; i <= STOCK_CUSTOM_GROUP_COUNT; i++) {
+    keys.add(`f.ag${i}`);
   }
   keys.add("o.addManeuverNode");
   keys.add("o.updateManeuverNode");

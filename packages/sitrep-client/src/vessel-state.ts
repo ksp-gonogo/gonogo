@@ -133,17 +133,37 @@ export interface VesselIdentityPayload {
  * nullable — `null` is a normal "this input isn't available this tick" per the
  * C# class doc, NOT a sentinel.
  */
+/**
+ * One NAMED custom action group — mirrors
+ * `mod/Sitrep.Contract/VesselControl.cs`'s `ActionGroupState`. Identity travels
+ * WITH the entry (`index`), so never infer it from array position: this
+ * replaced a positional `bool[]` precisely because position could not carry a
+ * name, and stock's ten anonymous customs had to be labelled "AG1".."AG10"
+ * client-side. Whichever backend the mod elected supplies both — stock reports
+ * ten `AG{n}`; Action Groups Extended reports up to 250 player-named groups.
+ */
+export interface ActionGroupStatePayload {
+  /** 1-based group number — the same number `vessel.control.setActionGroup` takes. Not dense, not necessarily sorted, and NOT bounded at 10. */
+  index: number;
+  /** Display name. Stock: `"AG1".."AG10"`. AGX: the player's own names. */
+  name: string;
+  state: boolean;
+}
+
 export interface VesselControlPayload {
   sasMode: number | null;
   /**
-   * `[ag1..ag10]` in that fixed order (Action Groups Extended appends
-   * further groups) — `mod/Sitrep.Contract/VesselControl.cs`'s
-   * `ActionGroups: bool[]?`. `null`/absent when action-group data wasn't
-   * available this tick (never a partial/short array). The source of the
-   * derived `vessel.state.actionGroups` keyed map + per-index
-   * `vessel.state.actionGroup{n}` booleans (old Telemachus `v.ag{n}Value`).
+   * Every CUSTOM action group the elected backend knows, each NAMED and
+   * carrying its own index — `mod/Sitrep.Contract/VesselControl.cs`'s
+   * `ActionGroups: ActionGroupState[]?`. `null`/absent when action-group data
+   * wasn't available this tick (never a partial list).
+   *
+   * Source of the derived `vessel.state.actionGroups` keyed map, the
+   * `vessel.state.actionGroupsNamed` list (which drives the client's
+   * ACTION_GROUPS registry), and the per-index `vessel.state.actionGroup{n}`
+   * booleans (old Telemachus `v.ag{n}Value`).
    */
-  actionGroups?: boolean[] | null;
+  actionGroups?: ActionGroupStatePayload[] | null;
 }
 
 /**
@@ -569,7 +589,19 @@ export interface VesselState {
    * on a confirmed tombstone.
    */
   actionGroups: Record<string, boolean> | null | undefined;
-  /** Action group 1 engaged — `vessel.control.actionGroups[0]` (old `v.ag1Value`). Same discipline as `actionGroups`. */
+  /**
+   * The NAMED custom action groups as reported by whichever backend the mod
+   * elected — `{ index, name, state }[]`, straight off
+   * `vessel.control.actionGroups`. This is what lets the client's
+   * ACTION_GROUPS registry derive its custom half (INCLUDING each group's
+   * label) from telemetry instead of hardcoding "AG1".."AG10", and is
+   * therefore the field an AGX backend flows its player-chosen names through.
+   * Same discipline as `actionGroups`: `undefined` while `vessel.control`
+   * hasn't arrived or the list is absent this tick; `null` on a confirmed
+   * tombstone.
+   */
+  actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
+  /** Action group 1 engaged — the entry whose `index` is 1 (old `v.ag1Value`). Same discipline as `actionGroups`. */
   actionGroup1: boolean | null | undefined;
   /** Action group 2 engaged (old `v.ag2Value`). */
   actionGroup2: boolean | null | undefined;
@@ -1327,6 +1359,7 @@ function deriveIdentityFlags(get: DerivedGet): {
  */
 function deriveActionGroups(get: DerivedGet): {
   actionGroups: Record<string, boolean> | null | undefined;
+  actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
   actionGroup1: boolean | null | undefined;
   actionGroup2: boolean | null | undefined;
   actionGroup3: boolean | null | undefined;
@@ -1338,11 +1371,12 @@ function deriveActionGroups(get: DerivedGet): {
   actionGroup9: boolean | null | undefined;
   actionGroup10: boolean | null | undefined;
 } {
-  const fill = (
-    v: boolean | null | undefined,
-    map: Record<string, boolean> | null | undefined,
-  ) => ({
-    actionGroups: map,
+  // `v` is the value every per-index field takes; `map`/`actionGroupsNamed`
+  // take the same nullity (undefined = not arrived yet, null = tombstone), so
+  // one argument drives all of them.
+  const fill = (v: boolean | null | undefined) => ({
+    actionGroups: v === null ? null : undefined,
+    actionGroupsNamed: v === null ? null : undefined,
     actionGroup1: v,
     actionGroup2: v,
     actionGroup3: v,
@@ -1356,17 +1390,23 @@ function deriveActionGroups(get: DerivedGet): {
   });
 
   const point = get<VesselControlPayload>("vessel.control");
-  if (!point) return fill(undefined, undefined);
-  if (point.payload === null) return fill(null, null);
+  if (!point) return fill(undefined);
+  if (point.payload === null) return fill(null);
   const arr = point.payload.actionGroups;
-  if (arr == null) return fill(undefined, undefined);
+  if (arr == null) return fill(undefined);
 
+  // Key by each entry's OWN `index`, never by array position — position stopped
+  // carrying identity when the wire shape became a named list, and an AGX
+  // backend may report a sparse/unsorted range (e.g. 3, 42, 250).
   const map: Record<string, boolean> = {};
-  for (let i = 0; i < arr.length; i++) map[String(i + 1)] = !!arr[i];
-  const at = (n: number): boolean | undefined =>
-    n <= arr.length ? !!arr[n - 1] : undefined;
+  for (const group of arr) map[String(group.index)] = !!group.state;
+  const at = (n: number): boolean | undefined => map[String(n)];
   return {
     actionGroups: map,
+    // The named list, passed through verbatim so the client's ACTION_GROUPS
+    // registry can derive its custom half (labels included) straight from
+    // telemetry rather than hardcoding "AG1".."AG10".
+    actionGroupsNamed: arr,
     actionGroup1: at(1),
     actionGroup2: at(2),
     actionGroup3: at(3),

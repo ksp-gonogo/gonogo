@@ -890,10 +890,19 @@ namespace Sitrep.Host.Tests
                 ["precisionControl"] = true,
                 ["throttle"] = 2.0, // V-3: deliberately unclamped -- not silently "fixed"
             };
+            // The NAMED action-group list, shaped exactly as KspHost's
+            // main-thread capture writes it from the elected backend.
+            var rawGroups = new List<object?>();
             for (var i = 1; i <= 10; i++)
             {
-                control["ag" + i] = i % 2 == 0;
+                rawGroups.Add(new Dictionary<string, object?>
+                {
+                    ["index"] = i,
+                    ["name"] = "AG" + i,
+                    ["state"] = i % 2 == 0,
+                });
             }
+            control["actionGroups"] = rawGroups;
 
             var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, control: control);
 
@@ -908,8 +917,94 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2.0, vesselControl.Throttle); // NOT clamped to 1.0
             Assert.NotNull(vesselControl.ActionGroups);
             Assert.Equal(10, vesselControl.ActionGroups!.Length);
-            Assert.False(vesselControl.ActionGroups[0]); // ag1
-            Assert.True(vesselControl.ActionGroups[1]); // ag2
+            // Identity now travels WITH each entry rather than being implied by
+            // array position — that's the whole point of the retype.
+            Assert.Equal(1, vesselControl.ActionGroups[0].Index);
+            Assert.Equal("AG1", vesselControl.ActionGroups[0].Name);
+            Assert.False(vesselControl.ActionGroups[0].State);
+            Assert.Equal(2, vesselControl.ActionGroups[1].Index);
+            Assert.Equal("AG2", vesselControl.ActionGroups[1].Name);
+            Assert.True(vesselControl.ActionGroups[1].State);
+        }
+
+        /// <summary>
+        /// The AGX-readiness guarantee, asserted against the provider rather
+        /// than assumed: a backend reporting MORE than ten groups, with
+        /// player-chosen names and a non-contiguous index range, maps through
+        /// untouched. Nothing in this provider may re-impose stock's ten-ness.
+        /// </summary>
+        [Fact]
+        public void BuildControlCarriesArbitrarilyManyNamedGroupsNotJustStocksTen()
+        {
+            var control = new Dictionary<string, object?>
+            {
+                ["actionGroups"] = new List<object?>
+                {
+                    new Dictionary<string, object?> { ["index"] = 3, ["name"] = "Solar Panels", ["state"] = true },
+                    new Dictionary<string, object?> { ["index"] = 42, ["name"] = "Science Bay", ["state"] = false },
+                    new Dictionary<string, object?> { ["index"] = 250, ["name"] = "Abort Sequence", ["state"] = true },
+                },
+            };
+
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, control: control);
+
+            var vesselControl = VesselViewProvider.BuildControl(snapshot);
+
+            Assert.NotNull(vesselControl);
+            Assert.Equal(3, vesselControl!.ActionGroups!.Length);
+            Assert.Equal(42, vesselControl.ActionGroups[1].Index);
+            Assert.Equal("Science Bay", vesselControl.ActionGroups[1].Name);
+            Assert.Equal(250, vesselControl.ActionGroups[2].Index);
+            Assert.Equal("Abort Sequence", vesselControl.ActionGroups[2].Name);
+            Assert.True(vesselControl.ActionGroups[2].State);
+        }
+
+        /// <summary>
+        /// R1(a): absent action-group data is NULL, never an empty list — an
+        /// empty list would wrongly assert "this vessel has zero groups". Also
+        /// covers a recording predating the named list, which simply has no
+        /// "actionGroups" key.
+        /// </summary>
+        [Fact]
+        public void BuildControlReportsNullActionGroupsWhenTheKeyIsAbsentNeverAnEmptyList()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                control: new Dictionary<string, object?> { ["sas"] = true });
+
+            var vesselControl = VesselViewProvider.BuildControl(snapshot);
+
+            Assert.NotNull(vesselControl);
+            Assert.Null(vesselControl!.ActionGroups);
+        }
+
+        /// <summary>
+        /// A malformed entry (no index, or no state) is skipped rather than
+        /// defaulted — same discipline as BuildManeuver's missing-Ut rule. A
+        /// group with an index but no name still renders, falling back to the
+        /// stock-style label.
+        /// </summary>
+        [Fact]
+        public void BuildControlSkipsGroupsMissingIdentityOrStateAndNamesTheUnnamed()
+        {
+            var control = new Dictionary<string, object?>
+            {
+                ["actionGroups"] = new List<object?>
+                {
+                    new Dictionary<string, object?> { ["name"] = "no index", ["state"] = true },
+                    new Dictionary<string, object?> { ["index"] = 5, ["name"] = "no state" },
+                    new Dictionary<string, object?> { ["index"] = 7, ["state"] = true },
+                },
+            };
+
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, control: control);
+
+            var vesselControl = VesselViewProvider.BuildControl(snapshot);
+
+            var group = Assert.Single(vesselControl!.ActionGroups!);
+            Assert.Equal(7, group.Index);
+            Assert.Equal("AG7", group.Name);
+            Assert.True(group.State);
         }
 
         [Fact]
@@ -1964,7 +2059,11 @@ namespace Sitrep.Host.Tests
                     Brakes = false,
                     Lights = true,
                     Throttle = 0.5,
-                    ActionGroups = new[] { true, false, true, false, true, false, true, false, true, false },
+                    ActionGroups = new[]
+                    {
+                        new ActionGroupState { Index = 1, Name = "AG1", State = true },
+                        new ActionGroupState { Index = 2, Name = "AG2", State = false },
+                    },
                     Meta = meta,
                 },
             };

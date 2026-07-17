@@ -1,19 +1,21 @@
 import type {
   ActionDefinition,
+  ActionGroup,
   ActionGroupId,
   ComponentProps,
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
-  ACTION_GROUPS,
   AugmentSlot,
   getSizeBucket,
   registerComponent,
+  useActionGroupFrom,
+  useActionGroups,
   useActionInput,
-  useDataValue,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
   ConfigForm,
@@ -89,40 +91,130 @@ declare module "@ksp-gonogo/core" {
 }
 
 // ---------------------------------------------------------------------------
+// Value resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolves one group's live value off the canonical payloads.
+ *
+ * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
+ * that index — never by array position (position stopped implying identity when
+ * the wire shape became a named list) and never by name (two AGX groups may
+ * share a display name).
+ *
+ * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
+ * the odd one out: it isn't a control input at all, so it comes off
+ * `vessel.structure.currentStage` and is the only NUMERIC readout here.
+ */
+function resolveGroupValue(
+  group: ActionGroup | undefined,
+  payload: VesselControl | VesselStructure | undefined,
+): unknown {
+  if (!group) return undefined;
+  // Stage reads the OTHER topic — see ActionGroupComponent.
+  if (group.name === "Stage") {
+    return (payload as VesselStructure | undefined)?.currentStage;
+  }
+  const control = payload as VesselControl | undefined;
+  if (group.index !== undefined) {
+    return control?.actionGroups?.find((g) => g.index === group.index)?.state;
+  }
+  switch (group.name) {
+    case "SAS":
+      return control?.sas;
+    case "RCS":
+      return control?.rcs;
+    case "Light":
+      return control?.lights;
+    case "Gear":
+      return control?.gear;
+    case "Brake":
+      return control?.brakes;
+    case "Abort":
+      return control?.abort;
+    case "Precision Control":
+      return control?.precisionControl;
+    default:
+      // A configured id that no longer exists — e.g. a saved AGX group after
+      // AGX was uninstalled. Unknown, not false: the pill shows "—".
+      return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-function ActionGroupComponent({
+/**
+ * Resolves this instance's group + live value, then renders the view.
+ *
+ * The CANONICAL one-arg topic read lives here. This widget's last legacy
+ * `useDataValue("data", group.value)` shim read is GONE: it existed only
+ * because the read key was resolved dynamically off the hardcoded
+ * ACTION_GROUPS registry (`"v.sasValue"`, `"v.ag1Value"`, …), which is exactly
+ * what made this widget the mapTopic coverage scan's own blind spot.
+ *
+ * `vessel.control` is read ONCE and serves both jobs — it carries the named
+ * custom groups the registry derives from AND every stock singleton's value —
+ * so the common case costs exactly one subscription, as the single dynamic
+ * legacy read did. `Stage` is the sole group whose value lives elsewhere
+ * (`vessel.structure.currentStage`; it's a staging command, not a control
+ * input), so it branches to a sibling that adds that second subscription only
+ * for the instance that actually needs it, rather than every ActionGroup on the
+ * dashboard paying for it.
+ */
+function ActionGroupComponent(
+  props: Readonly<ComponentProps<ActionGroupConfig>>,
+) {
+  const control = useTelemetry("vessel.control");
+  const group = useActionGroupFrom(control, props.config?.actionGroupId);
+
+  if (group?.name === "Stage") {
+    return <StageActionGroup {...props} group={group} />;
+  }
+  return (
+    <ActionGroupView
+      {...props}
+      group={group}
+      value={resolveGroupValue(group, control)}
+    />
+  );
+}
+
+/** The Stage-only leg — see {@link ActionGroupComponent}. */
+function StageActionGroup({
+  group,
+  ...props
+}: Readonly<ComponentProps<ActionGroupConfig>> & { group: ActionGroup }) {
+  const structure = useTelemetry("vessel.structure");
+  return (
+    <ActionGroupView {...props} group={group} value={structure?.currentStage} />
+  );
+}
+
+function ActionGroupView({
   config,
   onConfigChange,
   w,
   h,
-}: Readonly<ComponentProps<ActionGroupConfig>>) {
-  const group = ACTION_GROUPS.find((g) => g.name === config?.actionGroupId);
+  group,
+  value,
+}: Readonly<ComponentProps<ActionGroupConfig>> & {
+  group: ActionGroup | undefined;
+  value: unknown;
+}) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
-  // `group.value`/`group.toggle` are resolved dynamically off the ACTION_GROUPS
-  // registry (`@ksp-gonogo/core/actionGroups.ts`), not literal `useDataValue`
-  // string calls — see `mapTopic.coverage.test.ts`'s doc comment for why that
-  // makes this widget the scan's own blind spot. Abort and Precision
-  // Control's `.value` keys were the last two holdouts and are now
-  // un-gapped: `v.abortValue` ->
-  // `vessel.control.abort` and `v.precisionControlValue` ->
-  // `vessel.control.precisionControl` (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`)
-  // — every other group's `.value` was already mapped. The `.toggle` side is
-  // `useExecuteAction`, a different dispatch path this comment doesn't cover;
-  // `f.abort` -> `vessel.control.setAbort` rides the same toggle -> absolute
-  // bridge as `f.sas`/`f.rcs`/etc (`map-command.ts`). Together this closes the
-  // widget's last gapped pair with zero code change here — both keys already
-  // ride the stream via the mapTopic/mapCommand shim once `vessel.control` is
-  // carried; only test coverage needed adding.
-  // `group.value` is resolved dynamically off the ACTION_GROUPS registry, so
-  // this one read stays a two-arg shim read (the key isn't a literal) — it
-  // still rides the stream via the mapTopic shim once `vessel.control` is
-  // carried. The two static reads below have clean canonical homes:
+  // `value` now arrives as a prop, resolved one-arg off the canonical
+  // `vessel.control` / `vessel.structure` Topics by the wrappers above — the
+  // last `useDataValue("data", group.value)` shim read is gone, and with it
+  // `mapTopic.coverage`'s dynamic-key blind spot: the ACTION_GROUPS registry
+  // no longer carries read keys at all. The `.toggle` side is still
+  // `useExecuteAction` (`f.abort` -> `vessel.control.setAbort` rides the
+  // toggle -> absolute bridge in `map-command.ts`, same as `f.sas`/`f.rcs`).
+  // These two reads have clean canonical homes of their own:
   //  - `t.isPaused`     -> `time.warp.paused`
   //  - `comm.connected` -> `comms.link.connected`
-  const value = useDataValue("data", group?.value ?? "v.sasValue");
   const isPaused = useTelemetry("time.warp")?.paused;
   const commConnected = useTelemetry("comms.link")?.connected;
   const execute = useExecuteAction("data");
@@ -325,6 +417,9 @@ function ActionGroupConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<ActionGroupConfig>>) {
+  // The picker lists whatever the elected backend actually reports — under AGX
+  // that's the player's own named groups, with no change here.
+  const groups = useActionGroups();
   const [actionGroupId, setActionGroupId] = useState<ActionGroupId>(
     config?.actionGroupId ?? "AG1",
   );
@@ -350,7 +445,7 @@ function ActionGroupConfigComponent({
           value={actionGroupId}
           onChange={(e) => setActionGroupId(e.target.value as ActionGroupId)}
         >
-          {ACTION_GROUPS.map((g) => (
+          {groups.map((g) => (
             <option key={g.name} value={g.name}>
               {g.name}
             </option>

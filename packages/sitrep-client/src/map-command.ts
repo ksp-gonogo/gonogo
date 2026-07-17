@@ -129,43 +129,48 @@ function toggleHome(command: string, readTopic: string): CommandHome {
 
 /**
  * `f.ag1`..`f.ag10` -> `vessel.control.setActionGroup{group, state}`. Same
- * toggle -> absolute bridge as `toggleHome`, but there is no per-index CLEAN
- * read home for an individual action group (`map-topic.ts`'s
- * `TELEMACHUS_KNOWN_GAPS`: "`v.ag1Value`..`v.ag10Value`: `VesselControl` only
- * carries a single fixed-order `ActionGroups: bool[]` array ... there is no
- * per-index subtopic"). Rather than leave the whole action-group family a
- * command gap, this reads the RAW `vessel.control` record's
- * `actionGroups[groupNumber-1]` element directly via the store's raw-field-
- * subtopic mechanism (`TimelineStore.resolveRawFieldSubtopic`/
- * `sampleRawFieldSubtopic` walk any `"<raw-topic>.<field...>"` string, and a
- * numeric path segment indexes a JS array exactly like an object key —
- * `"0" in [true, false]` is `true`). `mapCommand`'s bridge isn't bound by
- * `useDataValue`'s "one clean scalar subtopic per widget key" contract, so it
- * can reach into the array a plain widget read can't (yet) address.
+ * toggle -> absolute bridge as `toggleHome`: read the current state, send its
+ * negation as an absolute.
+ *
+ * **This used to index the raw array BY POSITION**
+ * (`vessel.control.actionGroups.${groupNumber - 1}`), exploiting the store's
+ * raw-field-subtopic walk treating a numeric path segment as an array index.
+ * That is now WRONG at the root: `VesselControl.actionGroups` is a NAMED list
+ * (`{ index, name, state }[]`), so position no longer implies identity —
+ * element 0 is merely the first group the elected backend happened to report,
+ * which under AGX could be group 3. Reading `.0` would have silently toggled
+ * the wrong group.
+ *
+ * It now reads the WHOLE `vessel.control` record and finds the entry whose own
+ * `index` matches — the same keyed lookup the widget does. Deliberately NOT the
+ * derived `vessel.state.actionGroup{n}` home: that would newly couple this
+ * write bridge to the derived-channel layer, whereas reading the raw record
+ * keeps exactly the dependency profile (and the caveat below) this always had.
  *
  * **This bridge only resolves once something has subscribed to the raw
- * `vessel.control` topic** — unlike the 5 booleans above, NO widget today
- * reads an ag-group value through the stream (the per-index read is itself a
- * gap), so `ActionGroupComponent` firing `f.ag1` alone does not create that
- * subscription. In a dashboard where a sibling SAS/RCS/Gear/Brakes/Lights
- * `ActionGroup` instance (or any future `vessel.control.*` reader) is also
- * mounted, the shared `TimelineStore` already has the array live and this
- * resolves for free; otherwise `getCurrentValue` returns `undefined` and the
- * shim safely falls back to legacy — exactly the documented "if unknowable,
- * prefer the safest mapping" contract, never a guessed toggle.
+ * `vessel.control` topic.** In practice the `ActionGroup` widget firing `f.ag1`
+ * is itself a `vessel.control` reader, so its own subscription satisfies this;
+ * a headless dispatcher (e.g. an alarm's `onFire`) needs some mounted widget to
+ * be carrying the topic. Otherwise `getCurrentValue` yields `undefined` and the
+ * shim safely falls back to legacy — the documented "if unknowable, prefer the
+ * safest mapping" contract, never a guessed toggle.
  *
- * `f.abort` is UN-GAPPED: `VesselControl` now carries a
- * plain `Abort` field (`vessel.control.abort` — see `map-topic.ts`'s
- * `TELEMACHUS_CLEAN_HOMES`), so it gets the same clean `toggleHome` bridge
- * as sas/rcs/gear/brake/light below rather than this array-indexing one.
+ * `f.abort` is UN-GAPPED and uses `toggleHome` against `vessel.control.abort`
+ * (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`) rather than this, since
+ * Abort is a stock singleton with its own field and command.
  */
 function actionGroupHome(groupNumber: number): CommandHome {
-  const readTopic = `vessel.control.actionGroups.${groupNumber - 1}`;
   return {
     // VesselCommandProvider.SetActionGroupCommand
     command: "vessel.control.setActionGroup",
     buildArgs: (_rawArgs, getCurrentValue) => {
-      const current = getCurrentValue(readTopic);
+      const control = getCurrentValue("vessel.control") as
+        | { actionGroups?: { index: number; state: boolean }[] | null }
+        | null
+        | undefined;
+      const current = control?.actionGroups?.find(
+        (group) => group.index === groupNumber,
+      )?.state;
       if (typeof current !== "boolean") return INVALID;
       return { group: groupNumber, state: !current };
     },

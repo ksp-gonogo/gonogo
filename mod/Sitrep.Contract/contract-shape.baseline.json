@@ -1,7 +1,12 @@
 {
-  "Major": 4,
+  "Major": 5,
   "Minor": 0,
   "Types": {
+    "Sitrep.Contract.ActionGroupState": [
+      "Index:System.Int32",
+      "Name:System.String",
+      "State:System.Boolean"
+    ],
     "Sitrep.Contract.ActivateStrategyArgs": [
       "Factor:System.Double",
       "StrategyId:System.String"
@@ -815,7 +820,7 @@
     ],
     "Sitrep.Contract.VesselControl": [
       "Abort:System.Nullable\u00601[System.Boolean]",
-      "ActionGroups:System.Boolean[]",
+      "ActionGroups:Sitrep.Contract.ActionGroupState[]",
       "Brakes:System.Nullable\u00601[System.Boolean]",
       "Gear:System.Nullable\u00601[System.Boolean]",
       "Lights:System.Nullable\u00601[System.Boolean]",

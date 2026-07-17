@@ -149,9 +149,24 @@ namespace Sitrep.Host
         public static CommandResult<int> HandleStage(IVesselActuator actuator, object? _) =>
             actuator.Stage();
 
+        /// <summary>
+        /// Same split as <see cref="HandleSetWarpIndex"/>, and for the same
+        /// reason: the unambiguously-invalid case is rejected HERE, but the
+        /// REAL upper bound is only known live, so the actuator owns it.
+        ///
+        /// <para>This used to hardcode <c>1..10</c>. It can't any more — the
+        /// elected action-groups backend owns the range (stock stops at 10;
+        /// Action Groups Extended legitimately goes to 250), and this
+        /// KSP-free provider cannot see which backend won. A non-positive
+        /// group is still nonsense under EVERY backend, so it fails fast here;
+        /// anything else goes to the actuator, which asks the backend and
+        /// returns <c>CommandErrorCode.Range</c> for a group it doesn't know.
+        /// A command naming an unknown group therefore still fails cleanly —
+        /// the check MOVED, it did not disappear.</para>
+        /// </summary>
         public static CommandResult HandleSetActionGroup(IVesselActuator actuator, SetActionGroupArgs args)
         {
-            if (args.Group < 1 || args.Group > 10)
+            if (args.Group < 1)
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
             }

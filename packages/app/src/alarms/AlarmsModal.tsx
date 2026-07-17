@@ -1,4 +1,5 @@
-import { ACTION_GROUPS, useDataValue } from "@ksp-gonogo/core";
+import type { ActionGroup } from "@ksp-gonogo/core";
+import { useActionGroups, useDataValue } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
@@ -11,7 +12,7 @@ import {
   Input,
   PrimaryButton,
 } from "@ksp-gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type {
   Alarm,
@@ -33,12 +34,28 @@ export interface AlarmDraftPrefill {
   onFire?: AlarmFireAction[];
 }
 
-// Pickable telemetry actions for `onFire`. Filter out the synthetic entries
-// without a `toggle` key (e.g. Precision Control), since dispatching them
-// would be a no-op.
-const FIRABLE_ACTIONS = ACTION_GROUPS.filter(
-  (g): g is typeof g & { toggle: string } => typeof g.toggle === "string",
-);
+/**
+ * Pickable telemetry actions for `onFire`. Filters out the synthetic entries
+ * without a `toggle` key (e.g. Precision Control), since dispatching them would
+ * be a no-op.
+ *
+ * A HOOK rather than the module-scope constant this used to be: the action-group
+ * registry is no longer a hardcoded literal, it derives its custom half from
+ * live telemetry (`useActionGroups`), so the list can't be computed at module
+ * load. Under a future AGX backend this is what makes the player's own named
+ * groups appear in the alarm picker for free.
+ */
+function useFirableActions(): (ActionGroup & { toggle: string })[] {
+  const groups = useActionGroups();
+  return useMemo(
+    () =>
+      groups.filter(
+        (g): g is ActionGroup & { toggle: string } =>
+          typeof g.toggle === "string",
+      ),
+    [groups],
+  );
+}
 
 /**
  * CRUD UI for the alarm list. Intentionally screen-agnostic — accepts a
@@ -123,8 +140,13 @@ export function AlarmsModal({
   const [draftOnFire, setDraftOnFire] = useState<AlarmFireAction[]>(
     () => prefill?.onFire ?? [],
   );
+  const firableActions = useFirableActions();
+  // Seeded lazily from the registry's first entry. The registry's custom half
+  // arrives with telemetry, but the STOCK half (SAS first) is present from the
+  // first render, so this is never empty in practice — the `?? ""` is belt and
+  // braces, matching the previous module-scope behaviour.
   const [pickerAction, setPickerAction] = useState<string>(
-    FIRABLE_ACTIONS[0]?.toggle ?? "",
+    firableActions[0]?.toggle ?? "",
   );
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -789,6 +811,7 @@ function OnFireEditor({
   // That's fine: caption falls back to the plain "(f.ag1)" label.
   const bindingsRaw = useDataValue("data", "f.ag.bindings");
   const bindings = isAgBindingArray(bindingsRaw) ? bindingsRaw : null;
+  const firableActions = useFirableActions();
 
   return (
     <Field>
@@ -796,7 +819,7 @@ function OnFireEditor({
       {value.length > 0 && (
         <FireList>
           {value.map((fx, i) => {
-            const meta = FIRABLE_ACTIONS.find((g) => g.toggle === fx.action);
+            const meta = firableActions.find((g) => g.toggle === fx.action);
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat; position is the only stable identity
               <FireChip key={`${fx.action}-${i}`}>
@@ -820,7 +843,7 @@ function OnFireEditor({
           value={pickerValue}
           onChange={(e) => onPickerChange(e.target.value)}
         >
-          {FIRABLE_ACTIONS.map((g) => (
+          {firableActions.map((g) => (
             <option key={g.toggle} value={g.toggle}>
               {g.name} ({g.toggle}){captionForAg(g.toggle, bindings)}
             </option>

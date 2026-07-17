@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.ActionGroups;
 
 namespace Gonogo.KSP
 {
@@ -33,13 +34,26 @@ namespace Gonogo.KSP
     /// side.
     /// </summary>
     [SitrepUplink("vessel")]
-    public sealed class VesselUplink : ISitrepUplink
+    public sealed class VesselUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         private readonly IVesselActuator _actuator;
+
+        /// <summary>
+        /// The same object as <see cref="_actuator"/> when it's the real
+        /// KSP one, null when it's the KSP-free fake the unit tests inject.
+        /// Held separately because installing the elected-backend resolver is a
+        /// REAL-KSP concern that <see cref="IVesselActuator"/> (a KSP-free
+        /// interface the fake also implements) has no business carrying — the
+        /// fake has no backend and needs none.
+        /// </summary>
+        private readonly KspVesselActuator? _kspActuator;
+
+        private Kernel? _kernel;
 
         public VesselUplink(IVesselActuator actuator)
         {
             _actuator = actuator;
+            _kspActuator = actuator as KspVesselActuator;
         }
 
         /// <summary>
@@ -196,8 +210,32 @@ namespace Gonogo.KSP
             },
         };
 
+        /// <summary>
+        /// Declares the exclusive <c>"actionGroups"</c> capability with
+        /// <see cref="StockActionGroupsBackend"/> as its always-present vanilla
+        /// factory — the same two-pass discipline (and for the same reason) as
+        /// <see cref="CommsCoreUplink.DeclareCapabilities"/>: declaring HERE,
+        /// in the pre-Register pass, guarantees the capability exists before
+        /// ANY uplink's <c>Register</c> runs, so a future AGX uplink's provider
+        /// registration can never race ahead of this declaration regardless of
+        /// assembly-scan discovery order.
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
+        }
+
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+
+            // Install the WRITE-side elected-backend resolver. Resolved lazily
+            // per command (not captured now) because the election hasn't run
+            // yet at Register time — ResolveCapabilities() happens after every
+            // uplink has registered its providers.
+            _kspActuator?.SetActionGroupsBackendSource(
+                () => _kernel != null ? ActionGroupsElection.Elected(_kernel) : null);
+
             host.AddChannelSource(VesselViewProvider.IdentityTopic, VesselViewProvider.BuildIdentityWire);
             host.AddChannelSource(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire);
             host.AddChannelSource(VesselViewProvider.OrbitTruthTopic, VesselViewProvider.BuildOrbitTruthWire);

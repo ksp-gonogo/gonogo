@@ -144,10 +144,17 @@ namespace Sitrep.Host.Tests
             Assert.True(actuator.LastActionGroupState);
         }
 
+        /// <summary>
+        /// Same split as
+        /// <see cref="HandleSetWarpIndexRejectsNegativeIndicesBeforeEverCallingTheActuator"/>:
+        /// only the unambiguously-invalid case is rejected HERE. A non-positive
+        /// group is nonsense under EVERY backend, so it never reaches the
+        /// actuator.
+        /// </summary>
         [Theory]
         [InlineData(0)]
-        [InlineData(11)]
-        public void HandleSetActionGroupRejectsOutOfRangeGroupsBeforeEverCallingTheActuator(int group)
+        [InlineData(-1)]
+        public void HandleSetActionGroupRejectsNonPositiveGroupsBeforeEverCallingTheActuator(int group)
         {
             var actuator = new FakeVesselActuator();
 
@@ -156,6 +163,33 @@ namespace Sitrep.Host.Tests
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
             Assert.Null(actuator.LastActionGroup);
+        }
+
+        /// <summary>
+        /// This provider used to hardcode <c>group > 10 => Range</c>. It must
+        /// NOT any more: the elected action-groups backend owns the upper bound
+        /// (stock stops at 10, but Action Groups Extended legitimately goes to
+        /// 250), and this KSP-free provider cannot see which backend won. So
+        /// group 11 is DELEGATED, not pre-rejected — under stock the actuator's
+        /// backend still fails it cleanly with Range (see
+        /// <c>StockActionGroupsBackend.SetGroup</c>), but that verdict is the
+        /// backend's to give, not this file's to assume.
+        ///
+        /// <para>This is the regression guard for the whole seam: reintroducing
+        /// a <c>&gt; 10</c> check here would silently cap AGX at ten groups
+        /// while every other layer happily carried 250.</para>
+        /// </summary>
+        [Theory]
+        [InlineData(11)]
+        [InlineData(250)]
+        public void HandleSetActionGroupDelegatesAboveStocksTenRatherThanAssumingTheBound(int group)
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetActionGroup(actuator, new SetActionGroupArgs { Group = group, State = true });
+
+            Assert.Equal(group, actuator.LastActionGroup);
+            Assert.True(actuator.LastActionGroupState);
         }
 
         /// <summary>

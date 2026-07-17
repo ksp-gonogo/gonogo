@@ -103,7 +103,14 @@ function fakeTelemetry(): FakeTelemetry {
   // bridge (`getCurrentValue` in `map-command.ts`) has a real boolean to
   // invert — without it, `buildArgs` returns INVALID and the command never
   // maps at all.
-  publish("vessel.control.actionGroups.0", false);
+  //
+  // Publishes the whole `vessel.control` record (the NAMED action-group list
+  // the mod now sends), not the old `vessel.control.actionGroups.0` positional
+  // subtopic: identity travels with each entry's `index` now, so the bridge
+  // finds the group rather than indexing at a position.
+  publish("vessel.control", {
+    actionGroups: [{ index: 1, name: "AG1", state: false }],
+  });
 
   let warp = {
     warpRate: 1,

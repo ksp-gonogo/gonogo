@@ -35,6 +35,13 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
+/** Stock's ten customs, all disengaged — the named-list shape the mod now sends. */
+const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
+  index: i + 1,
+  name: `AG${i + 1}`,
+  state: false,
+}));
+
 /**
  * The command-table proof for a representative toggle -> absolute widget
  * (mirrored from `WarpControl/stream.test.tsx`): `ActionGroupComponent`
@@ -46,15 +53,13 @@ function unmountAll() {
  * `map-command.ts`'s `toggleHome`/`actionGroupHome` doc comments explain why
  * — SAS/RCS/Gear/Brakes/Lights each have a clean per-field read home
  * (`vessel.control.sas` etc.), and THIS SAME WIDGET INSTANCE already
- * subscribes to that exact topic for its own state pill
- * (`useDataValue("data", "v.sasValue")`), so the toggle -> absolute bridge's
+ * subscribes to that exact topic for its own state pill (it reads
+ * `vessel.control` canonically), so the toggle -> absolute bridge's
  * `getCurrentValue` reader is guaranteed live the moment the toggle button is
- * clickable. `f.ag1`..`f.ag10` map through the identical bridge (proven at
- * the unit level in `map-command.test.ts`) but read the RAW
- * `vessel.control.actionGroups.<i>` array element instead, which only
- * resolves once SOME widget on the dashboard subscribes to `vessel.control`
- * — not a guarantee a single isolated `ActionGroup` instance can provide on
- * its own, so it isn't exercised end-to-end here.
+ * clickable. `f.ag1`..`f.ag10` map through the identical bridge (proven at the
+ * unit level in `map-command.test.ts`) but read the DERIVED
+ * `vessel.state.actionGroup{n}` home, which is fed by the same
+ * `vessel.control` subscription this widget already holds.
  */
 afterEach(() => {
   unmountAll();
@@ -93,7 +98,7 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
         brakes: false,
         lights: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
@@ -168,7 +173,7 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
         brakes: false,
         lights: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
@@ -221,7 +226,7 @@ describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort comman
         abort: false,
         precisionControl: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
@@ -292,7 +297,7 @@ describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort comman
         abort: false,
         precisionControl: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
@@ -343,7 +348,7 @@ describe("ActionGroup (Precision Control) — P4a un-gap: v.precisionControlValu
         abort: false,
         precisionControl: true,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
