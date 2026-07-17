@@ -245,6 +245,18 @@ describe("ActionGroupComponent", () => {
   it("has no axe violations with the pill toggle button", async () => {
     const { container } = renderGroup({ actionGroupId: "SAS" });
     emitControl({ sas: true });
+    // Let the emitted frame settle BEFORE axe runs. `emitControl` delivers on a
+    // deferred `beginFrame` (a `queueMicrotask` under jsdom — see
+    // `setupStreamFixture`/`scheduleFrame`), so the render reflecting `sas:true`
+    // lands one microtask after the sync `act()` returns. Every other test here
+    // follows the emit with an RTL `findBy`/`waitFor`, which polls with the
+    // act-environment OFF and quietly absorbs that frame; this test alone went
+    // straight into `axe()`, whose long scan runs with the act-environment ON
+    // but no `act()` on the stack — so the deferred frame re-rendered
+    // `ActionGroupComponent` mid-scan, outside act (the load-dependent
+    // "not wrapped in act" warning). Settling on the rendered state first — the
+    // same guard the Navball/FleetComms axe tests use — drains it cleanly.
+    await screen.findByText("ON");
     expect(await axe(container)).toHaveNoViolations();
   });
 
