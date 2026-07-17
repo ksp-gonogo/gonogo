@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import lkoKerbin from "./__fixtures__/lko-kerbin.json";
 import { SemiMajorAxisComponent } from "./index";
@@ -17,9 +17,6 @@ import { SemiMajorAxisComponent } from "./index";
  * full readout (headline `sma` + the derived reference-body subtitle) with NO
  * legacy source registered anywhere in this file.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("SemiMajorAxis — renders off the stream alone (R6 Wave 1)", () => {
   it("renders sma and the derived reference-body subtitle purely off the stream", async () => {

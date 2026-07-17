@@ -1,7 +1,7 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -28,9 +28,6 @@ import { PowerSystemsComponent } from "./index";
  * nets that against the fixture's own -0.05 consumer either way), proving
  * the merge is a genuine no-op parity case, not a coincidence of rounding.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("PowerSystems — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup with parts.power carried as without it, when totalProductionEc matches the topology-summed total", async () => {

@@ -1,17 +1,13 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
+  DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   type Instrument,
   ScienceOfficerComponent,
@@ -26,12 +22,11 @@ import { renderWithTheme } from "./testTheme";
  * escape-hatch) are exposed but ship no filler here (that's an Uplink
  * augment): an empty slot must render cleanly, and a test augment registered
  * into it must appear, receiving the widget's focus as typed slot props.
+ *
+ * Runs off the real stream pipeline (`science.instruments`/`science.experiments`
+ * carried through a `TelemetryProvider`) — the widget reads its whole state
+ * off canonical Topics now, no legacy `DataSource`.
  */
-
-const KEYS: DataKey[] = [
-  { key: "sci.instruments" },
-  { key: "sci.experiments" },
-];
 
 const INSTRUMENT: Instrument = {
   partId: "1",
@@ -43,26 +38,50 @@ const INSTRUMENT: Instrument = {
   inoperable: false,
 };
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// action-handler / augment registries — clearActionHandlers()/clearAugments()
+// firing on a still-mounted widget is a state update outside act(). RTL
+// auto-cleanup runs after this file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 // Drive the widget to its full instrument-list layout, where both the header
 // `badges` slot and the per-instrument `sections` slot render.
-async function renderFullList(): Promise<MockDataSourceFixture> {
-  const fixture = await setupMockDataSource({ keys: KEYS });
-  renderWithTheme(
-    <ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />,
+async function renderFullList(): Promise<void> {
+  const fixture = setupStreamFixture({
+    carriedChannels: ["science.instruments", "science.experiments"],
+    pinnedUt: 10,
+  });
+  const { unmount } = renderWithTheme(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "sci-slot" }}>
+        <ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
   );
+  renderedTrees.push(unmount);
   act(() => {
-    fixture.source.emit("sci.instruments", [INSTRUMENT]);
-    fixture.source.emit("sci.experiments", [
+    fixture.emit("science.instruments", [
+      {
+        partId: INSTRUMENT.partId,
+        partName: INSTRUMENT.partTitle,
+        experimentId: INSTRUMENT.expId,
+        deployed: INSTRUMENT.deployed,
+        inoperable: INSTRUMENT.inoperable,
+        rerunnable: INSTRUMENT.rerunnable,
+        dataIsCollectable: INSTRUMENT.hasData,
+      },
+    ]);
+    fixture.emit("science.experiments", [
       { subjectId: "mysteryGoo@test", dataAmount: 12.5 },
     ]);
   });
   await waitFor(() => expect(screen.getByText("Mystery Goo")).toBeTruthy());
-  return fixture;
 }
 
 describe("ScienceOfficer — augment slots (spec §4)", () => {
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearActionHandlers();
     // Wipe any test augment so it never leaks into the snapshot suite.
     clearAugments();
@@ -74,12 +93,11 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
   });
 
   it("renders the full list with no augments bound (empty slots are inert)", async () => {
-    const fixture = await renderFullList();
+    await renderFullList();
     // Empty slots add nothing — the stock readout renders exactly as before.
     expect(screen.getByText("Mystery Goo")).toBeTruthy();
     expect(screen.queryByTestId("sci-section-augment")).toBeNull();
     expect(screen.queryByTestId("sci-badge-augment")).toBeNull();
-    teardownMockDataSource(fixture);
   });
 
   it("renders a test augment bound to the sections slot, passing the instrument as slot props", async () => {
@@ -90,7 +108,7 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
         <div data-testid="sci-section-augment">LAB: {instrument.partTitle}</div>
       );
     }
-    const fixture = await renderFullList();
+    await renderFullList();
 
     act(() => {
       registerAugment({
@@ -103,7 +121,6 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
     const augment = await screen.findByTestId("sci-section-augment");
     // The per-row slot passed the widget's instrument down.
     expect(augment.textContent).toBe("LAB: Mystery Goo");
-    teardownMockDataSource(fixture);
   });
 
   it("renders a test augment bound to the badges slot in the header, receiving the instrument list", async () => {
@@ -117,7 +134,7 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
         </span>
       );
     }
-    const fixture = await renderFullList();
+    await renderFullList();
 
     act(() => {
       registerAugment({
@@ -129,6 +146,5 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
 
     const badge = await screen.findByTestId("sci-badge-augment");
     expect(badge.textContent).toBe("1@12.5");
-    teardownMockDataSource(fixture);
   });
 });

@@ -4,8 +4,8 @@ import {
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
@@ -209,30 +209,24 @@ function ScienceOfficerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
-  // sci.instruments -> science.instruments is mapped (map-topic.ts) — this
-  // existing useDataValue("data", "sci.instruments") call rides the stream
-  // via the mapTopic shim with zero code change here; parseInstruments above
-  // is what actually changed (accepts both wire shapes). sci.deploy[...]/
-  // sci.transmit[...] (the spend commands) now have a command home too
-  // (map-command.ts's science.experiment.deploy/transmit) and route through
-  // the stream the same way — no code change needed here either, since
-  // execute() already goes through the shim regardless of route.
-  const instrumentsRaw = useDataValue("data", "sci.instruments");
-  // sci.dataAmount stays gapped on the wire (no pre-aggregated field) —
-  // derive the vessel-wide total client-side from the same already-migrated
-  // sci.experiments read ScienceBench uses (sci.experiments ->
-  // science.experiments, map-topic.ts), same aggregate semantics as the old
-  // Telemachus key ("Total science data (mits)", telemachusMeta.ts).
-  const experimentsRaw = useDataValue("data", "sci.experiments");
+  // The instrument list reads the canonical `science.instruments` Topic
+  // (old `sci.instruments`); parseInstruments accepts both wire shapes. The
+  // sci.deploy[...]/sci.transmit[...] spend commands still route through the
+  // legacy `execute()` (map-command.ts's science.experiment.deploy/transmit).
+  const instrumentsRaw = useTelemetry("science.instruments");
+  // No pre-aggregated data field on the wire — derive the vessel-wide total
+  // client-side from the same `science.experiments` Topic ScienceBench uses,
+  // same aggregate semantics as the old Telemachus "Total science data (mits)".
+  const experimentsRaw = useTelemetry("science.experiments");
   const instruments = parseInstruments(instrumentsRaw);
   const execute = useExecuteAction("data");
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   // science.lab is a NEW capability (no legacy sci.instruments equivalent —
   // the Mobile Processing Lab is a different part from the crew-report/goo/
-  // barometer instruments sci.instruments tracks), read independently of
+  // barometer instruments science.instruments tracks), read independently of
   // the instrument list above.
-  const labRaw = useDataValue("data", "science.lab");
+  const labRaw = useTelemetry("science.lab");
   const labs = parseLab(labRaw);
   const labStreamStatus = useDataStreamStatus("data", "science.lab");
 

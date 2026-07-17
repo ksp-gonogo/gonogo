@@ -6,7 +6,13 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -14,6 +20,18 @@ import {
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent, type PowerSystemsSlotContext } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// action-handler / augment registries — clearActionHandlers()/clearAugments()
+// firing on a still-mounted widget is a state update outside act(). RTL
+// auto-cleanup runs after this file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
 
 /**
  * PowerSystems augment-slot exposure (this widget
@@ -85,7 +103,8 @@ async function renderFullList() {
 
 describe("PowerSystems — augment slots (spec §4)", () => {
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearActionHandlers();
     // Wipe any test augment so it never leaks into the snapshot suite.
     clearAugments();
