@@ -86,6 +86,8 @@ function ctx(extra: {
   index: RegistryIndex | "fail";
   roster?: RosterEntry[];
   importBundle: (url: string) => Promise<unknown>;
+  ensureConsent?: (info: { id: string }) => Promise<boolean>;
+  fetchBytes?: (url: string) => Promise<ArrayBuffer>;
 }) {
   stubRegistryFetch(extra.index);
   return {
@@ -94,8 +96,11 @@ function ctx(extra: {
     hostCompat: HOST,
     appVersion: "1.0.0",
     roster: extra.roster,
-    fetchBytes: async () => BUNDLE_BYTES,
+    fetchBytes: extra.fetchBytes ?? (async () => BUNDLE_BYTES),
     importBundle: extra.importBundle,
+    // Default to granted so the pre-consent tests exercise the load path; the
+    // dedicated consent tests below drive this explicitly.
+    ensureConsent: extra.ensureConsent ?? (async () => true),
   };
 }
 
@@ -137,6 +142,7 @@ describe("loadEnabledUplinks", () => {
       enabledIds: ["scansat"],
       hostCompat: HOST,
       appVersion: "1.0.0",
+      ensureConsent: async () => true,
       fetchBytes,
       importBundle,
     });
@@ -217,6 +223,59 @@ describe("loadEnabledUplinks", () => {
     expect(importBundle).toHaveBeenCalledOnce();
   });
 
+  it("quarantines with 'consent declined' and never fetches when consent is refused", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const fetchBytes = vi.fn<(url: string) => Promise<ArrayBuffer>>(
+      async () => BUNDLE_BYTES,
+    );
+    const outcomes = await loadEnabledUplinks(
+      ctx({
+        index: indexWith(goodHash),
+        importBundle,
+        fetchBytes,
+        ensureConsent: async () => false,
+      }),
+    );
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/consent declined/);
+    expect(fetchBytes).not.toHaveBeenCalled();
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("loads when consent is granted", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const outcomes = await loadEnabledUplinks(
+      ctx({
+        index: indexWith(goodHash),
+        importBundle,
+        ensureConsent: async () => true,
+      }),
+    );
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledOnce();
+  });
+
+  it("passes id, name, and version to the consent prompt", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const ensureConsent = vi.fn(async () => true);
+    await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
+    );
+    expect(ensureConsent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "scansat",
+        name: "SCANsat",
+        version: "1.0.0",
+      }),
+    );
+  });
+
   it("quarantines every enabled id when the registry is unreadable", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
@@ -239,6 +298,7 @@ describe("loadEnabledUplinks", () => {
       enabledIds: ["scansat"],
       hostCompat: HOST,
       appVersion: "1.0.0",
+      ensureConsent: async () => true,
       fetchBytes: async () => BUNDLE_BYTES,
       importBundle,
     });
