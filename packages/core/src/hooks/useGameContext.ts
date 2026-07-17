@@ -1,4 +1,5 @@
-import { useDataValue } from "./useDataValue";
+import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
+import { useTelemetry } from "./useTelemetry";
 
 export type GameScene =
   | "Flight"
@@ -103,9 +104,16 @@ function resolveCareerMode(raw: unknown): CareerMode {
  * once because `useDataValue` already deduplicates per-key.
  */
 export function useGameContext(): GameContext {
-  const sceneRaw = useDataValue("data", "kc.scene");
-  const padOccupiedRaw = useDataValue("data", "kc.padOccupied");
-  const careerModeRaw = useDataValue("data", "career.mode");
+  // Canonical Topic reads (former Telemachus kc.*/career.* keys resolved
+  // through map-topic.ts): kc.scene -> spaceCenter.scene.scene and
+  // career.mode -> career.mode.mode (the numeric GameMode ordinal
+  // resolveCareerMode below maps to a display string), both plain one-arg
+  // Topic reads; kc.padOccupied -> the DERIVED spaceCenter.state channel
+  // (space-center-state.ts, off spaceCenter.launchSites), read via useStream.
+  const sceneRaw = useTelemetry("spaceCenter.scene")?.scene;
+  const padOccupiedRaw =
+    useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied;
+  const careerModeRaw = useTelemetry("career.mode")?.mode;
 
   const scene: GameScene =
     typeof sceneRaw === "string" && KNOWN_SCENES.has(sceneRaw as GameScene)
