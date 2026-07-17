@@ -3,8 +3,9 @@ import {
   AugmentSlot,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   BigReadout,
   EmptyState,
@@ -68,12 +69,10 @@ declare module "@ksp-gonogo/core" {
  * Kerbalism because of the known kOS sensor incompatibility, so we
  * treat the value as a plain string array.
  *
- * `v.crew` is mapped on the wire — `map-topic.ts` now
- * points it at `vessel.crew.crew`, a `CrewMember[]` (`contract.ts`'s
- * `{name?, trait?, ...}`), so this same `useDataValue("data", "v.crew")`
- * call rides the stream via the `mapTopic` shim with zero code change
- * here. The object-shape branch below (already required for the
- * Kerbalism case) is exactly what parses `CrewMember` entries too — no
+ * `v.crew` lives on the wire at `vessel.crew.crew`, a `CrewMember[]`
+ * (`contract.ts`'s `{name?, trait?, ...}`), read here off the canonical
+ * `vessel.crew` Topic. The object-shape branch below (already required for
+ * the Kerbalism case) is exactly what parses `CrewMember` entries too — no
  * shape fix needed.
  *
  * Guard against unknown shapes (e.g. the server returning null before
@@ -97,17 +96,19 @@ function CrewManifestComponent({
   w,
   h,
 }: Readonly<ComponentProps<CrewManifestConfig>>) {
-  const crewRaw = useDataValue("data", "v.crew");
-  const crewCount = useDataValue("data", "v.crewCount");
-  const crewCapacity = useDataValue("data", "v.crewCapacity");
-  const isEVA = useDataValue("data", "v.isEVA");
+  // Roster, count, and capacity all ride the single `vessel.crew` Topic —
+  // read it once and pick the three fields off it.
+  const crew = useTelemetry("vessel.crew");
+  const crewRaw = crew?.crew;
+  const crewCount = crew?.count;
+  const crewCapacity = crew?.capacity;
+  // `v.isEVA` -> `vessel.state.isEVA`, a derived field on the `vessel.state`
+  // channel (map-topic.ts), read via `useStream` like the other derived reads.
+  const isEVA = useStream<VesselState>("vessel.state")?.isEVA;
 
-  // Connectivity indicator (mirroring the WarpControl pilot):
-  // `v.crewCount`, `v.crew`, and `v.crewCapacity` are all MAPPED now —
-  // all three land on the same `vessel.crew`
-  // wire channel, so `v.crewCount`'s stream status is representative of
-  // the whole roster/capacity/count trio. `v.isEVA` remains a declared GAP
-  // (no field on any channel yet) and stays legacy regardless.
+  // Connectivity indicator (mirroring the WarpControl pilot): count, roster,
+  // and capacity all land on the same `vessel.crew` wire channel, so
+  // `v.crewCount`'s stream status is representative of the whole trio.
   const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
   const names = toCrewNames(crewRaw);
@@ -158,7 +159,7 @@ function CrewManifestComponent({
 }
 
 function formatSubtitle(
-  isEVA: boolean | undefined,
+  isEVA: boolean | null | undefined,
   crewCount: number | undefined,
   crewCapacity: number | undefined,
 ): string {

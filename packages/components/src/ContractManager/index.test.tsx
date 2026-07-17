@@ -1,13 +1,13 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   type ContractBadgeContext,
   ContractManagerComponent,
@@ -15,72 +15,123 @@ import {
   parseContracts,
 } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "contracts.active" },
-  { key: "contracts.offered" },
-  { key: "contracts.completedRecent" },
-  { key: "t.universalTime" },
-];
+/**
+ * ContractManager runs off the stream: active/offered/completedRecent all ride
+ * the `career.status` Topic's `contracts` sub-tree (canonical `useTelemetry`),
+ * and the view UT comes from `useViewUt()` (pinned by the fixture). No legacy
+ * `MockDataSource` feeds the reads. The accept/cancel/decline commands still
+ * dispatch through the legacy `execute()` path (map-command.ts), so a
+ * `setupMockDataSource` AUX registered under `"data"` captures those calls.
+ */
+
+interface Contract {
+  id: number | string;
+  title: string;
+  [key: string]: unknown;
+}
+
+const renderedTrees: Array<() => void> = [];
+let legacyAux: MockDataSourceFixture | undefined;
+
+function newFixture() {
+  return setupStreamFixture({
+    carriedChannels: ["career.status", "vessel.state"],
+    pinnedUt: 0,
+  });
+}
+
+async function captureCommands(onExecute: (action: string) => void) {
+  legacyAux = await setupMockDataSource({
+    id: "data",
+    keys: [],
+    onExecute,
+    connectSource: true,
+  });
+}
+
+function renderContract(fixture: ReturnType<typeof newFixture>) {
+  const { unmount } = render(
+    <fixture.Provider>
+      <ContractManagerComponent config={{}} id="md" />
+    </fixture.Provider>,
+  );
+  renderedTrees.push(unmount);
+}
+
+function emitContracts(
+  fixture: ReturnType<typeof newFixture>,
+  contracts: {
+    active?: Contract[];
+    offered?: Contract[];
+    completedRecent?: Contract[];
+  },
+) {
+  fixture.emit("career.status", { contracts });
+}
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  if (legacyAux) {
+    teardownMockDataSource(legacyAux);
+    legacyAux = undefined;
+  }
+  // The augment registry is intentionally not cleared by the data-source
+  // teardown; reset it so a test-bound augment can't leak into later tests.
+  clearAugments();
+});
 
 describe("ContractManagerComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-    // The augment registry is intentionally not cleared by the data-source
-    // teardown; reset it so a test-bound augment can't leak into later tests.
-    clearAugments();
-  });
-
   it("shows the awaiting placeholder before any telemetry", () => {
-    render(<ContractManagerComponent config={{}} id="md" />);
+    renderContract(newFixture());
     expect(
       screen.getByText(/Awaiting contract telemetry/i),
     ).toBeInTheDocument();
   });
 
-  it("shows empty-state copy when there are no active contracts", () => {
-    render(<ContractManagerComponent config={{}} id="md" />);
+  it("shows empty-state copy when there are no active contracts", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
     act(() => {
-      source.emit("contracts.active", []);
+      emitContracts(fixture, { active: [] });
     });
-    expect(screen.getByText(/No active contracts/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/No active contracts/i)).toBeInTheDocument(),
+    );
   });
 
-  it("renders an active contract with parameters and rewards", () => {
-    render(<ContractManagerComponent config={{}} id="md" />);
+  it("renders an active contract with parameters and rewards", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
     act(() => {
-      source.emit("t.universalTime", 0);
-      source.emit("contracts.active", [
-        {
-          id: 42,
-          title: "Plant a flag on the Mun",
-          agency: "Kerbin Space Program",
-          state: "Active",
-          fundsAdvance: 5000,
-          fundsCompletion: 25000,
-          scienceCompletion: 15,
-          repCompletion: 5,
-          deadlineUt: 6 * 3600 * 5, // 5 stock days
-          parameters: [
-            { title: "Land on the Mun", state: "Complete", optional: false },
-            { title: "Plant flag", state: "Incomplete", optional: false },
-            {
-              title: "Return safely",
-              state: "Incomplete",
-              optional: true,
-            },
-          ],
-        },
-      ]);
+      emitContracts(fixture, {
+        active: [
+          {
+            id: 42,
+            title: "Plant a flag on the Mun",
+            agency: "Kerbin Space Program",
+            state: "Active",
+            fundsAdvance: 5000,
+            fundsCompletion: 25000,
+            scienceCompletion: 15,
+            repCompletion: 5,
+            deadlineUt: 6 * 3600 * 5, // 5 stock days
+            parameters: [
+              { title: "Land on the Mun", state: "Complete", optional: false },
+              { title: "Plant flag", state: "Incomplete", optional: false },
+              {
+                title: "Return safely",
+                state: "Incomplete",
+                optional: true,
+              },
+            ],
+          },
+        ],
+      });
     });
-    expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText(/Kerbin Space Program/)).toBeInTheDocument();
     expect(screen.getByText(/25\.0k/)).toBeInTheDocument(); // fundsCompletion
     expect(screen.getByText(/Land on the Mun/)).toBeInTheDocument();
@@ -90,25 +141,25 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/5d 0h left/i)).toBeInTheDocument();
   });
 
-  it("renders the per-contract badges slot with no bound augment (empty is fine)", () => {
+  it("renders the per-contract badges slot with no bound augment (empty is fine)", async () => {
     // No augment registered → the slot composes nothing and the cards render
     // exactly as before, one per contract.
-    render(<ContractManagerComponent config={{}} id="md" />);
+    const fixture = newFixture();
+    renderContract(fixture);
     act(() => {
-      source.emit("t.universalTime", 0);
-      source.emit("contracts.active", [
-        { id: 42, title: "Plant a flag on the Mun", parameters: [] },
-      ]);
-      source.emit("contracts.offered", [
-        { id: 7, title: "Survey the Mun", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [{ id: 42, title: "Plant a flag on the Mun", parameters: [] }],
+        offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
+      });
     });
-    expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText(/Survey the Mun/i)).toBeInTheDocument();
     expect(screen.queryByTestId("contract-badge")).not.toBeInTheDocument();
   });
 
-  it("renders a bound augment once per contract row, carrying each contract's identity", () => {
+  it("renders a bound augment once per contract row, carrying each contract's identity", async () => {
     // A test Uplink binds `contract-manager.badges` and echoes the slot props
     // back. Proves (a) the slot is exposed, (b) an augment composes into it,
     // and (c) the per-row props carry the right contract identity + section.
@@ -127,19 +178,17 @@ describe("ContractManagerComponent", () => {
       ),
     });
 
-    render(<ContractManagerComponent config={{}} id="md" />);
+    const fixture = newFixture();
+    renderContract(fixture);
     act(() => {
-      source.emit("t.universalTime", 0);
-      source.emit("contracts.active", [
-        { id: 42, title: "Plant a flag on the Mun", parameters: [] },
-      ]);
-      source.emit("contracts.offered", [
-        { id: 7, title: "Survey the Mun", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [{ id: 42, title: "Plant a flag on the Mun", parameters: [] }],
+        offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
+      });
     });
 
     // One badge per contract row: one active (42), one offered (7).
-    const badges = screen.getAllByTestId("contract-badge");
+    const badges = await screen.findAllByTestId("contract-badge");
     expect(badges).toHaveLength(2);
 
     const activeBadge = badges.find(
@@ -164,39 +213,37 @@ describe("ContractManagerComponent", () => {
   it("fires contracts.accept when the Accept button on an offered contract is clicked", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    await captureCommands(onExecute);
+    const fixture = newFixture();
 
-    render(<ContractManagerComponent config={{}} id="md" />);
+    renderContract(fixture);
     act(() => {
-      // Emit active first so the widget exits the awaiting-telemetry
+      // Emit active (empty) so the widget exits the awaiting-telemetry
       // early-return — without active, offered isn't rendered.
-      source.emit("contracts.active", []);
-      source.emit("contracts.offered", [
-        { id: 7, title: "Survey the Mun", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [],
+        offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
+      });
     });
 
-    await user.click(screen.getByText("Accept"));
+    await user.click(await screen.findByText("Accept"));
     expect(onExecute).toHaveBeenCalledWith("contracts.accept[7]");
   });
 
   it("requires arm-then-confirm before cancelling an active contract", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    await captureCommands(onExecute);
+    const fixture = newFixture();
 
-    render(<ContractManagerComponent config={{}} id="md" />);
+    renderContract(fixture);
     act(() => {
-      source.emit("contracts.active", [
-        { id: 11, title: "Build a station", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [{ id: 11, title: "Build a station", parameters: [] }],
+      });
     });
 
-    await user.click(screen.getByText("Cancel"));
+    await user.click(await screen.findByText("Cancel"));
     expect(onExecute).not.toHaveBeenCalled();
 
     await user.click(screen.getByText(/Forfeit contract/i));
@@ -206,20 +253,19 @@ describe("ContractManagerComponent", () => {
   it("requires arm-then-confirm before declining an offered contract", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    await captureCommands(onExecute);
+    const fixture = newFixture();
 
-    render(<ContractManagerComponent config={{}} id="md" />);
+    renderContract(fixture);
     act(() => {
-      source.emit("contracts.active", []);
-      source.emit("contracts.offered", [
-        { id: 9, title: "Land on Eve", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [],
+        offered: [{ id: 9, title: "Land on Eve", parameters: [] }],
+      });
     });
 
     // First click arms — should not fire yet.
-    await user.click(screen.getByText("Decline"));
+    await user.click(await screen.findByText("Decline"));
     expect(onExecute).not.toHaveBeenCalled();
 
     // Confirm fires the decline.
@@ -227,27 +273,24 @@ describe("ContractManagerComponent", () => {
     expect(onExecute).toHaveBeenCalledWith("contracts.decline[9]");
   });
 
-  it("counts active / offered / recent in the subtitle", () => {
-    render(<ContractManagerComponent config={{}} id="md" />);
+  it("counts active / offered / recent in the subtitle", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
     act(() => {
-      source.emit("contracts.active", [
-        {
-          id: 1,
-          title: "A",
-          parameters: [],
-        },
-      ]);
-      source.emit("contracts.offered", [
-        { id: 2, title: "B", parameters: [] },
-        { id: 3, title: "C", parameters: [] },
-      ]);
-      source.emit("contracts.completedRecent", [
-        { id: 4, title: "D", parameters: [] },
-      ]);
+      emitContracts(fixture, {
+        active: [{ id: 1, title: "A", parameters: [] }],
+        offered: [
+          { id: 2, title: "B", parameters: [] },
+          { id: 3, title: "C", parameters: [] },
+        ],
+        completedRecent: [{ id: 4, title: "D", parameters: [] }],
+      });
     });
-    expect(
-      screen.getByText(/1 active · 2 offered · 1 recent/i),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/1 active · 2 offered · 1 recent/i),
+      ).toBeInTheDocument(),
+    );
   });
 });
 

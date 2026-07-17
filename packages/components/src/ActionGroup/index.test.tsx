@@ -14,6 +14,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent, type ActionGroupSlotContext } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
@@ -35,6 +36,12 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
+// The dynamically-resolved group `.value` reads (SAS/Gear/AG1/...) stay on the
+// legacy `data` source: their mapped topics (`vessel.control.*` /
+// `vessel.state.*`) are deliberately NOT carried by the stream fixture below, so
+// the two-arg shim falls back to this source. `t.isPaused` / `comm.connected`
+// are canonical stream reads now (`time.warp.paused` / `comms.link.connected`)
+// and are fed via the stream fixture instead.
 const KEYS: DataKey[] = [
   { key: "v.sasValue" },
   { key: "v.rcsValue" },
@@ -42,13 +49,12 @@ const KEYS: DataKey[] = [
   { key: "v.brakeValue" },
   { key: "v.lightValue" },
   { key: "v.ag1Value" },
-  { key: "t.isPaused" },
-  { key: "comm.connected" },
 ];
 
 describe("ActionGroupComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
+  let stream: ReturnType<typeof setupStreamFixture>;
   let executed: string[];
 
   beforeEach(async () => {
@@ -63,6 +69,13 @@ describe("ActionGroupComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
+    // Feeds the canonical `time.warp` / `comms.link` reads (isPaused /
+    // commConnected). vessel.control/vessel.state are intentionally absent, so
+    // the group `.value` shim read still falls back to the legacy source above.
+    stream = setupStreamFixture({
+      carriedChannels: ["time.warp", "comms.link"],
+      pinnedUt: 10,
+    });
   });
 
   afterEach(() => {
@@ -78,14 +91,16 @@ describe("ActionGroupComponent", () => {
     size?: { w?: number; h?: number },
   ) {
     return render(
-      <DashboardItemContext.Provider value={{ instanceId: "action-group" }}>
-        <ActionGroupComponent
-          config={config}
-          id="action-group"
-          w={size?.w ?? 6}
-          h={size?.h ?? 6}
-        />
-      </DashboardItemContext.Provider>,
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "action-group" }}>
+          <ActionGroupComponent
+            config={config}
+            id="action-group"
+            w={size?.w ?? 6}
+            h={size?.h ?? 6}
+          />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
     );
   }
 
@@ -108,34 +123,34 @@ describe("ActionGroupComponent", () => {
     expect(screen.getByText("OFF")).toBeInTheDocument();
   });
 
-  it("shows ON when the group value is true", () => {
+  it("shows ON when the group value is true", async () => {
     renderGroup({ actionGroupId: "SAS" });
     act(() => {
       source.emit("v.sasValue", true);
-      source.emit("comm.connected", true);
-      source.emit("t.isPaused", false);
+      stream.emit("comms.link", { connected: true });
+      stream.emit("time.warp", { paused: false });
     });
-    expect(screen.getByText("ON")).toBeInTheDocument();
+    expect(await screen.findByText("ON")).toBeInTheDocument();
   });
 
-  it("surfaces the Paused unavailability notice when the game is paused", () => {
+  it("surfaces the Paused unavailability notice when the game is paused", async () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 6, h: 6 });
     act(() => {
       source.emit("v.sasValue", true);
-      source.emit("t.isPaused", true);
-      source.emit("comm.connected", true);
+      stream.emit("time.warp", { paused: true });
+      stream.emit("comms.link", { connected: true });
     });
-    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(await screen.findByText("Paused")).toBeInTheDocument();
   });
 
-  it("surfaces the No signal unavailability notice when comm is disconnected", () => {
+  it("surfaces the No signal unavailability notice when comm is disconnected", async () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 6, h: 6 });
     act(() => {
       source.emit("v.sasValue", false);
-      source.emit("t.isPaused", false);
-      source.emit("comm.connected", false);
+      stream.emit("time.warp", { paused: false });
+      stream.emit("comms.link", { connected: false });
     });
-    expect(screen.getByText("No signal")).toBeInTheDocument();
+    expect(await screen.findByText("No signal")).toBeInTheDocument();
   });
 
   it("suppresses the unavailability notice in the tiny size bucket (w<5)", () => {
@@ -143,8 +158,8 @@ describe("ActionGroupComponent", () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 4 });
     act(() => {
       source.emit("v.sasValue", false);
-      source.emit("t.isPaused", true);
-      source.emit("comm.connected", false);
+      stream.emit("time.warp", { paused: true });
+      stream.emit("comms.link", { connected: false });
     });
     expect(screen.queryByText("Paused")).not.toBeInTheDocument();
     expect(screen.queryByText("No signal")).not.toBeInTheDocument();

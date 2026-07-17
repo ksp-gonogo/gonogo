@@ -4,10 +4,14 @@ import {
   formatCompactCurrency,
   getWidgetShape,
   registerComponent,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useViewUt,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import {
   BellIcon,
   Panel,
@@ -258,13 +262,19 @@ function ContractManagerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ContractManagerConfig>>) {
-  const activeRaw = useDataValue("data", "contracts.active");
-  const offeredRaw = useDataValue("data", "contracts.offered");
-  const recentRaw = useDataValue("data", "contracts.completedRecent");
+  // active/offered/completedRecent all ride the `career.status` Topic's
+  // `contracts` sub-tree (map-topic.ts) — read the Topic once and pick them off.
+  const contracts = useTelemetry("career.status")?.contracts;
+  const activeRaw = contracts?.active;
+  const offeredRaw = contracts?.offered;
+  const recentRaw = contracts?.completedRecent;
   // t.universalTime is dropped as a data key — it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
-  const vAltitude = useDataValue("data", "v.altitude") as number | undefined;
+  // `v.altitude` -> derived `vessel.state.altitudeAsl` (`null` in the
+  // propagated basis) — collapse to `undefined` for the numeric comparisons.
+  const vAltitude =
+    useStream<VesselState>("vessel.state")?.altitudeAsl ?? undefined;
   const execute = useExecuteAction("data");
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
