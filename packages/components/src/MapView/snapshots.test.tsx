@@ -4,9 +4,8 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { act, render } from "@testing-library/react";
-import { ThemeProvider } from "styled-components";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -103,13 +102,13 @@ async function snapshotMapView(
   });
   const config = { ...(mode.config ?? {}) };
   const { container, unmount } = render(
-    <ThemeProvider theme={defaultDarkTheme}>
+    <DefaultThemeProvider>
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
           <MapViewComponent config={config} id="snap" w={mode.w} h={mode.h} />
         </DashboardItemContext.Provider>
       </fixture.Provider>
-    </ThemeProvider>,
+    </DefaultThemeProvider>,
   );
   // Only the data-bearing fixtures need an emit; the no-vessel-data one renders
   // its placeholder chrome with nothing on the wire.

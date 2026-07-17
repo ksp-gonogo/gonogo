@@ -5,7 +5,7 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import {
   act,
   fireEvent,
@@ -14,7 +14,6 @@ import {
   waitFor,
 } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { ThemeProvider } from "styled-components";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module (not a throwaway test double) runs its
@@ -42,7 +41,7 @@ const SCAN_ENTRY = {
 // crashes without a theme in scope, same as ScienceOfficer's own
 // `renderWithTheme` (`ScienceOfficer/testTheme.tsx`).
 function renderSlot(ui: ReactElement) {
-  return render(<ThemeProvider theme={defaultDarkTheme}>{ui}</ThemeProvider>);
+  return render(<DefaultThemeProvider>{ui}</DefaultThemeProvider>);
 }
 
 describe("SCANsat science augment — science-officer.badges slot", () => {

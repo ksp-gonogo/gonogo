@@ -3,9 +3,8 @@ import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { act, render, waitFor } from "@testing-library/react";
-import { ThemeProvider } from "styled-components";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -116,7 +115,7 @@ async function snapshotStream(
   streamFixture.store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
 
   const { container } = render(
-    <ThemeProvider theme={defaultDarkTheme}>
+    <DefaultThemeProvider>
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
           <FuelStatusComponent
@@ -127,7 +126,7 @@ async function snapshotStream(
           />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>
-    </ThemeProvider>,
+    </DefaultThemeProvider>,
   );
 
   const currentStage = fx["v.currentStage"];

@@ -178,9 +178,21 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows reference body when provided", async () => {
-    const telemetry = await setupTelemetry({ "o.referenceBody": "Kerbin" });
-    renderWidget(<CurrentOrbitComponent id="t" />);
-    telemetry.seed();
+    // P1 de-Telemachus: the subtitle reads the derived
+    // `vessel.state.referenceBodyName` now (the mapped home of the legacy
+    // `o.referenceBody` scalar), which `deriveVesselState` resolves from
+    // `vessel.orbit.referenceBodyIndex` against `system.bodies` — so feed the
+    // derivation those two inputs rather than the retired flat key.
+    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    renderWidget(
+      <stream.Provider>
+        <CurrentOrbitComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => {
+      stream.emit("vessel.orbit", { referenceBodyIndex: 1 });
+      stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+    });
     await waitFor(() => expect(screen.getByText("Kerbin")).toBeInTheDocument());
   });
 });

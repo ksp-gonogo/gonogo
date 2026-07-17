@@ -1,7 +1,6 @@
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { type RenderResult, render } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { ThemeProvider } from "styled-components";
 
 /**
  * `render` wrapped with the real `ThemeProvider` (same theme the app mounts
@@ -11,5 +10,5 @@ import { ThemeProvider } from "styled-components";
  * `render()` doesn't supply one.
  */
 export function renderWithTheme(ui: ReactElement): RenderResult {
-  return render(<ThemeProvider theme={defaultDarkTheme}>{ui}</ThemeProvider>);
+  return render(<DefaultThemeProvider>{ui}</DefaultThemeProvider>);
 }

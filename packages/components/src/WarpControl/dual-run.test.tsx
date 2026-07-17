@@ -12,10 +12,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import rails from "./__fixtures__/rails-warp-1000x.json";
 import { WarpControlComponent } from "./index";
@@ -32,11 +28,9 @@ import { WarpControlComponent } from "./index";
  *
  * `rails-warp-1000x` exercises every branch worth covering: an active
  * on-rails warp rate (formatRate's `k×` branch), the highlighted ladder
- * button, AND the Flight-scene pause toggle. `kc.scene`/`kc.padOccupied`/
- * `career.mode` (still legacy — `useGameContext` is out of this widget's
- * migration scope) come from a legacy DataSource registered alongside the
- * TelemetryProvider, exercising the shim's MIXED-source coexistence: warp
- * state streams, scene stays legacy, on the very same render.
+ * button, AND the Flight-scene pause toggle. Scene now streams too —
+ * `useGameContext` reads `spaceCenter.scene` off the canonical stream
+ * (migrated off the `kc.scene` shim), so the whole render is one wire.
  */
 // Reset the action-handler registry at the START of each test — the prior
 // test's tree is already unmounted (RTL auto-cleanup, plus each test's own
@@ -47,21 +41,12 @@ beforeEach(() => {
 });
 
 describe("WarpControl — stream render golden (delay=0)", () => {
-  it("renders the full warp state off the stream pipeline (mixed with a legacy scene read)", async () => {
+  it("renders the full warp state off the stream pipeline", async () => {
     const mode = { name: "default-6x5", w: 6, h: 5 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["time.warp"],
+      carriedChannels: ["time.warp", "spaceCenter.scene"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [
-        { key: "kc.scene" },
-        { key: "kc.padOccupied" },
-        { key: "career.mode" },
-      ],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -73,9 +58,9 @@ describe("WarpControl — stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      legacyAux.source.emit("kc.scene", rails["kc.scene"]);
-      legacyAux.source.emit("kc.padOccupied", rails["kc.padOccupied"]);
-      legacyAux.source.emit("career.mode", rails["career.mode"]);
+      // Scene rides the canonical stream (useGameContext reads
+      // spaceCenter.scene) — a Flight scene renders the pause toggle.
+      streamFixture.emit("spaceCenter.scene", { scene: rails["kc.scene"] });
       // The full warp state on the new wire: one "time.warp" record.
       // warpMode 0 = High — see normalizeWarpMode's doc comment in index.tsx.
       streamFixture.emit("time.warp", {
@@ -103,10 +88,8 @@ describe("WarpControl — stream render golden (delay=0)", () => {
     expect(
       scope.getByRole("button", { name: "1k×" }).getAttribute("aria-pressed"),
     ).toBe("true");
-    // Flight scene (legacy read) -> the pause toggle renders.
+    // Flight scene (streamed) -> the pause toggle renders.
     expect(scope.getByRole("button", { name: "Pause game" })).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 });
 
