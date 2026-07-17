@@ -118,6 +118,7 @@ jobs:
             Sitrep.Host.IntegrationTests
             GonogoScansatUplink.Tests
             GonogoRealAntennasUplink.Tests
+            GonogoKerbcastUplink.Tests
             Gonogo.Kos.Tests
           )
           # The real-WebSocket integration suites are CPU-fragile on the shared

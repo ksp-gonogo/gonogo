@@ -42,10 +42,18 @@ interface ModOwnership {
 
 const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   kerbcast: {
-    // No GonogoKerbcastUplink exists yet. packages/kerbcast is the
-    // current de-facto home (npm name @ksp-gonogo/kerbcast-feed).
+    // GonogoKerbcastUplink now owns kerbcast's CONTROL plane (camera
+    // inventory, capabilities, docking-port association, health, aim/zoom
+    // commands) — see .superpowers/sdd/kerbcast-uplink-design.md.
+    // packages/kerbcast remains the MEDIA half (the WebRTC/playout path,
+    // npm name @ksp-gonogo/kerbcast-feed); whether that folds into the
+    // Uplink's client is an open decision recorded in that design's §8.
     patterns: [/kerbcast/i, /hullcam/i],
-    ownedDirs: ["packages/kerbcast"],
+    ownedDirs: [
+      "mod/GonogoKerbcastUplink",
+      "mod/GonogoKerbcastUplink.Tests",
+      "packages/kerbcast",
+    ],
   },
   scansat: {
     patterns: [/scansat/i],
@@ -124,6 +132,43 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // shape as the other entries in this block.
     "packages/sitrep-client/src/view-clock-formula.ts",
     "packages/sitrep-client/src/view-clock.ts",
+
+    // -- GRAY — the kerbcast Uplink's CONTRACT/SDK layer --
+    // Every Uplink's wire types live in Sitrep.Contract and its generated
+    // SDK, by design: that is the arm's-length compile surface a
+    // third-party Uplink author codes against, and it is the same shape
+    // the scansat/kos/comms payload types already have there. These name
+    // kerbcast because they ARE kerbcast's contract — they are not core
+    // reaching into a mod.
+    "mod/Sitrep.Contract/ContractVersion.cs",
+    "mod/Sitrep.Contract/KerbcastPayloads.cs",
+    "mod/Sitrep.Contract/RtConfig.cs",
+    "mod/sitrep-sdk/src/__generated__/contract.ts",
+    "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+    "mod/sitrep-sdk/src/topics.test.ts",
+    "mod/sitrep-sdk/src/topics.ts",
+    // default-carried-topics.ts: the raw-topic promotion allowlist, which
+    // is a literal-string set and so must name every Uplink's topics —
+    // it already names scansat.*, kos.*, recovery.* and comms.* the same
+    // way. String literals only; nothing kerbcast-specific is imported.
+    "packages/sitrep-client/src/default-carried-topics.ts",
+
+    // WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
+    // FlattenedByProducer set is a literal-string allowlist over every
+    // [SitrepContract] type, so it necessarily names every Uplink's payload
+    // types — kOS's and the career/vessel POCOs are already listed there the
+    // same way. kerbcast's entries record that KerbcastCameraEntry is
+    // flattened by its producer (KerbcastCameraEntryBuilder.Build returns a
+    // Dictionary) and that the two command-arg types are inbound-only.
+    // Type-name strings in a ratchet, not a dependency.
+    "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
+    // truenow-allowlist.test.ts: the sibling architectural ratchet. It is a
+    // path-keyed allowlist over every Uplink's .cs files, so it necessarily
+    // names them all (Gonogo.KSP's SpaceCenter/Career/System/Comms uplinks are
+    // already listed there the same way). A path string in a ratchet, not a
+    // dependency.
+    "packages/core/src/truenow-allowlist.test.ts",
 
     // -- TEST-only, exercising the HARD cluster above --
     "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",

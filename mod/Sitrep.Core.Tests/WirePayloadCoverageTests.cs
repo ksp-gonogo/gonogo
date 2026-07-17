@@ -62,6 +62,11 @@ namespace Sitrep.Core.Tests
             "VesselParts", "VesselPart", "PartBounds", "PartResourceFlow", "PartModuleState",
             // kOS status — flattened by its provider before publish.
             "KosComputeStatus",
+            // kerbcast.cameras — KerbcastCameraEntryBuilder.Build returns a
+            // Dictionary<string, object?> and KerbcastUplink publishes that list
+            // directly, so JsonWriter only ever sees the flattened dictionary;
+            // the POCO exists for the generated TS shape only.
+            "KerbcastCameraEntry",
             // career.status / career.mode — CareerViewProvider builds every one of
             // these as a Dictionary<string, object?> by hand (BuildEconomy/
             // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and
@@ -141,6 +146,11 @@ namespace Sitrep.Core.Tests
             // and has its own JsonWriter case (exercised by this test).
             "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
             "KosTerminalCloseArgs",
+            // kerbcast.setFieldOfView / kerbcast.setPan command args — inbound
+            // only (KerbcastUplink.Register's AddCommandHandler for each);
+            // deserialized client → server, never serialized outbound as a raw
+            // POCO.
+            "KerbcastSetFieldOfViewArgs", "KerbcastSetPanArgs",
             // kos.run command args — inbound only (KosExtension.Ksp.cs's Run
             // handler, AddCommandHandler<KosRunArgs, CommandResult>);
             // deserialized client → server, never serialized outbound as a raw

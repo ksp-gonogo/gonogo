@@ -34,6 +34,7 @@ import type {
   FlightVesselChanged,
   GameDlc,
   InstrumentEntry,
+  KerbcastCameraEntry,
   KosProcessorInfo,
   LabEntry,
   LaunchSiteEntry,
@@ -93,6 +94,7 @@ export interface GeneratedTopicPayloadMap {
   "flight.started": FlightStarted;
   "flight.vesselChanged": FlightVesselChanged;
   "game.dlc": GameDlc;
+  "kerbcast.cameras": KerbcastCameraEntry[];
   "kos.processors": KosProcessorInfo[];
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
@@ -156,6 +158,7 @@ export const GENERATED_TOPIC_IDS = [
   "flight.started",
   "flight.vesselChanged",
   "game.dlc",
+  "kerbcast.cameras",
   "kos.processors",
   "ksp.revertAvailability",
   "parts.power",
