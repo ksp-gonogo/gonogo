@@ -1,7 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
@@ -36,10 +36,6 @@ import { MapViewComponent } from "./index";
  * values are directly DOM-visible without needing a white-box `store.
  * sample()` proof.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)", () => {
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

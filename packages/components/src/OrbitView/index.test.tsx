@@ -1,5 +1,5 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { cleanup, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
@@ -21,10 +21,6 @@ const LKO: OrbitScenario = {
 };
 
 describe("OrbitViewComponent", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("shows the 'No orbital data' fallback before telemetry arrives", () => {
     const { container } = renderOrbitViewStream({ w: 9, h: 18 });
     expect(container.textContent).toContain("No orbital data");
@@ -86,8 +82,14 @@ describe("OrbitViewComponent", () => {
  * and that the empty slots are inert when nothing is registered.
  */
 describe("OrbitView augment slots", () => {
+  // Unmount the rendered trees synchronously before clearAugments() notifies
+  // the still-mounted AugmentSlot subscribers — that notification is a state
+  // update, so firing it against a live tree is the act() anti-pattern. RTL
+  // auto-cleanup runs after this hook, too late to rely on for ordering.
+  const trees: Array<() => void> = [];
   afterEach(() => {
-    cleanup();
+    for (const unmount of trees) unmount();
+    trees.length = 0;
     clearAugments();
   });
 
@@ -100,7 +102,8 @@ describe("OrbitView augment slots", () => {
       ),
     });
 
-    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    trees.push(unmount);
 
     await waitFor(() => {
       if (container.querySelector('[data-testid="overlay-probe"]') === null) {
@@ -125,7 +128,8 @@ describe("OrbitView augment slots", () => {
       ),
     });
 
-    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    trees.push(unmount);
 
     await waitFor(() => {
       if (!container.textContent?.includes("badge:Kerbin")) {
@@ -138,7 +142,8 @@ describe("OrbitView augment slots", () => {
   });
 
   it("renders the diagram with both slots empty when no augment is registered", async () => {
-    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+    trees.push(unmount);
 
     await waitFor(() => {
       if (container.querySelector("svg") === null) {

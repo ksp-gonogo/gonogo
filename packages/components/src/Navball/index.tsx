@@ -8,10 +8,10 @@ import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   Button,
   ConfigForm,
@@ -141,26 +141,25 @@ function NavballComponent({
   // true = CoM, default false = root part, both documented on
   // NavballConfig/the config-form copy below) read correctly against the
   // real frames.
+  const attitude = useTelemetry("vessel.attitude");
   const heading = numericOrNull(
-    useDataValue("data", useCoM ? "n.heading" : "n.heading2"),
+    attitude?.[useCoM ? "heading" : "headingRootFrame"],
   );
-  const pitch = numericOrNull(
-    useDataValue("data", useCoM ? "n.pitch" : "n.pitch2"),
-  );
-  const roll = numericOrNull(
-    useDataValue("data", useCoM ? "n.roll" : "n.roll2"),
-  );
+  const pitch = numericOrNull(attitude?.[useCoM ? "pitch" : "pitchRootFrame"]);
+  const roll = numericOrNull(attitude?.[useCoM ? "roll" : "rollRootFrame"]);
 
-  const sasMode = useDataValue("data", "f.sasMode") as string | undefined;
-  const sasOn = useDataValue("data", "f.sasEnabled") === true;
-  const rcsOn = useDataValue("data", "v.rcsValue") === true;
-  const precisionOn = useDataValue("data", "f.precisionControl") === true;
-  const throttleRaw = useDataValue("data", "f.throttle");
+  const control = useTelemetry("vessel.control");
+  const vesselState = useStream<VesselState>("vessel.state");
+  const sasMode = vesselState?.sasModeName ?? undefined;
+  const sasOn = control?.sas === true;
+  const rcsOn = control?.rcs === true;
+  const precisionOn = control?.precisionControl === true;
+  const throttleRaw = control?.throttle;
   const throttle =
     typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
       ? throttleRaw
       : 0;
-  const isControllable = useDataValue("data", "v.isControllable") !== false;
+  const isControllable = vesselState?.isControllable !== false;
 
   // Connectivity indicator (mirroring the WarpControl pilot):
   // `n.heading` is representative of the widget's mapped attitude/control
@@ -197,11 +196,12 @@ function NavballComponent({
     setFbwArmed(false);
   };
 
-  // FBW-under-delay warning. `comm.signalDelay` is gonogo's own SignalDelay
-  // authority (a TrueNow channel, never itself delayed) — a plain number of
-  // one-way light-time seconds, 0 when the delay feature is disabled, so the
-  // warning naturally stays hidden with no extra "is it enabled" check.
-  const delaySeconds = useTelemetry("data", "comm.signalDelay");
+  // FBW-under-delay warning. `comms.delay.oneWaySeconds` is gonogo's own
+  // SignalDelay authority (a TrueNow channel, never itself delayed) — a plain
+  // number of one-way light-time seconds, 0 when the delay feature is
+  // disabled, so the warning naturally stays hidden with no extra "is it
+  // enabled" check.
+  const delaySeconds = useTelemetry("comms.delay")?.oneWaySeconds;
   const delayHigh =
     typeof delaySeconds === "number" &&
     Number.isFinite(delaySeconds) &&

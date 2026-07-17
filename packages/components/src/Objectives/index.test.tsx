@@ -1,15 +1,15 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { getAugmentSettings, getAugmentsForSlot } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  DashboardItemContext,
+  getAugmentSettings,
+  getAugmentsForSlot,
+} from "@ksp-gonogo/core";
+import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { contractObjectives, ObjectivesComponent } from "./index";
-
-const KEYS: DataKey[] = [{ key: "contracts.active" }];
 
 const contract = (over: Record<string, unknown> = {}) => ({
   id: "8001",
@@ -28,88 +28,82 @@ const contract = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** Objectives reads `contracts.active` off `career.status.contracts.active`. */
+function renderObjectives() {
+  const fixture = setupStreamFixture({
+    carriedChannels: ["career.status"],
+    pinnedUt: 10,
+  });
+  const result = render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "ob" }}>
+        <ObjectivesComponent config={{}} id="ob" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  return { ...result, fixture };
+}
+
+function emitContracts(fixture: StreamFixture, active: unknown[]) {
+  act(() => {
+    fixture.emit("career.status", {
+      economy: null,
+      facilities: null,
+      contracts: { active, offered: [] },
+      strategies: null,
+      tech: null,
+    });
+  });
+}
+
 describe("ObjectivesComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
+  it("shows the empty state with no contracts", async () => {
+    const { fixture } = renderObjectives();
+    emitContracts(fixture, []);
+    expect(
+      await screen.findByText(/No active objectives/i),
+    ).toBeInTheDocument();
   });
 
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-  });
-
-  it("shows the empty state with no contracts", () => {
-    render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("contracts.active", []);
-    });
-    expect(screen.getByText(/No active objectives/i)).toBeInTheDocument();
-  });
-
-  it("renders each contract parameter tagged with its contract", () => {
-    render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("contracts.active", [contract()]);
-    });
-    expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
+  it("renders each contract parameter tagged with its contract", async () => {
+    const { fixture } = renderObjectives();
+    emitContracts(fixture, [contract()]);
+    expect(await screen.findByText("Reach the Mun")).toBeInTheDocument();
     expect(screen.getByText("Plant a flag")).toBeInTheDocument();
     expect(screen.getAllByText("Explore the Mun").length).toBeGreaterThan(0);
   });
 
-  it("does not render an alarm bell without an alarm provider", () => {
-    render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("contracts.active", [contract()]);
-    });
+  it("does not render an alarm bell without an alarm provider", async () => {
+    const { fixture } = renderObjectives();
+    emitContracts(fixture, [contract()]);
+    await screen.findByText("Reach the Mun");
     // Bell is gated on the alarm context; absent here, it degrades cleanly.
     expect(screen.queryByRole("button", { name: /Set alarm/i })).toBeNull();
   });
 });
 
 describe("Objectives — augment slot composition (spec §4.9)", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-  });
-
   it("binds the built-in contracts source to the slot", () => {
-    // `setupMockDataSource` calls `clearRegistry`, which deliberately no longer
-    // wipes the augment registry — the module-load `registerAugment` call
-    // survives so the frame's slot has a source to compose.
     const ids = getAugmentsForSlot("objectives.sections").map((a) => a.id);
     expect(ids).toEqual(["objectives-contracts"]);
   });
 
-  it("renders the contracts source into the frame's slot", () => {
-    const { container } = render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("contracts.active", [contract()]);
-    });
+  it("renders the contracts source into the frame's slot", async () => {
+    const { container, fixture } = renderObjectives();
+    emitContracts(fixture, [contract()]);
 
+    await screen.findByText("Reach the Mun");
     const lists = container.querySelectorAll('ul[aria-label="Objectives"]');
     expect(lists).toHaveLength(1);
-    expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
   });
 
-  it("shows the frame's empty fallback only when the source yields no items", () => {
-    render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("contracts.active", [contract()]);
-    });
+  it("shows the frame's empty fallback only when the source yields no items", async () => {
+    const { fixture } = renderObjectives();
+    emitContracts(fixture, [contract()]);
     // A source yielded items → fallback stays out of the rendered content flow.
     // (It is present-but-CSS-hidden; asserting the contract items render proves
     // composition happened. The empty-state case is covered above.)
-    expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
+    expect(await screen.findByText("Reach the Mun")).toBeInTheDocument();
   });
 
   it("merges the source's namespaced show/hide setting into the host panel (spec §4.7)", () => {

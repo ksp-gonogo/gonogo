@@ -97,6 +97,8 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
 export interface RenderStreamResult {
   container: HTMLElement;
   fixture: StreamFixture;
+  /** Synchronously unmount this tree — used by tests that run a state-mutating teardown (e.g. `clearAugments()`) which must fire against an unmounted tree, before RTL auto-cleanup runs. */
+  unmount: () => void;
 }
 
 /**
@@ -113,7 +115,7 @@ export function renderOrbitViewStream(
     carriedChannels: [...VESSEL_STATE_INPUTS],
     pinnedUt: 0,
   });
-  const { container } = render(
+  const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
         <OrbitViewComponent id={instanceId} w={size.w} h={size.h} />
@@ -121,5 +123,5 @@ export function renderOrbitViewStream(
     </fixture.Provider>,
   );
   if (scenario) emitScenario(fixture, scenario);
-  return { container, fixture };
+  return { container, fixture, unmount };
 }

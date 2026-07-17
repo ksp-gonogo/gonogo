@@ -3,7 +3,7 @@ import {
   AugmentSlot,
   registerAugment,
   registerComponent,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { BellIcon, EmptyState, Panel, PanelTitle } from "@ksp-gonogo/ui";
 import type { ComponentType, ReactNode } from "react";
@@ -189,7 +189,7 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
  * the Contract Manager exposes. Renders nothing when no contracts are active.
  */
 function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
-  const contractsRaw = useDataValue("data", "contracts.active");
+  const contractsRaw = useTelemetry("career.status")?.contracts?.active;
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 

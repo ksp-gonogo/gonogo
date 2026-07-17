@@ -18,13 +18,19 @@ import {
   useActionInput,
   useDataStreamStatus,
   useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   useDataSchema,
   useScanningVessels,
   useScanSatFogSync,
 } from "@ksp-gonogo/data";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useViewUt,
+  type VesselManeuverLegacyState,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
@@ -278,38 +284,40 @@ function MapViewComponent({
   const schema = useDataSchema("data");
   const labelMap = new Map(schema.map((k) => [k.key, k.label]));
 
-  const lat = useDataValue("data", "v.lat");
-  const lon = useDataValue("data", "v.long");
-  const altSea = useDataValue("data", "v.altitude");
-  const bodyName = useDataValue("data", "v.body");
-  const q = useDataValue("data", "v.dynamicPressure");
-  const mach = useDataValue("data", "v.mach");
-  const speed = useDataValue("data", "v.surfaceSpeed");
-  const vSpeed = useDataValue("data", "v.verticalSpeed");
-  const orbitPatches = useDataValue("data", "o.orbitPatches");
-  const maneuverNodes = useDataValue("data", "o.maneuverNodes");
+  // Vessel kinematics read straight off the stream: raw `vessel.flight.*`
+  // fields for the surface-frame measurements, and the client-derived
+  // `vessel.state` channel for the quality-picked altitude, the index→name
+  // body label, the reshaped orbit-patch chain, the encounter sign, and the
+  // ballistic impact point. `vessel.maneuver.legacy` carries the post-burn
+  // node trajectories reshaped into the legacy `o.maneuverNodes` shape.
+  const flight = useTelemetry("vessel.flight");
+  const vesselState = useStream<VesselState>("vessel.state");
+  const lat = flight?.latitude;
+  const lon = flight?.longitude;
+  const altSea = vesselState?.altitudeAsl ?? undefined;
+  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const q = flight?.dynamicPressureKPa;
+  const mach = flight?.mach;
+  const speed = flight?.surfaceSpeed;
+  const vSpeed = flight?.verticalSpeed;
+  const orbitPatches = vesselState?.orbitPatches;
+  const maneuverNodes = useStream<VesselManeuverLegacyState>(
+    "vessel.maneuver.legacy",
+  )?.nodes;
   // t.universalTime is dropped as a data key — it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
-  const impactLat = useDataValue("data", "land.predictedLat");
-  const impactLon = useDataValue("data", "land.predictedLon");
+  const impactLat = vesselState?.landingPredictedLat ?? undefined;
+  const impactLon = vesselState?.landingPredictedLon ?? undefined;
   // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
-  const encounterExists = useDataValue("data", "o.encounterExists");
-  // Connectivity indicator. `v.lat` is this
-  // widget's representative MAPPED key (-> raw `vessel.flight.latitude`) —
-  // `v.long`/`v.dynamicPressure`/`v.mach`/`v.surfaceSpeed`/`v.verticalSpeed`
-  // are mapped the same way (raw `vessel.flight.*` fields) and `v.altitude`
-  // is mapped to the DERIVED `vessel.state.altitudeAsl` subtopic, so one
-  // badge speaks for the whole telemetry-row set. `v.body`, `o.orbitPatches`/
-  // `o.maneuverNodes` (trajectory + maneuver overlays),
-  // `land.predictedLat`/`land.predictedLon`, and
-  // `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
-  // `o.encounterTime`) are all GAPPED (map-topic.ts) and stay legacy. The
-  // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*`
-  // SCANsat channel are entirely unmapped — `mapTopic` has no
-  // entry for them, so `useDataValue` falls back to legacy automatically.
+  const encounterExists = vesselState?.encounterExists;
+  // Connectivity indicator, still sourced off the legacy `DataSource` status
+  // channel (`v.lat` is representative of the widget's stream reads). The
+  // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*` SCANsat
+  // channel remain unmapped — `mapTopic` has no entry for them, so those
+  // `useDataValue` reads fall back to legacy automatically.
   const streamStatus = useDataStreamStatus("data", "v.lat");
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
