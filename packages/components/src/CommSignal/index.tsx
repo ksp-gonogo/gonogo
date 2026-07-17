@@ -6,6 +6,7 @@ import {
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   EmptyState,
   Panel,
@@ -74,10 +75,10 @@ function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  // Every read has a clean home now, so all
-  // five route off the legacy Telemachus `DataSource` and onto the stream via
-  // `useTelemetry`'s two-arg `mapTopic` shim:
-  //  - `comm.connected`     -> `vessel.comms.connected`
+  // Every read has a clean stream home now:
+  //  - `comm.connected`     -> `comms.link.connected` (the freeze-EXEMPT link
+  //    channel — vessel.comms freezes at last-known through a blackout, so the
+  //    disconnect edge only fires off comms.link; see map-topic.ts)
   //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
   //  - `comm.controlState`  -> `vessel.state.commsControlStateOrdinal` (the
   //    SDK-derived collapse of `vessel.comms.controlState`'s rich `ControlState`
@@ -86,11 +87,15 @@ function CommSignalComponent({
   //    same ordinal resolved to its enum NAME string)
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
   //    SignalDelay authority, live via CommsCoreUplink)
-  const connected = useTelemetry("data", "comm.connected");
-  const strength = useTelemetry("data", "comm.signalStrength");
-  const controlState = useTelemetry("data", "comm.controlState");
-  const controlStateName = useTelemetry("data", "comm.controlStateName");
-  const delay = useTelemetry("data", "comm.signalDelay");
+  const connected = useTelemetry("comms.link")?.connected;
+  const strength = useTelemetry("vessel.comms")?.signalStrength;
+  const vesselState = useStream<VesselState>("vessel.state");
+  // Collapse the derived channel's `null` (comms unknown this tick) to
+  // `undefined` so the empty-state + `describeControl` semantics match the
+  // old single-value legacy read exactly.
+  const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
+  const controlStateName = vesselState?.commsControlStateName ?? undefined;
+  const delay = useTelemetry("comms.delay")?.oneWaySeconds;
   const streamStatus = useDataStreamStatus("data", "comm.connected");
 
   const hasData =

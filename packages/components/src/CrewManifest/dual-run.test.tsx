@@ -1,53 +1,37 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
 import { CrewManifestComponent } from "./index";
 
 /**
- * CrewManifest's behavior-preservation golden dual-run (mirrors
- * `ThermalStatus/dual-run.test.tsx`): the SAME crew state, rendered
- * once off the legacy `DataSource` and once off the stream, must produce
- * byte-identical DOM at `delay=0`.
+ * CrewManifest's real recorded-fixture render off the stream.
  *
- * `valentina-solo-orbit` populates every field the widget reads (`v.crew`,
- * `v.crewCount`, `v.crewCapacity`, `v.isEVA`) so the full roster renders on
- * both legs. `v.crew` and `v.crewCapacity` are mapped on the wire
- * alongside the already-mapped `v.crewCount` — all three
- * now land on the single `vessel.crew` wire channel, so the stream leg
- * emits them together. Only `v.isEVA` (see `stream.test.tsx`'s doc comment)
- * still reads off a legacy AUX source in the stream leg.
+ * All of CrewManifest's reads are now stream reads — `vessel.crew`
+ * (count/capacity/roster, canonical `useTelemetry`) plus the derived
+ * `vessel.state.isEVA` (`useStream`). The original version of this test rendered
+ * the same crew state once off a legacy `DataSource` (`snapshotWidgetMode`,
+ * which mounts no `TelemetryProvider`) and once off the stream and asserted
+ * byte-identical DOM; that comparison is no longer possible — the legacy leg
+ * now renders nothing but "No crew data" since every read is stream-only. Same
+ * cause (full stream migration, not a test bug) as every other widget's
+ * `dual-run.test.tsx` dropping its now-impossible legacy leg.
+ *
+ * What remains, and is still worth its own file: the real `valentina-solo-orbit`
+ * fixture (single pilot in a 1-seat Mk1 pod) run genuinely through the stream
+ * pipeline.
  */
-const GAPPED_KEYS = ["v.isEVA"] as const;
-
-describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same crew state", async () => {
+describe("CrewManifest — real recorded-fixture render off the stream (delay=0)", () => {
+  it("renders Valentina's solo-orbit roster and headcount off the stream", async () => {
     const mode = { name: "default-6x8", w: 6, h: 8 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: CrewManifestComponent,
-      fixture: valentinaSoloOrbit,
-      mode,
-      connectSource: true,
-    });
 
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: GAPPED_KEYS.map((key) => ({ key })),
-      connectSource: true,
-    });
 
-    const { container } = render(
+    render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "crew-dual" }}>
           <CrewManifestComponent id="crew-dual" w={mode.w} h={mode.h} />
@@ -56,12 +40,6 @@ describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () 
     );
 
     act(() => {
-      for (const key of GAPPED_KEYS) {
-        legacyAux.source.emit(
-          key,
-          valentinaSoloOrbit[key as keyof typeof valentinaSoloOrbit],
-        );
-      }
       streamFixture.emit("vessel.crew", {
         count: valentinaSoloOrbit["v.crewCount"],
         capacity: valentinaSoloOrbit["v.crewCapacity"],
@@ -69,18 +47,9 @@ describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () 
       });
     });
 
-    // Wait on the subtitle text the stream leg's mapped vessel.crew
-    // emission produces (crew count vs. capacity) so we don't race ahead
-    // of the store propagating it.
-    await waitFor(() => {
-      if (!container.textContent?.includes("1 / 1 aboard")) {
-        throw new Error("stream leg has not rendered crew count yet");
-      }
-    });
-
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
+    await waitFor(() =>
+      expect(screen.getByText("1 / 1 aboard")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Valentina Kerman")).toBeInTheDocument();
   });
 });

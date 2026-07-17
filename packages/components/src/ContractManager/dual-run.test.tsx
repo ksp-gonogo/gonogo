@@ -1,65 +1,45 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { ContractManagerComponent } from "./index";
 
 /**
- * ContractManager's behavior-preservation golden dual-run
- * (mirrors `Strategies/dual-run.test.tsx`): the SAME contract state,
- * rendered once off the legacy `DataSource` and once off the stream, must
- * produce byte-identical DOM at `delay=0`. `contracts.active`/
- * `contracts.offered`/`contracts.completedRecent` (->
- * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
- * three migrated reads — `parseContracts`
- * normalizes `agent` -> `agency`/`reputationCompletion` ->
- * `repCompletion`/`dateDeadline` -> `deadlineUt`. `v.altitude` (unrelated to
- * career) stays legacy on both legs; `t.universalTime` is read via
- * `useViewUt()` on both legs too — the stream leg pins the view clock at the
- * fixture's own `t.universalTime` value (`snapshotWidgetMode`, the legacy
- * leg's helper, does the same automatically) so the rendered deadline text
- * matches on both sides rather than an arbitrary stand-in UT. The fixture's
- * `contracts.completedRecent` is empty, so the migration is exercised (both
- * legs genuinely read from their respective sources) without changing the
- * rendered DOM either leg produces. The fixture is `small-career-detail.json`,
- * not any of the other ContractManager fixtures: `career.status.contracts`
- * entries never carry `optional`/`parameterType` on their parameters
- * (career-capture-extend-report.md), and every OTHER fixture sets at least
- * one parameter's `optional: true` or `parameterType`, which the new wire
- * can never reproduce (see that fixture's own `_meta.notes`).
+ * ContractManager's real recorded-fixture render off the stream.
+ *
+ * `contracts.active`/`.offered`/`.completedRecent` all read off the
+ * `career.status` Topic's `contracts` sub-tree now (canonical `useTelemetry`),
+ * with `parseContracts` normalizing `agent` -> `agency` /
+ * `reputationCompletion` -> `repCompletion` / `dateDeadline` -> `deadlineUt`.
+ * The original version of this test rendered the same contract state once off a
+ * legacy `DataSource` (`snapshotWidgetMode`, which mounts no
+ * `TelemetryProvider`) and once off the stream and asserted byte-identical DOM;
+ * that comparison is no longer possible — the legacy leg now renders nothing but
+ * "Awaiting contract telemetry" since the reads are stream-only. Same cause
+ * (full stream migration, not a test bug) as every other widget's
+ * `dual-run.test.tsx` dropping its now-impossible legacy leg.
+ *
+ * What remains, and is still worth its own file: the real
+ * `small-career-detail` fixture run genuinely through the stream pipeline, with
+ * the view clock pinned at the fixture's own `t.universalTime` so the rendered
+ * deadline text is realistic. `small-career-detail.json` is used (not the other
+ * ContractManager fixtures) because `career.status.contracts` entries never
+ * carry `optional`/`parameterType` on their parameters
+ * (career-capture-extend-report.md), and every other fixture sets at least one,
+ * which the wire can't reproduce.
  */
 afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ContractManager — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same contract state", async () => {
+describe("ContractManager — real recorded-fixture render off the stream (delay=0)", () => {
+  it("renders the small-career-detail contracts off the stream", async () => {
     const mode = { name: "default-6x8", w: 6, h: 8 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: ContractManagerComponent,
-      fixture: smallCareerDetail,
-      mode,
-      connectSource: true,
-    });
 
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],
-      // Matches the fixture's own t.universalTime — see this file's doc
-      // comment on why the stream leg can't use an arbitrary stand-in UT
-      // any more.
       pinnedUt: smallCareerDetail["t.universalTime"],
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "v.altitude" }],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -71,9 +51,7 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
     );
 
     act(() => {
-      legacyAux.source.emit("v.altitude", smallCareerDetail["v.altitude"]);
-
-      const wireActive = smallCareerDetail["contracts.active"].map((c) => {
+      const toWire = (c: Record<string, unknown>) => {
         const { agency, repCompletion, deadlineUt, ...rest } = c;
         return {
           ...rest,
@@ -81,34 +59,15 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
           reputationCompletion: repCompletion,
           dateDeadline: deadlineUt,
         };
-      });
-      const wireOffered = smallCareerDetail["contracts.offered"].map((c) => {
-        const { agency, repCompletion, deadlineUt, ...rest } = c;
-        return {
-          ...rest,
-          agent: agency,
-          reputationCompletion: repCompletion,
-          dateDeadline: deadlineUt,
-        };
-      });
-      const wireCompletedRecent = smallCareerDetail[
-        "contracts.completedRecent"
-      ].map((c) => {
-        const { agency, repCompletion, deadlineUt, ...rest } = c;
-        return {
-          ...rest,
-          agent: agency,
-          reputationCompletion: repCompletion,
-          dateDeadline: deadlineUt,
-        };
-      });
+      };
       streamFixture.emit("career.status", {
         economy: null,
         facilities: null,
         contracts: {
-          active: wireActive,
-          offered: wireOffered,
-          completedRecent: wireCompletedRecent,
+          active: smallCareerDetail["contracts.active"].map(toWire),
+          offered: smallCareerDetail["contracts.offered"].map(toWire),
+          completedRecent:
+            smallCareerDetail["contracts.completedRecent"].map(toWire),
         },
         strategies: null,
         tech: null,
@@ -121,9 +80,8 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
       }
     });
 
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
+    expect(
+      screen.getByText(/Rescue Kerbal from orbit of Kerbin/i),
+    ).toBeInTheDocument();
   });
 });
