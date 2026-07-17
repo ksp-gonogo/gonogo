@@ -253,6 +253,14 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // justification comment while inventorying every TrueNow declaration
     // in mod/ — doc-mention only, same class as CareerUplink.cs above.
     "packages/core/src/truenow-allowlist.test.ts",
+    // -- Uplink LOADER (Phase A, 2026-07-17): the runtime client loader names
+    // scansat as the first-party Uplink it loads via import() behind a flag —
+    // sanctioned loader-config, the concrete shape of the "P7 retires" debt the
+    // kerbcast header above anticipates. flag.ts holds the enabled-id list; the
+    // loader's unit test uses scansat as its example Uplink (TEST-only). The
+    // loader module itself (loader.ts) is generic and names no mod.
+    "packages/app/src/uplinks/flag.ts",
+    "packages/app/src/uplinks/loader.test.ts",
   ],
 
   // === kos — owning dir mod/GonogoKosUplink/
@@ -307,6 +315,11 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
     "mod/sitrep-sdk/src/api/api-shape.test-d.ts",
     "packages/core/src/sdk-facade.conformance.test-d.ts",
+    // The Uplink loader's injected-host facade (Phase A, 2026-07-17) wires the
+    // app's real `registerKosScript` into globalThis.__GONOGO_SDK__ — it names
+    // kOS only as a framework author-surface member (same GRAY exception as the
+    // sitrep-sdk api barrel above), not the kOS Uplink's internals.
+    "packages/app/src/uplinks/host.ts",
     // dispatch()'s label doc-comment cites `kos.keystroke` as the example
     // line-mode command whose composed text becomes the queue label —
     // comment-only, no kOS coupling in the client spine.
