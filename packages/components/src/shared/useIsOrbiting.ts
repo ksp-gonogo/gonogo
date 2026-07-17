@@ -1,4 +1,5 @@
-import { getBody, useDataValue } from "@ksp-gonogo/core";
+import { getBody } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 
 type OrbitInfo = {
@@ -9,9 +10,16 @@ type OrbitInfo = {
 };
 
 export function useIsOrbiting(): OrbitInfo {
-  const bodyName = useDataValue("data", "v.body");
-  const PeA = useDataValue("data", "o.PeA");
-  const ApA = useDataValue("data", "o.ApA");
+  // All three reads ride the SDK stream's derived `vessel.state` channel, no
+  // legacy `useDataValue("data", ...)` fallback: `parentBodyName` (identity
+  // index → `system.bodies` name), and the `periapsisAlt`/`apoapsisAlt` apsis
+  // altitudes the client derives off `vessel.orbit`'s elements. `apoapsisAlt`
+  // is `undefined` on a hyperbolic/escape orbit (no apoapsis), which the
+  // not-orbiting guard below already handles.
+  const vesselState = useStream<VesselState>("vessel.state");
+  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const PeA = vesselState?.periapsisAlt ?? undefined;
+  const ApA = vesselState?.apoapsisAlt ?? undefined;
 
   const body = bodyName ? getBody(bodyName) : undefined;
 
