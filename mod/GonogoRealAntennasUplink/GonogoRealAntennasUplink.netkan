@@ -4,7 +4,7 @@
   "name": "Gonogo RealAntennas Uplink",
   "abstract": "Elects RealAntennas as the Gonogo comms backend when installed (RF link geometry, data rate, re-derived link margin) and enriches the comms.* channels over the Gonogo telemetry connection.",
   "author": "jonpepler",
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "release_status": "development",
   "resources": {
     "homepage": "https://github.com/ksp-gonogo/gonogo"

@@ -1,6 +1,6 @@
 {
   "name": "@ksp-gonogo/sitrep-client",
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "version": "0.0.1",
   "private": true,
   "type": "module",

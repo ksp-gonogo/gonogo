@@ -1,7 +1,7 @@
 {
   "name": "@ksp-gonogo/ui-kit",
   "description": "Export-safe design system for Gonogo mission-control widgets and third-party Uplinks",
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "version": "0.1.0",
   "type": "module",
   "repository": {
