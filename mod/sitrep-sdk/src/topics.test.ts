@@ -1,9 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
-import { isTopicId, TOPIC_IDS, type TopicPayloadMap } from "./topics";
+import {
+  isTopicId,
+  TOPIC_IDS,
+  type TopicPayload,
+  type TopicPayloadMap,
+} from "./topics";
 
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
@@ -109,6 +114,11 @@ describe("typed Topic registry", () => {
       TOPIC_IDS.map((t) => [t, true]),
     ) as Record<keyof TopicPayloadMap, true>;
     expect(Object.keys(witness).length).toBe(TOPIC_IDS.length);
+  });
+
+  it("system.uplinks roster entries carry the optional expectedClientHash (mod-hash arm)", () => {
+    type Entry = TopicPayload<"system.uplinks">["uplinks"][number];
+    expectTypeOf<Entry["expectedClientHash"]>().toEqualTypeOf<string | null>();
   });
 
   describe("isTopicId", () => {

@@ -78,6 +78,13 @@ export interface SystemUplinksTopicPayloadMap {
       version: string;
       available: boolean;
       reason: string | null;
+      /**
+       * H_mod — the client-bundle sha256 the running mod vouches for (design §3.2/§3.3).
+       * `null` for a mod-only Uplink (no client half) or an older mod that predates the
+       * two-pass hash bake. Hand-declared here (not codegen) because `system.uplinks` is
+       * engine-built, not a `[SitrepTopic]` reflected payload.
+       */
+      expectedClientHash: string | null;
       health: { state: number; detail: string | null };
     }>;
   };
