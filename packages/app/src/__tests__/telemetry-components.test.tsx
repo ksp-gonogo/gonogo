@@ -29,7 +29,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type FakeTelemachusHandle,
   setupFakeTelemachus,
@@ -48,13 +48,53 @@ let fake: FakeTelemachusHandle | null = null;
 beforeEach(() => {
   clearRegistry();
   registerStockBodies();
+
+  // MapView's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
+  // has no implementation. Stub the same fixed-size fake the widget's own
+  // `MapView/index.test.tsx` uses so the full-map render path can measure.
+  vi.stubGlobal(
+    "ResizeObserver",
+    class FakeResizeObserver {
+      private cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(_el: Element) {
+        this.cb(
+          [
+            {
+              contentRect: { width: 600, height: 300 },
+            } as ResizeObserverEntry,
+          ],
+          this as unknown as ResizeObserver,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    },
+  );
 });
 
 afterEach(() => {
   fake?.buffered.disconnect();
   fake = null;
   clearBodies();
+  vi.unstubAllGlobals();
 });
+
+// The eight `vesselStateChannel` inputs — carrying all of them makes every
+// derived `vessel.state.*` field (here: `parentBodyName`) resolvable. Mirrors
+// the allowlist in MapView's own `stream.test.tsx`.
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+];
 
 // ---------------------------------------------------------------------------
 // Helper: exercise the LEGACY `useDataValue("data", key)` shim branch (no
@@ -239,39 +279,62 @@ describe("OrbitViewComponent", () => {
 // MapView
 // ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
+  // P1 de-Telemachus: MapView reads position off the canonical stream now —
+  // `vessel.flight.latitude`/`.longitude` for lat/lon, and the derived
+  // `vessel.state.parentBodyName` (index→name resolved against `system.bodies`)
+  // for the header body label — not the old `v.body`/`v.lat`/`v.long` keys.
+  // The body-name derivation gates on `vessel.orbit` (whole-record input) plus
+  // `vessel.identity.parentBodyIndex` + `system.bodies`.
+  function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {
+    stream.emit("vessel.orbit", {});
+    stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
+    stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+  }
+
   it("renders MAP VIEW heading", () => {
     renderWidget(<MapViewComponent id="t" />);
     expect(screen.getByText("MAP VIEW")).toBeInTheDocument();
   });
 
-  it('shows "Waiting for telemetry" before v.body arrives', () => {
+  it('shows "Waiting for telemetry" before a body arrives', () => {
     renderWidget(<MapViewComponent id="t" />);
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
   });
 
-  it("shows body name in header once v.body arrives", async () => {
-    const telemetry = await setupTelemetry({ "v.body": "Kerbin" });
-    renderWidget(<MapViewComponent id="t" />);
-    telemetry.seed();
+  it("shows body name in header once vessel state arrives", async () => {
+    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    renderWidget(
+      <stream.Provider>
+        <MapViewComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => emitKerbin(stream));
     await waitFor(() => expect(screen.getByText("Kerbin")).toBeInTheDocument());
   });
 
   it('shows "No position data" when body is known but lat/lon not yet received', async () => {
-    const telemetry = await setupTelemetry({ "v.body": "Kerbin" });
-    renderWidget(<MapViewComponent id="t" />);
-    telemetry.seed();
+    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    renderWidget(
+      <stream.Provider>
+        <MapViewComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => emitKerbin(stream));
     await waitFor(() => expect(screen.getByText("Kerbin")).toBeInTheDocument());
     expect(screen.getByText("No position data")).toBeInTheDocument();
   });
 
   it('hides "No position data" overlay once position arrives', async () => {
-    const telemetry = await setupTelemetry({
-      "v.body": "Kerbin",
-      "v.lat": -0.1,
-      "v.long": 285.4,
+    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    renderWidget(
+      <stream.Provider>
+        <MapViewComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => {
+      emitKerbin(stream);
+      stream.emit("vessel.flight", { latitude: -0.1, longitude: 285.4 });
     });
-    renderWidget(<MapViewComponent id="t" />);
-    telemetry.seed();
     await waitFor(() =>
       expect(screen.queryByText("No position data")).not.toBeInTheDocument(),
     );
