@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -18,10 +18,6 @@ import { GroundSurveyComponent } from "./index";
  * `land.predictedLon` still resolve through the `useTelemetry` mapTopic
  * shim — see `index.test.tsx` for the mixed-source coverage of those four.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const FLIGHT_FIXTURE = {
   latitude: 0,
   longitude: 0,

@@ -4,10 +4,15 @@ import {
   formatDistance,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  type SpaceCenterState,
+  useStream,
+  useViewUt,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
@@ -186,19 +191,17 @@ function LaunchDirectorComponent({
   h,
   w,
 }: Readonly<ComponentProps<LaunchDirectorConfig>>) {
-  const savedShipsRaw = useDataValue("data", "kc.savedShips");
-  const crewRosterRaw = useDataValue("data", "kc.crewRoster");
-  const padOccupied = useDataValue("data", "kc.padOccupied") as
-    | boolean
-    | undefined;
-  const padVesselTitle = useDataValue("data", "kc.padVesselTitle") as
+  const savedShipsRaw = useTelemetry("spaceCenter.savedShips");
+  const crewRosterRaw = useTelemetry("spaceCenter.crewRoster");
+  const padOccupied = useStream<SpaceCenterState>("spaceCenter.state")
+    ?.padOccupied as boolean | undefined;
+  const padVesselTitle = useStream<SpaceCenterState>("spaceCenter.state")
+    ?.padVesselTitle as string | undefined;
+  const launchSite = useTelemetry("spaceCenter.scene")?.launchSite as
     | string
     | undefined;
-  const launchSite = useDataValue("data", "kc.launchSite") as
-    | string
-    | undefined;
-  const launchSitesRaw = useDataValue("data", "kc.launchSites");
-  const careerFunds = useDataValue("data", "career.funds") as
+  const launchSitesRaw = useTelemetry("spaceCenter.launchSites");
+  const careerFunds = useTelemetry("career.status")?.economy?.funds as
     | number
     | undefined;
   // career.funds -> career.status.economy.funds is the one
@@ -211,36 +214,39 @@ function LaunchDirectorComponent({
   // families or vessel-provider gaps with no wire home yet.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
-  const vesselName = useDataValue<string>("data", "v.name");
-  const missionTime = useDataValue<number>("data", "v.missionTime");
-  const altitudeMeters = useDataValue<number>("data", "v.altitude");
-  const canRevertToLaunch = useDataValue<boolean>(
-    "data",
-    "ksp.canRevertToLaunch",
-  );
-  const canRevertToEditor = useDataValue<boolean>(
-    "data",
-    "ksp.canRevertToEditor",
-  );
-  const crashHasRecent = useDataValue<boolean>("data", "crash.hasRecent");
+  const vesselName = useTelemetry("vessel.identity")?.name;
+  const missionTime = useStream<VesselState>("vessel.state")?.met;
+  const altitudeMeters = useStream<VesselState>("vessel.state")?.altitudeAsl;
+  const revertAvailability = useTelemetry("ksp.revertAvailability");
+  const canRevertToLaunch = revertAvailability?.canRevertToLaunch;
+  const canRevertToEditor = revertAvailability?.canRevertToEditor;
+  // crash.hasRecent is a real wire boolean but missing from the SDK's
+  // hand-declared Topic tail (the backing C# const lacks the "...Topic"
+  // suffix topics.test.ts's crosscheck scans for) — left on the legacy
+  // shim pending that follow-up; see docs/legacy-read-shim-inventory.md.
+  const crashHasRecent = useTelemetry("data", "crash.hasRecent");
   // crash.hasRecent is session-wide — a debris crash from a previous flight
   // would block recovery of a successfully landed craft. Pull the most
   // recent crash snapshot too so we can scope the gate to the active
   // vessel only. User reported this twice on 2026-05-17 (21:15, 23:12 BST).
-  const lastCrash = useDataValue<{
-    vesselName?: string;
-    vesselId?: number;
-    ut?: number;
-  } | null>("data", "crash.lastCrash");
+  const lastCrash = useTelemetry("crash.lastCrash");
   // For the revert-staleness guard below — a revert rewinds universal time
   // below the crash snapshot's capture ut. t.universalTime is dropped as a
   // data key (it was never a stream; it IS the SDK view-UT), so read that
   // directly.
   const universalTime = useViewUt();
-  const availableVessels = useDataValue<AvailableVesselEntry[]>(
-    "data",
-    "tar.availableVessels",
-  );
+  // `system.vessels` ships the NEW roster shape (`{ vessels: [...] }`, entries
+  // keyed by `vesselId`/`vesselType`, no `position`) — the vessel-switcher
+  // below still expects the legacy bare `AvailableVesselEntry[]`
+  // (`position`/`type`/`index`) and hasn't been migrated to normalise the new
+  // shape the way TargetPicker's `normalizeRoster` does (see the switcher's
+  // own comment). `Array.isArray` guards against the object shape exactly
+  // like the always-`undefined` legacy dead read used to — same degrade,
+  // now off the real topic instead of a source that never existed.
+  const systemVesselsRaw = useTelemetry("system.vessels");
+  const availableVessels = Array.isArray(systemVesselsRaw)
+    ? systemVesselsRaw
+    : undefined;
   const execute = useExecuteAction("data");
 
   const ships = parseSavedShips(savedShipsRaw);
@@ -265,7 +271,7 @@ function LaunchDirectorComponent({
   // or a 10s safety timeout elapses), suppress the launch button so an
   // impatient double-click doesn't fire two `ksp.launch` actions.
   const [launching, setLaunching] = useState(false);
-  const scene = useDataValue<string>("data", "kc.scene");
+  const scene = useTelemetry("spaceCenter.scene")?.scene;
 
   // Auto-disarm so a forgotten arm doesn't sit live indefinitely.
   useEffect(() => {

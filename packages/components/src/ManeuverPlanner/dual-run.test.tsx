@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -39,9 +39,6 @@ import { ManeuverPlannerComponent } from "./index";
  * planned-burn preview numbers this widget renders are UT-sensitive and an
  * arbitrary stand-in UT would desync the two legs' displayed figures.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("ManeuverPlanner — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup with a TelemetryProvider mounted (vessel.maneuver carried) as fully legacy", async () => {

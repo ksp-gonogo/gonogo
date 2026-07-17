@@ -3,10 +3,29 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render as rtlRender, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearBodies()
+// notifies the body-registry subscribers. RTL auto-cleanup runs after this
+// file's afterEach, so it can't be relied on to unmount first — clearBodies()
+// firing on a still-mounted widget is a state update outside act(), the
+// documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
 
 /**
  * KeplerPeriod's behavior test. This was a fork↔stream parity
@@ -44,7 +63,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
+  unmountAll();
   clearBodies();
   vi.unstubAllGlobals();
 });

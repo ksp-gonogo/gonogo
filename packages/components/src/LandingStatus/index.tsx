@@ -6,8 +6,9 @@ import {
   kelvinToCelsius,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   EmptyState,
   Panel,
@@ -104,24 +105,33 @@ function LandingStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const bodyName = useDataValue("data", "v.body");
+  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const body = bodyName ? getBody(bodyName) : undefined;
   const atmospheric = body?.hasAtmosphere ?? false;
 
-  const timeToImpact = useDataValue("data", "land.timeToImpact");
-  const impactSpeed = useDataValue("data", "land.speedAtImpact");
-  const bestImpactSpeed = useDataValue("data", "land.bestSpeedAtImpact");
-  const suicideBurn = useDataValue("data", "land.suicideBurnCountdown");
-  const predictedLat = useDataValue("data", "land.predictedLat");
-  const predictedLon = useDataValue("data", "land.predictedLon");
-  const slope = useDataValue("data", "land.slopeAngle");
+  const timeToImpact =
+    useStream<VesselState>("vessel.state")?.landingTimeToImpact ?? undefined;
+  const impactSpeed =
+    useStream<VesselState>("vessel.state")?.landingSpeedAtImpact ?? undefined;
+  const bestImpactSpeed =
+    useStream<VesselState>("vessel.state")?.landingBestSpeedAtImpact ??
+    undefined;
+  const suicideBurn =
+    useStream<VesselState>("vessel.state")?.landingSuicideBurnCountdown ??
+    undefined;
+  const predictedLat =
+    useStream<VesselState>("vessel.state")?.landingPredictedLat ?? undefined;
+  const predictedLon =
+    useStream<VesselState>("vessel.state")?.landingPredictedLon ?? undefined;
+  const slope = useTelemetry("data", "land.slopeAngle");
 
-  const heightFromTerrain = useDataValue("data", "v.heightFromTerrain");
-  const verticalSpeed = useDataValue("data", "v.verticalSpeed");
+  const heightFromTerrain = useTelemetry("vessel.flight")?.altitudeTerrain;
+  const verticalSpeed = useTelemetry("vessel.flight")?.verticalSpeed;
 
-  const atmDensity = useDataValue("data", "v.atmosphericDensity");
-  const atmTemperature = useDataValue("data", "v.atmosphericTemperature");
-  const externalTemperature = useDataValue("data", "v.externalTemperature");
+  const atmDensity = useTelemetry("vessel.flight")?.atmDensity;
+  const atmTemperature = useTelemetry("vessel.flight")?.atmosphericTemperature;
+  const externalTemperature =
+    useTelemetry("vessel.flight")?.externalTemperature;
 
   // Connectivity indicator, mirroring the TitleRow pattern used elsewhere.
   // `v.heightFromTerrain` is this widget's representative MAPPED

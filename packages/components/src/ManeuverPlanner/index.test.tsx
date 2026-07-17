@@ -8,13 +8,35 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  TelemetryProvider,
+  vesselManeuverLegacyChannel,
+} from "@ksp-gonogo/sitrep-client";
+import { act, render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
+
+// Rendered trees, tracked so each describe's afterEach can unmount them BEFORE
+// disconnecting the legacy source or clearing the augment registry. RTL
+// auto-cleanup runs after this file's afterEach, so it can't be relied on to
+// unmount first — buffered.disconnect()/clearAugments() firing on a
+// still-mounted widget is a state update outside act(), the documented
+// anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
 
 // Captured at import — before any `clearRegistry` in a beforeEach wipes the
 // module-load `registerComponent`, so the augment-slot metadata is intact.
@@ -36,6 +58,12 @@ const utFixture = setupStreamFixture({
   carriedChannels: [],
   pinnedUt: UT_FIXTURE_VALUE,
 });
+// `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
+// `vessel.maneuver.legacy` derived channel, reshaping the real
+// `vessel.maneuver` wire topic — not one of the two derived channels
+// `setupStreamFixture` pre-registers (`vesselStateChannel`/
+// `spaceCenterStateChannel`), so register it here.
+utFixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
 
 /**
  * Reconstructs the legacy `o.addManeuverNode[...]` action string from a
@@ -179,6 +207,36 @@ const VESSEL_IDENTITY_STREAM_FIXTURE = {
   situation: 0,
 };
 
+/**
+ * `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
+ * `vessel.maneuver.legacy` derived channel off the real `vessel.maneuver`
+ * wire topic — no legacy fallback of its own. `id` defaults to a plain
+ * positional-index string (not a real guid) since most callers below only
+ * care about the node's DELTA-V shape, not its id round-trip (that's
+ * covered end-to-end, with a real guid, by `stream.test.tsx`).
+ */
+function emitManeuverNode(
+  nodes: Array<{
+    id?: string;
+    ut: number;
+    dvRadial?: number;
+    dvNormal?: number;
+    dvPrograde?: number;
+  }>,
+): void {
+  utFixture.emit("vessel.maneuver", {
+    nodes: nodes.map((n, index) => ({
+      id: n.id ?? String(index),
+      ut: n.ut,
+      dvRadial: n.dvRadial ?? 0,
+      dvNormal: n.dvNormal ?? 0,
+      dvPrograde: n.dvPrograde ?? 0,
+      dvTotal: Math.hypot(n.dvRadial ?? 0, n.dvNormal ?? 0, n.dvPrograde ?? 0),
+      patches: [],
+    })),
+  });
+}
+
 function emitFullOrbit(source: MockDataSource): void {
   source.emit("comm.connected", true);
   source.emit("v.name", "Test Vessel");
@@ -234,7 +292,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    unmountAll();
     buffered.disconnect();
   });
 
@@ -266,7 +324,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(screen.getByText("No maneuver nodes planned.")).toBeInTheDocument();
   });
 
-  it("lists planned maneuver nodes when o.maneuverNodes arrives", () => {
+  it("lists planned maneuver nodes when o.maneuverNodes arrives", async () => {
     render(
       <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
@@ -274,14 +332,13 @@ describe("ManeuverPlannerComponent", () => {
     );
     act(() => {
       emitFullOrbit(source);
-      source.emit("o.maneuverNodes", [
-        {
-          UT: 1_000_120,
-          deltaV: [30, 0, 0],
-          orbitPatch: null,
-        },
-      ]);
+      emitManeuverNode([{ ut: 1_000_120, dvRadial: 30 }]);
     });
+    // The derived `vessel.maneuver.legacy` channel only recomputes once the
+    // provider's ingest->beginFrame() rAF tick has run — flush it (a bare
+    // synchronous act() samples a stale frame, which on the shared
+    // module-level utFixture store is whatever the prior test last left).
+    await flushViewUt();
     // Empty-state copy should be gone.
     expect(screen.queryByText("No maneuver nodes planned.")).toBeNull();
     // Node list contains a Delete button per-node.
@@ -298,10 +355,14 @@ describe("ManeuverPlannerComponent", () => {
       emitFullOrbit(source);
       // Highly eccentric orbit with non-trivial circularise cost, paired with
       // a tiny vessel ΔV budget — the planner should refuse the commit.
-      source.emit("o.ApR", 1_000_000);
-      source.emit("o.PeR", 700_000);
-      source.emit("o.eccentricity", 0.1765);
-      source.emit("dv.stages", [
+      // sma·(1±ecc) -> ApR ≈ 1_000_000 / PeR ≈ 700_000, same numbers the
+      // pre-migration legacy `o.ApR`/`o.PeR` emits carried directly.
+      utFixture.emit("vessel.orbit", {
+        ...VESSEL_ORBIT_STREAM_FIXTURE,
+        sma: 850000,
+        ecc: 0.1765,
+      });
+      utFixture.emit("dv.stages", [
         {
           stage: 0,
           stageMass: 1000,
@@ -493,10 +554,17 @@ describe("ManeuverPlannerComponent", () => {
       );
       act(() => {
         emitFullOrbit(source);
-        // Plan a 30 m/s prograde burn — well above the 0.5 m/s threshold.
-        source.emit("o.maneuverNodes", [
-          { UT: 1_000_120, deltaV: [0, 0, 30], orbitPatch: null },
-        ]);
+      });
+      // The derived `vessel.maneuver.legacy` channel only recomputes once
+      // `TelemetryProvider`'s ingest->beginFrame() requestAnimationFrame
+      // tick has run (`context.tsx`'s `scheduleFrame`) — fake timers (below)
+      // fake `requestAnimationFrame` too, so it needs an explicit advance,
+      // not just a microtask flush.
+      act(() => {
+        emitManeuverNode([{ ut: 1_000_120, dvPrograde: 30 }]);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
       });
 
       // Initial render: live row shows "30 m/s", not the completion banner.
@@ -505,9 +573,10 @@ describe("ManeuverPlannerComponent", () => {
 
       // Burn completes — remaining ΔV drops below threshold.
       act(() => {
-        source.emit("o.maneuverNodes", [
-          { UT: 1_000_120, deltaV: [0, 0, 0.1], orbitPatch: null },
-        ]);
+        emitManeuverNode([{ ut: 1_000_120, dvPrograde: 0.1 }]);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
       });
 
       // Green-flash state visible, but no removal call yet.
@@ -621,10 +690,13 @@ describe("ManeuverPlannerComponent", () => {
     );
     act(() => {
       emitFullOrbit(source);
-      source.emit("o.maneuverNodes", [
-        { UT: 1_000_120, deltaV: [0, 0, 30], orbitPatch: null },
-      ]);
+      emitManeuverNode([{ ut: 1_000_120, dvPrograde: 30 }]);
     });
+    // Flush the provider frame so the derived `vessel.maneuver.legacy` channel
+    // recomputes to THIS test's node (dvPrograde 30) rather than sampling the
+    // stale last frame the shared module-level utFixture store carries from a
+    // prior test.
+    await flushViewUt();
 
     // Open the editor on the planned node.
     const editBtn = screen.getByRole("button", { name: /edit node/i });
@@ -723,7 +795,7 @@ describe("ManeuverPlanner — augment slots (Uplink §4)", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    unmountAll();
     // The widget module registers no augments of its own, but a test may have
     // bound one into a slot — reset so it never leaks into a later test.
     clearAugments();

@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -10,50 +11,67 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * Stream test-adapter proof for ManeuverPlanner's
- * maneuver-node id round-trip: `o.maneuverNodes` (behind `useManeuverNodes`)
- * itself STAYS a legacy/gapped read — the new `vessel.maneuver.nodes` shape
- * has no deltaV tuple or post-burn orbit preview (map-topic.ts's
- * TELEMACHUS_KNOWN_GAPS) — but the id round-trips via the new,
- * narrower `o.maneuverNodeIds` read, and `resolveNodeId` (index.tsx) uses it
- * to feed the real guid into the update/remove commands instead of a
- * positional array index. This is what "un-gapping
- * o.updateManeuverNode/o.removeManeuverNode" (map-command.ts) actually
- * proves end-to-end: a real button click, correlated across the two
- * independently-timed reads, dispatching the right id.
+ * Stream test-adapter proof for ManeuverPlanner's maneuver-node id
+ * round-trip: `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
+ * `vessel.maneuver.legacy` derived channel (reshaping the real
+ * `vessel.maneuver` wire topic), and the id round-trips via the SAME raw
+ * `vessel.maneuver` read (`resolveNodeId` in index.tsx) to feed the real
+ * guid into the update/remove commands instead of a positional array
+ * index. This is what "un-gapping o.updateManeuverNode/
+ * o.removeManeuverNode" (map-command.ts) actually proves end-to-end: a real
+ * button click, correlated across the two independently-timed reads,
+ * dispatching the right id.
+ *
+ * `vessel.maneuver.legacy` isn't one of the two derived channels
+ * `setupStreamFixture` pre-registers (`vesselStateChannel`/
+ * `spaceCenterStateChannel`) — register it locally via
+ * `fixture.store.registerDerivedChannel(...)`.
+ *
+ * Every OTHER telemetry read this widget makes (`o.sma`/`o.eccentricity`/
+ * `o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe`/`o.orbitalSpeed`/`o.radius` off
+ * `vessel.orbit`/the derived `vessel.state`, `t.universalTime` off
+ * `useViewUt()`) has moved to a canonical Topic read with NO legacy
+ * fallback (see `index.tsx`) — there is no `setupMockDataSource` leg left
+ * in this file at all; `emitOrbitReady` feeds the real
+ * `vessel.orbit` wire topic instead.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 
-const READY_TELEMETRY: Record<string, unknown> = {
-  "o.sma": 700000,
-  "o.eccentricity": 0.01,
-  "o.ApR": 707000,
-  "o.PeR": 693000,
-  "o.ApA": 107000,
-  "o.PeA": 93000,
-  "o.argumentOfPeriapsis": 0,
-  "o.trueAnomaly": 0,
-  "o.timeToAp": 900,
-  "o.timeToPe": 1800,
-  "o.inclination": 0,
-  "o.period": 3600,
-  "o.orbitalSpeed": 2300,
-  "o.radius": 700000,
-  "t.universalTime": 1_000_000,
-  // One legacy-shaped node at array position 0 — RADIAL, NORMAL, PROGRADE
-  // wire order (see index.tsx's handleEdit/dispatchPlanBurns doc comment).
-  "o.maneuverNodes": [{ UT: 1_000_120, deltaV: [0, 0, 30], orbitPatch: null }],
-};
+const CARRIED_ORBIT = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+];
 
 const REAL_NODE_ID = "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e";
 
-function emitReadyTelemetry(source: { emit: (k: string, v: unknown) => void }) {
-  for (const [key, value] of Object.entries(READY_TELEMETRY)) {
-    source.emit(key, value);
-  }
+/**
+ * Feeds `vessel.orbit` in the default (OnRails) quality so the derived
+ * `vessel.state`'s ApR/PeR/timeToAp/timeToPe/orbitalSpeed/orbitalRadius/mu
+ * inputs all resolve — everything `ManeuverPlannerComponent`'s
+ * `telemetryStatus` gate needs to clear the "Waiting for telemetry" panel.
+ * `epoch` == `pinnedUt` so `trueAnomaly` lands exactly at periapsis (0°),
+ * matching the legacy fixture's `o.trueAnomaly: 0`.
+ */
+function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
+  fixture.emit("vessel.orbit", {
+    referenceBodyIndex: 1,
+    sma: 700000,
+    ecc: 0.01,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: 1_000_000,
+    mu: 3.5316e12,
+  });
 }
 
 /**
@@ -61,10 +79,11 @@ function emitReadyTelemetry(source: { emit: (k: string, v: unknown) => void }) {
  * `requestAnimationFrame`, see `context.tsx`'s own doc comment) — a plain
  * `act()` around `transport.emit` doesn't guarantee that microtask has
  * actually run by the time a synchronous `.click()` fires right after. The
- * "Delete node" button itself appears as soon as the LEGACY
- * `o.maneuverNodes` read lands (a separate, synchronous path), so it's not
- * a reliable proxy for "the stream frame carrying the real node id has
- * committed too." Wait on the store directly instead of racing it.
+ * "Delete node" button itself appears as soon as the streamed
+ * `vessel.maneuver.legacy` read lands (a separate, synchronous path), so
+ * it's not a reliable proxy for "the raw `vessel.maneuver` frame carrying
+ * the real node id has committed too." Wait on the store directly instead
+ * of racing it.
  */
 async function waitForManeuverStreamFrame(fixture: {
   store: {
@@ -81,19 +100,35 @@ async function waitForManeuverStreamFrame(fixture: {
   });
 }
 
+function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
+  fixture.emit("vessel.maneuver", {
+    nodes: [
+      {
+        id: REAL_NODE_ID,
+        ut: 1_000_120,
+        dvRadial: 0,
+        dvNormal: 0,
+        dvPrograde: 30,
+        dvTotal: 30,
+        patches: [],
+      },
+    ],
+  });
+}
+
 describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)", () => {
   it("Delete dispatches vessel.maneuver.remove with the REAL node id when vessel.maneuver.remove is carried", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.maneuver", "vessel.maneuver.remove"],
-      pinnedUt: 10,
+      carriedChannels: [
+        ...CARRIED_ORBIT,
+        "vessel.maneuver",
+        "vessel.maneuver.remove",
+      ],
+      pinnedUt: 1_000_000,
     });
+    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
-      connectSource: true,
-    });
 
     render(
       <fixture.Provider>
@@ -104,19 +139,8 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
     );
 
     act(() => {
-      emitReadyTelemetry(legacyAux.source);
-      fixture.emit("vessel.maneuver", {
-        nodes: [
-          {
-            id: REAL_NODE_ID,
-            ut: 1_000_120,
-            dvRadial: 0,
-            dvNormal: 0,
-            dvPrograde: 30,
-            dvTotal: 30,
-          },
-        ],
-      });
+      emitOrbitReady(fixture);
+      emitManeuverNode(fixture);
     });
 
     const deleteBtn = await screen.findByRole("button", {
@@ -132,24 +156,21 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
         nodeId: REAL_NODE_ID,
       }),
     );
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("Delete falls back to legacy execute() with the resolved id when vessel.maneuver.remove isn't carried", async () => {
     const fixture = setupStreamFixture({
       // Read IS carried (so the real id resolves) — only the COMMAND isn't.
-      carriedChannels: ["vessel.maneuver"],
-      pinnedUt: 10,
+      carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
+      pinnedUt: 1_000_000,
     });
+    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
     const executed: string[] = [];
     const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
-      connectSource: true,
+      keys: [],
       onExecute: (action) => {
         executed.push(action);
       },
@@ -164,19 +185,8 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
     );
 
     act(() => {
-      emitReadyTelemetry(legacyAux.source);
-      fixture.emit("vessel.maneuver", {
-        nodes: [
-          {
-            id: REAL_NODE_ID,
-            ut: 1_000_120,
-            dvRadial: 0,
-            dvNormal: 0,
-            dvPrograde: 30,
-            dvTotal: 30,
-          },
-        ],
-      });
+      emitOrbitReady(fixture);
+      emitManeuverNode(fixture);
     });
 
     const deleteBtn = await screen.findByRole("button", {
@@ -202,50 +212,44 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
   it("Delete falls back to the plain positional index when no stream id has arrived at all", async () => {
     const executed: string[] = [];
     const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
-      connectSource: true,
+      keys: [],
       onExecute: (action) => {
         executed.push(action);
       },
     });
 
-    // No TelemetryProvider mounted at all — the fully-unmigrated case,
-    // matching every widget's legacy-only behavior.
+    // No TelemetryProvider mounted at all — `vessel.maneuver.legacy` never
+    // resolves, so `useManeuverNodes` returns an empty list and no node row
+    // (hence no "Delete node" button) renders. This case is now covered by
+    // the plain-index unit path on `resolveNodeId` directly instead (see
+    // `index.test.tsx`) — nothing left to exercise here now that
+    // `o.maneuverNodes` has no legacy fallback of its own to fall back to.
     render(
       <DashboardItemContext.Provider value={{ instanceId: "mnv-no-stream" }}>
         <ManeuverPlannerComponent id="mnv-no-stream" config={{}} />
       </DashboardItemContext.Provider>,
     );
 
-    act(() => {
-      emitReadyTelemetry(legacyAux.source);
-    });
-
-    const deleteBtn = await screen.findByRole("button", {
-      name: "Delete node",
-    });
-    act(() => {
-      deleteBtn.click();
-    });
-
-    await waitFor(() => expect(executed).toEqual(["o.removeManeuverNode[0]"]));
+    expect(
+      screen.queryByRole("button", { name: "Delete node" }),
+    ).not.toBeInTheDocument();
+    expect(executed).toEqual([]);
 
     teardownMockDataSource(legacyAux);
   });
 
   it("Edit (Save) dispatches vessel.maneuver.update with the REAL node id", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.maneuver", "vessel.maneuver.update"],
-      pinnedUt: 10,
+      carriedChannels: [
+        ...CARRIED_ORBIT,
+        "vessel.maneuver",
+        "vessel.maneuver.update",
+      ],
+      pinnedUt: 1_000_000,
     });
+    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
-      connectSource: true,
-    });
 
     render(
       <fixture.Provider>
@@ -256,19 +260,8 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
     );
 
     act(() => {
-      emitReadyTelemetry(legacyAux.source);
-      fixture.emit("vessel.maneuver", {
-        nodes: [
-          {
-            id: REAL_NODE_ID,
-            ut: 1_000_120,
-            dvRadial: 0,
-            dvNormal: 0,
-            dvPrograde: 30,
-            dvTotal: 30,
-          },
-        ],
-      });
+      emitOrbitReady(fixture);
+      emitManeuverNode(fixture);
     });
 
     const user = userEvent.setup();
@@ -299,33 +292,26 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
         radialOut: 0,
       }),
     );
-
-    teardownMockDataSource(legacyAux);
   });
 });
 
 /**
- * Proof separate from the node-id round-trip
- * above: `dv.stages` is mapped on the wire (map-topic.ts's TELEMACHUS_CLEAN_HOMES,
- * whole-topic identity read) and rides the stream once carried, with
- * zero change to the `useVesselDeltaV()` call site in index.tsx. The two
- * transports disagree on field names though — legacy `StageInfo`
- * (`deltaVVac`/`deltaVASL`) vs. the new mod's `StageDeltaVEntry`
- * (`dvVac`/`dvAsl`) — so this proves `useVesselDeltaV`'s `normalizeStage`
- * reconciliation actually feeds the widget's rendered "Available" ΔV
- * figure, not just the legacy shape `index.test.tsx` already covers. The
- * legacy `DataSource` still supplies every OTHER telemetry key here.
+ * Proof separate from the node-id round-trip above: `dv.stages` is mapped
+ * on the wire (map-topic.ts's TELEMACHUS_CLEAN_HOMES, whole-topic identity
+ * read) and rides the stream once carried, with zero change to the
+ * `useVesselDeltaV()` call site in index.tsx. The two transports disagree
+ * on field names though — legacy `StageInfo` (`deltaVVac`/`deltaVASL`) vs.
+ * the new mod's `StageDeltaVEntry` (`dvVac`/`dvAsl`) — so this proves
+ * `useVesselDeltaV`'s `normalizeStage` reconciliation actually feeds the
+ * widget's rendered "Available" ΔV figure. The ΔV total only renders once
+ * `!waiting` (`telemetryStatus` all-clear), so `emitOrbitReady` feeds the
+ * rest of the widget's telemetry too.
  */
 describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map batch)", () => {
   it("sums the ΔV available total off dv.stages using the new mod StageDeltaVEntry field names", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["dv.stages"],
-      pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
-      connectSource: true,
+      carriedChannels: [...CARRIED_ORBIT, "dv.stages"],
+      pinnedUt: 1_000_000,
     });
 
     render(
@@ -339,7 +325,7 @@ describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map ba
     expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
 
     act(() => {
-      emitReadyTelemetry(legacyAux.source);
+      emitOrbitReady(fixture);
       // The mod's real StageDeltaVEntry field names (contract.ts:491) —
       // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`.
       fixture.emit("dv.stages", [
@@ -351,7 +337,5 @@ describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map ba
     await waitFor(() => {
       expect(screen.getByText("1800 m/s")).toBeInTheDocument();
     });
-
-    teardownMockDataSource(legacyAux);
   });
 });

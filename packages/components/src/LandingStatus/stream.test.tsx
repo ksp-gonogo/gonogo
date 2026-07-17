@@ -1,9 +1,32 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render as rtlRender, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them synchronously before the
+// pinned-UT ViewClock's next requestAnimationFrame tick fires. RTL auto-cleanup
+// runs after this file's afterEach, so it can't be relied on to unmount first —
+// a ViewClock frame updating the still-mounted widget (its AugmentSlot header)
+// is a state update outside act(), the documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
+
+afterEach(() => {
+  unmountAll();
+});
 
 /**
  * LandingStatus genuinely running OFF THE STREAM (a real `TelemetryProvider`/
@@ -28,10 +51,6 @@ import { LandingStatusComponent } from "./index";
  * Gravity uses a synthetic body (mu = 8e10, radius = 200_000 → g = 2 m/s² at
  * sea level) so the arithmetic is easy to reason about.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("LandingStatus — derived landing scalars genuinely run off the stream", () => {
   it("shows the suicide-burn / impact readout from the derived vessel.state.landing* fields, not legacy", async () => {
     const fixture = setupStreamFixture({
