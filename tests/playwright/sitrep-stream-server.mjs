@@ -185,6 +185,19 @@ const SNAPSHOT = {
     meta: payloadMeta,
   },
 
+  // The dedicated connectivity MetaTopic (`CommsLink`, mod commit
+  // "connectivity MetaTopic so NO SIGNAL escapes the freeze"). `comm.connected`
+  // now maps to `comms.link.connected`, NOT `vessel.comms.connected` — the
+  // latter is a reveal-gate-frozen struct whose `.connected` field holds at
+  // last-known through a blackout, so the disconnect edge only reaches the
+  // client on this freeze-EXEMPT topic (see map-topic.ts). CommSignal /
+  // CameraFeed / ActionGroup all read the mapped `comm.connected` key, so
+  // the LOS/"No signal" branch only fires when this topic carries it.
+  "comms.link": {
+    connected: false,
+    meta: payloadMeta,
+  },
+
   // Placeholder — no spec reads it directly, but it's a required vessel.state input.
   "vessel.propulsion": {
     totalMass: 13.8299436569214,
