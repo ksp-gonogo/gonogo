@@ -4,10 +4,34 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// augment registry. RTL auto-cleanup runs after this file's afterEach, so it
+// can't be relied on to unmount first — clearAugments() notifying a
+// still-mounted AugmentSlot's subscribers is a state update outside act(), the
+// documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
 
 /**
  * CommSignal exposes two augment slots (locked map: comm-signal):
@@ -69,7 +93,7 @@ function renderWithSignal() {
 }
 
 afterEach(() => {
-  cleanup();
+  unmountAll();
   clearAugments();
 });
 

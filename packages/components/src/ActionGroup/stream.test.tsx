@@ -6,10 +6,34 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
+
+// Rendered trees, tracked so teardown can unmount them BEFORE clearing the
+// action-handler registry or disconnecting a legacy source. RTL auto-cleanup
+// runs after this file's afterEach, so it can't be relied on to unmount first —
+// clearActionHandlers()/buffered.disconnect() firing on a still-mounted widget
+// is a state update outside act(), the documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
 
 /**
  * The command-table proof for a representative toggle -> absolute widget
@@ -33,7 +57,7 @@ import { ActionGroupComponent } from "./index";
  * its own, so it isn't exercised end-to-end here.
  */
 afterEach(() => {
-  cleanup();
+  unmountAll();
   clearActionHandlers();
 });
 
@@ -158,6 +182,7 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
     expect(commandHandler).not.toHaveBeenCalled();
     expect(executed).toEqual(["f.sas"]);
 
+    unmountAll();
     buffered.disconnect();
     clearRegistry();
   });
@@ -281,6 +306,7 @@ describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort comman
     expect(commandHandler).not.toHaveBeenCalled();
     expect(executed).toEqual(["f.abort"]);
 
+    unmountAll();
     buffered.disconnect();
     clearRegistry();
   });

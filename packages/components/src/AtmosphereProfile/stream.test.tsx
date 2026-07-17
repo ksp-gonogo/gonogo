@@ -1,7 +1,7 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
@@ -47,10 +47,6 @@ import { AtmosphereProfileComponent } from "./index";
  * gracefully (the empty state's copy is unchanged by the mapped
  * emissions landing) rather than crashing or fabricating a body.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () => {
   it("reads altitude/atmosphericDensity off the real stream pipeline, not legacy", async () => {
     registerStockBodies();

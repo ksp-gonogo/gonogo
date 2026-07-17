@@ -1,7 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -29,10 +29,6 @@ import { AtmosphereProfileComponent } from "./index";
  * the stream leg; the pressure curve itself is entirely a function of the
  * legacy-fed body, not any mapped key.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const GAPPED_KEYS = ["v.body"] as const;
 
 describe("AtmosphereProfile — behavior-preservation golden dual-run (delay=0)", () => {

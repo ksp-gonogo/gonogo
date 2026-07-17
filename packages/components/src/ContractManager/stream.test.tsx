@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -21,7 +21,6 @@ import { ContractManagerComponent } from "./index";
  * `setupMockDataSource` AUX, the same mixed-source pattern used elsewhere.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 
