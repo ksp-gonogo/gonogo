@@ -1,49 +1,51 @@
-import { registerStockBodies } from "@ksp-gonogo/core";
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinReentry from "./__fixtures__/kerbin-reentry-atmospheric.json";
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus's stream render golden. This began life as a
- * legacy-`DataSource`↔stream byte-identical dual-run; `bodyName` and every
- * ballistic `land.*` scalar now come off the real, client-derived
- * `vessel.state` channel with NO legacy fallback at all (see
- * `stream.test.tsx`) — same "the legacy leg is gone" story as
- * `WarpControl/dual-run.test.tsx`'s own doc comment. What remains proves the
- * widget renders the full Kerbin-reentry state correctly off the real
- * stream pipeline, using the SAME `kerbin-reentry-atmospheric` fixture the
- * DOM-snapshot suite covers for its ambient (`v.atmosphericDensity`/
- * `v.atmosphericTemperature`/`v.externalTemperature`) values — those three
- * are unchanged, direct `vessel.flight.*` reads.
+ * LandingStatus's atmospheric-board stream render golden. This began life as a
+ * legacy-`DataSource`↔stream byte-identical dual-run; `bodyName` now comes off
+ * the real, client-derived `vessel.state` channel and the body's atmosphere
+ * flag / radius come from the static stock-body registry (`getBody`), with NO
+ * legacy fallback at all (see `stream.test.tsx`).
  *
- * The fixture carries no propulsion data (a passive reentry, no active
- * burn), so `bestSpeedAtImpact`/`suicideBurnCountdown` stay null here — a
- * real, honest gap for a scenario with no engine input, not a test
- * omission.
+ * The `kerbin-reentry-atmospheric` fixture is a descent on an ATMOSPHERIC body.
+ * The rebooted widget has no drag model, so on atmospheric bodies it SUPPRESSES
+ * the vacuum burn/touchdown numbers entirely (rather than hedge a wrong one) and
+ * shows the "descent unmodelled" note. This proves that whole gate fires off the
+ * real stream pipeline.
  */
-describe("LandingStatus — stream render golden (delay=0)", () => {
-  it("renders the full Kerbin-reentry state off the stream pipeline", async () => {
+const CARRIED = [
+  "vessel.state",
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.propulsion",
+  "vessel.surface",
+  "dv.summary",
+  "comms.delay",
+];
+
+describe("LandingStatus — atmospheric stream render golden (delay=0)", () => {
+  it("suppresses the vacuum burn numbers on the Kerbin reentry off the stream pipeline", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 
-    const { container } = render(
+    render(
       <stream.Provider>
-        <LandingStatusComponent config={{}} id="landing-dual" w={8} h={10} />
+        <DashboardItemContext.Provider value={{ instanceId: "landing-dual" }}>
+          <LandingStatusComponent config={{}} id="landing-dual" w={8} h={10} />
+        </DashboardItemContext.Provider>
       </stream.Provider>,
     );
 
@@ -96,23 +98,17 @@ describe("LandingStatus — stream render golden (delay=0)", () => {
       });
     });
 
-    await waitFor(() => {
-      if (!container.textContent?.includes("87.00 g/m³")) {
-        throw new Error("stream leg has not rendered live air density yet");
-      }
-    });
-
-    // Atmospheric body — subtitle + suicide-row aerobraking note.
-    expect(screen.getByText(/kerbin · atmospheric/i)).toBeInTheDocument();
-    expect(screen.getByText(/aerobraking/i)).toBeInTheDocument();
-    // g = mu/radius² = 9.81 m/s² -> timeToImpact ≈ 57.1s, speedAtImpact ≈
-    // 773 m/s — no propulsion emitted (a passive reentry), so the
-    // burn-dependent fields stay null/"—" (SuicideValue), but the full
-    // grid is clear of the empty state.
-    expect(screen.getByText(/773 m\/s/)).toBeInTheDocument();
-    expect(screen.queryByText("No landing in progress")).toBeNull();
+    // Atmospheric body — subtitle resolves off the derived vessel.state channel.
     expect(
-      screen.queryByText("Waiting for a landing prediction..."),
-    ).toBeNull();
+      await screen.findByText(/kerbin · atmospheric/i),
+    ).toBeInTheDocument();
+    // No drag model -> the vacuum numbers are suppressed with a visible note.
+    expect(screen.getByText(/descent unmodelled/i)).toBeInTheDocument();
+    // The burn/touchdown sections are gone, not merely muted.
+    expect(screen.queryByText("Burn")).toBeNull();
+    expect(screen.queryByText("Touchdown")).toBeNull();
+    // But the drag-independent velocity split still renders.
+    expect(screen.getByText("Horizontal")).toBeInTheDocument();
+    expect(screen.queryByText("No landing in progress")).toBeNull();
   });
 });

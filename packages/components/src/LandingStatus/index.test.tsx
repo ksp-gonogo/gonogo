@@ -1,33 +1,32 @@
-import { registerStockBodies } from "@ksp-gonogo/core";
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * `bodyName`/the four ballistic `land.*` scalars all come off the real,
- * client-derived `vessel.state`/`vessel.state.landing*` channel now (see
- * `stream.test.tsx`) — no legacy fallback exists for them at all, so this
- * drives them through a genuine `setupStreamFixture` pipeline instead of
- * declaring the derived numbers directly.
- *
- * Real Mun (radius 200_000m, mu 6.5138398e10 — `packages/core/src/
- * stock-bodies.ts`) and Kerbin (radius 600_000m, mu 3.5316e12,
- * hasAtmosphere) constants drive the physics below so the derived numbers
- * are genuine, not fabricated — see each test's own comment for the
- * resulting values.
+ * The rebooted LandingStatus runs a FULL-VECTOR suicide-burn solve — the burn
+ * must null the whole surface-speed vector, not just the descent rate. These
+ * tests drive real physics through a genuine `setupStreamFixture` pipeline
+ * (real Mun/Kerbin body constants, `vessel.flight`/`vessel.propulsion`/
+ * `vessel.orbit`) so the derived numbers are honest, and assert the correctness
+ * fix at the DOM: a mostly-horizontal descent must NOT report a survivable
+ * burn-now touchdown.
  */
 const CARRIED = [
+  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
   "vessel.control",
   "vessel.target",
-  "vessel.comms",
   "vessel.propulsion",
   "vessel.surface",
+  "dv.summary",
+  "comms.delay",
 ];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
@@ -110,10 +109,17 @@ describe("LandingStatusComponent", () => {
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
-  function renderWidget() {
+  function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
-        <LandingStatusComponent config={{}} id="land" />
+        <DashboardItemContext.Provider value={{ instanceId: "land" }}>
+          <LandingStatusComponent
+            config={{}}
+            id="land"
+            w={size?.w}
+            h={size?.h}
+          />
+        </DashboardItemContext.Provider>
       </stream.Provider>,
     );
   }
@@ -121,78 +127,62 @@ describe("LandingStatusComponent", () => {
   it("shows the idle placeholder when no landing is in progress", async () => {
     renderWidget();
     act(() => {
-      // OnRails (default quality) -> the propagated basis, which never
-      // computes the landing scalars at all (see vessel-state.ts).
       emitVessel(stream, { body: MUN, quality: Quality.OnRails });
     });
-    // The empty state is already showing before the pinned view-clock's
-    // first frame tick lands (it's the safe default), so wait on the
-    // subtitle — which only appears once `vessel.state` has actually
-    // resolved — rather than the trivially-already-true empty-state text.
     expect(await screen.findByText(/vacuum/i)).toBeInTheDocument();
-    // Body subtitle notes vacuum, and the empty state still shows (no
-    // landing scalars in the propagated basis).
     expect(screen.getByText("No landing in progress")).toBeInTheDocument();
   });
 
-  it("renders the full readout when a prediction lands", async () => {
+  it("does NOT report a survivable burn-now touchdown when horizontal velocity dominates", async () => {
     renderWidget();
     act(() => {
-      // Mun, Loaded/measured basis: g = mu/radius² ≈ 1.6285 m/s².
-      // h=2800m, vDown=42.5 m/s, surfaceSpeed=50 m/s ->
-      //   timeToImpact ≈ 38.09s, speedAtImpact ≈ 107.79 m/s (-> "108 m/s").
-      // availableThrust=3 (aMax=3, TWR ≈ 1.84 over g) ->
-      //   burn distance (658m) fits within 2800m -> bestSpeedAtImpact = 0,
-      //   suicideBurnCountdown ≈ 31.4s (not urgent — stays role=status).
+      // The spec's worked Mun case: h=5km, descending 50 m/s but carrying
+      // 540 m/s of (mostly horizontal) surface speed, aMax=20 m/s^2.
+      // g≈1.63 -> horizontal≈538 m/s, best burn-now touchdown≈328 m/s (NOT 0),
+      // and the burn no longer fits the remaining altitude (IGNITE now).
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
         descent: {
-          heightFromTerrain: 2800,
-          verticalSpeed: 42.5,
-          surfaceSpeed: 50,
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
         },
-        availableThrust: 3,
+        availableThrust: 20,
       });
     });
 
-    expect(await screen.findByText(/T−/)).toBeInTheDocument();
-    expect(screen.getByText(/108 m\/s/)).toBeInTheDocument();
-    expect(screen.getByText(/best 0\.00 m\/s/)).toBeInTheDocument();
-    expect(screen.getByText(/2\.80 km/)).toBeInTheDocument();
-    // Non-urgent countdown (~31s) — status (polite), not alert.
-    expect(screen.queryByRole("alert")).toBeNull();
+    // The horizontal component the old vertical-only model ignored is surfaced.
+    expect(await screen.findByText(/538 m\/s/)).toBeInTheDocument();
+    // Burn-now touchdown is a large nonzero speed — the fatal-direction fix.
+    expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
+    // The burn no longer fits: ignite now, not a comfortable countdown.
+    expect(screen.getByText("IGNITE")).toBeInTheDocument();
   });
 
-  it("escalates to role=alert when the suicide-burn countdown drops below 5s", async () => {
+  it("splits velocity into vertical and horizontal", async () => {
     renderWidget();
     act(() => {
-      // Mun, h=500m, vDown=60 m/s, availableThrust=5.3 (aMax ≈ 5.3, tuned so
-      // the burn-start altitude sits only ~10m above current height) ->
-      // suicideBurnCountdown ≈ 0.16s — well inside the urgent (0, 5] window.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
         descent: {
-          heightFromTerrain: 500,
-          verticalSpeed: 60,
-          surfaceSpeed: 60,
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
         },
-        availableThrust: 5.3,
+        availableThrust: 20,
       });
     });
-
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toMatch(/T−/);
+    expect(await screen.findByText("Vertical")).toBeInTheDocument();
+    expect(screen.getByText("Horizontal")).toBeInTheDocument();
+    // Horizontal (538 m/s) dominates the 50 m/s descent — the whole point.
+    expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
   });
 
-  it("shows the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
+  it("uses the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
     renderWidget();
     act(() => {
-      // vessel.flight.altitudeTerrain is KSP's CoM-to-ground radarAltitude
-      // (2800m here); vessel.surface.heightFromTerrain is the lowest-point
-      // reading (2755m — the craft is 45m tall). The Altitude row must show
-      // the lowest-point number, the one a landing actually cares about.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -209,8 +199,6 @@ describe("LandingStatusComponent", () => {
         heightFromTerrain: 2755,
       });
     });
-
-    // 2.75 km (lowest-point) shows; the 2.80 km CoM reading does not.
     expect(await screen.findByText(/2\.75 km/)).toBeInTheDocument();
     expect(screen.queryByText(/2\.80 km/)).toBeNull();
   });
@@ -218,8 +206,6 @@ describe("LandingStatusComponent", () => {
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {
     renderWidget();
     act(() => {
-      // No vessel.surface emitted (nulled by the mod while far from terrain) —
-      // the Altitude row falls back to vessel.flight.altitudeTerrain.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -231,16 +217,13 @@ describe("LandingStatusComponent", () => {
         availableThrust: 3,
       });
     });
-
     expect(await screen.findByText(/2\.80 km/)).toBeInTheDocument();
+    expect(screen.getByText(/centre-of-mass/i)).toBeInTheDocument();
   });
 
-  it("flags atmospheric bodies and demotes the suicide-burn row", async () => {
+  it("suppresses the vacuum burn numbers on atmospheric bodies", async () => {
     renderWidget();
     act(() => {
-      // Kerbin (hasAtmosphere) — any positive height/descent gives a
-      // finite timeToImpact, clearing noPrediction so the subtitle +
-      // suicide-row aerobraking note both render.
       emitVessel(stream, {
         body: KERBIN,
         quality: Quality.Loaded,
@@ -251,12 +234,95 @@ describe("LandingStatusComponent", () => {
         },
       });
     });
-
-    // Subtitle mentions atmospheric, and the suicide-burn row's caveat note
-    // mentions aerobraking. Both should be on-screen.
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/aerobraking/i)).toBeInTheDocument();
+    expect(screen.getByText(/descent unmodelled/i)).toBeInTheDocument();
+    // Vacuum burn/touchdown sections are suppressed, not hedged.
+    expect(screen.queryByText("Burn")).toBeNull();
+    expect(screen.queryByText("Touchdown")).toBeNull();
+    // But the (drag-independent) velocity split still shows.
+    expect(screen.getByText("Horizontal")).toBeInTheDocument();
+  });
+
+  it("shows the delayed regime banner off comms.delay", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
+        },
+        availableThrust: 20,
+      });
+      // SignalDelay source with a 4s one-way -> staged regime, RT 8s.
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
+    });
+    expect(await screen.findByText("STAGED")).toBeInTheDocument();
+  });
+
+  it("renders gear and brakes configuration rows with confirmed state", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 2800,
+          verticalSpeed: 42.5,
+          surfaceSpeed: 50,
+        },
+        availableThrust: 3,
+      });
+      stream.emit("vessel.control", { gear: true, brakes: false });
+    });
+    expect(
+      await screen.findByRole("button", { name: /toggle gear/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /toggle brakes/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("escalates to role=alert when the burn is already committed (ignite now)", async () => {
+    renderWidget();
+    act(() => {
+      // The worked Mun case: the burn no longer fits, so ignition is now — the
+      // live-regime hero reads IGNITE and the section escalates to role=alert.
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
+        },
+        availableThrust: 20,
+      });
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/IGNITE/);
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 2800,
+          verticalSpeed: 42.5,
+          surfaceSpeed: 50,
+        },
+        availableThrust: 3,
+      });
+      stream.emit("vessel.control", { gear: false, brakes: false });
+    });
+    await screen.findByText("Vertical");
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

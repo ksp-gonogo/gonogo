@@ -1,32 +1,9 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render as rtlRender, waitFor } from "@ksp-gonogo/test-utils";
-import type { ReactElement } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
-
-// Rendered trees, tracked so afterEach can unmount them synchronously before the
-// pinned-UT ViewClock's next requestAnimationFrame tick fires. RTL auto-cleanup
-// runs after this file's afterEach, so it can't be relied on to unmount first —
-// a ViewClock frame updating the still-mounted widget (its AugmentSlot header)
-// is a state update outside act(), the documented anti-pattern in CLAUDE.md.
-const renderedTrees: Array<() => void> = [];
-
-function render(ui: ReactElement) {
-  const result = rtlRender(ui);
-  renderedTrees.push(result.unmount);
-  return result;
-}
-
-function unmountAll() {
-  for (const unmount of renderedTrees) unmount();
-  renderedTrees.length = 0;
-}
-
-afterEach(() => {
-  unmountAll();
-});
 
 /**
  * LandingStatus genuinely running OFF THE STREAM (a real `TelemetryProvider`/
@@ -34,171 +11,132 @@ afterEach(() => {
  * `DataSource` is registered anywhere in this file, so a value only reaches the
  * widget if it actually streamed.
  *
- * The four ballistic `land.*` scalars (`timeToImpact`/`speedAtImpact`/
- * `bestSpeedAtImpact`/`suicideBurnCountdown`) are now client-derived
- * `vessel.state.landing*` fields (`vessel-state.ts` `deriveLanding`): a vacuum
- * ballistic solve off `vessel.flight` + `vessel.orbit.mu` + the `system.bodies`
- * radius + `vessel.propulsion`, MEASURED basis only. `noPrediction` (the gate
- * deciding whether the metric `Body` or the `EmptyState` renders) is driven by
- * `land.timeToImpact`, so with the descent streamed the full suicide-burn /
- * impact / descent readout appears — no legacy source needed.
+ * The rebooted widget runs a FULL-VECTOR suicide-burn solve client-side off the
+ * streamed `vessel.flight` / `vessel.propulsion` / `vessel.orbit` channels plus
+ * the static stock-body radius (`getBody`), with NO derived `vessel.state.
+ * landing*` fields involved. This file proves the whole chain — subscription,
+ * carried-channel promotion, derived `vessel.state` body resolution, and the
+ * DOM render — works end to end on a real Mun descent, with the horizontal
+ * component (the correctness fix) surfaced.
  *
- * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs — the
- * carried-channels gate is parent-channel-scoped, not per-field (see
- * `vessel-state.ts`'s `vesselStateChannel` doc comment). `vessel.orbit` is
- * emitted with `{ quality: Quality.Loaded }` so the derivation runs the
- * MEASURED branch (the landing scalars are null in the propagated basis).
- * Gravity uses a synthetic body (mu = 8e10, radius = 200_000 → g = 2 m/s² at
- * sea level) so the arithmetic is easy to reason about.
+ * `carriedChannels` mirrors `index.test.tsx`'s superset: the carried gate is
+ * parent-channel-scoped, and `vessel.orbit` is emitted `{ quality:
+ * Quality.Loaded }` so the MEASURED basis is live.
  */
-describe("LandingStatus — derived landing scalars genuinely run off the stream", () => {
-  it("shows the suicide-burn / impact readout from the derived vessel.state.landing* fields, not legacy", async () => {
-    const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
-      pinnedUt: 10,
-    });
+const CARRIED = [
+  "vessel.state",
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.propulsion",
+  "vessel.surface",
+  "dv.summary",
+  "comms.delay",
+];
 
-    const { container } = render(
-      <fixture.Provider>
+const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
+
+describe("LandingStatus — full-vector solve genuinely runs off the stream", () => {
+  let stream: ReturnType<typeof setupStreamFixture>;
+
+  beforeEach(() => {
+    registerStockBodies();
+    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  });
+
+  function renderWidget() {
+    return render(
+      <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
           <LandingStatusComponent id="landing-stream" w={8} h={10} />
         </DashboardItemContext.Provider>
-      </fixture.Provider>,
+      </stream.Provider>,
     );
+  }
+
+  function emitMunDescent() {
+    stream.emit("system.bodies", {
+      bodies: [
+        {
+          name: MUN.name,
+          index: MUN.index,
+          parentIndex: 0,
+          radius: MUN.radius,
+          orbit: null,
+        },
+      ],
+    });
+    stream.emit("vessel.identity", {
+      vesselId: "test-vessel",
+      name: "Test Vessel",
+      vesselType: 0,
+      situation: 0,
+      parentBodyIndex: MUN.index,
+      launchUt: null,
+    });
+    stream.emit(
+      "vessel.orbit",
+      {
+        referenceBodyIndex: MUN.index,
+        sma: 250_000,
+        ecc: 0.01,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        mu: MUN.mu,
+      },
+      { quality: Quality.Loaded },
+    );
+    // h=5km, descending 50 m/s but carrying 540 m/s of (mostly horizontal)
+    // surface speed — the whole point of the full-vector solve.
+    stream.emit("vessel.flight", {
+      latitude: 0,
+      longitude: 0,
+      altitudeAsl: 0,
+      altitudeTerrain: 5000,
+      verticalSpeed: -50,
+      surfaceSpeed: 540,
+      orbitalSpeed: 540,
+      atmDensity: 0,
+    });
+    // aMax = availableThrust/totalMass = 20 m/s^2.
+    stream.emit("vessel.propulsion", {
+      totalMass: 1,
+      dryMass: 0.5,
+      currentThrust: 0,
+      availableThrust: 20,
+    });
+  }
+
+  it("renders the Mun descent board off the derived vessel.state + streamed flight/propulsion", async () => {
+    const { container } = renderWidget();
 
     // Nothing arrived yet — the empty state shows.
     expect(container.textContent).toContain("No landing in progress");
-
     // A real subscription must have happened for StubTransport (which is
     // subscription-gated) to deliver at all.
-    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
+    expect(stream.transport.isSubscribed("vessel.flight")).toBe(true);
 
     act(() => {
-      // Loaded quality -> measured branch, where the landing scalars are live.
-      fixture.emit(
-        "vessel.orbit",
-        {
-          referenceBodyIndex: 3,
-          sma: 250_000,
-          ecc: 0,
-          inc: 0,
-          argPe: 0,
-          mu: 8e10,
-          meanAnomalyAtEpoch: 0,
-          epoch: 10,
-          // A short (60s) synthetic patch — see vessel-state.test.ts's
-          // "landing predicted impact" describe block for why the period is
-          // independent of sma/mu here (just an input to patchStateAt).
-          // Starts at apoapsis (r=400_000, above the 200_000 body radius)
-          // and crosses periapsis (r=100_000, below it) half a period later
-          // — well within the ~54s horizon `landingTimeToImpact` bounds the
-          // walk to.
-          patches: [
-            {
-              sma: 250_000,
-              ecc: 0.6,
-              inc: 0,
-              lan: 0,
-              argPe: 0,
-              meanAnomalyAtEpoch: Math.PI,
-              epoch: 10,
-              period: 60,
-              startUt: 10,
-              endUt: 200,
-              patchStartTransition: 0,
-              patchEndTransition: 1,
-              peA: 0,
-              apA: 0,
-              semiLatusRectum: 0,
-              semiMinorAxis: 0,
-              referenceBody: "Kerbin",
-              closestEncounterBody: null,
-            },
-          ],
-        },
-        { quality: Quality.Loaded },
-      );
-      // Descending at 42.5 m/s, 2800 m above terrain, at sea level (r = radius).
-      fixture.emit("vessel.flight", {
-        // Calibration reference for the predicted-impact patch-walk
-        // (findImpactPoint's body-rotation fit) — arbitrary but finite.
-        latitude: 0,
-        longitude: 0,
-        altitudeAsl: 0,
-        altitudeTerrain: 2800,
-        verticalSpeed: -42.5,
-        surfaceSpeed: 50,
-        orbitalSpeed: 50,
-        atmDensity: 0,
-      });
-      fixture.emit("system.bodies", {
-        bodies: [
-          {
-            name: "Testmun",
-            index: 3,
-            parentIndex: 0,
-            radius: 200_000,
-            orbit: null,
-          },
-        ],
-      });
-      // aMax = availableThrust/totalMass = 6 m/s² -> TWR 3 over g = 2.
-      fixture.emit("vessel.propulsion", {
-        totalMass: 1,
-        dryMass: 0.5,
-        currentThrust: 0,
-        availableThrust: 6,
-      });
+      emitMunDescent();
     });
 
-    // The derived land.timeToImpact opens the gate — the full readout renders.
-    await waitFor(() => {
-      if (!container.textContent?.includes("Impact in")) {
-        throw new Error(
-          "derived landing scalars have not streamed through yet",
-        );
-      }
-    });
-    expect(container.textContent).toContain("Suicide burn");
+    // The velocity split — vertical AND horizontal — renders off the stream.
+    expect(await screen.findByText("Vertical")).toBeInTheDocument();
+    expect(screen.getByText("Horizontal")).toBeInTheDocument();
+    // The horizontal component the old vertical-only model ignored (≈538 m/s).
+    expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
+    // The Height section surfaces the streamed AGL datum (5.00 km).
+    expect(screen.getByText("AGL")).toBeInTheDocument();
+    expect(screen.getByText(/5\.00 km/)).toBeInTheDocument();
+    // The subtitle resolves the body off the derived vessel.state channel.
+    expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
+    // Empty state is gone once the descent is streaming.
     expect(container.textContent).not.toContain("No landing in progress");
-    expect(container.textContent).not.toContain(
-      "Waiting for a landing prediction",
-    );
-
-    // White-box: the same derived field useDataValue's stream path reads is a
-    // finite number in the store — proving it went through the derivation, not
-    // a legacy fallback that isn't wired here.
-    const timeToImpact = fixture.store.sample<number>(
-      "vessel.state.landingTimeToImpact",
-      fixture.store.currentFrame(),
-    );
-    expect(timeToImpact?.payload).toBeCloseTo(
-      (-42.5 + Math.sqrt(42.5 * 42.5 + 2 * 2 * 2800)) / 2,
-      4,
-    );
-
-    // The predicted-impact patch-walk streams too, off the SAME
-    // vessel.orbit sample's patches array — no separate mod predictor.
-    const predictedLat = fixture.store.sample<number>(
-      "vessel.state.landingPredictedLat",
-      fixture.store.currentFrame(),
-    );
-    const predictedLon = fixture.store.sample<number>(
-      "vessel.state.landingPredictedLon",
-      fixture.store.currentFrame(),
-    );
-    expect(predictedLat?.payload).not.toBeNull();
-    expect(Number.isFinite(predictedLat?.payload)).toBe(true);
-    expect(predictedLon?.payload).not.toBeNull();
-    expect(Number.isFinite(predictedLon?.payload)).toBe(true);
   });
 });
