@@ -3,7 +3,7 @@ import {
   AugmentSlot,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
@@ -281,8 +281,8 @@ const POWER_LABEL: Record<PowerState, string> = {
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
-  const basesRaw = useDataValue("data", "deployed.bases");
-  const available = useDataValue<boolean>("data", "deployed.available");
+  const basesRaw = useTelemetry("science.deployed");
+  const available = useTelemetry("game.dlc")?.breakingGround;
   const basesStreamStatus = useDataStreamStatus("data", "deployed.bases");
 
   const bases = parseBases(basesRaw) ?? [];

@@ -1,148 +1,176 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import {
   type DeployedExperimentContext,
   DeployedScienceComponent,
   parseBases,
 } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "deployed.bases" },
-  { key: "deployed.available" },
-];
-
-const base = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
-  id: 1,
+// One flat entry off the new `science.deployed` wire (see index.tsx's
+// `parseBases`/`groupFlatDeployedEntries`) — grouped by `vesselName` into the
+// widget's `DeployedBase[]` display shape client-side.
+const flatEntry = (
+  over: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  vesselName: "Mun Surface Base",
+  partName: "Seismometer",
   body: "Mun",
-  powered: true,
-  partialPower: false,
-  powerAvailable: 12,
-  powerRequired: 8,
-  controllerEnabled: true,
-  experimentCount: 1,
-  experiments: [
-    {
-      id: "deployedSeismic",
-      name: "Seismometer",
-      total: 30,
-      limit: 60,
-      progress: 0.5,
-      stored: 5,
-      transmitted: 25,
-      collecting: true,
-    },
-  ],
+  situation: "LANDED",
+  biome: "Highlands",
+  experimentId: "deployedSeismic",
+  scienceCompletedPercentage: 50,
+  scienceTransmittedPercentage: 50,
+  scienceValue: 30,
+  scienceLimit: 60,
+  powerState: "Powered",
+  connectionState: "Connected",
+  deployedOnGround: true,
   ...over,
 });
 
+const CARRIED = ["science.deployed", "game.dlc"] as const;
+
+const renderedTrees: Array<() => void> = [];
+
+function newFixture(): StreamFixture {
+  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+}
+
+function renderDeployed(fixture: StreamFixture) {
+  const result = render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "db" }}>
+        <DeployedScienceComponent config={{}} id="db" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
 describe("DeployedScienceComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearAugments();
   });
 
-  it("shows the DLC-absent state when deployed.available is false", () => {
-    render(<DeployedScienceComponent config={{}} id="db" />);
+  it("shows the DLC-absent state when game.dlc.breakingGround is false", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", false);
-      source.emit("deployed.bases", []);
+      fixture.emit("game.dlc", { breakingGround: false });
+      fixture.emit("science.deployed", []);
     });
-    expect(
-      screen.getByText(/Breaking Ground not installed/i),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Breaking Ground not installed/i),
+      ).toBeInTheDocument(),
+    );
   });
 
-  it("shows the no-bases state when available but the list is empty", () => {
-    render(<DeployedScienceComponent config={{}} id="db" />);
+  it("shows the no-bases state when available but the list is empty", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", []);
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", []);
     });
+    await waitFor(() =>
+      expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("shows the no-bases state when nothing has streamed yet", () => {
+    renderDeployed(newFixture());
     expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument();
   });
 
-  it("shows the no-bases state when the key is absent (older fork)", () => {
-    render(<DeployedScienceComponent config={{}} id="db" />);
-    expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument();
-  });
-
-  it("renders a base with power balance and experiment progress", () => {
-    render(<DeployedScienceComponent config={{}} id="db" />);
+  it("renders a base with power balance and experiment progress", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", [base()]);
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", [flatEntry()]);
     });
-    expect(screen.getByText("Mun")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    expect(screen.getByText(/EC 12\/8/)).toBeInTheDocument();
+    // No EC numbers on the new wire — powerAvailable/powerRequired degrade to 0/0.
+    expect(screen.getByText(/EC 0\/0/)).toBeInTheDocument();
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
-  it("labels an unpowered base and a brownout base distinctly", () => {
-    render(<DeployedScienceComponent config={{}} id="db" />);
+  it("labels an unpowered base and a brownout base distinctly", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", [
-        base({ id: 1, body: "Mun", powered: false, experiments: [] }),
-        base({
-          id: 2,
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", [
+        flatEntry({
+          vesselName: "Mun Base",
+          body: "Mun",
+          powerState: "NoPower",
+        }),
+        flatEntry({
+          vesselName: "Minmus Base",
           body: "Minmus",
-          powered: true,
-          partialPower: true,
-          experiments: [],
+          // Any non-empty, non-"Powered"/"NoPower" value maps to Brownout.
+          powerState: "PartiallyPowered",
         }),
       ]);
     });
-    expect(screen.getByText(/Unpowered/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Unpowered/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText(/Brownout/i)).toBeInTheDocument();
   });
 
-  it("renders the augment slots with no bound augment (empty is fine)", () => {
+  it("renders the augment slots with no bound augment (empty is fine)", async () => {
     // No augment registered → both slots compose nothing and the base card
     // renders exactly as before.
-    render(<DeployedScienceComponent config={{}} id="db" />);
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", [base()]);
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", [flatEntry()]);
     });
-    expect(screen.getByText("Seismometer")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Seismometer")).toBeInTheDocument(),
+    );
     expect(screen.queryByTestId("deployed-badge")).not.toBeInTheDocument();
     expect(screen.queryByTestId("deployed-section")).not.toBeInTheDocument();
   });
 
-  it("renders a bound header-badges augment next to the title", () => {
+  it("renders a bound header-badges augment next to the title", async () => {
     registerAugment<"deployed-science.badges">({
       id: "test-deployed-badge",
       augments: "deployed-science.badges",
       component: () => <span data-testid="deployed-badge">RAD</span>,
     });
 
-    render(<DeployedScienceComponent config={{}} id="db" />);
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", [base()]);
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", [flatEntry()]);
     });
 
-    expect(screen.getByTestId("deployed-badge")).toHaveTextContent("RAD");
+    await waitFor(() =>
+      expect(screen.getByTestId("deployed-badge")).toHaveTextContent("RAD"),
+    );
   });
 
-  it("renders a bound sections augment per experiment card, carrying its datum", () => {
+  it("renders a bound sections augment per experiment card, carrying its datum", async () => {
     // A test Uplink binds `deployed-science.sections` and echoes back the
     // per-card experiment props. Proves (a) the slot is exposed, (b) an
     // augment composes into it once per experiment, and (c) the props carry
@@ -157,17 +185,24 @@ describe("DeployedScienceComponent", () => {
       ),
     });
 
-    render(<DeployedScienceComponent config={{}} id="db" />);
+    const fixture = newFixture();
+    renderDeployed(fixture);
     act(() => {
-      source.emit("deployed.available", true);
-      source.emit("deployed.bases", [
-        base({
-          id: 1,
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("science.deployed", [
+        flatEntry({
+          vesselName: "Mun Base",
           body: "Mun",
-          experiments: [
-            { id: "a", name: "Seismometer", progress: 0.5 },
-            { id: "b", name: "Ion Detector", progress: 0.25 },
-          ],
+          partName: "Seismometer",
+          experimentId: "a",
+          scienceCompletedPercentage: 50,
+        }),
+        flatEntry({
+          vesselName: "Mun Base",
+          body: "Mun",
+          partName: "Ion Detector",
+          experimentId: "b",
+          scienceCompletedPercentage: 25,
         }),
       ]);
     });
@@ -175,8 +210,11 @@ describe("DeployedScienceComponent", () => {
     // One augment per experiment card, each carrying its own card's datum
     // (name + progress + body) in DOM order — proves the per-card props
     // identity is correct.
-    const sections = screen.getAllByTestId("deployed-section");
-    expect(sections).toHaveLength(2);
+    const sections = await waitFor(() => {
+      const found = screen.getAllByTestId("deployed-section");
+      expect(found).toHaveLength(2);
+      return found;
+    });
     expect(sections.map((s) => s.textContent)).toEqual([
       "Mun:Seismometer:50",
       "Mun:Ion Detector:25",
