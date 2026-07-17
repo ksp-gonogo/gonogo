@@ -13,6 +13,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
@@ -130,17 +131,17 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const bodies = useCelestialBodies();
-  // Target-detail reads are clean homes routed through
-  // `useTelemetry`'s legacy two-arg form onto their SDK-derived homes:
-  // `tar.name` -> `vessel.target.name`, `tar.type` -> `vessel.state.targetKind`
-  // (enum-ordinal → display name), `tar.distance` -> `vessel.state.targetDistance`
-  // (|relativePosition|) and `tar.o.relativeVelocity` ->
-  // `vessel.state.targetRelativeSpeed` (signed range-rate). Each shape matches
-  // the legacy scalar exactly, so the shim's fallback is a safe pass-through.
-  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
-  const tarType = useTelemetry("data", "tar.type") as string | undefined;
-  const tarDistance = useTelemetry("data", "tar.distance");
-  const tarRelVel = useTelemetry("data", "tar.o.relativeVelocity");
+  // Target-detail reads are canonical one-arg stream reads: `tar.name` off
+  // `vessel.target.name`, and `tar.type`/`tar.distance`/`tar.o.relativeVelocity`
+  // off the `vessel.state` derived channel (`targetKind` enum-ordinal → display
+  // name, `targetDistance` = |relativePosition|, `targetRelativeSpeed` = signed
+  // range-rate). `deriveVesselState` produces the shapes these widgets expect.
+  const tarName = resolveTargetName(useTelemetry("vessel.target")?.name);
+  const tarType = useStream<VesselState>("vessel.state")?.targetKind as
+    | string
+    | undefined;
+  const tarDistance = useStream<VesselState>("vessel.state")?.targetDistance;
+  const tarRelVel = useStream<VesselState>("vessel.state")?.targetRelativeSpeed;
   const execute = useExecuteAction("data");
   const streamStatus = useDataStreamStatus("data", "tar.availableVessels");
 

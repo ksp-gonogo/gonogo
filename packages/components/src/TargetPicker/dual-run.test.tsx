@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -25,10 +25,6 @@ import { TargetPickerComponent } from "./index";
  * `bodyIndex: 1` to "Kerbin". The `"data"` AUX only carries the target-detail
  * scalar reads (`tar.name` etc.) the widget still reads via the legacy shim.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("TargetPicker — R6 roster render off the stream (delay=0)", () => {
   it("renders the system.vessels roster with body/type resolved, no legacy array shape", async () => {
     const streamFixture = setupStreamFixture({

@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
@@ -22,10 +22,6 @@ import { TwrComponent } from "./index";
  * has no buffered range, so its own shim can't serve a series and there's no
  * legacy source to fall back to — the value read is proven to come entirely off the stream.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const STANDARD_GRAVITY = 9.80665;
 
 const VESSEL_STATE_INPUTS = [

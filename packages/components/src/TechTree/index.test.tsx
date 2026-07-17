@@ -1,24 +1,46 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  type MockDataSourceFixture,
+  clearActionHandlers,
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import {
   parseTechNodes,
   type TechNodeBadgeContext,
   TechTreeComponent,
 } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "tech.nodes" },
-  { key: "career.science" },
-  { key: "kc.scene" },
-];
+/**
+ * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
+ * in this directory) — `career.status` (tech nodes + science) and
+ * `spaceCenter.scene` are ONE-ARG canonical reads with no legacy fallback
+ * at all, so every render here runs off a real `TelemetryProvider`/
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`. Sample
+ * nodes are emitted directly onto `career.status.tech.nodes` using the
+ * LEGACY short-form shape (`state`/`parents` on each node) — `parseTechNodes`
+ * (index.tsx) explicitly accepts this exact shape as one of its two
+ * supported inputs (its own doc comment: "Accepts BOTH the legacy
+ * GonogoTelemetry tech.nodes shape... and the career-detail wire shape"),
+ * so this is a legitimate value for that field, not a bypass — it's what
+ * lets these tests keep exercising the rich `description`/`parts` rendering
+ * (`career.status.tech.nodes` has no such fields on the real wire; see
+ * `dual-run.test.tsx`'s own real-wire-shape fixture for that coverage).
+ * `tech.unlock[...]` (the spend command, unmapped) stays on the legacy
+ * `useExecuteAction("data")` fallback — a `setupMockDataSource` AUX
+ * supplies the `onExecute` spy for the arm-then-confirm test.
+ */
+const CARRIED_CHANNELS = ["career.status", "spaceCenter.scene"];
 
 const SAMPLE_NODES = [
   {
@@ -68,46 +90,76 @@ const SAMPLE_NODES = [
   },
 ];
 
+function careerStatusFrom(
+  nodes: typeof SAMPLE_NODES,
+  science: number,
+): Record<string, unknown> {
+  return {
+    economy: { funds: 0, reputation: 0, science },
+    facilities: null,
+    contracts: null,
+    strategies: null,
+    tech: { unlockedCount: 0, unlockedIds: [], nodes },
+  };
+}
+
+function renderTree(fixture: StreamFixture) {
+  return render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
+        <TechTreeComponent config={{}} id="tt" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+}
+
 describe("TechTreeComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
+  // Reset the action-handler + augment registries at the START of each test —
+  // by this point the prior test's tree is already unmounted (RTL
+  // auto-cleanup), so these registry mutations never fire against a live
+  // component (no manual `cleanup()` needed to order them).
+  beforeEach(() => {
+    clearActionHandlers();
     clearAugments();
   });
 
   it("shows awaiting placeholder before any telemetry", () => {
-    render(<TechTreeComponent config={{}} id="tt" />);
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+    });
+    renderTree(fixture);
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
   });
 
-  it("shows all nodes by default (no empty first paint)", () => {
-    render(<TechTreeComponent config={{}} id="tt" />);
+  it("shows all nodes by default (no empty first paint)", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+    });
+    renderTree(fixture);
     act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     // Default filter is "All" — every node is present on first paint.
-    expect(screen.getByText("Start")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
   });
 
   it("filters to Researchable on demand", async () => {
     const user = userEvent.setup();
-    render(<TechTreeComponent config={{}} id="tt" />);
-    act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
     });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: "Researchable" }));
     // Basic Rocketry (parent unlocked, affordable) is researchable-now.
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
@@ -118,12 +170,18 @@ describe("TechTreeComponent", () => {
 
   it("expands a node to show description, parents, and parts", async () => {
     const user = userEvent.setup();
-    render(<TechTreeComponent config={{}} id="tt" />);
-    act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
     });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
     await user.click(screen.getByText("Basic Rocketry"));
     expect(
       screen.getByText("How hard can Rocket Science be anyway?"),
@@ -135,32 +193,51 @@ describe("TechTreeComponent", () => {
   it("arms and confirms tech.unlock with the node id", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<TechTreeComponent config={{}} id="tt" />);
-    act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
     });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [],
+      onExecute,
+    });
+
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
     await user.click(screen.getByText("Basic Rocketry"));
     await user.click(screen.getByRole("button", { name: "Unlock" }));
     await user.click(screen.getByRole("button", { name: /Confirm unlock/i }));
     expect(onExecute).toHaveBeenCalledWith("tech.unlock[basicRocketry]");
+
+    teardownMockDataSource(legacyAux);
   });
 
   it("renders the tiered graph at wide sizes and opens a detail dialog on click", async () => {
     const user = userEvent.setup();
-    render(<TechTreeComponent config={{}} id="tt" w={16} h={12} />);
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+    });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
+          <TechTreeComponent config={{}} id="tt" w={16} h={12} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     // Graph cards are buttons labelled with title + state + cost.
-    const card = screen.getByRole("button", { name: /Basic Rocketry/ });
+    const card = await screen.findByRole("button", { name: /Basic Rocketry/ });
     await user.click(card);
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
@@ -173,32 +250,41 @@ describe("TechTreeComponent", () => {
 
   it("disables Unlock when science is insufficient", async () => {
     const user = userEvent.setup();
-    render(<TechTreeComponent config={{}} id="tt" />);
-    act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 2);
-      source.emit("kc.scene", "SpaceCenter");
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
     });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 2));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
     await user.click(screen.getByText("Basic Rocketry"));
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect((unlock as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("exposes the per-node badges slot with no bound augment (empty is fine)", () => {
+  it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
     // No augment registered → the slot composes nothing and the list renders
     // exactly as before, one row per node.
-    render(<TechTreeComponent config={{}} id="tt" />);
-    act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
     });
-    expect(screen.getByText("Start")).toBeInTheDocument();
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.queryByTestId("tech-badge")).not.toBeInTheDocument();
   });
 
-  it("renders a bound augment once per node row, carrying each node's identity", () => {
+  it("renders a bound augment once per node row, carrying each node's identity", async () => {
     // A test Uplink binds `tech-tree.badges` and echoes the slot props back.
     // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
     // the per-node props carry the right node so the badge lands on the right
@@ -213,22 +299,29 @@ describe("TechTreeComponent", () => {
       ),
     });
 
-    render(<TechTreeComponent config={{}} id="tt" />);
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+    });
+    renderTree(fixture);
     act(() => {
-      source.emit("tech.nodes", SAMPLE_NODES);
-      source.emit("career.science", 100);
-      source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
 
     // One badge per node in the (default) list view.
-    const badges = screen.getAllByTestId("tech-badge");
-    expect(badges).toHaveLength(SAMPLE_NODES.length);
+    const badges = await waitFor(() => {
+      const rows = screen.getAllByTestId("tech-badge");
+      expect(rows).toHaveLength(SAMPLE_NODES.length);
+      return rows;
+    });
     // The badge sits inside its own node's row (props identity is correct).
     const basicRow = screen.getByText("Basic Rocketry").closest("li");
     expect(basicRow).not.toBeNull();
     expect(
       within(basicRow as HTMLElement).getByTestId("tech-badge"),
     ).toHaveTextContent("basicRocketry ✓");
+    expect(badges.length).toBe(SAMPLE_NODES.length);
   });
 });
 

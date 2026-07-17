@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ThermalStatusComponent } from "./index";
 
@@ -18,10 +18,6 @@ import { ThermalStatusComponent } from "./index";
  * heat-shield batch) and `hottestPartName` (this batch's un-gap) both stream
  * from the SAME `vessel.thermal` emission.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("ThermalStatus — genuinely runs off the stream (M3 batch 1)", () => {
   it("reads the hottest-part headline ratio and name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

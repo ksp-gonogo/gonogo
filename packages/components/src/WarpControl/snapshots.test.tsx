@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
   setupMockDataSource,
@@ -117,14 +117,11 @@ async function snapshotWarpStream(
   });
 
   const html = stripVolatile(container.innerHTML);
-  cleanup();
+  // `teardownMockDataSource` unmounts (cleanup) before it disconnects the aux
+  // source, so no separate cleanup() is needed here — html is already captured.
   teardownMockDataSource(legacyAux);
   return html;
 }
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("WarpControl DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {

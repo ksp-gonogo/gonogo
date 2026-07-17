@@ -4,8 +4,8 @@ import {
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   Panel,
@@ -314,22 +314,20 @@ function layoutGraph(
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
-  // career.science reads through career.status.economy.science. tech.nodes
-  // reads through career.status.tech.nodes now too — the wire's
-  // career.status.tech.nodes carries id/title/scienceCost/unlocked/parents
+  // Science reads canonically off `career.status.economy.science`; the tech
+  // nodes off `career.status.tech.nodes` — the wire carries
+  // id/title/scienceCost/unlocked/parents per node
   // (career-capture-extend-report.md); parseTechNodes derives the
   // Available/Unavailable state from `unlocked` client-side (no
   // server-computed Researchable 3rd state — this widget's own
-  // computeResearchable already does that derivation). kc.scene ->
-  // spaceCenter.scene.scene is mapped too — a plain 2-segment raw-field walk
-  // (SpaceCenterScene.scene, already an enum-name string on the wire) — so
-  // this same useDataValue("data", "kc.scene") call now rides the stream via
-  // the mapTopic shim, zero code change here. tech.unlock[...] (the spend
-  // command) still has no command home (KNOWN_COMMAND_GAPS) and falls back
-  // to legacy automatically — only the reads migrate here.
-  const nodesRaw = useDataValue("data", "tech.nodes");
-  const scene = useDataValue<string>("data", "kc.scene");
-  const careerScience = useDataValue<number>("data", "career.science");
+  // computeResearchable already does that derivation). The scene reads off
+  // `spaceCenter.scene.scene` (already an enum-name string on the wire).
+  // tech.unlock[...] (the spend command) still has no command home
+  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically — only the
+  // reads migrate here.
+  const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
+  const scene = useTelemetry("spaceCenter.scene")?.scene;
+  const careerScience = useTelemetry("career.status")?.economy?.science;
   const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
