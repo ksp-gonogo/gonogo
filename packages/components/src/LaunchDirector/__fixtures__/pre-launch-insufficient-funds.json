@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "pre-launch-insufficient-funds",
-    "notes": "All ships cost more than available funds. Subtitle reads '0/N ready'. Every ShipRow is rendered blocked. Funds readout shows the low balance."
+    "notes": "All ships cost more than available funds. Subtitle reads '0/N ready'. Every ShipRow is rendered blocked. Funds readout shows the low balance. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync."
   },
   "kc.savedShips": [
     {
@@ -34,5 +34,85 @@
   "kc.padVesselTitle": null,
   "kc.launchSite": "LaunchPad",
   "kc.scene": "SpaceCenter",
-  "career.funds": 2340
+  "career.funds": 2340,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 2340, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Orbital Station Core",
+            "partCount": 56,
+            "totalMass": 28.0,
+            "facility": "VAB",
+            "requiresFunds": 95000,
+            "missingParts": []
+          },
+          {
+            "name": "Mun Lander",
+            "partCount": 30,
+            "totalMass": 14.5,
+            "facility": "VAB",
+            "requiresFunds": 38000,
+            "missingParts": []
+          }
+        ]
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 5,
+            "available": true,
+            "unavailableReason": ""
+          }
+        ]
+      }
+    ]
+  }
 }

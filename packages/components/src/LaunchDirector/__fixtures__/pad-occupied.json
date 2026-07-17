@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "pad-occupied",
-    "notes": "A vessel is on the pad but not in flight (SpaceCenter scene, padOccupied=true). Shows Recover and Revert to VAB arm-buttons. Funds readout visible."
+    "notes": "A vessel is on the pad but not in flight (SpaceCenter scene, padOccupied=true). Shows Recover and Revert to VAB arm-buttons. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync."
   },
   "kc.savedShips": [],
   "kc.crewRoster": [],
@@ -9,5 +9,54 @@
   "kc.padVesselTitle": "Kerbal X",
   "kc.launchSite": "LaunchPad",
   "kc.scene": "SpaceCenter",
-  "career.funds": 289848
+  "career.funds": 289848,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Kerbal X"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 289848, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      { "channel": "spaceCenter.savedShips", "value": [] },
+      { "channel": "spaceCenter.crewRoster", "value": [] }
+    ]
+  }
 }
