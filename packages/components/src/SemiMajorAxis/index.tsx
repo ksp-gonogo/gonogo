@@ -6,6 +6,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   EmptyState,
   Panel,
@@ -25,17 +26,17 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  // Both reads are clean-home stream Topics (no gaps left),
-  // so this widget rides the Uplink stream end-to-end. Read via `useTelemetry`
-  // (the canonical read hook — `useDataValue` is a deprecated alias): the
-  // two-arg form resolves each key through `mapTopic` to its stream home —
-  // `o.sma` -> the raw `vessel.orbit.sma` field-subtopic, `o.referenceBody` ->
-  // the derived `vessel.state.referenceBodyName` display-map (the SDK resolves
-  // `vessel.orbit.referenceBodyIndex` against `system.bodies`). Neither key is
-  // gapped anymore; the Telemachus read-fallback is exercised nowhere in this
-  // widget's own tests (see `stream.test.tsx` / `dual-run.test.tsx`).
-  const sma = useTelemetry<number>("data", "o.sma");
-  const referenceBody = useTelemetry<string>("data", "o.referenceBody");
+  // Both reads ride the Uplink stream directly, no legacy `useDataValue("data",
+  // ...)` fallback:
+  //  - `sma` is the raw `vessel.orbit.sma` element, read off the canonical
+  //    whole-`vessel.orbit` Topic.
+  //  - `referenceBody` is the SDK-derived `vessel.state.referenceBodyName`
+  //    display map (the client resolves `vessel.orbit.referenceBodyIndex`
+  //    against `system.bodies`, see `vessel-state.ts`). It isn't a wire
+  //    `TopicId`, so it reads through `useStream`.
+  const sma = useTelemetry("vessel.orbit")?.sma;
+  const referenceBody =
+    useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined;
   // `useDataSeries` (sparkline history) carries the same stream shim — `o.sma`
   // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
   // is carried this sparkline reads its window straight off the

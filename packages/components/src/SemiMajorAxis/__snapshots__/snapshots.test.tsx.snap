@@ -80,18 +80,18 @@ exports[`SemiMajorAxis DOM snapshots > mun-orbit @ tiny-3x3 1`] = `"<div><div><h
 
 exports[`SemiMajorAxis DOM snapshots > mun-orbit @ wide-8x8 1`] = `"<div><div><h3>SMA</h3></div><div>Semi-major axis · Mun</div><div><div role="status" aria-live="polite" style="font-size: 28px;">215.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ default-4x4 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ default-4x4 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ landscape-18x5 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ landscape-18x5 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ medium-5x6 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ medium-5x6 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ mobile-9x8 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ mobile-9x8 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ portrait-5x18 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ portrait-5x18 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ subtitle-2x4 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ subtitle-2x4 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ tiny-3x3 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ tiny-3x3 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;
 
-exports[`SemiMajorAxis DOM snapshots > no-data @ wide-8x8 1`] = `"<div><div><h3>SMA</h3></div><div>No orbit data</div></div>"`;
+exports[`SemiMajorAxis DOM snapshots > no-data @ wide-8x8 1`] = `"<div><div><h3>SMA</h3><span role="status" aria-live="polite">SYNCING</span></div><div>No orbit data</div></div>"`;

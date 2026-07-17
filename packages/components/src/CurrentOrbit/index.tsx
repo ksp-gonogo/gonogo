@@ -9,6 +9,7 @@ import {
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
@@ -61,24 +62,26 @@ function CurrentOrbitComponent({
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  const sma = useTelemetry("data", "o.sma");
-  const eccentricity = useTelemetry("data", "o.eccentricity");
-  const trueAnomaly = useTelemetry("data", "o.trueAnomaly");
-  const argPe = useTelemetry("data", "o.argumentOfPeriapsis");
-  const inclination = useTelemetry("data", "o.inclination");
-  const period = useTelemetry("data", "o.period");
-  const refBody = useTelemetry("data", "o.referenceBody");
-  const bodyName = useTelemetry("data", "v.body");
-  // Every read this widget makes is a `TELEMACHUS_CLEAN_HOMES` mapping
-  // (map-topic.ts), so all of them resolve straight off the mod stream —
-  // there are no `TELEMACHUS_KNOWN_GAPS` left for CurrentOrbit and nothing
-  // falls back to the legacy Telemachus source.
-  //   - sma/eccentricity/inclination/argumentOfPeriapsis -> raw `vessel.orbit.*`
-  //   - trueAnomaly/period + Ap/Pe/ApR/PeR/timeToAp/timeToPe (via
-  //     `useOrbitElements`) -> derived `vessel.state.*` (deriveVesselState,
-  //     via `@ksp-gonogo/sitrep-client`)
-  //   - referenceBody/v.body -> derived `vessel.state.referenceBodyName` /
-  //     `parentBodyName` (index -> name resolution against `system.bodies`)
+  // Every read rides the SDK stream directly, no legacy `useDataValue("data",
+  // ...)` fallback:
+  //   - sma/eccentricity/inclination/argPe are raw `vessel.orbit.*` elements,
+  //     read off the canonical whole-`vessel.orbit` Topic.
+  //   - trueAnomaly/period (+ Ap/Pe/ApR/PeR/timeToAp/timeToPe via
+  //     `useOrbitElements`) and referenceBody/bodyName are SDK-derived
+  //     `vessel.state.*` fields (deriveVesselState — trueAnomaly propagated at
+  //     view-UT, referenceBodyName/parentBodyName resolved index → name against
+  //     `system.bodies`). `vessel.state` isn't a wire `TopicId`, so it reads
+  //     through `useStream`.
+  const orbit = useTelemetry("vessel.orbit");
+  const vesselState = useStream<VesselState>("vessel.state");
+  const sma = orbit?.sma;
+  const eccentricity = orbit?.ecc;
+  const argPe = orbit?.argPe;
+  const inclination = orbit?.inc;
+  const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
+  const period = vesselState?.period ?? undefined;
+  const refBody = vesselState?.referenceBodyName ?? undefined;
+  const bodyName = vesselState?.parentBodyName ?? undefined;
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
   const streamStatus = useDataStreamStatus("data", "o.sma");
