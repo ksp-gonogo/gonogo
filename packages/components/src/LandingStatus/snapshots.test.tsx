@@ -8,34 +8,34 @@ import { stripVolatile } from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
 /**
- * `bodyName` and the four ballistic `land.*` scalars all come off the real,
- * client-derived `vessel.state`/`vessel.state.landing*` channel now (see
- * `stream.test.tsx`) — no legacy fallback at all — so these fixtures'
- * legacy keys are replayed as REAL physics inputs (body radius/mu, descent
- * rate, thrust) through a genuine `TelemetryProvider`, rather than declared
- * directly.
+ * `bodyName` comes off the real, client-derived `vessel.state` channel now (see
+ * `stream.test.tsx`), and the rebooted widget runs its own full-vector
+ * suicide-burn solve off streamed `vessel.flight`/`vessel.propulsion`/
+ * `vessel.orbit` plus the STATIC stock-body radius (`getBody`) — no legacy
+ * fallback at all — so these fixtures' keys are replayed as REAL physics inputs
+ * (descent rate, thrust, mu) through a genuine `TelemetryProvider`, rather than
+ * declared directly.
  *
- * Each scenario below is tuned (not literally copied from the fixture's old
- * `land.*` numbers, which were hand-authored independent of any real
- * physics) to reproduce the SAME qualitative story the fixture's own `_meta`
- * notes describe — see each entry's comment for the resulting values. Two
- * genuinely can't-both-happen deviations, both documented at the call site:
- * `met`/`altitudeAsl`-style basis exclusivity doesn't apply here (LandingStatus
- * never reads `met`), but a "no solution while descending" scenario
- * (`pre-burn-cruise`/`high-speed-no-solution`) is reproduced by giving the
- * body a `null` radius — `resolveBodyRadius` then fails, which is exactly
- * `deriveLanding`'s real "can't resolve, no solution" path, and `bodyName`
- * still resolves (name-only lookup) so the subtitle survives.
+ * Note: the widget resolves body radius from the static `getBody` registry, not
+ * from the emitted `system.bodies` payload. The old `radius: null` "force a
+ * no-solution" trick therefore no longer suppresses the board — a real stock
+ * body (Mun/Kerbin) always solves. These snapshots are plain DOM goldens, so a
+ * now-solved board for those scenarios is fine; they still exercise the descent
+ * paths. A couple of scenarios additionally stream `comms.delay`/`dv.summary` to
+ * cover the delayed-regime (commit clock) and affordability render paths.
  */
 const CARRIED = [
+  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
   "vessel.control",
   "vessel.target",
-  "vessel.comms",
+  "vessel.surface",
   "vessel.propulsion",
+  "dv.summary",
+  "comms.delay",
 ];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
@@ -52,6 +52,10 @@ interface Scenario {
     externalTemperature?: number;
   };
   availableThrust?: number;
+  /** One-way comms delay (seconds) to exercise the staged/autonomous regime + commit clock. */
+  oneWaySeconds?: number;
+  /** Remaining actual stack dV (`dv.summary.totalDvActual`) to exercise the affordability render. */
+  totalDvActual?: number;
 }
 
 const SCENARIOS: Record<string, Scenario> = {
@@ -74,6 +78,10 @@ const SCENARIOS: Record<string, Scenario> = {
     body: MUN,
     descent: { heightFromTerrain: 2800, verticalSpeed: 42.5, surfaceSpeed: 50 },
     availableThrust: 3,
+    // 4s one-way -> RT 8s -> staged regime + the COMMIT-IN clock instead of the
+    // live ignition countdown; totalDvActual covers the affordability badge.
+    oneWaySeconds: 4,
+    totalDvActual: 1200,
   },
   // Mun, h=180m/vDown=8.1 m/s/aMax=1.9 -> timeToImpact≈10.7s,
   // suicideBurnCountdown≈4.9s — inside the urgent (0,5] window (role=alert).
@@ -185,6 +193,16 @@ async function snapshotLandingStatusFixture(
         currentThrust: 0,
         availableThrust: scenario.availableThrust,
       });
+    }
+    if (scenario.oneWaySeconds !== undefined) {
+      // source 1 = SignalDelay -> the delayed regime + commit clock.
+      stream.emit("comms.delay", {
+        source: 1,
+        oneWaySeconds: scenario.oneWaySeconds,
+      });
+    }
+    if (scenario.totalDvActual !== undefined) {
+      stream.emit("dv.summary", { totalDvActual: scenario.totalDvActual });
     }
   });
 
