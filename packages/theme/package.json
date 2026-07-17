@@ -3,7 +3,6 @@
   "description": "The typed theme contract, the default dark theme, and the design tokens behind it",
   "license": "GPL-3.0-only",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,5 +32,8 @@
   "devDependencies": {
     "@types/react": "^18.0.0",
     "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
