@@ -431,12 +431,23 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  */
 /**
  * The read-only slice of `ViewClock` that delay-consistent consumers actually
- * need: the `confirmedEdgeUt` release/certainty edge and the `onFrame`
- * subscription. Narrowing the hook return to this `Pick` keeps consumers (the
- * kerbcast `DelayedPlayoutBuffer` seam, camera widgets) from reaching for the
- * clock's mutating surface — they observe, they never drive it.
+ * need: the `viewUt` view time, the `confirmedEdgeUt` release/certainty edge,
+ * and the `onFrame` subscription. Narrowing the hook return to this `Pick`
+ * keeps consumers (the kerbcast `DelayedPlayoutBuffer` seam, camera widgets)
+ * from reaching for the clock's mutating surface — they observe, they never
+ * drive it.
+ *
+ * `viewUt` is an observation, not a driver (the scrub/mode setters are what
+ * "drive" the clock, and those stay out of this Pick) — it belongs here for the
+ * same reason `activeViewClock` below is deliberately typed on it: it is the
+ * quantity `onFrame` hands its callback, and the ONLY one that honours a scrub
+ * target, so anything mirroring `useViewUt`'s contract has to read it rather
+ * than `confirmedEdgeUt`.
  */
-export type ViewClockView = Pick<ViewClock, "confirmedEdgeUt" | "onFrame">;
+export type ViewClockView = Pick<
+  ViewClock,
+  "viewUt" | "confirmedEdgeUt" | "onFrame"
+>;
 
 /**
  * The most recently mounted `TelemetryProvider`'s clock, tracked outside
@@ -490,18 +501,38 @@ export function useViewClockOptional(): ViewClockView | undefined {
  */
 export function useViewUt(): number | undefined {
   const clock = useViewClockOptional();
+  // Seed from `viewUt()` — the SAME quantity `onFrame` hands the tick below,
+  // not `confirmedEdgeUt()`. The two only agree on a free-running clock:
+  // `viewUt()` returns `scrubTo`'s target outright when one is set (see its
+  // own doc), whereas `confirmedEdgeUt()` ignores the scrub and keeps
+  // tracking live. Seeding off the latter made a scrubbed clock render its
+  // first frame at the live confirmed edge and snap to the scrub target only
+  // one frame later — a flash of the wrong view time in a scrub UI, and a
+  // guaranteed state transition on every mount.
   const [viewUt, setViewUt] = useState<number | undefined>(() => {
-    const seed = clock?.confirmedEdgeUt();
+    const seed = clock?.viewUt();
     return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
   });
+  // `onFrame` notifies unconditionally at ~60Hz whether or not the view time
+  // actually moved (a paused, scrubbed or between-samples clock reports the
+  // same UT every frame). Dispatching `setViewUt` regardless leaned on
+  // React's *eager bailout* to swallow the no-op — an optimisation React only
+  // applies while the fiber has no other pending work, so an unlucky frame
+  // still schedules a full render pass for an unchanged value. Comparing here
+  // means an unchanged frame costs no dispatch at all.
+  const lastDelivered = useRef(viewUt);
   useEffect(() => {
     if (!clock) {
+      lastDelivered.current = undefined;
       setViewUt(undefined);
       return;
     }
-    return clock.onFrame((ut) =>
-      setViewUt(Number.isFinite(ut) ? ut : undefined),
-    );
+    return clock.onFrame((ut) => {
+      const next = Number.isFinite(ut) ? ut : undefined;
+      if (next === lastDelivered.current) return;
+      lastDelivered.current = next;
+      setViewUt(next);
+    });
   }, [clock]);
   return viewUt;
 }
@@ -540,14 +571,20 @@ export function useUtNow(): number | undefined {
     const seed = clock?.utNowEstimate();
     return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
   });
+  // Same unchanged-frame guard as `useViewUt` — see its comment.
+  const lastDelivered = useRef(utNow);
   useEffect(() => {
     if (!clock) {
+      lastDelivered.current = undefined;
       setUtNow(undefined);
       return;
     }
     return clock.onFrame(() => {
       const estimate = clock.utNowEstimate();
-      setUtNow(Number.isFinite(estimate) ? estimate : undefined);
+      const next = Number.isFinite(estimate) ? estimate : undefined;
+      if (next === lastDelivered.current) return;
+      lastDelivered.current = next;
+      setUtNow(next);
     });
   }, [clock]);
   return utNow;
