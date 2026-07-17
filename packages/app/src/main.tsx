@@ -28,6 +28,7 @@ import { installGonogoHost } from "./uplinks/host";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
 import { localRegistrySource } from "./uplinks/registry";
+import { probeUplinkRoster } from "./uplinks/rosterProbe";
 import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
@@ -86,11 +87,17 @@ function renderApp(): void {
 async function registerScansatAndRender(): Promise<void> {
   if (uplinkLoaderEnabled()) {
     try {
+      // A bounded read of the live system.uplinks roster so the loader can
+      // enforce the three-way mod-hash check; undefined when no mod is talking
+      // (dev / offline first boot) → the loader records the mod-hash arm as
+      // pending and degrades to the two-way index==bytes check.
+      const roster = await probeUplinkRoster();
       await loadEnabledUplinks({
         registrySource: localRegistrySource(),
         enabledIds: [...LOADER_UPLINK_IDS],
         hostCompat,
         appVersion: VERSION,
+        roster,
       });
     } catch (err) {
       logger.error(
