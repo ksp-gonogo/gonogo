@@ -1,8 +1,16 @@
+// Types-only, emits no runtime code — but NOT removable. It pulls the
+// `DefaultTheme` augmentation into the declaration build's program, which is
+// built from this entry graph rather than tsconfig's `include`. Drop it and
+// `pnpm build` fails on `theme.space` in Box/Stack. See the file's own header.
+import "./styledComponentsTheme";
+
 // ── Theme ────────────────────────────────────────────────────────────────────
-// Re-exported wholesale from `@ksp-gonogo/theme`, which the kit depends on for
-// the contract its primitives are typed against. Consumers import the theme
-// from the kit as they always have; the split exists so packages that need
-// only a theme (`@ksp-gonogo/test-utils`) don't pull in the whole kit.
+// Re-exported wholesale from `@ksp-gonogo/theme`, an internal `private: true`
+// package that is never published — the build inlines it into `dist` (JS and
+// `.d.ts` alike), so this is the theme's only public surface. The split exists
+// so packages needing only a theme (`@ksp-gonogo/test-utils`) don't pull in the
+// whole kit; it must stay a devDependency so it can't leak into the published
+// manifest. See `tsup.config.ts`.
 export * from "@ksp-gonogo/theme";
 export {
   ActionButton,
