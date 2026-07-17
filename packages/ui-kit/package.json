@@ -20,25 +20,24 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./tokens.css": "./dist/tokens.css"
   },
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsup && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css",
+    "dev": "tsup --watch",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
   },
-  "dependencies": {
-    "@ksp-gonogo/theme": "workspace:*"
-  },
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/test-utils": "workspace:*",
+    "@ksp-gonogo/theme": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -46,6 +45,7 @@
     "@types/react": "^18.0.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
+    "tsup": "^8.5.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   },
