@@ -10,14 +10,15 @@ case) link directly against their assemblies.
 
 - **Integration:** the kOS Uplink links `kOS.Safe`/`kOS` directly to run
   Sitrep telemetry scripts on a vessel's kOS CPU (see `mod/Gonogo.Kos/`).
-  This direct link is why Sitrep's core assemblies (everything except
-  `Sitrep.Contract`) are licensed **GPL-3.0-only** — kOS is GPLv3-only, and
-  linking a GPLv3-only work requires the combined work to be GPLv3-compatible.
+  This direct link is why `GonogoKos` — and only `GonogoKos` — is licensed
+  **GPL-3.0-only**: kOS is GPLv3-only, and linking a GPLv3-only work requires
+  the linking work to be GPLv3-compatible. `GonogoKos` is a dependency leaf
+  (nothing references it), so that obligation propagates no further; the rest
+  of gonogo, including all other Sitrep assemblies, is MIT. See `LICENSING.md`.
 - **License:** GNU General Public License v3.0 (GPLv3-only)
 - **Source:** https://github.com/KSP-KOS/KOS
-- Full license text: `local_docs/reference/kos/LICENSE.md` (also mirrored at
-  the repository root `LICENSE`, since gonogo/Sitrep core is GPLv3-only for
-  the same reason).
+- Full license text: `local_docs/reference/kos/LICENSE.md`, mirrored in-repo at
+  `LICENSE-GPL-3.0.txt` and `mod/Gonogo.Kos/LICENSE`.
 
 ## SCANsat
 
@@ -29,10 +30,14 @@ case) link directly against their assemblies.
   `scan.*` keys that gonogo's MapView / Scanning widgets consumed. It also
   replicates small public-input formulas from SCANsat's source (`getFOV`,
   `getElevation`/`getBiomeIndex` sampling conventions — see
-  `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E). Because
-  SCANsat is BSD (permissive, GPL-compatible), `GonogoScansatUplink.dll` is
-  GPL-3.0-only "by inclusion" and carries this notice
-  (`mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`).
+  `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E).
+  `GonogoScansatUplink.dll` is **GPL-3.0-only, provisionally and on hold**:
+  SCANsat's repository LICENSE.txt is 3-clause BSD (permissive) but its
+  published CKAN metadata declares `restricted`, and we compile-time link the
+  DLL. Which of the two governs is load-bearing, so the question is out with
+  the SCANsat stewards; until it is resolved this uplink is not relicensed to
+  MIT with the rest of gonogo. Full rationale in
+  `mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`.
 - **License:** 3-clause BSD (plus separately-licensed assets — see full
   notice for CC0 science text, Apache-2.0 ColorBrewer palettes, and
   CC-BY-SA-4.0 additional color schemes/contract pack, all bundled
@@ -92,16 +97,24 @@ third-party library notices): `local_docs/reference/scansat/LICENSE.txt`.
 ## Dependency license audit (workspace scan)
 
 A scan of `package.json` (npm workspaces) and the `mod/*.csproj` files
-(NuGet) for GPL-incompatible licenses on 2026-07-08 found **no incompatible
-dependencies**. All npm dependencies use permissive licenses (MIT/ISC/BSD/
-Apache-2.0-family), which are GPLv3-compatible. The only non-BCL NuGet
-dependency, `Reinforced.Typings` (MIT, compile-time-only codegen tool scoped
-to `Sitrep.Contract`'s netstandard2.0 build via `PrivateAssets="all"`), does
-not flow into any GPL-licensed assembly at runtime.
+(NuGet) on 2026-07-17 found **no copyleft dependencies** in the production
+tree. `pnpm licenses list --prod` returns only MIT / ISC / BSD-3-Clause /
+Apache-2.0 / OFL-1.1 — no GPL, LGPL, AGPL or MPL anywhere. The only non-BCL
+NuGet dependency, `Reinforced.Typings` (MIT, compile-time-only codegen tool
+scoped to `Sitrep.Contract`'s netstandard2.0 build via `PrivateAssets="all"`),
+is not shipped at all.
 
-Because `Sitrep.Contract` (and its generated TypeScript counterpart,
-`@ksp-gonogo/sitrep-sdk`) is licensed **MIT** rather than GPL-3.0-only,
-third-party Uplinks that reference the contract are not constrained by
-core's GPL license at all — they only need to comply with MIT's terms
-(retain the copyright/permission notice), regardless of the Uplink's own
-license (GPLv2, proprietary, etc.).
+`kOS` is the single copyleft thing gonogo links, and only `GonogoKos` links
+it. Every other package and assembly is MIT, so third-party Uplinks — whether
+they reference the C# contract or the TypeScript `ui-kit` / `core` / `sitrep-sdk`
+surface — need only comply with MIT's terms (retain the copyright/permission
+notice), regardless of the Uplink's own license (GPL, proprietary, ARR, etc.).
+See `LICENSING.md`.
+
+**Known exception — CC-BY-NC-SA-4.0 in the shipped SPA bundle.** The app
+depends on `@ksp-gonogo/kerbcast` and `@ksp-gonogo/kerbcast-react` (the
+kerbcast camera client SDKs, first-party, sibling repo), which are currently
+CC-BY-NC-SA-4.0. The NonCommercial clause means the *built SPA bundle* is not
+usable commercially even though gonogo's own source is MIT. Relicensing those
+SDKs to MIT is tracked in the kerbcast repo; until it lands and gonogo
+consumes the new versions, see `LICENSING.md` § "The kerbcast caveat".

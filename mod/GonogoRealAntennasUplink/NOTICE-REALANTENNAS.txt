@@ -14,9 +14,9 @@ RealAntennas is distributed under the Creative Commons Attribution-ShareAlike
 Because this uplink incorporates none of RealAntennas' code (arm's-length
 reflection + independent re-derivation of published formulas), the CC-BY-SA-4.0
 ShareAlike obligation is not triggered, and GonogoRealAntennasUplink is licensed
-GPL-3.0-only. This notice is retained to attribute RealAntennas and its authors
-for the public API and documented link-budget model this uplink reads and
-reasons from.
+MIT, in line with the rest of gonogo. This notice is retained to attribute
+RealAntennas and its authors for the public API and documented link-budget
+model this uplink reads and reasons from.
 
 RealAntennas authors: Kerbalnet / RealAntennas contributors. See the project's
 repository and CKAN metadata for the full author list.

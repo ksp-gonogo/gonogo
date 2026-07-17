@@ -1,7 +1,7 @@
 {
   "name": "@ksp-gonogo/theme",
   "description": "The typed theme contract, the default dark theme, and the design tokens behind it",
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "version": "0.1.0",
   "private": true,
   "type": "module",
