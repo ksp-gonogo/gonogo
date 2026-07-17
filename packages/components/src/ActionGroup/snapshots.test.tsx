@@ -1,7 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { act, render } from "@testing-library/react";
-import { ThemeProvider } from "styled-components";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -60,7 +59,7 @@ async function snapshotActionGroupHybrid(
 
   try {
     const { container } = render(
-      <ThemeProvider theme={defaultDarkTheme}>
+      <DefaultThemeProvider>
         <stream.Provider>
           <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
             <ActionGroupComponent
@@ -71,7 +70,7 @@ async function snapshotActionGroupHybrid(
             />
           </DashboardItemContext.Provider>
         </stream.Provider>
-      </ThemeProvider>,
+      </DefaultThemeProvider>,
     );
 
     act(() => {

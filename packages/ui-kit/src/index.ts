@@ -18,6 +18,10 @@ export {
 } from "./Box";
 export { Card, type CardProps } from "./Card";
 export { Cluster, type ClusterJustify, type ClusterProps } from "./Cluster";
+export {
+  DefaultThemeProvider,
+  type DefaultThemeProviderProps,
+} from "./DefaultThemeProvider";
 export { defaultDarkTheme } from "./defaultDarkTheme";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {

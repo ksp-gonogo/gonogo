@@ -4,11 +4,10 @@ import {
   type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { act, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import { Fragment } from "react";
-import { ThemeProvider } from "styled-components";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -203,7 +202,7 @@ export async function snapshotWidgetMode<
       opts.fixture,
     );
     const { container } = render(
-      <ThemeProvider theme={defaultDarkTheme}>
+      <DefaultThemeProvider>
         <Wrap>
           <DashboardItemContext.Provider value={{ instanceId }}>
             <opts.Widget
@@ -214,7 +213,7 @@ export async function snapshotWidgetMode<
             />
           </DashboardItemContext.Provider>
         </Wrap>
-      </ThemeProvider>,
+      </DefaultThemeProvider>,
     );
 
     // Seed every fixture key after mount so useDataValue subscriptions
@@ -287,7 +286,7 @@ export async function renderWidgetMode<
     opts.fixture,
   );
   const { container } = render(
-    <ThemeProvider theme={defaultDarkTheme}>
+    <DefaultThemeProvider>
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
           <opts.Widget
@@ -298,7 +297,7 @@ export async function renderWidgetMode<
           />
         </DashboardItemContext.Provider>
       </Wrap>
-    </ThemeProvider>,
+    </DefaultThemeProvider>,
   );
 
   act(() => {

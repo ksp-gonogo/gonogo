@@ -52,24 +52,23 @@ interface Mode {
  * describe through the real stream pipeline (`TelemetryProvider` +
  * `TelemetryClient`/`TimelineStore`) instead of a legacy `MockDataSource`.
  *
- * `carriedChannels` is left EMPTY on purpose: canonical Topic reads ignore
- * the carried-channels allowlist (they have no legacy fallback to protect),
- * so `time.warp` streams regardless — while `useDataStreamStatus("data",
- * "t.timeWarp")` stays on its legacy fallback (a connected legacy source =>
- * "live" => no badge), reproducing exactly the "connected, streaming" status
- * these fixtures depict (and the committed snapshots reflect). The still-
- * legacy `useGameContext` reads (`kc.scene`/`kc.padOccupied`/`career.mode`,
- * out of this widget's migration scope) come from that legacy source too —
- * the same MIXED-source shape the dual-run golden exercises.
+ * Scene streams too — `useGameContext` reads `spaceCenter.scene` off the
+ * canonical stream now (migrated off the `kc.scene` shim), so it rides
+ * `carriedChannels` alongside `time.warp`. The legacy `data` source stays
+ * connected purely so `useDataStreamStatus("data", "t.timeWarp")` reads
+ * "live" (=> no disconnected badge) and `useExecuteAction("data")` has a
+ * target — reproducing the "connected, streaming" status these fixtures
+ * depict (and the committed snapshots reflect); it no longer feeds any value.
  */
 async function snapshotWarpStream(
   fixture: WarpFixture,
   mode: Mode,
 ): Promise<string> {
   const streamFixture = setupStreamFixture({
-    carriedChannels: [],
+    carriedChannels: ["spaceCenter.scene"],
     pinnedUt: 10,
   });
+  // Connected only for the status badge + action target — no value reads.
   const legacyAux = await setupMockDataSource({
     id: "data",
     keys: [
@@ -94,9 +93,8 @@ async function snapshotWarpStream(
   );
 
   act(() => {
-    legacyAux.source.emit("kc.scene", fixture["kc.scene"]);
-    legacyAux.source.emit("kc.padOccupied", fixture["kc.padOccupied"]);
-    legacyAux.source.emit("career.mode", fixture["career.mode"]);
+    // Scene rides the canonical stream (useGameContext reads spaceCenter.scene).
+    streamFixture.emit("spaceCenter.scene", { scene: fixture["kc.scene"] });
     streamFixture.emit("time.warp", {
       warpRate: fixture["t.currentRate"],
       warpRateIndex: fixture["t.timeWarp"],

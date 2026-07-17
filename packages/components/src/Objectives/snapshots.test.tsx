@@ -1,7 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 import { act, render } from "@testing-library/react";
-import { ThemeProvider } from "styled-components";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -68,7 +67,7 @@ async function snapshotObjectives(
     pinnedUt: 10,
   });
   const { container, unmount } = render(
-    <ThemeProvider theme={defaultDarkTheme}>
+    <DefaultThemeProvider>
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
           <ObjectivesComponent
@@ -79,7 +78,7 @@ async function snapshotObjectives(
           />
         </DashboardItemContext.Provider>
       </fixture.Provider>
-    </ThemeProvider>,
+    </DefaultThemeProvider>,
   );
   emitCareer(fixture, active);
   // The career.status ingest only reaches React state via the provider's
