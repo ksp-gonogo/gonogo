@@ -399,6 +399,40 @@ export interface GameDlc
 	breakingGround: boolean;
 	makingHistory: boolean;
 }
+export interface KerbcastCameraEntry
+{
+	cameraId?: number;
+	partId?: number;
+	cameraName?: string;
+	partName?: string;
+	partTitle?: string;
+	vesselId?: string;
+	supportsZoom?: boolean;
+	supportsPan?: boolean;
+	fieldOfView?: number;
+	fieldOfViewMinimum?: number;
+	fieldOfViewMaximum?: number;
+	panYaw?: number;
+	panPitch?: number;
+	panYawMinimum?: number;
+	panYawMaximum?: number;
+	panPitchMinimum?: number;
+	panPitchMaximum?: number;
+	isDockingCamera?: boolean;
+	dockingPortNodeType?: string;
+	dockingPortState?: string;
+}
+export interface KerbcastSetFieldOfViewArgs
+{
+	cameraId: number;
+	fieldOfView: number;
+}
+export interface KerbcastSetPanArgs
+{
+	cameraId: number;
+	yaw: number;
+	pitch: number;
+}
 export interface KosProcessorInfo
 {
 	coreId: number;

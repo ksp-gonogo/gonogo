@@ -8,13 +8,16 @@ name: Publish mod zips
 #      The GonogoScansatUplink and GonogoKos matrix legs WILL FAIL to build
 #      until someone with push access to that private repo vendors those
 #      assemblies in (same redistribution-safe care as the existing
-#      HullCameraVDS entry — see kerbcam's ksp-managed usage). Gonogo core
-#      and GonogoRealAntennasUplink only need the base UnityEngine/
-#      Assembly-CSharp set already present there, so those two build fine
-#      today.
-#   2. SpaceDock publish needs four repo VARIABLES that do not exist yet:
+#      HullCameraVDS entry — see kerbcam's ksp-managed usage). Gonogo core,
+#      GonogoRealAntennasUplink and GonogoKerbcastUplink only need the base
+#      UnityEngine/Assembly-CSharp set already present there, so those three
+#      build fine today. (GonogoKerbcastUplink needs NO Kerbcast.dll vendored
+#      at all — it reaches kerbcast purely by reflection, for licence reasons;
+#      see its NOTICE-KERBCAST.txt.)
+#   2. SpaceDock publish needs five repo VARIABLES that do not exist yet:
 #      vars.SPACEDOCK_MOD_ID_GONOGO, vars.SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK,
-#      vars.SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK, and
+#      vars.SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK,
+#      vars.SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK, and
 #      vars.SPACEDOCK_MOD_ID_GONOGOKOS. Until each is set, that mod's
 #      SpaceDock upload step no-ops with a `::warning::` (same pattern as
 #      kerbcam's release.yml) rather than failing the run.
@@ -123,6 +126,13 @@ jobs:
             extra_dlls: ""
             notice: mod/GonogoRealAntennasUplink/NOTICE-REALANTENNAS.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK
+          - id: GonogoKerbcastUplink
+            csproj: mod/GonogoKerbcastUplink/GonogoKerbcastUplink.csproj
+            dll: GonogoKerbcastUplink.dll
+            gamedata: GonogoKerbcastUplink
+            extra_dlls: ""
+            notice: mod/GonogoKerbcastUplink/NOTICE-KERBCAST.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK
           - id: GonogoKos
             csproj: mod/Gonogo.Kos/Gonogo.Kos.csproj
             dll: Gonogo.Kos.dll

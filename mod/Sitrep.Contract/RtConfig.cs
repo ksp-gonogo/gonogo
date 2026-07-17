@@ -206,6 +206,11 @@ public static class RtConfig
                 // scansat.anomalies.<body> dynamic-namespace element shape
                 // (typing-only — no [SitrepTopic], see ScanAnomalyEntry's doc)
                 typeof(ScanAnomalyEntry),
+                // kerbcast.cameras payload + its command args (control plane
+                // only — kerbcast's video stays on WebRTC, see KerbcastPayloads)
+                typeof(KerbcastCameraEntry),
+                typeof(KerbcastSetFieldOfViewArgs),
+                typeof(KerbcastSetPanArgs),
                 // vessel.parts channel payload + nested value shapes (P1b)
                 typeof(VesselParts),
                 typeof(VesselPart),

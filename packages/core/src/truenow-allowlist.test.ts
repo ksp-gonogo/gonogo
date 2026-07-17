@@ -84,6 +84,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 3 explicit declarations.
   "mod/Gonogo.KSP/SystemUplink.cs": 3,
 
+  // kerbcast.available: whether the kerbcast mod is INSTALLED — a fact about
+  // the player's install that the command centre knows independent of any
+  // vessel's comms link, exactly the same class as uplink health itself. (Its
+  // sibling channel kerbcast.cameras is the camera inventory ON the craft and
+  // is correctly Delayed, not TrueNow.) 1 explicit declaration.
+  "mod/GonogoKerbcastUplink/KerbcastUplink.cs": 1,
+
   // Comms-LINK meta (connectivity, signal strength, control state, path,
   // network, and the live delay value itself) — facts ABOUT the link the
   // delay is computed from, so they can't ride their own delay without a

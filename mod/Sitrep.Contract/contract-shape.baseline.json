@@ -1,6 +1,6 @@
 {
-  "Major": 5,
-  "Minor": 0,
+  "Major": 4,
+  "Minor": 1,
   "Types": {
     "Sitrep.Contract.ActionGroupState": [
       "Index:System.Int32",
@@ -371,6 +371,37 @@
       "Rerunnable:System.Nullable\u00601[System.Boolean]",
       "Resettable:System.Nullable\u00601[System.Boolean]",
       "Title:System.String"
+    ],
+    "Sitrep.Contract.KerbcastCameraEntry": [
+      "CameraId:System.Nullable\u00601[System.Int64]",
+      "CameraName:System.String",
+      "DockingPortNodeType:System.String",
+      "DockingPortState:System.String",
+      "FieldOfView:System.Nullable\u00601[System.Double]",
+      "FieldOfViewMaximum:System.Nullable\u00601[System.Double]",
+      "FieldOfViewMinimum:System.Nullable\u00601[System.Double]",
+      "IsDockingCamera:System.Nullable\u00601[System.Boolean]",
+      "PanPitch:System.Nullable\u00601[System.Double]",
+      "PanPitchMaximum:System.Nullable\u00601[System.Double]",
+      "PanPitchMinimum:System.Nullable\u00601[System.Double]",
+      "PanYaw:System.Nullable\u00601[System.Double]",
+      "PanYawMaximum:System.Nullable\u00601[System.Double]",
+      "PanYawMinimum:System.Nullable\u00601[System.Double]",
+      "PartId:System.Nullable\u00601[System.Int64]",
+      "PartName:System.String",
+      "PartTitle:System.String",
+      "SupportsPan:System.Nullable\u00601[System.Boolean]",
+      "SupportsZoom:System.Nullable\u00601[System.Boolean]",
+      "VesselId:System.String"
+    ],
+    "Sitrep.Contract.KerbcastSetFieldOfViewArgs": [
+      "CameraId:System.Int64",
+      "FieldOfView:System.Double"
+    ],
+    "Sitrep.Contract.KerbcastSetPanArgs": [
+      "CameraId:System.Int64",
+      "Pitch:System.Double",
+      "Yaw:System.Double"
     ],
     "Sitrep.Contract.KosComputeStatus": [
       "LastGoodAt:System.Nullable\u00601[System.Double]",

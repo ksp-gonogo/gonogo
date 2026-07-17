@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MIT, like the rest of gonogo (see LICENSING.md). kerbcast is
+       CC-BY-NC-SA-4.0 — a CONTENT licence carrying BOTH NonCommercial and
+       ShareAlike terms, either of which could reach a COMBINED work. This
+       uplink therefore NEVER links kerbcast's assembly and NEVER derives from
+       its types: every kerbcast member is reached by runtime reflection
+       (KerbcastReflection), the same arm's-length pattern
+       GonogoRealAntennasUplink uses against RealAntennas' CC-BY-SA-4.0
+       assembly. We USE the running mod's public API, we don't INCORPORATE its
+       code. kerbcast's attribution notice is retained in NOTICE-KERBCAST.txt
+       alongside this file.
+
+       Note the contrast with GonogoScansatUplink, which DOES take a
+       Private="false" compile-time reference to SCANsat.dll. That is safe for
+       SCANsat's licence and NOT safe here — do not "simplify" this project by
+       adding a Reference to Kerbcast.dll. The reflection is the licence
+       boundary, not an implementation detail. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoKerbcastUplink</AssemblyName>
+    <RootNamespace>Gonogo.KerbcastUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- KspManaged: root for the portable KSP/Unity reference DLLs (below).
+       Defaults to the repo's local dev copy so a plain `dotnet build` with
+       no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
+       pointing at a checked-out ksp-managed reference-assembly repo instead. -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies — same portable copy + Private="false"
+       pattern as GonogoRealAntennasUplink. Stock KSP's Part / ModuleDockingNode
+       / FlightGlobals are stock KSP, so they are normal references; only the
+       Kerbcast assembly is forbidden as a compile-time reference (reached by
+       reflection instead). Reading ModuleDockingNode off a stock Part is what
+       lets this uplink answer "which cameras are docking cameras" without
+       kerbcast knowing anything about docking at all. -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface
+       a third-party uplink needs. NOTE: no reference to Kerbcast.dll, by
+       design (see the licence header above). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

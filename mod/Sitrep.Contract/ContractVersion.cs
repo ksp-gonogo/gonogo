@@ -23,25 +23,30 @@ namespace Sitrep.Contract
     public static class ContractVersion
     {
         /// <summary>
-        /// Bumped 4 -&gt; 5 (Minor reset to 0): NAMED action groups. Retyped
+        /// Bumped 3 -&gt; 4 (Minor reset to 0). The Major-4 line carries TWO
+        /// breaking retypes, deliberately collapsed into ONE Major because
+        /// v4 was never released and there are no external Uplinks: no
+        /// artifact was ever built against an intermediate v4 shape, so there
+        /// is exactly one v4 anyone will ever see — the merged one below. A
+        /// Major is only meaningful if it names exactly one shape, and this
+        /// one does. Both are sanctioned wire retypes on the same standing
+        /// grounds as the Major 2 -&gt; 3 revert: the mod is still pre-release
+        /// with NO external Uplinks yet.
+        ///
+        /// <para>(1) NAMED action groups. Retyped
         /// <see cref="VesselControl.ActionGroups"/> from a positional
         /// <c>bool[]</c> (<c>[ag1..ag10]</c>, identity carried by array
         /// POSITION) to <see cref="ActionGroupState"/><c>[]</c>, where each
         /// entry carries its own <c>Index</c> + <c>Name</c> + <c>State</c>.
         /// A retype of a wire-visible member on a <c>[TsInterface]</c> type is
-        /// breaking by definition — the "lying minor" gate fails the build
-        /// unless Major bumps in the same commit, which is exactly this.
+        /// breaking by definition. Why: a positional array can carry STATE but
+        /// never a NAME, and names are what both vanilla (which shipped
+        /// anonymous customs the client had to hardcode as "AG1".."AG10") and
+        /// Action Groups Extended (up to 250 player-named groups) need. The
+        /// list is also no longer fixed-length — see
+        /// <see cref="ActionGroupState"/>.</para>
         ///
-        /// <para>Why: a positional array can carry STATE but never a NAME, and
-        /// names are what both vanilla (which shipped anonymous customs the
-        /// client had to hardcode as "AG1".."AG10") and Action Groups Extended
-        /// (up to 250 player-named groups) need. The list is also no longer
-        /// fixed-length — see <see cref="ActionGroupState"/>. Sanctioned as a
-        /// breaking bump on the same standing grounds as the Major 2 -&gt; 3
-        /// revert: the mod is still pre-release with NO external Uplinks yet.</para>
-        ///
-        /// <para>Major-4 history — Bumped 3 -&gt; 4 (Minor reset to 0):
-        /// <see cref="CommsDelay.OneWaySeconds"/>
+        /// <para>(2) <see cref="CommsDelay.OneWaySeconds"/>
         /// retyped <c>double</c> -&gt; <c>double?</c> (comms-delay-nullable-when-no-path
         /// fix). The old <c>0</c> sentinel for "no measurable path" read as
         /// "instant" to a naive reader — the opposite of a lost link — and
@@ -50,17 +55,18 @@ namespace Sitrep.Contract
         /// <see cref="CommsPath"/>; <c>0</c> is reserved for the OTHER "None"
         /// case (delay feature disabled but connected — a genuine zero
         /// applied); a real number means <see cref="CommsDelaySource.SignalDelay"/>.
-        /// A genuine wire retype, sanctioned because the mod is still
-        /// pre-release with NO external Uplinks yet. See
+        /// See
         /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.</para>
         /// </summary>
-        public const int Major = 5;
+        public const int Major = 4;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 4 -&gt; 5 bump (see <see cref="Major"/>).
-        /// The Minor history below belongs to the Major-1/2/3/4 lines and is
-        /// retained for provenance; every one of those additive changes is
-        /// carried forward into Major 5.
+        /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
+        /// then bumped 0 -&gt; 1 on the Major-4 line for the kerbcast Uplink's
+        /// control-plane types (see the Major-4 entry below).
+        /// The remaining Minor history below belongs to the Major-1/2/3 lines
+        /// and is retained for provenance; every one of those additive
+        /// changes is carried forward into Major 4.
         ///
         /// <para>Major-3 history — Bumped 2 -&gt; 3 (Minor reset to 0): the
         /// Principia mod-seam revert. Removed
@@ -165,7 +171,19 @@ namespace Sitrep.Contract
         /// touched — additive, so it cannot break an Uplink built against an
         /// older Minor. See
         /// <c>local_docs/Wednesday Work/2026-07-15-comms-delay-model-consistency.md</c>.</para>
+        ///
+        /// <para>Major-4 line — Bumped 0 -&gt; 1: additive-only Minor for the
+        /// kerbcast Uplink's CONTROL-plane wire types
+        /// (<see cref="KerbcastCameraEntry"/>, <see cref="KerbcastSetFieldOfViewArgs"/>,
+        /// <see cref="KerbcastSetPanArgs"/>) — the <c>kerbcast.cameras</c>
+        /// camera/capability/docking-port inventory plus its
+        /// <c>kerbcast.setFieldOfView</c>/<c>kerbcast.setPan</c> commands.
+        /// kerbcast's VIDEO deliberately stays on WebRTC; only the control
+        /// plane becomes an Uplink. Brand-new <c>[SitrepContract]</c> types
+        /// only, no existing type touched — additive, so it cannot break an
+        /// Uplink built against an older Minor. See
+        /// <c>mod/GonogoKerbcastUplink/</c>.</para>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

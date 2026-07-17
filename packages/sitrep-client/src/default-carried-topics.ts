@@ -157,6 +157,22 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // too — stay on the legacy source even though mapTopic resolves them.
   "scansat.available",
   "scansat.scanningVessels",
+  // kerbcast.available/kerbcast.cameras: the two STATIC topics
+  // GonogoKerbcastUplink publishes (see KerbcastUplink.cs's AvailableTopic/
+  // CamerasTopic consts) — kerbcast's CONTROL plane (camera inventory,
+  // capabilities, docking-port association). Same promotion rule as the
+  // scansat siblings above.
+  //
+  // kerbcast's VIDEO is deliberately absent and always will be: the H.264
+  // stream runs sidecar -> browser over WebRTC and is not a Topic at all.
+  // Only the control plane rides the wire.
+  //
+  // Promotion here is an allowlist, not a subscription — nothing flows until
+  // a widget actually reads these. Listing them now means the control plane
+  // is reachable the moment a consumer lands, rather than silently resolving
+  // to the legacy path.
+  "kerbcast.available",
+  "kerbcast.cameras",
   // Flight-lifecycle domain (FlightUplink, P4c-b flight-lifecycle spec):
   // flight.current (LossyLatest Value) plus flight.started/ended/
   // vesselChanged (ReliableOrdered events) — retires the client-side

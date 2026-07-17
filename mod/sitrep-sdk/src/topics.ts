@@ -18,12 +18,15 @@
 // stays in exact sync.
 //
 // ── The hand-declared tail (NOT codegen-derived) ────────────────────────────────────
-// Two Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are declared by
+// Three Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are declared by
 // hand below rather than generated — deliberately, because a fabricated contract type
 // would misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
 //   • `scansat.available` is a bare JSON boolean (the uplink publishes `true`/`false`
 //     directly — see GonogoScansatUplink/ScansatUplink.cs), not an object, so there is
 //     no named payload type; it resolves to `boolean`.
+//   • `kerbcast.available` is the same bare-boolean shape, for the same reason — see
+//     GonogoKerbcastUplink/KerbcastUplink.cs. (`kerbcast.cameras` DOES carry a wire type,
+//     `KerbcastCameraEntry`, so it is codegen-derived like every other array Topic.)
 //   • `system.uplinks` is the engine-aggregated Uplink roster/health channel, declared
 //     by `ChannelEngine` itself and built as a dictionary in `BuildSystemUplinksPayload`
 //     (no `[SitrepTopic]` type), so its structured shape is hand-mirrored here.
@@ -44,6 +47,20 @@ import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
  */
 export interface ScansatTopicPayloadMap {
   "scansat.available": boolean;
+}
+
+/**
+ * The one kerbcast Topic whose payload is a bare JSON primitive — the presence gate a
+ * client augment declares `requires: "kerbcast"` against. Like `scansat.available` it
+ * carries no named `Sitrep.Contract` type (the uplink's source is `_ => true` / `_ => false`,
+ * so the wire is a naked boolean, not an object) and is therefore hand-declared here.
+ *
+ * kerbcast's camera CONTROL data rides `kerbcast.cameras` (generated, `KerbcastCameraEntry[]`);
+ * its VIDEO does not ride the Topic stream at all — it stays on kerbcast's own WebRTC
+ * path. See mod/GonogoKerbcastUplink/KerbcastUplink.cs.
+ */
+export interface KerbcastTopicPayloadMap {
+  "kerbcast.available": boolean;
 }
 
 /**
@@ -87,6 +104,7 @@ export interface SystemUplinkPendingTopicPayloadMap {
 export interface TopicPayloadMap
   extends GeneratedTopicPayloadMap,
     ScansatTopicPayloadMap,
+    KerbcastTopicPayloadMap,
     SystemUplinksTopicPayloadMap,
     SystemUplinkPendingTopicPayloadMap {}
 
@@ -106,6 +124,7 @@ export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
 export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "scansat.available",
+  "kerbcast.available",
   "system.uplinks",
   "system.uplink.pending",
 ] as const satisfies readonly TopicId[];

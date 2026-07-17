@@ -1,0 +1,31 @@
+GonogoKerbcastUplink integrates with kerbcast
+(https://github.com/ksp-gonogo/kerbcast) entirely at ARM'S LENGTH: it reads
+kerbcast's runtime state through its PUBLIC in-process API
+(Kerbcast.KerbcastControl) by reflection ONLY. It does NOT link the Kerbcast
+assembly at build time, does NOT derive from Kerbcast types, and bundles NO
+kerbcast source or assets.
+
+kerbcast is distributed under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International licence
+(CC-BY-NC-SA-4.0):
+
+  https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Because this uplink incorporates none of kerbcast's code (arm's-length
+reflection against its published integration seam), neither the ShareAlike nor
+the NonCommercial obligation is triggered, and GonogoKerbcastUplink is licensed
+MIT, in line with the rest of gonogo. This is the same boundary
+GonogoRealAntennasUplink maintains against RealAntennas' CC-BY-SA-4.0 assembly;
+see LICENSING.md.
+
+Note for maintainers: the reflection in KerbcastReflection.cs is the LICENCE
+BOUNDARY, not an implementation convenience. Adding a compile-time
+<Reference Include="Kerbcast"> to GonogoKerbcastUplink.csproj would create a
+combined work and pull CC-BY-NC-SA-4.0's terms onto this assembly. Do not.
+
+The docking-port association this uplink publishes on kerbcast.cameras is NOT
+read from kerbcast: it is derived independently from stock KSP's own
+ModuleDockingNode on the camera's part. kerbcast carries no docking concept.
+
+kerbcast author: Jon Pepler. See the project's repository and CKAN metadata for
+the full author list.

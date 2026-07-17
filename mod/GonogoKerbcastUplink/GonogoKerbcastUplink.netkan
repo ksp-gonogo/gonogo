@@ -1,0 +1,30 @@
+{
+  "spec_version": 1,
+  "identifier": "GonogoKerbcastUplink",
+  "name": "Gonogo kerbcast Uplink",
+  "abstract": "Publishes kerbcast's camera inventory, capabilities, docking-port association and health over the Gonogo telemetry connection, and carries camera aim/zoom commands. Video keeps streaming over kerbcast's own WebRTC path.",
+  "author": "jonpepler",
+  "license": "MIT",
+  "release_status": "development",
+  "resources": {
+    "homepage": "https://github.com/ksp-gonogo/gonogo"
+  },
+  "tags": [
+    "plugin",
+    "telemetry",
+    "camera",
+    "kerbcast"
+  ],
+  "depends": [
+    { "name": "GonogoCore" }
+  ],
+  "recommends": [
+    { "name": "Kerbcast" }
+  ],
+  "install": [
+    {
+      "file": "GameData/GonogoKerbcastUplink",
+      "install_to": "GameData"
+    }
+  ]
+}

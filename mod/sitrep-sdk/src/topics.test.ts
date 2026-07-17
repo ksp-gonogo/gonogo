@@ -7,11 +7,13 @@ import { isTopicId, TOPIC_IDS, type TopicPayloadMap } from "./topics";
 
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
- * contract type) — a bare JSON boolean. See the topics.ts header. Everything else in
- * the registry MUST come from the generated map.
+ * contract type) — the bare JSON booleans plus the engine-aggregated system channels.
+ * See the topics.ts header. Everything else in the registry MUST come from the
+ * generated map.
  */
 const HAND_DECLARED_TOPICS = [
   "scansat.available",
+  "kerbcast.available",
   "system.uplinks",
   "system.uplink.pending",
 ];
