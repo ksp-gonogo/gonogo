@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -53,7 +53,6 @@ function registerFakeComputeSource(
 
 describe("KosWidget", () => {
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

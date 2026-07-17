@@ -1,6 +1,12 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -32,6 +38,19 @@ const MOD_PROCS: KosProcessorInfo[] = [
   },
 ];
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// registry. RTL auto-cleanup runs after this file's afterEach, so it can't be
+// relied on to unmount first — a late stream frame landing on the still-mounted
+// widget is a state update outside act(), the documented anti-pattern in
+// CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
 describe("KosProcessors — reads kos.processors off the stream (U3 kOS slice)", () => {
   beforeEach(() => {
     clearRegistry();
@@ -39,7 +58,8 @@ describe("KosProcessors — reads kos.processors off the stream (U3 kOS slice)",
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearRegistry();
   });
 
