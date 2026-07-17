@@ -67,15 +67,16 @@ function readPkgVersion(pkgJsonPath: string): string {
 //     version today (a dedicated EXTENSION_API_VERSION + TS api-shape gate is the
 //     sdk-one-import §6 follow-up; sitrep-sdk's version is the honest marker now).
 //   • uiKitVersion — @ksp-gonogo/ui-kit.
-//   • contractMajor — mirrors the C# ContractVersion.Major stamp. Held as an app
-//     constant in Phase A; Phase B sources it from the wire/generated contract.
+//   • contractMajor — mirrors the C# ContractVersion.Major stamp (Sitrep.Contract's
+//     `ContractVersion.Major`, currently 4). Held as an app constant; both the host
+//     `define` and the registry fixture read it, so host and descriptor still agree.
 const HOST_API_VERSION = readPkgVersion(
   resolve(modDir, "sitrep-sdk/package.json"),
 );
 const HOST_UIKIT_VERSION = readPkgVersion(
   resolve(packagesDir, "ui-kit/package.json"),
 );
-const HOST_CONTRACT_MAJOR = 3;
+const HOST_CONTRACT_MAJOR = 4;
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
 // bundles (Phase B: scansat + kos — the loader was proven on scansat first in
