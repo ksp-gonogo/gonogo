@@ -24,7 +24,6 @@
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
-    "@ksp-gonogo/kerbcast-feed": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/ui": "workspace:*",
