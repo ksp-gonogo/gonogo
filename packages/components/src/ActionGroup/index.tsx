@@ -12,6 +12,7 @@ import {
   useActionInput,
   useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   BellIcon,
@@ -115,9 +116,15 @@ function ActionGroupComponent({
   // widget's last gapped pair with zero code change here — both keys already
   // ride the stream via the mapTopic/mapCommand shim once `vessel.control` is
   // carried; only test coverage needed adding.
+  // `group.value` is resolved dynamically off the ACTION_GROUPS registry, so
+  // this one read stays a two-arg shim read (the key isn't a literal) — it
+  // still rides the stream via the mapTopic shim once `vessel.control` is
+  // carried. The two static reads below have clean canonical homes:
+  //  - `t.isPaused`     -> `time.warp.paused`
+  //  - `comm.connected` -> `comms.link.connected`
   const value = useDataValue("data", group?.value ?? "v.sasValue");
-  const isPaused = useDataValue<boolean>("data", "t.isPaused");
-  const commConnected = useDataValue<boolean>("data", "comm.connected");
+  const isPaused = useTelemetry("time.warp")?.paused;
+  const commConnected = useTelemetry("comms.link")?.connected;
   const execute = useExecuteAction("data");
   const openAlarms = useAlarmsLauncher();
 
