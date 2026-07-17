@@ -59,11 +59,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "packages/test-utils/src/**",
-        "packages/ui-kit/src/test/render.tsx",
-        "**/test/setup.ts"
-      ],
+      "includes": ["packages/test-utils/src/**", "**/test/setup.ts"],
       "linter": {
         "rules": {
           "style": {

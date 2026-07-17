@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ProgressBar } from "./ProgressBar";
-import { render, screen } from "./test/render";
 
 describe("ProgressBar", () => {
   it("exposes progressbar semantics with the current value", () => {

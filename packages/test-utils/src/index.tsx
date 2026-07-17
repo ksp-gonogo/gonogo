@@ -1,4 +1,4 @@
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
+import { DefaultThemeProvider } from "@ksp-gonogo/theme";
 import {
   type RenderHookOptions,
   type RenderHookResult,

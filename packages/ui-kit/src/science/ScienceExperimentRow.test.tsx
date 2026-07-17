@@ -1,22 +1,17 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { ThemeProvider } from "styled-components";
 import { describe, expect, it, vi } from "vitest";
-import { defaultDarkTheme } from "../defaultDarkTheme";
-import { render, screen } from "../test/render";
 import {
   ScienceExperimentRow,
   type ScienceInstrument,
 } from "./ScienceExperimentRow";
 
-// Rows read `theme.space` (via the kit's `Inline`), so every render needs the
-// real `ThemeProvider` — same as the app's actual mount (`main.tsx`).
+// Rows read `theme.space` (via the kit's `Inline`), so every render needs a
+// theme in scope — the shared `render` mounts one by default. The `<ul>` is
+// here because a row is an `<li>` and needs its list parent to be valid.
 function renderRow(ui: ReactElement) {
-  return render(
-    <ThemeProvider theme={defaultDarkTheme}>
-      <ul>{ui}</ul>
-    </ThemeProvider>,
-  );
+  return render(<ul>{ui}</ul>);
 }
 
 function instrument(
