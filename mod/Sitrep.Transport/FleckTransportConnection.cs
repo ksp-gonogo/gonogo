@@ -32,12 +32,8 @@ namespace Sitrep.Transport
             _socket = socket ?? throw new ArgumentNullException(nameof(socket));
             Id = socket.ConnectionInfo.Id.ToString("N");
 
-            socket.OnMessage = message =>
-            {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                MessageReceived?.Invoke(new ArraySegment<byte>(bytes));
-            };
-            socket.OnBinary = bytes => MessageReceived?.Invoke(new ArraySegment<byte>(bytes));
+            socket.OnMessage = message => Deliver(Encoding.UTF8.GetBytes(message));
+            socket.OnBinary = Deliver;
             socket.OnClose = () => Closed?.Invoke();
             // Fleck already tears the connection down and raises OnClose on error;
             // there is nothing further for the seam to do here.
@@ -46,7 +42,64 @@ namespace Sitrep.Transport
 
         public string Id { get; }
 
-        public event Action<ArraySegment<byte>>? MessageReceived;
+        // Early-message buffer (fixes a genuine drop race, not just a test
+        // flake): Fleck wires OnMessage/OnBinary in this ctor — which runs
+        // during the handshake, BEFORE the connection's OnOpen fires — but the
+        // engine only attaches its MessageReceived handler from OnOpen
+        // (ChannelEngine.OnClientConnected). A client that sends its first
+        // frame (e.g. a Subscribe) the instant its handshake completes can
+        // therefore have that frame arrive and be read on the server while
+        // MessageReceived is still null; the old `MessageReceived?.Invoke`
+        // silently DROPPED it, so the client waited out its full receive
+        // timeout for an ack that never came. Under CPU load (OnOpen's
+        // continuation delayed) the window widens and the drop becomes a
+        // recurring ~10s timeout. Buffer any frame that arrives before a
+        // handler is attached and flush it, in order, when one is.
+        private Action<ArraySegment<byte>>? _messageReceived;
+        private readonly System.Collections.Generic.List<byte[]> _pending = new System.Collections.Generic.List<byte[]>();
+        private readonly object _deliverLock = new object();
+
+        public event Action<ArraySegment<byte>>? MessageReceived
+        {
+            add
+            {
+                lock (_deliverLock)
+                {
+                    _messageReceived += value;
+                    // Flush under the lock so an in-flight Deliver on the read
+                    // thread can't interleave a later frame ahead of these.
+                    foreach (var buffered in _pending)
+                    {
+                        value?.Invoke(new ArraySegment<byte>(buffered));
+                    }
+                    _pending.Clear();
+                }
+            }
+            remove
+            {
+                lock (_deliverLock)
+                {
+                    _messageReceived -= value;
+                }
+            }
+        }
+
+        private void Deliver(byte[] payload)
+        {
+            lock (_deliverLock)
+            {
+                if (_messageReceived is null)
+                {
+                    // Copy: Fleck reuses its read buffer for the next frame.
+                    var copy = new byte[payload.Length];
+                    Buffer.BlockCopy(payload, 0, copy, 0, payload.Length);
+                    _pending.Add(copy);
+                    return;
+                }
+
+                _messageReceived.Invoke(new ArraySegment<byte>(payload));
+            }
+        }
 
         public event Action? Closed;
 
