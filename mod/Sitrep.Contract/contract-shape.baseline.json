@@ -1,1119 +1,2136 @@
 {
-  "Major": 4,
-  "Minor": 1,
-  "Types": {
-    "Sitrep.Contract.ActionGroupState": [
-      "Index:System.Int32",
-      "Name:System.String",
-      "State:System.Boolean"
-    ],
-    "Sitrep.Contract.ActivateStrategyArgs": [
-      "Factor:System.Double",
-      "StrategyId:System.String"
-    ],
-    "Sitrep.Contract.AddManeuverNodeArgs": [
-      "Normal:System.Double",
-      "Prograde:System.Double",
-      "RadialOut:System.Double",
-      "Ut:System.Double"
-    ],
-    "Sitrep.Contract.AlternatorEntry": [
-      "OutputRate:System.Nullable\u00601[System.Double]",
-      "PartId:System.String",
-      "PartName:System.String"
-    ],
-    "Sitrep.Contract.AtmosphereEntry": [
-      "Depth:System.Nullable\u00601[System.Double]",
-      "HasOxygen:System.Nullable\u00601[System.Boolean]",
-      "SeaLevelPressure:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.BatteryEntry": [
-      "Current:System.Nullable\u00601[System.Double]",
-      "Max:System.Nullable\u00601[System.Double]",
-      "PartId:System.String",
-      "PartName:System.String"
-    ],
-    "Sitrep.Contract.BodyEntry": [
-      "Atmosphere:Sitrep.Contract.AtmosphereEntry",
-      "Description:System.String",
-      "GravParameter:System.Nullable\u00601[System.Double]",
-      "HasOcean:System.Nullable\u00601[System.Boolean]",
-      "Index:System.Int32",
-      "Name:System.String",
-      "Orbit:Sitrep.Contract.OrbitEntry",
-      "ParentIndex:System.Nullable\u00601[System.Int32]",
-      "Radius:System.Nullable\u00601[System.Double]",
-      "RotationPeriod:System.Nullable\u00601[System.Double]",
-      "SphereOfInfluence:System.Nullable\u00601[System.Double]",
-      "TidallyLocked:System.Nullable\u00601[System.Boolean]"
-    ],
-    "Sitrep.Contract.CareerContract": [
-      "Agent:System.String",
-      "DateAccepted:System.Nullable\u00601[System.Double]",
-      "DateDeadline:System.Nullable\u00601[System.Double]",
-      "DateExpire:System.Nullable\u00601[System.Double]",
-      "FundsAdvance:System.Nullable\u00601[System.Double]",
-      "FundsCompletion:System.Nullable\u00601[System.Double]",
-      "FundsFailure:System.Nullable\u00601[System.Double]",
-      "Id:System.String",
-      "Parameters:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerContractParameter]",
-      "ReputationCompletion:System.Nullable\u00601[System.Double]",
-      "ReputationFailure:System.Nullable\u00601[System.Double]",
-      "ScienceCompletion:System.Nullable\u00601[System.Double]",
-      "State:System.String",
-      "Title:System.String"
-    ],
-    "Sitrep.Contract.CareerContractParameter": [
-      "State:System.String",
-      "Title:System.String"
-    ],
-    "Sitrep.Contract.CareerContracts": [
-      "Active:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerContract]",
-      "CompletedRecent:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerContract]",
-      "Offered:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerContract]"
-    ],
-    "Sitrep.Contract.CareerEconomy": [
-      "Funds:System.Nullable\u00601[System.Double]",
-      "Reputation:System.Nullable\u00601[System.Double]",
-      "Science:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.CareerFacility": [
-      "CurrentTier:System.Nullable\u00601[System.Int32]",
-      "MaxTier:System.Nullable\u00601[System.Int32]",
-      "UpgradeCost:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.CareerMode": ["Mode:Sitrep.Contract.GameMode"],
-    "Sitrep.Contract.CareerStatus": [
-      "Contracts:Sitrep.Contract.CareerContracts",
-      "Economy:Sitrep.Contract.CareerEconomy",
-      "Facilities:System.Collections.Generic.Dictionary\u00602[System.String,Sitrep.Contract.CareerFacility]",
-      "Strategies:Sitrep.Contract.CareerStrategies",
-      "Tech:Sitrep.Contract.CareerTech"
-    ],
-    "Sitrep.Contract.CareerStrategies": [
-      "Active:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerStrategy]",
-      "ActiveCount:System.Int32",
-      "All:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerStrategy]"
-    ],
-    "Sitrep.Contract.CareerStrategy": [
-      "ActivateBlockedReason:System.String",
-      "CanActivate:System.Nullable\u00601[System.Boolean]",
-      "CanDeactivate:System.Nullable\u00601[System.Boolean]",
-      "DateActivated:System.Nullable\u00601[System.Double]",
-      "DeactivateBlockedReason:System.String",
-      "Department:System.String",
-      "Description:System.String",
-      "Effect:System.String",
-      "Factor:System.Nullable\u00601[System.Double]",
-      "FactorSliderDefault:System.Nullable\u00601[System.Double]",
-      "FactorSliderSteps:System.Nullable\u00601[System.Int32]",
-      "HasFactorSlider:System.Nullable\u00601[System.Boolean]",
-      "Id:System.String",
-      "InitialCostFunds:System.Nullable\u00601[System.Double]",
-      "InitialCostReputation:System.Nullable\u00601[System.Double]",
-      "InitialCostScience:System.Nullable\u00601[System.Double]",
-      "IsActive:System.Nullable\u00601[System.Boolean]",
-      "RequiredReputation:System.Nullable\u00601[System.Double]",
-      "Title:System.String"
-    ],
-    "Sitrep.Contract.CareerTech": [
-      "Nodes:System.Collections.Generic.List\u00601[Sitrep.Contract.CareerTechNode]",
-      "UnlockedCount:System.Int32",
-      "UnlockedIds:System.Collections.Generic.List\u00601[System.String]"
-    ],
-    "Sitrep.Contract.CareerTechNode": [
-      "Id:System.String",
-      "Parents:System.Collections.Generic.List\u00601[System.String]",
-      "ScienceCost:System.Nullable\u00601[System.Double]",
-      "Title:System.String",
-      "Unlocked:System.Nullable\u00601[System.Boolean]"
-    ],
-    "Sitrep.Contract.CommandRequest\u00601": [
-      "Args:TArgs",
-      "Command:System.String",
-      "Label:System.String",
-      "RequestId:System.String",
-      "SentAt:System.Double",
-      "Topic:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.CommandResponse\u00601": [
-      "Meta:Sitrep.Contract.Meta",
-      "RequestId:System.String",
-      "Result:TResult",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.CommandResult": [
-      "ErrorCode:Sitrep.Contract.CommandErrorCode",
-      "Success:System.Boolean"
-    ],
-    "Sitrep.Contract.CommandResult\u00601": ["Payload:T"],
-    "Sitrep.Contract.CommsConnectivity": [
-      "Connected:System.Boolean",
-      "ControlSource:Sitrep.Contract.CommsControlSource",
-      "HasLocalControl:System.Boolean",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsControlState": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Reason:System.String",
-      "State:Sitrep.Contract.CommsControlStateKind"
-    ],
-    "Sitrep.Contract.CommsDataRate": [
-      "DownBitsPerSec:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "UpBitsPerSec:System.Double"
-    ],
-    "Sitrep.Contract.CommsDelay": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "OneWaySeconds:System.Nullable\u00601[System.Double]",
-      "Source:Sitrep.Contract.CommsDelaySource"
-    ],
-    "Sitrep.Contract.CommsHop": [
-      "BandRateBitsPerSec:System.Nullable\u00601[System.Double]",
-      "DistanceMeters:System.Nullable\u00601[System.Double]",
-      "From:System.String",
-      "Kind:Sitrep.Contract.CommsHopKind",
-      "To:System.String"
-    ],
-    "Sitrep.Contract.CommsLink": [
-      "Connected:System.Boolean",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsLinkMargin": [
-      "ClosesLink:System.Boolean",
-      "DecibelMargin:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsLinkQuality": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Value:System.Double"
-    ],
-    "Sitrep.Contract.CommsNetwork": [
-      "Edges:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsNetworkEdge]",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Nodes:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsNetworkNode]"
-    ],
-    "Sitrep.Contract.CommsNetworkEdge": [
-      "A:System.String",
-      "Active:System.Boolean",
-      "B:System.String"
-    ],
-    "Sitrep.Contract.CommsNetworkNode": [
-      "Id:System.String",
-      "Kind:Sitrep.Contract.CommsHopKind"
-    ],
-    "Sitrep.Contract.CommsPath": [
-      "Hops:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsHop]",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsSignalStrength": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Value:System.Double"
-    ],
-    "Sitrep.Contract.ContractActionArgs": ["ContractId:System.String"],
-    "Sitrep.Contract.CrashFlightStats": [
-      "FlightEndMode:System.String",
-      "GroundDistance:System.Double",
-      "HighestAltitude:System.Double",
-      "HighestGee:System.Double",
-      "HighestSpeed:System.Double",
-      "HighestSpeedOverLand:System.Double",
-      "KerbalsKilled:System.Int32",
-      "LiftOff:System.Boolean",
-      "MissionEnd:System.Boolean",
-      "MissionTime:System.Double",
-      "PartsLost:System.Int32",
-      "TotalDistance:System.Double"
-    ],
-    "Sitrep.Contract.CrashPartLost": [
-      "Msg:System.String",
-      "PartId:System.Int64",
-      "PartName:System.String",
-      "PartTitle:System.String"
-    ],
-    "Sitrep.Contract.CrashReport": [
-      "Altitude:System.Double",
-      "Body:System.String",
-      "CrewAboard:System.Collections.Generic.List\u00601[System.String]",
-      "EventKind:System.String",
-      "Events:System.Collections.Generic.List\u00601[System.String]",
-      "FlightStats:Sitrep.Contract.CrashFlightStats",
-      "KerbalsKilled:System.Collections.Generic.List\u00601[System.String]",
-      "Latitude:System.Double",
-      "Longitude:System.Double",
-      "Msg:System.String",
-      "PartsLost:System.Collections.Generic.List\u00601[Sitrep.Contract.CrashPartLost]",
-      "Situation:System.String",
-      "Ut:System.Double",
-      "VesselId:System.String",
-      "VesselName:System.String",
-      "VesselType:System.String",
-      "What:System.String"
-    ],
-    "Sitrep.Contract.CrewMember": [
-      "ExperienceLevel:System.Nullable\u00601[System.Int32]",
-      "Name:System.String",
-      "RosterStatus:System.String",
-      "Trait:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.CrewRosterEntry": [
-      "Available:System.Nullable\u00601[System.Boolean]",
-      "ExperienceLevel:System.Nullable\u00601[System.Int32]",
-      "Name:System.String",
-      "Trait:System.String",
-      "UnavailableReason:System.String"
-    ],
-    "Sitrep.Contract.DeactivateStrategyArgs": ["StrategyId:System.String"],
-    "Sitrep.Contract.DeployedEntry": [
-      "Biome:System.String",
-      "Body:System.String",
-      "ConnectionState:System.String",
-      "DeployedOnGround:System.Nullable\u00601[System.Boolean]",
-      "ExperimentId:System.String",
-      "PartName:System.String",
-      "PowerState:System.String",
-      "ScienceCompletedPercentage:System.Nullable\u00601[System.Double]",
-      "ScienceLimit:System.Nullable\u00601[System.Double]",
-      "ScienceTransmittedPercentage:System.Nullable\u00601[System.Double]",
-      "ScienceValue:System.Nullable\u00601[System.Double]",
-      "Situation:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.DockAlignment": [
-      "Distance:System.Double",
-      "ForwardDot:System.Nullable\u00601[System.Double]",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "RelativePosition:Sitrep.Contract.Vec3",
-      "RelativeVelocity:Sitrep.Contract.Vec3"
-    ],
-    "Sitrep.Contract.ErrorMsg": [
-      "Code:System.String",
-      "Message:System.String",
-      "RequestId:System.String",
-      "Topic:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.EventMsg": [
-      "Meta:Sitrep.Contract.Meta",
-      "Name:System.String",
-      "Topic:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.ExperimentActionArgs": ["PartId:System.String"],
-    "Sitrep.Contract.ExperimentBreakdownEntry": [
-      "Biome:System.String",
-      "DataMits:System.Nullable\u00601[System.Double]",
-      "ExpTitle:System.String",
-      "RemainingPotential:System.Nullable\u00601[System.Double]",
-      "Situation:System.String",
-      "SubjectId:System.String"
-    ],
-    "Sitrep.Contract.ExperimentEntry": [
-      "BaseTransmitValue:System.Nullable\u00601[System.Double]",
-      "DataAmount:System.Nullable\u00601[System.Double]",
-      "Deployed:System.Nullable\u00601[System.Boolean]",
-      "ExperimentId:System.String",
-      "Inoperable:System.Nullable\u00601[System.Boolean]",
-      "LabValue:System.Nullable\u00601[System.Double]",
-      "Location:System.String",
-      "PartName:System.String",
-      "ScienceValueRatio:System.Nullable\u00601[System.Double]",
-      "Situation:System.String",
-      "SubjectId:System.String",
-      "Title:System.String",
-      "TransmitBonus:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.FlightCurrent": [
-      "FlightId:System.String",
-      "Phase:Sitrep.Contract.Situation",
-      "VesselId:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.FlightEnded": [
-      "FlightId:System.String",
-      "Reason:Sitrep.Contract.FlightEndReason",
-      "Ut:System.Double",
-      "VesselId:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.FlightStarted": [
-      "FlightId:System.String",
-      "Ut:System.Double",
-      "VesselId:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.FlightVesselChanged": [
-      "FlightId:System.String",
-      "PreviousVesselId:System.String",
-      "Ut:System.Double",
-      "VesselId:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.FuelCellEntry": [
-      "Active:System.Nullable\u00601[System.Boolean]",
-      "PartId:System.String",
-      "PartName:System.String",
-      "Status:System.String"
-    ],
-    "Sitrep.Contract.GameDlc": [
-      "BreakingGround:System.Boolean",
-      "MakingHistory:System.Boolean"
-    ],
-    "Sitrep.Contract.InstrumentEntry": [
-      "DataIsCollectable:System.Nullable\u00601[System.Boolean]",
-      "Deployed:System.Nullable\u00601[System.Boolean]",
-      "ExperimentId:System.String",
-      "Inoperable:System.Nullable\u00601[System.Boolean]",
-      "PartId:System.String",
-      "PartName:System.String",
-      "Rerunnable:System.Nullable\u00601[System.Boolean]",
-      "Resettable:System.Nullable\u00601[System.Boolean]",
-      "Title:System.String"
-    ],
-    "Sitrep.Contract.KerbcastCameraEntry": [
-      "CameraId:System.Nullable\u00601[System.Int64]",
-      "CameraName:System.String",
-      "DockingPortNodeType:System.String",
-      "DockingPortState:System.String",
-      "FieldOfView:System.Nullable\u00601[System.Double]",
-      "FieldOfViewMaximum:System.Nullable\u00601[System.Double]",
-      "FieldOfViewMinimum:System.Nullable\u00601[System.Double]",
-      "IsDockingCamera:System.Nullable\u00601[System.Boolean]",
-      "PanPitch:System.Nullable\u00601[System.Double]",
-      "PanPitchMaximum:System.Nullable\u00601[System.Double]",
-      "PanPitchMinimum:System.Nullable\u00601[System.Double]",
-      "PanYaw:System.Nullable\u00601[System.Double]",
-      "PanYawMaximum:System.Nullable\u00601[System.Double]",
-      "PanYawMinimum:System.Nullable\u00601[System.Double]",
-      "PartId:System.Nullable\u00601[System.Int64]",
-      "PartName:System.String",
-      "PartTitle:System.String",
-      "SupportsPan:System.Nullable\u00601[System.Boolean]",
-      "SupportsZoom:System.Nullable\u00601[System.Boolean]",
-      "VesselId:System.String"
-    ],
-    "Sitrep.Contract.KerbcastSetFieldOfViewArgs": [
-      "CameraId:System.Int64",
-      "FieldOfView:System.Double"
-    ],
-    "Sitrep.Contract.KerbcastSetPanArgs": [
-      "CameraId:System.Int64",
-      "Pitch:System.Double",
-      "Yaw:System.Double"
-    ],
-    "Sitrep.Contract.KosComputeStatus": [
-      "LastGoodAt:System.Nullable\u00601[System.Double]",
-      "ParseError:System.String",
-      "Paused:System.Boolean",
-      "Running:System.Boolean",
-      "ScriptError:System.String"
-    ],
-    "Sitrep.Contract.KosExecArgs": [
-      "CoreId:System.Int32",
-      "ScriptId:System.String"
-    ],
-    "Sitrep.Contract.KosKeystrokeArgs": [
-      "Chars:System.String",
-      "CoreId:System.Int32",
-      "LeaseToken:System.String"
-    ],
-    "Sitrep.Contract.KosProcessorInfo": [
-      "BootFilePath:System.String",
-      "CoreId:System.Int32",
-      "HasBooted:System.Boolean",
-      "ProcessorMode:System.String",
-      "Tag:System.String"
-    ],
-    "Sitrep.Contract.KosReEnableArgs": ["ScriptId:System.String"],
-    "Sitrep.Contract.KosRunArgs": [
-      "Command:System.String",
-      "CoreId:System.Int32",
-      "RequestId:System.String"
-    ],
-    "Sitrep.Contract.KosRunResult": [
-      "CoreId:System.Int32",
-      "Error:System.String",
-      "Fields:System.Collections.Generic.Dictionary\u00602[System.String,System.Object]",
-      "RequestId:System.String"
-    ],
-    "Sitrep.Contract.KosTerminalCloseArgs": [
-      "CoreId:System.Int32",
-      "LeaseToken:System.String"
-    ],
-    "Sitrep.Contract.KosTerminalFrame": [
-      "Chunk:System.String",
-      "CoreId:System.Int32",
-      "FullRepaint:System.Boolean"
-    ],
-    "Sitrep.Contract.KosTerminalOpenArgs": [
-      "CoreId:System.Int32",
-      "LeaseToken:System.String"
-    ],
-    "Sitrep.Contract.KosTerminalResizeArgs": [
-      "Cols:System.Int32",
-      "CoreId:System.Int32",
-      "LeaseToken:System.String",
-      "Rows:System.Int32"
-    ],
-    "Sitrep.Contract.LabEntry": [
-      "DataStorage:System.Nullable\u00601[System.Double]",
-      "DataStored:System.Nullable\u00601[System.Double]",
-      "IsOperational:System.Nullable\u00601[System.Boolean]",
-      "PartName:System.String",
-      "ProcessingData:System.Nullable\u00601[System.Boolean]",
-      "ScienceRate:System.Nullable\u00601[System.Double]",
-      "ScientistCount:System.Nullable\u00601[System.Int32]",
-      "StatusText:System.String",
-      "StoredScience:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.LaunchArgs": [
-      "Crew:System.Collections.Generic.List\u00601[System.String]",
-      "Facility:System.String",
-      "ShipName:System.String",
-      "Site:System.String"
-    ],
-    "Sitrep.Contract.LaunchSiteEntry": [
-      "BodyIndex:System.Nullable\u00601[System.Int32]",
-      "DisplayName:System.String",
-      "EditorFacility:System.String",
-      "IsStock:System.Nullable\u00601[System.Boolean]",
-      "Name:System.String",
-      "PadOccupied:System.Nullable\u00601[System.Boolean]",
-      "PadVesselTitle:System.String"
-    ],
-    "Sitrep.Contract.ManeuverNode": [
-      "DvNormal:System.Nullable\u00601[System.Double]",
-      "DvPrograde:System.Nullable\u00601[System.Double]",
-      "DvRadial:System.Nullable\u00601[System.Double]",
-      "DvTotal:System.Nullable\u00601[System.Double]",
-      "Id:System.String",
-      "Patches:System.Collections.Generic.List\u00601[Sitrep.Contract.OrbitPatch]",
-      "Ut:System.Double"
-    ],
-    "Sitrep.Contract.Meta": [
-      "Active:System.Boolean",
-      "Confidence:System.Nullable\u00601[System.Double]",
-      "DeliveredAt:System.Double",
-      "Quality:Sitrep.Contract.Quality",
-      "Seq:System.Int64",
-      "Source:System.String",
-      "Staleness:Sitrep.Contract.Staleness",
-      "TimelineEpoch:System.Int32",
-      "ValidAt:System.Double",
-      "Vantage:System.String"
-    ],
-    "Sitrep.Contract.OrbitEncounter": [
-      "BodyIndex:System.Nullable\u00601[System.Int32]",
-      "TransitionType:Sitrep.Contract.TransitionType",
-      "TransitionUt:System.Double"
-    ],
-    "Sitrep.Contract.OrbitEntry": [
-      "ArgPe:System.Nullable\u00601[System.Double]",
-      "Ecc:System.Nullable\u00601[System.Double]",
-      "Epoch:System.Nullable\u00601[System.Double]",
-      "Inc:System.Nullable\u00601[System.Double]",
-      "Lan:System.Nullable\u00601[System.Double]",
-      "MeanAnomalyAtEpoch:System.Nullable\u00601[System.Double]",
-      "Sma:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.OrbitPatch": [
-      "ApA:System.Double",
-      "ArgPe:System.Double",
-      "ClosestEncounterBody:System.String",
-      "Ecc:System.Double",
-      "EndUt:System.Double",
-      "Epoch:System.Double",
-      "Inc:System.Double",
-      "Lan:System.Double",
-      "MeanAnomalyAtEpoch:System.Double",
-      "PatchEndTransition:Sitrep.Contract.TransitionType",
-      "PatchStartTransition:Sitrep.Contract.TransitionType",
-      "PeA:System.Double",
-      "Period:System.Double",
-      "ReferenceBody:System.String",
-      "SemiLatusRectum:System.Double",
-      "SemiMinorAxis:System.Double",
-      "Sma:System.Double",
-      "StartUt:System.Double"
-    ],
-    "Sitrep.Contract.PartBounds": [
-      "Center:Sitrep.Contract.Vec3",
-      "Size:Sitrep.Contract.Vec3"
-    ],
-    "Sitrep.Contract.PartModuleState": [
-      "Flameout:System.Nullable\u00601[System.Boolean]",
-      "State:System.String",
-      "Tracking:System.Nullable\u00601[System.Boolean]",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.PartResourceFlow": [
-      "Amount:System.Double",
-      "Flow:System.Nullable\u00601[System.Double]",
-      "MaxAmount:System.Double",
-      "NominalFlow:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.PartsPower": [
-      "Alternators:System.Collections.Generic.List\u00601[Sitrep.Contract.AlternatorEntry]",
-      "Batteries:System.Collections.Generic.List\u00601[Sitrep.Contract.BatteryEntry]",
-      "FuelCells:System.Collections.Generic.List\u00601[Sitrep.Contract.FuelCellEntry]",
-      "SolarPanels:System.Collections.Generic.List\u00601[Sitrep.Contract.SolarPanelEntry]",
-      "TotalProductionEc:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.PayloadMeta": [
-      "Quality:Sitrep.Contract.Quality",
-      "Source:System.String"
-    ],
-    "Sitrep.Contract.PendingUplink": [
-      "Command:System.String",
-      "DispatchedAt:System.Double",
-      "Id:System.String",
-      "Label:System.String",
-      "OneWaySeconds:System.Double",
-      "Topic:System.String",
-      "Vantage:System.String"
-    ],
-    "Sitrep.Contract.PendingUplinkQueue": [
-      "Pending:System.Collections.Generic.List\u00601[Sitrep.Contract.PendingUplink]"
-    ],
-    "Sitrep.Contract.RecoveryCrewEntry": [
-      "IsTourist:System.Boolean",
-      "LevelsGained:System.Int32",
-      "Name:System.String",
-      "NewLevel:System.Int32",
-      "Trait:System.String",
-      "XpGained:System.Double"
-    ],
-    "Sitrep.Contract.RecoveryPartEntry": [
-      "Count:System.Int32",
-      "PartName:System.String",
-      "PartTitle:System.String",
-      "PartValue:System.Double",
-      "ResourcesValue:System.Double",
-      "TotalValue:System.Double"
-    ],
-    "Sitrep.Contract.RecoveryReport": [
-      "CapturedAtUT:System.Double",
-      "CrewBreakdown:System.Collections.Generic.List\u00601[Sitrep.Contract.RecoveryCrewEntry]",
-      "DisplayReputation:System.Boolean",
-      "FundsEarned:System.Double",
-      "PartBreakdown:System.Collections.Generic.List\u00601[Sitrep.Contract.RecoveryPartEntry]",
-      "RecoveryFactor:System.String",
-      "RecoveryLocation:System.String",
-      "ReputationEarned:System.Double",
-      "ResourceBreakdown:System.Collections.Generic.List\u00601[Sitrep.Contract.RecoveryResourceEntry]",
-      "ScienceBreakdown:System.Collections.Generic.List\u00601[Sitrep.Contract.RecoveryScienceEntry]",
-      "ScienceEarned:System.Double",
-      "TotalFunds:System.Double",
-      "TotalReputation:System.Double",
-      "TotalScience:System.Double",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.RecoveryResourceEntry": [
-      "Amount:System.Double",
-      "ResourceName:System.String",
-      "TotalValue:System.Double",
-      "UnitValue:System.Double"
-    ],
-    "Sitrep.Contract.RecoveryScienceEntry": [
-      "DataGathered:System.Double",
-      "ScienceAmount:System.Double",
-      "SubjectId:System.String",
-      "SubjectTitle:System.String"
-    ],
-    "Sitrep.Contract.RemoveManeuverNodeArgs": ["NodeId:System.String"],
-    "Sitrep.Contract.ResourceAmount": [
-      "Active:System.Boolean",
-      "Current:System.Double",
-      "Max:System.Double"
-    ],
-    "Sitrep.Contract.RevertAvailability": [
-      "CanRevertToEditor:System.Boolean",
-      "CanRevertToLaunch:System.Boolean"
-    ],
-    "Sitrep.Contract.RevertToEditorArgs": ["Editor:System.String"],
-    "Sitrep.Contract.RoboticsAvailability": [
-      "Available:System.Nullable\u00601[System.Boolean]"
-    ],
-    "Sitrep.Contract.RotorReverseArgs": ["PartId:System.String"],
-    "Sitrep.Contract.RotorSetValueArgs": [
-      "PartId:System.String",
-      "Value:System.Double"
-    ],
-    "Sitrep.Contract.SavedShipEntry": [
-      "Facility:System.String",
-      "MissingParts:System.String[]",
-      "Name:System.String",
-      "PartCount:System.Nullable\u00601[System.Int32]",
-      "RequiresFunds:System.Nullable\u00601[System.Double]",
-      "TotalMass:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.ScanAnomalyEntry": [
-      "Detail:System.Nullable\u00601[System.Boolean]",
-      "Known:System.Nullable\u00601[System.Boolean]",
-      "Latitude:System.Nullable\u00601[System.Double]",
-      "Longitude:System.Nullable\u00601[System.Double]",
-      "Name:System.String"
-    ],
-    "Sitrep.Contract.ScanScienceEntry": [
-      "Deployed:System.Nullable\u00601[System.Boolean]",
-      "ExpId:System.String",
-      "HasData:System.Nullable\u00601[System.Boolean]",
-      "Inoperable:System.Nullable\u00601[System.Boolean]",
-      "PartId:System.String",
-      "PartTitle:System.String",
-      "Rerunnable:System.Nullable\u00601[System.Boolean]",
-      "Title:System.String"
-    ],
-    "Sitrep.Contract.ScanSensorEntry": [
-      "BestAlt:System.Nullable\u00601[System.Double]",
-      "BestRange:System.Nullable\u00601[System.Boolean]",
-      "Fov:System.Nullable\u00601[System.Double]",
-      "InRange:System.Nullable\u00601[System.Boolean]",
-      "MaxAlt:System.Nullable\u00601[System.Double]",
-      "MinAlt:System.Nullable\u00601[System.Double]",
-      "Type:System.Nullable\u00601[System.Int32]"
-    ],
-    "Sitrep.Contract.ScanTrackColor": [
-      "A:System.Nullable\u00601[System.Int32]",
-      "B:System.Nullable\u00601[System.Int32]",
-      "G:System.Nullable\u00601[System.Int32]",
-      "R:System.Nullable\u00601[System.Int32]"
-    ],
-    "Sitrep.Contract.ScanningVesselEntry": [
-      "Altitude:System.Nullable\u00601[System.Double]",
-      "Body:System.String",
-      "GroundTrackLonHalfDeg:System.Nullable\u00601[System.Double]",
-      "GroundTrackWidthDeg:System.Nullable\u00601[System.Double]",
-      "Sensors:System.Collections.Generic.List\u00601[Sitrep.Contract.ScanSensorEntry]",
-      "SubLatitude:System.Nullable\u00601[System.Double]",
-      "SubLongitude:System.Nullable\u00601[System.Double]",
-      "TrackColor:Sitrep.Contract.ScanTrackColor",
-      "VesselId:System.String",
-      "VesselName:System.String"
-    ],
-    "Sitrep.Contract.SensorEntry": [
-      "Active:System.Nullable\u00601[System.Boolean]",
-      "PartId:System.String",
-      "PartName:System.String",
-      "Readout:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.ServoEntry": [
-      "BrakePercentage:System.Nullable\u00601[System.Double]",
-      "CounterClockwise:System.Nullable\u00601[System.Boolean]",
-      "CurrentAngle:System.Nullable\u00601[System.Double]",
-      "CurrentExtension:System.Nullable\u00601[System.Double]",
-      "CurrentRPM:System.Nullable\u00601[System.Double]",
-      "MaxTorque:System.Nullable\u00601[System.Double]",
-      "MotorState:System.String",
-      "NormalizedOutput:System.Nullable\u00601[System.Double]",
-      "PartId:System.String",
-      "PartName:System.String",
-      "RpmLimit:System.Nullable\u00601[System.Double]",
-      "ServoIsLocked:System.Nullable\u00601[System.Boolean]",
-      "ServoIsMotorized:System.Nullable\u00601[System.Boolean]",
-      "ServoMotorIsEngaged:System.Nullable\u00601[System.Boolean]",
-      "ServoMotorLimit:System.Nullable\u00601[System.Double]",
-      "TargetAngle:System.Nullable\u00601[System.Double]",
-      "TargetExtension:System.Nullable\u00601[System.Double]",
-      "TraverseVelocity:System.Nullable\u00601[System.Double]",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.ServoSetEnabledArgs": [
-      "Enabled:System.Boolean",
-      "PartId:System.String"
-    ],
-    "Sitrep.Contract.ServoSetTargetArgs": [
-      "PartId:System.String",
-      "Value:System.Double"
-    ],
-    "Sitrep.Contract.SetActionGroupArgs": [
-      "Group:System.Int32",
-      "State:System.Boolean"
-    ],
-    "Sitrep.Contract.SetControlAxesArgs": [
-      "Pitch:System.Nullable\u00601[System.Double]",
-      "PitchTrim:System.Nullable\u00601[System.Double]",
-      "Roll:System.Nullable\u00601[System.Double]",
-      "RollTrim:System.Nullable\u00601[System.Double]",
-      "X:System.Nullable\u00601[System.Double]",
-      "Y:System.Nullable\u00601[System.Double]",
-      "Yaw:System.Nullable\u00601[System.Double]",
-      "YawTrim:System.Nullable\u00601[System.Double]",
-      "Z:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.SetEnabledArgs": ["Enabled:System.Boolean"],
-    "Sitrep.Contract.SetFlyByWireArgs": ["Enabled:System.Boolean"],
-    "Sitrep.Contract.SetPausedArgs": ["Paused:System.Boolean"],
-    "Sitrep.Contract.SetSasModeArgs": ["Mode:Sitrep.Contract.SasMode"],
-    "Sitrep.Contract.SetTargetArgs": [
-      "BodyIndex:System.Nullable\u00601[System.Int32]",
-      "Kind:Sitrep.Contract.TargetKind",
-      "VesselId:System.String"
-    ],
-    "Sitrep.Contract.SetThrottleArgs": ["Value:System.Double"],
-    "Sitrep.Contract.SetWarpIndexArgs": ["Index:System.Int32"],
-    "Sitrep.Contract.SolarPanelEntry": [
-      "ChargeRate:System.Nullable\u00601[System.Double]",
-      "DeployState:System.String",
-      "FlowRate:System.Nullable\u00601[System.Double]",
-      "PartId:System.String",
-      "PartName:System.String",
-      "SunAOA:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.SpaceCenterPartsAvailable": [
-      "Count:System.Nullable\u00601[System.Int32]"
-    ],
-    "Sitrep.Contract.SpaceCenterScene": [
-      "LaunchSite:System.String",
-      "Scene:System.String"
-    ],
-    "Sitrep.Contract.StageDeltaVEntry": [
-      "BurnTime:System.Nullable\u00601[System.Double]",
-      "DryMass:System.Nullable\u00601[System.Double]",
-      "DvActual:System.Nullable\u00601[System.Double]",
-      "DvAsl:System.Nullable\u00601[System.Double]",
-      "DvVac:System.Nullable\u00601[System.Double]",
-      "EndMass:System.Nullable\u00601[System.Double]",
-      "FuelMass:System.Nullable\u00601[System.Double]",
-      "Resources:System.Collections.Generic.Dictionary\u00602[System.String,Sitrep.Contract.ResourceAmount]",
-      "Stage:System.Nullable\u00601[System.Int32]",
-      "StartMass:System.Nullable\u00601[System.Double]",
-      "ThrustActual:System.Nullable\u00601[System.Double]",
-      "ThrustAsl:System.Nullable\u00601[System.Double]",
-      "ThrustVac:System.Nullable\u00601[System.Double]",
-      "TwrActual:System.Nullable\u00601[System.Double]",
-      "TwrAsl:System.Nullable\u00601[System.Double]",
-      "TwrVac:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.StageDeltaVSummary": [
-      "StageCount:System.Nullable\u00601[System.Int32]",
-      "TotalBurnTime:System.Nullable\u00601[System.Double]",
-      "TotalDvActual:System.Nullable\u00601[System.Double]",
-      "TotalDvAsl:System.Nullable\u00601[System.Double]",
-      "TotalDvVac:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.StreamData\u00601": [
-      "Meta:Sitrep.Contract.Meta",
-      "Payload:T",
-      "Topic:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.Subscribe": ["Topic:System.String", "Type:System.String"],
-    "Sitrep.Contract.SwitchVesselArgs": ["VesselId:System.String"],
-    "Sitrep.Contract.SystemBodies": [
-      "Bodies:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.BodyEntry]"
-    ],
-    "Sitrep.Contract.SystemVessels": [
-      "Vessels:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.VesselRosterEntry]"
-    ],
-    "Sitrep.Contract.ThermalHottestPart": [
-      "InternalTemp:System.Double",
-      "MaxTemp:System.Double",
-      "Name:System.String",
-      "SkinMaxTemp:System.Double",
-      "SkinTemp:System.Double"
-    ],
-    "Sitrep.Contract.UnlockTechArgs": ["TechId:System.String"],
-    "Sitrep.Contract.Unsubscribe": [
-      "Topic:System.String",
-      "Type:System.String"
-    ],
-    "Sitrep.Contract.UpdateManeuverNodeArgs": [
-      "NodeId:System.String",
-      "Normal:System.Double",
-      "Prograde:System.Double",
-      "RadialOut:System.Double",
-      "Ut:System.Double"
-    ],
-    "Sitrep.Contract.UpgradeFacilityArgs": ["FacilityId:System.String"],
-    "Sitrep.Contract.Vec3": [
-      "X:System.Double",
-      "Y:System.Double",
-      "Z:System.Double"
-    ],
-    "Sitrep.Contract.VesselAttitude": [
-      "Heading:System.Double",
-      "HeadingRootFrame:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Pitch:System.Double",
-      "PitchRootFrame:System.Double",
-      "Roll:System.Double",
-      "RollRootFrame:System.Double"
-    ],
-    "Sitrep.Contract.VesselComms": [
-      "Connected:System.Boolean",
-      "ControlState:Sitrep.Contract.ControlState",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "SignalStrength:System.Double"
-    ],
-    "Sitrep.Contract.VesselControl": [
-      "Abort:System.Nullable\u00601[System.Boolean]",
-      "ActionGroups:Sitrep.Contract.ActionGroupState[]",
-      "Brakes:System.Nullable\u00601[System.Boolean]",
-      "Gear:System.Nullable\u00601[System.Boolean]",
-      "Lights:System.Nullable\u00601[System.Boolean]",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "PrecisionControl:System.Nullable\u00601[System.Boolean]",
-      "Rcs:System.Nullable\u00601[System.Boolean]",
-      "Sas:System.Nullable\u00601[System.Boolean]",
-      "SasMode:System.Nullable\u00601[Sitrep.Contract.SasMode]",
-      "Throttle:System.Nullable\u00601[System.Double]"
-    ],
-    "Sitrep.Contract.VesselCrew": [
-      "Capacity:System.Int32",
-      "Count:System.Int32",
-      "Crew:System.Collections.Generic.List\u00601[Sitrep.Contract.CrewMember]",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.VesselFlight": [
-      "AltitudeAsl:System.Double",
-      "AltitudeTerrain:System.Double",
-      "AtmDensity:System.Double",
-      "AtmosphericTemperature:System.Double",
-      "DynamicPressureKPa:System.Double",
-      "ExternalTemperature:System.Double",
-      "GForce:System.Double",
-      "Latitude:System.Double",
-      "Longitude:System.Double",
-      "Mach:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "OrbitalSpeed:System.Double",
-      "SurfaceSpeed:System.Double",
-      "VerticalSpeed:System.Double"
-    ],
-    "Sitrep.Contract.VesselIdentity": [
-      "LaunchUt:System.Nullable\u00601[System.Double]",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Name:System.String",
-      "ParentBodyIndex:System.Nullable\u00601[System.Int32]",
-      "Situation:Sitrep.Contract.Situation",
-      "VesselId:System.String",
-      "VesselType:Sitrep.Contract.VesselType"
-    ],
-    "Sitrep.Contract.VesselManeuver": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Nodes:System.Collections.Generic.List\u00601[Sitrep.Contract.ManeuverNode]"
-    ],
-    "Sitrep.Contract.VesselOrbit": [
-      "ArgPe:System.Nullable\u00601[System.Double]",
-      "Ecc:System.Double",
-      "Encounter:Sitrep.Contract.OrbitEncounter",
-      "Epoch:System.Double",
-      "Inc:System.Double",
-      "Lan:System.Nullable\u00601[System.Double]",
-      "MeanAnomalyAtEpoch:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Mu:System.Double",
-      "Patches:System.Collections.Generic.List\u00601[Sitrep.Contract.OrbitPatch]",
-      "ReferenceBodyIndex:System.Int32",
-      "Sma:System.Double"
-    ],
-    "Sitrep.Contract.VesselOrbitTruth": [
-      "FrameRotating:System.Boolean",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Position:Sitrep.Contract.Vec3",
-      "Velocity:Sitrep.Contract.Vec3"
-    ],
-    "Sitrep.Contract.VesselPart": [
-      "Bounds:Sitrep.Contract.PartBounds",
-      "Category:System.String",
-      "CurrentTemp:System.Nullable\u00601[System.Double]",
-      "DryMass:System.Double",
-      "FuelLineTargetId:System.String",
-      "Id:System.String",
-      "InverseStage:System.Int32",
-      "IsPowerRelated:System.Boolean",
-      "IsRobotics:System.Boolean",
-      "MaxTemp:System.Double",
-      "ModuleStates:System.Collections.Generic.List\u00601[Sitrep.Contract.PartModuleState]",
-      "Modules:System.Collections.Generic.List\u00601[System.String]",
-      "Name:System.String",
-      "ParentId:System.String",
-      "Position:Sitrep.Contract.Vec3",
-      "Resources:System.Collections.Generic.Dictionary\u00602[System.String,Sitrep.Contract.PartResourceFlow]",
-      "SkinMaxTemp:System.Nullable\u00601[System.Double]",
-      "SkinTemp:System.Nullable\u00601[System.Double]",
-      "Title:System.String",
-      "Up:Sitrep.Contract.Vec3"
-    ],
-    "Sitrep.Contract.VesselParts": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Parts:System.Collections.Generic.List\u00601[Sitrep.Contract.VesselPart]"
-    ],
-    "Sitrep.Contract.VesselPhysicsMode": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Mode:Sitrep.Contract.PhysicsMode"
-    ],
-    "Sitrep.Contract.VesselPropulsion": [
-      "AvailableThrust:System.Double",
-      "CurrentThrust:System.Double",
-      "DryMass:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "TotalMass:System.Double"
-    ],
-    "Sitrep.Contract.VesselResources": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Resources:System.Collections.Generic.Dictionary\u00602[System.String,Sitrep.Contract.ResourceAmount]"
-    ],
-    "Sitrep.Contract.VesselRosterEntry": [
-      "BodyIndex:System.Nullable\u00601[System.Int32]",
-      "Name:System.String",
-      "Situation:Sitrep.Contract.Situation",
-      "VesselId:System.String",
-      "VesselType:Sitrep.Contract.VesselType"
-    ],
-    "Sitrep.Contract.VesselStructure": [
-      "CurrentStage:System.Int32",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "PartCount:System.Nullable\u00601[System.Int32]",
-      "StageCount:System.Nullable\u00601[System.Int32]"
-    ],
-    "Sitrep.Contract.VesselSurface": [
-      "Biome:System.String",
-      "HeightFromTerrain:System.Nullable\u00601[System.Double]",
-      "LandedAt:System.String",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.VesselTarget": [
-      "BodyIndex:System.Nullable\u00601[System.Int32]",
-      "Kind:Sitrep.Contract.TargetKind",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Name:System.String",
-      "Orbit:Sitrep.Contract.VesselOrbit",
-      "RelativePosition:Sitrep.Contract.Vec3",
-      "RelativeVelocity:Sitrep.Contract.Vec3",
-      "VesselId:System.String"
-    ],
-    "Sitrep.Contract.VesselThermal": [
-      "AnyEnginesOverheating:System.Nullable\u00601[System.Boolean]",
-      "HeatShieldFlux:System.Nullable\u00601[System.Double]",
-      "HeatShieldTempCelsius:System.Nullable\u00601[System.Double]",
-      "HottestEngineMaxTemp:System.Nullable\u00601[System.Double]",
-      "HottestEngineTemp:System.Nullable\u00601[System.Double]",
-      "HottestEngineTempRatio:System.Nullable\u00601[System.Double]",
-      "HottestPart:Sitrep.Contract.ThermalHottestPart",
-      "MaxInternalTempRatio:System.Nullable\u00601[System.Double]",
-      "MaxSkinTempRatio:System.Nullable\u00601[System.Double]",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.WarpState": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Paused:System.Boolean",
-      "WarpMode:Sitrep.Contract.WarpMode",
-      "WarpRate:System.Double",
-      "WarpRateIndex:System.Int32"
-    ]
-  },
-  "Enums": {
-    "Sitrep.Contract.CommandErrorCode": [
-      "ModeUnavailable:3",
-      "NoVessel:2",
-      "None:0",
-      "NotFound:5",
-      "Range:4",
-      "Timeout:6",
-      "Unknown:1"
-    ],
-    "Sitrep.Contract.CommsControlSource": ["Full:2", "None:0", "Partial:1"],
-    "Sitrep.Contract.CommsControlStateKind": [
-      "Full:2",
-      "None:0",
-      "PartialManoeuvre:1"
-    ],
-    "Sitrep.Contract.CommsDelaySource": ["None:0", "SignalDelay:1"],
-    "Sitrep.Contract.CommsHopKind": ["Home:0", "Relay:1", "Vessel:2"],
-    "Sitrep.Contract.ControlState": [
-      "Full:4",
-      "Kerbal:2",
-      "KerbalFull:10",
-      "KerbalNone:8",
-      "KerbalPartial:9",
-      "None:0",
-      "Partial:3",
-      "Probe:1",
-      "ProbeFull:7",
-      "ProbeNone:5",
-      "ProbePartial:6",
-      "Unknown:11"
-    ],
-    "Sitrep.Contract.FlightEndReason": [
-      "Crashed:1",
-      "Destroyed:3",
-      "Recovered:0",
-      "Reverted:2"
-    ],
-    "Sitrep.Contract.GameMode": [
-      "Career:1",
-      "Sandbox:0",
-      "Science:2",
-      "Unknown:3"
-    ],
-    "Sitrep.Contract.PhysicsMode": [
-      "OnRails:0",
-      "Packed:1",
-      "Unknown:3",
-      "Unpacked:2"
-    ],
-    "Sitrep.Contract.Quality": ["Loaded:1", "OnRails:0"],
-    "Sitrep.Contract.SasMode": [
-      "AntiTarget:8",
-      "Antinormal:4",
-      "Maneuver:9",
-      "Normal:3",
-      "Prograde:1",
-      "RadialIn:5",
-      "RadialOut:6",
-      "Retrograde:2",
-      "StabilityAssist:0",
-      "Target:7",
-      "Unknown:10"
-    ],
-    "Sitrep.Contract.Situation": [
-      "Docked:7",
-      "Escaping:4",
-      "Flying:5",
-      "Landed:0",
-      "Orbiting:3",
-      "PreLaunch:2",
-      "Splashed:1",
-      "SubOrbital:6",
-      "Unknown:8"
-    ],
-    "Sitrep.Contract.Staleness": [
-      "Fresh:0",
-      "HeldStale:1",
-      "LastBeforeBlackout:2"
-    ],
-    "Sitrep.Contract.TargetKind": ["Body:1", "Other:2", "Vessel:0"],
-    "Sitrep.Contract.TransitionType": [
-      "Collision:5",
-      "Encounter:2",
-      "Escape:3",
-      "Final:1",
-      "Initial:0",
-      "Maneuver:4",
-      "Unknown:6"
-    ],
-    "Sitrep.Contract.VesselType": [
-      "Base:5",
-      "Debris:9",
-      "DeployedScienceController:11",
-      "DeployedSciencePart:12",
-      "DroppedPart:13",
-      "EVA:7",
-      "Flag:8",
-      "Lander:2",
-      "Probe:3",
-      "Relay:6",
-      "Rover:4",
-      "Ship:0",
-      "SpaceObject:10",
-      "Station:1",
-      "Unknown:14"
-    ],
-    "Sitrep.Contract.WarpMode": ["High:0", "Low:1", "Unknown:2"]
-  }
+  "Majors": [
+    {
+      "Major": 3,
+      "Note": "Major 3's final published shape (frozen retroactively from the baseline as of 3dafebd3, the last commit on the v3 line). Retained ONLY as the diff basis that Major 4's Breaks list is verified against \u2014 the v3 line is dead and no Uplink was ever built against it. Its own Breaks list is empty because no Major-2 floor is recorded to diff against.",
+      "Breaks": [],
+      "Shape": {
+        "Types": {
+          "Sitrep.Contract.ActivateStrategyArgs": [
+            "Factor:System.Double",
+            "StrategyId:System.String"
+          ],
+          "Sitrep.Contract.AddManeuverNodeArgs": [
+            "Normal:System.Double",
+            "Prograde:System.Double",
+            "RadialOut:System.Double",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.AlternatorEntry": [
+            "OutputRate:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String"
+          ],
+          "Sitrep.Contract.BatteryEntry": [
+            "Current:System.Nullable`1[System.Double]",
+            "Max:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String"
+          ],
+          "Sitrep.Contract.BodyEntry": [
+            "Index:System.Int32",
+            "Name:System.String",
+            "Orbit:Sitrep.Contract.OrbitEntry",
+            "ParentIndex:System.Nullable`1[System.Int32]",
+            "Radius:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.CareerContract": [
+            "Agent:System.String",
+            "DateAccepted:System.Nullable`1[System.Double]",
+            "DateDeadline:System.Nullable`1[System.Double]",
+            "DateExpire:System.Nullable`1[System.Double]",
+            "FundsAdvance:System.Nullable`1[System.Double]",
+            "FundsCompletion:System.Nullable`1[System.Double]",
+            "FundsFailure:System.Nullable`1[System.Double]",
+            "Id:System.String",
+            "Parameters:System.Collections.Generic.List`1[Sitrep.Contract.CareerContractParameter]",
+            "ReputationCompletion:System.Nullable`1[System.Double]",
+            "ReputationFailure:System.Nullable`1[System.Double]",
+            "ScienceCompletion:System.Nullable`1[System.Double]",
+            "State:System.String",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerContractParameter": [
+            "State:System.String",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerContracts": [
+            "Active:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]",
+            "CompletedRecent:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]",
+            "Offered:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]"
+          ],
+          "Sitrep.Contract.CareerEconomy": [
+            "Funds:System.Nullable`1[System.Double]",
+            "Reputation:System.Nullable`1[System.Double]",
+            "Science:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.CareerFacility": [
+            "CurrentTier:System.Nullable`1[System.Int32]",
+            "MaxTier:System.Nullable`1[System.Int32]",
+            "UpgradeCost:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.CareerMode": ["Mode:Sitrep.Contract.GameMode"],
+          "Sitrep.Contract.CareerStatus": [
+            "Contracts:Sitrep.Contract.CareerContracts",
+            "Economy:Sitrep.Contract.CareerEconomy",
+            "Facilities:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.CareerFacility]",
+            "Strategies:Sitrep.Contract.CareerStrategies",
+            "Tech:Sitrep.Contract.CareerTech"
+          ],
+          "Sitrep.Contract.CareerStrategies": [
+            "Active:System.Collections.Generic.List`1[Sitrep.Contract.CareerStrategy]",
+            "ActiveCount:System.Int32",
+            "All:System.Collections.Generic.List`1[Sitrep.Contract.CareerStrategy]"
+          ],
+          "Sitrep.Contract.CareerStrategy": [
+            "ActivateBlockedReason:System.String",
+            "CanActivate:System.Nullable`1[System.Boolean]",
+            "CanDeactivate:System.Nullable`1[System.Boolean]",
+            "DateActivated:System.Nullable`1[System.Double]",
+            "DeactivateBlockedReason:System.String",
+            "Department:System.String",
+            "Description:System.String",
+            "Effect:System.String",
+            "Factor:System.Nullable`1[System.Double]",
+            "FactorSliderDefault:System.Nullable`1[System.Double]",
+            "FactorSliderSteps:System.Nullable`1[System.Int32]",
+            "HasFactorSlider:System.Nullable`1[System.Boolean]",
+            "Id:System.String",
+            "InitialCostFunds:System.Nullable`1[System.Double]",
+            "InitialCostReputation:System.Nullable`1[System.Double]",
+            "InitialCostScience:System.Nullable`1[System.Double]",
+            "IsActive:System.Nullable`1[System.Boolean]",
+            "RequiredReputation:System.Nullable`1[System.Double]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerTech": [
+            "Nodes:System.Collections.Generic.List`1[Sitrep.Contract.CareerTechNode]",
+            "UnlockedCount:System.Int32",
+            "UnlockedIds:System.Collections.Generic.List`1[System.String]"
+          ],
+          "Sitrep.Contract.CareerTechNode": [
+            "Id:System.String",
+            "Parents:System.Collections.Generic.List`1[System.String]",
+            "ScienceCost:System.Nullable`1[System.Double]",
+            "Title:System.String",
+            "Unlocked:System.Nullable`1[System.Boolean]"
+          ],
+          "Sitrep.Contract.CommandRequest`1": [
+            "Args:TArgs",
+            "Command:System.String",
+            "RequestId:System.String",
+            "SentAt:System.Double",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CommandResponse`1": [
+            "Meta:Sitrep.Contract.Meta",
+            "RequestId:System.String",
+            "Result:TResult",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CommandResult": [
+            "ErrorCode:Sitrep.Contract.CommandErrorCode",
+            "Success:System.Boolean"
+          ],
+          "Sitrep.Contract.CommandResult`1": ["Payload:T"],
+          "Sitrep.Contract.CommsConnectivity": [
+            "Connected:System.Boolean",
+            "ControlSource:Sitrep.Contract.CommsControlSource",
+            "HasLocalControl:System.Boolean",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsControlState": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Reason:System.String",
+            "State:Sitrep.Contract.CommsControlStateKind"
+          ],
+          "Sitrep.Contract.CommsDataRate": [
+            "DownBitsPerSec:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "UpBitsPerSec:System.Double"
+          ],
+          "Sitrep.Contract.CommsDelay": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "OneWaySeconds:System.Double",
+            "Source:Sitrep.Contract.CommsDelaySource"
+          ],
+          "Sitrep.Contract.CommsHop": [
+            "BandRateBitsPerSec:System.Nullable`1[System.Double]",
+            "DistanceMeters:System.Nullable`1[System.Double]",
+            "From:System.String",
+            "Kind:Sitrep.Contract.CommsHopKind",
+            "To:System.String"
+          ],
+          "Sitrep.Contract.CommsLinkMargin": [
+            "ClosesLink:System.Boolean",
+            "DecibelMargin:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsLinkQuality": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.CommsNetwork": [
+            "Edges:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsNetworkEdge]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Nodes:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsNetworkNode]"
+          ],
+          "Sitrep.Contract.CommsNetworkEdge": [
+            "A:System.String",
+            "Active:System.Boolean",
+            "B:System.String"
+          ],
+          "Sitrep.Contract.CommsNetworkNode": [
+            "Id:System.String",
+            "Kind:Sitrep.Contract.CommsHopKind"
+          ],
+          "Sitrep.Contract.CommsPath": [
+            "Hops:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsHop]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsSignalStrength": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.ContractActionArgs": ["ContractId:System.String"],
+          "Sitrep.Contract.CrashFlightStats": [
+            "FlightEndMode:System.String",
+            "GroundDistance:System.Double",
+            "HighestAltitude:System.Double",
+            "HighestGee:System.Double",
+            "HighestSpeed:System.Double",
+            "HighestSpeedOverLand:System.Double",
+            "KerbalsKilled:System.Int32",
+            "LiftOff:System.Boolean",
+            "MissionEnd:System.Boolean",
+            "MissionTime:System.Double",
+            "PartsLost:System.Int32",
+            "TotalDistance:System.Double"
+          ],
+          "Sitrep.Contract.CrashPartLost": [
+            "Msg:System.String",
+            "PartId:System.Int64",
+            "PartName:System.String",
+            "PartTitle:System.String"
+          ],
+          "Sitrep.Contract.CrashReport": [
+            "Altitude:System.Double",
+            "Body:System.String",
+            "CrewAboard:System.Collections.Generic.List`1[System.String]",
+            "EventKind:System.String",
+            "Events:System.Collections.Generic.List`1[System.String]",
+            "FlightStats:Sitrep.Contract.CrashFlightStats",
+            "KerbalsKilled:System.Collections.Generic.List`1[System.String]",
+            "Latitude:System.Double",
+            "Longitude:System.Double",
+            "Msg:System.String",
+            "PartsLost:System.Collections.Generic.List`1[Sitrep.Contract.CrashPartLost]",
+            "Situation:System.String",
+            "Ut:System.Double",
+            "VesselId:System.String",
+            "VesselName:System.String",
+            "VesselType:System.String",
+            "What:System.String"
+          ],
+          "Sitrep.Contract.CrewMember": [
+            "ExperienceLevel:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "RosterStatus:System.String",
+            "Trait:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CrewRosterEntry": [
+            "Available:System.Nullable`1[System.Boolean]",
+            "ExperienceLevel:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "Trait:System.String",
+            "UnavailableReason:System.String"
+          ],
+          "Sitrep.Contract.DeactivateStrategyArgs": [
+            "StrategyId:System.String"
+          ],
+          "Sitrep.Contract.DeployedEntry": [
+            "Biome:System.String",
+            "Body:System.String",
+            "ConnectionState:System.String",
+            "DeployedOnGround:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "PartName:System.String",
+            "PowerState:System.String",
+            "ScienceCompletedPercentage:System.Nullable`1[System.Double]",
+            "ScienceLimit:System.Nullable`1[System.Double]",
+            "ScienceTransmittedPercentage:System.Nullable`1[System.Double]",
+            "ScienceValue:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.DockAlignment": [
+            "Distance:System.Double",
+            "ForwardDot:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "RelativePosition:Sitrep.Contract.Vec3",
+            "RelativeVelocity:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.ErrorMsg": [
+            "Code:System.String",
+            "Message:System.String",
+            "RequestId:System.String",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.EventMsg": [
+            "Meta:Sitrep.Contract.Meta",
+            "Name:System.String",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ExperimentActionArgs": ["PartId:System.String"],
+          "Sitrep.Contract.ExperimentBreakdownEntry": [
+            "Biome:System.String",
+            "DataMits:System.Nullable`1[System.Double]",
+            "ExpTitle:System.String",
+            "RemainingPotential:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "SubjectId:System.String"
+          ],
+          "Sitrep.Contract.ExperimentEntry": [
+            "BaseTransmitValue:System.Nullable`1[System.Double]",
+            "DataAmount:System.Nullable`1[System.Double]",
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "LabValue:System.Nullable`1[System.Double]",
+            "Location:System.String",
+            "PartName:System.String",
+            "ScienceValueRatio:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "SubjectId:System.String",
+            "Title:System.String",
+            "TransmitBonus:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.FuelCellEntry": [
+            "Active:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Status:System.String"
+          ],
+          "Sitrep.Contract.GameDlc": [
+            "BreakingGround:System.Boolean",
+            "MakingHistory:System.Boolean"
+          ],
+          "Sitrep.Contract.InstrumentEntry": [
+            "DataIsCollectable:System.Nullable`1[System.Boolean]",
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Rerunnable:System.Nullable`1[System.Boolean]",
+            "Resettable:System.Nullable`1[System.Boolean]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.KosComputeStatus": [
+            "LastGoodAt:System.Nullable`1[System.Double]",
+            "ParseError:System.String",
+            "Paused:System.Boolean",
+            "Running:System.Boolean",
+            "ScriptError:System.String"
+          ],
+          "Sitrep.Contract.KosExecArgs": [
+            "CoreId:System.Int32",
+            "ScriptId:System.String"
+          ],
+          "Sitrep.Contract.KosProcessorInfo": [
+            "BootFilePath:System.String",
+            "CoreId:System.Int32",
+            "HasBooted:System.Boolean",
+            "ProcessorMode:System.String",
+            "Tag:System.String"
+          ],
+          "Sitrep.Contract.KosReEnableArgs": ["ScriptId:System.String"],
+          "Sitrep.Contract.LabEntry": [
+            "DataStorage:System.Nullable`1[System.Double]",
+            "DataStored:System.Nullable`1[System.Double]",
+            "IsOperational:System.Nullable`1[System.Boolean]",
+            "PartName:System.String",
+            "ProcessingData:System.Nullable`1[System.Boolean]",
+            "ScienceRate:System.Nullable`1[System.Double]",
+            "ScientistCount:System.Nullable`1[System.Int32]",
+            "StatusText:System.String",
+            "StoredScience:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.LaunchArgs": [
+            "Crew:System.Collections.Generic.List`1[System.String]",
+            "Facility:System.String",
+            "ShipName:System.String",
+            "Site:System.String"
+          ],
+          "Sitrep.Contract.LaunchSiteEntry": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "DisplayName:System.String",
+            "EditorFacility:System.String",
+            "IsStock:System.Nullable`1[System.Boolean]",
+            "Name:System.String",
+            "PadOccupied:System.Nullable`1[System.Boolean]",
+            "PadVesselTitle:System.String"
+          ],
+          "Sitrep.Contract.ManeuverNode": [
+            "DvNormal:System.Nullable`1[System.Double]",
+            "DvPrograde:System.Nullable`1[System.Double]",
+            "DvRadial:System.Nullable`1[System.Double]",
+            "DvTotal:System.Nullable`1[System.Double]",
+            "Id:System.String",
+            "Patches:System.Collections.Generic.List`1[Sitrep.Contract.OrbitPatch]",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.Meta": [
+            "Active:System.Boolean",
+            "Confidence:System.Nullable`1[System.Double]",
+            "DeliveredAt:System.Double",
+            "Quality:Sitrep.Contract.Quality",
+            "Seq:System.Int64",
+            "Source:System.String",
+            "Staleness:Sitrep.Contract.Staleness",
+            "TimelineEpoch:System.Int32",
+            "ValidAt:System.Double",
+            "Vantage:System.String"
+          ],
+          "Sitrep.Contract.OrbitEncounter": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "TransitionType:Sitrep.Contract.TransitionType",
+            "TransitionUt:System.Double"
+          ],
+          "Sitrep.Contract.OrbitEntry": [
+            "ArgPe:System.Nullable`1[System.Double]",
+            "Ecc:System.Nullable`1[System.Double]",
+            "Epoch:System.Nullable`1[System.Double]",
+            "Inc:System.Nullable`1[System.Double]",
+            "Lan:System.Nullable`1[System.Double]",
+            "MeanAnomalyAtEpoch:System.Nullable`1[System.Double]",
+            "Sma:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.OrbitPatch": [
+            "ApA:System.Double",
+            "ArgPe:System.Double",
+            "ClosestEncounterBody:System.String",
+            "Ecc:System.Double",
+            "EndUt:System.Double",
+            "Epoch:System.Double",
+            "Inc:System.Double",
+            "Lan:System.Double",
+            "MeanAnomalyAtEpoch:System.Double",
+            "PatchEndTransition:Sitrep.Contract.TransitionType",
+            "PatchStartTransition:Sitrep.Contract.TransitionType",
+            "PeA:System.Double",
+            "Period:System.Double",
+            "ReferenceBody:System.String",
+            "SemiLatusRectum:System.Double",
+            "SemiMinorAxis:System.Double",
+            "Sma:System.Double",
+            "StartUt:System.Double"
+          ],
+          "Sitrep.Contract.PartBounds": [
+            "Center:Sitrep.Contract.Vec3",
+            "Size:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.PartModuleState": [
+            "Flameout:System.Nullable`1[System.Boolean]",
+            "State:System.String",
+            "Tracking:System.Nullable`1[System.Boolean]",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.PartResourceFlow": [
+            "Amount:System.Double",
+            "Flow:System.Nullable`1[System.Double]",
+            "MaxAmount:System.Double",
+            "NominalFlow:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.PartsPower": [
+            "Alternators:System.Collections.Generic.List`1[Sitrep.Contract.AlternatorEntry]",
+            "Batteries:System.Collections.Generic.List`1[Sitrep.Contract.BatteryEntry]",
+            "FuelCells:System.Collections.Generic.List`1[Sitrep.Contract.FuelCellEntry]",
+            "SolarPanels:System.Collections.Generic.List`1[Sitrep.Contract.SolarPanelEntry]",
+            "TotalProductionEc:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.PayloadMeta": [
+            "Quality:Sitrep.Contract.Quality",
+            "Source:System.String"
+          ],
+          "Sitrep.Contract.RecoveryCrewEntry": [
+            "IsTourist:System.Boolean",
+            "LevelsGained:System.Int32",
+            "Name:System.String",
+            "NewLevel:System.Int32",
+            "Trait:System.String",
+            "XpGained:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryPartEntry": [
+            "Count:System.Int32",
+            "PartName:System.String",
+            "PartTitle:System.String",
+            "PartValue:System.Double",
+            "ResourcesValue:System.Double",
+            "TotalValue:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryReport": [
+            "CapturedAtUT:System.Double",
+            "CrewBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryCrewEntry]",
+            "DisplayReputation:System.Boolean",
+            "FundsEarned:System.Double",
+            "PartBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryPartEntry]",
+            "RecoveryFactor:System.String",
+            "RecoveryLocation:System.String",
+            "ReputationEarned:System.Double",
+            "ResourceBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryResourceEntry]",
+            "ScienceBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryScienceEntry]",
+            "ScienceEarned:System.Double",
+            "TotalFunds:System.Double",
+            "TotalReputation:System.Double",
+            "TotalScience:System.Double",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.RecoveryResourceEntry": [
+            "Amount:System.Double",
+            "ResourceName:System.String",
+            "TotalValue:System.Double",
+            "UnitValue:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryScienceEntry": [
+            "DataGathered:System.Double",
+            "ScienceAmount:System.Double",
+            "SubjectId:System.String",
+            "SubjectTitle:System.String"
+          ],
+          "Sitrep.Contract.RemoveManeuverNodeArgs": ["NodeId:System.String"],
+          "Sitrep.Contract.ResourceAmount": [
+            "Active:System.Boolean",
+            "Current:System.Double",
+            "Max:System.Double"
+          ],
+          "Sitrep.Contract.RevertAvailability": [
+            "CanRevertToEditor:System.Boolean",
+            "CanRevertToLaunch:System.Boolean"
+          ],
+          "Sitrep.Contract.RevertToEditorArgs": ["Editor:System.String"],
+          "Sitrep.Contract.RoboticsAvailability": [
+            "Available:System.Nullable`1[System.Boolean]"
+          ],
+          "Sitrep.Contract.RotorReverseArgs": ["PartId:System.String"],
+          "Sitrep.Contract.RotorSetValueArgs": [
+            "PartId:System.String",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.SavedShipEntry": [
+            "Facility:System.String",
+            "MissingParts:System.String[]",
+            "Name:System.String",
+            "PartCount:System.Nullable`1[System.Int32]",
+            "RequiresFunds:System.Nullable`1[System.Double]",
+            "TotalMass:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.ScanAnomalyEntry": [
+            "Detail:System.Nullable`1[System.Boolean]",
+            "Known:System.Nullable`1[System.Boolean]",
+            "Latitude:System.Nullable`1[System.Double]",
+            "Longitude:System.Nullable`1[System.Double]",
+            "Name:System.String"
+          ],
+          "Sitrep.Contract.ScanScienceEntry": [
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExpId:System.String",
+            "HasData:System.Nullable`1[System.Boolean]",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartTitle:System.String",
+            "Rerunnable:System.Nullable`1[System.Boolean]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.ScanSensorEntry": [
+            "BestAlt:System.Nullable`1[System.Double]",
+            "BestRange:System.Nullable`1[System.Boolean]",
+            "Fov:System.Nullable`1[System.Double]",
+            "InRange:System.Nullable`1[System.Boolean]",
+            "MaxAlt:System.Nullable`1[System.Double]",
+            "MinAlt:System.Nullable`1[System.Double]",
+            "Type:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.ScanTrackColor": [
+            "A:System.Nullable`1[System.Int32]",
+            "B:System.Nullable`1[System.Int32]",
+            "G:System.Nullable`1[System.Int32]",
+            "R:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.ScanningVesselEntry": [
+            "Altitude:System.Nullable`1[System.Double]",
+            "Body:System.String",
+            "GroundTrackLonHalfDeg:System.Nullable`1[System.Double]",
+            "GroundTrackWidthDeg:System.Nullable`1[System.Double]",
+            "Sensors:System.Collections.Generic.List`1[Sitrep.Contract.ScanSensorEntry]",
+            "SubLatitude:System.Nullable`1[System.Double]",
+            "SubLongitude:System.Nullable`1[System.Double]",
+            "TrackColor:Sitrep.Contract.ScanTrackColor",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.SensorEntry": [
+            "Active:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Readout:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ServoEntry": [
+            "BrakePercentage:System.Nullable`1[System.Double]",
+            "CounterClockwise:System.Nullable`1[System.Boolean]",
+            "CurrentAngle:System.Nullable`1[System.Double]",
+            "CurrentExtension:System.Nullable`1[System.Double]",
+            "CurrentRPM:System.Nullable`1[System.Double]",
+            "MaxTorque:System.Nullable`1[System.Double]",
+            "MotorState:System.String",
+            "NormalizedOutput:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "RpmLimit:System.Nullable`1[System.Double]",
+            "ServoIsLocked:System.Nullable`1[System.Boolean]",
+            "ServoIsMotorized:System.Nullable`1[System.Boolean]",
+            "ServoMotorIsEngaged:System.Nullable`1[System.Boolean]",
+            "ServoMotorLimit:System.Nullable`1[System.Double]",
+            "TargetAngle:System.Nullable`1[System.Double]",
+            "TargetExtension:System.Nullable`1[System.Double]",
+            "TraverseVelocity:System.Nullable`1[System.Double]",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ServoSetEnabledArgs": [
+            "Enabled:System.Boolean",
+            "PartId:System.String"
+          ],
+          "Sitrep.Contract.ServoSetTargetArgs": [
+            "PartId:System.String",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.SetActionGroupArgs": [
+            "Group:System.Int32",
+            "State:System.Boolean"
+          ],
+          "Sitrep.Contract.SetControlAxesArgs": [
+            "Pitch:System.Nullable`1[System.Double]",
+            "PitchTrim:System.Nullable`1[System.Double]",
+            "Roll:System.Nullable`1[System.Double]",
+            "RollTrim:System.Nullable`1[System.Double]",
+            "X:System.Nullable`1[System.Double]",
+            "Y:System.Nullable`1[System.Double]",
+            "Yaw:System.Nullable`1[System.Double]",
+            "YawTrim:System.Nullable`1[System.Double]",
+            "Z:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.SetEnabledArgs": ["Enabled:System.Boolean"],
+          "Sitrep.Contract.SetFlyByWireArgs": ["Enabled:System.Boolean"],
+          "Sitrep.Contract.SetPausedArgs": ["Paused:System.Boolean"],
+          "Sitrep.Contract.SetSasModeArgs": ["Mode:Sitrep.Contract.SasMode"],
+          "Sitrep.Contract.SetTargetArgs": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Kind:Sitrep.Contract.TargetKind",
+            "VesselId:System.String"
+          ],
+          "Sitrep.Contract.SetThrottleArgs": ["Value:System.Double"],
+          "Sitrep.Contract.SetWarpIndexArgs": ["Index:System.Int32"],
+          "Sitrep.Contract.SolarPanelEntry": [
+            "ChargeRate:System.Nullable`1[System.Double]",
+            "DeployState:System.String",
+            "FlowRate:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "SunAOA:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.SpaceCenterPartsAvailable": [
+            "Count:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.SpaceCenterScene": [
+            "LaunchSite:System.String",
+            "Scene:System.String"
+          ],
+          "Sitrep.Contract.StageDeltaVEntry": [
+            "BurnTime:System.Nullable`1[System.Double]",
+            "DryMass:System.Nullable`1[System.Double]",
+            "DvActual:System.Nullable`1[System.Double]",
+            "DvAsl:System.Nullable`1[System.Double]",
+            "DvVac:System.Nullable`1[System.Double]",
+            "EndMass:System.Nullable`1[System.Double]",
+            "FuelMass:System.Nullable`1[System.Double]",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.ResourceAmount]",
+            "Stage:System.Nullable`1[System.Int32]",
+            "StartMass:System.Nullable`1[System.Double]",
+            "ThrustActual:System.Nullable`1[System.Double]",
+            "ThrustAsl:System.Nullable`1[System.Double]",
+            "ThrustVac:System.Nullable`1[System.Double]",
+            "TwrActual:System.Nullable`1[System.Double]",
+            "TwrAsl:System.Nullable`1[System.Double]",
+            "TwrVac:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.StageDeltaVSummary": [
+            "StageCount:System.Nullable`1[System.Int32]",
+            "TotalBurnTime:System.Nullable`1[System.Double]",
+            "TotalDvActual:System.Nullable`1[System.Double]",
+            "TotalDvAsl:System.Nullable`1[System.Double]",
+            "TotalDvVac:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.StreamData`1": [
+            "Meta:Sitrep.Contract.Meta",
+            "Payload:T",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.Subscribe": [
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.SwitchVesselArgs": ["VesselId:System.String"],
+          "Sitrep.Contract.SystemBodies": [
+            "Bodies:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.BodyEntry]"
+          ],
+          "Sitrep.Contract.SystemVessels": [
+            "Vessels:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.VesselRosterEntry]"
+          ],
+          "Sitrep.Contract.ThermalHottestPart": [
+            "InternalTemp:System.Double",
+            "MaxTemp:System.Double",
+            "Name:System.String",
+            "SkinMaxTemp:System.Double",
+            "SkinTemp:System.Double"
+          ],
+          "Sitrep.Contract.UnlockTechArgs": ["TechId:System.String"],
+          "Sitrep.Contract.Unsubscribe": [
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.UpdateManeuverNodeArgs": [
+            "NodeId:System.String",
+            "Normal:System.Double",
+            "Prograde:System.Double",
+            "RadialOut:System.Double",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.UpgradeFacilityArgs": ["FacilityId:System.String"],
+          "Sitrep.Contract.Vec3": [
+            "X:System.Double",
+            "Y:System.Double",
+            "Z:System.Double"
+          ],
+          "Sitrep.Contract.VesselAttitude": [
+            "Heading:System.Double",
+            "HeadingRootFrame:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Pitch:System.Double",
+            "PitchRootFrame:System.Double",
+            "Roll:System.Double",
+            "RollRootFrame:System.Double"
+          ],
+          "Sitrep.Contract.VesselComms": [
+            "Connected:System.Boolean",
+            "ControlState:Sitrep.Contract.ControlState",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "SignalStrength:System.Double"
+          ],
+          "Sitrep.Contract.VesselControl": [
+            "Abort:System.Nullable`1[System.Boolean]",
+            "ActionGroups:System.Boolean[]",
+            "Brakes:System.Nullable`1[System.Boolean]",
+            "Gear:System.Nullable`1[System.Boolean]",
+            "Lights:System.Nullable`1[System.Boolean]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "PrecisionControl:System.Nullable`1[System.Boolean]",
+            "Rcs:System.Nullable`1[System.Boolean]",
+            "Sas:System.Nullable`1[System.Boolean]",
+            "SasMode:System.Nullable`1[Sitrep.Contract.SasMode]",
+            "Throttle:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.VesselCrew": [
+            "Capacity:System.Int32",
+            "Count:System.Int32",
+            "Crew:System.Collections.Generic.List`1[Sitrep.Contract.CrewMember]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.VesselFlight": [
+            "AltitudeAsl:System.Double",
+            "AltitudeTerrain:System.Double",
+            "AtmDensity:System.Double",
+            "AtmosphericTemperature:System.Double",
+            "DynamicPressureKPa:System.Double",
+            "ExternalTemperature:System.Double",
+            "GForce:System.Double",
+            "Latitude:System.Double",
+            "Longitude:System.Double",
+            "Mach:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "OrbitalSpeed:System.Double",
+            "SurfaceSpeed:System.Double",
+            "VerticalSpeed:System.Double"
+          ],
+          "Sitrep.Contract.VesselIdentity": [
+            "LaunchUt:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Name:System.String",
+            "ParentBodyIndex:System.Nullable`1[System.Int32]",
+            "Situation:Sitrep.Contract.Situation",
+            "VesselId:System.String",
+            "VesselType:Sitrep.Contract.VesselType"
+          ],
+          "Sitrep.Contract.VesselManeuver": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Nodes:System.Collections.Generic.List`1[Sitrep.Contract.ManeuverNode]"
+          ],
+          "Sitrep.Contract.VesselOrbit": [
+            "ArgPe:System.Nullable`1[System.Double]",
+            "Ecc:System.Double",
+            "Encounter:Sitrep.Contract.OrbitEncounter",
+            "Epoch:System.Double",
+            "Inc:System.Double",
+            "Lan:System.Nullable`1[System.Double]",
+            "MeanAnomalyAtEpoch:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Mu:System.Double",
+            "Patches:System.Collections.Generic.List`1[Sitrep.Contract.OrbitPatch]",
+            "ReferenceBodyIndex:System.Int32",
+            "Sma:System.Double"
+          ],
+          "Sitrep.Contract.VesselOrbitTruth": [
+            "FrameRotating:System.Boolean",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Position:Sitrep.Contract.Vec3",
+            "Velocity:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.VesselPart": [
+            "Bounds:Sitrep.Contract.PartBounds",
+            "Category:System.String",
+            "CurrentTemp:System.Nullable`1[System.Double]",
+            "DryMass:System.Double",
+            "FuelLineTargetId:System.String",
+            "Id:System.String",
+            "InverseStage:System.Int32",
+            "IsPowerRelated:System.Boolean",
+            "IsRobotics:System.Boolean",
+            "MaxTemp:System.Double",
+            "ModuleStates:System.Collections.Generic.List`1[Sitrep.Contract.PartModuleState]",
+            "Modules:System.Collections.Generic.List`1[System.String]",
+            "Name:System.String",
+            "ParentId:System.String",
+            "Position:Sitrep.Contract.Vec3",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.PartResourceFlow]",
+            "SkinMaxTemp:System.Nullable`1[System.Double]",
+            "SkinTemp:System.Nullable`1[System.Double]",
+            "Title:System.String",
+            "Up:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.VesselParts": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Parts:System.Collections.Generic.List`1[Sitrep.Contract.VesselPart]"
+          ],
+          "Sitrep.Contract.VesselPhysicsMode": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Mode:Sitrep.Contract.PhysicsMode"
+          ],
+          "Sitrep.Contract.VesselPropulsion": [
+            "AvailableThrust:System.Double",
+            "CurrentThrust:System.Double",
+            "DryMass:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "TotalMass:System.Double"
+          ],
+          "Sitrep.Contract.VesselResources": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.ResourceAmount]"
+          ],
+          "Sitrep.Contract.VesselRosterEntry": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "Situation:Sitrep.Contract.Situation",
+            "VesselId:System.String",
+            "VesselType:Sitrep.Contract.VesselType"
+          ],
+          "Sitrep.Contract.VesselStructure": [
+            "CurrentStage:System.Int32",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "PartCount:System.Nullable`1[System.Int32]",
+            "StageCount:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.VesselSurface": [
+            "Biome:System.String",
+            "HeightFromTerrain:System.Nullable`1[System.Double]",
+            "LandedAt:System.String",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.VesselTarget": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Kind:Sitrep.Contract.TargetKind",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Name:System.String",
+            "Orbit:Sitrep.Contract.VesselOrbit",
+            "RelativePosition:Sitrep.Contract.Vec3",
+            "RelativeVelocity:Sitrep.Contract.Vec3",
+            "VesselId:System.String"
+          ],
+          "Sitrep.Contract.VesselThermal": [
+            "AnyEnginesOverheating:System.Nullable`1[System.Boolean]",
+            "HeatShieldFlux:System.Nullable`1[System.Double]",
+            "HeatShieldTempCelsius:System.Nullable`1[System.Double]",
+            "HottestEngineMaxTemp:System.Nullable`1[System.Double]",
+            "HottestEngineTemp:System.Nullable`1[System.Double]",
+            "HottestEngineTempRatio:System.Nullable`1[System.Double]",
+            "HottestPart:Sitrep.Contract.ThermalHottestPart",
+            "MaxInternalTempRatio:System.Nullable`1[System.Double]",
+            "MaxSkinTempRatio:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.WarpState": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Paused:System.Boolean",
+            "WarpMode:Sitrep.Contract.WarpMode",
+            "WarpRate:System.Double",
+            "WarpRateIndex:System.Int32"
+          ]
+        },
+        "Enums": {
+          "Sitrep.Contract.CommandErrorCode": [
+            "ModeUnavailable:3",
+            "NoVessel:2",
+            "None:0",
+            "NotFound:5",
+            "Range:4",
+            "Timeout:6",
+            "Unknown:1"
+          ],
+          "Sitrep.Contract.CommsControlSource": [
+            "Full:2",
+            "None:0",
+            "Partial:1"
+          ],
+          "Sitrep.Contract.CommsControlStateKind": [
+            "Full:2",
+            "None:0",
+            "PartialManoeuvre:1"
+          ],
+          "Sitrep.Contract.CommsDelaySource": ["None:0", "SignalDelay:1"],
+          "Sitrep.Contract.CommsHopKind": ["Home:0", "Relay:1", "Vessel:2"],
+          "Sitrep.Contract.ControlState": [
+            "Full:4",
+            "Kerbal:2",
+            "KerbalFull:10",
+            "KerbalNone:8",
+            "KerbalPartial:9",
+            "None:0",
+            "Partial:3",
+            "Probe:1",
+            "ProbeFull:7",
+            "ProbeNone:5",
+            "ProbePartial:6",
+            "Unknown:11"
+          ],
+          "Sitrep.Contract.GameMode": [
+            "Career:1",
+            "Sandbox:0",
+            "Science:2",
+            "Unknown:3"
+          ],
+          "Sitrep.Contract.PhysicsMode": [
+            "OnRails:0",
+            "Packed:1",
+            "Unknown:3",
+            "Unpacked:2"
+          ],
+          "Sitrep.Contract.Quality": ["Loaded:1", "OnRails:0"],
+          "Sitrep.Contract.SasMode": [
+            "AntiTarget:8",
+            "Antinormal:4",
+            "Maneuver:9",
+            "Normal:3",
+            "Prograde:1",
+            "RadialIn:5",
+            "RadialOut:6",
+            "Retrograde:2",
+            "StabilityAssist:0",
+            "Target:7",
+            "Unknown:10"
+          ],
+          "Sitrep.Contract.Situation": [
+            "Docked:7",
+            "Escaping:4",
+            "Flying:5",
+            "Landed:0",
+            "Orbiting:3",
+            "PreLaunch:2",
+            "Splashed:1",
+            "SubOrbital:6",
+            "Unknown:8"
+          ],
+          "Sitrep.Contract.Staleness": [
+            "Fresh:0",
+            "HeldStale:1",
+            "LastBeforeBlackout:2"
+          ],
+          "Sitrep.Contract.TargetKind": ["Body:1", "Other:2", "Vessel:0"],
+          "Sitrep.Contract.TransitionType": [
+            "Collision:5",
+            "Encounter:2",
+            "Escape:3",
+            "Final:1",
+            "Initial:0",
+            "Maneuver:4",
+            "Unknown:6"
+          ],
+          "Sitrep.Contract.VesselType": [
+            "Base:5",
+            "Debris:9",
+            "DeployedScienceController:11",
+            "DeployedSciencePart:12",
+            "DroppedPart:13",
+            "EVA:7",
+            "Flag:8",
+            "Lander:2",
+            "Probe:3",
+            "Relay:6",
+            "Rover:4",
+            "Ship:0",
+            "SpaceObject:10",
+            "Station:1",
+            "Unknown:14"
+          ],
+          "Sitrep.Contract.WarpMode": ["High:0", "Low:1", "Unknown:2"]
+        }
+      }
+    },
+    {
+      "Major": 4,
+      "Note": "Frozen at v4.1. NOTE the provenance: an intermediate v4.0 (commit 57daa136) briefly published a DIFFERENT v4 shape (VesselControl.ActionGroups as System.Boolean[]) before the action-group retype was collapsed onto the same Major. That collapse is ratified on ContractVersion.Major's stated grounds \u2014 the mod is pre-release, no artifact was ever built against the intermediate v4.0, so exactly one v4 will ever be seen: this one. This ledger entry is that ratification, made explicit and machine-checked. It is frozen: every future v4.x Minor must be additive over this Shape.",
+      "Breaks": [
+        "member-removed:Sitrep.Contract.CommsDelay.OneWaySeconds:System.Double",
+        "member-removed:Sitrep.Contract.VesselControl.ActionGroups:System.Boolean[]"
+      ],
+      "Shape": {
+        "Types": {
+          "Sitrep.Contract.ActionGroupState": [
+            "Index:System.Int32",
+            "Name:System.String",
+            "State:System.Boolean"
+          ],
+          "Sitrep.Contract.ActivateStrategyArgs": [
+            "Factor:System.Double",
+            "StrategyId:System.String"
+          ],
+          "Sitrep.Contract.AddManeuverNodeArgs": [
+            "Normal:System.Double",
+            "Prograde:System.Double",
+            "RadialOut:System.Double",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.AlternatorEntry": [
+            "OutputRate:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String"
+          ],
+          "Sitrep.Contract.AtmosphereEntry": [
+            "Depth:System.Nullable`1[System.Double]",
+            "HasOxygen:System.Nullable`1[System.Boolean]",
+            "SeaLevelPressure:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.BatteryEntry": [
+            "Current:System.Nullable`1[System.Double]",
+            "Max:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String"
+          ],
+          "Sitrep.Contract.BodyEntry": [
+            "Atmosphere:Sitrep.Contract.AtmosphereEntry",
+            "Description:System.String",
+            "GravParameter:System.Nullable`1[System.Double]",
+            "HasOcean:System.Nullable`1[System.Boolean]",
+            "Index:System.Int32",
+            "Name:System.String",
+            "Orbit:Sitrep.Contract.OrbitEntry",
+            "ParentIndex:System.Nullable`1[System.Int32]",
+            "Radius:System.Nullable`1[System.Double]",
+            "RotationPeriod:System.Nullable`1[System.Double]",
+            "SphereOfInfluence:System.Nullable`1[System.Double]",
+            "TidallyLocked:System.Nullable`1[System.Boolean]"
+          ],
+          "Sitrep.Contract.CareerContract": [
+            "Agent:System.String",
+            "DateAccepted:System.Nullable`1[System.Double]",
+            "DateDeadline:System.Nullable`1[System.Double]",
+            "DateExpire:System.Nullable`1[System.Double]",
+            "FundsAdvance:System.Nullable`1[System.Double]",
+            "FundsCompletion:System.Nullable`1[System.Double]",
+            "FundsFailure:System.Nullable`1[System.Double]",
+            "Id:System.String",
+            "Parameters:System.Collections.Generic.List`1[Sitrep.Contract.CareerContractParameter]",
+            "ReputationCompletion:System.Nullable`1[System.Double]",
+            "ReputationFailure:System.Nullable`1[System.Double]",
+            "ScienceCompletion:System.Nullable`1[System.Double]",
+            "State:System.String",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerContractParameter": [
+            "State:System.String",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerContracts": [
+            "Active:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]",
+            "CompletedRecent:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]",
+            "Offered:System.Collections.Generic.List`1[Sitrep.Contract.CareerContract]"
+          ],
+          "Sitrep.Contract.CareerEconomy": [
+            "Funds:System.Nullable`1[System.Double]",
+            "Reputation:System.Nullable`1[System.Double]",
+            "Science:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.CareerFacility": [
+            "CurrentTier:System.Nullable`1[System.Int32]",
+            "MaxTier:System.Nullable`1[System.Int32]",
+            "UpgradeCost:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.CareerMode": ["Mode:Sitrep.Contract.GameMode"],
+          "Sitrep.Contract.CareerStatus": [
+            "Contracts:Sitrep.Contract.CareerContracts",
+            "Economy:Sitrep.Contract.CareerEconomy",
+            "Facilities:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.CareerFacility]",
+            "Strategies:Sitrep.Contract.CareerStrategies",
+            "Tech:Sitrep.Contract.CareerTech"
+          ],
+          "Sitrep.Contract.CareerStrategies": [
+            "Active:System.Collections.Generic.List`1[Sitrep.Contract.CareerStrategy]",
+            "ActiveCount:System.Int32",
+            "All:System.Collections.Generic.List`1[Sitrep.Contract.CareerStrategy]"
+          ],
+          "Sitrep.Contract.CareerStrategy": [
+            "ActivateBlockedReason:System.String",
+            "CanActivate:System.Nullable`1[System.Boolean]",
+            "CanDeactivate:System.Nullable`1[System.Boolean]",
+            "DateActivated:System.Nullable`1[System.Double]",
+            "DeactivateBlockedReason:System.String",
+            "Department:System.String",
+            "Description:System.String",
+            "Effect:System.String",
+            "Factor:System.Nullable`1[System.Double]",
+            "FactorSliderDefault:System.Nullable`1[System.Double]",
+            "FactorSliderSteps:System.Nullable`1[System.Int32]",
+            "HasFactorSlider:System.Nullable`1[System.Boolean]",
+            "Id:System.String",
+            "InitialCostFunds:System.Nullable`1[System.Double]",
+            "InitialCostReputation:System.Nullable`1[System.Double]",
+            "InitialCostScience:System.Nullable`1[System.Double]",
+            "IsActive:System.Nullable`1[System.Boolean]",
+            "RequiredReputation:System.Nullable`1[System.Double]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.CareerTech": [
+            "Nodes:System.Collections.Generic.List`1[Sitrep.Contract.CareerTechNode]",
+            "UnlockedCount:System.Int32",
+            "UnlockedIds:System.Collections.Generic.List`1[System.String]"
+          ],
+          "Sitrep.Contract.CareerTechNode": [
+            "Id:System.String",
+            "Parents:System.Collections.Generic.List`1[System.String]",
+            "ScienceCost:System.Nullable`1[System.Double]",
+            "Title:System.String",
+            "Unlocked:System.Nullable`1[System.Boolean]"
+          ],
+          "Sitrep.Contract.CommandRequest`1": [
+            "Args:TArgs",
+            "Command:System.String",
+            "Label:System.String",
+            "RequestId:System.String",
+            "SentAt:System.Double",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CommandResponse`1": [
+            "Meta:Sitrep.Contract.Meta",
+            "RequestId:System.String",
+            "Result:TResult",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CommandResult": [
+            "ErrorCode:Sitrep.Contract.CommandErrorCode",
+            "Success:System.Boolean"
+          ],
+          "Sitrep.Contract.CommandResult`1": ["Payload:T"],
+          "Sitrep.Contract.CommsConnectivity": [
+            "Connected:System.Boolean",
+            "ControlSource:Sitrep.Contract.CommsControlSource",
+            "HasLocalControl:System.Boolean",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsControlState": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Reason:System.String",
+            "State:Sitrep.Contract.CommsControlStateKind"
+          ],
+          "Sitrep.Contract.CommsDataRate": [
+            "DownBitsPerSec:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "UpBitsPerSec:System.Double"
+          ],
+          "Sitrep.Contract.CommsDelay": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "OneWaySeconds:System.Nullable`1[System.Double]",
+            "Source:Sitrep.Contract.CommsDelaySource"
+          ],
+          "Sitrep.Contract.CommsHop": [
+            "BandRateBitsPerSec:System.Nullable`1[System.Double]",
+            "DistanceMeters:System.Nullable`1[System.Double]",
+            "From:System.String",
+            "Kind:Sitrep.Contract.CommsHopKind",
+            "To:System.String"
+          ],
+          "Sitrep.Contract.CommsLink": [
+            "Connected:System.Boolean",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsLinkMargin": [
+            "ClosesLink:System.Boolean",
+            "DecibelMargin:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsLinkQuality": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.CommsNetwork": [
+            "Edges:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsNetworkEdge]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Nodes:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsNetworkNode]"
+          ],
+          "Sitrep.Contract.CommsNetworkEdge": [
+            "A:System.String",
+            "Active:System.Boolean",
+            "B:System.String"
+          ],
+          "Sitrep.Contract.CommsNetworkNode": [
+            "Id:System.String",
+            "Kind:Sitrep.Contract.CommsHopKind"
+          ],
+          "Sitrep.Contract.CommsPath": [
+            "Hops:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.CommsHop]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.CommsSignalStrength": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.ContractActionArgs": ["ContractId:System.String"],
+          "Sitrep.Contract.CrashFlightStats": [
+            "FlightEndMode:System.String",
+            "GroundDistance:System.Double",
+            "HighestAltitude:System.Double",
+            "HighestGee:System.Double",
+            "HighestSpeed:System.Double",
+            "HighestSpeedOverLand:System.Double",
+            "KerbalsKilled:System.Int32",
+            "LiftOff:System.Boolean",
+            "MissionEnd:System.Boolean",
+            "MissionTime:System.Double",
+            "PartsLost:System.Int32",
+            "TotalDistance:System.Double"
+          ],
+          "Sitrep.Contract.CrashPartLost": [
+            "Msg:System.String",
+            "PartId:System.Int64",
+            "PartName:System.String",
+            "PartTitle:System.String"
+          ],
+          "Sitrep.Contract.CrashReport": [
+            "Altitude:System.Double",
+            "Body:System.String",
+            "CrewAboard:System.Collections.Generic.List`1[System.String]",
+            "EventKind:System.String",
+            "Events:System.Collections.Generic.List`1[System.String]",
+            "FlightStats:Sitrep.Contract.CrashFlightStats",
+            "KerbalsKilled:System.Collections.Generic.List`1[System.String]",
+            "Latitude:System.Double",
+            "Longitude:System.Double",
+            "Msg:System.String",
+            "PartsLost:System.Collections.Generic.List`1[Sitrep.Contract.CrashPartLost]",
+            "Situation:System.String",
+            "Ut:System.Double",
+            "VesselId:System.String",
+            "VesselName:System.String",
+            "VesselType:System.String",
+            "What:System.String"
+          ],
+          "Sitrep.Contract.CrewMember": [
+            "ExperienceLevel:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "RosterStatus:System.String",
+            "Trait:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.CrewRosterEntry": [
+            "Available:System.Nullable`1[System.Boolean]",
+            "ExperienceLevel:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "Trait:System.String",
+            "UnavailableReason:System.String"
+          ],
+          "Sitrep.Contract.DeactivateStrategyArgs": [
+            "StrategyId:System.String"
+          ],
+          "Sitrep.Contract.DeployedEntry": [
+            "Biome:System.String",
+            "Body:System.String",
+            "ConnectionState:System.String",
+            "DeployedOnGround:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "PartName:System.String",
+            "PowerState:System.String",
+            "ScienceCompletedPercentage:System.Nullable`1[System.Double]",
+            "ScienceLimit:System.Nullable`1[System.Double]",
+            "ScienceTransmittedPercentage:System.Nullable`1[System.Double]",
+            "ScienceValue:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.DockAlignment": [
+            "Distance:System.Double",
+            "ForwardDot:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "RelativePosition:Sitrep.Contract.Vec3",
+            "RelativeVelocity:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.ErrorMsg": [
+            "Code:System.String",
+            "Message:System.String",
+            "RequestId:System.String",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.EventMsg": [
+            "Meta:Sitrep.Contract.Meta",
+            "Name:System.String",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ExperimentActionArgs": ["PartId:System.String"],
+          "Sitrep.Contract.ExperimentBreakdownEntry": [
+            "Biome:System.String",
+            "DataMits:System.Nullable`1[System.Double]",
+            "ExpTitle:System.String",
+            "RemainingPotential:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "SubjectId:System.String"
+          ],
+          "Sitrep.Contract.ExperimentEntry": [
+            "BaseTransmitValue:System.Nullable`1[System.Double]",
+            "DataAmount:System.Nullable`1[System.Double]",
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "LabValue:System.Nullable`1[System.Double]",
+            "Location:System.String",
+            "PartName:System.String",
+            "ScienceValueRatio:System.Nullable`1[System.Double]",
+            "Situation:System.String",
+            "SubjectId:System.String",
+            "Title:System.String",
+            "TransmitBonus:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.FlightCurrent": [
+            "FlightId:System.String",
+            "Phase:Sitrep.Contract.Situation",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.FlightEnded": [
+            "FlightId:System.String",
+            "Reason:Sitrep.Contract.FlightEndReason",
+            "Ut:System.Double",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.FlightStarted": [
+            "FlightId:System.String",
+            "Ut:System.Double",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.FlightVesselChanged": [
+            "FlightId:System.String",
+            "PreviousVesselId:System.String",
+            "Ut:System.Double",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.FuelCellEntry": [
+            "Active:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Status:System.String"
+          ],
+          "Sitrep.Contract.GameDlc": [
+            "BreakingGround:System.Boolean",
+            "MakingHistory:System.Boolean"
+          ],
+          "Sitrep.Contract.InstrumentEntry": [
+            "DataIsCollectable:System.Nullable`1[System.Boolean]",
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExperimentId:System.String",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Rerunnable:System.Nullable`1[System.Boolean]",
+            "Resettable:System.Nullable`1[System.Boolean]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.KerbcastCameraEntry": [
+            "CameraId:System.Nullable`1[System.Int64]",
+            "CameraName:System.String",
+            "DockingPortNodeType:System.String",
+            "DockingPortState:System.String",
+            "FieldOfView:System.Nullable`1[System.Double]",
+            "FieldOfViewMaximum:System.Nullable`1[System.Double]",
+            "FieldOfViewMinimum:System.Nullable`1[System.Double]",
+            "IsDockingCamera:System.Nullable`1[System.Boolean]",
+            "PanPitch:System.Nullable`1[System.Double]",
+            "PanPitchMaximum:System.Nullable`1[System.Double]",
+            "PanPitchMinimum:System.Nullable`1[System.Double]",
+            "PanYaw:System.Nullable`1[System.Double]",
+            "PanYawMaximum:System.Nullable`1[System.Double]",
+            "PanYawMinimum:System.Nullable`1[System.Double]",
+            "PartId:System.Nullable`1[System.Int64]",
+            "PartName:System.String",
+            "PartTitle:System.String",
+            "SupportsPan:System.Nullable`1[System.Boolean]",
+            "SupportsZoom:System.Nullable`1[System.Boolean]",
+            "VesselId:System.String"
+          ],
+          "Sitrep.Contract.KerbcastSetFieldOfViewArgs": [
+            "CameraId:System.Int64",
+            "FieldOfView:System.Double"
+          ],
+          "Sitrep.Contract.KerbcastSetPanArgs": [
+            "CameraId:System.Int64",
+            "Pitch:System.Double",
+            "Yaw:System.Double"
+          ],
+          "Sitrep.Contract.KosComputeStatus": [
+            "LastGoodAt:System.Nullable`1[System.Double]",
+            "ParseError:System.String",
+            "Paused:System.Boolean",
+            "Running:System.Boolean",
+            "ScriptError:System.String"
+          ],
+          "Sitrep.Contract.KosExecArgs": [
+            "CoreId:System.Int32",
+            "ScriptId:System.String"
+          ],
+          "Sitrep.Contract.KosKeystrokeArgs": [
+            "Chars:System.String",
+            "CoreId:System.Int32",
+            "LeaseToken:System.String"
+          ],
+          "Sitrep.Contract.KosProcessorInfo": [
+            "BootFilePath:System.String",
+            "CoreId:System.Int32",
+            "HasBooted:System.Boolean",
+            "ProcessorMode:System.String",
+            "Tag:System.String"
+          ],
+          "Sitrep.Contract.KosReEnableArgs": ["ScriptId:System.String"],
+          "Sitrep.Contract.KosRunArgs": [
+            "Command:System.String",
+            "CoreId:System.Int32",
+            "RequestId:System.String"
+          ],
+          "Sitrep.Contract.KosRunResult": [
+            "CoreId:System.Int32",
+            "Error:System.String",
+            "Fields:System.Collections.Generic.Dictionary`2[System.String,System.Object]",
+            "RequestId:System.String"
+          ],
+          "Sitrep.Contract.KosTerminalCloseArgs": [
+            "CoreId:System.Int32",
+            "LeaseToken:System.String"
+          ],
+          "Sitrep.Contract.KosTerminalFrame": [
+            "Chunk:System.String",
+            "CoreId:System.Int32",
+            "FullRepaint:System.Boolean"
+          ],
+          "Sitrep.Contract.KosTerminalOpenArgs": [
+            "CoreId:System.Int32",
+            "LeaseToken:System.String"
+          ],
+          "Sitrep.Contract.KosTerminalResizeArgs": [
+            "Cols:System.Int32",
+            "CoreId:System.Int32",
+            "LeaseToken:System.String",
+            "Rows:System.Int32"
+          ],
+          "Sitrep.Contract.LabEntry": [
+            "DataStorage:System.Nullable`1[System.Double]",
+            "DataStored:System.Nullable`1[System.Double]",
+            "IsOperational:System.Nullable`1[System.Boolean]",
+            "PartName:System.String",
+            "ProcessingData:System.Nullable`1[System.Boolean]",
+            "ScienceRate:System.Nullable`1[System.Double]",
+            "ScientistCount:System.Nullable`1[System.Int32]",
+            "StatusText:System.String",
+            "StoredScience:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.LaunchArgs": [
+            "Crew:System.Collections.Generic.List`1[System.String]",
+            "Facility:System.String",
+            "ShipName:System.String",
+            "Site:System.String"
+          ],
+          "Sitrep.Contract.LaunchSiteEntry": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "DisplayName:System.String",
+            "EditorFacility:System.String",
+            "IsStock:System.Nullable`1[System.Boolean]",
+            "Name:System.String",
+            "PadOccupied:System.Nullable`1[System.Boolean]",
+            "PadVesselTitle:System.String"
+          ],
+          "Sitrep.Contract.ManeuverNode": [
+            "DvNormal:System.Nullable`1[System.Double]",
+            "DvPrograde:System.Nullable`1[System.Double]",
+            "DvRadial:System.Nullable`1[System.Double]",
+            "DvTotal:System.Nullable`1[System.Double]",
+            "Id:System.String",
+            "Patches:System.Collections.Generic.List`1[Sitrep.Contract.OrbitPatch]",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.Meta": [
+            "Active:System.Boolean",
+            "Confidence:System.Nullable`1[System.Double]",
+            "DeliveredAt:System.Double",
+            "Quality:Sitrep.Contract.Quality",
+            "Seq:System.Int64",
+            "Source:System.String",
+            "Staleness:Sitrep.Contract.Staleness",
+            "TimelineEpoch:System.Int32",
+            "ValidAt:System.Double",
+            "Vantage:System.String"
+          ],
+          "Sitrep.Contract.OrbitEncounter": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "TransitionType:Sitrep.Contract.TransitionType",
+            "TransitionUt:System.Double"
+          ],
+          "Sitrep.Contract.OrbitEntry": [
+            "ArgPe:System.Nullable`1[System.Double]",
+            "Ecc:System.Nullable`1[System.Double]",
+            "Epoch:System.Nullable`1[System.Double]",
+            "Inc:System.Nullable`1[System.Double]",
+            "Lan:System.Nullable`1[System.Double]",
+            "MeanAnomalyAtEpoch:System.Nullable`1[System.Double]",
+            "Sma:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.OrbitPatch": [
+            "ApA:System.Double",
+            "ArgPe:System.Double",
+            "ClosestEncounterBody:System.String",
+            "Ecc:System.Double",
+            "EndUt:System.Double",
+            "Epoch:System.Double",
+            "Inc:System.Double",
+            "Lan:System.Double",
+            "MeanAnomalyAtEpoch:System.Double",
+            "PatchEndTransition:Sitrep.Contract.TransitionType",
+            "PatchStartTransition:Sitrep.Contract.TransitionType",
+            "PeA:System.Double",
+            "Period:System.Double",
+            "ReferenceBody:System.String",
+            "SemiLatusRectum:System.Double",
+            "SemiMinorAxis:System.Double",
+            "Sma:System.Double",
+            "StartUt:System.Double"
+          ],
+          "Sitrep.Contract.PartBounds": [
+            "Center:Sitrep.Contract.Vec3",
+            "Size:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.PartModuleState": [
+            "Flameout:System.Nullable`1[System.Boolean]",
+            "State:System.String",
+            "Tracking:System.Nullable`1[System.Boolean]",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.PartResourceFlow": [
+            "Amount:System.Double",
+            "Flow:System.Nullable`1[System.Double]",
+            "MaxAmount:System.Double",
+            "NominalFlow:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.PartsPower": [
+            "Alternators:System.Collections.Generic.List`1[Sitrep.Contract.AlternatorEntry]",
+            "Batteries:System.Collections.Generic.List`1[Sitrep.Contract.BatteryEntry]",
+            "FuelCells:System.Collections.Generic.List`1[Sitrep.Contract.FuelCellEntry]",
+            "SolarPanels:System.Collections.Generic.List`1[Sitrep.Contract.SolarPanelEntry]",
+            "TotalProductionEc:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.PayloadMeta": [
+            "Quality:Sitrep.Contract.Quality",
+            "Source:System.String"
+          ],
+          "Sitrep.Contract.PendingUplink": [
+            "Command:System.String",
+            "DispatchedAt:System.Double",
+            "Id:System.String",
+            "Label:System.String",
+            "OneWaySeconds:System.Double",
+            "Topic:System.String",
+            "Vantage:System.String"
+          ],
+          "Sitrep.Contract.PendingUplinkQueue": [
+            "Pending:System.Collections.Generic.List`1[Sitrep.Contract.PendingUplink]"
+          ],
+          "Sitrep.Contract.RecoveryCrewEntry": [
+            "IsTourist:System.Boolean",
+            "LevelsGained:System.Int32",
+            "Name:System.String",
+            "NewLevel:System.Int32",
+            "Trait:System.String",
+            "XpGained:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryPartEntry": [
+            "Count:System.Int32",
+            "PartName:System.String",
+            "PartTitle:System.String",
+            "PartValue:System.Double",
+            "ResourcesValue:System.Double",
+            "TotalValue:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryReport": [
+            "CapturedAtUT:System.Double",
+            "CrewBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryCrewEntry]",
+            "DisplayReputation:System.Boolean",
+            "FundsEarned:System.Double",
+            "PartBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryPartEntry]",
+            "RecoveryFactor:System.String",
+            "RecoveryLocation:System.String",
+            "ReputationEarned:System.Double",
+            "ResourceBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryResourceEntry]",
+            "ScienceBreakdown:System.Collections.Generic.List`1[Sitrep.Contract.RecoveryScienceEntry]",
+            "ScienceEarned:System.Double",
+            "TotalFunds:System.Double",
+            "TotalReputation:System.Double",
+            "TotalScience:System.Double",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.RecoveryResourceEntry": [
+            "Amount:System.Double",
+            "ResourceName:System.String",
+            "TotalValue:System.Double",
+            "UnitValue:System.Double"
+          ],
+          "Sitrep.Contract.RecoveryScienceEntry": [
+            "DataGathered:System.Double",
+            "ScienceAmount:System.Double",
+            "SubjectId:System.String",
+            "SubjectTitle:System.String"
+          ],
+          "Sitrep.Contract.RemoveManeuverNodeArgs": ["NodeId:System.String"],
+          "Sitrep.Contract.ResourceAmount": [
+            "Active:System.Boolean",
+            "Current:System.Double",
+            "Max:System.Double"
+          ],
+          "Sitrep.Contract.RevertAvailability": [
+            "CanRevertToEditor:System.Boolean",
+            "CanRevertToLaunch:System.Boolean"
+          ],
+          "Sitrep.Contract.RevertToEditorArgs": ["Editor:System.String"],
+          "Sitrep.Contract.RoboticsAvailability": [
+            "Available:System.Nullable`1[System.Boolean]"
+          ],
+          "Sitrep.Contract.RotorReverseArgs": ["PartId:System.String"],
+          "Sitrep.Contract.RotorSetValueArgs": [
+            "PartId:System.String",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.SavedShipEntry": [
+            "Facility:System.String",
+            "MissingParts:System.String[]",
+            "Name:System.String",
+            "PartCount:System.Nullable`1[System.Int32]",
+            "RequiresFunds:System.Nullable`1[System.Double]",
+            "TotalMass:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.ScanAnomalyEntry": [
+            "Detail:System.Nullable`1[System.Boolean]",
+            "Known:System.Nullable`1[System.Boolean]",
+            "Latitude:System.Nullable`1[System.Double]",
+            "Longitude:System.Nullable`1[System.Double]",
+            "Name:System.String"
+          ],
+          "Sitrep.Contract.ScanScienceEntry": [
+            "Deployed:System.Nullable`1[System.Boolean]",
+            "ExpId:System.String",
+            "HasData:System.Nullable`1[System.Boolean]",
+            "Inoperable:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartTitle:System.String",
+            "Rerunnable:System.Nullable`1[System.Boolean]",
+            "Title:System.String"
+          ],
+          "Sitrep.Contract.ScanSensorEntry": [
+            "BestAlt:System.Nullable`1[System.Double]",
+            "BestRange:System.Nullable`1[System.Boolean]",
+            "Fov:System.Nullable`1[System.Double]",
+            "InRange:System.Nullable`1[System.Boolean]",
+            "MaxAlt:System.Nullable`1[System.Double]",
+            "MinAlt:System.Nullable`1[System.Double]",
+            "Type:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.ScanTrackColor": [
+            "A:System.Nullable`1[System.Int32]",
+            "B:System.Nullable`1[System.Int32]",
+            "G:System.Nullable`1[System.Int32]",
+            "R:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.ScanningVesselEntry": [
+            "Altitude:System.Nullable`1[System.Double]",
+            "Body:System.String",
+            "GroundTrackLonHalfDeg:System.Nullable`1[System.Double]",
+            "GroundTrackWidthDeg:System.Nullable`1[System.Double]",
+            "Sensors:System.Collections.Generic.List`1[Sitrep.Contract.ScanSensorEntry]",
+            "SubLatitude:System.Nullable`1[System.Double]",
+            "SubLongitude:System.Nullable`1[System.Double]",
+            "TrackColor:Sitrep.Contract.ScanTrackColor",
+            "VesselId:System.String",
+            "VesselName:System.String"
+          ],
+          "Sitrep.Contract.SensorEntry": [
+            "Active:System.Nullable`1[System.Boolean]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "Readout:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ServoEntry": [
+            "BrakePercentage:System.Nullable`1[System.Double]",
+            "CounterClockwise:System.Nullable`1[System.Boolean]",
+            "CurrentAngle:System.Nullable`1[System.Double]",
+            "CurrentExtension:System.Nullable`1[System.Double]",
+            "CurrentRPM:System.Nullable`1[System.Double]",
+            "MaxTorque:System.Nullable`1[System.Double]",
+            "MotorState:System.String",
+            "NormalizedOutput:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "RpmLimit:System.Nullable`1[System.Double]",
+            "ServoIsLocked:System.Nullable`1[System.Boolean]",
+            "ServoIsMotorized:System.Nullable`1[System.Boolean]",
+            "ServoMotorIsEngaged:System.Nullable`1[System.Boolean]",
+            "ServoMotorLimit:System.Nullable`1[System.Double]",
+            "TargetAngle:System.Nullable`1[System.Double]",
+            "TargetExtension:System.Nullable`1[System.Double]",
+            "TraverseVelocity:System.Nullable`1[System.Double]",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.ServoSetEnabledArgs": [
+            "Enabled:System.Boolean",
+            "PartId:System.String"
+          ],
+          "Sitrep.Contract.ServoSetTargetArgs": [
+            "PartId:System.String",
+            "Value:System.Double"
+          ],
+          "Sitrep.Contract.SetActionGroupArgs": [
+            "Group:System.Int32",
+            "State:System.Boolean"
+          ],
+          "Sitrep.Contract.SetControlAxesArgs": [
+            "Pitch:System.Nullable`1[System.Double]",
+            "PitchTrim:System.Nullable`1[System.Double]",
+            "Roll:System.Nullable`1[System.Double]",
+            "RollTrim:System.Nullable`1[System.Double]",
+            "X:System.Nullable`1[System.Double]",
+            "Y:System.Nullable`1[System.Double]",
+            "Yaw:System.Nullable`1[System.Double]",
+            "YawTrim:System.Nullable`1[System.Double]",
+            "Z:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.SetEnabledArgs": ["Enabled:System.Boolean"],
+          "Sitrep.Contract.SetFlyByWireArgs": ["Enabled:System.Boolean"],
+          "Sitrep.Contract.SetPausedArgs": ["Paused:System.Boolean"],
+          "Sitrep.Contract.SetSasModeArgs": ["Mode:Sitrep.Contract.SasMode"],
+          "Sitrep.Contract.SetTargetArgs": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Kind:Sitrep.Contract.TargetKind",
+            "VesselId:System.String"
+          ],
+          "Sitrep.Contract.SetThrottleArgs": ["Value:System.Double"],
+          "Sitrep.Contract.SetWarpIndexArgs": ["Index:System.Int32"],
+          "Sitrep.Contract.SolarPanelEntry": [
+            "ChargeRate:System.Nullable`1[System.Double]",
+            "DeployState:System.String",
+            "FlowRate:System.Nullable`1[System.Double]",
+            "PartId:System.String",
+            "PartName:System.String",
+            "SunAOA:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.SpaceCenterPartsAvailable": [
+            "Count:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.SpaceCenterScene": [
+            "LaunchSite:System.String",
+            "Scene:System.String"
+          ],
+          "Sitrep.Contract.StageDeltaVEntry": [
+            "BurnTime:System.Nullable`1[System.Double]",
+            "DryMass:System.Nullable`1[System.Double]",
+            "DvActual:System.Nullable`1[System.Double]",
+            "DvAsl:System.Nullable`1[System.Double]",
+            "DvVac:System.Nullable`1[System.Double]",
+            "EndMass:System.Nullable`1[System.Double]",
+            "FuelMass:System.Nullable`1[System.Double]",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.ResourceAmount]",
+            "Stage:System.Nullable`1[System.Int32]",
+            "StartMass:System.Nullable`1[System.Double]",
+            "ThrustActual:System.Nullable`1[System.Double]",
+            "ThrustAsl:System.Nullable`1[System.Double]",
+            "ThrustVac:System.Nullable`1[System.Double]",
+            "TwrActual:System.Nullable`1[System.Double]",
+            "TwrAsl:System.Nullable`1[System.Double]",
+            "TwrVac:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.StageDeltaVSummary": [
+            "StageCount:System.Nullable`1[System.Int32]",
+            "TotalBurnTime:System.Nullable`1[System.Double]",
+            "TotalDvActual:System.Nullable`1[System.Double]",
+            "TotalDvAsl:System.Nullable`1[System.Double]",
+            "TotalDvVac:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.StreamData`1": [
+            "Meta:Sitrep.Contract.Meta",
+            "Payload:T",
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.Subscribe": [
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.SwitchVesselArgs": ["VesselId:System.String"],
+          "Sitrep.Contract.SystemBodies": [
+            "Bodies:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.BodyEntry]"
+          ],
+          "Sitrep.Contract.SystemVessels": [
+            "Vessels:System.Collections.Generic.IReadOnlyList`1[Sitrep.Contract.VesselRosterEntry]"
+          ],
+          "Sitrep.Contract.ThermalHottestPart": [
+            "InternalTemp:System.Double",
+            "MaxTemp:System.Double",
+            "Name:System.String",
+            "SkinMaxTemp:System.Double",
+            "SkinTemp:System.Double"
+          ],
+          "Sitrep.Contract.UnlockTechArgs": ["TechId:System.String"],
+          "Sitrep.Contract.Unsubscribe": [
+            "Topic:System.String",
+            "Type:System.String"
+          ],
+          "Sitrep.Contract.UpdateManeuverNodeArgs": [
+            "NodeId:System.String",
+            "Normal:System.Double",
+            "Prograde:System.Double",
+            "RadialOut:System.Double",
+            "Ut:System.Double"
+          ],
+          "Sitrep.Contract.UpgradeFacilityArgs": ["FacilityId:System.String"],
+          "Sitrep.Contract.Vec3": [
+            "X:System.Double",
+            "Y:System.Double",
+            "Z:System.Double"
+          ],
+          "Sitrep.Contract.VesselAttitude": [
+            "Heading:System.Double",
+            "HeadingRootFrame:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Pitch:System.Double",
+            "PitchRootFrame:System.Double",
+            "Roll:System.Double",
+            "RollRootFrame:System.Double"
+          ],
+          "Sitrep.Contract.VesselComms": [
+            "Connected:System.Boolean",
+            "ControlState:Sitrep.Contract.ControlState",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "SignalStrength:System.Double"
+          ],
+          "Sitrep.Contract.VesselControl": [
+            "Abort:System.Nullable`1[System.Boolean]",
+            "ActionGroups:Sitrep.Contract.ActionGroupState[]",
+            "Brakes:System.Nullable`1[System.Boolean]",
+            "Gear:System.Nullable`1[System.Boolean]",
+            "Lights:System.Nullable`1[System.Boolean]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "PrecisionControl:System.Nullable`1[System.Boolean]",
+            "Rcs:System.Nullable`1[System.Boolean]",
+            "Sas:System.Nullable`1[System.Boolean]",
+            "SasMode:System.Nullable`1[Sitrep.Contract.SasMode]",
+            "Throttle:System.Nullable`1[System.Double]"
+          ],
+          "Sitrep.Contract.VesselCrew": [
+            "Capacity:System.Int32",
+            "Count:System.Int32",
+            "Crew:System.Collections.Generic.List`1[Sitrep.Contract.CrewMember]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.VesselFlight": [
+            "AltitudeAsl:System.Double",
+            "AltitudeTerrain:System.Double",
+            "AtmDensity:System.Double",
+            "AtmosphericTemperature:System.Double",
+            "DynamicPressureKPa:System.Double",
+            "ExternalTemperature:System.Double",
+            "GForce:System.Double",
+            "Latitude:System.Double",
+            "Longitude:System.Double",
+            "Mach:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "OrbitalSpeed:System.Double",
+            "SurfaceSpeed:System.Double",
+            "VerticalSpeed:System.Double"
+          ],
+          "Sitrep.Contract.VesselIdentity": [
+            "LaunchUt:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Name:System.String",
+            "ParentBodyIndex:System.Nullable`1[System.Int32]",
+            "Situation:Sitrep.Contract.Situation",
+            "VesselId:System.String",
+            "VesselType:Sitrep.Contract.VesselType"
+          ],
+          "Sitrep.Contract.VesselManeuver": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Nodes:System.Collections.Generic.List`1[Sitrep.Contract.ManeuverNode]"
+          ],
+          "Sitrep.Contract.VesselOrbit": [
+            "ArgPe:System.Nullable`1[System.Double]",
+            "Ecc:System.Double",
+            "Encounter:Sitrep.Contract.OrbitEncounter",
+            "Epoch:System.Double",
+            "Inc:System.Double",
+            "Lan:System.Nullable`1[System.Double]",
+            "MeanAnomalyAtEpoch:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Mu:System.Double",
+            "Patches:System.Collections.Generic.List`1[Sitrep.Contract.OrbitPatch]",
+            "ReferenceBodyIndex:System.Int32",
+            "Sma:System.Double"
+          ],
+          "Sitrep.Contract.VesselOrbitTruth": [
+            "FrameRotating:System.Boolean",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Position:Sitrep.Contract.Vec3",
+            "Velocity:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.VesselPart": [
+            "Bounds:Sitrep.Contract.PartBounds",
+            "Category:System.String",
+            "CurrentTemp:System.Nullable`1[System.Double]",
+            "DryMass:System.Double",
+            "FuelLineTargetId:System.String",
+            "Id:System.String",
+            "InverseStage:System.Int32",
+            "IsPowerRelated:System.Boolean",
+            "IsRobotics:System.Boolean",
+            "MaxTemp:System.Double",
+            "ModuleStates:System.Collections.Generic.List`1[Sitrep.Contract.PartModuleState]",
+            "Modules:System.Collections.Generic.List`1[System.String]",
+            "Name:System.String",
+            "ParentId:System.String",
+            "Position:Sitrep.Contract.Vec3",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.PartResourceFlow]",
+            "SkinMaxTemp:System.Nullable`1[System.Double]",
+            "SkinTemp:System.Nullable`1[System.Double]",
+            "Title:System.String",
+            "Up:Sitrep.Contract.Vec3"
+          ],
+          "Sitrep.Contract.VesselParts": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Parts:System.Collections.Generic.List`1[Sitrep.Contract.VesselPart]"
+          ],
+          "Sitrep.Contract.VesselPhysicsMode": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Mode:Sitrep.Contract.PhysicsMode"
+          ],
+          "Sitrep.Contract.VesselPropulsion": [
+            "AvailableThrust:System.Double",
+            "CurrentThrust:System.Double",
+            "DryMass:System.Double",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "TotalMass:System.Double"
+          ],
+          "Sitrep.Contract.VesselResources": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.ResourceAmount]"
+          ],
+          "Sitrep.Contract.VesselRosterEntry": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Name:System.String",
+            "Situation:Sitrep.Contract.Situation",
+            "VesselId:System.String",
+            "VesselType:Sitrep.Contract.VesselType"
+          ],
+          "Sitrep.Contract.VesselStructure": [
+            "CurrentStage:System.Int32",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "PartCount:System.Nullable`1[System.Int32]",
+            "StageCount:System.Nullable`1[System.Int32]"
+          ],
+          "Sitrep.Contract.VesselSurface": [
+            "Biome:System.String",
+            "HeightFromTerrain:System.Nullable`1[System.Double]",
+            "LandedAt:System.String",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.VesselTarget": [
+            "BodyIndex:System.Nullable`1[System.Int32]",
+            "Kind:Sitrep.Contract.TargetKind",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Name:System.String",
+            "Orbit:Sitrep.Contract.VesselOrbit",
+            "RelativePosition:Sitrep.Contract.Vec3",
+            "RelativeVelocity:Sitrep.Contract.Vec3",
+            "VesselId:System.String"
+          ],
+          "Sitrep.Contract.VesselThermal": [
+            "AnyEnginesOverheating:System.Nullable`1[System.Boolean]",
+            "HeatShieldFlux:System.Nullable`1[System.Double]",
+            "HeatShieldTempCelsius:System.Nullable`1[System.Double]",
+            "HottestEngineMaxTemp:System.Nullable`1[System.Double]",
+            "HottestEngineTemp:System.Nullable`1[System.Double]",
+            "HottestEngineTempRatio:System.Nullable`1[System.Double]",
+            "HottestPart:Sitrep.Contract.ThermalHottestPart",
+            "MaxInternalTempRatio:System.Nullable`1[System.Double]",
+            "MaxSkinTempRatio:System.Nullable`1[System.Double]",
+            "Meta:Sitrep.Contract.PayloadMeta"
+          ],
+          "Sitrep.Contract.WarpState": [
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Paused:System.Boolean",
+            "WarpMode:Sitrep.Contract.WarpMode",
+            "WarpRate:System.Double",
+            "WarpRateIndex:System.Int32"
+          ]
+        },
+        "Enums": {
+          "Sitrep.Contract.CommandErrorCode": [
+            "ModeUnavailable:3",
+            "NoVessel:2",
+            "None:0",
+            "NotFound:5",
+            "Range:4",
+            "Timeout:6",
+            "Unknown:1"
+          ],
+          "Sitrep.Contract.CommsControlSource": [
+            "Full:2",
+            "None:0",
+            "Partial:1"
+          ],
+          "Sitrep.Contract.CommsControlStateKind": [
+            "Full:2",
+            "None:0",
+            "PartialManoeuvre:1"
+          ],
+          "Sitrep.Contract.CommsDelaySource": ["None:0", "SignalDelay:1"],
+          "Sitrep.Contract.CommsHopKind": ["Home:0", "Relay:1", "Vessel:2"],
+          "Sitrep.Contract.ControlState": [
+            "Full:4",
+            "Kerbal:2",
+            "KerbalFull:10",
+            "KerbalNone:8",
+            "KerbalPartial:9",
+            "None:0",
+            "Partial:3",
+            "Probe:1",
+            "ProbeFull:7",
+            "ProbeNone:5",
+            "ProbePartial:6",
+            "Unknown:11"
+          ],
+          "Sitrep.Contract.FlightEndReason": [
+            "Crashed:1",
+            "Destroyed:3",
+            "Recovered:0",
+            "Reverted:2"
+          ],
+          "Sitrep.Contract.GameMode": [
+            "Career:1",
+            "Sandbox:0",
+            "Science:2",
+            "Unknown:3"
+          ],
+          "Sitrep.Contract.PhysicsMode": [
+            "OnRails:0",
+            "Packed:1",
+            "Unknown:3",
+            "Unpacked:2"
+          ],
+          "Sitrep.Contract.Quality": ["Loaded:1", "OnRails:0"],
+          "Sitrep.Contract.SasMode": [
+            "AntiTarget:8",
+            "Antinormal:4",
+            "Maneuver:9",
+            "Normal:3",
+            "Prograde:1",
+            "RadialIn:5",
+            "RadialOut:6",
+            "Retrograde:2",
+            "StabilityAssist:0",
+            "Target:7",
+            "Unknown:10"
+          ],
+          "Sitrep.Contract.Situation": [
+            "Docked:7",
+            "Escaping:4",
+            "Flying:5",
+            "Landed:0",
+            "Orbiting:3",
+            "PreLaunch:2",
+            "Splashed:1",
+            "SubOrbital:6",
+            "Unknown:8"
+          ],
+          "Sitrep.Contract.Staleness": [
+            "Fresh:0",
+            "HeldStale:1",
+            "LastBeforeBlackout:2"
+          ],
+          "Sitrep.Contract.TargetKind": ["Body:1", "Other:2", "Vessel:0"],
+          "Sitrep.Contract.TransitionType": [
+            "Collision:5",
+            "Encounter:2",
+            "Escape:3",
+            "Final:1",
+            "Initial:0",
+            "Maneuver:4",
+            "Unknown:6"
+          ],
+          "Sitrep.Contract.VesselType": [
+            "Base:5",
+            "Debris:9",
+            "DeployedScienceController:11",
+            "DeployedSciencePart:12",
+            "DroppedPart:13",
+            "EVA:7",
+            "Flag:8",
+            "Lander:2",
+            "Probe:3",
+            "Relay:6",
+            "Rover:4",
+            "Ship:0",
+            "SpaceObject:10",
+            "Station:1",
+            "Unknown:14"
+          ],
+          "Sitrep.Contract.WarpMode": ["High:0", "Low:1", "Unknown:2"]
+        }
+      }
+    }
+  ]
 }
