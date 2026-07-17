@@ -1,5 +1,6 @@
 import {
   clearAugments,
+  DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
   registerStockBodies,
@@ -67,7 +68,11 @@ async function renderWidget() {
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   render(
     <stream.Provider>
-      <LandingStatusComponent config={{}} id="landing-status-slot" />
+      <DashboardItemContext.Provider
+        value={{ instanceId: "landing-status-slot" }}
+      >
+        <LandingStatusComponent config={{}} id="landing-status-slot" />
+      </DashboardItemContext.Provider>
     </stream.Provider>,
   );
   await screen.findByText("LANDING");
