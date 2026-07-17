@@ -9,8 +9,9 @@ import {
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
+import { type ResourceAmountMap, useStream } from "@ksp-gonogo/sitrep-client";
 import {
   BigReadout,
   ConfigForm,
@@ -109,17 +110,22 @@ const RESOURCES: readonly ResourceDef[] = [
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
 function useResourceReading(def: ResourceDef): { value: number; max: number } {
-  const vesselKey = `r.resource[${def.name}]` as const;
-  const vesselMaxKey = `r.resourceMax[${def.name}]` as const;
-  const stageKey = `r.resourceCurrent[${def.name}]` as const;
-  const stageMaxKey = `r.resourceCurrentMax[${def.name}]` as const;
+  // Vessel-total amounts come off `vessel.resources` (the wire topic, a
+  // resource-name-keyed `{ current, max }` map). Stage-scoped amounts come off
+  // the derived `dv.currentStageResource`/`dv.currentStageResourceMax` channels
+  // (`dv-stage-resources.ts`) — the active stage's slice of `dv.stages`, keyed
+  // by resource name. All three reads happen unconditionally (Rules of Hooks)
+  // regardless of which scope this resource ultimately uses.
+  const vesselResources = useTelemetry("vessel.resources")?.resources;
+  const stageCurrent = useStream<ResourceAmountMap>("dv.currentStageResource");
+  const stageMaxMap = useStream<ResourceAmountMap>(
+    "dv.currentStageResourceMax",
+  );
 
-  // Always subscribe to all four — calling useDataValue conditionally would
-  // violate the Rules of Hooks. Cheap on Telemachus.
-  const vessel = useDataValue("data", vesselKey) ?? 0;
-  const vesselMax = useDataValue("data", vesselMaxKey) ?? 0;
-  const stage = useDataValue("data", stageKey) ?? 0;
-  const stageMax = useDataValue("data", stageMaxKey) ?? 0;
+  const vessel = vesselResources?.[def.name]?.current ?? 0;
+  const vesselMax = vesselResources?.[def.name]?.max ?? 0;
+  const stage = stageCurrent?.[def.name] ?? 0;
+  const stageMax = stageMaxMap?.[def.name] ?? 0;
 
   return def.scope === "vessel"
     ? { value: vessel, max: vesselMax }
@@ -218,7 +224,7 @@ function FuelStatusComponent({
   h,
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
-  const currentStage = useDataValue("data", "v.currentStage");
+  const currentStage = useTelemetry("vessel.structure")?.currentStage;
   // Connectivity indicator, mirroring the WarpControl pilot.
   // `v.currentStage` is this widget's one representative MAPPED key
   // (-> `vessel.structure.currentStage`). The ΔV totals/stage-stack `dv.*`
@@ -231,11 +237,12 @@ function FuelStatusComponent({
   // DERIVED channels, dv-stage-resources.ts), so every key this badge
   // could plausibly stand in for rides the same transport together.
   const streamStatus = useDataStreamStatus("data", "v.currentStage");
-  const stageCount = useDataValue("data", "dv.stageCount");
-  const totalDVVac = useDataValue("data", "dv.totalDVVac");
-  const totalDVASL = useDataValue("data", "dv.totalDVASL");
-  const totalDVActual = useDataValue("data", "dv.totalDVActual");
-  const totalBurnTime = useDataValue("data", "dv.totalBurnTime");
+  const summary = useTelemetry("dv.summary");
+  const stageCount = summary?.stageCount;
+  const totalDVVac = summary?.totalDvVac;
+  const totalDVASL = summary?.totalDvAsl;
+  const totalDVActual = summary?.totalDvActual;
+  const totalBurnTime = summary?.totalBurnTime;
 
   // Hooks unrolled explicitly — Rules of Hooks forbids hook calls inside any
   // loop or `.map` callback (even ones that happen to iterate a constant
@@ -259,7 +266,7 @@ function FuelStatusComponent({
   // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
   // stage 0 last) matching the stack-top-down render order. `parseStages`
   // reconciles either wire's field names into the `StageInfo` shape below.
-  const stagesRaw = useDataValue("data", "dv.stages");
+  const stagesRaw = useTelemetry("dv.stages");
   const stages = parseStages(stagesRaw);
   // Filter to finite values before Math.max — a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of

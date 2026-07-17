@@ -1,22 +1,42 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
-  clearRegistry,
-  MockDataSource,
+  DashboardItemContext,
   registerAugment,
-  registerDataSource,
 } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, render as rtlRender } from "@testing-library/react";
+import {
+  dvCurrentStageResourceChannel,
+  dvCurrentStageResourceMaxChannel,
+} from "@ksp-gonogo/sitrep-client";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { ReactElement } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
+/**
+ * FuelStatus runs genuinely off the real `TelemetryProvider`/`TelemetryClient`/
+ * `TimelineStore` pipeline via `StubTransport` — every read is canonical
+ * (`useTelemetry`/`useStream`), with no legacy `DataSource` anywhere:
+ * - `v.currentStage` -> `vessel.structure.currentStage`
+ * - `dv.stageCount`/`dv.totalDV*`/`dv.totalBurnTime` -> `dv.summary.*`
+ * - `dv.stages` -> the whole `dv.stages` topic (new `StageDeltaVEntry` shape;
+ *   `parseStages` reconciles it with the legacy `StageInfo` field names, so
+ *   these fixtures keep emitting the legacy names as a shape-tolerance proof)
+ * - vessel-total resources (RCS/Xe/Power) -> `vessel.resources`
+ * - stage-scoped resources (LiquidFuel/Oxidizer) -> the derived
+ *   `dv.currentStageResource`/`dv.currentStageResourceMax` channels
+ *   (`dv-stage-resources.ts`), registered on the fixture store below since a
+ *   `providedStore` doesn't auto-register the production derived channels.
+ */
+
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// augment registry / disconnecting the legacy source. RTL auto-cleanup runs
-// after this file's afterEach, so it can't be relied on to unmount first —
-// clearAugments()/buffered.disconnect() firing on a still-mounted widget is a
-// state update outside act(), the documented anti-pattern in CLAUDE.md.
+// augment registry — clearAugments() firing on a still-mounted AugmentSlot is
+// a state update outside act() (CLAUDE.md → Testing Philosophy).
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -25,46 +45,54 @@ function render(ui: ReactElement) {
   return result;
 }
 
-function unmountAll() {
+afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-}
+  clearAugments();
+});
 
-const FUEL_KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.currentStage" },
-  { key: "dv.stageCount" },
-  { key: "dv.stages" },
-  { key: "dv.totalDVVac" },
-  { key: "dv.totalDVASL" },
-  { key: "dv.totalDVActual" },
-  { key: "dv.totalBurnTime" },
-  { key: "r.resource[LiquidFuel]" },
-  { key: "r.resourceMax[LiquidFuel]" },
-  { key: "r.resourceCurrent[LiquidFuel]" },
-  { key: "r.resourceCurrentMax[LiquidFuel]" },
-  { key: "r.resource[Oxidizer]" },
-  { key: "r.resourceMax[Oxidizer]" },
-  { key: "r.resourceCurrent[Oxidizer]" },
-  { key: "r.resourceCurrentMax[Oxidizer]" },
-  { key: "r.resource[MonoPropellant]" },
-  { key: "r.resourceMax[MonoPropellant]" },
-  { key: "r.resourceCurrent[MonoPropellant]" },
-  { key: "r.resourceCurrentMax[MonoPropellant]" },
-  { key: "r.resource[XenonGas]" },
-  { key: "r.resourceMax[XenonGas]" },
-  { key: "r.resourceCurrent[XenonGas]" },
-  { key: "r.resourceCurrentMax[XenonGas]" },
-  { key: "r.resource[ElectricCharge]" },
-  { key: "r.resourceMax[ElectricCharge]" },
-  { key: "r.resourceCurrent[ElectricCharge]" },
-  { key: "r.resourceCurrentMax[ElectricCharge]" },
+const CARRIED = [
+  "vessel.structure",
+  "vessel.resources",
+  "dv.stages",
+  "dv.summary",
 ];
 
+function makeFixture() {
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+  });
+  // A providedStore doesn't inherit the production derived-channel set, so the
+  // stage-scoped resource channels this widget reads must be registered here.
+  fixture.store.registerDerivedChannel(dvCurrentStageResourceChannel);
+  fixture.store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
+  return fixture;
+}
+
+function renderFuel(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  config: Record<string, unknown> = {},
+) {
+  return render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "fuel-test" }}>
+        <FuelStatusComponent config={config} id="fuel-test" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+}
+
+/** A `dv.stages` entry carrying a per-stage resource breakdown — the shape the
+ * `dv.currentStageResource(Max)` derivation reads. */
+function stageWithResources(
+  stage: number,
+  resources: Record<string, { current: number; max: number }>,
+): Record<string, unknown> {
+  return { stage, resources };
+}
+
 function makeStage(stage: number, fuelMass: number): Record<string, number> {
-  // Minimal stage fixture — only fuelMass is exercised by the widget; other
-  // fields present-and-zero so the shape matches what Telemachus emits.
   return {
     stage,
     fuelMass,
@@ -89,119 +117,89 @@ function makeStage(stage: number, fuelMass: number): Record<string, number> {
 }
 
 describe("FuelStatusComponent", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-
-  beforeEach(async () => {
-    clearRegistry();
-    source = new MockDataSource({ keys: FUEL_KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-  });
-
-  afterEach(() => {
-    // unmountAll() must run before clearAugments() notifies the augment
-    // registry's subscribers, else a still-mounted AugmentSlot re-renders
-    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
-    unmountAll();
-    clearAugments();
-    buffered.disconnect();
-  });
-
-  function primeFlight(): void {
-    // FlightDetector gates sample persistence on name + missionTime arriving;
-    // emit them first so useDataValue replays the later emits to subscribers.
-    source.emit("v.name", "Kerbal X");
-    source.emit("v.missionTime", 0);
-  }
-
-  it("renders a bar for each resource with a non-zero max", () => {
-    const { container, queryByText } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
-    );
+  it("renders a bar for each resource with a non-zero max", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
 
     act(() => {
-      primeFlight();
-      // Only LF + Ox are present on this vessel; RCS and friends stay at 0.
-      source.emit("r.resourceCurrent[LiquidFuel]", 600);
-      source.emit("r.resourceCurrentMax[LiquidFuel]", 1200);
-      source.emit("r.resourceCurrent[Oxidizer]", 1000);
-      source.emit("r.resourceCurrentMax[Oxidizer]", 1467);
+      fixture.emit("vessel.structure", { currentStage: 0 });
+      // LiquidFuel + Oxidizer are stage-scoped — carried on the active stage's
+      // slice of dv.stages. RCS and friends stay absent (no vessel.resources).
+      fixture.emit("dv.stages", [
+        stageWithResources(0, {
+          LiquidFuel: { current: 600, max: 1200 },
+          Oxidizer: { current: 1000, max: 1467 },
+        }),
+      ]);
     });
 
-    expect(queryByText("Liquid Fuel")).not.toBeNull();
-    expect(queryByText("Oxidizer")).not.toBeNull();
+    await waitFor(() =>
+      expect(screen.getByText("Liquid Fuel")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Oxidizer")).not.toBeNull();
     // RCS / Xenon / Power all have max=0 → rows hidden.
-    expect(queryByText("RCS")).toBeNull();
-    expect(queryByText("Xenon")).toBeNull();
-    expect(queryByText("Power")).toBeNull();
+    expect(screen.queryByText("RCS")).toBeNull();
+    expect(screen.queryByText("Xenon")).toBeNull();
+    expect(screen.queryByText("Power")).toBeNull();
 
-    // 600/1200 on LF → 50% fill (width: 50%). Look for the BarFill inline style.
+    // 600/1200 on LF → 50% fill (width: 50%).
     const fills = Array.from(
       container.querySelectorAll("div[style*='width']"),
     ).map((el) => (el as HTMLElement).style.width);
     expect(fills).toContain("50%");
   });
 
-  it("shows RCS (vessel-wide) whenever monoprop max > 0, even with empty stage slot", () => {
-    const { queryByText } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
-    );
+  it("shows RCS (vessel-wide) whenever monoprop max > 0, even with empty stage slot", async () => {
+    const fixture = makeFixture();
+    renderFuel(fixture);
 
     act(() => {
-      primeFlight();
       // Stage has no monoprop, but the vessel carries a full RCS tank up top.
-      source.emit("r.resource[MonoPropellant]", 120);
-      source.emit("r.resourceMax[MonoPropellant]", 120);
-      source.emit("r.resourceCurrent[MonoPropellant]", 0);
-      source.emit("r.resourceCurrentMax[MonoPropellant]", 0);
+      fixture.emit("vessel.resources", {
+        resources: { MonoPropellant: { current: 120, max: 120 } },
+      });
     });
 
-    expect(queryByText("RCS")).not.toBeNull();
+    await waitFor(() => expect(screen.getByText("RCS")).toBeInTheDocument());
   });
 
-  it("renders the stage stack with the current stage highlighted", () => {
-    const { container } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
-    );
+  it("renders the stage stack with the current stage highlighted", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
 
     act(() => {
-      primeFlight();
-      source.emit("v.currentStage", 1);
-      source.emit("dv.stageCount", 3);
-      // Telemachus emits stages high → low (current-top-of-stack first).
-      source.emit("dv.stages", [
+      fixture.emit("vessel.structure", { currentStage: 1 });
+      fixture.emit("dv.summary", { stageCount: 3 });
+      fixture.emit("dv.stages", [
         makeStage(2, 8000),
         makeStage(1, 4400),
         makeStage(0, 1200),
       ]);
     });
 
-    // StageLabel spans render as leaf elements with text content like
-    // "  S0" (inactive) or "▶ S1" (active).
-    const stageTexts = Array.from(container.querySelectorAll("span"))
-      .map((el) => el.textContent ?? "")
-      .filter((t) => /^[▶ ] S\d$/.test(t));
-    expect(stageTexts).toEqual(["  S2", "▶ S1", "  S0"]);
+    await waitFor(() => {
+      const stageTexts = Array.from(container.querySelectorAll("span"))
+        .map((el) => el.textContent ?? "")
+        .filter((t) => /^[▶ ] S\d$/.test(t));
+      expect(stageTexts).toEqual(["  S2", "▶ S1", "  S0"]);
+    });
   });
 
   // Regression: at 21:08 BST on 2026-05-17 the widget crashed with
-  // `twr.toFixed is not a function`. Telemachus had emitted a stage row
-  // mid-staging where TWR/ΔV fields were null instead of numbers. The
-  // crash took the entire widget down behind an error boundary.
-  it("survives a stage row with non-numeric TWR / ΔV", () => {
-    const { container, queryAllByText } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
-    );
+  // `twr.toFixed is not a function` on a stage row whose TWR/ΔV fields were
+  // null instead of numbers. The crash took the whole widget down.
+  it("survives a stage row with non-numeric TWR / ΔV", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
 
     act(() => {
-      primeFlight();
-      source.emit("v.currentStage", 1);
-      source.emit("dv.stageCount", 2);
-      source.emit("dv.totalDVActual", 4200);
-      source.emit("dv.totalBurnTime", 125);
-      source.emit("dv.stages", [
+      fixture.emit("vessel.structure", { currentStage: 1 });
+      fixture.emit("dv.summary", {
+        stageCount: 2,
+        totalDvActual: 4200,
+        totalBurnTime: 125,
+      });
+      fixture.emit("dv.stages", [
         {
           stage: 1,
           stageMass: 8,
@@ -231,9 +229,7 @@ describe("FuelStatusComponent", () => {
           startMass: 2,
           endMass: 2,
           burnTime: 0,
-          // Telemachus emitted these as null during a mid-staging frame.
-          // Cast to `unknown as number` so the test mirrors the real
-          // runtime payload while satisfying the TS shape.
+          // Emitted as null during a mid-staging frame.
           deltaVVac: null as unknown as number,
           deltaVASL: null as unknown as number,
           deltaVActual: null as unknown as number,
@@ -250,27 +246,30 @@ describe("FuelStatusComponent", () => {
       ]);
     });
 
-    // No error boundary fallback — the panel rendered.
+    // No error boundary fallback — the panel rendered. The non-numeric stage
+    // falls back to "—" rather than crashing (wait for the stage stack to land
+    // off the stream, since the panel title alone renders before any data).
+    await waitFor(() =>
+      expect(screen.queryAllByText("— m/s").length).toBeGreaterThan(0),
+    );
     expect(container.textContent).toContain("FUEL · ΔV");
-    // The non-numeric stage falls back to "—" rather than crashing.
-    expect(queryAllByText("— m/s").length).toBeGreaterThan(0);
-    expect(queryAllByText(/TWR\s+—/).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/TWR\s+—/).length).toBeGreaterThan(0);
   });
 
-  it("displays totals and per-stage ΔV for the selected reference mode", () => {
-    const { queryByText, container } = render(
-      <FuelStatusComponent config={{ deltaVMode: "vac" }} id="fuel-test" />,
-    );
+  it("displays totals and per-stage ΔV for the selected reference mode", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture, { deltaVMode: "vac" });
 
     act(() => {
-      primeFlight();
-      source.emit("v.currentStage", 1);
-      source.emit("dv.stageCount", 2);
-      source.emit("dv.totalDVVac", 4200);
-      source.emit("dv.totalDVASL", 3800);
-      source.emit("dv.totalDVActual", 3900);
-      source.emit("dv.totalBurnTime", 125);
-      source.emit("dv.stages", [
+      fixture.emit("vessel.structure", { currentStage: 1 });
+      fixture.emit("dv.summary", {
+        stageCount: 2,
+        totalDvVac: 4200,
+        totalDvAsl: 3800,
+        totalDvActual: 3900,
+        totalBurnTime: 125,
+      });
+      fixture.emit("dv.stages", [
         {
           ...makeStage(1, 4400),
           deltaVVac: 2500,
@@ -295,9 +294,11 @@ describe("FuelStatusComponent", () => {
     });
 
     // Totals row reports vacuum ΔV (mode="vac") and total burn duration.
-    expect(queryByText("4200 m/s")).not.toBeNull();
-    expect(queryByText("VAC")).not.toBeNull();
-    expect(queryByText("2m 5s")).not.toBeNull();
+    await waitFor(() =>
+      expect(screen.getByText("4200 m/s")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("VAC")).not.toBeNull();
+    expect(screen.queryByText("2m 5s")).not.toBeNull();
 
     // Per-stage ΔV picks the vacuum column.
     const stageValueTexts = Array.from(container.querySelectorAll("span")).map(
@@ -309,24 +310,17 @@ describe("FuelStatusComponent", () => {
 
   // Augment slots (Uplink architecture §4) — the widget exposes
   // `fuel-status.badges` (header) and `fuel-status.sections` (body). With no
-  // augment registered the slots render nothing and the widget is unchanged;
-  // once an augment binds a slot, its component appears in the widget's space.
-  it("renders with empty augment slots when nothing is registered", () => {
-    const { container } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
-    );
+  // augment registered the slots render nothing and the widget is unchanged.
+  it("renders with empty augment slots when nothing is registered", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
 
-    act(() => {
-      primeFlight();
-    });
-
-    // Panel still renders; no augment content leaks in.
-    expect(container.textContent).toContain("FUEL · ΔV");
+    await waitFor(() => expect(container.textContent).toContain("FUEL · ΔV"));
     expect(container.textContent).not.toContain("BOIL-OFF");
     expect(container.textContent).not.toContain("RELIABILITY OK");
   });
 
-  it("renders augments bound to the badges and sections slots", () => {
+  it("renders augments bound to the badges and sections slots", async () => {
     registerAugment({
       id: "test-fuel-badge",
       augments: "fuel-status.badges",
@@ -338,15 +332,12 @@ describe("FuelStatusComponent", () => {
       component: () => <div>BOIL-OFF 0.02/s</div>,
     });
 
-    const { container } = render(
-      <FuelStatusComponent config={{}} id="fuel-test" />,
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
+
+    await waitFor(() =>
+      expect(container.textContent).toContain("RELIABILITY OK"),
     );
-
-    act(() => {
-      primeFlight();
-    });
-
-    expect(container.textContent).toContain("RELIABILITY OK");
     expect(container.textContent).toContain("BOIL-OFF 0.02/s");
   });
 });
