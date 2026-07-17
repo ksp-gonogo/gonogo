@@ -2,11 +2,13 @@ import { StubTransport } from "@ksp-gonogo/sitrep-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { probeUplinkRoster } from "./rosterProbe";
 
+// Generic fixture ids on purpose — the probe is Uplink-agnostic, and this file
+// must reference no mod token so the uplink-boundary ratchet stays clean.
 function rosterPayload(): unknown {
   return {
     uplinks: [
       {
-        id: "scansat",
+        id: "alpha",
         version: "1.0.0",
         available: true,
         reason: null,
@@ -14,12 +16,12 @@ function rosterPayload(): unknown {
         health: { state: 0, detail: null },
       },
       {
-        id: "kos",
+        id: "beta",
         version: "0.2.0",
         available: false,
-        reason: "no active CPU",
+        reason: "not ready",
         expectedClientHash: null,
-        health: { state: 2, detail: "no active CPU" },
+        health: { state: 2, detail: "not ready" },
       },
     ],
   };
@@ -40,17 +42,17 @@ describe("probeUplinkRoster", () => {
     const roster = await pending;
     expect(roster).toEqual([
       {
-        id: "scansat",
+        id: "alpha",
         version: "1.0.0",
         available: true,
         reason: null,
         expectedClientHash: "sha256-abc",
       },
       {
-        id: "kos",
+        id: "beta",
         version: "0.2.0",
         available: false,
-        reason: "no active CPU",
+        reason: "not ready",
         expectedClientHash: null,
       },
     ]);
