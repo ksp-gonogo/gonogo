@@ -82,14 +82,20 @@ describe("SitrepTelemetryProvider — live WebSocketTransport over MSW", () => {
       </SitrepTelemetryProvider>,
     );
 
-    // Nothing yet — the socket is still opening / no frames delivered.
-    expect(screen.getByText("throttle:—")).toBeTruthy();
+    // Nothing yet — the socket is still opening / no frames delivered. Use
+    // findBy, not getBy: the live transport's connect-time status update is an
+    // async re-render, so this absorbs it inside act rather than letting it
+    // escape the test's act boundary (the load-dependent "not wrapped in act"
+    // warning this seam otherwise produces).
+    expect(await screen.findByText("throttle:—")).toBeTruthy();
 
     // Once the provider's live transport has connected, push a frame; it must
     // decode through the real client and surface on the mapped read.
     await waitFor(() => expect(serverClients).toHaveLength(1));
     serverClients[0].send(streamFrame("vessel.control", { throttle: 0.75 }));
 
-    await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
+    // The frame's re-render is a genuinely-async live-WS update — wait for it
+    // (findBy is act-wrapped) rather than asserting synchronously.
+    expect(await screen.findByText("throttle:0.75")).toBeTruthy();
   });
 });

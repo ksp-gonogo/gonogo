@@ -1,5 +1,6 @@
 import { ACTION_GROUPS, useDataValue } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   DataKeyPicker,
@@ -519,11 +520,14 @@ function RecommendedPresets({
   snapshotRef: React.MutableRefObject<AlarmSnapshot>;
   onAdd: AlarmsModalProps["onAdd"];
 }) {
-  // `o.timeToAp` / `o.timeToPe` are seconds-from-now; the maneuver node UT
+  // `timeToAp` / `timeToPe` are seconds-from-now; the maneuver node UT
   // is absolute. We read them live so a preset reflects the current orbit
-  // at the moment of the click.
-  const timeToAp = useDataValue<number>("data", "o.timeToAp");
-  const timeToPe = useDataValue<number>("data", "o.timeToPe");
+  // at the moment of the click. Both are derived `vessel.state.*` fields now
+  // (the old `o.timeToAp`/`o.timeToPe` Telemachus keys, mapped in
+  // `map-topic.ts`), read off the canonical stream.
+  const vesselState = useStream<VesselState>("vessel.state");
+  const timeToAp = vesselState?.timeToAp ?? undefined;
+  const timeToPe = vesselState?.timeToPe ?? undefined;
   const nodes = useManeuverNodes();
   const [open, setOpen] = useState(false);
 
