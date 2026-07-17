@@ -3,8 +3,8 @@ import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
@@ -127,8 +127,8 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  const roboticsRaw = useDataValue("data", "parts.robotics");
-  const available = useDataValue<boolean>("data", "robotics.available");
+  const roboticsRaw = useTelemetry("parts.robotics");
+  const available = useTelemetry("robotics.available")?.available;
   const execute = useExecuteAction("data");
   const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
