@@ -276,43 +276,54 @@ operator-gated.
 
 ## 8. What did NOT land, and why
 
-### The `packages/kerbcast` client migration — **needs an operator decision**
+### ~~The `packages/kerbcast` client migration~~ — **DECIDED: (b), and landed**
 
-Reason #1 ("bundle kerbcast client code properly and REMOVE it from the core
-client") is **not done**. `packages/kerbcast` (`@ksp-gonogo/kerbcast-feed`) is
-still bundled into the app.
+The open (a)/(b) question below was settled by the operator: *"Kerbcast can only
+interact with gonogo via its Uplink. No exceptions. It's part of proving the
+model."* That rules out (a) — a media package sitting in `packages/` talking to
+kerbcast outside the Uplink is precisely the exception the ruling forbids.
 
-It is deliberately not half-done, because the Uplink convention says a client
-half lives at `mod/GonogoKerbcastUplink/client/` (picked up by the `mod/*/client`
-workspace glob), and moving `packages/kerbcast` there is **not a file move**:
+**(b) landed.** `packages/kerbcast` moved wholesale to
+`mod/GonogoKerbcastUplink/client`, so one directory owns both planes:
 
-1. `packages/kerbcast` contains `KerbcastDataSource`, `DelayedPlayoutBuffer`,
-   `frameDelay`, `useKerbcastStream`, `CameraFeed` — the **WebRTC media path**,
-   which by design is *not* what this Uplink owns. An Uplink client that ships
-   the media path is a category error; one that doesn't leaves the media package
-   still bundled. Which of those the operator wants is a real choice.
-2. `DelayedPlayoutBuffer` consumes `useViewClock()` — the delay authority the u4
-   work built. That seam is load-bearing and must not be disturbed casually.
-3. The u4 report records that the visible `CameraFeed` renders through the
-   kerbcast SDK's own `SharedCameraFeed`, whose props expose no delay hook — the
-   remaining video-delay step is a **kerbcast-SDK-side add in the sibling repo**,
-   which is read-only here.
+- **Control** rides the Uplink's Topics (`kerbcast.cameras`,
+  `kerbcast.available`), like any Uplink.
+- **Media** still does not ride Topics — video stays on kerbcast's WebRTC path,
+  per §2. Owning the media path is not the category error the note below
+  feared: the Uplink client *ships* both, but only the control plane travels the
+  Topic stream. The two join at `cameraId` === kerbcast's `flightId`.
+- The **`useViewClock` seam is untouched**: `DelayedPlayoutBuffer` still takes
+  the clock structurally (`DelayClockLike`) and imports nothing at all;
+  `useDelayedKerbcastStream` remains the only reader of the ONE `ViewClock`.
+- The package **keeps the npm name `@ksp-gonogo/kerbcast-feed`** — the obvious
+  `@ksp-gonogo/kerbcast` is the external protocol SDK it consumes from public
+  npm, so the name can't follow `@ksp-gonogo/scansat`'s convention. Layout does.
 
-**Decision needed:** does the kerbcast Uplink's client half own (a) only the
-control plane — a camera-inventory / docking-camera widget reading
-`kerbcast.cameras` — leaving `packages/kerbcast` as the media package; or (b)
-control *and* media, absorbing `packages/kerbcast` wholesale and making the
-Uplink client depend on the kerbcast WebRTC SDK?
+Concretely retired: `packages/components/src/DistanceToTarget/index.tsx` no
+longer imports kerbcast at all. Its built-in `HudCamera` — which hard-wired one
+camera mod into the core widget library — is deleted, replaced by the
+`kerbcast-docking-camera` augment filling that widget's already-exposed
+`distance-to-target.camera` slot, presence-gated on `kerbcast.available` and
+selecting via the Uplink's `isDockingCamera` fact. That dropped a HARD entry off
+the `uplink-boundary` ratchet and removed `@ksp-gonogo/kerbcast-feed` from
+`@ksp-gonogo/components`'s dependencies entirely.
 
-My recommendation is **(a)**: it matches the plane split this whole design rests
-on, retires the *control* half of the tech debt, and keeps the media path where
-the delay-authority seam already works. But it does not fully satisfy "REMOVE it
-from the core client" on its own, so it is the operator's call, not mine.
+**Still NOT un-bundled, and why:** the app's own bootstrap still imports the
+client directly (`app/src/dataSources/index.ts`, `peer/*`, `screens/*`,
+`settings/*` — the remaining `uplink-boundary` allowlist cluster). That is not
+kerbcast-specific: `mod/Gonogo.Kos/client` and `mod/GonogoScansatUplink/client`
+are bundled at build the same way, because **the Uplink-client loader /
+marketplace does not exist yet** (architecture §1's "P7 retires" debt). Kerbcast
+is now structurally an Uplink client like its siblings, so when the loader lands
+they all un-bundle together. This move makes kerbcast *ordinary*; it does not by
+itself remove it from the bundle.
 
-### No client widget yet
+### No camera-inventory widget yet
 
-Consequently no `registerComponent` for a camera-inventory widget. The topics are
-carried and typed, so one drops in cleanly once (a)/(b) is settled. Note the
+The (a)/(b) decision above is settled, but no standalone `registerComponent` for
+a camera-inventory widget landed — the docking-camera AUGMENT was the wired-up
+consumer of `kerbcast.cameras`. The topics are carried and typed, so an
+inventory widget still drops in cleanly. Note the
 health row does **not** depend on this — it is already live.
 
 ### Not live-validated in KSP
