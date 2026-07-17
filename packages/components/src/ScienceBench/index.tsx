@@ -2,9 +2,10 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useGameContext,
+  useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   DimmedOverlay,
   Panel,
@@ -283,42 +284,40 @@ function ScienceBenchComponent({
   const { inFlight, hasGameSignal, careerMode } = useGameContext();
   const dimNonCareer = hasGameSignal && !inFlight;
 
-  const body = useDataValue("data", "v.body");
-  const situation = useDataValue("data", "v.situationString") as
-    | string
-    | undefined;
-  const landedAt = useDataValue("data", "v.landedAt") as string | undefined;
+  const vesselState = useStream<VesselState>("vessel.state");
+  const body = vesselState?.parentBodyName ?? undefined;
+  const situation = vesselState?.situationName ?? undefined;
+  const surface = useTelemetry("vessel.surface");
+  const landedAt = surface?.landedAt;
   // Live biome from `ScienceUtil.GetExperimentBiome` — the same source the
   // game uses to attribute new experiments. Works in flight + space scenes
   // (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike `v.landedAt` which
   // is only populated on the surface. Falls back to landedAt when blank.
-  const liveBiome = useDataValue("data", "v.biome") as string | undefined;
+  const liveBiome = surface?.biome;
 
   // The whole sensor list (`science.sensors`, SensorEntry[]) is the single
   // source for every per-type reading: filtered client-side by `type`
   // (WIRE_SENSOR_TYPE below) instead of four per-type `s.sensor.<type>` reads,
   // which have no per-type field on the new wire.
-  const sensorEntriesRaw = useDataValue("data", "science.sensors");
+  const sensorEntriesRaw = useTelemetry("science.sensors");
   const sensorEntries = parseSensorEntryList(sensorEntriesRaw);
 
-  const sciExperimentsRaw = useDataValue("data", "sci.experiments");
-  const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
-  // sci.experiments is mapped onto science.experiments
-  // (map-topic.ts) — the rest of the science reads above stay legacy-only.
+  const sciExperimentsRaw = useTelemetry("science.experiments");
+  const sciBreakdownRaw = useTelemetry("science.experimentBreakdown");
   const experimentsStreamStatus = useDataStreamStatus(
     "data",
     "sci.experiments",
   );
 
   // career.mode reads through useGameContext rather than a raw
-  // useDataValue call — the stream carries it as the mod's GameMode enum
+  // telemetry read — the stream carries it as the mod's GameMode enum
   // ORDINAL (a number), not the legacy Telemachus string, and
   // useGameContext.careerMode already resolves both shapes to the same
-  // display value. A raw read here would silently stop recognising
-  // career mode the moment this widget's read routes to the stream.
-  const careerScience = useDataValue("data", "career.science");
-  const careerFunds = useDataValue("data", "career.funds");
-  const careerRep = useDataValue("data", "career.reputation");
+  // display value.
+  const careerEconomy = useTelemetry("career.status")?.economy;
+  const careerScience = careerEconomy?.science;
+  const careerFunds = careerEconomy?.funds;
+  const careerRep = careerEconomy?.reputation;
 
   // Composite "where am I doing science" key — body / situation / biome.
   // Debounced to suppress momentary biome flickers during low passes; the
