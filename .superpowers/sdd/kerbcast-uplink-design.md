@@ -36,7 +36,7 @@ never talks to the sidecar. That is an Uplink's job description.
 
 **kerbcast is CC-BY-NC-SA-4.0** (`~/personal/kerbcam/LICENSE`) — a content
 licence carrying **both** NonCommercial and ShareAlike terms. gonogo is MIT
-(with `Gonogo.Kos` as the sole GPL island).
+(with `GonogoKosUplink` as the sole GPL island).
 
 So the two prior-art patterns are **not** interchangeable here:
 
@@ -311,7 +311,7 @@ the `uplink-boundary` ratchet and removed `@ksp-gonogo/kerbcast-feed` from
 **Still NOT un-bundled, and why:** the app's own bootstrap still imports the
 client directly (`app/src/dataSources/index.ts`, `peer/*`, `screens/*`,
 `settings/*` — the remaining `uplink-boundary` allowlist cluster). That is not
-kerbcast-specific: `mod/Gonogo.Kos/client` and `mod/GonogoScansatUplink/client`
+kerbcast-specific: `mod/GonogoKosUplink/client` and `mod/GonogoScansatUplink/client`
 are bundled at build the same way, because **the Uplink-client loader /
 marketplace does not exist yet** (architecture §1's "P7 retires" debt). Kerbcast
 is now structurally an Uplink client like its siblings, so when the loader lands

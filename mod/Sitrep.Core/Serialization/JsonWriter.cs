@@ -211,7 +211,7 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.KosProcessorInfo processor:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // CommandResult above: the kos.processors channel publishes a
-                    // List<KosProcessorInfo> (see Gonogo.Kos.KosExtension.
+                    // List<KosProcessorInfo> (see Gonogo.KosUplink.KosExtension.
                     // HandleProcessors). The list itself reaches AppendArray via
                     // the IEnumerable case below, which calls AppendValue on each
                     // element — this case flattens that element. Without it a

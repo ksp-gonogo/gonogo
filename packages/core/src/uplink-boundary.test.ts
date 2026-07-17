@@ -69,7 +69,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       /kos\.(processors|run|compute|terminal|keystroke)/,
       /kOS/,
     ],
-    ownedDirs: ["mod/Gonogo.Kos", "mod/Gonogo.Kos.Tests"],
+    ownedDirs: ["mod/GonogoKosUplink", "mod/GonogoKosUplink.Tests"],
   },
   realantennas: {
     // Matches both "realantennas" and the singular "realantenna".
@@ -102,7 +102,7 @@ const ALLOWLIST: Record<ModToken, string[]> = {
   // === kerbcast — owning dir mod/GonogoKerbcastUplink/ (incl. its client/).
   // The remaining HARD cluster is the app's own bootstrap/peer wiring, which
   // stays until the Uplink-client LOADER lands — today every Uplink client
-  // (this one, Gonogo.Kos/client, GonogoScansatUplink/client) is still bundled
+  // (this one, GonogoKosUplink/client, GonogoScansatUplink/client) is still bundled
   // at build, so the app must name them to import them. See uplink
   // architecture §1's "P7 retires" tech-debt note; these lines are the shape
   // of that debt, not of this Uplink.
@@ -123,7 +123,7 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // all — so the entry went stale and ratcheted off.
 
     // -- GRAY — sitrep-client / contract layer, comment or string-literal only --
-    "mod/Gonogo.Kos/client/src/index.ts",
+    "mod/GonogoKosUplink/client/src/index.ts",
     "mod/Sitrep.Contract/UplinkContract.cs",
     "mod/Sitrep.Host/ChannelEngine.cs",
     "packages/sitrep-client/src/context.tsx",
@@ -238,9 +238,9 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Gonogo.KSP/CareerUplink.cs",
     "mod/Gonogo.KSP/CommsCoreUplink.cs",
     "mod/Gonogo.KSP/SystemUplink.cs",
-    "mod/Gonogo.Kos.Tests/KosVersionGuardTests.cs",
-    "mod/Gonogo.Kos/KosExtension.cs",
-    "mod/Gonogo.Kos/KosVersionGuard.cs",
+    "mod/GonogoKosUplink.Tests/KosVersionGuardTests.cs",
+    "mod/GonogoKosUplink/KosExtension.cs",
+    "mod/GonogoKosUplink/KosVersionGuard.cs",
     "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
     "mod/Sitrep.Host/ChannelEngine.cs",
     // sanctioned self-registration import, same pattern as `@ksp-gonogo/kos`
@@ -255,7 +255,7 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/core/src/truenow-allowlist.test.ts",
   ],
 
-  // === kos — owning dir mod/Gonogo.Kos/
+  // === kos — owning dir mod/GonogoKosUplink/
   kos: [
     // -- HARD violations (audit §3): a full second kOS client living in
     // packages/app, plus JsonWriter.cs hardcoding kOS payload shapes in the

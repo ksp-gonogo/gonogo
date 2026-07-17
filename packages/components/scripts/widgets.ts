@@ -1054,7 +1054,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // kOS Terminal (mod/Gonogo.Kos/client/src/KosTerminal). A STREAM-DRIVEN
+    // kOS Terminal (mod/GonogoKosUplink/client/src/KosTerminal). A STREAM-DRIVEN
     // widget — it reads `kos.processors` / `kos.terminal.<coreId>` straight
     // off a mounted TelemetryProvider via `useStream`/`useStreamEvent`, never
     // through the `"data"`/`"kos"` DataSource registry the rest of this file

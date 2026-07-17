@@ -1,0 +1,30 @@
+GonogoKosUplink compile-time links kOS (kOS.dll / kOS.Safe.dll) and, from P1
+onward, Harmony (0Harmony.dll) for one observe-only ScreenBuffer.Print
+postfix. It reads kOS's public API in-process — no arm's-length reflection,
+no loopback telnet. See local_docs/telemetry-mod/kos-migration-spec.md §8.
+
+kOS is distributed under the GNU General Public License v3.0. Because
+GonogoKosUplink direct-links kOS, GonogoKosUplink is itself GPL-3.0-only.
+
+gonogo as a whole is MIT-licensed (repository root LICENSE). GonogoKosUplink is
+the deliberate exception: it is the only assembly in the repository that
+links a copyleft dependency, and it is a leaf — nothing references it, so
+its GPL obligations propagate to nothing else. The MIT-licensed Sitrep.*
+assemblies it links are GPL-compatible in that direction, and GonogoKosUplink
+ships as its own CKAN package in its own GameData folder.
+
+The full GPLv3 text is in this directory's LICENSE, and at the repository
+root as LICENSE-GPL-3.0.txt.
+
+kOS:
+  Copyright (c) The kOS Team (https://github.com/KSP-KOS/KOS)
+  Licensed under GNU General Public License v3.0
+  https://github.com/KSP-KOS/KOS/blob/develop/LICENSE
+
+Harmony:
+  Copyright (c) Andreas Pardeike (https://github.com/pardeike/Harmony)
+  Licensed under the MIT License
+
+No kOS or Harmony assemblies are bundled with GonogoKosUplink — both are
+reference-only (Private="false") and provided by the user's own kOS /
+Harmony installs at runtime.
