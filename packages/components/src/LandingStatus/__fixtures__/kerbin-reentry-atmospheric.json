@@ -14,6 +14,5 @@
   "land.bestSpeedAtImpact": 5,
   "land.suicideBurnCountdown": 40,
   "land.predictedLat": -0.047,
-  "land.predictedLon": -74.623,
-  "land.slopeAngle": 0.3
+  "land.predictedLon": -74.623
 }

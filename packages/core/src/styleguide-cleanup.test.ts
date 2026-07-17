@@ -21,9 +21,10 @@ import { describe, expect, it } from "vitest";
 // no source dir to exempt — the ban is repo-wide.
 const SCAN_ROOTS = ["packages", "mod"];
 
-// Current baseline. When a test removes its cleanup import, lower this number
-// in the same commit.
-const CLEANUP_IMPORT_BASELINE = 142;
+// Current baseline. Zero: every manual cleanup import has been removed from
+// the tree, so the ratchet now holds the line at none. Any commit that adds
+// one back fails the build with a pointer at the offender.
+const CLEANUP_IMPORT_BASELINE = 0;
 
 // Matches an import binding `cleanup` from @testing-library/react, across
 // multi-line import blocks.

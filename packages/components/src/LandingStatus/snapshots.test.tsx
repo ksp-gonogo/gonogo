@@ -3,10 +3,6 @@ import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
@@ -17,8 +13,7 @@ import { LandingStatusComponent } from "./index";
  * `stream.test.tsx`) — no legacy fallback at all — so these fixtures'
  * legacy keys are replayed as REAL physics inputs (body radius/mu, descent
  * rate, thrust) through a genuine `TelemetryProvider`, rather than declared
- * directly. `land.slopeAngle` is the ONE key with no wire home at all
- * (`index.tsx`'s own comment) — it stays on a legacy AUX.
+ * directly.
  *
  * Each scenario below is tuned (not literally copied from the fixture's old
  * `land.*` numbers, which were hand-authored independent of any real
@@ -57,7 +52,6 @@ interface Scenario {
     externalTemperature?: number;
   };
   availableThrust?: number;
-  slopeAngle?: number | null;
 }
 
 const SCENARIOS: Record<string, Scenario> = {
@@ -72,7 +66,6 @@ const SCENARIOS: Record<string, Scenario> = {
       verticalSpeed: 18.3,
       surfaceSpeed: 20,
     },
-    slopeAngle: null,
   },
   // Mun, h=2800m/vDown=42.5 m/s/aMax=3 -> timeToImpact≈38.1s,
   // speedAtImpact≈107.8 m/s, bestSpeedAtImpact=0 (burn fits),
@@ -81,7 +74,6 @@ const SCENARIOS: Record<string, Scenario> = {
     body: MUN,
     descent: { heightFromTerrain: 2800, verticalSpeed: 42.5, surfaceSpeed: 50 },
     availableThrust: 3,
-    slopeAngle: 4.2,
   },
   // Mun, h=180m/vDown=8.1 m/s/aMax=1.9 -> timeToImpact≈10.7s,
   // suicideBurnCountdown≈4.9s — inside the urgent (0,5] window (role=alert).
@@ -89,14 +81,12 @@ const SCENARIOS: Record<string, Scenario> = {
     body: MUN,
     descent: { heightFromTerrain: 180, verticalSpeed: 8.1, surfaceSpeed: 80 },
     availableThrust: 1.9,
-    slopeAngle: 2.1,
   },
   // verticalSpeed=0 -> not descending -> LANDING_NONE regardless of radius;
   // "No landing in progress" (not the "waiting" variant).
   "landed-mun": {
     body: MUN,
     descent: { heightFromTerrain: 0.3, verticalSpeed: 0, surfaceSpeed: 0 },
-    slopeAngle: null,
   },
   // Kerbin (atmospheric), h=28000m/vDown=210.4 m/s, no propulsion (a
   // passive reentry) -> timeToImpact≈57.1s, best/suicide stay null.
@@ -111,7 +101,6 @@ const SCENARIOS: Record<string, Scenario> = {
       atmosphericTemperature: 240.15,
       externalTemperature: 1850,
     },
-    slopeAngle: 0.3,
   },
   // Same "radius doesn't resolve" trick as pre-burn-cruise, at a much
   // higher descent rate — "no landing prediction" while still descending.
@@ -122,7 +111,6 @@ const SCENARIOS: Record<string, Scenario> = {
       verticalSpeed: 350,
       surfaceSpeed: 350,
     },
-    slopeAngle: null,
   },
 };
 
@@ -132,9 +120,6 @@ async function snapshotLandingStatusFixture(
 ): Promise<string> {
   registerStockBodies();
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
-  const legacyAux = await setupMockDataSource({
-    keys: [{ key: "land.slopeAngle" }],
-  });
 
   const { container } = render(
     <stream.Provider>
@@ -145,9 +130,6 @@ async function snapshotLandingStatusFixture(
   );
 
   act(() => {
-    if (scenario.slopeAngle !== undefined) {
-      legacyAux.source.emit("land.slopeAngle", scenario.slopeAngle);
-    }
     stream.emit("system.bodies", {
       bodies: [
         {
@@ -220,7 +202,6 @@ async function snapshotLandingStatusFixture(
   });
 
   const html = stripVolatile(container.innerHTML);
-  teardownMockDataSource(legacyAux);
   return html;
 }
 

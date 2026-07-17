@@ -206,8 +206,9 @@ function LaunchDirectorComponent({
     | undefined;
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
-  // the balance" rule). kc.savedShips/kc.crewRoster and crash.hasRecent/
-  // crash.lastCrash resolve to their own dedicated topics too (map-topic.ts).
+  // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
+  // dedicated topics too (map-topic.ts); crash.hasRecent/crash.lastCrash now
+  // read their topics directly (useStream/useTelemetry), off the shim.
   // The rest of the kc.*/ksp.*/tar.availableVessels reads below stay legacy
   // — kc.* has no career.status equivalent shape (see map-topic.ts's doc
   // comment on the facilities gap), the others are separate provider
@@ -220,11 +221,13 @@ function LaunchDirectorComponent({
   const revertAvailability = useTelemetry("ksp.revertAvailability");
   const canRevertToLaunch = revertAvailability?.canRevertToLaunch;
   const canRevertToEditor = revertAvailability?.canRevertToEditor;
-  // crash.hasRecent is a real wire boolean but missing from the SDK's
-  // hand-declared Topic tail (the backing C# const lacks the "...Topic"
-  // suffix topics.test.ts's crosscheck scans for) — left on the legacy
-  // shim pending that follow-up; see docs/legacy-read-shim-inventory.md.
-  const crashHasRecent = useTelemetry("data", "crash.hasRecent");
+  // crash.hasRecent is a real wire boolean (CrashUplink, ReliableOrdered)
+  // but still missing from the SDK's hand-declared Topic tail — the backing
+  // C# const lacks the "...Topic" suffix topics.test.ts's crosscheck scans
+  // for, so `useTelemetry("crash.hasRecent")` won't typecheck. `useStream`
+  // is the sanctioned read for an untyped tail topic: same route off the
+  // mounted store, no legacy shim. FlightOutcomeBanner reads it identically.
+  const crashHasRecent = useStream<boolean>("crash.hasRecent");
   // crash.hasRecent is session-wide — a debris crash from a previous flight
   // would block recovery of a successfully landed craft. Pull the most
   // recent crash snapshot too so we can scope the gate to the active
