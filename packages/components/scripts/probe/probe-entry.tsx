@@ -42,6 +42,7 @@ import {
   unregisterDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 // Side-effect import: mod-client widgets (kOS terminal, processors, …)
 // self-register on module load, same contract as the built-in library.
 import "@ksp-gonogo/kos";
@@ -126,6 +127,15 @@ export interface ProbeSeriesSample {
 export interface StreamEmit {
   channel: string;
   value: unknown;
+  /**
+   * Optional per-sample meta overrides, forwarded to `StubTransport.emit`'s
+   * third arg (same `Partial<Meta>` the widgets' own headless tests pass).
+   * The one caller today is the LaunchDirector fixtures' `vessel.orbit` emit,
+   * which must stamp `quality: Quality.Loaded` (1) so `vessel.state` derives
+   * in the measured basis (real `altitudeAsl` off `vessel.flight`) rather than
+   * the OnRails default — mirrors `snapshots.test.tsx`'s `emitLegacyFixture`.
+   */
+  meta?: Partial<Meta>;
 }
 
 /**
@@ -455,7 +465,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // before the next keeps the fixture's `emits` order meaningful without
     // the fixture author needing to know the widget's internal timing.
     for (const e of streamBlock.emits) {
-      streamFixture.emit(e.channel, e.value);
+      streamFixture.emit(e.channel, e.value, e.meta);
       await rafTick();
     }
   }

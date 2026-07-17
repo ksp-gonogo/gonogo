@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "in-flight-crash",
-    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible."
+    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone blocks recovery (fail-safe branch)."
   },
   "kc.savedShips": [],
   "kc.crewRoster": [],
@@ -16,5 +16,101 @@
   "ksp.canRevertToLaunch": false,
   "ksp.canRevertToEditor": false,
   "crash.hasRecent": true,
-  "tar.availableVessels": []
+  "tar.availableVessels": [],
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "Flight", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Doomed Probe"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 15000, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      { "channel": "spaceCenter.savedShips", "value": [] },
+      { "channel": "spaceCenter.crewRoster", "value": [] },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Doomed Probe",
+          "name": "Doomed Probe",
+          "vesselType": 0,
+          "situation": 0,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3.5316e12
+        },
+        "meta": { "quality": 1 }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 50,
+          "altitudeTerrain": 50,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "ksp.revertAvailability",
+        "value": { "canRevertToLaunch": false, "canRevertToEditor": false }
+      },
+      { "channel": "crash.hasRecent", "value": true }
+    ]
+  }
 }

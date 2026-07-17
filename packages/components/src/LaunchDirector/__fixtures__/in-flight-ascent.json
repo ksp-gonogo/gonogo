@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "in-flight-ascent",
-    "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible."
+    "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness. Two documented drops mirror emitLegacyFixture: v.missionTime can't co-derive with v.altitude off vessel.state (met is OnRails-basis, altitudeAsl is Loaded-basis) so the Loaded basis wins (real altitude, met blank); tar.availableVessels is not replayed (system.vessels ships the new {vessels:[...]} shape the switcher hasn't migrated to). vessel.orbit carries quality:1 (Loaded) so altitudeAsl derives off vessel.flight."
   },
   "kc.savedShips": [],
   "kc.crewRoster": [],
@@ -33,5 +33,101 @@
       "situation": "ORBITING",
       "position": [800000, 200000, 0]
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "Flight", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Mun Hopper I"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 42500, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      { "channel": "spaceCenter.savedShips", "value": [] },
+      { "channel": "spaceCenter.crewRoster", "value": [] },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Mun Hopper I",
+          "name": "Mun Hopper I",
+          "vesselType": 0,
+          "situation": 0,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3.5316e12
+        },
+        "meta": { "quality": 1 }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 12450,
+          "altitudeTerrain": 12450,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "ksp.revertAvailability",
+        "value": { "canRevertToLaunch": true, "canRevertToEditor": true }
+      },
+      { "channel": "crash.hasRecent", "value": false }
+    ]
+  }
 }
