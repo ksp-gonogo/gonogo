@@ -146,7 +146,10 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     registerDataSource(buffered);
     await buffered.connect();
 
-    renderControlNavball("nav-cmd-sas-legacy", fixture.Provider);
+    const { unmount } = renderControlNavball(
+      "nav-cmd-sas-legacy",
+      fixture.Provider,
+    );
 
     act(() => {
       fixture.emit("vessel.control", {
@@ -169,6 +172,11 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     await waitFor(() => expect(executed).toEqual(["f.sas"]));
     expect(commandHandler).not.toHaveBeenCalled();
 
+    // Unmount BEFORE tearing the registry down: `clearRegistry()` notifies
+    // every live `useDataSourceSubscription`, so clearing while the widget
+    // is still mounted schedules a setState from outside React's act
+    // boundary. Dropping the tree first leaves nothing to notify.
+    unmount();
     buffered.disconnect();
     clearRegistry();
   });
@@ -219,7 +227,10 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     registerDataSource(buffered);
     await buffered.connect();
 
-    renderControlNavball("nav-cmd-mode-legacy", fixture.Provider);
+    const { unmount } = renderControlNavball(
+      "nav-cmd-mode-legacy",
+      fixture.Provider,
+    );
 
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
@@ -229,6 +240,7 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     await waitFor(() => expect(executed).toEqual(["f.setSASMode[Prograde]"]));
     expect(commandHandler).not.toHaveBeenCalled();
 
+    unmount();
     buffered.disconnect();
     clearRegistry();
   });
@@ -278,7 +290,10 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     registerDataSource(buffered);
     await buffered.connect();
 
-    renderControlNavball("nav-cmd-thr-legacy", fixture.Provider);
+    const { unmount } = renderControlNavball(
+      "nav-cmd-thr-legacy",
+      fixture.Provider,
+    );
 
     const button = await screen.findByRole("button", { name: "ZERO" });
     act(() => {
@@ -288,6 +303,7 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     await waitFor(() => expect(executed).toEqual(["f.throttleZero"]));
     expect(commandHandler).not.toHaveBeenCalled();
 
+    unmount();
     buffered.disconnect();
     clearRegistry();
   });
