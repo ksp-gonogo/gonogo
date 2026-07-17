@@ -6,7 +6,7 @@
  * over PeerJS) have no data-source panel of their own.
  *
  * This boots the main screen, opens Settings → Data Sources, and asserts the
- * `sitrep` row (`SitrepStreamDataSource`, named "Sitrep Stream" — a thin
+ * `sitrep` row (`SitrepStreamDataSource`, named "Telemetry stream" — a thin
  * status/config front over the live `WebSocketTransport`
  * `SitrepTelemetryProvider` owns, see `packages/app/src/dataSources/sitrep.ts`)
  * reports "connected" — exercising the host's Sitrep stream path end to end
@@ -63,14 +63,14 @@ test.describe("Settings — Data Sources tab — main screen", () => {
     // single Gonogo/Sitrep connection row (`SitrepConnection`, a styled
     // `<div>` — not an `<li>`; the per-Uplink health list below it is the
     // only `<li>`-based list now) followed by per-Uplink health rows. Scope
-    // to the tabpanel so a visible "Sitrep Stream" name is proof the tab
+    // to the tabpanel so a visible "Telemetry stream" name is proof the tab
     // opened and the row rendered. "connected" (exact) only ever labels the
     // Sitrep row here — Uplink rows report health states (healthy/degraded/
     // unavailable), never "connected" — so asserting it within the panel is
     // an unambiguous stand-in for "that row's status".
     const dataSourcesPanel = page.getByRole("tabpanel");
     await expect(
-      dataSourcesPanel.getByText("Sitrep Stream", { exact: true }),
+      dataSourcesPanel.getByText("Telemetry stream", { exact: true }),
     ).toBeVisible({ timeout: 30_000 });
     await expect(
       dataSourcesPanel.getByText("connected", { exact: true }),
