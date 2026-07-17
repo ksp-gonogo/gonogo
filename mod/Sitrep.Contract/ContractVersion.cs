@@ -183,7 +183,16 @@ namespace Sitrep.Contract
         /// only, no existing type touched — additive, so it cannot break an
         /// Uplink built against an older Minor. See
         /// <c>mod/GonogoKerbcastUplink/</c>.</para>
+        ///
+        /// <para>Major-4 line — Bumped 1 -&gt; 2: additive-only Minor for the
+        /// mod-hash binding — the new nullable <see cref="UplinkManifest.ExpectedClientHash"/>,
+        /// emitted on the engine-built <c>system.uplinks</c> roster
+        /// (<c>expectedClientHash: string | null</c>). Carries H_mod so the app can enforce
+        /// the three-way client-integrity agreement (design
+        /// docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md §3). A new
+        /// nullable field on a hand-declared engine channel + a non-reflected manifest type —
+        /// additive, so it cannot break an Uplink built against an older Minor.</para>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }
