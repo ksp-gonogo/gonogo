@@ -16,6 +16,11 @@ on:
     branches: [main, ci-dev, staging]
   pull_request:
     branches: [main]
+  # Manual trigger: run CI on any ref on demand. Needed because a baseline
+  # regen (update-baselines.yml) commits with GITHUB_TOKEN, and a token push
+  # does NOT trigger a workflow run — so the regenerated-baseline tip would
+  # otherwise never get a CI run to prove the visual gate is green.
+  workflow_dispatch:
 
 permissions:
   # `read:packages` is required so pnpm install can pull
