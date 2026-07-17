@@ -21,9 +21,9 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import type { DelayClockLike } from "@ksp-gonogo/sitrep-client";
 import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {
   type DelayedPlayoutResult,
   useDelayedPlayout,

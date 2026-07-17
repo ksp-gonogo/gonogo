@@ -1,7 +1,7 @@
 /**
  * Deterministic "block-colour" proof that `DelayedPlayoutBuffer` applies
  * the signal delay correctly, per the followup-delayproof task: the live
- * camera isn't visibly delayed right now (a separate, kerbcast-side runtime
+ * camera isn't visibly delayed right now (a separate, consumer-side runtime
  * issue), so this test isolates gonogo's half of the contract and proves it
  * in isolation, independent of any real `MediaStream`/WebRTC plumbing.
  *
@@ -24,7 +24,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
-} from "./DelayedPlayoutBuffer";
+} from "./delayed-playout-buffer";
 
 /** A clock double a test can set directly, standing in for confirmedEdgeUt.
  *  Mirrors `DelayedPlayoutBuffer.test.ts`'s `manualClock`. */

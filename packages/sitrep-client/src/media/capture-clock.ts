@@ -1,8 +1,8 @@
 /**
- * Interpolating the live kerbcast capture-UT from a low-rate sample —
- * shared between the main-thread hook (`CameraFeed/useDelayedKerbcastStream.ts`)
+ * Interpolating the live capture-UT from a low-rate sample —
+ * shared between the main-thread hook
  * and the worker-hosted frame-delay backend (`worker/`, cross-browser
- * kerbcast video-delay design, 2026-07-16). Extracted to its own module so
+ * video-delay design, 2026-07-16). Extracted to its own module so
  * there is exactly one implementation, mirroring the same "extract once"
  * treatment the design doc calls for on the clock-edge formula
  * (`@ksp-gonogo/sitrep-client`'s `view-clock-formula.ts`) — the worker needs

@@ -16,8 +16,8 @@
  * more smoothly than a single latched value would allow (see the design
  * doc's "why this still beats a plain latch" paragraph).
  *
- * Satisfies kerbcast's own `DelayClockLike` structural interface
- * (`../DelayedPlayoutBuffer.ts`) so `runFrameDelayPipeline` runs completely
+ * Satisfies the `DelayClockLike` structural interface
+ * (`../delayed-playout-buffer.ts`) so `runFrameDelayPipeline` runs completely
  * unchanged inside the worker (F1 — "a new backend is a new source/sink
  * pair, not a new engine").
  *
@@ -29,8 +29,8 @@
 import {
   type ClockFormulaSnapshot,
   computeConfirmedEdgeUt,
-} from "@ksp-gonogo/sitrep-client";
-import type { DelayClockLike } from "../DelayedPlayoutBuffer";
+} from "../../view-clock-formula";
+import type { DelayClockLike } from "../delayed-playout-buffer";
 
 const COLD_SNAPSHOT: ClockFormulaSnapshot = {
   epoch: 0,
@@ -43,7 +43,7 @@ const COLD_SNAPSHOT: ClockFormulaSnapshot = {
 };
 
 export interface WorkerDelayClockOptions {
-  /** Wall-clock seconds, on the MAIN thread's basis — see `timeBase.ts`. */
+  /** Wall-clock seconds, on the MAIN thread's basis — see `time-base.ts`. */
   nowWall(): number;
   /** Poll interval (ms) driving `onFrame` subscribers — mirrors
    *  `ViewClock.onFrame`'s own `setTimeout(tick, 16)` SSR/non-rAF fallback

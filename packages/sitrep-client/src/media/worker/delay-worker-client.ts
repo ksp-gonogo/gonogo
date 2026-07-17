@@ -1,7 +1,7 @@
 /**
- * Main-thread client for the shared kerbcast delay worker (cross-browser
- * kerbcast video-delay design, 2026-07-16). This is the Safari-today /
- * Firefox-once-it-lands backend — see `frameDelay.ts`'s module doc for the
+ * Main-thread client for the shared delay worker (cross-browser
+ * video-delay design, 2026-07-16). This is the Safari-today /
+ * Firefox-once-it-lands backend — see `frame-delay.ts`'s module doc for the
  * full backend picture and `local_docs/reports/video-worker-report.md` for
  * the empirical per-engine verification this design rests on.
  *
@@ -20,27 +20,27 @@
  * exactly like the main-thread backend's `null` return — "can't delay ⇒
  * no video" (decision 5), never a live fallback.
  *
- * NOT unit-tested (see `kerbcastDelayWorker.ts`'s doc for why) — thin
+ * NOT unit-tested (see `delay-worker.ts`'s doc for why) — thin
  * message-passing glue over already-tested pieces, validated by the manual
  * cross-browser check.
  */
 
-import type { ClockFormulaSnapshot } from "@ksp-gonogo/sitrep-client";
-import type { CaptureClockSample } from "../captureClock";
-import type { DelayClockLike } from "../DelayedPlayoutBuffer";
-import type { FrameDelayStream } from "../frameDelay";
-import { startPacingTicker } from "../frameDelay";
+import type { ClockFormulaSnapshot } from "../../view-clock-formula";
+import type { CaptureClockSample } from "../capture-clock";
+import type { DelayClockLike } from "../delayed-playout-buffer";
+import type { FrameDelayStream } from "../frame-delay";
+import { startPacingTicker } from "../frame-delay";
 import type {
   CreatePipelineMessage,
   MainToWorkerMessage,
   WorkerToMainMessage,
-} from "./kerbcastDelayWorker";
+} from "./delay-worker";
 
 /** The wider clock capability the worker backend needs beyond
  *  `DelayClockLike` — a serializable snapshot of the formula inputs to
  *  forward at ~60Hz. `ViewClock` (the app's real clock) satisfies this
- *  structurally; kerbcast never imports `ViewClock` directly (same
- *  decoupling `DelayedPlayoutBuffer.ts` already follows). */
+ *  structurally; a camera Uplink never imports `ViewClock` directly (same
+ *  decoupling `delayed-playout-buffer.ts` already follows). */
 export interface SnapshottableDelayClock extends DelayClockLike {
   snapshot(): ClockFormulaSnapshot;
 }
@@ -56,7 +56,7 @@ export interface CreateWorkerFrameDelayStreamOptions {
   onError?(error: unknown): void;
 }
 
-const DEFAULT_MAX_PACING_BACKLOG_SECONDS = 0.5; // see frameDelay.ts's own default + rationale
+const DEFAULT_MAX_PACING_BACKLOG_SECONDS = 0.5; // see frame-delay.ts's own default + rationale
 
 let sharedWorker: Worker | null | undefined; // undefined = not attempted yet, null = attempt failed
 let pipelineCounter = 0;
@@ -75,12 +75,9 @@ function getSharedWorker(): Worker | null {
     return null;
   }
   try {
-    const worker = new Worker(
-      new URL("./kerbcastDelayWorker.ts", import.meta.url),
-      {
-        type: "module",
-      },
-    );
+    const worker = new Worker(new URL("./delay-worker.ts", import.meta.url), {
+      type: "module",
+    });
     worker.postMessage({
       type: "init",
       mainTimeOriginMs: performance.timeOrigin,
@@ -164,7 +161,7 @@ export async function createWorkerFrameDelayStream(
   if (!track) return null;
 
   pipelineCounter += 1;
-  const pipelineId = `kerbcast-delay-${pipelineCounter}`;
+  const pipelineId = `delay-${pipelineCounter}`;
 
   const readyPromise = new Promise<MediaStreamTrack>((resolve, reject) => {
     pendingReady.set(pipelineId, { resolve, reject });
@@ -222,7 +219,7 @@ export async function createWorkerFrameDelayStream(
 // Empirically validated cross-browser (Chromium/Firefox/WebKit) in Phase 1
 // of that report, gated on a real confirmedEdgeUt() computation. Reachable
 // from the main-screen and station/broker camera path via
-// `KerbcastDataSource.getReceiverForStream` — see that method's doc for the
+// the camera data source's `getReceiverForStream` — see that method's doc for the
 // reconciliation of why this is wireable gonogo-side, no SDK change needed.
 // ---------------------------------------------------------------------------
 
@@ -231,7 +228,7 @@ export interface AttachEncodedFrameDelayOptions {
   /** Read fresh on every ~60Hz tick — same contract as
    *  `CreateWorkerFrameDelayStreamOptions.getCaptureSample`. */
   getCaptureSample(): CaptureClockSample;
-  /** Real byte cap — see `encodedFrameDelay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
+  /** Real byte cap — see `encoded-frame-delay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
   maxBufferedBytes?: number;
   maxPacingBacklogSeconds?: number;
   onError?(error: unknown): void;
@@ -255,7 +252,7 @@ export interface EncodedFrameDelayHandle {
  * `onError`, returns `null`) — there's no async "pipelineReady" handshake
  * to await, because attaching a script transform doesn't move any track;
  * `self.onrtctransform` on the worker side has no message to reply with
- * (see `kerbcastDelayWorker.ts`'s `handleRtcTransform` doc). The delay
+ * (see `delay-worker.ts`'s `handleRtcTransform` doc). The delay
  * happens transparently, upstream of decode, on the SAME track the caller
  * already has — the caller should keep using its existing `MediaStream`
  * reference (e.g. `raw`, unchanged) once this resolves non-null, not swap
@@ -279,7 +276,7 @@ export function attachEncodedWorkerFrameDelay(
   if (!worker) return null;
 
   pipelineCounter += 1;
-  const pipelineId = `kerbcast-encoded-${pipelineCounter}`;
+  const pipelineId = `encoded-${pipelineCounter}`;
 
   try {
     receiver.transform = new RTCRtpScriptTransform(worker, {
