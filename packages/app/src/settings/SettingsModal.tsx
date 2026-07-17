@@ -33,6 +33,11 @@ import styled, { keyframes } from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
+import {
+  getUplinkOutcomes,
+  subscribeUplinkOutcomes,
+  type UplinkLoadStatus,
+} from "../uplinks/loaderState";
 import type { SettingDefinition } from "./registry";
 import { getSetting, getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
@@ -162,7 +167,42 @@ function DataSourcesPanel() {
         <SectionTitle>Uplinks</SectionTitle>
         <UplinkHealthList />
       </Section>
+      <UplinkLoaderSection />
     </SectionStack>
+  );
+}
+
+/**
+ * Loaded Uplink CLIENTS (runtime loader path). Distinct from the Uplinks section
+ * above, which reports the mod-side self-report over `system.uplinks`: this
+ * reports whether each runtime-loaded client bundle passed the compat gates +
+ * integrity check and registered, or was quarantined with a reason (design §2.4:
+ * every refusal is legible, never a silent load). Renders nothing on the default
+ * bundled path, where no client is loaded at runtime and the store is empty.
+ */
+function UplinkLoaderSection() {
+  const outcomes = useSyncExternalStore(
+    subscribeUplinkOutcomes,
+    getUplinkOutcomes,
+  );
+  if (outcomes.length === 0) return null;
+  return (
+    <Section>
+      <SectionTitle>Loaded clients</SectionTitle>
+      <UplinkList>
+        {outcomes.map((o) => (
+          <UplinkItem key={o.id}>
+            <ConnectionRow>
+              <LoaderIndicator $status={o.status} />
+              <Name>{o.name}</Name>
+              {o.version && <UplinkVersion>v{o.version}</UplinkVersion>}
+              <LoaderLabel $status={o.status}>{o.status}</LoaderLabel>
+            </ConnectionRow>
+            {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
+          </UplinkItem>
+        ))}
+      </UplinkList>
+    </Section>
   );
 }
 
@@ -633,4 +673,25 @@ const UplinkDetail = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
   margin-left: 16px;
+`;
+
+const loaderStatusColor: Record<UplinkLoadStatus, string> = {
+  loading: "var(--color-status-warning-bg)",
+  loaded: "var(--color-accent-fg)",
+  quarantined: "var(--color-status-nogo-bg)",
+};
+
+const LoaderIndicator = styled.span<{ $status: UplinkLoadStatus }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ $status }) => loaderStatusColor[$status]};
+`;
+
+const LoaderLabel = styled.span<{ $status: UplinkLoadStatus }>`
+  font-size: 11px;
+  color: ${({ $status }) => loaderStatusColor[$status]};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
