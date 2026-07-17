@@ -544,11 +544,16 @@ registerComponent<LandingStatusConfig>({
   minSize: { w: 4, h: 5 },
   component: LandingStatusComponent,
   dataRequirements: [
-    "vessel.state",
+    // `vessel.state` (parentBodyName + targetDistance) is a DERIVED channel
+    // read via useStream; the orchestrator carries it by carrying its inputs,
+    // so list those SDK topics rather than the derived channel itself.
+    "vessel.orbit",
+    "vessel.identity",
+    "system.bodies",
+    "vessel.target",
     "vessel.flight",
     "vessel.surface",
     "vessel.propulsion",
-    "vessel.orbit",
     "vessel.control",
     "dv.summary",
     "comms.delay",
