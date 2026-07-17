@@ -388,7 +388,7 @@ describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → vi
     expect(value).toBeUndefined();
   });
 
-  it("returns the frozen view UT after a frame tick", () => {
+  it("returns the frozen view UT from the first render, honouring the scrub", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const clock = new ViewClock();
@@ -405,10 +405,40 @@ describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → vi
         <Probe />
       </TelemetryProvider>,
     );
-    // Before any frame tick the seed is the (non-finite) confirmed edge.
-    expect(value).toBeUndefined();
+    // Seeded from `viewUt()` — the same quantity the frame tick delivers — so
+    // a scrubbed clock reads its target from the very first render. This used
+    // to seed from `confirmedEdgeUt()`, which ignores the scrub outright: the
+    // probe rendered `undefined` for one frame and only snapped to 12_345 on
+    // the first tick.
+    expect(value).toBe(12_345);
     act(() => raf.flush());
     expect(value).toBe(12_345);
+
+    client.dispose();
+  });
+
+  it("stays undefined while the view time is not yet finite (no scrub, no samples)", () => {
+    // The un-scrubbed counterpart to the case above: nothing confirmed and no
+    // scrub target means `viewUt()` is -Infinity, so the documented "before the
+    // first confirmed sample" contract still reads undefined. Seeding from
+    // `viewUt()` must not turn that into a bogus finite reading.
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(new ViewClock());
+
+    let value: number | undefined = 999;
+    function Probe() {
+      value = useViewUt();
+      return null;
+    }
+    render(
+      <TelemetryProvider client={client} store={store}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+    expect(value).toBeUndefined();
+    act(() => raf.flush());
+    expect(value).toBeUndefined();
 
     client.dispose();
   });

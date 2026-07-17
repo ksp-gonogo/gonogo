@@ -52,7 +52,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
   });
 
   async function renderDiagram() {
-    render(
+    const result = render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
       </fixture.Provider>,
@@ -108,6 +108,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
     );
+    return result;
   }
 
   it("registers both slot fills at module load", () => {
@@ -296,12 +297,11 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
   });
 
   it("has no axe violations with both slots filled", async () => {
-    await renderDiagram();
-    const { container } = render(
-      <fixture.Provider>
-        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv-axe" />
-      </fixture.Provider>,
-    );
+    // `renderDiagram()` already mounts the diagram with both slots filled and
+    // its data emitted — a second mount of the same widget added nothing to
+    // scan, and left a tree that was still mid-first-frame while axe's long
+    // async traversal ran.
+    const { container } = await renderDiagram();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

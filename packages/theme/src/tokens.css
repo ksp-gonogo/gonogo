@@ -1,0 +1,133 @@
+:root {
+  --font-family-mono:
+    "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+
+  /*
+   * Colour tokens — names match `theme.colors.*` paths in
+   * `packages/ui-kit/src/defaultDarkTheme.ts`. The CSS-variable layer is
+   * the single source of truth; the JS theme object is a typed handle
+   * that reads from these vars (e.g. `var(--color-text-primary)`).
+   * A future light-mode or color-blind theme swaps the values here.
+   */
+  --color-text-primary: #ccc;
+  --color-text-muted: #888;
+  --color-text-dim: #808080;
+  --color-text-faint: #7a7a7a;
+  --color-text-inverse: #050505;
+
+  --color-surface-app: #050505;
+  --color-surface-panel: #0d0d0d;
+  --color-surface-raised: #1a1a1a;
+  --color-surface-sunken: #0a0a0a;
+
+  --color-border-subtle: #2a2a2a;
+  --color-border-strong: #333;
+
+  --color-accent-fg: #00ff88;
+  --color-accent-bg: #00ff88;
+
+  --color-status-go-fg: #cfe;
+  --color-status-go-bg: #2e5a2e;
+  --color-status-nogo-fg: #ffdede;
+  --color-status-nogo-bg: #ff4d4d;
+  --color-status-warning-fg: #1a1a1a;
+  --color-status-warning-bg: #ff8c00;
+  --color-status-info-fg: #7cf;
+  --color-status-info-bg: #0d0d0d;
+
+  /*
+   * Muted variants for status surfaces — used when the alert/warning
+   * state needs a *darker* fill (e.g. error-button background, banner
+   * inset). Distinct from the primary status colours, which are full-
+   * brightness. `alert-muted` covers nogo-tone darks; `warning-bg-muted`
+   * covers warning-tone darks (warm browns / olives).
+   */
+  --color-status-alert-muted: #4a0e0e;
+  --color-status-warning-bg-muted: #3a2a0a;
+  /*
+   * Warning text + border for warning chips on a *dark* surface — the
+   * `-fg` and `-bg` pair above is for bright orange chips (dark text on
+   * orange); these are the inverse case (light cream text on dark amber).
+   */
+  --color-status-warning-fg-muted: #ffd68a;
+  --color-status-warning-border-muted: #8a6a28;
+
+  /*
+   * Tag palette — used for *labeled state* with a paired fg / bg /
+   * border surface. Examples: a purple "prediction" chip, a blue
+   * station-link badge. Each tag has a fg / bg / border triple.
+   *
+   * Not for categorical data (chart series, telemetry rows, body
+   * markers) — use the `--color-data-*` palette below for that.
+   *
+   * Not currently typed in the theme schema — promote when a widely-
+   * shared widget begins consuming them programmatically.
+   */
+  --color-tag-blue-fg: #4488ff;
+  --color-tag-blue-bg: #0a0a1a;
+  --color-tag-blue-border: #1a1a3a;
+  --color-tag-purple-fg: #cc44cc;
+  --color-tag-purple-bg: #1a0a1a;
+  --color-tag-purple-border: #6a3a9a;
+  --color-tag-yellow-fg: #ffeb3b;
+  --color-tag-yellow-bg: #3a2800;
+  --color-tag-yellow-border: #6a5a2a;
+  --color-tag-dark-brown-bg: #1a1000;
+  --color-tag-dark-brown-border: #3a2800;
+  --color-tag-cyan-fg: #00cccc;
+  --color-tag-orange-fg: #ff6633;
+  --color-tag-red-fg: #ff4466;
+
+  /*
+   * Categorical data palette — used for chart series, telemetry rows,
+   * body markers, and anything where the role is "make this category
+   * visually distinct from neighbours". Cycle by index (see
+   * packages/components/src/shared/dataPalette.ts).
+   *
+   * Designed for the dark mission-control surface: every value lands at
+   * ~70%+ HSL lightness with high saturation so it reads on
+   * `--color-surface-app` through `--color-surface-raised`. Hues span
+   * ~360° with adjacent pairs visually distinct. None overlap the
+   * semantic palette (accent green, status orange/red/nogo) — a chart
+   * series should never be mistaken for a state indicator.
+   */
+  --color-data-1: #6cb4ff; /* steel blue */
+  --color-data-2: #ff7e7e; /* coral */
+  --color-data-3: #d987ff; /* orchid */
+  --color-data-4: #ffb87a; /* peach */
+  --color-data-5: #4fe6ff; /* cyan */
+  --color-data-6: #ffd866; /* goldenrod */
+  --color-data-7: #ff8eb8; /* rose */
+  --color-data-8: #7d8eff; /* periwinkle */
+  --color-data-9: #88dd55; /* spring */
+  --color-data-10: #44dddd; /* teal */
+  --color-data-11: #c87fff; /* bright purple */
+  --color-data-12: #ff5cad; /* hot pink */
+  --color-data-13: #5fc97a; /* forest */
+  --color-data-14: #e89c5b; /* burnt peach */
+  --color-data-15: #aa9cff; /* lilac */
+  --color-data-16: #c2db4a; /* chartreuse */
+  --color-data-17: #6fc2e5; /* sky */
+  --color-data-18: #db8b6f; /* rust */
+  --color-data-19: #b6f7d6; /* pale mint */
+  --color-data-20: #ffa3d6; /* cotton-candy */
+  --color-data-21: #87a6ff; /* sapphire */
+  --color-data-22: #ffc88e; /* apricot */
+  --color-data-23: #c8a6e3; /* lavender */
+  --color-data-24: #f5e07c; /* canary */
+
+  --color-focus: #00ff88;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 15px;
+    --font-size-lg: 17px;
+  }
+}
