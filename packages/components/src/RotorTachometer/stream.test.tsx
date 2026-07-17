@@ -4,7 +4,7 @@ import {
   render as rtlRender,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

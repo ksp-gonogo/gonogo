@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { ThemeProvider } from "styled-components";
 import { describe, expect, it, vi } from "vitest";
 import { defaultDarkTheme } from "../defaultDarkTheme";
+import { render, screen } from "../test/render";
 import {
   ScienceExperimentRow,
   type ScienceInstrument,

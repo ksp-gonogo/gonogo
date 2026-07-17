@@ -1,17 +1,10 @@
-import { render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
-import { ThemeProvider } from "styled-components";
 import { describe, expect, it } from "vitest";
-import { defaultDarkTheme } from "./defaultDarkTheme";
 import { Grid } from "./Grid";
-
-function renderWithTheme(node: ReactElement) {
-  return render(<ThemeProvider theme={defaultDarkTheme}>{node}</ThemeProvider>);
-}
+import { render, screen } from "./test/render";
 
 describe("Grid", () => {
   it("renders its children", () => {
-    renderWithTheme(
+    render(
       <Grid cols="120px 1fr 60px">
         <span>Altimetry</span>
       </Grid>,
@@ -20,7 +13,7 @@ describe("Grid", () => {
   });
 
   it("applies a fixed column template when cols is set", () => {
-    renderWithTheme(
+    render(
       <Grid cols="120px 1fr 60px" data-testid="grid">
         <span>a</span>
       </Grid>,
@@ -31,7 +24,7 @@ describe("Grid", () => {
   });
 
   it("applies an auto-fill template when minColWidth is set", () => {
-    renderWithTheme(
+    render(
       <Grid minColWidth="200px" data-testid="grid">
         <span>a</span>
       </Grid>,

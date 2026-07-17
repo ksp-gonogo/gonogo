@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";

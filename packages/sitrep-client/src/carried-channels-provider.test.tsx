@@ -1,4 +1,4 @@
-import { render, renderHook } from "@testing-library/react";
+import { render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import {

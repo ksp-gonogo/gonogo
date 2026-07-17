@@ -3,7 +3,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 

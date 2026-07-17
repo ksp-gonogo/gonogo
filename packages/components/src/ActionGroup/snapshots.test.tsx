@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
-import { act, render } from "@testing-library/react";
+
+import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -59,18 +59,16 @@ async function snapshotActionGroupHybrid(
 
   try {
     const { container } = render(
-      <DefaultThemeProvider>
-        <stream.Provider>
-          <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-            <ActionGroupComponent
-              config={mode.config ?? {}}
-              id="snap"
-              w={mode.w}
-              h={mode.h}
-            />
-          </DashboardItemContext.Provider>
-        </stream.Provider>
-      </DefaultThemeProvider>,
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
+          <ActionGroupComponent
+            config={mode.config ?? {}}
+            id="snap"
+            w={mode.w}
+            h={mode.h}
+          />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
     );
 
     act(() => {

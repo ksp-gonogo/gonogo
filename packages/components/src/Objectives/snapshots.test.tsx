@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
-import { act, render } from "@testing-library/react";
+
+import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -67,18 +67,16 @@ async function snapshotObjectives(
     pinnedUt: 10,
   });
   const { container, unmount } = render(
-    <DefaultThemeProvider>
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-          <ObjectivesComponent
-            config={mode.config ?? {}}
-            id="snap"
-            w={mode.w}
-            h={mode.h}
-          />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>
-    </DefaultThemeProvider>,
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
+        <ObjectivesComponent
+          config={mode.config ?? {}}
+          id="snap"
+          w={mode.w}
+          h={mode.h}
+        />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
   );
   emitCareer(fixture, active);
   // The career.status ingest only reaches React state via the provider's

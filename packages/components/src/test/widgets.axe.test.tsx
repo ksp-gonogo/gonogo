@@ -1,5 +1,5 @@
 import { getComponent } from "@ksp-gonogo/core";
-import { act } from "@testing-library/react";
+import { act } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component,

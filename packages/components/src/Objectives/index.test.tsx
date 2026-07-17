@@ -3,7 +3,7 @@ import {
   getAugmentSettings,
   getAugmentsForSlot,
 } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
   type StreamFixture,

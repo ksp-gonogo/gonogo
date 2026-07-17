@@ -10,7 +10,7 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render, waitFor, within } from "@testing-library/react";
+import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import rails from "./__fixtures__/rails-warp-1000x.json";

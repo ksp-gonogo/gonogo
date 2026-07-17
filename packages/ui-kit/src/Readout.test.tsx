@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { BigReadout, Readout, ReadoutCaption, StatusPill } from "./Readout";
+import { render, screen } from "./test/render";
 
 describe("Readout family", () => {
   it("BigReadout renders its value", () => {

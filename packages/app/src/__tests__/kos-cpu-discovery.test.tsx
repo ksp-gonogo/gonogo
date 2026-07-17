@@ -16,7 +16,7 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import { CpuRegistryService } from "@ksp-gonogo/data";
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { KosCpuDiscovery } from "../dataSources/KosCpuDiscovery";

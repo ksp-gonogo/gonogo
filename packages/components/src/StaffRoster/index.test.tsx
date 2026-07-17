@@ -1,5 +1,5 @@
 import { registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,

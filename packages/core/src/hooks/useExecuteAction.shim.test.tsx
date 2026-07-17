@@ -6,7 +6,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";

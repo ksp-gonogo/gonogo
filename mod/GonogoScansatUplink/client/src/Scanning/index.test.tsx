@@ -6,12 +6,11 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { ScanningComponent } from "./index";
-import { renderWithTheme } from "./testTheme";
 
 const KEYS: DataKey[] = [
   { key: "scansat.available" },
@@ -41,7 +40,7 @@ describe("ScanningComponent", () => {
   const renderedTrees: Array<() => void> = [];
 
   function renderScanning(ui: ReactElement) {
-    const result = renderWithTheme(ui);
+    const result = render(ui);
     renderedTrees.push(result.unmount);
     return result;
   }

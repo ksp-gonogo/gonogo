@@ -12,8 +12,8 @@ import {
 } from "@ksp-gonogo/core";
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

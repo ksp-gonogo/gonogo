@@ -12,7 +12,7 @@ import {
   TelemetryProvider,
   vesselManeuverLegacyChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render as rtlRender, screen } from "@testing-library/react";
+import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

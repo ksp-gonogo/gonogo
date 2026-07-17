@@ -9,7 +9,7 @@ import {
   render as rtlRender,
   screen,
   within,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type KosProcessorBadgeContext, KosProcessorsComponent } from "./index";

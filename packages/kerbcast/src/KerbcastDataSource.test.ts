@@ -5,7 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import { Layer } from "@ksp-gonogo/kerbcast";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { act } from "@testing-library/react";
+import { act } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "./KerbcastDataSource";
 import {

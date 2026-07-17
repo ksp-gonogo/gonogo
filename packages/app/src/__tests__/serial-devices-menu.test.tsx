@@ -7,8 +7,8 @@ import {
   SerialDeviceService,
   SerialDevicesMenu,
 } from "@ksp-gonogo/serial";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 function memoryStorage(): Storage {

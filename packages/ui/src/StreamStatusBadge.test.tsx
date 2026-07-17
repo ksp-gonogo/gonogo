@@ -1,5 +1,5 @@
 import type { StreamStatusValue } from "@ksp-gonogo/sitrep-client";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { axe } from "./test/axe";

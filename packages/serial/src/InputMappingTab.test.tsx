@@ -1,6 +1,6 @@
 import type { ActionDefinition } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
-import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";

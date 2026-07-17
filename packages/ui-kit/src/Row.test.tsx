@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Row, RowName } from "./Row";
+import { render, screen } from "./test/render";
 
 describe("Row", () => {
   it("renders as an li by default", () => {

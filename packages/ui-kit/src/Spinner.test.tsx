@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Spinner } from "./Spinner";
+import { render, screen } from "./test/render";
 
 describe("Spinner", () => {
   it("renders a status role with the default label", () => {

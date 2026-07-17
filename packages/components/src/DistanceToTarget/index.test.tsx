@@ -1,6 +1,6 @@
 import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,

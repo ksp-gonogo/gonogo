@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";

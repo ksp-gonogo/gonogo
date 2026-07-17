@@ -1,5 +1,5 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { waitFor } from "@testing-library/react";
+import { waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";

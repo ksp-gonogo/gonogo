@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render } from "@ksp-gonogo/test-utils";
 import { useEffect } from "react";
 import { describe, it } from "vitest";
 import { Button, GhostButton, IconButton, PrimaryButton } from "./Button";

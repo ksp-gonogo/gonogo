@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import {

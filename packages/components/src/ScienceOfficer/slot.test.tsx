@@ -5,7 +5,7 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -14,7 +14,6 @@ import {
   type ScienceOfficerInstrumentSlotContext,
   type ScienceOfficerSlotContext,
 } from "./index";
-import { renderWithTheme } from "./testTheme";
 
 /**
  * ScienceOfficer augment-slot exposure. The slots (`science-officer.sections`
@@ -51,7 +50,7 @@ async function renderFullList(): Promise<void> {
     carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
   });
-  const { unmount } = renderWithTheme(
+  const { unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "sci-slot" }}>
         <ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />

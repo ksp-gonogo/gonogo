@@ -11,7 +11,7 @@ import {
   renderHook,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { defineTopicManifest } from "./defineTopicManifest";
 

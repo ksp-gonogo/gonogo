@@ -12,8 +12,8 @@
 
 import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
 import "@ksp-gonogo/components"; // self-register the built-in components
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MainScreen } from "../screens/MainScreen";
 import { StationScreen } from "../screens/StationScreen";

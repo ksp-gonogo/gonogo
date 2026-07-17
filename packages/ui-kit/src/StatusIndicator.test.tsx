@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { StatusIndicator } from "./StatusIndicator";
+import { render, screen } from "./test/render";
 
 describe("StatusIndicator", () => {
   it("renders its label text", () => {

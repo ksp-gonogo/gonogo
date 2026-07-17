@@ -3,7 +3,7 @@ import type {
   KosProcessorInfo,
   PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";

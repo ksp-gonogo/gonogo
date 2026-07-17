@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Gauge } from "./Gauge";
 

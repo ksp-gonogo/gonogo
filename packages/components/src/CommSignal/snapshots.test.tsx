@@ -15,7 +15,7 @@
  * `pnpm --filter @ksp-gonogo/components exec vitest run src/CommSignal/snapshots -u`.
  */
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";

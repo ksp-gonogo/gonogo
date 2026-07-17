@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyOption } from "./DataKeyPicker";
 import { DataKeyPicker } from "./DataKeyPicker";
