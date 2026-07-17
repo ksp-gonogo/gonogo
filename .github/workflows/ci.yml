@@ -6,7 +6,14 @@ on:
     # experiments here to get real CI runs without churning main (main pushes
     # also fire the dev-channel deploy). Fast-forward main from ci-dev only
     # once it's green.
-    branches: [main, ci-dev]
+    #
+    # `staging` is the long-lived integration branch where large multi-task
+    # work accumulates before a squash to main. It MUST get CI — without it a
+    # whole feature branch runs unvalidated (test/e2e/visual never fire), which
+    # is exactly how a batch of e2e failures reached the branch unnoticed
+    # (2026-07-17). Only main pushes trigger the deploy (deploy.yml gates on
+    # main), so CI on staging validates without deploying.
+    branches: [main, ci-dev, staging]
   pull_request:
     branches: [main]
 
