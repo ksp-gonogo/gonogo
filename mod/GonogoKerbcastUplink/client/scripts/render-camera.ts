@@ -24,8 +24,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
 const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "probe.html");
-const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/camera-feed");
+const GLOBAL_CSS = resolve(
+  HERE,
+  "../../../../packages/app/src/styles/global.css",
+);
+const OUT_DIR = resolve(HERE, "../../../../local_docs/renders/camera-feed");
 
 const CAM_BASE = {
   lifecycle: "active",

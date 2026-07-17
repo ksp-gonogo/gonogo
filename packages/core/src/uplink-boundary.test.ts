@@ -42,18 +42,17 @@ interface ModOwnership {
 
 const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   kerbcast: {
-    // GonogoKerbcastUplink now owns kerbcast's CONTROL plane (camera
-    // inventory, capabilities, docking-port association, health, aim/zoom
-    // commands) — see .superpowers/sdd/kerbcast-uplink-design.md.
-    // packages/kerbcast remains the MEDIA half (the WebRTC/playout path,
-    // npm name @ksp-gonogo/kerbcast-feed); whether that folds into the
-    // Uplink's client is an open decision recorded in that design's §8.
+    // GonogoKerbcastUplink owns kerbcast's CONTROL plane (camera inventory,
+    // capabilities, docking-port association, health, aim/zoom commands) — see
+    // .superpowers/sdd/kerbcast-uplink-design.md. Its §8 left open whether the
+    // MEDIA half (the WebRTC/playout path, npm name @ksp-gonogo/kerbcast-feed)
+    // folds into the Uplink's client; it now has: that package moved from
+    // packages/kerbcast to this Uplink's client/ half, so ONE directory owns
+    // both planes and the client is no longer a special-cased core package.
+    // (mod/GonogoKerbcastUplink covers client/ — isUnderOwnedDir is a prefix
+    // match — so the client half needs no separate entry.)
     patterns: [/kerbcast/i, /hullcam/i],
-    ownedDirs: [
-      "mod/GonogoKerbcastUplink",
-      "mod/GonogoKerbcastUplink.Tests",
-      "packages/kerbcast",
-    ],
+    ownedDirs: ["mod/GonogoKerbcastUplink", "mod/GonogoKerbcastUplink.Tests"],
   },
   scansat: {
     patterns: [/scansat/i],
@@ -100,7 +99,13 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
 // ---------------------------------------------------------------------
 
 const ALLOWLIST: Record<ModToken, string[]> = {
-  // === kerbcast — no Uplink home exists yet; every reference is homeless.
+  // === kerbcast — owning dir mod/GonogoKerbcastUplink/ (incl. its client/).
+  // The remaining HARD cluster is the app's own bootstrap/peer wiring, which
+  // stays until the Uplink-client LOADER lands — today every Uplink client
+  // (this one, Gonogo.Kos/client, GonogoScansatUplink/client) is still bundled
+  // at build, so the app must name them to import them. See uplink
+  // architecture §1's "P7 retires" tech-debt note; these lines are the shape
+  // of that debt, not of this Uplink.
   kerbcast: [
     // -- HARD violations (audit §1, "HARD violations" table) --
     "packages/app/src/dataSources/index.ts",
@@ -111,7 +116,11 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/screens/StationScreen.tsx",
     "packages/app/src/settings/SettingsModal.tsx",
-    "packages/components/src/DistanceToTarget/index.tsx",
+    // packages/components/src/DistanceToTarget/index.tsx was here: its built-in
+    // HudCamera imported @ksp-gonogo/kerbcast-feed directly. That backdrop is
+    // now the `kerbcast-docking-camera` AUGMENT filling the widget's
+    // `distance-to-target.camera` slot, and the widget names no camera mod at
+    // all — so the entry went stale and ratcheted off.
 
     // -- GRAY — sitrep-client / contract layer, comment or string-literal only --
     "mod/Gonogo.Kos/client/src/index.ts",
@@ -299,8 +308,8 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/components/src/FleetComms/index.tsx",
     "packages/components/src/FleetComms/pendingPulse.ts",
     "packages/components/src/FleetComms/slot.test.tsx",
-    "packages/kerbcast/src/CameraFeed/CameraFeed.tsx",
-    "packages/kerbcast/src/CameraFeed/CameraFeed.test.tsx",
+    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
+    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
     "mod/Sitrep.Contract/Comms.cs",
     "packages/sitrep-client/src/default-carried-topics.ts",
     "packages/sitrep-client/src/map-command.test.ts",
@@ -401,7 +410,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/data/src/hooks/useDataSchema.ts",
     "packages/data/src/replaySession/ReplaySessionProvider.tsx",
     "packages/data/src/types.ts",
-    "packages/kerbcast/src/index.ts",
+    // packages/kerbcast/src/index.ts was here (a "alongside Telemachus / kOS /
+    // etc." aside in its header). That package is now
+    // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
+    // another Uplink at all — stale twice over, so it ratcheted off.
     "packages/relay/src/bootstrapConfig.ts",
     "packages/sitrep-client/src/stream-status.ts",
     "packages/sitrep-client/src/timeline-store.ts",

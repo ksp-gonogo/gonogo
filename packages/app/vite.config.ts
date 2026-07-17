@@ -9,18 +9,36 @@ import { defineConfig, type PluginOption } from "vite";
 // This eliminates the stale-dist problem: the source is always current,
 // no separate build step is needed before starting the dev server, and
 // changes to any package are hot-reloaded exactly like app-local files.
+//
+// Workspace packages live in TWO places: `packages/*` (the app's own) and
+// `mod/*/client` (each Uplink's client half — the `mod/*/client` entry in
+// pnpm-workspace.yaml). Both are scanned, because "every @ksp-gonogo/*
+// workspace package" above is the intent and an Uplink client is no less a
+// workspace package for living beside its .cs. Scanning only `packages/*`
+// silently downgraded any package that moved to an Uplink client from
+// source-resolution to dist-resolution — which is what happened when the
+// kerbcast client moved to mod/GonogoKerbcastUplink/client.
 const packagesDir = resolve(__dirname, "..");
-const workspaceAlias = Object.fromEntries(
-  readdirSync(packagesDir).flatMap((dir) => {
-    const pkgJsonPath = resolve(packagesDir, dir, "package.json");
-    const srcIndex = resolve(packagesDir, dir, "src/index.ts");
-    if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
-    const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
-      name: string;
-    };
-    return [[name, srcIndex]];
-  }),
-);
+const modDir = resolve(__dirname, "../../mod");
+
+function aliasEntry(pkgDir: string): [string, string][] {
+  const pkgJsonPath = resolve(pkgDir, "package.json");
+  const srcIndex = resolve(pkgDir, "src/index.ts");
+  if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
+  const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
+    name: string;
+  };
+  return [[name, srcIndex]];
+}
+
+const workspaceAlias = Object.fromEntries([
+  ...readdirSync(packagesDir).flatMap((dir) =>
+    aliasEntry(resolve(packagesDir, dir)),
+  ),
+  ...readdirSync(modDir).flatMap((dir) =>
+    aliasEntry(resolve(modDir, dir, "client")),
+  ),
+]);
 
 const pkg = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf-8"),

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "docking-aligned",
-    "notes": "Vessel target at 62m in docking-HUD range (<100m). vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. Negative radial rate = closing slowly. HUD mode forced to 'hud' (no camera) to avoid the kerbcast dependency."
+    "notes": "Vessel target at 62m in docking-HUD range (<100m). vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. Negative radial rate = closing slowly. HUD mode forced to 'hud' (no camera) so the render stays deterministic: the camera backdrop is an augment on the distance-to-target.camera slot, which this probe never registers."
   },
   "tar.name": "Docking Port Mk2",
   "tar.type": "Vessel",

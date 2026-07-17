@@ -39,7 +39,22 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // can't tell apart from a widget's own CSS. They now render through
 // `DefaultThemeProvider` from `@ksp-gonogo/ui-kit` (the styling layer, which
 // the scan excludes), so none of them import styled-components at all.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 72;
+//
+// 72 -> 74 when a camera Uplink's client half moved out of `packages/` (never
+// scanned) and into `mod/<uplink>/client` (scanned, being a mod client
+// bundle). Both added lines are SCOPE, not new bespoke CSS:
+//   • its settings panel — untouched pre-existing code the scan simply reaches
+//     now. A genuine migration candidate, newly visible rather than newly bad.
+//   • its docking-camera augment — the SAME styled `<video>` backdrop that
+//     used to live in DistanceToTarget as `HudVideo`, deleted from there in
+//     the same commit. The app's bespoke CSS did not grow; it moved into the
+//     Uplink that owns it. It reads as +1 only because DistanceToTarget still
+//     imports styled-components for its other styled parts, so no line came
+//     off that side of the ledger.
+// Held at styled-components rather than respelt as inline styles: a sibling
+// Uplink client's overlay augment styles the same way, and dodging a ratchet
+// with a different CSS-in-JS spelling would defeat the point of having one.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 74;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 
