@@ -10,7 +10,7 @@
  * into its early-return branch:
  *
  *   <PanelTitle>POWER SYSTEMS</PanelTitle>
- *   <Hint>Waiting for vessel topology…</Hint>
+ *   <Hint>Waiting for vessel topology...</Hint>
  *
  * Both states are deterministic and must mirror exactly across host
  * and station. That's the cross-screen invariant this test guards —
@@ -37,7 +37,7 @@ test.describe("widget DOM mirror — PowerSystems", () => {
         page.getByText("POWER SYSTEMS", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
       await expect(
-        page.getByText("Waiting for vessel topology…", { exact: true }),
+        page.getByText("Waiting for vessel topology...", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
     }
 

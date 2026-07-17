@@ -15,7 +15,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "./helpers";
 
-const BANNER_PATTERN = /RECONNECTING TO HOST…|HOST DISCONNECTED/;
+const BANNER_PATTERN = /RECONNECTING TO HOST\.\.\.|HOST DISCONNECTED/;
 
 test.describe("host disconnect — station banner", () => {
   test("station shows a host-lost banner after the main page closes", async ({
