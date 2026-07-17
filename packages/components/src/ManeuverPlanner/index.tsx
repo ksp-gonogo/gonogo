@@ -7,16 +7,20 @@ import {
   registerComponent,
   resolveTargetName,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
   useOrbitElements,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   useManeuverNodes,
   useValueKeys,
   useVesselDeltaV,
 } from "@ksp-gonogo/data";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useViewUt,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
   Panel,
@@ -83,18 +87,6 @@ declare module "@ksp-gonogo/core" {
 // Stable empty reference so slot re-renders don't churn mounted augments.
 const EMPTY_SLOT_PROPS: Record<string, never> = {};
 
-/** One entry of `vessel.maneuver.nodes` — id + burn
- * vector components only, no post-burn orbit preview. Only `id` is read
- * here; the rest exists for documentation/type completeness. */
-interface StreamManeuverNode {
-  id: string;
-  ut: number;
-  dvRadial: number;
-  dvNormal: number;
-  dvPrograde: number;
-  dvTotal: number;
-}
-
 function ManeuverPlannerComponent({
   config,
 }: Readonly<ComponentProps<ManeuverPlannerConfig>>) {
@@ -119,42 +111,48 @@ function ManeuverPlannerComponent({
   const [error, setError] = useState<string | null>(null);
 
   // Live orbit state — everything we need for the preset math + preview.
-  const sma = useDataValue("data", "o.sma");
-  const ecc = useDataValue("data", "o.eccentricity");
+  const sma = useTelemetry("vessel.orbit")?.sma;
+  const ecc = useTelemetry("vessel.orbit")?.ecc;
   const {
     apoapsisRadius: ApR,
     periapsisRadius: PeR,
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  const argPe = useDataValue("data", "o.argumentOfPeriapsis");
-  const trueAnomaly = useDataValue("data", "o.trueAnomaly");
+  const argPe = useTelemetry("vessel.orbit")?.argPe;
+  const trueAnomaly =
+    useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
   // t.universalTime is dropped as a data key — it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const currentUT = useViewUt();
-  const orbitalSpeed = useDataValue("data", "o.orbitalSpeed");
-  const radius = useDataValue("data", "o.radius");
-  const refBody = useDataValue("data", "o.referenceBody");
-  const bodyName = useDataValue("data", "v.body");
-  const inclination = useDataValue("data", "o.inclination");
-  const targetName = resolveTargetName(useDataValue("data", "tar.name"));
-  const targetInclinationLive = useDataValue("data", "tar.o.inclination");
-  const targetLanLive = useDataValue("data", "tar.o.lan");
-  const targetSma = useDataValue("data", "tar.o.sma");
-  const targetPeA = useDataValue("data", "tar.o.PeA");
-  const targetArgPe = useDataValue("data", "tar.o.argumentOfPeriapsis");
-  const targetTrueAnomaly = useDataValue("data", "tar.o.trueAnomaly");
-  const targetPeriod = useDataValue("data", "tar.o.period");
-  const lan = useDataValue("data", "o.lan");
+  const orbitalSpeed =
+    useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
+  const radius =
+    useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
+  const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
+  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
+  const inclination = useTelemetry("vessel.orbit")?.inc;
+  const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
+  const targetInclinationLive = useTelemetry("vessel.target")?.orbit?.inc;
+  const targetLanLive = useTelemetry("vessel.target")?.orbit?.lan;
+  const targetSma = useTelemetry("vessel.target")?.orbit?.sma;
+  const targetPeA =
+    useStream<VesselState>("vessel.state")?.targetPeriapsisAlt ?? undefined;
+  const targetArgPe = useTelemetry("vessel.target")?.orbit?.argPe;
+  const targetTrueAnomaly =
+    useStream<VesselState>("vessel.state")?.targetTrueAnomaly ?? undefined;
+  const targetPeriod =
+    useStream<VesselState>("vessel.state")?.targetPeriod ?? undefined;
+  const lan = useTelemetry("vessel.orbit")?.lan;
 
-  const period = useDataValue("data", "o.period");
+  const period = useStream<VesselState>("vessel.state")?.period ?? undefined;
 
   const nodes = useManeuverNodes();
   // dv.stages is mapped on the wire (see map-topic.ts's
   // TELEMACHUS_CLEAN_HOMES — whole-topic identity read, same "dv.stages"
   // key off either transport) and rides the stream once carried, with
   // zero call-site change here: `useVesselDeltaV` reads it via the same
-  // `useDataValue("data", "dv.stages")` regardless of which transport
+  // `useTelemetry("dv.stages")` regardless of which transport
   // ultimately answers. The wire shapes disagree on field names though
   // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`) — see
   // useVesselDeltaV.ts's `normalizeStage` reconciliation.
@@ -172,10 +170,7 @@ function ManeuverPlannerComponent({
   // reads of what is ultimately the same underlying KSP maneuver-node list,
   // correlated by ARRAY POSITION (both server-side lists reflect the same
   // ordering) — `resolveNodeId` below is the correlation point.
-  const streamNodeIds = useDataValue<StreamManeuverNode[]>(
-    "data",
-    "o.maneuverNodeIds",
-  );
+  const streamNodeIds = useTelemetry("vessel.maneuver")?.nodes;
   const nodeIdStreamStatus = useDataStreamStatus("data", "o.maneuverNodeIds");
 
   /**

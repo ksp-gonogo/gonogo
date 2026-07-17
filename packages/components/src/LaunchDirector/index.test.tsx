@@ -1,6 +1,9 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, within } from "@testing-library/react";
+import {
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -18,66 +21,146 @@ import {
 } from "./index";
 
 /**
- * `useViewUt()`'s pinned value only lands once `ViewClock.onFrame`'s
- * per-frame tick has run at least once (the hook's synchronous initial seed
- * ignores `scrubTo` — see its own doc comment in `sitrep-client/src/context.tsx`),
- * so a synchronous `act()` around a telemetry emit isn't enough for a test
- * that asserts on `universalTime`-derived behavior right after. Await this
- * once a `TelemetryProvider` is mounted with a pinned view-UT.
+ * Every read this widget makes now has a real wire home (see
+ * `stream.test.tsx`'s doc comment for the full read list) — only the
+ * `ksp.*` COMMANDS still fall back to the legacy `DataSource` (their
+ * `mapCommand` entries aren't promoted into `carriedChannels` below, so
+ * `useExecuteAction("data")` takes the legacy branch every time), so
+ * `setupMockDataSource`'s `onExecute` spy is the one thing left worth a
+ * mock registration in this file. Every other assertion drives real stream
+ * emits through `setupStreamFixture`.
+ *
+ * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design — `met`
+ * only derives in the OnRails/"propagated" basis, `altitudeAsl` only in the
+ * Loaded/"measured" basis (`vessel-state.ts`'s own doc). The ACTIVE (flying)
+ * vessel this widget's in-flight panel describes is always Loaded, so
+ * `missionTime` genuinely renders "—" in every in-flight scenario below —
+ * a real, documented gap in the migrated data, not a test omission.
  */
-async function flushViewUt(): Promise<void> {
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+const CARRIED = [
+  "career.status",
+  "spaceCenter.savedShips",
+  "spaceCenter.crewRoster",
+  "spaceCenter.scene",
+  "spaceCenter.launchSites",
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+  "ksp.revertAvailability",
+  "crash.hasRecent",
+  "crash.lastCrash",
+];
+
+function emitFunds(
+  stream: ReturnType<typeof setupStreamFixture>,
+  funds: number,
+) {
+  stream.emit("career.status", {
+    economy: { funds, reputation: 0, science: 0 },
+    facilities: null,
+    contracts: null,
+    strategies: null,
+    tech: null,
   });
 }
 
-const KEYS: DataKey[] = [
-  { key: "kc.savedShips" },
-  { key: "kc.crewRoster" },
-  { key: "kc.padOccupied" },
-  { key: "kc.padVesselTitle" },
-  { key: "kc.launchSite" },
-  { key: "kc.launchSites" },
-  { key: "kc.scene" },
-  { key: "career.funds" },
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.altitude" },
-  { key: "ksp.canRevertToLaunch" },
-  { key: "ksp.canRevertToEditor" },
-  { key: "crash.hasRecent" },
-  { key: "crash.lastCrash" },
-  { key: "t.universalTime" },
-  { key: "tar.availableVessels" },
-];
+function emitScene(
+  stream: ReturnType<typeof setupStreamFixture>,
+  scene: string,
+  launchSite?: string,
+) {
+  stream.emit("spaceCenter.scene", { scene, launchSite });
+}
+
+/**
+ * Feeds `vessel.orbit`/`vessel.flight`/`vessel.identity` in the Loaded/
+ * "measured" basis (quality 1) so `vessel.state.altitudeAsl` resolves —
+ * `met` stays null, per this file's doc comment.
+ */
+function emitInFlightVessel(
+  stream: ReturnType<typeof setupStreamFixture>,
+  opts: { name: string; altitudeAsl: number },
+) {
+  stream.emit("vessel.identity", {
+    vesselId: opts.name,
+    name: opts.name,
+    vesselType: 0,
+    situation: 0,
+    parentBodyIndex: 1,
+    launchUt: null,
+  });
+  stream.emit(
+    "vessel.orbit",
+    {
+      referenceBodyIndex: 1,
+      sma: 700000,
+      ecc: 0.01,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 10,
+      mu: 3.5316e12,
+    },
+    { quality: 1 },
+  );
+  stream.emit("vessel.flight", {
+    latitude: -0.1,
+    longitude: -74.6,
+    altitudeAsl: opts.altitudeAsl,
+    altitudeTerrain: opts.altitudeAsl,
+    verticalSpeed: 0,
+    surfaceSpeed: 0,
+    orbitalSpeed: 0,
+    gForce: 1,
+    dynamicPressureKPa: 0,
+    mach: 0,
+    atmDensity: 0,
+  });
+}
 
 describe("LaunchDirectorComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+  let cmdFixture: MockDataSourceFixture;
+  let onExecute: ReturnType<typeof vi.fn>;
+  let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
+    onExecute = vi.fn();
+    cmdFixture = await setupMockDataSource({ keys: [], onExecute });
+    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    teardownMockDataSource(cmdFixture);
   });
 
+  function renderWidget(id = "ld") {
+    return render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: id }}>
+          <LaunchDirectorComponent id={id} />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+  }
+
   it("shows the awaiting placeholder before any telemetry", () => {
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     expect(
       screen.getByText(/Awaiting launch-pad telemetry/i),
     ).toBeInTheDocument();
   });
 
-  it("filters out craft with missing parts and unaffordable cost", () => {
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+  it("filters out craft with missing parts and unaffordable cost", async () => {
+    renderWidget();
     act(() => {
-      source.emit("career.funds", 5000);
-      source.emit("kc.savedShips", [
+      emitFunds(stream, 5000);
+      stream.emit("spaceCenter.savedShips", [
         {
           name: "Cheap Probe",
           partCount: 5,
@@ -104,23 +187,18 @@ describe("LaunchDirectorComponent", () => {
         },
       ]);
     });
-    expect(screen.getByText(/1\/3 ready/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1\/3 ready/i)).toBeInTheDocument();
     expect(screen.getByText(/1 locked/i)).toBeInTheDocument();
   });
 
   it("requires arm-then-confirm before firing ksp.launch", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("career.funds", 100_000);
-      source.emit("kc.padOccupied", false);
-      source.emit("kc.launchSite", "LaunchPad");
-      source.emit("kc.savedShips", [
+      emitFunds(stream, 100_000);
+      emitScene(stream, "SpaceCenter", "LaunchPad");
+      stream.emit("spaceCenter.launchSites", []);
+      stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",
           partCount: 12,
@@ -130,7 +208,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      source.emit("kc.crewRoster", [
+      stream.emit("spaceCenter.crewRoster", [
         {
           name: "Jebediah Kerman",
           trait: "Pilot",
@@ -141,7 +219,7 @@ describe("LaunchDirectorComponent", () => {
       ]);
     });
 
-    await user.click(screen.getByText(/Mun Hopper/));
+    await user.click(await screen.findByText(/Mun Hopper/));
     await user.click(screen.getByText(/Jebediah Kerman/));
 
     await user.click(screen.getByText(/Launch Mun Hopper \(1 crew\)/i));
@@ -155,47 +233,42 @@ describe("LaunchDirectorComponent", () => {
 
   it("switches to recover / revert controls when the pad is occupied", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []); // present so awaiting placeholder clears
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.padVesselTitle", "Kerbal X");
+      // present so awaiting placeholder clears
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("spaceCenter.launchSites", [
+        { name: "LaunchPad", padOccupied: true, padVesselTitle: "Kerbal X" },
+      ]);
     });
 
-    expect(screen.getByText(/On pad: Kerbal X/i)).toBeInTheDocument();
+    expect(await screen.findByText(/On pad: Kerbal X/i)).toBeInTheDocument();
 
     await user.click(screen.getByText("Recover"));
     await user.click(screen.getByText(/Confirm recover/i));
     expect(onExecute).toHaveBeenCalledWith("ksp.recover");
   });
 
-  it("shows the in-flight panel with mission time + revert affordances when scene is Flight", async () => {
+  it("shows the in-flight panel with altitude + revert affordances when scene is Flight", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "Stayputnik X");
-      source.emit("v.missionTime", 263);
-      source.emit("v.altitude", 72_400);
-      source.emit("ksp.canRevertToLaunch", true);
-      source.emit("ksp.canRevertToEditor", true);
-      source.emit("crash.hasRecent", false);
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Stayputnik X", altitudeAsl: 72_400 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: true,
+        canRevertToEditor: true,
+      });
+      stream.emit("crash.hasRecent", false);
     });
 
-    expect(screen.getByText(/In flight: Stayputnik X/i)).toBeInTheDocument();
-    expect(screen.getByText("T+04:23")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/In flight: Stayputnik X/i),
+    ).toBeInTheDocument();
+    // missionTime (`vessel.state.met`) is null in the Loaded/measured basis
+    // (see this file's doc comment) — the panel shows its "—" placeholder.
+    expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("72.4 km")).toBeInTheDocument();
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
     expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
@@ -207,23 +280,20 @@ describe("LaunchDirectorComponent", () => {
 
   it("requires arm-then-confirm for Revert to VAB (flight-ending)", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "Stayputnik X");
-      source.emit("ksp.canRevertToEditor", true);
-      source.emit("crash.hasRecent", false);
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Stayputnik X", altitudeAsl: 100 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: true,
+      });
+      stream.emit("crash.hasRecent", false);
     });
 
     // First click arms — must NOT fire the flight-ending revert yet.
-    await user.click(screen.getByText("Revert to VAB"));
+    await user.click(await screen.findByText("Revert to VAB"));
     expect(onExecute).not.toHaveBeenCalledWith("ksp.revertToEditor[vab]");
 
     await user.click(screen.getByText(/Confirm revert to VAB/i));
@@ -231,27 +301,21 @@ describe("LaunchDirectorComponent", () => {
   });
 
   it("surfaces a crash chip and disables recover when the active vessel itself crashed", async () => {
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "Doomed Probe");
-      source.emit("v.missionTime", 12);
-      source.emit("v.altitude", 50);
-      source.emit("ksp.canRevertToLaunch", false);
-      source.emit("ksp.canRevertToEditor", false);
-      source.emit("crash.hasRecent", true);
-      source.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Doomed Probe", altitudeAsl: 50 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: false,
+      });
+      stream.emit("crash.hasRecent", true);
+      stream.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
     });
 
     expect(
-      screen.getByText(/Crash in progress — return to Space Center/i),
+      await screen.findByText(/Crash in progress — return to Space Center/i),
     ).toBeInTheDocument();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).toBeDisabled();
@@ -264,26 +328,20 @@ describe("LaunchDirectorComponent", () => {
   // step so a casual mis-tap doesn't lose progress.
   it("requires a confirm step before firing ksp.toTrackingStation", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "Probe X");
-      source.emit("v.missionTime", 30);
-      source.emit("v.altitude", 2000);
-      source.emit("ksp.canRevertToLaunch", true);
-      source.emit("ksp.canRevertToEditor", true);
-      source.emit("crash.hasRecent", false);
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Probe X", altitudeAsl: 2000 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: true,
+        canRevertToEditor: true,
+      });
+      stream.emit("crash.hasRecent", false);
     });
 
     // First click arms the confirm — no execute fired yet.
-    await user.click(screen.getByText("Tracking Station"));
+    await user.click(await screen.findByText("Tracking Station"));
     expect(onExecute).not.toHaveBeenCalledWith("ksp.toTrackingStation");
     // Confirm step is visible.
     const confirm = screen.getByText(/Confirm — flight may revert/i);
@@ -296,26 +354,23 @@ describe("LaunchDirectorComponent", () => {
   // on a successful landing. The scoped gate compares against the active
   // vessel's name, so debris no longer interferes.
   it("does not block recovery when crash.hasRecent is for a different vessel (debris)", async () => {
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "LFV-1 Lander");
-      source.emit("v.missionTime", 530);
-      source.emit("v.altitude", 80);
-      source.emit("ksp.canRevertToLaunch", false);
-      source.emit("ksp.canRevertToEditor", false);
-      source.emit("crash.hasRecent", true);
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "LFV-1 Lander", altitudeAsl: 80 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: false,
+      });
+      stream.emit("crash.hasRecent", true);
       // Debris from a different vessel earlier in the session.
-      source.emit("crash.lastCrash", { vesselName: "Booster A Debris" });
+      stream.emit("crash.lastCrash", { vesselName: "Booster A Debris" });
     });
 
+    await waitFor(() =>
+      expect(screen.getByText(/In flight: LFV-1 Lander/i)).toBeInTheDocument(),
+    );
     expect(
       screen.queryByText(/Crash in progress — return to Space Center/i),
     ).toBeNull();
@@ -331,43 +386,34 @@ describe("LaunchDirectorComponent", () => {
   // clears it server-side on the same rule; this is the client mirror for
   // older deployed builds.)
   it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    // universalTime reads off `useViewUt()` — pin the view clock at the same
+    // 113270 the crash-staleness math below needs (replaces the outer
+    // beforeEach's pinnedUt: 10).
+    teardownMockDataSource(cmdFixture);
+    onExecute = vi.fn();
+    cmdFixture = await setupMockDataSource({ keys: [], onExecute });
+    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 113270 });
 
-    // universalTime now reads off `useViewUt()` (the `t.universalTime`
-    // client migration) instead of the legacy `DataSource` — pin the view
-    // clock at the same 113270 the crash-staleness math below needs.
-    // Nothing carried, so every other read stays on the legacy source.
-    const utFixture = setupStreamFixture({
-      carriedChannels: [],
-      pinnedUt: 113270,
-    });
-
-    render(
-      <utFixture.Provider>
-        <LaunchDirectorComponent config={{}} id="ld" />
-      </utFixture.Provider>,
-    );
+    renderWidget();
     act(() => {
-      source.emit("kc.savedShips", []);
-      source.emit("kc.padOccupied", true);
-      source.emit("kc.scene", "Flight");
-      source.emit("v.name", "Doomed Probe");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 87);
-      source.emit("ksp.canRevertToLaunch", true);
-      source.emit("ksp.canRevertToEditor", false);
-      source.emit("crash.hasRecent", true);
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Doomed Probe", altitudeAsl: 87 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: true,
+        canRevertToEditor: false,
+      });
+      stream.emit("crash.hasRecent", true);
       // Crash captured at ut 125371; the revert rewound the clock to 113270.
-      source.emit("crash.lastCrash", {
+      stream.emit("crash.lastCrash", {
         vesselName: "Doomed Probe",
         ut: 125371,
       });
     });
-    await flushViewUt();
 
+    await waitFor(() =>
+      expect(screen.getByText(/In flight: Doomed Probe/i)).toBeInTheDocument(),
+    );
     expect(
       screen.queryByText(/Crash in progress — return to Space Center/i),
     ).toBeNull();
@@ -377,16 +423,10 @@ describe("LaunchDirectorComponent", () => {
 
   it("greys out unavailable crew chips and ignores clicks", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     act(() => {
-      source.emit("career.funds", 100_000);
-      source.emit("kc.padOccupied", false);
-      source.emit("kc.savedShips", [
+      emitFunds(stream, 100_000);
+      stream.emit("spaceCenter.savedShips", [
         {
           name: "Probe",
           partCount: 4,
@@ -396,7 +436,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      source.emit("kc.crewRoster", [
+      stream.emit("spaceCenter.crewRoster", [
         {
           name: "Jeb",
           trait: "Pilot",
@@ -407,25 +447,18 @@ describe("LaunchDirectorComponent", () => {
       ]);
     });
 
-    await user.click(screen.getByText("Probe"));
+    await user.click(await screen.findByText("Probe"));
     await user.click(screen.getByText("Jeb"));
     // Click should be a no-op; launch button should still say "unmanned".
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
   });
 
-  async function setupForLaunch(
-    sites: unknown,
-    onExecute: ReturnType<typeof vi.fn>,
-  ) {
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+  async function setupForLaunch(sites: unknown) {
+    renderWidget();
     act(() => {
-      source.emit("career.funds", 100_000);
-      source.emit("kc.padOccupied", false);
-      if (sites !== undefined) source.emit("kc.launchSites", sites);
-      source.emit("kc.savedShips", [
+      emitFunds(stream, 100_000);
+      if (sites !== undefined) stream.emit("spaceCenter.launchSites", sites);
+      stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",
           partCount: 12,
@@ -435,7 +468,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      source.emit("kc.crewRoster", [
+      stream.emit("spaceCenter.crewRoster", [
         {
           name: "Jeb",
           trait: "Pilot",
@@ -462,17 +495,13 @@ describe("LaunchDirectorComponent", () => {
 
   it("offers a picker and launches from the chosen unlocked site", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await setupForLaunch(
-      [
-        site("LaunchPad", "KSC Launch Pad", true),
-        site("Woomerang_Launch_Site", "Woomerang", true),
-        site("Desert_Launch_Site", "Desert Site", false),
-      ],
-      onExecute,
-    );
+    await setupForLaunch([
+      site("LaunchPad", "KSC Launch Pad", true),
+      site("Woomerang_Launch_Site", "Woomerang", true),
+      site("Desert_Launch_Site", "Desert Site", false),
+    ]);
 
-    await user.click(screen.getByText("Mun Hopper"));
+    await user.click(await screen.findByText("Mun Hopper"));
     // Locked site is not offered.
     expect(screen.queryByText("Desert Site")).not.toBeInTheDocument();
 
@@ -486,13 +515,9 @@ describe("LaunchDirectorComponent", () => {
 
   it("hides the picker when only one site is unlocked (DLC absent)", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await setupForLaunch(
-      [site("LaunchPad", "KSC Launch Pad", true)],
-      onExecute,
-    );
+    await setupForLaunch([site("LaunchPad", "KSC Launch Pad", true)]);
 
-    await user.click(screen.getByText("Mun Hopper"));
+    await user.click(await screen.findByText("Mun Hopper"));
     expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
 
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
@@ -504,10 +529,9 @@ describe("LaunchDirectorComponent", () => {
 
   it("hides the picker and defaults to LaunchPad when the key is absent", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await setupForLaunch(undefined, onExecute);
+    await setupForLaunch(undefined);
 
-    await user.click(screen.getByText("Mun Hopper"));
+    await user.click(await screen.findByText("Mun Hopper"));
     expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
 
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
@@ -580,28 +604,37 @@ describe("parseCrew", () => {
 });
 
 describe("LaunchDirectorComponent augment slots", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+  let cmdFixture: MockDataSourceFixture;
+  let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
     clearAugments();
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
+    cmdFixture = await setupMockDataSource({ keys: [] });
+    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    teardownMockDataSource(cmdFixture);
     clearAugments();
   });
+
+  function renderWidget() {
+    return render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ld" }}>
+          <LaunchDirectorComponent id="ld" />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+  }
 
   // Drive the widget into the pre-launch checklist branch so both the header
   // (badges) and the appended section slot are on screen.
   function primePreLaunch() {
     act(() => {
-      source.emit("career.funds", 100_000);
-      source.emit("kc.padOccupied", false);
-      source.emit("kc.launchSite", "LaunchPad");
-      source.emit("kc.savedShips", [
+      emitFunds(stream, 100_000);
+      emitScene(stream, "SpaceCenter", "LaunchPad");
+      stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",
           partCount: 12,
@@ -614,18 +647,18 @@ describe("LaunchDirectorComponent augment slots", () => {
     });
   }
 
-  it("renders both slots with no bound augment (empty is fine)", () => {
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+  it("renders both slots with no bound augment (empty is fine)", async () => {
+    renderWidget();
     primePreLaunch();
 
     // Pre-launch checklist is on screen ...
-    expect(screen.getByText("Mun Hopper")).toBeInTheDocument();
+    expect(await screen.findByText("Mun Hopper")).toBeInTheDocument();
     // ... but nothing composes into either slot.
     expect(screen.queryByTestId("ld-badge")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ld-section")).not.toBeInTheDocument();
   });
 
-  it("renders a bound header-badge augment carrying the slot context", () => {
+  it("renders a bound header-badge augment carrying the slot context", async () => {
     registerAugment<"launch-director.badges">({
       id: "test-ld-badge",
       augments: "launch-director.badges",
@@ -636,10 +669,10 @@ describe("LaunchDirectorComponent augment slots", () => {
       ),
     });
 
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     primePreLaunch();
 
-    const badge = screen.getByTestId("ld-badge");
+    const badge = await screen.findByTestId("ld-badge");
     // Default site is "LaunchPad" and the pre-launch scene is not flight.
     expect(badge).toHaveTextContent("LaunchPad/false");
     // The badge sits in the header, beside the title.
@@ -648,7 +681,7 @@ describe("LaunchDirectorComponent augment slots", () => {
     expect(within(header as HTMLElement).getByTestId("ld-badge")).toBeTruthy();
   });
 
-  it("appends a bound checklist-section augment carrying the selection", () => {
+  it("appends a bound checklist-section augment carrying the selection", async () => {
     registerAugment<"launch-director.sections">({
       id: "test-ld-section",
       augments: "launch-director.sections",
@@ -659,10 +692,10 @@ describe("LaunchDirectorComponent augment slots", () => {
       ),
     });
 
-    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    renderWidget();
     primePreLaunch();
 
-    const section = screen.getByTestId("ld-section");
+    const section = await screen.findByTestId("ld-section");
     // No craft selected yet, funds carried through from telemetry.
     expect(section).toHaveTextContent("ship:null funds:100000");
     // The existing funds readout in the subtitle is untouched (CLAUDE.md rule).

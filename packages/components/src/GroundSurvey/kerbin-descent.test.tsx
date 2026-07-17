@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -25,10 +25,6 @@ import { GroundSurveyComponent } from "./index";
  * fixture itself (`kerbin-descent-low-pass.json`, a genuine low-pass
  * descent snapshot) exercising the widget end-to-end via the stream.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("GroundSurvey — real-capture kerbin-descent-low-pass scenario (via the stream)", () => {
   it("renders the captured low-pass descent state", async () => {
     const fixture = setupStreamFixture({ carriedChannels: [] });
