@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -26,7 +26,6 @@ import { DistanceToTargetComponent } from "./index";
  * replacement for the dropped `t.universalTime` data key.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 

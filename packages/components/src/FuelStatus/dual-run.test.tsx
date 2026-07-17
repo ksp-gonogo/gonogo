@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -35,10 +35,6 @@ import { FuelStatusComponent } from "./index";
  * to an identical render, same "shape fix" proof ScienceOfficer's dual-run
  * establishes for `parseInstruments`.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const GAPPED_KEYS = [
   "r.resourceCurrent[LiquidFuel]",
   "r.resourceCurrentMax[LiquidFuel]",

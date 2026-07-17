@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -36,10 +36,6 @@ import { CurrentOrbitComponent } from "./index";
  * `vessel.orbit` — the carried-channels gate is parent-channel-scoped, not
  * per-field (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
