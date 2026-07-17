@@ -456,15 +456,29 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     }
   }
   if (streamFixture && streamBlock) {
-    // One `rafTick` between emits (not just at the end): several stream
-    // emits are causally chained through a React re-render — e.g. the kOS
-    // terminal only subscribes to `kos.terminal.<coreId>` once a
-    // `kos.processors` emit resolves `coreId`, and `StubTransport.emit` is
-    // subscription-gated (silently drops if nothing has subscribed yet, see
-    // that method's own doc comment). Letting each emit's effects commit
-    // before the next keeps the fixture's `emits` order meaningful without
-    // the fixture author needing to know the widget's internal timing.
+    // `StubTransport.emit` is subscription-gated (silently DROPS a sample for
+    // a topic nothing has subscribed to yet — see that method's own doc
+    // comment). The widget subscribes to its topics inside React *passive*
+    // effects (`useStream`/`useTelemetry` → `client.subscribe`), and a single
+    // `requestAnimationFrame` does NOT reliably flush those: rAF callbacks and
+    // React 18's MessageChannel-scheduled passive effects have no fixed
+    // ordering, so whether the subscribe has landed when we emit is a
+    // per-run/per-engine coin-flip. When it loses, the sample is dropped and
+    // the widget stays in its empty/initial state — a different capture than a
+    // run where it won. That is exactly the launch-director / kOS-terminal
+    // visual-gate flake: two renders of the SAME fixture disagree run-to-run,
+    // so no baseline regeneration can ever converge.
+    //
+    // Fix: gate each emit on its topic actually being subscribed. Polling
+    // `isSubscribed(topic)` with `rafTick`s deterministically waits out the
+    // passive-effect subscription wave regardless of scheduler ordering, and
+    // also covers the causal chain (e.g. the kOS terminal only subscribes to
+    // `kos.terminal.<coreId>` once a `kos.processors` emit resolves `coreId`)
+    // because each prior emit's re-render — and the subscription it triggers —
+    // has landed before we wait for the next channel. A topic the widget never
+    // reads simply times out and is emitted-then-dropped, exactly as before.
     for (const e of streamBlock.emits) {
+      await waitForSubscription(streamFixture.transport, e.channel);
       streamFixture.emit(e.channel, e.value, e.meta);
       await rafTick();
     }
@@ -504,6 +518,29 @@ function rafTick(): Promise<void> {
   return new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
+}
+
+/**
+ * Wait until `topic` has an active subscription on the stream transport, or
+ * until `maxFrames` frames elapse. `StubTransport.emit` drops samples for an
+ * unsubscribed topic, and the widget subscribes inside React passive effects
+ * that a single `rafTick` can't be relied on to have flushed — so replaying a
+ * `_stream` emit before its subscription lands is the source of the
+ * launch-director / kOS-terminal visual-gate flake. Polling here makes the
+ * replay deterministic. A topic the widget never reads never subscribes; the
+ * bounded loop then returns and the caller emits-then-drops it (harmless,
+ * matches the prior behaviour for ignored channels). The bound is generous —
+ * realistic causal chains resolve in one or two frames.
+ */
+async function waitForSubscription(
+  transport: { isSubscribed(topic: string): boolean },
+  topic: string,
+  maxFrames = 30,
+): Promise<void> {
+  for (let i = 0; i < maxFrames; i++) {
+    if (transport.isSubscribed(topic)) return;
+    await rafTick();
+  }
 }
 
 function settle(ms: number): Promise<void> {
