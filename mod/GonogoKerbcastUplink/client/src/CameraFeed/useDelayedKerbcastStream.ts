@@ -1,9 +1,11 @@
 import { useKerbcastClock } from "@ksp-gonogo/kerbcast-react";
 import { logger } from "@ksp-gonogo/logger";
-import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import {
+  type CaptureClockSample,
+  interpolateCaptureUt,
+  useViewClockOptional,
+} from "@ksp-gonogo/sitrep-client";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import type { CaptureClockSample } from "../captureClock";
-import { interpolateCaptureUt } from "../captureClock";
 import {
   type DelayedPlayoutResult,
   useDelayedPlayout,
@@ -11,11 +13,11 @@ import {
 } from "../hooks/useKerbcastStream";
 
 // Re-exported for backward compat — `interpolateCaptureUt`/`CaptureClockSample`
-// moved to `../captureClock.ts` (2026-07-16, cross-browser video-delay work)
-// so the worker-hosted backend can share the exact same interpolation
-// instead of forking it. See that module's doc.
-export type { CaptureClockSample } from "../captureClock";
-export { interpolateCaptureUt } from "../captureClock";
+// are the generic capture-clock helpers, now in `@ksp-gonogo/sitrep-client`'s
+// media layer (2026-07-17 move out of the kerbcast client) so any camera
+// Uplink's worker-hosted backend shares the exact same interpolation.
+export type { CaptureClockSample } from "@ksp-gonogo/sitrep-client";
+export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-client";
 
 // ---------------------------------------------------------------------------
 // Delayed-playout STATUS side channel (cross-browser kerbcast video-delay
@@ -37,13 +39,15 @@ export { interpolateCaptureUt } from "../captureClock";
 // directly (its own hook call, independent of the SDK's `useStream`
 // invocation) — no second pipeline is built; this is read-only.
 //
-// Known limitation: keyed by `flightId`, so two feed widgets simultaneously
-// showing the SAME camera share one status entry (last-write-wins). This
-// mirrors a PRE-EXISTING limitation one layer down: `createFrameDelayStream`
-// builds a fresh `MediaStreamTrackProcessor` per widget instance, and a
-// `MediaStreamTrack` may have only one processor at a time — two delayed
-// widgets on one camera were never independently supported. Not addressed
-// here; flagged in the video-worker report.
+// Status keying: by `flightId`, so two consumers of the SAME camera (e.g. a
+// CameraFeed and the docking-HUD backdrop) share one status entry. That is
+// now CORRECT rather than a lossy compromise: as of the per-camera sharing in
+// `useDelayedPlayout` (2026-07-17) those two consumers ARE one delayed
+// pipeline — `sharedDelayedStreams` keys the pipeline by the raw `MediaStream`
+// identity, so one `MediaStreamTrackProcessor` / `RTCRtpScriptTransform` per
+// track feeds every consumer, and they necessarily see the same delayed
+// output and thus the same status. Delay is a property of the camera, not the
+// viewer.
 // ---------------------------------------------------------------------------
 
 interface StatusEntry {

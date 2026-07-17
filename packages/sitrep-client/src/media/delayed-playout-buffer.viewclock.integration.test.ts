@@ -20,15 +20,15 @@
  * correctness — see `DelayedPlayoutBuffer`'s `pump` doc).
  */
 
-import { ViewClock } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
+import { ViewClock } from "../view-clock";
 import {
   DelayedPlayoutBuffer,
   type StampedFrame,
-} from "./DelayedPlayoutBuffer";
+} from "./delayed-playout-buffer";
 
 /** A media frame carrying an opaque token (a real `MediaStream` reference in
- *  production — see `useKerbcastStream.delay.test.tsx`'s docstring on why jsdom
+ *  production — see the camera Uplink's delayed-stream test docstring on why jsdom
  *  can't mint one). */
 function frame(ut: number, token: string): StampedFrame<string> {
   return { ut, data: token, keyframe: true };

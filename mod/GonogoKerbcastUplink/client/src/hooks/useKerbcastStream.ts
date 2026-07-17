@@ -1,19 +1,56 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
-import { useEffect, useRef, useState } from "react";
-import type { CaptureClockSample } from "../captureClock";
-import type { DelayClockLike } from "../DelayedPlayoutBuffer";
-import {
-  createFrameDelayStream,
-  type FrameDelayStream,
-  isFrameDelaySupported,
-} from "../frameDelay";
-import type { KerbcastDataSource } from "../KerbcastDataSource";
 import {
   attachEncodedWorkerFrameDelay,
+  type BuiltDelayedStream,
+  type CaptureClockSample,
+  createFrameDelayStream,
   createWorkerFrameDelayStream,
+  type DelayClockLike,
+  type DelayedStreamBuildContext,
+  isFrameDelaySupported,
+  SharedDelayedStreams,
   type SnapshottableDelayClock,
-} from "../worker/kerbcastDelayWorkerClient";
+} from "@ksp-gonogo/sitrep-client";
+import { useEffect, useRef, useState } from "react";
+import type { KerbcastDataSource } from "../KerbcastDataSource";
+
+/** A neutral capture sample for the moment before the ~1Hz clock arrives —
+ *  `ut: null` makes the worker/encoded backends treat frames as un-stampable
+ *  (interpolation yields `null`), never stamping against a bogus UT. */
+const NEUTRAL_CAPTURE_SAMPLE: CaptureClockSample = {
+  ut: null,
+  warpRate: 1,
+  atMs: 0,
+};
+
+/**
+ * The per-lease contribution the shared cache reads: the LIVE capture-clock
+ * source. A pipeline is shared across every consumer of one camera and
+ * outlives whichever consumer happened to build it — so the build must read
+ * the capture UT through `ctx.contribution()` (the first still-live lease's),
+ * never a closure over the builder's own refs, which freeze when that
+ * consumer unmounts. See `SharedDelayedStreams`' contribution-seam doc.
+ */
+interface CaptureContribution {
+  captureUt(): number;
+  getCaptureSample(): CaptureClockSample;
+}
+
+/**
+ * ONE delayed pipeline per camera track, shared app-wide. Keyed by the raw
+ * `MediaStream` object identity — every consumer of one kerbcast camera gets
+ * the SAME `cam.mediaStream` reference (the data source refcounts the camera),
+ * so two widgets on one camera share a single processor and the same delayed
+ * output. A `MediaStreamTrack` admits only one `MediaStreamTrackProcessor`
+ * (and an `RTCRtpReceiver` only one `RTCRtpScriptTransform`); delaying once at
+ * the source is what makes a second viewer possible at all, and it halves the
+ * decode cost. See `SharedDelayedStreams`.
+ */
+const sharedDelayedStreams = new SharedDelayedStreams<
+  DelayedPlayoutResult,
+  CaptureContribution
+>();
 
 /**
  * Live `MediaStream` for one kerbcast camera. Returns `null` while
@@ -168,200 +205,228 @@ export function useDelayedPlayout(
   const [result, setResult] = useState<DelayedPlayoutResult>(() =>
     delay ? CONNECTING : { kind: "raw", stream: raw },
   );
-  const pipelineRef = useRef<FrameDelayStream | null>(null);
+  const leaseRef = useRef<ReturnType<
+    typeof sharedDelayedStreams.acquire
+  > | null>(null);
   const view = delay?.view;
   const maxBufferedFrames = delay?.maxBufferedFrames;
   // Always-current handles so the effect below doesn't need `delay` itself
-  // (a fresh object identity most renders) in its dependency array.
+  // (a fresh object identity most renders) in its dependency array, and so the
+  // contribution the shared cache reads always reflects THIS consumer's live
+  // capture clock.
   const captureUtRef = useRef(delay?.captureUt);
   captureUtRef.current = delay?.captureUt;
   const getCaptureSampleRef = useRef(delay?.getCaptureSample);
   getCaptureSampleRef.current = delay?.getCaptureSample;
 
-  // Build/tear down the per-frame pipeline whenever the raw stream
-  // reference or the clock instance changes. A `raw` change (camera switch,
-  // reconnect) always gets a fresh pipeline reading the new track — no
-  // cross-camera frame bleed, and no stale frame lingers past teardown.
+  // Attach to (or, as the first consumer, start) the SHARED per-camera
+  // pipeline whenever the raw stream reference or the clock instance changes.
+  // A `raw` change (camera switch, reconnect) releases the old camera's lease
+  // and acquires the new one — no cross-camera frame bleed, and the last
+  // consumer of the old track tears its pipeline down. Delay is a property of
+  // the camera: N consumers of one track share ONE processor and one delayed
+  // output (see `sharedDelayedStreams`).
   useEffect(() => {
     if (!view) {
-      pipelineRef.current = null;
       setResult(raw === null ? RAW_NULL : { kind: "raw", stream: raw });
       return;
     }
     if (!raw) {
-      pipelineRef.current = null;
       setResult(CONNECTING);
       return;
     }
-    const captureUt = captureUtRef.current;
-    if (!captureUt) {
+    if (!captureUtRef.current) {
       // Delay was structurally requested (a `view` was passed) but the
       // caller has no capture clock yet — mirrors `useDelayedKerbcastStream`'s
       // own "no capture clock yet -> passthrough" case (old kerbcast
       // plugin/sidecar, or before the first ~1Hz sample): there is nothing
       // to stamp frames with, so this is the retained-live-path case, not
       // an "unavailable" failure.
-      pipelineRef.current = null;
       setResult({ kind: "raw", stream: raw });
       return;
     }
 
-    let cancelled = false;
-    setResult(CONNECTING);
+    const lease = sharedDelayedStreams.acquire(raw, (ctx) =>
+      buildDelayedPipeline(raw, view, maxBufferedFrames, ctx),
+    );
+    leaseRef.current = lease;
+    // Contribute THIS consumer's live capture clock. The build reads whichever
+    // contributing lease is first-still-live, so the pipeline keeps stamping
+    // correctly even after the consumer that built it unmounts.
+    lease.setContribution({
+      captureUt: () => captureUtRef.current?.() ?? 0,
+      getCaptureSample: () =>
+        getCaptureSampleRef.current?.() ?? NEUTRAL_CAPTURE_SAMPLE,
+    });
+    const sync = () => setResult(lease.get() ?? CONNECTING);
+    const unsubscribe = lease.subscribe(sync);
+    sync();
 
-    const onPipelineError = (err: unknown) => {
-      logger.tag("kerbcast:frame-delay").warn("frame pipeline error", { err });
+    return () => {
+      unsubscribe();
+      lease.release();
+      leaseRef.current = null;
     };
+  }, [raw, view, maxBufferedFrames]);
 
-    async function build() {
-      // Backend 0: encoded transform, attached directly to the RTCRtpReceiver
-      // behind `raw` — see the module doc above. `getReceiverForStream` is
-      // called optionally (`?.`) because a data source under test may not
-      // implement it at all (a fake registered via `registerDataSource` in
-      // a unit test, matching the "unknown methods degrade to undefined,
-      // never throw" convention this hook already follows elsewhere).
-      const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
-      const receiver = ds?.getReceiverForStream?.(raw as MediaStream);
-      if (receiver && typeof RTCRtpScriptTransform !== "undefined") {
-        const encodedCapableView = view as DelayClockLike & {
-          snapshot?(): unknown;
+  // Timeline-reset: flush the shared buffer (drop stale pre-reset frames)
+  // WITHOUT tearing down the pipeline — the track keeps flowing. Shared, so a
+  // reset flushes for every consumer of this camera, which is correct: they
+  // ride one buffer off one clock epoch.
+  const resetEpoch = delay?.resetEpoch;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `resetEpoch` is the intentional trigger-only dependency — the effect body doesn't read it, it just needs to re-fire flush() on every bump.
+  useEffect(() => {
+    leaseRef.current?.flush();
+  }, [resetEpoch]);
+
+  return result;
+}
+
+/**
+ * Build ONE delayed pipeline for a camera track — the `build` function the
+ * shared cache runs at most once per camera. Tries the three backends in the
+ * documented order and returns a `BuiltDelayedStream` whose `result` is the
+ * `DelayedPlayoutResult` every consumer of this camera then sees, plus the
+ * `dispose`/`flush` handles the cache calls on last-release / timeline-reset.
+ *
+ * Reads the capture clock through `ctx.contribution()` (the first still-live
+ * lease's), NOT a closure over any one consumer's refs — the pipeline outlives
+ * whichever consumer built it, and a frozen capture UT would stamp frames
+ * against a dead clock. `view` (the ONE `ViewClock`) is the same instance for
+ * every consumer, so capturing it here is safe.
+ *
+ * NOT `async`: the sync backends (encoded, main-thread Breakout Box, and the
+ * "unavailable" outcomes) return a `BuiltDelayedStream` synchronously so the
+ * shared cache settles in the same tick — no spurious extra "connecting" frame,
+ * matching the old direct-`setResult` timing. ONLY the worker backend returns a
+ * Promise (it genuinely awaits `createWorkerFrameDelayStream`).
+ */
+function buildDelayedPipeline(
+  raw: MediaStream,
+  view: DelayClockLike,
+  maxBufferedFrames: number | undefined,
+  ctx: DelayedStreamBuildContext<CaptureContribution>,
+):
+  | BuiltDelayedStream<DelayedPlayoutResult>
+  | Promise<BuiltDelayedStream<DelayedPlayoutResult>> {
+  const onPipelineError = (err: unknown) => {
+    logger.tag("kerbcast:frame-delay").warn("frame pipeline error", { err });
+  };
+  const captureUt = () => ctx.contribution()?.captureUt() ?? 0;
+  const getCaptureSample = () =>
+    ctx.contribution()?.getCaptureSample() ?? NEUTRAL_CAPTURE_SAMPLE;
+
+  // Backend 0: encoded transform, attached directly to the RTCRtpReceiver
+  // behind `raw` — see `useDelayedPlayout`'s module doc. `getReceiverForStream`
+  // is called optionally (`?.`) because a data source under test may not
+  // implement it at all (a fake registered via `registerDataSource` in a unit
+  // test, matching the "unknown methods degrade to undefined, never throw"
+  // convention this module already follows elsewhere). One transform per
+  // receiver — sharing at the source is what keeps that invariant.
+  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+  const receiver = ds?.getReceiverForStream?.(raw);
+  if (receiver && typeof RTCRtpScriptTransform !== "undefined") {
+    const encodedCapableView = view as DelayClockLike & {
+      snapshot?(): unknown;
+    };
+    if (typeof encodedCapableView.snapshot === "function") {
+      const encodedHandle = attachEncodedWorkerFrameDelay(receiver, {
+        view: view as unknown as SnapshottableDelayClock,
+        getCaptureSample,
+        onError: onPipelineError,
+      });
+      if (encodedHandle) {
+        // No new track: the delay happens in place on `raw`'s existing track,
+        // upstream of decode — surface `raw` itself, unchanged.
+        return {
+          result: { kind: "delayed", stream: raw },
+          dispose: encodedHandle.dispose,
+          flush: encodedHandle.flush,
         };
-        if (typeof encodedCapableView.snapshot === "function") {
-          const encodedHandle = attachEncodedWorkerFrameDelay(receiver, {
-            view: view as unknown as SnapshottableDelayClock,
-            getCaptureSample: () =>
-              getCaptureSampleRef.current?.() ?? {
-                ut: null,
-                warpRate: 1,
-                atMs: 0,
-              },
-            onError: onPipelineError,
-          });
-          if (cancelled) {
-            encodedHandle?.dispose();
-            return;
-          }
-          if (encodedHandle) {
-            // No new track: the delay happens in place on `raw`'s existing
-            // track, upstream of decode — surface `raw` itself, unchanged.
-            pipelineRef.current = {
-              stream: raw as MediaStream,
-              dispose: encodedHandle.dispose,
-              flush: encodedHandle.flush,
-            };
-            setResult({ kind: "delayed", stream: raw as MediaStream });
-            return;
-          }
-          // Falls through to backend 1/2 below — never a hard failure on
-          // its own (a receiver resolving but the platform's
-          // RTCRtpScriptTransform constructor still throwing is exactly
-          // the "try the next backend" case, same as backends 1/2's own
-          // null-return handling).
-        }
       }
+      // Falls through to backend 1/2 below — never a hard failure on its own
+      // (a receiver resolving but the platform's RTCRtpScriptTransform
+      // constructor still throwing is exactly the "try the next backend" case,
+      // same as backends 1/2's own null-return handling).
+    }
+  }
 
-      // Backend 1: Chrome's main-thread Breakout Box — tried when backend 0
-      // couldn't attach.
-      if (isFrameDelaySupported()) {
-        let onErrorReason: string | null = null;
-        const pipeline = createFrameDelayStream(raw as MediaStream, {
-          view: view as DelayClockLike,
-          captureUt: () => captureUtRef.current?.() ?? 0,
-          maxBufferedFrames,
-          onError: (err) => {
-            onErrorReason = String(err);
-            onPipelineError(err);
-          },
-        });
-        if (cancelled) {
-          pipeline?.dispose();
-          return;
-        }
-        if (pipeline) {
-          pipelineRef.current = pipeline;
-          setResult({ kind: "delayed", stream: pipeline.stream });
-          return;
-        }
-        setResult({
-          kind: "unavailable",
-          reason:
-            onErrorReason ??
-            "per-frame delay pipeline could not be built on this camera",
-        });
-        return;
-      }
-
-      // Backend 2: worker-hosted Breakout Box — Safari today; Firefox once
-      // it lands (feature-detected, see the module doc above).
-      const snapshotCapableView = view as DelayClockLike & {
-        snapshot?(): unknown;
+  // Backend 1: Chrome's main-thread Breakout Box — tried when backend 0
+  // couldn't attach.
+  if (isFrameDelaySupported()) {
+    let onErrorReason: string | null = null;
+    const pipeline = createFrameDelayStream(raw, {
+      view,
+      captureUt,
+      maxBufferedFrames,
+      onError: (err) => {
+        onErrorReason = String(err);
+        onPipelineError(err);
+      },
+    });
+    if (pipeline) {
+      return {
+        result: { kind: "delayed", stream: pipeline.stream },
+        dispose: pipeline.dispose,
+        flush: pipeline.flush,
       };
-      if (typeof snapshotCapableView.snapshot !== "function") {
-        if (!cancelled) {
-          setResult({
-            kind: "unavailable",
-            reason:
-              "this browser has no main-thread per-frame delay support, and the supplied clock does not support the worker backend (no snapshot())",
-          });
-        }
-        return;
-      }
+    }
+    return {
+      result: {
+        kind: "unavailable",
+        reason:
+          onErrorReason ??
+          "per-frame delay pipeline could not be built on this camera",
+      },
+    };
+  }
 
-      let workerErrorReason: string | null = null;
-      const workerPipeline = await createWorkerFrameDelayStream(
-        raw as MediaStream,
-        {
-          // Narrowed by the runtime `typeof snapshot === "function"` check
-          // just above — `DelayClockLike` is deliberately narrower than
-          // `SnapshottableDelayClock` (kerbcast never hard-depends on
-          // `snapshot()` existing; only the worker backend needs it).
-          view: view as unknown as SnapshottableDelayClock,
-          getCaptureSample: () =>
-            getCaptureSampleRef.current?.() ?? {
-              ut: null,
-              warpRate: 1,
-              atMs: 0,
-            },
-          maxBufferedFrames,
-          onError: (err) => {
-            workerErrorReason = String(err);
-            onPipelineError(err);
-          },
-        },
-      );
-      if (cancelled) {
-        workerPipeline?.dispose();
-        return;
-      }
-      if (workerPipeline) {
-        pipelineRef.current = workerPipeline;
-        setResult({ kind: "delayed", stream: workerPipeline.stream });
-        return;
-      }
-      setResult({
+  // Backend 2: worker-hosted Breakout Box — Safari today; Firefox once it
+  // lands (feature-detected, see the module doc above).
+  const snapshotCapableView = view as DelayClockLike & {
+    snapshot?(): unknown;
+  };
+  if (typeof snapshotCapableView.snapshot !== "function") {
+    return {
+      result: {
+        kind: "unavailable",
+        reason:
+          "this browser has no main-thread per-frame delay support, and the supplied clock does not support the worker backend (no snapshot())",
+      },
+    };
+  }
+
+  // The worker backend genuinely awaits — return its Promise so the cache
+  // settles async ONLY for this path (every path above settled synchronously).
+  return (async (): Promise<BuiltDelayedStream<DelayedPlayoutResult>> => {
+    let workerErrorReason: string | null = null;
+    const workerPipeline = await createWorkerFrameDelayStream(raw, {
+      // Narrowed by the runtime `typeof snapshot === "function"` check just
+      // above — `DelayClockLike` is deliberately narrower than
+      // `SnapshottableDelayClock` (kerbcast never hard-depends on `snapshot()`
+      // existing; only the worker backend needs it).
+      view: view as unknown as SnapshottableDelayClock,
+      getCaptureSample,
+      maxBufferedFrames,
+      onError: (err) => {
+        workerErrorReason = String(err);
+        onPipelineError(err);
+      },
+    });
+    if (workerPipeline) {
+      return {
+        result: { kind: "delayed", stream: workerPipeline.stream },
+        dispose: workerPipeline.dispose,
+        flush: workerPipeline.flush,
+      };
+    }
+    return {
+      result: {
         kind: "unavailable",
         reason:
           workerErrorReason ??
           "no per-frame video delay backend is available in this browser",
-      });
-    }
-
-    void build();
-
-    return () => {
-      cancelled = true;
-      pipelineRef.current?.dispose();
-      pipelineRef.current = null;
+      },
     };
-  }, [raw, view, maxBufferedFrames]);
-
-  // Timeline-reset: flush the buffer (drop stale pre-reset frames) WITHOUT
-  // tearing down the pipeline — the track keeps flowing.
-  const resetEpoch = delay?.resetEpoch;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `resetEpoch` is the intentional trigger-only dependency — the effect body doesn't read it, it just needs to re-fire flush() on every bump.
-  useEffect(() => {
-    pipelineRef.current?.flush();
-  }, [resetEpoch]);
-
-  return result;
+  })();
 }

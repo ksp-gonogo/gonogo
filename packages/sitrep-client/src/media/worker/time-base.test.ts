@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeTimeOriginOffsetMs, createNowWall } from "./timeBase";
+import { computeTimeOriginOffsetMs, createNowWall } from "./time-base";
 
 describe("computeTimeOriginOffsetMs", () => {
   it("is localTimeOrigin - mainTimeOrigin (the amount to ADD to a local reading)", () => {

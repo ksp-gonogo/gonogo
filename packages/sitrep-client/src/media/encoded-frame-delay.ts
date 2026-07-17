@@ -5,7 +5,7 @@
  * `local_docs/reports/encoded-video-delay-report.md` for the Phase-1
  * capture-UT mapping validation this backend implements).
  *
- * UNLIKE `frameDelay.ts`'s decoded backend (`MediaStreamTrackProcessor` /
+ * UNLIKE `frame-delay.ts`'s decoded backend (`MediaStreamTrackProcessor` /
  * `MediaStreamTrackGenerator` — Chromium-only on the main thread), this
  * backend attaches to the standard, cross-browser
  * `RTCRtpScriptTransform`/`RTCTransformEvent.transformer` shape: a
@@ -18,7 +18,7 @@
  * `attachEncodedFrameDelayTransform` is a thin adapter: it reuses
  * `runFrameDelayPipeline` VERBATIM (F1 from the design doc — "a new backend
  * is a new source/sink pair, not a new engine") with three encoded-specific
- * defaults `frameDelay.ts`'s decoded backend doesn't need:
+ * defaults `frame-delay.ts`'s decoded backend doesn't need:
  *
  *  - `isKeyframe: (f) => f.type === "key"` — real classification, not the
  *    decoded backend's hardcoded `false` (irrelevant there — a decoded
@@ -33,35 +33,35 @@
  *
  * `close()` is never called on an encoded frame — `RTCEncodedVideoFrame`
  * holds no GPU/decoder resource (a plain data object), which is exactly why
- * `frameDelay.ts`'s `FrameLike.close` became optional.
+ * `frame-delay.ts`'s `FrameLike.close` became optional.
  *
- * NOT wired into `useDelayedKerbcastStream` — see the encoded-video-delay
+ * NOT wired into the camera Uplink's delayed-stream hook — see the encoded-video-delay
  * report's "what's blocked" section. Attaching `receiver.transform =
  * new RTCRtpScriptTransform(...)` needs the `RTCRtpReceiver` object, which
- * lives inside the `@ksp-gonogo/kerbcast` SDK's `BrowserKerbcastTransport`
+ * lives inside the camera SDK's browser transport
  * (the sibling `kerbcam` repo) and is discarded there today — `onTrack`
  * only forwards the bare `MediaStreamTrack`. This module is therefore
  * correct and tested, but reachable only once that SDK exposes a receiver
  * (or an equivalent attach hook) — a cross-repo, versioned change out of
- * this task's scope. The worker-side glue (`worker/kerbcastDelayWorker.ts`'s
+ * this task's scope. The worker-side glue (`worker/delay-worker.ts`'s
  * `self.onrtctransform` handler) that would consume this on the shared
  * worker is the next piece once that SDK seam exists.
  */
 
-import type { DelayClockLike } from "./DelayedPlayoutBuffer";
+import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
   type FrameDelayPipeline,
   type FrameLike,
   type FrameSink,
   type FrameSource,
   runFrameDelayPipeline,
-} from "./frameDelay";
+} from "./frame-delay";
 
 /** The minimal shape of a real `RTCEncodedVideoFrame` this module depends
  *  on — narrowed to what the pipeline actually reads. A real
  *  `RTCEncodedVideoFrame` satisfies this directly (no adapter needed,
  *  including the inherited optional `close` — a real encoded frame simply
- *  never defines one), matching `frameDelay.ts`'s own "tests pass a fake"
+ *  never defines one), matching `frame-delay.ts`'s own "tests pass a fake"
  *  convention. Extends `FrameLike` explicitly (rather than relying on
  *  structural assignability) because TypeScript's weak-type check rejects
  *  an object type with literally zero overlapping property names, even
@@ -88,15 +88,15 @@ export interface EncodedFrameDelayOptions {
    *  1: wall-clock interpolation of an out-of-band capture-clock sample,
    *  evaluated pre-decode — see the encoded-video-delay report). */
   captureUt(): number;
-  /** Real byte cap (NOT a frame count — contrast `frameDelay.ts`'s
+  /** Real byte cap (NOT a frame count — contrast `frame-delay.ts`'s
    *  `maxBufferedFrames`). Defaults to `DEFAULT_MAX_BUFFERED_BYTES`, sized
    *  generously above the spike report's ~0.75-2MB production estimate for
-   *  a 4s buffer at kerbcast's pinned bitrate — eviction should be
+   *  a 4s buffer at the stream's pinned bitrate — eviction should be
    *  rare-to-never in practice (encoded buffers are 50-360x smaller than
    *  the decoded backend's). */
   maxBufferedBytes?: number;
   /** Override the presentation pacer's backlog threshold — see
-   *  `frameDelay.ts`'s `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
+   *  `frame-delay.ts`'s `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
   maxPacingBacklogSeconds?: number;
   /** Non-fatal pipeline errors (a read/write rejection) — reported here,
    *  never thrown across the internal pump loop. */
@@ -107,7 +107,7 @@ export interface EncodedFrameDelayOptions {
  *  4-second buffer — generous headroom without inviting unbounded growth. */
 export const DEFAULT_MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
 
-/** Mirrors `frameDelay.ts`'s own default — see that constant's doc. */
+/** Mirrors `frame-delay.ts`'s own default — see that constant's doc. */
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
@@ -120,7 +120,7 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
  *
  * The caller (worker-side glue, once wired) is responsible for driving
  * `pipeline.tickPacing(nowWall)` on a ~60Hz loop — see
- * `frameDelay.ts`'s `startPacingTicker`, reused as-is.
+ * `frame-delay.ts`'s `startPacingTicker`, reused as-is.
  */
 export function attachEncodedFrameDelayTransform(
   transformer: EncodedTransformerLike,

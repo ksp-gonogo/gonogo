@@ -1,5 +1,5 @@
 /**
- * Real per-frame video-delay proof (kerbcast per-frame video delay,
+ * Real per-frame video-delay proof (per-frame video delay,
  * 2026-07-15). Mirrors `DelayedPlayoutBuffer.blockColour.test.ts`'s
  * distinguishable-colour technique, but through `runFrameDelayPipeline` —
  * i.e. this drives MULTIPLE frames arriving off a SINGLE, continuously-open
@@ -19,12 +19,12 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "./DelayedPlayoutBuffer";
+import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
   type FrameSink,
   type FrameSource,
   runFrameDelayPipeline,
-} from "./frameDelay";
+} from "./frame-delay";
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   setEdge(v: number): void;

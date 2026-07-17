@@ -1,21 +1,21 @@
 /**
  * `runFrameDelayPipeline`'s optional `pacing` wiring (cross-browser
- * kerbcast video-delay design, 2026-07-16). `PresentationPacer` itself is
+ * video-delay design, 2026-07-16). `PresentationPacer` itself is
  * unit-tested in isolation (`worker/presentationPacer.test.ts`) — this file
  * only proves `runFrameDelayPipeline` wires it correctly: releases route
  * through the pacer instead of writing immediately, `tickPacing()` drains
  * it, and `dispose()` tears the pacer down too. Kept separate from
- * `frameDelay.test.ts`/`frameDelay.blockColour.test.ts` so those files stay
+ * `frameDelay.test.ts`/`frame-delay.block-colour.test.ts` so those files stay
  * byte-for-byte proof of the un-paced (default) behaviour.
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "./DelayedPlayoutBuffer";
+import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
   type FrameSink,
   type FrameSource,
   runFrameDelayPipeline,
-} from "./frameDelay";
+} from "./frame-delay";
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   setEdge(v: number): void;
