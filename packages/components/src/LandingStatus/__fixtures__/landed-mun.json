@@ -14,6 +14,5 @@
   "land.bestSpeedAtImpact": null,
   "land.suicideBurnCountdown": null,
   "land.predictedLat": 0,
-  "land.predictedLon": 0,
-  "land.slopeAngle": null
+  "land.predictedLon": 0
 }

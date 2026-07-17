@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "final-approach-mun",
-    "notes": "Very low altitude Mun descent — 180m AGL, 8m/s downward, suicide burn URGENT (T−3s, triggers role=alert). Impact in 8 seconds at 80 m/s, best 5 m/s. Slope mild at 2.1°."
+    "notes": "Very low altitude Mun descent — 180m AGL, 8m/s downward, suicide burn URGENT (T−3s, triggers role=alert). Impact in 8 seconds at 80 m/s, best 5 m/s."
   },
   "v.body": "Mun",
   "v.heightFromTerrain": 180,
@@ -14,6 +14,5 @@
   "land.bestSpeedAtImpact": 5,
   "land.suicideBurnCountdown": 3,
   "land.predictedLat": 1.236,
-  "land.predictedLon": -72.461,
-  "land.slopeAngle": 2.1
+  "land.predictedLon": -72.461
 }

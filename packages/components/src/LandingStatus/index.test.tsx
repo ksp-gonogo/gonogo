@@ -1,12 +1,7 @@
 import { registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
@@ -15,10 +10,7 @@ import { LandingStatusComponent } from "./index";
  * client-derived `vessel.state`/`vessel.state.landing*` channel now (see
  * `stream.test.tsx`) — no legacy fallback exists for them at all, so this
  * drives them through a genuine `setupStreamFixture` pipeline instead of
- * declaring the derived numbers directly. `land.slopeAngle` is the ONE key
- * left with no wire home (`index.tsx`'s own comment: "needs a terrain
- * heightmap this client derivation has no source for") — that's the one
- * field still worth a legacy `MockDataSource`.
+ * declaring the derived numbers directly.
  *
  * Real Mun (radius 200_000m, mu 6.5138398e10 — `packages/core/src/
  * stock-bodies.ts`) and Kerbin (radius 600_000m, mu 3.5316e12,
@@ -111,19 +103,11 @@ function emitVessel(
 }
 
 describe("LandingStatusComponent", () => {
-  let slopeFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     registerStockBodies();
-    slopeFixture = await setupMockDataSource({
-      keys: [{ key: "land.slopeAngle" }],
-    });
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(slopeFixture);
   });
 
   function renderWidget() {
@@ -170,14 +154,12 @@ describe("LandingStatusComponent", () => {
         },
         availableThrust: 3,
       });
-      slopeFixture.source.emit("land.slopeAngle", 4.2);
     });
 
     expect(await screen.findByText(/T−/)).toBeInTheDocument();
     expect(screen.getByText(/108 m\/s/)).toBeInTheDocument();
     expect(screen.getByText(/best 0\.00 m\/s/)).toBeInTheDocument();
     expect(screen.getByText(/2\.80 km/)).toBeInTheDocument();
-    expect(screen.getByText(/4\.2°/)).toBeInTheDocument();
     // Non-urgent countdown (~31s) — status (polite), not alert.
     expect(screen.queryByRole("alert")).toBeNull();
   });

@@ -89,11 +89,6 @@ function formatMeters(m: number | undefined): string {
   return `${m.toFixed(0)} m`;
 }
 
-function formatDegrees(d: number | undefined): string {
-  if (d === undefined || !Number.isFinite(d)) return "—";
-  return `${d.toFixed(1)}°`;
-}
-
 /** Kelvin → Celsius, for readability on the LandingStatus readout. */
 function formatTempC(k: number | undefined): string {
   if (k === undefined || !Number.isFinite(k)) return "—";
@@ -123,7 +118,6 @@ function LandingStatusComponent({
     useStream<VesselState>("vessel.state")?.landingPredictedLat ?? undefined;
   const predictedLon =
     useStream<VesselState>("vessel.state")?.landingPredictedLon ?? undefined;
-  const slope = useTelemetry("data", "land.slopeAngle");
 
   // Two DIFFERENT altitude readings, and the distinction matters on a
   // landing: `vessel.flight.altitudeTerrain` is KSP's `radarAltitude`,
@@ -150,10 +144,8 @@ function LandingStatusComponent({
   // `v.heightFromTerrain` is this widget's representative MAPPED
   // key (-> raw `vessel.flight.altitudeTerrain`); `v.verticalSpeed` (->
   // `vessel.flight.verticalSpeed`) and `v.atmosphericDensity` (->
-  // `vessel.flight.atmDensity`) are also mapped. Every `land.*` key EXCEPT
-  // `land.slopeAngle` (needs a terrain heightmap this client derivation has
-  // no source for — see map-topic.ts's TELEMACHUS_KNOWN_GAPS) is now mapped
-  // too — the four ballistic scalars onto `vessel.state.landing*`
+  // `vessel.flight.atmDensity`) are also mapped. Every `land.*` key is now
+  // mapped — the four ballistic scalars onto `vessel.state.landing*`
   // (`deriveLanding`) and predictedLat/Lon onto the same channel's
   // client patch-walk (`findImpactPoint`). `v.body`/
   // `v.atmosphericTemperature`/`v.externalTemperature` stay GAPPED/legacy.
@@ -177,7 +169,7 @@ function LandingStatusComponent({
   const descending = verticalSpeed !== undefined && verticalSpeed < 0;
 
   // Selective rendering — countdown is always the headline; metric rows
-  // drop from the bottom (slope/predicted first) as height shrinks.
+  // drop from the bottom (predicted first) as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 10;
   // Wide-short: lay the headline + metric grid side-by-side so the metrics
@@ -187,10 +179,11 @@ function LandingStatusComponent({
   const showAtmosphericNote = rows >= 7;
   const showImpactRows = rows >= 6 || isLandscape;
   const showAltitudeRows = rows >= 8 || isLandscape;
-  // Slope stays height-gated — a third metric pair would overflow the short
-  // landscape height beside the headline.
-  const showSlopeRows = rows >= 10;
-  const showAnyMetricGrid = showImpactRows || showAltitudeRows || showSlopeRows;
+  // Predicted stays height-gated — a third metric pair would overflow the
+  // short landscape height beside the headline.
+  const showPredictedRow = rows >= 10;
+  const showAnyMetricGrid =
+    showImpactRows || showAltitudeRows || showPredictedRow;
   const showBestImpactInline = cols >= 8;
   // Ambient section is only ever useful on atmospheric bodies — it tells the
   // operator how thick the air is and how hot the skin is during a reentry
@@ -309,11 +302,8 @@ function LandingStatusComponent({
                 </>
               )}
 
-              {showSlopeRows && (
+              {showPredictedRow && (
                 <>
-                  <MetricLabel>Slope</MetricLabel>
-                  <MetricValue>{formatDegrees(slope)}</MetricValue>
-
                   <MetricLabel>Predicted</MetricLabel>
                   <MetricValue>
                     {isSentinel(predictedLat, predictedLon) ? (
@@ -496,7 +486,7 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Suicide-burn countdown, impact time + speed, descent rate, predicted coordinates, and slope angle — focused on vacuum-body landings.",
+    "Suicide-burn countdown, impact time + speed, descent rate, and predicted coordinates — focused on vacuum-body landings.",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 5 },
@@ -515,7 +505,6 @@ registerComponent<LandingStatusConfig>({
     "land.suicideBurnCountdown",
     "land.predictedLat",
     "land.predictedLon",
-    "land.slopeAngle",
   ],
   defaultConfig: {},
   actions: [],
