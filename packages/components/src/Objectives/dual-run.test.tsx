@@ -1,40 +1,26 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import contractsOnly from "./__fixtures__/contracts-only.json";
 import { ObjectivesComponent } from "./index";
 
 /**
- * Objectives's behavior-preservation golden dual-run
- * (mirrors `ContractManager/dual-run.test.tsx`): the SAME contract state,
- * rendered once off the legacy `DataSource` and once off the stream, must
- * produce byte-identical DOM at `delay=0`. `contracts.active` (->
- * `career.status.contracts.active`, consumed via the shared
+ * Objectives's stream render golden. This began life as a legacy-`DataSource`
+ * ↔ stream byte-identical dual-run; `contracts.active` now comes off
+ * `career.status.contracts.active` (read canonically via
+ * `useTelemetry("career.status")`) with NO legacy fallback, so the legacy leg
+ * is gone. What remains proves the widget renders the same contract state off
+ * the real stream pipeline. `contracts.active` (consumed via the shared
  * `parseContracts`/`contractObjectives` from `../ContractManager`) is the
- * widget's only read (the `mh.*` mission source was removed — `mh`
- * carries no channel on the new wire). `contracts-only.json` was reusable
- * as-is (unlike ContractManager's own dual-run fixture): every parameter
- * already sets `optional: false`, so there is no `optional`/`parameterType`
- * divergence between the legacy and new-wire shapes to work around here.
+ * widget's only read.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 
-describe("Objectives — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same contract state", async () => {
-    const mode = { name: "default-5x8", w: 5, h: 8 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: ObjectivesComponent,
-      fixture: contractsOnly,
-      mode,
-      connectSource: true,
-    });
-
+describe("Objectives — stream render golden (delay=0)", () => {
+  it("renders contract-parameter objectives off the stream for the same contract state", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
@@ -43,7 +29,7 @@ describe("Objectives — behavior-preservation golden dual-run (delay=0)", () =>
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "obj-dual" }}>
-          <ObjectivesComponent id="obj-dual" w={mode.w} h={mode.h} />
+          <ObjectivesComponent id="obj-dual" w={5} h={8} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );
@@ -72,9 +58,6 @@ describe("Objectives — behavior-preservation golden dual-run (delay=0)", () =>
         throw new Error("stream leg has not rendered objectives yet");
       }
     });
-
-    const streamHtml = stripVolatile(container.innerHTML);
-
-    expect(streamHtml).toBe(legacyHtml);
+    expect(container.textContent).toContain("Test the LV-909 in flight");
   });
 });

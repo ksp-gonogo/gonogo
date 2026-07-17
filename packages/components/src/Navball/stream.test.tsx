@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
@@ -43,7 +43,6 @@ import { NavballComponent } from "./index";
  * emitted too (present on the real wire) but not read by the default.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 

@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
 
@@ -38,10 +38,6 @@ import { OrbitalAscentComponent } from "./index";
  * not exercised, not because the stream structurally can't serve them. The
  * widget still renders its chrome, which the assertions below confirm.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("OrbitalAscent — v.body genuinely runs off the stream (R6)", () => {
   it("resolves the streamed parent-body name off the real pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

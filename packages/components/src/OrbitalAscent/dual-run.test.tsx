@@ -1,63 +1,40 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import kerbinAscent from "./__fixtures__/kerbin-ascent-to-67km.json";
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * OrbitalAscent's behavior-preservation golden dual-run: the SAME ascent
- * state, rendered once off the legacy `DataSource` and once with `v.body`
- * migrated onto the stream, must produce byte-identical DOM at `delay=0`.
+ * OrbitalAscent's stream render golden. This began life as a legacy-`DataSource`
+ * ↔ stream byte-identical dual-run; `v.body` now comes off the client-derived
+ * `vessel.state.parentBodyName` field with NO legacy fallback at all (see
+ * `stream.test.tsx`), so the legacy leg is gone — same "the legacy leg is gone"
+ * story as the sibling widgets' own dual-runs. What remains proves the widget
+ * renders correctly off the real stream pipeline for the same ascent state.
  *
- * `v.body` reads through `useTelemetry`, which resolves it
- * to the DERIVED `vessel.state.parentBodyName` field and streams it — so the
- * stream leg feeds it via `vessel.orbit`/`system.bodies`/`vessel.identity`
- * emissions, NOT the legacy AUX source. The AUX source here carries ONLY the
- * two plotted series (`v.altitude`/`v.horizontalVelocity`): both map to
- * DERIVED `vessel.state.*` channels, and `useDataSeries` CAN now serve a
- * derived channel's windowed history off the stream (`TimelineStore.
- * sampleDerivedRange`, a replay of `derive()` off the raw inputs' own
- * buffered ranges). This test's stream leg never emits `vessel.flight`
- * though, so `deriveVesselState` never gets a whole record at any candidate
- * UT and both series resolve empty here regardless — the GraphView series
- * stay on the legacy AUX path in BOTH legs for THIS fixture's data, not
- * because the stream structurally can't serve them.
+ * The two plotted series (`v.altitude`/`v.horizontalVelocity`) stay on a legacy
+ * AUX source: both map to DERIVED `vessel.state.*` channels, and this file
+ * never emits `vessel.flight`, so `deriveVesselState` never gets a whole record
+ * and the series would resolve empty off the stream regardless — the AUX keeps
+ * the GraphView backfill path exercised.
  *
  * An UNKNOWN body ("Gargantua") is streamed so the body's presence is
- * race-safely observable in the stream leg: the "Unknown body" notice appears
- * only if `v.body` actually streamed (the AUX source never feeds it), so
- * waiting on it can't false-green on an empty stream.
+ * race-safely observable: the "Unknown body" notice appears only if `v.body`
+ * actually streamed (the AUX source never feeds it), so waiting on it can't
+ * false-green on an empty stream.
  */
-afterEach(() => {
-  cleanup();
-});
-
-// The two plotted series stay on the legacy AUX source in the stream leg —
-// derived-channel series aren't stream-servable (see the doc comment above).
 const LEGACY_SERIES_KEYS = ["v.altitude", "v.horizontalVelocity"] as const;
 
-// A body name getBody() doesn't recognise, driving the "Unknown body" notice
-// in BOTH legs — the legacy golden reads it as `v.body`, the stream leg derives
-// it as vessel.state.parentBodyName.
+// A body name getBody() doesn't recognise, driving the "Unknown body" notice.
 const UNKNOWN_BODY = "Gargantua";
 
-describe("OrbitalAscent — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup with v.body streamed as it does off the legacy DataSource", async () => {
-    const mode = { name: "default-10x8", w: 10, h: 8 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: OrbitalAscentComponent,
-      fixture: { ...kerbinAscent, "v.body": UNKNOWN_BODY },
-      mode,
-      connectSource: true,
-    });
-
+describe("OrbitalAscent — stream render golden (delay=0)", () => {
+  it("renders the ascent state off the stream with v.body streamed", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: [
         "vessel.orbit",
@@ -81,7 +58,7 @@ describe("OrbitalAscent — behavior-preservation golden dual-run (delay=0)", ()
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "ascent-dual" }}>
-          <OrbitalAscentComponent id="ascent-dual" w={mode.w} h={mode.h} />
+          <OrbitalAscentComponent id="ascent-dual" w={10} h={8} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );
@@ -127,17 +104,9 @@ describe("OrbitalAscent — behavior-preservation golden dual-run (delay=0)", ()
         throw new Error("stream leg has not resolved v.body yet");
       }
     });
-    // Drain the GraphView series backfill so the graph settles identically to
-    // the legacy golden before snapshotting.
-    await waitFor(() => {
-      if (legacyAux.pendingQueries() !== 0) {
-        throw new Error("series backfill pending");
-      }
-    });
+    expect(container.textContent).toContain("ORBITAL ASCENT");
+    expect(container.textContent).toContain(UNKNOWN_BODY);
 
-    const streamHtml = stripVolatile(container.innerHTML);
     teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
   });
 });

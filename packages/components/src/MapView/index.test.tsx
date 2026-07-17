@@ -1,4 +1,4 @@
-import type { DataKey, OrbitPatch } from "@ksp-gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
   clearBodies,
@@ -10,37 +10,24 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import type { MapBadgesContext, MapOverlayContext } from "./index";
 import { MapViewComponent } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
-const MAPVIEW_KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.lat" },
-  { key: "v.long" },
-  { key: "v.body" },
-  { key: "v.altitude" },
-  { key: "v.dynamicPressure" },
-  { key: "v.mach" },
-  { key: "v.surfaceSpeed" },
-  { key: "v.verticalSpeed" },
-  { key: "o.orbitPatches" },
-  { key: "o.maneuverNodes" },
-  { key: "t.universalTime" },
-  { key: "land.predictedLat" },
-  { key: "land.predictedLon" },
+// The vessel kinematics/body now read off the stream (vessel.flight + the
+// derived vessel.state); the SCANsat reads (coverage / scanningVessels /
+// anomalies) and the per-key TelemetryRow stay on the legacy "data" shim, so a
+// legacy source is registered alongside the stream fixture for those.
+const SCANSAT_KEYS: DataKey[] = [
   { key: "scansat.scanningVessels" },
   { key: "scansat.anomalies.Kerbin" },
   { key: "scansat.coverage.Kerbin.2" },
@@ -50,33 +37,32 @@ const MAPVIEW_KEYS: DataKey[] = [
   { key: "scansat.coverage.Kerbin.128" },
 ];
 
-function kerbinCircularPatch(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
-  return {
-    startUT: 0,
-    endUT: 1_000_000,
-    patchStartTransition: "INITIAL",
-    patchEndTransition: "FINAL",
-    PeA: 100_000,
-    ApA: 100_000,
-    inclination: 0,
-    eccentricity: 0,
-    epoch: 0,
-    period: 2000,
-    argumentOfPeriapsis: 0,
-    sma: 700_000,
-    lan: 0,
-    maae: 0,
-    referenceBody: "Kerbin",
-    semiLatusRectum: 700_000,
-    semiMinorAxis: 700_000,
-    closestEncounterBody: null,
-    ...overrides,
-  };
+// All eight vessel.state inputs — the carried gate is parent-channel-scoped.
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+] as const;
+
+interface VesselScenario {
+  lat?: number;
+  lon?: number;
+  altitude?: number;
+  /** Parent body name (drives vessel.state.parentBodyName → getBody + labels). */
+  body?: string;
 }
 
 describe("MapViewComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
+  // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies
+  // / clearAugments), which would otherwise re-render a still-mounted tree.
+  const trees: Array<() => void> = [];
 
   beforeEach(async () => {
     clearRegistry();
@@ -105,23 +91,19 @@ describe("MapViewComponent", () => {
       },
     );
 
-    source = new MockDataSource({ keys: MAPVIEW_KEYS });
+    source = new MockDataSource({ keys: SCANSAT_KEYS });
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of trees) unmount();
+    trees.length = 0;
     buffered.disconnect();
     vi.unstubAllGlobals();
     clearBodies();
   });
-
-  function primeFlight(): void {
-    source.emit("v.name", "Kerbal X");
-    source.emit("v.missionTime", 0);
-  }
 
   /** MapView reads DashboardItemContext via useActionInput — wrap in the provider. */
   function Wrap({ children }: { children: ReactNode }) {
@@ -132,127 +114,168 @@ describe("MapViewComponent", () => {
     );
   }
 
-  it("renders without crashing with no data", () => {
-    const { container } = render(
-      <Wrap>
-        <MapViewComponent config={{}} id="map-test" />
-      </Wrap>,
+  function renderMap(
+    config: Record<string, unknown> = {},
+    size?: { w: number; h: number },
+  ) {
+    const fixture = setupStreamFixture({
+      carriedChannels: [...VESSEL_STATE_INPUTS],
+      pinnedUt: 10,
+    });
+    const result = render(
+      <fixture.Provider>
+        <Wrap>
+          <MapViewComponent
+            config={config}
+            id="map-test"
+            w={size?.w}
+            h={size?.h}
+          />
+        </Wrap>
+      </fixture.Provider>,
     );
+    trees.push(result.unmount);
+    return { ...result, fixture };
+  }
+
+  /** Emit the vessel kinematics/body onto the stream, then flush the provider's
+   * beginFrame rAF ticks inside act so the stream-driven re-renders (widget +
+   * any AugmentSlot) commit inside act rather than landing on a later frame. */
+  async function emitVessel(
+    fixture: StreamFixture,
+    s: VesselScenario,
+  ): Promise<void> {
+    act(() => {
+      fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
+      fixture.emit("vessel.flight", {
+        latitude: s.lat ?? 0,
+        longitude: s.lon ?? 0,
+        altitudeAsl: s.altitude ?? 0,
+        dynamicPressureKPa: 0,
+        mach: 0,
+        surfaceSpeed: 0,
+        verticalSpeed: 0,
+      });
+      if (s.body !== undefined) {
+        fixture.emit("vessel.identity", {
+          vesselId: "v1",
+          name: "Kerbal X",
+          vesselType: 0,
+          situation: 1,
+          parentBodyIndex: 1,
+          launchUt: 0,
+        });
+        fixture.emit("system.bodies", {
+          bodies: [{ index: 1, name: s.body, radius: 600_000 }],
+        });
+      }
+    });
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+    });
+  }
+
+  /** Emit the SCANsat coverage/vessel/anomaly scenario onto the legacy source,
+   * then flush a frame so the buffered delivery settles inside act. */
+  async function primeScan(): Promise<void> {
+    act(() => {
+      source.emit("scansat.anomalies.Kerbin", [
+        {
+          name: "Near Site",
+          latitude: 10,
+          longitude: 33,
+          known: true,
+          detail: true,
+        },
+        {
+          name: "Far Site",
+          latitude: -40,
+          longitude: -120,
+          known: true,
+          detail: true,
+        },
+        {
+          name: "Hidden",
+          latitude: 0,
+          longitude: 0,
+          known: false,
+          detail: false,
+        },
+      ]);
+      source.emit("scansat.scanningVessels", [
+        {
+          vesselId: "v1",
+          vesselName: "Mapper",
+          body: "Kerbin",
+          subLatitude: 12,
+          subLongitude: 35,
+          altitude: 250_000,
+          sensors: [
+            {
+              type: 2,
+              fov: 5,
+              minAlt: 5000,
+              maxAlt: 500_000,
+              bestAlt: 250_000,
+              inRange: true,
+              bestRange: true,
+            },
+            {
+              type: 8,
+              fov: 5,
+              minAlt: 5000,
+              maxAlt: 500_000,
+              bestAlt: 250_000,
+              inRange: true,
+              bestRange: false,
+            },
+          ],
+          groundTrackWidthDeg: 6,
+          groundTrackLonHalfDeg: 6.1,
+          trackColor: { r: 0, g: 255, b: 200, a: 200 },
+        },
+      ]);
+      source.emit("scansat.coverage.Kerbin.2", 45.6);
+      source.emit("scansat.coverage.Kerbin.1", 67.6);
+      source.emit("scansat.coverage.Kerbin.8", 29.6);
+      source.emit("scansat.coverage.Kerbin.256", 7.4);
+      source.emit("scansat.coverage.Kerbin.128", 0);
+    });
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+    });
+  }
+
+  it("renders without crashing with no data", () => {
+    const { container } = renderMap();
     expect(container.querySelector("canvas")).not.toBeNull();
   });
 
-  it("renders without crashing with full prediction + impact data", () => {
-    const { container } = render(
-      <Wrap>
-        <MapViewComponent config={{}} id="map-test" />
-      </Wrap>,
-    );
-    act(() => {
-      primeFlight();
-      source.emit("v.lat", 12.5);
-      source.emit("v.long", -70);
-      source.emit("v.body", "Kerbin");
-      source.emit("t.universalTime", 5_000);
-      source.emit("o.orbitPatches", [kerbinCircularPatch()]);
-      source.emit("o.maneuverNodes", []);
-      source.emit("land.predictedLat", 13.2);
-      source.emit("land.predictedLon", -69.5);
-    });
+  it("renders without crashing with full prediction + impact data", async () => {
+    const { container, fixture } = renderMap();
+    await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
     // 5 canvases: base, overlay, persistent-data, prediction, data.
-    expect(container.querySelectorAll("canvas")).toHaveLength(5);
+    await waitFor(() => {
+      if (container.querySelectorAll("canvas").length !== 5) {
+        throw new Error("map canvases have not all rendered yet");
+      }
+    });
   });
 
-  // ── SCANsat extensions ────────────────────────────────────────────────
-
-  /** Prime a Kerbin-LKO flight + a couple of SCANsat anomalies / vessels. */
-  function primeScanScenario(): void {
-    primeFlight();
-    source.emit("v.lat", 12);
-    source.emit("v.long", 35);
-    source.emit("v.body", "Kerbin");
-    source.emit("v.altitude", 100_000);
-    source.emit("t.universalTime", 5_000);
-    source.emit("scansat.anomalies.Kerbin", [
-      // Near the vessel (lat 12, lon 35) → smallest distance.
-      {
-        name: "Near Site",
-        latitude: 10,
-        longitude: 33,
-        known: true,
-        detail: true,
-      },
-      // Far across the planet.
-      {
-        name: "Far Site",
-        latitude: -40,
-        longitude: -120,
-        known: true,
-        detail: true,
-      },
-      // known=false → excluded from the panel.
-      {
-        name: "Hidden",
-        latitude: 0,
-        longitude: 0,
-        known: false,
-        detail: false,
-      },
-    ]);
-    source.emit("scansat.scanningVessels", [
-      {
-        vesselId: "v1",
-        vesselName: "Mapper",
-        body: "Kerbin",
-        subLatitude: 12,
-        subLongitude: 35,
-        altitude: 250_000,
-        sensors: [
-          {
-            type: 2,
-            fov: 5,
-            minAlt: 5000,
-            maxAlt: 500_000,
-            bestAlt: 250_000,
-            inRange: true,
-            bestRange: true,
-          },
-          {
-            type: 8,
-            fov: 5,
-            minAlt: 5000,
-            maxAlt: 500_000,
-            bestAlt: 250_000,
-            inRange: true,
-            bestRange: false,
-          },
-        ],
-        groundTrackWidthDeg: 6,
-        groundTrackLonHalfDeg: 6.1,
-        trackColor: { r: 0, g: 255, b: 200, a: 200 },
-      },
-    ]);
-    source.emit("scansat.coverage.Kerbin.2", 45.6);
-    source.emit("scansat.coverage.Kerbin.1", 67.6);
-    source.emit("scansat.coverage.Kerbin.8", 29.6);
-    source.emit("scansat.coverage.Kerbin.256", 7.4);
-    source.emit("scansat.coverage.Kerbin.128", 0);
-  }
-
-  it("coverage readout shows per-type percentages and live in-range chips", () => {
-    render(
-      <Wrap>
-        <MapViewComponent
-          config={{ showCoverage: true }}
-          id="map-test"
-          w={12}
-          h={12}
-        />
-      </Wrap>,
-    );
-    act(() => {
-      primeScanScenario();
+  it("coverage readout shows per-type percentages and live in-range chips", async () => {
+    const { fixture } = renderMap({ showCoverage: true }, { w: 12, h: 12 });
+    await emitVessel(fixture, {
+      lat: 12,
+      lon: 35,
+      altitude: 100_000,
+      body: "Kerbin",
     });
-    const panel = screen.getByRole("region", {
+    await primeScan();
+    const panel = await screen.findByRole("region", {
       name: /Scan coverage for Kerbin/i,
     });
     expect(within(panel).getByText("46%")).toBeInTheDocument(); // AltHiRes
@@ -263,40 +286,28 @@ describe("MapViewComponent", () => {
     expect(within(panel).getAllByText("scan").length).toBeGreaterThan(0);
   });
 
-  it("body override pins the map to another body and suppresses vessel chrome", () => {
-    render(
-      <Wrap>
-        <MapViewComponent
-          config={{ bodyOverride: "Mun" }}
-          id="map-test"
-          w={14}
-          h={12}
-        />
-      </Wrap>,
-    );
-    act(() => {
-      primeScanScenario();
-    });
+  it("body override pins the map to another body and suppresses vessel chrome", async () => {
+    const { fixture } = renderMap({ bodyOverride: "Mun" }, { w: 14, h: 12 });
+    await emitVessel(fixture, { lat: 12, lon: 35, body: "Kerbin" });
+    await primeScan();
     // Label shows the pinned body, not the vessel's Kerbin.
-    expect(screen.getByText(/Mun \(pinned\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/Mun \(pinned\)/)).toBeInTheDocument();
     // Follow toggle is suppressed (vessel isn't on the mapped body).
     expect(screen.queryByLabelText("Follow")).toBeNull();
   });
 
   it("a11y smoke: widget with coverage panel has no violations", async () => {
-    const { container } = render(
-      <Wrap>
-        <MapViewComponent
-          config={{ showCoverage: true }}
-          id="map-test"
-          w={14}
-          h={14}
-        />
-      </Wrap>,
+    const { container, fixture } = renderMap(
+      { showCoverage: true },
+      { w: 14, h: 14 },
     );
-    act(() => {
-      primeScanScenario();
+    await emitVessel(fixture, {
+      lat: 12,
+      lon: 35,
+      altitude: 100_000,
+      body: "Kerbin",
     });
+    await primeScan();
     await expect(axe(container)).resolves.toHaveNoViolations();
   }, 20000);
 
@@ -331,11 +342,12 @@ describe("MapViewComponent", () => {
   // (cleared after each) to prove the slots compose and pass their props, and
   // that the empty slots are inert when nothing is registered.
   describe("augment slots", () => {
-    // cleanup() must unmount before clearAugments() notifies the augment
-    // registry's subscribers, else a still-mounted AugmentSlot re-renders
-    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    // This inner afterEach runs BEFORE the outer one, so unmount the trees here
+    // first — otherwise clearAugments() notifies a still-mounted AugmentSlot's
+    // subscribers and it re-renders outside act() (CLAUDE.md → act() pattern).
     afterEach(() => {
-      cleanup();
+      for (const unmount of trees) unmount();
+      trees.length = 0;
       clearAugments();
     });
 
@@ -353,17 +365,8 @@ describe("MapViewComponent", () => {
         },
       });
 
-      const { container } = render(
-        <Wrap>
-          <MapViewComponent config={{}} id="map-test" />
-        </Wrap>,
-      );
-      act(() => {
-        primeFlight();
-        source.emit("v.lat", 0);
-        source.emit("v.long", 0);
-        source.emit("v.body", "Kerbin");
-      });
+      const { container, fixture } = renderMap();
+      await emitVessel(fixture, { lat: 0, lon: 0, body: "Kerbin" });
 
       const probe = await waitFor(() => {
         const el = container.querySelector('[data-testid="overlay-probe"]');
@@ -391,27 +394,18 @@ describe("MapViewComponent", () => {
         ),
       });
 
-      const { container } = render(
-        <Wrap>
-          <MapViewComponent
-            config={{ showAnomalies: true, showAnomalyPanel: true }}
-            id="map-test"
-          />
-        </Wrap>,
-      );
-      act(() => {
-        primeFlight();
-        source.emit("v.lat", 12.5);
-        source.emit("v.long", -70);
-        source.emit("v.body", "Kerbin");
+      const { container, fixture } = renderMap({
+        showAnomalies: true,
+        showAnomalyPanel: true,
       });
+      await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
 
       const probe = await waitFor(() => {
         const el = container.querySelector(
           '[data-testid="overlay-anomaly-probe"]',
         );
-        if (el === null)
-          throw new Error("overlay augment has not rendered yet");
+        if (el === null || !el.textContent?.includes("vesselLat=12.5"))
+          throw new Error("overlay augment has not rendered vessel pos yet");
         return el;
       });
       expect(probe.textContent).toContain("showAnomalies=true");
@@ -431,17 +425,8 @@ describe("MapViewComponent", () => {
         ),
       });
 
-      const { container } = render(
-        <Wrap>
-          <MapViewComponent config={{ bodyOverride: "Mun" }} id="map-test" />
-        </Wrap>,
-      );
-      act(() => {
-        primeFlight();
-        source.emit("v.lat", 12.5);
-        source.emit("v.long", -70);
-        source.emit("v.body", "Kerbin");
-      });
+      const { container, fixture } = renderMap({ bodyOverride: "Mun" });
+      await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
 
       const probe = await waitFor(() => {
         const el = container.querySelector(
@@ -464,15 +449,8 @@ describe("MapViewComponent", () => {
         ),
       });
 
-      const { container } = render(
-        <Wrap>
-          <MapViewComponent config={{}} id="map-test" />
-        </Wrap>,
-      );
-      act(() => {
-        primeFlight();
-        source.emit("v.body", "Kerbin");
-      });
+      const { container, fixture } = renderMap();
+      await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
         if (!container.textContent?.includes("badge:Kerbin")) {
@@ -483,15 +461,8 @@ describe("MapViewComponent", () => {
     });
 
     it("renders the map with both slots empty when no augment is registered", async () => {
-      const { container } = render(
-        <Wrap>
-          <MapViewComponent config={{}} id="map-test" />
-        </Wrap>,
-      );
-      act(() => {
-        primeFlight();
-        source.emit("v.body", "Kerbin");
-      });
+      const { container, fixture } = renderMap();
+      await emitVessel(fixture, { body: "Kerbin" });
 
       // The map still renders (canvases present) with nothing composed in.
       await waitFor(() => {

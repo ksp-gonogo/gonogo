@@ -1,5 +1,5 @@
-import { cleanup, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -15,9 +15,6 @@ import { renderOrbitViewStream } from "./streamHarness";
  * `showDiagram` false (`cols < 5`) so the pill text renders directly instead
  * of the SVG diagram, giving a concrete DOM string to assert on.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("OrbitView — stream render (LKO, delay=0)", () => {
   it("renders the 'Stable orbit' pill off the stream for a stable low-Kerbin orbit", async () => {

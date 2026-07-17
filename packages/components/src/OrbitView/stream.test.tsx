@@ -1,5 +1,5 @@
-import { cleanup, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -18,9 +18,6 @@ import { renderOrbitViewStream } from "./streamHarness";
  * correlated-gap behaviour, where those keys were gapped and the widget could
  * never leave its empty state off the stream.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("OrbitView — genuinely runs off the stream (R6 de-Telemachus)", () => {
   it("renders the orbit diagram off the real stream pipeline, not legacy", async () => {

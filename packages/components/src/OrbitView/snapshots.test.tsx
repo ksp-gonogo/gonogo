@@ -1,5 +1,5 @@
-import { cleanup, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
@@ -51,10 +51,6 @@ const config = getWidget("orbit-view");
 if (!config) throw new Error("orbit-view missing from widgets.ts");
 
 describe("OrbitView DOM snapshots", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   for (const [name, scenario] of Object.entries(SCENARIOS)) {
     for (const mode of config.modes) {
       it(`${name} @ ${mode.name}`, async () => {

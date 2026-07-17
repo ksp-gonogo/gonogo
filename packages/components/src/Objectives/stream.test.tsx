@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
@@ -13,7 +13,6 @@ import { ObjectivesComponent } from "./index";
  * mission source was removed (`mh` carries no channel on the new wire).
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 
