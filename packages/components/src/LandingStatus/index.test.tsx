@@ -35,6 +35,7 @@ const CARRIED = [
   "vessel.target",
   "vessel.comms",
   "vessel.propulsion",
+  "vessel.surface",
 ];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
@@ -201,6 +202,55 @@ describe("LandingStatusComponent", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/T−/);
+  });
+
+  it("shows the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
+    renderWidget();
+    act(() => {
+      // vessel.flight.altitudeTerrain is KSP's CoM-to-ground radarAltitude
+      // (2800m here); vessel.surface.heightFromTerrain is the lowest-point
+      // reading (2755m — the craft is 45m tall). The Altitude row must show
+      // the lowest-point number, the one a landing actually cares about.
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 2800,
+          verticalSpeed: 42.5,
+          surfaceSpeed: 50,
+        },
+        availableThrust: 3,
+      });
+      stream.emit("vessel.surface", {
+        biome: "Highlands",
+        landedAt: null,
+        heightFromTerrain: 2755,
+      });
+    });
+
+    // 2.75 km (lowest-point) shows; the 2.80 km CoM reading does not.
+    expect(await screen.findByText(/2\.75 km/)).toBeInTheDocument();
+    expect(screen.queryByText(/2\.80 km/)).toBeNull();
+  });
+
+  it("falls back to the CoM altitude when vessel.surface is absent", async () => {
+    renderWidget();
+    act(() => {
+      // No vessel.surface emitted (nulled by the mod while far from terrain) —
+      // the Altitude row falls back to vessel.flight.altitudeTerrain.
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 2800,
+          verticalSpeed: 42.5,
+          surfaceSpeed: 50,
+        },
+        availableThrust: 3,
+      });
+    });
+
+    expect(await screen.findByText(/2\.80 km/)).toBeInTheDocument();
   });
 
   it("flags atmospheric bodies and demotes the suicide-burn row", async () => {

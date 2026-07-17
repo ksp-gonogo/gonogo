@@ -125,7 +125,20 @@ function LandingStatusComponent({
     useStream<VesselState>("vessel.state")?.landingPredictedLon ?? undefined;
   const slope = useTelemetry("data", "land.slopeAngle");
 
-  const heightFromTerrain = useTelemetry("vessel.flight")?.altitudeTerrain;
+  // Two DIFFERENT altitude readings, and the distinction matters on a
+  // landing: `vessel.flight.altitudeTerrain` is KSP's `radarAltitude`,
+  // measured from the vessel's CENTRE OF MASS, while
+  // `vessel.surface.heightFromTerrain` accounts for the vessel's physical
+  // extent — "how far is my LOWEST point from the ground", which is the
+  // number that decides when the gear touches and when the burn must end.
+  // Prefer the lowest-point reading; fall back to the CoM one when
+  // `vessel.surface` is absent (the capture side nulls the whole channel
+  // while Orbiting/Escaping rather than serve a stale deep-space AGL —
+  // see VesselSurface's contract doc). A deorbiting craft is SubOrbital by
+  // the time the burn matters, so the fallback is the far-from-terrain case.
+  const altitudeTerrain = useTelemetry("vessel.flight")?.altitudeTerrain;
+  const surfaceHeight = useTelemetry("vessel.surface")?.heightFromTerrain;
+  const heightFromTerrain = surfaceHeight ?? altitudeTerrain;
   const verticalSpeed = useTelemetry("vessel.flight")?.verticalSpeed;
 
   const atmDensity = useTelemetry("vessel.flight")?.atmDensity;
@@ -491,6 +504,7 @@ registerComponent<LandingStatusConfig>({
   dataRequirements: [
     "v.body",
     "v.heightFromTerrain",
+    "vessel.surface",
     "v.verticalSpeed",
     "v.atmosphericDensity",
     "v.atmosphericTemperature",
