@@ -11,19 +11,15 @@ import { CrewManifestComponent } from "./index";
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * `v.crew` and `v.crewCapacity` are mapped on the wire
- * alongside the already-mapped `v.crewCount` — all three now land on the
- * single `vessel.crew` wire channel (`count` / `capacity` / `crew:
- * CrewMember[]`):
- * - MAPPED: `v.crewCount` -> `vessel.crew.count`, `v.crew` ->
- *   `vessel.crew.crew`, `v.crewCapacity` -> `vessel.crew.capacity`.
- * - GAPPED: `v.isEVA` (derived quantity with no named field on any
- *   channel yet).
+ * `v.crewCount` / `v.crew` / `v.crewCapacity` all land on the single
+ * `vessel.crew` wire channel (`count` / `capacity` / `crew: CrewMember[]`),
+ * read here via the canonical one-arg `useTelemetry`. `v.isEVA` rides the
+ * derived `vessel.state.isEVA` field (from `vessel.identity.vesselType`); it
+ * is not emitted here, so the EVA badge simply stays off.
  *
- * With no legacy source registered, the full roster + capacity now render
- * off the stream alone — only the EVA badge stays legacy-gapped, proving
- * the mapped fields genuinely drive the widget's rendering off the real
- * pipeline.
+ * With no legacy source registered, the full roster + capacity render off the
+ * stream alone, proving the mapped fields genuinely drive the widget's
+ * rendering off the real pipeline.
  */
 describe("CrewManifest — genuinely runs off the stream (M3 batch 4)", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
