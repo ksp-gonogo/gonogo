@@ -3,12 +3,13 @@
     <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <!-- Deliberate permissive carve-out: Sitrep.Contract is the public Uplink
-         surface. Core (Sitrep.Host/Core/etc.) is GPL-3.0-only because it
-         directly links kOS (GPLv3-only), but this assembly ships no kOS
-         code and exists specifically so third-party Uplinks under ANY
-         license (GPLv2, proprietary, etc.) can reference the contract
-         without inheriting GPL obligations. -->
+    <!-- Sitrep.Contract is the public Uplink surface, and MIT like the rest
+         of gonogo (see LICENSING.md). Third-party Uplinks under ANY license
+         (GPL, proprietary, ARR, etc.) can reference the contract; MIT's only
+         condition is retaining the copyright/permission notice.
+         GonogoKos is the one GPL-3.0-only assembly in the repo — it links
+         kOS — but it is a leaf and imposes nothing on this or any other
+         assembly. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli

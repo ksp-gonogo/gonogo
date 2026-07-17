@@ -4,9 +4,17 @@ postfix. It reads kOS's public API in-process — no arm's-length reflection,
 no loopback telnet. See local_docs/telemetry-mod/kos-migration-spec.md §8.
 
 kOS is distributed under the GNU General Public License v3.0. Because
-GonogoKos direct-links kOS, GonogoKos is likewise GPLv3 (gonogo is GPLv3
-overall, so the linkage is licence-compatible and deliberate). The full
-GPLv3 text is in the repository root LICENSE.
+GonogoKos direct-links kOS, GonogoKos is itself GPL-3.0-only.
+
+gonogo as a whole is MIT-licensed (repository root LICENSE). GonogoKos is
+the deliberate exception: it is the only assembly in the repository that
+links a copyleft dependency, and it is a leaf — nothing references it, so
+its GPL obligations propagate to nothing else. The MIT-licensed Sitrep.*
+assemblies it links are GPL-compatible in that direction, and GonogoKos
+ships as its own CKAN package in its own GameData folder.
+
+The full GPLv3 text is in this directory's LICENSE, and at the repository
+root as LICENSE-GPL-3.0.txt.
 
 kOS:
   Copyright (c) The kOS Team (https://github.com/KSP-KOS/KOS)
