@@ -19,13 +19,39 @@ name: release
 #   4. dispatches publish-mods.yml with channel=release so the four mod
 #      GameData zips get attached to this release and pushed to SpaceDock,
 #   5. dispatches deploy.yml so the Pages root flips to this release
-#      immediately instead of on the next push to main.
+#      immediately instead of on the next push to main,
+#   6. publishes any @ksp-gonogo package whose own version has moved to
+#      public npm (see the publish-packages job at the bottom).
+#
+# WHY PACKAGE PUBLISHING LIVES HERE
+#
+# npm's trusted publisher for @ksp-gonogo/ui-kit and @ksp-gonogo/sitrep-sdk
+# names *this file*. That pin is absolute: a publish from any other workflow
+# filename 401s, so this is the only place in the repo that can publish.
+#
+# It also matches the cadence we want. Riding the app's release couples *when*
+# a package may publish, not *what version* it publishes — each package's
+# version still comes from its own package.json, on its own SemVer line. Every
+# release is an opportunity for a package release: unchanged version, nothing
+# happens; bumped version, it goes out.
 
 on:
   push:
     tags:
       - "v*"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      packages_only:
+        description: >-
+          Publish npm packages only. Skips the app release entirely — no GitHub
+          Release, no images, no mod zips, no Pages flip.
+        type: boolean
+        default: false
+      dry_run:
+        description: >-
+          npm packages: build, pack and verify, but do not publish.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,6 +66,10 @@ concurrency:
 
 jobs:
   release:
+    # A packages_only dispatch skips the app release outright, so the escape
+    # hatch for an out-of-band package publish can't be mistaken for — or
+    # accidentally become — a release of the app.
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.packages_only) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -70,7 +100,7 @@ jobs:
 
       - name: Get pnpm store path
         id: pnpm-cache
-        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v5
         with:
@@ -130,3 +160,164 @@ jobs:
           gh workflow run deploy.yml \
             --repo "${{ github.repository }}" \
             --ref main
+
+  # Publishes each package whose own version has moved, via npm OIDC trusted
+  # publishing — no NPM_TOKEN, nothing to rotate, provenance on every publish.
+  # See local_docs/oidc-publishing-guide.md.
+  #
+  # Runs per package, after `release`, so a failed app release never publishes.
+  # An unchanged version is already on the registry and is skipped with a
+  # notice rather than failing the release — npm rejects a republish outright,
+  # so "no change, no publish" needs no extra bookkeeping here.
+  publish-packages:
+    needs: release
+    # `needs` alone would skip this whenever `release` is skipped, which is
+    # exactly the packages_only case. Naming the results keeps a *failed*
+    # release from publishing while letting a deliberately skipped one through.
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    # Scoped to this job on purpose: `release` above keeps the workflow-level
+    # contents/actions write it needs, and never gets an OIDC identity. This
+    # job trades those for id-token and nothing more.
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    strategy:
+      # One package's failure must not cancel the other's publish.
+      fail-fast: false
+      matrix:
+        include:
+          - package: '@ksp-gonogo/ui-kit'
+            dir: packages/ui-kit
+          - package: '@ksp-gonogo/sitrep-sdk'
+            dir: mod/sitrep-sdk
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the package's own version
+        id: pkg
+        run: |
+          DIR='${{ matrix.dir }}'
+          # @ksp-gonogo/theme is private and bundled into ui-kit's dist by
+          # tsup. It is absent from the matrix above and would fail the
+          # artifact check below, but refuse it here too — this is the cheap
+          # guard that also catches a publishable package being marked private
+          # by mistake.
+          if [ "$(node -p "require('./$DIR/package.json').private === true")" = "true" ]; then
+            echo "::error::${{ matrix.package }} is marked private and must never be published."
+            exit 1
+          fi
+          NAME="$(node -p "require('./$DIR/package.json').name")"
+          VERSION="$(node -p "require('./$DIR/package.json').version")"
+          if [ "$NAME" != '${{ matrix.package }}' ]; then
+            echo "::error::$DIR is $NAME, expected ${{ matrix.package }} — the matrix and the tree disagree."
+            exit 1
+          fi
+          {
+            echo "name=$NAME"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Is this version already on npm?
+        id: published
+        run: |
+          NAME='${{ steps.pkg.outputs.name }}'
+          VERSION='${{ steps.pkg.outputs.version }}'
+          # A non-zero exit is an E404 (not published) or a registry blip.
+          # Both fall through to a publish attempt, and npm refuses to
+          # overwrite an existing version anyway — the registry stays the
+          # authority; this check only keeps an unchanged package green.
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$NAME@$VERSION is already published — no version change, nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$NAME@$VERSION is not on npm yet."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # `npm pack` does not run a build, and ui-kit's dist is tsup's output
+      # plus a copy of the theme's tokens.css. Packing without this ships a
+      # stale or empty dist, and it only breaks for whoever installs it. turbo
+      # builds dependencies first, so the theme's dist exists before ui-kit's
+      # build copies out of it.
+      - name: Build
+        if: steps.published.outputs.skip == 'false'
+        run: pnpm exec turbo build --filter='${{ steps.pkg.outputs.name }}'
+
+      - name: Pack
+        if: steps.published.outputs.skip == 'false'
+        working-directory: ${{ matrix.dir }}
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+
+      # Gate the tarball, then publish that same file — what was checked is
+      # exactly what ships, rather than a re-pack that could differ.
+      - name: Verify the packed artifact
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          TARBALL="$(ls "$RUNNER_TEMP"/*.tgz)"
+          echo "Verifying $TARBALL"
+          node scripts/verify-package-artifact.mjs "$TARBALL"
+          echo "tarball=$TARBALL" >> "$GITHUB_ENV"
+
+      # Deliberately after `pnpm install`: `registry-url` writes an .npmrc
+      # containing a literal ${NODE_AUTH_TOKEN}, and pnpm fails outright on an
+      # env var it can't expand. Only publishing needs the registry set, so
+      # only publishing gets it.
+      - uses: actions/setup-node@v6
+        if: steps.published.outputs.skip == 'false'
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure npm supports OIDC (>= 11.5.1)
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          npm install -g npm@latest
+          npm -v
+
+      - name: Publish to npm
+        if: steps.published.outputs.skip == 'false' && !inputs.dry_run
+        # No NODE_AUTH_TOKEN / NPM_TOKEN: npm detects OIDC from the
+        # `id-token: write` permission and exchanges it with the registry.
+        run: npm publish "$tarball" --access public --provenance
+
+      - name: Publish (dry run)
+        if: steps.published.outputs.skip == 'false' && inputs.dry_run
+        run: npm publish "$tarball" --access public --provenance --dry-run
+
+      - name: Summary
+        run: |
+          NAME='${{ steps.pkg.outputs.name }}'
+          VERSION='${{ steps.pkg.outputs.version }}'
+          if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
+            echo "⏭ $NAME@$VERSION — already on npm, no version change." >> "$GITHUB_STEP_SUMMARY"
+          elif [ '${{ inputs.dry_run }}' = 'true' ]; then
+            echo "🧪 $NAME@$VERSION — packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "📦 Published $NAME@$VERSION with provenance." >> "$GITHUB_STEP_SUMMARY"
+            echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          fi
