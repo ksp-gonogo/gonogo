@@ -18,7 +18,7 @@
     <!-- Only the pure, SCANsat/KSP-type-free logic
          (CoverageHash/CoveragePlane/GroundTrackFov/VersionGuard) is
          exercised here - net10.0, no SCANsat.dll or KSP DLLs needed, same
-         headless-test split as Gonogo.Kos/Gonogo.Kos.Tests. -->
+         headless-test split as GonogoKosUplink/GonogoKosUplink.Tests. -->
     <Compile Include="..\GonogoScansatUplink\CoverageHash.cs" />
     <Compile Include="..\GonogoScansatUplink\CoveragePlane.cs" />
     <Compile Include="..\GonogoScansatUplink\GroundTrackFov.cs" />

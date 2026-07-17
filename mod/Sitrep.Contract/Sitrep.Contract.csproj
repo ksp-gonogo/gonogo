@@ -7,7 +7,7 @@
          of gonogo (see LICENSING.md). Third-party Uplinks under ANY license
          (GPL, proprietary, ARR, etc.) can reference the contract; MIT's only
          condition is retaining the copyright/permission notice.
-         GonogoKos is the one GPL-3.0-only assembly in the repo — it links
+         GonogoKosUplink is the one GPL-3.0-only assembly in the repo — it links
          kOS — but it is a leaf and imposes nothing on this or any other
          assembly. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

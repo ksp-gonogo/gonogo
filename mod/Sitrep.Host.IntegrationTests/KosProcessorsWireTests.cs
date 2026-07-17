@@ -28,7 +28,7 @@ namespace Sitrep.Host.IntegrationTests
     {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
-        // Mirrors Gonogo.Kos.KosExtension exactly: a Delayed channel backed by
+        // Mirrors Gonogo.KosUplink.KosExtension exactly: a Delayed channel backed by
         // Publisher + AddSampledSource, whose captured payload is a
         // List<KosProcessorInfo> published on the Courier handle.
         internal sealed class ProcessorsStyleUplink : ISitrepUplink

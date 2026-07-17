@@ -5,7 +5,7 @@ name: Publish mod zips
 #
 #   1. ksp-gonogo/ksp-managed is MISSING GameData/SCANsat/Plugins/{SCANsat.dll,
 #      SCANsat.Unity.dll} and GameData/kOS/Plugins/{kOS.dll,kOS.Safe.dll}.
-#      The GonogoScansatUplink and GonogoKos matrix legs WILL FAIL to build
+#      The GonogoScansatUplink and GonogoKosUplink matrix legs WILL FAIL to build
 #      until someone with push access to that private repo vendors those
 #      assemblies in (same redistribution-safe care as the existing
 #      HullCameraVDS entry — see kerbcam's ksp-managed usage). Gonogo core,
@@ -18,7 +18,7 @@ name: Publish mod zips
 #      vars.SPACEDOCK_MOD_ID_GONOGO, vars.SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK,
 #      vars.SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK,
 #      vars.SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK, and
-#      vars.SPACEDOCK_MOD_ID_GONOGOKOS. Until each is set, that mod's
+#      vars.SPACEDOCK_MOD_ID_GONOGOKOSUPLINK. Until each is set, that mod's
 #      SpaceDock upload step no-ops with a `::warning::` (same pattern as
 #      kerbcam's release.yml) rather than failing the run.
 #
@@ -133,13 +133,13 @@ jobs:
             extra_dlls: ""
             notice: mod/GonogoKerbcastUplink/NOTICE-KERBCAST.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK
-          - id: GonogoKos
-            csproj: mod/Gonogo.Kos/Gonogo.Kos.csproj
-            dll: Gonogo.Kos.dll
-            gamedata: GonogoKos
+          - id: GonogoKosUplink
+            csproj: mod/GonogoKosUplink/GonogoKosUplink.csproj
+            dll: GonogoKosUplink.dll
+            gamedata: GonogoKosUplink
             extra_dlls: ""
-            notice: mod/Gonogo.Kos/NOTICE-KOS.txt
-            mod_id_var: SPACEDOCK_MOD_ID_GONOGOKOS
+            notice: mod/GonogoKosUplink/NOTICE-KOS.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOKOSUPLINK
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
       id: ${{ matrix.id }}

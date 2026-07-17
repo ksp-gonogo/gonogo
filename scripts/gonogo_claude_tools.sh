@@ -790,31 +790,31 @@ build_gonogorealantennasuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogokos() {
-  local proj="$ROOT/mod/Gonogo.Kos/Gonogo.Kos.csproj"
-  local out_dir="$ROOT/mod/Gonogo.Kos/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKos/Plugins"
+build_gonogokosuplink() {
+  local proj="$ROOT/mod/GonogoKosUplink/GonogoKosUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoKosUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKosUplink/Plugins"
   if [ ! -f "$proj" ]; then
-    echo "Gonogo.Kos csproj not found at $proj"
+    echo "GonogoKosUplink csproj not found at $proj"
     return 3
   fi
   if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
     echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
-  echo "=== building Gonogo.Kos ==="
+  echo "=== building GonogoKosUplink ==="
   perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
     dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/Gonogo.Kos.dll" ]; then
-    echo "Gonogo.Kos.dll not produced (missing at $out_dir/Gonogo.Kos.dll)"
+  if [ ! -f "$out_dir/GonogoKosUplink.dll" ]; then
+    echo "GonogoKosUplink.dll not produced (missing at $out_dir/GonogoKosUplink.dll)"
     return 4
   fi
   mkdir -p "$install_dir"
-  # Only Gonogo.Kos.dll - Sitrep.*.dll (provided by GonogoCore) and
+  # Only GonogoKosUplink.dll - Sitrep.*.dll (provided by GonogoCore) and
   # kOS.dll/kOS.Safe.dll/0Harmony.dll (provided by the user's kOS + Harmony
   # installs) are reference-only (Private="false") and must NOT be copied
   # here - see .superpowers/sdd/uplink-packaging-pattern.md.
-  cp "$out_dir/Gonogo.Kos.dll" "$install_dir/"
+  cp "$out_dir/GonogoKosUplink.dll" "$install_dir/"
   {
     echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
     echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -989,10 +989,10 @@ case "${1:-help}" in
       gonogo) build_gonogo ;;
       gonogoscansatuplink) build_gonogoscansatuplink ;;
       gonogorealantennasuplink) build_gonogorealantennasuplink ;;
-      gonogokos) build_gonogokos ;;
+      gonogokosuplink) build_gonogokosuplink ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokos"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink"
         exit 2
         ;;
     esac
