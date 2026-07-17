@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -24,10 +24,6 @@ import { CrewManifestComponent } from "./index";
  * emits them together. Only `v.isEVA` (see `stream.test.tsx`'s doc comment)
  * still reads off a legacy AUX source in the stream leg.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const GAPPED_KEYS = ["v.isEVA"] as const;
 
 describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () => {

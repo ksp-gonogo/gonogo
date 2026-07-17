@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewManifestComponent } from "./index";
 
@@ -25,10 +25,6 @@ import { CrewManifestComponent } from "./index";
  * the mapped fields genuinely drive the widget's rendering off the real
  * pipeline.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("CrewManifest — genuinely runs off the stream (M3 batch 4)", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

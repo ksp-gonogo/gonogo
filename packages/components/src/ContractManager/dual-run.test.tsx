@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -35,7 +35,6 @@ import { ContractManagerComponent } from "./index";
  * can never reproduce (see that fixture's own `_meta.notes`).
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 

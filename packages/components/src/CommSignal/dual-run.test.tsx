@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
@@ -18,10 +18,6 @@ import { CommSignalComponent } from "./index";
  * formatted delay — all resolve off the stream for the same signal state the
  * `strong-direct-ksc` fixture depicts.
  */
-afterEach(() => {
-  cleanup();
-});
-
 // Every input `vesselStateChannel` declares (vessel-state.ts) — all must be in
 // the allowlist for the derived `vessel.state.commsControlState*` fields to be
 // treated as carried; `comms.delay` backs `comm.signalDelay`.

@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
@@ -26,10 +26,6 @@ import { CommSignalComponent } from "./index";
  * widget renders the `describeControl`/delay "—" placeholders. The
  * final test carries the full set to prove control state + delay stream too.
  */
-afterEach(() => {
-  cleanup();
-});
-
 // Every input `vesselStateChannel` declares (vessel-state.ts) plus `comms.delay`
 // — the full allowlist needed for control state + delay to be carried.
 const FULL_CARRIED = [
