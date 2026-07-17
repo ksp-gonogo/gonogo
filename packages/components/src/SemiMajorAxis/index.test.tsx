@@ -1,30 +1,37 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import { DashboardItemContext, type MockDataSource } from "@ksp-gonogo/core";
+import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
-const SMA_KEYS: DataKey[] = [
-  { key: "o.sma", unit: "m" },
-  { key: "o.referenceBody" },
+// `sma` reads the raw `vessel.orbit.sma` element; `referenceBody` reads the
+// derived `vessel.state.referenceBodyName` display map (index → name against
+// `system.bodies`), which is "carried" only once ALL EIGHT `vessel.state`
+// inputs are (see `vessel-state.ts`). Both run off a real `TelemetryProvider`
+// here — no legacy `MockDataSource` is registered anywhere in this file.
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
 ];
 
 describe("SemiMajorAxisComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+  let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: SMA_KEYS });
-    source = fixture.source;
+  beforeEach(() => {
+    stream = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+    });
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    stream = undefined as unknown as ReturnType<typeof setupStreamFixture>;
   });
 
   function renderSma(size: { w: number; h: number } = { w: 5, h: 6 }) {
@@ -33,14 +40,16 @@ describe("SemiMajorAxisComponent", () => {
     // continue to exercise it. Below the threshold the widget hides the
     // subtitle to keep the value readout from crowding.
     return render(
-      <DashboardItemContext.Provider value={{ instanceId: "sma-test" }}>
-        <SemiMajorAxisComponent
-          config={{}}
-          id="sma-test"
-          w={size.w}
-          h={size.h}
-        />
-      </DashboardItemContext.Provider>,
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "sma-test" }}>
+          <SemiMajorAxisComponent
+            config={{}}
+            id="sma-test"
+            w={size.w}
+            h={size.h}
+          />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
     );
   }
 
@@ -52,9 +61,19 @@ describe("SemiMajorAxisComponent", () => {
   it("renders SMA via formatDistance and includes the reference body subtitle", async () => {
     renderSma();
     act(() => {
-      source.emit("o.referenceBody", "Kerbin");
       // SMA from body centre — Kerbin radius 600km + 75km altitude = 675km.
-      source.emit("o.sma", 675_000);
+      stream.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
+      stream.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: 600000,
+            orbit: null,
+          },
+        ],
+      });
     });
     expect(await screen.findByText("675.0 km")).toBeInTheDocument();
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
