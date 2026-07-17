@@ -14,11 +14,12 @@ import { ThemeProvider } from "styled-components";
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
-import "@ksp-gonogo/kos"; // kOS Uplink client — registers the kOS widgets + processors feed
-// SCANsat is normally a bundled static import too. Behind the Uplink-loader flag
-// it is instead loaded at runtime as a standalone ESM bundle (see ./uplinks) — the
-// static import stays the default/fallback path; the loaded path is ADDITIVE and
-// must never displace the fallback until it is proven on all three engines.
+// kOS and SCANsat are normally bundled static imports. Behind the Uplink-loader
+// flag they are instead loaded at runtime as standalone ESM bundles (see
+// ./uplinks) — the static imports stay the default/fallback path (moved into the
+// else branch of registerScansatAndRender so they don't ALSO run under the flag);
+// the loaded path is ADDITIVE and must never displace the fallback until it is
+// proven on all three engines.
 import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
 import "./notes/NotesComponent"; // app-level component — registers on import
@@ -106,7 +107,13 @@ async function registerScansatAndRender(): Promise<void> {
       );
     }
   } else {
-    await import("@ksp-gonogo/scansat");
+    // Bundled fallback path (flag off): both clients as plain static imports,
+    // each self-registering on import. Kept until the loaded path is proven on
+    // all three engines (design R9).
+    await Promise.all([
+      import("@ksp-gonogo/kos"),
+      import("@ksp-gonogo/scansat"),
+    ]);
   }
   renderApp();
 }

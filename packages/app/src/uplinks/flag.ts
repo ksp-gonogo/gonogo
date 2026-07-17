@@ -10,7 +10,7 @@ export const UPLINK_LOADER_FLAG = "uplinkLoader";
 const STORAGE_KEY = "gonogo.uplinkLoader";
 
 /** The first-party Uplinks routed through the runtime loader when the flag is on. */
-export const LOADER_UPLINK_IDS = ["scansat"] as const;
+export const LOADER_UPLINK_IDS = ["scansat", "kos"] as const;
 
 export function uplinkLoaderEnabled(): boolean {
   try {

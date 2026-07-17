@@ -78,9 +78,10 @@ const HOST_UIKIT_VERSION = readPkgVersion(
 const HOST_CONTRACT_MAJOR = 3;
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
-// bundles (Phase A: scansat only — the loader is proven on ONE Uplink first,
-// design §6). Each is emitted to public/uplinks/<id>.client.js and recorded in
-// the local registry fixture. Adding another Uplink here is the whole change.
+// bundles (Phase B: scansat + kos — the loader was proven on scansat first in
+// Phase A, design §6). Each is emitted to public/uplinks/<id>.client.js and
+// recorded in the local registry fixture. Adding another Uplink here is the
+// whole change.
 const UPLINK_BUNDLE_TARGETS: {
   id: string;
   name: string;
@@ -94,6 +95,13 @@ const UPLINK_BUNDLE_TARGETS: {
     author: "jonpepler",
     repo: "ksp-gonogo/GonogoScansatUplink",
     clientDir: resolve(modDir, "GonogoScansatUplink/client"),
+  },
+  {
+    id: "kos",
+    name: "kOS",
+    author: "jonpepler",
+    repo: "ksp-gonogo/GonogoKosUplink",
+    clientDir: resolve(modDir, "GonogoKosUplink/client"),
   },
 ];
 
@@ -146,7 +154,32 @@ const uplinkBundles = (): PluginOption => ({
     const firstClient = UPLINK_BUNDLE_TARGETS[0]?.clientDir;
     if (!firstClient) return;
     const clientRequire = createRequire(resolve(firstClient, "package.json"));
-    const { build } = clientRequire("esbuild") as typeof import("esbuild");
+    const esbuild = clientRequire("esbuild") as typeof import("esbuild");
+    const { build } = esbuild;
+
+    // Inline every CSS import as a self-injecting <style>, folded INTO the single
+    // hashed JS bundle — mirroring what Vite does on the bundled static-import
+    // path. Without this esbuild emits a sibling `<id>.client.css` the runtime
+    // `import(bundleUrl)` never applies (the loader fetches only the JS), so a
+    // loaded Uplink with a stylesheet (kOS's xterm.css) renders unstyled. Folding
+    // it in also keeps the whole client under ONE integrity hash. (xterm.css is
+    // self-contained — no @import/url() to resolve; a future CSS that isn't would
+    // need esbuild's real CSS pipeline instead of this raw-text inline.)
+    const cssInjectPlugin: import("esbuild").Plugin = {
+      name: "gonogo-css-inject",
+      setup(pluginBuild) {
+        pluginBuild.onLoad({ filter: /\.css$/ }, (args) => {
+          const css = readFileSync(args.path, "utf8");
+          const contents =
+            `if (typeof document !== "undefined") {` +
+            `const s = document.createElement("style");` +
+            `s.textContent = ${JSON.stringify(css)};` +
+            `document.head.appendChild(s);` +
+            `}`;
+          return { contents, loader: "js" };
+        });
+      },
+    };
 
     const external = UPLINK_EXTERNALS.map((e) => e.specifier).concat([
       "react-dom/client",
@@ -166,6 +199,7 @@ const uplinkBundles = (): PluginOption => ({
         target: "es2022",
         jsx: "automatic",
         external,
+        plugins: [cssInjectPlugin],
         logLevel: "warning",
       });
       const bytes = readFileSync(outFile);
