@@ -295,6 +295,18 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/sitrep-sdk/src/topics.test-d.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
     "mod/sitrep-sdk/src/topics.ts",
+    // The author-facing SDK barrel re-exposes `registerKosScript` /
+    // `KosScriptDefinition` — a CORE framework capability (centralised kOS
+    // feeds, CLAUDE.md), not the kOS Uplink's internals. The shims delegate to
+    // the injected host and name kOS only as a framework author-surface member,
+    // exactly the GRAY contract/SDK-layer exception. The conformance guard in
+    // core and the shape-gate tests reference the same surface. (2026-07-17)
+    "mod/sitrep-sdk/src/api/host.ts",
+    "mod/sitrep-sdk/src/api/index.ts",
+    "mod/sitrep-sdk/src/api/types.ts",
+    "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
+    "mod/sitrep-sdk/src/api/api-shape.test-d.ts",
+    "packages/core/src/sdk-facade.conformance.test-d.ts",
     // dispatch()'s label doc-comment cites `kos.keystroke` as the example
     // line-mode command whose composed text becomes the queue label —
     // comment-only, no kOS coupling in the client spine.

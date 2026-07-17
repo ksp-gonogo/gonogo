@@ -1,5 +1,3 @@
-export const CLIENT_VERSION = "0.0.0";
-
 export { isTopicCarried } from "./carried-channels";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
@@ -166,6 +164,7 @@ export { useLatestValue, useStream } from "./use-stream";
 export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
+export { CLIENT_VERSION } from "./version.generated";
 export type {
   ActionGroupStatePayload,
   VesselFlightPayload,

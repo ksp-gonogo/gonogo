@@ -1,6 +1,6 @@
 {
   "name": "@ksp-gonogo/sitrep-sdk",
-  "description": "Generated typed contract for the Gonogo (Sitrep) KSP telemetry stream",
+  "description": "Author-facing SDK for Gonogo (Sitrep) KSP Uplinks: the generated wire contract plus the curated framework/data/hook surface",
   "license": "MIT",
   "version": "0.0.1",
   "type": "module",
@@ -22,12 +22,28 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing/index.d.ts",
+        "import": "./dist/testing/index.js"
       }
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.json",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test-d.json"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28",
+    "react": "^18.0.0"
   }
 }
