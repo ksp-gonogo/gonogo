@@ -29,9 +29,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Transport.Tests", "S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gonogo.KSP", "Gonogo.KSP\Gonogo.KSP.csproj", "{F514D5AD-201A-4B8C-B3A4-75C3723B2B41}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gonogo.Kos", "Gonogo.Kos\Gonogo.Kos.csproj", "{729E93F9-C68F-4215-BF8E-B2F95250458E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKosUplink", "GonogoKosUplink\GonogoKosUplink.csproj", "{729E93F9-C68F-4215-BF8E-B2F95250458E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gonogo.Kos.Tests", "Gonogo.Kos.Tests\Gonogo.Kos.Tests.csproj", "{09612ECE-4669-484E-ACCC-FAB19BE3AB5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKosUplink.Tests", "GonogoKosUplink.Tests\GonogoKosUplink.Tests.csproj", "{09612ECE-4669-484E-ACCC-FAB19BE3AB5E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoScansatUplink", "GonogoScansatUplink\GonogoScansatUplink.csproj", "{A1D295A7-E8CA-45F4-9C84-2A1A784255A4}"
 EndProject

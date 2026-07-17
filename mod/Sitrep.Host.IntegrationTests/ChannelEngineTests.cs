@@ -30,7 +30,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The kOS terminal "black screen" bug (local_docs/kos-terminal-feedback-2026-07-15.md,
         /// "Loading / connection" section) — reproduced generically at the
-        /// engine level, no <c>Gonogo.Kos</c> involved. <see cref="TerminalLikeTestUplink"/>
+        /// engine level, no <c>Gonogo.KosUplink</c> involved. <see cref="TerminalLikeTestUplink"/>
         /// mirrors <c>kos.terminal.&lt;coreId&gt;</c>'s exact shape: Delayed +
         /// ReliableOrdered, with an event-driven <see cref="IChannelPublisher"/>
         /// (not a tick-mapped source) carrying a cursor-relative diff stream —
@@ -3479,7 +3479,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A minimal stand-in for <c>kos.terminal.&lt;coreId&gt;</c>
-        /// (<c>Gonogo.Kos.KosTerminalManager</c>) — Delayed + ReliableOrdered,
+        /// (<c>Gonogo.KosUplink.KosTerminalManager</c>) — Delayed + ReliableOrdered,
         /// published event-driven via <see cref="IChannelPublisher"/> (never
         /// tick-mapped), carrying payloads that are EITHER a self-contained
         /// full repaint or a cursor-relative diff, exactly like the real

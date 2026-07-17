@@ -2,7 +2,7 @@ LICENSING STATUS — GonogoScansatUplink is GPL-3.0-only, ON HOLD. DO NOT
 relicense this component to MIT without first resolving the question below.
 
 gonogo as a whole is MIT-licensed (repository root LICENSE). This uplink is
-one of two deliberate exceptions, and unlike GonogoKos its exception is
+one of two deliberate exceptions, and unlike GonogoKosUplink its exception is
 PROVISIONAL rather than permanent:
 
   SCANsat's own licensing is self-contradictory. Its repository LICENSE.txt
@@ -15,7 +15,7 @@ PROVISIONAL rather than permanent:
 
   The question is out with the SCANsat stewards (https://github.com/KSPModStewards/SCANsat).
   Until they answer, this uplink stays GPL-3.0-only — the conservative option,
-  and cheap: like GonogoKos it is a leaf, so nothing else in the repository
+  and cheap: like GonogoKosUplink it is a leaf, so nothing else in the repository
   inherits anything from it. Its co-located TypeScript client
   (@ksp-gonogo/scansat) is held GPL-3.0-only for the same reason.
 
