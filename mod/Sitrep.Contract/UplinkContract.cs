@@ -138,6 +138,15 @@ namespace Sitrep.Contract
     {
         public string Id { get; set; } = "";
         public string Version { get; set; } = "";
+        /// <summary>
+        /// H_mod — the sha256 of the client bundle this DLL was released with, as
+        /// <c>sha256-&lt;hex&gt;</c> (design §3.1). Baked at release build by the two-pass
+        /// client-hash generator (see the Uplink build script); <c>null</c> for a mod-only
+        /// Uplink with no client half, or an unbuilt/dev DLL. Emitted on
+        /// <c>system.uplinks.expectedClientHash</c> so the app can enforce the three-way
+        /// agreement (index == mod == bytes) before importing the client.
+        /// </summary>
+        public string? ExpectedClientHash { get; set; }
         public IReadOnlyList<ChannelDeclaration> Channels { get; set; } = Array.Empty<ChannelDeclaration>();
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
     }
