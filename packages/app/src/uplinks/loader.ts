@@ -10,6 +10,7 @@
 
 import { parseSemver } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
+import { type ConsentInfo, ensureConsent } from "./consent";
 import type { HostCompat } from "./hostCompat";
 import { setUplinkOutcome, type UplinkLoadOutcome } from "./loaderState";
 import {
@@ -50,6 +51,13 @@ export interface LoaderContext {
    * to load a client just because no mod is talking yet would be the wrong default.
    */
   roster?: RosterEntry[];
+  /**
+   * Resolve per-Uplink first-load consent (design §3.5 / §5 step 4). Injected so
+   * tests can drive the gate; defaults to the real `ensureConsent`, which
+   * short-circuits a remembered `id@version` grant and otherwise prompts the
+   * operator via the modal wired at boot.
+   */
+  ensureConsent?: (info: ConsentInfo) => Promise<boolean>;
   /**
    * Import a bundle URL. Injected so tests can drive the loader without a real
    * network `import()`. Defaults to a `@vite-ignore` dynamic import of the URL.
@@ -205,6 +213,19 @@ async function loadOne(
 
     // Gate BEFORE fetch (design §5 step 3).
     checkCompat(version, ctx, roster);
+
+    // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
+    // First-party ids are NOT pre-trusted — a first load at a new id@version asks
+    // the operator; a remembered grant short-circuits. Decline quarantines with a
+    // legible reason. Bytes are never fetched for a declined Uplink.
+    const ensure = ctx.ensureConsent ?? ensureConsent;
+    const consented = await ensure({
+      id: descriptor.id,
+      name: descriptor.name,
+      version: version.version,
+      author: descriptor.author,
+    });
+    if (!consented) refuse("consent declined");
 
     // Fetch, then verify the bytes BEFORE import (design §5 step 5).
     const fetchBytes = ctx.fetchBytes ?? defaultFetchBytes;

@@ -33,6 +33,7 @@ import styled, { keyframes } from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
+import { revokeConsent } from "../uplinks/consent";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
@@ -199,6 +200,19 @@ function UplinkLoaderSection() {
               <LoaderLabel $status={o.status}>{o.status}</LoaderLabel>
             </ConnectionRow>
             {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
+            {o.status === "quarantined" &&
+              o.reason === "consent declined" &&
+              o.version && (
+                <GhostButton
+                  type="button"
+                  onClick={() => {
+                    revokeConsent(o.id, o.version as string);
+                    window.location.reload();
+                  }}
+                >
+                  Reconsider
+                </GhostButton>
+              )}
           </UplinkItem>
         ))}
       </UplinkList>

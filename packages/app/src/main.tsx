@@ -24,6 +24,8 @@ import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
 import "./notes/NotesComponent"; // app-level component — registers on import
 import App from "./App";
+import { setConsentPrompt } from "./uplinks/consent";
+import { promptForConsent } from "./uplinks/consentModal";
 import { LOADER_UPLINK_IDS, uplinkLoaderEnabled } from "./uplinks/flag";
 import { installGonogoHost } from "./uplinks/host";
 import { hostCompat } from "./uplinks/hostCompat";
@@ -87,6 +89,10 @@ function renderApp(): void {
 // "widget not loaded (reason)" in Settings, never a blank dashboard.
 async function registerScansatAndRender(): Promise<void> {
   if (uplinkLoaderEnabled()) {
+    // Wire the real modal-backed consent prompt before the loader runs (the
+    // store defaults to "deny" until this is set). Renders in the app's active
+    // theme so it matches the app it is about to extend.
+    setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
     try {
       // A bounded read of the live system.uplinks roster so the loader can
       // enforce the three-way mod-hash check; undefined when no mod is talking
