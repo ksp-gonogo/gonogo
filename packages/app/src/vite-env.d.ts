@@ -2,6 +2,11 @@
 
 declare const __GONOGO_VERSION__: string;
 declare const __GONOGO_BUILD_TIME__: string;
+// The app's Uplink-compat identity (single-sourced in vite.config.ts). Gated
+// against a runtime-loaded Uplink descriptor's declared versions before import.
+declare const __GONOGO_API_VERSION__: string;
+declare const __GONOGO_UIKIT_VERSION__: string;
+declare const __GONOGO_CONTRACT_MAJOR__: number;
 
 interface ImportMetaEnv {
   readonly VITE_AXIOM_TOKEN?: string;
