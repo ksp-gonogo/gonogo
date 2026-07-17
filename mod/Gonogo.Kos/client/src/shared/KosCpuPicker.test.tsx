@@ -1,8 +1,8 @@
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { KosCpuPicker } from "./KosCpuPicker";
 
@@ -60,10 +60,6 @@ describe("KosCpuPicker", () => {
   let service: CpuRegistryService;
   beforeEach(() => {
     service = new CpuRegistryService("main", new MemoryStorage());
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   it("lists existing entries when opened", async () => {

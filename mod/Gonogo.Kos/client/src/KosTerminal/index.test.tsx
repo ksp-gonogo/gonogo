@@ -3,7 +3,7 @@ import type {
   KosProcessorInfo,
   PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
@@ -178,7 +178,6 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 
@@ -646,7 +645,6 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 
@@ -948,7 +946,6 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

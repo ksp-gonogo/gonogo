@@ -4,7 +4,13 @@ import {
   registerAugment,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  within,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type KosProcessorBadgeContext, KosProcessorsComponent } from "./index";
 import "./processorsScript"; // self-registers the kOS script
@@ -73,6 +79,19 @@ function registerFakeKos(initialPayload?: unknown) {
   return fake;
 }
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// registry. RTL auto-cleanup runs after this file's afterEach, so it can't be
+// relied on to unmount first — clearing the registry (or a late stream frame)
+// while the widget is still mounted fires a state update outside act(), the
+// documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
 describe("KosProcessorsComponent", () => {
   beforeEach(() => {
     clearRegistry();
@@ -82,7 +101,8 @@ describe("KosProcessorsComponent", () => {
   });
 
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearRegistry();
     clearAugments();
   });

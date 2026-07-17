@@ -1,6 +1,6 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KosTerminalComponent } from "./index";
@@ -115,7 +115,6 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 
@@ -334,7 +333,6 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
     clearRegistry();
   });
 

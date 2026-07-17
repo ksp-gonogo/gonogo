@@ -4,24 +4,29 @@ import {
   type DataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import {
-  cleanup,
-  render as rtlRender,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { render as rtlRender, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { KosScriptRunnerComponent } from "./index";
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// registry. RTL auto-cleanup runs after this file's afterEach, so it can't be
+// relied on to unmount first — clearing the registry while the widget is still
+// mounted fires a state update outside act(), the documented anti-pattern in
+// CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
 // The widget declares `actions`, so useActionInput needs a dashboard item id.
 function render(ui: ReactElement) {
-  return rtlRender(
+  const result = rtlRender(
     <DashboardItemContext.Provider value={{ instanceId: "kos-script-runner" }}>
       {ui}
     </DashboardItemContext.Provider>,
   );
+  renderedTrees.push(result.unmount);
+  return result;
 }
 
 interface ExecCall {
@@ -66,7 +71,8 @@ describe("KosScriptRunnerComponent", () => {
     clearRegistry();
   });
   afterEach(() => {
-    cleanup();
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearRegistry();
   });
 
@@ -79,6 +85,7 @@ describe("KosScriptRunnerComponent", () => {
   });
 
   it("dispatches RUNPATH with the configured CPU, script and args on Run", async () => {
+    const user = userEvent.setup();
     const { calls } = registerFakeKos();
     render(
       <KosScriptRunnerComponent
@@ -90,7 +97,7 @@ describe("KosScriptRunnerComponent", () => {
       />,
     );
 
-    screen.getByRole("button", { name: /run/i }).click();
+    await user.click(screen.getByRole("button", { name: /run/i }));
 
     await waitFor(() => expect(calls).toHaveLength(1));
     expect(calls[0].cpu).toBe("lander");
@@ -99,6 +106,7 @@ describe("KosScriptRunnerComponent", () => {
   });
 
   it("surfaces a last-run acknowledgement after a successful dispatch", async () => {
+    const user = userEvent.setup();
     registerFakeKos();
     render(
       <KosScriptRunnerComponent
@@ -107,7 +115,7 @@ describe("KosScriptRunnerComponent", () => {
     );
 
     expect(screen.getByText(/Press Run to dispatch/i)).toBeInTheDocument();
-    screen.getByRole("button", { name: /run/i }).click();
+    await user.click(screen.getByRole("button", { name: /run/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/Last run acknowledged/i)).toBeInTheDocument(),
@@ -115,6 +123,7 @@ describe("KosScriptRunnerComponent", () => {
   });
 
   it("renders the returned payload when the script emits data", async () => {
+    const user = userEvent.setup();
     registerFakeKos({ deployed: true, panels: 4 });
     render(
       <KosScriptRunnerComponent
@@ -122,7 +131,7 @@ describe("KosScriptRunnerComponent", () => {
       />,
     );
 
-    screen.getByRole("button", { name: /run/i }).click();
+    await user.click(screen.getByRole("button", { name: /run/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/"panels": 4/)).toBeInTheDocument(),
