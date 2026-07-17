@@ -2,10 +2,6 @@ import { registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinReentry from "./__fixtures__/kerbin-reentry-atmospheric.json";
 import { LandingStatusComponent } from "./index";
@@ -21,9 +17,7 @@ import { LandingStatusComponent } from "./index";
  * stream pipeline, using the SAME `kerbin-reentry-atmospheric` fixture the
  * DOM-snapshot suite covers for its ambient (`v.atmosphericDensity`/
  * `v.atmosphericTemperature`/`v.externalTemperature`) values — those three
- * are unchanged, direct `vessel.flight.*` reads. `land.slopeAngle` is the
- * one key with no wire home at all (`index.tsx`'s own comment) — it stays
- * on a legacy AUX.
+ * are unchanged, direct `vessel.flight.*` reads.
  *
  * The fixture carries no propulsion data (a passive reentry, no active
  * burn), so `bestSpeedAtImpact`/`suicideBurnCountdown` stay null here — a
@@ -46,9 +40,6 @@ describe("LandingStatus — stream render golden (delay=0)", () => {
       ],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      keys: [{ key: "land.slopeAngle" }],
-    });
 
     const { container } = render(
       <stream.Provider>
@@ -57,10 +48,6 @@ describe("LandingStatus — stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      legacyAux.source.emit(
-        "land.slopeAngle",
-        kerbinReentry["land.slopeAngle"],
-      );
       stream.emit("system.bodies", {
         bodies: [
           {
@@ -127,9 +114,5 @@ describe("LandingStatus — stream render golden (delay=0)", () => {
     expect(
       screen.queryByText("Waiting for a landing prediction..."),
     ).toBeNull();
-    // The gapped slope key still reads off the legacy AUX.
-    expect(screen.getByText(/0\.3°/)).toBeInTheDocument();
-
-    teardownMockDataSource(legacyAux);
   });
 });
