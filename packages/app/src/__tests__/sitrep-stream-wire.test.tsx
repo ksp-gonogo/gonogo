@@ -71,7 +71,7 @@ describe("SitrepTelemetryProvider — live WebSocketTransport over MSW", () => {
       }),
     );
 
-    render(
+    const { unmount } = render(
       <SitrepTelemetryProvider
         enabled
         host="localhost"
@@ -97,5 +97,11 @@ describe("SitrepTelemetryProvider — live WebSocketTransport over MSW", () => {
     // The frame's re-render is a genuinely-async live-WS update — wait for it
     // (findBy is act-wrapped) rather than asserting synchronously.
     expect(await screen.findByText("throttle:0.75")).toBeTruthy();
+
+    // Drop the tree before the afterEach runs: `clearRegistry()` notifies every
+    // live `useDataSourceSubscription`, and RTL's auto-cleanup lands AFTER this
+    // file's own afterEach — so clearing first would setState into a still-
+    // mounted Throttle with no act boundary around it.
+    unmount();
   });
 });
