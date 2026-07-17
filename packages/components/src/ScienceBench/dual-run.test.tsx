@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -20,9 +20,6 @@ import { ScienceBenchComponent } from "./index";
  * identically, and neither field is ever rendered, so the two wire shapes
  * are provably interchangeable for this fixture.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("ScienceBench — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same experiment list", async () => {

@@ -1,12 +1,13 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { act, screen } from "@testing-library/react";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   parseInstruments,
   ScienceOfficerComponent,
@@ -14,40 +15,78 @@ import {
 } from "./index";
 import { renderWithTheme } from "./testTheme";
 
-const KEYS: DataKey[] = [{ key: "sci.instruments" }];
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// action-handler registry — clearActionHandlers() firing on a still-mounted
+// widget is a state update outside act(). RTL auto-cleanup runs after this
+// file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+// Instrument deploy/transmit still dispatch through the legacy `execute()`
+// (map-command.ts), so a `setupMockDataSource` AUX registered under `"data"`
+// captures the command calls; it carries no read keys of its own.
+let legacyAux: MockDataSourceFixture | undefined;
+
+function newFixture() {
+  return setupStreamFixture({
+    carriedChannels: ["science.instruments", "science.experiments"],
+    pinnedUt: 10,
+  });
+}
+
+async function captureCommands(onExecute: (action: string) => void) {
+  legacyAux = await setupMockDataSource({
+    id: "data",
+    keys: [],
+    onExecute,
+    connectSource: true,
+  });
+}
+
+function renderOfficer(fixture: ReturnType<typeof newFixture>) {
+  const { unmount } = renderWithTheme(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "sci-off" }}>
+        <ScienceOfficerComponent config={{}} id="sci-off" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(unmount);
+}
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  if (legacyAux) {
+    teardownMockDataSource(legacyAux);
+    legacyAux = undefined;
+  }
+  clearActionHandlers();
+});
 
 describe("ScienceOfficerComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-  });
-
   it("shows the awaiting placeholder before any telemetry arrives", () => {
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderOfficer(newFixture());
     expect(
       screen.getByText(/Awaiting instrument telemetry/i),
     ).toBeInTheDocument();
   });
 
-  it("renders 'No instruments' for an empty array", () => {
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+  it("renders 'No instruments' for an empty array", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", []);
+      fixture.emit("science.instruments", []);
     });
-    expect(screen.getByText(/No instruments aboard/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/No instruments aboard/i)).toBeInTheDocument(),
+    );
   });
 
-  it("groups instruments by expId and shows badges", () => {
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+  it("groups instruments by expId and shows badges", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", [
+      fixture.emit("science.instruments", [
         {
           partId: 1,
           partTitle: "Mystery Goo",
@@ -79,7 +118,9 @@ describe("ScienceOfficerComponent", () => {
     });
 
     // Group labels
-    expect(screen.getByText("mysteryGoo")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("mysteryGoo")).toBeInTheDocument(),
+    );
     expect(screen.getByText("temperatureScan")).toBeInTheDocument();
 
     // Badges
@@ -92,10 +133,11 @@ describe("ScienceOfficerComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("derives the total data readout from sci.experiments (D3, P4a)", () => {
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+  it("derives the total data readout from science.experiments (D3, P4a)", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", [
+      fixture.emit("science.instruments", [
         {
           partId: 1,
           partTitle: "Mystery Goo",
@@ -106,24 +148,25 @@ describe("ScienceOfficerComponent", () => {
           inoperable: false,
         },
       ]);
-      source.emit("sci.experiments", [
+      fixture.emit("science.experiments", [
         { subjectId: "a", dataAmount: 5 },
         { subjectId: "b", dataAmount: 7.5 },
       ]);
     });
-    expect(screen.getByText(/12\.5 mits/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/12\.5 mits/i)).toBeInTheDocument(),
+    );
   });
 
   it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    await captureCommands(onExecute);
+    const fixture = newFixture();
 
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", [
+      fixture.emit("science.instruments", [
         {
           partId: 42,
           partTitle: "Mystery Goo",
@@ -136,20 +179,19 @@ describe("ScienceOfficerComponent", () => {
       ]);
     });
 
-    await user.click(screen.getByText("Deploy"));
+    await user.click(await screen.findByText("Deploy"));
     expect(onExecute).toHaveBeenCalledWith("sci.deploy[42]");
   });
 
   it("requires arm-then-confirm before transmitting an instrument's data", async () => {
     const user = userEvent.setup();
     const onExecute = vi.fn();
-    teardownMockDataSource(fixture);
-    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    source = fixture.source;
+    await captureCommands(onExecute);
+    const fixture = newFixture();
 
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", [
+      fixture.emit("science.instruments", [
         {
           partId: 99,
           partTitle: "Thermometer",
@@ -162,17 +204,18 @@ describe("ScienceOfficerComponent", () => {
       ]);
     });
 
-    await user.click(screen.getByText("Transmit"));
+    await user.click(await screen.findByText("Transmit"));
     expect(onExecute).not.toHaveBeenCalled();
 
     await user.click(screen.getByText(/Confirm transmit/i));
     expect(onExecute).toHaveBeenCalledWith("sci.transmit[99]");
   });
 
-  it("hides controls for an inoperable instrument", () => {
-    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
+  it("hides controls for an inoperable instrument", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
     act(() => {
-      source.emit("sci.instruments", [
+      fixture.emit("science.instruments", [
         {
           partId: 1,
           partTitle: "Burned Sensor",
@@ -184,6 +227,9 @@ describe("ScienceOfficerComponent", () => {
         },
       ]);
     });
+    await waitFor(() =>
+      expect(screen.getByText("Burned Sensor")).toBeInTheDocument(),
+    );
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
     expect(screen.queryByText("Transmit")).not.toBeInTheDocument();
   });

@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   setupMockDataSource,
@@ -7,6 +13,18 @@ import {
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RoboticsConsoleComponent } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// action-handler registry — clearActionHandlers() firing on a still-mounted
+// widget is a state update outside act(). RTL auto-cleanup runs after this
+// file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
 
 /**
  * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
@@ -19,7 +37,8 @@ import { RoboticsConsoleComponent } from "./index";
  * carries no keys of its own and is never emitted to.
  */
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearActionHandlers();
 });
 

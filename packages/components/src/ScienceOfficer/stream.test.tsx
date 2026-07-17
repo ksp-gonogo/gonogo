@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ScienceOfficerComponent } from "./index";
 import { renderWithTheme } from "./testTheme";
@@ -12,48 +8,53 @@ import { renderWithTheme } from "./testTheme";
 /**
  * ScienceOfficer's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` for BOTH `science.lab` (a NEW capability, no legacy
- * Telemachus/GonogoTelemetry analogue) AND `science.instruments`
- * (`sci.instruments`'s new wire home, `map-topic.ts`). `sci.experiments` IS
- * also mapped (map-topic.ts) but isn't in THIS fixture's `carriedChannels`,
- * so it still resolves off the legacy path here — a `setupMockDataSource`
- * AUX carries it, the same MIXED-source shape ScienceBench/PowerSystems'
- * own migrations established. The `science.instruments` payload below uses
- * the NEW `InstrumentEntry` field names (`partId` as a string, `partName`,
- * `experimentId`, `dataIsCollectable`) to prove `parseInstruments`'s
- * shape fix reads the new wire correctly, not just the legacy shape. Uses
- * the exact idle-lab payload captured in
+ * `StubTransport` for `science.lab` (a NEW capability, no legacy
+ * Telemachus/GonogoTelemetry analogue), `science.instruments`
+ * (`sci.instruments`'s new wire home, `map-topic.ts`) AND `science.experiments`
+ * (the derived vessel-wide data total). All three reads are canonical one-arg
+ * Topics now — no legacy `DataSource` is registered anywhere in this file. The
+ * `science.instruments` payload below uses the NEW `InstrumentEntry` field
+ * names (`partId` as a string, `partName`, `experimentId`, `dataIsCollectable`)
+ * to prove `parseInstruments`'s shape fix reads the new wire correctly, not
+ * just the legacy shape. Uses the exact idle-lab payload captured in
  * `local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json` (an
  * OPERATIONAL, 2-scientist, but IDLE Mobile Processing Lab — no data
  * loaded, `scienceRate` 0) — a valid steady state, not a placeholder.
  */
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// action-handler registry — clearActionHandlers() firing on a still-mounted
+// widget is a state update outside act(). RTL auto-cleanup runs after this
+// file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearActionHandlers();
 });
 
 describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab + P4a science.instruments)", () => {
   it("renders the idle-but-operational lab from science.lab and an instrument from science.instruments", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["science.lab", "science.instruments"],
+      carriedChannels: [
+        "science.lab",
+        "science.instruments",
+        "science.experiments",
+      ],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "sci.experiments" }],
-      connectSource: true,
-    });
 
-    renderWithTheme(
+    const { unmount } = renderWithTheme(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-stream" }}>
           <ScienceOfficerComponent id="so-stream" w={6} h={7} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     act(() => {
-      legacyAux.source.emit("sci.experiments", []);
+      fixture.emit("science.experiments", []);
       fixture.emit("science.instruments", [
         {
           partId: "77",
@@ -101,7 +102,5 @@ describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab + P4a
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
     expect(screen.getByText("mysteryGoo")).toBeTruthy();
     expect(screen.getByText("DATA")).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 });

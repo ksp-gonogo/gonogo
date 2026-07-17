@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
@@ -27,9 +27,6 @@ import { SemiMajorAxisComponent } from "./index";
  * registered anywhere in this file, a rendered sparkline `<path>` can only
  * have come from the stream.
  */
-afterEach(() => {
-  cleanup();
-});
 
 describe("SemiMajorAxis — genuinely runs off the stream (M3 batch 2)", () => {
   it("reads sma AND the derived reference-body name off the real stream pipeline, not legacy", async () => {
