@@ -33,7 +33,19 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // Locks in the KosScriptFrame and Scanning migrations, plus the
 // `widgetDomSnapshot.tsx` test harness's `ThemeProvider` import (test
 // infrastructure, not a widget — but the scan root doesn't distinguish).
-const STYLED_COMPONENTS_IMPORT_BASELINE = 77;
+//
+// The five imports above 77 are `import { ThemeProvider } from
+// "styled-components"` in snapshot TEST files (LandingStatus/LaunchDirector/
+// MapView/Navball/Objectives `snapshots*.test.tsx` + the GonogoScansatUplink
+// ScienceAugment slot test) — each wraps its render in
+// `<ThemeProvider theme={defaultDarkTheme}>` for a themed snapshot. That's
+// test infra, not bespoke widget CSS; the scan root can't distinguish a
+// `.test.tsx` from a widget, so they land in the count. A shared
+// render-with-theme helper would collapse them to one import, but the helper
+// would live in the styling layer (`@ksp-gonogo/ui-kit`, unscanned) and every
+// one of those test files would import it — so this baseline reflects the
+// current state until that consolidation lands.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 82;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

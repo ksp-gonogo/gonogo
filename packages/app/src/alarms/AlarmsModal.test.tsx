@@ -3,8 +3,20 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import {
+  createFakeWallClock,
+  type ManeuverNodeWirePayload,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+  vesselManeuverLegacyChannel,
+  vesselStateChannel,
+} from "@ksp-gonogo/sitrep-client";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmsModal } from "./AlarmsModal";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -40,11 +52,9 @@ function getDataKeyCombobox(): HTMLElement {
   return combobox;
 }
 
-let dataSource: MockDataSource;
 function registerStubDataSource() {
   clearRegistry();
-  dataSource = new MockDataSource({ id: "data", name: "Stub" });
-  registerDataSource(dataSource);
+  registerDataSource(new MockDataSource({ id: "data", name: "Stub" }));
 }
 
 function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
@@ -149,34 +159,106 @@ describe("AlarmsModal onFire editor", () => {
   });
 });
 
-// Minimal maneuver node for `o.maneuverNodes`. Only `UT` and `deltaV`
-// matter to useManeuverNodes; the rest are filler to satisfy the shape.
-function makeNode(ut: number) {
+// P1 de-Telemachus: `useManeuverNodes` reads the `vessel.maneuver.legacy`
+// derived channel (reshaping the raw `vessel.maneuver` wire topic) via
+// `useStream` — it never had a legacy "data" `DataSource` behind it. So the
+// preset tests below feed a real `TelemetryProvider`/`TelemetryClient` stream
+// (emitting raw wire nodes), not the MockDataSource. Only `ut` matters to the
+// preset's soonest-future-node pick; the rest satisfy the wire shape.
+function makeWireNode(id: string, ut: number): ManeuverNodeWirePayload {
   return {
-    UT: ut,
-    deltaV: [10, 0, 0] as [number, number, number],
-    PeA: 0,
-    ApA: 0,
-    inclination: 0,
-    eccentricity: 0,
-    epoch: 0,
-    period: 0,
-    argumentOfPeriapsis: 0,
-    sma: 0,
-    lan: 0,
-    maae: 0,
-    referenceBody: "Kerbin",
-    closestEncounterBody: null,
-    orbitPatches: [],
+    id,
+    ut,
+    dvRadial: 10,
+    dvNormal: 0,
+    dvPrograde: 0,
+    patches: [],
   };
 }
 
-// useDataValue delivers via subscribe → synchronous setState; wrap the
-// push so the resulting render is flushed inside act (MockDataSource has
-// no value cache, so the emit must happen post-render).
-function emitData(key: string, value: unknown) {
-  act(() => {
-    dataSource.emit(key, value);
+// The eight `vesselStateChannel` inputs plus `vessel.maneuver` (the
+// `vessel.maneuver.legacy` reshape's input) — carrying all of them makes both
+// the derived `vessel.state.*` fields (`timeToAp`/`timeToPe`) and the maneuver
+// node list resolvable off the stream.
+const PRESET_CARRIED = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+  "vessel.maneuver",
+];
+
+// Mount AlarmsModal inside a real TelemetryProvider so both `useManeuverNodes`
+// (`vessel.maneuver.legacy`) and the apoapsis/periapsis presets (derived
+// `vessel.state.timeToAp`/`timeToPe`) resolve off the stream. `pinnedUt` fixes
+// the view clock so an emitted orbit derives a deterministic time-to-apsis.
+function renderWithStream(modal: ReactElement, pinnedUt?: number) {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(vesselStateChannel);
+  store.registerDerivedChannel(vesselManeuverLegacyChannel);
+  if (pinnedUt !== undefined) clock.scrubTo(pinnedUt);
+
+  render(
+    <TelemetryProvider
+      client={client}
+      store={store}
+      carriedChannels={PRESET_CARRIED}
+    >
+      {modal}
+    </TelemetryProvider>,
+  );
+
+  const emit = (topic: string, payload: unknown) => {
+    act(() => {
+      transport.emit(topic, payload);
+    });
+  };
+  const emitNodes = (uts: number[]) => {
+    emit("vessel.maneuver", {
+      nodes: uts.map((ut, i) => makeWireNode(String.fromCharCode(97 + i), ut)),
+    });
+  };
+  return { transport, emit, emitNodes };
+}
+
+// Kerbin's GM and a circular-ish parking orbit. With `epoch === pinnedUt` and
+// `meanAnomalyAtEpoch === 0` the vessel sits at periapsis at the view frame, so
+// the derived `timeToAp` is exactly half the orbital period and `timeToPe` is
+// 0 — a hand-checkable value with no reliance on the Kepler solver's internals.
+const ORBIT_MU = 3.5316e12;
+const ORBIT_SMA = 700_000;
+const ORBIT_EPOCH = 10;
+const TIME_TO_AP = Math.PI * Math.sqrt(ORBIT_SMA ** 3 / ORBIT_MU);
+
+// Emit an orbit whose derived `timeToAp` is `TIME_TO_AP` (mean anomaly 0 =
+// periapsis) or 0 (mean anomaly π = apoapsis, so the apoapsis preset's `> 0`
+// gate hides it).
+function emitOrbitAtApsis(
+  emit: (topic: string, payload: unknown) => void,
+  meanAnomalyAtEpoch: number,
+) {
+  emit("vessel.orbit", {
+    referenceBodyIndex: 1,
+    sma: ORBIT_SMA,
+    ecc: 0.01,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch,
+    epoch: ORBIT_EPOCH,
+    mu: ORBIT_MU,
   });
 }
 
@@ -199,42 +281,56 @@ describe("AlarmsModal recommended presets", () => {
   });
 
   it("shows the apoapsis preset for a live finite timeToAp and hides it when it drops to zero", async () => {
-    render(
+    const user = userEvent.setup();
+    const { emit } = renderWithStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
         onAdd={() => {}}
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
+      ORBIT_EPOCH,
     );
 
-    // Live, positive → the section appears.
-    emitData("o.timeToAp", 500);
-    expect(
+    // At periapsis (mean anomaly 0) → timeToAp is half a period → the apoapsis
+    // preset appears once the section is expanded.
+    emitOrbitAtApsis(emit, 0);
+    await user.click(
       await screen.findByRole("button", { name: /recommended/i }),
+    );
+    expect(
+      await screen.findByRole("button", { name: /warp to apoapsis/i }),
     ).toBeDefined();
 
-    // 0 means "at apoapsis right now" — scheduling ut+0 would fire instantly,
-    // so the gate (> 0) hides it again. Proving the transition discriminates
-    // the gate from the default-hidden state.
-    emitData("o.timeToAp", 0);
-    expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
+    // At apoapsis (mean anomaly π) → timeToAp is 0. Scheduling ut+0 would fire
+    // instantly, so the gate (> 0) drops the apoapsis preset. Proving the
+    // transition discriminates the gate from the default-hidden state. (The
+    // periapsis preset takes its place — timeToPe is now half a period — so
+    // the section itself stays open.)
+    emitOrbitAtApsis(emit, Math.PI);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /warp to apoapsis/i }),
+      ).toBeNull(),
+    );
   });
 
-  it("offers and creates a 'Warp to apoapsis' time alarm once o.timeToAp is live", async () => {
+  it("offers and creates a 'Warp to apoapsis' time alarm once the orbit is live", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    render(
+    // Snapshot UT is 1000; the derived timeToAp (half period) anchors the
+    // alarm at 1000 + TIME_TO_AP.
+    const { emit } = renderWithStream(
       <AlarmsModal
-        // Snapshot UT is 1000; emitting timeToAp=500 should yield ut 1500.
         useSnapshot={() => makeSnapshot()}
         onAdd={onAdd}
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
+      ORBIT_EPOCH,
     );
 
-    emitData("o.timeToAp", 500);
+    emitOrbitAtApsis(emit, 0);
 
     // The collapsible "Recommended" toggle appears once data is live.
     const toggle = await screen.findByRole("button", { name: /recommended/i });
@@ -246,18 +342,20 @@ describe("AlarmsModal recommended presets", () => {
     await user.click(apo);
 
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(onAdd.mock.calls[0][0]).toMatchObject({
+    const alarm = onAdd.mock.calls[0][0];
+    expect(alarm).toMatchObject({
       name: "Warp to apoapsis",
-      trigger: { kind: "time", ut: 1500, leadSeconds: DEFAULT_LEAD_SECONDS },
+      trigger: { kind: "time", leadSeconds: DEFAULT_LEAD_SECONDS },
     });
+    expect(alarm.trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
     // Presets are notify-only — no onFire side effect attached.
-    expect(onAdd.mock.calls[0][0].onFire).toBeUndefined();
+    expect(alarm.onFire).toBeUndefined();
   });
 
   it("offers a 'Warp to next maneuver' preset anchored to the node's absolute UT", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    render(
+    const { emitNodes } = renderWithStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
         onAdd={onAdd}
@@ -266,9 +364,9 @@ describe("AlarmsModal recommended presets", () => {
       />,
     );
 
-    // o.maneuverNodes is a complex array; useManeuverNodes parses it. UT is
-    // absolute (2500), so the alarm ut should equal it exactly — no offset.
-    emitData("o.maneuverNodes", [makeNode(2500)]);
+    // Node UT is absolute (2500), so the alarm ut should equal it exactly —
+    // no offset.
+    emitNodes([2500]);
 
     const toggle = await screen.findByRole("button", { name: /recommended/i });
     await user.click(toggle);
@@ -288,7 +386,7 @@ describe("AlarmsModal recommended presets", () => {
   it("picks the soonest future node and ignores a lingering past one", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    render(
+    const { emitNodes } = renderWithStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
         onAdd={onAdd}
@@ -300,11 +398,7 @@ describe("AlarmsModal recommended presets", () => {
     // Snapshot UT is 1000. A past node (500) and two future ones (4000,
     // 2200) — the preset must resolve to the soonest future (2200), never
     // the past node.
-    emitData("o.maneuverNodes", [
-      makeNode(500),
-      makeNode(4000),
-      makeNode(2200),
-    ]);
+    emitNodes([500, 4000, 2200]);
 
     const toggle = await screen.findByRole("button", { name: /recommended/i });
     await user.click(toggle);
@@ -319,7 +413,7 @@ describe("AlarmsModal recommended presets", () => {
   });
 
   it("hides the maneuver preset when the only node is in the past", async () => {
-    render(
+    const { emitNodes } = renderWithStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
         onAdd={() => {}}
@@ -329,15 +423,19 @@ describe("AlarmsModal recommended presets", () => {
     );
 
     // First prove the preset CAN appear for a future node...
-    emitData("o.maneuverNodes", [makeNode(3000)]);
+    emitNodes([3000]);
     expect(
       await screen.findByRole("button", { name: /recommended/i }),
     ).toBeDefined();
 
     // ...then a node-list with only a past node (500 < UT 1000) hides it,
     // proving the future-node filter rather than the default-hidden state.
-    emitData("o.maneuverNodes", [makeNode(500)]);
-    expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
+    // Stream delivery is async (unlike the synchronous legacy DataSource), so
+    // wait for the re-render that drops the preset.
+    emitNodes([500]);
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull(),
+    );
   });
 });
 
