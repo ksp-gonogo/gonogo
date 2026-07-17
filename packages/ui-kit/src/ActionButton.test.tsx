@@ -1,7 +1,7 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ActionButton } from "./ActionButton";
-import { render, screen } from "./test/render";
 
 describe("ActionButton", () => {
   it("renders its children as a real button", () => {

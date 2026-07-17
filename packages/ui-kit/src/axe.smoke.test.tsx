@@ -1,9 +1,8 @@
-import { ThemeProvider } from "styled-components";
+import { render } from "@ksp-gonogo/test-utils";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
-import { defaultDarkTheme } from "./defaultDarkTheme";
 import { EmptyState } from "./EmptyState";
 import { Grid } from "./Grid";
 import { Panel, PanelTitle } from "./Panel";
@@ -13,7 +12,6 @@ import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { axe } from "./test/axe";
-import { render } from "./test/render";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {
@@ -122,12 +120,10 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("Section + SectionTitle has no axe violations", async () => {
     const { container } = render(
-      <ThemeProvider theme={defaultDarkTheme}>
-        <Section>
-          <SectionTitle>Coverage</SectionTitle>
-          <span>Altimetry (Hi) — 42%</span>
-        </Section>
-      </ThemeProvider>,
+      <Section>
+        <SectionTitle>Coverage</SectionTitle>
+        <span>Altimetry (Hi) — 42%</span>
+      </Section>,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
@@ -135,13 +131,11 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("Grid has no axe violations", async () => {
     const { container } = render(
-      <ThemeProvider theme={defaultDarkTheme}>
-        <Grid cols="120px 1fr 60px">
-          <span>Altimetry (Hi)</span>
-          <ProgressBar value={64} ariaLabel="Altimetry coverage" />
-          <span>64%</span>
-        </Grid>
-      </ThemeProvider>,
+      <Grid cols="120px 1fr 60px">
+        <span>Altimetry (Hi)</span>
+        <ProgressBar value={64} ariaLabel="Altimetry coverage" />
+        <span>64%</span>
+      </Grid>,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
@@ -149,43 +143,41 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("ScienceExperimentRow has no axe violations across instrument states", async () => {
     const { container } = render(
-      <ThemeProvider theme={defaultDarkTheme}>
-        <ul>
-          <ScienceExperimentRow
-            instrument={{
-              partId: "1",
-              partTitle: "Mystery Goo",
-              expId: "mysteryGoo",
-              deployed: false,
-              hasData: false,
-              rerunnable: true,
-              inoperable: false,
-            }}
-          />
-          <ScienceExperimentRow
-            instrument={{
-              partId: "2",
-              partTitle: "Thermometer",
-              expId: "temperatureScan",
-              deployed: true,
-              hasData: true,
-              rerunnable: false,
-              inoperable: false,
-            }}
-          />
-          <ScienceExperimentRow
-            instrument={{
-              partId: "3",
-              partTitle: "Burned Sensor",
-              expId: "x",
-              deployed: false,
-              hasData: false,
-              rerunnable: false,
-              inoperable: true,
-            }}
-          />
-        </ul>
-      </ThemeProvider>,
+      <ul>
+        <ScienceExperimentRow
+          instrument={{
+            partId: "1",
+            partTitle: "Mystery Goo",
+            expId: "mysteryGoo",
+            deployed: false,
+            hasData: false,
+            rerunnable: true,
+            inoperable: false,
+          }}
+        />
+        <ScienceExperimentRow
+          instrument={{
+            partId: "2",
+            partTitle: "Thermometer",
+            expId: "temperatureScan",
+            deployed: true,
+            hasData: true,
+            rerunnable: false,
+            inoperable: false,
+          }}
+        />
+        <ScienceExperimentRow
+          instrument={{
+            partId: "3",
+            partTitle: "Burned Sensor",
+            expId: "x",
+            deployed: false,
+            hasData: false,
+            rerunnable: false,
+            inoperable: true,
+          }}
+        />
+      </ul>,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();

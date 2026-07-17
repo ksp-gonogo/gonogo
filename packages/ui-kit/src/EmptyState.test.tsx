@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { EmptyState } from "./EmptyState";
-import { render, screen } from "./test/render";
 
 describe("EmptyState", () => {
   it("renders children", () => {

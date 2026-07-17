@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Card } from "./Card";
-import { render, screen } from "./test/render";
 
 describe("Card", () => {
   it("renders its children", () => {

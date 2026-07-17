@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { axe } from "./test/axe";
-import { render, screen } from "./test/render";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("WidgetHeader", () => {

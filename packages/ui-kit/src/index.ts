@@ -1,3 +1,9 @@
+// ── Theme ────────────────────────────────────────────────────────────────────
+// Re-exported wholesale from `@ksp-gonogo/theme`, which the kit depends on for
+// the contract its primitives are typed against. Consumers import the theme
+// from the kit as they always have; the split exists so packages that need
+// only a theme (`@ksp-gonogo/test-utils`) don't pull in the whole kit.
+export * from "@ksp-gonogo/theme";
 export {
   ActionButton,
   type ActionButtonProps,
@@ -18,11 +24,6 @@ export {
 } from "./Box";
 export { Card, type CardProps } from "./Card";
 export { Cluster, type ClusterJustify, type ClusterProps } from "./Cluster";
-export {
-  DefaultThemeProvider,
-  type DefaultThemeProviderProps,
-} from "./DefaultThemeProvider";
-export { defaultDarkTheme } from "./defaultDarkTheme";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,
@@ -37,7 +38,6 @@ export {
   formatDuration,
 } from "./formatDuration";
 export { formatKspDate } from "./formatKspDate";
-export { GonogoTokens } from "./GonogoTokens";
 export { Grid, type GridProps } from "./Grid";
 export { Inline, type InlineProps } from "./Inline";
 // ── Panel family ─────────────────────────────────────────────────────────────
@@ -66,7 +66,6 @@ export {
   type ScienceInstrument,
 } from "./science/ScienceExperimentRow";
 export { Truncate } from "./Truncate";
-export * from "./theme";
 export {
   Value,
   type ValueProps,
