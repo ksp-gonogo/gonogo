@@ -1,11 +1,10 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DashboardItemContext } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import {
   parseExperimentBreakdown,
   parseExperiments,
@@ -13,82 +12,141 @@ import {
   ScienceBenchComponent,
 } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.body" },
-  { key: "v.situationString" },
-  { key: "v.landedAt" },
-  { key: "science.sensors" },
-  { key: "sci.experiments" },
-  { key: "sci.experimentBreakdown" },
-  { key: "career.mode" },
-  { key: "career.science" },
-  { key: "career.funds" },
-  { key: "career.reputation" },
-];
+// vessel.state's declared derived inputs — body/situation route off the
+// derived vessel.state channel (parentBodyName from vessel.identity +
+// system.bodies; situationName from vessel.identity.situation). The
+// carried-channels gate is parent-channel-scoped, so all eight inputs are
+// listed even though this widget only consults identity/bodies.
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+] as const;
+
+const CARRIED = [
+  ...VESSEL_STATE_INPUTS,
+  "vessel.surface",
+  "science.sensors",
+  "science.experiments",
+  "science.experimentBreakdown",
+  "career.status",
+  "career.mode",
+] as const;
+
+// Rendered trees, unmounted in afterEach so the widget's debounce/highlight
+// timers can't fire a state update outside act() after a test ends.
+const renderedTrees: Array<() => void> = [];
+
+function newFixture(): StreamFixture {
+  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+}
+
+function renderBench(fixture: StreamFixture) {
+  const result = render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "sci" }}>
+        <ScienceBenchComponent config={{}} id="sci" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(result.unmount);
+  return result;
+}
 
 describe("ScienceBenchComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
   });
 
   it("renders the awaiting placeholder before any situation telemetry", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+    renderBench(newFixture());
     expect(
       screen.getByText(/Awaiting situation telemetry/i),
     ).toBeInTheDocument();
   });
 
-  it("shows situation + biome on the situation line", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("shows situation + biome on the situation line", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("v.body", "Mun");
-      source.emit("v.situationString", "Landed at Mun");
-      source.emit("v.landedAt", "Northwest Crater");
+      // body (parentBodyName) resolves off vessel.identity + system.bodies;
+      // situation (situationName) off vessel.identity.situation ordinal
+      // (0 -> "Landed"); locale off vessel.surface.landedAt.
+      fixture.emit("vessel.orbit", {
+        sma: 682500,
+        ecc: 0,
+        inc: 0,
+        argPe: 0,
+        mu: 3.5316e12,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        referenceBodyIndex: 2,
+      });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Mun",
+            index: 2,
+            parentIndex: 0,
+            radius: 200_000,
+            orbit: null,
+          },
+        ],
+      });
+      fixture.emit("vessel.identity", {
+        parentBodyIndex: 2,
+        situation: 0,
+        launchUt: 0,
+      });
+      fixture.emit("vessel.surface", { landedAt: "Northwest Crater" });
     });
-    expect(
-      screen.getByText(/Landed at Mun — Northwest Crater/i),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Landed — Northwest Crater/i),
+      ).toBeInTheDocument(),
+    );
   });
 
-  it("hides the career strip in sandbox mode", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("hides the career strip in sandbox mode", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("career.mode", "SANDBOX");
-      source.emit("career.science", 42);
+      fixture.emit("career.mode", { mode: 0 });
+      fixture.emit("career.status", { economy: { science: 42 } });
     });
-    expect(screen.queryByText("SCI")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText("SCI")).not.toBeInTheDocument(),
+    );
   });
 
-  it("shows the career strip when not sandbox", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("shows the career strip when not sandbox", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("career.mode", "CAREER");
-      source.emit("career.science", 1234);
-      source.emit("career.funds", 567_890);
-      source.emit("career.reputation", 12);
+      fixture.emit("career.mode", { mode: 1 });
+      fixture.emit("career.status", {
+        economy: { science: 1234, funds: 567_890, reputation: 12 },
+      });
     });
-    expect(screen.getByText("SCI")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("SCI")).toBeInTheDocument());
     expect(screen.getByText("FUNDS")).toBeInTheDocument();
     expect(screen.getByText("REP")).toBeInTheDocument();
   });
 
-  it("renders one sensor row per unique part, collapsing duplicates", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("renders one sensor row per unique part, collapsing duplicates", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
       // A vessel with several thermometers of the same part comes through as
       // multiple science.sensors entries. Collapse entries that share a
       // partName, but leave physically distinct parts on separate rows.
-      source.emit("science.sensors", [
+      fixture.emit("science.sensors", [
         {
           partId: "1",
           partName: "solidBooster.sm.v2",
@@ -119,17 +177,20 @@ describe("ScienceBenchComponent", () => {
         },
       ]);
     });
-    const boosterRows = screen.getAllByText("solidBooster.sm.v2");
-    expect(boosterRows).toHaveLength(1);
+    await waitFor(() => {
+      const boosterRows = screen.getAllByText("solidBooster.sm.v2");
+      expect(boosterRows).toHaveLength(1);
+    });
     expect(screen.getByText(/313\.43 K/)).toBeInTheDocument();
     expect(screen.getByText("noseConeBasic")).toBeInTheDocument();
     expect(screen.getByText(/290\.00 K/)).toBeInTheDocument();
   });
 
-  it("renders per-type sensors filtered out of the whole science.sensors list, dropping disabled readouts", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("renders per-type sensors filtered out of the whole science.sensors list, dropping disabled readouts", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("science.sensors", [
+      fixture.emit("science.sensors", [
         {
           partId: "1",
           partName: "2HOT Thermometer",
@@ -153,17 +214,20 @@ describe("ScienceBenchComponent", () => {
         },
       ]);
     });
-    expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument(),
+    );
     expect(screen.getByText(/293\.10 K/)).toBeInTheDocument();
     expect(screen.getByText("PresMat Barometer")).toBeInTheDocument();
     expect(screen.getByText(/101\.30 kPa/)).toBeInTheDocument();
     expect(screen.queryByText("Disabled Thermometer")).not.toBeInTheDocument();
   });
 
-  it("shows experiment title and data amount from sci.experiments", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("shows experiment title and data amount from science.experiments", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("sci.experiments", [
+      fixture.emit("science.experiments", [
         {
           part: "Mystery Goo Container",
           title:
@@ -175,26 +239,32 @@ describe("ScienceBenchComponent", () => {
         },
       ]);
     });
-    expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText("5.5 mits")).toBeInTheDocument();
   });
 
-  it("derives the Aboard record count/total mits from sci.experiments (D3, P4a)", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("derives the Aboard record count/total mits from science.experiments (D3, P4a)", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("sci.experiments", [
+      fixture.emit("science.experiments", [
         { title: "Crew Report", dataAmount: 5, subjectId: "a" },
         { title: "Temperature Scan", dataAmount: 8, subjectId: "b" },
       ]);
     });
-    expect(screen.getByText(/2 records/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/2 records/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText(/13\.0 mits/i)).toBeInTheDocument();
   });
 
-  it("renders the breakdown view when sci.experimentBreakdown is present", () => {
-    render(<ScienceBenchComponent config={{}} id="sci" />);
+  it("renders the breakdown view when science.experimentBreakdown is present", async () => {
+    const fixture = newFixture();
+    renderBench(fixture);
     act(() => {
-      source.emit("sci.experimentBreakdown", [
+      fixture.emit("science.experimentBreakdown", [
         {
           subjectId: "crewReport@KerbinSrfLandedKSC",
           biome: "KSC",
@@ -214,9 +284,13 @@ describe("ScienceBenchComponent", () => {
       ]);
     });
     // Sorted by remainingPotential desc — Mystery Goo (7.5) above Crew Report (1.5)
-    const subjects = screen.getAllByText(
-      /Mystery Goo over Grasslands|Crew Report from KSC/,
-    );
+    const subjects = await waitFor(() => {
+      const found = screen.getAllByText(
+        /Mystery Goo over Grasslands|Crew Report from KSC/,
+      );
+      expect(found).toHaveLength(2);
+      return found;
+    });
     expect(subjects[0].textContent).toMatch(/Mystery Goo/);
     expect(subjects[1].textContent).toMatch(/Crew Report/);
     expect(screen.getByText(/7\.5 left/i)).toBeInTheDocument();
