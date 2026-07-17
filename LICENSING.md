@@ -1,7 +1,7 @@
 # Licensing
 
-**gonogo is MIT. `GonogoKos` is GPL-3.0-only, because it links kOS and kOS is GPL-3.0. If you
-don't touch `GonogoKos`, MIT is all you need to know.**
+**gonogo is MIT. `GonogoKosUplink` is GPL-3.0-only, because it links kOS and kOS is GPL-3.0. If you
+don't touch `GonogoKosUplink`, MIT is all you need to know.**
 
 That's the whole rule. The rest of this file is the detail behind it.
 
@@ -20,7 +20,7 @@ able to write an Uplink too.
 
 | Component | Licence | Why |
 |---|---|---|
-| `mod/Gonogo.Kos` (+ `.Tests`, + `@ksp-gonogo/kos`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
+| `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/kos`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
 | `mod/GonogoScansatUplink` (+ `@ksp-gonogo/scansat`) | GPL-3.0-only | **Provisional — on hold.** See below. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
@@ -30,11 +30,11 @@ those MIT works. Each ships as its own CKAN package in its own GameData folder.
 
 The full GPLv3 text is at `LICENSE-GPL-3.0.txt`, and beside each GPL component as its own `LICENSE`.
 
-### GonogoKos (permanent)
+### GonogoKosUplink (permanent)
 
 kOS is GPL-3.0 and we link it directly, in-process, against its public API. There is no version of
-this that isn't copyleft short of dropping the integration. Users of `GonogoKos` have already
-installed kOS, so they have already opted into a GPL mod. See `mod/Gonogo.Kos/NOTICE-KOS.txt`.
+this that isn't copyleft short of dropping the integration. Users of `GonogoKosUplink` have already
+installed kOS, so they have already opted into a GPL mod. See `mod/GonogoKosUplink/NOTICE-KOS.txt`.
 
 ### GonogoScansatUplink (provisional — do not "finish the job")
 
@@ -45,7 +45,7 @@ load-bearing rather than academic.
 
 **The question is out with the SCANsat stewards (https://github.com/KSPModStewards/SCANsat).**
 Until they answer, this uplink and its co-located TypeScript client stay GPL-3.0-only. That is the
-conservative option and it costs nothing — like `GonogoKos` it is a leaf.
+conservative option and it costs nothing — like `GonogoKosUplink` it is a leaf.
 
 Do not relicense it to MIT on the strength of the BSD text alone. If the `restricted` tag turns out
 to govern, the problem is bigger than a licence field, because we link the DLL. Full rationale in
@@ -91,10 +91,10 @@ user's own install.
 
 ## An invariant worth knowing
 
-**MIT → GPL is one-way.** `GonogoKos` may link the MIT `Sitrep.*` assemblies. The reverse — an
-MIT assembly referencing `GonogoKos` — would be a violation. Nothing does this today, because
-`GonogoKos` is a leaf. It is a mistake a future change could make silently, so if you find yourself
-adding a reference *to* `Gonogo.Kos` from anywhere, stop.
+**MIT → GPL is one-way.** `GonogoKosUplink` may link the MIT `Sitrep.*` assemblies. The reverse — an
+MIT assembly referencing `GonogoKosUplink` — would be a violation. Nothing does this today, because
+`GonogoKosUplink` is a leaf. It is a mistake a future change could make silently, so if you find yourself
+adding a reference *to* `GonogoKosUplink` from anywhere, stop.
 
 ## CKAN vs SPDX — a mechanical trap
 

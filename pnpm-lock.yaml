@@ -77,7 +77,74 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
 
-  mod/Gonogo.Kos/client:
+  mod/GonogoKerbcastUplink/client:
+    dependencies:
+      '@ksp-gonogo/components':
+        specifier: workspace:*
+        version: link:../../../packages/components
+      '@ksp-gonogo/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@ksp-gonogo/kerbcast':
+        specifier: ^1.4.0
+        version: 1.4.0
+      '@ksp-gonogo/kerbcast-react':
+        specifier: ^1.4.0
+        version: 1.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@ksp-gonogo/logger':
+        specifier: workspace:*
+        version: link:../../../packages/logger
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../../../packages/sitrep-client
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../sitrep-sdk
+      '@ksp-gonogo/ui':
+        specifier: workspace:*
+        version: link:../../../packages/ui
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../../../packages/ui-kit
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../../../packages/test-utils
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@vitest/coverage-v8':
+        specifier: ^4.1.4
+        version: 4.1.4(vitest@4.1.4)
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
+      tsx:
+        specifier: ^4.0.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
+  mod/GonogoKosUplink/client:
     dependencies:
       '@ksp-gonogo/core':
         specifier: workspace:*
@@ -149,73 +216,6 @@ importers:
       msw:
         specifier: ^2.13.2
         version: 2.13.2(@types/node@22.19.17)(typescript@5.9.3)
-      playwright:
-        specifier: ^1.60.0
-        version: 1.60.0
-      tsx:
-        specifier: ^4.0.0
-        version: 4.21.0
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.4
-        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
-
-  mod/GonogoKerbcastUplink/client:
-    dependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../../../packages/components
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/kerbcast':
-        specifier: ^1.4.0
-        version: 1.4.0
-      '@ksp-gonogo/kerbcast-react':
-        specifier: ^1.4.0
-        version: 1.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      '@ksp-gonogo/logger':
-        specifier: workspace:*
-        version: link:../../../packages/logger
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/sitrep-sdk':
-        specifier: workspace:*
-        version: link:../../sitrep-sdk
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
-      '@ksp-gonogo/ui-kit':
-        specifier: workspace:*
-        version: link:../../../packages/ui-kit
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      styled-components:
-        specifier: ^6.0.0
-        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-    devDependencies:
-      '@ksp-gonogo/test-utils':
-        specifier: workspace:*
-        version: link:../../../packages/test-utils
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/react':
-        specifier: ^18.3.28
-        version: 18.3.28
-      '@vitest/coverage-v8':
-        specifier: ^4.1.4
-        version: 4.1.4(vitest@4.1.4)
-      esbuild:
-        specifier: ^0.28.0
-        version: 0.28.0
-      jsdom:
-        specifier: ^29.0.2
-        version: 29.0.2
       playwright:
         specifier: ^1.60.0
         version: 1.60.0
@@ -340,7 +340,7 @@ importers:
         version: link:../../mod/GonogoKerbcastUplink/client
       '@ksp-gonogo/kos':
         specifier: workspace:*
-        version: link:../../mod/Gonogo.Kos/client
+        version: link:../../mod/GonogoKosUplink/client
       '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -474,7 +474,7 @@ importers:
         version: 5.2.8
       '@ksp-gonogo/kos':
         specifier: workspace:*
-        version: link:../../mod/Gonogo.Kos/client
+        version: link:../../mod/GonogoKosUplink/client
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
