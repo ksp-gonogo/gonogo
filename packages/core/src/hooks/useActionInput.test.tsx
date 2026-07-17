@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { type ReactNode, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearActionHandlers, dispatchAction } from "../actions/dispatcher";

@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";

@@ -6,7 +6,7 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { cleanup } from "@testing-library/react";
+import { cleanup } from "@ksp-gonogo/test-utils";
 
 export interface SetupMockOptions {
   /** Schema keys exposed by the mock source. */

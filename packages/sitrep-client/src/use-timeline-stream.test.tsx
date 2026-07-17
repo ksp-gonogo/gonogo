@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";

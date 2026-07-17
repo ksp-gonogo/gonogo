@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { CountdownAnnouncer } from "./GoNoGoComponent";
 

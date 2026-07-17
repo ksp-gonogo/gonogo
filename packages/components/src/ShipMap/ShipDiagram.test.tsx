@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";

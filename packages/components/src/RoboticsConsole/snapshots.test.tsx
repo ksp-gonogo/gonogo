@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
-import { act, render, waitFor } from "@testing-library/react";
+
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -51,18 +51,16 @@ async function snapshotStream(
   });
 
   const { container } = render(
-    <DefaultThemeProvider>
-      <streamFixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-          <RoboticsConsoleComponent
-            config={mode.config ?? {}}
-            id="snap"
-            w={mode.w}
-            h={mode.h}
-          />
-        </DashboardItemContext.Provider>
-      </streamFixture.Provider>
-    </DefaultThemeProvider>,
+    <streamFixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
+        <RoboticsConsoleComponent
+          config={mode.config ?? {}}
+          id="snap"
+          w={mode.w}
+          h={mode.h}
+        />
+      </DashboardItemContext.Provider>
+    </streamFixture.Provider>,
   );
 
   act(() => {

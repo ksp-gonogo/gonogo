@@ -1,5 +1,5 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";

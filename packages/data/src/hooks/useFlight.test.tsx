@@ -4,7 +4,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { FlightRecord } from "../types";
 import { useFlight } from "./useFlight";

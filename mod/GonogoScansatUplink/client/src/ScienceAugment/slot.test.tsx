@@ -5,14 +5,14 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
+
 import {
   act,
   fireEvent,
   render,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -37,11 +37,10 @@ const SCAN_ENTRY = {
   inoperable: false,
 };
 
-// The row composes ui-kit's `Inline`/`Row`, which read `theme.space` —
-// crashes without a theme in scope, same as ScienceOfficer's own
-// `renderWithTheme` (`ScienceOfficer/testTheme.tsx`).
+// The row composes ui-kit's `Inline`/`Row`, which read `theme.space`. The
+// project render supplies the theme, so no local wrapper is needed.
 function renderSlot(ui: ReactElement) {
-  return render(<DefaultThemeProvider>{ui}</DefaultThemeProvider>);
+  return render(ui);
 }
 
 describe("SCANsat science augment — science-officer.badges slot", () => {

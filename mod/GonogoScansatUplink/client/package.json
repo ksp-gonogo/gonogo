@@ -30,6 +30,7 @@
   "devDependencies": {
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/test-utils": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest-axe": "^3.5.9",

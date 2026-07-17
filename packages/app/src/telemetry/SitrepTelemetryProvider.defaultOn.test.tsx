@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {

@@ -4,7 +4,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { render } from "@testing-library/react";
+import { render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataKeyMeta } from "../types";
 import { useDataSchema } from "./useDataSchema";

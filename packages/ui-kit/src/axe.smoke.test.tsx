@@ -1,4 +1,3 @@
-import { render } from "@testing-library/react";
 import { ThemeProvider } from "styled-components";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
@@ -14,6 +13,7 @@ import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { axe } from "./test/axe";
+import { render } from "./test/render";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {

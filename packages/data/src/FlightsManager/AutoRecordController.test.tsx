@@ -6,7 +6,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionStore } from "../storage/MissionStore";
 import { AutoRecordController } from "./AutoRecordController";

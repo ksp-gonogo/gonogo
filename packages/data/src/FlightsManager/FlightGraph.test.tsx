@@ -2,7 +2,7 @@ import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionStore } from "../storage/MissionStore";
 import { FlightGraph } from "./FlightGraph";

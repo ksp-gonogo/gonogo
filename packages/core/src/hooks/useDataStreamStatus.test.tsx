@@ -9,7 +9,7 @@ import {
   renderHook,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";

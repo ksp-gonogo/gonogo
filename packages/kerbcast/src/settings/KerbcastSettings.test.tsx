@@ -1,6 +1,6 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { kerbcastFetchImpl } from "../test/MockKerbcastSession";

@@ -2,7 +2,7 @@ import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_KEEP_COUNT } from "../flightAutoDelete";

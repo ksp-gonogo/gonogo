@@ -23,8 +23,8 @@ import {
   SerialDeviceProvider,
   SerialDeviceService,
 } from "@ksp-gonogo/serial";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type FakeTelemachusHandle,

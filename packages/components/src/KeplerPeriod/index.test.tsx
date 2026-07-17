@@ -4,7 +4,7 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,

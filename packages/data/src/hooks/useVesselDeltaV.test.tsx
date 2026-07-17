@@ -4,7 +4,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { useVesselDeltaV } from "./useVesselDeltaV";
 

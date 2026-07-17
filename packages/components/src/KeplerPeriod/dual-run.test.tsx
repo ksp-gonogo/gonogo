@@ -3,7 +3,7 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { act, render as rtlRender, waitFor } from "@testing-library/react";
+import { act, render as rtlRender, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";

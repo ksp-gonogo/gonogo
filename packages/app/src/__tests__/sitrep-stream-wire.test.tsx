@@ -1,5 +1,5 @@
 import { clearRegistry, useDataValue } from "@ksp-gonogo/core";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

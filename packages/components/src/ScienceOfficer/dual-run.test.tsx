@@ -1,10 +1,9 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, waitFor, within } from "@testing-library/react";
+import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import mobileLabIdle from "./__fixtures__/mobile-lab-idle-one-instrument.json";
 import { ScienceOfficerComponent } from "./index";
-import { renderWithTheme } from "./testTheme";
 
 /**
  * ScienceOfficer's stream render golden. This began life as a
@@ -36,7 +35,7 @@ describe("ScienceOfficer — stream render golden (delay=0)", () => {
 
     const [legacyInstrument] = mobileLabIdle["sci.instruments"];
 
-    const { container } = renderWithTheme(
+    const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-dual" }}>
           <ScienceOfficerComponent id="so-dual" w={mode.w} h={mode.h} />

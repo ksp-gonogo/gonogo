@@ -9,8 +9,8 @@ import type { ActionDefinition } from "@ksp-gonogo/core";
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
 import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import {

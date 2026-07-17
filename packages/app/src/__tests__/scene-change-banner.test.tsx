@@ -6,7 +6,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";

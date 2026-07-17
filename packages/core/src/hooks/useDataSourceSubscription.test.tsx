@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook } from "@ksp-gonogo/test-utils";
 import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";

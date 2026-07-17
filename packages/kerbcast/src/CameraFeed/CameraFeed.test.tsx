@@ -42,7 +42,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

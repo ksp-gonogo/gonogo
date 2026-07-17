@@ -10,7 +10,7 @@
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { useKerbcastStream } from "./useKerbcastStream";

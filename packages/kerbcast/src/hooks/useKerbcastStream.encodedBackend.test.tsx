@@ -21,7 +21,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {

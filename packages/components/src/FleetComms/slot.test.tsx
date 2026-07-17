@@ -1,5 +1,5 @@
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SystemViewComponent } from "../SystemView";
@@ -8,7 +8,6 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { renderWithTheme } from "./testTheme";
 // Importing the augment module registers it ONCE, at this file's first
 // import (module-load self-registration, same lifecycle as
 // `registerComponent`) — deliberately NOT cleared with `clearAugments()`
@@ -53,7 +52,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
   });
 
   async function renderDiagram() {
-    renderWithTheme(
+    render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
       </fixture.Provider>,
@@ -158,7 +157,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
   });
 
   it("does not draw a commlink line when the vessel orbits a different body than the frame", async () => {
-    renderWithTheme(
+    render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
       </fixture.Provider>,
@@ -298,7 +297,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
 
   it("has no axe violations with both slots filled", async () => {
     await renderDiagram();
-    const { container } = renderWithTheme(
+    const { container } = render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv-axe" />
       </fixture.Provider>,

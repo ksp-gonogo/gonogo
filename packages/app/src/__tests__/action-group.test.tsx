@@ -3,7 +3,7 @@ import {
   AlarmsLauncherProvider,
 } from "@ksp-gonogo/components";
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

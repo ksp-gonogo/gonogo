@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
-import { act, render, waitFor } from "@testing-library/react";
+
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -171,13 +171,11 @@ async function snapshotLaunchDirectorFixture(
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
 
   const { container } = render(
-    <DefaultThemeProvider>
-      <stream.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-          <LaunchDirectorComponent id="snap" w={mode.w} h={mode.h} />
-        </DashboardItemContext.Provider>
-      </stream.Provider>
-    </DefaultThemeProvider>,
+    <stream.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
+        <LaunchDirectorComponent id="snap" w={mode.w} h={mode.h} />
+      </DashboardItemContext.Provider>
+    </stream.Provider>,
   );
 
   act(() => {

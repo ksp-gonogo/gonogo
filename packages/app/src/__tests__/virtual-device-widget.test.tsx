@@ -16,7 +16,7 @@ import {
   SerialDeviceService,
   VirtualDeviceComponent,
 } from "@ksp-gonogo/serial";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 function memoryStorage(): Storage {

@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -13,7 +13,6 @@ import {
   ScienceOfficerComponent,
   sumExperimentDataAmount,
 } from "./index";
-import { renderWithTheme } from "./testTheme";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // action-handler registry — clearActionHandlers() firing on a still-mounted
@@ -43,7 +42,7 @@ async function captureCommands(onExecute: (action: string) => void) {
 }
 
 function renderOfficer(fixture: ReturnType<typeof newFixture>) {
-  const { unmount } = renderWithTheme(
+  const { unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "sci-off" }}>
         <ScienceOfficerComponent config={{}} id="sci-off" />

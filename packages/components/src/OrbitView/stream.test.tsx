@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 

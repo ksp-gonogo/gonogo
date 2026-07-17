@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { OrbitDiagram } from "./OrbitDiagram";

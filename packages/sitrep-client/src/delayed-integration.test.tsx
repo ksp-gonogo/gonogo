@@ -10,7 +10,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 // This is the end-to-end proof: the SAME hooks/client/provider
 // from `integration.test.tsx`, now wired to the REAL delay-modelling

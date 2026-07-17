@@ -3,7 +3,6 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-  injectWorkspacePackages: true
 
 overrides:
   '@types/react': ^18.3.28
@@ -113,6 +112,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../../../packages/test-utils
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -189,6 +191,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../../../packages/test-utils
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -311,6 +316,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -405,6 +413,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -469,6 +480,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
@@ -518,6 +532,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -579,6 +596,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -663,6 +683,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -700,6 +723,9 @@ importers:
       '@ksp-gonogo/sitrep-server':
         specifier: workspace:*
         version: link:../../mod/sitrep-server
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.1
@@ -718,6 +744,28 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+
+  packages/test-utils:
+    dependencies:
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/ui:
     dependencies:
@@ -740,6 +788,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

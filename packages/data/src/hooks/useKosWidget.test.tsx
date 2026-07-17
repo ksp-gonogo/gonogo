@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { act, render } from "@testing-library/react";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KosScriptError } from "../kos/KosScriptError";
 import { type UseKosWidgetResult, useKosWidget } from "./useKosWidget";

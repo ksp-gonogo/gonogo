@@ -1,6 +1,6 @@
 import { MockDataSource, registerDataSource } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act } from "@testing-library/react";
+import { act } from "@ksp-gonogo/test-utils";
 
 /**
  * Stands in for a real `TelemachusDataSource` wrapped in a real

@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook } from "@ksp-gonogo/test-utils";
 import type { RefObject } from "react";
 import { describe, expect, it } from "vitest";
 import { useCamera } from "./useCamera";

@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

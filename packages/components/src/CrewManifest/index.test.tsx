@@ -1,5 +1,5 @@
 import { registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { type CrewBadgeContext, CrewManifestComponent } from "./index";
