@@ -1,6 +1,6 @@
-import { cleanup, render } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrbitDiagram } from "./OrbitDiagram";
 
 const BASE = {
@@ -13,10 +13,6 @@ const BASE = {
 };
 
 describe("OrbitDiagram projected overlay", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders only the current orbit when no projected prop is supplied", () => {
     const { container } = render(<OrbitDiagram {...BASE} />);
     expect(container.querySelectorAll("ellipse")).toHaveLength(1);

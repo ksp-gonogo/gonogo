@@ -1,50 +1,59 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
 import { registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import {
   parseStaff,
   type StaffBadgeContext,
   StaffRosterComponent,
 } from "./index";
 
-const KEYS: DataKey[] = [{ key: "kc.crewRoster" }];
-
+// StaffRoster reads `kc.crewRoster` -> `spaceCenter.crewRoster` (map-topic.ts),
+// a whole-topic bare-array read, so these run off the real stream pipeline.
 describe("StaffRosterComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+  let fixture: StreamFixture;
 
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: KEYS });
-    source = fixture.source;
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(fixture);
+  beforeEach(() => {
+    fixture = setupStreamFixture({
+      carriedChannels: ["spaceCenter.crewRoster"],
+      pinnedUt: 10,
+    });
   });
 
   it("shows the awaiting placeholder before any telemetry", () => {
-    render(<StaffRosterComponent config={{}} id="sr" />);
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     expect(screen.getByText(/Awaiting roster telemetry/i)).toBeInTheDocument();
   });
 
-  it("shows empty-state copy when roster is empty", () => {
-    render(<StaffRosterComponent config={{}} id="sr" />);
+  it("shows empty-state copy when roster is empty", async () => {
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("kc.crewRoster", []);
+      fixture.emit("spaceCenter.crewRoster", []);
     });
-    expect(screen.getByText(/Roster empty/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Roster empty/i)).toBeInTheDocument(),
+    );
   });
 
-  it("sorts available kerbals first then by trait + experience", () => {
-    render(<StaffRosterComponent config={{}} id="sr" />);
+  it("sorts available kerbals first then by trait + experience", async () => {
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("kc.crewRoster", [
+      fixture.emit("spaceCenter.crewRoster", [
         // Unavailable Pilot — should sort below all available kerbals.
         {
           name: "Bill Kerman",
@@ -71,17 +80,23 @@ describe("StaffRosterComponent", () => {
     });
 
     // Subtitle: 2/3 available
-    expect(screen.getByText(/2\/3 available/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/2\/3 available/i)).toBeInTheDocument(),
+    );
 
     // Render order: Jeb (Pilot, available) → Bob (Scientist, available) → Bill (Engineer, unavail)
     const names = screen.getAllByText(/Kerman/i).map((n) => n.textContent);
     expect(names).toEqual(["Jeb Kerman", "Bob Kerman", "Bill Kerman"]);
   });
 
-  it("shows the unavailable reason on greyed rows", () => {
-    render(<StaffRosterComponent config={{}} id="sr" />);
+  it("shows the unavailable reason on greyed rows", async () => {
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("kc.crewRoster", [
+      fixture.emit("spaceCenter.crewRoster", [
         {
           name: "Val Kerman",
           trait: "Pilot",
@@ -91,15 +106,21 @@ describe("StaffRosterComponent", () => {
         },
       ]);
     });
-    expect(screen.getByText(/Assigned/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Assigned/)).toBeInTheDocument(),
+    );
   });
 
-  it("renders the per-kerbal badges slot with no bound augment (empty is fine)", () => {
+  it("renders the per-kerbal badges slot with no bound augment (empty is fine)", async () => {
     // No augment registered → the slot composes nothing and the roster renders
     // exactly as before, one row per kerbal.
-    render(<StaffRosterComponent config={{}} id="sr" />);
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("kc.crewRoster", [
+      fixture.emit("spaceCenter.crewRoster", [
         {
           name: "Jeb Kerman",
           trait: "Pilot",
@@ -116,12 +137,14 @@ describe("StaffRosterComponent", () => {
         },
       ]);
     });
-    expect(screen.getByText("Jeb Kerman")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Jeb Kerman")).toBeInTheDocument(),
+    );
     expect(screen.getByText("Bob Kerman")).toBeInTheDocument();
     expect(screen.queryByTestId("staff-badge")).not.toBeInTheDocument();
   });
 
-  it("renders a bound augment once per roster row, carrying each kerbal's identity", () => {
+  it("renders a bound augment once per roster row, carrying each kerbal's identity", async () => {
     // A test Uplink binds `staff-roster.badges` and echoes the slot props back.
     // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
     // the per-row props carry the right kerbal so the badge lands on the right
@@ -136,9 +159,13 @@ describe("StaffRosterComponent", () => {
       ),
     });
 
-    render(<StaffRosterComponent config={{}} id="sr" />);
+    render(
+      <fixture.Provider>
+        <StaffRosterComponent config={{}} id="sr" />
+      </fixture.Provider>,
+    );
     act(() => {
-      source.emit("kc.crewRoster", [
+      fixture.emit("spaceCenter.crewRoster", [
         {
           name: "Jeb Kerman",
           trait: "Pilot",
@@ -157,7 +184,7 @@ describe("StaffRosterComponent", () => {
     });
 
     // Sorted order: Jeb (Pilot) then Bob (Scientist) — one badge per row.
-    const badges = screen.getAllByTestId("staff-badge");
+    const badges = await screen.findAllByTestId("staff-badge");
     expect(badges).toHaveLength(2);
     expect(badges.map((b) => b.textContent)).toEqual([
       "Jeb Kerman ✓",

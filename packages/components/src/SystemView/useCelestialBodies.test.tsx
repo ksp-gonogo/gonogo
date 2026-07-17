@@ -1,5 +1,5 @@
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GRAVITATIONAL_CONSTANT, STANDARD_GRAVITY } from "./bodyDerivations";
 import { useCelestialBodies } from "./useCelestialBodies";
@@ -9,8 +9,6 @@ import { useCelestialBodies } from "./useCelestialBodies";
  * `TelemetryProvider` (no legacy `MockDataSource`, no `getDataSource` shim
  * bypass) and enriches each body with the derived almanac values.
  */
-
-afterEach(cleanup);
 
 const KERBIN_MU = 3.5316e12;
 

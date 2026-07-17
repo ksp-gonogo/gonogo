@@ -4,7 +4,7 @@ import {
   getSizeBucket,
   getWidgetShape,
   registerComponent,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   Badge,
@@ -146,7 +146,7 @@ function StaffRosterComponent({
   w,
   h,
 }: Readonly<ComponentProps<StaffRosterConfig>>) {
-  const rosterRaw = useDataValue("data", "kc.crewRoster");
+  const rosterRaw = useTelemetry("spaceCenter.crewRoster");
   const staff = parseStaff(rosterRaw);
 
   const rows = h ?? 8;

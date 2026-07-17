@@ -1,8 +1,14 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StaffRosterComponent } from "./index";
+
+// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// clearActionHandlers() firing on a still-mounted widget is a state update
+// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
+// to unmount first.
+const renderedTrees: Array<() => void> = [];
 
 /**
  * StaffRoster stream test-adapter proof: genuinely running off the real
@@ -16,7 +22,8 @@ import { StaffRosterComponent } from "./index";
  * them.
  */
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearActionHandlers();
 });
 
@@ -27,13 +34,14 @@ describe("StaffRoster — genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "sr-stream" }}>
           <StaffRosterComponent id="sr-stream" w={5} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     expect(fixture.transport.isSubscribed("spaceCenter.crewRoster")).toBe(true);
 

@@ -1,8 +1,14 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
+
+// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// clearActionHandlers() firing on a still-mounted widget is a state update
+// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
+// to unmount first.
+const renderedTrees: Array<() => void> = [];
 
 /**
  * The stream test-adapter proof for Strategies:
@@ -13,7 +19,8 @@ import { StrategiesComponent } from "./index";
  * all stream now — no legacy AUX needed for this widget any more.
  */
 afterEach(() => {
-  cleanup();
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearActionHandlers();
 });
 
@@ -24,13 +31,14 @@ describe("Strategies — genuinely runs off the stream (M3/M3b career batch)", (
       pinnedUt: 10,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "strats-stream" }}>
           <StrategiesComponent id="strats-stream" w={9} h={12} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
@@ -55,7 +63,7 @@ describe("Strategies — genuinely runs off the stream (M3/M3b career batch)", (
       pinnedUt: 10,
     });
 
-    render(
+    const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider
           value={{ instanceId: "strats-stream-2" }}
@@ -64,6 +72,7 @@ describe("Strategies — genuinely runs off the stream (M3/M3b career batch)", (
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       const aggressiveNegotiations = {

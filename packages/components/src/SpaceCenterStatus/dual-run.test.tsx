@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -34,10 +34,6 @@ import { SpaceCenterStatusComponent } from "./index";
  * instead of the legacy AUX. `launchSite`/`padOccupied`/`padVesselTitle`
  * stay legacy on both legs.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same career state", async () => {
     const mode = { name: "default-6x7", w: 6, h: 7 };

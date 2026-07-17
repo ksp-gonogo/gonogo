@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -102,10 +102,6 @@ async function streamSnapshot(
 
   return stripVolatile(container.innerHTML);
 }
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("Strategies DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
