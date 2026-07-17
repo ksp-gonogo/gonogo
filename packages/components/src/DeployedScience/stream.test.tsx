@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
@@ -17,7 +17,6 @@ import { DeployedScienceComponent } from "./index";
  * `game.dlc` topic.
  */
 afterEach(() => {
-  cleanup();
   clearActionHandlers();
 });
 

@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import munCluster from "./__fixtures__/mun-cluster-two-experiments.json";
@@ -31,10 +31,6 @@ import { DeployedScienceComponent } from "./index";
  * stream leg now feeds it through the fixture's `game.dlc` topic instead of
  * a legacy AUX `DataSource`.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("DeployedScience — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same deployed-cluster state", async () => {
     const mode = { name: "default-5x9", w: 5, h: 9 };

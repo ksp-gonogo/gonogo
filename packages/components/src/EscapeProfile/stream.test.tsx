@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
@@ -23,10 +23,6 @@ import { EscapeProfileComponent } from "./index";
  * SVG renders nothing under jsdom regardless, so this asserts on the title +
  * body-driven Notice only.
  */
-afterEach(() => {
-  cleanup();
-});
-
 // vessel.state's carried-channels gate is parent-channel-scoped: every
 // vessel.state.* field needs ALL of vesselStateChannel.inputs carried, not just
 // the two parentBodyName consults.

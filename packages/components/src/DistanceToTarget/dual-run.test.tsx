@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import farApproach from "./__fixtures__/far-approach-vessel.json";
@@ -29,10 +29,6 @@ import { DistanceToTargetComponent } from "./index";
  * distance/closing-rate land on EXACTLY the fixture's own Vec3 values (48 Mm /
  * +312.5 m/s opening) — the legacy leg reads those same Vec3s off the fixture.
  */
-afterEach(() => {
-  cleanup();
-});
-
 const TAR_POS = { x: 0, y: 0, z: 48_000_000 };
 const TAR_VEL = { x: 0, y: 0, z: 312.5 };
 

@@ -7,9 +7,28 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, render as rtlRender } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FuelStatusComponent } from "./index";
+
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// augment registry / disconnecting the legacy source. RTL auto-cleanup runs
+// after this file's afterEach, so it can't be relied on to unmount first —
+// clearAugments()/buffered.disconnect() firing on a still-mounted widget is a
+// state update outside act(), the documented anti-pattern in CLAUDE.md.
+const renderedTrees: Array<() => void> = [];
+
+function render(ui: ReactElement) {
+  const result = rtlRender(ui);
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function unmountAll() {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+}
 
 const FUEL_KEYS: DataKey[] = [
   { key: "v.name" },
@@ -82,10 +101,10 @@ describe("FuelStatusComponent", () => {
   });
 
   afterEach(() => {
-    // cleanup() must unmount before clearAugments() notifies the augment
+    // unmountAll() must run before clearAugments() notifies the augment
     // registry's subscribers, else a still-mounted AugmentSlot re-renders
     // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
-    cleanup();
+    unmountAll();
     clearAugments();
     buffered.disconnect();
   });

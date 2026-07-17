@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import circularLko from "./__fixtures__/circular-lko.json";
@@ -35,10 +35,6 @@ import { CurrentOrbitComponent } from "./index";
  * derive, keeping the dual-run byte-identical without relying on
  * coincidental rounding.
  */
-afterEach(() => {
-  cleanup();
-});
-
 // The one orbit state driving BOTH legs. meanAnomalyAtEpoch: 0, epoch:
 // PINNED_UT means meanAnomaly is exactly 0 (periapsis) at the pinned view
 // time, so trueAnomaly is a clean 0° and timeToPe a clean 0s — no

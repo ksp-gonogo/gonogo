@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
@@ -35,10 +35,6 @@ import { FuelStatusComponent } from "./index";
  * fixture reproduces that real shape rather than the flatter one a naive
  * reading of the old (buggy) mapping would suggest.
  */
-afterEach(() => {
-  cleanup();
-});
-
 describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* migration)", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

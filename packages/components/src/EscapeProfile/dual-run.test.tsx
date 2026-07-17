@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import kerbinEscape from "./__fixtures__/kerbin-escape-trajectory.json";
@@ -27,10 +27,6 @@ import { EscapeProfileComponent } from "./index";
  * Notice. Proving `v.body` streams (Kerbin resolves -> no Notice) byte-matches
  * the legacy render is the whole behavior this golden locks in.
  */
-afterEach(() => {
-  cleanup();
-});
-
 // vessel.state's carried-channels gate is parent-channel-scoped — every
 // vessel.state.* field needs ALL of vesselStateChannel.inputs carried, even the
 // ones (here, all but vessel.identity/system.bodies) parentBodyName never
