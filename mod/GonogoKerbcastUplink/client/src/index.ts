@@ -45,17 +45,12 @@ export {
 } from "./CameraFeed/useDelayedKerbcastStream";
 export type { LabelableCamera } from "./cameraLabels";
 export { buildCameraLabeler } from "./cameraLabels";
-export type { CaptureClockSample } from "./captureClock";
-export { interpolateCaptureUt } from "./captureClock";
-export type {
-  DelayClockLike,
-  DelayedPlayoutBufferOptions,
-  StampedFrame,
-} from "./DelayedPlayoutBuffer";
-export { DelayedPlayoutBuffer } from "./DelayedPlayoutBuffer";
+// The generic delayed-media infrastructure (DelayedPlayoutBuffer, the
+// per-frame pipeline, `isFrameDelaySupported`, the capture-clock helpers) moved
+// to `@ksp-gonogo/sitrep-client`'s media layer (2026-07-17) — import it from
+// there, not from this kerbcast client.
 export { DockingCameraAugment } from "./DockingCameraAugment";
 export { selectDockingCamera } from "./DockingCameraAugment/selectDockingCamera";
-export { isFrameDelaySupported } from "./frameDelay";
 export { useKerbcastCameras } from "./hooks/useKerbcastCameras";
 export type {
   DelayedPlayoutResult,

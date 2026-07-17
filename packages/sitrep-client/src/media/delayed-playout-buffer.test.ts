@@ -17,13 +17,13 @@
  * UT-estimator fit, just direct control over `confirmedEdgeUt()`.
  */
 
-import { ViewClock } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it, vi } from "vitest";
+import { ViewClock } from "../view-clock";
 import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
   type StampedFrame,
-} from "./DelayedPlayoutBuffer";
+} from "./delayed-playout-buffer";
 
 /** A clock double a test can set directly, standing in for confirmedEdgeUt.
  *  `setEdge` both advances the value and fires the buffer's per-frame
@@ -285,9 +285,8 @@ describe("DelayedPlayoutBuffer", () => {
 
   // -- onDrop: the resource-cleanup hook a caller wires when T holds an
   // external resource (e.g. a WebCodecs VideoFrame) that must be closed on
-  // every discard path, not just on release. Added for the kerbcast
-  // per-frame video delay pipeline (frameDelay.ts) — see its
-  // MEMORY-LEAK-TRAP doc comment.
+  // every discard path, not just on release. Added for the per-frame video
+  // delay pipeline (frame-delay.ts) — see its MEMORY-LEAK-TRAP doc comment.
   describe("onDrop", () => {
     it("fires for a frame evicted by the over-cap eviction, never for a released frame", () => {
       const clock = manualClock(Number.NEGATIVE_INFINITY);
@@ -451,7 +450,7 @@ describe("DelayedPlayoutBuffer", () => {
       });
 
       // Matches the decoded backend's real usage: every frame tagged
-      // `keyframe: false` (frameDelay.ts never marks decoded VideoFrames as
+      // `keyframe: false` (frame-delay.ts never marks decoded VideoFrames as
       // keyframes — see its module doc), so eviction is plain FIFO,
       // ONE frame per push, not a GOP-sized batch.
       buffer.push({ ut: 1, keyframe: false, data: "f1", bytes: 1 });

@@ -1,6 +1,6 @@
 /**
- * `frameDelay.ts` lifecycle + browser-support coverage. The genuine
- * per-frame delay-timing proof lives in `frameDelay.blockColour.test.ts`;
+ * `frame-delay.ts` lifecycle + browser-support coverage. The genuine
+ * per-frame delay-timing proof lives in `frame-delay.block-colour.test.ts`;
  * this file covers the memory-safety invariant (every frame closed exactly
  * once, on exactly one path) and the feature-detection / no-video-track
  * fallback `createFrameDelayStream` uses to avoid a black feed on an
@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "./DelayedPlayoutBuffer";
+import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
   createFrameDelayStream,
   type FrameLike,
@@ -16,7 +16,7 @@ import {
   type FrameSource,
   isFrameDelaySupported,
   runFrameDelayPipeline,
-} from "./frameDelay";
+} from "./frame-delay";
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   setEdge(v: number): void;
@@ -147,7 +147,7 @@ describe("createFrameDelayStream", () => {
     // cycle, or any dep change that isn't `raw`) — Chrome can throw
     // `InvalidStateError` from `new MediaStreamTrackProcessor(...)` because a
     // `MediaStreamTrack` may have only one processor at a time. Review
-    // finding #3 (`2026-07-15-kerbcast-per-frame-video-delay-review.md`).
+    // finding #3 (`2026-07-15-per-frame-video-delay-review.md`).
     class ThrowingProcessor {
       constructor() {
         throw new Error("InvalidStateError: track already has a processor");

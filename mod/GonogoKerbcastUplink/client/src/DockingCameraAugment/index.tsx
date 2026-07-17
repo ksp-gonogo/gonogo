@@ -16,15 +16,20 @@
 //
 // Presence-gated on `kerbcast.available`; camera CHOICE comes off the Uplink's
 // `kerbcast.cameras` control channel (`isDockingCamera`), while the MEDIA still
-// rides kerbcast's own WebRTC path (`useKerbcastStream`). That split is the
-// whole design: control plane on the Uplink, media off it.
+// rides kerbcast's own WebRTC path (`useDelayedKerbcastStream`, which delays it
+// on the shared ViewClock). That split is the whole design: control plane on
+// the Uplink, media off it.
 
 import type {} from "@ksp-gonogo/components"; // pulls DistanceToTarget's "distance-to-target.camera" SlotRegistry merge into this program (see that module's declare-module comment)
 import type { SlotProps } from "@ksp-gonogo/core";
 import { getDataSource, registerAugment, useTelemetry } from "@ksp-gonogo/core";
-import { useEffect, useRef } from "react";
+import {
+  KerbcastProvider,
+  type KerbcastSubscriptions,
+} from "@ksp-gonogo/kerbcast-react";
+import { useEffect, useMemo, useRef } from "react";
 import styled from "styled-components";
-import { useKerbcastStream } from "../hooks/useKerbcastStream";
+import { useDelayedKerbcastStream } from "../CameraFeed/useDelayedKerbcastStream";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 import { selectDockingCamera } from "./selectDockingCamera";
 
@@ -33,8 +38,8 @@ export function DockingCameraAugment({
 }: SlotProps<"distance-to-target.camera">) {
   const cameras = useTelemetry("kerbcast.cameras");
   const flightId = selectDockingCamera(cameras, cameraFlightId);
-  const stream = useKerbcastStream(flightId);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+  const client = ds?.getClient();
 
   // Kick the MEDIA connection once the CONTROL plane names a camera to show.
   // Necessary because the two planes are separate: the built-in HudCamera this
@@ -48,9 +53,47 @@ export function DockingCameraAugment({
   // No-op once connected (e.g. the main screen, or a CameraFeed already up).
   useEffect(() => {
     if (flightId === null) return;
-    const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
     ds?.ensureConnected();
-  }, [flightId]);
+  }, [flightId, ds]);
+
+  // The DELAYED backdrop needs the mission-time capture clock (`useKerbcastClock`,
+  // read by `useDelayedKerbcastStream`), which lives on a `KerbcastProvider` —
+  // exactly the provider `CameraFeed` mounts for its own feed. Mounting our own,
+  // fed the SAME `ds.getClient()` client, is what lets this backdrop and a
+  // `CameraFeed` on the same camera share ONE delayed pipeline: the shared cache
+  // in `useDelayedPlayout` keys on the raw `MediaStream`, and both providers
+  // resolve the identical stream object off the one data source. Kept in the
+  // inner `DockingCameraVideo` so the OUTER component (which subscribes to the
+  // control channel above) never depends on the provider — a no-kerbcast HUD
+  // still composes.
+  const subscriptions: KerbcastSubscriptions | undefined = useMemo(
+    () =>
+      ds
+        ? {
+            acquire: ds.subscribeCamera.bind(ds),
+            release: ds.unsubscribeCamera.bind(ds),
+          }
+        : undefined,
+    [ds],
+  );
+
+  if (flightId === null || !client || !subscriptions) return null;
+  return (
+    <KerbcastProvider client={client} subscriptions={subscriptions}>
+      <DockingCameraVideo flightId={flightId} />
+    </KerbcastProvider>
+  );
+}
+
+function DockingCameraVideo({ flightId }: { flightId: number }) {
+  // The DELAYED stream, not the raw live one. The HUD's reticle is UT-gated by
+  // the ViewClock; the backdrop must be gated on the SAME clock or it marks
+  // where the target WAS over an image of where it IS — worst precisely when
+  // closing on a docking port (decision 5: never the live stream). `null` (no
+  // delayed output available) draws no backdrop rather than falling back to
+  // live.
+  const stream = useDelayedKerbcastStream(flightId);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const v = videoRef.current;

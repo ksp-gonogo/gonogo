@@ -1,8 +1,9 @@
+/// <reference path="./webcodecs-track-io.d.ts" />
 /**
  * The per-frame video delay pipeline (Wednesday Work,
- * `2026-07-15-kerbcast-per-frame-video-delay.md`).
+ * `2026-07-15-per-frame-video-delay.md`).
  *
- * `useDelayedPlayout` (`hooks/useKerbcastStream.ts`) used to push ONE
+ * `useDelayedPlayout` (the camera Uplink's stream hook) used to push ONE
  * keyframe per raw `MediaStream` *reference* — i.e. only on a camera switch
  * / reconnect — so only *when a feed became visible* was delayed; ongoing
  * motion inside that stream played live. This module reads the real video
@@ -17,7 +18,7 @@
  * `ReadableStreamDefaultReader`/`WritableStreamDefaultWriter` shapes, which
  * a real processor/generator satisfy directly with no adapter) so it can be
  * driven with synthetic frames + a manual clock in
- * `frameDelay.blockColour.test.ts` — the real per-frame proof that would
+ * `frame-delay.block-colour.test.ts` — the real per-frame proof that would
  * have caught the original gap. `createFrameDelayStream` is the thin
  * browser-facing wrapper that supplies the real objects.
  *
@@ -40,8 +41,8 @@
 import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
-} from "./DelayedPlayoutBuffer";
-import { PresentationPacer } from "./worker/presentationPacer";
+} from "./delayed-playout-buffer";
+import { PresentationPacer } from "./worker/presentation-pacer";
 
 /** Minimal contract a queued frame payload must satisfy. A WebCodecs
  *  `VideoFrame` (the decoded backend) holds GPU/decoder resources — MUST be
@@ -104,13 +105,13 @@ export interface FrameDelayPipelineOptions<T extends FrameLike> {
    *  decoded video. */
   gopSafeEviction?: boolean;
   /**
-   * Opt into the presentation pacer (cross-browser kerbcast video-delay
+   * Opt into the presentation pacer (cross-browser video-delay
    * design, 2026-07-16, finding F3 + "Paced release" — see
-   * `worker/presentationPacer.ts`'s module doc for the full rationale).
+   * `worker/presentation-pacer.ts`'s module doc for the full rationale).
    * Omit (the default) for the original behaviour: each released frame is
    * written to `sink` immediately, synchronously, on release — exactly
    * what every pre-existing test in this file and
-   * `frameDelay.blockColour.test.ts` exercises.
+   * `frame-delay.block-colour.test.ts` exercises.
    *
    * When supplied, released frames are queued into a `PresentationPacer`
    * instead, spaced by their own UT deltas rather than dumped in a burst.
@@ -295,7 +296,7 @@ export interface CreateFrameDelayStreamOptions {
   /** Override the presentation pacer's backlog threshold — see
    *  `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. Pacing itself can't be disabled
    *  here: this backend always paces (that's the actual jank fix — see
-   *  `worker/presentationPacer.ts`'s module doc), only the threshold is
+   *  `worker/presentation-pacer.ts`'s module doc), only the threshold is
    *  tunable. */
   maxPacingBacklogSeconds?: number;
 }

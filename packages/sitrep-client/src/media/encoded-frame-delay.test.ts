@@ -10,13 +10,13 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "./DelayedPlayoutBuffer";
+import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
   attachEncodedFrameDelayTransform,
   DEFAULT_MAX_BUFFERED_BYTES,
   type EncodedTransformerLike,
   type EncodedVideoFrameLike,
-} from "./encodedFrameDelay";
+} from "./encoded-frame-delay";
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   setEdge(v: number): void;

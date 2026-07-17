@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createWorkerDelayClock } from "./workerDelayClock";
+import { createWorkerDelayClock } from "./worker-delay-clock";
 
 describe("createWorkerDelayClock", () => {
   it("confirmedEdgeUt() reads -Infinity before any snapshot is ever applied (cold start)", () => {
