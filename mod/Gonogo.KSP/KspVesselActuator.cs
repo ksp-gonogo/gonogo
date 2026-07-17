@@ -2,6 +2,7 @@ using System;
 using KSP.UI.Screens;
 using Sitrep.Contract;
 using Sitrep.Host;
+using Sitrep.Host.ActionGroups;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -52,6 +53,25 @@ namespace Gonogo.KSP
         // regardless of which side (read sampling or this AddManeuverNode
         // call) sees a given node object first.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        /// <summary>
+        /// Resolves the elected <see cref="IActionGroupsBackend"/> for
+        /// <see cref="SetActionGroup"/> — the WRITE-side counterpart to the
+        /// resolver <see cref="KspHost"/> holds for the read side, and
+        /// deliberately the SAME elected instance, so a group's index means the
+        /// same thing whether it arrived in a sample or is being commanded.
+        /// Late-bound for the same reason (see
+        /// <c>KspHost.SetActionGroupsBackendSource</c>): the capability Kernel
+        /// isn't resolved until every uplink has registered its providers, well
+        /// after <see cref="GonogoAddon"/> constructs this actuator.
+        /// </summary>
+        private Func<IActionGroupsBackend?>? _actionGroupsBackend;
+
+        /// <summary>Installs the elected-backend resolver — called by <see cref="GonogoAddon"/> once the capability Kernel has resolved.</summary>
+        public void SetActionGroupsBackendSource(Func<IActionGroupsBackend?> resolver)
+        {
+            _actionGroupsBackend = resolver;
+        }
 
         // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
         // Command handlers and Vessel.OnFlyByWire both run on the Unity main
@@ -321,30 +341,38 @@ namespace Gonogo.KSP
             return CommandResult<int>.Ok(vessel.currentStage);
         }
 
-        /// <summary>1..10 maps to <c>KSPActionGroup.Custom01..Custom10</c> -- validated by <see cref="VesselCommandProvider.HandleSetActionGroup"/> before this is ever called.</summary>
-        public CommandResult SetActionGroup(int group, bool state) => WithActionGroups(actionGroups =>
+        /// <summary>
+        /// Delegates to the ELECTED action-groups backend rather than the magic
+        /// <c>1 => Custom01 ... 10 => Custom10</c> switch this used to be. The
+        /// backend owns both the mapping and the RANGE — stock stops at 10, AGX
+        /// goes to 250 — so an index it doesn't know comes back <c>false</c>
+        /// and becomes <c>CommandErrorCode.Range</c> here.
+        /// <see cref="VesselCommandProvider.HandleSetActionGroup"/> has already
+        /// rejected the non-positive case; this is the live bound it can't see.
+        ///
+        /// <para>Runs on the main thread: the engine is constructed with
+        /// <c>executeCommandsOnMainThread: true</c> and
+        /// <see cref="GonogoAddon"/> drains the command queue from
+        /// <c>FixedUpdate</c>, so the backend's live-KSP read is safe here —
+        /// see <see cref="IActionGroupsBackend"/>'s threading note.</para>
+        /// </summary>
+        public CommandResult SetActionGroup(int group, bool state)
         {
-            var kspGroup = group switch
+            var backend = _actionGroupsBackend?.Invoke();
+            if (backend == null)
             {
-                1 => KSPActionGroup.Custom01,
-                2 => KSPActionGroup.Custom02,
-                3 => KSPActionGroup.Custom03,
-                4 => KSPActionGroup.Custom04,
-                5 => KSPActionGroup.Custom05,
-                6 => KSPActionGroup.Custom06,
-                7 => KSPActionGroup.Custom07,
-                8 => KSPActionGroup.Custom08,
-                9 => KSPActionGroup.Custom09,
-                10 => KSPActionGroup.Custom10,
-                _ => KSPActionGroup.None,
-            };
-            if (kspGroup == KSPActionGroup.None)
-            {
-                return CommandResult.Fail(CommandErrorCode.Range);
+                // No elected backend => nothing can actuate. NoVessel would be
+                // wrong (a vessel may well be there) and Range would lie about
+                // the group; ModeUnavailable is the honest "this isn't
+                // currently available". Only reachable if the capability never
+                // resolved — a correctly bootstrapped engine always has the
+                // stock backend.
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
             }
-            actionGroups.SetGroup(kspGroup, state);
-            return CommandResult.Ok();
-        });
+            return backend.SetGroup(group, state)
+                ? CommandResult.Ok()
+                : CommandResult.Fail(CommandErrorCode.Range);
+        }
 
         /// <summary>
         /// <c>ManeuverNode.DeltaV</c> is in the node's own radial/normal/

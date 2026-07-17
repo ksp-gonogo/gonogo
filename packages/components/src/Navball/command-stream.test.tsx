@@ -13,6 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
+/** Stock's ten customs, all disengaged — the named-list shape the mod now sends. */
+const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
+  index: i + 1,
+  name: `AG${i + 1}`,
+  state: false,
+}));
+
 /**
  * The command-table proof for Navball ("validate the vessel-control command
  * widgets' command side"), mirroring `ActionGroup/stream.test.tsx`'s pilot
@@ -108,7 +115,7 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
         brakes: false,
         lights: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 
@@ -160,7 +167,7 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
         brakes: false,
         lights: false,
         throttle: 0,
-        actionGroups: Array(10).fill(false),
+        actionGroups: STOCK_GROUPS_ALL_OFF,
       });
     });
 

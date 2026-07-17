@@ -9,7 +9,12 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -36,26 +41,22 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-// The dynamically-resolved group `.value` reads (SAS/Gear/AG1/...) stay on the
-// legacy `data` source: their mapped topics (`vessel.control.*` /
-// `vessel.state.*`) are deliberately NOT carried by the stream fixture below, so
-// the two-arg shim falls back to this source. `t.isPaused` / `comm.connected`
-// are canonical stream reads now (`time.warp.paused` / `comms.link.connected`)
-// and are fed via the stream fixture instead.
-const KEYS: DataKey[] = [
-  { key: "v.sasValue" },
-  { key: "v.rcsValue" },
-  { key: "v.gearValue" },
-  { key: "v.brakeValue" },
-  { key: "v.lightValue" },
-  { key: "v.ag1Value" },
-];
+/**
+ * The widget no longer READS anything off the legacy `data` source. Its group
+ * values come off the canonical `vessel.control` / `vessel.structure` stream
+ * (the `useDataValue("data", group.value)` shim is gone — see `emitControl`),
+ * and `isPaused` / `commConnected` are canonical stream reads too
+ * (`time.warp.paused` / `comms.link.connected`). The MockDataSource below
+ * survives only for the WRITE path: `useExecuteAction("data")` still dispatches
+ * each group's `.toggle`, which `onExecute` records into `executed`.
+ */
+const KEYS: DataKey[] = [];
 
 describe("ActionGroupComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
-  let stream: ReturnType<typeof setupStreamFixture>;
   let executed: string[];
+  let fixture: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
     clearRegistry();
@@ -69,11 +70,16 @@ describe("ActionGroupComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
-    // Feeds the canonical `time.warp` / `comms.link` reads (isPaused /
-    // commConnected). vessel.control/vessel.state are intentionally absent, so
-    // the group `.value` shim read still falls back to the legacy source above.
-    stream = setupStreamFixture({
-      carriedChannels: ["time.warp", "comms.link"],
+    // Every read this widget makes is canonical now: the group values off
+    // `vessel.control` / `vessel.structure`, and isPaused / commConnected off
+    // `time.warp` / `comms.link`. Nothing falls back to the legacy source.
+    fixture = setupStreamFixture({
+      carriedChannels: [
+        "vessel.control",
+        "vessel.structure",
+        "time.warp",
+        "comms.link",
+      ],
       pinnedUt: 10,
     });
   });
@@ -84,6 +90,26 @@ describe("ActionGroupComponent", () => {
     clearActionHandlers();
   });
 
+  /**
+   * Emits a `vessel.control` payload carrying `patch`. Stock's ten customs are
+   * always present (all off unless `patch.actionGroups` overrides) so the
+   * registry's derived half exists, mirroring what the mod actually sends.
+   */
+  function emitControl(patch: Record<string, unknown>) {
+    act(() => {
+      fixture.emit("vessel.control", {
+        sasMode: 0,
+        throttle: 0,
+        actionGroups: Array.from({ length: 10 }, (_, i) => ({
+          index: i + 1,
+          name: `AG${i + 1}`,
+          state: false,
+        })),
+        ...patch,
+      });
+    });
+  }
+
   function renderGroup(
     config: { actionGroupId?: string; label?: string } = {
       actionGroupId: "SAS",
@@ -91,7 +117,7 @@ describe("ActionGroupComponent", () => {
     size?: { w?: number; h?: number },
   ) {
     return render(
-      <stream.Provider>
+      <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "action-group" }}>
           <ActionGroupComponent
             config={config}
@@ -100,7 +126,7 @@ describe("ActionGroupComponent", () => {
             h={size?.h ?? 6}
           />
         </DashboardItemContext.Provider>
-      </stream.Provider>,
+      </fixture.Provider>,
     );
   }
 
@@ -115,110 +141,96 @@ describe("ActionGroupComponent", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
   });
 
-  it("shows OFF when the group value is false", () => {
+  it("shows OFF when the group value is false", async () => {
     renderGroup({ actionGroupId: "SAS" });
-    act(() => {
-      source.emit("v.sasValue", false);
-    });
-    expect(screen.getByText("OFF")).toBeInTheDocument();
+    emitControl({ sas: false });
+    expect(await screen.findByText("OFF")).toBeInTheDocument();
   });
 
   it("shows ON when the group value is true", async () => {
     renderGroup({ actionGroupId: "SAS" });
+    emitControl({ sas: true });
     act(() => {
-      source.emit("v.sasValue", true);
-      stream.emit("comms.link", { connected: true });
-      stream.emit("time.warp", { paused: false });
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("time.warp", { paused: false });
     });
     expect(await screen.findByText("ON")).toBeInTheDocument();
   });
 
   it("surfaces the Paused unavailability notice when the game is paused", async () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 6, h: 6 });
+    emitControl({ sas: true });
     act(() => {
-      source.emit("v.sasValue", true);
-      stream.emit("time.warp", { paused: true });
-      stream.emit("comms.link", { connected: true });
+      fixture.emit("time.warp", { paused: true });
+      fixture.emit("comms.link", { connected: true });
     });
     expect(await screen.findByText("Paused")).toBeInTheDocument();
   });
 
   it("surfaces the No signal unavailability notice when comm is disconnected", async () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 6, h: 6 });
+    emitControl({ sas: false });
     act(() => {
-      source.emit("v.sasValue", false);
-      stream.emit("time.warp", { paused: false });
-      stream.emit("comms.link", { connected: false });
+      fixture.emit("time.warp", { paused: false });
+      fixture.emit("comms.link", { connected: false });
     });
     expect(await screen.findByText("No signal")).toBeInTheDocument();
   });
 
-  it("suppresses the unavailability notice in the tiny size bucket (w<5)", () => {
+  it("suppresses the unavailability notice in the tiny size bucket (w<5)", async () => {
     // At 3×4 the widget is in the tiny bucket — UnavailableNotice must not render.
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 4 });
+    emitControl({ sas: false });
     act(() => {
-      source.emit("v.sasValue", false);
-      stream.emit("time.warp", { paused: true });
-      stream.emit("comms.link", { connected: false });
+      fixture.emit("time.warp", { paused: true });
+      fixture.emit("comms.link", { connected: false });
     });
     expect(screen.queryByText("Paused")).not.toBeInTheDocument();
     expect(screen.queryByText("No signal")).not.toBeInTheDocument();
   });
 
-  it("shows the custom label when one is configured", () => {
+  it("shows the custom label when one is configured", async () => {
     renderGroup({ actionGroupId: "AG1", label: "Chutes" });
-    act(() => {
-      source.emit("v.ag1Value", true);
-    });
-    expect(screen.getByText("Chutes")).toBeInTheDocument();
+    emitControl({ actionGroups: [{ index: 1, name: "AG1", state: true }] });
+    expect(await screen.findByText("Chutes")).toBeInTheDocument();
   });
 
-  it("shows the official group name as secondary when a custom label is set (cols≥5)", () => {
+  it("shows the official group name as secondary when a custom label is set (cols≥5)", async () => {
     renderGroup({ actionGroupId: "AG1", label: "Chutes" }, { w: 6, h: 6 });
-    act(() => {
-      source.emit("v.ag1Value", false);
-    });
+    emitControl({ actionGroups: [{ index: 1, name: "AG1", state: false }] });
     // OfficialName = "AG1", custom label = "Chutes"; at cols=6 both visible
-    expect(screen.getByText("Chutes")).toBeInTheDocument();
-    expect(screen.getByText("AG1")).toBeInTheDocument();
+    expect(await screen.findByText("Chutes")).toBeInTheDocument();
+    expect(await screen.findByText("AG1")).toBeInTheDocument();
   });
 
-  it("reads the correct value key for non-SAS groups (Gear)", () => {
+  it("reads the correct value key for non-SAS groups (Gear)", async () => {
     renderGroup({ actionGroupId: "Gear" });
-    act(() => {
-      source.emit("v.gearValue", true);
-    });
-    expect(screen.getByText("ON")).toBeInTheDocument();
+    emitControl({ gear: true });
+    expect(await screen.findByText("ON")).toBeInTheDocument();
   });
 
-  it("renders the state pill as a toggle button at the minimum 3×3 size", () => {
+  it("renders the state pill as a toggle button at the minimum 3×3 size", async () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
-    act(() => {
-      source.emit("v.sasValue", false);
-    });
-    const pill = screen.getByRole("button", { name: /toggle sas/i });
-    expect(pill).toBeInTheDocument();
+    emitControl({ sas: false });
+    const pill = await screen.findByRole("button", { name: /toggle sas/i });
     expect(pill).toHaveTextContent("OFF");
     expect(pill).not.toBeDisabled();
   });
 
-  it("reflects ON state via aria-pressed on the pill button", () => {
+  it("reflects ON state via aria-pressed on the pill button", async () => {
     renderGroup({ actionGroupId: "SAS" });
-    act(() => {
-      source.emit("v.sasValue", true);
-    });
-    expect(screen.getByRole("button", { name: /toggle sas/i })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    emitControl({ sas: true });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /toggle sas/i }),
+      ).toHaveAttribute("aria-pressed", "true"),
     );
   });
 
   it("fires the group toggle action when the pill button is clicked", async () => {
     const user = userEvent.setup();
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
-    act(() => {
-      source.emit("v.sasValue", false);
-    });
+    emitControl({ sas: false });
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
     expect(executed).toEqual(["f.sas"]);
   });
@@ -232,9 +244,7 @@ describe("ActionGroupComponent", () => {
 
   it("has no axe violations with the pill toggle button", async () => {
     const { container } = renderGroup({ actionGroupId: "SAS" });
-    act(() => {
-      source.emit("v.sasValue", true);
-    });
+    emitControl({ sas: true });
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -261,11 +271,9 @@ describe("ActionGroupComponent", () => {
       return <span>section:{groupId}</span>;
     }
 
-    it("renders the widget with both slots empty when no augment is bound", () => {
+    it("renders the widget with both slots empty when no augment is bound", async () => {
       renderGroup({ actionGroupId: "SAS" });
-      act(() => {
-        source.emit("v.sasValue", false);
-      });
+      emitControl({ sas: false });
       // Widget renders normally; the empty slots contribute nothing.
       expect(
         screen.getByRole("button", { name: /toggle sas/i }),
@@ -274,30 +282,26 @@ describe("ActionGroupComponent", () => {
       expect(screen.queryByText(/^section:/)).not.toBeInTheDocument();
     });
 
-    it("renders a badge augment inline, passing the live group context", () => {
+    it("renders a badge augment inline, passing the live group context", async () => {
       registerAugment<"action-group.badges">({
         id: "test-ag-badge",
         augments: "action-group.badges",
         component: TestBadge,
       });
       renderGroup({ actionGroupId: "SAS" });
-      act(() => {
-        source.emit("v.sasValue", true);
-      });
-      expect(screen.getByText("badge:SAS:ON")).toBeInTheDocument();
+      emitControl({ sas: true });
+      expect(await screen.findByText("badge:SAS:ON")).toBeInTheDocument();
     });
 
-    it("renders a sections augment in the body with the group id", () => {
+    it("renders a sections augment in the body with the group id", async () => {
       registerAugment<"action-group.sections">({
         id: "test-ag-section",
         augments: "action-group.sections",
         component: TestSection,
       });
       renderGroup({ actionGroupId: "Gear" });
-      act(() => {
-        source.emit("v.gearValue", false);
-      });
-      expect(screen.getByText("section:Gear")).toBeInTheDocument();
+      emitControl({ gear: false });
+      expect(await screen.findByText("section:Gear")).toBeInTheDocument();
     });
   });
 });

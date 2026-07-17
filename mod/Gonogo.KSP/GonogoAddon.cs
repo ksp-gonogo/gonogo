@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Sitrep.Host;
+using Sitrep.Host.ActionGroups;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -127,6 +128,18 @@ namespace Gonogo.KSP
                 // and BEFORE Start(), so the shared comms.* channel closures that
                 // Query the elected backend at Tick time see a resolved kernel.
                 _engine.ResolveCapabilities();
+
+                // Install the READ-side elected-action-groups-backend resolver
+                // now the Kernel has resolved (VesselUplink declared the
+                // capability in the pre-Register pass and installed the
+                // WRITE-side resolver on its actuator). KspHost samples the
+                // backend on the main thread inside BuildControl — the same
+                // main-thread seam the comms uplink reads ICommsBackend from.
+                // Late-bound because the engine, and therefore the Kernel, does
+                // not exist when KspHost is constructed above.
+                var engine = _engine;
+                _host.SetActionGroupsBackendSource(
+                    () => ActionGroupsElection.Elected(engine.Kernel));
 
                 _engine.Start();
 

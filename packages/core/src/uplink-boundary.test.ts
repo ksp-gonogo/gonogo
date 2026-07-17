@@ -381,6 +381,14 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Sitrep.Host/ChannelEngine.cs",
     "mod/Sitrep.Host/Comms/CommsElection.cs",
     "mod/Sitrep.Host/Comms/SignalDelay.cs",
+    // The action-groups capability seam is a deliberate copy of the comms
+    // precedent above, and its doc-comments say so: they cite
+    // GonogoRealAntennasUplink as the worked example of a provider elected
+    // over the stock backend that ships no client code of its own. Prose
+    // only — no RA type, reference or coupling; same category as
+    // Comms/CommsElection.cs itself.
+    "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
+    "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
     "packages/components/src/CommSignal/index.tsx",
     "packages/components/src/SystemView/index.tsx",
     // G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in

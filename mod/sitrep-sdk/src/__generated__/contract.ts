@@ -1001,6 +1001,12 @@ export enum SasMode {
 	Maneuver = 9,
 	Unknown = 10
 }
+export interface ActionGroupState
+{
+	index: number;
+	name: string;
+	state: boolean;
+}
 export interface VesselControl
 {
 	sas?: boolean;
@@ -1012,7 +1018,7 @@ export interface VesselControl
 	abort?: boolean;
 	precisionControl?: boolean;
 	throttle?: number;
-	actionGroups?: boolean[];
+	actionGroups?: ActionGroupState[];
 	meta: PayloadMeta;
 }
 export interface CrewMember

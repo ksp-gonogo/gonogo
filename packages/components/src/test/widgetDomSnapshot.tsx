@@ -62,6 +62,75 @@ function resolveVesselPartsWire(fixture: Fixture): unknown {
 }
 
 /**
+ * Same story as {@link resolvePinnedUt}/{@link resolveVesselPartsWire}, for the
+ * `ActionGroup` canonical-read migration: that widget dropped its legacy
+ * `useDataValue("data", group.value)` shim entirely and now reads
+ * `vessel.control` / `vessel.structure` one-arg, so a fixture carrying the old
+ * `v.sasValue`/`v.ag1Value`/… keys needs them reshaped onto the wire or the
+ * widget would render "—" for every group instead of the fixture's real state.
+ *
+ * Reshapes only the keys a fixture actually carries: an absent key stays absent
+ * (`undefined`), which is the contract's own "not available this tick" and
+ * exactly what the `unknown-state` fixture is asserting. Custom groups are
+ * rebuilt as the NAMED list the mod now sends, sourced from whichever
+ * `v.ag{n}Value` keys are present.
+ */
+function resolveVesselControlWire(fixture: Fixture): unknown {
+  const bool = (key: string): boolean | undefined =>
+    typeof fixture[key] === "boolean" ? (fixture[key] as boolean) : undefined;
+
+  const actionGroups: { index: number; name: string; state: boolean }[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const state = bool(`v.ag${i}Value`);
+    if (state !== undefined) {
+      actionGroups.push({ index: i, name: `AG${i}`, state });
+    }
+  }
+
+  const control: Record<string, unknown> = {
+    sas: bool("v.sasValue"),
+    rcs: bool("v.rcsValue"),
+    gear: bool("v.gearValue"),
+    brakes: bool("v.brakeValue"),
+    lights: bool("v.lightValue"),
+    abort: bool("v.abortValue"),
+    precisionControl: bool("v.precisionControlValue"),
+    actionGroups: actionGroups.length > 0 ? actionGroups : undefined,
+  };
+
+  // Nothing this widget reads => no payload at all, so the provider isn't
+  // mounted for fixtures that have nothing to say about control state.
+  return Object.values(control).some((v) => v !== undefined)
+    ? control
+    : undefined;
+}
+
+/** `v.currentStage` -> `vessel.structure.currentStage` — ActionGroup's "Stage" group. */
+function resolveVesselStructureWire(fixture: Fixture): unknown {
+  const raw = fixture["v.currentStage"];
+  return typeof raw === "number" ? { currentStage: raw } : undefined;
+}
+
+/**
+ * `t.isPaused` -> `time.warp.paused` — the same story as
+ * {@link resolveVesselControlWire}, for the OTHER canonical-read migration that
+ * landed on these widgets: the pause/no-signal unavailability notices read
+ * `time.warp` / `comms.link` one-arg now, with no legacy fallback, so a fixture
+ * carrying the old keys must reshape them onto the wire or the notice silently
+ * never renders. Absent key stays absent.
+ */
+function resolveTimeWarpWire(fixture: Fixture): unknown {
+  const raw = fixture["t.isPaused"];
+  return typeof raw === "boolean" ? { paused: raw } : undefined;
+}
+
+/** `comm.connected` -> `comms.link.connected` — see {@link resolveTimeWarpWire}. */
+function resolveCommsLinkWire(fixture: Fixture): unknown {
+  const raw = fixture["comm.connected"];
+  return typeof raw === "boolean" ? { connected: raw } : undefined;
+}
+
+/**
  * Per-mode size descriptor consumed by the snapshot helper. Mirrors the
  * `SizeMode` shape in `packages/components/scripts/widgets.ts` so the same
  * mode arrays drive both the playwright PNG renders and the vitest DOM
@@ -108,6 +177,8 @@ interface StreamWrap {
   providerMounted: boolean;
   /** Emits the fixture's `v.topology` (reshaped) onto `vessel.parts`, or a no-op when the fixture carries no `v.topology`. Call inside the same `act()` block as the other fixture-key emits. */
   emitVesselParts: () => void;
+  /** Emits the fixture's legacy control keys (reshaped) onto `vessel.control`/`vessel.structure`, or a no-op when it carries none. Same `act()` block as the other emits. */
+  emitVesselControl: () => void;
 }
 
 /**
@@ -122,20 +193,52 @@ interface StreamWrap {
 function buildStreamWrap(fixture: Fixture): StreamWrap {
   const pinnedUt = resolvePinnedUt(fixture);
   const vesselPartsWire = resolveVesselPartsWire(fixture);
-  if (pinnedUt === undefined && vesselPartsWire === undefined) {
+  const vesselControlWire = resolveVesselControlWire(fixture);
+  const vesselStructureWire = resolveVesselStructureWire(fixture);
+  const timeWarpWire = resolveTimeWarpWire(fixture);
+  const commsLinkWire = resolveCommsLinkWire(fixture);
+  if (
+    pinnedUt === undefined &&
+    vesselPartsWire === undefined &&
+    vesselControlWire === undefined &&
+    vesselStructureWire === undefined &&
+    timeWarpWire === undefined &&
+    commsLinkWire === undefined
+  ) {
     return {
       Wrap: ({ children }) => <Fragment>{children}</Fragment>,
       providerMounted: false,
       emitVesselParts: () => {},
+      emitVesselControl: () => {},
     };
   }
-  const stream = setupStreamFixture({ carriedChannels: [], pinnedUt });
+  // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
+  // no-signal notices read them one-arg off the stream, and an uncarried channel
+  // never reaches the widget. The other payloads here predate that distinction.
+  const carriedChannels: string[] = [];
+  if (timeWarpWire !== undefined) carriedChannels.push("time.warp");
+  if (commsLinkWire !== undefined) carriedChannels.push("comms.link");
+  const stream = setupStreamFixture({ carriedChannels, pinnedUt });
   return {
     Wrap: stream.Provider,
     providerMounted: true,
     emitVesselParts: () => {
       if (vesselPartsWire !== undefined) {
         stream.emit("vessel.parts", vesselPartsWire);
+      }
+    },
+    emitVesselControl: () => {
+      if (vesselControlWire !== undefined) {
+        stream.emit("vessel.control", vesselControlWire);
+      }
+      if (vesselStructureWire !== undefined) {
+        stream.emit("vessel.structure", vesselStructureWire);
+      }
+      if (timeWarpWire !== undefined) {
+        stream.emit("time.warp", timeWarpWire);
+      }
+      if (commsLinkWire !== undefined) {
+        stream.emit("comms.link", commsLinkWire);
       }
     },
   };
@@ -198,9 +301,8 @@ export async function snapshotWidgetMode<
       ...((opts.mode.config ?? {}) as Cfg),
     };
     const instanceId = opts.instanceId ?? "snap";
-    const { Wrap, providerMounted, emitVesselParts } = buildStreamWrap(
-      opts.fixture,
-    );
+    const { Wrap, providerMounted, emitVesselParts, emitVesselControl } =
+      buildStreamWrap(opts.fixture);
     const { container } = render(
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
@@ -223,6 +325,7 @@ export async function snapshotWidgetMode<
         source?.emit(key, opts.fixture[key]);
       }
       emitVesselParts();
+      emitVesselControl();
     });
     await flushProviderFrame(providerMounted);
 
@@ -280,9 +383,8 @@ export async function renderWidgetMode<
     ...((opts.mode.config ?? {}) as Cfg),
   };
   const instanceId = opts.instanceId ?? "snap";
-  const { Wrap, providerMounted, emitVesselParts } = buildStreamWrap(
-    opts.fixture,
-  );
+  const { Wrap, providerMounted, emitVesselParts, emitVesselControl } =
+    buildStreamWrap(opts.fixture);
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -301,6 +403,7 @@ export async function renderWidgetMode<
       source.emit(key, opts.fixture[key]);
     }
     emitVesselParts();
+    emitVesselControl();
   });
   await flushProviderFrame(providerMounted);
 

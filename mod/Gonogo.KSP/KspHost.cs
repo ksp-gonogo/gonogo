@@ -8,6 +8,7 @@ using Expansions.Serenity;
 using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
+using Sitrep.Host.ActionGroups;
 using Strategies;
 using UnityEngine;
 using Sitrep.Contract;
@@ -60,6 +61,35 @@ namespace Gonogo.KSP
         // vessel.maneuver.update/.remove command, not just a cosmetic
         // read-only label.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        /// <summary>
+        /// Resolves the elected <see cref="IActionGroupsBackend"/> (stock, or
+        /// AGX once that phase lands) fresh on every sample. LATE-BOUND on
+        /// purpose: <see cref="GonogoAddon"/> constructs this host before the
+        /// ChannelEngine exists, and the capability Kernel isn't resolved until
+        /// every uplink has registered its providers — so the resolver is a
+        /// closure the addon installs after <c>ResolveCapabilities()</c>, not a
+        /// constructor argument. Invoked per-sample rather than cached so a
+        /// re-resolution is picked up without restarting the host.
+        ///
+        /// <para>Null before the addon wires it (and in a bare-host unit test),
+        /// which degrades to "no action-group data this tick" — the same
+        /// null the contract already documents. Action groups are not
+        /// SpineCritical; the rest of vessel.control is still good telemetry
+        /// without them.</para>
+        /// </summary>
+        private Func<IActionGroupsBackend?>? _actionGroupsBackend;
+
+        /// <summary>
+        /// Installs the elected-backend resolver. Called by
+        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved —
+        /// see <see cref="_actionGroupsBackend"/> for why this can't be a
+        /// constructor argument.
+        /// </summary>
+        public void SetActionGroupsBackendSource(Func<IActionGroupsBackend?> resolver)
+        {
+            _actionGroupsBackend = resolver;
+        }
 
         public KspHost(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
@@ -139,7 +169,7 @@ namespace Gonogo.KSP
                     var activeVessel = FlightGlobals.ActiveVessel;
                     if (activeVessel != null)
                     {
-                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry);
+                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry, _actionGroupsBackend?.Invoke());
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -360,7 +390,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry, IActionGroupsBackend? actionGroupsBackend)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -375,7 +405,7 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "attitude", () => BuildAttitude(vessel, orbit));
             TryBuildGroup(entry, "resources", () => BuildResources(vessel));
             TryBuildGroup(entry, "thermal", () => BuildThermal(vessel));
-            TryBuildGroup(entry, "control", () => BuildControl(vessel));
+            TryBuildGroup(entry, "control", () => BuildControl(vessel, actionGroupsBackend));
             TryBuildGroup(entry, "physics", () => BuildPhysics(vessel));
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
             TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
@@ -958,7 +988,22 @@ namespace Gonogo.KSP
             return result;
         }
 
-        private static Dictionary<string, object?> BuildControl(Vessel vessel)
+        /// <summary>
+        /// <paramref name="actionGroupsBackend"/> is the ELECTED action-groups
+        /// backend (stock, or AGX once that phase lands) — resolved by
+        /// <see cref="GonogoAddon"/> and threaded down here rather than read
+        /// from a global, exactly as <c>maneuverNodeIdRegistry</c> is.
+        ///
+        /// <para>This is the ONLY correct place to call it: the backend reads
+        /// LIVE KSP, and this method runs on the main thread as part of the
+        /// snapshot capture. A channel-source closure
+        /// (<c>VesselViewProvider.BuildControlWire</c>) may run on the Courier
+        /// thread and must never touch a backend — the same reason
+        /// <see cref="CommsCoreUplink"/> reads its backend from
+        /// <c>CaptureOnMain</c> rather than from its channel sources. See
+        /// <see cref="IActionGroupsBackend"/>'s threading note.</para>
+        /// </summary>
+        private static Dictionary<string, object?> BuildControl(Vessel vessel, IActionGroupsBackend? actionGroupsBackend)
         {
             var actionGroups = vessel.ActionGroups;
             var autopilot = vessel.Autopilot;
@@ -979,18 +1024,31 @@ namespace Gonogo.KSP
                 ["throttle"] = ctrlState != null ? (double?)ctrlState.mainThrottle : null,
             };
 
-            if (actionGroups != null)
+            // The NAMED custom action groups, sourced from the elected backend
+            // rather than spelled out as ag1..ag10 scalars here. The ten-ness
+            // of stock now lives in exactly ONE place
+            // (StockActionGroupsBackend); this method no longer knows or cares
+            // how many groups there are or what they're called, which is what
+            // lets an AGX backend report 250 player-named groups through this
+            // same code with no edit.
+            //
+            // Null backend / null Groups() => no "actionGroups" key at all,
+            // which VesselViewProvider maps to the contract's documented "not
+            // available this tick". Deliberately not an empty list.
+            var groups = actionGroupsBackend?.Groups();
+            if (groups != null)
             {
-                result["ag1"] = actionGroups[KSPActionGroup.Custom01];
-                result["ag2"] = actionGroups[KSPActionGroup.Custom02];
-                result["ag3"] = actionGroups[KSPActionGroup.Custom03];
-                result["ag4"] = actionGroups[KSPActionGroup.Custom04];
-                result["ag5"] = actionGroups[KSPActionGroup.Custom05];
-                result["ag6"] = actionGroups[KSPActionGroup.Custom06];
-                result["ag7"] = actionGroups[KSPActionGroup.Custom07];
-                result["ag8"] = actionGroups[KSPActionGroup.Custom08];
-                result["ag9"] = actionGroups[KSPActionGroup.Custom09];
-                result["ag10"] = actionGroups[KSPActionGroup.Custom10];
+                var wire = new List<object?>(groups.Count);
+                foreach (var group in groups)
+                {
+                    wire.Add(new Dictionary<string, object?>
+                    {
+                        ["index"] = group.Index,
+                        ["name"] = group.Name,
+                        ["state"] = group.State,
+                    });
+                }
+                result["actionGroups"] = wire;
             }
 
             return result;

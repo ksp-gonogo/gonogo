@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { isKnownTelemachusGap, mapTopic } from "@ksp-gonogo/sitrep-client";
 import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { ACTION_GROUPS } from "../actionGroups";
 
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
@@ -115,30 +114,29 @@ function collectWidgetTelemachusKeys(): Set<string> {
 }
 
 /**
- * Keys resolved dynamically instead of as a literal `useDataValue("data",
- * "<key>")` string, so the regex scan above can never see them — a coverage
- * blind spot in its own right. `ActionGroup` (`packages/components/src/
- * ActionGroup/index.tsx`) is the motivating case: it resolves
- * `useDataValue("data", group?.value ?? "v.sasValue")` from `@ksp-gonogo/core`'s
- * `ACTION_GROUPS` registry with an empty `dataRequirements: []`, so
- * `v.sasValue`/`v.rcsValue`/`v.gearValue`/`v.brakeValue`/`v.lightValue`/
- * `v.abortValue`/`v.precisionControlValue`/`v.ag1Value`...`v.ag10Value` were
- * silently invisible to the scan — mapped-or-gapped-or-not, the coverage
- * test could never tell. Only `.value` is read through `useDataValue`
- * (mapTopic's concern); `.toggle` fires through `executeAction`, a
- * different, unrelated dispatch path this table doesn't route.
+ * ---------------------------------------------------------------------------
+ * THE DYNAMIC-KEY BLIND SPOT IS CLOSED — this scan is now complete
+ * ---------------------------------------------------------------------------
+ * There used to be a `collectDynamicTelemachusKeys()` here, and a documented
+ * hole it patched: `ActionGroup` resolved its read key dynamically
+ * (`useDataValue("data", group?.value ?? "v.sasValue")`) off `@ksp-gonogo/core`'s
+ * hardcoded `ACTION_GROUPS` registry, with an empty `dataRequirements: []`. The
+ * regex scan above only sees LITERAL `useDataValue("data", "<key>")` strings, so
+ * `v.sasValue`/`v.ag1Value`/… were invisible to it and had to be re-derived from
+ * the registry by hand.
  *
- * If another component ever resolves its `useDataValue` key from a runtime
- * registry the same way, add its key source here too — that's the general
- * shape of the blind spot, not something specific to action groups.
+ * That widget no longer reads any Telemachus key at all: it reads the canonical
+ * `vessel.control` / `vessel.structure` Topics one-arg and resolves each group's
+ * value from the payload, so there is no dynamic key left to collect. The
+ * registry itself stopped carrying read keys entirely (`ActionGroup` in
+ * `types.ts` lost its `value:` field), which is what made the hole structurally
+ * impossible rather than merely patched.
+ *
+ * If a component ever again resolves a `useDataValue` key from a runtime
+ * registry, this scan goes blind to it and the hole comes back — prefer a
+ * canonical `useTelemetry(topicId)` read, and if that's genuinely impossible,
+ * reinstate a collector here rather than letting the key go unpoliced.
  */
-function collectDynamicTelemachusKeys(): Set<string> {
-  const keys = new Set<string>();
-  for (const group of ACTION_GROUPS) {
-    keys.add(group.value);
-  }
-  return keys;
-}
 
 describe("mapTopic coverage — every widget Telemachus key is mapped or a declared gap", () => {
   // A `dataRequirements` entry can now ALSO be a native SDK topic id read
@@ -149,10 +147,7 @@ describe("mapTopic coverage — every widget Telemachus key is mapped or a decla
   // asking `mapTopic`/`isKnownTelemachusGap` to account for a key that was
   // never theirs to route.
   const widgetKeys = new Set(
-    [
-      ...collectWidgetTelemachusKeys(),
-      ...collectDynamicTelemachusKeys(),
-    ].filter((key) => !isTopicId(key)),
+    [...collectWidgetTelemachusKeys()].filter((key) => !isTopicId(key)),
   );
 
   it("found a non-trivial number of widget keys (scan sanity check)", () => {

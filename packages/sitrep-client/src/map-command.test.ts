@@ -103,24 +103,25 @@ describe("mapCommand", () => {
       expect(mapCommand("data", "f.sas", () => 42)).toBeUndefined();
     });
 
-    it("f.ag1..f.ag10 read the raw actionGroups array element and invert it", () => {
-      const actionGroups = [
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-      ];
-      const getCurrentValue = (topic: string): unknown => {
-        const match = /^vessel\.control\.actionGroups\.(\d+)$/.exec(topic);
-        if (!match) return undefined;
-        return actionGroups[Number(match[1])];
+    /**
+     * Finds each group by its own `index` in the raw `vessel.control` record.
+     * It used to index the array by POSITION
+     * (`vessel.control.actionGroups.{n-1}`) — wrong now that the wire shape is
+     * a named list, since position no longer implies identity. The list here is
+     * deliberately SPARSE and UNSORTED (no 4..9; 10 before 3) so a positional
+     * read could not possibly pass.
+     */
+    it("f.ag1..f.ag10 find the group by index in vessel.control and invert it", () => {
+      const control = {
+        actionGroups: [
+          { index: 1, name: "AG1", state: true },
+          { index: 10, name: "AG10", state: false },
+          { index: 2, name: "AG2", state: false },
+          { index: 3, name: "AG3", state: true },
+        ],
       };
+      const getCurrentValue = (topic: string): unknown =>
+        topic === "vessel.control" ? control : undefined;
 
       expect(mapCommand("data", "f.ag1", getCurrentValue)).toEqual({
         command: "vessel.control.setActionGroup",
@@ -142,6 +143,25 @@ describe("mapCommand", () => {
 
     it("f.ag1 falls back to legacy when the raw vessel.control topic hasn't been read by anything yet", () => {
       expect(mapCommand("data", "f.ag1", () => undefined)).toBeUndefined();
+    });
+
+    /**
+     * A group the elected backend doesn't report has no current state, so there
+     * is nothing to invert — the toggle -> absolute bridge must decline rather
+     * than guess. Guards against a stray `state: true` being sent for a group
+     * that doesn't exist (e.g. a saved AGX group after AGX is uninstalled).
+     */
+    it("declines a group the record doesn't carry rather than guessing", () => {
+      const getCurrentValue = (topic: string): unknown =>
+        topic === "vessel.control"
+          ? { actionGroups: [{ index: 1, name: "AG1", state: true }] }
+          : undefined;
+
+      expect(mapCommand("data", "f.ag1", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 1, state: false },
+      });
+      expect(mapCommand("data", "f.ag7", getCurrentValue)).toBeUndefined();
     });
 
     it("f.abort is no longer a known command gap", () => {

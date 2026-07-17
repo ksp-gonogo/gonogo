@@ -68,13 +68,55 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
   };
 }
 
+/**
+ * The onFire picker lists the action-group registry, whose CUSTOM half
+ * (`AG1`..`AG10`) is derived from live `vessel.control` telemetry rather than
+ * hardcoded — so a bare `render()` shows only the stock singletons and `f.ag1`
+ * isn't a selectable option at all. Mount the minimal real stream carrying the
+ * ten stock customs, exactly as the mod sends them.
+ */
+function renderWithControlStream(ui: React.ReactElement) {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const store = new TimelineStore(
+    new ViewClock({
+      nowWall: () => 0,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    }),
+  );
+  client.attachStore(store);
+  const result = render(
+    <TelemetryProvider
+      client={client}
+      store={store}
+      carriedChannels={new Set(["vessel.control"])}
+    >
+      {ui}
+    </TelemetryProvider>,
+  );
+  act(() => {
+    transport.emit("vessel.control", {
+      sasMode: 0,
+      throttle: 0,
+      actionGroups: Array.from({ length: 10 }, (_, i) => ({
+        index: i + 1,
+        name: `AG${i + 1}`,
+        state: false,
+      })),
+    });
+    store.beginFrame();
+  });
+  return result;
+}
+
 describe("AlarmsModal onFire editor", () => {
   beforeEach(registerStubDataSource);
 
   it("attaches an action group to a new alarm and forwards it via onAdd", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    render(
+    renderWithControlStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
         onAdd={onAdd}
@@ -85,7 +127,8 @@ describe("AlarmsModal onFire editor", () => {
 
     await user.type(screen.getByLabelText(/^name$/i), "Stage");
 
-    const picker = screen.getByLabelText(/action group to fire/i);
+    const picker = await screen.findByLabelText(/action group to fire/i);
+    await screen.findByRole("option", { name: /^AG1 \(f\.ag1\)/ });
     await user.selectOptions(picker, "f.ag1");
     await user.click(screen.getByRole("button", { name: /\+ add action/i }));
 

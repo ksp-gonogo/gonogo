@@ -167,6 +167,7 @@ export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
 export type {
+  ActionGroupStatePayload,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,

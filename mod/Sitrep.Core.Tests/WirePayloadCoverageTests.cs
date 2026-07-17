@@ -48,7 +48,10 @@ namespace Sitrep.Core.Tests
             // sees the dictionary, never the POCO.
             "VesselIdentity", "VesselOrbit", "VesselOrbitTruth", "OrbitEncounter",
             "VesselFlight", "VesselAttitude", "VesselResources", "ResourceAmount",
-            "VesselControl", "VesselComms", "VesselCrew", "VesselManeuver",
+            // ActionGroupState rides VesselControl.ActionGroups — ToWire(VesselControl)
+            // maps each entry through its own ToWire(ActionGroupState) overload,
+            // so JsonWriter only ever sees the flattened dictionary list.
+            "VesselControl", "ActionGroupState", "VesselComms", "VesselCrew", "VesselManeuver",
             "VesselPropulsion", "VesselStructure", "VesselSurface", "VesselTarget",
             "VesselThermal", "ThermalHottestPart", "ManeuverNode", "OrbitPatch", "Vec3",
             "DockAlignment", "WarpState", "CrewMember", "VesselPhysicsMode",

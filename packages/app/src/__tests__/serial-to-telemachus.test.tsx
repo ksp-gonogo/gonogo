@@ -23,6 +23,13 @@ import {
   SerialDeviceProvider,
   SerialDeviceService,
 } from "@ksp-gonogo/serial";
+import {
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -46,7 +53,7 @@ afterEach(() => {
 describe("serial → action → telemachus end-to-end", () => {
   it("emits bytes from a virtual serial port → toggles AG1 via useExecuteAction", async () => {
     // ── 1. Wire up the fake data source + mock navigator.serial ─────────
-    fake = await setupFakeTelemachus({ "v.ag1Value": false });
+    fake = await setupFakeTelemachus({});
 
     const mock = new MockWebSerial();
     mock.install({ force: true });
@@ -98,22 +105,55 @@ describe("serial → action → telemachus end-to-end", () => {
       ],
     });
 
+    // ActionGroup's READ path is the canonical `vessel.control` stream now (its
+    // legacy shim read is gone), so AG1's state is fed through a real
+    // TelemetryProvider. The WRITE path under test here — serial byte →
+    // parser → InputDispatcher → dispatchAction → useExecuteAction → the fake
+    // source — is untouched by that, which is exactly what this test exists to
+    // prove end-to-end.
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({
+        nowWall: () => 0,
+        warpRate: () => 1,
+        delaySeconds: () => 0,
+      }),
+    );
+    client.attachStore(store);
+    const emitAg1 = (state: boolean) => {
+      act(() => {
+        transport.emit("vessel.control", {
+          sasMode: 0,
+          throttle: 0,
+          actionGroups: [{ index: 1, name: "AG1", state }],
+        });
+        store.beginFrame();
+      });
+    };
+
     const { unmount } = render(
-      <SerialDeviceProvider service={service}>
-        <ModalProvider>
-          <DashboardItemContext.Provider value={{ instanceId: "ag-1" }}>
-            <ActionGroupComponent id="ag-1" config={{ actionGroupId: "AG1" }} />
-          </DashboardItemContext.Provider>
-        </ModalProvider>
-      </SerialDeviceProvider>,
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={new Set(["vessel.control"])}
+      >
+        <SerialDeviceProvider service={service}>
+          <ModalProvider>
+            <DashboardItemContext.Provider value={{ instanceId: "ag-1" }}>
+              <ActionGroupComponent
+                id="ag-1"
+                config={{ actionGroupId: "AG1" }}
+              />
+            </DashboardItemContext.Provider>
+          </ModalProvider>
+        </SerialDeviceProvider>
+      </TelemetryProvider>,
     );
 
-    // Push the fake source's initial state now that ActionGroup has
-    // subscribed — mirrors the real source's "push current state right
-    // after the WS '+' subscribe message" round trip.
     fake.seed();
+    emitAg1(false);
 
-    // Wait for telemachus to push initial state so ActionGroup is "OFF".
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
     // ── 4. Drive the serial port: press button A ──────────────────────
@@ -130,6 +170,9 @@ describe("serial → action → telemachus end-to-end", () => {
 
     // ── 5. Assert the fake source saw the execute + UI reflects the toggle ──
     await waitFor(() => expect(fake?.executedActions).toContain("f.ag1"));
+
+    // KSP echoes the new state back on the channel the widget reads.
+    emitAg1(true);
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
 
     // Unmount so pending subscribers are torn down before we disconnect the

@@ -575,23 +575,53 @@ namespace Sitrep.Host
                 return null;
             }
 
-            bool[]? actionGroups = null;
-            var ag1 = GetBool(control, "ag1");
-            var ag2 = GetBool(control, "ag2");
-            var ag3 = GetBool(control, "ag3");
-            var ag4 = GetBool(control, "ag4");
-            var ag5 = GetBool(control, "ag5");
-            var ag6 = GetBool(control, "ag6");
-            var ag7 = GetBool(control, "ag7");
-            var ag8 = GetBool(control, "ag8");
-            var ag9 = GetBool(control, "ag9");
-            var ag10 = GetBool(control, "ag10");
-            if (ag1.HasValue && ag2.HasValue && ag3.HasValue && ag4.HasValue && ag5.HasValue &&
-                ag6.HasValue && ag7.HasValue && ag8.HasValue && ag9.HasValue && ag10.HasValue)
+            // The NAMED action-group list, as captured by whichever backend the
+            // "actionGroups" capability elected (KspHost.BuildControl resolves
+            // it on the main thread -- see IActionGroupsBackend's threading
+            // note). This provider stays backend-agnostic: it maps whatever
+            // entries arrived, however many, whatever they're called. That is
+            // what lets an AGX backend (up to 250 player-named groups) ride
+            // this same path with no change here.
+            //
+            // Absent key => null (the contract's "no action-group data this
+            // tick"), never an empty list -- an empty list would wrongly assert
+            // "this vessel has zero groups" and blank the client. A recording
+            // predating the named list simply has no "actionGroups" key and so
+            // reads null, which is the honest answer for it.
+            ActionGroupState[]? actionGroups = null;
+            if (control.TryGetValue("actionGroups", out var rawGroups) && rawGroups is IEnumerable<object?> groupList)
             {
-                // KspHost only ever writes all ten (when actionGroups != null)
-                // or none of them -- never a partial set.
-                actionGroups = new[] { ag1.Value, ag2.Value, ag3.Value, ag4.Value, ag5.Value, ag6.Value, ag7.Value, ag8.Value, ag9.Value, ag10.Value };
+                var groups = new List<ActionGroupState>();
+                foreach (var rawGroup in groupList)
+                {
+                    if (rawGroup is not IDictionary<string, object?> group)
+                    {
+                        continue;
+                    }
+
+                    var index = GetInt(group, "index");
+                    var state = GetBool(group, "state");
+                    if (!index.HasValue || !state.HasValue)
+                    {
+                        // Index is the identity (it's what a setActionGroup
+                        // command names) and State is the whole point of the
+                        // read -- a group missing either is not a group. Skip
+                        // it rather than inventing a default, same discipline
+                        // as BuildManeuver's missing-Ut rule.
+                        continue;
+                    }
+
+                    groups.Add(new ActionGroupState
+                    {
+                        Index = index.Value,
+                        // Fall back to the stock-style label rather than "" so a
+                        // backend that reported an index but no name still
+                        // renders as something a human can read.
+                        Name = GetString(group, "name") ?? ("AG" + index.Value),
+                        State = state.Value,
+                    });
+                }
+                actionGroups = groups.ToArray();
             }
 
             return new VesselControl
@@ -1232,8 +1262,15 @@ namespace Sitrep.Host
             ["abort"] = control.Abort,
             ["precisionControl"] = control.PrecisionControl,
             ["throttle"] = control.Throttle,
-            ["actionGroups"] = control.ActionGroups?.Select(b => (object?)b).ToList(),
+            ["actionGroups"] = control.ActionGroups?.Select(g => (object?)ToWire(g)).ToList(),
             ["meta"] = ToWire(control.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(ActionGroupState group) => new Dictionary<string, object?>
+        {
+            ["index"] = group.Index,
+            ["name"] = group.Name,
+            ["state"] = group.State,
         };
 
         private static Dictionary<string, object?> ToWire(VesselPhysicsMode physics) => new Dictionary<string, object?>
