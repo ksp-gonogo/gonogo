@@ -8,10 +8,9 @@
  * TS version pinned in this repo — `VideoFrame` itself IS in lib.dom, none
  * of the track-IO constructors are).
  *
- * Used by `frameDelay.ts` (Chrome's main-thread backend) and `worker/`
+ * Used by `frame-delay.ts` (Chrome's main-thread backend) and `worker/`
  * (the worker-hosted backend feature-detects `VideoTrackGenerator` first,
- * falling back to `MediaStreamTrackGenerator` — cross-browser kerbcast
- * video-delay design, 2026-07-16, "Writer feature detection") to read/write
+ * falling back to `MediaStreamTrackGenerator` — cross-browser video-delay design, 2026-07-16, "Writer feature detection") to read/write
  * real video frames off/onto a `MediaStreamTrack`. Kept minimal — only the
  * members either backend actually touches.
  *

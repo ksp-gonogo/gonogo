@@ -33,9 +33,9 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import type { DelayClockLike } from "@ksp-gonogo/sitrep-client";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { DelayClockLike } from "../DelayedPlayoutBuffer";
 import {
   type DelayedPlayoutResult,
   useDelayedPlayout,
@@ -600,5 +600,112 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     expect(proc?.cancelled).toBe(false);
     expect(gen?.closed).toBe(false);
     expect(FakeProcessor.instances).toHaveLength(1);
+  });
+
+  // Delay is a property of the CAMERA, not the viewer. Two consumers of one
+  // camera (e.g. a CameraFeed and the docking-HUD backdrop) must share ONE
+  // delayed pipeline — a MediaStreamTrack admits only one
+  // MediaStreamTrackProcessor, and two viewers showing DIFFERENT delays of the
+  // same lens would be incoherent anyway. Proven at the hook boundary here;
+  // the cache mechanics live in `shared-delayed-streams.test.ts`.
+  it("two consumers of ONE camera share a single processor and see the same delayed output", () => {
+    const { FakeProcessor, FakeGenerator } = installFakeWebCodecs();
+    const track = fakeControllableVideoTrack();
+    const rawStream = fakeVideoStream(track);
+    const cam = fakeCameraHandle(null);
+    registerFakeKerbcastSource(cam);
+    const clock = manualClock(0);
+
+    let resultA: DelayedPlayoutResult | "unset" = "unset";
+    let resultB: DelayedPlayoutResult | "unset" = "unset";
+    render(
+      <>
+        <StreamProbe
+          flightId={7}
+          clock={clock}
+          captureUt={() => 100}
+          onResult={(r) => {
+            resultA = r;
+          }}
+        />
+        <StreamProbe
+          flightId={7}
+          clock={clock}
+          captureUt={() => 100}
+          onResult={(r) => {
+            resultB = r;
+          }}
+        />
+      </>,
+    );
+
+    act(() => {
+      cam.emit(rawStream); // the SAME MediaStream object reaches both consumers
+    });
+
+    // ONE processor / generator for the shared track — not two colliding ones.
+    expect(FakeProcessor.instances).toHaveLength(1);
+    expect(FakeGenerator.instances).toHaveLength(1);
+    // Both consumers see a delayed stream, and it is the SAME object.
+    expect(resultA).toMatchObject({ kind: "delayed" });
+    expect(resultB).toMatchObject({ kind: "delayed" });
+    const streamA = (resultA as DelayedPlayoutResult & { kind: "delayed" })
+      .stream;
+    const streamB = (resultB as DelayedPlayoutResult & { kind: "delayed" })
+      .stream;
+    expect(streamA).toBe(streamB);
+  });
+
+  it("a SECOND, different camera builds its own independent processor (both delayed simultaneously)", () => {
+    const { FakeProcessor } = installFakeWebCodecs();
+    const trackA = fakeControllableVideoTrack();
+    const trackB = fakeControllableVideoTrack();
+    const streamA = fakeVideoStream(trackA);
+    const streamB = fakeVideoStream(trackB);
+    const camA = fakeCameraHandle(streamA);
+    const camB = fakeCameraHandle(streamB);
+    // A source that hands out a DIFFERENT camera per flightId, so the two
+    // probes resolve two distinct raw MediaStreams (distinct cache keys).
+    registerDataSource({
+      id: "kerbcast",
+      getClient: () => ({
+        camera: (id: number) => (id === 7 ? camA : camB),
+      }),
+      subscribeCamera: () => {},
+      unsubscribeCamera: () => {},
+    } as unknown as Parameters<typeof registerDataSource>[0]);
+    const clock = manualClock(0);
+
+    let resultA: DelayedPlayoutResult | "unset" = "unset";
+    let resultB: DelayedPlayoutResult | "unset" = "unset";
+    render(
+      <>
+        <StreamProbe
+          flightId={7}
+          clock={clock}
+          captureUt={() => 100}
+          onResult={(r) => {
+            resultA = r;
+          }}
+        />
+        <StreamProbe
+          flightId={8}
+          clock={clock}
+          captureUt={() => 100}
+          onResult={(r) => {
+            resultB = r;
+          }}
+        />
+      </>,
+    );
+
+    // Two independent processors — the normal multi-camera case works, and the
+    // per-camera keying doesn't collapse distinct cameras into one pipeline.
+    expect(FakeProcessor.instances).toHaveLength(2);
+    expect(resultA).toMatchObject({ kind: "delayed" });
+    expect(resultB).toMatchObject({ kind: "delayed" });
+    const sA = (resultA as DelayedPlayoutResult & { kind: "delayed" }).stream;
+    const sB = (resultB as DelayedPlayoutResult & { kind: "delayed" }).stream;
+    expect(sA).not.toBe(sB);
   });
 });

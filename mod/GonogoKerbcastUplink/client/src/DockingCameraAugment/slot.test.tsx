@@ -116,7 +116,14 @@ describe("kerbcast docking-camera augment — distance-to-target.camera slot", (
       },
       subscribeCamera: () => {},
       unsubscribeCamera: () => {},
+      // Once a camera is named the augment mounts its own KerbcastProvider (to
+      // read the capture clock for delayed playout, like CameraFeed) — so the
+      // client must satisfy `useKerbcastClock`: a `clock` snapshot and a
+      // `settings-change` subscription. `captureUt: null` keeps it a live
+      // passthrough (no clock yet), which is all this connect-path test needs.
       getClient: () => ({
+        clock: { captureUt: null, epoch: 0, warpRate: 1 },
+        on: () => () => {},
         camera: () => ({ mediaStream: null, on: () => () => {} }),
       }),
     };

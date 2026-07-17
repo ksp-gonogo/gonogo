@@ -1,12 +1,13 @@
+/// <reference path="../webcodecs-track-io.d.ts" />
 /**
- * The shared worker's entry point — cross-browser kerbcast video-delay
+ * The shared worker's entry point — cross-browser video-delay
  * design, 2026-07-16, "one long-lived worker; each feed is a pipeline keyed
  * by id" (locked decision 2). Deliberately THIN: everything it does routes
  * straight into already-unit-tested pieces —
  * `runFrameDelayPipeline`/`DelayedPlayoutBuffer` (unchanged, F1),
- * `createWorkerDelayClock` (`workerDelayClock.ts`), `createNowWall`
- * (`timeBase.ts`), `interpolateCaptureUt` (`../captureClock.ts`), and
- * `startPacingTicker` (`../frameDelay.ts`, shared with the main-thread
+ * `createWorkerDelayClock` (`worker-delay-clock.ts`), `createNowWall`
+ * (`time-base.ts`), `interpolateCaptureUt` (`../capture-clock.ts`), and
+ * `startPacingTicker` (`../frame-delay.ts`, shared with the main-thread
  * backend). This file itself is message plumbing only.
  *
  * NOT unit-tested: jsdom has neither real Workers nor WebCodecs (per this
@@ -23,7 +24,7 @@
  * needs to handle "the transfer silently failed": if we're executing this
  * handler at all, the track objectively arrived.
  *
- * Message protocol (see `kerbcastDelayWorkerClient.ts` for the main-thread
+ * Message protocol (see `delay-worker-client.ts` for the main-thread
  * side of each of these):
  *  - `init`            — once, at worker startup: reconciles wall-clock bases.
  *  - `clockSnapshot`    — ~60Hz, worker-global: the ONE shared ViewClock's
@@ -51,36 +52,36 @@
  * already handles; only pipeline CONSTRUCTION differs (no handshake, no
  * transferred track). NOT YET REACHABLE from the real app — the main thread
  * has no `RTCRtpReceiver` to call `receiver.transform = new
- * RTCRtpScriptTransform(worker, {pipelineId})` on (the `@ksp-gonogo/kerbcast`
- * SDK discards it in `onTrack` today) — see the report's "what's blocked"
+ * RTCRtpScriptTransform(worker, {pipelineId})` on (the camera SDK
+ * discards it in `onTrack` today) — see the report's "what's blocked"
  * section. This handler is therefore unreachable in production until that
  * SDK seam exists, but is structurally complete and ready to wire the
  * moment it does.
  */
 
-import type { ClockFormulaSnapshot } from "@ksp-gonogo/sitrep-client";
-import type { CaptureClockSample } from "../captureClock";
-import { interpolateCaptureUt } from "../captureClock";
+import type { ClockFormulaSnapshot } from "../../view-clock-formula";
+import type { CaptureClockSample } from "../capture-clock";
+import { interpolateCaptureUt } from "../capture-clock";
 import {
   attachEncodedFrameDelayTransform,
   type EncodedTransformerLike,
-} from "../encodedFrameDelay";
+} from "../encoded-frame-delay";
 import {
   type FrameDelayPipeline,
   runFrameDelayPipeline,
   startPacingTicker,
-} from "../frameDelay";
-import { createNowWall } from "./timeBase";
+} from "../frame-delay";
+import { createNowWall } from "./time-base";
 import {
   createWorkerDelayClock,
   type WorkerDelayClock,
-} from "./workerDelayClock";
+} from "./worker-delay-clock";
 
 // --- Wire message shapes -----------------------------------------------
 
 export interface InitMessage {
   type: "init";
-  /** The main thread's `performance.timeOrigin` (ms) — see `timeBase.ts`. */
+  /** The main thread's `performance.timeOrigin` (ms) — see `time-base.ts`. */
   mainTimeOriginMs: number;
 }
 
@@ -154,7 +155,7 @@ export type WorkerToMainMessage =
 // `webcodecs-track-io.d.ts`.
 // `RTCTransformEvent`/`RTCRtpScriptTransform` are the standard WebRTC
 // Encoded Transform API (encoded-transform video-delay work, 2026-07-16 —
-// see `../encodedFrameDelay.ts`'s module doc). Declared locally, narrowed to
+// see `../encoded-frame-delay.ts`'s module doc). Declared locally, narrowed to
 // just what `handleRtcTransform` reads, for the same "minimal ambient
 // surface, no full webworker lib" reason as `WorkerGlobalSurface` itself —
 // this repo's default DOM lib doesn't reliably ship these types across TS
@@ -225,7 +226,7 @@ function buildWriter(): {
 
 function handleInit(msg: InitMessage): void {
   // `createNowWall` expects `localTimeOrigin - mainTimeOrigin` (see
-  // `timeBase.ts`'s worked example) — this worker's own
+  // `time-base.ts`'s worked example) — this worker's own
   // `performance.timeOrigin` IS `localTimeOrigin`, `msg.mainTimeOriginMs` IS
   // `mainTimeOrigin`.
   const offsetMs = performance.timeOrigin - msg.mainTimeOriginMs;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type PacedFrame, PresentationPacer } from "./presentationPacer";
+import { type PacedFrame, PresentationPacer } from "./presentation-pacer";
 
 function frame(ut: number, label: string): PacedFrame<string> {
   return { ut, data: label };

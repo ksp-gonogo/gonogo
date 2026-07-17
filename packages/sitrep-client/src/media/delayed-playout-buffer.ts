@@ -6,11 +6,22 @@
  * available at the same wall-time, because both read `confirmedEdgeUt()`
  * off one shared clock object. This class never computes
  * `arrival + delaySeconds` itself — see §5.1, "samples confirm, estimate
- * only schedules". It is deliberately decoupled from `@ksp-gonogo/sitrep-client`
- * (no import of `ViewClock`): the `view` dependency is any object exposing
- * `confirmedEdgeUt()` / `onFrame()`, injected by the caller (the app wires
- * the real `ViewClock` in; kerbcast never imports sitrep-client, avoiding a
- * circular package dependency — see the class's constructor doc).
+ * only schedules".
+ *
+ * The `view` dependency is STRUCTURAL (`DelayClockLike`), not the concrete
+ * `ViewClock` — a deliberate choice kept even though this buffer now lives in
+ * the same package as `ViewClock` (moved here 2026-07-17 as generic media
+ * infra). The original reason — "avoid a circular dependency from the camera
+ * Uplink back into sitrep-client" — no longer applies; two reasons that DO
+ * survive the move keep it structural:
+ *   1. it lets the buffer be unit-tested against a hand-rolled clock double
+ *      (see `delayed-playout-buffer.test.ts`) with no real `ViewClock`, no
+ *      provider, no wall clock;
+ *   2. it documents the MINIMAL surface media delay needs off the one delay
+ *      authority — exactly `confirmedEdgeUt()` + `onFrame()` — so the coupling
+ *      to the clock stays a two-method contract, not the whole class.
+ * The app still wires the real `ViewClock` in at the call site; `ViewClock`
+ * satisfies `DelayClockLike` structurally (its `ViewClockView` view is wider).
  */
 
 /** One UT-stamped media frame (or still) entering the buffer. */
@@ -31,10 +42,12 @@ export interface StampedFrame<T = unknown> {
 }
 
 /**
- * The minimal delay-clock surface the buffer depends on. Structurally
- * matches `Pick<ViewClock, "confirmedEdgeUt" | "onFrame">` from
- * `@ksp-gonogo/sitrep-client` without importing that package — the app passes
- * the real `ViewClock` instance (or any equivalent) at the call site.
+ * The minimal delay-clock surface the buffer depends on — a subset of the
+ * sibling `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`). Kept
+ * structural (not `ViewClock` itself) on purpose — see the module doc: it
+ * keeps the buffer unit-testable against a clock double and documents the
+ * two-method contract media delay needs off the one delay authority. The app
+ * passes the real `ViewClock` instance (or any equivalent) at the call site.
  */
 export interface DelayClockLike {
   /** The certainty horizon: a frame stamped at-or-before this UT is
@@ -74,7 +87,7 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
    *
    * Default `false`/unset — **drop-oldest-non-keyframe, one frame at a
    * time.** Correct for payloads with no inter-frame dependency (a decoded
-   * `VideoFrame`: each is independently displayable, so `frameDelay.ts`
+   * `VideoFrame`: each is independently displayable, so `frame-delay.ts`
    * always tags them `keyframe: false` and any single one is a safe
    * eviction candidate). This is the ORIGINAL, unchanged behaviour — every
    * pre-existing caller keeps it exactly as before.

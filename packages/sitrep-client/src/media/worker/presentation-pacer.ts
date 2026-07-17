@@ -1,6 +1,5 @@
 /**
- * The presentation pacer — the ACTUAL jank fix (cross-browser kerbcast
- * video-delay design, 2026-07-16, finding F3 + "Paced release"). Moving the
+ * The presentation pacer — the ACTUAL jank fix (cross-browser video-delay design, 2026-07-16, finding F3 + "Paced release"). Moving the
  * frame-delay pipeline into a Worker does NOT by itself fix the reported
  * stutter: `ViewClock.confirmedEdgeUt()` is sample-clamped
  * (`min(utNowEstimate() - delaySeconds, maxSampleUt + slackSeconds)`, with
@@ -14,7 +13,7 @@
  *
  * This class sits between `DelayedPlayoutBuffer`'s release and the actual
  * sink write (wired in via `runFrameDelayPipeline`'s optional `pacing`
- * option — see `frameDelay.ts`). It re-times a burst of already-CONFIRMED
+ * option — see `frame-delay.ts`). It re-times a burst of already-CONFIRMED
  * frames so they present spaced by their own UT deltas, instead of all at
  * once. This can only ever ADD latency, never remove it — every frame
  * handed to `submit()` already passed `DelayedPlayoutBuffer`'s
@@ -33,7 +32,7 @@
  *
  * `nowWall` and every frame's `ut` are compared directly (a UT-second delta
  * is treated as a wall-second delay) — see the module docstring caveat in
- * `frameDelay.ts` re: this being a deliberate v1 simplification that does
+ * `frame-delay.ts` re: this being a deliberate v1 simplification that does
  * NOT scale by warp rate.
  */
 
