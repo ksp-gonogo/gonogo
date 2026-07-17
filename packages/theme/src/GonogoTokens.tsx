@@ -5,11 +5,12 @@ import { createGlobalStyle } from "styled-components";
  *
  * Mirrors `tokens.css` exactly — the same `:root` variable block and the
  * coarse-pointer font-size override. Hosts that build their global styles
- * through styled-components (rather than importing `@ksp-gonogo/ui-kit/tokens.css`)
+ * through styled-components (rather than importing `@ksp-gonogo/theme/tokens.css`)
  * render `<GonogoTokens />` once near the tree root.
  *
- * Not auto-mounted: injecting a stylesheet is a side effect, and the kit stays
- * side-effect-free so it tree-shakes cleanly. The host opts in explicitly.
+ * Not auto-mounted: injecting a stylesheet is a side effect, and this package
+ * stays side-effect-free so it tree-shakes cleanly. The host opts in
+ * explicitly.
  *
  * Keep this block and `tokens.css` in sync — they are two hand-maintained
  * copies of the same source of truth.
