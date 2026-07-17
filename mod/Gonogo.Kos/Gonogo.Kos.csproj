@@ -4,13 +4,18 @@
   This assembly compile-time links kOS (GPLv3, cloned for reference at
   local_docs/reference/kos/) and, from P1 onward, 0Harmony for one
   observe-only patch. Per local_docs/telemetry-mod/kos-migration-spec.md
-  §8: gonogo is GPLv3 overall, so direct-linking kOS is licence-compatible
-  and deliberate — no arm's-length reflection, no loopback telnet.
+  §8 the link is deliberate — no arm's-length reflection, no loopback
+  telnet.
+
+  gonogo overall is MIT (see LICENSING.md). Gonogo.Kos is THE exception:
+  linking GPLv3 kOS makes this assembly GPL-3.0-only. It is a dependency
+  leaf — nothing references it — so that obligation propagates nowhere, and
+  the MIT Sitrep.* assemblies it links are GPL-compatible in that direction.
 
   This program is free software: you can redistribute it and/or modify it
   under the terms of the GNU General Public License v3.0 as published by
-  the Free Software Foundation. See the repository LICENSE for the full
-  text.
+  the Free Software Foundation. The full text is in this directory's LICENSE
+  and at the repository root as LICENSE-GPL-3.0.txt.
 
   Packaging: Gonogo.Kos is a SEPARATE, optional deployable extension (its
   own GameData/GonogoKos folder + its own CKAN/SpaceDock listing via

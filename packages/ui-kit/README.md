@@ -134,4 +134,4 @@ Token names are part of the contract, not an implementation detail — renaming 
 
 ## Licence
 
-GPL-3.0-only
+MIT

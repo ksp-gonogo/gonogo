@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- GPL-3.0-only. RealAntennas is CC-BY-SA-4.0 (comms-uplink-design.md §4.1),
-       a one-way-GPLv3-compatible CONTENT licence whose ShareAlike could reach a
-       COMBINED work. This uplink therefore NEVER links RA's assembly and NEVER
-       derives from its types — it reaches every RA member by runtime reflection
-       (RaReflection), the RemoteTech-style arm's-length pattern (§4.2). The
-       arm's-length boundary is what keeps this GPL-3.0-only assembly clear of
-       ShareAlike. RA's attribution notice is retained in NOTICE-REALANTENNAS.txt
-       alongside this file. -->
+  <!-- MIT, like the rest of gonogo (see LICENSING.md). RealAntennas is
+       CC-BY-SA-4.0 (comms-uplink-design.md §4.1), a CONTENT licence whose
+       ShareAlike could reach a COMBINED work. This uplink therefore NEVER
+       links RA's assembly and NEVER derives from its types — it reaches every
+       RA member by runtime reflection (RaReflection), the RemoteTech-style
+       arm's-length pattern (§4.2). That arm's-length boundary is what keeps
+       this assembly clear of ShareAlike, and it holds under MIT exactly as it
+       did under GPL. RA's attribution notice is retained in
+       NOTICE-REALANTENNAS.txt alongside this file. -->
   <PropertyGroup>
-    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
