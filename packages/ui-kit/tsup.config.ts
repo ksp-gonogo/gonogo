@@ -14,6 +14,10 @@ import { defineConfig } from "tsup";
  *     emitted declarations carry `UiKitTheme`, `GonogoTokens` et al. outright
  *     instead of re-exporting them from a package no consumer can install.
  *
+ * `lucide-react` (the icon set behind `./Icons`) is inlined the same way, so
+ * the kit's icon exports work with zero extra installs for a consumer —
+ * export-safe means the peer list stays exactly react/react-dom/styled-components.
+ *
  * Everything in `external` is a peer and must NEVER be bundled. styled-components
  * keeps a module-level registry, so a second copy inside our bundle would produce
  * components that silently don't share a ThemeProvider with the host app's.
@@ -25,8 +29,8 @@ export default defineConfig({
   target: "es2022",
   clean: true,
   sourcemap: true,
-  // Inline the internal, never-published theme package.
-  noExternal: ["@ksp-gonogo/theme"],
+  // Inline the internal, never-published theme package + lucide-react (icons).
+  noExternal: ["@ksp-gonogo/theme", "lucide-react"],
   // Peers: resolved from the consumer's tree, never bundled.
   external: ["react", "react-dom", "react/jsx-runtime", "styled-components"],
   dts: {
