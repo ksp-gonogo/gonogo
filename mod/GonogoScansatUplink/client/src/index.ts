@@ -47,8 +47,10 @@
 // migrated off it yet — see T9 in
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md for
 // the deletion of that duplicate once MapView's augment migration lands.
-// Until then, the Minimap here still reuses MapView's own biome/fog canvas
-// hooks via @ksp-gonogo/components (those aren't part of this move).
+// The Minimap here (`Scanning/Minimap.tsx`) has its own mod-local coverage
+// gate (`FogReveal/useScanCoverageGate.ts`) and paints through T8c's
+// `TerrainBase/paintTile.ts`, same as BiomeBase — it no longer borrows
+// MapView's canvas hooks via @ksp-gonogo/components at all (T9-Minimap).
 
 export type {
   ScanningConfig,

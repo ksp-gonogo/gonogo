@@ -1,22 +1,34 @@
-import { useBiomeCanvas, useFogDisplayCanvas } from "@ksp-gonogo/components";
 import { type BodyDefinition, useDataValue } from "@ksp-gonogo/core";
 import { useElementSize } from "@ksp-gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
+import { useScanCoverageGate } from "../FogReveal/useScanCoverageGate";
 import {
   useScanAnomalies,
+  useScanBiomeGrid,
   useScanningVessels,
 } from "../FogReveal/useScanLayers";
 import type { SCANScanningVessel } from "../schema";
+import { packedColourToComponents } from "../TerrainBase/BiomeBase";
+import {
+  BASE_LAYER_CANVAS_H,
+  BASE_LAYER_CANVAS_W,
+  paintTile,
+} from "../TerrainBase/paintTile";
 
 /**
- * Live "camera view" of the active vessel's sub-point. Composites the
- * real SCANsat biome canvas + fog mask, then overlays the vessel
- * crosshair and any anomalies that fall inside the window. The base
- * pixels come straight from `scan.biomeGrid[body]` and the fog comes
- * straight from `scan.maskBitmap[body, AltimetryHiRes]` — no
- * approximation, just a windowed view of what SCANsat is actually
- * producing.
+ * Live "camera view" of the active vessel's sub-point. Paints its own
+ * coverage-gated biome surface (the same `paintTile` technique T8c's
+ * `BiomeBase` map-view.base augment uses) into an offscreen canvas, then
+ * draws a windowed crop of it plus the vessel crosshair and any anomalies
+ * that fall inside the window. There is no separate dark fog-overlay
+ * canvas composited on top — per the settled "no fog layer" model
+ * (`useScanCoverageGate`'s own header comment), a covered tile paints the
+ * biome colourmap and an uncovered tile paints nothing, letting the
+ * canvas's own dark background fill show through. The base pixels come
+ * straight from `scan.biomeGrid[body]`; coverage comes from whichever
+ * reveal sources this Uplink has registered (`useScanSatFogSync.ts`) via
+ * the same fog-mask cache MapView's own base layer reads.
  */
 export interface MinimapProps {
   body: BodyDefinition;
@@ -30,9 +42,9 @@ export interface MinimapProps {
 const MAX_MINIMAP_PX = 240;
 /** Half-window in degrees of latitude. Square in lat space. */
 const WINDOW_HALF_DEG = 20;
-/** Source-canvas dimensions; must match useBiomeCanvas. */
-const SRC_W = 2048;
-const SRC_H = 1024;
+/** Source-canvas dimensions; must match paintTile's BASE_LAYER_CANVAS_W/H. */
+const SRC_W = BASE_LAYER_CANVAS_W;
+const SRC_H = BASE_LAYER_CANVAS_H;
 
 export function Minimap({
   body,
@@ -40,6 +52,12 @@ export function Minimap({
   vesselLon,
 }: Readonly<MinimapProps>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Offscreen surface the coverage-gated biome colourmap is painted onto —
+  // same fixed-resolution technique as TerrainBase/BiomeBase.tsx's
+  // map-view.base augment, just owned locally rather than handed to
+  // MapView via ctx.onLayer. Lazily created and reused across repaints so
+  // painting doesn't churn a fresh canvas element every render.
+  const paintCanvasRef = useRef<HTMLCanvasElement | null>(null);
   // The minimap is square; its edge tracks the container width, capped so it
   // never overflows a narrow panel and never grows past the legible maximum.
   const { ref: wrapRef, size } = useElementSize<HTMLDivElement>({
@@ -47,13 +65,15 @@ export function Minimap({
     h: MAX_MINIMAP_PX,
   });
   const minimapPx = Math.max(1, Math.min(MAX_MINIMAP_PX, size.w));
-  const biome = useBiomeCanvas(body, true);
-  const fog = useFogDisplayCanvas(body.name);
+  const biomeGrid = useScanBiomeGrid(body.name);
+  const coverageGate = useScanCoverageGate(body.id, undefined);
   const anomalies = useScanAnomalies(body.name);
   const scanningVessels = useScanningVessels();
 
-  // Repaint on body change, vessel-move, resize, or upstream-canvas mutation.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: biome.version / fog.version bump on canvas-bytes-changed; the canvas reference is stable across mutations
+  // Repaint on body change, vessel-move, resize, or upstream biome/coverage
+  // change (coverageGate is a fresh object on every recompute — see
+  // useScanCoverageGate's own setGate calls — so no separate version field
+  // is needed here the way the old canvas-ref hooks needed one).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -82,11 +102,38 @@ export function Minimap({
     const sw = 2 * halfWpx;
     const sh = 2 * halfHpx;
 
-    if (biome.canvas) {
-      drawWindowed(ctx, biome.canvas, sx, sy, sw, sh, minimapPx);
-    }
-    if (fog.canvas) {
-      drawWindowed(ctx, fog.canvas, sx, sy, sw, sh, minimapPx);
+    // Coverage-gated biome colourmap — a covered tile paints its biome
+    // colour (up to full opacity), an uncovered tile paints nothing at
+    // all, letting the "#0a0a0a" background fill above show through. No
+    // separate dark fog-overlay canvas is composited on top; this single
+    // paintTile pass is the whole surface (settled "no fog layer" model).
+    if (biomeGrid && typeof document !== "undefined") {
+      if (!paintCanvasRef.current) {
+        const c = document.createElement("canvas");
+        c.width = BASE_LAYER_CANVAS_W;
+        c.height = BASE_LAYER_CANVAS_H;
+        paintCanvasRef.current = c;
+      }
+      const paintCanvas = paintCanvasRef.current;
+      const paintCtx = paintCanvas.getContext("2d");
+      if (paintCtx) {
+        paintTile(
+          paintCtx,
+          biomeGrid.width,
+          biomeGrid.height,
+          body,
+          coverageGate,
+          (iLon, iLat) => {
+            const idx = iLon * biomeGrid.height + iLat;
+            const biomeIdx = biomeGrid.indices[idx];
+            if (biomeIdx === 0xff) return null;
+            const entry = biomeGrid.biomes[biomeIdx];
+            if (!entry) return null;
+            return packedColourToComponents(entry.colour);
+          },
+        );
+        drawWindowed(ctx, paintCanvas, sx, sy, sw, sh, minimapPx);
+      }
     }
 
     // Scanner footprints — drawn with SCANsat's own getFOV +
@@ -127,10 +174,8 @@ export function Minimap({
     vesselLat,
     vesselLon,
     minimapPx,
-    biome.canvas,
-    biome.version,
-    fog.canvas,
-    fog.version,
+    biomeGrid,
+    coverageGate,
     anomalies,
     scanningVessels,
   ]);
