@@ -97,8 +97,10 @@ five original files were touched or moved, so no entry goes stale).
 Files staged: `mod/GonogoScansatUplink/client/src/schema.ts`, `mod/GonogoScansatUplink/client/
 src/FogReveal/*`, `mod/GonogoScansatUplink/client/src/AnomalyOverlay/{geometry.ts,
 geometry.test.ts,index.tsx}`, `mod/GonogoScansatUplink/client/src/Scanning/{index.tsx,
-Minimap.tsx}`, `mod/GonogoScansatUplink/client/src/index.ts`. (SHA filled in below once
-committed.)
+Minimap.tsx}`, `mod/GonogoScansatUplink/client/src/index.ts`.
+
+**SHA: `0f27ca29c606ebce8319a5e3fd45fce32ea45582`.** Pre-commit hook (biome check + full
+`turbo typecheck` across 33 packages) passed clean.
 
 ## Follow-up for T9 (not this task)
 
