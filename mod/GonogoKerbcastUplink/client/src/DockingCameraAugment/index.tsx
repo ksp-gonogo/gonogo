@@ -22,7 +22,11 @@
 
 import type {} from "@ksp-gonogo/components"; // pulls DistanceToTarget's "distance-to-target.camera" SlotRegistry merge into this program (see that module's declare-module comment)
 import type { SlotProps } from "@ksp-gonogo/core";
-import { getDataSource, registerAugment, useTelemetry } from "@ksp-gonogo/core";
+import {
+  getUplinkHandle,
+  registerAugment,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   KerbcastProvider,
   type KerbcastSubscriptions,
@@ -38,7 +42,7 @@ export function DockingCameraAugment({
 }: SlotProps<"distance-to-target.camera">) {
   const cameras = useTelemetry("kerbcast.cameras");
   const flightId = selectDockingCamera(cameras, cameraFlightId);
-  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+  const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
   const client = ds?.getClient();
 
   // Kick the MEDIA connection once the CONTROL plane names a camera to show.
