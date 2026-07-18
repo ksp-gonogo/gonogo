@@ -41,6 +41,7 @@ export * from "./testing/installDomStubs";
 export * from "./testing/MockDataSource";
 export * from "./theme";
 export * from "./types";
+export * from "./uplinkHandles";
 export * from "./utils/format";
 export * from "./utils/math";
 export * from "./version/compare";
