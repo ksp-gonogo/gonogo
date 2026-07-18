@@ -13,13 +13,19 @@ import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import type { MapBadgesContext, MapOverlayContext } from "./index";
+import type {
+  MapBadgesContext,
+  MapBaseLayerContext,
+  MapOverlayContext,
+  MapSectionsContext,
+} from "./index";
 import { MapViewComponent } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
@@ -474,6 +480,78 @@ describe("MapViewComponent", () => {
         container.querySelector('[data-testid="overlay-probe"]'),
       ).toBeNull();
       expect(container.textContent).not.toContain("badge:");
+    });
+
+    it("composes a fake map-view.sections augment below the map", async () => {
+      registerAugment({
+        id: "test-map-sections",
+        augments: "map-view.sections",
+        component: (ctx: MapSectionsContext) => (
+          <div>Sections for {ctx.bodyName}</div>
+        ),
+      });
+
+      const { container, fixture } = renderMap();
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      await waitFor(() => {
+        if (!container.textContent?.includes("Sections for Kerbin")) {
+          throw new Error("sections augment has not rendered yet");
+        }
+      });
+    });
+
+    it("map-view.base: draws the augment's canvas over the stock texture only when activeLayerId matches", async () => {
+      const onLayerCalls: Array<HTMLCanvasElement | null> = [];
+      registerAugment({
+        id: "fake-base",
+        augments: "map-view.base",
+        component: (ctx: MapBaseLayerContext) => {
+          // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when this augment's own active/inactive state flips, mirroring the real base-layer augment's own gating contract
+          useEffect(() => {
+            if (ctx.activeLayerId !== "fake-base") return;
+            const c = document.createElement("canvas");
+            c.width = ctx.width;
+            c.height = ctx.height;
+            ctx.onLayer(c, 1);
+            onLayerCalls.push(c);
+          }, [ctx.activeLayerId]);
+          return null;
+        },
+      });
+
+      const { fixture } = renderMap({ baseLayerId: "fake-base" });
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      await waitFor(() => {
+        if (onLayerCalls.length !== 1) {
+          throw new Error("onLayer has not been called yet");
+        }
+      });
+      expect(onLayerCalls).toHaveLength(1);
+    });
+
+    it("map-view.base: an unmatched activeLayerId never calls onLayer with a canvas", async () => {
+      let called = false;
+      registerAugment({
+        id: "fake-base-2",
+        augments: "map-view.base",
+        component: (ctx: MapBaseLayerContext) => {
+          // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when this augment's own active/inactive state flips, mirroring the real base-layer augment's own gating contract
+          useEffect(() => {
+            if (ctx.activeLayerId === "fake-base-2") {
+              called = true;
+              ctx.onLayer(document.createElement("canvas"), 1);
+            }
+          }, [ctx.activeLayerId]);
+          return null;
+        },
+      });
+
+      const { fixture } = renderMap({ baseLayerId: "something-else" });
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      expect(called).toBe(false);
     });
   });
 });

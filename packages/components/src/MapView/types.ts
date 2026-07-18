@@ -89,4 +89,13 @@ export interface MapViewConfig {
    * Default: off.
    */
   showAnomalyPanel?: boolean;
+  /**
+   * Selects which registered `map-view.base` augment (if any) is active, by
+   * that augment's own id. Unset, or set to an id nothing has registered,
+   * simply means no augment renders and MapView's own stock texture is
+   * what's already underneath, untouched — there is no "vanilla" registry
+   * entry to compare against. See `MapBaseLayerContext`'s doc comment in
+   * `index.tsx`.
+   */
+  baseLayerId?: string;
 }
