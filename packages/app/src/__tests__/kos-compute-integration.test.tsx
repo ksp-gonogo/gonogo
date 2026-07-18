@@ -12,7 +12,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { isKosScriptError, useKosWidget } from "@ksp-gonogo/data";
+import { isKosScriptError, useKosWidget } from "@ksp-gonogo/kos";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";

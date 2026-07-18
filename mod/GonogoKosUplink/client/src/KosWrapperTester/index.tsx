@@ -1,6 +1,5 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
-import { hashKosScript, useKosWidget } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   CheckIcon,
@@ -19,7 +18,9 @@ import {
 } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { hashKosScript } from "../shared/hashKosScript";
 import { KosCpuPicker } from "../shared/KosCpuPicker";
+import { useKosWidget } from "../shared/useKosWidget";
 
 interface KosWrapperTesterConfig {
   /** kOS CPU tagname. Required — widget stays in an empty state until set. */

@@ -11,7 +11,7 @@
  */
 
 import { clearRegistry, registerKosScript } from "@ksp-gonogo/core";
-import { hashKosScript } from "@ksp-gonogo/data";
+import { hashKosScript } from "@ksp-gonogo/kos";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
 import { FakeKosUplink } from "./fixtures/FakeKosUplink";

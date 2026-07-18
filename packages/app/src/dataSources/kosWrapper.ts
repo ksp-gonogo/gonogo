@@ -1,4 +1,4 @@
-import type { KosManagedScript, KosScriptArg } from "@ksp-gonogo/data";
+import type { KosManagedScript, KosScriptArg } from "@ksp-gonogo/kos";
 
 /**
  * Per-dispatch wrapper that keeps the on-volume copy of a widget's

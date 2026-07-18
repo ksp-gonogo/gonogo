@@ -27,7 +27,7 @@ import {
   type KosData,
   type KosManagedScript,
   type KosScriptArg,
-} from "@ksp-gonogo/data";
+} from "@ksp-gonogo/kos";
 import { logger } from "@ksp-gonogo/logger";
 
 /**

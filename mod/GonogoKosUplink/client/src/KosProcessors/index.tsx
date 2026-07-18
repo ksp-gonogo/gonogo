@@ -5,7 +5,6 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@ksp-gonogo/core";
-import { type KosScriptStatus, useKosScriptStatus } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   type StreamStatusValue,
@@ -30,6 +29,10 @@ import {
 } from "react";
 import styled from "styled-components";
 import { KosScriptFrame } from "../shared/KosScriptFrame";
+import {
+  type KosScriptStatus,
+  useKosScriptStatus,
+} from "../shared/useKosScriptStatus";
 import {
   KOS_PROCESSORS_SCRIPT,
   KOS_PROCESSORS_TOPIC_ID,

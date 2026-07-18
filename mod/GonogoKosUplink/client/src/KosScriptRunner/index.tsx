@@ -8,7 +8,6 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
-import { type KosWidgetArg, useKosWidget } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   ConfigForm,
@@ -25,6 +24,7 @@ import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../shared/KosCpuPicker";
 import { KosScriptFrame } from "../shared/KosScriptFrame";
+import { type KosWidgetArg, useKosWidget } from "../shared/useKosWidget";
 
 /**
  * kOS Script Runner — a second helper layer over the raw kOS terminal, one

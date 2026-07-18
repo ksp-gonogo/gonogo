@@ -1,6 +1,5 @@
 import type { DataSource } from "@ksp-gonogo/core";
-import type { ScriptableDataSource } from "@ksp-gonogo/data";
-import { DataSourceWrapper, isScriptable } from "@ksp-gonogo/data";
+import { DataSourceWrapper } from "@ksp-gonogo/data";
 import { debugPeer } from "@ksp-gonogo/logger";
 import type { PeerHostService } from "./PeerHostService";
 
@@ -41,6 +40,30 @@ type LatestValueAware = {
 type ConfigChangeAware = {
   onConfigChange: (cb: () => void) => () => void;
 };
+
+// Generic, mod-agnostic structural type for a wrapped source that can
+// dispatch a script and resolve with some result. Deliberately untyped
+// beyond that shape — no kOS-specific arg/result types — so this generic
+// peer-distribution wrapper never needs to depend on any specific Uplink
+// package. kOS's own typed contract (ScriptableDataSource) lives in the kos
+// Uplink; KosDataSource's more specific executeScript still satisfies this
+// looser shape structurally.
+type ExecuteScriptAware = {
+  executeScript: (
+    cpu: string,
+    script: string,
+    args: unknown[],
+    managed?: unknown,
+  ) => Promise<unknown>;
+};
+
+function hasExecuteScript(
+  source: DataSource,
+): source is DataSource & ExecuteScriptAware {
+  return (
+    typeof (source as Partial<ExecuteScriptAware>).executeScript === "function"
+  );
+}
 
 function hasSubscribeSamples(
   source: DataSource,
@@ -173,12 +196,12 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return { t: [], v: [] };
   }
 
-  // Conditional getter so `isScriptable(wrapper)` reflects whether the
+  // Conditional getter so `hasExecuteScript(wrapper)` reflects whether the
   // wrapped source actually supports executeScript — the host's
   // kos-execute-request handler (and useKosWidget on main) both narrow
-  // through `isScriptable`.
-  get executeScript(): ScriptableDataSource["executeScript"] | undefined {
-    if (!isScriptable(this.real)) return undefined;
+  // through this same structural check.
+  get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
+    if (!hasExecuteScript(this.real)) return undefined;
     return this.real.executeScript.bind(this.real);
   }
 

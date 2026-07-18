@@ -1,5 +1,4 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
-import type { KosWidgetArg } from "@ksp-gonogo/data";
 import { useDataSchema } from "@ksp-gonogo/data";
 import {
   ChevronDownIcon,
@@ -15,6 +14,7 @@ import {
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../shared/KosCpuPicker";
+import type { KosWidgetArg } from "../shared/useKosWidget";
 import type { KosWidgetConfig } from "./types";
 
 type ArgType = KosWidgetArg["type"];

@@ -6,10 +6,6 @@ import type { FlightFixture } from "./fixtureIO";
 import { exportFlightToFixture } from "./fixtureIO";
 import { getKeepCount } from "./flightAutoDelete";
 import { FlightDetector } from "./flightDetector";
-import {
-  isScriptable,
-  type ScriptableDataSource,
-} from "./kos/ScriptableDataSource";
 import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
 import { debugFlight } from "./logger";
 import { enrichKey } from "./schema/telemachusMeta";
@@ -40,6 +36,31 @@ const BUFFERED_SAMPLE_BUDGET = new PerfBudget({
 });
 
 type Clock = () => number;
+
+// Generic, mod-agnostic structural type for a wrapped source that can
+// dispatch a script and resolve with some result — deliberately untyped
+// beyond that shape (no kOS-specific arg/result types) so this package
+// never needs to depend on any specific Uplink package. kOS's own typed
+// contract (ScriptableDataSource, with KosScriptArg/KosData types) lives in
+// the kos Uplink itself; KosDataSource's more specific executeScript still
+// satisfies this looser shape structurally.
+type ExecuteScriptAware = {
+  executeScript: (
+    cpu: string,
+    script: string,
+    args: unknown[],
+    managed?: unknown,
+  ) => Promise<unknown>;
+};
+
+function hasExecuteScript(
+  source: DataSource | undefined | null,
+): source is DataSource & ExecuteScriptAware {
+  return (
+    !!source &&
+    typeof (source as Partial<ExecuteScriptAware>).executeScript === "function"
+  );
+}
 
 /**
  * Match a recovery/crash event to a FlightRecord by vessel name, prefer
@@ -348,11 +369,11 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.statusSubscribers.add(cb);
   }
 
-  // Conditional getter so `isScriptable(buffered)` reflects whether the
+  // Conditional getter so `hasExecuteScript(buffered)` reflects whether the
   // wrapped source actually supports executeScript — matches the
   // PeerBroadcastingDataSource pattern.
-  get executeScript(): ScriptableDataSource["executeScript"] | undefined {
-    if (!isScriptable(this.source)) return undefined;
+  get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
+    if (!hasExecuteScript(this.source)) return undefined;
     return this.source.executeScript.bind(this.source);
   }
 

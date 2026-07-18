@@ -1,20 +1,22 @@
 import type { DataSource } from "@ksp-gonogo/core";
-import type { KosManagedScript } from "../hooks/useKosWidget";
 import type { KosData, KosScriptArg } from "./kos-data-parser";
+import type { KosManagedScript } from "./useKosWidget";
 
 /**
  * Extension of `DataSource` for sources that can dispatch a kerboscript on
- * a named CPU and resolve with its parsed `[KOSDATA]` payload. Lives in
- * `@ksp-gonogo/data` rather than `@ksp-gonogo/core` because the script-arg / data /
- * managed-script types it depends on are kOS-specific and already defined
- * in this package — pulling them up into core would invert the dependency.
+ * a named CPU and resolve with its parsed `[KOSDATA]` payload. Lives in the
+ * kos Uplink (not `@ksp-gonogo/core`) because the script-arg / data /
+ * managed-script types it depends on are kOS-specific.
  *
  * Implemented unconditionally by `KosDataSource` and `PeerClientDataSource`
  * (the station-side mirror, which tunnels the call through PeerJS to the
- * host's kOS source). Wrappers like `BufferedDataSource` and
- * `PeerBroadcastingDataSource` may or may not expose `executeScript`
- * depending on whether their wrapped source implements it — call sites
- * narrow with `isScriptable(source)`.
+ * host's kOS source) — both live in this same Uplink package. Generic
+ * wrappers outside the kos Uplink (`BufferedDataSource`,
+ * `PeerBroadcastingDataSource`) must NOT import this kos-typed interface —
+ * a mod-agnostic package can't depend on a mod's Uplink package. They
+ * define their own local, generically-typed `executeScript` structural
+ * guard instead (see their own `hasExecuteScript`-shaped helpers), matching
+ * every other optional-capability forward they already do.
  */
 export interface ScriptableDataSource<
   TConfig extends Record<string, unknown> = Record<string, unknown>,
