@@ -24,6 +24,7 @@ import type {
   AugmentDefinition,
   ComponentDefinition,
   FogRevealSourceDefinition,
+  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -43,6 +44,7 @@ export interface GonogoHost {
   registerTheme(def: ThemeDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
+  registerMapPoiProvider(def: MapPoiProviderDefinition): void;
 
   useDataValue<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;

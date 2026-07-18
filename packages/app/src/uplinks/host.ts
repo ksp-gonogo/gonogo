@@ -20,6 +20,7 @@ import {
   registerAugment,
   registerComponent,
   registerFogRevealSource,
+  registerMapPoiProvider,
   registerTheme,
   subscribeSetting,
   useActionInput,
@@ -67,6 +68,10 @@ export function buildGonogoHost(): GonogoHost {
     registerFogRevealSource: (def) =>
       registerFogRevealSource(
         def as Parameters<typeof registerFogRevealSource>[0],
+      ),
+    registerMapPoiProvider: (def) =>
+      registerMapPoiProvider(
+        def as Parameters<typeof registerMapPoiProvider>[0],
       ),
 
     useDataValue: (dataSourceId, key) => useDataValue(dataSourceId, key),

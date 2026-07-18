@@ -29,6 +29,7 @@ import type {
   AugmentDefinition,
   ComponentDefinition,
   FogRevealSourceDefinition,
+  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -53,6 +54,7 @@ export type {
   ConfigComponentProps,
   DataRequirement,
   FogRevealSourceDefinition,
+  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SlotId,
@@ -88,6 +90,9 @@ export const registerAugment = <S extends string>(
 
 export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
   getHost().registerFogRevealSource(def);
+
+export const registerMapPoiProvider = (def: MapPoiProviderDefinition): void =>
+  getHost().registerMapPoiProvider(def);
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 

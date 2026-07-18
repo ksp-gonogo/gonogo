@@ -22,6 +22,7 @@ import type {
   FogRevealSourceDefinition,
   GonogoHost,
   Logger,
+  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SlotId,
@@ -51,6 +52,7 @@ declare const _actionHandlers: ActionHandlers<
 declare const _augmentDef: AugmentDefinition<"slot">;
 declare const _augmentSetting: AugmentSettingField;
 declare const _fogRevealSourceDef: FogRevealSourceDefinition;
+declare const _mapPoiProviderDef: MapPoiProviderDefinition;
 declare const _slotId: SlotId;
 declare const _slotProps: SlotProps<"slot">;
 declare const _slotRegistry: SlotRegistry;
@@ -88,6 +90,7 @@ export type _ApiShapeProbe = [
   typeof _augmentDef,
   typeof _augmentSetting,
   typeof _fogRevealSourceDef,
+  typeof _mapPoiProviderDef,
   typeof _slotId,
   typeof _slotProps,
   typeof _slotRegistry,
