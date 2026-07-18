@@ -131,10 +131,7 @@ const ALLOWLIST: Record<ModToken, string[]> = {
   kerbcast: [
     // -- HARD violations (audit §1, "HARD violations" table) --
     "packages/app/src/dataSources/index.ts",
-    "packages/app/src/peer/PeerClientService.ts",
     "packages/app/src/peer/PeerHostProvider.tsx",
-    "packages/app/src/peer/PeerHostService.ts",
-    "packages/app/src/peer/protocol.ts",
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/screens/StationScreen.tsx",
     "packages/app/src/settings/SettingsModal.tsx",
@@ -203,7 +200,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
 
     // -- TEST-only, exercising the HARD cluster above --
     "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
-    "packages/app/src/__tests__/peer-client-service.test.ts",
     "packages/app/src/settings/SettingsModal.test.tsx",
 
     // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
@@ -298,10 +294,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/dataSources/kosCompute.ts",
     "packages/app/src/dataSources/kosUplinkExecutor.ts",
     "packages/app/src/dataSources/kosWrapper.ts",
-    "packages/app/src/peer/PeerClientDataSource.ts",
-    "packages/app/src/peer/PeerClientService.ts",
-    "packages/app/src/peer/PeerHostService.ts",
-    "packages/app/src/peer/protocol.ts",
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/telemetry/SitrepPeerRelay.tsx",
 
@@ -382,7 +374,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/__tests__/kos-cpu-discovery.test.tsx",
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/kos-execute-uplink.test.ts",
-    "packages/app/src/__tests__/peer-client-service.test.ts",
     // peer label/topic tunnel tests use "kos.run" as the sample command and
     // cite a kOS command in a doc-comment — test/doc-only, no coupling.
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
@@ -445,7 +436,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // same pattern as importing @ksp-gonogo/components.
     "packages/app/src/main.tsx",
     "packages/app/src/peer/PeerBroadcastingDataSource.ts",
-    "packages/app/src/peer/RequestTracker.ts",
     "packages/components/src/CrewManifest/index.tsx",
     "packages/components/src/ManeuverPlanner/index.tsx",
     "packages/components/src/TargetPicker/index.tsx",
