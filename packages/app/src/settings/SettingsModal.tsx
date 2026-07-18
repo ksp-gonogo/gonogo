@@ -1,9 +1,10 @@
 import type { DataSourceStatus } from "@ksp-gonogo/core";
-import { getDataSource, useDataSources, useScreen } from "@ksp-gonogo/core";
 import {
-  type KerbcastDataSource,
-  KerbcastSettings,
-} from "@ksp-gonogo/kerbcast-feed";
+  getDataSource,
+  getSettingsTabsForScreen,
+  useDataSources,
+  useScreen,
+} from "@ksp-gonogo/core";
 import {
   SerialDevicesMenu,
   useSerialAggregateStatus,
@@ -80,12 +81,6 @@ export function SettingsModal() {
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
-  /* The Kerbcast tab is main-screen-only and requires the source to be registered. */
-  const kerbcastSource =
-    screen === "main"
-      ? (getDataSource("kerbcast") as KerbcastDataSource | undefined)
-      : undefined;
-
   const hasGeneral = settings.length > 0 || showConsent;
 
   const tabs: TabDescriptor[] = [];
@@ -112,11 +107,11 @@ export function SettingsModal() {
     content: <SerialDevicesMenu />,
     indicator: serialIssue,
   });
-  if (kerbcastSource) {
+  for (const tab of getSettingsTabsForScreen(screen)) {
     tabs.push({
-      id: "kerbcast",
-      label: "Kerbcast",
-      content: <KerbcastSettings source={kerbcastSource} />,
+      id: tab.id,
+      label: tab.label,
+      content: <tab.component />,
     });
   }
   tabs.push({

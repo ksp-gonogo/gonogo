@@ -1,7 +1,8 @@
+import { registerSettingsTab } from "@ksp-gonogo/core";
 import { Switch } from "@ksp-gonogo/ui";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
-import type { KerbcastDataSource } from "../KerbcastDataSource";
+import { type KerbcastDataSource, kerbcastSource } from "../KerbcastDataSource";
 
 /*
  * Settings tab content for the kerbcast connection.
@@ -96,3 +97,10 @@ const RowDesc = styled.span`
   font-size: var(--font-size-sm);
   max-width: 32em;
 `;
+
+registerSettingsTab({
+  id: "kerbcast",
+  label: "Kerbcast",
+  screens: ["main"],
+  component: () => <KerbcastSettings source={kerbcastSource} />,
+});
