@@ -28,11 +28,13 @@ import {
   clearActionHandlers,
   clearAugments,
   clearRegistry,
+  clearUplinkHandles,
   DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
   registerAugment,
   registerDataSource,
+  registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import type { CameraLifecycle, Layer } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
@@ -253,6 +255,7 @@ afterEach(() => {
   createdSources.length = 0;
   clearActionHandlers(); // tests share one instanceId — handlers would leak
   clearRegistry(); // resets all registries — tests register their own instance
+  clearUplinkHandles(); // resets the narrow uplink-handle registry too
   clearAugments(); // wipe any test augment so it never leaks into other suites
   vi.restoreAllMocks();
 });
@@ -276,7 +279,7 @@ async function buildConnectedSource(
   }
   const ds = new KerbcastDataSource({ port: 1 }, sidecar.createTransport());
 
-  registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
+  registerUplinkHandle("kerbcast", ds);
 
   // Keep the /offer answer's `cameras` array in sync with the snapshot so the
   // client opens a track for every flightId it's about to learn about.
@@ -683,9 +686,7 @@ describe("CameraFeed — empty state and status", () => {
     // neutral empty state and surfaces no in-widget connection status.
     const sidecar = new MockSidecar();
     const ds = new KerbcastDataSource({ port: 1 }, sidecar.createTransport());
-    registerDataSource(
-      ds as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    registerUplinkHandle("kerbcast", ds);
     createdSources.push(ds);
 
     renderFeed({ flightId: null });
@@ -1139,9 +1140,7 @@ describe("CameraFeed — station (brokered) mode", () => {
       iceServers: () => [],
       onIceServersChange: () => () => {},
     });
-    registerDataSource(
-      ds as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    registerUplinkHandle("kerbcast", ds);
 
     await act(async () => {
       await ds.connect();

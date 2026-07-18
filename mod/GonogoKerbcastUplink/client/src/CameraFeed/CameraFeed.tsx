@@ -1,7 +1,7 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
-  getDataSource,
+  getUplinkHandle,
   useActionInput,
   useDataValue,
 } from "@ksp-gonogo/core";
@@ -144,7 +144,7 @@ export function CameraFeed({
   config,
   onConfigChange,
 }: Readonly<ComponentProps<CameraFeedConfig>>) {
-  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+  const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
   const client = ds?.getClient();
 
   // Ensure the sidecar connection is open before we render.
