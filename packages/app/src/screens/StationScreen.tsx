@@ -3,7 +3,7 @@ import {
   StationConnectView,
 } from "@ksp-gonogo/components";
 import {
-  getDataSource,
+  getUplinkHandle,
   registerDataSource,
   type SCANType,
   ScreenProvider,
@@ -216,9 +216,7 @@ export function StationScreen() {
   // the broker's negotiate just retries until the host link is up. Media flows
   // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
   useEffect(() => {
-    const kerbcast = getDataSource("kerbcast") as
-      | KerbcastDataSource
-      | undefined;
+    const kerbcast = getUplinkHandle<KerbcastDataSource>("kerbcast");
     kerbcast?.attachBroker({
       negotiate: (offer) =>
         client.sendUplinkRelay("kerbcast", "negotiate", offer) as Promise<{
