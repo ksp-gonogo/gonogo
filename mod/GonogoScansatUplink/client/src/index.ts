@@ -11,11 +11,12 @@
 //     so it fills @ksp-gonogo/components's ScienceOfficer widget's
 //     `science-officer.badges` slot (design brief:
 //     local_docs/telemetry-mod/scansat-sci-brief-augment.md).
-//   - `AnomalyOverlay` → registerAugment({ id: "scansat-anomaly-overlay", ... })
-//     so it fills @ksp-gonogo/components's MapView widget's
-//     `map-view.overlay` slot with the on-map anomaly markers + bearing/
-//     distance panel (P4c-b: scansat.anomalies.<body> sign-off, see
-//     docs/superpowers/plans/2026-07-11-p4cb-deletion-plan.md §1).
+//   - `AnomalyOverlay/index.ts` → registerMapPoiProvider({ id:
+//     "scansat:anomalies", requires: "scansat", ... }) so discovered
+//     anomalies render through @ksp-gonogo/components's MapView's shared
+//     `MapPoiLayer`, gaining the uniform "Set as Target" action (MapView
+//     overlay-host foundation plan T-POI-8, replacing the old
+//     `map-view.overlay` augment + its bespoke bearing/distance panel).
 //   - `FootprintOverlay` → registerAugment({ id: "scansat-footprint-overlay",
 //     ... }) so it fills the same `map-view.overlay` slot with scanning-
 //     vessel ground-track footprints (MapView overlay-host foundation plan
@@ -49,7 +50,6 @@
 // Until then, the Minimap here still reuses MapView's own biome/fog canvas
 // hooks via @ksp-gonogo/components (those aren't part of this move).
 
-export { AnomalyOverlay } from "./AnomalyOverlay";
 export type {
   ScanningConfig,
   ScanningSlotContext,
