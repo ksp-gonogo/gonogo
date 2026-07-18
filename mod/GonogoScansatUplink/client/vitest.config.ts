@@ -4,9 +4,11 @@ import { defineConfig } from "vitest/config";
 // Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
 // suite runs hermetically without a prior build — mirrors the components
 // package's vitest config, since the moved Scanning tests were authored against
-// that resolution. `@ksp-gonogo/components` is aliased too: the Minimap reuses the
-// scan-layer canvas hooks re-exported from the components barrel (they stay in
-// core MapView until the map-view.overlay augment slot exists).
+// that resolution. `@ksp-gonogo/components` is aliased too: several augments
+// here (TerrainBase/*, FootprintOverlay, CoveragePanel) still take a
+// type-only `import type {} from "@ksp-gonogo/components"` to pull in
+// MapView's SlotRegistry merge, even though nothing in this package imports
+// its runtime scan-canvas internals anymore (Minimap dropped that in T9).
 const pkgs = path.resolve(import.meta.dirname, "../../../packages");
 
 export default defineConfig({
