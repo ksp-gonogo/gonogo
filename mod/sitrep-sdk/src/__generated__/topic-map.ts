@@ -48,6 +48,7 @@ import type {
   SensorEntry,
   ServoEntry,
   SpaceCenterPartsAvailable,
+  SpaceCenterPoiEntry,
   SpaceCenterScene,
   StageDeltaVEntry,
   StageDeltaVSummary,
@@ -112,6 +113,7 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.crewRoster": CrewRosterEntry[];
   "spaceCenter.launchSites": LaunchSiteEntry[];
   "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
+  "spaceCenter.pois": SpaceCenterPoiEntry[];
   "spaceCenter.savedShips": SavedShipEntry[];
   "spaceCenter.scene": SpaceCenterScene;
   "system.bodies": SystemBodies;
@@ -176,6 +178,7 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.crewRoster",
   "spaceCenter.launchSites",
   "spaceCenter.partsAvailable",
+  "spaceCenter.pois",
   "spaceCenter.savedShips",
   "spaceCenter.scene",
   "system.bodies",

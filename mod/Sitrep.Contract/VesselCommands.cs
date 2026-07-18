@@ -149,6 +149,12 @@ public class SetTargetArgs
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Body"/> — the same <c>system.bodies</c> index <see cref="VesselOrbit.ReferenceBodyIndex"/> uses.</summary>
     public int? BodyIndex { get; set; }
+
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/> (a map-picked surface fix, e.g. a <c>spaceCenter.pois</c> entry's own coordinate).</summary>
+    public double? Latitude { get; set; }
+
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/>.</summary>
+    public double? Longitude { get; set; }
 }
 
 /// <summary>

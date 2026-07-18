@@ -7,10 +7,10 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The <c>spaceCenter.*</c> uplink — declares the launch-site / scene /
-    /// crew-roster / saved-ships / parts-available channels
-    /// (<c>spaceCenter.launchSites</c>, <c>spaceCenter.scene</c>,
+    /// crew-roster / saved-ships / parts-available / points-of-interest
+    /// channels (<c>spaceCenter.launchSites</c>, <c>spaceCenter.scene</c>,
     /// <c>spaceCenter.crewRoster</c>, <c>spaceCenter.savedShips</c>,
-    /// <c>spaceCenter.partsAvailable</c>) and wires
+    /// <c>spaceCenter.partsAvailable</c>, <c>spaceCenter.pois</c>) and wires
     /// <see cref="SpaceCenterViewProvider"/>'s builders as their channel
     /// sources. A NEW file rather than an addition to <see cref="SystemUplink"/>,
     /// so it doesn't thrash any existing uplink's ChannelDeclaration list.
@@ -74,6 +74,13 @@ namespace Gonogo.KSP
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = SpaceCenterViewProvider.PoisTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
             },
         };
 
@@ -84,6 +91,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(SpaceCenterViewProvider.CrewRosterTopic, SpaceCenterViewProvider.BuildCrewRoster);
             host.AddChannelSource(SpaceCenterViewProvider.SavedShipsTopic, SpaceCenterViewProvider.BuildSavedShips);
             host.AddChannelSource(SpaceCenterViewProvider.PartsAvailableTopic, SpaceCenterViewProvider.BuildPartsAvailable);
+            host.AddChannelSource(SpaceCenterViewProvider.PoisTopic, SpaceCenterViewProvider.BuildPois);
         }
     }
 }

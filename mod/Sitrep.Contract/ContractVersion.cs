@@ -192,7 +192,21 @@ namespace Sitrep.Contract
         /// docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md §3). A new
         /// nullable field on a hand-declared engine channel + a non-reflected manifest type —
         /// additive, so it cannot break an Uplink built against an older Minor.</para>
+        ///
+        /// <para>Major-4 line, Bumped 2 -&gt; 3: additive-only Minor for the
+        /// MapView overlay-host POI foundation's one wire change (T-POI-3):
+        /// the new <c>spaceCenter.pois</c> channel (<see cref="SpaceCenterPoiEntry"/>,
+        /// the map points-of-interest union of launch sites and active/offered
+        /// contract targets), the new <see cref="TargetKind.Position"/> enum
+        /// member (appended, never inserted), and the new nullable
+        /// <see cref="SetTargetArgs.Latitude"/>/<see cref="SetTargetArgs.Longitude"/>
+        /// fields on the existing <see cref="SetTargetArgs"/> type. A brand-new
+        /// Topic, a brand-new enum member and two brand-new nullable fields,
+        /// nothing removed or retyped, so it cannot break an Uplink built
+        /// against an older Minor. See
+        /// <c>docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md</c>
+        /// §T-POI-3.</para>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

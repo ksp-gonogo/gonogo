@@ -226,6 +226,8 @@ public static class RtConfig
                 typeof(CrewRosterEntry),
                 typeof(SavedShipEntry),
                 typeof(SpaceCenterPartsAvailable),
+                // spaceCenter.pois: the map points-of-interest union (T-POI-3)
+                typeof(SpaceCenterPoiEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

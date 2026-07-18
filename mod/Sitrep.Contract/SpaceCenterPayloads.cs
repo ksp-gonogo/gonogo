@@ -192,3 +192,61 @@ public class SpaceCenterPartsAvailable
     /// <summary>Count of buildable parts.</summary>
     public int? Count { get; set; }
 }
+
+/// <summary>
+/// One point of interest in the <c>spaceCenter.pois</c> channel: the union
+/// of every launch site (<c>ksc</c>/<c>launchSite</c> kinds, the same
+/// <c>PSystemSetup.Instance.LaunchSites</c> walk <see cref="LaunchSiteEntry"/>
+/// already does, filtered to sites with a set spawn-point coordinate) and
+/// every surface contract waypoint currently Active or Offered
+/// (<c>contractTarget</c> kind, from <c>FinePrint.WaypointManager</c>).
+/// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildPois</c>.
+///
+/// <para>The channel is a BARE ARRAY of these entries (tagged
+/// <c>isArray: true</c>, like <see cref="LaunchSiteEntry"/>), one per POI
+/// keyed by <see cref="Id"/>. The whole payload is <c>null</c> (not an empty
+/// array) when no sample has landed yet: the provider's "no data yet" vs.
+/// "zero POIs" distinction. A TS-shape-only typing/codegen marker (the
+/// provider hand-builds the dict, this POCO never serializes). Classified
+/// <c>DelayRole.TrueNow</c> (ground-side facts, same class as
+/// <see cref="LaunchSiteEntry"/>).</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("spaceCenter.pois", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SpaceCenterPoiEntry
+{
+    /// <summary>
+    /// <c>"launchSite:&lt;LaunchSite.name&gt;"</c> for <c>ksc</c>/<c>launchSite</c>
+    /// kinds, <c>"contract:&lt;Waypoint.navigationId&gt;"</c> for
+    /// <c>contractTarget</c>.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary><c>"ksc"</c> | <c>"launchSite"</c> | <c>"contractTarget"</c>.</summary>
+    public string? Kind { get; set; }
+
+    /// <summary>Index into <see cref="SystemBodies"/>; null when absent or unresolved (never a sentinel like -1).</summary>
+    public int? BodyIndex { get; set; }
+
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
+    /// <summary>Display label: the launch site's display name, or the contract's title.</summary>
+    public string? Label { get; set; }
+
+    /// <summary><c>"active"</c> | <c>"available"</c> (null for <c>ksc</c>/<c>launchSite</c> kinds).</summary>
+    public string? Status { get; set; }
+
+    /// <summary>Contract-issuing agent name; null for <c>ksc</c>/<c>launchSite</c> kinds.</summary>
+    public string? ContractAgent { get; set; }
+
+    public double? ContractFundsAdvance { get; set; }
+
+    public double? ContractFundsCompletion { get; set; }
+
+    public double? ContractDateDeadline { get; set; }
+}
