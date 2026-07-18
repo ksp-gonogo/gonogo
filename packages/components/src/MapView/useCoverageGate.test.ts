@@ -77,4 +77,43 @@ describe("useCoverageGate — hook integration", () => {
     rerender();
     await waitFor(() => expect(result.current.hasAnySource).toBe(true));
   });
+
+  it("picks up a reveal source registered before ANY hook instance is mounted", () => {
+    // Regression for the stale module-level cache: a reveal source can
+    // register (e.g. an Uplink SDK bundle loading) before the user ever
+    // navigates to a MapView layout, so no useCoverageGate instance is
+    // mounted yet to catch the change. cachedSources must still be fresh
+    // by the time the first instance mounts.
+    registerFogRevealSource({
+      id: "example-uplink:altimetry-hi",
+      weight: 255,
+    });
+
+    const store = new FogMaskStore({
+      dbName: `gonogo-fog-test-${Math.random()}`,
+    });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(FogMaskCacheProvider, { store }, children);
+    const { result } = renderHook(() => useCoverageGate("Kerbin", undefined), {
+      wrapper,
+    });
+
+    expect(result.current.hasAnySource).toBe(true);
+  });
+
+  it("reports fully-open (hasAnySource false), not a null-data gated state, when no FogMaskCacheProvider is mounted", async () => {
+    // A missing cache provider must never blank the map. With a source
+    // registered but no provider in the tree, cache is null forever — the
+    // gate must degrade to vanilla-open, not stay stuck reporting a source
+    // is present while data can never arrive.
+    registerFogRevealSource({
+      id: "example-uplink:altimetry-hi",
+      weight: 255,
+    });
+
+    const { result } = renderHook(() => useCoverageGate("Kerbin", undefined));
+
+    await waitFor(() => expect(result.current.hasAnySource).toBe(false));
+    expect(result.current.data).toBeNull();
+  });
 });
