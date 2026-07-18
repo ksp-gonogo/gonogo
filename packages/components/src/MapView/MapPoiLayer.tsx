@@ -120,7 +120,7 @@ const PoiMarkerButton = styled.button<{ $style: PoiKindStyle }>`
   border: 2px ${({ $style }) => $style.borderStyle} ${({ $style }) => $style.border};
 
   &:focus-visible {
-    outline: 2px solid var(--color-focus, #00ff88);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 `;
