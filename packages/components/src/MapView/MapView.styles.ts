@@ -74,6 +74,20 @@ export const MapOuter = styled.div`
   overflow: hidden;
 `;
 
+/**
+ * Below-content panel host for the `map-view.sections` slot — one panel per
+ * registered augment, composed additively by priority exactly like
+ * `objectives.sections`/`power-systems.sections`. Renders nothing (adds no
+ * DOM) when the slot is empty; augments that return `null` add no DOM
+ * either, so this stays visually inert until something registers.
+ */
+export const MapSections = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
 // ── Coverage readout (B) ─────────────────────────────────────────────────────
 
 export const CoveragePanel = styled.div`

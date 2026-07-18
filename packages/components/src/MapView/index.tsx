@@ -61,6 +61,7 @@ import {
   ImagingChip,
   MapBody,
   MapOuter,
+  MapSections,
   NoSignal,
   OverlayAugmentLayer,
   OverlayCanvas,
@@ -76,6 +77,7 @@ import { quantiseUt } from "./predictionThrottle";
 import { drawScanningFootprints } from "./scanOverlay";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
+import { type CoverageGate, useCoverageGate } from "./useCoverageGate";
 import { useFogDisplayCanvas } from "./useFogMask";
 import { useMapResize } from "./useMapResize";
 import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
@@ -100,14 +102,17 @@ function canvasColor(
 
 // ---------------------------------------------------------------------------
 // Augment slots (Uplink architecture). MapView is a HOST that exposes
-// two slots; no first-party augment fills them here, so
+// four slots; no first-party augment fills them here, so
 // each renders nothing until an Uplink registers an augment into it. This is
 // THE HARD CASE for slot design: the overlay must draw in
 // the map's own coordinate space, so `map-view.overlay` passes the live
 // equirectangular projection down as slot props. Composable /
 // layered by priority — the SCANsat scan-layer (today hardcoded via
 // useScanLayerCanvas), commlink, and trajectory layers all route HERE rather
-// than to `scanning.sections`.
+// than to `scanning.sections`. `map-view.sections` is a below-content panel
+// slot (mirrors `objectives.sections`/`power-systems.sections`) and
+// `map-view.base` is the single-pick REPLACE slot for the map's base
+// surface — see each interface's own doc comment below.
 // ---------------------------------------------------------------------------
 
 /**
@@ -174,6 +179,66 @@ export interface MapBadgesContext {
   bodyName: string | undefined;
 }
 
+/**
+ * Props for `map-view.sections` — a below-content panel slot, composed
+ * additively by priority exactly like `map-view.overlay` and the
+ * already-established `objectives.sections`/`power-systems.sections`
+ * pattern. One panel per registered augment, rendered below the map canvas.
+ */
+export interface MapSectionsContext {
+  /** The mapped body (may diverge from the active vessel under a pin). */
+  bodyName: string | undefined;
+  /**
+   * Per-namespace augment settings, keyed by augment id — the same
+   * namespacing `getAugmentSettings` uses. Threaded through now so the
+   * slot contract is stable; the read-back loop that resolves real
+   * per-instance values from the widget's saved config lands in a later
+   * task, so this is always `undefined` until then.
+   */
+  augmentSettings: Record<string, Record<string, unknown>> | undefined;
+}
+
+/**
+ * Props for `map-view.base` — the single-pick REPLACE slot for the map's
+ * base surface. Unlike every other MapView slot, an augment filling this
+ * one doesn't render JSX onto the page — it hands back a canvas via
+ * `onLayer`, which MapView composites over its own unconditional stock
+ * texture paint. There is no "vanilla" provider entry to compare
+ * `activeLayerId` against: an unmatched or unset id simply means no augment
+ * renders, and MapView's built-in stock-texture paint is what's already
+ * underneath, untouched.
+ */
+export interface MapBaseLayerContext {
+  /** The mapped body (may diverge from the active vessel under a pin). */
+  bodyId: string | undefined;
+  /** MapView's own `config.baseLayerId`. An augment renders its surface
+   *  only when this equals its OWN id — there is no "vanilla" entry to
+   *  compare against, an unmatched or unset id simply means no augment
+   *  renders and MapView's built-in stock-texture paint is what's already
+   *  underneath, untouched. */
+  activeLayerId: string | undefined;
+  width: number;
+  height: number;
+  /** Per-namespace augment settings — see `MapSectionsContext`'s doc
+   *  comment; same shape, same "undefined until the read-back loop lands"
+   *  caveat. */
+  augmentSettings: Record<string, Record<string, unknown>> | undefined;
+  /** The paint-gate (T4) for this body — the augment samples this per
+   *  output tile while drawing its own surface. `hasAnySource: false`
+   *  means "paint fully open," not "paint nothing." */
+  coverageGate: CoverageGate;
+  /**
+   * Called by the augment whenever it has a fresh canvas to contribute (or
+   * `null` to withdraw one, e.g. deselected). MapView draws its OWN stock
+   * texture first, unconditionally, THEN — only if `activeLayerId` matches
+   * a registered augment's own id AND that augment has called `onLayer`
+   * with a non-null canvas — draws that canvas via `drawImage` on top,
+   * REPLACING the stock texture's visible pixels wherever the augment's
+   * canvas is opaque.
+   */
+  onLayer: (canvas: HTMLCanvasElement | null, version: number) => void;
+}
+
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
 // on other widgets never collides on this seam.
@@ -181,6 +246,8 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
     "map-view.badges": MapBadgesContext;
+    "map-view.sections": MapSectionsContext;
+    "map-view.base": MapBaseLayerContext;
   }
 }
 
@@ -261,6 +328,10 @@ function MapViewComponent({
   const showTelemetry = telemetryKeys.length > 0;
   const showPrediction = config?.showPrediction ?? true;
   const baseLayer = config?.baseLayer ?? "altimetry";
+  // Which registered map-view.base augment (if any) is active — see
+  // MapBaseLayerContext's doc comment. Unset / no match = MapView's own
+  // stock texture, unmodified.
+  const baseLayerId = config?.baseLayerId;
   const showHeightShading = config?.showHeightShading ?? false;
   const showAnomalies = config?.showAnomalies ?? false;
   const bodyOverride = config?.bodyOverride;
@@ -407,10 +478,50 @@ function MapViewComponent({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
+  // The map-view.base slot's contributed surface. At most one registered
+  // augment is ever expected to hold this — the one whose own id matches
+  // `baseLayerId` — every other augment must never call `onLayer` with a
+  // non-null canvas (its own `activeLayerId` check gates that). MapView
+  // trusts that contract rather than re-deriving "whose canvas is this"
+  // itself, since `onLayer` carries no augment id.
+  const baseLayerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [baseLayerVersion, setBaseLayerVersion] = useState(0);
+  const onBaseLayer = useCallback(
+    (canvas: HTMLCanvasElement | null, version: number) => {
+      baseLayerCanvasRef.current = canvas;
+      setBaseLayerVersion(version);
+    },
+    [],
+  );
+
+  // A `baseLayerId` change means whatever canvas is currently held may
+  // belong to an augment that's no longer active — drop it immediately
+  // rather than painting a stale surface until the newly-active augment
+  // (if any) supplies its own.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayerId is the trigger, not a value the body reads — this effect exists purely to reset on change
+  useEffect(() => {
+    baseLayerCanvasRef.current = null;
+    setBaseLayerVersion(0);
+  }, [baseLayerId]);
+
+  // Per-namespace augment settings for map-view.base/map-view.sections,
+  // keyed by augment id — the same namespacing `getAugmentSettings` uses.
+  // Threaded through now so the slot contracts are stable; the read-back
+  // loop that resolves real per-instance values from this widget's saved
+  // config lands in a later task — until then this is always undefined,
+  // which every consumer (useCoverageGate, an augment's own settings)
+  // already treats as "no overrides".
+  const augmentSettings: Record<string, Record<string, unknown>> | undefined =
+    undefined;
+
   // SCANsat layer hooks. Declared up here (before the base-canvas
   // render effect) so the effect's dependency array can reference
   // them without TDZ. Each hook gates its own fetch on the toggle.
   useScanSatFogSync(body);
+  // T4's paint-gate — a mod-agnostic map-view.base augment samples this
+  // per output tile while drawing its own surface (settled model: zero
+  // registered sources means "paint fully open," not "paint nothing").
+  const coverageGate = useCoverageGate(targetBodyId, augmentSettings);
   const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
   const heightDisplay = useHeightCanvas(body, showHeightShading);
   // Anomaly markers + the bearing/distance side-panel moved to the SCANsat
@@ -483,7 +594,7 @@ function MapViewComponent({
     img.src = body.texture;
   }, [body?.texture]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: biomeDisplay.version / heightDisplay.version bump on canvas-bytes-changed; the canvas reference is stable across mutations, so we depend on the version to trigger a redraw
+  // biome-ignore lint/correctness/useExhaustiveDependencies: biomeDisplay.version / heightDisplay.version bump on canvas-bytes-changed; baseLayerVersion bumps when the map-view.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (or, for the base layer, tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {
     const canvas = baseRef.current;
     if (!canvas || !containerSize || !textureReady) return;
@@ -517,6 +628,15 @@ function MapViewComponent({
     } else if (body?.color) {
       ctx.fillStyle = `${body.color}22`;
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+
+    // map-view.base composite: only ever non-null when a registered
+    // augment's own id matches `baseLayerId` and it has supplied a fresh
+    // canvas — see baseLayerCanvasRef's own comment above. Drawn straight
+    // over the stock texture/colour wash just painted, replacing its
+    // visible pixels wherever the augment's canvas is opaque.
+    if (baseLayerCanvasRef.current) {
+      ctx.drawImage(baseLayerCanvasRef.current, 0, 0, WORLD_W, WORLD_H);
     }
 
     // Elevation shading rides on top of either base layer — opacity is
@@ -572,6 +692,7 @@ function MapViewComponent({
     showHeightShading,
     heightDisplay.canvas,
     heightDisplay.version,
+    baseLayerVersion,
   ]);
 
   // ── Fog-of-war: driven exclusively by SCANsat ────────────────────────────
@@ -930,6 +1051,21 @@ function MapViewComponent({
   // itself. `overlay` is null until the container has measured — the layer
   // only mounts once there's a pixel-sized map beneath it.
   const badgesContext: MapBadgesContext = { bodyName: displayName };
+  const sectionsContext: MapSectionsContext = {
+    bodyName: displayName,
+    augmentSettings,
+  };
+  const baseLayerContext: MapBaseLayerContext | null = containerSize
+    ? {
+        bodyId: targetBodyId,
+        activeLayerId: baseLayerId,
+        width: containerSize.w,
+        height: containerSize.h,
+        augmentSettings,
+        coverageGate,
+        onLayer: onBaseLayer,
+      }
+    : null;
   const overlayContext: MapOverlayContext | null = containerSize
     ? {
         width: containerSize.w,
@@ -1046,6 +1182,9 @@ function MapViewComponent({
                   : "No position data"}
               </NoSignal>
             )}
+            {baseLayerContext && (
+              <AugmentSlot name="map-view.base" props={baseLayerContext} />
+            )}
             {overlayContext && (
               <OverlayAugmentLayer>
                 <AugmentSlot name="map-view.overlay" props={overlayContext} />
@@ -1054,6 +1193,10 @@ function MapViewComponent({
           </CanvasContainer>
         </MapOuter>
       </MapBody>
+
+      <MapSections>
+        <AugmentSlot name="map-view.sections" props={sectionsContext} />
+      </MapSections>
 
       {showCoveragePanel && body && (
         <CoveragePanelView
@@ -1245,7 +1388,12 @@ registerComponent<MapViewConfig>({
     showPrediction: true,
   },
   actions: mapViewActions,
-  augmentSlots: ["map-view.overlay", "map-view.badges"],
+  augmentSlots: [
+    "map-view.overlay",
+    "map-view.badges",
+    "map-view.sections",
+    "map-view.base",
+  ],
   pushable: true,
   requires: ["flight"],
 });
