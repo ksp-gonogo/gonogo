@@ -1,6 +1,6 @@
 import type { ComponentDefinition } from "@ksp-gonogo/core";
 import { getComponents, safeRandomUuid } from "@ksp-gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/data";
+import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/kos";
 import {
   SerialDeviceProvider,
   useSerialDeviceService,

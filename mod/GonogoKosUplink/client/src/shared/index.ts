@@ -1,3 +1,5 @@
+export * from "./CpuRegistryContext";
+export * from "./CpuRegistryService";
 export * from "./hashKosScript";
 export type { KosCpuPickerProps } from "./KosCpuPicker";
 export { KosCpuPicker } from "./KosCpuPicker";

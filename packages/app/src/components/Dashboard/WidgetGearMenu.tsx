@@ -1,5 +1,5 @@
 import { type AnyDef, ErrorBoundary } from "@ksp-gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/data";
+import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/kos";
 import { AppError, handleError } from "@ksp-gonogo/logger";
 import {
   type InputMappings,
