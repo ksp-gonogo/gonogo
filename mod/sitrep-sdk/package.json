@@ -43,6 +43,7 @@
     }
   },
   "devDependencies": {
+    "@ksp-gonogo/logger": "workspace:*",
     "@types/react": "^18.3.28",
     "react": "^18.0.0"
   }

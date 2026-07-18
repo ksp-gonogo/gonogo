@@ -15,6 +15,7 @@
 // message. Tests inject a host via `@ksp-gonogo/sitrep-sdk/testing`.
 // ---------------------------------------------------------------------------
 
+import type { Logger } from "@ksp-gonogo/logger";
 import type { ComponentType } from "react";
 import type { TopicId, TopicPayload } from "../topics";
 import type {
@@ -57,6 +58,14 @@ export interface GonogoHost {
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle;
+
+  /**
+   * The app's single logger instance (ring buffer, session id, Axiom
+   * transport installed at boot). Never bundle @ksp-gonogo/logger's
+   * `logger` export directly — a second copy is console-only and never
+   * reaches the shared buffer or Axiom.
+   */
+  logger: Logger;
 }
 
 /** The single global slot the app populates at boot. */

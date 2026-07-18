@@ -18,6 +18,7 @@
 // sitrep-client directly (same singletons), never these shims.
 // ---------------------------------------------------------------------------
 
+import type { Logger } from "@ksp-gonogo/logger";
 import type { ComponentType } from "react";
 import { createElement } from "react";
 import type { TopicId, TopicPayload } from "../topics";
@@ -35,6 +36,7 @@ import type {
 
 // --- Author-facing types (re-exported real, erased at runtime) --------------
 
+export type { Logger, TaggedLogger } from "@ksp-gonogo/logger";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type {
@@ -122,6 +124,22 @@ export function useActionInput<TActions extends readonly ActionDefinition[]>(
 export function useDataSources(): unknown {
   return getHost().useDataSources();
 }
+
+// --- Logger shim (stateful → injected host) ---------------------------------
+
+/**
+ * The app's single logger instance (design: `@ksp-gonogo/logger`'s `logger`
+ * export is a stateful singleton — its ring buffer, session id, and
+ * transports are installed on the app's instance at boot. A bundled second
+ * copy would be a dead logger, console-only, never reaching Axiom or the
+ * shared `exportLogs()` buffer). A `Proxy` delegates every access — including
+ * `.tag(...)` — to `getHost().logger`, so the returned `TaggedLogger` is the
+ * injected instance's own, and every method fails loud via `getHost()` when
+ * no host is installed.
+ */
+export const logger: Logger = new Proxy({} as Logger, {
+  get: (_target, prop) => Reflect.get(getHost().logger as object, prop),
+});
 
 // --- Component + class shims ------------------------------------------------
 

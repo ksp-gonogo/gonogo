@@ -22,11 +22,13 @@ import type {
   GonogoHost,
   KosScriptDefinition,
   KosScriptField,
+  Logger,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SlotId,
   SlotProps,
   SlotRegistry,
+  TaggedLogger,
   ThemeDefinition,
   UseCommandResult,
 } from "./index";
@@ -58,6 +60,8 @@ declare const _perfOpts: PerfBudgetOptions;
 declare const _perfHandle: PerfBudgetHandle;
 declare const _useCommandResult: UseCommandResult;
 declare const _host: GonogoHost;
+declare const _logger: Logger;
+declare const _taggedLogger: TaggedLogger;
 
 // The author-set core of a ComponentDefinition must remain assignable — a probe
 // that the required fields don't silently become optional or retyped.
@@ -93,5 +97,7 @@ export type _ApiShapeProbe = [
   typeof _perfHandle,
   typeof _useCommandResult,
   typeof _host,
+  typeof _logger,
+  typeof _taggedLogger,
   typeof _probe,
 ];

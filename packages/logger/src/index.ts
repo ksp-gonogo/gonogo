@@ -310,6 +310,7 @@ export type {
   DeviceIdentity,
   DeviceRole,
   LogEntry,
+  Logger,
   LogTransport,
   TaggedLogger,
 } from "./types.js";
