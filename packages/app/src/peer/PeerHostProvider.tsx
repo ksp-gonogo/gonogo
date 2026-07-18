@@ -35,11 +35,6 @@ export function PeerHostProvider({ children }: { children: ReactNode }) {
         debugPeer("PeerHostProvider skip wrapped", { sourceId: source.id });
         continue;
       }
-      if (source.id === "kerbcast") {
-        // MediaStreams can't cross PeerJS data channels; station-side camera
-        // access needs a dedicated relay. Wrapping kerbcast breaks getClient().
-        continue;
-      }
       debugPeer("PeerHostProvider wrap source", {
         sourceId: source.id,
         wrappedClassName: source.constructor.name,
