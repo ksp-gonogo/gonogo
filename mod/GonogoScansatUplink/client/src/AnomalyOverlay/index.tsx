@@ -23,9 +23,9 @@
 import type {} from "@ksp-gonogo/components"; // pulls MapView's "map-view.overlay" SlotRegistry merge into this program (see that module's own declare-module comment)
 import type { SlotProps } from "@ksp-gonogo/core";
 import { registerAugment } from "@ksp-gonogo/core";
-import { useScanAnomalies } from "@ksp-gonogo/data";
 import { useMemo } from "react";
 import styled from "styled-components";
+import { useScanAnomalies } from "../FogReveal/useScanLayers";
 import { compassPoint, rankAnomaliesByDistance } from "./geometry";
 
 /** Fallback body radius (metres) for distance ranking when `bodyRadius` is unknown — Kerbin's, the common case. */

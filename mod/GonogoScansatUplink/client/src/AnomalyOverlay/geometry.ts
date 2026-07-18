@@ -1,4 +1,4 @@
-import type { SCANAnomalyEntry } from "@ksp-gonogo/core";
+import type { SCANAnomalyEntry } from "../schema";
 
 /**
  * Great-circle distance/bearing ranking for the `AnomalyOverlay`'s

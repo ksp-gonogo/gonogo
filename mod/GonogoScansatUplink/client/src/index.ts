@@ -16,16 +16,23 @@
 //     `map-view.overlay` slot with the on-map anomaly markers + bearing/
 //     distance panel (P4c-b: scansat.anomalies.<body> sign-off, see
 //     docs/superpowers/plans/2026-07-11-p4cb-deletion-plan.md §1).
+//   - `FogReveal/useScanSatFogSync` → registerFogRevealSource(...) once per
+//     scan type ("scansat:AltimetryLoRes" etc., MapView overlay-host
+//     foundation plan T7) so MapView's coverage paint-gate knows this
+//     Uplink contributes fog reveal, even before anything calls
+//     useScanSatFogSync itself.
 //
 // To wire it into the app: `import "@ksp-gonogo/scansat";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
-// The rest of the scan OVERLAY on core MapView (biome/fog/footprint layers)
-// stays in @ksp-gonogo/components for now — it is bidirectionally coupled to
-// the core map and is separately-deferred debt (see the P4c-b plan's SCOPE
-// GUARD: only the anomaly overlay moved out, not the broader fog/coverage
-// scan overlay). Until that extracts too, the Minimap here reuses those
-// hooks via @ksp-gonogo/components.
+// The scan schema/decode/sync logic (`schema.ts`, `FogReveal/*`) is this
+// Uplink's own canonical copy (T7). `packages/core`/`packages/data` still
+// carry a duplicate for `packages/components`'s MapView, which hasn't
+// migrated off it yet — see T9 in
+// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md for
+// the deletion of that duplicate once MapView's augment migration lands.
+// Until then, the Minimap here still reuses MapView's own biome/fog canvas
+// hooks via @ksp-gonogo/components (those aren't part of this move).
 
 export { AnomalyOverlay } from "./AnomalyOverlay";
 export type {
@@ -43,3 +50,4 @@ export { parseScanScience } from "./ScienceAugment";
 import "./Scanning";
 import "./ScienceAugment";
 import "./AnomalyOverlay";
+import "./FogReveal/useScanSatFogSync";
