@@ -5,7 +5,6 @@ import {
 import {
   getUplinkHandle,
   registerDataSource,
-  type SCANType,
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
@@ -280,22 +279,23 @@ export function StationScreen() {
       client.onFogSnapshot((msg) => {
         logger.info(`[fog-sync] snapshot received — masks=${msg.masks.length}`);
         for (const m of msg.masks) {
-          // Per-type mask routing: each mask carries its scanType (SCANsat's
-          // SCANtype enum bit). The station persists each into its own
-          // per-type slot so the local MapView composes the same per-channel
-          // precedence the host renders.
+          // Per-type mask routing: each mask carries its layerId (an
+          // opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes").
+          // The station persists each into its own per-type slot so the
+          // local MapView composes the same per-channel precedence the
+          // host renders.
           fogMaskStore
             .save(
               DEFAULT_PROFILE_ID,
               m.bodyId,
-              m.scanType as SCANType,
+              m.layerId,
               m.data,
               m.width,
               m.height,
             )
             .catch((err) => {
               logger.error(
-                `[fog-sync] failed to persist mask — body=${m.bodyId} scanType=${m.scanType}`,
+                `[fog-sync] failed to persist mask — body=${m.bodyId} layerId=${m.layerId}`,
                 err instanceof Error ? err : undefined,
               );
             });

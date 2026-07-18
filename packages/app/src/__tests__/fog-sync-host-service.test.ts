@@ -1,4 +1,3 @@
-import { SCAN_TYPE, type SCANType } from "@ksp-gonogo/core";
 import {
   DEFAULT_PROFILE_ID,
   type FogMaskStore,
@@ -46,12 +45,12 @@ function makeStoredMask(
   data: number[],
   width = 2,
   height = 1,
-  scanType: SCANType = SCAN_TYPE.AltimetryHiRes,
+  layerId = "scansat:AltimetryHiRes",
 ): StoredMask {
   return {
-    key: `${DEFAULT_PROFILE_ID}:${bodyId}:${scanType}`,
-    version: 2,
-    scanType,
+    key: `${DEFAULT_PROFILE_ID}:${bodyId}:${layerId}`,
+    version: 3,
+    layerId,
     width,
     height,
     data: new Uint8Array(data),
@@ -87,9 +86,9 @@ describe("FogSyncHostService", () => {
 
   it("sends a fog-snapshot routing each per-type mask to its slot", async () => {
     fogStore = makeFakeFogStore([
-      makeStoredMask("Kerbin", [1, 2, 3, 4], 2, 1, SCAN_TYPE.AltimetryLoRes),
-      makeStoredMask("Kerbin", [9, 9, 9, 9], 2, 1, SCAN_TYPE.AltimetryHiRes),
-      makeStoredMask("Mun", [5, 6], 2, 1, SCAN_TYPE.Biome),
+      makeStoredMask("Kerbin", [1, 2, 3, 4], 2, 1, "scansat:AltimetryLoRes"),
+      makeStoredMask("Kerbin", [9, 9, 9, 9], 2, 1, "scansat:AltimetryHiRes"),
+      makeStoredMask("Mun", [5, 6], 2, 1, "scansat:Biome"),
     ]);
 
     const sync = new FogSyncHostService({
@@ -107,21 +106,17 @@ describe("FogSyncHostService", () => {
     expect(sent.msg.type).toBe("fog-snapshot");
     if (sent.msg.type !== "fog-snapshot") throw new Error("type guard");
     expect(sent.msg.masks).toHaveLength(3);
-    // Each (bodyId, scanType) routes to its own payload entry; bytes
+    // Each (bodyId, layerId) routes to its own payload entry; bytes
     // round-trip unchanged.
     const byKey = new Map(
       sent.msg.masks.map((m) => [
-        `${m.bodyId}:${m.scanType}`,
+        `${m.bodyId}:${m.layerId}`,
         Array.from(m.data),
       ]),
     );
-    expect(byKey.get(`Kerbin:${SCAN_TYPE.AltimetryLoRes}`)).toEqual([
-      1, 2, 3, 4,
-    ]);
-    expect(byKey.get(`Kerbin:${SCAN_TYPE.AltimetryHiRes}`)).toEqual([
-      9, 9, 9, 9,
-    ]);
-    expect(byKey.get(`Mun:${SCAN_TYPE.Biome}`)).toEqual([5, 6]);
+    expect(byKey.get("Kerbin:scansat:AltimetryLoRes")).toEqual([1, 2, 3, 4]);
+    expect(byKey.get("Kerbin:scansat:AltimetryHiRes")).toEqual([9, 9, 9, 9]);
+    expect(byKey.get("Mun:scansat:Biome")).toEqual([5, 6]);
     expect(fogStore.loadAllForProfile).toHaveBeenCalledWith(DEFAULT_PROFILE_ID);
   });
 

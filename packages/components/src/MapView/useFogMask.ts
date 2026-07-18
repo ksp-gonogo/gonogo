@@ -66,13 +66,16 @@ export function useFogDisplayCanvas(
   height: number;
 } {
   // Subscribe to every per-type mask. `useBodyFogMask` returns a stable
-  // ref + monotonic version per (body, scanType) pair; we re-paint on any
+  // ref + monotonic version per (body, layerId) pair; we re-paint on any
   // version bump.
-  const altLoRes = useBodyFogMask(bodyId, SCAN_TYPE.AltimetryLoRes);
-  const altHiRes = useBodyFogMask(bodyId, SCAN_TYPE.AltimetryHiRes);
-  const biome = useBodyFogMask(bodyId, SCAN_TYPE.Biome);
-  const resLoRes = useBodyFogMask(bodyId, SCAN_TYPE.ResourceLoRes);
-  const resHiRes = useBodyFogMask(bodyId, SCAN_TYPE.ResourceHiRes);
+  // interim shim until T9 deletes this file (MapView overlay-host migration):
+  // useBodyFogMask now keys on an opaque string layerId, so the numeric
+  // SCANType is stringified at the call site — same value, string form.
+  const altLoRes = useBodyFogMask(bodyId, String(SCAN_TYPE.AltimetryLoRes));
+  const altHiRes = useBodyFogMask(bodyId, String(SCAN_TYPE.AltimetryHiRes));
+  const biome = useBodyFogMask(bodyId, String(SCAN_TYPE.Biome));
+  const resLoRes = useBodyFogMask(bodyId, String(SCAN_TYPE.ResourceLoRes));
+  const resHiRes = useBodyFogMask(bodyId, String(SCAN_TYPE.ResourceHiRes));
 
   const layers: Array<{ mask: BodyMask | undefined; type: SCANType }> = [
     { mask: altLoRes.mask, type: SCAN_TYPE.AltimetryLoRes },

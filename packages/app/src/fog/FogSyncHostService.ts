@@ -40,21 +40,26 @@ export class FogSyncHostService {
       const masks =
         await this.deps.fogStore.loadAllForProfile(DEFAULT_PROFILE_ID);
       if (masks.length === 0) return;
-      // Storage key shape is `${profileId}:${bodyId}:${scanType}`. The
+      // Storage key shape is `${profileId}:${bodyId}:${layerId}`. The
       // profile slot is always DEFAULT_PROFILE_ID now, so we slice it off
-      // and then split on the last `:` to peel off the scanType. The mask
-      // record also carries scanType directly, which we forward to the
+      // and split on the FIRST `:` to peel off bodyId — body ids (KSP
+      // celestial body names) never contain a colon, matching
+      // FogMaskStore's own prefix-range assumption elsewhere, but
+      // layerId now can (the "<uplinkId>:<name>" convention, e.g.
+      // "scansat:AltimetryHiRes"), so splitting on the LAST colon would
+      // silently mis-parse bodyId once layerId gained one. The mask
+      // record also carries layerId directly, which we forward to the
       // station so it can route to the right per-type slot.
       this.deps.peerHost.sendToPeer(peerId, {
         type: "fog-snapshot",
         masks: masks.map((m) => {
           const afterProfile = m.key.slice(DEFAULT_PROFILE_ID.length + 1);
-          const lastColon = afterProfile.lastIndexOf(":");
+          const firstColon = afterProfile.indexOf(":");
           const bodyId =
-            lastColon >= 0 ? afterProfile.slice(0, lastColon) : afterProfile;
+            firstColon >= 0 ? afterProfile.slice(0, firstColon) : afterProfile;
           return {
             bodyId,
-            scanType: m.scanType,
+            layerId: m.layerId,
             width: m.width,
             height: m.height,
             data: m.data,
