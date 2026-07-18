@@ -44,6 +44,7 @@ import {
   worldToScreen,
   zoomBounds,
 } from "./camera";
+import { MapPoiLayer } from "./MapPoiLayer";
 import {
   BaseCanvas,
   BodyLabel,
@@ -82,6 +83,10 @@ import { useMapResize } from "./useMapResize";
 import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
+// Side-effect only — registers the vanilla KSC/launch-site/contract-target
+// POI provider (T-POI-6) so MapPoiLayer below has something to render out
+// of the box. Co-located with MapView per that file's own doc comment.
+import "./vanillaPoiProvider";
 
 /**
  * Resolve a CSS custom property to a concrete colour for use on a `<canvas>`
@@ -337,6 +342,9 @@ function MapViewComponent({
   const showFootprints = config?.showFootprints ?? false;
   const showCoverage = config?.showCoverage ?? false;
   const showAnomalyPanel = config?.showAnomalyPanel ?? false;
+  // Vanilla POIs (KSC, contract targets) are always-relevant reference
+  // points, not an opt-in SCANsat-shaped feature — default on (T-POI-7).
+  const showPois = config?.showPois ?? true;
 
   const schema = useDataSchema("data");
   const labelMap = new Map(schema.map((k) => [k.key, k.label]));
@@ -1162,6 +1170,14 @@ function MapViewComponent({
               <OverlayAugmentLayer>
                 <AugmentSlot name="map-view.overlay" props={overlayContext} />
               </OverlayAugmentLayer>
+            )}
+            {overlayContext && showPois && (
+              <MapPoiLayer
+                bodyId={targetBodyId}
+                project={overlayContext.project}
+                width={overlayContext.width}
+                height={overlayContext.height}
+              />
             )}
           </CanvasContainer>
         </MapOuter>
