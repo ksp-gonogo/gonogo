@@ -130,16 +130,24 @@ const ALLOWLIST: Record<ModToken, string[]> = {
   // of that debt, not of this Uplink.
   kerbcast: [
     // -- HARD violations (audit §1, "HARD violations" table) --
-    "packages/app/src/dataSources/index.ts",
-    "packages/app/src/peer/PeerHostProvider.tsx",
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/screens/StationScreen.tsx",
-    "packages/app/src/settings/SettingsModal.tsx",
     // packages/components/src/DistanceToTarget/index.tsx was here: its built-in
     // HudCamera imported @ksp-gonogo/kerbcast-feed directly. That backdrop is
     // now the `kerbcast-docking-camera` AUGMENT filling the widget's
     // `distance-to-target.camera` slot, and the widget names no camera mod at
     // all — so the entry went stale and ratcheted off.
+
+    // -- Uplink LOADER (Phase A, 2026-07-17; kerbcast migration, 2026-07-18):
+    // the runtime client loader now names kerbcast as a first-party Uplink it
+    // loads via import() behind a flag, same as the pre-existing scansat/kos
+    // entries below. main.tsx's bundled-fallback Promise.all() gained a third
+    // `import("@ksp-gonogo/kerbcast-feed")` alongside kos/scansat; flag.ts's
+    // LOADER_UPLINK_IDS gained "kerbcast"; flag.test.ts (new) asserts all
+    // three ids are present — sanctioned loader-config, not a boundary hole.
+    "packages/app/src/main.tsx",
+    "packages/app/src/uplinks/flag.test.ts",
+    "packages/app/src/uplinks/flag.ts",
 
     // -- GRAY — sitrep-client / contract layer, comment or string-literal only --
     "mod/GonogoKosUplink/client/src/index.ts",
@@ -200,7 +208,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
 
     // -- TEST-only, exercising the HARD cluster above --
     "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
-    "packages/app/src/settings/SettingsModal.test.tsx",
 
     // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
     "packages/app/src/dataSources/migrateGameHost.ts",
@@ -279,6 +286,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // loader module itself (loader.ts) is generic and names no mod.
     "packages/app/src/uplinks/flag.ts",
     "packages/app/src/uplinks/loader.test.ts",
+    // flag.test.ts (kerbcast migration, 2026-07-18): asserts LOADER_UPLINK_IDS
+    // contains all three first-party loader ids (scansat/kos/kerbcast) —
+    // TEST-only, same shape as loader.test.ts above.
+    "packages/app/src/uplinks/flag.test.ts",
   ],
 
   // === kos — owning dir mod/GonogoKosUplink/
