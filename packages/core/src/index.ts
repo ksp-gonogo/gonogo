@@ -8,6 +8,7 @@ export * from "./chromeProviders";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
 export * from "./fog";
+export * from "./fogReveal";
 export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
 export * from "./hooks/useCommand";
