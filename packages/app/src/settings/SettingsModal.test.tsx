@@ -4,8 +4,10 @@ import type {
   DataSourceStatus,
 } from "@ksp-gonogo/core";
 import {
+  __clearSettingsTabsForTests,
   clearRegistry,
   registerDataSource,
+  registerSettingsTab,
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
@@ -52,15 +54,6 @@ vi.mock("../logs/LogsManager", () => ({
   LogsManager: () => null,
 }));
 
-vi.mock("@ksp-gonogo/kerbcast-feed", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@ksp-gonogo/kerbcast-feed")>();
-  return {
-    ...actual,
-    KerbcastSettings: () => <div>kerbcast-settings-stub</div>,
-  };
-});
-
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
   return {
@@ -82,35 +75,6 @@ function renderModal(screen_: "main" | "station" = "main") {
       </SettingsProvider>
     </ScreenProvider>,
   );
-}
-
-/*
- * Minimal stub that satisfies KerbcastDataSource's interface for the tab
- * gating check (only id is required by getDataSource / registerDataSource).
- */
-function makeKerbcastStub() {
-  return {
-    id: "kerbcast",
-    name: "Kerbcast",
-    status: "disconnected",
-    affectedBySignalLoss: false,
-    connect: async () => {},
-    disconnect: () => {},
-    schema: () => [],
-    subscribe: () => () => {},
-    execute: async () => {},
-    onStatusChange: () => () => {},
-    configSchema: () => [],
-    getConfig: () => ({ host: "h", port: 1 }),
-    configure: () => {},
-    getThrottleMainScreen: () => false,
-    onThrottleChange: () => () => {},
-    setThrottleMainScreen: async () => {},
-    getClient: () =>
-      ({}) as unknown as ReturnType<
-        import("@ksp-gonogo/kerbcast-feed").KerbcastDataSource["getClient"]
-      >,
-  };
 }
 
 /**
@@ -225,6 +189,7 @@ beforeEach(() => {
 
 afterEach(() => {
   clearRegistry();
+  __clearSettingsTabsForTests();
 });
 
 describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", () => {
@@ -363,29 +328,35 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
   });
 });
 
-describe("SettingsModal Kerbcast tab gating", () => {
-  it("shows the Kerbcast tab on the main screen when the kerbcast source is registered", () => {
-    registerDataSource(
-      makeKerbcastStub() as unknown as Parameters<typeof registerDataSource>[0],
-    );
+describe("SettingsModal registered-tab gating", () => {
+  it("shows a registered main-only tab on the main screen", () => {
+    registerSettingsTab({
+      id: "fixture-tab",
+      label: "Fixture",
+      screens: ["main"],
+      component: () => <div>fixture-tab-content</div>,
+    });
     renderModal("main");
-    expect(screen.getByRole("tab", { name: /kerbcast/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /fixture/i })).toBeInTheDocument();
   });
 
-  it("hides the Kerbcast tab when there is no kerbcast source", () => {
-    renderModal("main");
+  it("hides a main-only registered tab on the station screen", () => {
+    registerSettingsTab({
+      id: "fixture-tab",
+      label: "Fixture",
+      screens: ["main"],
+      component: () => <div>fixture-tab-content</div>,
+    });
+    renderModal("station");
     expect(
-      screen.queryByRole("tab", { name: /kerbcast/i }),
+      screen.queryByRole("tab", { name: /fixture/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("hides the Kerbcast tab on the station screen even when the source is registered", () => {
-    registerDataSource(
-      makeKerbcastStub() as unknown as Parameters<typeof registerDataSource>[0],
-    );
-    renderModal("station");
+  it("shows no registered tab when none is registered", () => {
+    renderModal("main");
     expect(
-      screen.queryByRole("tab", { name: /kerbcast/i }),
+      screen.queryByRole("tab", { name: /fixture/i }),
     ).not.toBeInTheDocument();
   });
 });

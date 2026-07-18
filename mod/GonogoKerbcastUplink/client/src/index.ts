@@ -71,3 +71,4 @@ export { KerbcastSettings } from "./settings/KerbcastSettings";
 import "./KerbcastDataSource";
 import "./CameraFeed";
 import "./DockingCameraAugment";
+import "./settings/KerbcastSettings";
