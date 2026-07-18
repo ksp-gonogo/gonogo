@@ -568,5 +568,86 @@ namespace Sitrep.Host.Tests
             var parsedRoot = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
             Assert.Equal(88, System.Convert.ToInt32(parsedRoot["count"]));
         }
+
+        // ----------------------------------------------------------------
+        // spaceCenter.pois
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Regression for the review fix: stock KSP uses <c>0.0</c> as
+        /// <c>Contract.DateDeadline</c>'s "no deadline set" sentinel
+        /// (confirmed via decompile — <c>Contract</c>'s own UI code gates on
+        /// <c>DateDeadline != 0.0</c> before showing a deadline). Before this
+        /// fix, a no-deadline contract's raw <c>0</c> rode straight onto the
+        /// wire and read as "overdue since epoch"; this asserts it now folds
+        /// to <c>null</c>, the same "no data" signal every other optional
+        /// field in this payload uses.
+        /// </summary>
+        [Fact]
+        public void BuildPoisFoldsAZeroContractDateDeadlineToNull()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["contractTargets"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["navigationId"] = "wp-1",
+                                ["celestialName"] = "Kerbin",
+                                ["latitude"] = 12.3,
+                                ["longitude"] = 45.6,
+                                ["isOnSurface"] = true,
+                                ["contractState"] = "Active",
+                                ["contractTitle"] = "Survey the flats",
+                                ["contractDateDeadline"] = 0.0,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildPois(snapshot));
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
+            Assert.Null(entry["contractDateDeadline"]);
+        }
+
+        /// <summary>A genuinely-set (non-zero) deadline passes through unfolded.</summary>
+        [Fact]
+        public void BuildPoisPassesThroughANonZeroContractDateDeadline()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["contractTargets"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["navigationId"] = "wp-1",
+                                ["celestialName"] = "Kerbin",
+                                ["latitude"] = 12.3,
+                                ["longitude"] = 45.6,
+                                ["isOnSurface"] = true,
+                                ["contractState"] = "Active",
+                                ["contractTitle"] = "Survey the flats",
+                                ["contractDateDeadline"] = 98765.0,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildPois(snapshot));
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
+            Assert.Equal(98765.0, entry["contractDateDeadline"]);
+        }
     }
 }

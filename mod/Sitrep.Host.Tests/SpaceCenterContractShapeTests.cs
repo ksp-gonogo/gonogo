@@ -162,6 +162,72 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void SpaceCenterPoiEntryTypeMirrorsProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1 },
+                    },
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["launchSites"] = new List<object?>
+                        {
+                            // ksc/launchSite kind: exercises id/kind/bodyIndex/
+                            // latitude/longitude/label with the contract-only
+                            // fields (status/contractAgent/...) null.
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "LaunchPad",
+                                ["displayName"] = "Launch Pad",
+                                ["editorFacility"] = "VAB",
+                                ["body"] = "Kerbin",
+                                ["isStock"] = true,
+                                ["padOccupied"] = true,
+                                ["padVesselTitle"] = "Kerbal X",
+                                ["latitude"] = -0.5,
+                                ["longitude"] = 74.7,
+                            },
+                        },
+                        ["contractTargets"] = new List<object?>
+                        {
+                            // contractTarget kind: exercises status/
+                            // contractAgent/contractFundsAdvance/
+                            // contractFundsCompletion/contractDateDeadline —
+                            // fields the launch-site entry above leaves null.
+                            new Dictionary<string, object?>
+                            {
+                                ["navigationId"] = "wp-1",
+                                ["celestialName"] = "Kerbin",
+                                ["latitude"] = 12.3,
+                                ["longitude"] = 45.6,
+                                ["isOnSurface"] = true,
+                                ["contractState"] = "Active",
+                                ["contractTitle"] = "Survey the flats",
+                                ["contractAgent"] = "Kerbin Survey Corps",
+                                ["contractFundsAdvance"] = 1000.0,
+                                ["contractFundsCompletion"] = 5000.0,
+                                ["contractDateDeadline"] = 12345.0,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildPois(snapshot));
+            Assert.Equal(2, list.Count);
+            foreach (var rawEntry in list)
+            {
+                var entry = Assert.IsType<Dictionary<string, object?>>(rawEntry);
+                AssertEntryMirrors(typeof(SpaceCenterPoiEntry), entry);
+            }
+        }
+
+        [Fact]
         public void PayloadTypesAreTaggedWithTheirTopics()
         {
             AssertTopicTag(typeof(LaunchSiteEntry), "spaceCenter.launchSites", expectArray: true);
@@ -169,6 +235,7 @@ namespace Sitrep.Host.Tests
             AssertTopicTag(typeof(CrewRosterEntry), "spaceCenter.crewRoster", expectArray: true);
             AssertTopicTag(typeof(SavedShipEntry), "spaceCenter.savedShips", expectArray: true);
             AssertTopicTag(typeof(SpaceCenterPartsAvailable), "spaceCenter.partsAvailable", expectArray: false);
+            AssertTopicTag(typeof(SpaceCenterPoiEntry), "spaceCenter.pois", expectArray: true);
         }
 
         // ----------------------------------------------------------------
