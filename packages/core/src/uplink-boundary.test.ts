@@ -1,7 +1,21 @@
+// @vitest-environment node
+//
+// This suite needs the real Node TextEncoder/Uint8Array realm, not jsdom's
+// (the package default) — esbuild's `transformSync`, used by the shrink-only
+// check below, asserts `new TextEncoder().encode("") instanceof Uint8Array`
+// and throws "JavaScript environment is broken" under jsdom, where that
+// realm doesn't line up. Nothing else in this file touches the DOM.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
+import {
+  ALLOWLIST,
+  type ModAllowlist,
+  type ModToken,
+} from "./uplink-boundary.allowlist";
 
 /**
  * Uplink-boundary guardrail: prevent mod names/types leaking outside the
@@ -11,13 +25,17 @@ import { describe, expect, it } from "vitest";
  * imports/references a mod it doesn't own", not a fungible occurrence.
  *
  * Full catalogue, categorisation (HARD / gray / test / comment-only), and
- * the reasoning behind every entry below:
+ * the reasoning behind every entry:
  *   docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md
+ *   docs/superpowers/specs/2026-07-18-ratchet-hardening-design.md
+ * The allowlist data itself lives in the sibling `uplink-boundary.allowlist.ts`
+ * module (permanent vs shrink-only domainDebt entries — see that file's header).
  *
  * How the ratchet works:
  *   1. Scan `packages/*\/src` and `mod/*` (.ts/.tsx/.cs) for each mod
  *      token, excluding that mod's own owning directory.
- *   2. Every file found is checked against ALLOWLIST[token].
+ *   2. Every file found is checked against
+ *      `[...ALLOWLIST[token].permanent, ...ALLOWLIST[token].domainDebt]`.
  *   3. A file found but NOT allowlisted = a NEW violation -> fail, named.
  *   4. An allowlist entry that no longer matches any found file = STALE
  *      -> fail, named. This is what makes it a ratchet: fixing a
@@ -25,11 +43,19 @@ import { describe, expect, it } from "vitest";
  *      reference) makes its allowlist line stale, and the test forces
  *      you to delete that line in the same commit.
  *
- * The allowlist is seeded from the audit above and is expected to SHRINK
- * over time, never grow except via a deliberate, reviewed edit.
+ * IMPORTANT — this is a content scan, not an import scan: `findViolations`
+ * regex-tests each file's raw text, so a string LITERAL (e.g. a `layerId`
+ * hardcoded as `"scansat:AltimetryHiRes"` in a shared-package fixture) is
+ * caught by the exact same pattern that catches a real `import`. Don't
+ * assume this ratchet is import-only — genericise example mod-name
+ * strings in shared packages the same way commit `fcb770f1` did, rather
+ * than expecting this gate to be blind to them.
+ *
+ * A second, independent test below (`domain-debt allowlist entries only
+ * ever shrink`) enforces that `ALLOWLIST[token].domainDebt` never gains an
+ * entry vs. a base git ref — see its own doc-comment for details. The
+ * `permanent` bucket has no such gate; add/remove freely via reviewed edit.
  */
-
-type ModToken = "kerbcast" | "scansat" | "kos" | "realantennas" | "agx";
 
 interface ModOwnership {
   // Distinctive-form patterns for this mod. Deliberately NOT bare
@@ -55,7 +81,23 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: ["mod/GonogoKerbcastUplink", "mod/GonogoKerbcastUplink.Tests"],
   },
   scansat: {
-    patterns: [/scansat/i],
+    patterns: [
+      /scansat/i,
+      // packages/core/src/schemas/scansat.ts's exported wire-shape
+      // identifiers: SCANType, SCANCoverageBitmap, SCANHeightGrid,
+      // SCANBiomeEntry, SCANBiomeGrid, SCANSensorEntry, SCANScanningVessel,
+      // SCANAnomalyEntry. Requires an uppercase letter THEN a lowercase
+      // letter immediately after "SCAN" (a real word start), not a bare
+      // "SCAN" prefix — a bare prefix collides with this codebase's
+      // unrelated "SCAN_ROOTS" / "COMPONENT_SCAN_ROOTS" convention (three
+      // ratchet tests use "SCAN_ROOTS" to mean "directories to walk"). See
+      // docs/superpowers/specs/2026-07-18-ratchet-hardening-design.md §1.3.
+      /\bSCAN[A-Z][a-z]/,
+      // The SCAN_TYPE const specifically — doesn't match the above pattern
+      // (underscore, not an uppercase letter, follows "SCAN"). \b on both
+      // ends so it doesn't match inside "FOG_SCAN_TYPES" or similar.
+      /\bSCAN_TYPE\b/,
+    ],
     ownedDirs: ["mod/GonogoScansatUplink", "mod/GonogoScansatUplink.Tests"],
   },
   kos: {
@@ -107,450 +149,6 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   //   commnet     — stock KSP networking, not a third-party mod.
 };
 
-// ---------------------------------------------------------------------
-// Seeded allowlist. One entry per (token, file) pair. Every entry here
-// corresponds to a file the audit doc found and categorised; entries not
-// individually named in the audit's prose are marked "found by ratchet
-// scan" and are lower-severity comment mentions (verified by hand while
-// seeding this list) unless noted otherwise.
-//
-// To ratchet down: when a file's violation is fixed (code moved into the
-// owning Uplink dir, or the reference removed), delete its line here.
-// The test will tell you if you missed one (stale-entry failure) or if
-// you deleted one that's still live (new-violation failure).
-// ---------------------------------------------------------------------
-
-const ALLOWLIST: Record<ModToken, string[]> = {
-  // === kerbcast — owning dir mod/GonogoKerbcastUplink/ (incl. its client/).
-  // The remaining HARD cluster is the app's own bootstrap/peer wiring, which
-  // stays until the Uplink-client LOADER lands — today every Uplink client
-  // (this one, GonogoKosUplink/client, GonogoScansatUplink/client) is still bundled
-  // at build, so the app must name them to import them. See uplink
-  // architecture §1's "P7 retires" tech-debt note; these lines are the shape
-  // of that debt, not of this Uplink.
-  kerbcast: [
-    // -- HARD violations (audit §1, "HARD violations" table) --
-    "packages/app/src/screens/MainScreen.tsx",
-    "packages/app/src/screens/StationScreen.tsx",
-    // packages/components/src/DistanceToTarget/index.tsx was here: its built-in
-    // HudCamera imported @ksp-gonogo/kerbcast-feed directly. That backdrop is
-    // now the `kerbcast-docking-camera` AUGMENT filling the widget's
-    // `distance-to-target.camera` slot, and the widget names no camera mod at
-    // all — so the entry went stale and ratcheted off.
-
-    // -- Uplink LOADER (Phase A, 2026-07-17; kerbcast migration, 2026-07-18):
-    // the runtime client loader now names kerbcast as a first-party Uplink it
-    // loads via import() behind a flag, same as the pre-existing scansat/kos
-    // entries below. main.tsx's bundled-fallback Promise.all() gained a third
-    // `import("@ksp-gonogo/kerbcast-feed")` alongside kos/scansat; flag.ts's
-    // LOADER_UPLINK_IDS gained "kerbcast"; flag.test.ts (new) asserts all
-    // three ids are present — sanctioned loader-config, not a boundary hole.
-    "packages/app/src/main.tsx",
-    "packages/app/src/uplinks/flag.test.ts",
-    "packages/app/src/uplinks/flag.ts",
-
-    // -- GRAY — sitrep-client / contract layer, comment or string-literal only --
-    "mod/Sitrep.Contract/UplinkContract.cs",
-    "mod/Sitrep.Host/ChannelEngine.cs",
-    "packages/sitrep-client/src/context.tsx",
-    "packages/sitrep-client/src/delay-authority.ts",
-    "packages/sitrep-client/src/map-command.ts",
-    "packages/sitrep-client/src/map-topic.test.ts",
-    "packages/sitrep-client/src/map-topic.ts",
-    // view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
-    // video-delay design (2026-07-16) extracted ViewClock's
-    // confirmedEdgeUt()/utNowEstimate() formula into pure functions
-    // (view-clock-formula.ts) so the kerbcast per-frame delay WORKER can
-    // mirror it exactly instead of forking it — see ViewClock.snapshot().
-    // Comment/doc mentions only; neither file imports anything
-    // kerbcast-specific, and sitrep-client stays mod-agnostic — same GRAY
-    // shape as the other entries in this block.
-    "packages/sitrep-client/src/view-clock-formula.ts",
-    "packages/sitrep-client/src/view-clock.ts",
-
-    // -- GRAY — the kerbcast Uplink's CONTRACT/SDK layer --
-    // Every Uplink's wire types live in Sitrep.Contract and its generated
-    // SDK, by design: that is the arm's-length compile surface a
-    // third-party Uplink author codes against, and it is the same shape
-    // the scansat/kos/comms payload types already have there. These name
-    // kerbcast because they ARE kerbcast's contract — they are not core
-    // reaching into a mod.
-    "mod/Sitrep.Contract/ContractVersion.cs",
-    "mod/Sitrep.Contract/KerbcastPayloads.cs",
-    "mod/Sitrep.Contract/RtConfig.cs",
-    "mod/sitrep-sdk/src/__generated__/contract.ts",
-    "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-    "mod/sitrep-sdk/src/topics.test.ts",
-    "mod/sitrep-sdk/src/topics.ts",
-    // default-carried-topics.ts: the raw-topic promotion allowlist, which
-    // is a literal-string set and so must name every Uplink's topics —
-    // it already names scansat.*, kos.*, recovery.* and comms.* the same
-    // way. String literals only; nothing kerbcast-specific is imported.
-    "packages/sitrep-client/src/default-carried-topics.ts",
-
-    // WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
-    // FlattenedByProducer set is a literal-string allowlist over every
-    // [SitrepContract] type, so it necessarily names every Uplink's payload
-    // types — kOS's and the career/vessel POCOs are already listed there the
-    // same way. kerbcast's entries record that KerbcastCameraEntry is
-    // flattened by its producer (KerbcastCameraEntryBuilder.Build returns a
-    // Dictionary) and that the two command-arg types are inbound-only.
-    // Type-name strings in a ratchet, not a dependency.
-    "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
-
-    // truenow-allowlist.test.ts: the sibling architectural ratchet. It is a
-    // path-keyed allowlist over every Uplink's .cs files, so it necessarily
-    // names them all (Gonogo.KSP's SpaceCenter/Career/System/Comms uplinks are
-    // already listed there the same way). A path string in a ratchet, not a
-    // dependency.
-    "packages/core/src/truenow-allowlist.test.ts",
-
-    // -- TEST-only, exercising the HARD cluster above --
-    "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
-
-    // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
-    "packages/app/src/dataSources/migrateGameHost.ts",
-    "packages/app/src/dataSources/seedKspHost.ts",
-    "packages/core/src/settings/store.ts",
-    "packages/core/src/testing/installDomStubs.ts",
-    "packages/data/src/FlightsManager/AutoRecordController.tsx",
-    "packages/relay/src/bootstrapConfig.ts",
-  ],
-
-  // === scansat — owning dir mod/GonogoScansatUplink/
-  scansat: [
-    // -- HARD violations (audit §2) --
-    "packages/app/src/peer/protocol.ts",
-    "packages/app/src/screens/StationScreen.tsx",
-    "packages/components/src/MapView/types.ts",
-    "packages/core/src/schemas/telemachus.ts",
-    // T9: a deliberately narrow, telemachus-only copy of the wire-shape
-    // types the legacy (still-installable, no-longer-app-consumed)
-    // Telemachus fork's `scan.*` keys need. The real SCANsat schema lives
-    // entirely in mod/GonogoScansatUplink/client/src/schema.ts now — this
-    // file exists solely so telemachus.ts keeps typing without reaching
-    // into the owning Uplink.
-    "packages/core/src/schemas/telemachus-scan-types.ts",
-
-    // -- GRAY — contract/SDK layer --
-    "mod/Sitrep.Contract/ContractVersion.cs",
-    "mod/Sitrep.Contract/RtConfig.cs",
-    "mod/Sitrep.Contract/ScanPayloads.cs",
-    "mod/Sitrep.Contract/UplinkContract.cs",
-    "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-    "mod/sitrep-sdk/src/topics.test-d.ts",
-    "mod/sitrep-sdk/src/topics.test.ts",
-    "mod/sitrep-sdk/src/topics.ts",
-    "packages/sitrep-client/src/default-carried-topics.ts",
-    "packages/sitrep-client/src/map-topic.ts",
-
-    // -- TEST-only --
-    "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
-    "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-    "packages/core/src/augments.test.tsx",
-    "packages/sitrep-client/src/map-topic.test.ts",
-
-    // -- Cross-mod / doc-comment-only mentions (audit §2, "not violations") --
-    "mod/Gonogo.KSP/CareerUplink.cs",
-    "mod/Gonogo.KSP/CommsCoreUplink.cs",
-    "mod/Gonogo.KSP/SystemUplink.cs",
-    "mod/GonogoKosUplink.Tests/KosVersionGuardTests.cs",
-    "mod/GonogoKosUplink/KosExtension.cs",
-    "mod/GonogoKosUplink/KosVersionGuard.cs",
-    "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
-    "mod/Sitrep.Host/ChannelEngine.cs",
-    // sanctioned self-registration import, same pattern as `@ksp-gonogo/kos`
-    // in main.tsx below.
-    "packages/app/src/main.tsx",
-    // borderline/soft per audit: doc-comment-only mentions of SCANsat as
-    // the historical motivator for the migration wipe (no SCANsat import —
-    // scanType has been an opaque string layerId since the v2→v3 migration
-    // noted inline).
-    "packages/data/src/fog/FogMaskStore.ts",
-    // G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
-    // justification comment while inventorying every TrueNow declaration
-    // in mod/ — doc-mention only, same class as CareerUplink.cs above.
-    "packages/core/src/truenow-allowlist.test.ts",
-    // -- Uplink LOADER (Phase A, 2026-07-17): the runtime client loader names
-    // scansat as the first-party Uplink it loads via import() behind a flag —
-    // sanctioned loader-config, the concrete shape of the "P7 retires" debt the
-    // kerbcast header above anticipates. flag.ts holds the enabled-id list; the
-    // loader's unit test uses scansat as its example Uplink (TEST-only). The
-    // loader module itself (loader.ts) is generic and names no mod.
-    "packages/app/src/uplinks/flag.ts",
-    "packages/app/src/uplinks/loader.test.ts",
-    // flag.test.ts (kerbcast migration, 2026-07-18): asserts LOADER_UPLINK_IDS
-    // contains all three first-party loader ids (scansat/kos/kerbcast) —
-    // TEST-only, same shape as loader.test.ts above.
-    "packages/app/src/uplinks/flag.test.ts",
-  ],
-
-  // === kos — owning dir mod/GonogoKosUplink/
-  kos: [
-    // -- HARD violations (audit §3): a full second kOS client living in
-    // packages/app, plus JsonWriter.cs hardcoding kOS payload shapes in the
-    // shared engine, plus PeerHostService.ts's handleKosExecuteRequest
-    // (same shape as the other peer-transport HARD hits; found by this
-    // ratchet's scan, not individually named in the audit's kOS table).
-    "mod/Sitrep.Core/Serialization/JsonWriter.cs",
-    "packages/app/src/screens/MainScreen.tsx",
-    "packages/app/src/telemetry/SitrepPeerRelay.tsx",
-
-    // -- kos migration (2026-07-18), Task 4: CpuRegistryService/
-    // CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
-    // StationScreen constructs its own CpuRegistryService and wraps
-    // <CpuRegistryProvider> exactly as MainScreen already does (see the
-    // MainScreen.tsx HARD-violation entry above) — same "moved, not
-    // removed" pattern the kerbcast migration's own MainScreen.tsx/
-    // StationScreen.tsx entries above already establish for its Uplink.
-    "packages/app/src/screens/StationScreen.tsx",
-    // Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
-    // kosChromeProvider self-registration (via CpuRegistryProvider/
-    // CpuRegistryService, both re-exported by @ksp-gonogo/kos) rather than
-    // hand-rolling a bespoke fixture — the more honest integration test per
-    // this repo's "mock as little as possible" philosophy, and the path the
-    // migration plan's Task 5 itself prefers.
-    "packages/app/src/__tests__/component-overlay-add.test.tsx",
-    "packages/app/src/__tests__/dashboard-error-boundary.test.tsx",
-    "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
-
-    // -- GRAY — contract/SDK layer (real kOS POCOs, not just topic strings) --
-    "mod/Sitrep.Contract/ContractVersion.cs",
-    "mod/Sitrep.Contract/KosCommands.cs",
-    "mod/Sitrep.Contract/KosRun.cs",
-    "mod/Sitrep.Contract/KosTerminal.cs",
-    "mod/Sitrep.Contract/RtConfig.cs",
-    "mod/Sitrep.Contract/UplinkContract.cs",
-    // Engine sticky-reveal integration test: the diff-channel keyframe-retention
-    // feature is generic engine behaviour, but its canonical test case is the kOS
-    // terminal, so the test names KosTerminalFrame as the concrete diff-channel
-    // example. Engine test, not engine shipping code — the boundary holds. (2026-07-16)
-    "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
-    // pending-uplink contract: its Command field doc-comment gives
-    // `kos.run` as the example wire command name — doc-mention only.
-    "mod/Sitrep.Contract/UplinkPending.cs",
-    "mod/sitrep-sdk/src/__generated__/contract.ts",
-    "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-    "mod/sitrep-sdk/src/topics.test-d.ts",
-    "mod/sitrep-sdk/src/topics.test.ts",
-    "mod/sitrep-sdk/src/topics.ts",
-    // The author-facing SDK barrel used to re-export `registerKosScript` /
-    // `KosScriptDefinition` (a CORE framework capability, not the kOS
-    // Uplink's internals) here as a GRAY contract/SDK-layer exception. Kos
-    // migration (2026-07-18) Task 6/7 moved registerKosScript/
-    // KosScriptDefinition into the kos Uplink itself and removed the
-    // facade's mirror; Task 12 additionally removed the facade's unrelated
-    // DataSource-author SPI mirror (zero production consumers). Neither
-    // mod/sitrep-sdk/src/api/{host,index,types,api-shape.test-d}.ts nor
-    // packages/core/src/sdk-facade.conformance.test-d.ts nor
-    // packages/app/src/uplinks/host.ts names kOS at all any more — ratcheted
-    // off. mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it still
-    // uses "kos" as an example dataSourceId in a generic
-    // `useDataValue("kos", "k")` assertion, unrelated to either removed
-    // mirror.
-    "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
-    // dispatch()'s label doc-comment cites `kos.keystroke` as the example
-    // line-mode command whose composed text becomes the queue label —
-    // comment-only, no kOS coupling in the client spine.
-    "packages/sitrep-client/src/client.ts",
-    // -- comment/doc + pending-topic mentions (no kOS coupling) --
-    // FleetComms + CameraFeed doc-comments reference `KosTerminal`'s
-    // in-transit-strip / command-response pattern; Comms.cs's CommsLink doc
-    // mentions the kOS terminal reading comms.link. FleetComms/pendingPulse
-    // render `system.uplink.pending` entries whose commands include
-    // kos.run/kos.keystroke (topic-string mention, like UplinkPending.cs).
-    "packages/components/src/FleetComms/index.tsx",
-    "packages/components/src/FleetComms/pendingPulse.ts",
-    "packages/components/src/FleetComms/slot.test.tsx",
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
-    "mod/Sitrep.Contract/Comms.cs",
-    "packages/sitrep-client/src/default-carried-topics.ts",
-    "packages/sitrep-client/src/map-command.test.ts",
-    "packages/sitrep-client/src/map-topic.test.ts",
-    "packages/sitrep-client/src/map-topic.ts",
-
-    // -- TEST-only --
-    // pending-uplink wire tests use "kos.run" as the sample command name;
-    // CommsGateCommandTests's doc-comment cites a kOS keystroke as the
-    // canonical delayed command gated during a blackout — test/doc only.
-    "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
-    "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
-    "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
-    "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
-    "mod/Sitrep.Host.IntegrationTests/CommsGateCommandTests.cs",
-    "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
-    "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs",
-    "mod/sitrep-sdk/src/generated.test.ts",
-    // kos-execute-tunnel.test.ts has zero real kos coupling — it only uses
-    // "kos" as a generic Uplink-handle id while exercising app-owned PeerJS
-    // relay machinery (kos migration Task 8, 2026-07-18: moved into the kos
-    // package and back out once that became clear). Stays in
-    // packages/app/src/__tests__ where this entry already covers it.
-    "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
-    // peer label/topic tunnel tests use "kos.run" as the sample command and
-    // cite a kOS command in a doc-comment — test/doc-only, no coupling.
-    "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
-    "packages/app/src/settings/SettingsModal.test.tsx",
-    "packages/app/src/telemetry/PeerTransport.test.ts",
-    "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
-    "packages/components/src/DataSourceStatus/index.test.tsx",
-    "packages/components/src/ManeuverPlanner/index.test.tsx",
-    "packages/components/src/test/widgets.axe.test.tsx",
-    "packages/core/src/hooks/map-command.coverage.test.ts",
-    "packages/core/src/styleguide-styled-components.test.ts",
-    "packages/data/src/BufferedDataSource.test.ts",
-    "packages/data/src/hooks/useDataSchema.test.tsx",
-
-    // "centralised kOS scripts" infra (audit §3; CLAUDE.md). Kos migration
-    // (2026-07-18) Tasks 2-4/6 moved registerKosScript/ScriptableDataSource/
-    // KosScriptError/CpuRegistryService and their satellites (barrel
-    // exports, the [KOSDATA] parser, the CPU-registry context, their own
-    // tests) wholesale into the kos Uplink per the operator's explicit
-    // "no generalising" call — overturning the prior "deliberate generic
-    // extension point" judgment this block used to record. Only
-    // registry.ts's own clearKosScripts() import removal remains a
-    // core-side trace.
-    "packages/core/src/registry.ts",
-
-    // -- Doc/comment-only mentions elsewhere (kOS is a documented Key
-    // Design Constraint — "optional, not a hard dependency" — so it is
-    // named in prose across many otherwise-unrelated files) --
-    // dev-only comms override: its doc-comment cites `kos.keystroke` as an
-    // example command to gate during a blackout — comment-only.
-    "mod/Gonogo.KSP/DevCommsOverride.cs",
-    "mod/Gonogo.KSP/VesselUplink.cs",
-    "mod/GonogoTelemetry/src/TechTreeApi.cs",
-    "mod/Sitrep.Contract/SitrepUplinkAttribute.cs",
-    "mod/Sitrep.Contract/VesselControl.cs",
-    "mod/Sitrep.Core.Tests/CommsWireTests.cs",
-    "mod/Sitrep.Core/Courier.cs",
-    "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-    "mod/Sitrep.Host/ChannelEngine.cs",
-    "mod/Sitrep.Host/UplinkDiscovery.cs",
-    "packages/app/src/__tests__/peer-client-data-source.test.ts",
-    "packages/app/src/alarms/types.ts",
-    "packages/app/src/components/ComponentOverlay.tsx",
-    "packages/app/src/dataSources/seedKspHost.ts",
-    "packages/app/src/logs/LogsManager.tsx",
-    // sanctioned self-registration import (`import "@ksp-gonogo/kos"`),
-    // same pattern as importing @ksp-gonogo/components.
-    "packages/app/src/main.tsx",
-    "packages/app/src/peer/PeerBroadcastingDataSource.ts",
-    "packages/components/src/CrewManifest/index.tsx",
-    "packages/components/src/ManeuverPlanner/index.tsx",
-    "packages/components/src/TargetPicker/index.tsx",
-    "packages/core/src/safeRandomUuid.ts",
-    "packages/core/src/testing/installDomStubs.ts",
-    "packages/core/src/types.ts",
-    "packages/data/src/BufferedDataSource.ts",
-    "packages/data/src/flightDetector.ts",
-    "packages/data/src/hooks/useDataSchema.ts",
-    "packages/data/src/replaySession/ReplaySessionProvider.tsx",
-    "packages/data/src/types.ts",
-    // packages/kerbcast/src/index.ts was here (a "alongside Telemachus / kOS /
-    // etc." aside in its header). That package is now
-    // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
-    // another Uplink at all — stale twice over, so it ratcheted off.
-    "packages/relay/src/bootstrapConfig.ts",
-    "packages/sitrep-client/src/stream-status.ts",
-    "packages/sitrep-client/src/timeline-store.ts",
-    "packages/sitrep-client/src/use-certainty.ts",
-    "packages/sitrep-client/src/use-stream-status.ts",
-    "packages/ui/src/VersionMismatchBanner.tsx",
-  ],
-
-  // === realantennas — owning dir mod/GonogoRealAntennasUplink/. The
-  // cleanest of the four: zero HARD violations per the audit.
-  realantennas: [
-    // -- Judgment calls, all resolved clean (audit §4) --
-    "mod/Gonogo.KSP/CommNetBackend.cs",
-    "mod/Gonogo.KSP/CommsCoreUplink.cs",
-    // dev-only comms override + its DevTools driver both name the stock
-    // comms backends ("CommNet / RealAntennas") in doc-comments explaining
-    // what they force — comment-only, no RA coupling.
-    "mod/Gonogo.KSP/DevCommsOverride.cs",
-    "mod/Gonogo.KSP/GonogoAddon.cs",
-    "mod/GonogoDevTools/GonogoDevForceComms.cs",
-    "mod/Sitrep.Contract/UplinkContract.cs",
-    "mod/Sitrep.Host/ChannelEngine.cs",
-    "mod/Sitrep.Host/Comms/CommsElection.cs",
-    "mod/Sitrep.Host/Comms/SignalDelay.cs",
-    // The action-groups capability seam is a deliberate copy of the comms
-    // precedent above, and its doc-comments say so: they cite
-    // GonogoRealAntennasUplink as the worked example of a provider elected
-    // over the stock backend that ships no client code of its own. Prose
-    // only — no RA type, reference or coupling; same category as
-    // Comms/CommsElection.cs itself.
-    "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
-    "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
-    "packages/components/src/CommSignal/index.tsx",
-    "packages/components/src/SystemView/index.tsx",
-    // G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in
-    // a justification comment while inventorying every TrueNow
-    // declaration in mod/ — doc-mention only.
-    "packages/core/src/truenow-allowlist.test.ts",
-    // The AGX uplink is the SAME election shape RA established for comms
-    // (docs/superpowers/specs/2026-07-17-agx-backend-design.md §2), and its
-    // doc-comments say so explicitly, citing GonogoRealAntennasUplink /
-    // RaReflection as the worked precedent — prose only, no RA type,
-    // reference or coupling.
-    "mod/GonogoActionGroupsExtendedUplink/ActionGroupsExtendedUplink.cs",
-    "mod/GonogoActionGroupsExtendedUplink/AgxReflection.cs",
-
-    // -- GRAY — Sitrep.Contract/Comms.cs carries three RA-only payload types --
-    "mod/Sitrep.Contract/Comms.cs",
-
-    // -- TEST-only --
-    "mod/Sitrep.Core.Tests/CommsWireTests.cs",
-    "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-    "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-    "packages/components/src/CommSignal/slot.test.tsx",
-    "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
-    // AGX's own election/reflection tests cite CommsElectionTests /
-    // RaReflection as the pattern they mirror — doc-mention only.
-    "mod/GonogoActionGroupsExtendedUplink.Tests/ActionGroupsExtendedElectionTests.cs",
-    "mod/GonogoActionGroupsExtendedUplink.Tests/AgxReflectionTests.cs",
-  ],
-
-  // === agx — owning dir mod/GonogoActionGroupsExtendedUplink/. Every entry
-  // below PRE-DATES the AGX uplink (Phase 1 named action groups and left the
-  // seam ready, per docs/superpowers/specs/2026-07-17-agx-backend-design.md
-  // §0/§1) — doc-comment mentions of "Action Groups Extended (AGX)" or the
-  // provider-id identifiers explaining WHY the seam is shaped the way it is,
-  // not AGX coupling. No file below imports, references, or derives from
-  // anything in the new owning dir.
-  agx: [
-    // -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
-    // The provider-registration seam itself: constant/method names
-    // (ActionGroupsExtendedProviderId, RegisterActionGroupsExtendedProvider)
-    // and prose explaining this file IS where a future AGX uplink plugs in
-    // — the whole point of §1's "the seam Phase 1 left ready".
-    "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
-    // Doc-comment explaining why the capability's Groups() list is
-    // named/arbitrary-length rather than a positional bool[] — cites
-    // "Action Groups Extended (AGX)" as the reason, no AGX coupling.
-    "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
-    // ContractVersion's migration-history doc-comment for the
-    // bool[]->ActionGroupState[] change names AGX as the reason the
-    // contract had to stop being positional.
-    "mod/Sitrep.Contract/ContractVersion.cs",
-    // VesselControl.ActionGroupState's doc-comment: same "AGX needs named,
-    // arbitrary-length groups" rationale for the wire type's shape.
-    "mod/Sitrep.Contract/VesselControl.cs",
-    // VesselCommandProvider's SetActionGroup handler doc-comment: explains
-    // it can no longer assume a 1..10 bound "because Action Groups Extended
-    // legitimately goes to 250" — prose only, no AGX type/reference.
-    "mod/Sitrep.Host/VesselCommandProvider.cs",
-    "packages/sitrep-client/src/map-topic.ts",
-    "packages/sitrep-client/src/vessel-state.ts",
-
-    // -- TEST-only --
-    // Regression-comment mirrors the VesselCommandProvider rationale above.
-    "mod/Sitrep.Host.Tests/VesselCommandProviderTests.cs",
-  ],
-};
-
 const SCAN_EXTENSIONS = /\.(tsx?|cs)$/;
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -560,9 +158,13 @@ const SKIP_DIRS = new Set([
   "coverage",
   ".turbo",
 ]);
-// This file itself names every mod token in its patterns/comments/allowlist
-// — that's the guardrail's own vocabulary, not a boundary violation.
-const SELF_PATH = "packages/core/src/uplink-boundary.test.ts";
+// This file and its sibling allowlist data module name every mod token in
+// their patterns/comments/allowlist entries — that's the guardrail's own
+// vocabulary, not a boundary violation.
+const SELF_PATHS = new Set([
+  "packages/core/src/uplink-boundary.test.ts",
+  "packages/core/src/uplink-boundary.allowlist.ts",
+]);
 
 function findRepoRoot(start: string): string {
   let dir = start;
@@ -610,7 +212,7 @@ function findViolations(root: string, token: ModToken): string[] {
   for (const scanRoot of scanRoots(root)) {
     for (const file of walk(scanRoot)) {
       const rel = relative(root, file);
-      if (rel === SELF_PATH) continue;
+      if (SELF_PATHS.has(rel)) continue;
       if (isUnderOwnedDir(rel, ownedDirs)) continue;
       const content = readFileSync(file, "utf8");
       if (patterns.some((re) => re.test(content))) hits.push(rel);
@@ -624,7 +226,10 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
     it(`${token} — matches the seeded allowlist exactly`, () => {
       const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
       const found = new Set(findViolations(root, token));
-      const allowed = new Set(ALLOWLIST[token]);
+      const allowed = new Set([
+        ...ALLOWLIST[token].permanent,
+        ...ALLOWLIST[token].domainDebt,
+      ]);
 
       const newViolations = [...found].filter((f) => !allowed.has(f));
       const staleEntries = [...allowed].filter((f) => !found.has(f));
@@ -636,7 +241,10 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
             `\n\nEither move this code into the owning Uplink dir, or if it's an ` +
             `intentional, reviewed exception (contract/SDK layer, a new test, a ` +
             `sanctioned self-registration import), add it to ALLOWLIST.${token} in ` +
-            `packages/core/src/uplink-boundary.test.ts with a comment explaining why. ` +
+            `packages/core/src/uplink-boundary.allowlist.ts with a comment explaining why. ` +
+            `Wire/contract/generated/ratchet-inventory files and text-only doc mentions go in ` +
+            `.permanent (unconstrained); real code coupling goes in .domainDebt (shrink-only — ` +
+            `see the "domain-debt allowlist entries only ever shrink" test below). ` +
             `See docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md.`,
         );
       }
@@ -645,8 +253,8 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
         throw new Error(
           `Stale "${token}" allowlist entries — these no longer contain a matching ` +
             `reference (the violation was fixed, or the file moved/was deleted). ` +
-            `Delete the line(s) from ALLOWLIST.${token} in packages/core/src/uplink-boundary.test.ts ` +
-            `to ratchet the gate down:\n` +
+            `Delete the line(s) from ALLOWLIST.${token}.permanent or .domainDebt in ` +
+            `packages/core/src/uplink-boundary.allowlist.ts to ratchet the gate down:\n` +
             staleEntries.map((f) => `  ${f}`).join("\n"),
         );
       }
@@ -657,4 +265,238 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
       // core-suite load a single walk can exceed vitest's 5s default.
     }, 30_000);
   }
+});
+
+describe("scansat token: pattern coverage for the schema-identifier blind spot", () => {
+  // Representative content shapes for packages/core/src/schemas/scansat.ts's
+  // exported wire-shape identifiers (SCANType, SCAN_TYPE, etc.) — the class
+  // of leak the bare `/scansat/i` pattern was blind to (design doc §1.1-1.2):
+  // a file can be scansat-schema-coupled (import/use SCANType, key a cache
+  // by SCANType, etc.) without ever spelling the word "scansat".
+  const SCHEMA_IDENTIFIER_SAMPLES = [
+    "export function useBodyFogMask(bodyId: string, scanType: SCANType) { /* ... */ }",
+    "const SCAN_TYPE = { AltimetryLoRes: 1, AltimetryHiRes: 2 } as const;",
+    "interface BodyMask { readonly scanType: SCANCoverageBitmap; }",
+  ];
+
+  it("catches SCAN-prefixed schema identifiers even with zero 'scansat' text", () => {
+    for (const sample of SCHEMA_IDENTIFIER_SAMPLES) {
+      // Proves the leak: the old, sole `/scansat/i` pattern would have
+      // missed every one of these.
+      expect(/scansat/i.test(sample)).toBe(false);
+      // Proves the fix: the token's full pattern set (including the two
+      // new patterns) catches all of them.
+      expect(MOD_OWNERSHIP.scansat.patterns.some((re) => re.test(sample))).toBe(
+        true,
+      );
+    }
+  });
+
+  it("does not false-positive on this codebase's unrelated SCAN_ROOTS convention", () => {
+    // packages/core/src/styleguide-cleanup.test.ts, styleguide.test.ts, and
+    // styleguide-styled-components.test.ts all use SCAN_ROOTS/
+    // COMPONENT_SCAN_ROOTS to mean "directories to walk" — nothing to do
+    // with SCANsat. A bare `/SCAN[A-Z_]/` prefix would have false-matched
+    // this; the `[A-Z][a-z]` refinement and the `\bSCAN_TYPE\b` exact-match
+    // must not.
+    const samples = [
+      'const SCAN_ROOTS = ["packages", "mod"];',
+      'const COMPONENT_SCAN_ROOTS = ["packages/components/src"];',
+    ];
+    for (const sample of samples) {
+      expect(MOD_OWNERSHIP.scansat.patterns.some((re) => re.test(sample))).toBe(
+        false,
+      );
+    }
+  });
+});
+
+/**
+ * Resolves a git ref to diff the domain-debt allowlist against. Prefers an
+ * explicit CI-supplied ref, falls back to origin/main or main for local
+ * dev, and returns null (soft-pass) if nothing resolves — mirrors the
+ * visual-gate's "no baseline yet" soft-pass posture rather than hard-
+ * failing somewhere this can't meaningfully run (a fresh clone with no
+ * origin, a detached HEAD, first-land before any base ref exists).
+ *
+ * UPLINK_ALLOWLIST_BASE_REF is not yet wired into ci.yml — see the design
+ * doc §2.8. Until that lands, this check soft-passes in CI (the
+ * origin/main / main fallbacks resolve there too, but against whatever
+ * commit CI happened to fetch, not a meaningful "previous push" ref) and
+ * only truly enforces on a local machine with a real origin/main.
+ */
+function resolveBaseRef(): string | null {
+  const candidates = [
+    process.env.UPLINK_ALLOWLIST_BASE_REF,
+    process.env.GITHUB_BASE_REF && `origin/${process.env.GITHUB_BASE_REF}`,
+    "origin/main",
+    "main",
+  ].filter((v): v is string => Boolean(v));
+  for (const ref of candidates) {
+    try {
+      execFileSync("git", ["rev-parse", "--verify", ref], { stdio: "ignore" });
+      return ref;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+/**
+ * Dynamically loads the allowlist module's exports as they existed at
+ * `ref`, without touching the working tree. Transpiles the git blob with
+ * esbuild and imports it as a `data:` URL so no temp-file cleanup is
+ * needed.
+ */
+async function loadAllowlistAt(
+  ref: string,
+  relPath: string,
+): Promise<Partial<Record<ModToken, ModAllowlist | string[]>> | null> {
+  let source: string;
+  try {
+    source = execFileSync("git", ["show", `${ref}:${relPath}`], {
+      encoding: "utf8",
+    });
+  } catch {
+    return null; // file didn't exist at ref yet — bootstrap case
+  }
+  const { code } = transformSync(source, { loader: "ts", format: "esm" });
+  const mod = await import(`data:text/javascript,${encodeURIComponent(code)}`);
+  return mod.ALLOWLIST;
+}
+
+/**
+ * Pure comparison: which tokens gained a `domainDebt` entry in `current`
+ * that wasn't present in `previous`. Shared by the synthetic unit test
+ * below (no git/esbuild involved) and the real git-backed check further
+ * down, so both exercise the exact same growth rule.
+ *
+ * `previous` accepts either the current `{ permanent, domainDebt }` shape
+ * or the pre-split flat `string[]` shape (bootstrap fallback: the base ref
+ * may predate the split entirely). Every entry in a flat `string[]` is
+ * treated as "already known" regardless of which new category it landed
+ * in — conservative, avoids false-failing the commit that introduces the
+ * split itself.
+ */
+function findDomainDebtGrowth(
+  previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
+  current: Record<ModToken, ModAllowlist>,
+): Array<{ token: ModToken; added: string[] }> {
+  const growth: Array<{ token: ModToken; added: string[] }> = [];
+  for (const token of Object.keys(current) as ModToken[]) {
+    const prevEntry = previous[token];
+    const oldDomainDebt = new Set(
+      Array.isArray(prevEntry) ? prevEntry : (prevEntry?.domainDebt ?? []),
+    );
+    const added = current[token].domainDebt.filter(
+      (f) => !oldDomainDebt.has(f),
+    );
+    if (added.length > 0) growth.push({ token, added });
+  }
+  return growth;
+}
+
+describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures)", () => {
+  // Pure-logic unit tests — no git, no esbuild, no filesystem. Proves the
+  // growth rule itself is correct in isolation before trusting the
+  // git-backed integration test further down to wire it up correctly.
+  const base: ModAllowlist = {
+    permanent: ["p.ts"],
+    domainDebt: ["a.ts", "b.ts"],
+  };
+
+  it("flags a token whose domainDebt set gained an entry", () => {
+    const previous: Record<ModToken, ModAllowlist> = {
+      kerbcast: base,
+      scansat: base,
+      kos: base,
+      realantennas: base,
+      agx: base,
+    };
+    const current: Record<ModToken, ModAllowlist> = {
+      ...previous,
+      // Synthetic leak: a new file lands in scansat's domainDebt without
+      // having been there before — exactly the case the shrink-only gate
+      // exists to reject.
+      scansat: {
+        permanent: ["p.ts"],
+        domainDebt: ["a.ts", "b.ts", "new-leak.ts"],
+      },
+    };
+
+    const growth = findDomainDebtGrowth(previous, current);
+
+    expect(growth).toEqual([{ token: "scansat", added: ["new-leak.ts"] }]);
+  });
+
+  it("does not flag a shrink (entry removed) or an unchanged set", () => {
+    const previous: Record<ModToken, ModAllowlist> = {
+      kerbcast: base,
+      scansat: base,
+      kos: base,
+      realantennas: base,
+      agx: base,
+    };
+    const current: Record<ModToken, ModAllowlist> = {
+      ...previous,
+      // Ratcheted off: "a.ts" removed, nothing added.
+      kerbcast: { permanent: ["p.ts"], domainDebt: ["b.ts"] },
+    };
+
+    expect(findDomainDebtGrowth(previous, current)).toEqual([]);
+  });
+
+  it("treats every entry in a pre-split flat string[] as already known (bootstrap fallback)", () => {
+    const empty: ModAllowlist = { permanent: [], domainDebt: [] };
+    const previous: Partial<Record<ModToken, string[]>> = {
+      scansat: ["a.ts", "b.ts"],
+    };
+    const current: Record<ModToken, ModAllowlist> = {
+      kerbcast: empty,
+      scansat: { permanent: [], domainDebt: ["a.ts", "b.ts"] },
+      kos: empty,
+      realantennas: empty,
+      agx: empty,
+    };
+
+    expect(findDomainDebtGrowth(previous, current)).toEqual([]);
+  });
+});
+
+describe("uplink boundary: domain-debt allowlist entries only ever shrink", () => {
+  it("no token's domainDebt set gained an entry vs the base ref", async () => {
+    const baseRef = resolveBaseRef();
+    if (!baseRef) return; // soft-pass — no comparison ref available
+
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const relPath = relative(
+      root,
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "uplink-boundary.allowlist.ts",
+      ),
+    );
+    const previous = await loadAllowlistAt(baseRef, relPath);
+    if (!previous) return; // allowlist didn't exist at base ref — bootstrap case
+
+    const growth = findDomainDebtGrowth(previous, ALLOWLIST);
+    if (growth.length > 0) {
+      throw new Error(
+        growth
+          .map(
+            ({ token, added }) =>
+              `New DOMAIN-DEBT entries for "${token}" vs ${baseRef} — domain-debt ` +
+              `entries may only be REMOVED (ratcheted off as code moves into the ` +
+              `owning Uplink), never added:\n` +
+              added.map((f) => `  ${f}`).join("\n"),
+          )
+          .join("\n\n") +
+          `\n\nIf any of these really is a permanent wire/contract/generated-code ` +
+          `or text-only doc-mention reference, move it to ALLOWLIST.<token>.permanent ` +
+          `in uplink-boundary.allowlist.ts instead (reviewed edit, unconstrained) — ` +
+          `don't add it to .domainDebt.`,
+      );
+    }
+  }, 30_000);
 });
