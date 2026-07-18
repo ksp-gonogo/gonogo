@@ -190,12 +190,12 @@ export interface UseCommandResult {
 
 // --- DataSource-author SPI ---------------------------------------------------
 //
-// An Uplink that ships its OWN DataSource (e.g. kerbcast's KerbcastDataSource)
-// needs to TYPE its implementation against the real `DataSource` shape — same
-// leaf constraint as above: core owns `DataSource`/`DataSourceStatus`/
-// `ConfigField`/`DataKey` (packages/core/src/types.ts) but the sdk cannot name
-// it as a workspace dependency, so the interface is mirrored here and kept
-// honest by `packages/core/src/sdk-facade.conformance.test-d.ts`.
+// An Uplink that ships its OWN DataSource needs to TYPE its implementation
+// against the real `DataSource` shape — same leaf constraint as above: core
+// owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
+// (packages/core/src/types.ts) but the sdk cannot name it as a workspace
+// dependency, so the interface is mirrored here and kept honest by
+// `packages/core/src/sdk-facade.conformance.test-d.ts`.
 
 export type DataSourceStatus =
   | "connected"

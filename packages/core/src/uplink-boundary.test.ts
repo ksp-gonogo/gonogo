@@ -161,16 +161,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // it already names scansat.*, kos.*, recovery.* and comms.* the same
     // way. String literals only; nothing kerbcast-specific is imported.
     "packages/sitrep-client/src/default-carried-topics.ts",
-    // Phase 0.4 SPI gaps: host.ts's getDataSource doc-comment cites
-    // kerbcast's KerbcastDataSource as the concrete motivating example for
-    // "an Uplink that authors its own DataSource" (the real, verified proof
-    // this member is needed) — same GRAY contract/SDK-layer exception as the
-    // registerKosScript entry below: the shim names kerbcast only as a
-    // framework author-surface example, not a dependency on the Uplink's
-    // internals. types.ts's DataSource-SPI mirror-type comment gives the
-    // same example for the same reason. (2026-07-18)
-    "mod/sitrep-sdk/src/api/host.ts",
-    "mod/sitrep-sdk/src/api/types.ts",
 
     // WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
     // FlattenedByProducer set is a literal-string allowlist over every
