@@ -308,11 +308,6 @@ export function StationScreen() {
         if (schemaHandledRef.current) return;
         schemaHandledRef.current = true;
         for (const s of sources) {
-          // kerbcast is NOT peer-routed: its media streams direct from the
-          // sidecar, brokered through the host. Don't replace the real
-          // (brokered) source with a peer-data one — it's wired in the
-          // attachBroker mount effect, and connects lazily on first camera view.
-          if (s.id === "kerbcast") continue;
           const source = new PeerClientDataSource(s.id, s.name, client);
           source.setSchema(s.keys);
           registerDataSource(source);
