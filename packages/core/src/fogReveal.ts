@@ -15,7 +15,7 @@ import type {
 } from "./augments";
 
 export interface FogRevealSourceDefinition {
-  /** Globally unique. Convention: "<uplinkId>:<name>", e.g. "scansat:AltimetryHiRes". */
+  /** Globally unique. Convention: "<uplinkId>:<name>", e.g. "example-uplink:AltimetryHiRes". */
   id: string;
   label?: string;
   /** Composite weight, 0-255. Undefined means the consumer applies its own default. */
