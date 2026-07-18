@@ -97,11 +97,11 @@ export interface GonogoHost {
 
   /**
    * Reach a data source already registered in the app's single registry — for
-   * an Uplink that AUTHORS its own `DataSource` (e.g. kerbcast's
-   * `KerbcastDataSource`) to make imperative calls on its own instance. The
-   * "hooks are the boundary" rule (`useDataValue`/`useExecuteAction`) still
-   * holds for a CONSUMER widget; this accessor is for the author reaching the
-   * source it registered itself, not a bypass for ordinary data reads.
+   * an Uplink that AUTHORS its own `DataSource` to make imperative calls on
+   * the instance it registered itself. The "hooks are the boundary" rule
+   * (`useDataValue`/`useExecuteAction`) still holds for a CONSUMER widget;
+   * this accessor is for the author reaching the source it registered
+   * itself, not a bypass for ordinary data reads.
    */
   getDataSource(id: string): DataSource | undefined;
   /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
