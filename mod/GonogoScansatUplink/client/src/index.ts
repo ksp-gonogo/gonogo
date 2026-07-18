@@ -24,6 +24,13 @@
 //     so it fills the `map-view.sections` slot with the per-scan-type
 //     coverage readout (MapView overlay-host foundation plan T8b), replacing
 //     the old MapView-internal `CoveragePanelView`/`CoverageRow`.
+//   - `TerrainBase/AltimetryBase` + `TerrainBase/BiomeBase` →
+//     registerAugment({ id: "scansat:altimetry" | "scansat:biome",
+//     augments: "map-view.base", ... }) — two mutually-exclusive providers
+//     for the `map-view.base` REPLACE slot (MapView overlay-host foundation
+//     plan T8c), each painting its own standalone colormap surface
+//     (altimetry or biome) modulated per-tile by the T4 coverage paint-gate,
+//     replacing the old MapView-internal `useBiomeCanvas`/`useHeightCanvas`.
 //   - `FogReveal/useScanSatFogSync` → registerFogRevealSource(...) once per
 //     scan type ("scansat:AltimetryLoRes" etc., MapView overlay-host
 //     foundation plan T7) so MapView's coverage paint-gate knows this
@@ -60,4 +67,6 @@ import "./ScienceAugment";
 import "./AnomalyOverlay";
 import "./FootprintOverlay";
 import "./CoveragePanel";
+import "./TerrainBase/AltimetryBase";
+import "./TerrainBase/BiomeBase";
 import "./FogReveal/useScanSatFogSync";
