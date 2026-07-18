@@ -4,7 +4,6 @@ import {
   resetSettingsForTests,
   setSetting,
 } from "@ksp-gonogo/core";
-import { Layer } from "@ksp-gonogo/kerbcast";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -55,53 +54,6 @@ describe("KerbcastDataSource", () => {
     expect(ds.status).toBe("connected");
   });
 
-  it("routes set-fov execute() onto the control channel", async () => {
-    const session = createMockKerbcastSession();
-    const ds = makeTracked({ port: 1 }, session.transport);
-    await ds.connect();
-    session.openChannel();
-    session.sentMessages.length = 0; // drop the hello
-
-    await ds.execute("kerbcast.set-fov[42,35.5]");
-
-    expect(session.sentMessages[0]).toBe(
-      JSON.stringify({
-        type: "set-fov",
-        content: { flightId: 42, fov: 35.5 },
-      }),
-    );
-  });
-
-  it("routes set-layers execute() with NEAR / SCALED layer args", async () => {
-    const session = createMockKerbcastSession();
-    const ds = makeTracked({ port: 1 }, session.transport);
-    await ds.connect();
-    session.openChannel();
-    session.sentMessages.length = 0;
-
-    await ds.execute("kerbcast.set-layers[7,NEAR,SCALED]");
-
-    expect(session.sentMessages[0]).toBe(
-      JSON.stringify({
-        type: "set-layers",
-        content: { flightId: 7, layers: [Layer.Near, Layer.Scaled] },
-      }),
-    );
-  });
-
-  it("subscribe('kerbcast.cameras') replays the current snapshot", async () => {
-    const session = createMockKerbcastSession();
-    const ds = makeTracked({ port: 1 }, session.transport);
-
-    const received: unknown[] = [];
-    ds.subscribe("kerbcast.cameras", (v) => received.push(v));
-
-    await new Promise<void>((r) => queueMicrotask(r));
-
-    expect(received).toHaveLength(1);
-    expect(received[0]).toEqual([]);
-  });
-
   it("dials the sidecar at the shared core gameHost", async () => {
     setSetting(GAME_HOST_KEY, "192.168.5.5");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -116,13 +68,6 @@ describe("KerbcastDataSource", () => {
       expect.anything(),
     );
     fetchSpy.mockRestore();
-    ds.disconnect();
-  });
-
-  it("configSchema exposes only port (host is core-owned)", () => {
-    const ds = makeTracked();
-    const keys = ds.configSchema().map((f) => f.key);
-    expect(keys).toEqual(["port"]);
     ds.disconnect();
   });
 });

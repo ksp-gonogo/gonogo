@@ -1,14 +1,8 @@
-import type {
-  ConfigField,
-  DataKey,
-  DataSource,
-  DataSourceStatus,
-} from "@ksp-gonogo/core";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
 import {
   GAME_HOST_KEY,
   getGameHost,
   PerfBudget,
-  registerDataSource,
   registerUplinkHandle,
   subscribeSetting,
 } from "@ksp-gonogo/core";
@@ -20,7 +14,6 @@ import {
   type KerbcastDataChannel,
   type KerbcastPeer,
   type KerbcastTransport,
-  type Layer,
 } from "@ksp-gonogo/kerbcast";
 import { logger } from "@ksp-gonogo/logger";
 
@@ -344,7 +337,7 @@ export class KeepaliveTransport implements KerbcastTransport {
 // KerbcastDataSource
 // ---------------------------------------------------------------------------
 
-export class KerbcastDataSource implements DataSource<KerbcastConfig> {
+export class KerbcastDataSource {
   id = "kerbcast";
   name = "Kerbcast";
   status: DataSourceStatus = "disconnected";
@@ -401,7 +394,6 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   private broker: KerbcastBroker | undefined;
   private brokerIceUnsub: (() => void) | undefined;
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
-  private camerasKeySubs = new Set<(value: unknown) => void>();
   // flightId -> refcount of widgets currently displaying that camera. Drives
   // the dynamic slot subscription: 0->1 binds a slot, 1->0 frees it. Passed as
   // the initial set on (re)connect so a reconnect re-binds whatever's on screen
@@ -679,96 +671,18 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     this.unsubGameHost?.();
   }
 
-  schema(): DataKey[] {
-    return [{ key: "kerbcast.cameras" }];
-  }
-
-  subscribe(key: string, cb: (value: unknown) => void): () => void {
-    if (key !== "kerbcast.cameras") return () => {};
-    this.camerasKeySubs.add(cb);
-    queueMicrotask(() => cb(this.client.cameras));
-    return () => this.camerasKeySubs.delete(cb);
-  }
-
-  async execute(action: string): Promise<void> {
-    const [name, args] = parseAction(action);
-    const [flightIdRaw, ...rest] = args;
-    if (!flightIdRaw) return;
-    const cam = this.client.camera(Number(flightIdRaw));
-    switch (name) {
-      case "set-layers":
-        await cam.setLayers(rest as Layer[]);
-        break;
-      case "set-render-size": {
-        const [w, h] = rest;
-        if (!w || !h) return;
-        await cam.setRenderSize(Number(w), Number(h));
-        break;
-      }
-      case "set-fov": {
-        const [fov] = rest;
-        if (!fov) return;
-        await cam.setFov(Number(fov));
-        break;
-      }
-      case "set-pan": {
-        const [yaw, pitch] = rest;
-        if (!yaw || !pitch) return;
-        await cam.setPan(Number(yaw), Number(pitch));
-        break;
-      }
-      case "set-pan-rate": {
-        // Velocity, not position — "0" is a valid (stop) value, so guard on
-        // undefined rather than falsiness.
-        const [yawRate, pitchRate] = rest;
-        if (yawRate === undefined || pitchRate === undefined) return;
-        await cam.setPanRate(Number(yawRate), Number(pitchRate));
-        break;
-      }
-      case "set-zoom-rate": {
-        const [rate] = rest;
-        if (rate === undefined) return;
-        await cam.setZoomRate(Number(rate));
-        break;
-      }
-      case "set-degrade": {
-        const [level] = rest;
-        if (!level) return;
-        await cam.setDegrade(Number(level));
-        break;
-      }
-      case "request-keyframe":
-        await cam.requestKeyframe();
-        break;
-    }
-  }
-
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
     this.statusListeners.add(cb);
     return () => this.statusListeners.delete(cb);
-  }
-
-  configSchema(): ConfigField[] {
-    return [
-      {
-        key: "port",
-        label: "Sidecar port",
-        type: "number",
-        placeholder: "8088",
-      },
-    ];
   }
 
   getConfig(): KerbcastConfig {
     return { ...this.cfg };
   }
 
-  configure(config: Record<string, unknown>): void {
+  configure(config: Partial<KerbcastConfig>): void {
     const next: KerbcastConfig = {
-      port:
-        typeof config.port === "number"
-          ? config.port
-          : Number(config.port) || this.cfg.port,
+      port: typeof config.port === "number" ? config.port : this.cfg.port,
     };
     persistConfig(next);
     this.applyConfig(next);
@@ -844,11 +758,8 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
           this.scheduleReconnect();
         }
       }),
-      client.on("cameras-change", (cams) => {
+      client.on("cameras-change", () => {
         KERBCAST_CAMERAS_BUDGET.record();
-        this.camerasKeySubs.forEach((cb) => {
-          cb(cams);
-        });
       }),
       client.on("settings-change", (payload) => {
         // Diagnostic: is THIS connected instance receiving + applying the
@@ -982,22 +893,7 @@ function mapStatus(s: KerbcastConnectionState): DataSourceStatus {
   }
 }
 
-function parseAction(action: string): [string, string[]] {
-  const dot = action.indexOf(".");
-  const rest = dot === -1 ? action : action.slice(dot + 1);
-  const bracket = rest.indexOf("[");
-  if (bracket === -1) return [rest, []];
-  const name = rest.slice(0, bracket);
-  const argList = rest.slice(bracket + 1, rest.lastIndexOf("]"));
-  const args = argList
-    .split(",")
-    .map((a) => a.trim())
-    .filter((a) => a.length > 0);
-  return [name, args];
-}
-
 export const kerbcastSource = new KerbcastDataSource();
-registerDataSource(kerbcastSource);
 
 // Registers the FULL instance (not a narrower object) so both the host-side
 // relay dispatch (PeerHostService.handleUplinkRelay, via .relay()) and every
