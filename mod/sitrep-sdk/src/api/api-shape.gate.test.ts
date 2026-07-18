@@ -27,6 +27,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerDataSource",
   "registerKosScript",
   "registerTheme",
+  "safeRandomUuid",
   "subscribeSetting",
   "useActionInput",
   "useCommand",

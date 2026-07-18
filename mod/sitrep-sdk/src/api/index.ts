@@ -271,3 +271,37 @@ export const AugmentSlot: ComponentType<{
 export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
   return getHost().createPerfBudget(opts);
 }
+
+// --- Trivial utils (stateless, self-contained) -------------------------------
+
+/**
+ * Like `crypto.randomUUID()` but works on insecure-context pages — most
+ * notably the LAN-IP dev URL station devices use to reach the dev box, where
+ * the Web Crypto spec's secure-context gate makes `randomUUID` hard-throw.
+ * Falls back to `crypto.getRandomValues` (available regardless of context)
+ * and assembles a v4 UUID from the 16 random bytes per RFC 4122.
+ *
+ * A byte-for-byte copy of `@ksp-gonogo/core`'s implementation
+ * (`safeRandomUuid.ts`), not a re-export: it is a pure function with no
+ * state and no dependency beyond the `crypto` global, so duplicating it here
+ * carries none of the "second copy of a registry" risk that rules out
+ * bundling core's stateful members — see the module header — and the sdk
+ * leaf cannot name core as a workspace dependency regardless (would form a
+ * turbo `^build` cycle, same constraint as the mirrored types in `./types.ts`).
+ */
+export function safeRandomUuid(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}

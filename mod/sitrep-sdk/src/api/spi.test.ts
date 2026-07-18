@@ -140,4 +140,15 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
   it("GAME_HOST_KEY is the stable settings key, never gated by the host", () => {
     expect(barrel.GAME_HOST_KEY).toBe("gameHost");
   });
+
+  it("safeRandomUuid is a stateless util — no host needed, produces distinct v4 UUIDs", () => {
+    resetTestHost();
+    const a = barrel.safeRandomUuid();
+    const b = barrel.safeRandomUuid();
+    const v4 =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    expect(a).toMatch(v4);
+    expect(b).toMatch(v4);
+    expect(a).not.toBe(b);
+  });
 });
