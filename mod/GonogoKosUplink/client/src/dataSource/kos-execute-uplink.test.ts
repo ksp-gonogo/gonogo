@@ -16,7 +16,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { KosProcessorInfo, KosRunResult } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
-import { KosDataSource, kosSource } from "../dataSources/kos";
+import { KosDataSource, kosSource } from "./kos";
 
 function makeSource() {
   return new KosDataSource(
@@ -113,6 +113,12 @@ describe("KosDataSource.executeScript — Uplink cutover", () => {
 describe("kos.ts module — registerUplinkHandle('kos', ...) registration", () => {
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);
+  });
+
+  it("registers the full kosSource instance, not a narrower relay-only object", () => {
+    const handle = getUplinkHandle<KosDataSource>("kos");
+    expect(handle).toBe(kosSource);
+    expect(typeof handle?.executeScript).toBe("function");
   });
 
   it("delegates the 'executeScript' relay method to the kosSource singleton", async () => {

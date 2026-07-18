@@ -19,10 +19,12 @@
 // kerboscript registry (registerKosScript/getKosScripts, `shared/
 // scriptRegistry.ts` — a kOS-owned mechanism per the migration plan's
 // explicit "no generalising" call, not a core-generic extension point), the
-// CPU registry, the [KOSDATA] parser, and (moving here next) the
-// KosDataSource transport itself. It is NOT a thin UI-only client over an
-// app-side transport — see the kos migration plan (2026-07-18) for the
-// full before/after.
+// CPU registry, the [KOSDATA] parser, and the KosDataSource transport
+// itself (`dataSource/kos.ts` — `kos.run` dispatch, `kos.processors` CPU
+// discovery, the centralised `kos.compute.*` fanout, the kerboscript
+// wrapper builder). This is NOT a thin UI-only client over an app-side
+// transport — see the kos migration plan (2026-07-18) for the full
+// before/after.
 
 export * from "./KosFiles";
 export * from "./KosProcessors";
@@ -30,6 +32,14 @@ export * from "./KosScriptRunner";
 export * from "./KosTerminal";
 export * from "./KosWidget";
 export * from "./KosWrapperTester";
+
+// registerDataSource(kosSource) / registerUplinkHandle("kos", kosSource) —
+// fires whenever this package loads, whether via the runtime Uplink loader
+// or the bundled-fallback static import in main.tsx.
+import "./dataSource/kos";
+
+export { KosCpuDiscovery } from "./dataSource/KosCpuDiscovery";
+export { useKosMainWiring } from "./dataSource/useKosMainWiring";
 
 // Registers the CPU registry with @ksp-gonogo/core's generic chrome-provider
 // registry (see chromeProviders.ts's design note) so ComponentOverlay/

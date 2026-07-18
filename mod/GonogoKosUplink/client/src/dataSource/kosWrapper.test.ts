@@ -1,5 +1,5 @@
-import { hashKosScript } from "@ksp-gonogo/kos";
 import { describe, expect, it } from "vitest";
+import { hashKosScript } from "../shared/hashKosScript";
 import { buildKosRunCommand, buildKosWrapper } from "./kosWrapper";
 
 describe("hashKosScript", () => {

@@ -1,7 +1,6 @@
 import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import {
   type GameScene,
-  getDataSource,
   getDataSources,
   ScreenProvider,
   useGameContext,
@@ -15,7 +14,12 @@ import {
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
 import { useKerbcastMainConnect } from "@ksp-gonogo/kerbcast-feed";
-import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/kos";
+import {
+  CpuRegistryProvider,
+  CpuRegistryService,
+  KosCpuDiscovery,
+  useKosMainWiring,
+} from "@ksp-gonogo/kos";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -54,8 +58,6 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
-import { KosCpuDiscovery } from "../dataSources/KosCpuDiscovery";
-import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
@@ -173,20 +175,11 @@ export function MainScreen() {
     };
   }, [serialService]);
 
-  useEffect(() => {
-    // Auto-populate the kOS CPU registry from the mod's native kos.processors
-    // push channel (surfaced by KosDataSource off the sitrep stream). The
-    // standing subscription itself is stood up by <KosCpuDiscovery> inside the
-    // telemetry provider below. Stations don't fire this hook — they don't
-    // dispatch to kOS directly.
-    const kos = getDataSource("kos");
-    if (!(kos instanceof KosDataSource)) return;
-    return kos.onProcessorsChanged((procs) => {
-      cpuRegistry.reportOnline(
-        procs.map((p) => p.tag).filter((tag): tag is string => Boolean(tag)),
-      );
-    });
-  }, [cpuRegistry]);
+  // Auto-populates the kOS CPU registry from the mod's native kos.processors
+  // push channel. The standing subscription itself is stood up by
+  // <KosCpuDiscovery> inside the telemetry provider below. Stations don't
+  // call this — they don't dispatch to kOS directly.
+  useKosMainWiring(cpuRegistry);
 
   useEffect(() => {
     const sources = getDataSources();

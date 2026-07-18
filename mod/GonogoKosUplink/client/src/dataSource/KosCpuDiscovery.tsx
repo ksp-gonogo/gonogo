@@ -1,7 +1,6 @@
-import { getDataSource } from "@ksp-gonogo/core";
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import { useEffect } from "react";
-import { KosDataSource } from "./kos";
+import { kosSource } from "./kos";
 
 /**
  * Stands up kOS CPU discovery for the lifetime of the mounted sitrep stream.
@@ -15,9 +14,10 @@ import { KosDataSource } from "./kos";
  * remount mints a fresh client). Adoption is idempotent for the same client.
  *
  * The screen owns the registry wiring (`kos.onProcessorsChanged` →
- * `CpuRegistryService.reportOnline`, see `MainScreen.tsx`); this component's
- * only job is to make that feed STANDING — populating discovery whenever a
- * stream is mounted, not only while a `kos.run` dispatch is pending.
+ * `CpuRegistryService.reportOnline`, see `useKosMainWiring`); this
+ * component's only job is to make that feed STANDING — populating discovery
+ * whenever a stream is mounted, not only while a `kos.run` dispatch is
+ * pending.
  *
  * Renders nothing. Main-screen only — stations don't dispatch to kOS.
  */
@@ -26,9 +26,11 @@ export function KosCpuDiscovery() {
 
   useEffect(() => {
     if (!client) return;
-    const kos = getDataSource("kos");
-    if (!(kos instanceof KosDataSource)) return;
-    kos.attachTelemetryClient(client);
+    // kosSource is always the registered "kos" DataSource in-process (this
+    // component only mounts on the main screen), so the instanceof check
+    // that used to guard a generic getDataSource("kos") lookup isn't needed
+    // here — it imports the concrete instance directly.
+    kosSource.attachTelemetryClient(client);
   }, [client]);
 
   return null;
