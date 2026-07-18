@@ -24,9 +24,9 @@ const Backdrop = styled.div`
 `;
 
 const Dialog = styled.div`
-  background: #10151c;
-  color: #e6edf3;
-  border: 1px solid #2a3542;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   max-width: 460px;
   width: calc(100% - 2rem);
@@ -43,11 +43,11 @@ const Dialog = styled.div`
     font-size: 0.9rem;
   }
   .UplinkConsent__meta {
-    color: #9fb0c0;
+    color: var(--color-text-muted);
     font-size: 0.85rem;
   }
   .UplinkConsent__limit {
-    color: #c0a24f;
+    color: var(--color-status-warning-fg);
     font-size: 0.82rem;
   }
   .UplinkConsent__actions {
@@ -57,7 +57,7 @@ const Dialog = styled.div`
     margin-top: 1.25rem;
   }
   button:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 `;
