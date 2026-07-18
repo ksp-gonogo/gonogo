@@ -3,10 +3,14 @@ import { useEffect, useState } from "react";
 
 /**
  * Topic-state shape exposed by the centralised kOS compute fanout. Mirrors
- * `KosTopicStatus` in `@ksp-gonogo/app` — duplicated here so widgets can pull
- * the type without importing from the app package (which would be the
- * wrong dependency direction). The shape is intentionally small and
- * stable; if it ever needs richer fields, lift the type into core.
+ * `KosTopicStatus`, defined alongside `KosComputeManager` in this same
+ * package's `dataSource/kosCompute.ts` (moved here from `@ksp-gonogo/app` by
+ * Task 8 of the kos migration plan, 2026-07-18). Historically this
+ * duplicate existed so widgets could pull the type without an app-package
+ * dependency; both types now live in the same package, but the duplicate
+ * is left as-is (collapsing it is a separate, optional cleanup, not part
+ * of that plan). The shape is intentionally small and stable; if it ever
+ * needs richer fields, lift the type into core.
  */
 export interface KosScriptStatus {
   /** Most recent successful run (Date.now() ms), or null. */

@@ -4,13 +4,13 @@ import {
   registerDataSource,
   registerUplinkHandle,
 } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
 import type {
   KosData,
   KosManagedScript,
   KosScriptArg,
   ScriptableDataSource,
-} from "@ksp-gonogo/data";
-import { LocalStorageStore } from "@ksp-gonogo/data";
+} from "@ksp-gonogo/kos";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";

@@ -1,6 +1,6 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
-import type { KosData, KosManagedScript, KosScriptArg } from "@ksp-gonogo/data";
-import { KosScriptError } from "@ksp-gonogo/data";
+import type { KosData, KosManagedScript, KosScriptArg } from "@ksp-gonogo/kos";
+import { KosScriptError } from "@ksp-gonogo/kos";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type {
   CommandResult,

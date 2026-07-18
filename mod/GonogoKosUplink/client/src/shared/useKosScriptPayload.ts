@@ -1,7 +1,8 @@
-import type { KosData, UseKosWidgetOptions } from "@ksp-gonogo/data";
-import { useKosWidget } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import { useMemo } from "react";
+import type { KosData } from "./kos-data-parser";
+import type { UseKosWidgetOptions } from "./useKosWidget";
+import { useKosWidget } from "./useKosWidget";
 
 /**
  * Thin wrapper around `useKosWidget` for widgets whose kOS script emits a

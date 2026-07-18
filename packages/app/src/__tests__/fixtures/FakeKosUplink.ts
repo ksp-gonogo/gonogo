@@ -40,7 +40,7 @@
  *     should return directly for an implicit/runtime error.
  */
 
-import { parseKosData } from "@ksp-gonogo/data";
+import { parseKosData } from "@ksp-gonogo/kos";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,

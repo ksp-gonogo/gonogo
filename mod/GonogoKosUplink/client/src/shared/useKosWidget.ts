@@ -1,9 +1,9 @@
 import { getDataSource } from "@ksp-gonogo/core";
+import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isKosScriptError, KosScriptError } from "../kos/KosScriptError";
-import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
-import { isScriptable } from "../kos/ScriptableDataSource";
-import { useReplaySessionActive } from "../replaySession/ReplaySessionProvider";
+import { isKosScriptError, KosScriptError } from "./KosScriptError";
+import type { KosData, KosScriptArg } from "./kos-data-parser";
+import { isScriptable } from "./ScriptableDataSource";
 
 /**
  * Interval-mode circuit breaker: after this many *consecutive* script
