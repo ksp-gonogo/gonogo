@@ -1,10 +1,5 @@
 import { formatAgeLong } from "@ksp-gonogo/core";
 import {
-  type KosCpuEntry,
-  useCpuRegistry,
-  useCpuRegistryService,
-} from "@ksp-gonogo/data";
-import {
   Field,
   FieldHint,
   FieldLabel,
@@ -23,6 +18,8 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import { useCpuRegistry, useCpuRegistryService } from "./CpuRegistryContext";
+import type { KosCpuEntry } from "./CpuRegistryService";
 
 /**
  * Combobox for picking a kOS CPU tagname from the per-screen registry,

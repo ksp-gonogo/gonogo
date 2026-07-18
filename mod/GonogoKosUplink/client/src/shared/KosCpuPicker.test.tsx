@@ -1,9 +1,10 @@
-import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { CpuRegistryProvider } from "./CpuRegistryContext";
+import { CpuRegistryService } from "./CpuRegistryService";
 import { KosCpuPicker } from "./KosCpuPicker";
 
 class MemoryStorage implements Storage {

@@ -9,14 +9,13 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
-  CpuRegistryProvider,
-  CpuRegistryService,
   DEFAULT_PROFILE_ID,
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@ksp-gonogo/data";
 import type { KerbcastDataSource } from "@ksp-gonogo/kerbcast-feed";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/kos";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,

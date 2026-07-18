@@ -41,8 +41,6 @@ export * from "./hooks/usePartsLive";
 export * from "./hooks/useTopology";
 export * from "./hooks/useValueKeys";
 export * from "./hooks/useVesselDeltaV";
-export * from "./kos/CpuRegistryContext";
-export * from "./kos/CpuRegistryService";
 export * from "./ListenerSet";
 export { debugFlight } from "./logger";
 export * from "./replaySession/ReplaySessionBanner";

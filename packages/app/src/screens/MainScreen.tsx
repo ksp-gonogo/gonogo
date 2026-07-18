@@ -8,8 +8,6 @@ import {
 } from "@ksp-gonogo/core";
 import {
   AutoRecordController,
-  CpuRegistryProvider,
-  CpuRegistryService,
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
@@ -17,6 +15,7 @@ import {
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
 import { useKerbcastMainConnect } from "@ksp-gonogo/kerbcast-feed";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/kos";
 import {
   InputDispatcher,
   SerialDeviceProvider,

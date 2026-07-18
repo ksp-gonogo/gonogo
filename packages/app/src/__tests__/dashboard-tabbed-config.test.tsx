@@ -7,7 +7,7 @@
 
 import type { ActionDefinition } from "@ksp-gonogo/core";
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
-import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/kos";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
