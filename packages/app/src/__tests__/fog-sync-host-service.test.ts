@@ -45,7 +45,7 @@ function makeStoredMask(
   data: number[],
   width = 2,
   height = 1,
-  layerId = "scansat:AltimetryHiRes",
+  layerId = "example-uplink:AltimetryHiRes",
 ): StoredMask {
   return {
     key: `${DEFAULT_PROFILE_ID}:${bodyId}:${layerId}`,
@@ -86,9 +86,21 @@ describe("FogSyncHostService", () => {
 
   it("sends a fog-snapshot routing each per-type mask to its slot", async () => {
     fogStore = makeFakeFogStore([
-      makeStoredMask("Kerbin", [1, 2, 3, 4], 2, 1, "scansat:AltimetryLoRes"),
-      makeStoredMask("Kerbin", [9, 9, 9, 9], 2, 1, "scansat:AltimetryHiRes"),
-      makeStoredMask("Mun", [5, 6], 2, 1, "scansat:Biome"),
+      makeStoredMask(
+        "Kerbin",
+        [1, 2, 3, 4],
+        2,
+        1,
+        "example-uplink:AltimetryLoRes",
+      ),
+      makeStoredMask(
+        "Kerbin",
+        [9, 9, 9, 9],
+        2,
+        1,
+        "example-uplink:AltimetryHiRes",
+      ),
+      makeStoredMask("Mun", [5, 6], 2, 1, "example-uplink:Biome"),
     ]);
 
     const sync = new FogSyncHostService({
@@ -114,9 +126,13 @@ describe("FogSyncHostService", () => {
         Array.from(m.data),
       ]),
     );
-    expect(byKey.get("Kerbin:scansat:AltimetryLoRes")).toEqual([1, 2, 3, 4]);
-    expect(byKey.get("Kerbin:scansat:AltimetryHiRes")).toEqual([9, 9, 9, 9]);
-    expect(byKey.get("Mun:scansat:Biome")).toEqual([5, 6]);
+    expect(byKey.get("Kerbin:example-uplink:AltimetryLoRes")).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(byKey.get("Kerbin:example-uplink:AltimetryHiRes")).toEqual([
+      9, 9, 9, 9,
+    ]);
+    expect(byKey.get("Mun:example-uplink:Biome")).toEqual([5, 6]);
     expect(fogStore.loadAllForProfile).toHaveBeenCalledWith(DEFAULT_PROFILE_ID);
   });
 

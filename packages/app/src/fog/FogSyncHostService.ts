@@ -46,7 +46,7 @@ export class FogSyncHostService {
       // celestial body names) never contain a colon, matching
       // FogMaskStore's own prefix-range assumption elsewhere, but
       // layerId now can (the "<uplinkId>:<name>" convention, e.g.
-      // "scansat:AltimetryHiRes"), so splitting on the LAST colon would
+      // "example-uplink:AltimetryHiRes"), so splitting on the LAST colon would
       // silently mis-parse bodyId once layerId gained one. The mask
       // record also carries layerId directly, which we forward to the
       // station so it can route to the right per-type slot.

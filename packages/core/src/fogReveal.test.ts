@@ -12,41 +12,44 @@ beforeEach(() => clearFogRevealSources());
 
 describe("fog reveal source registry", () => {
   it("registers and lists a reveal source", () => {
-    registerFogRevealSource({ id: "scansat:AltimetryHiRes", weight: 255 });
+    registerFogRevealSource({
+      id: "example-uplink:AltimetryHiRes",
+      weight: 255,
+    });
     expect(getFogRevealSources()).toEqual([
-      { id: "scansat:AltimetryHiRes", weight: 255 },
+      { id: "example-uplink:AltimetryHiRes", weight: 255 },
     ]);
   });
 
   it("lists sources in registration order", () => {
-    registerFogRevealSource({ id: "scansat:AltimetryLoRes" });
-    registerFogRevealSource({ id: "scansat:AltimetryHiRes" });
+    registerFogRevealSource({ id: "example-uplink:AltimetryLoRes" });
+    registerFogRevealSource({ id: "example-uplink:AltimetryHiRes" });
     expect(getFogRevealSources().map((s) => s.id)).toEqual([
-      "scansat:AltimetryLoRes",
-      "scansat:AltimetryHiRes",
+      "example-uplink:AltimetryLoRes",
+      "example-uplink:AltimetryHiRes",
     ]);
   });
 
   it("notifies subscribers on register and unregister, not after unsubscribe", () => {
     const seen: number[] = [];
     const unsub = onFogRevealSourcesChange(() => seen.push(1));
-    registerFogRevealSource({ id: "scansat:Biome" });
+    registerFogRevealSource({ id: "example-uplink:Biome" });
     expect(seen).toHaveLength(1);
     unsub();
-    registerFogRevealSource({ id: "scansat:ResourceLoRes" });
+    registerFogRevealSource({ id: "example-uplink:ResourceLoRes" });
     expect(seen).toHaveLength(1);
   });
 
   it("unregisterFogRevealSource removes one source and notifies", () => {
-    registerFogRevealSource({ id: "scansat:Biome" });
-    registerFogRevealSource({ id: "scansat:AltimetryHiRes" });
+    registerFogRevealSource({ id: "example-uplink:Biome" });
+    registerFogRevealSource({ id: "example-uplink:AltimetryHiRes" });
     let notified = false;
     onFogRevealSourcesChange(() => {
       notified = true;
     });
-    unregisterFogRevealSource("scansat:Biome");
+    unregisterFogRevealSource("example-uplink:Biome");
     expect(getFogRevealSources().map((s) => s.id)).toEqual([
-      "scansat:AltimetryHiRes",
+      "example-uplink:AltimetryHiRes",
     ]);
     expect(notified).toBe(true);
   });
@@ -62,21 +65,21 @@ describe("fog reveal source registry", () => {
 
   it("collects settings namespaced by source id, ordered like registration", () => {
     registerFogRevealSource({
-      id: "scansat:AltimetryHiRes",
+      id: "example-uplink:AltimetryHiRes",
       settings: [{ key: "show", type: "boolean", default: true }],
     });
-    registerFogRevealSource({ id: "scansat:Biome" }); // no settings — excluded
+    registerFogRevealSource({ id: "example-uplink:Biome" }); // no settings — excluded
     expect(getFogRevealSourceSettings()).toEqual([
       {
-        augmentId: "scansat:AltimetryHiRes",
-        namespace: "scansat:AltimetryHiRes",
+        augmentId: "example-uplink:AltimetryHiRes",
+        namespace: "example-uplink:AltimetryHiRes",
         fields: [{ key: "show", type: "boolean", default: true }],
       },
     ]);
   });
 
   it("clearFogRevealSources resets the registry", () => {
-    registerFogRevealSource({ id: "scansat:Biome" });
+    registerFogRevealSource({ id: "example-uplink:Biome" });
     clearFogRevealSources();
     expect(getFogRevealSources()).toEqual([]);
   });

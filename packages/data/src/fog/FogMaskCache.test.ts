@@ -193,10 +193,10 @@ describe("FogMaskCache", () => {
 
   it("keeps two arbitrary-string layerIds independent for one body (generalisation)", async () => {
     const { cache } = makeCache();
-    const a = await cache.acquire("Kerbin", "kerbcast:cameraFootprint");
+    const a = await cache.acquire("Kerbin", "example-uplink:cameraFootprint");
     const b = await cache.acquire("Kerbin", "some-future-uplink:coverage-v2");
     expect(a).not.toBe(b);
-    expect(a.layerId).toBe("kerbcast:cameraFootprint");
+    expect(a.layerId).toBe("example-uplink:cameraFootprint");
     expect(b.layerId).toBe("some-future-uplink:coverage-v2");
     a.data[0] = 200;
     expect(b.data[0]).toBe(0);
