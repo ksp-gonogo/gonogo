@@ -1,5 +1,9 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
-import { getAllBodies } from "@ksp-gonogo/core";
+import {
+  getAllBodies,
+  getAugmentSettings,
+  getFogRevealSourceSettings,
+} from "@ksp-gonogo/core";
 import { useDataSchema } from "@ksp-gonogo/data";
 import {
   ConfigForm,
@@ -13,7 +17,9 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { useMemo, useState } from "react";
+import type { NamespacedAugmentSettings } from "@ksp-gonogo/ui-kit";
+import { AugmentSettingsPanel } from "@ksp-gonogo/ui-kit";
+import { useCallback, useMemo, useState } from "react";
 import type { MapViewConfig } from "./types";
 
 export function MapViewConfigComponent({
@@ -30,6 +36,31 @@ export function MapViewConfigComponent({
     config?.showPrediction ?? true,
   );
   const [bodyOverride, setBodyOverride] = useState(config?.bodyOverride ?? "");
+  const [augmentValues, setAugmentValues] = useState<
+    Record<string, Record<string, unknown>>
+  >(() => config?.augmentSettings ?? {});
+
+  const handleAugmentChange = useCallback(
+    (namespace: string, key: string, value: unknown) => {
+      setAugmentValues((prev) => ({
+        ...prev,
+        [namespace]: { ...prev[namespace], [key]: value },
+      }));
+    },
+    [],
+  );
+
+  // Every augment's own settings for MapView's slots, merged into one panel
+  // (spec §4.7) — the read-back half of `registerAugment({ settings: [...] })`.
+  const augmentSettingsBlocks = useMemo<NamespacedAugmentSettings[]>(
+    () => [
+      ...getAugmentSettings("map-view.overlay"),
+      ...getAugmentSettings("map-view.sections"),
+      ...getAugmentSettings("map-view.base"),
+      ...getFogRevealSourceSettings(),
+    ],
+    [],
+  );
 
   const allKeys = useDataSchema("data");
 
@@ -63,8 +94,17 @@ export function MapViewConfigComponent({
       telemetryKeys: keys.length > 0 ? keys : undefined,
       showPrediction,
       bodyOverride: bodyOverride || undefined,
+      augmentSettings:
+        Object.keys(augmentValues).length > 0 ? augmentValues : undefined,
     };
-  }, [numericKeys, selected, trajectoryLength, showPrediction, bodyOverride]);
+  }, [
+    numericKeys,
+    selected,
+    trajectoryLength,
+    showPrediction,
+    bodyOverride,
+    augmentValues,
+  ]);
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -124,6 +164,16 @@ export function MapViewConfigComponent({
         />
         <FieldHint>Selected values are shown below the map.</FieldHint>
       </Field>
+      {augmentSettingsBlocks.length > 0 && (
+        <Field>
+          <FieldLabel>Augment settings</FieldLabel>
+          <AugmentSettingsPanel
+            settings={augmentSettingsBlocks}
+            values={augmentValues}
+            onChange={handleAugmentChange}
+          />
+        </Field>
+      )}
     </ConfigForm>
   );
 }

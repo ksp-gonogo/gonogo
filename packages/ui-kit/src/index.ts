@@ -18,6 +18,12 @@ export {
   type ActionButtonTone,
 } from "./ActionButton";
 export {
+  type AugmentSettingField,
+  AugmentSettingsPanel,
+  type AugmentSettingsPanelProps,
+  type NamespacedAugmentSettings,
+} from "./AugmentSettingsPanel";
+export {
   Badge,
   type BadgeProps,
   type BadgeSize,

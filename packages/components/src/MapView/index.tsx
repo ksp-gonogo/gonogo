@@ -474,13 +474,12 @@ function MapViewComponent({
 
   // Per-namespace augment settings for map-view.base/map-view.sections,
   // keyed by augment id — the same namespacing `getAugmentSettings` uses.
-  // Threaded through now so the slot contracts are stable; the read-back
-  // loop that resolves real per-instance values from this widget's saved
-  // config lands in a later task — until then this is always undefined,
-  // which every consumer (useCoverageGate, an augment's own settings)
-  // already treats as "no overrides".
+  // Read straight off this widget's saved config, populated by
+  // `AugmentSettingsPanel` in `MapViewConfig.tsx`. `undefined` when nothing's
+  // been saved yet — every consumer (useCoverageGate, an augment's own
+  // settings) already treats that as "no overrides".
   const augmentSettings: Record<string, Record<string, unknown>> | undefined =
-    undefined;
+    config?.augmentSettings;
 
   // T4's paint-gate — a mod-agnostic map-view.base augment samples this
   // per output tile while drawing its own surface (settled model: zero
