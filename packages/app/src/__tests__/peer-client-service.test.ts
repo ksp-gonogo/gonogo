@@ -527,7 +527,7 @@ describe("PeerClientService.sendQueryRange", () => {
   });
 });
 
-describe("PeerClientService.sendKerbcastNegotiate", () => {
+describe("PeerClientService.sendUplinkRelay", () => {
   beforeEach(() => {
     FakePeer.instances = [];
   });
@@ -541,16 +541,16 @@ describe("PeerClientService.sendKerbcastNegotiate", () => {
     return { svc, peer };
   }
 
-  const OFFER = { sdp: "offer-sdp", cameras: [42], slots: 6 };
+  const ARGS = { foo: "bar", n: 42 };
 
   it("rejects if called before the conn is open", async () => {
     const svc = new PeerClientService();
-    await expect(svc.sendKerbcastNegotiate(OFFER)).rejects.toThrow(
-      /not connected/,
-    );
+    await expect(
+      svc.sendUplinkRelay("test-uplink", "doThing", ARGS),
+    ).rejects.toThrow(/not connected/);
   });
 
-  it("resolves with the answer when the host responds", async () => {
+  it("sends a uplink-relay-request carrying uplinkId/method/args and resolves with the result", async () => {
     const { svc, peer } = connectedSvc();
     if (!peer._lastConn) throw new Error("expected an active peer connection");
     const conn = peer._lastConn;
@@ -559,26 +559,25 @@ describe("PeerClientService.sendKerbcastNegotiate", () => {
       sent.push(msg);
     };
 
-    const pending = svc.sendKerbcastNegotiate(OFFER);
+    const pending = svc.sendUplinkRelay("test-uplink", "doThing", ARGS);
     const first = sent[0];
-    if (!first || first.type !== "kerbcast-negotiate-request") {
-      throw new Error("expected kerbcast-negotiate-request");
+    if (!first || first.type !== "uplink-relay-request") {
+      throw new Error("expected uplink-relay-request");
     }
-    expect(first.offer).toEqual(OFFER);
+    expect(first.uplinkId).toBe("test-uplink");
+    expect(first.method).toBe("doThing");
+    expect(first.args).toEqual(ARGS);
 
     (svc as unknown as PeerClientServiceInternal).handleMessage({
-      type: "kerbcast-negotiate-response",
+      type: "uplink-relay-response",
       requestId: first.requestId,
-      answer: { sdp: "answer-sdp", cameras: [42] },
+      result: { ok: true },
     });
 
-    await expect(pending).resolves.toEqual({
-      sdp: "answer-sdp",
-      cameras: [42],
-    });
+    await expect(pending).resolves.toEqual({ ok: true });
   });
 
-  it("rejects when the host returns an error", async () => {
+  it("rejects when the host returns an error, preserving errorMeta on the rejected Error", async () => {
     const { svc, peer } = connectedSvc();
     if (!peer._lastConn) throw new Error("expected an active peer connection");
     const conn = peer._lastConn;
@@ -587,19 +586,66 @@ describe("PeerClientService.sendKerbcastNegotiate", () => {
       sent.push(msg);
     };
 
-    const pending = svc.sendKerbcastNegotiate(OFFER);
+    const pending = svc.sendUplinkRelay("test-uplink", "doThing", ARGS);
     const first = sent[0];
-    if (!first || first.type !== "kerbcast-negotiate-request") {
-      throw new Error("expected kerbcast-negotiate-request");
+    if (!first || first.type !== "uplink-relay-request") {
+      throw new Error("expected uplink-relay-request");
     }
 
     (svc as unknown as PeerClientServiceInternal).handleMessage({
-      type: "kerbcast-negotiate-response",
+      type: "uplink-relay-response",
       requestId: first.requestId,
-      error: "kerbcast source unavailable on host",
+      error: "handle unavailable on host",
+      errorMeta: { isScriptError: true },
     });
 
     await expect(pending).rejects.toThrow(/unavailable on host/);
+    const err = await pending.catch((e: Error) => e);
+    expect((err as unknown as { meta?: Record<string, unknown> }).meta).toEqual(
+      { isScriptError: true },
+    );
+  });
+
+  it("rejects with timeout when no response arrives within timeoutMs", async () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[0];
+      peer.emit("open");
+      peer._lastConn?.emit("open");
+      if (!peer._lastConn)
+        throw new Error("expected an active peer connection");
+      peer._lastConn.send = () => {};
+
+      const pending = svc
+        .sendUplinkRelay("test-uplink", "doThing", ARGS, 100)
+        .catch((e: Error) => e);
+
+      vi.advanceTimersByTime(100);
+      const result = await pending;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(
+        /uplink relay timeout \(test-uplink\.doThing\)/,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects pending relays when the connection drops", async () => {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    peer._lastConn.send = () => {};
+
+    const pending = svc.sendUplinkRelay("test-uplink", "doThing", ARGS);
+    peer._lastConn.emit("close");
+
+    await expect(pending).rejects.toThrow(/closed|disconnected/);
   });
 });
 
@@ -739,56 +785,6 @@ describe("PeerClientService.sendFlightRpc", () => {
     // onFlightChange fires once on subscribe with the cached snapshot, then
     // again on every push.
     expect(seen).toEqual([null, flight]);
-  });
-});
-
-describe("PeerClientService.sendKosExecute", () => {
-  beforeEach(() => {
-    FakePeer.instances = [];
-  });
-
-  it("rejects with timeout when no response arrives within timeoutMs", async () => {
-    vi.useFakeTimers();
-    try {
-      const svc = new PeerClientService();
-      svc.connect("HOST");
-      const peer = FakePeer.instances[0];
-      peer.emit("open");
-      peer._lastConn?.emit("open");
-      if (!peer._lastConn)
-        throw new Error("expected an active peer connection");
-      // FakeDataConnection has no `open` field; force-set so sendKosExecute's
-      // `conn.open === false` guard doesn't preempt the timeout path.
-      (peer._lastConn as unknown as { open: boolean }).open = true;
-      peer._lastConn.send = () => {};
-
-      const pending = svc
-        .sendKosExecute("cpu", "script", [], undefined, 100)
-        .catch((e: Error) => e);
-
-      vi.advanceTimersByTime(100);
-      const result = await pending;
-      expect(result).toBeInstanceOf(Error);
-      expect((result as Error).message).toMatch(/kos execute timeout/);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("rejects pending kos executes when the connection drops", async () => {
-    const svc = new PeerClientService();
-    svc.connect("HOST");
-    const peer = FakePeer.instances[0];
-    peer.emit("open");
-    peer._lastConn?.emit("open");
-    if (!peer._lastConn) throw new Error("expected an active peer connection");
-    (peer._lastConn as unknown as { open: boolean }).open = true;
-    peer._lastConn.send = () => {};
-
-    const pending = svc.sendKosExecute("cpu", "script", []);
-    peer._lastConn.emit("close");
-
-    await expect(pending).rejects.toThrow(/closed|disconnected/);
   });
 });
 

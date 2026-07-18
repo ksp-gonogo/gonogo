@@ -118,45 +118,36 @@ vi.stubGlobal("localStorage", localStorageMock);
 
 import {
   clearRegistry,
-  type DataSource,
-  registerDataSource,
+  registerUplinkHandle,
+  unregisterUplinkHandle,
 } from "@ksp-gonogo/core";
-import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 
-describe("kOS execute tunnel (station → host → kos)", () => {
+describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () => {
   afterEach(() => {
     FakeHub.reset();
     localStorageMock.clear();
     clearRegistry();
+    unregisterUplinkHandle("kos");
     vi.unstubAllGlobals();
     vi.stubGlobal("localStorage", localStorageMock);
   });
 
-  it("routes station executeScript() through PeerJS to the host's kos", async () => {
-    // Fake host-side kos that captures calls + returns data.
+  it("routes station relay('executeScript') through PeerJS to the host's registered kos handle", async () => {
+    // Fake host-side kos relay handle that captures calls + returns data.
     const executeScript = vi.fn(async (_cpu, _script, _args) => ({
       dv: 1234,
       ok: true,
     }));
-    registerDataSource({
-      id: "kos",
-      name: "kOS",
-      status: "connected",
-      affectedBySignalLoss: false,
-      connect: async () => {},
-      disconnect: () => {},
-      schema: () => [],
-      subscribe: () => () => {},
-      onStatusChange: () => () => {},
-      execute: async () => {},
-      configSchema: () => [],
-      configure: () => {},
-      getConfig: () => ({}),
-      executeScript,
-    } as unknown as DataSource);
+    registerUplinkHandle("kos", {
+      relay: async (method: string, args: unknown) => {
+        if (method !== "executeScript") throw new Error("unknown method");
+        const a = args as { cpu: string; script: string; args: unknown[] };
+        return executeScript(a.cpu, a.script, a.args);
+      },
+    });
 
     const host = new PeerHostService();
     await host.start();
@@ -169,35 +160,21 @@ describe("kOS execute tunnel (station → host → kos)", () => {
 
     const source = new PeerClientDataSource("kos", "kOS", client);
 
-    const result = await source.executeScript("datastream", "deltav", [2]);
+    const result = await source.relay("executeScript", {
+      cpu: "datastream",
+      script: "deltav",
+      args: [2],
+    });
     expect(result).toEqual({ dv: 1234, ok: true });
-    expect(executeScript).toHaveBeenCalledWith(
-      "datastream",
-      "deltav",
-      [2],
-      undefined,
-    );
+    expect(executeScript).toHaveBeenCalledWith("datastream", "deltav", [2]);
   });
 
   it("propagates host-side errors back to the station", async () => {
-    registerDataSource({
-      id: "kos",
-      name: "kOS",
-      status: "connected",
-      affectedBySignalLoss: false,
-      connect: async () => {},
-      disconnect: () => {},
-      schema: () => [],
-      subscribe: () => () => {},
-      onStatusChange: () => () => {},
-      execute: async () => {},
-      configSchema: () => [],
-      configure: () => {},
-      getConfig: () => ({}),
-      executeScript: async () => {
+    registerUplinkHandle("kos", {
+      relay: async () => {
         throw new Error("kOS boom: script not found");
       },
-    } as unknown as DataSource);
+    });
 
     const host = new PeerHostService();
     await host.start();
@@ -208,59 +185,43 @@ describe("kOS execute tunnel (station → host → kos)", () => {
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
-    await expect(source.executeScript("datastream", "bad", [])).rejects.toThrow(
-      /kOS boom: script not found/,
+    await expect(
+      source.relay("executeScript", {
+        cpu: "datastream",
+        script: "bad",
+        args: [],
+      }),
+    ).rejects.toThrow(/kOS boom: script not found/);
+  });
+
+  it("propagates a script-author-fault flag on the error into errorMeta", async () => {
+    registerUplinkHandle("kos", {
+      relay: async () => {
+        throw Object.assign(new Error("[KOSERROR] bad syntax"), {
+          isScriptError: true,
+        });
+      },
+    });
+
+    const host = new PeerHostService();
+    await host.start();
+    await Promise.resolve();
+
+    const client = new PeerClientService();
+    client.connect(host.peerId ?? "");
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    const source = new PeerClientDataSource("kos", "kOS", client);
+    const err = await source
+      .relay("executeScript", { cpu: "datastream", script: "bad", args: [] })
+      .catch((e: Error) => e);
+    expect((err as unknown as { meta?: Record<string, unknown> }).meta).toEqual(
+      { isScriptError: true },
     );
   });
 
-  it("routes through a PeerBroadcastingDataSource wrapper (prod path)", async () => {
-    // Regression: on the main screen every source — including kos —
-    // is replaced in the registry by a PeerBroadcastingDataSource wrapper.
-    // The wrapper must forward executeScript or the host rejects every
-    // station's kos-execute-request with "not registered on main screen".
-    const executeScript = vi.fn(async (_cpu, _script, _args) => ({ dv: 42 }));
-    const realSource = {
-      id: "kos",
-      name: "kOS",
-      status: "connected",
-      affectedBySignalLoss: false,
-      connect: async () => {},
-      disconnect: () => {},
-      schema: () => [],
-      subscribe: () => () => {},
-      onStatusChange: () => () => {},
-      execute: async () => {},
-      configSchema: () => [],
-      configure: () => {},
-      getConfig: () => ({}),
-      executeScript,
-    } as unknown as DataSource;
-
-    const host = new PeerHostService();
-    await host.start();
-    await Promise.resolve();
-
-    // Wrap exactly the way PeerHostProvider does on the main screen.
-    registerDataSource(new PeerBroadcastingDataSource(realSource, host));
-
-    const client = new PeerClientService();
-    client.connect(host.peerId ?? "");
-    for (let i = 0; i < 6; i++) await Promise.resolve();
-
-    const source = new PeerClientDataSource("kos", "kOS", client);
-
-    const result = await source.executeScript("datastream", "deltav", [2]);
-    expect(result).toEqual({ dv: 42 });
-    expect(executeScript).toHaveBeenCalledWith(
-      "datastream",
-      "deltav",
-      [2],
-      undefined,
-    );
-  });
-
-  it("errors if the host has no kos registered", async () => {
-    // No registerDataSource call — host has nothing.
+  it("errors if the host has no kos relay handle registered", async () => {
+    // No registerUplinkHandle call — host has nothing.
     const host = new PeerHostService();
     await host.start();
     await Promise.resolve();
@@ -270,8 +231,8 @@ describe("kOS execute tunnel (station → host → kos)", () => {
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
-    await expect(source.executeScript("c", "s", [])).rejects.toThrow(
-      /not registered on main screen/,
-    );
+    await expect(
+      source.relay("executeScript", { cpu: "c", script: "s", args: [] }),
+    ).rejects.toThrow(/no relay handle registered on the host/);
   });
 });

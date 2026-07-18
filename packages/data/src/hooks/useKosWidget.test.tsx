@@ -257,3 +257,130 @@ describe("useKosWidget interval-mode breaker", () => {
     expect(calls.count).toBe(5);
   });
 });
+
+describe("useKosWidget — relay-capable source (station peer proxy)", () => {
+  // A station's PeerClientDataSource mirror doesn't implement executeScript
+  // directly — it exposes a generic relay(method, args). The hook must fall
+  // back to that path when the resolved source isn't isScriptable but is
+  // relay-capable, unwrapping errorMeta.isScriptError into KosScriptError
+  // the same way the direct executeScript path does.
+  function makeFakeRelaySource(opts: {
+    id?: string;
+    exec: () => Promise<Record<string, unknown>>;
+  }) {
+    const id = opts.id ?? "kos";
+    const calls = { count: 0 };
+    const source = {
+      id,
+      name: "Fake relay kOS",
+      status: "connected" as const,
+      schema: () => [],
+      subscribe: () => () => {},
+      onStatusChange: () => () => {},
+      connect: async () => {},
+      disconnect: () => {},
+      execute: async () => {},
+      configSchema: () => [],
+      configure: () => {},
+      getConfig: () => ({}),
+      relay: (_method: string, _args: unknown) => {
+        calls.count += 1;
+        return opts.exec();
+      },
+    };
+    return { source, calls };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    clearRegistry();
+    vi.useRealTimers();
+  });
+
+  it("dispatches through relay() and surfaces the result when executeScript is absent", async () => {
+    const { source, calls } = makeFakeRelaySource({
+      exec: () => Promise.resolve({ dv: 99 }),
+    });
+    registerDataSource(source);
+
+    let last: UseKosWidgetResult | null = null;
+    render(
+      <Probe
+        mode="command"
+        onRender={(r) => {
+          last = r;
+        }}
+      />,
+    );
+
+    await act(async () => {
+      last?.dispatch();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(calls.count).toBe(1);
+    expect(last?.data).toEqual({ dv: 99 });
+    expect(last?.error).toBeNull();
+  });
+
+  it("reconstructs KosScriptError from errorMeta.isScriptError so the interval breaker still trips", async () => {
+    const { source, calls } = makeFakeRelaySource({
+      exec: () =>
+        Promise.reject(
+          Object.assign(new Error("[KOSERROR] boom"), {
+            meta: { isScriptError: true },
+          }),
+        ),
+    });
+    registerDataSource(source);
+
+    let last: UseKosWidgetResult | null = null;
+    render(
+      <Probe
+        mode="interval"
+        intervalMs={50}
+        onRender={(r) => {
+          last = r;
+        }}
+      />,
+    );
+
+    for (let i = 0; i < 3; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60);
+      });
+    }
+
+    expect(calls.count).toBeGreaterThanOrEqual(3);
+    expect(last?.disabled).toBe(true);
+    expect(last?.disabledReason).toBe("[KOSERROR] boom");
+  });
+
+  it("does not trip the breaker on a relay error with no isScriptError meta", async () => {
+    const { source } = makeFakeRelaySource({
+      exec: () => Promise.reject(new Error("relay timeout")),
+    });
+    registerDataSource(source);
+
+    let last: UseKosWidgetResult | null = null;
+    render(
+      <Probe
+        mode="interval"
+        intervalMs={50}
+        onRender={(r) => {
+          last = r;
+        }}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(last?.disabled).toBe(false);
+    expect(last?.error?.message).toBe("relay timeout");
+  });
+});

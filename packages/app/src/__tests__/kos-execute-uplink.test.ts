@@ -8,6 +8,7 @@
  * still surface as Uplink errors, never a silent drop to telnet.
  */
 
+import { getUplinkHandle } from "@ksp-gonogo/core";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
@@ -15,7 +16,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { KosProcessorInfo, KosRunResult } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
-import { KosDataSource } from "../dataSources/kos";
+import { KosDataSource, kosSource } from "../dataSources/kos";
 
 function makeSource() {
   return new KosDataSource(
@@ -106,5 +107,72 @@ describe("KosDataSource.executeScript — Uplink cutover", () => {
     await expect(
       source.executeScript("unknown-cpu", "0:/foo.ks", []),
     ).rejects.toThrow(/no known CPU with tagname "unknown-cpu"/);
+  });
+});
+
+describe("kos.ts module — registerUplinkHandle('kos', ...) registration", () => {
+  afterEach(() => {
+    setActiveTelemetryClientForTests(undefined);
+  });
+
+  it("delegates the 'executeScript' relay method to the kosSource singleton", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const commands: Array<{ coreId: number; requestId: string }> = [];
+    transport.setCommandHandler((_command, args) => {
+      commands.push(args as { coreId: number; requestId: string });
+      return { success: true, errorCode: 0 };
+    });
+    setActiveTelemetryClientForTests(client);
+    kosSource.attachTelemetryClient(client);
+
+    const handle = getUplinkHandle<{
+      relay: (method: string, args: unknown) => Promise<unknown>;
+    }>("kos");
+    expect(handle).toBeDefined();
+
+    // Prime the CPU list the same way the executeScript-level test above does.
+    handle
+      ?.relay("executeScript", {
+        cpu: "datastream",
+        script: "0:/priming.ks",
+        args: [],
+      })
+      .catch(() => {});
+    transport.emit("kos.processors", [
+      {
+        coreId: 7,
+        tag: "datastream",
+        hasBooted: true,
+        processorMode: "READY",
+      },
+    ] satisfies KosProcessorInfo[]);
+
+    const pending = handle?.relay("executeScript", {
+      cpu: "datastream",
+      script: "0:/foo.ks",
+      args: [],
+    });
+
+    await new Promise((r) => setTimeout(r, 1));
+    expect(commands.length).toBeGreaterThan(0);
+    const last = commands[commands.length - 1];
+    if (!last) throw new Error("expected a dispatched command");
+    transport.emit(`kos.run.${last.coreId}`, {
+      coreId: last.coreId,
+      requestId: last.requestId,
+      fields: { ok: true },
+    } satisfies KosRunResult);
+
+    await expect(pending).resolves.toEqual({ ok: true });
+  });
+
+  it("rejects an unknown relay method", async () => {
+    const handle = getUplinkHandle<{
+      relay: (method: string, args: unknown) => Promise<unknown>;
+    }>("kos");
+    await expect(handle?.relay("bogus", {})).rejects.toThrow(
+      /unknown method "bogus"/,
+    );
   });
 });
