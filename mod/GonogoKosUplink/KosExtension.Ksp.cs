@@ -65,8 +65,13 @@ namespace Gonogo.KosUplink
             {
                 host.SetAvailability(Availability.Unavailable(guard.Reason ?? "kOS unavailable"));
                 // Still publish an empty CPU list so the client can render a
-                // definite "no kOS" rather than a hang.
-                host.AddChannelSource(KosChannels.ProcessorsTopic, _ => new List<KosProcessorInfo>());
+                // definite "no kOS" rather than a hang. Always empty on this
+                // path, so the element type is nominal — kept as the same
+                // flattened shape HandleProcessors publishes on the
+                // kOS-available path (KosProcessorInfoBuilder), never the raw
+                // POCO, so a reader of this file doesn't mistake it for a
+                // second raw-POCO publish site.
+                host.AddChannelSource(KosChannels.ProcessorsTopic, _ => new List<Dictionary<string, object?>>());
                 return;
             }
 
@@ -142,15 +147,28 @@ namespace Gonogo.KosUplink
                     // subscriber's catch-up must land on a self-contained
                     // FullRepaint frame, never a bare incremental diff with no
                     // baseline — see ChannelDeclaration.IsKeyframe and
-                    // Sitrep.Core.Courier's sticky-keyframe cache.
-                    IsKeyframe = value => value is KosTerminalFrame frame && frame.FullRepaint,
+                    // Sitrep.Core.Courier's sticky-keyframe cache. Checks the
+                    // flattened dictionary (KosTerminalFrameBuilder), not the
+                    // KosTerminalFrame POCO — the dictionary is what actually
+                    // reaches Publish below, since the flatten happens at that
+                    // same call site.
+                    IsKeyframe = value => value is IDictionary<string, object?> d
+                        && d.TryGetValue("fullRepaint", out var fr) && fr is bool isFullRepaint && isFullRepaint,
                 });
 
             _terminalManager = new KosTerminalManager(
                 knownCoreIds: CurrentCoreIds,
                 isSubscribed: coreId => host.IsAnyTopicSubscribed(KosChannels.TerminalTopic(coreId)),
+                // Flattened here, at the actual publish boundary, via
+                // KosTerminalFrameBuilder — KosTerminalManager itself stays
+                // typed in terms of the KosTerminalFrame POCO (its own tests
+                // assert on that shape), only the wire-facing value handed to
+                // Publish is a self-flattened Dictionary<string, object?>. See
+                // KosTerminalFrameBuilder's doc comment for why JsonWriter no
+                // longer needs a hardcoded case for the raw POCO.
                 publish: (coreId, frame, ut) =>
-                    _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(frame, ut),
+                    _terminalSource?.Publisher(KosChannels.TerminalSubTopic(coreId)).Publish(
+                        KosTerminalFrameBuilder.Build(frame.CoreId, frame.Chunk, frame.FullRepaint), ut),
                 createScreen: coreId => new KosProcessorScreen(coreId, FindProcessor),
                 nowUt: host.NowUt);
 
@@ -193,8 +211,18 @@ namespace Gonogo.KosUplink
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 });
+            // Flattened here, at the actual publish boundary, via
+            // KosRunResultBuilder — KosRunManager itself stays typed in terms
+            // of the KosRunResult POCO (its own tests assert on that shape),
+            // only the wire-facing value handed to Publish is a
+            // self-flattened Dictionary<string, object?>. Fields is already a
+            // Dictionary<string, object?> and passes through unchanged. See
+            // KosRunResultBuilder's doc comment for why JsonWriter no longer
+            // needs a hardcoded case for the raw POCO.
             _runManager.SetPublisher((coreId, result) =>
-                _runSource?.Publisher(KosChannels.RunSubTopic(coreId)).Publish(result, host.NowUt()));
+                _runSource?.Publisher(KosChannels.RunSubTopic(coreId)).Publish(
+                    KosRunResultBuilder.Build(result.CoreId, result.RequestId, result.Fields, result.Error),
+                    host.NowUt()));
             host.AddCommandHandler<KosRunArgs, CommandResult>(KosChannels.RunCommand, Run);
         }
 
