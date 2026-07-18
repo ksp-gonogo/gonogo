@@ -1105,7 +1105,7 @@ namespace Sitrep.Host.IntegrationTests
             CommandResult<string>.Ok("node-1");
         public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => CommandResult.Ok();
         public CommandResult RemoveManeuverNode(string nodeId) => CommandResult.Ok();
-        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => CommandResult.Ok();
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon) => CommandResult.Ok();
         public CommandResult ClearTarget() => CommandResult.Ok();
         public CommandResult SetWarp(int index) => CommandResult.Ok();
         public CommandResult SetPause(bool paused) => CommandResult.Ok();
