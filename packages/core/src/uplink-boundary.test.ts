@@ -29,7 +29,7 @@ import { describe, expect, it } from "vitest";
  * over time, never grow except via a deliberate, reviewed edit.
  */
 
-type ModToken = "kerbcast" | "scansat" | "kos" | "realantennas";
+type ModToken = "kerbcast" | "scansat" | "kos" | "realantennas" | "agx";
 
 interface ModOwnership {
   // Distinctive-form patterns for this mod. Deliberately NOT bare
@@ -77,6 +77,28 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoRealAntennasUplink",
       "mod/GonogoRealAntennasUplink.Tests",
+    ],
+  },
+  agx: {
+    // Deliberately NOT a bare "actionGroups" match — that field/topic name
+    // is ubiquitous outside this mod (VesselControl.ActionGroups,
+    // vessel.control.setActionGroup, StockActionGroupsBackend, etc.), so a
+    // bare substring would false-match almost every vessel-control file.
+    // These three patterns match only AGX-DISTINCTIVE forms: the "Action
+    // Groups Extended" name (with or without a separator, so it also
+    // catches the provider id "actionGroupsExtended" and identifiers like
+    // "ActionGroupsExtendedProviderId"), the AGExt assembly/type name, and
+    // AGX-prefixed API identifiers (AGXListOfAssignedGroups, AGXGroupState,
+    // AGXActivateGroup, AGXInstalled, ...) — none of which match plain
+    // "actionGroups".
+    patterns: [
+      /action[- ]?groups?[- ]?extended/i,
+      /\bAGExt\b/,
+      /\bAGX[0-9A-Za-z]/,
+    ],
+    ownedDirs: [
+      "mod/GonogoActionGroupsExtendedUplink",
+      "mod/GonogoActionGroupsExtendedUplink.Tests",
     ],
   },
   // Excluded on purpose (per task scope):
@@ -477,6 +499,13 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // a justification comment while inventorying every TrueNow
     // declaration in mod/ — doc-mention only.
     "packages/core/src/truenow-allowlist.test.ts",
+    // The AGX uplink is the SAME election shape RA established for comms
+    // (docs/superpowers/specs/2026-07-17-agx-backend-design.md §2), and its
+    // doc-comments say so explicitly, citing GonogoRealAntennasUplink /
+    // RaReflection as the worked precedent — prose only, no RA type,
+    // reference or coupling.
+    "mod/GonogoActionGroupsExtendedUplink/ActionGroupsExtendedUplink.cs",
+    "mod/GonogoActionGroupsExtendedUplink/AgxReflection.cs",
 
     // -- GRAY — Sitrep.Contract/Comms.cs carries three RA-only payload types --
     "mod/Sitrep.Contract/Comms.cs",
@@ -487,6 +516,47 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     "packages/components/src/CommSignal/slot.test.tsx",
     "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
+    // AGX's own election/reflection tests cite CommsElectionTests /
+    // RaReflection as the pattern they mirror — doc-mention only.
+    "mod/GonogoActionGroupsExtendedUplink.Tests/ActionGroupsExtendedElectionTests.cs",
+    "mod/GonogoActionGroupsExtendedUplink.Tests/AgxReflectionTests.cs",
+  ],
+
+  // === agx — owning dir mod/GonogoActionGroupsExtendedUplink/. Every entry
+  // below PRE-DATES the AGX uplink (Phase 1 named action groups and left the
+  // seam ready, per docs/superpowers/specs/2026-07-17-agx-backend-design.md
+  // §0/§1) — doc-comment mentions of "Action Groups Extended (AGX)" or the
+  // provider-id identifiers explaining WHY the seam is shaped the way it is,
+  // not AGX coupling. No file below imports, references, or derives from
+  // anything in the new owning dir.
+  agx: [
+    // -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
+    // The provider-registration seam itself: constant/method names
+    // (ActionGroupsExtendedProviderId, RegisterActionGroupsExtendedProvider)
+    // and prose explaining this file IS where a future AGX uplink plugs in
+    // — the whole point of §1's "the seam Phase 1 left ready".
+    "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
+    // Doc-comment explaining why the capability's Groups() list is
+    // named/arbitrary-length rather than a positional bool[] — cites
+    // "Action Groups Extended (AGX)" as the reason, no AGX coupling.
+    "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
+    // ContractVersion's migration-history doc-comment for the
+    // bool[]->ActionGroupState[] change names AGX as the reason the
+    // contract had to stop being positional.
+    "mod/Sitrep.Contract/ContractVersion.cs",
+    // VesselControl.ActionGroupState's doc-comment: same "AGX needs named,
+    // arbitrary-length groups" rationale for the wire type's shape.
+    "mod/Sitrep.Contract/VesselControl.cs",
+    // VesselCommandProvider's SetActionGroup handler doc-comment: explains
+    // it can no longer assume a 1..10 bound "because Action Groups Extended
+    // legitimately goes to 250" — prose only, no AGX type/reference.
+    "mod/Sitrep.Host/VesselCommandProvider.cs",
+    "packages/sitrep-client/src/map-topic.ts",
+    "packages/sitrep-client/src/vessel-state.ts",
+
+    // -- TEST-only --
+    // Regression-comment mirrors the VesselCommandProvider rationale above.
+    "mod/Sitrep.Host.Tests/VesselCommandProviderTests.cs",
   ],
 };
 

@@ -131,6 +131,7 @@ jobs:
             GonogoScansatUplink.Tests
             GonogoRealAntennasUplink.Tests
             GonogoKerbcastUplink.Tests
+            GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
           )
           # The real-WebSocket integration suites are CPU-fragile on the shared
