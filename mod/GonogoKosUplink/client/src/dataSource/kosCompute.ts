@@ -21,17 +21,16 @@
 
 import type { DataKey } from "@ksp-gonogo/core";
 import { PerfBudget } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
+import { hashKosScript } from "../shared/hashKosScript";
+import { isKosScriptError } from "../shared/KosScriptError";
+import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
 import {
   getKosScript,
   getKosScripts,
-  hashKosScript,
-  isKosScriptError,
-  type KosData,
-  type KosManagedScript,
-  type KosScriptArg,
   type KosScriptDefinition,
-} from "@ksp-gonogo/kos";
-import { logger } from "@ksp-gonogo/logger";
+} from "../shared/scriptRegistry";
+import type { KosManagedScript } from "../shared/useKosWidget";
 
 /**
  * Soft cap on samples emitted from the centralised fanout. One sample per

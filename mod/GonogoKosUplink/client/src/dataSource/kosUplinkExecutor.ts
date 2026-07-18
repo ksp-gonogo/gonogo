@@ -1,6 +1,4 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
-import type { KosData, KosManagedScript, KosScriptArg } from "@ksp-gonogo/kos";
-import { KosScriptError } from "@ksp-gonogo/kos";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type {
   CommandResult,
@@ -8,6 +6,9 @@ import type {
   KosRunArgs,
   KosRunResult,
 } from "@ksp-gonogo/sitrep-sdk";
+import { KosScriptError } from "../shared/KosScriptError";
+import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
+import type { KosManagedScript } from "../shared/useKosWidget";
 import { buildKosRunCommand } from "./kosWrapper";
 
 /**

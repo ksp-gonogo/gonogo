@@ -3,7 +3,7 @@
  * scenario as each task lands.
  *
  * `executeScript` dispatches over the `kos.run` Uplink (see
- * `../dataSources/kosUplinkExecutor.ts`) — every scenario below runs against
+ * `./kosUplinkExecutor.ts`) — every scenario below runs against
  * `FakeKosUplink`, a fake `kos.run` + `kos.processors` responder. There is
  * no telnet path anymore; the old `MockKosTelnet` menu-peek fixture and the
  * telnet-only `parseKosError` scenarios (#7, #8) were removed with the
@@ -12,11 +12,12 @@
  */
 
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { isKosScriptError, useKosWidget } from "@ksp-gonogo/kos";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { KosDataSource } from "../dataSources/kos";
-import { FakeKosUplink } from "./fixtures/FakeKosUplink";
+import { isKosScriptError } from "../shared/KosScriptError";
+import { useKosWidget } from "../shared/useKosWidget";
+import { FakeKosUplink } from "./__fixtures__/FakeKosUplink";
+import { KosDataSource } from "./kos";
 
 function makeSource(opts: { callTimeoutMs?: number } = {}) {
   return new KosDataSource(

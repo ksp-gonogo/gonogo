@@ -11,14 +11,11 @@
  */
 
 import { clearRegistry } from "@ksp-gonogo/core";
-import {
-  clearKosScripts,
-  hashKosScript,
-  registerKosScript,
-} from "@ksp-gonogo/kos";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { KosDataSource } from "../dataSources/kos";
-import { FakeKosUplink } from "./fixtures/FakeKosUplink";
+import { hashKosScript } from "../shared/hashKosScript";
+import { clearKosScripts, registerKosScript } from "../shared/scriptRegistry";
+import { FakeKosUplink } from "./__fixtures__/FakeKosUplink";
+import { KosDataSource } from "./kos";
 
 const SCRIPT_ID = "shipmap";
 const SCRIPT_PATH = `0:/widget_scripts/${SCRIPT_ID}.ks`;

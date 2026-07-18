@@ -40,7 +40,6 @@
  *     should return directly for an implicit/runtime error.
  */
 
-import { parseKosData } from "@ksp-gonogo/kos";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
@@ -51,6 +50,7 @@ import type {
   KosProcessorInfo,
   KosRunResult,
 } from "@ksp-gonogo/sitrep-sdk";
+import { parseKosData } from "../../shared/kos-data-parser";
 
 export interface FakeKosCpu {
   /** Used as the coreId on the kos.processors wire shape. */

@@ -5,15 +5,12 @@ import {
   registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import type {
-  KosData,
-  KosManagedScript,
-  KosScriptArg,
-  ScriptableDataSource,
-} from "@ksp-gonogo/kos";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
+import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
+import type { ScriptableDataSource } from "../shared/ScriptableDataSource";
+import type { KosManagedScript } from "../shared/useKosWidget";
 import { KosComputeManager, type KosTopicStatus } from "./kosCompute";
 import { KosUplinkExecutor } from "./kosUplinkExecutor";
 
@@ -337,6 +334,24 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
       cb(status);
     });
   }
+
+  // Host-side relay handle for station peer-relayed calls (see
+  // PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Only
+  // the "executeScript" method is exposed today — the kOS-specific
+  // isScriptError-via-errorMeta unwrap lives on the calling client's own
+  // code (useKosWidget), not here.
+  async relay(method: string, args: unknown): Promise<unknown> {
+    if (method === "executeScript") {
+      const a = args as {
+        cpu: string;
+        script: string;
+        args: KosScriptArg[];
+        managed?: KosManagedScript;
+      };
+      return this.executeScript(a.cpu, a.script, a.args, a.managed);
+    }
+    throw new Error(`kos relay handle: unknown method "${method}"`);
+  }
 }
 
 function readStoredPartial(key: string): Partial<KosConfig> {
@@ -351,23 +366,4 @@ function readStoredPartial(key: string): Partial<KosConfig> {
 
 export const kosSource = new KosDataSource();
 registerDataSource(kosSource);
-
-// Host-side relay handle for station peer-relayed calls (see
-// PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Only the
-// "executeScript" method is exposed today — the kOS-specific
-// isScriptError-via-errorMeta unwrap lives on the calling client's own code
-// (useKosWidget), not here.
-registerUplinkHandle("kos", {
-  async relay(method: string, args: unknown): Promise<unknown> {
-    if (method === "executeScript") {
-      const a = args as {
-        cpu: string;
-        script: string;
-        args: KosScriptArg[];
-        managed?: KosManagedScript;
-      };
-      return kosSource.executeScript(a.cpu, a.script, a.args, a.managed);
-    }
-    throw new Error(`kos relay handle: unknown method "${method}"`);
-  },
-});
+registerUplinkHandle("kos", kosSource);

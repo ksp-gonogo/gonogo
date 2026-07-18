@@ -1,5 +1,6 @@
 // Importing these modules triggers registerDataSource() for each source.
-import "./kos";
+// The kerboscript-execution Uplink client owns its own registration now —
+// see main.tsx's widget-bundle import / the runtime Uplink loader.
 import "./missionHistory";
 import "./sitrep";
 import { migrateGameHost } from "./migrateGameHost";

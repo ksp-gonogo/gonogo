@@ -5,38 +5,26 @@
  *
  * Nothing internal is mocked: the REAL `KosCpuDiscovery` component adopts the
  * live `TelemetryClient` into the REAL `kosSource` (its Uplink executor stands
- * up the standing `kos.processors` subscription), the REAL
- * `KosDataSource.onProcessorsChanged` feed is wired to a REAL
- * `CpuRegistryService` exactly as `MainScreen` wires it, and a REAL
+ * up the standing `kos.processors` subscription), `useKosMainWiring` wires
+ * the REAL `KosDataSource.onProcessorsChanged` feed into a REAL
+ * `CpuRegistryService` exactly as `MainScreen` does, and a REAL
  * `TelemetryProvider` supplies the client. Only the wire is faked, via
  * `FakeKosUplink` (a `StubTransport`-backed `kos.processors`/`kos.run`
  * responder — the same fixture the executeScript integration tests use).
  */
 
-import { getDataSource } from "@ksp-gonogo/core";
-import { CpuRegistryService } from "@ksp-gonogo/kos";
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { render, waitFor } from "@ksp-gonogo/test-utils";
-import { useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { KosCpuDiscovery } from "../dataSources/KosCpuDiscovery";
-import { KosDataSource, kosSource } from "../dataSources/kos";
-import { FakeKosUplink } from "./fixtures/FakeKosUplink";
+import { CpuRegistryService } from "../shared/CpuRegistryService";
+import { FakeKosUplink } from "./__fixtures__/FakeKosUplink";
+import { KosCpuDiscovery } from "./KosCpuDiscovery";
+import { kosSource } from "./kos";
+import { useKosMainWiring } from "./useKosMainWiring";
 
-/**
- * The exact registry wiring `MainScreen` mounts: subscribe `kos.processors`
- * changes into `cpuRegistry.reportOnline(procs.map(p => p.tag))`.
- */
+/** The exact registry wiring `MainScreen` mounts via `useKosMainWiring`. */
 function CpuRegistryBridge({ registry }: { registry: CpuRegistryService }) {
-  useEffect(() => {
-    const kos = getDataSource("kos");
-    if (!(kos instanceof KosDataSource)) return;
-    return kos.onProcessorsChanged((procs) => {
-      registry.reportOnline(
-        procs.map((p) => p.tag).filter((tag): tag is string => Boolean(tag)),
-      );
-    });
-  }, [registry]);
+  useKosMainWiring(registry);
   return null;
 }
 
