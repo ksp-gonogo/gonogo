@@ -26,7 +26,7 @@ import type {
   SCANCoverageBitmap,
   SCANHeightGrid,
   SCANScanningVessel,
-} from "./scansat";
+} from "./telemachus-scan-types";
 import type { VesselTopology } from "./vessel-parts";
 
 type IndexedKey<K extends string> = `${K}[${number}]`;

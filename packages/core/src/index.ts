@@ -32,7 +32,6 @@ export * from "./perf/PerfBudget";
 export * from "./registry";
 export * from "./safeRandomUuid";
 export * from "./schemas/orbit";
-export * from "./schemas/scansat";
 export * from "./schemas/telemachus";
 export * from "./schemas/vessel-parts";
 export * from "./settings/gameHost";

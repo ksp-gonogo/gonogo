@@ -1,7 +1,14 @@
 /**
- * SCANsat integration shapes (`scan.*` keys). Consumed by
- * `@ksp-gonogo/data`'s `useScanLayers` / fog-of-war sync and by MapView /
- * the Scanning widget.
+ * Wire-shape types for the legacy Telemachus fork's `scan.*` keys
+ * (`TelemaachusSchema` in `./telemachus.ts`). Telemachus stays installable
+ * in KSP as an optional debug tool (see the project's Telemachus API docs)
+ * even though the app itself no longer reads from it — these types exist
+ * solely so that schema keeps typing correctly.
+ *
+ * This is a deliberately narrow, telemachus-only copy. The real SCANsat
+ * integration (schema, decode, fog-reveal sync) now lives entirely inside
+ * `mod/GonogoScansatUplink/client/src/schema.ts` — core no longer owns a
+ * shared scansat schema (MapView overlay-host foundation plan, T9).
  */
 
 /**

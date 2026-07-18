@@ -222,19 +222,15 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // -- HARD violations (audit §2) --
     "packages/app/src/peer/protocol.ts",
     "packages/app/src/screens/StationScreen.tsx",
-    "packages/components/src/MapView/MapViewConfig.tsx",
-    "packages/components/src/MapView/index.tsx",
-    "packages/components/src/MapView/scanOverlay.ts",
     "packages/components/src/MapView/types.ts",
-    "packages/components/src/index.ts",
-    "packages/core/src/index.ts",
-    "packages/core/src/schemas/scansat.ts",
     "packages/core/src/schemas/telemachus.ts",
-    "packages/data/src/fog/scanCoverageSync.ts",
-    "packages/data/src/fog/useScanSatFogSync.ts",
-    "packages/data/src/index.ts",
-    "packages/data/src/scansat/scanDecode.ts",
-    "packages/data/src/scansat/useScanLayers.ts",
+    // T9: a deliberately narrow, telemachus-only copy of the wire-shape
+    // types the legacy (still-installable, no-longer-app-consumed)
+    // Telemachus fork's `scan.*` keys need. The real SCANsat schema lives
+    // entirely in mod/GonogoScansatUplink/client/src/schema.ts now — this
+    // file exists solely so telemachus.ts keeps typing without reaching
+    // into the owning Uplink.
+    "packages/core/src/schemas/telemachus-scan-types.ts",
 
     // -- GRAY — contract/SDK layer --
     "mod/Sitrep.Contract/ContractVersion.cs",
@@ -251,11 +247,7 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // -- TEST-only --
     "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
     "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-    "packages/components/src/MapView/index.test.tsx",
-    "packages/components/src/MapView/scanOverlay.test.ts",
-    "packages/components/src/MapView/stream.test.tsx",
     "packages/core/src/augments.test.tsx",
-    "packages/data/src/fog/scanCoverageSync.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
 
     // -- Cross-mod / doc-comment-only mentions (audit §2, "not violations") --
@@ -270,8 +262,10 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // sanctioned self-registration import, same pattern as `@ksp-gonogo/kos`
     // in main.tsx below.
     "packages/app/src/main.tsx",
-    // borderline/soft per audit: only imports the SCANType *type* from core,
-    // which is itself the schema-location violation tracked above.
+    // borderline/soft per audit: doc-comment-only mentions of SCANsat as
+    // the historical motivator for the migration wipe (no SCANsat import —
+    // scanType has been an opaque string layerId since the v2→v3 migration
+    // noted inline).
     "packages/data/src/fog/FogMaskStore.ts",
     // G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
     // justification comment while inventorying every TrueNow declaration

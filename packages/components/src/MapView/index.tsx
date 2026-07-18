@@ -2,8 +2,6 @@ import type {
   ActionDefinition,
   ComponentProps,
   DataSourceRegistry,
-  SCANScanningVessel,
-  SCANType,
   TrackSample,
 } from "@ksp-gonogo/core";
 import {
@@ -13,18 +11,13 @@ import {
   latLonToMap,
   predictGroundTrack,
   registerComponent,
-  SCAN_TYPE,
   splitOnLongitudeWrap,
   useActionInput,
   useDataStreamStatus,
   useDataValue,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  useDataSchema,
-  useScanningVessels,
-  useScanSatFogSync,
-} from "@ksp-gonogo/data";
+import { useDataSchema } from "@ksp-gonogo/data";
 import {
   useStream,
   useViewUt,
@@ -53,10 +46,6 @@ import {
   CompactReadout,
   CompactRow,
   CompactValue,
-  CoverageChip,
-  CoveragePanel,
-  CoverageScanner,
-  CoverageTrack,
   DataCanvas,
   Header,
   ImagingChip,
@@ -75,12 +64,10 @@ import {
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
 import { quantiseUt } from "./predictionThrottle";
-import { drawScanningFootprints } from "./scanOverlay";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { type CoverageGate, useCoverageGate } from "./useCoverageGate";
 import { useMapResize } from "./useMapResize";
-import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
 // Side-effect only — registers the vanilla KSC/launch-site/contract-target
@@ -111,10 +98,10 @@ function canvasColor(
 // THE HARD CASE for slot design: the overlay must draw in
 // the map's own coordinate space, so `map-view.overlay` passes the live
 // equirectangular projection down as slot props. Composable /
-// layered by priority — the SCANsat scan-layer (today hardcoded via
-// useScanLayerCanvas), commlink, and trajectory layers all route HERE rather
-// than to `scanning.sections`. `map-view.sections` is a below-content panel
-// slot (mirrors `objectives.sections`/`power-systems.sections`) and
+// layered by priority — an Uplink's own scan-layer, commlink, and
+// trajectory overlays all route HERE. `map-view.sections` is a
+// below-content panel slot (mirrors `objectives.sections`/
+// `power-systems.sections`) and
 // `map-view.base` is the single-pick REPLACE slot for the map's base
 // surface — see each interface's own doc comment below.
 // ---------------------------------------------------------------------------
@@ -153,21 +140,13 @@ export interface MapOverlayContext {
    */
   project: (lat: number, lon: number) => { x: number; y: number };
   /**
-   * MapView's own `showAnomalies`/`showAnomalyPanel` config toggles, passed
-   * through so the SCANsat Uplink's `AnomalyOverlay` augment can respect the
-   * operator's settings without core MapView reading `scansat.anomalies`
-   * itself (Uplink invariant #5 — "augment, don't embed"). `showAnomalies`
-   * gates on-map markers; `showAnomalyPanel` gates the bearing/distance list.
-   */
-  showAnomalies: boolean;
-  showAnomalyPanel: boolean;
-  /**
    * The active vessel's RAW (unadjusted — no `body.latitudeOffset`/
    * `longitudeOffset` baked in) lat/lon, for great-circle distance/bearing
-   * ranking against anomalies. `undefined` when there's no position fix yet,
-   * or the mapped body diverges from the vessel's body (a `bodyOverride`
-   * pinned elsewhere) — matching the vessel-marker suppression rule the base
-   * map itself applies.
+   * ranking an overlay augment might want (e.g. anomaly proximity).
+   * `undefined` when there's no position fix yet, or the mapped body
+   * diverges from the vessel's body (a `bodyOverride` pinned elsewhere) —
+   * matching the vessel-marker suppression rule the base map itself
+   * applies.
    */
   vesselLat: number | undefined;
   vesselLon: number | undefined;
@@ -331,19 +310,13 @@ function MapViewComponent({
   const telemetryKeys = config?.telemetryKeys ?? [];
   const showTelemetry = telemetryKeys.length > 0;
   const showPrediction = config?.showPrediction ?? true;
-  const baseLayer = config?.baseLayer ?? "altimetry";
   // Which registered map-view.base augment (if any) is active — see
   // MapBaseLayerContext's doc comment. Unset / no match = MapView's own
   // stock texture, unmodified.
   const baseLayerId = config?.baseLayerId;
-  const showHeightShading = config?.showHeightShading ?? false;
-  const showAnomalies = config?.showAnomalies ?? false;
   const bodyOverride = config?.bodyOverride;
-  const showFootprints = config?.showFootprints ?? false;
-  const showCoverage = config?.showCoverage ?? false;
-  const showAnomalyPanel = config?.showAnomalyPanel ?? false;
   // Vanilla POIs (KSC, contract targets) are always-relevant reference
-  // points, not an opt-in SCANsat-shaped feature — default on (T-POI-7).
+  // points, not an opt-in extension-shaped feature — default on (T-POI-7).
   const showPois = config?.showPois ?? true;
 
   const schema = useDataSchema("data");
@@ -380,17 +353,18 @@ function MapViewComponent({
   const encounterExists = vesselState?.encounterExists;
   // Connectivity indicator, still sourced off the legacy `DataSource` status
   // channel (`v.lat` is representative of the widget's stream reads). The
-  // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*` SCANsat
-  // channel remain unmapped — `mapTopic` has no entry for them, so those
-  // `useDataValue` reads fall back to legacy automatically.
+  // per-key `TelemetryRow` readouts remain unmapped — `mapTopic` has no
+  // entry for them, so those `useDataValue` reads fall back to legacy
+  // automatically.
   const streamStatus = useDataStreamStatus("data", "v.lat");
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction;
 
   // The body picker (config.bodyOverride) decouples MapView from the
-  // active vessel's body so the operator can inspect ANY body's scan
-  // layers while orbiting elsewhere. Unset (the default) follows v.body.
+  // active vessel's body so the operator can inspect ANY body's base
+  // layer and augments while orbiting elsewhere. Unset (the default)
+  // follows v.body.
   const targetBodyId = bodyOverride ?? bodyName;
   const body = targetBodyId ? getBody(targetBodyId) : undefined;
   // True when the map is showing the active vessel's body — i.e. there's
@@ -508,31 +482,10 @@ function MapViewComponent({
   const augmentSettings: Record<string, Record<string, unknown>> | undefined =
     undefined;
 
-  // SCANsat layer hooks. Declared up here (before the base-canvas
-  // render effect) so the effect's dependency array can reference
-  // them without TDZ. Each hook gates its own fetch on the toggle.
-  useScanSatFogSync(body);
   // T4's paint-gate — a mod-agnostic map-view.base augment samples this
   // per output tile while drawing its own surface (settled model: zero
   // registered sources means "paint fully open," not "paint nothing").
   const coverageGate = useCoverageGate(targetBodyId, augmentSettings);
-  const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
-  const heightDisplay = useHeightCanvas(body, showHeightShading);
-  // Anomaly markers + the bearing/distance side-panel moved to the SCANsat
-  // Uplink's `AnomalyOverlay` augment (P4c-b, Uplink invariant #5) — core
-  // MapView no longer reads `scansat.anomalies` at all. showAnomalies/
-  // showAnomalyPanel stay as MapView config (passed down via overlayContext
-  // below) since they're still natural MapView-level settings.
-  // Cross-vessel footprint overlay (B). The list is global (every body);
-  // the draw filters to the mapped body. Only fetched when enabled.
-  const scanningVessels = useScanningVessels();
-  const scanningVesselList = Array.isArray(scanningVessels)
-    ? scanningVessels
-    : undefined;
-  const footprintVessels =
-    showFootprints && body && scanningVesselList
-      ? scanningVesselList
-      : undefined;
 
   // Per-body coordinate offsets — applied in both world canvas and screen space
   const adjustedMap = useCallback(
@@ -587,7 +540,7 @@ function MapViewComponent({
     img.src = body.texture;
   }, [body?.texture]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: biomeDisplay.version / heightDisplay.version bump on canvas-bytes-changed; baseLayerVersion bumps when the map-view.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (or, for the base layer, tracked via a ref rather than state), so we depend on the version to trigger a redraw
+  // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayerVersion bumps when the map-view.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {
     const canvas = baseRef.current;
     if (!canvas || !containerSize || !textureReady) return;
@@ -605,17 +558,10 @@ function MapViewComponent({
 
     ctx.setTransform(...cameraTransform(camera, w, h));
 
-    // Pick the base image: biome canvas when in biome mode and the
-    // grid has decoded, otherwise the body's stock texture. The body-
-    // colour wash is the last-resort fallback for bodies without a
-    // texture loaded yet.
-    const baseImage =
-      baseLayer === "biome" && biomeDisplay.canvas
-        ? biomeDisplay.canvas
-        : textureImage;
-
-    if (baseImage) {
-      ctx.drawImage(baseImage, 0, 0, WORLD_W, WORLD_H);
+    // Base image is the body's stock texture; the colour wash is the
+    // last-resort fallback for bodies without a texture loaded yet.
+    if (textureImage) {
+      ctx.drawImage(textureImage, 0, 0, WORLD_W, WORLD_H);
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     } else if (body?.color) {
@@ -630,12 +576,6 @@ function MapViewComponent({
     // visible pixels wherever the augment's canvas is opaque.
     if (baseLayerCanvasRef.current) {
       ctx.drawImage(baseLayerCanvasRef.current, 0, 0, WORLD_W, WORLD_H);
-    }
-
-    // Elevation shading rides on top of either base layer — opacity is
-    // baked into the ramp colours so the underlying base shows through.
-    if (showHeightShading && heightDisplay.canvas) {
-      ctx.drawImage(heightDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
     }
 
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel
@@ -674,32 +614,18 @@ function MapViewComponent({
     ctx.stroke();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [
-    containerSize,
-    camera,
-    textureReady,
-    body?.color,
-    baseLayer,
-    biomeDisplay.canvas,
-    biomeDisplay.version,
-    showHeightShading,
-    heightDisplay.canvas,
-    heightDisplay.version,
-    baseLayerVersion,
-  ]);
+  }, [containerSize, camera, textureReady, body?.color, baseLayerVersion]);
 
   // ── Fog-of-war: paint-gate, not a drawn overlay ──────────────────────────
   // The per-vessel painter (paintFogFromBody / paintFogDisc) modelled
-  // gonogo's own imaging FOV from lat/lon/altitude/heading. SCANsat
-  // replaces that wholesale: scanner range gates + sub-vessel point are
-  // KSP's own model, persisted into the save's SCANcontroller scenario
-  // module, and the fork's scan.maskBitmap surfaces the resulting
-  // coverage bitfield. There is no separate dark overlay canvas drawn on
-  // top of the map anymore (settled model) — `coverageGate` (T4, above) is
-  // handed to whichever `map-view.base` augment is active so IT can gate
-  // its own per-tile paint. This overlay canvas is left for augments that
-  // draw ON TOP of the base surface (footprints, and any registered
-  // `map-view.overlay` augment via the slot below).
+  // gonogo's own imaging FOV from lat/lon/altitude/heading. A mod's own
+  // reveal-source model replaces that wholesale — scanner range gates,
+  // persisted coverage, etc. are that mod's own concern. There is no
+  // separate dark overlay canvas drawn on top of the map anymore (settled
+  // model) — `coverageGate` (T4, above) is handed to whichever
+  // `map-view.base` augment is active so IT can gate its own per-tile
+  // paint. This overlay canvas is left entirely for augments that draw ON
+  // TOP of the base surface via the `map-view.overlay` slot below.
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || !containerSize) return;
@@ -709,17 +635,7 @@ function MapViewComponent({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, w, h);
-    ctx.setTransform(...cameraTransform(camera, w, h));
-    // Scanning-vessel footprints — every tracked vessel on the mapped
-    // body, drawn under the anomaly markers so a marker on a footprint
-    // stays legible. Extents + tint come straight off the wire.
-    if (footprintVessels && body) {
-      drawScanningFootprints(ctx, body, footprintVessels, camera.zoom);
-    }
-    // Anomaly markers moved to the AnomalyOverlay augment (map-view.overlay
-    // slot) — see the MapOverlayContext doc comment above.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [containerSize, camera, body, footprintVessels]);
+  }, [containerSize]);
 
   // ── Trajectory layer: blit world canvas through camera ────────────────────
   // trajectoryCount is needed here even though worldCanvasRef is a ref:
@@ -1017,20 +933,13 @@ function MapViewComponent({
   const showImagingChip = showMap && cols >= 8;
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
-  // The coverage readout and the body label live below the map. They need a
-  // sensible minimum footprint so they don't crowd the canvas at tight
-  // sizes. (The anomaly side-panel used to live here too — it moved into the
-  // AnomalyOverlay augment, which floats over the map canvas instead of
-  // reserving layout space beside/below it.)
-  const showCoveragePanel = showMap && showCoverage && cols >= 7 && rows >= 8;
 
   // Slot props. `badges` carries just the mapped body name for
   // labelling; `overlay` carries the live equirectangular projection so an
-  // augment can draw in the map's own pixel space — plus the anomaly config
-  // toggles and the vessel's raw position, so the AnomalyOverlay augment can
-  // render markers/panel without core MapView reading `scansat.anomalies`
-  // itself. `overlay` is null until the container has measured — the layer
-  // only mounts once there's a pixel-sized map beneath it.
+  // augment can draw in the map's own pixel space — plus the vessel's raw
+  // position, so an augment can do its own distance/bearing ranking
+  // against it. `overlay` is null until the container has measured — the
+  // layer only mounts once there's a pixel-sized map beneath it.
   const badgesContext: MapBadgesContext = { bodyName: displayName };
   const sectionsContext: MapSectionsContext = {
     bodyName: displayName,
@@ -1056,8 +965,6 @@ function MapViewComponent({
         worldH: WORLD_H,
         bodyName: targetBodyId,
         bodyRadius: body?.radius,
-        showAnomalies,
-        showAnomalyPanel,
         vesselLat: vesselOnThisBody ? lat : undefined,
         vesselLon: vesselOnThisBody ? lon : undefined,
         project: (projLat, projLon) => {
@@ -1187,13 +1094,6 @@ function MapViewComponent({
         <AugmentSlot name="map-view.sections" props={sectionsContext} />
       </MapSections>
 
-      {showCoveragePanel && body && (
-        <CoveragePanelView
-          bodyName={body.name}
-          scanningVessels={vesselOnThisBody ? scanningVesselList : undefined}
-        />
-      )}
-
       {showTelemetry && (
         <TelemetryPanel>
           {telemetryKeys.map((key, idx) => (
@@ -1250,97 +1150,6 @@ function TelemetryRow({
 }
 
 // ---------------------------------------------------------------------------
-// Coverage readout (B) — per-scan-type % + live in-range scanner summary
-// ---------------------------------------------------------------------------
-
-const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
-  { type: SCAN_TYPE.AltimetryHiRes, label: "Alt Hi" },
-  { type: SCAN_TYPE.AltimetryLoRes, label: "Alt Lo" },
-  { type: SCAN_TYPE.Biome, label: "Biome" },
-  { type: SCAN_TYPE.ResourceHiRes, label: "Res Hi" },
-  { type: SCAN_TYPE.ResourceLoRes, label: "Res Lo" },
-];
-
-/**
- * Compact per-scan-type coverage readout for the mapped body, plus a
- * summary of which scan types currently have an in-range / best-range
- * scanner. Driven entirely by `scansat.coverage.body.type` and the
- * sensors on `scansat.scanningVessels` for this body.
- */
-function CoveragePanelView({
-  bodyName,
-  scanningVessels,
-}: Readonly<{
-  bodyName: string;
-  scanningVessels: readonly SCANScanningVessel[] | null | undefined;
-}>) {
-  // Aggregate per-type range state across every scanning vessel on this
-  // body: a type is "best" if any sensor is bestRange, "scanning" if any
-  // is inRange. Vessels on other bodies are excluded.
-  const rangeByType = useMemo(() => {
-    const map = new Map<number, { inRange: boolean; bestRange: boolean }>();
-    if (!scanningVessels) return map;
-    for (const v of scanningVessels) {
-      if (v.body !== bodyName) continue;
-      for (const s of v.sensors) {
-        const cur = map.get(s.type) ?? { inRange: false, bestRange: false };
-        map.set(s.type, {
-          inRange: cur.inRange || s.inRange,
-          bestRange: cur.bestRange || s.bestRange,
-        });
-      }
-    }
-    return map;
-  }, [scanningVessels, bodyName]);
-
-  return (
-    <CoveragePanel role="region" aria-label={`Scan coverage for ${bodyName}`}>
-      {COVERAGE_TYPES.map(({ type, label }) => (
-        <CoverageRow
-          key={type}
-          bodyName={bodyName}
-          scanType={type}
-          label={label}
-          range={rangeByType.get(type)}
-        />
-      ))}
-    </CoveragePanel>
-  );
-}
-
-function CoverageRow({
-  bodyName,
-  scanType,
-  label,
-  range,
-}: Readonly<{
-  bodyName: string;
-  scanType: SCANType;
-  label: string;
-  range: { inRange: boolean; bestRange: boolean } | undefined;
-}>) {
-  const pct = useDataValue<number>(
-    "data",
-    `scansat.coverage.${bodyName}.${scanType}`,
-  );
-  const value = typeof pct === "number" ? pct : 0;
-  return (
-    <CoverageScanner>
-      <CompactLabel>{label}</CompactLabel>
-      <CoverageTrack $pct={value} />
-      <CompactValue>{value.toFixed(0)}%</CompactValue>
-      {range?.bestRange ? (
-        <CoverageChip $variant="best">best</CoverageChip>
-      ) : range?.inRange ? (
-        <CoverageChip $variant="in">scan</CoverageChip>
-      ) : (
-        <CoverageChip $variant="idle">—</CoverageChip>
-      )}
-    </CoverageScanner>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -1348,7 +1157,7 @@ registerComponent<MapViewConfig>({
   id: "map-view",
   name: "Map View",
   description:
-    "Equirectangular map of the current body with vessel position and trajectory trail. Optional SCANsat layers: pin any body, overlay scanning-vessel footprints + coverage, and list anomalies by distance.",
+    "Equirectangular map of the current body with vessel position and trajectory trail. Pin any body, and extend with registered map-view augments (base surfaces, overlays, sections, POIs).",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },
@@ -1367,10 +1176,6 @@ registerComponent<MapViewConfig>({
     "o.timeToNextApsis",
     "n.pitch",
     "n.heading",
-    // Body-parametric scan.* keys (heightGrid / biomeGrid / maskBitmap /
-    // coverage / anomalies) can't be declared statically — they're
-    // resolved per mapped body at runtime. scanningVessels is global.
-    "scansat.scanningVessels",
   ],
   defaultConfig: {
     trajectoryLength: 2000,

@@ -25,13 +25,6 @@ export * from "./ManeuverPlanner/presets";
 export * from "./ManeuverPlanner/triggerService";
 export * from "./ManeuverPlanner/triggerTypes";
 export * from "./MapView";
-// Scan-layer canvas hooks live in MapView (bidirectionally coupled to the core
-// map — see MapView/index.tsx). The `@ksp-gonogo/scansat` Uplink's Minimap reuses
-// them until the map-view.overlay augment slot lets scansat own its scan layer
-// (arch §4.8). Re-exported here so scansat imports them from the package barrel
-// rather than a deep dist path.
-export { useFogDisplayCanvas } from "./MapView/useFogMask";
-export { useBiomeCanvas } from "./MapView/useScanLayerCanvas";
 export * from "./Navball";
 export * from "./Objectives";
 export * from "./OrbitalAscent";

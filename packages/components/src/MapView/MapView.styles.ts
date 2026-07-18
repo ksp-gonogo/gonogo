@@ -88,55 +88,6 @@ export const MapSections = styled.div`
   gap: 6px;
 `;
 
-// ── Coverage readout (B) ─────────────────────────────────────────────────────
-
-export const CoveragePanel = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-top: 6px;
-  margin-top: 6px;
-  border-top: 1px solid var(--color-surface-raised);
-`;
-
-export const CoverageScanner = styled.div`
-  display: grid;
-  grid-template-columns: 48px 1fr 40px auto;
-  align-items: center;
-  gap: 6px;
-`;
-
-export const CoverageTrack = styled.div<{ $pct: number }>`
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-surface-raised);
-  overflow: hidden;
-  position: relative;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: ${({ $pct }) => `${Math.max(0, Math.min(100, $pct))}%`};
-    background: var(--color-accent-fg);
-  }
-`;
-
-export const CoverageChip = styled.span<{ $variant: "best" | "in" | "idle" }>`
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-align: right;
-  min-width: 4ch;
-  color: ${({ $variant }) =>
-    $variant === "best"
-      ? "var(--color-status-go-fg)"
-      : $variant === "in"
-        ? "var(--color-status-info-fg)"
-        : "var(--color-text-faint)"};
-`;
-
 /**
  * Sized explicitly via inline style (width/height in px) so the canvas is
  * always exactly 2:1 regardless of which dimension is the bottleneck.

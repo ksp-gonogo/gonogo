@@ -162,8 +162,6 @@ function overlayProps(
     worldH: 2048,
     bodyName: "Kerbin",
     bodyRadius: 600_000,
-    showAnomalies: false,
-    showAnomalyPanel: false,
     vesselLat: undefined,
     vesselLon: undefined,
     project: (lat: number, lon: number) => ({ x: lon, y: lat }),
