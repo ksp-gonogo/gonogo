@@ -1,5 +1,9 @@
 import type { ConfigField, DataKey, DataSourceStatus } from "@ksp-gonogo/core";
-import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
+import {
+  PerfBudget,
+  registerDataSource,
+  registerUplinkHandle,
+} from "@ksp-gonogo/core";
 import type {
   KosData,
   KosManagedScript,
@@ -347,3 +351,23 @@ function readStoredPartial(key: string): Partial<KosConfig> {
 
 export const kosSource = new KosDataSource();
 registerDataSource(kosSource);
+
+// Host-side relay handle for station peer-relayed calls (see
+// PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Only the
+// "executeScript" method is exposed today — the kOS-specific
+// isScriptError-via-errorMeta unwrap lives on the calling client's own code
+// (useKosWidget), not here.
+registerUplinkHandle("kos", {
+  async relay(method: string, args: unknown): Promise<unknown> {
+    if (method === "executeScript") {
+      const a = args as {
+        cpu: string;
+        script: string;
+        args: KosScriptArg[];
+        managed?: KosManagedScript;
+      };
+      return kosSource.executeScript(a.cpu, a.script, a.args, a.managed);
+    }
+    throw new Error(`kos relay handle: unknown method "${method}"`);
+  },
+});

@@ -1,6 +1,6 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isKosScriptError } from "../kos/KosScriptError";
+import { isKosScriptError, KosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
 import { isScriptable } from "../kos/ScriptableDataSource";
 import { useReplaySessionActive } from "../replaySession/ReplaySessionProvider";
@@ -146,6 +146,58 @@ function resolveArgs(
   return args.map((a) => resolveArg(a, telemetry));
 }
 
+/**
+ * A station's `PeerClientDataSource` mirror doesn't implement
+ * `executeScript` directly — it exposes a generic `relay(method, args)`
+ * that tunnels through the peer-relay envelope to the host's registered
+ * "kos" handle (`registerUplinkHandle`, `packages/app/src/dataSources/kos.ts`).
+ * This is the local, kOS-owned narrowing for that shape; the peer layer
+ * itself has no opinion on it.
+ */
+interface RelayCapable {
+  relay(method: string, args: unknown): Promise<unknown>;
+}
+
+function isRelayCapable(source: unknown): source is RelayCapable {
+  return (
+    !!source && typeof (source as Partial<RelayCapable>).relay === "function"
+  );
+}
+
+/**
+ * Dispatch `executeScript` through a generic relay-capable source (a
+ * station's peer proxy) rather than a direct `executeScript` call. Mirrors
+ * `KosDataSource.executeScript`'s contract: resolves with the parsed
+ * [KOSDATA] payload, rejects with `KosScriptError` when the host's response
+ * carries `errorMeta.isScriptError`, otherwise an ordinary `Error` — the
+ * wire-level `isScriptError` boolean the old `kos-execute-response` used to
+ * carry as a first-class field is now just an `errorMeta` entry, unwrapped
+ * here.
+ */
+async function executeScriptViaRelay(
+  source: RelayCapable,
+  cpu: string,
+  script: string,
+  args: KosScriptArg[],
+  managed?: KosManagedScript,
+): Promise<KosData> {
+  try {
+    return (await source.relay("executeScript", {
+      cpu,
+      script,
+      args,
+      managed,
+    })) as KosData;
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    const meta = (error as { meta?: Record<string, unknown> }).meta;
+    if (meta?.isScriptError === true) {
+      throw new KosScriptError(error.message);
+    }
+    throw error;
+  }
+}
+
 export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   const sourceId = opts.sourceId ?? "kos";
   const telemetrySourceId = opts.telemetrySourceId ?? "data";
@@ -214,7 +266,7 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
       return;
     }
     const source = getDataSource(sourceId);
-    if (!isScriptable(source)) {
+    if (!isScriptable(source) && !isRelayCapable(source)) {
       setError(
         new Error(`kOS compute data source "${sourceId}" is not registered`),
       );
@@ -225,13 +277,21 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
     const telemetry = getDataSource(telemetrySourceId) as unknown as
       | TelemetryReader
       | undefined;
-    source
-      .executeScript(
-        cpuRef.current,
-        scriptRef.current,
-        resolveArgs(argsRef.current, telemetry),
-        managedRef.current,
-      )
+    const dispatchPromise = isScriptable(source)
+      ? source.executeScript(
+          cpuRef.current,
+          scriptRef.current,
+          resolveArgs(argsRef.current, telemetry),
+          managedRef.current,
+        )
+      : executeScriptViaRelay(
+          source as RelayCapable,
+          cpuRef.current,
+          scriptRef.current,
+          resolveArgs(argsRef.current, telemetry),
+          managedRef.current,
+        );
+    dispatchPromise
       .then((result) => {
         if (!mountedRef.current) return;
         setData(result);
