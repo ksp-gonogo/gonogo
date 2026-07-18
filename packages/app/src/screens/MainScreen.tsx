@@ -16,6 +16,7 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
+import { useKerbcastMainConnect } from "@ksp-gonogo/kerbcast-feed";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -202,6 +203,8 @@ export function MainScreen() {
       });
     };
   }, []);
+
+  useKerbcastMainConnect();
 
   return (
     <SitrepTelemetryProvider>
