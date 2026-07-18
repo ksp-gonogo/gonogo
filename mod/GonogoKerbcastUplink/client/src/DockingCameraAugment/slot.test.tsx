@@ -1,7 +1,8 @@
 import {
   AugmentSlot,
   clearRegistry,
-  registerDataSource,
+  clearUplinkHandles,
+  registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import {
   StubTransport,
@@ -43,6 +44,7 @@ function renderSlot(transport: StubTransport) {
 describe("kerbcast docking-camera augment — distance-to-target.camera slot", () => {
   beforeEach(() => {
     clearRegistry();
+    clearUplinkHandles();
   });
 
   it("does not subscribe to the camera inventory before kerbcast announces availability", () => {
@@ -127,9 +129,7 @@ describe("kerbcast docking-camera augment — distance-to-target.camera slot", (
         camera: () => ({ mediaStream: null, on: () => () => {} }),
       }),
     };
-    registerDataSource(
-      fakeSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    registerUplinkHandle("kerbcast", fakeSource);
 
     const transport = new StubTransport();
     renderSlot(transport);
