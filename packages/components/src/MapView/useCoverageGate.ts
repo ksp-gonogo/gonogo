@@ -22,12 +22,16 @@ export interface CoverageGate {
   version: number;
   width: number;
   height: number;
-  /** True when zero reveal sources are registered at all — the "no fog
-   *  system mounted" case. A base-layer augment should treat this as
-   *  "paint fully open," NOT "fully fogged" — an Uplink that registers a
-   *  base-layer provider but no reveal source at all gets an ungated
-   *  (always-visible) surface, which is the correct degenerate case, not
-   *  an error state. */
+  /** True when at least one reveal source is registered AND a
+   *  `FogMaskCacheProvider` is mounted to actually resolve its masks.
+   *  False in either the "no fog system mounted" case (zero reveal sources
+   *  registered) or the "no cache provider" case (sources are registered
+   *  but nothing can fetch their masks). A base-layer augment should treat
+   *  false as "paint fully open," NOT "fully fogged" — an Uplink that
+   *  registers a base-layer provider but no reveal source at all gets an
+   *  ungated (always-visible) surface, which is the correct degenerate
+   *  case, not an error state. A missing `FogMaskCacheProvider` must
+   *  degrade the same way — never a blanked map. */
   hasAnySource: boolean;
 }
 
@@ -54,7 +58,17 @@ export function compositeCoverage(
 
 // Stable-reference snapshot cache — getFogRevealSources() allocates fresh
 // every call, which would infinite-loop useSyncExternalStore directly.
+//
+// Refreshed via an UNCONDITIONAL module-load subscription (mirrors
+// packages/core/src/AugmentSlot.tsx's slotCache/onAugmentsChange pattern),
+// not from inside a component lifecycle: a reveal source can register or
+// unregister while zero useCoverageGate instances are mounted (e.g. an
+// Uplink SDK bundle registers a source before the user ever navigates to a
+// MapView layout), and that change must not be missed.
 let cachedSources: FogRevealSourceDefinition[] = getFogRevealSources();
+onFogRevealSourcesChange(() => {
+  cachedSources = getFogRevealSources();
+});
 function getSourcesSnapshot(): FogRevealSourceDefinition[] {
   return cachedSources;
 }
@@ -63,12 +77,11 @@ export function useCoverageGate(
   bodyId: string | undefined,
   augmentSettings: Record<string, Record<string, unknown>> | undefined,
 ): CoverageGate {
+  // Per-instance subscribe purely to trigger a re-render when the registry
+  // changes — cachedSources itself is kept fresh by the module-load
+  // subscription above regardless of whether any instance is mounted.
   const sources = useSyncExternalStore(
-    (onChange) =>
-      onFogRevealSourcesChange(() => {
-        cachedSources = getFogRevealSources();
-        onChange();
-      }),
+    onFogRevealSourcesChange,
     getSourcesSnapshot,
     getSourcesSnapshot,
   );
@@ -78,11 +91,18 @@ export function useCoverageGate(
     version: 0,
     width: 0,
     height: 0,
-    hasAnySource: sources.length > 0,
+    hasAnySource: cache != null && sources.length > 0,
   });
 
   useEffect(() => {
-    if (!cache || !bodyId || sources.length === 0) {
+    // No FogMaskCacheProvider mounted: masks can never resolve regardless
+    // of how many sources are registered. Degrade to fully-open, not a
+    // gated state stuck with null data forever.
+    if (!cache) {
+      setGate((g) => ({ ...g, data: null, hasAnySource: false }));
+      return;
+    }
+    if (!bodyId || sources.length === 0) {
       setGate((g) => ({ ...g, data: null, hasAnySource: sources.length > 0 }));
       return;
     }
