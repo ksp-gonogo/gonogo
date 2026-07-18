@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearUplinkHandles,
   getUplinkHandle,
   registerUplinkHandle,
   unregisterUplinkHandle,
@@ -31,5 +32,15 @@ describe("uplinkHandles", () => {
     unregisterUplinkHandle("test-unregister");
 
     expect(getUplinkHandle("test-unregister")).toBeUndefined();
+  });
+
+  it("clears every registered handle", () => {
+    registerUplinkHandle("test-clear-a", { v: 1 });
+    registerUplinkHandle("test-clear-b", { v: 2 });
+
+    clearUplinkHandles();
+
+    expect(getUplinkHandle("test-clear-a")).toBeUndefined();
+    expect(getUplinkHandle("test-clear-b")).toBeUndefined();
   });
 });

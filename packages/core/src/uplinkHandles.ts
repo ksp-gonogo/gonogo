@@ -33,3 +33,8 @@ export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
 export function unregisterUplinkHandle(uplinkId: string): void {
   handles.delete(uplinkId);
 }
+
+/** Remove every registered handle. For use in tests only. */
+export function clearUplinkHandles(): void {
+  handles.clear();
+}
