@@ -214,9 +214,8 @@ namespace Sitrep.Core.Serialization
                 // here, same "producer owns the flatten" shape as CommsDelay
                 // above. As of the kos migration (2026-07-18) all three
                 // self-flatten producer-side via Gonogo.KosUplink.
-                // Kos*Builder.Build() (mirroring KerbcastCameraEntryBuilder),
-                // so JsonWriter never sees the raw POCO any more — see
-                // WirePayloadCoverageTests.FlattenedByProducer.
+                // Kos*Builder.Build(), so JsonWriter never sees the raw POCO
+                // any more — see WirePayloadCoverageTests.FlattenedByProducer.
                 case Sitrep.Contract.CommsLink link:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // CommsConnectivity below: the comms.link connectivity

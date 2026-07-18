@@ -4,8 +4,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// The <c>kos.processors</c> wire mapping (mirrors
-    /// <c>KerbcastCameraEntryBuilderTests</c>'s pattern). Regression coverage
+    /// The <c>kos.processors</c> wire mapping. Regression coverage
     /// for the "subscribed but no stream-data" bug moved here from
     /// <c>Sitrep.Core.Tests</c>'s deleted <c>KosProcessorInfoWireTests</c> —
     /// as of the kos migration (2026-07-18) the wire shape is asserted

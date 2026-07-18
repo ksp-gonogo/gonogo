@@ -4,8 +4,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// The <c>kos.terminal.&lt;coreId&gt;</c> wire mapping (mirrors
-    /// <c>KerbcastCameraEntryBuilderTests</c>'s pattern). The
+    /// The <c>kos.terminal.&lt;coreId&gt;</c> wire mapping. The
     /// <c>fullRepaint</c> key is what <c>KosExtension.Ksp.cs</c>'s
     /// <c>ChannelDeclaration.IsKeyframe</c> predicate reads off the flattened
     /// dictionary, so its exact key name/type is load-bearing, not cosmetic.

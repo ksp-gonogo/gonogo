@@ -5,8 +5,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// The <c>kos.run.&lt;coreId&gt;</c> wire mapping (mirrors
-    /// <c>KerbcastCameraEntryBuilderTests</c>'s pattern). R7 typed-absence:
+    /// The <c>kos.run.&lt;coreId&gt;</c> wire mapping. R7 typed-absence:
     /// exactly one of <c>fields</c>/<c>error</c> is non-null on any real
     /// result — the Builder doesn't enforce that itself (the caller,
     /// <c>KosRunManager.Complete</c>, already guarantees it), so these tests
