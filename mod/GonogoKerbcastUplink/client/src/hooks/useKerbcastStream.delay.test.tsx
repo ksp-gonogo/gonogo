@@ -32,7 +32,11 @@
  * lifecycle wiring AND backend-selection/status reporting.
  */
 
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  clearUplinkHandles,
+  registerUplinkHandle,
+} from "@ksp-gonogo/core";
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-client";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -46,6 +50,7 @@ import {
 // needed here, only the registry teardown this file actually owns.
 afterEach(() => {
   clearRegistry();
+  clearUplinkHandles();
 });
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
@@ -98,9 +103,7 @@ function registerFakeKerbcastSource(cam: ReturnType<typeof fakeCameraHandle>) {
     subscribeCamera: () => {},
     unsubscribeCamera: () => {},
   };
-  registerDataSource(
-    fake as unknown as Parameters<typeof registerDataSource>[0],
-  );
+  registerUplinkHandle("kerbcast", fake);
 }
 
 /** A fake "video frame" — the minimal `FrameLike` contract `../frameDelay.ts`
@@ -666,14 +669,14 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     const camB = fakeCameraHandle(streamB);
     // A source that hands out a DIFFERENT camera per flightId, so the two
     // probes resolve two distinct raw MediaStreams (distinct cache keys).
-    registerDataSource({
+    registerUplinkHandle("kerbcast", {
       id: "kerbcast",
       getClient: () => ({
         camera: (id: number) => (id === 7 ? camA : camB),
       }),
       subscribeCamera: () => {},
       unsubscribeCamera: () => {},
-    } as unknown as Parameters<typeof registerDataSource>[0]);
+    });
     const clock = manualClock(0);
 
     let resultA: DelayedPlayoutResult | "unset" = "unset";

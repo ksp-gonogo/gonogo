@@ -20,7 +20,11 @@
  * fragile than just not sharing the file).
  */
 
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  clearUplinkHandles,
+  registerUplinkHandle,
+} from "@ksp-gonogo/core";
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-client";
 import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +38,7 @@ import {
 // actually owns.
 afterEach(() => {
   clearRegistry();
+  clearUplinkHandles();
   vi.unstubAllGlobals();
 });
 
@@ -77,9 +82,7 @@ function registerFakeKerbcastSourceWithReceiver(
   receiverFor: (stream: unknown) => unknown,
 ) {
   const fake = { id: "kerbcast", getReceiverForStream: receiverFor };
-  registerDataSource(
-    fake as unknown as Parameters<typeof registerDataSource>[0],
-  );
+  registerUplinkHandle("kerbcast", fake);
 }
 
 /**
@@ -249,9 +252,7 @@ describe("useDelayedPlayout — Backend 0: encoded transform on the receiver", (
     vi.stubGlobal("Worker", FakeWorker);
     // RTCRtpScriptTransform deliberately left unstubbed/absent too.
     const fake = { id: "kerbcast" }; // no getReceiverForStream, like the pre-existing test fakes
-    registerDataSource(
-      fake as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    registerUplinkHandle("kerbcast", fake);
     const rawStream = { getVideoTracks: () => [{}] } as unknown as MediaStream;
     const clock = manualClock();
 

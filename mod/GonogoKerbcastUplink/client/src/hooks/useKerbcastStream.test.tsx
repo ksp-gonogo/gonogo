@@ -8,7 +8,11 @@
  * on unmount.
  */
 
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  clearUplinkHandles,
+  registerUplinkHandle,
+} from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -24,6 +28,7 @@ function StreamProbe({ flightId }: { flightId: number | null }): null {
 // needed here, only the registry/mock teardown this file actually owns.
 afterEach(() => {
   clearRegistry();
+  clearUplinkHandles();
   vi.restoreAllMocks();
 });
 
@@ -45,7 +50,7 @@ async function connectedSource(
     { host: "h", port: 1 },
     sidecar.createTransport(),
   );
-  registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
+  registerUplinkHandle("kerbcast", ds);
   await act(async () => {
     await ds.connect();
   });
