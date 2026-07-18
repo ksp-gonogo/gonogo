@@ -9,6 +9,7 @@ import {
   getGameHost,
   PerfBudget,
   registerDataSource,
+  registerUplinkHandle,
   subscribeSetting,
 } from "@ksp-gonogo/core";
 import {
@@ -983,6 +984,21 @@ function parseAction(action: string): [string, string[]] {
 
 export const kerbcastSource = new KerbcastDataSource();
 registerDataSource(kerbcastSource);
+
+// Host-side relay handle for station peer-relayed calls (see
+// PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Delegates
+// to the existing relayOffer() — the handle is just its dispatch entry
+// point, relayOffer itself is unchanged.
+registerUplinkHandle("kerbcast", {
+  async relay(method: string, args: unknown): Promise<unknown> {
+    if (method === "negotiate") {
+      return kerbcastSource.relayOffer(
+        args as { sdp: string; cameras: number[]; slots?: number },
+      );
+    }
+    throw new Error(`kerbcast relay handle: unknown method "${method}"`);
+  },
+});
 
 // Dev-only debug handle: inspect the live stream-routing state from the console
 // (or via automation) to diagnose black-feed / no-track issues.
