@@ -1,13 +1,14 @@
-import type { ConfigField, DataKey, DataSourceStatus } from "@ksp-gonogo/core";
+import type {
+  ConfigField,
+  DataKey,
+  DataSource,
+  DataSourceStatus,
+} from "@ksp-gonogo/core";
 import { PerfBudget } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
-  KosData,
-  KosManagedScript,
-  KosScriptArg,
-  ScriptableDataSource,
 } from "@ksp-gonogo/data";
 import { KeyedListenerSet, ListenerSet } from "@ksp-gonogo/data";
 import { debugPeer } from "@ksp-gonogo/logger";
@@ -45,13 +46,13 @@ const PEER_CLIENT_SAMPLE_BUDGET = new PerfBudget({
   unit: "samples",
 });
 
-export class PeerClientDataSource implements ScriptableDataSource {
+export class PeerClientDataSource implements DataSource {
   private subscribers = new KeyedListenerSet<[unknown]>();
   private sampleSubscribers = new KeyedListenerSet<[Sample]>();
   private statusListeners = new ListenerSet<[DataSourceStatus]>();
   private seenKeys = new Set<string>();
   private cachedSchema: DataKeyMeta[] = [];
-  // Latest value per key so synchronous snapshot readers (e.g. useKosWidget
+  // Latest value per key so synchronous snapshot readers (e.g. a widget
   // resolving a `{ type: "telemetry" }` arg at dispatch time) see the same
   // freshness stations already get via subscribe callbacks.
   private lastValues = new Map<string, unknown>();
@@ -120,7 +121,7 @@ export class PeerClientDataSource implements ScriptableDataSource {
   /**
    * Synchronous snapshot of the most recent value for a key, or undefined
    * if none has arrived yet. Mirrors BufferedDataSource.getLatestValue so
-   * consumers like useKosWidget work identically on main and station.
+   * consumers work identically on main and station regardless of transport.
    */
   getLatestValue(key: string): unknown | undefined {
     return this.lastValues.get(key);
@@ -174,20 +175,14 @@ export class PeerClientDataSource implements ScriptableDataSource {
   }
 
   /**
-   * Tunnel a kOS compute script execution up to the host. The host invokes
-   * its local KosDataSource.executeScript and replies with the parsed
-   * [KOSDATA] object. Only meaningful on the station-side mirror of the
-   * "kos" source — calling it on a different source id still sends a
-   * request, but the host will reply with an error (the protocol routes
-   * to "kos" specifically by design).
+   * Tunnel a single call up to whatever handle the host's Uplink registered
+   * for this source's id (via `registerUplinkHandle` — see
+   * `PeerHostService.handleUplinkRelay`). Purely a station-side convenience
+   * forwarder: `method`/`args`/the resolved result are opaque here, each
+   * Uplink's own client code owns casting them to its real shape.
    */
-  async executeScript(
-    cpu: string,
-    script: string,
-    args: KosScriptArg[],
-    managed?: KosManagedScript,
-  ): Promise<KosData> {
-    return this.client.sendKosExecute(cpu, script, args, managed);
+  relay(method: string, args: unknown): Promise<unknown> {
+    return this.client.sendUplinkRelay(this.id, method, args);
   }
 
   /**

@@ -220,7 +220,11 @@ export function StationScreen() {
       | KerbcastDataSource
       | undefined;
     kerbcast?.attachBroker({
-      negotiate: (offer) => client.sendKerbcastNegotiate(offer),
+      negotiate: (offer) =>
+        client.sendUplinkRelay("kerbcast", "negotiate", offer) as Promise<{
+          sdp: string;
+          cameras: number[];
+        }>,
       iceServers: () => client.getRelayIceServers(),
       onIceServersChange: (cb) => client.onRelayIceServersChange(cb),
     });

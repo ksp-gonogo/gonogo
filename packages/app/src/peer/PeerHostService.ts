@@ -4,7 +4,6 @@ import type {
   FlightChapterRecord,
   FlightRecord,
 } from "@ksp-gonogo/data";
-import { isScriptable } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
@@ -23,6 +22,41 @@ import { TypedListeners } from "./typedListeners";
 // same id from the operator-typed code and connect directly, no broker
 // directory in between. See `hostPeerId.ts` for the derivation.
 const SHARE_CODE_KEY = "gonogo-host-share-code";
+
+/**
+ * Host-side counterpart of a station's `uplink-relay-request`: an object
+ * registered under an Uplink's id (via `@ksp-gonogo/core`'s
+ * `registerUplinkHandle`) that knows how to dispatch its own named methods.
+ * Defined locally rather than in core — the peer layer is the only thing
+ * that needs to call `.relay()`, and the narrow registry itself stays
+ * handle-shape-agnostic.
+ */
+export interface UplinkRelayHandle {
+  relay(method: string, args: unknown): Promise<unknown>;
+}
+
+function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
+  return (
+    !!handle &&
+    typeof (handle as Partial<UplinkRelayHandle>).relay === "function"
+  );
+}
+
+/**
+ * Pull whatever extra, uplink-defined classification a thrown error carries
+ * (e.g. a script-author-fault flag) into the wire's `errorMeta` bag. The
+ * peer layer never interprets these fields — it just forwards whatever
+ * enumerable extra properties the Error instance carries beyond the
+ * standard `name`/`message`/`stack`, so a relay handle's own client code can
+ * read them back out on the other side.
+ */
+function extractErrorMeta(error: Error): Record<string, unknown> | undefined {
+  const extra: Record<string, unknown> = {};
+  for (const key of Object.keys(error)) {
+    extra[key] = (error as unknown as Record<string, unknown>)[key];
+  }
+  return Object.keys(extra).length > 0 ? extra : undefined;
+}
 
 /**
  * Cheap structural compare for two iceServers configs. Good enough
@@ -515,9 +549,10 @@ export class PeerHostService {
         // container-bridge candidates are unreachable from the LAN).
         //
         // Send when there's a relay peer id (OCISLY) OR just TURN creds: a
-        // brokered kerbcast station has no relay *peer* (it streams direct from
-        // the sidecar) but still needs the relay's TURN creds for the non-LAN
-        // hop, and a station can't fetch /ice-config itself (localhost).
+        // station in brokered camera mode has no relay *peer* (it streams
+        // direct from the sidecar) but still needs the relay's TURN creds
+        // for the non-LAN hop, and a station can't fetch /ice-config itself
+        // (localhost).
         if (this.relayPeerId !== null || this.iceServers.length > 0) {
           conn.send({
             type: "relay-peer-id",
@@ -548,9 +583,9 @@ export class PeerHostService {
         conn.send({ type: "flight-list-changed" } satisfies PeerMessage);
         // Lazy: wire the host's MissionHistorySource list-change broadcaster
         // on the first peer connection. The source isn't registered
-        // synchronously — it imports kos + telemachus first — so doing
-        // this in start() races. Per-connection is too eager (we'd subscribe
-        // every time), so we gate on a single attach.
+        // synchronously — it imports the Uplink client modules first — so
+        // doing this in start() races. Per-connection is too eager (we'd
+        // subscribe every time), so we gate on a single attach.
         void this.attachFlightListChangeBroadcaster();
         this.events.emit("peerConnect", conn.peer);
       });
@@ -1114,8 +1149,9 @@ export class PeerHostService {
 
   // Schema is sent once per station connect. Stations cache what arrives here
   // and don't poll. If a data source registers keys dynamically after the
-  // initial handshake (e.g. a future kOS datastream), this will need to
-  // broadcast a new schema message to already-connected stations.
+  // initial handshake (e.g. a future dynamically-registered data source),
+  // this will need to broadcast a new schema message to already-connected
+  // stations.
   private sendSchema(conn: DataConnection) {
     import("@ksp-gonogo/core").then(({ getDataSources }) => {
       const sources = getDataSources().map((s) => ({
@@ -1147,17 +1183,14 @@ export class PeerHostService {
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
     },
-    "kerbcast-negotiate-request": (msg, conn) => {
-      void this.handleKerbcastNegotiate(msg, conn);
+    "uplink-relay-request": (msg, conn) => {
+      void this.handleUplinkRelay(msg, conn);
     },
     "flight-rpc-request": (msg, conn) => {
       void this.handleFlightRpcRequest(msg, conn);
     },
     "sitrep-command-request": (msg, conn) => {
       void this.handleSitrepCommand(msg, conn);
-    },
-    "kos-execute-request": (msg, conn) => {
-      void this.handleKosExecuteRequest(msg, conn);
     },
     "station-info": (msg, conn) => {
       if (msg.stationKey) {
@@ -1420,87 +1453,47 @@ export class PeerHostService {
     }
   }
 
-  // Station broker: relay a station's kerbcast offer to the local sidecar (only
-  // the main screen can reach its address) and return the answer. Signaling
-  // only — media flows station↔sidecar directly off the answer's ICE candidates.
-  private async handleKerbcastNegotiate(
-    msg: Extract<PeerMessage, { type: "kerbcast-negotiate-request" }>,
+  // Generic station-broker: relay a single call through to whatever handle
+  // an Uplink registered for `msg.uplinkId` via `registerUplinkHandle`. This
+  // is the ONE handler every Uplink's peer-relayed calls route through — no
+  // per-Uplink dispatcher entry, no `DataSource` involvement. See
+  // `UplinkRelayHandle` above.
+  private async handleUplinkRelay(
+    msg: Extract<PeerMessage, { type: "uplink-relay-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@ksp-gonogo/core");
-    const source = getDataSource("kerbcast") as
-      | (ReturnType<typeof getDataSource> & {
-          relayOffer?: (offer: {
-            sdp: string;
-            cameras: number[];
-            slots?: number;
-          }) => Promise<{ sdp: string; cameras: number[] }>;
-        })
-      | undefined;
+    const { getUplinkHandle } = await import("@ksp-gonogo/core");
+    const handle = getUplinkHandle(msg.uplinkId);
     const respond = (
-      answer?: { sdp: string; cameras: number[] },
+      result?: unknown,
       error?: string,
+      errorMeta?: Record<string, unknown>,
     ) => {
       conn.send({
-        type: "kerbcast-negotiate-response",
+        type: "uplink-relay-response",
         requestId: msg.requestId,
-        answer,
+        result,
         error,
+        errorMeta,
       } satisfies PeerMessage);
     };
-    if (!source || typeof source.relayOffer !== "function") {
-      respond(undefined, "kerbcast source unavailable on host");
-      return;
-    }
-    try {
-      const answer = await source.relayOffer(msg.offer);
-      respond(answer);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      logger.error("[PeerHost] kerbcast negotiate failed", error);
-      respond(undefined, error.message);
-    }
-  }
-
-  private async handleKosExecuteRequest(
-    msg: Extract<PeerMessage, { type: "kos-execute-request" }>,
-    conn: DataConnection,
-  ) {
-    const { getDataSource } = await import("@ksp-gonogo/core");
-    const source = getDataSource("kos");
-    const respond = (
-      data?: import("@ksp-gonogo/data").KosData,
-      error?: string,
-      isScriptError?: boolean,
-    ): void => {
-      conn.send({
-        type: "kos-execute-response",
-        requestId: msg.requestId,
-        data,
-        error,
-        isScriptError,
-      } satisfies PeerMessage);
-    };
-    if (!isScriptable(source)) {
-      respond(undefined, "kos data source not registered on main screen");
-      return;
-    }
-    try {
-      const data = await source.executeScript(
-        msg.cpu,
-        msg.script,
-        msg.args,
-        msg.managed,
+    if (!isRelayHandle(handle)) {
+      respond(
+        undefined,
+        `"${msg.uplinkId}" has no relay handle registered on the host`,
       );
-      respond(data);
+      return;
+    }
+    try {
+      const result = await handle.relay(msg.method, msg.args);
+      respond(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      // Duck-type: avoid importing the concrete class so this file stays
-      // free of @ksp-gonogo/app circular references.
-      const isScriptError =
-        (error as { isScriptError?: unknown }).isScriptError === true;
-      logger.warn(`[PeerHost] kos execute failed — ${error.message}`);
-      respond(undefined, error.message, isScriptError);
+      const meta = extractErrorMeta(error);
+      logger.warn(
+        `[PeerHost] uplink relay failed — ${msg.uplinkId}.${msg.method}: ${error.message}`,
+      );
+      respond(undefined, error.message, meta);
     }
   }
 

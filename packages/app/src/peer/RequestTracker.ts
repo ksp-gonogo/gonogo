@@ -1,13 +1,13 @@
 /**
  * Tracks pending request/response pairs keyed by `requestId`. Used by
- * `PeerClientService` for both `queryRange` and `kosExecute` round-trips:
- * each call generates a fresh `requestId`, registers a pending entry with
- * a timeout, and resolves/rejects when the matching response arrives or
- * the connection drops.
+ * `PeerClientService` for its `queryRange`, `flight-rpc`, and
+ * `uplink-relay` round-trips: each call generates a fresh `requestId`,
+ * registers a pending entry with a timeout, and resolves/rejects when the
+ * matching response arrives or the connection drops.
  *
  * The tracker is generic over the resolved value `T` so each kind of
  * request keeps its own typed map (different responses carry different
- * payload shapes — e.g. `{t, v}` vs `KosData`).
+ * payload shapes — e.g. `{t, v}` vs an opaque relay result).
  */
 export class RequestTracker<T> {
   private readonly pending = new Map<

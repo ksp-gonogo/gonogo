@@ -1,11 +1,5 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
-import type {
-  FlightRecord,
-  KosData,
-  KosManagedScript,
-  KosScriptArg,
-} from "@ksp-gonogo/data";
-import { KosScriptError } from "@ksp-gonogo/data";
+import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -272,7 +266,7 @@ export class PeerClientService {
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
-  // kerbcast data source can feed them to its station↔sidecar PeerConnection —
+  // camera data source can feed them to its station↔sidecar PeerConnection —
   // a path separate from PeerJS. Empty until the first broadcast carrying creds.
   private relayIceServers: RTCIceServer[] = [];
   private hostVersion: { version: string; buildTime: string } | null = null;
@@ -287,12 +281,8 @@ export class PeerClientService {
     t: number[];
     v: unknown[];
   }>();
-  private pendingKosExecutes = new RequestTracker<KosData>();
   private pendingFlightRpc = new RequestTracker<unknown>();
-  private pendingKerbcastNegotiate = new RequestTracker<{
-    sdp: string;
-    cameras: number[];
-  }>();
+  private pendingUplinkRelay = new RequestTracker<unknown>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -667,28 +657,33 @@ export class PeerClientService {
   }
 
   /**
-   * Station broker: ask the host to relay a kerbcast WebRTC offer to the sidecar
-   * and return the answer. Pass as the `negotiate` seam to a station-side
-   * KerbcastClient so it never needs the sidecar's address — media still flows
-   * station↔sidecar directly off the answer's ICE candidates.
+   * Ask the host to relay a single call through to whatever handle an
+   * Uplink registered for `uplinkId` (via `registerUplinkHandle` on the
+   * host — see `@ksp-gonogo/core`). Generic replacement for what used to be
+   * one hardcoded send-method per Uplink; each Uplink's own client code
+   * owns the shape of `method`/`args`/the resolved result.
    */
-  sendKerbcastNegotiate(
-    offer: { sdp: string; cameras: number[]; slots?: number },
+  sendUplinkRelay(
+    uplinkId: string,
+    method: string,
+    args: unknown,
     timeoutMs = 15_000,
-  ): Promise<{ sdp: string; cameras: number[] }> {
+  ): Promise<unknown> {
     if (!this.conn) {
       return Promise.reject(new Error("not connected"));
     }
     const requestId = safeRandomUuid();
-    const pending = this.pendingKerbcastNegotiate.track(
+    const pending = this.pendingUplinkRelay.track(
       requestId,
       timeoutMs,
-      "kerbcast negotiate timeout",
+      `uplink relay timeout (${uplinkId}.${method})`,
     );
     this.conn.send({
-      type: "kerbcast-negotiate-request",
+      type: "uplink-relay-request",
       requestId,
-      offer,
+      uplinkId,
+      method,
+      args,
     } satisfies PeerMessage);
     return pending;
   }
@@ -757,9 +752,8 @@ export class PeerClientService {
 
   private rejectPendingQueries(reason: string) {
     this.pendingQueries.rejectAll(reason);
-    this.pendingKosExecutes.rejectAll(reason);
     this.pendingFlightRpc.rejectAll(reason);
-    this.pendingKerbcastNegotiate.rejectAll(reason);
+    this.pendingUplinkRelay.rejectAll(reason);
   }
 
   /**
@@ -852,41 +846,6 @@ export class PeerClientService {
    */
   onFlightListChange(cb: () => void): () => void {
     return this.events.on("flightListChange", cb);
-  }
-
-  /**
-   * Tunnel a kOS compute script execution through to the host. The host
-   * invokes its local KosDataSource.executeScript and replies with
-   * the parsed [KOSDATA] object (or an error). Timeout defaults to 35s —
-   * a shade longer than the host's own per-call timeout (which itself
-   * needs slack for first-write managed dispatches) so the station
-   * surfaces the real error rather than a timeout racing it.
-   */
-  sendKosExecute(
-    cpu: string,
-    script: string,
-    args: KosScriptArg[],
-    managed?: KosManagedScript,
-    timeoutMs = 35_000,
-  ): Promise<KosData> {
-    if (!this.conn || this.conn.open === false) {
-      return Promise.reject(new Error("not connected to host"));
-    }
-    const requestId = safeRandomUuid();
-    const pending = this.pendingKosExecutes.track(
-      requestId,
-      timeoutMs,
-      "kos execute timeout",
-    );
-    this.conn.send({
-      type: "kos-execute-request",
-      requestId,
-      cpu,
-      script,
-      args,
-      managed,
-    } satisfies PeerMessage);
-    return pending;
   }
 
   onData(
@@ -1019,14 +978,17 @@ export class PeerClientService {
         this.pendingQueries.resolve(msg.requestId, { t: msg.t, v: msg.v });
       }
     },
-    "kerbcast-negotiate-response": (msg) => {
-      if (msg.error || !msg.answer) {
-        this.pendingKerbcastNegotiate.reject(
+    "uplink-relay-response": (msg) => {
+      if (msg.error) {
+        // Attach errorMeta (e.g. a script-author-fault flag) as a plain
+        // `.meta` property so the calling Uplink's own client code can read
+        // it back without the peer layer having to know its shape.
+        this.pendingUplinkRelay.reject(
           msg.requestId,
-          new Error(msg.error ?? "no answer in kerbcast negotiate response"),
+          Object.assign(new Error(msg.error), { meta: msg.errorMeta }),
         );
       } else {
-        this.pendingKerbcastNegotiate.resolve(msg.requestId, msg.answer);
+        this.pendingUplinkRelay.resolve(msg.requestId, msg.result);
       }
     },
     "flight-rpc-response": (msg) => {
@@ -1042,20 +1004,6 @@ export class PeerClientService {
     },
     "flight-list-changed": () => {
       this.events.emit("flightListChange");
-    },
-    "kos-execute-response": (msg) => {
-      if (msg.error || !msg.data) {
-        const message = msg.error ?? "kos execute: empty response";
-        // Preserve the script-vs-infra discriminator across the peer
-        // boundary — the breaker on the station side only counts
-        // KosScriptError, same as on main.
-        const err = msg.isScriptError
-          ? new KosScriptError(message)
-          : new Error(message);
-        this.pendingKosExecutes.reject(msg.requestId, err);
-      } else {
-        this.pendingKosExecutes.resolve(msg.requestId, msg.data);
-      }
     },
     status: (msg) => {
       this.events.emit("sourceStatus", msg.sourceId, msg.status);
@@ -1151,8 +1099,8 @@ export class PeerClientService {
    * already-negotiated ICE pair and aren't disturbed.
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
-    // Expose for the brokered kerbcast data source regardless of whether the
-    // Peer is up yet — the kerbcast client reads these for its own connection.
+    // Expose for the brokered camera data source regardless of whether the
+    // Peer is up yet — the camera client reads these for its own connection.
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;
