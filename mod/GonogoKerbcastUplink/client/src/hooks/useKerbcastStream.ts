@@ -1,4 +1,4 @@
-import { getDataSource } from "@ksp-gonogo/core";
+import { getUplinkHandle } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
   attachEncodedWorkerFrameDelay,
@@ -71,7 +71,7 @@ const sharedDelayedStreams = new SharedDelayedStreams<
 export function useKerbcastStream(flightId: number | null): MediaStream | null {
   const [rawStream, setRawStream] = useState<MediaStream | null>(() => {
     if (flightId === null) return null;
-    const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+    const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
     return ds?.getClient().camera(flightId).mediaStream ?? null;
   });
 
@@ -80,7 +80,7 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
       setRawStream(null);
       return;
     }
-    const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+    const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
     if (!ds) return;
     const cam = ds.getClient().camera(flightId);
     setRawStream(cam.mediaStream);
@@ -176,7 +176,7 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  * video-delay work — `local_docs/reports/encoded-video-delay-report.md`):
  *
  *  0. **Encoded transform on the receiver** (`attachEncodedWorkerFrameDelay`)
- *     — tried first when `getDataSource("kerbcast")` can resolve an
+ *     — tried first when `getUplinkHandle("kerbcast")` can resolve an
  *     `RTCRtpReceiver` for `raw` (via `KerbcastDataSource.getReceiverForStream`)
  *     AND `RTCRtpScriptTransform` exists. Empirically confirmed cross-browser
  *     correct (Chromium/Firefox/WebKit, Phase 1 of that report) — the ONLY
@@ -319,11 +319,11 @@ function buildDelayedPipeline(
   // Backend 0: encoded transform, attached directly to the RTCRtpReceiver
   // behind `raw` — see `useDelayedPlayout`'s module doc. `getReceiverForStream`
   // is called optionally (`?.`) because a data source under test may not
-  // implement it at all (a fake registered via `registerDataSource` in a unit
+  // implement it at all (a fake registered via `registerUplinkHandle` in a unit
   // test, matching the "unknown methods degrade to undefined, never throw"
   // convention this module already follows elsewhere). One transform per
   // receiver — sharing at the source is what keeps that invariant.
-  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+  const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
   const receiver = ds?.getReceiverForStream?.(raw);
   if (receiver && typeof RTCRtpScriptTransform !== "undefined") {
     const encodedCapableView = view as DelayClockLike & {
