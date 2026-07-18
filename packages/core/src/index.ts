@@ -26,6 +26,7 @@ export * from "./hooks/useTouchDevice";
 // debugPeer, handleError — moved to `@ksp-gonogo/logger` so Node services
 // can consume it without dragging in core's browser-leaning tree.
 export { ErrorBoundary } from "./logger/ErrorBoundary";
+export * from "./mapPoi";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
 export * from "./registry";
