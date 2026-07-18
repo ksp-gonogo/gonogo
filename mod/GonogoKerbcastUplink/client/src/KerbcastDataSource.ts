@@ -621,6 +621,20 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
   }
 
   /**
+   * Host-side dispatch entry point for station peer-relayed calls (see
+   * PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). The
+   * only method today is `negotiate`, delegating to relayOffer().
+   */
+  async relay(method: string, args: unknown): Promise<unknown> {
+    if (method === "negotiate") {
+      return this.relayOffer(
+        args as { sdp: string; cameras: number[]; slots?: number },
+      );
+    }
+    throw new Error(`kerbcast relay handle: unknown method "${method}"`);
+  }
+
+  /**
    * Switch this source into station/brokered mode: route the WebRTC handshake
    * through the host (no sidecar address needed) and take TURN creds from the
    * host's relay broadcast instead of a localhost `/ice-config` fetch. The app
@@ -985,20 +999,12 @@ function parseAction(action: string): [string, string[]] {
 export const kerbcastSource = new KerbcastDataSource();
 registerDataSource(kerbcastSource);
 
-// Host-side relay handle for station peer-relayed calls (see
-// PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Delegates
-// to the existing relayOffer() — the handle is just its dispatch entry
-// point, relayOffer itself is unchanged.
-registerUplinkHandle("kerbcast", {
-  async relay(method: string, args: unknown): Promise<unknown> {
-    if (method === "negotiate") {
-      return kerbcastSource.relayOffer(
-        args as { sdp: string; cameras: number[]; slots?: number },
-      );
-    }
-    throw new Error(`kerbcast relay handle: unknown method "${method}"`);
-  },
-});
+// Registers the FULL instance (not a narrower object) so both the host-side
+// relay dispatch (PeerHostService.handleUplinkRelay, via .relay()) and every
+// client-access call site (CameraFeed, useKerbcastStream, useKerbcastCameras,
+// DockingCameraAugment, SettingsModal, StationScreen) can resolve the same
+// handle through this ONE registry instead of two.
+registerUplinkHandle("kerbcast", kerbcastSource);
 
 // Dev-only debug handle: inspect the live stream-routing state from the console
 // (or via automation) to diagnose black-feed / no-track issues.

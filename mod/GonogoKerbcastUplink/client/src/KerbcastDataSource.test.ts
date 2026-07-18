@@ -550,6 +550,12 @@ describe("KerbcastDataSource module — registerUplinkHandle('kerbcast', ...) re
       /unknown method "bogus"/,
     );
   });
+
+  it("registers the full kerbcastSource instance, not a narrower relay-only object", () => {
+    const handle = getUplinkHandle<KerbcastDataSource>("kerbcast");
+    expect(handle).toBe(kerbcastSource);
+    expect(typeof handle?.getClient).toBe("function");
+  });
 });
 
 // ---------------------------------------------------------------------------
