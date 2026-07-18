@@ -16,6 +16,10 @@
 //     `map-view.overlay` slot with the on-map anomaly markers + bearing/
 //     distance panel (P4c-b: scansat.anomalies.<body> sign-off, see
 //     docs/superpowers/plans/2026-07-11-p4cb-deletion-plan.md §1).
+//   - `FootprintOverlay` → registerAugment({ id: "scansat-footprint-overlay",
+//     ... }) so it fills the same `map-view.overlay` slot with scanning-
+//     vessel ground-track footprints (MapView overlay-host foundation plan
+//     T8a), replacing the old MapView-internal `drawScanningFootprints`.
 //   - `FogReveal/useScanSatFogSync` → registerFogRevealSource(...) once per
 //     scan type ("scansat:AltimetryLoRes" etc., MapView overlay-host
 //     foundation plan T7) so MapView's coverage paint-gate knows this
@@ -50,4 +54,5 @@ export { parseScanScience } from "./ScienceAugment";
 import "./Scanning";
 import "./ScienceAugment";
 import "./AnomalyOverlay";
+import "./FootprintOverlay";
 import "./FogReveal/useScanSatFogSync";
