@@ -4,6 +4,7 @@ export * from "./actions/dispatcher";
 export * from "./augments";
 export * from "./bodies";
 export * from "./calc";
+export * from "./chromeProviders";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
 export * from "./fog";
