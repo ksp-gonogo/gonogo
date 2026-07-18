@@ -1,13 +1,13 @@
 import { useBiomeCanvas, useFogDisplayCanvas } from "@ksp-gonogo/components";
-import {
-  type BodyDefinition,
-  type SCANScanningVessel,
-  useDataValue,
-} from "@ksp-gonogo/core";
-import { useScanAnomalies, useScanningVessels } from "@ksp-gonogo/data";
+import { type BodyDefinition, useDataValue } from "@ksp-gonogo/core";
 import { useElementSize } from "@ksp-gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
+import {
+  useScanAnomalies,
+  useScanningVessels,
+} from "../FogReveal/useScanLayers";
+import type { SCANScanningVessel } from "../schema";
 
 /**
  * Live "camera view" of the active vessel's sub-point. Composites the

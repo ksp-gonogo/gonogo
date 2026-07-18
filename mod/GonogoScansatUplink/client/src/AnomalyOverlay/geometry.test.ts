@@ -1,5 +1,5 @@
-import type { SCANAnomalyEntry } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
+import type { SCANAnomalyEntry } from "../schema";
 import {
   compassPoint,
   greatCircleMetres,

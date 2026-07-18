@@ -1,12 +1,10 @@
-import type { ComponentProps, SCANType } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
   registerComponent,
-  SCAN_TYPE,
   useDataValue,
 } from "@ksp-gonogo/core";
-import { useScanAnomalies, useScanningVessels } from "@ksp-gonogo/data";
 import {
   Badge,
   Card,
@@ -23,6 +21,12 @@ import {
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
+import {
+  useScanAnomalies,
+  useScanningVessels,
+} from "../FogReveal/useScanLayers";
+import type { SCANType } from "../schema";
+import { SCAN_TYPE } from "../schema";
 import { MinimapForActiveVessel } from "./Minimap";
 
 // ---------------------------------------------------------------------------
