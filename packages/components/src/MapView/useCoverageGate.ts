@@ -3,9 +3,9 @@
 // biome map) calls useCoverageGate WHILE PAINTING ITS OWN SURFACE and
 // indexes into the returned composite grid to decide each tile's alpha:
 // 0 = fully un-covered (paint nothing / black), 255 = fully covered
-// (paint at full opacity). See useFogMask.ts's header for the retired
-// shape this replaces — that file is deleted in a later task once every
-// caller has cut over.
+// (paint at full opacity). Replaces the old MapView-internal
+// `useFogMask.ts`'s dark-overlay-canvas shape (deleted, T9) — there is no
+// separate canvas to draw on top of the map anymore.
 import {
   type FogRevealSourceDefinition,
   getFogRevealSources,

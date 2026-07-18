@@ -26,10 +26,9 @@ import { MapViewComponent } from "./index";
  * - GAPPED: `v.body`, `t.universalTime`, `land.slopeAngle`,
  *   `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
  *   `o.encounterTime`, a separate shared-component read site). The per-key
- *   `TelemetryRow`/`CoverageRow` readouts and every `scan.*` SCANsat channel
- *   are entirely unmapped — `mapTopic` has no entry for them, so
- *   `useDataValue` falls back to legacy automatically regardless of which
- *   dynamic key is selected.
+ *   `TelemetryRow` readout is entirely unmapped — `mapTopic` has no entry
+ *   for it, so `useDataValue` falls back to legacy automatically regardless
+ *   of which dynamic key is selected.
  *
  * Uses the compact (`!showMap`) mode — a narrow/short widget renders a
  * plain Lat/Lon/Alt text readout instead of the canvas map, so the mapped

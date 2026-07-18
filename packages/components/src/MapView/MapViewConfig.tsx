@@ -29,25 +29,7 @@ export function MapViewConfigComponent({
   const [showPrediction, setShowPrediction] = useState(
     config?.showPrediction ?? true,
   );
-  const [baseLayer, setBaseLayer] = useState<"altimetry" | "biome">(
-    config?.baseLayer ?? "altimetry",
-  );
-  const [showHeightShading, setShowHeightShading] = useState(
-    config?.showHeightShading ?? false,
-  );
-  const [showAnomalies, setShowAnomalies] = useState(
-    config?.showAnomalies ?? false,
-  );
   const [bodyOverride, setBodyOverride] = useState(config?.bodyOverride ?? "");
-  const [showFootprints, setShowFootprints] = useState(
-    config?.showFootprints ?? false,
-  );
-  const [showCoverage, setShowCoverage] = useState(
-    config?.showCoverage ?? false,
-  );
-  const [showAnomalyPanel, setShowAnomalyPanel] = useState(
-    config?.showAnomalyPanel ?? false,
-  );
 
   const allKeys = useDataSchema("data");
 
@@ -80,27 +62,9 @@ export function MapViewConfigComponent({
       ),
       telemetryKeys: keys.length > 0 ? keys : undefined,
       showPrediction,
-      baseLayer,
-      showHeightShading,
-      showAnomalies,
       bodyOverride: bodyOverride || undefined,
-      showFootprints,
-      showCoverage,
-      showAnomalyPanel,
     };
-  }, [
-    numericKeys,
-    selected,
-    trajectoryLength,
-    showPrediction,
-    baseLayer,
-    showHeightShading,
-    showAnomalies,
-    bodyOverride,
-    showFootprints,
-    showCoverage,
-    showAnomalyPanel,
-  ]);
+  }, [numericKeys, selected, trajectoryLength, showPrediction, bodyOverride]);
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -136,22 +100,8 @@ export function MapViewConfigComponent({
           ))}
         </Select>
         <FieldHint>
-          Pin the map to a specific body to inspect its scan layers while the
-          vessel is elsewhere. Default follows the active vessel.
-        </FieldHint>
-      </Field>
-      <Field>
-        <FieldLabel>Base map</FieldLabel>
-        <FieldRow>
-          <Switch
-            checked={baseLayer === "biome"}
-            onChange={(b) => setBaseLayer(b ? "biome" : "altimetry")}
-            label="Biome colours (off = altimetry)"
-          />
-        </FieldRow>
-        <FieldHint>
-          Altimetry reveals the body's stock texture; biome paints stock
-          per-tile biome colours from SCANsat.
+          Pin the map to a specific body to inspect it while the vessel is
+          elsewhere. Default follows the active vessel.
         </FieldHint>
       </Field>
       <Field>
@@ -161,41 +111,6 @@ export function MapViewConfigComponent({
             checked={showPrediction}
             onChange={setShowPrediction}
             label="Trajectory prediction"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={showHeightShading}
-            onChange={setShowHeightShading}
-            label="Elevation shading"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={showAnomalies}
-            onChange={setShowAnomalies}
-            label="Anomaly markers"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={showFootprints}
-            onChange={setShowFootprints}
-            label="Scanning-vessel footprints"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={showCoverage}
-            onChange={setShowCoverage}
-            label="Coverage readout"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={showAnomalyPanel}
-            onChange={setShowAnomalyPanel}
-            label="Anomaly distance panel"
           />
         </FieldRow>
       </Field>

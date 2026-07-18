@@ -1,4 +1,3 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
   clearBodies,
@@ -29,19 +28,10 @@ import type {
 import { MapViewComponent } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
-// The vessel kinematics/body now read off the stream (vessel.flight + the
-// derived vessel.state); the SCANsat reads (coverage / scanningVessels /
-// anomalies) and the per-key TelemetryRow stay on the legacy "data" shim, so a
-// legacy source is registered alongside the stream fixture for those.
-const SCANSAT_KEYS: DataKey[] = [
-  { key: "scansat.scanningVessels" },
-  { key: "scansat.anomalies.Kerbin" },
-  { key: "scansat.coverage.Kerbin.2" },
-  { key: "scansat.coverage.Kerbin.1" },
-  { key: "scansat.coverage.Kerbin.8" },
-  { key: "scansat.coverage.Kerbin.256" },
-  { key: "scansat.coverage.Kerbin.128" },
-];
+// The vessel kinematics/body read off the stream (vessel.flight + the
+// derived vessel.state); the per-key TelemetryRow stays on the legacy "data"
+// shim, so a legacy source is registered alongside the stream fixture for it
+// even though this suite doesn't emit any legacy keys onto it.
 
 // All eight vessel.state inputs — the carried gate is parent-channel-scoped.
 const VESSEL_STATE_INPUTS = [
@@ -97,7 +87,7 @@ describe("MapViewComponent", () => {
       },
     );
 
-    source = new MockDataSource({ keys: SCANSAT_KEYS });
+    source = new MockDataSource();
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
@@ -183,79 +173,6 @@ describe("MapViewComponent", () => {
     });
   }
 
-  /** Emit the SCANsat coverage/vessel/anomaly scenario onto the legacy source,
-   * then flush a frame so the buffered delivery settles inside act. */
-  async function primeScan(): Promise<void> {
-    act(() => {
-      source.emit("scansat.anomalies.Kerbin", [
-        {
-          name: "Near Site",
-          latitude: 10,
-          longitude: 33,
-          known: true,
-          detail: true,
-        },
-        {
-          name: "Far Site",
-          latitude: -40,
-          longitude: -120,
-          known: true,
-          detail: true,
-        },
-        {
-          name: "Hidden",
-          latitude: 0,
-          longitude: 0,
-          known: false,
-          detail: false,
-        },
-      ]);
-      source.emit("scansat.scanningVessels", [
-        {
-          vesselId: "v1",
-          vesselName: "Mapper",
-          body: "Kerbin",
-          subLatitude: 12,
-          subLongitude: 35,
-          altitude: 250_000,
-          sensors: [
-            {
-              type: 2,
-              fov: 5,
-              minAlt: 5000,
-              maxAlt: 500_000,
-              bestAlt: 250_000,
-              inRange: true,
-              bestRange: true,
-            },
-            {
-              type: 8,
-              fov: 5,
-              minAlt: 5000,
-              maxAlt: 500_000,
-              bestAlt: 250_000,
-              inRange: true,
-              bestRange: false,
-            },
-          ],
-          groundTrackWidthDeg: 6,
-          groundTrackLonHalfDeg: 6.1,
-          trackColor: { r: 0, g: 255, b: 200, a: 200 },
-        },
-      ]);
-      source.emit("scansat.coverage.Kerbin.2", 45.6);
-      source.emit("scansat.coverage.Kerbin.1", 67.6);
-      source.emit("scansat.coverage.Kerbin.8", 29.6);
-      source.emit("scansat.coverage.Kerbin.256", 7.4);
-      source.emit("scansat.coverage.Kerbin.128", 0);
-    });
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-    });
-  }
-
   it("renders without crashing with no data", () => {
     renderMap();
     expect(screen.getByTestId("map-view-base-canvas")).toBeInTheDocument();
@@ -272,48 +189,23 @@ describe("MapViewComponent", () => {
     });
   });
 
-  it("coverage readout shows per-type percentages and live in-range chips", async () => {
-    const { fixture } = renderMap({ showCoverage: true }, { w: 12, h: 12 });
-    await emitVessel(fixture, {
-      lat: 12,
-      lon: 35,
-      altitude: 100_000,
-      body: "Kerbin",
-    });
-    await primeScan();
-    const panel = await screen.findByRole("region", {
-      name: /Scan coverage for Kerbin/i,
-    });
-    expect(within(panel).getByText("46%")).toBeInTheDocument(); // AltHiRes
-    expect(within(panel).getByText("68%")).toBeInTheDocument(); // AltLoRes
-    expect(within(panel).getByText("30%")).toBeInTheDocument(); // Biome
-    // AltHiRes sensor is bestRange → "best"; Biome sensor inRange → "scan".
-    expect(within(panel).getByText("best")).toBeInTheDocument();
-    expect(within(panel).getAllByText("scan").length).toBeGreaterThan(0);
-  });
-
   it("body override pins the map to another body and suppresses vessel chrome", async () => {
     const { fixture } = renderMap({ bodyOverride: "Mun" }, { w: 14, h: 12 });
     await emitVessel(fixture, { lat: 12, lon: 35, body: "Kerbin" });
-    await primeScan();
     // Label shows the pinned body, not the vessel's Kerbin.
     expect(await screen.findByText(/Mun \(pinned\)/)).toBeInTheDocument();
     // Follow toggle is suppressed (vessel isn't on the mapped body).
     expect(screen.queryByLabelText("Follow")).toBeNull();
   });
 
-  it("a11y smoke: widget with coverage panel has no violations", async () => {
-    const { container, fixture } = renderMap(
-      { showCoverage: true },
-      { w: 14, h: 14 },
-    );
+  it("a11y smoke: widget with vessel + trajectory data has no violations", async () => {
+    const { container, fixture } = renderMap({}, { w: 14, h: 14 });
     await emitVessel(fixture, {
       lat: 12,
       lon: 35,
       altitude: 100_000,
       body: "Kerbin",
     });
-    await primeScan();
     await expect(axe(container)).resolves.toHaveNoViolations();
   }, 20000);
 
@@ -393,35 +285,28 @@ describe("MapViewComponent", () => {
       expect(probe.textContent).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
     });
 
-    it("passes the anomaly config toggles + raw vessel position to the overlay slot (P4c-b: AnomalyOverlay's props)", async () => {
+    it("passes the raw vessel position to the overlay slot", async () => {
       registerAugment({
-        id: "test-map-overlay-anomaly-props",
+        id: "test-map-overlay-vessel-pos",
         augments: "map-view.overlay",
         component: (ctx: MapOverlayContext) => (
-          <div data-testid="overlay-anomaly-probe">
-            showAnomalies={String(ctx.showAnomalies)} showAnomalyPanel=
-            {String(ctx.showAnomalyPanel)} vesselLat={String(ctx.vesselLat)}{" "}
-            vesselLon={String(ctx.vesselLon)}
+          <div data-testid="overlay-vessel-pos-probe">
+            vesselLat={String(ctx.vesselLat)} vesselLon={String(ctx.vesselLon)}
           </div>
         ),
       });
 
-      const { container, fixture } = renderMap({
-        showAnomalies: true,
-        showAnomalyPanel: true,
-      });
+      const { container, fixture } = renderMap();
       await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
 
       const probe = await waitFor(() => {
         const el = container.querySelector(
-          '[data-testid="overlay-anomaly-probe"]',
+          '[data-testid="overlay-vessel-pos-probe"]',
         );
         if (el === null || !el.textContent?.includes("vesselLat=12.5"))
           throw new Error("overlay augment has not rendered vessel pos yet");
         return el;
       });
-      expect(probe.textContent).toContain("showAnomalies=true");
-      expect(probe.textContent).toContain("showAnomalyPanel=true");
       expect(probe.textContent).toContain("vesselLat=12.5");
       expect(probe.textContent).toContain("vesselLon=-70");
     });
