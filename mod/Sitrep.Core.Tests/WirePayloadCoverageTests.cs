@@ -62,6 +62,14 @@ namespace Sitrep.Core.Tests
             "VesselParts", "VesselPart", "PartBounds", "PartResourceFlow", "PartModuleState",
             // kOS status — flattened by its provider before publish.
             "KosComputeStatus",
+            // kos.processors / kos.terminal.<coreId> / kos.run.<coreId> —
+            // Gonogo.KosUplink.Kos*Builder.Build() returns a
+            // Dictionary<string, object?> and the actual publish call sites
+            // (KosExtension.HandleProcessors, KosExtension.Ksp.cs's terminal
+            // and run publish delegates) flatten through it before reaching
+            // the Courier, so JsonWriter only ever sees the flattened
+            // dictionary; the POCOs exist for the generated TS shape only.
+            "KosProcessorInfo", "KosTerminalFrame", "KosRunResult",
             // kerbcast.cameras — KerbcastCameraEntryBuilder.Build returns a
             // Dictionary<string, object?> and KerbcastUplink publishes that list
             // directly, so JsonWriter only ever sees the flattened dictionary;
@@ -142,8 +150,8 @@ namespace Sitrep.Core.Tests
             // kos.terminal.* command args — inbound only (KosExtension.cs
             // AddCommandHandler for open/keystroke/resize/close); deserialized
             // client → server, never serialized outbound as a raw POCO. The
-            // OUTBOUND KosTerminalFrame is NOT allowlisted — it's published raw
-            // and has its own JsonWriter case (exercised by this test).
+            // OUTBOUND KosTerminalFrame IS allowlisted above (self-flattened
+            // by KosTerminalFrameBuilder at the publish boundary).
             "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
             "KosTerminalCloseArgs",
             // kerbcast.setFieldOfView / kerbcast.setPan command args — inbound
@@ -154,9 +162,8 @@ namespace Sitrep.Core.Tests
             // kos.run command args — inbound only (KosExtension.Ksp.cs's Run
             // handler, AddCommandHandler<KosRunArgs, CommandResult>);
             // deserialized client → server, never serialized outbound as a raw
-            // POCO. The OUTBOUND KosRunResult is NOT allowlisted — it's
-            // published raw on kos.run.<coreId> and has its own JsonWriter case
-            // (exercised by this test).
+            // POCO. The OUTBOUND KosRunResult IS allowlisted above
+            // (self-flattened by KosRunResultBuilder at the publish boundary).
             "KosRunArgs",
             // system.uplink.pending — PendingUplink is only ever nested inside
             // PendingUplinkQueue.Pending, flattened element-by-element by
@@ -224,17 +231,21 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void CommsAndKosPayloadsAreCovered_NotAllowlisted()
+        public void CommsPayloadsAreCovered_NotAllowlisted()
         {
-            // The exact types the two prior bugs concerned — asserted covered AND
+            // The exact types the comms.* bug concerned — asserted covered AND
             // asserted NOT hidden behind the allowlist, so this test genuinely
             // exercises them (it would have gone RED before their JsonWriter
-            // cases existed).
+            // cases existed). KosProcessorInfo used to sit in this same list —
+            // as of the kos migration (2026-07-18) it self-flattens
+            // producer-side (KosProcessorInfoBuilder) and IS allowlisted (see
+            // FlattenedByProducer above), so it no longer belongs in a "must
+            // NOT be allowlisted" assertion.
             foreach (var name in new[]
                      {
                          nameof(CommsConnectivity), nameof(CommsSignalStrength),
                          nameof(CommsControlState), nameof(CommsPath), nameof(CommsNetwork),
-                         nameof(CommsDelay), nameof(KosProcessorInfo),
+                         nameof(CommsDelay),
                      })
             {
                 Assert.False(FlattenedByProducer.Contains(name),
@@ -248,7 +259,6 @@ namespace Sitrep.Core.Tests
             SerializeThroughWire(new CommsPath());
             SerializeThroughWire(new CommsNetwork());
             SerializeThroughWire(new CommsDelay());
-            SerializeThroughWire(new KosProcessorInfo());
         }
     }
 }

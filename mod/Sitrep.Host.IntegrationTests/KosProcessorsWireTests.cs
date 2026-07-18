@@ -17,12 +17,20 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para>Root cause was NOT the delay clock or the keyframe-on-subscribe
     /// path (both fine — an EMPTY list delivered as <c>[]</c>): the channel
-    /// payload is a <c>List&lt;KosProcessorInfo&gt;</c>, and <c>KosProcessorInfo</c>
+    /// payload was a <c>List&lt;KosProcessorInfo&gt;</c>, and <c>KosProcessorInfo</c>
     /// had no wire-flatten in <see cref="Sitrep.Core.Serialization.JsonWriter"/>,
     /// so a NON-EMPTY list threw <c>NotSupportedException</c> at the wire boundary
     /// and fail-softed to nothing — exactly the comms.delay bug the
-    /// <c>AppendCommsDelay</c> case had already fixed for that POCO. This proves
-    /// a non-empty processor list now reaches a raw client end-to-end.</para>
+    /// <c>AppendCommsDelay</c> case had already fixed for that POCO.</para>
+    ///
+    /// <para>As of the kos migration (2026-07-18), the real
+    /// <c>Gonogo.KosUplink.KosExtension.HandleProcessors</c> self-flattens
+    /// each <c>KosProcessorInfo</c> via <c>KosProcessorInfoBuilder.Build</c>
+    /// before publishing — mirrored by hand below (this project doesn't take
+    /// a dependency on the net48 <c>GonogoKosUplink</c> assembly) rather than
+    /// publishing the raw POCO. This still proves a non-empty processor list
+    /// reaches a raw client end-to-end, now via the self-flattened
+    /// dictionary shape.</para>
     /// </summary>
     public class KosProcessorsWireTests
     {
@@ -30,7 +38,8 @@ namespace Sitrep.Host.IntegrationTests
 
         // Mirrors Gonogo.KosUplink.KosExtension exactly: a Delayed channel backed by
         // Publisher + AddSampledSource, whose captured payload is a
-        // List<KosProcessorInfo> published on the Courier handle.
+        // List<Dictionary<string, object?>> (KosProcessorInfoBuilder's wire
+        // shape) published on the Courier handle.
         internal sealed class ProcessorsStyleUplink : ISitrepUplink
         {
             public const string Topic = "kos.processors";
@@ -58,21 +67,23 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddSampledSource(Capture, Handle, Topic);
             }
 
-            private object? Capture(KspSnapshot? snapshot) => new List<KosProcessorInfo>
+            // Hand-mirrors KosProcessorInfoBuilder.Build's wire shape — see
+            // this class's doc comment for why it's not a direct reference.
+            private object? Capture(KspSnapshot? snapshot) => new List<Dictionary<string, object?>>
             {
-                new KosProcessorInfo
+                new Dictionary<string, object?>
                 {
-                    CoreId = 7,
-                    Tag = "mainframe",
-                    HasBooted = true,
-                    BootFilePath = null,
-                    ProcessorMode = "READY",
+                    ["coreId"] = 7,
+                    ["tag"] = "mainframe",
+                    ["hasBooted"] = true,
+                    ["bootFilePath"] = null,
+                    ["processorMode"] = "READY",
                 },
             };
 
             private void Handle(object? captured)
             {
-                if (captured is List<KosProcessorInfo> list)
+                if (captured is List<Dictionary<string, object?>> list)
                 {
                     _pub!.Publish(list, 0.0);
                 }

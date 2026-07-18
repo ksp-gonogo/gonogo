@@ -312,12 +312,28 @@ namespace Gonogo.KosUplink
         // kos.processors
         // ----------------------------------------------------------------
 
-        /// <summary>COURIER-THREAD handle: publish the captured list. Touches no kOS API.</summary>
+        /// <summary>
+        /// COURIER-THREAD handle: flatten the captured list through
+        /// <see cref="KosProcessorInfoBuilder"/> and publish. Touches no kOS
+        /// API. The flatten happens here, at the actual publish boundary,
+        /// rather than inside <c>CaptureProcessors</c> — <see cref="ProcessorsCapture.List"/>
+        /// stays a typed <c>List&lt;KosProcessorInfo&gt;</c> so the capture
+        /// step itself stays simple to read/test; only the wire-facing value
+        /// this method hands to <see cref="IChannelPublisher.Publish"/> is a
+        /// self-flattened <c>Dictionary&lt;string, object?&gt;</c> per CPU —
+        /// see <see cref="KosProcessorInfoBuilder"/>'s own doc comment for why
+        /// JsonWriter no longer needs a hardcoded case for the raw POCO.
+        /// </summary>
         internal void HandleProcessors(object? captured)
         {
             if (captured is ProcessorsCapture capture)
             {
-                _processorsPublisher?.Publish(capture.List, capture.Ut);
+                var flattened = new List<Dictionary<string, object?>>(capture.List.Count);
+                foreach (var p in capture.List)
+                {
+                    flattened.Add(KosProcessorInfoBuilder.Build(p.CoreId, p.Tag, p.HasBooted, p.BootFilePath, p.ProcessorMode));
+                }
+                _processorsPublisher?.Publish(flattened, capture.Ut);
             }
         }
 

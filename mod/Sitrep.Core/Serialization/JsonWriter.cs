@@ -208,44 +208,15 @@ namespace Sitrep.Core.Serialization
                     // so nothing existing changes shape.
                     AppendCommsDelay(sb, commsDelay);
                     break;
-                case Sitrep.Contract.KosProcessorInfo processor:
-                    // Same "producer owns the flatten" boundary as CommsDelay /
-                    // CommandResult above: the kos.processors channel publishes a
-                    // List<KosProcessorInfo> (see Gonogo.KosUplink.KosExtension.
-                    // HandleProcessors). The list itself reaches AppendArray via
-                    // the IEnumerable case below, which calls AppendValue on each
-                    // element — this case flattens that element. Without it a
-                    // NON-EMPTY processor list threw NotSupportedException at the
-                    // wire boundary and fail-softed to nothing (an EMPTY list
-                    // serialized fine as `[]`, which is why a vessel WITH kOS CPUs
-                    // got zero stream-data while an empty one silently "worked").
-                    AppendKosProcessorInfo(sb, processor);
-                    break;
-                case Sitrep.Contract.KosTerminalFrame terminalFrame:
-                    // Same "producer owns the flatten" boundary as CommsDelay /
-                    // KosProcessorInfo above: kos.terminal.<coreId> publishes a
-                    // KosTerminalFrame POCO RAW (see KosExtension.cs's
-                    // _terminalManager publish lambda — .Publish(frame, ...) with
-                    // no ToWire flatten). Without this case every interactive
-                    // terminal downlink frame threw NotSupportedException at the
-                    // wire boundary and fail-softed to nothing — the client opened
-                    // a terminal that never painted.
-                    AppendKosTerminalFrame(sb, terminalFrame);
-                    break;
-                case Sitrep.Contract.KosRunResult runResult:
-                    // Same "producer owns the flatten" boundary as
-                    // KosTerminalFrame above: kos.run.<coreId> publishes a
-                    // KosRunResult POCO RAW (see KosRunManager.Complete's
-                    // publish delegate, wired in KosExtension.Ksp.cs). Without
-                    // this case a completed kos.run response threw
-                    // NotSupportedException at the wire boundary and the
-                    // caller's promise never resolved. Fields is an
-                    // IDictionary<string, object?> and reaches the generic
-                    // AppendObject case below via the nested AppendValue call
-                    // in AppendKosRunResult — no separate flatten needed for
-                    // the field map itself.
-                    AppendKosRunResult(sb, runResult);
-                    break;
+                // KosProcessorInfo / KosTerminalFrame / KosRunResult — kOS's
+                // three raw-POCO wire types (kos.processors / kos.terminal.
+                // <coreId> / kos.run.<coreId>) — used to have their own cases
+                // here, same "producer owns the flatten" shape as CommsDelay
+                // above. As of the kos migration (2026-07-18) all three
+                // self-flatten producer-side via Gonogo.KosUplink.
+                // Kos*Builder.Build() (mirroring KerbcastCameraEntryBuilder),
+                // so JsonWriter never sees the raw POCO any more — see
+                // WirePayloadCoverageTests.FlattenedByProducer.
                 case Sitrep.Contract.CommsLink link:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // CommsConnectivity below: the comms.link connectivity
@@ -258,8 +229,8 @@ namespace Sitrep.Core.Serialization
                     AppendCommsLink(sb, link);
                     break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
-                    // Same "producer owns the flatten" boundary as CommsDelay /
-                    // KosProcessorInfo above: the comms.connectivity channel
+                    // Same "producer owns the flatten" boundary as CommsDelay
+                    // above: the comms.connectivity channel
                     // publishes a CommsConnectivity POCO (see
                     // Gonogo.KSP.CommsCoreUplink.HandleOnCourier). Without a case
                     // here a populated payload threw NotSupportedException at the
@@ -320,8 +291,8 @@ namespace Sitrep.Core.Serialization
                     AppendFlightVesselChanged(sb, flightVesselChanged);
                     break;
                 case Sitrep.Contract.PendingUplinkQueue pendingUplinkQueue:
-                    // Same "producer owns the flatten" boundary as CommsDelay /
-                    // KosProcessorInfo above: system.uplink.pending's channel
+                    // Same "producer owns the flatten" boundary as CommsDelay
+                    // above: system.uplink.pending's channel
                     // source (ChannelEngine's UplinkPendingTopic mapper)
                     // returns a PendingUplinkQueue POCO directly. Without this
                     // case a populated (or even empty) queue threw
@@ -428,79 +399,6 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.KosTerminalFrame"/> to the wire
-        /// object <c>{ coreId, chunk, fullRepaint }</c> (camelCase keys, matching
-        /// the generated SDK shape). See the <c>case</c> in
-        /// <see cref="AppendValue"/>.
-        /// </summary>
-        private static void AppendKosTerminalFrame(StringBuilder sb, Sitrep.Contract.KosTerminalFrame frame)
-        {
-            sb.Append('{');
-            AppendString(sb, "coreId");
-            sb.Append(':');
-            AppendInteger(sb, frame.CoreId);
-            sb.Append(',');
-            AppendString(sb, "chunk");
-            sb.Append(':');
-            AppendString(sb, frame.Chunk ?? "");
-            sb.Append(',');
-            AppendString(sb, "fullRepaint");
-            sb.Append(':');
-            AppendBool(sb, frame.FullRepaint);
-            sb.Append('}');
-        }
-
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.KosRunResult"/> to the wire
-        /// object <c>{ coreId, requestId, fields, error }</c> (camelCase keys).
-        /// Exactly one of <c>fields</c>/<c>error</c> is non-null (R7
-        /// typed-absence — see the contract type's own doc comment); both are
-        /// written as JSON <c>null</c> when absent, never omitted or defaulted
-        /// to an empty object/string. <c>fields</c> is written via
-        /// <see cref="AppendValue"/> so its <c>Dictionary&lt;string, object?&gt;</c>
-        /// reaches the generic <c>IDictionary&lt;string, object?&gt;</c> case —
-        /// no bespoke field-map flatten needed here. See the <c>case</c> in
-        /// <see cref="AppendValue"/>.
-        /// </summary>
-        private static void AppendKosRunResult(StringBuilder sb, Sitrep.Contract.KosRunResult result)
-        {
-            sb.Append('{');
-            AppendString(sb, "coreId");
-            sb.Append(':');
-            AppendInteger(sb, result.CoreId);
-
-            sb.Append(',');
-            AppendString(sb, "requestId");
-            sb.Append(':');
-            AppendString(sb, result.RequestId ?? "");
-
-            sb.Append(',');
-            AppendString(sb, "fields");
-            sb.Append(':');
-            if (result.Fields == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                AppendValue(sb, result.Fields);
-            }
-
-            sb.Append(',');
-            AppendString(sb, "error");
-            sb.Append(':');
-            if (result.Error == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                AppendString(sb, result.Error);
-            }
-
-            sb.Append('}');
-        }
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightCurrent"/> to the wire
@@ -697,62 +595,10 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.KosProcessorInfo"/> to the wire
-        /// object <c>{ coreId, tag, hasBooted, bootFilePath, processorMode }</c>
-        /// (camelCase keys, matching the generated TS contract the KosProcessors
-        /// widget consumes). Nullable <c>tag</c>/<c>bootFilePath</c> are written
-        /// as JSON <c>null</c> when absent (R7 typed-absence), never a sentinel
-        /// empty string. See the <c>case</c> in <see cref="AppendValue"/>.
-        /// </summary>
-        private static void AppendKosProcessorInfo(StringBuilder sb, Sitrep.Contract.KosProcessorInfo p)
-        {
-            sb.Append('{');
-            AppendString(sb, "coreId");
-            sb.Append(':');
-            AppendInteger(sb, p.CoreId);
-
-            sb.Append(',');
-            AppendString(sb, "tag");
-            sb.Append(':');
-            if (p.Tag == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                AppendString(sb, p.Tag);
-            }
-
-            sb.Append(',');
-            AppendString(sb, "hasBooted");
-            sb.Append(':');
-            AppendBool(sb, p.HasBooted);
-
-            sb.Append(',');
-            AppendString(sb, "bootFilePath");
-            sb.Append(':');
-            if (p.BootFilePath == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                AppendString(sb, p.BootFilePath);
-            }
-
-            sb.Append(',');
-            AppendString(sb, "processorMode");
-            sb.Append(':');
-            AppendString(sb, p.ProcessorMode ?? "");
-
-            sb.Append('}');
-        }
-
         // ================================================================
         // comms.* payload flatteners (U2 wire-boundary fix). Each mirrors
-        // AppendCommsDelay / AppendKosProcessorInfo: camelCase keys, enum
-        // ordinals as integers, PayloadMeta as { source, quality }, and
+        // AppendCommsDelay: camelCase keys, enum ordinals as integers,
+        // PayloadMeta as { source, quality }, and
         // nullable fields written as JSON null (R7 typed-absence) rather than
         // a sentinel. Without these, a POPULATED comms.* payload threw
         // NotSupportedException in AppendValue at the wire boundary and the
