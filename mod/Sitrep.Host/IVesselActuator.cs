@@ -70,7 +70,15 @@ namespace Sitrep.Host
 
         CommandResult RemoveManeuverNode(string nodeId);
 
-        CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex);
+        /// <summary>
+        /// <paramref name="lat"/>/<paramref name="lon"/> are required when
+        /// <paramref name="kind"/> is <see cref="TargetKind.Position"/> — a
+        /// client-picked surface fix on the CURRENT active-vessel body (see
+        /// <see cref="SetTargetArgs.Latitude"/>/<see cref="SetTargetArgs.Longitude"/>),
+        /// unused for the <see cref="TargetKind.Vessel"/>/<see cref="TargetKind.Body"/>
+        /// cases.
+        /// </summary>
+        CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon);
 
         CommandResult ClearTarget();
 

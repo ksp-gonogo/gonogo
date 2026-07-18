@@ -147,7 +147,14 @@ public class SetTargetArgs
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>.</summary>
     public string? VesselId { get; set; }
 
-    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Body"/> — the same <c>system.bodies</c> index <see cref="VesselOrbit.ReferenceBodyIndex"/> uses.</summary>
+    /// <summary>
+    /// Required when <see cref="Kind"/> is <see cref="TargetKind.Body"/> —
+    /// the same <c>system.bodies</c> index <see cref="VesselOrbit.ReferenceBodyIndex"/>
+    /// uses. ALSO required (T-POI-4) when <see cref="Kind"/> is
+    /// <see cref="TargetKind.Position"/> — which body <see cref="Latitude"/>/
+    /// <see cref="Longitude"/> are measured against (a lat/lon pair has no
+    /// meaning without one).
+    /// </summary>
     public int? BodyIndex { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/> (a map-picked surface fix, e.g. a <c>spaceCenter.pois</c> entry's own coordinate).</summary>

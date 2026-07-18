@@ -187,9 +187,13 @@ namespace Sitrep.Host
         /// for this Kind is missing" case) fail-fast here as <c>CommandErrorCode.NotFound</c>
         /// without ever reaching the actuator — there is nothing a real KSP
         /// lookup could resolve from a null id. A well-formed request that
-        /// simply doesn't match a live vessel/body is the actuator's own
-        /// <c>CommandErrorCode.NotFound</c> to return (it's the one with FlightGlobals in
-        /// hand).
+        /// simply doesn't match a live vessel/body/position is the actuator's
+        /// own <c>CommandErrorCode.NotFound</c> to return (it's the one with
+        /// FlightGlobals in hand). <c>TargetKind.Position</c> (T-POI-4) needs
+        /// BOTH <see cref="SetTargetArgs.Latitude"/> and
+        /// <see cref="SetTargetArgs.Longitude"/> set, mirroring the
+        /// Vessel/Body cases' own "the one field this Kind needs is missing"
+        /// guard.
         /// </summary>
         public static CommandResult HandleTargetSet(IVesselActuator actuator, SetTargetArgs args)
         {
@@ -197,10 +201,11 @@ namespace Sitrep.Host
             {
                 case TargetKind.Vessel when string.IsNullOrEmpty(args.VesselId):
                 case TargetKind.Body when !args.BodyIndex.HasValue:
+                case TargetKind.Position when !args.BodyIndex.HasValue || !args.Latitude.HasValue || !args.Longitude.HasValue:
                 case TargetKind.Other:
                     return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.SetTarget(args.Kind, args.VesselId, args.BodyIndex);
+            return actuator.SetTarget(args.Kind, args.VesselId, args.BodyIndex, args.Latitude, args.Longitude);
         }
 
         public static CommandResult HandleTargetClear(IVesselActuator actuator, object? _) =>
