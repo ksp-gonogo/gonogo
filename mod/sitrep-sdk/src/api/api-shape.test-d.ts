@@ -18,11 +18,7 @@ import type {
   ComponentProps,
   ComponentRequirement,
   ConfigComponentProps,
-  ConfigField,
-  DataKey,
   DataRequirement,
-  DataSource,
-  DataSourceStatus,
   GonogoHost,
   Logger,
   PerfBudgetHandle,
@@ -63,10 +59,6 @@ declare const _useCommandResult: UseCommandResult;
 declare const _host: GonogoHost;
 declare const _logger: Logger;
 declare const _taggedLogger: TaggedLogger;
-declare const _dataSource: DataSource;
-declare const _dataSourceStatus: DataSourceStatus;
-declare const _configField: ConfigField;
-declare const _dataKey: DataKey;
 declare const _streamStatusValue: StreamStatusValue;
 
 // The author-set core of a ComponentDefinition must remain assignable — a probe
@@ -103,10 +95,6 @@ export type _ApiShapeProbe = [
   typeof _host,
   typeof _logger,
   typeof _taggedLogger,
-  typeof _dataSource,
-  typeof _dataSourceStatus,
-  typeof _configField,
-  typeof _dataKey,
   typeof _streamStatusValue,
   typeof _probe,
 ];

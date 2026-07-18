@@ -28,7 +28,6 @@ import type {
   ActionHandlers,
   AugmentDefinition,
   ComponentDefinition,
-  DataSource,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -51,11 +50,7 @@ export type {
   ComponentProps,
   ComponentRequirement,
   ConfigComponentProps,
-  ConfigField,
-  DataKey,
   DataRequirement,
-  DataSource,
-  DataSourceStatus,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SlotId,
@@ -81,9 +76,6 @@ export const GAME_HOST_KEY = "gameHost" as const;
 export const registerComponent = <TConfig = Record<string, unknown>>(
   def: ComponentDefinition<TConfig>,
 ): void => getHost().registerComponent(def);
-
-export const registerDataSource = (def: DataSource): void =>
-  getHost().registerDataSource(def);
 
 export const registerTheme = (def: ThemeDefinition): void =>
   getHost().registerTheme(def);
@@ -191,18 +183,7 @@ export function useReplaySessionActive(): boolean {
   return getHost().useReplaySessionActive();
 }
 
-// --- DataSource-author SPI shims (stateful → injected host) ------------------
-
-/**
- * Reach a data source already registered in the app's single registry — for
- * an Uplink that AUTHORS its own `DataSource` to make imperative calls on its
- * own instance. See `GonogoHost.getDataSource`'s doc: this is for reaching
- * your own registered source, not a bypass of `useDataValue`/`useExecuteAction`
- * for ordinary consumer reads.
- */
-export function getDataSource(id: string): DataSource | undefined {
-  return getHost().getDataSource(id);
-}
+// --- Game-host SPI shims (stateful → injected host) --------------------------
 
 /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
 export function getGameHost(): string {

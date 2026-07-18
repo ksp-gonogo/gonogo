@@ -173,57 +173,6 @@ export interface UseCommandResult {
   error?: unknown;
 }
 
-// --- DataSource-author SPI ---------------------------------------------------
-//
-// An Uplink that ships its OWN DataSource needs to TYPE its implementation
-// against the real `DataSource` shape — same leaf constraint as above: core
-// owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
-// (packages/core/src/types.ts) but the sdk cannot name it as a workspace
-// dependency, so the interface is mirrored here and kept honest by
-// `packages/core/src/sdk-facade.conformance.test-d.ts`.
-
-export type DataSourceStatus =
-  | "connected"
-  | "disconnected"
-  | "reconnecting"
-  | "error";
-
-export interface DataKey {
-  key: string;
-  description?: string;
-}
-
-export interface ConfigField {
-  key: string;
-  label: string;
-  type: "text" | "number";
-  placeholder?: string;
-}
-
-/**
- * Base interface for all data sources. `registerDataSource`/`getDataSource`
- * on {@link GonogoHost} are typed against this so an Uplink author can both
- * author a conforming `DataSource` and reach one it registered itself.
- */
-export interface DataSource<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
-> {
-  id: string;
-  name: string;
-  connect(): Promise<void>;
-  disconnect(): void;
-  status: DataSourceStatus;
-  schema(): DataKey[];
-  subscribe(key: string, cb: (value: unknown) => void): () => void;
-  onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
-  execute(action: string): Promise<void>;
-  configSchema(): ConfigField[];
-  configure(config: Record<string, unknown>): void;
-  getConfig(): TConfig;
-  setupInstructions?(): string | null;
-  affectedBySignalLoss?: boolean;
-}
-
 // --- Stream SPI types ---------------------------------------------------------
 //
 // Same leaf constraint again: `StreamStatusValue` is owned by
