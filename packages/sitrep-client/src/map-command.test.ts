@@ -230,6 +230,25 @@ describe("mapCommand", () => {
       });
     });
 
+    it("tar.setTargetPosition maps [bodyIndex,lat,lon] to the Position-kind discriminated union", () => {
+      expect(mapCommand("data", "tar.setTargetPosition[1,-0.5,74.7]")).toEqual({
+        command: "vessel.target.set",
+        args: { kind: 3, bodyIndex: 1, latitude: -0.5, longitude: 74.7 },
+      });
+    });
+
+    it("a malformed tar.setTargetPosition arg falls back to legacy", () => {
+      expect(
+        mapCommand("data", "tar.setTargetPosition[notanumber,-0.5,74.7]"),
+      ).toBeUndefined();
+      expect(
+        mapCommand("data", "tar.setTargetPosition[1,notanumber,74.7]"),
+      ).toBeUndefined();
+      expect(
+        mapCommand("data", "tar.setTargetPosition[1,-0.5,notanumber]"),
+      ).toBeUndefined();
+    });
+
     it("tar.clearTarget needs no args", () => {
       expect(mapCommand("data", "tar.clearTarget")).toEqual({
         command: "vessel.target.clear",
