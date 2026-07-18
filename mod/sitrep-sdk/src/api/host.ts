@@ -24,7 +24,6 @@ import type {
   AugmentDefinition,
   ComponentDefinition,
   DataSource,
-  KosScriptDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -43,7 +42,6 @@ export interface GonogoHost {
   ): void;
   registerDataSource(def: DataSource): void;
   registerTheme(def: ThemeDefinition): void;
-  registerKosScript(def: KosScriptDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
 
   useDataValue<T = unknown>(dataSourceId: string, key: string): T | undefined;

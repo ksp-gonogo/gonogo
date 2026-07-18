@@ -27,13 +27,11 @@ import type {
   DataKey as SdkDataKey,
   DataSource as SdkDataSource,
   DataSourceStatus as SdkDataSourceStatus,
-  KosScriptDefinition as SdkKosScriptDefinition,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   StreamStatusValue as SdkStreamStatusValue,
   ThemeDefinition as SdkThemeDefinition,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
-import type { KosScriptDefinition as CoreKosScriptDefinition } from "./kos/scriptRegistry";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
 import type * as Core from "./types";
 
@@ -65,10 +63,6 @@ type _ActionBack = Expect<
 type _Augment = Expect<Assignable<SdkAugmentDefinition, CoreAugmentDefinition>>;
 type _AugmentBack = Expect<
   Assignable<CoreAugmentDefinition, SdkAugmentDefinition>
->;
-type _Kos = Expect<Assignable<SdkKosScriptDefinition, CoreKosScriptDefinition>>;
-type _KosBack = Expect<
-  Assignable<CoreKosScriptDefinition, SdkKosScriptDefinition>
 >;
 type _Perf = Expect<Assignable<SdkPerfBudgetOptions, CorePerfBudgetOptions>>;
 type _PerfBack = Expect<
@@ -117,8 +111,6 @@ export type _SdkFacadeConformance = [
   _ActionBack,
   _Augment,
   _AugmentBack,
-  _Kos,
-  _KosBack,
   _Perf,
   _PerfBack,
   _Theme,

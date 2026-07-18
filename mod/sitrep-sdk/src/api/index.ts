@@ -29,7 +29,6 @@ import type {
   AugmentDefinition,
   ComponentDefinition,
   DataSource,
-  KosScriptDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -57,8 +56,6 @@ export type {
   DataRequirement,
   DataSource,
   DataSourceStatus,
-  KosScriptDefinition,
-  KosScriptField,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SlotId,
@@ -90,9 +87,6 @@ export const registerDataSource = (def: DataSource): void =>
 
 export const registerTheme = (def: ThemeDefinition): void =>
   getHost().registerTheme(def);
-
-export const registerKosScript = (def: KosScriptDefinition): void =>
-  getHost().registerKosScript(def);
 
 export const registerAugment = <S extends string>(
   def: AugmentDefinition<S>,

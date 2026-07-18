@@ -1,5 +1,4 @@
 import { logger } from "@ksp-gonogo/logger";
-import { clearKosScripts } from "./kos/scriptRegistry";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
 // ComponentType is contravariant in props, so neither unknown nor never would work.
@@ -158,7 +157,7 @@ export function getTheme(id: string): ThemeDefinition | undefined {
 }
 
 /**
- * For use in tests only — resets the component / data-source / theme / kOS-script
+ * For use in tests only — resets the component / data-source / theme
  * registries to empty.
  *
  * Deliberately does NOT clear the augment registry. Augments (spec §4.2) are
@@ -170,11 +169,16 @@ export function getTheme(id: string): ThemeDefinition | undefined {
  * slot (e.g. Objectives' mission + contract sources) would render an empty slot
  * because nothing re-runs the once-only module-load `registerAugment`. Augment
  * registry tests clear it explicitly with `clearAugments()` instead.
+ *
+ * Also deliberately does NOT clear the kOS script registry — that registry
+ * now lives in the kos Uplink (`@ksp-gonogo/kos`'s `clearKosScripts`), not
+ * core; core can never depend on a mod Uplink package. Tests that need a
+ * clean kOS-script registry between cases call `clearKosScripts()` directly
+ * from `@ksp-gonogo/kos`.
  */
 export function clearRegistry(): void {
   components.clear();
   dataSources.clear();
   themes.clear();
-  clearKosScripts();
   notifyDataSourceChange();
 }

@@ -3,11 +3,7 @@ import type {
   ComponentProps,
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
-import {
-  getKosScripts,
-  registerComponent,
-  useActionInput,
-} from "@ksp-gonogo/core";
+import { registerComponent, useActionInput } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
   ConfigForm,
@@ -24,6 +20,7 @@ import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../shared/KosCpuPicker";
 import { KosScriptFrame } from "../shared/KosScriptFrame";
+import { getKosScripts } from "../shared/scriptRegistry";
 import { type KosWidgetArg, useKosWidget } from "../shared/useKosWidget";
 
 /**
