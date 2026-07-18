@@ -28,6 +28,7 @@ import type {
   ActionHandlers,
   AugmentDefinition,
   ComponentDefinition,
+  DataSource,
   KosScriptDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -51,7 +52,11 @@ export type {
   ComponentProps,
   ComponentRequirement,
   ConfigComponentProps,
+  ConfigField,
+  DataKey,
   DataRequirement,
+  DataSource,
+  DataSourceStatus,
   KosScriptDefinition,
   KosScriptField,
   PerfBudgetHandle,
@@ -59,9 +64,20 @@ export type {
   SlotId,
   SlotProps,
   SlotRegistry,
+  StreamStatusValue,
   ThemeDefinition,
   UseCommandResult,
 } from "./types";
+
+/**
+ * The shared settings key for the host every Uplink dials (design:
+ * `@ksp-gonogo/core`'s `settings/gameHost.ts`). A stable string literal, not a
+ * value that ever changes at runtime — mirrored directly rather than imported
+ * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource-SPI
+ * comment for the full constraint) and kept honest by
+ * `packages/core/src/sdk-facade.conformance.test-d.ts`.
+ */
+export const GAME_HOST_KEY = "gameHost" as const;
 
 // --- Registration shims (stateful → injected host) --------------------------
 
@@ -69,7 +85,7 @@ export const registerComponent = <TConfig = Record<string, unknown>>(
   def: ComponentDefinition<TConfig>,
 ): void => getHost().registerComponent(def);
 
-export const registerDataSource = (def: unknown): void =>
+export const registerDataSource = (def: DataSource): void =>
   getHost().registerDataSource(def);
 
 export const registerTheme = (def: ThemeDefinition): void =>
@@ -123,6 +139,85 @@ export function useActionInput<TActions extends readonly ActionDefinition[]>(
 
 export function useDataSources(): unknown {
   return getHost().useDataSources();
+}
+
+// --- Stream SPI shims (stateful → injected host) -----------------------------
+
+/**
+ * Real-time (non-delayed) read of `topic`, bypassing the certainty-gated
+ * `TimelineStore` frame `useStream` samples through — for command-centre
+ * bookkeeping topics (dispatch timestamps, link facts), never delayed craft
+ * telemetry. See `GonogoHost.useLatestValue`'s doc for the raw-vs-derived
+ * distinction.
+ */
+export function useLatestValue<T = unknown>(topic: string): T | undefined {
+  return getHost().useLatestValue<T>(topic);
+}
+
+/**
+ * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
+ * channel topic — the event-consumption counterpart to `useStream`'s
+ * sticky-latest-value read.
+ */
+export function useStreamEvent<T = unknown>(
+  topic: string,
+  handler: (payload: T) => void,
+): void {
+  getHost().useStreamEvent(topic, handler);
+}
+
+/** The current view time (UT seconds), reactive per-frame. */
+export function useUtNow(): number | undefined {
+  return getHost().useUtNow();
+}
+
+/**
+ * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with none
+ * mounted. Opaque (`unknown`) — same reasoning as `useViewClock` — narrow/cast
+ * at the call site if the concrete shape is needed.
+ */
+export function useTelemetryStoreOptional(): unknown {
+  return getHost().useTelemetryStoreOptional();
+}
+
+/** Non-throwing variant of `useViewClock` — `undefined` with no provider mounted. */
+export function useViewClockOptional(): unknown {
+  return getHost().useViewClockOptional();
+}
+
+// --- Data introspection shims (stateful → injected host) ---------------------
+
+/** The enriched schema (key + label/unit/group) for a data source's keys. */
+export function useDataSchema(sourceId?: string): unknown[] {
+  return getHost().useDataSchema(sourceId);
+}
+
+/** Whether a recorded-flight replay session is currently active. */
+export function useReplaySessionActive(): boolean {
+  return getHost().useReplaySessionActive();
+}
+
+// --- DataSource-author SPI shims (stateful → injected host) ------------------
+
+/**
+ * Reach a data source already registered in the app's single registry — for
+ * an Uplink that AUTHORS its own `DataSource` to make imperative calls on its
+ * own instance. See `GonogoHost.getDataSource`'s doc: this is for reaching
+ * your own registered source, not a bypass of `useDataValue`/`useExecuteAction`
+ * for ordinary consumer reads.
+ */
+export function getDataSource(id: string): DataSource | undefined {
+  return getHost().getDataSource(id);
+}
+
+/** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
+export function getGameHost(): string {
+  return getHost().getGameHost();
+}
+
+/** Subscribe to any change (saved OR seeded) for one shared settings key. */
+export function subscribeSetting(key: string, cb: () => void): () => void {
+  return getHost().subscribeSetting(key, cb);
 }
 
 // --- Logger shim (stateful → injected host) ---------------------------------

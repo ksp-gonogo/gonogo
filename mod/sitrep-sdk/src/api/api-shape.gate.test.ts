@@ -15,8 +15,11 @@ import * as barrel from "./index";
  */
 const EXPECTED_BARREL_VALUE_EXPORTS = [
   "AugmentSlot",
+  "GAME_HOST_KEY",
   "GONOGO_HOST_KEY",
   "createPerfBudget",
+  "getDataSource",
+  "getGameHost",
   "hasHost",
   "logger",
   "registerAugment",
@@ -24,14 +27,22 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerDataSource",
   "registerKosScript",
   "registerTheme",
+  "subscribeSetting",
   "useActionInput",
   "useCommand",
+  "useDataSchema",
   "useDataSources",
   "useDataValue",
   "useExecuteAction",
+  "useLatestValue",
+  "useReplaySessionActive",
   "useStream",
+  "useStreamEvent",
   "useTelemetry",
+  "useTelemetryStoreOptional",
+  "useUtNow",
   "useViewClock",
+  "useViewClockOptional",
 ].sort();
 
 afterEach(() => {

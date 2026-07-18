@@ -15,20 +15,33 @@
 
 import {
   AugmentSlot,
+  getDataSource,
+  getGameHost,
   PerfBudget,
   registerAugment,
   registerComponent,
   registerDataSource,
   registerKosScript,
   registerTheme,
+  subscribeSetting,
   useActionInput,
   useDataSources,
   useDataValue,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useDataSchema, useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
-import { useCommand, useStream, useViewClock } from "@ksp-gonogo/sitrep-client";
+import {
+  useCommand,
+  useLatestValue,
+  useStream,
+  useStreamEvent,
+  useTelemetryStoreOptional,
+  useUtNow,
+  useViewClock,
+  useViewClockOptional,
+} from "@ksp-gonogo/sitrep-client";
 import {
   GONOGO_HOST_KEY,
   type GonogoHost,
@@ -68,6 +81,20 @@ export function buildGonogoHost(): GonogoHost {
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),
     useDataSources: () => useDataSources(),
+
+    useLatestValue: (topic) => useLatestValue(topic),
+    useStreamEvent: (topic, handler) => useStreamEvent(topic, handler),
+    useUtNow: () => useUtNow(),
+    useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
+    useViewClockOptional: () => useViewClockOptional(),
+
+    useDataSchema: (sourceId) => useDataSchema(sourceId),
+    useReplaySessionActive: () => useReplaySessionActive(),
+
+    getDataSource: (id) =>
+      getDataSource(id) as ReturnType<GonogoHost["getDataSource"]>,
+    getGameHost: () => getGameHost(),
+    subscribeSetting: (key, cb) => subscribeSetting(key, cb),
 
     AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
     createPerfBudget: (opts) => new PerfBudget(opts),
