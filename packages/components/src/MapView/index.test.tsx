@@ -257,8 +257,8 @@ describe("MapViewComponent", () => {
   }
 
   it("renders without crashing with no data", () => {
-    const { container } = renderMap();
-    expect(container.querySelector("canvas")).not.toBeNull();
+    renderMap();
+    expect(screen.getByTestId("map-view-base-canvas")).toBeInTheDocument();
   });
 
   it("renders without crashing with full prediction + impact data", async () => {
@@ -339,6 +339,12 @@ describe("MapViewComponent", () => {
     expect(
       within(select).getByRole("option", { name: "Mun" }),
     ).toBeInTheDocument();
+  });
+
+  it("config no longer offers per-scan-type fog layer toggles (moved to the owning Uplink's own settings)", () => {
+    render(<MapViewConfigComponent config={{}} onSave={() => {}} />);
+    expect(screen.queryByText("Fog layers")).toBeNull();
+    expect(screen.queryByText("Altimetry HiRes")).toBeNull();
   });
 
   // ── Augment slots ─────────────────────────────────────────────────────

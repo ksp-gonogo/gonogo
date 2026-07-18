@@ -48,19 +48,6 @@ export function MapViewConfigComponent({
   const [showAnomalyPanel, setShowAnomalyPanel] = useState(
     config?.showAnomalyPanel ?? false,
   );
-  const [fogAltLoRes, setFogAltLoRes] = useState(
-    config?.fogLayers?.altimetryLoRes !== false,
-  );
-  const [fogAltHiRes, setFogAltHiRes] = useState(
-    config?.fogLayers?.altimetryHiRes !== false,
-  );
-  const [fogBiome, setFogBiome] = useState(config?.fogLayers?.biome !== false);
-  const [fogResLoRes, setFogResLoRes] = useState(
-    config?.fogLayers?.resourceLoRes !== false,
-  );
-  const [fogResHiRes, setFogResHiRes] = useState(
-    config?.fogLayers?.resourceHiRes !== false,
-  );
 
   const allKeys = useDataSchema("data");
 
@@ -100,13 +87,6 @@ export function MapViewConfigComponent({
       showFootprints,
       showCoverage,
       showAnomalyPanel,
-      fogLayers: {
-        altimetryLoRes: fogAltLoRes,
-        altimetryHiRes: fogAltHiRes,
-        biome: fogBiome,
-        resourceLoRes: fogResLoRes,
-        resourceHiRes: fogResHiRes,
-      },
     };
   }, [
     numericKeys,
@@ -120,11 +100,6 @@ export function MapViewConfigComponent({
     showFootprints,
     showCoverage,
     showAnomalyPanel,
-    fogAltLoRes,
-    fogAltHiRes,
-    fogBiome,
-    fogResLoRes,
-    fogResHiRes,
   ]);
 
   useModalSaveBar({
@@ -223,44 +198,6 @@ export function MapViewConfigComponent({
             label="Anomaly distance panel"
           />
         </FieldRow>
-      </Field>
-      <Field>
-        <FieldLabel>Fog layers</FieldLabel>
-        <FieldRow>
-          <Switch
-            checked={fogAltHiRes}
-            onChange={setFogAltHiRes}
-            label="Altimetry HiRes"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={fogAltLoRes}
-            onChange={setFogAltLoRes}
-            label="Altimetry LoRes"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch checked={fogBiome} onChange={setFogBiome} label="Biome" />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={fogResHiRes}
-            onChange={setFogResHiRes}
-            label="Resource HiRes"
-          />
-        </FieldRow>
-        <FieldRow>
-          <Switch
-            checked={fogResLoRes}
-            onChange={setFogResLoRes}
-            label="Resource LoRes"
-          />
-        </FieldRow>
-        <FieldHint>
-          Each enabled scan type contributes to the fog reveal. Within a
-          channel, HiRes-covered tiles reveal more fully than LoRes-only tiles.
-        </FieldHint>
       </Field>
       <Field>
         <FieldLabel>Telemetry panel</FieldLabel>
