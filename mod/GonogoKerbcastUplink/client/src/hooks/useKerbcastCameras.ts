@@ -1,4 +1,4 @@
-import { getDataSource } from "@ksp-gonogo/core";
+import { getUplinkHandle } from "@ksp-gonogo/core";
 import type { CameraState } from "@ksp-gonogo/kerbcast";
 import { useEffect, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
@@ -12,12 +12,12 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
  */
 export function useKerbcastCameras(): CameraState[] {
   const [cameras, setCameras] = useState<CameraState[]>(() => {
-    const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+    const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
     return ds ? [...ds.getClient().cameras] : [];
   });
 
   useEffect(() => {
-    const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
+    const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
     if (!ds) return;
     // A mounted camera widget wants the source connected so the camera list can
     // arrive — the lazy connect trigger (no-op once connected, e.g. on the main
