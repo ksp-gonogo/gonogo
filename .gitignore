@@ -16,6 +16,7 @@ local_docs/
 # Superpowers process artifacts (design specs + implementation plans) stay
 # local, like .superpowers/ scratch — they're working docs, not repo history.
 docs/superpowers/
+.superpowers/
 # C# / .NET build outputs
 bin/
 obj/
