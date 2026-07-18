@@ -2339,7 +2339,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => CommandResult.Ok();
             public CommandResult RemoveManeuverNode(string nodeId) => CommandResult.Ok();
-            public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => CommandResult.Ok();
+            public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon) => CommandResult.Ok();
 
             public CommandResult ClearTarget()
             {
