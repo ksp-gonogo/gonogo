@@ -71,6 +71,8 @@ export function buildGonogoHost(): GonogoHost {
 
     AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
     createPerfBudget: (opts) => new PerfBudget(opts),
+
+    logger,
   };
   return host;
 }

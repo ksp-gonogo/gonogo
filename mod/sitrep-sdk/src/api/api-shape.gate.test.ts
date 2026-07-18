@@ -18,6 +18,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "GONOGO_HOST_KEY",
   "createPerfBudget",
   "hasHost",
+  "logger",
   "registerAugment",
   "registerComponent",
   "registerDataSource",
@@ -67,6 +68,7 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     expect(() => barrel.createPerfBudget({ name: "b", threshold: 1 })).toThrow(
       named,
     );
+    expect(() => barrel.logger.info("x")).toThrow(named);
   });
 
   it("hasHost reflects installation and never throws", () => {
