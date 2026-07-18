@@ -206,10 +206,11 @@ const SAS_MODE_ORDINALS: Readonly<Record<string, number>> = {
 };
 
 /** `TargetKind` C# enum order (`mod/Sitrep.Contract/VesselTarget.cs`):
- * `Vessel = 0, Body = 1, Other = 2`. Only `Body` is ever sent from this
- * table — `tar.setTargetVessel` is a `KNOWN_COMMAND_GAPS` entry (see the
- * file doc comment's bridge 2), and nothing sends `Other`. */
+ * `Vessel = 0, Body = 1, Other = 2, Position = 3`. `Body` and `Position` are
+ * sent from this table — `tar.setTargetVessel` builds `Vessel` inline (see
+ * that entry below), and nothing sends `Other`. */
 const TARGET_KIND_BODY_ORDINAL = 1;
+const TARGET_KIND_POSITION_ORDINAL = 3;
 
 /**
  * `kc.upgradeFacility[<shortCode>]` -> `UpgradeFacilityArgs.FacilityId`'s
@@ -499,6 +500,32 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
         return INVALID;
       }
       return { kind: TARGET_KIND_BODY_ORDINAL, bodyIndex };
+    },
+  },
+  "tar.setTargetPosition": {
+    // VesselCommandProvider.TargetSetCommand — the map POI "Set as Target"
+    // action's bridge (T-POI-5): [bodyIndex,lat,lon] positional -> the
+    // Position-kind SetTargetArgs a POI's own bodyIndex/latitude/longitude
+    // fields carry verbatim (see vanillaPoiProvider.ts's dispatch call).
+    command: "vessel.target.set",
+    buildArgs: (rawArgs) => {
+      const bodyIndex = parseFiniteNumber(rawArgs[0]);
+      const latitude = parseFiniteNumber(rawArgs[1]);
+      const longitude = parseFiniteNumber(rawArgs[2]);
+      if (
+        bodyIndex === INVALID ||
+        !Number.isInteger(bodyIndex) ||
+        latitude === INVALID ||
+        longitude === INVALID
+      ) {
+        return INVALID;
+      }
+      return {
+        kind: TARGET_KIND_POSITION_ORDINAL,
+        bodyIndex,
+        latitude,
+        longitude,
+      };
     },
   },
 
