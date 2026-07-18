@@ -151,6 +151,21 @@ export interface AugmentDefinition<S extends string = string> {
   settings?: readonly AugmentSettingField[];
 }
 
+// --- Fog reveal sources ------------------------------------------------------
+
+/**
+ * Registration descriptor for a fog-of-war reveal source — a data
+ * contributor (coverage bytes for a body under some layerId), not a
+ * renderable component. See packages/core/src/fogReveal.ts's own header
+ * for why this isn't another AugmentSlot kind.
+ */
+export interface FogRevealSourceDefinition {
+  id: string;
+  label?: string;
+  weight?: number;
+  settings?: readonly AugmentSettingField[];
+}
+
 // --- Performance budgets ----------------------------------------------------
 
 export interface PerfBudgetOptions {
