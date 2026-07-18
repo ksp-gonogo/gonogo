@@ -1,5 +1,6 @@
 import {
   GAME_HOST_KEY,
+  getUplinkHandle,
   resetSettingsForTests,
   setSetting,
 } from "@ksp-gonogo/core";
@@ -7,7 +8,7 @@ import { Layer } from "@ksp-gonogo/kerbcast";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { KerbcastDataSource } from "./KerbcastDataSource";
+import { KerbcastDataSource, kerbcastSource } from "./KerbcastDataSource";
 import {
   createMockKerbcastSession,
   kerbcastFetchImpl,
@@ -503,6 +504,50 @@ describe("KerbcastDataSource — relayOffer (station broker)", () => {
     const ds = makeTracked({ port: 1 });
     await expect(ds.relayOffer({ sdp: "o", cameras: [] })).rejects.toThrow(
       /503/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// registerUplinkHandle("kerbcast", ...) — the host-side relay handle a
+// station's peer-relayed negotiate() call dispatches through (see
+// PeerHostService.handleUplinkRelay). Delegates to the module singleton's
+// relayOffer(), unchanged.
+// ---------------------------------------------------------------------------
+
+describe("KerbcastDataSource module — registerUplinkHandle('kerbcast', ...) registration", () => {
+  it("delegates the 'negotiate' relay method to the kerbcastSource singleton's relayOffer", async () => {
+    setSetting(GAME_HOST_KEY, "sidehost");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [1] }), {
+        status: 200,
+      }),
+    );
+    fetchSpy.mockClear();
+
+    const handle = getUplinkHandle<{
+      relay: (method: string, args: unknown) => Promise<unknown>;
+    }>("kerbcast");
+    expect(handle).toBeDefined();
+
+    const answer = await handle?.relay("negotiate", {
+      sdp: "offer-sdp",
+      cameras: [1],
+    });
+    expect(answer).toEqual({ sdp: "answer-sdp", cameras: [1] });
+    // Prove it went through the real relayOffer(), not a stub.
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `http://sidehost:${kerbcastSource.getConfig().port}/offer`,
+      expect.anything(),
+    );
+  });
+
+  it("rejects an unknown relay method", async () => {
+    const handle = getUplinkHandle<{
+      relay: (method: string, args: unknown) => Promise<unknown>;
+    }>("kerbcast");
+    await expect(handle?.relay("bogus", {})).rejects.toThrow(
+      /unknown method "bogus"/,
     );
   });
 });
