@@ -97,6 +97,20 @@ namespace Gonogo.KSP
         private Vessel? _attachedVessel;
         private readonly FlightInputCallback _flyByWireCallback;
 
+        /// <summary>
+        /// T-POI-4's <see cref="TargetKind.Position"/> branch — the ONE
+        /// <c>PositionTarget</c> this actuator ever constructs. The stock
+        /// type (global namespace, NOT <c>FinePrint.PositionTarget</c> — the
+        /// plan's naming guess was wrong; confirmed via decompile against
+        /// Assembly-CSharp.dll) allocates its own <c>GameObject</c> in its
+        /// constructor and destroys it in a finalizer, so a fresh instance
+        /// per click would leak an orphaned GameObject every time the player
+        /// re-picks a surface fix. Lazily constructed once, then reused via
+        /// <c>Update(body, lat, lon)</c> on every subsequent Position target —
+        /// never reconstructed.
+        /// </summary>
+        private PositionTarget? _poiTarget;
+
         public KspVesselActuator(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
@@ -451,8 +465,21 @@ namespace Gonogo.KSP
         /// Resolves the opaque <paramref name="vesselId"/>/<paramref name="bodyIndex"/>
         /// server-side against live <c>FlightGlobals</c> state (T-1/T-2) --
         /// the client never needs (or supplies) a live array index itself.
+        ///
+        /// <para><paramref name="lat"/>/<paramref name="lon"/> (T-POI-4) are
+        /// consumed ONLY by <see cref="TargetKind.Position"/> — a client-
+        /// picked surface fix on <paramref name="bodyIndex"/>'s body (e.g. a
+        /// <c>spaceCenter.pois</c> entry's own coordinate), wired through
+        /// stock's own <c>PositionTarget</c> — the exact mechanism the stock
+        /// map-view context menu itself uses to target a waypoint or anomaly
+        /// (confirmed via decompile: <c>PositionTarget</c> is one of only
+        /// four <c>ITargetable</c> implementers in the whole assembly,
+        /// alongside <c>Vessel</c>/<c>CelestialBody</c>/
+        /// <c>ModuleDockingNode</c>) — nothing novel is being asked of the
+        /// KSP API here. See <see cref="_poiTarget"/>'s own doc comment for
+        /// why the instance is cached rather than reconstructed per call.</para>
         /// </summary>
-        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex)
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon)
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
@@ -487,6 +514,21 @@ namespace Gonogo.KSP
                     return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
                 fetch.SetVesselTarget(bodies[bodyIndex.Value]);
+                return CommandResult.Ok();
+            }
+
+            if (kind == TargetKind.Position)
+            {
+                var bodies = FlightGlobals.Bodies;
+                if (bodyIndex == null || bodyIndex.Value < 0 || bodyIndex.Value >= bodies.Count
+                    || lat == null || lon == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
+                }
+                var body = bodies[bodyIndex.Value];
+                _poiTarget ??= new PositionTarget("POI");
+                _poiTarget.Update(body, lat.Value, lon.Value);
+                fetch.SetVesselTarget(_poiTarget);
                 return CommandResult.Ok();
             }
 

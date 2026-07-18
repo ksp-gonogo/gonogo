@@ -284,6 +284,43 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleTargetSetPassesPositionKindAndLatLonThrough()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Position, BodyIndex = 1, Latitude = -0.5, Longitude = 74.7 });
+
+            Assert.Equal(TargetKind.Position, actuator.LastSetTargetKind);
+            Assert.Equal(1, actuator.LastSetTargetBodyIndex);
+            Assert.Equal(-0.5, actuator.LastSetTargetLatitude);
+            Assert.Equal(74.7, actuator.LastSetTargetLongitude);
+        }
+
+        [Fact]
+        public void HandleTargetSetRejectsAPositionKindWithNoLatLonWithoutEverCallingTheActuator()
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Position, BodyIndex = 1, Latitude = null, Longitude = null });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastSetTargetKind);
+        }
+
+        [Fact]
+        public void HandleTargetSetRejectsAPositionKindWithNoBodyIndexWithoutEverCallingTheActuator()
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Position, BodyIndex = null, Latitude = -0.5, Longitude = 74.7 });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastSetTargetKind);
+        }
+
+        [Fact]
         public void HandleTargetSetRejectsAVesselKindWithNoVesselIdWithoutEverCallingTheActuator()
         {
             var actuator = new FakeVesselActuator();
