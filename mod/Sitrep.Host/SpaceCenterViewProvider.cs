@@ -357,6 +357,14 @@ namespace Sitrep.Host
         /// index). Returns <c>null</c>, not an empty list, when the snapshot
         /// carries no <c>spaceCenter</c> group at all (no sample landed yet),
         /// so a caller distinguishes "no data yet" from "zero POIs."</para>
+        ///
+        /// <para><c>contractDateDeadline</c> folds the raw <c>0.0</c> stock
+        /// KSP uses as <c>Contract.DateDeadline</c>'s "no deadline set"
+        /// sentinel (confirmed via decompile) onto <c>null</c> —
+        /// <see cref="SnapshotDict.GetDouble"/> only nulls
+        /// <c>NaN</c>/<c>Infinity</c>/absent, so an un-folded <c>0</c> would
+        /// otherwise read as "overdue since epoch" for every no-deadline
+        /// contract.</para>
         /// </summary>
         public static object? BuildPois(KspSnapshot? snapshot)
         {
@@ -434,6 +442,21 @@ namespace Sitrep.Host
                     var celestialName = SnapshotDict.GetString(raw, "celestialName");
                     int? bodyIndex = celestialName != null ? SharedMappers.ResolveBodyIndex(snapshot, celestialName) : null;
 
+                    // Stock KSP uses 0.0 as Contract.DateDeadline's "no deadline
+                    // set" sentinel (confirmed via decompile against
+                    // Assembly-CSharp.dll) - SnapshotDict.GetDouble only folds
+                    // NaN/Infinity/absent to null, so the raw 0 would otherwise
+                    // ride straight onto the wire and read as "overdue since
+                    // epoch." Folded here, in this KSP-free transform layer,
+                    // mirroring the sentinel folds this file already applies
+                    // (bodyIndex's "never a fabricated index", the launch-site
+                    // "no set spawn point" skip above).
+                    var deadline = SnapshotDict.GetDouble(raw, "contractDateDeadline");
+                    if (deadline == 0.0)
+                    {
+                        deadline = null;
+                    }
+
                     pois.Add(new Dictionary<string, object?>
                     {
                         ["id"] = navigationId != null ? "contract:" + navigationId : null,
@@ -446,7 +469,7 @@ namespace Sitrep.Host
                         ["contractAgent"] = SnapshotDict.GetString(raw, "contractAgent"),
                         ["contractFundsAdvance"] = SnapshotDict.GetDouble(raw, "contractFundsAdvance"),
                         ["contractFundsCompletion"] = SnapshotDict.GetDouble(raw, "contractFundsCompletion"),
-                        ["contractDateDeadline"] = SnapshotDict.GetDouble(raw, "contractDateDeadline"),
+                        ["contractDateDeadline"] = deadline,
                     });
                 }
             }
