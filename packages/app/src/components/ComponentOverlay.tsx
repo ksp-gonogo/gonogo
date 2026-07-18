@@ -1,6 +1,5 @@
 import type { ComponentDefinition } from "@ksp-gonogo/core";
-import { getComponents, safeRandomUuid } from "@ksp-gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/kos";
+import { getComponents, safeRandomUuid, useChromeWrap } from "@ksp-gonogo/core";
 import {
   SerialDeviceProvider,
   useSerialDeviceService,
@@ -94,12 +93,15 @@ export function ComponentOverlay({
   const { open: openModal, close: closeModal } = useModal();
   // ModalProvider lives at the app root, above SerialDeviceProvider. Config
   // components opened here via `openConfigOnAdd` portal out of the provider
-  // subtree, so we capture the services screen-side and re-provide them
-  // inside the modal content. Same pattern as the dashboard's GearButton.
-  // Any new context the kOS widgets reach for (KosCpuPicker → registry,
-  // future kOS proxy etc.) needs the same treatment here.
+  // subtree, so we capture the service screen-side and re-provide it inside
+  // the modal content. Same pattern as the dashboard's GearButton.
+  // SerialDeviceProvider is the one remaining hand-wired case (out of scope
+  // for the generic chrome-provider registry — see chromeProviders.ts's
+  // design note). Any OTHER context a widget's config UI reaches for
+  // (KosCpuPicker → CpuRegistryContext, etc.) is supplied generically via
+  // registerChromeProvider/useChromeWrap instead of a hand-added re-wrap.
   const serialService = useSerialDeviceService();
-  const cpuRegistry = useCpuRegistryService();
+  const wrapChrome = useChromeWrap();
 
   const allComponents = getComponents();
 
@@ -203,7 +205,7 @@ export function ComponentOverlay({
         const ConfigComp = def.configComponent;
         const modalId = openModal(
           <SerialDeviceProvider service={serialService}>
-            <CpuRegistryProvider service={cpuRegistry}>
+            {wrapChrome(
               <ConfigComp
                 config={item.config ?? def.defaultConfig ?? {}}
                 onSave={(newConfig: Record<string, unknown>) => {
@@ -213,8 +215,8 @@ export function ComponentOverlay({
                   updateItemConfig(item.i, newConfig);
                   closeModal(modalId);
                 }}
-              />
-            </CpuRegistryProvider>
+              />,
+            )}
           </SerialDeviceProvider>,
           { title: def.name },
         );
@@ -228,7 +230,7 @@ export function ComponentOverlay({
       closeModal,
       closeOverlay,
       serialService,
-      cpuRegistry,
+      wrapChrome,
     ],
   );
 

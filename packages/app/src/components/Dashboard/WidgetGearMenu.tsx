@@ -1,5 +1,4 @@
-import { type AnyDef, ErrorBoundary } from "@ksp-gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/kos";
+import { type AnyDef, ErrorBoundary, useChromeWrap } from "@ksp-gonogo/core";
 import { AppError, handleError } from "@ksp-gonogo/logger";
 import {
   type InputMappings,
@@ -30,11 +29,13 @@ export function GearButton({
   const { open, close } = useModal();
   // ModalProvider lives at the app root, above the screen-side providers.
   // Modal content rendered via portal doesn't see those contexts unless we
-  // capture the services here (where the providers ARE in scope) and
+  // capture the service here (where the provider IS in scope) and
   // re-provide inside the modal content. Mirrors the on-add pattern in
-  // ComponentOverlay.
+  // ComponentOverlay. SerialDeviceProvider is hand-wired (out of scope for
+  // the generic chrome-provider registry); any other context a config
+  // component reaches for goes through useChromeWrap instead.
   const serialService = useSerialDeviceService();
-  const cpuRegistry = useCpuRegistryService();
+  const wrapChrome = useChromeWrap();
   const ConfigComp = def.configComponent;
   const actions = def.actions ?? [];
   const hasConfig = Boolean(ConfigComp);
@@ -48,7 +49,7 @@ export function GearButton({
     }
     const id = open(
       <SerialDeviceProvider service={serialService}>
-        <CpuRegistryProvider service={cpuRegistry}>
+        {wrapChrome(
           <ErrorBoundary
             fallback={(error, reset) => (
               <WidgetError
@@ -70,8 +71,8 @@ export function GearButton({
                 close(id);
               }}
             />
-          </ErrorBoundary>
-        </CpuRegistryProvider>
+          </ErrorBoundary>,
+        )}
       </SerialDeviceProvider>,
       { title: def.name },
     );

@@ -26,6 +26,12 @@ export * from "./KosTerminal";
 export * from "./KosWidget";
 export * from "./KosWrapperTester";
 
+// Registers the CPU registry with @ksp-gonogo/core's generic chrome-provider
+// registry (see chromeProviders.ts's design note) so ComponentOverlay/
+// WidgetGearMenu can re-supply it around portal-rendered config UI without
+// importing anything kOS-named.
+import "./shared/kosChromeProvider";
+
 // Shared kOS widget infra (KosScriptFrame, KosCpuPicker, useKosScriptPayload),
 // re-exported for consumers that build their own kOS-driven widgets.
 export * from "./shared";
