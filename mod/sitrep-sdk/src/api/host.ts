@@ -23,6 +23,7 @@ import type {
   ActionHandlers,
   AugmentDefinition,
   ComponentDefinition,
+  DataSource,
   KosScriptDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -40,7 +41,7 @@ export interface GonogoHost {
   registerComponent<TConfig = Record<string, unknown>>(
     def: ComponentDefinition<TConfig>,
   ): void;
-  registerDataSource(def: unknown): void;
+  registerDataSource(def: DataSource): void;
   registerTheme(def: ThemeDefinition): void;
   registerKosScript(def: KosScriptDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
@@ -55,6 +56,58 @@ export interface GonogoHost {
     handlers: ActionHandlers<TActions>,
   ): void;
   useDataSources(): unknown;
+
+  /**
+   * Real-time (non-delayed) read of `topic` straight off the `TelemetryClient`
+   * — bypasses the certainty-gated `TimelineStore` frame `useStream` samples
+   * through. For command-centre bookkeeping (dispatch timestamps, link facts),
+   * never delayed craft telemetry — see `useLatestValue`'s own doc in
+   * `@ksp-gonogo/sitrep-client` for the raw-vs-derived distinction.
+   */
+  useLatestValue<T = unknown>(topic: string): T | undefined;
+  /**
+   * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
+   * channel topic (e.g. a crash alarm) — the consumption side of an event
+   * lane, as opposed to `useStream`'s sticky-latest-value read.
+   */
+  useStreamEvent<T = unknown>(
+    topic: string,
+    handler: (payload: T) => void,
+  ): void;
+  /** The current view time (UT seconds), reactive per-frame. */
+  useUtNow(): number | undefined;
+  /**
+   * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with
+   * none mounted. Opaque here (same reasoning as `useViewClock`'s `unknown`
+   * return): `TimelineStore` is a large, evolving class owned by
+   * `@ksp-gonogo/sitrep-client`, which the sdk leaf cannot depend on to name
+   * its full shape — see `./types.ts`'s DataSource-SPI comment for the same
+   * constraint applied to a small, mirrorable type. An author needing the
+   * concrete type narrows/casts at the call site, same as `useViewClock`
+   * callers already do today.
+   */
+  useTelemetryStoreOptional(): unknown;
+  /** Non-throwing variant of `useViewClock` — `undefined` with no provider mounted. Opaque for the same reason as `useViewClock`. */
+  useViewClockOptional(): unknown;
+
+  /** The enriched schema (key + label/unit/group) for a data source's keys. */
+  useDataSchema(sourceId?: string): unknown[];
+  /** Whether a recorded-flight replay session is currently active. */
+  useReplaySessionActive(): boolean;
+
+  /**
+   * Reach a data source already registered in the app's single registry — for
+   * an Uplink that AUTHORS its own `DataSource` (e.g. kerbcast's
+   * `KerbcastDataSource`) to make imperative calls on its own instance. The
+   * "hooks are the boundary" rule (`useDataValue`/`useExecuteAction`) still
+   * holds for a CONSUMER widget; this accessor is for the author reaching the
+   * source it registered itself, not a bypass for ordinary data reads.
+   */
+  getDataSource(id: string): DataSource | undefined;
+  /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
+  getGameHost(): string;
+  /** Subscribe to any change (saved OR seeded) for one shared settings key. */
+  subscribeSetting(key: string, cb: () => void): () => void;
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle;
