@@ -78,7 +78,6 @@ import { drawScanningFootprints } from "./scanOverlay";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { type CoverageGate, useCoverageGate } from "./useCoverageGate";
-import { useFogDisplayCanvas } from "./useFogMask";
 import { useMapResize } from "./useMapResize";
 import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
@@ -338,19 +337,6 @@ function MapViewComponent({
   const showFootprints = config?.showFootprints ?? false;
   const showCoverage = config?.showCoverage ?? false;
   const showAnomalyPanel = config?.showAnomalyPanel ?? false;
-  // Resolve per-type fog visibility once per render. Each toggle defaults
-  // to "on" (undefined === unset === visible) so a fresh widget sees
-  // every layer compose; operators narrow it down via the config tab.
-  const fogLayerVisibility = useMemo(() => {
-    const cfg = config?.fogLayers ?? {};
-    return {
-      [SCAN_TYPE.AltimetryLoRes]: cfg.altimetryLoRes !== false,
-      [SCAN_TYPE.AltimetryHiRes]: cfg.altimetryHiRes !== false,
-      [SCAN_TYPE.Biome]: cfg.biome !== false,
-      [SCAN_TYPE.ResourceLoRes]: cfg.resourceLoRes !== false,
-      [SCAN_TYPE.ResourceHiRes]: cfg.resourceHiRes !== false,
-    };
-  }, [config?.fogLayers]);
 
   const schema = useDataSchema("data");
   const labelMap = new Map(schema.map((k) => [k.key, k.label]));
@@ -529,7 +515,6 @@ function MapViewComponent({
   // MapView no longer reads `scansat.anomalies` at all. showAnomalies/
   // showAnomalyPanel stay as MapView config (passed down via overlayContext
   // below) since they're still natural MapView-level settings.
-  const fogDisplay = useFogDisplayCanvas(targetBodyId, fogLayerVisibility);
   // Cross-vessel footprint overlay (B). The list is global (every body);
   // the draw filters to the mapped body. Only fetched when enabled.
   const scanningVessels = useScanningVessels();
@@ -695,20 +680,18 @@ function MapViewComponent({
     baseLayerVersion,
   ]);
 
-  // ── Fog-of-war: driven exclusively by SCANsat ────────────────────────────
+  // ── Fog-of-war: paint-gate, not a drawn overlay ──────────────────────────
   // The per-vessel painter (paintFogFromBody / paintFogDisc) modelled
   // gonogo's own imaging FOV from lat/lon/altitude/heading. SCANsat
   // replaces that wholesale: scanner range gates + sub-vessel point are
   // KSP's own model, persisted into the save's SCANcontroller scenario
   // module, and the fork's scan.maskBitmap surfaces the resulting
-  // coverage bitfield. The FogMaskCache stays (PeerJS sync + station
-  // mirror still work through it); it's just now sourced from SCANsat
-  // alone. Without SCANsat installed there is no fog source — MapView
-  // shows the base body texture without an overlay.
-
-  // fogDisplay.version is needed even though the canvas reference is stable:
-  // the canvas contents are repainted in place as the fog mask mutates.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fogDisplay.version triggers redraw when canvas content changes
+  // coverage bitfield. There is no separate dark overlay canvas drawn on
+  // top of the map anymore (settled model) — `coverageGate` (T4, above) is
+  // handed to whichever `map-view.base` augment is active so IT can gate
+  // its own per-tile paint. This overlay canvas is left for augments that
+  // draw ON TOP of the base surface (footprints, and any registered
+  // `map-view.overlay` augment via the slot below).
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || !containerSize) return;
@@ -719,9 +702,6 @@ function MapViewComponent({
     if (!ctx) return;
     ctx.clearRect(0, 0, w, h);
     ctx.setTransform(...cameraTransform(camera, w, h));
-    if (fogDisplay.canvas) {
-      ctx.drawImage(fogDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
-    }
     // Scanning-vessel footprints — every tracked vessel on the mapped
     // body, drawn under the anomaly markers so a marker on a footprint
     // stays legible. Extents + tint come straight off the wire.
@@ -731,14 +711,7 @@ function MapViewComponent({
     // Anomaly markers moved to the AnomalyOverlay augment (map-view.overlay
     // slot) — see the MapOverlayContext doc comment above.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [
-    containerSize,
-    camera,
-    fogDisplay.canvas,
-    fogDisplay.version,
-    body,
-    footprintVessels,
-  ]);
+  }, [containerSize, camera, body, footprintVessels]);
 
   // ── Trajectory layer: blit world canvas through camera ────────────────────
   // trajectoryCount is needed here even though worldCanvasRef is a ref:
@@ -1170,7 +1143,7 @@ function MapViewComponent({
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
           >
-            <BaseCanvas ref={baseRef} />
+            <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
             <OverlayCanvas ref={overlayRef} />
             <PersistentDataCanvas ref={persistentDataRef} />
             <PredictionCanvas ref={predictionRef} />
