@@ -150,7 +150,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/uplinks/flag.ts",
 
     // -- GRAY — sitrep-client / contract layer, comment or string-literal only --
-    "mod/GonogoKosUplink/client/src/index.ts",
     "mod/Sitrep.Contract/UplinkContract.cs",
     "mod/Sitrep.Host/ChannelEngine.cs",
     "packages/sitrep-client/src/context.tsx",
@@ -300,11 +299,6 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // (same shape as the other peer-transport HARD hits; found by this
     // ratchet's scan, not individually named in the audit's kOS table).
     "mod/Sitrep.Core/Serialization/JsonWriter.cs",
-    "packages/app/src/dataSources/KosCpuDiscovery.tsx",
-    "packages/app/src/dataSources/kos.ts",
-    "packages/app/src/dataSources/kosCompute.ts",
-    "packages/app/src/dataSources/kosUplinkExecutor.ts",
-    "packages/app/src/dataSources/kosWrapper.ts",
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/telemetry/SitrepPeerRelay.tsx",
 
@@ -346,23 +340,21 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "mod/sitrep-sdk/src/topics.test-d.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
     "mod/sitrep-sdk/src/topics.ts",
-    // The author-facing SDK barrel re-exposes `registerKosScript` /
-    // `KosScriptDefinition` — a CORE framework capability (centralised kOS
-    // feeds, CLAUDE.md), not the kOS Uplink's internals. The shims delegate to
-    // the injected host and name kOS only as a framework author-surface member,
-    // exactly the GRAY contract/SDK-layer exception. The conformance guard in
-    // core and the shape-gate tests reference the same surface. (2026-07-17)
-    "mod/sitrep-sdk/src/api/host.ts",
-    "mod/sitrep-sdk/src/api/index.ts",
-    "mod/sitrep-sdk/src/api/types.ts",
+    // The author-facing SDK barrel used to re-export `registerKosScript` /
+    // `KosScriptDefinition` (a CORE framework capability, not the kOS
+    // Uplink's internals) here as a GRAY contract/SDK-layer exception. Kos
+    // migration (2026-07-18) Task 6/7 moved registerKosScript/
+    // KosScriptDefinition into the kos Uplink itself and removed the
+    // facade's mirror; Task 12 additionally removed the facade's unrelated
+    // DataSource-author SPI mirror (zero production consumers). Neither
+    // mod/sitrep-sdk/src/api/{host,index,types,api-shape.test-d}.ts nor
+    // packages/core/src/sdk-facade.conformance.test-d.ts nor
+    // packages/app/src/uplinks/host.ts names kOS at all any more — ratcheted
+    // off. mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it still
+    // uses "kos" as an example dataSourceId in a generic
+    // `useDataValue("kos", "k")` assertion, unrelated to either removed
+    // mirror.
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
-    "mod/sitrep-sdk/src/api/api-shape.test-d.ts",
-    "packages/core/src/sdk-facade.conformance.test-d.ts",
-    // The Uplink loader's injected-host facade (Phase A, 2026-07-17) wires the
-    // app's real `registerKosScript` into globalThis.__GONOGO_SDK__ — it names
-    // kOS only as a framework author-surface member (same GRAY exception as the
-    // sitrep-sdk api barrel above), not the kOS Uplink's internals.
-    "packages/app/src/uplinks/host.ts",
     // dispatch()'s label doc-comment cites `kos.keystroke` as the example
     // line-mode command whose composed text becomes the queue label —
     // comment-only, no kOS coupling in the client spine.
@@ -390,24 +382,21 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     // canonical delayed command gated during a blackout — test/doc only.
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
-    "mod/Sitrep.Core.Tests/KosProcessorInfoWireTests.cs",
     "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
     "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
     "mod/Sitrep.Host.IntegrationTests/CommsGateCommandTests.cs",
     "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
     "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs",
     "mod/sitrep-sdk/src/generated.test.ts",
-    "packages/app/src/__tests__/fixtures/FakeKosUplink.ts",
-    "packages/app/src/__tests__/kos-compute-centralised.test.tsx",
-    "packages/app/src/__tests__/kos-compute-integration.test.tsx",
-    "packages/app/src/__tests__/kos-cpu-discovery.test.tsx",
+    // kos-execute-tunnel.test.ts has zero real kos coupling — it only uses
+    // "kos" as a generic Uplink-handle id while exercising app-owned PeerJS
+    // relay machinery (kos migration Task 8, 2026-07-18: moved into the kos
+    // package and back out once that became clear). Stays in
+    // packages/app/src/__tests__ where this entry already covers it.
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
-    "packages/app/src/__tests__/kos-execute-uplink.test.ts",
     // peer label/topic tunnel tests use "kos.run" as the sample command and
     // cite a kOS command in a doc-comment — test/doc-only, no coupling.
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
-    "packages/app/src/dataSources/kosUplinkExecutor.test.ts",
-    "packages/app/src/dataSources/kosWrapper.test.ts",
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
@@ -415,31 +404,20 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/components/src/ManeuverPlanner/index.test.tsx",
     "packages/components/src/test/widgets.axe.test.tsx",
     "packages/core/src/hooks/map-command.coverage.test.ts",
-    "packages/core/src/kos/scriptRegistry.test.ts",
     "packages/core/src/styleguide-styled-components.test.ts",
     "packages/data/src/BufferedDataSource.test.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
-    "packages/data/src/hooks/useKosWidget.test.tsx",
-    "packages/data/src/kos/kos-data-parser.test.ts",
 
-    // -- SPECIAL-CASE: "centralised kOS scripts" infra (audit §3). CLAUDE.md
-    // documents registerKosScript / ScriptableDataSource / KosScriptError /
-    // CpuRegistryService as a deliberate generic extension point, judged
-    // clean by the audit. The files below are that infra plus its direct
-    // satellites (barrel exports, the registry's clearKosScripts() import,
-    // the [KOSDATA] parser, the CPU-registry context) — same judgment,
-    // found by this ratchet's scan rather than individually audited.
-    "packages/core/src/kos/scriptRegistry.ts",
+    // "centralised kOS scripts" infra (audit §3; CLAUDE.md). Kos migration
+    // (2026-07-18) Tasks 2-4/6 moved registerKosScript/ScriptableDataSource/
+    // KosScriptError/CpuRegistryService and their satellites (barrel
+    // exports, the [KOSDATA] parser, the CPU-registry context, their own
+    // tests) wholesale into the kos Uplink per the operator's explicit
+    // "no generalising" call — overturning the prior "deliberate generic
+    // extension point" judgment this block used to record. Only
+    // registry.ts's own clearKosScripts() import removal remains a
+    // core-side trace.
     "packages/core/src/registry.ts",
-    "packages/data/src/hooks/useKosScriptStatus.ts",
-    "packages/data/src/hooks/useKosWidget.ts",
-    "packages/data/src/index.ts",
-    "packages/data/src/kos/CpuRegistryContext.tsx",
-    "packages/data/src/kos/CpuRegistryService.ts",
-    "packages/data/src/kos/KosScriptError.ts",
-    "packages/data/src/kos/ScriptableDataSource.ts",
-    "packages/data/src/kos/hashKosScript.ts",
-    "packages/data/src/kos/kos-data-parser.ts",
 
     // -- Doc/comment-only mentions elsewhere (kOS is a documented Key
     // Design Constraint — "optional, not a hard dependency" — so it is

@@ -10,13 +10,13 @@ namespace Gonogo.KosUplink
     /// <see cref="Sitrep.Contract.KosProcessorInfo"/>-shaped dictionary per
     /// kOS CPU.
     ///
-    /// <para>Mirrors <c>Gonogo.KerbcastUplink.KerbcastCameraEntryBuilder</c>:
-    /// the contract POCO is the TYPING mirror (what TS codegen reflects over),
-    /// and <c>JsonWriter</c> walks this dictionary to make the actual bytes —
-    /// no hand-written <c>AppendKosProcessorInfo</c> case needed any more.
-    /// Keys are camelCase to match the generated TS shape, so this dictionary
-    /// and <see cref="Sitrep.Contract.KosProcessorInfo"/> agree field for
-    /// field.</para>
+    /// <para>Same self-flattening producer pattern already used elsewhere in
+    /// this codebase: the contract POCO is the TYPING mirror (what TS codegen
+    /// reflects over), and <c>JsonWriter</c> walks this dictionary to make
+    /// the actual bytes — no hand-written <c>AppendKosProcessorInfo</c> case
+    /// needed any more. Keys are camelCase to match the generated TS shape,
+    /// so this dictionary and <see cref="Sitrep.Contract.KosProcessorInfo"/>
+    /// agree field for field.</para>
     ///
     /// <para>KSP-free by construction (no kOS/Unity types touched), so it is
     /// exercised headlessly — see <c>GonogoKosUplink.Tests</c>.</para>

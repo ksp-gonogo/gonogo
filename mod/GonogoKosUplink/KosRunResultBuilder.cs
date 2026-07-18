@@ -10,14 +10,13 @@ namespace Gonogo.KosUplink
     /// <see cref="Sitrep.Contract.KosRunResult"/>-shaped dictionary per
     /// completed <c>kos.run</c> dispatch.
     ///
-    /// <para>Mirrors <c>KosProcessorInfoBuilder</c>/
-    /// <c>Gonogo.KerbcastUplink.KerbcastCameraEntryBuilder</c>: the contract
-    /// POCO is the TYPING mirror; <c>JsonWriter</c> walks this dictionary
-    /// directly — no hand-written <c>AppendKosRunResult</c> case needed any
-    /// more. <paramref name="fields"/> is itself a
-    /// <c>Dictionary&lt;string, object?&gt;</c> and reaches JsonWriter's
-    /// generic <c>IDictionary&lt;string, object?&gt;</c> case unchanged — no
-    /// separate flatten needed for the field map.</para>
+    /// <para>Mirrors <c>KosProcessorInfoBuilder</c>'s same self-flattening
+    /// producer pattern: the contract POCO is the TYPING mirror;
+    /// <c>JsonWriter</c> walks this dictionary directly — no hand-written
+    /// <c>AppendKosRunResult</c> case needed any more. <paramref name="fields"/>
+    /// is itself a <c>Dictionary&lt;string, object?&gt;</c> and reaches
+    /// JsonWriter's generic <c>IDictionary&lt;string, object?&gt;</c> case
+    /// unchanged — no separate flatten needed for the field map.</para>
     /// </summary>
     public static class KosRunResultBuilder
     {

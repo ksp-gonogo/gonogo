@@ -10,14 +10,13 @@ namespace Gonogo.KosUplink
     /// <see cref="Sitrep.Contract.KosTerminalFrame"/>-shaped dictionary per
     /// downlink frame.
     ///
-    /// <para>Mirrors <c>KosProcessorInfoBuilder</c>/
-    /// <c>Gonogo.KerbcastUplink.KerbcastCameraEntryBuilder</c>: the contract
-    /// POCO is the TYPING mirror; <c>JsonWriter</c> walks this dictionary
-    /// directly — no hand-written <c>AppendKosTerminalFrame</c> case needed
-    /// any more. Also lets <c>ChannelDeclaration.IsKeyframe</c> (wired in
-    /// <c>KosExtension.Ksp.cs</c>) key off the <c>fullRepaint</c> dictionary
-    /// entry instead of the POCO type, since the dictionary is what actually
-    /// reaches the Courier.</para>
+    /// <para>Mirrors <c>KosProcessorInfoBuilder</c>'s same self-flattening
+    /// producer pattern: the contract POCO is the TYPING mirror;
+    /// <c>JsonWriter</c> walks this dictionary directly — no hand-written
+    /// <c>AppendKosTerminalFrame</c> case needed any more. Also lets
+    /// <c>ChannelDeclaration.IsKeyframe</c> (wired in <c>KosExtension.Ksp.cs</c>)
+    /// key off the <c>fullRepaint</c> dictionary entry instead of the POCO
+    /// type, since the dictionary is what actually reaches the Courier.</para>
     /// </summary>
     public static class KosTerminalFrameBuilder
     {
