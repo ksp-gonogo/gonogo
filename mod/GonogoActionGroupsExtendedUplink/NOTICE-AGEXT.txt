@@ -1,0 +1,21 @@
+GonogoActionGroupsExtendedUplink integrates with Action Groups Extended
+(AGX, https://github.com/linuxgurugamer/AGExt) entirely at ARM'S LENGTH: it
+reads AGX's runtime state through its PUBLIC static API
+(ActionGroupsExtended.AGExtExternal) by reflection ONLY. It does NOT link the
+AGExt assembly at build time, does NOT derive from any AGExt type, and
+bundles NO AGExt source or assets.
+
+Action Groups Extended is distributed under the GNU General Public License,
+version 3 (GPL3):
+
+  https://www.gnu.org/licenses/gpl-3.0.html
+
+Because this uplink incorporates none of AGExt's code (arm's-length
+reflection against AGExt's public API only, no compile-time reference, no
+derived types), the GPL3 copyleft obligation is not triggered by this
+uplink, and GonogoActionGroupsExtendedUplink is licensed MIT, in line with
+the rest of gonogo. This notice is retained to attribute AGExt and its
+authors for the public API this uplink reads from.
+
+AGExt authors: linuxgurugamer and contributors. See the project's repository
+and CKAN metadata for the full author list.

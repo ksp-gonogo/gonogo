@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MIT, like the rest of gonogo (see LICENSING.md). Action Groups Extended
+       (AGX, linuxgurugamer/AGExt) is GPL3 — a CODE copyleft that could reach a
+       COMBINED work. This uplink therefore NEVER links AGExt's assembly and
+       NEVER derives from its types: every AGExt member is reached by runtime
+       reflection (AgxReflection), the same arm's-length pattern
+       GonogoRealAntennasUplink uses against RealAntennas' CC-BY-SA-4.0
+       assembly and GonogoKerbcastUplink uses against kerbcast's
+       CC-BY-NC-SA-4.0 assembly. We USE the running mod's public API, we don't
+       INCORPORATE its code. AGExt's attribution notice is retained in
+       NOTICE-AGEXT.txt alongside this file.
+
+       Unlike RA/kerbcast, this project takes NO KSP/Unity reference at all:
+       every AGExt method we call (AGXListOfAssignedGroups/AGXGroupState/
+       AGXActivateGroup) is an active-vessel form that scopes to
+       FlightGlobals.ActiveVessel internally, so this assembly never touches
+       stock KSP itself.
+
+       Compile surface: Sitrep.Contract + Sitrep.Host (both Private="false",
+       see below). Sitrep.Host is where the design doc's own §5.4 election
+       code (ActionGroupsElection.RegisterActionGroupsExtendedProvider) and
+       the IActionGroupsBackend seam actually live
+       (mod/Sitrep.Host/ActionGroups/) — unlike comms' ICommsBackend, which
+       sits in Sitrep.Contract, Phase 1 placed the action-groups seam one
+       layer down. Sitrep.Host is itself KSP-free/zero-external-dependency
+       (see its own csproj comment), so referencing it does not touch KSP or
+       AGExt — the arm's-length boundary this header describes is
+       unaffected. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoActionGroupsExtendedUplink</AssemblyName>
+    <RootNamespace>Gonogo.ActionGroupsExtendedUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
+       Sitrep.Transport deps) — compile-time only, exactly GonogoKosUplink's
+       equivalent block. Core Gonogo already ships all four
+       (GameData/Gonogo/Plugins/Sitrep.*.dll) and KSP loads every GameData
+       plugin into one AppDomain, so this uplink resolves those types from
+       core's copy at runtime — it must NOT bundle its own. Private=false on
+       every one of these keeps them out of THIS project's output/deploy
+       set; each is listed explicitly (not left to flow transitively through
+       Sitrep.Host) — Private=false on an OUTER ProjectReference does not,
+       by itself, suppress copying of that project's OWN transitive
+       references, so each link in the chain needs the flag itself. NOTE: no
+       reference to AGExt.dll, by design (see the licence header above), and
+       NO KSP/Unity reference either (see above — this uplink never touches
+       stock KSP directly). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
+  </ItemGroup>
+
+</Project>
