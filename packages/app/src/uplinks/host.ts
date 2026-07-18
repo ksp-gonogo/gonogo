@@ -19,6 +19,7 @@ import {
   PerfBudget,
   registerAugment,
   registerComponent,
+  registerFogRevealSource,
   registerTheme,
   subscribeSetting,
   useActionInput,
@@ -63,6 +64,10 @@ export function buildGonogoHost(): GonogoHost {
       registerTheme(def as Parameters<typeof registerTheme>[0]),
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
+    registerFogRevealSource: (def) =>
+      registerFogRevealSource(
+        def as Parameters<typeof registerFogRevealSource>[0],
+      ),
 
     useDataValue: (dataSourceId, key) => useDataValue(dataSourceId, key),
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
