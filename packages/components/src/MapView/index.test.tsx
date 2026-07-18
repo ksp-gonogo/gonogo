@@ -11,8 +11,10 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { ModalChromeContext, type ModalChromeValue } from "@ksp-gonogo/ui-kit";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import {
@@ -100,6 +102,31 @@ describe("MapViewComponent", () => {
     vi.unstubAllGlobals();
     clearBodies();
   });
+
+  /**
+   * Minimal stand-in for `ui`'s `ModalDialog` chrome — renders whatever
+   * footer `useModalSaveBar` registers so a config component's Save button
+   * is reachable in an isolated render (see `ModalSaveBar.test.tsx` for the
+   * same pattern in `ui-kit`).
+   */
+  function ModalChromeHost({ children }: { children: ReactNode }) {
+    const [footer, setFooter] = useState<ReactNode>(null);
+    // Memoized exactly like the real `ModalDialog` (`ui/src/Modal.tsx`) —
+    // an unstable `chrome` object here would make every consumer re-render
+    // on every footer update via context propagation, which (combined with
+    // a config component's `onSave: () => onSave(candidate)` closure being
+    // recreated each render) loops forever.
+    const chrome = useMemo<ModalChromeValue>(
+      () => ({ setFooter, setDirty: () => {} }),
+      [],
+    );
+    return (
+      <ModalChromeContext.Provider value={chrome}>
+        {children}
+        {footer}
+      </ModalChromeContext.Provider>
+    );
+  }
 
   /** MapView reads DashboardItemContext via useActionInput — wrap in the provider. */
   function Wrap({ children }: { children: ReactNode }) {
@@ -443,6 +470,74 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { body: "Kerbin" });
 
       expect(called).toBe(false);
+    });
+  });
+
+  // Proves T10's read-back loop end to end: an augment's `settings` block
+  // reaches the config UI via `AugmentSettingsPanel`, a saved edit lands in
+  // the widget's persisted config namespaced by augment id, and a subsequent
+  // render of the widget itself surfaces that value back on
+  // `ctx.augmentSettings` — the same object `useCoverageGate` and any
+  // augment's own settings already know how to read.
+  describe("augment settings read-back", () => {
+    afterEach(() => {
+      for (const unmount of trees) unmount();
+      trees.length = 0;
+      clearAugments();
+    });
+
+    it("a config edit saved through AugmentSettingsPanel reads back on ctx.augmentSettings at render time", async () => {
+      const user = userEvent.setup();
+      registerAugment({
+        id: "test-map-sections-settings",
+        augments: "map-view.sections",
+        component: (ctx: MapSectionsContext) => (
+          <div data-testid="sections-settings-probe">
+            show=
+            {String(ctx.augmentSettings?.["test-map-sections-settings"]?.show)}
+          </div>
+        ),
+        settings: [
+          {
+            key: "show",
+            type: "boolean",
+            label: "Show section",
+            default: true,
+          },
+        ],
+      });
+
+      const onSave = vi.fn();
+      render(
+        <ModalChromeHost>
+          <MapViewConfigComponent config={{}} onSave={onSave} />
+        </ModalChromeHost>,
+      );
+
+      expect(
+        screen.getByRole("checkbox", { name: "Show section" }),
+      ).toBeChecked();
+      await user.click(screen.getByRole("checkbox", { name: "Show section" }));
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(onSave).toHaveBeenCalledTimes(1);
+      const saved = onSave.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect(
+        (saved.augmentSettings as Record<string, Record<string, unknown>>)?.[
+          "test-map-sections-settings"
+        ]?.show,
+      ).toBe(false);
+
+      const { container, fixture } = renderMap(saved);
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      await waitFor(() => {
+        if (!container.textContent?.includes("show=false")) {
+          throw new Error(
+            "sections augment has not read back the saved setting yet",
+          );
+        }
+      });
     });
   });
 });

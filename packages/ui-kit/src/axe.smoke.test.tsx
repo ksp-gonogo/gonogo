@@ -1,6 +1,8 @@
 import { render } from "@ksp-gonogo/test-utils";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
+import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
+import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
 import { EmptyState } from "./EmptyState";
@@ -24,6 +26,29 @@ describe("a11y smoke (jest-axe)", () => {
           Arming
         </ActionButton>
       </>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("AugmentSettingsPanel has no axe violations across field types", async () => {
+    const settings: NamespacedAugmentSettings[] = [
+      {
+        augmentId: "example-augment",
+        namespace: "example-augment",
+        fields: [
+          { key: "show", type: "boolean", label: "Show overlay" },
+          { key: "label", type: "text", label: "Overlay label" },
+          { key: "count", type: "number", label: "Count" },
+        ],
+      },
+    ];
+    const { container } = render(
+      <AugmentSettingsPanel
+        settings={settings}
+        values={undefined}
+        onChange={() => {}}
+      />,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
