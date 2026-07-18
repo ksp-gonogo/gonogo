@@ -166,6 +166,23 @@ export interface FogRevealSourceDefinition {
   settings?: readonly AugmentSettingField[];
 }
 
+// --- Map POI providers -------------------------------------------------------
+
+/**
+ * Registration descriptor for a map point-of-interest provider — a data
+ * contributor (points for the currently-mapped body), not a renderable
+ * component. See packages/core/src/mapPoi.ts's own header for why MapView
+ * owns the one shared hover/action/marker-styling surface instead of this
+ * being another AugmentSlot kind.
+ */
+export interface MapPoiProviderDefinition {
+  /** "<uplinkId>:<name>", e.g. "vanilla:spaceCenter", "example-uplink:anomalies". */
+  id: string;
+  /** Domain presence gate, same semantics as AugmentDefinition.requires. */
+  requires?: string;
+  usePois: (ctx: { bodyId: string | undefined }) => unknown;
+}
+
 // --- Performance budgets ----------------------------------------------------
 
 export interface PerfBudgetOptions {

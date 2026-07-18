@@ -24,6 +24,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerAugment",
   "registerComponent",
   "registerFogRevealSource",
+  "registerMapPoiProvider",
   "registerTheme",
   "safeRandomUuid",
   "subscribeSetting",
@@ -72,6 +73,7 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     expect(() => barrel.registerTheme({} as never)).toThrow(named);
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.registerFogRevealSource({} as never)).toThrow(named);
+    expect(() => barrel.registerMapPoiProvider({} as never)).toThrow(named);
     expect(() => barrel.useDataValue("kos", "k")).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.createPerfBudget({ name: "b", threshold: 1 })).toThrow(
