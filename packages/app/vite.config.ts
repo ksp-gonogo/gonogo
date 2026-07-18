@@ -104,6 +104,13 @@ const UPLINK_BUNDLE_TARGETS: {
     repo: "ksp-gonogo/GonogoKosUplink",
     clientDir: resolve(modDir, "GonogoKosUplink/client"),
   },
+  {
+    id: "kerbcast",
+    name: "Kerbcast",
+    author: "jonpepler",
+    repo: "ksp-gonogo/GonogoKerbcastUplink",
+    clientDir: resolve(modDir, "GonogoKerbcastUplink/client"),
+  },
 ];
 
 // The app emits one standalone ESM "external-entry" chunk per shared package

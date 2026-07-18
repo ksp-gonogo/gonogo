@@ -119,6 +119,7 @@ async function registerScansatAndRender(): Promise<void> {
     await Promise.all([
       import("@ksp-gonogo/kos"),
       import("@ksp-gonogo/scansat"),
+      import("@ksp-gonogo/kerbcast-feed"),
     ]);
   }
   renderApp();

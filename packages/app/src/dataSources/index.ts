@@ -2,7 +2,6 @@
 import "./kos";
 import "./missionHistory";
 import "./sitrep";
-import "@ksp-gonogo/kerbcast-feed";
 import { migrateGameHost } from "./migrateGameHost";
 import { seedKspHostDefaults } from "./seedKspHost";
 
