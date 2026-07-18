@@ -52,6 +52,7 @@ export { buildCameraLabeler } from "./cameraLabels";
 export { DockingCameraAugment } from "./DockingCameraAugment";
 export { selectDockingCamera } from "./DockingCameraAugment/selectDockingCamera";
 export { useKerbcastCameras } from "./hooks/useKerbcastCameras";
+export { useKerbcastMainConnect } from "./hooks/useKerbcastMainConnect";
 export type {
   DelayedPlayoutResult,
   KerbcastStreamDelayOptions,
