@@ -847,6 +847,20 @@ export interface SpaceCenterPartsAvailable
 {
 	count?: number;
 }
+export interface SpaceCenterPoiEntry
+{
+	id?: string;
+	kind?: string;
+	bodyIndex?: number;
+	latitude?: number;
+	longitude?: number;
+	label?: string;
+	status?: string;
+	contractAgent?: string;
+	contractFundsAdvance?: number;
+	contractFundsCompletion?: number;
+	contractDateDeadline?: number;
+}
 export interface StageDeltaVEntry
 {
 	stage?: number;
@@ -992,6 +1006,8 @@ export interface SetTargetArgs
 	kind: TargetKind;
 	vesselId?: string;
 	bodyIndex?: number;
+	latitude?: number;
+	longitude?: number;
 }
 export interface SetWarpIndexArgs
 {
@@ -1279,7 +1295,8 @@ export interface VesselSurface
 export enum TargetKind {
 	Vessel = 0,
 	Body = 1,
-	Other = 2
+	Other = 2,
+	Position = 3
 }
 export interface VesselTarget
 {

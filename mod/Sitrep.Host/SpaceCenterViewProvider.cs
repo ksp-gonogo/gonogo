@@ -10,15 +10,18 @@ namespace Sitrep.Host
     /// which land in the one <c>PSystemSetup.Instance.LaunchSites</c> union),
     /// <c>spaceCenter.scene</c> (the current game scene),
     /// <c>spaceCenter.crewRoster</c> (the hired-crew roster),
-    /// <c>spaceCenter.savedShips</c> (the saved VAB/SPH craft) and
-    /// <c>spaceCenter.partsAvailable</c> (the count of buildable parts). Reads the raw values a
+    /// <c>spaceCenter.savedShips</c> (the saved VAB/SPH craft),
+    /// <c>spaceCenter.partsAvailable</c> (the count of buildable parts) and
+    /// <c>spaceCenter.pois</c> (the map points-of-interest union of launch
+    /// sites + active/offered contract targets). Reads the raw values a
     /// <see cref="IKspHost.Sample"/> snapshot carries (populated by
     /// <c>Gonogo.KSP.KspHost.BuildSpaceCenter</c>/<c>BuildScene</c>) and hand-
     /// builds the wire trees, following <see cref="SystemViewProvider"/>'s
     /// untyped-dict convention (NOT <c>VesselViewProvider</c>'s typed-POCO +
-    /// ToWire): the <see cref="LaunchSiteEntry"/> / <see cref="SpaceCenterScene"/>
-    /// contract types are TS-shape-only mirrors, never serialized — the live
-    /// dict/list tree this produces is what <c>JsonWriter</c> walks.
+    /// ToWire): the <see cref="LaunchSiteEntry"/> / <see cref="SpaceCenterScene"/> /
+    /// <see cref="SpaceCenterPoiEntry"/> contract types are TS-shape-only
+    /// mirrors, never serialized — the live dict/list tree this produces is
+    /// what <c>JsonWriter</c> walks.
     ///
     /// <para><b>Raw snapshot encoding (KspHost must populate exactly this):</b>
     /// <code>
@@ -41,6 +44,22 @@ namespace Sitrep.Host
     ///       "isStock":        bool     — PSystemSetup.IsStockLaunchSite
     ///       "padOccupied":    bool?    — stock-pad occupancy (null off the stock pad)
     ///       "padVesselTitle": string?  — occupying vessel name (null when none)
+    ///       "latitude":       double?  — first spawn point with latlonaltSet, null if none
+    ///       "longitude":      double?  — paired with latitude
+    ///     }
+    ///   "contractTargets": List&lt;object?&gt;   // one entry per WaypointManager waypoint with a contractReference
+    ///     each entry = Dictionary {
+    ///       "navigationId":            string   — Waypoint.navigationId.ToString()
+    ///       "celestialName":           string   — Waypoint.celestialName
+    ///       "latitude":                double   — Waypoint.latitude
+    ///       "longitude":               double   — Waypoint.longitude
+    ///       "isOnSurface":             bool     — Waypoint.isOnSurface (provider filters non-surface out)
+    ///       "contractState":           string   — RAW Contract.State enum name (provider filters to Active/Offered)
+    ///       "contractTitle":           string   — Contract.Title
+    ///       "contractAgent":           string?  — Contract.Agent?.Name
+    ///       "contractFundsAdvance":    double   — Contract.FundsAdvance
+    ///       "contractFundsCompletion": double   — Contract.FundsCompletion
+    ///       "contractDateDeadline":    double   — Contract.DateDeadline
     ///     }
     ///   "crewRoster": List&lt;object?&gt;   // one entry per hired kerbal
     ///     each entry = Dictionary {
@@ -78,6 +97,9 @@ namespace Sitrep.Host
 
         /// <summary>The buildable-parts-count channel (a wrapper object <c>{ "count": int }</c>).</summary>
         public const string PartsAvailableTopic = "spaceCenter.partsAvailable";
+
+        /// <summary>The map points-of-interest channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
+        public const string PoisTopic = "spaceCenter.pois";
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
@@ -305,6 +327,149 @@ namespace Sitrep.Host
             return new Dictionary<string, object?>
             {
                 ["count"] = count,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>launchSites</c> and
+        /// <c>contractTargets</c> sub-lists to the <c>spaceCenter.pois</c>
+        /// payload: a BARE <c>List&lt;object?&gt;</c> (matching
+        /// <c>isArray: true</c>) combining both sources into one flat roster,
+        /// mirroring <see cref="SpaceCenterPoiEntry"/> field-for-field.
+        ///
+        /// <para>Launch sites without a set spawn-point coordinate are
+        /// skipped (no fabricated <c>(0,0)</c> sentinel, the same "null,
+        /// never a sentinel" discipline <see cref="BuildLaunchSites"/>'s
+        /// <c>bodyIndex</c> follows); a stock site (<c>isStock</c>) maps to
+        /// <c>Kind = "ksc"</c>, everything else to <c>"launchSite"</c>.
+        /// Contract targets are filtered to <c>isOnSurface</c> AND a raw
+        /// <c>contractState</c> of <c>"Active"</c> or <c>"Offered"</c>: the
+        /// inclusion decision this KSP-free layer owns (the capture side
+        /// passes every waypoint's raw state through unfiltered, same
+        /// capture→provider split <see cref="BuildCrewRoster"/> uses for
+        /// <c>rosterStatus</c>); <c>Active</c> maps to <c>Status = "active"</c>,
+        /// <c>Offered</c> to <c>"available"</c>.</para>
+        ///
+        /// <para><c>body</c>/<c>celestialName</c> (captured body/celestial
+        /// NAMEs) resolve to a <see cref="SystemBodies"/> index via
+        /// <see cref="SharedMappers.ResolveBodyIndex"/>, the SAME pattern
+        /// <see cref="BuildLaunchSites"/> uses (never a fabricated sentinel
+        /// index). Returns <c>null</c>, not an empty list, when the snapshot
+        /// carries no <c>spaceCenter</c> group at all (no sample landed yet),
+        /// so a caller distinguishes "no data yet" from "zero POIs."</para>
+        /// </summary>
+        public static object? BuildPois(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("spaceCenter", out var rawGroup) || rawGroup is not IDictionary<string, object?> group)
+            {
+                return null;
+            }
+
+            var pois = new List<object?>();
+
+            if (group.TryGetValue("launchSites", out var rawSites) && rawSites is IEnumerable<object?> siteList)
+            {
+                foreach (var rawEntry in siteList)
+                {
+                    if (rawEntry is not IDictionary<string, object?> raw)
+                    {
+                        continue;
+                    }
+
+                    var latitude = SnapshotDict.GetDouble(raw, "latitude");
+                    var longitude = SnapshotDict.GetDouble(raw, "longitude");
+                    if (latitude == null || longitude == null)
+                    {
+                        continue;
+                    }
+
+                    var name = SnapshotDict.GetString(raw, "name");
+                    var bodyName = SnapshotDict.GetString(raw, "body");
+                    int? bodyIndex = bodyName != null ? SharedMappers.ResolveBodyIndex(snapshot, bodyName) : null;
+                    var isStock = SnapshotDict.GetBool(raw, "isStock") ?? false;
+
+                    pois.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = name != null ? "launchSite:" + name : null,
+                        ["kind"] = isStock ? "ksc" : "launchSite",
+                        ["bodyIndex"] = bodyIndex,
+                        ["latitude"] = latitude,
+                        ["longitude"] = longitude,
+                        ["label"] = SnapshotDict.GetString(raw, "displayName") ?? name,
+                        ["status"] = null,
+                        ["contractAgent"] = null,
+                        ["contractFundsAdvance"] = null,
+                        ["contractFundsCompletion"] = null,
+                        ["contractDateDeadline"] = null,
+                    });
+                }
+            }
+
+            if (group.TryGetValue("contractTargets", out var rawTargets) && rawTargets is IEnumerable<object?> targetList)
+            {
+                foreach (var rawEntry in targetList)
+                {
+                    if (rawEntry is not IDictionary<string, object?> raw)
+                    {
+                        continue;
+                    }
+
+                    if (SnapshotDict.GetBool(raw, "isOnSurface") != true)
+                    {
+                        continue;
+                    }
+
+                    var status = MapContractStatus(SnapshotDict.GetString(raw, "contractState"));
+                    if (status == null)
+                    {
+                        continue;
+                    }
+
+                    var navigationId = SnapshotDict.GetString(raw, "navigationId");
+                    var celestialName = SnapshotDict.GetString(raw, "celestialName");
+                    int? bodyIndex = celestialName != null ? SharedMappers.ResolveBodyIndex(snapshot, celestialName) : null;
+
+                    pois.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = navigationId != null ? "contract:" + navigationId : null,
+                        ["kind"] = "contractTarget",
+                        ["bodyIndex"] = bodyIndex,
+                        ["latitude"] = SnapshotDict.GetDouble(raw, "latitude"),
+                        ["longitude"] = SnapshotDict.GetDouble(raw, "longitude"),
+                        ["label"] = SnapshotDict.GetString(raw, "contractTitle"),
+                        ["status"] = status,
+                        ["contractAgent"] = SnapshotDict.GetString(raw, "contractAgent"),
+                        ["contractFundsAdvance"] = SnapshotDict.GetDouble(raw, "contractFundsAdvance"),
+                        ["contractFundsCompletion"] = SnapshotDict.GetDouble(raw, "contractFundsCompletion"),
+                        ["contractDateDeadline"] = SnapshotDict.GetDouble(raw, "contractDateDeadline"),
+                    });
+                }
+            }
+
+            return pois;
+        }
+
+        /// <summary>
+        /// Folds a raw <c>Contracts.Contract.State</c> enum name onto the
+        /// <c>spaceCenter.pois</c> status a widget reads: <c>Active</c> →
+        /// <c>"active"</c>, <c>Offered</c> → <c>"available"</c>, every other
+        /// state (Completed/Failed/Declined/...) → <c>null</c>, which
+        /// <see cref="BuildPois"/> reads as "exclude this waypoint." Kept
+        /// internal-static so the provider test can assert the mapping
+        /// without a KSP reference.
+        /// </summary>
+        internal static string? MapContractStatus(string? rawState)
+        {
+            return rawState switch
+            {
+                "Active" => "active",
+                "Offered" => "available",
+                _ => null,
             };
         }
 

@@ -355,6 +355,7 @@ namespace Gonogo.KSP
                 AttachSpaceCenterGroup(values, "crewRoster", BuildCrewRoster);
                 AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut));
                 AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
+                AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
             }
             catch (Exception ex)
             {
@@ -1719,6 +1720,29 @@ namespace Gonogo.KSP
 
                 var body = site.Body;
 
+                // spaceCenter.pois needs a coordinate per site to place it on
+                // the map; the first spawn point that actually has one set
+                // (LaunchSite.SpawnPoint.latlonaltSet) wins - most sites carry
+                // exactly one, some (the stock pad) carry several equivalent
+                // ones. Both null when no spawn point has a set coordinate -
+                // SpaceCenterViewProvider.BuildPois skips such a site rather
+                // than emit a fabricated (0,0).
+                double? spawnLatitude = null;
+                double? spawnLongitude = null;
+                var spawnPoints = site.spawnPoints;
+                if (spawnPoints != null)
+                {
+                    foreach (var spawnPoint in spawnPoints)
+                    {
+                        if (spawnPoint != null && spawnPoint.latlonaltSet)
+                        {
+                            spawnLatitude = spawnPoint.latitude;
+                            spawnLongitude = spawnPoint.longitude;
+                            break;
+                        }
+                    }
+                }
+
                 sites.Add(new Dictionary<string, object?>
                 {
                     ["name"] = name,
@@ -1728,6 +1752,8 @@ namespace Gonogo.KSP
                     ["isStock"] = isStock,
                     ["padOccupied"] = isStockPad ? (object?)prelaunch : null,
                     ["padVesselTitle"] = isStockPad && prelaunch ? activeTitle : null,
+                    ["latitude"] = spawnLatitude,
+                    ["longitude"] = spawnLongitude,
                 });
             }
 
@@ -1735,6 +1761,56 @@ namespace Gonogo.KSP
             {
                 ["launchSites"] = sites,
             };
+        }
+
+        /// <summary>
+        /// Primitives-only snapshot of the surface contract-waypoint roster -
+        /// <c>FinePrint.WaypointManager.Instance().Waypoints</c> filtered down
+        /// to genuine contract targets (<c>contractReference != null</c>) that
+        /// sit on a surface (<c>isOnSurface</c>) - the raw contract state name
+        /// is passed through unfiltered (the Active/Offered inclusion decision
+        /// is <c>SpaceCenterViewProvider.BuildPois</c>'s job, the same
+        /// capture-&gt;provider split <see cref="BuildCrewRoster"/> uses for
+        /// <c>rosterStatus</c>). Returns <c>null</c> - the whole list - when
+        /// <c>WaypointManager.Instance()</c> isn't ready (pre-load / main
+        /// menu), so the provider distinguishes "no data yet" from "zero
+        /// targets."
+        /// </summary>
+        private static List<object?>? BuildContractTargets()
+        {
+            var manager = FinePrint.WaypointManager.Instance();
+            var waypoints = manager != null ? manager.Waypoints : null;
+            if (waypoints == null)
+            {
+                return null;
+            }
+
+            var targets = new List<object?>();
+            foreach (var wp in waypoints)
+            {
+                if (wp == null || wp.contractReference == null)
+                {
+                    continue;
+                }
+
+                var contract = wp.contractReference;
+                targets.Add(new Dictionary<string, object?>
+                {
+                    ["navigationId"] = wp.navigationId.ToString(),
+                    ["celestialName"] = wp.celestialName,
+                    ["latitude"] = wp.latitude,
+                    ["longitude"] = wp.longitude,
+                    ["isOnSurface"] = wp.isOnSurface,
+                    ["contractState"] = contract.ContractState.ToString(),
+                    ["contractTitle"] = contract.Title,
+                    ["contractAgent"] = contract.Agent != null ? contract.Agent.Name : null,
+                    ["contractFundsAdvance"] = contract.FundsAdvance,
+                    ["contractFundsCompletion"] = contract.FundsCompletion,
+                    ["contractDateDeadline"] = contract.DateDeadline,
+                });
+            }
+
+            return targets;
         }
 
         /// <summary>

@@ -93,10 +93,11 @@ namespace Sitrep.Core.Tests
             // Dictionary/List trees; these POCOs are TS-shape-only.
             "StageDeltaVEntry", "StageDeltaVSummary",
             // spaceCenter.* — SpaceCenterViewProvider.BuildLaunchSites/BuildScene/
-            // BuildCrewRoster/BuildSavedShips/BuildPartsAvailable hand-build
-            // Dictionary/List trees; these POCOs are TS-shape-only.
+            // BuildCrewRoster/BuildSavedShips/BuildPartsAvailable/BuildPois
+            // hand-build Dictionary/List trees; these POCOs are TS-shape-only.
             "LaunchSiteEntry", "SpaceCenterScene",
             "CrewRosterEntry", "SavedShipEntry", "SpaceCenterPartsAvailable",
+            "SpaceCenterPoiEntry",
             // parts.power / parts.robotics / robotics.available —
             // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
             // hand-build Dictionary<string, object?> trees; these POCOs are

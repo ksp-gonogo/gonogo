@@ -127,6 +127,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // kc.padOccupied/kc.padVesselTitle pair — must be promoted or those reads
   // silently stay on the legacy Telemachus source.
   "spaceCenter.launchSites",
+  // spaceCenter.pois: the map points-of-interest feed (KSC/launch sites +
+  // active/offered contract targets) MapView's vanilla POI provider reads,
+  // a brand-new topic with no legacy Telemachus equivalent, so the stream is
+  // its only source of data.
+  "spaceCenter.pois",
   // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
   // record and its companion "a notable crash happened recently" flag. Raw
   // wire topics — the gate promotes at raw-topic granularity — so a widget
