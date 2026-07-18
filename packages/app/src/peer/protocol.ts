@@ -3,8 +3,6 @@ import type {
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
-  KosData,
-  KosScriptArg,
 } from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
 
@@ -69,8 +67,10 @@ export type PeerMessage =
   // `t` is the host's sample timestamp, optional so partial deploys stay
   // wire-compatible — the client falls back to Date.now() when absent.
   | { type: "data"; sourceId: string; key: string; value: unknown; t?: number }
+  // Station → host: fire-and-forget action dispatch. No `requestId`/reply —
+  // `execute-result` used to exist as a reply variant but was never
+  // constructed or handled anywhere (dead code, removed).
   | { type: "execute"; sourceId: string; action: string }
-  | { type: "execute-result"; sourceId: string; action: string; error?: string }
   | {
       type: "query-range-request";
       requestId: string;
@@ -105,24 +105,36 @@ export type PeerMessage =
       peerId: string | null;
       iceServers?: RTCIceServer[];
     }
-  // Station → host: relay ONE kerbcast WebRTC offer through the main screen so a
-  // station never needs the sidecar's address. The host forwards the offer to
-  // the sidecar's HTTP `/offer` (only the main screen can reach it) and returns
-  // the answer. Signaling ONLY — the PeerConnection this sets up carries media
-  // station↔sidecar *directly*: the answer SDP's ICE candidates locate the
-  // sidecar, and TURN creds from the `relay-peer-id` broadcast cover the non-LAN
-  // hop. Nothing about the video frames crosses PeerJS. requestId-correlated
-  // like `query-range-*`.
+  // Station → host: relay a single call through to a host-side handle
+  // registered for `uplinkId` (see `@ksp-gonogo/core`'s
+  // `registerUplinkHandle`/`getUplinkHandle`). Generic replacement for what
+  // used to be one hardcoded request/response pair per Uplink (in-game
+  // script dispatch, camera WebRTC offer/answer signaling) — a station
+  // never talks to the underlying system directly (see the app's "main
+  // screen is the sole KSP data consumer" constraint), so any Uplink action
+  // a station triggers has to relay through the host and come back.
+  // `method`/`args` are opaque to the peer layer; each Uplink's own client
+  // code owns casting them to its real shape. requestId-correlated like
+  // `query-range-*`.
   | {
-      type: "kerbcast-negotiate-request";
+      type: "uplink-relay-request";
       requestId: string;
-      offer: { sdp: string; cameras: number[]; slots?: number };
+      uplinkId: string;
+      method: string;
+      args: unknown;
     }
   | {
-      type: "kerbcast-negotiate-response";
+      type: "uplink-relay-response";
       requestId: string;
-      answer?: { sdp: string; cameras: number[] };
+      result?: unknown;
       error?: string;
+      // Free-form bag for Uplink-specific error classification that doesn't
+      // fit a plain string (e.g. distinguishing a script-author fault from a
+      // transport fault). The peer layer never reads this; it exists purely
+      // so the calling Uplink's own client code can pull typed fields back
+      // out. Absent when there's no error, or when the Uplink has nothing
+      // extra to say.
+      errorMeta?: Record<string, unknown>;
     }
   // Host → station: the operator's technical-analytics consent. Sent to
   // each station on connect (right after schema) and re-broadcast whenever
@@ -210,42 +222,6 @@ export type PeerMessage =
       height: number;
     }
   | { type: "widget-recall"; widgetInstanceId: string }
-  // ──────────────────────────────────────────────────────────────────────
-  // kOS compute script execution tunnel. Stations can't talk to the
-  // telnet proxy directly (only the main screen can), so station-side
-  // useKosWidget dispatches turn into `kos-execute-request` messages
-  // routed to the host's KosDataSource. The host replies with
-  // `kos-execute-response` keyed by the same requestId.
-  // ──────────────────────────────────────────────────────────────────────
-  | {
-      type: "kos-execute-request";
-      requestId: string;
-      cpu: string;
-      script: string;
-      args: KosScriptArg[];
-      /**
-       * When set, the host's KosDataSource auto-syncs `script` on the kOS
-       * volume to `managed.body` before RUNPATH. Lets stations benefit
-       * from the same auto-upload that main-screen widgets get — without
-       * it, a station that dispatches a script the main screen has never
-       * run would hit "file not found" on the kOS volume.
-       */
-      managed?: import("@ksp-gonogo/data").KosManagedScript;
-    }
-  | {
-      type: "kos-execute-response";
-      requestId: string;
-      data?: KosData;
-      error?: string;
-      /**
-       * Set when `error` originates from the running kerboscript (explicit
-       * [KOSERROR] or kOS runtime exception), as opposed to transport /
-       * timeout / session-death. Stations re-raise these as
-       * `KosScriptError` so the interval-mode breaker only counts real
-       * script bugs and not flaky proxy hops.
-       */
-      isScriptError?: boolean;
-    }
   // ──────────────────────────────────────────────────────────────────────
   // Internal mission alarms. The main screen owns the canonical list and
   // warp-step ladder; stations get a live snapshot and can add/update/
