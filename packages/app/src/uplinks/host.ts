@@ -15,12 +15,10 @@
 
 import {
   AugmentSlot,
-  getDataSource,
   getGameHost,
   PerfBudget,
   registerAugment,
   registerComponent,
-  registerDataSource,
   registerTheme,
   subscribeSetting,
   useActionInput,
@@ -61,8 +59,6 @@ export function buildGonogoHost(): GonogoHost {
   const host: Loose = {
     registerComponent: (def) =>
       registerComponent(def as Parameters<typeof registerComponent>[0]),
-    registerDataSource: (def) =>
-      registerDataSource(def as Parameters<typeof registerDataSource>[0]),
     registerTheme: (def) =>
       registerTheme(def as Parameters<typeof registerTheme>[0]),
     registerAugment: (def) =>
@@ -88,8 +84,6 @@ export function buildGonogoHost(): GonogoHost {
     useDataSchema: (sourceId) => useDataSchema(sourceId),
     useReplaySessionActive: () => useReplaySessionActive(),
 
-    getDataSource: (id) =>
-      getDataSource(id) as ReturnType<GonogoHost["getDataSource"]>,
     getGameHost: () => getGameHost(),
     subscribeSetting: (key, cb) => subscribeSetting(key, cb),
 

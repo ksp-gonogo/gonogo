@@ -23,10 +23,6 @@ import type {
   ComponentDefinition as SdkComponentDefinition,
   ComponentProps as SdkComponentProps,
   ConfigComponentProps as SdkConfigComponentProps,
-  ConfigField as SdkConfigField,
-  DataKey as SdkDataKey,
-  DataSource as SdkDataSource,
-  DataSourceStatus as SdkDataSourceStatus,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   StreamStatusValue as SdkStreamStatusValue,
   ThemeDefinition as SdkThemeDefinition,
@@ -73,23 +69,6 @@ type _PerfBack = Expect<
 // facade view — is asserted.
 type _Theme = Expect<Assignable<Core.ThemeDefinition, SdkThemeDefinition>>;
 
-// DataSource-author SPI (Phase 0.4): registerDataSource/getDataSource are
-// typed against the mirror, so both directions matter — an author's def must
-// satisfy core's real registerDataSource, and a source read back via
-// getDataSource must satisfy the author-facing view.
-type _DataSource = Expect<Assignable<SdkDataSource, Core.DataSource>>;
-type _DataSourceBack = Expect<Assignable<Core.DataSource, SdkDataSource>>;
-type _DataSourceStatus = Expect<
-  Assignable<SdkDataSourceStatus, Core.DataSourceStatus>
->;
-type _DataSourceStatusBack = Expect<
-  Assignable<Core.DataSourceStatus, SdkDataSourceStatus>
->;
-type _ConfigField = Expect<Assignable<SdkConfigField, Core.ConfigField>>;
-type _ConfigFieldBack = Expect<Assignable<Core.ConfigField, SdkConfigField>>;
-type _DataKey = Expect<Assignable<SdkDataKey, Core.DataKey>>;
-type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
-
 // Stream SPI (Phase 0.4): StreamStatusValue is owned by sitrep-client, not
 // core, but core carries a real dependency on sitrep-client so it is visible
 // here too — same drift-guard shape as the core-owned types above.
@@ -114,14 +93,6 @@ export type _SdkFacadeConformance = [
   _Perf,
   _PerfBack,
   _Theme,
-  _DataSource,
-  _DataSourceBack,
-  _DataSourceStatus,
-  _DataSourceStatusBack,
-  _ConfigField,
-  _ConfigFieldBack,
-  _DataKey,
-  _DataKeyBack,
   _StreamStatus,
   _StreamStatusBack,
 ];

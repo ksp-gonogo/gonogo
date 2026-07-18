@@ -23,7 +23,6 @@ import type {
   ActionHandlers,
   AugmentDefinition,
   ComponentDefinition,
-  DataSource,
   PerfBudgetHandle,
   PerfBudgetOptions,
   ThemeDefinition,
@@ -40,7 +39,6 @@ export interface GonogoHost {
   registerComponent<TConfig = Record<string, unknown>>(
     def: ComponentDefinition<TConfig>,
   ): void;
-  registerDataSource(def: DataSource): void;
   registerTheme(def: ThemeDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
 
@@ -93,15 +91,6 @@ export interface GonogoHost {
   /** Whether a recorded-flight replay session is currently active. */
   useReplaySessionActive(): boolean;
 
-  /**
-   * Reach a data source already registered in the app's single registry — for
-   * an Uplink that AUTHORS its own `DataSource` to make imperative calls on
-   * the instance it registered itself. The "hooks are the boundary" rule
-   * (`useDataValue`/`useExecuteAction`) still holds for a CONSUMER widget;
-   * this accessor is for the author reaching the source it registered
-   * itself, not a bypass for ordinary data reads.
-   */
-  getDataSource(id: string): DataSource | undefined;
   /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
   getGameHost(): string;
   /** Subscribe to any change (saved OR seeded) for one shared settings key. */

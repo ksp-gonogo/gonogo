@@ -3,10 +3,15 @@ import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
 /**
- * Phase 0.4 additions — stream SPI, data introspection, and the
- * DataSource-author SPI. Same injected-host contract as every other stateful
- * member (design §4.3 / D-A): fail loud with no host installed, resolve to
- * the injected host's own implementation once one is.
+ * Phase 0.4 additions — stream SPI, data introspection, and the game-host
+ * SPI. Same injected-host contract as every other stateful member (design
+ * §4.3 / D-A): fail loud with no host installed, resolve to the injected
+ * host's own implementation once one is. The DataSource-author SPI
+ * (registerDataSource/getDataSource) that used to live here was removed
+ * (kos migration, 2026-07-18) — it had zero production consumers
+ * independent of kos, and first-party code always imports
+ * @ksp-gonogo/core's registerDataSource/getDataSource directly rather than
+ * through this facade.
  */
 describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
   afterEach(() => {
@@ -92,29 +97,7 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
     });
   });
 
-  describe("DataSource-author SPI", () => {
-    it("registerDataSource fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      const def = { id: "example-ds" } as unknown as barrel.DataSource;
-      expect(() => barrel.registerDataSource(def)).toThrow(named);
-
-      const registerDataSource = vi.fn();
-      installTestHost({ registerDataSource });
-      barrel.registerDataSource(def);
-      expect(registerDataSource).toHaveBeenCalledWith(def);
-    });
-
-    it("getDataSource fails LOUD with no host, resolves once installed (reaching one's own source)", () => {
-      resetTestHost();
-      expect(() => barrel.getDataSource("example-ds")).toThrow(named);
-
-      const fakeSource = { id: "example-ds" } as unknown as barrel.DataSource;
-      const getDataSource = vi.fn().mockReturnValue(fakeSource);
-      installTestHost({ getDataSource });
-      expect(barrel.getDataSource("example-ds")).toBe(fakeSource);
-      expect(getDataSource).toHaveBeenCalledWith("example-ds");
-    });
-
+  describe("game-host SPI", () => {
     it("getGameHost fails LOUD with no host, resolves once installed", () => {
       resetTestHost();
       expect(() => barrel.getGameHost()).toThrow(named);

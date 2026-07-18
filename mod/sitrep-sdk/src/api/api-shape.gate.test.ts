@@ -18,13 +18,11 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "GAME_HOST_KEY",
   "GONOGO_HOST_KEY",
   "createPerfBudget",
-  "getDataSource",
   "getGameHost",
   "hasHost",
   "logger",
   "registerAugment",
   "registerComponent",
-  "registerDataSource",
   "registerTheme",
   "safeRandomUuid",
   "subscribeSetting",
@@ -72,7 +70,6 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     ).toThrow(named);
     expect(() => barrel.registerTheme({} as never)).toThrow(named);
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
-    expect(() => barrel.registerDataSource({})).toThrow(named);
     expect(() => barrel.useDataValue("kos", "k")).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.createPerfBudget({ name: "b", threshold: 1 })).toThrow(
