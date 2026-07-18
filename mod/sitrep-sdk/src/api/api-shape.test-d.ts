@@ -24,8 +24,6 @@ import type {
   DataSource,
   DataSourceStatus,
   GonogoHost,
-  KosScriptDefinition,
-  KosScriptField,
   Logger,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -59,8 +57,6 @@ declare const _slotId: SlotId;
 declare const _slotProps: SlotProps<"slot">;
 declare const _slotRegistry: SlotRegistry;
 declare const _themeDef: ThemeDefinition;
-declare const _kosDef: KosScriptDefinition;
-declare const _kosField: KosScriptField;
 declare const _perfOpts: PerfBudgetOptions;
 declare const _perfHandle: PerfBudgetHandle;
 declare const _useCommandResult: UseCommandResult;
@@ -101,8 +97,6 @@ export type _ApiShapeProbe = [
   typeof _slotProps,
   typeof _slotRegistry,
   typeof _themeDef,
-  typeof _kosDef,
-  typeof _kosField,
   typeof _perfOpts,
   typeof _perfHandle,
   typeof _useCommandResult,

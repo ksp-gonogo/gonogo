@@ -19,14 +19,17 @@
  * See local_docs/centralised_kos_compute.md for the full design.
  */
 
-import type { DataKey, KosScriptDefinition } from "@ksp-gonogo/core";
-import { getKosScript, getKosScripts, PerfBudget } from "@ksp-gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import {
+  getKosScript,
+  getKosScripts,
   hashKosScript,
   isKosScriptError,
   type KosData,
   type KosManagedScript,
   type KosScriptArg,
+  type KosScriptDefinition,
 } from "@ksp-gonogo/kos";
 import { logger } from "@ksp-gonogo/logger";
 

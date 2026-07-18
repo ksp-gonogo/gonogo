@@ -308,6 +308,24 @@ const ALLOWLIST: Record<ModToken, string[]> = {
     "packages/app/src/screens/MainScreen.tsx",
     "packages/app/src/telemetry/SitrepPeerRelay.tsx",
 
+    // -- kos migration (2026-07-18), Task 4: CpuRegistryService/
+    // CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
+    // StationScreen constructs its own CpuRegistryService and wraps
+    // <CpuRegistryProvider> exactly as MainScreen already does (see the
+    // MainScreen.tsx HARD-violation entry above) — same "moved, not
+    // removed" pattern the kerbcast migration's own MainScreen.tsx/
+    // StationScreen.tsx entries above already establish for its Uplink.
+    "packages/app/src/screens/StationScreen.tsx",
+    // Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
+    // kosChromeProvider self-registration (via CpuRegistryProvider/
+    // CpuRegistryService, both re-exported by @ksp-gonogo/kos) rather than
+    // hand-rolling a bespoke fixture — the more honest integration test per
+    // this repo's "mock as little as possible" philosophy, and the path the
+    // migration plan's Task 5 itself prefers.
+    "packages/app/src/__tests__/component-overlay-add.test.tsx",
+    "packages/app/src/__tests__/dashboard-error-boundary.test.tsx",
+    "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
+
     // -- GRAY — contract/SDK layer (real kOS POCOs, not just topic strings) --
     "mod/Sitrep.Contract/ContractVersion.cs",
     "mod/Sitrep.Contract/KosCommands.cs",

@@ -151,21 +151,6 @@ export interface AugmentDefinition<S extends string = string> {
   settings?: readonly AugmentSettingField[];
 }
 
-// --- Centralised kOS scripts ------------------------------------------------
-
-export interface KosScriptField {
-  name: string;
-  type: "json" | "scalar";
-}
-
-export interface KosScriptDefinition {
-  id: string;
-  name: string;
-  script: string;
-  intervalMs: number;
-  fields: KosScriptField[];
-}
-
 // --- Performance budgets ----------------------------------------------------
 
 export interface PerfBudgetOptions {

@@ -25,7 +25,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerAugment",
   "registerComponent",
   "registerDataSource",
-  "registerKosScript",
   "registerTheme",
   "safeRandomUuid",
   "subscribeSetting",
@@ -71,7 +70,6 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
         component: () => null,
       }),
     ).toThrow(named);
-    expect(() => barrel.registerKosScript({} as never)).toThrow(named);
     expect(() => barrel.registerTheme({} as never)).toThrow(named);
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.registerDataSource({})).toThrow(named);

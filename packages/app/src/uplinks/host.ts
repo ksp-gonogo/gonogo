@@ -21,7 +21,6 @@ import {
   registerAugment,
   registerComponent,
   registerDataSource,
-  registerKosScript,
   registerTheme,
   subscribeSetting,
   useActionInput,
@@ -66,8 +65,6 @@ export function buildGonogoHost(): GonogoHost {
       registerDataSource(def as Parameters<typeof registerDataSource>[0]),
     registerTheme: (def) =>
       registerTheme(def as Parameters<typeof registerTheme>[0]),
-    registerKosScript: (def) =>
-      registerKosScript(def as Parameters<typeof registerKosScript>[0]),
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
 

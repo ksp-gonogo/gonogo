@@ -2,22 +2,27 @@
 //
 // Co-located with the GonogoKosUplink C# mod (mod/GonogoKosUplink): one directory holds
 // the mod and the client TS it ships (Uplink architecture §1). Importing this
-// package's entry point side-effects the widget + kOS-script registrations into
-// @ksp-gonogo/core's global registries:
+// package's entry point side-effects the widget registrations into
+// @ksp-gonogo/core's global registry:
 //
 //   - the kOS widgets (KosProcessors, KosFiles, KosTerminal, KosScriptRunner,
 //     KosWidget, KosWrapperTester) → registerComponent(...) so they are
 //     placeable from the dashboard widget picker.
-//   - the KosProcessors "processors" feed → registerKosScript(...) so the
-//     centralised kOS compute loop fans its payload out to subscribers.
+//   - the CPU registry → registerChromeProvider(...) so generic dashboard
+//     chrome (ComponentOverlay, WidgetGearMenu) can re-supply it around
+//     portal-rendered config UI without importing anything kOS-named.
 //
 // To wire it into the app: `import "@ksp-gonogo/kos";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
-// The kOS DATA SOURCE (KosDataSource + the useKosWidget / useKosScriptStatus
-// hooks) stays in the app / @ksp-gonogo/data — these widgets consume kOS purely
-// through those hooks and the @ksp-gonogo/core registry, so the client bundles no
-// transport of its own (unlike @ksp-gonogo/kerbcast).
+// Everything kOS-specific now lives in this package: the centralised
+// kerboscript registry (registerKosScript/getKosScripts, `shared/
+// scriptRegistry.ts` — a kOS-owned mechanism per the migration plan's
+// explicit "no generalising" call, not a core-generic extension point), the
+// CPU registry, the [KOSDATA] parser, and (moving here next) the
+// KosDataSource transport itself. It is NOT a thin UI-only client over an
+// app-side transport — see the kos migration plan (2026-07-18) for the
+// full before/after.
 
 export * from "./KosFiles";
 export * from "./KosProcessors";

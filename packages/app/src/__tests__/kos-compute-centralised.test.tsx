@@ -10,8 +10,12 @@
  * their modules — these tests are about the wiring through KosDataSource.
  */
 
-import { clearRegistry, registerKosScript } from "@ksp-gonogo/core";
-import { hashKosScript } from "@ksp-gonogo/kos";
+import { clearRegistry } from "@ksp-gonogo/core";
+import {
+  clearKosScripts,
+  hashKosScript,
+  registerKosScript,
+} from "@ksp-gonogo/kos";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
 import { FakeKosUplink } from "./fixtures/FakeKosUplink";
@@ -63,6 +67,12 @@ describe("kOS compute centralised fanout", () => {
   afterEach(() => {
     FakeKosUplink.uninstall();
     clearRegistry();
+    // clearRegistry() no longer clears the kOS script registry — that
+    // registry moved into @ksp-gonogo/kos (core can't depend on a mod
+    // Uplink package) — so tests that register a script need to clear it
+    // themselves. Several `it()` blocks below assert an exact schema-key
+    // count, which would drift if a prior test's registration lingered.
+    clearKosScripts();
   });
 
   it("delivers parsed JSON values to a subscriber", async () => {
