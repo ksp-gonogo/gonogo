@@ -1,11 +1,10 @@
 import "fake-indexeddb/auto";
-import { SCAN_TYPE } from "@ksp-gonogo/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FogMaskCache } from "./FogMaskCache";
 import { FogMaskStore } from "./FogMaskStore";
 
-const HI = SCAN_TYPE.AltimetryHiRes;
-const LO = SCAN_TYPE.AltimetryLoRes;
+const HI = "altimetry-hi";
+const LO = "altimetry-lo";
 
 function makeCache(opts?: { flushDebounceMs?: number }) {
   const store = new FogMaskStore({
@@ -27,12 +26,12 @@ describe("FogMaskCache", () => {
   it("allocates a zeroed mask on first acquire", async () => {
     const { cache } = makeCache();
     const mask = await cache.acquire("Kerbin", HI);
-    expect(mask.scanType).toBe(HI);
+    expect(mask.layerId).toBe(HI);
     expect(mask.data).toHaveLength(8);
     expect(Array.from(mask.data)).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
-  it("returns the same mask instance on repeat acquire for one (body, scanType)", async () => {
+  it("returns the same mask instance on repeat acquire for one (body, layerId)", async () => {
     const { cache } = makeCache();
     const m1 = await cache.acquire("Kerbin", HI);
     const m2 = await cache.acquire("Kerbin", HI);
@@ -44,14 +43,14 @@ describe("FogMaskCache", () => {
     const hi = await cache.acquire("Kerbin", HI);
     const lo = await cache.acquire("Kerbin", LO);
     expect(hi).not.toBe(lo);
-    expect(hi.scanType).toBe(HI);
-    expect(lo.scanType).toBe(LO);
+    expect(hi.layerId).toBe(HI);
+    expect(lo.layerId).toBe(LO);
     // Mutating one type's mask must not leak into the other.
     hi.data[0] = 200;
     expect(lo.data[0]).toBe(0);
   });
 
-  it("dedupes concurrent acquires for the same (body, scanType)", async () => {
+  it("dedupes concurrent acquires for the same (body, layerId)", async () => {
     const { cache } = makeCache();
     const [m1, m2] = await Promise.all([
       cache.acquire("Kerbin", HI),
@@ -97,7 +96,7 @@ describe("FogMaskCache", () => {
     expect(reloaded.data[0]).toBe(77);
   });
 
-  it("notifies subscribers on markDirty for the matching scanType only", async () => {
+  it("notifies subscribers on markDirty for the matching layerId only", async () => {
     const { cache } = makeCache();
     const hi = await cache.acquire("Kerbin", HI);
     await cache.acquire("Kerbin", LO);
@@ -110,7 +109,7 @@ describe("FogMaskCache", () => {
     expect(loSpy).not.toHaveBeenCalled();
   });
 
-  it("clear wipes in-memory bytes and the IDB record for one (body, scanType)", async () => {
+  it("clear wipes in-memory bytes and the IDB record for one (body, layerId)", async () => {
     const { store, cache } = makeCache();
     const hi = await cache.acquire("Kerbin", HI);
     const lo = await cache.acquire("Kerbin", LO);
@@ -190,5 +189,16 @@ describe("FogMaskCache", () => {
     await Promise.resolve();
     expect(mask.data[0]).toBe(42);
     expect(mask.data[1]).toBe(99);
+  });
+
+  it("keeps two arbitrary-string layerIds independent for one body (generalisation)", async () => {
+    const { cache } = makeCache();
+    const a = await cache.acquire("Kerbin", "kerbcast:cameraFootprint");
+    const b = await cache.acquire("Kerbin", "some-future-uplink:coverage-v2");
+    expect(a).not.toBe(b);
+    expect(a.layerId).toBe("kerbcast:cameraFootprint");
+    expect(b.layerId).toBe("some-future-uplink:coverage-v2");
+    a.data[0] = 200;
+    expect(b.data[0]).toBe(0);
   });
 });

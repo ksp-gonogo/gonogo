@@ -1,5 +1,4 @@
 import "fake-indexeddb/auto";
-import { SCAN_TYPE } from "@ksp-gonogo/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { FogMaskStore } from "./FogMaskStore";
 
@@ -8,9 +7,9 @@ function freshStore(): FogMaskStore {
   return new FogMaskStore({ dbName: `gonogo-fog-test-${Math.random()}` });
 }
 
-const HI = SCAN_TYPE.AltimetryHiRes;
-const LO = SCAN_TYPE.AltimetryLoRes;
-const BIOME = SCAN_TYPE.Biome;
+const HI = "altimetry-hi";
+const LO = "altimetry-lo";
+const BIOME = "biome";
 
 describe("FogMaskStore", () => {
   let store: FogMaskStore;
@@ -29,20 +28,20 @@ describe("FogMaskStore", () => {
     await store.save("profile-1", "Kerbin", HI, data, 2, 2);
     const loaded = await store.load("profile-1", "Kerbin", HI);
     expect(loaded).not.toBeNull();
-    expect(loaded?.scanType).toBe(HI);
+    expect(loaded?.layerId).toBe(HI);
     expect(loaded?.width).toBe(2);
     expect(loaded?.height).toBe(2);
     expect(Array.from(loaded?.data ?? [])).toEqual([10, 20, 30, 40]);
   });
 
-  it("isolates masks by scanType so AltLoRes and AltHiRes coexist", async () => {
+  it("isolates masks by layerId so AltLoRes and AltHiRes coexist", async () => {
     await store.save("p", "Kerbin", LO, new Uint8Array([1]), 1, 1);
     await store.save("p", "Kerbin", HI, new Uint8Array([2]), 1, 1);
     expect((await store.load("p", "Kerbin", LO))?.data[0]).toBe(1);
     expect((await store.load("p", "Kerbin", HI))?.data[0]).toBe(2);
   });
 
-  it("overwrites on re-save for the same (profile, body, scanType)", async () => {
+  it("overwrites on re-save for the same (profile, body, layerId)", async () => {
     await store.save("p", "Kerbin", HI, new Uint8Array([1]), 1, 1);
     await store.save("p", "Kerbin", HI, new Uint8Array([2]), 1, 1);
     const loaded = await store.load("p", "Kerbin", HI);
@@ -60,7 +59,7 @@ describe("FogMaskStore", () => {
     expect((await store.load("p1", "Kerbin", LO))?.data[0]).toBe(4);
   });
 
-  it("clear removes only the specified (profile, body, scanType)", async () => {
+  it("clear removes only the specified (profile, body, layerId)", async () => {
     await store.save("p", "Kerbin", HI, new Uint8Array([1]), 1, 1);
     await store.save("p", "Kerbin", LO, new Uint8Array([2]), 1, 1);
     await store.save("p", "Mun", HI, new Uint8Array([3]), 1, 1);
@@ -70,7 +69,7 @@ describe("FogMaskStore", () => {
     expect(await store.load("p", "Mun", HI)).not.toBeNull();
   });
 
-  it("clearBody removes every scanType for a body but leaves other bodies alone", async () => {
+  it("clearBody removes every layerId for a body but leaves other bodies alone", async () => {
     await store.save("p", "Kerbin", HI, new Uint8Array([1]), 1, 1);
     await store.save("p", "Kerbin", LO, new Uint8Array([2]), 1, 1);
     await store.save("p", "Kerbin", BIOME, new Uint8Array([3]), 1, 1);
@@ -103,11 +102,11 @@ describe("FogMaskStore", () => {
 
     const masks = await store.loadAllForProfile("p1");
     expect(masks).toHaveLength(3);
-    // Each row carries its scanType — used by FogSyncHostService to route
+    // Each row carries its layerId — used by FogSyncHostService to route
     // station-bound payloads to the right per-type slot.
     const byKey = new Map(
       masks.map((m) => [
-        `${m.key.split(":")[1]}:${m.scanType}`,
+        `${m.key.split(":")[1]}:${m.layerId}`,
         Array.from(m.data),
       ]),
     );

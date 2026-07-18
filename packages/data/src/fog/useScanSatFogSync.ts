@@ -69,7 +69,11 @@ export function useScanSatFogSync(
     // Without the acquire, the cache has no entry → markDirty no-ops →
     // the first push silently drops on the floor.
     for (const scanType of FOG_SCAN_TYPES) {
-      void cache.acquire(body.id, scanType).then((mask) => {
+      // FogMaskCache keys on an opaque string layerId; SCANsat's scan types
+      // are still a numeric bit-value enum here (unaffected by this
+      // package's own generalisation), so stringify at the boundary.
+      const layerId = String(scanType);
+      void cache.acquire(body.id, layerId).then((mask) => {
         if (cancelled) return;
         const key = `scansat.mask.${body.name}.${scanType}`;
         const unsub = source.subscribe(key, (value) => {
@@ -87,7 +91,7 @@ export function useScanSatFogSync(
             mask,
             body,
           );
-          if (changed) cache.markDirty(body.id, scanType);
+          if (changed) cache.markDirty(body.id, layerId);
         });
         unsubs.push(unsub);
       });

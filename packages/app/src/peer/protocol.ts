@@ -153,13 +153,14 @@ export type PeerMessage =
       type: "fog-snapshot";
       masks: Array<{
         bodyId: string;
-        // Per-type scan-coverage bitfield (e.g. 1=AltLoRes, 2=AltHiRes,
-        // 8=Biome, 128=ResLoRes, 256=ResHiRes — SCANsat's SCANtype enum).
-        // Each mask routes to its own slot on the station so the display
-        // can apply HiRes-over-LoRes precedence the same way the host
-        // does. Pre-rework this field was absent and the station treated
-        // every payload as the AltHiRes channel.
-        scanType: number;
+        // Opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes" —
+        // matches an id a reveal source registers via
+        // registerFogRevealSource. Each mask routes to its own slot on
+        // the station so the display can apply HiRes-over-LoRes
+        // precedence the same way the host does. Pre-rework this field
+        // was absent and the station treated every payload as the
+        // AltHiRes channel.
+        layerId: string;
         width: number;
         height: number;
         // Raw alpha bytes (0 = fogged, 255 = imaged) — same shape as the

@@ -1,4 +1,3 @@
-import type { SCANType } from "@ksp-gonogo/core";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { FogMaskCache } from "./FogMaskCache";
@@ -95,7 +94,7 @@ export function useFogMaskCache(): FogMaskCache | null {
 }
 
 /**
- * Acquire the mask for a single (body, scanType) and re-render on mutation.
+ * Acquire the mask for a single (body, layerId) and re-render on mutation.
  * Returns the mask plus a monotonically-increasing version counter so
  * effects that depend on "mask changed" can key off it without comparing
  * bytes.
@@ -105,7 +104,7 @@ export function useFogMaskCache(): FogMaskCache | null {
  */
 export function useBodyFogMask(
   bodyId: string | undefined,
-  scanType: SCANType | undefined,
+  layerId: string | undefined,
 ): {
   mask: import("./FogMaskCache").BodyMask | undefined;
   version: number;
@@ -116,24 +115,24 @@ export function useBodyFogMask(
     version: number;
   }>(() => ({
     mask:
-      cache && bodyId && scanType !== undefined
-        ? cache.get(bodyId, scanType)
+      cache && bodyId && layerId !== undefined
+        ? cache.get(bodyId, layerId)
         : undefined,
     version: 0,
   }));
 
   useEffect(() => {
-    if (!cache || !bodyId || scanType === undefined) {
+    if (!cache || !bodyId || layerId === undefined) {
       setState({ mask: undefined, version: 0 });
       return;
     }
     let cancelled = false;
-    const initial = cache.get(bodyId, scanType);
+    const initial = cache.get(bodyId, layerId);
     setState({ mask: initial, version: 0 });
-    const unsub = cache.onChange(bodyId, scanType, (m) =>
+    const unsub = cache.onChange(bodyId, layerId, (m) =>
       setState((prev) => ({ mask: m, version: prev.version + 1 })),
     );
-    cache.acquire(bodyId, scanType).then((m) => {
+    cache.acquire(bodyId, layerId).then((m) => {
       if (cancelled) return;
       setState((prev) => ({ mask: m, version: prev.version + 1 }));
     });
@@ -141,7 +140,7 @@ export function useBodyFogMask(
       cancelled = true;
       unsub();
     };
-  }, [cache, bodyId, scanType]);
+  }, [cache, bodyId, layerId]);
 
   return state;
 }
