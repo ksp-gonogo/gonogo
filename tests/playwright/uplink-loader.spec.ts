@@ -10,7 +10,7 @@ import { PORTS } from "../../playwright.config";
  *     standalone ESM bundle (/uplinks/<id>.client.js) and import()ed at runtime,
  *     its bare imports resolving through the baked import map to the app's
  *     singleton chunks, so its module-load registerComponent writes into the app's
- *     ONE registry (`scanning` + `kos-processors` both appear);
+ *     ONE registry (`scanning` + `kos-terminal` both appear);
  *  2. the injected SDK host is installed on globalThis;
  *  3. flag OFF, both widgets are still present via the bundled static imports — the
  *     fallback the design forbids removing until the loaded path is triple-engine
@@ -75,12 +75,12 @@ test.describe("Uplink loader (dual-path)", () => {
 
     // Singleton proof: each loaded bundle's registerComponent wrote into the app's
     // ONE registry — a scansat widget (`scanning`) and a kos widget
-    // (`kos-processors`) are both present, resolved through the import map.
+    // (`kos-terminal`) are both present, resolved through the import map.
     await expect
       .poll(
         async () => {
           const ids = await registeredComponentIds(page);
-          return ids.includes("scanning") && ids.includes("kos-processors");
+          return ids.includes("scanning") && ids.includes("kos-terminal");
         },
         { timeout: 15_000 },
       )
@@ -115,7 +115,7 @@ test.describe("Uplink loader (dual-path)", () => {
       .poll(
         async () => {
           const ids = await registeredComponentIds(page);
-          return ids.includes("scanning") && ids.includes("kos-processors");
+          return ids.includes("scanning") && ids.includes("kos-terminal");
         },
         { timeout: 15_000 },
       )
