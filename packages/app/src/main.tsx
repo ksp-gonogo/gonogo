@@ -29,7 +29,11 @@ import "./notes/NotesComponent"; // app-level component — registers on import
 import App from "./App";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
-import { LOADER_UPLINK_IDS, uplinkLoaderEnabled } from "./uplinks/flag";
+import {
+  LOADER_UPLINK_IDS,
+  loaderBootIdsOverride,
+  uplinkLoaderEnabled,
+} from "./uplinks/flag";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
 import { recordBundledOutcomes } from "./uplinks/loaderState";
@@ -99,7 +103,7 @@ async function registerScansatAndRender(): Promise<void> {
       const roster = await probeUplinkRoster();
       await loadEnabledUplinks({
         registrySource: localRegistrySource(),
-        enabledIds: [...LOADER_UPLINK_IDS],
+        enabledIds: loaderBootIdsOverride() ?? [...LOADER_UPLINK_IDS],
         hostCompat,
         appVersion: VERSION,
         roster,
