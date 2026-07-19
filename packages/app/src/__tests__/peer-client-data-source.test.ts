@@ -197,7 +197,7 @@ describe("PeerClientDataSource", () => {
     const fake = makeFakeClient();
     const source = new PeerClientDataSource("data", "Data", fake.service);
 
-    // Nothing seen yet — readers that snapshot synchronously (useKosWidget
+    // Nothing seen yet — readers that snapshot synchronously (a widget
     // resolving a telemetry arg at dispatch time) get undefined.
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
 

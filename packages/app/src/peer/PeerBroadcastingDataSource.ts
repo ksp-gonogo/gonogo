@@ -37,34 +37,6 @@ type LatestValueAware = {
   getLatestValue: (key: string) => unknown;
 };
 
-type ConfigChangeAware = {
-  onConfigChange: (cb: () => void) => () => void;
-};
-
-// Generic, mod-agnostic structural type for a wrapped source that can
-// dispatch a script and resolve with some result. Deliberately untyped
-// beyond that shape — no kOS-specific arg/result types — so this generic
-// peer-distribution wrapper never needs to depend on any specific Uplink
-// package. kOS's own typed contract (ScriptableDataSource) lives in the kos
-// Uplink; KosDataSource's more specific executeScript still satisfies this
-// looser shape structurally.
-type ExecuteScriptAware = {
-  executeScript: (
-    cpu: string,
-    script: string,
-    args: unknown[],
-    managed?: unknown,
-  ) => Promise<unknown>;
-};
-
-function hasExecuteScript(
-  source: DataSource,
-): source is DataSource & ExecuteScriptAware {
-  return (
-    typeof (source as Partial<ExecuteScriptAware>).executeScript === "function"
-  );
-}
-
 function hasSubscribeSamples(
   source: DataSource,
 ): source is DataSource & SampleAware {
@@ -93,14 +65,6 @@ function hasGetLatestValue(
 ): source is DataSource & LatestValueAware {
   return (
     typeof (source as Partial<LatestValueAware>).getLatestValue === "function"
-  );
-}
-
-function hasOnConfigChange(
-  source: DataSource,
-): source is DataSource & ConfigChangeAware {
-  return (
-    typeof (source as Partial<ConfigChangeAware>).onConfigChange === "function"
   );
 }
 
@@ -196,28 +160,9 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return { t: [], v: [] };
   }
 
-  // Conditional getter so `hasExecuteScript(wrapper)` reflects whether the
-  // wrapped source actually supports executeScript — the host's
-  // kos-execute-request handler (and useKosWidget on main) both narrow
-  // through this same structural check.
-  get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
-    if (!hasExecuteScript(this.real)) return undefined;
-    return this.real.executeScript.bind(this.real);
-  }
-
   get getLatestValue(): LatestValueAware["getLatestValue"] | undefined {
     if (!hasGetLatestValue(this.real)) return undefined;
     return this.real.getLatestValue.bind(this.real);
-  }
-
-  // Forward kos config-change subscriptions through the wrapper. KosTerminal
-  // does `getDataSource("kos")?.onConfigChange?.(...)` to reset itself when
-  // the user updates the kOS host; on the main screen the registry returns
-  // this wrapper, so without forwarding the optional chain silently no-ops
-  // and the terminal would stay pinned to the old endpoint.
-  get onConfigChange(): ConfigChangeAware["onConfigChange"] | undefined {
-    if (!hasOnConfigChange(this.real)) return undefined;
-    return this.real.onConfigChange.bind(this.real);
   }
 
   subscribeCollection(

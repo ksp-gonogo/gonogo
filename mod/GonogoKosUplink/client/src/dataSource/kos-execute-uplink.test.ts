@@ -19,10 +19,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { KosDataSource, kosSource } from "./kos";
 
 function makeSource() {
-  return new KosDataSource(
-    { activeCpu: "" },
-    { callTimeoutMs: 500, postAttachDrainDelayMs: 0 },
-  );
+  return new KosDataSource({ callTimeoutMs: 500, postAttachDrainDelayMs: 0 });
 }
 
 async function waitFor(

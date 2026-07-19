@@ -37,9 +37,8 @@ export function ReplaySessionProvider({ children }: { children: ReactNode }) {
 
 /**
  * Whether a mission replay is currently active — the `useReplayActive`
- * replacement. Consumed by `useKosWidget` to refuse `executeScript`
- * dispatch during replay (a replayed session has no live kOS CPU to run
- * scripts against).
+ * replacement. Consumed by `KosTerminal` to refuse command dispatch during
+ * replay (a replayed session has no live kOS CPU to run scripts against).
  */
 export function useReplaySessionActive(): boolean {
   const controller = getReplaySessionController();
