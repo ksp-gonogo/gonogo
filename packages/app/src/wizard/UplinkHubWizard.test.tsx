@@ -434,7 +434,9 @@ describe("UplinkHubWizard — firstRun bookends (Welcome/Done)", () => {
 
     await user.click(screen.getByRole("button", { name: /finish/i }));
     expect(
-      screen.getByText(/reopen this any time from settings/i),
+      screen.getByText(
+        /reopen this any time from the uplink hub tab in settings/i,
+      ),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /close/i }));

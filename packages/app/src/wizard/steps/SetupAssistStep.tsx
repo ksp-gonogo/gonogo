@@ -15,9 +15,8 @@ export function SetupAssistStep() {
   return (
     <Stack gap="sm">
       <Intro>
-        Connect mission control to your running Gonogo mod. Once it's talking,
-        the next step checks which Uplinks it reports and whether their clients
-        are loaded.
+        Connect to your running mod. The next step lists its Uplinks and which
+        clients are loaded.
       </Intro>
       <SitrepConnection />
     </Stack>
