@@ -8,13 +8,13 @@
  * still surface as Uplink errors, never a silent drop to telnet.
  */
 
-import { getUplinkHandle } from "@ksp-gonogo/core";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
   TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import type { KosProcessorInfo, KosRunResult } from "@ksp-gonogo/sitrep-sdk";
+import { getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { KosDataSource, kosSource } from "./kos";
 

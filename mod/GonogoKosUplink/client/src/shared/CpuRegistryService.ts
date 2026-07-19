@@ -1,4 +1,4 @@
-import type { Screen } from "@ksp-gonogo/core";
+import type { Screen } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * Per-screen registry of kOS CPU tagnames the user has named or that

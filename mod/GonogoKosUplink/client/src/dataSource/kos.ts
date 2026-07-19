@@ -1,13 +1,17 @@
-import type { ConfigField, DataKey, DataSourceStatus } from "@ksp-gonogo/core";
-import {
-  PerfBudget,
-  registerDataSource,
-  registerUplinkHandle,
-} from "@ksp-gonogo/core";
-import { LocalStorageStore } from "@ksp-gonogo/data";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
-import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ConfigField,
+  DataKey,
+  DataSourceStatus,
+  KosProcessorInfo,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  createPerfBudget,
+  LocalStorageStore,
+  registerDataSource,
+  registerUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
 import type { ScriptableDataSource } from "../shared/ScriptableDataSource";
 import type { KosManagedScript } from "../shared/useKosWidget";
@@ -58,7 +62,7 @@ const DEFAULT_CALL_TIMEOUT_MS = 30_000;
  * dispatch rate above ~5/sec means widgets are stomping each other. At
  * 10/sec we want to know about it.
  */
-const KOS_DISPATCH_BUDGET = new PerfBudget({
+const KOS_DISPATCH_BUDGET = createPerfBudget({
   name: "KosDataSource.executeScript dispatches/sec",
   threshold: 10,
   windowMs: 1000,
