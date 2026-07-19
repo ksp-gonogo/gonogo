@@ -179,5 +179,32 @@ namespace GonogoScansatUplink.Tests
 
             Assert.Empty(publications);
         }
+
+        [Fact]
+        public void MaskPayloadWidthHeightReflectTheActualCoverageArraySizeNotScanGridsConstants()
+        {
+            // 10x5 coverage - deliberately NOT ScanGrids.Width/Height, to prove
+            // the mask payload's declared dims come from the coverage array
+            // itself (SCANsat's own native grid size), independent of whatever
+            // ScanGrids.Width/Height the height/biome grid happens to use.
+            var coverage = new short[10, 5];
+            coverage[0, 0] = 1;
+
+            var capture = new ScanCapture
+            {
+                Ut = 1.0,
+                BodyName = "Kerbin",
+                Coverage = coverage,
+                CoveragePercents = new Dictionary<short, double> { [1] = 5.0, [2] = 0.0, [8] = 0.0, [16] = 0.0, [128] = 0.0, [256] = 0.0 },
+                IncludeHeightBiome = false,
+            };
+
+            var publications = ScanPublications.Compute(capture, new Dictionary<string, ulong>(), new Dictionary<string, byte[]>());
+
+            var maskPub = Assert.Single(publications, p => p.Kind == ScanChannelKind.Mask && p.SubTopic == "Kerbin.1");
+            var payload = Assert.IsType<Dictionary<string, object?>>(maskPub.Payload);
+            Assert.Equal(10, payload["width"]);
+            Assert.Equal(5, payload["height"]);
+        }
     }
 }
