@@ -10,7 +10,7 @@ import {
   getUplinkHandle,
   logger,
   useActionInput,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
 import {
@@ -255,15 +255,15 @@ export function CameraFeed({
     requested,
   );
 
-  const signalStrength = useDataValue<number>("data", "comm.signalStrength");
-  const commConnected = useDataValue<boolean>("data", "comm.connected");
+  const signalStrength = useTelemetry<number>("data", "comm.signalStrength");
+  const commConnected = useTelemetry<boolean>("data", "comm.connected");
   // One-way light-time delay for THIS downlink (the footage left the craft
   // this long ago) — NOT round-trip. Round-trip doubling only applies to
   // interactive command/response paths (e.g. the kOS terminal), which this
   // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
   // (gonogo's own SignalDelay authority) — same clean-name convention as
   // `comm.signalStrength`/`comm.connected` above.
-  const signalDelay = useDataValue<number | null>("data", "comm.signalDelay");
+  const signalDelay = useTelemetry<number | null>("data", "comm.signalDelay");
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

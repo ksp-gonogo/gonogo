@@ -1,4 +1,4 @@
-import { useDataValue } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import type {
   SCANAnomalyEntry,
@@ -30,7 +30,7 @@ export function useScanCoverage(
   scanType: SCANType,
   dataSourceId = "data",
 ): DecodedCoverage | null | undefined {
-  const raw = useDataValue<SCANCoverageBitmap | null>(
+  const raw = useTelemetry<SCANCoverageBitmap | null>(
     dataSourceId,
     bodyName ? `scansat.mask.${bodyName}.${scanType}` : "scansat.available",
   );
@@ -49,7 +49,7 @@ export function useScanHeightGrid(
   bodyName: string | undefined,
   dataSourceId = "data",
 ): DecodedHeights | null | undefined {
-  const raw = useDataValue<SCANHeightGrid | null>(
+  const raw = useTelemetry<SCANHeightGrid | null>(
     dataSourceId,
     bodyName ? `scansat.height.${bodyName}` : "scansat.available",
   );
@@ -68,7 +68,7 @@ export function useScanBiomeGrid(
   bodyName: string | undefined,
   dataSourceId = "data",
 ): DecodedBiomes | null | undefined {
-  const raw = useDataValue<SCANBiomeGrid | null>(
+  const raw = useTelemetry<SCANBiomeGrid | null>(
     dataSourceId,
     bodyName ? `scansat.biome.${bodyName}` : "scansat.available",
   );
@@ -89,7 +89,7 @@ export function useScanAnomalies(
   bodyName: string | undefined,
   dataSourceId = "data",
 ): SCANAnomalyEntry[] | null | undefined {
-  const raw = useDataValue<SCANAnomalyEntry[] | null>(
+  const raw = useTelemetry<SCANAnomalyEntry[] | null>(
     dataSourceId,
     bodyName ? `scansat.anomalies.${bodyName}` : "scansat.available",
   );
@@ -107,7 +107,7 @@ export function useScanAnomalies(
 export function useScanningVessels(
   dataSourceId = "data",
 ): SCANScanningVessel[] | null | undefined {
-  return useDataValue<SCANScanningVessel[] | null>(
+  return useTelemetry<SCANScanningVessel[] | null>(
     dataSourceId,
     "scansat.scanningVessels",
   );

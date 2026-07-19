@@ -27,7 +27,7 @@ export type DataSourceStatus =
  *     }
  *   }
  *
- * Once registered, `useDataValue("my-source", key)` infers the return type
+ * Once registered, `useTelemetry("my-source", key)` infers the return type
  * from the schema automatically — no manual type parameter needed.
  */
 export interface DataSourceRegistry {
@@ -53,7 +53,7 @@ export interface ConfigField {
  * (`"v.sasValue"`, `"v.ag1Value"`, …) was the last thing forcing `ActionGroup`
  * to resolve its read dynamically off this registry — which made it the
  * mapTopic coverage scan's own blind spot AND kept a legacy
- * `useDataValue("data", …)` shim read alive in the widget. The widget now reads
+ * `useTelemetry("data", …)` shim read alive in the widget. The widget now reads
  * the canonical `vessel.control` / `vessel.structure` topics directly and
  * resolves each group's value from the payload, so the registry only has to
  * describe WHICH group an entry is, not how to read it.

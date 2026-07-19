@@ -126,23 +126,36 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
-export function useDataValue<T = unknown>(
-  dataSourceId: string,
-  key: string,
-): T | undefined {
-  return getHost().useDataValue<T>(dataSourceId, key);
-}
-
 export function useExecuteAction(
   dataSourceId: string,
 ): (action: string) => Promise<void> {
   return getHost().useExecuteAction(dataSourceId);
 }
 
+// Canonical overload: keyed by TopicId → returns the Topic's payload type.
 export function useTelemetry<T extends TopicId>(
   topic: T,
-): TopicPayload<T> | undefined {
-  return getHost().useTelemetry(topic);
+): TopicPayload<T> | undefined;
+// Legacy two-arg overload — the retired useDataValue shim's shape, carried
+// over onto useTelemetry itself. See GonogoHost.useTelemetry's doc.
+export function useTelemetry<T = unknown>(
+  dataSourceId: string,
+  key: string,
+): T | undefined;
+export function useTelemetry(dataSourceIdOrTopic: string, key?: string) {
+  // A single, unconditional call — branching here on `key` would call
+  // `getHost().useTelemetry` conditionally, which the rules-of-hooks lint
+  // (rightly) flags as unsafe even though a given call site's arity never
+  // changes across renders. The injected host's real implementation
+  // (`@ksp-gonogo/core`'s `useTelemetry`) already branches internally on
+  // whether `key` is present while keeping every hook call unconditional —
+  // this just forwards both args through to that single call, same as the
+  // core implementation's own `(dataSourceId, key?)` signature.
+  const hostUseTelemetry = getHost().useTelemetry as (
+    dataSourceIdOrTopic: string,
+    key?: string,
+  ) => unknown;
+  return hostUseTelemetry(dataSourceIdOrTopic, key);
 }
 
 export function useCommand(command: string) {

@@ -26,7 +26,7 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  // Both reads ride the Uplink stream directly, no legacy `useDataValue("data",
+  // Both reads ride the Uplink stream directly, no legacy `useTelemetry("data",
   // ...)` fallback:
   //  - `sma` is the raw `vessel.orbit.sma` element, read off the canonical
   //    whole-`vessel.orbit` Topic.

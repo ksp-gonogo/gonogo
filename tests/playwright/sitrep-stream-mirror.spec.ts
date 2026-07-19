@@ -21,7 +21,7 @@
  * wire frames across the shapes the wire protocol carries — string + array
  * (`vessel.crew.{count,crew[].name}`) and boolean
  * (`vessel.comms.connected`) — reaching a real `TimelineStore` and
- * rendering correctly through `useTelemetry`/`useDataValue` into the DOM.
+ * rendering correctly through `useTelemetry` into the DOM.
  * (Number and nested-object shapes get their own dedicated coverage in
  * `widgets/semi-major-axis.spec.ts` and `widgets/thermal-status.spec.ts`
  * respectively — not duplicated here.) That's the SDK's decode path, end

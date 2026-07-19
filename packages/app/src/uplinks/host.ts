@@ -31,7 +31,6 @@ import {
   subscribeSetting,
   useActionInput,
   useDataSources,
-  useDataValue,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -87,9 +86,23 @@ export function buildGonogoHost(): GonogoHost {
         def as Parameters<typeof registerMapPoiProvider>[0],
       ),
 
-    useDataValue: (dataSourceId, key) => useDataValue(dataSourceId, key),
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
-    useTelemetry: (topic) => useTelemetry(topic),
+    // Overloaded on the sdk side (canonical one-arg Topic read, and the
+    // retired useDataValue's legacy two-arg DataSourceRegistry read carried
+    // over onto this same name — see GonogoHost.useTelemetry's doc). Real
+    // core `useTelemetry` already branches internally on whether `key` is
+    // present while keeping every hook call unconditional (its own
+    // `(dataSourceId, key?)` implementation signature), so this is a single,
+    // unconditional forward of both args — never a conditional call to two
+    // different hook invocations, which the rules-of-hooks lint (rightly)
+    // flags even though a given call site's arity never changes across
+    // renders. The loose cast mirrors core's own internal implementation
+    // signature against the host's overloaded declared type.
+    useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
+      (useTelemetry as (a: string, b?: string) => unknown)(
+        dataSourceIdOrTopic,
+        key,
+      )) as GonogoHost["useTelemetry"],
     useCommand: (command) =>
       useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
     useStream: (topic) => useStream(topic),

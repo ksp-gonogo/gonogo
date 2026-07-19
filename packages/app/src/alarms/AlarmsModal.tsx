@@ -1,5 +1,5 @@
 import type { ActionGroup } from "@ksp-gonogo/core";
-import { useActionGroups, useDataValue } from "@ksp-gonogo/core";
+import { useActionGroups, useTelemetry } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
@@ -809,7 +809,7 @@ function OnFireEditor({
 }: OnFireEditorProps) {
   // `f.ag.bindings` is vessel-scoped — returns nothing outside Flight.
   // That's fine: caption falls back to the plain "(f.ag1)" label.
-  const bindingsRaw = useDataValue("data", "f.ag.bindings");
+  const bindingsRaw = useTelemetry("data", "f.ag.bindings");
   const bindings = isAgBindingArray(bindingsRaw) ? bindingsRaw : null;
   const firableActions = useFirableActions();
 

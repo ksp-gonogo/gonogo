@@ -1,4 +1,4 @@
-import { clearRegistry, useDataValue } from "@ksp-gonogo/core";
+import { clearRegistry, useTelemetry } from "@ksp-gonogo/core";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -56,7 +56,7 @@ function streamFrame(topic: string, payload: unknown): string {
 }
 
 function Throttle() {
-  const throttle = useDataValue("data", "f.throttle");
+  const throttle = useTelemetry("data", "f.throttle");
   return <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>;
 }
 

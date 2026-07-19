@@ -9,7 +9,7 @@ import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
 import {
@@ -149,7 +149,7 @@ function PowerSystemsComponent({
   // measurement meaningfully DISAGREES with that total, it's surfaced
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
-  const streamPower = useDataValue<PartsPowerPayload>("data", "parts.power");
+  const streamPower = useTelemetry<PartsPowerPayload>("data", "parts.power");
   const streamStatus = useDataStreamStatus("data", "parts.power");
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";

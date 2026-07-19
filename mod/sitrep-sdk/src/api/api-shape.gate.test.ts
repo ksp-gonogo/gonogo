@@ -40,7 +40,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useCommand",
   "useDataSchema",
   "useDataSources",
-  "useDataValue",
   "useExecuteAction",
   "useFogMaskCache",
   "useLateTelemetrySubscribe",
@@ -85,7 +84,6 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.registerFogRevealSource({} as never)).toThrow(named);
     expect(() => barrel.registerMapPoiProvider({} as never)).toThrow(named);
-    expect(() => barrel.useDataValue("kos", "k")).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.createPerfBudget({ name: "b", threshold: 1 })).toThrow(
       named,
@@ -104,8 +102,8 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
 
   it("resolves to the injected host when present (first-party parity)", () => {
     const registerComponent = vi.fn();
-    const useDataValue = vi.fn().mockReturnValue(42);
-    installTestHost({ registerComponent, useDataValue });
+    const useTelemetry = vi.fn().mockReturnValue(42);
+    installTestHost({ registerComponent, useTelemetry });
 
     const def = {
       id: "gauge",
@@ -117,8 +115,12 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     barrel.registerComponent(def);
     expect(registerComponent).toHaveBeenCalledWith(def);
 
-    expect(barrel.useDataValue<number>("kos", "kos.compute.x")).toBe(42);
-    expect(useDataValue).toHaveBeenCalledWith("kos", "kos.compute.x");
+    expect(barrel.useTelemetry("kos.compute.x" as never)).toBe(42);
+    // The shim forwards both args through in a single unconditional call
+    // (see mod/sitrep-sdk/src/api/index.ts's useTelemetry doc) rather than
+    // branching on `key` before calling the host — so a one-arg canonical
+    // call still reaches the host as a two-arg call with `key` undefined.
+    expect(useTelemetry).toHaveBeenCalledWith("kos.compute.x", undefined);
   });
 
   it("exposes the global key the app populates at boot", () => {

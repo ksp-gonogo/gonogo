@@ -1,4 +1,4 @@
-import { type BodyDefinition, useDataValue } from "@ksp-gonogo/sitrep-sdk";
+import { type BodyDefinition, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { useElementSize } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
@@ -211,8 +211,8 @@ export function Minimap({
 export function MinimapForActiveVessel({
   body,
 }: Readonly<{ body: BodyDefinition }>) {
-  const lat = useDataValue<number>("data", "v.lat");
-  const lon = useDataValue<number>("data", "v.long");
+  const lat = useTelemetry<number>("data", "v.lat");
+  const lon = useTelemetry<number>("data", "v.long");
   return <Minimap body={body} vesselLat={lat} vesselLon={lon} />;
 }
 

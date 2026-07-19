@@ -206,7 +206,7 @@ export interface ProbePayload {
 
 /**
  * Fixtures authored before the `t.universalTime` client migration
- * (`useDataValue("data", "t.universalTime")` -> `useViewUt()`) still carry a
+ * (`useTelemetry("data", "t.universalTime")` -> `useViewUt()`) still carry a
  * `"t.universalTime"` key — harmless to leave (a migrated widget just
  * ignores the emit), but `useViewUt()` needs a mounted `TelemetryProvider`
  * to resolve to anything at all. Pin one from the fixture's own value so a

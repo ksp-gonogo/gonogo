@@ -1,4 +1,4 @@
-import { useDataValue } from "./useDataValue";
+import { useTelemetry } from "./useTelemetry";
 
 /**
  * Consolidated apo/peri/timeToAp/timeToPe orbital readings.
@@ -28,12 +28,12 @@ export interface OrbitElements {
  * by `@ksp-gonogo/data`.
  */
 export function useOrbitElements(dataSourceId: string = "data"): OrbitElements {
-  const apoapsisRadius = useDataValue<number>(dataSourceId, "o.ApR");
-  const periapsisRadius = useDataValue<number>(dataSourceId, "o.PeR");
-  const apoapsisAltitude = useDataValue<number>(dataSourceId, "o.ApA");
-  const periapsisAltitude = useDataValue<number>(dataSourceId, "o.PeA");
-  const timeToApoapsis = useDataValue<number>(dataSourceId, "o.timeToAp");
-  const timeToPeriapsis = useDataValue<number>(dataSourceId, "o.timeToPe");
+  const apoapsisRadius = useTelemetry<number>(dataSourceId, "o.ApR");
+  const periapsisRadius = useTelemetry<number>(dataSourceId, "o.PeR");
+  const apoapsisAltitude = useTelemetry<number>(dataSourceId, "o.ApA");
+  const periapsisAltitude = useTelemetry<number>(dataSourceId, "o.PeA");
+  const timeToApoapsis = useTelemetry<number>(dataSourceId, "o.timeToAp");
+  const timeToPeriapsis = useTelemetry<number>(dataSourceId, "o.timeToPe");
 
   return {
     apoapsisRadius,

@@ -149,7 +149,7 @@ function resolveGroupValue(
  * Resolves this instance's group + live value, then renders the view.
  *
  * The CANONICAL one-arg topic read lives here. This widget's last legacy
- * `useDataValue("data", group.value)` shim read is GONE: it existed only
+ * `useTelemetry("data", group.value)` shim read is GONE: it existed only
  * because the read key was resolved dynamically off the hardcoded
  * ACTION_GROUPS registry (`"v.sasValue"`, `"v.ag1Value"`, …), which is exactly
  * what made this widget the mapTopic coverage scan's own blind spot.
@@ -207,7 +207,7 @@ function ActionGroupView({
 
   // `value` now arrives as a prop, resolved one-arg off the canonical
   // `vessel.control` / `vessel.structure` Topics by the wrappers above — the
-  // last `useDataValue("data", group.value)` shim read is gone, and with it
+  // last `useTelemetry("data", group.value)` shim read is gone, and with it
   // `mapTopic.coverage`'s dynamic-key blind spot: the ACTION_GROUPS registry
   // no longer carries read keys at all. The `.toggle` side is still
   // `useExecuteAction` (`f.abort` -> `vessel.control.setAbort` rides the

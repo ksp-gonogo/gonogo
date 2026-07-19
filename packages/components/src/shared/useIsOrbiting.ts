@@ -11,7 +11,7 @@ type OrbitInfo = {
 
 export function useIsOrbiting(): OrbitInfo {
   // All three reads ride the SDK stream's derived `vessel.state` channel, no
-  // legacy `useDataValue("data", ...)` fallback: `parentBodyName` (identity
+  // legacy `useTelemetry("data", ...)` fallback: `parentBodyName` (identity
   // index → `system.bodies` name), and the `periapsisAlt`/`apoapsisAlt` apsis
   // altitudes the client derives off `vessel.orbit`'s elements. `apoapsisAlt`
   // is `undefined` on a hyperbolic/escape orbit (no apoapsis), which the

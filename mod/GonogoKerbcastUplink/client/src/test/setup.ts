@@ -10,7 +10,6 @@ import {
   registerUplinkHandle,
   subscribeSetting,
   useActionInput,
-  useDataValue,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
@@ -49,7 +48,6 @@ installTestHost({
   >[0]["registerUplinkHandle"],
   subscribeSetting,
   useActionInput,
-  useDataValue,
   useTelemetry,
   useViewClockOptional,
 });

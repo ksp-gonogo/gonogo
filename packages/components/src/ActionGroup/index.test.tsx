@@ -44,7 +44,7 @@ function unmountAll() {
 /**
  * The widget no longer READS anything off the legacy `data` source. Its group
  * values come off the canonical `vessel.control` / `vessel.structure` stream
- * (the `useDataValue("data", group.value)` shim is gone — see `emitControl`),
+ * (the `useTelemetry("data", group.value)` shim is gone — see `emitControl`),
  * and `isPaused` / `commConnected` are canonical stream reads too
  * (`time.warp.paused` / `comms.link.connected`). The MockDataSource below
  * survives only for the WRITE path: `useExecuteAction("data")` still dispatches

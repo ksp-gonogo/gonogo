@@ -344,7 +344,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/topics.test.ts",
       "mod/sitrep-sdk/src/topics.ts",
       // mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it uses "kos" as
-      // an example dataSourceId in a generic `useDataValue("kos", "k")`
+      // an example dataSourceId in a generic `useTelemetry("kos", "k")`
       // assertion, unrelated to the (since-removed) registerKosScript/SPI
       // mirrors this file used to also guard.
       "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
