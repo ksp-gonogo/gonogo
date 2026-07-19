@@ -1,9 +1,9 @@
-import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type {
   CommandResult,
   KosProcessorInfo,
   KosRunArgs,
   KosRunResult,
+  TelemetryClient,
 } from "@ksp-gonogo/sitrep-sdk";
 import { safeRandomUuid } from "@ksp-gonogo/sitrep-sdk";
 import { KosScriptError } from "../shared/KosScriptError";

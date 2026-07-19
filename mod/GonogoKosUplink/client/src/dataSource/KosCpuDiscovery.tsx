@@ -1,4 +1,4 @@
-import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
+import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { kosSource } from "./kos";
 

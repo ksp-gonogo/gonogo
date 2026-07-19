@@ -4,11 +4,11 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
-import { logger } from "@ksp-gonogo/logger";
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getUplinkHandle,
+  logger,
   useActionInput,
   useDataValue,
 } from "@ksp-gonogo/sitrep-sdk";

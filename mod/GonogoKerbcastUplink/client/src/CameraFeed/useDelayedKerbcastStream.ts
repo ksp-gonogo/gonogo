@@ -1,11 +1,10 @@
 import { useKerbcastClock } from "@ksp-gonogo/kerbcast-react";
-import { logger } from "@ksp-gonogo/logger";
 import {
   type CaptureClockSample,
   interpolateCaptureUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
-import { useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
+import { logger, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   type DelayedPlayoutResult,
