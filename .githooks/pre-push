@@ -44,7 +44,10 @@ fi
 if [ "$SKIP_E2E" = "1" ]; then
   echo "pre-push: SKIP_E2E=1 set — skipping Playwright e2e (CI will still run it)."
 else
-  BASE="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo origin/main)"
+  # Base = the merge target (squash-to-main model): e2e validates the specs that
+  # differ from main, deterministically — not whatever the branch upstream
+  # happens to be. On a direct main push this is just that push's delta.
+  BASE="origin/main"
   if ! git rev-parse --verify --quiet "$BASE" >/dev/null; then
     echo "pre-push: no base ref ($BASE) to diff e2e against — skipping e2e (CI runs the full matrix)."
   elif git diff --quiet "$BASE" HEAD -- tests/playwright; then
