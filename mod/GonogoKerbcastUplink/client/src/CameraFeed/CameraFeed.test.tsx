@@ -990,6 +990,48 @@ describe("CameraFeed — CommNet degrade", () => {
     expect(degradeMsg?.content.flightId).toBe(42);
     expect(degradeMsg?.content.level).toBeCloseTo(0.5);
   });
+
+  it("resets degrade to 0 when signal returns with no strength reading (asymmetric-reset regression)", async () => {
+    // Reproduces the wedged-decoder bug: a blackout sets degrade to 1.0, then
+    // signal returns but no signalStrength value ever arrives on this
+    // install (mod load order, RemoteTech override, vanilla CommNet variant
+    // -- CommSignal's own comment above documents this same gap). The old
+    // branching only reset degrade inside the `typeof signalStrength ===
+    // "number"` branch, so this exact case left the browser's H.264 decoder
+    // wedged at full degrade forever. The combined level must always resolve
+    // once connected, falling back to 0 with no strength reading.
+    const { sidecar } = await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.connected": false,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    expect(sidecar.lastCommand("set-degrade")?.content.level).toBe(1.0);
+
+    // Signal returns; signalStrength is never published for this install.
+    await act(async () => {
+      dataSource.emit("comm.connected", true);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const degradeMsg = sidecar.lastCommand("set-degrade");
+    expect(degradeMsg?.content.flightId).toBe(42);
+    expect(degradeMsg?.content.level).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
