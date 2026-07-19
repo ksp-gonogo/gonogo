@@ -1,6 +1,17 @@
 import type { DataSource } from "@ksp-gonogo/sitrep-sdk";
 import type { KosData, KosScriptArg } from "./kos-data-parser";
-import type { KosManagedScript } from "./useKosWidget";
+
+/**
+ * Bundled-script payload forwarded to `executeScript` so the kOS data
+ * source can keep the on-volume copy of `script` in sync with the bundled
+ * body — see `dataSource/kosWrapper.ts`'s `buildKosWrapper`.
+ */
+export interface KosManagedScript {
+  /** Full bundled script body. */
+  body: string;
+  /** Stable hash of `body`; mismatch with the on-volume sidecar triggers a rewrite. */
+  version: string;
+}
 
 /**
  * Extension of `DataSource` for sources that can dispatch a kerboscript on
@@ -27,14 +38,4 @@ export interface ScriptableDataSource<
     args: KosScriptArg[],
     managed?: KosManagedScript,
   ): Promise<KosData>;
-}
-
-export function isScriptable(
-  source: DataSource | undefined | null,
-): source is ScriptableDataSource {
-  return (
-    !!source &&
-    typeof (source as Partial<ScriptableDataSource>).executeScript ===
-      "function"
-  );
 }

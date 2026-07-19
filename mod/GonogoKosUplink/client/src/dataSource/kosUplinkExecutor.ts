@@ -8,7 +8,7 @@ import type {
 import { safeRandomUuid } from "@ksp-gonogo/sitrep-sdk";
 import { KosScriptError } from "../shared/KosScriptError";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
-import type { KosManagedScript } from "../shared/useKosWidget";
+import type { KosManagedScript } from "../shared/ScriptableDataSource";
 import { buildKosRunCommand } from "./kosWrapper";
 
 /**
@@ -147,8 +147,8 @@ class KosUplinkCpuQueue {
     if (payload.error != null) {
       // Both parse-time kOS errors and explicit [KOSERROR] blocks arrive
       // this way from the mod (KosRunManager.Complete) — KosScriptError so
-      // useKosWidget's consecutive-error breaker counts it, same as the
-      // telnet path's explicit/implicit error handling.
+      // callers can distinguish a script-author fault from a transport
+      // error, same as the telnet path's explicit/implicit error handling.
       call.reject(new KosScriptError(payload.error));
     } else {
       call.resolve((payload.fields ?? {}) as KosData);

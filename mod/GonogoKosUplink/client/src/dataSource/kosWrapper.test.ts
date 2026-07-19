@@ -1,26 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashKosScript } from "../shared/hashKosScript";
 import { buildKosRunCommand, buildKosWrapper } from "./kosWrapper";
-
-describe("hashKosScript", () => {
-  it("is stable across calls", () => {
-    expect(hashKosScript("PRINT 1.")).toBe(hashKosScript("PRINT 1."));
-  });
-
-  it("changes when the body changes", () => {
-    expect(hashKosScript("PRINT 1.")).not.toBe(hashKosScript("PRINT 2."));
-  });
-
-  it("returns a non-empty base-36 string", () => {
-    const h = hashKosScript("anything");
-    expect(h).toMatch(/^[0-9a-z]+$/);
-    expect(h.length).toBeGreaterThan(0);
-  });
-
-  it("hashes the empty string to a stable value", () => {
-    expect(hashKosScript("")).toBe(hashKosScript(""));
-  });
-});
 
 describe("buildKosWrapper", () => {
   it("emits SET-based check-and-rewrite at REPL top level", () => {
