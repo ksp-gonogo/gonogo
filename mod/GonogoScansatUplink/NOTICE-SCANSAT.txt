@@ -1,27 +1,16 @@
-LICENSING STATUS — GonogoScansatUplink is GPL-3.0-only, ON HOLD. DO NOT
-relicense this component to MIT without first resolving the question below.
+LICENSING STATUS — GonogoScansatUplink is GPL-3.0-only, permanently (operator
+decision, 2026-07-18).
 
 gonogo as a whole is MIT-licensed (repository root LICENSE). This uplink is
-one of two deliberate exceptions, and unlike GonogoKosUplink its exception is
-PROVISIONAL rather than permanent:
-
-  SCANsat's own licensing is self-contradictory. Its repository LICENSE.txt
-  is a 3-clause BSD licence (permissive, reproduced in full below), but its
-  published CKAN metadata declares "restricted" (CKAN's all-rights-reserved
-  bucket). We compile-time link SCANsat.dll / SCANsat.Unity.dll, so which of
-  those two governs is load-bearing: under BSD this uplink could be MIT like
-  everything else; under "restricted" its licensing is a larger question than
-  its licence field.
-
-  The question is out with the SCANsat stewards (https://github.com/KSPModStewards/SCANsat).
-  Until they answer, this uplink stays GPL-3.0-only — the conservative option,
-  and cheap: like GonogoKosUplink it is a leaf, so nothing else in the repository
-  inherits anything from it. Its co-located TypeScript client
-  (@ksp-gonogo/scansat) is held GPL-3.0-only for the same reason.
-
-  When an answer arrives: if BSD governs, relicense this uplink and its client
-  to MIT and delete this notice's LICENSING STATUS section. If "restricted"
-  governs, escalate — the compile-time link itself needs review.
+one of two deliberate exceptions (alongside GonogoKosUplink). It compile-time
+links SCANsat.dll / SCANsat.Unity.dll, a third-party mod whose repository
+LICENSE.txt (3-clause BSD, reproduced in full below) and published CKAN
+metadata ("restricted") disagree with each other. Rather than resolve that
+contradiction with the SCANsat stewards, this uplink simply stays
+GPL-3.0-only — the conservative option, and free: like GonogoKosUplink it is
+a leaf, so nothing else in the repository inherits anything from it. Its
+co-located TypeScript client (@ksp-gonogo/scansat) is GPL-3.0-only for the
+same reason.
 
 --------------------------------------------------------------------------
 
