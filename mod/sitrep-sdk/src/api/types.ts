@@ -169,6 +169,36 @@ export interface FogRevealSourceDefinition {
 // --- Map POI providers -------------------------------------------------------
 
 /**
+ * One point-of-interest record a `MapPoiProviderDefinition` contributes.
+ * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi` — same leaf constraint as
+ * every other type in this file (see module header). The action-button
+ * shape (`MapPoiAction` in core) is inlined here rather than named
+ * separately: nothing in the author-facing surface needs to reference it by
+ * name on its own.
+ */
+export interface MapPoi {
+  /** Unique within the OWNING PROVIDER's namespace. */
+  id: string;
+  /** Body NAME, matches MapView's own bodyName convention. */
+  bodyId: string;
+  lat: number;
+  lon: number;
+  /** Open string, not a closed union — third-party kinds fall back to a generic style. */
+  kind: string;
+  label: string;
+  detail?: string;
+  status?: "active" | "available" | "info";
+  meta?: Record<string, unknown>;
+  actions?: readonly {
+    id: string;
+    label: string;
+    run: () => void | Promise<void>;
+    disabled?: boolean;
+    disabledReason?: string;
+  }[];
+}
+
+/**
  * Registration descriptor for a map point-of-interest provider — a data
  * contributor (points for the currently-mapped body), not a renderable
  * component. See packages/core/src/mapPoi.ts's own header for why MapView
@@ -181,6 +211,225 @@ export interface MapPoiProviderDefinition {
   /** Domain presence gate, same semantics as AugmentDefinition.requires. */
   requires?: string;
   usePois: (ctx: { bodyId: string | undefined }) => unknown;
+}
+
+// --- Celestial bodies ---------------------------------------------------------
+
+/**
+ * Mirrors `packages/core/src/bodies.ts`'s `BodyDefinition` — same leaf
+ * constraint as every other type in this file. Note the body REGISTRY
+ * itself (`getBody`, below) is still a host shim, not a bundled copy: it is
+ * a module-global map populated at runtime via `registerBody()`, so a
+ * facade-sealed client bundling its own `getBody` would read its own,
+ * permanently-empty copy of that map rather than the app's real one.
+ */
+export interface BodyDefinition {
+  /** Unique identifier — must match Telemachus v.body / o.referenceBody strings. */
+  id: string;
+  /** Human-readable display name. */
+  name: string;
+  /** Mean radius in metres. */
+  radius: number;
+  /** Standard gravitational parameter (GM) in m³/s². */
+  gm?: number;
+  /** Path or URL to a surface texture image (equirectangular projection). */
+  texture?: string;
+  /** Fallback display colour (CSS colour string) used when no texture is available. */
+  color?: string;
+  /** Longitude correction in degrees added to Telemachus v.long before mapping. */
+  longitudeOffset?: number;
+  /** Latitude correction in degrees added to Telemachus v.lat before mapping. */
+  latitudeOffset?: number;
+  /** ID of the parent body (e.g. "Kerbin" for "Mun"). Absent for the star. */
+  parent?: string;
+  /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
+  map?: {
+    type: "equirectangular";
+    /** Pixel width of the source texture image. */
+    width: number;
+    /** Pixel height of the source texture image. */
+    height: number;
+  };
+  /** If the body has an atmosphere */
+  hasAtmosphere: boolean;
+  /** The height above sea level where the atmosphere is stopped */
+  maxAtmosphere: number;
+  /** Optional atmosphere model. Only meaningful when `hasAtmosphere` is true. */
+  atmosphere?: {
+    /** Surface pressure in pascals. */
+    surfacePressure: number;
+    /** Scale height (e-folding altitude) in metres. */
+    scaleHeight: number;
+  };
+  /** Sidereal rotation period in seconds. */
+  rotationPeriod?: number;
+  /** Minimum altitude (metres ASL) at which satellite imaging produces usable data. */
+  imagingMinAlt?: number;
+  /** Ideal imaging altitude (metres ASL). Quality reaches 1 here. */
+  imagingIdealAlt?: number;
+  /** Maximum imaging altitude (metres ASL). Above this, quality is zero. */
+  imagingMaxAlt?: number;
+  /** Camera half-angle (degrees) — the cone half-angle used when projecting the imaging footprint. */
+  cameraFovDeg?: number;
+  /** Optional circular region revealed from the start. */
+  initialReveal?: {
+    lat: number;
+    lon: number;
+    /** Disc radius in metres (surface-measured, not angular). */
+    radiusMetres: number;
+  };
+}
+
+// --- Fog mask cache ------------------------------------------------------------
+//
+// Same leaf constraint again: `BodyMask` is owned by `@ksp-gonogo/data`
+// (packages/data/src/fog/FogMaskCache.ts), which the sdk cannot depend on
+// either (data itself depends on core, which depends on the sdk — naming
+// data here would form the same turbo `^build` cycle). Mirrored here.
+
+export interface BodyMask {
+  readonly bodyId: string;
+  readonly layerId: string;
+  readonly width: number;
+  readonly height: number;
+  /** Alpha bytes, row-major. Mutable — caller writes directly. */
+  data: Uint8Array;
+}
+
+/**
+ * The subset of `FogMaskCache`'s (`@ksp-gonogo/data`) public surface an
+ * author drives from `useFogMaskCache()`. Not itself part of the barrel's
+ * named export list — every call site so far only ever holds this through
+ * the hook's inferred return type (`const cache = useFogMaskCache();`),
+ * never by importing the type name directly, so there is nothing to add to
+ * the export list for it.
+ */
+export interface FogMaskCacheHandle {
+  acquire(bodyId: string, layerId: string): Promise<BodyMask>;
+  get(bodyId: string, layerId: string): BodyMask | undefined;
+  markDirty(bodyId: string, layerId: string): void;
+  onChange(
+    bodyId: string,
+    layerId: string,
+    listener: (mask: BodyMask) => void,
+  ): () => void;
+  flush(): Promise<void>;
+  clear(bodyId: string, layerId: string): Promise<void>;
+  dispose(): Promise<void>;
+}
+
+// --- DataSource-author SPI ---------------------------------------------------
+//
+// An Uplink that ships its OWN DataSource needs to TYPE its implementation
+// against the real `DataSource` shape — same leaf constraint as above: core
+// owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
+// (packages/core/src/types.ts) but the sdk cannot name it as a workspace
+// dependency, so the interface is mirrored here and kept honest by
+// `packages/core/src/sdk-facade.conformance.test-d.ts`.
+//
+// Re-added 2026-07-19 (facade-sealing plan) — this SPI was removed on
+// 2026-07-18 on the premise that it had "zero production consumers
+// independent of kos" and that first-party code always imports core's
+// registerDataSource/getDataSource directly. Both halves of that premise no
+// longer hold: another Uplink's own fog-reveal sync needs getDataSource too
+// (not just kos), and the whole point of facade-sealing kos is to stop
+// "first-party code imports core directly" being true for it. See
+// docs/superpowers/plans/2026-07-19-facade-sealing.md §2.1.
+
+export type DataSourceStatus =
+  | "connected"
+  | "disconnected"
+  | "reconnecting"
+  | "error";
+
+export interface DataKey {
+  key: string;
+  description?: string;
+}
+
+export interface ConfigField {
+  key: string;
+  label: string;
+  type: "text" | "number";
+  placeholder?: string;
+}
+
+/**
+ * Base interface for all data sources. `registerDataSource`/`getDataSource`
+ * on {@link GonogoHost} are typed against this so an Uplink author can both
+ * author a conforming `DataSource` and reach one it registered itself.
+ */
+export interface DataSource<
+  TConfig extends Record<string, unknown> = Record<string, unknown>,
+> {
+  id: string;
+  name: string;
+  connect(): Promise<void>;
+  disconnect(): void;
+  status: DataSourceStatus;
+  schema(): DataKey[];
+  subscribe(key: string, cb: (value: unknown) => void): () => void;
+  onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
+  execute(action: string): Promise<void>;
+  configSchema(): ConfigField[];
+  configure(config: Record<string, unknown>): void;
+  getConfig(): TConfig;
+  setupInstructions?(): string | null;
+  affectedBySignalLoss?: boolean;
+}
+
+// --- Screen identity -----------------------------------------------------------
+//
+// Mirrors `@ksp-gonogo/core`'s `contexts/ScreenContext.tsx` — same leaf
+// constraint as the rest of this file.
+
+/**
+ * Which screen a component is mounted on. The same registered component
+ * can render different UIs on main vs station when it participates in a
+ * multi-role interaction (e.g. GO/NO-GO voting).
+ */
+export type Screen = "main" | "station";
+
+// --- Settings tabs ---------------------------------------------------------
+
+/**
+ * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition` —
+ * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
+ * registration with the code that owns it.
+ */
+export interface SettingsTabDefinition {
+  /** Stable id — React key and tab id. */
+  id: string;
+  /** Tab label shown in the Settings modal's tab strip. */
+  label: string;
+  /** The tab's content, rendered with no props. */
+  component: ComponentType;
+  /** Which screens this tab appears on. Omit for both. */
+  screens?: readonly Screen[];
+}
+
+// --- Telemetry client (sitrep-client) SPI ------------------------------------
+//
+// Same leaf constraint as `StreamStatusValue` below: `TelemetryClient` is
+// owned by `@ksp-gonogo/sitrep-client`, which the sdk cannot depend on
+// either. Mirrors only the surface an Uplink author drives directly
+// (subscribe/dispatch/getValue/dispose) — NOT the full class
+// (`onRawMessage`'s raw-frame tap, `attachStore`/`subscribeStore`'s
+// `TimelineStore` plumbing, `getCommand`'s `CommandStatus`), which stay
+// opaque for the same "large, evolving class" reasoning that keeps
+// `useTelemetryStoreOptional` returning `unknown` rather than a mirrored
+// `TimelineStore`.
+
+export interface TelemetryClient {
+  subscribe(topic: string, cb: (value: unknown) => void): () => void;
+  getValue(topic: string): unknown;
+  dispatch(
+    command: string,
+    args?: unknown,
+    label?: string,
+    topic?: string,
+  ): { requestId: string; result: Promise<unknown> };
+  dispose(): void;
 }
 
 // --- Performance budgets ----------------------------------------------------

@@ -234,6 +234,23 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
+// Second declaration-merge block targeting the sdk facade's OWN (separate)
+// `SlotRegistry` interface — TS declaration merging keys off the literal
+// module specifier string, so the block above (targeting
+// "@ksp-gonogo/core") never reaches "@ksp-gonogo/sitrep-sdk"'s copy. Without
+// this, a client repointing `SlotProps`/`registerAugment` to the facade
+// would silently resolve `SlotProps<"map-view.sections">` etc. to the
+// untyped `Record<string, unknown>` fallback instead of failing to compile
+// — see docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface SlotRegistry {
+    "map-view.overlay": MapOverlayContext;
+    "map-view.badges": MapBadgesContext;
+    "map-view.sections": MapSectionsContext;
+    "map-view.base": MapBaseLayerContext;
+  }
+}
+
 const mapViewActions = [
   {
     id: "toggleFollow",

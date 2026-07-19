@@ -15,13 +15,21 @@
 
 import {
   AugmentSlot,
+  getBody,
+  getDataSource,
+  getFogRevealSources,
   getGameHost,
+  getUplinkHandle,
+  onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
   registerComponent,
+  registerDataSource,
   registerFogRevealSource,
   registerMapPoiProvider,
+  registerSettingsTab,
   registerTheme,
+  registerUplinkHandle,
   subscribeSetting,
   useActionInput,
   useDataSources,
@@ -29,13 +37,19 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useDataSchema, useReplaySessionActive } from "@ksp-gonogo/data";
+import {
+  useDataSchema,
+  useFogMaskCache,
+  useReplaySessionActive,
+} from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
+  getActiveTelemetryClient,
   useCommand,
   useLatestValue,
   useStream,
   useStreamEvent,
+  useTelemetryClientOptional,
   useTelemetryStoreOptional,
   useUtNow,
   useViewClock,
@@ -73,6 +87,8 @@ export function buildGonogoHost(): GonogoHost {
       registerMapPoiProvider(
         def as Parameters<typeof registerMapPoiProvider>[0],
       ),
+    registerDataSource: (source) =>
+      registerDataSource(source as Parameters<typeof registerDataSource>[0]),
 
     useDataValue: (dataSourceId, key) => useDataValue(dataSourceId, key),
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
@@ -90,12 +106,35 @@ export function buildGonogoHost(): GonogoHost {
     useUtNow: () => useUtNow(),
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
+    getActiveTelemetryClient: () =>
+      getActiveTelemetryClient() as ReturnType<
+        GonogoHost["getActiveTelemetryClient"]
+      >,
+    useTelemetryClientOptional: () =>
+      useTelemetryClientOptional() as ReturnType<
+        GonogoHost["useTelemetryClientOptional"]
+      >,
 
     useDataSchema: (sourceId) => useDataSchema(sourceId),
     useReplaySessionActive: () => useReplaySessionActive(),
 
     getGameHost: () => getGameHost(),
     subscribeSetting: (key, cb) => subscribeSetting(key, cb),
+
+    getDataSource: (id) =>
+      getDataSource(id) as ReturnType<GonogoHost["getDataSource"]>,
+    getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
+    getFogRevealSources: () => getFogRevealSources(),
+    onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
+    useFogMaskCache: () =>
+      useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
+
+    registerUplinkHandle: (uplinkId, handle) =>
+      registerUplinkHandle(uplinkId, handle),
+    getUplinkHandle: (uplinkId) => getUplinkHandle(uplinkId),
+
+    registerSettingsTab: (def) =>
+      registerSettingsTab(def as Parameters<typeof registerSettingsTab>[0]),
 
     AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
     createPerfBudget: (opts) => new PerfBudget(opts),

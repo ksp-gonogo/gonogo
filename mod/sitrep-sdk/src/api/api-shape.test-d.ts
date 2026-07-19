@@ -13,23 +13,33 @@ import type {
   ActionInputPayload,
   AugmentDefinition,
   AugmentSettingField,
+  BodyDefinition,
+  BodyMask,
   ComponentBehavior,
   ComponentDefinition,
   ComponentProps,
   ComponentRequirement,
   ConfigComponentProps,
+  ConfigField,
+  DataKey,
   DataRequirement,
+  DataSource,
+  DataSourceStatus,
   FogRevealSourceDefinition,
   GonogoHost,
   Logger,
+  MapPoi,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  Screen,
+  SettingsTabDefinition,
   SlotId,
   SlotProps,
   SlotRegistry,
   StreamStatusValue,
   TaggedLogger,
+  TelemetryClient,
   ThemeDefinition,
   UseCommandResult,
 } from "./index";
@@ -52,7 +62,17 @@ declare const _actionHandlers: ActionHandlers<
 declare const _augmentDef: AugmentDefinition<"slot">;
 declare const _augmentSetting: AugmentSettingField;
 declare const _fogRevealSourceDef: FogRevealSourceDefinition;
+declare const _mapPoi: MapPoi;
 declare const _mapPoiProviderDef: MapPoiProviderDefinition;
+declare const _bodyDef: BodyDefinition;
+declare const _bodyMask: BodyMask;
+declare const _dataSource: DataSource;
+declare const _dataSourceStatus: DataSourceStatus;
+declare const _configField: ConfigField;
+declare const _dataKey: DataKey;
+declare const _screen: Screen;
+declare const _settingsTabDef: SettingsTabDefinition;
+declare const _telemetryClient: TelemetryClient;
 declare const _slotId: SlotId;
 declare const _slotProps: SlotProps<"slot">;
 declare const _slotRegistry: SlotRegistry;
@@ -90,7 +110,17 @@ export type _ApiShapeProbe = [
   typeof _augmentDef,
   typeof _augmentSetting,
   typeof _fogRevealSourceDef,
+  typeof _mapPoi,
   typeof _mapPoiProviderDef,
+  typeof _bodyDef,
+  typeof _bodyMask,
+  typeof _dataSource,
+  typeof _dataSourceStatus,
+  typeof _configField,
+  typeof _dataKey,
+  typeof _screen,
+  typeof _settingsTabDef,
+  typeof _telemetryClient,
   typeof _slotId,
   typeof _slotProps,
   typeof _slotRegistry,

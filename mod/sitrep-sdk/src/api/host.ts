@@ -22,11 +22,16 @@ import type {
   ActionDefinition,
   ActionHandlers,
   AugmentDefinition,
+  BodyDefinition,
   ComponentDefinition,
+  DataSource,
+  FogMaskCacheHandle,
   FogRevealSourceDefinition,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  SettingsTabDefinition,
+  TelemetryClient,
   ThemeDefinition,
   UseCommandResult,
 } from "./types";
@@ -45,6 +50,14 @@ export interface GonogoHost {
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
   registerMapPoiProvider(def: MapPoiProviderDefinition): void;
+  /**
+   * Author a data source into the app's single registry (design D-A-1 /
+   * 2026-07-19 facade-sealing reversal — see `./types.ts`'s DataSource-SPI
+   * comment for the removal-then-reversal history).
+   */
+  registerDataSource<
+    TConfig extends Record<string, unknown> = Record<string, unknown>,
+  >(source: DataSource<TConfig>): void;
 
   useDataValue<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
@@ -110,6 +123,56 @@ export interface GonogoHost {
    * reaches the shared buffer or Axiom.
    */
   logger: Logger;
+
+  /**
+   * Reach a data source already registered in the app's single registry —
+   * for an Uplink that AUTHORS its own `DataSource` to make imperative
+   * calls on the instance it registered itself. The "hooks are the
+   * boundary" rule (`useDataValue`/`useExecuteAction`) still holds for a
+   * CONSUMER widget; this accessor is for the author reaching the source it
+   * registered itself, not a bypass for ordinary data reads.
+   */
+  getDataSource(id: string): DataSource | undefined;
+
+  /**
+   * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Despite
+   * looking like a static lookup, this MUST resolve to the app's own
+   * registry rather than a bundled copy — bodies are registered into it at
+   * runtime (module load), so a facade-sealed client bundling its own
+   * `getBody` would read its own, permanently-empty copy of the map.
+   */
+  getBody(id: string): BodyDefinition | undefined;
+  /** Every registered fog-of-war reveal source, in registration order. */
+  getFogRevealSources(): FogRevealSourceDefinition[];
+  /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
+  onFogRevealSourcesChange(cb: () => void): () => void;
+  /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
+  useFogMaskCache(): FogMaskCacheHandle | null;
+
+  /**
+   * Register a singleton handle for an Uplink, keyed by its id — the shared
+   * substrate for anything that needs to register a singleton object and
+   * have it looked up elsewhere without coupling the lookup site to the
+   * Uplink's own module (e.g. a relay-capable object, a WebRTC client).
+   */
+  registerUplinkHandle<T>(uplinkId: string, handle: T): void;
+  /** Look up a previously registered handle by Uplink id. `undefined` if none. */
+  getUplinkHandle<T = unknown>(uplinkId: string): T | undefined;
+
+  /** Register (or replace) a full custom Settings-modal tab. */
+  registerSettingsTab(def: SettingsTabDefinition): void;
+
+  /**
+   * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
+   * `undefined` when none is mounted — for imperative use outside a hook
+   * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
+   */
+  getActiveTelemetryClient(): TelemetryClient | undefined;
+  /**
+   * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
+   * `TelemetryClient` — `undefined` with no provider mounted.
+   */
+  useTelemetryClientOptional(): TelemetryClient | undefined;
 }
 
 /** The single global slot the app populates at boot. */
