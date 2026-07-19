@@ -19,6 +19,7 @@
 import type {
   CommandStatus as ClientCommandStatus,
   DelayClockLike as ClientDelayClockLike,
+  LateTelemetrySubscribe as ClientLateTelemetrySubscribe,
   StreamStatusValue as ClientStreamStatusValue,
   TelemetryClient as ClientTelemetryClient,
   UseCommandResult as ClientUseCommandResult,
@@ -36,6 +37,7 @@ import type {
   DataSource as SdkDataSource,
   DataSourceStatus as SdkDataSourceStatus,
   DelayClockLike as SdkDelayClockLike,
+  LateTelemetrySubscribe as SdkLateTelemetrySubscribe,
   MapPoi as SdkMapPoi,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   Screen as SdkScreen,
@@ -183,6 +185,24 @@ type _UseCommandResultBack = Expect<
   Assignable<ClientUseCommandResult, SdkUseCommandResult>
 >;
 
+// Late telemetry subscribe SPI (facade-sealing, scansat fog-sync, 2026-07-19):
+// LateTelemetrySubscribe is owned by sitrep-client too
+// (use-late-telemetry-subscribe.ts), same visibility as StreamStatusValue/
+// TelemetryClient above. It builds on TopicId/TopicPayload, which are
+// sdk-native, so the mirror is structurally identical, not a narrowed
+// subset: both directions are asserted. The client's own `Unsubscribe`
+// alias has no sdk-side counterpart to compare (the sdk writes the return
+// position out as `() => void` directly, to avoid colliding with the
+// generated wire contract's own `Unsubscribe` message type, see
+// mod/sitrep-sdk/src/api/types.ts) but that return position is still
+// covered structurally by the two checks below.
+type _LateTelemetrySubscribe = Expect<
+  Assignable<SdkLateTelemetrySubscribe, ClientLateTelemetrySubscribe>
+>;
+type _LateTelemetrySubscribeBack = Expect<
+  Assignable<ClientLateTelemetrySubscribe, SdkLateTelemetrySubscribe>
+>;
+
 // Keep the aliases "used" under noUnusedLocals.
 export type _SdkFacadeConformance = [
   _Component,
@@ -221,4 +241,6 @@ export type _SdkFacadeConformance = [
   _CommandStatusBack,
   _UseCommandResult,
   _UseCommandResultBack,
+  _LateTelemetrySubscribe,
+  _LateTelemetrySubscribeBack,
 ];

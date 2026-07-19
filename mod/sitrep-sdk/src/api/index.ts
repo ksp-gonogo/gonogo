@@ -37,6 +37,7 @@ import type {
   ComponentDefinition,
   DataSource,
   FogRevealSourceDefinition,
+  LateTelemetrySubscribe,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -73,6 +74,7 @@ export type {
   DataSourceStatus,
   DelayClockLike,
   FogRevealSourceDefinition,
+  LateTelemetrySubscribe,
   MapPoi,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
@@ -203,6 +205,15 @@ export function useStreamEvent<T = unknown>(
   handler: (payload: T) => void,
 ): void {
   getHost().useStreamEvent(topic, handler);
+}
+
+/**
+ * Returns a stable, imperative subscribe function for topics only known
+ * after some async setup resolves, in a count decided at runtime. See
+ * `LateTelemetrySubscribe`'s own doc for the full contract.
+ */
+export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
+  return getHost().useLateTelemetrySubscribe();
 }
 
 /** The current view time (UT seconds), reactive per-frame. */

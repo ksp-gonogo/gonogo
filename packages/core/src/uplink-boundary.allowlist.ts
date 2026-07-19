@@ -267,6 +267,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // names scansat as one of the three bundled-fallback ids it feeds
       // recordBundledOutcomes() — same shape as flag.test.ts above.
       "packages/app/src/uplinks/loaderState.test.ts",
+      // useLateTelemetrySubscribe (2026-07-19): scansat's fog-sync is the
+      // motivating call site for the new hook (a runtime-templated topic,
+      // `scansat.mask.<body>.<scanType>`, that has no fixed `TopicId` member),
+      // so its doc comments and its conformance-gate justification name
+      // scansat as the example — same "illustrative, zero coupling" shape as
+      // augments.test.tsx above. Neither file imports anything from the
+      // scansat Uplink.
+      "packages/core/src/sdk-facade.conformance.test-d.ts",
+      "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
+      "packages/sitrep-client/src/use-late-telemetry-subscribe.ts",
     ],
   },
 
