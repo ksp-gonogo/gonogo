@@ -3,29 +3,21 @@ import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
 /**
- * Phase 0.4 additions — stream SPI, data introspection, and the game-host
- * SPI. Same injected-host contract as every other stateful member (design
- * §4.3 / D-A): fail loud with no host installed, resolve to the injected
- * host's own implementation once one is.
+ * Phase 0.4 additions — stream SPI, data introspection, the game-host SPI,
+ * the map/fog SPI, the Uplink-handle SPI, the settings-tab SPI, and the
+ * telemetry-client SPI. Same injected-host contract as every other stateful
+ * member (design §4.3 / D-A): fail loud with no host installed, resolve to
+ * the injected host's own implementation once one is.
  *
- * The DataSource-author SPI (registerDataSource/getDataSource) was removed
- * from here on 2026-07-18 (kos migration) on the premise that it had zero
- * production consumers independent of kos, and that first-party code
- * always imports @ksp-gonogo/core's registerDataSource/getDataSource
- * directly rather than through this facade.
- *
- * Re-added 2026-07-19 (facade-sealing plan,
- * docs/superpowers/plans/2026-07-19-facade-sealing.md §2.1) — a conscious
- * reversal, not a silent flip. Both halves of the 07-18 premise stopped
- * holding: another Uplink's own fog-reveal sync needs getDataSource too,
- * not just kos; and the whole point of facade-sealing kos is to stop
- * "first-party code imports core directly" being true for it. The same
- * reversal also brings back the map/fog SPI (getBody/getFogRevealSources/
- * onFogRevealSourcesChange/useFogMaskCache), the Uplink-handle SPI
- * (registerUplinkHandle/getUplinkHandle), the settings-tab SPI
- * (registerSettingsTab), and the telemetry-client SPI
- * (getActiveTelemetryClient/useTelemetryClientOptional) — all new gaps the
- * same plan identified across the currently-first-party Uplink clients.
+ * The DataSource-author SPI (registerDataSource/getDataSource) that used to
+ * have its own describe block here went through a removal (2026-07-18, "zero
+ * production consumers"), a same-night reversal once two facade-sealed
+ * Uplink clients turned out to still need it (facade-sealing plan §2.1), and
+ * a final removal (2026-07-19) once both were migrated onto non-SPI
+ * substitutes — see mod/sitrep-sdk/src/api/types.ts's DataSource type-mirror
+ * comment for the full history. First-party code that still authors a
+ * `DataSource` imports @ksp-gonogo/core's registerDataSource/getDataSource
+ * directly; there is nothing left on this facade to gate.
  */
 describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
   afterEach(() => {
@@ -131,30 +123,6 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
       installTestHost({ subscribeSetting });
       expect(barrel.subscribeSetting("gameHost", cb)).toBe(unsubscribe);
       expect(subscribeSetting).toHaveBeenCalledWith("gameHost", cb);
-    });
-  });
-
-  describe("DataSource-author SPI (re-added 2026-07-19, facade-sealing §2.1)", () => {
-    it("registerDataSource fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      const def = { id: "example-ds" } as never;
-      expect(() => barrel.registerDataSource(def)).toThrow(named);
-
-      const registerDataSource = vi.fn();
-      installTestHost({ registerDataSource });
-      barrel.registerDataSource(def);
-      expect(registerDataSource).toHaveBeenCalledWith(def);
-    });
-
-    it("getDataSource fails LOUD with no host, resolves once installed (reaching one's own source)", () => {
-      resetTestHost();
-      expect(() => barrel.getDataSource("example-ds")).toThrow(named);
-
-      const fakeSource = { id: "example-ds" } as never;
-      const getDataSource = vi.fn().mockReturnValue(fakeSource);
-      installTestHost({ getDataSource });
-      expect(barrel.getDataSource("example-ds")).toBe(fakeSource);
-      expect(getDataSource).toHaveBeenCalledWith("example-ds");
     });
   });
 

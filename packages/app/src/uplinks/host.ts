@@ -16,7 +16,6 @@
 import {
   AugmentSlot,
   getBody,
-  getDataSource,
   getFogRevealSources,
   getGameHost,
   getUplinkHandle,
@@ -24,7 +23,6 @@ import {
   PerfBudget,
   registerAugment,
   registerComponent,
-  registerDataSource,
   registerFogRevealSource,
   registerMapPoiProvider,
   registerSettingsTab,
@@ -88,8 +86,6 @@ export function buildGonogoHost(): GonogoHost {
       registerMapPoiProvider(
         def as Parameters<typeof registerMapPoiProvider>[0],
       ),
-    registerDataSource: (source) =>
-      registerDataSource(source as Parameters<typeof registerDataSource>[0]),
 
     useDataValue: (dataSourceId, key) => useDataValue(dataSourceId, key),
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
@@ -126,8 +122,6 @@ export function buildGonogoHost(): GonogoHost {
     getGameHost: () => getGameHost(),
     subscribeSetting: (key, cb) => subscribeSetting(key, cb),
 
-    getDataSource: (id) =>
-      getDataSource(id) as ReturnType<GonogoHost["getDataSource"]>,
     getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getFogRevealSources: () => getFogRevealSources(),
     onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),

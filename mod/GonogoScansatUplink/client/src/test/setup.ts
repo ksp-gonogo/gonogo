@@ -2,14 +2,12 @@ import "@testing-library/jest-dom";
 import {
   AugmentSlot,
   getBody,
-  getDataSource,
   getFogRevealSources,
   installDomStubs,
   onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
   registerComponent,
-  registerDataSource,
   registerFogRevealSource,
   registerMapPoiProvider,
   useDataValue,
@@ -42,16 +40,12 @@ installTestHost({
     typeof installTestHost
   >[0]["AugmentSlot"],
   getBody,
-  getDataSource,
   getFogRevealSources,
   onFogRevealSourcesChange,
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],
   registerComponent,
-  registerDataSource: registerDataSource as Parameters<
-    typeof installTestHost
-  >[0]["registerDataSource"],
   registerFogRevealSource,
   registerMapPoiProvider,
   useDataValue,

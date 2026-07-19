@@ -24,7 +24,6 @@ import type {
   AugmentDefinition,
   BodyDefinition,
   ComponentDefinition,
-  DataSource,
   FogMaskCacheHandle,
   FogRevealSourceDefinition,
   LateTelemetrySubscribe,
@@ -51,14 +50,6 @@ export interface GonogoHost {
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
   registerMapPoiProvider(def: MapPoiProviderDefinition): void;
-  /**
-   * Author a data source into the app's single registry (design D-A-1 /
-   * 2026-07-19 facade-sealing reversal — see `./types.ts`'s DataSource-SPI
-   * comment for the removal-then-reversal history).
-   */
-  registerDataSource<
-    TConfig extends Record<string, unknown> = Record<string, unknown>,
-  >(source: DataSource<TConfig>): void;
 
   useDataValue<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
@@ -103,7 +94,7 @@ export interface GonogoHost {
    * none mounted. Opaque here (same reasoning as `useViewClock`'s `unknown`
    * return): `TimelineStore` is a large, evolving class owned by
    * `@ksp-gonogo/sitrep-client`, which the sdk leaf cannot depend on to name
-   * its full shape — see `./types.ts`'s DataSource-SPI comment for the same
+   * its full shape — see `./types.ts`'s DataSource type-mirror comment for the same
    * constraint applied to a small, mirrorable type. An author needing the
    * concrete type narrows/casts at the call site, same as `useViewClock`
    * callers already do today.
@@ -132,16 +123,6 @@ export interface GonogoHost {
    * reaches the shared buffer or Axiom.
    */
   logger: Logger;
-
-  /**
-   * Reach a data source already registered in the app's single registry —
-   * for an Uplink that AUTHORS its own `DataSource` to make imperative
-   * calls on the instance it registered itself. The "hooks are the
-   * boundary" rule (`useDataValue`/`useExecuteAction`) still holds for a
-   * CONSUMER widget; this accessor is for the author reaching the source it
-   * registered itself, not a bypass for ordinary data reads.
-   */
-  getDataSource(id: string): DataSource | undefined;
 
   /**
    * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Despite

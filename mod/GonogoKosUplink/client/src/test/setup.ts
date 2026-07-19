@@ -1,11 +1,9 @@
 import "@testing-library/jest-dom";
 import {
-  getDataSource,
   getUplinkHandle,
   installDomStubs,
   PerfBudget,
   registerComponent,
-  registerDataSource,
   registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
@@ -30,7 +28,7 @@ PerfBudget.installTestGate();
 
 // Bridge the sitrep-sdk facade's fail-loud shims to the SAME real core
 // singletons this test suite's fixtures (MockKosTelnet-style fakes,
-// registerDataSource, clearRegistry, ...) already exercise directly —
+// registerUplinkHandle, clearRegistry, ...) already exercise directly —
 // mirrors packages/app/src/uplinks/host.ts's buildGonogoHost() member-for-
 // member, scoped to the subset a facade-sealed production file in this
 // client actually calls. Without this, any sealed file's hook/registration
@@ -44,13 +42,9 @@ installTestHost({
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],
-  getDataSource,
   getUplinkHandle,
   logger,
   registerComponent,
-  registerDataSource: registerDataSource as Parameters<
-    typeof installTestHost
-  >[0]["registerDataSource"],
   registerUplinkHandle: registerUplinkHandle as Parameters<
     typeof installTestHost
   >[0]["registerUplinkHandle"],

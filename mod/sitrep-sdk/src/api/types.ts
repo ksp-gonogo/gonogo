@@ -318,23 +318,23 @@ export interface FogMaskCacheHandle {
   dispose(): Promise<void>;
 }
 
-// --- DataSource-author SPI ---------------------------------------------------
+// --- DataSource type mirror ---------------------------------------------------
 //
-// An Uplink that ships its OWN DataSource needs to TYPE its implementation
-// against the real `DataSource` shape — same leaf constraint as above: core
-// owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
+// core owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
 // (packages/core/src/types.ts) but the sdk cannot name it as a workspace
-// dependency, so the interface is mirrored here and kept honest by
+// dependency, so the shape is mirrored here and kept honest by
 // `packages/core/src/sdk-facade.conformance.test-d.ts`.
 //
-// Re-added 2026-07-19 (facade-sealing plan) — this SPI was removed on
-// 2026-07-18 on the premise that it had "zero production consumers
-// independent of kos" and that first-party code always imports core's
-// registerDataSource/getDataSource directly. Both halves of that premise no
-// longer hold: another Uplink's own fog-reveal sync needs getDataSource too
-// (not just kos), and the whole point of facade-sealing kos is to stop
-// "first-party code imports core directly" being true for it. See
-// docs/superpowers/plans/2026-07-19-facade-sealing.md §2.1.
+// The `registerDataSource`/`getDataSource` author SPI that used to sit on
+// `GonogoHost` and be typed against this mirror was removed for good on
+// 2026-07-19 (facade-sealing plan §2.1): it went through a removal (2026-07-18,
+// "zero production consumers"), a reversal the same night once two
+// facade-sealed Uplink clients turned out to still need it, and this final
+// removal once both were migrated onto their own non-SPI substitutes
+// (a singleton-handle registration; a lifecycle-managed telemetry
+// subscribe). The type mirror itself stays — an Uplink that carries its
+// own connection-status field can still type it against
+// `DataSourceStatus` without registering through the facade at all.
 
 export type DataSourceStatus =
   | "connected"
@@ -355,9 +355,9 @@ export interface ConfigField {
 }
 
 /**
- * Base interface for all data sources. `registerDataSource`/`getDataSource`
- * on {@link GonogoHost} are typed against this so an Uplink author can both
- * author a conforming `DataSource` and reach one it registered itself.
+ * Base interface for all data sources — mirrors core's real `DataSource`
+ * shape (see the module-level comment above) for typing an Uplink's own
+ * `status: DataSourceStatus` connection field.
  */
 export interface DataSource<
   TConfig extends Record<string, unknown> = Record<string, unknown>,

@@ -1,13 +1,11 @@
 import {
   AugmentSlot,
-  getDataSource,
   getGameHost,
   getUplinkHandle,
   installDomStubs,
   PerfBudget,
   registerAugment,
   registerComponent,
-  registerDataSource,
   registerSettingsTab,
   registerUplinkHandle,
   subscribeSetting,
@@ -38,7 +36,6 @@ installTestHost({
     typeof installTestHost
   >[0]["AugmentSlot"],
   createPerfBudget: (opts) => new PerfBudget(opts),
-  getDataSource,
   getGameHost,
   getUplinkHandle,
   logger,
@@ -46,9 +43,6 @@ installTestHost({
     typeof installTestHost
   >[0]["registerAugment"],
   registerComponent,
-  registerDataSource: registerDataSource as Parameters<
-    typeof installTestHost
-  >[0]["registerDataSource"],
   registerSettingsTab,
   registerUplinkHandle: registerUplinkHandle as Parameters<
     typeof installTestHost

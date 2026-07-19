@@ -27,6 +27,7 @@ import {
   DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
+  registerDataSource,
 } from "@ksp-gonogo/core";
 import type { CameraLifecycle, Layer } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
@@ -35,11 +36,7 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  registerAugment,
-  registerDataSource,
-  registerUplinkHandle,
-} from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
