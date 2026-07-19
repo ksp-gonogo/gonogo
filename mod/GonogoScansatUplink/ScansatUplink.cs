@@ -64,6 +64,13 @@ namespace Gonogo.ScansatUplink
         public const string ScanningVesselsTopic = "scansat.scanningVessels";
         public const string ScienceTopic = "scansat.science";
 
+        // Numeric SCANtype bits (matching ScanChannels.ClientScanTypes/
+        // VersionGuard's own ("AltimetryLoRes", 1) assertion), not the
+        // SCANsat.SCAN_Data.SCANtype enum type — avoids a new compile-time
+        // dependency this file doesn't currently have.
+        private const int AltimetryLoResBit = 1;
+        private const int AltimetryHiResBit = 2;
+
         private IChannelPublisher? _scienceSource;
 
         private IDynamicChannelSource? _coverageSource;
@@ -235,7 +242,10 @@ namespace Gonogo.ScansatUplink
         /// "active subject" scoping — not a per-tick sweep of every body
         /// SCANsat ever touched). Reads the coverage grid + per-type coverage
         /// percentages, and — ONCE per body visit — builds the (expensive)
-        /// stock PQS height and BiomeMap grids. Everything is packed into a
+        /// stock PQS height and BiomeMap grids. The height grid's per-cell
+        /// elevation sample branches on <c>SCANUtil.isCovered(..., AltimetryHiRes)</c>
+        /// per SCANsat's own <c>SCANmap.terrainElevation</c> tiering rule —
+        /// see <see cref="TerrainTiering.ResolveSampleCoordinate"/>. Everything is packed into a
         /// plain <see cref="ScanCapture"/> (no live KSP handles) so the
         /// Courier-side <see cref="HandleOnCourier"/> can do the
         /// hashing/keyframe/packing/publishing entirely off that data. Returns
@@ -271,8 +281,13 @@ namespace Gonogo.ScansatUplink
             {
                 _heightBiomeCapturedBodies.Add(bodyName);
                 capture.IncludeHeightBiome = true;
-                capture.HeightGrid = ScanGrids.BuildHeights(
-                    ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleElevation(body, lon, lat));
+                capture.HeightGrid = ScanGrids.BuildHeights(ScanGrids.Width, ScanGrids.Height, (lon, lat) =>
+                {
+                    bool hiRes = SCANUtil.isCovered(lon, lat, body, AltimetryHiResBit);
+                    bool loRes = !hiRes && SCANUtil.isCovered(lon, lat, body, AltimetryLoResBit);
+                    var (sLon, sLat) = TerrainTiering.ResolveSampleCoordinate(lon, lat, hiRes, loRes);
+                    return SampleElevation(body, sLon, sLat);
+                });
                 capture.BiomeEntries = BuildBiomeEntries(body);
                 capture.BiomeIndices = ScanGrids.BuildBiomeIndices(
                     ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleBiomeIndex(body, lon, lat));
