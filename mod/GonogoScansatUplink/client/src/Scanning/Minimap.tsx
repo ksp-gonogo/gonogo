@@ -1,5 +1,5 @@
-import { type BodyDefinition, useDataValue } from "@ksp-gonogo/core";
-import { useElementSize } from "@ksp-gonogo/ui";
+import { type BodyDefinition, useDataValue } from "@ksp-gonogo/sitrep-sdk";
+import { useElementSize } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useScanCoverageGate } from "../FogReveal/useScanCoverageGate";

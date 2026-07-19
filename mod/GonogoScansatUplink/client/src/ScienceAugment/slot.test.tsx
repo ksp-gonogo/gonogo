@@ -1,10 +1,10 @@
-import { AugmentSlot, clearRegistry } from "@ksp-gonogo/core";
+import { clearRegistry } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { AugmentSlot, Quality } from "@ksp-gonogo/sitrep-sdk";
 
 import {
   act,

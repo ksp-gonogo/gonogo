@@ -14,9 +14,8 @@
 // while `scansat.available` is live, so an install without the SCANsat mod
 // never mounts it — zero impact on ScienceOfficer for non-SCANsat users.
 
-import type {} from "@ksp-gonogo/components"; // pulls ScienceOfficer's "science-officer.badges" SlotRegistry merge into this program (see that module's own declare-module comment)
-import type { SlotProps } from "@ksp-gonogo/core";
-import { registerAugment, useTelemetry } from "@ksp-gonogo/core";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   ScienceExperimentRow,

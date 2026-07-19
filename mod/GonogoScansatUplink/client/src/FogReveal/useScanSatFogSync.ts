@@ -3,8 +3,8 @@ import {
   getDataSource,
   registerFogRevealSource,
   useDataValue,
-} from "@ksp-gonogo/core";
-import { useFogMaskCache } from "@ksp-gonogo/data";
+  useFogMaskCache,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { SCAN_TYPE, type SCANCoverageBitmap, type SCANType } from "../schema";
 import { applyScanCoverageToMask } from "./scanCoverageSync";
