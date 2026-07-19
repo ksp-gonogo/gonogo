@@ -60,6 +60,7 @@ export type {
   AugmentSettingField,
   BodyDefinition,
   BodyMask,
+  CommandStatus,
   ComponentBehavior,
   ComponentDefinition,
   ComponentProps,

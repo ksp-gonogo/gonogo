@@ -17,14 +17,17 @@
 // ---------------------------------------------------------------------------
 
 import type {
+  CommandStatus as ClientCommandStatus,
   DelayClockLike as ClientDelayClockLike,
   StreamStatusValue as ClientStreamStatusValue,
   TelemetryClient as ClientTelemetryClient,
+  UseCommandResult as ClientUseCommandResult,
 } from "@ksp-gonogo/sitrep-client";
 import type {
   ActionDefinition as SdkActionDefinition,
   AugmentDefinition as SdkAugmentDefinition,
   BodyDefinition as SdkBodyDefinition,
+  CommandStatus as SdkCommandStatus,
   ComponentDefinition as SdkComponentDefinition,
   ComponentProps as SdkComponentProps,
   ConfigComponentProps as SdkConfigComponentProps,
@@ -40,6 +43,7 @@ import type {
   StreamStatusValue as SdkStreamStatusValue,
   TelemetryClient as SdkTelemetryClient,
   ThemeDefinition as SdkThemeDefinition,
+  UseCommandResult as SdkUseCommandResult,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
 import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
@@ -161,6 +165,24 @@ type _DelayClockLikeBack = Expect<
   Assignable<ClientDelayClockLike, SdkDelayClockLike>
 >;
 
+// Command SPI (facade-sealing, kos, 2026-07-19): CommandStatus and
+// UseCommandResult are owned by sitrep-client too (lifecycle.ts /
+// use-command.ts), same visibility as StreamStatusValue/TelemetryClient
+// above. Both are structurally identical mirrors (not narrowed subsets), so
+// both directions are asserted for each — this is the check that should have
+// caught the original drift (the mirror's `send`/`status` shape had fallen
+// out of sync with the real hook).
+type _CommandStatus = Expect<Assignable<SdkCommandStatus, ClientCommandStatus>>;
+type _CommandStatusBack = Expect<
+  Assignable<ClientCommandStatus, SdkCommandStatus>
+>;
+type _UseCommandResult = Expect<
+  Assignable<SdkUseCommandResult, ClientUseCommandResult>
+>;
+type _UseCommandResultBack = Expect<
+  Assignable<ClientUseCommandResult, SdkUseCommandResult>
+>;
+
 // Keep the aliases "used" under noUnusedLocals.
 export type _SdkFacadeConformance = [
   _Component,
@@ -195,4 +217,8 @@ export type _SdkFacadeConformance = [
   _TelemetryClient,
   _DelayClockLike,
   _DelayClockLikeBack,
+  _CommandStatus,
+  _CommandStatusBack,
+  _UseCommandResult,
+  _UseCommandResultBack,
 ];
