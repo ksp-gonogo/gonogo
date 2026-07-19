@@ -6,13 +6,17 @@ namespace GonogoScansatUplink.Tests
     public class TerrainTieringTests
     {
         [Theory]
-        [InlineData(-45.3, -45.2)]  // truncate-toward-zero after *5, then /5.0 (float division)
-        [InlineData(45.3, 45.2)]
-        [InlineData(0.0, 0.0)]
-        [InlineData(-0.1, 0.0)]     // -0.1*5=-0.5 -> (int)=0 -> 0/5.0=0.0
-        [InlineData(12.34, 12.2)]
-        public void Snap02MatchesScansatsIntTruncateThenFloatDivideIdiom(double input, double expected)
+        [InlineData(12.34, 12.0)]
+        [InlineData(0.99, 0.0)]
+        [InlineData(179.9, 179.0)]
+        [InlineData(-45.3, -45.0)]
+        [InlineData(-0.7, 0.0)]
+        public void Snap02MatchesScansatsIntTruncateThenIntDivideIdiom(double input, double expected)
         {
+            // (int)(v * 5.0) / 5 in the decompiled source is INTEGER
+            // division (the divisor is a literal `5`, not `5.0`), which
+            // truncates a second time and algebraically collapses to
+            // whole-degree truncation-toward-zero - not a 0.2-degree snap.
             Assert.Equal(expected, TerrainTiering.Snap02(input), 3);
         }
 
