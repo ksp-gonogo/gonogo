@@ -2,16 +2,9 @@
  * Marker subclass: errors raised by the running kerboscript itself
  * (explicit [KOSERROR], or kOS runtime exceptions like
  * KOSUndefinedIdentifierException), not by transport / proxy / session
- * bookkeeping.
- *
- * Lives in @ksp-gonogo/data so both the in-process KosDataSource (app
- * package) and the PeerClient resolver (app package) and the consumer
- * hook `useKosWidget` (data package) can construct and identify the same
- * error class without a layering inversion.
- *
- * The interval-mode breaker in `useKosWidget` only counts these toward
- * its consecutive-error threshold; a flaky telnet hop or proxy restart
- * shouldn't trip every kOS widget at once.
+ * bookkeeping. Raised by `KosUplinkExecutor` (via `kosUplinkExecutor.ts`)
+ * so callers can distinguish a script-author fault from a transport error
+ * without every failure mode collapsing into a generic `Error`.
  */
 export class KosScriptError extends Error {
   readonly isScriptError = true;

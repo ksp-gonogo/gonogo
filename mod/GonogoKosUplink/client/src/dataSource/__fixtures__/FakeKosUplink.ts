@@ -2,10 +2,10 @@
  * FakeKosUplink — a fake `kos.run` Uplink responder, the `kos.run`-era
  * counterpart to `MockKosTelnet.ts`. `KosDataSource.executeScript` no
  * longer talks to telnet at all (see `kosUplinkExecutor.ts`); this fixture
- * lets the existing `executeScript`/`useKosWidget` integration coverage
- * keep exercising the REAL dispatch → correlate → resolve pipeline, just
- * over a real `StubTransport` + `TelemetryClient` instead of a fake
- * WebSocket telnet session.
+ * lets `executeScript`/CPU-discovery integration coverage keep exercising
+ * the REAL dispatch → correlate → resolve pipeline, just over a real
+ * `StubTransport` + `TelemetryClient` instead of a fake WebSocket telnet
+ * session.
  *
  * Usage:
  *   const fake = FakeKosUplink.install();

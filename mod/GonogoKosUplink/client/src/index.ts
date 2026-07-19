@@ -18,14 +18,15 @@
 // To wire it into the app: `import "@ksp-gonogo/kos";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
-// Everything kOS-specific now lives in this package: the centralised
-// kerboscript registry (registerKosScript/getKosScripts, `shared/
-// scriptRegistry.ts` — a kOS-owned mechanism per the migration plan's
-// explicit "no generalising" call, not a core-generic extension point), the
-// CPU registry, the [KOSDATA] parser, and the KosDataSource transport
-// itself (`dataSource/kos.ts` — `kos.run` dispatch, `kos.processors` CPU
-// discovery, the centralised `kos.compute.*` fanout, the kerboscript
-// wrapper builder). This is NOT a thin UI-only client over an app-side
+// Everything kOS-specific lives in this package: the CPU registry, the
+// [KOSDATA] parser, and the KosDataSource transport itself (`dataSource/
+// kos.ts` — `kos.run` dispatch, `kos.processors` CPU discovery, the
+// kerboscript wrapper builder). The centralised `kos.compute.*` fanout
+// (KosComputeManager) and the kerboscript registry that fed it
+// (registerKosScript/getKosScripts, `shared/scriptRegistry.ts`) were
+// deleted as dead code once the KosProcessors-style feed widgets that were
+// their only consumers went with the widget streamline above — KosTerminal
+// never used them. This is NOT a thin UI-only client over an app-side
 // transport — see the kos migration plan (2026-07-18) for the full
 // before/after.
 
@@ -40,6 +41,6 @@ export { KosCpuDiscovery } from "./dataSource/KosCpuDiscovery";
 export { useKosMainWiring } from "./dataSource/useKosMainWiring";
 
 // Shared kOS infra (CpuRegistryService/Context, the [KOSDATA] parser,
-// ScriptableDataSource, the kerboscript registry, useKosWidget), re-exported
-// for MainScreen/StationScreen and any future kOS-driven widget.
+// ScriptableDataSource), re-exported for MainScreen/StationScreen and any
+// future kOS-driven widget.
 export * from "./shared";

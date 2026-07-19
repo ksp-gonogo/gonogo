@@ -13,19 +13,20 @@ import {
   registerUplinkHandle,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
-import type { ScriptableDataSource } from "../shared/ScriptableDataSource";
-import type { KosManagedScript } from "../shared/useKosWidget";
-import { KosComputeManager, type KosTopicStatus } from "./kosCompute";
+import type {
+  KosManagedScript,
+  ScriptableDataSource,
+} from "../shared/ScriptableDataSource";
 import { KosUplinkExecutor } from "./kosUplinkExecutor";
 
 export type { KosManagedScript, KosScriptArg };
 
 export interface KosConfig extends Record<string, unknown> {
   /**
-   * CPU tagname that the centralised compute fanout dispatches to. Empty
-   * string = none selected, loops surface a "no CPU" error and idle. The
-   * legacy ad-hoc executeScript path takes its CPU as a parameter and is
-   * unaffected.
+   * CPU tagname, retained for config back-compat with the pre-Uplink
+   * `kos-compute` source's saved settings. `executeScript` takes its CPU
+   * as an explicit parameter and does not read this field — nothing in
+   * this source currently does.
    */
   activeCpu: string;
 }
@@ -82,9 +83,11 @@ interface KosDataSourceOptions {
 /**
  * Single kOS data source: exposes `executeScript(cpu, script, args)` for
  * widgets that run kOS scripts on individual CPUs (dispatched over the
- * `kos.run` Uplink — see `kosUplinkExecutor.ts`), owns the centralised
- * `kos.compute.*` fanout, and surfaces CPU discovery off the mod's native
- * `kos.processors` push channel (`onProcessorsChanged`).
+ * `kos.run` Uplink — see `kosUplinkExecutor.ts`), and surfaces CPU
+ * discovery off the mod's native `kos.processors` push channel
+ * (`onProcessorsChanged`). Carries no subscribable data keys of its own —
+ * `schema()`/`subscribe()` are empty stubs satisfying the `DataSource`
+ * contract.
  *
  * No persistent socket is held by this source. Everything rides the sitrep
  * telemetry stream: `executeScript` correlates a `kos.run.<coreId>` result,
@@ -113,21 +116,11 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   // kosUplinkExecutor.ts.
   private readonly uplinkExecutor: KosUplinkExecutor;
 
-  // Centralised compute fanout — owns kos.compute.* schema/subscribe/execute.
-  // Constructed eagerly (no I/O on its own) so subscribe() can route topics
-  // before the source is connect()ed.
-  private readonly compute: KosComputeManager;
-
   constructor(config?: KosConfig, opts: KosDataSourceOptions = {}) {
     this.cfg = config ?? configStore.get();
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
     this.uplinkExecutor = new KosUplinkExecutor({
       timeoutMs: this.callTimeoutMs,
-    });
-    this.compute = new KosComputeManager({
-      executeScript: (cpu, script, args, managed) =>
-        this.executeScript(cpu, script, args, managed),
-      getActiveCpu: () => this.cfg.activeCpu,
     });
     // Drive the status pill off kos.processors liveness — a fresh CPU list
     // (or its disappearance) is exactly the signal that the stream is up and
@@ -172,38 +165,23 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   disconnect(): void {
-    this.compute.dispose();
     this.uplinkExecutor.dispose();
     this.setStatus("disconnected");
   }
 
   // --- Data ---
+  //
+  // This source carries no subscribable data keys of its own — the
+  // centralised kOS compute fanout that used to back these (kos.compute.*)
+  // was removed as dead code (zero consumers once the kOS widgets were
+  // streamlined to KosTerminal alone). Stubs kept to satisfy `DataSource`.
 
   schema(): DataKey[] {
-    return this.compute.schema();
+    return [];
   }
 
-  subscribe(key: string, cb: (value: unknown) => void): () => void {
-    return this.compute.subscribe(key, cb);
-  }
-
-  /**
-   * Pipe every per-field emission from the centralised compute fanout to
-   * an external sink. Used by the app shell to capture kOS samples into
-   * `BufferedDataSource` so they persist into the flight history and are
-   * available for in-app replay. Pass `null` to detach. Idempotent.
-   */
-  setSampleSink(sink: ((key: string, value: unknown) => void) | null): void {
-    this.compute.setSampleSink(sink);
-  }
-
-  /** Snapshot of a centralised compute topic's status. Used by `useKosScriptStatus`. */
-  getTopicStatus(topicId: string): KosTopicStatus | null {
-    return this.compute.getTopicStatus(topicId);
-  }
-
-  onTopicStatusChange(topicId: string, cb: () => void): () => void {
-    return this.compute.onTopicStatusChange(topicId, cb);
+  subscribe(_key: string, _cb: (value: unknown) => void): () => void {
+    return () => {};
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
@@ -220,13 +198,14 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     return () => this.configListeners.delete(cb);
   }
 
-  async execute(action: string): Promise<void> {
-    // Centralised compute actions: kos.compute.<topicId>.{dispatchNow,reEnable}.
-    if (await this.compute.execute(action)) return;
-    // Anything else still goes through executeScript() directly — the generic
-    // action channel doesn't carry enough structure for ad-hoc scripts.
-    throw new Error(
-      `KosDataSource.execute: unknown action "${action}". Use executeScript() for ad-hoc scripts or kos.compute.<id>.{dispatchNow,reEnable} for managed feeds.`,
+  execute(action: string): Promise<void> {
+    // No generic action is defined on this source — ad-hoc scripts go
+    // through executeScript() directly, which carries enough structure
+    // (cpu/script/args) that the generic action channel doesn't.
+    return Promise.reject(
+      new Error(
+        `KosDataSource.execute: unknown action "${action}". Use executeScript() for ad-hoc scripts.`,
+      ),
     );
   }
 
@@ -298,7 +277,6 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   private applyConfig(config: Record<string, unknown>, persist: boolean): void {
-    const prevActiveCpu = this.cfg.activeCpu;
     this.cfg = {
       activeCpu:
         typeof config.activeCpu === "string"
@@ -306,9 +284,6 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
           : this.cfg.activeCpu,
     };
     if (persist) configStore.set(this.cfg);
-    if (this.cfg.activeCpu !== prevActiveCpu) {
-      this.compute.onActiveCpuChanged();
-    }
     this.recomputeStatus();
     this.configListeners.forEach((cb) => {
       cb();
@@ -342,8 +317,8 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   // Host-side relay handle for station peer-relayed calls (see
   // PeerHostService.handleUplinkRelay / PeerClientDataSource.relay). Only
   // the "executeScript" method is exposed today — the kOS-specific
-  // isScriptError-via-errorMeta unwrap lives on the calling client's own
-  // code (useKosWidget), not here.
+  // isScriptError-via-errorMeta unwrap is the calling client's own
+  // responsibility, not this source's.
   async relay(method: string, args: unknown): Promise<unknown> {
     if (method === "executeScript") {
       const a = args as {
