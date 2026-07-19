@@ -637,6 +637,7 @@ namespace Sitrep.Host
                     ["available"] = availability.IsAvailable,
                     ["reason"] = availability.Reason,
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),
+                    ["ownedPrefixes"] = ComputeOwnedPrefixes(id),
                 });
             }
 
@@ -644,6 +645,50 @@ namespace Sitrep.Host
             {
                 ["uplinks"] = entries,
             };
+        }
+
+        /// <summary>
+        /// Every topic/prefix this uplink OWNS — the Phase-1 half of the
+        /// uplink-health render-gating design
+        /// (local_docs/uplink-health-render-gating-design.md): the client resolves
+        /// a widget's declared channels to an owning uplink via longest-prefix
+        /// match against this list, instead of re-deriving a client-side
+        /// TOPIC_OWNER map. Two sources, concatenated:
+        /// <list type="bullet">
+        /// <item><description>every statically-declared channel topic this uplink
+        /// owns (<see cref="_channelOwner"/> — each entry there is already a
+        /// maximal-length "prefix", since an exact match always wins longest-prefix
+        /// resolution).</description></item>
+        /// <item><description>every dynamic-namespace prefix this uplink registered
+        /// (<see cref="_dynamicNamespaceOwner"/> — e.g. "kos.terminal.", covering
+        /// every kos.terminal.&lt;coreId&gt; sub-topic before any one of them is
+        /// ever materialized).</description></item>
+        /// </list>
+        /// NOTE: once a dynamic sub-topic materializes (see
+        /// <see cref="EnsureDynamicTopicDeclared"/>), it ALSO gets its own
+        /// <see cref="_channelOwner"/> entry — so this list can end up containing
+        /// both the registered prefix ("kos.terminal.") and one of its already-
+        /// materialized full topics ("kos.terminal.1"). Harmless redundancy: a
+        /// longest-prefix match against either entry resolves to the same owner.
+        /// </summary>
+        private List<string> ComputeOwnedPrefixes(string uplinkId)
+        {
+            var prefixes = new List<string>();
+            foreach (var kvp in _channelOwner)
+            {
+                if (kvp.Value == uplinkId)
+                {
+                    prefixes.Add(kvp.Key);
+                }
+            }
+            foreach (var kvp in _dynamicNamespaceOwner)
+            {
+                if (kvp.Value == uplinkId)
+                {
+                    prefixes.Add(kvp.Key);
+                }
+            }
+            return prefixes;
         }
 
         /// <summary>
