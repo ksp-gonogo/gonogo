@@ -87,8 +87,18 @@ const ONE_CPU: KosProcessorInfo[] = [
 function screenText(term: any): string {
   const buf = term.buffer.active;
   const rows: string[] = [];
+  // `getLine` indexes the WHOLE buffer (scrollback + viewport), not the
+  // visible screen — `baseY` is the scrollback depth, i.e. the offset of
+  // the current viewport's row 0 within that buffer. Every existing test
+  // in this file stays within the terminal's fixed row count (never
+  // triggers a scroll), so `baseY` has always been 0 and this offset was a
+  // no-op — but omitting it means a genuinely scrolled screen would
+  // silently read back the STALE pre-scroll rows instead of what's
+  // actually visible, masking exactly the class of row-misalignment bug
+  // kOS's own screen-diff pipeline could produce (see the error-frame
+  // tests below).
   for (let i = 0; i < term.rows; i++) {
-    const line = buf.getLine(i);
+    const line = buf.getLine(buf.baseY + i);
     rows.push(line ? line.translateToString(true) : "");
   }
   return rows.join("\n").replace(/\s+$/g, "");
@@ -230,6 +240,99 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     // The whole line is on row 0; row 1 is empty (no wrap).
     expect(buf.getLine(0).translateToString(true)).toBe(line);
     expect(buf.getLine(1).translateToString(true)).toBe("");
+  });
+
+  // Bug 1 investigation (operator report: "Error prints corrupt subsequent
+  // prints — lines appear INSIDE error text; likely subsequent lines print
+  // one line too high"). This widget's ENTIRE downlink path is
+  // `useStreamEvent("kos.terminal.<coreId>", (frame) => termRef.current
+  // ?.write(frame.chunk))` — no client-side cursor/row math, no
+  // reordering (`useStreamEvent` fires once per `ReliableOrdered` event,
+  // in delivery order, never coalesced — see
+  // `packages/sitrep-client/src/use-stream-event.test.tsx`), no
+  // transformation of `frame.chunk` whatsoever. Every row/cursor position
+  // in the wire chunk is computed upstream, in `ScreenDiffMapper.cs`'s
+  // call into kOS.Safe's own `ScreenSnapShot`/`IScreenBuffer` (a
+  // full-snapshot diff against the previous frame, re-emitted via
+  // absolute `\x1b[row;colH` positioning per changed row — see that
+  // file's doc comment, and the pre-existing "cursor-positioned status
+  // diff" test below for the wire shape this component already assumes).
+  //
+  // This test proves the positive control: fed a REALISTIC multi-line
+  // error frame (red SGR text, one absolute position per row, matching
+  // the wire shape above) immediately followed by a normal print at
+  // another absolute position, the terminal renders BOTH with complete
+  // fidelity — no interleaving, no row bleed, nothing "one line too
+  // high". Genuinely reproducing the operator's corruption would require
+  // feeding this component a chunk whose absolute row indices are
+  // ALREADY WRONG (i.e. a scroll/tick-accounting defect baked into the
+  // bytes before they ever reach `term.write`) — that defect, if it
+  // exists, is upstream of this component's boundary (kOS.Safe's own
+  // screen/scroll bookkeeping is a compiled third-party dependency with
+  // no source in this repo) and is not reproducible, let alone fixable,
+  // within `KosTerminal`. Confirmed experimentally: deliberately
+  // constructing a chunk with a STALE (pre-scroll) absolute row index
+  // does make xterm render the next print on top of the error's last
+  // line — exactly the reported symptom — which is consistent with the
+  // defect being a row-index computation bug upstream, not a rendering
+  // bug here.
+  it("a multi-line error frame followed by a normal print renders both without corruption (Bug 1 investigation — see doc comment)", async () => {
+    const f = await mountAttached({});
+    const baseline = Array.from({ length: 23 }, (_, i) => `LINE ${i}`).join(
+      "\r\n",
+    );
+    act(() =>
+      f.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk: `\x1b[2J\x1b[H${baseline}`,
+        fullRepaint: true,
+      }),
+    );
+    await flush(term());
+
+    // A 3-line kOS error, absolute-positioned per row (rows 20-22,
+    // 0-indexed) with red SGR — the same "one `\x1b[row;colH` per changed
+    // row" shape as the pre-existing status-diff test, just multi-line.
+    // `\x1b[K` (erase to end of line) after each position mirrors a real
+    // row-diff overwriting a longer baseline row with shorter content.
+    act(() =>
+      f.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk:
+          "\x1b[21;1H\x1b[K\x1b[31mERROR near line 2\x1b[0m" +
+          "\x1b[22;1H\x1b[K\x1b[31mstack trace...\x1b[0m" +
+          "\x1b[23;1H\x1b[K\x1b[31mfatal.\x1b[0m",
+        fullRepaint: false,
+      }),
+    );
+    await flush(term());
+
+    // A subsequent normal print, correctly absolute-positioned at the
+    // NEXT free row (row 24, 1-indexed = index 23) — kOS's own screen
+    // model has already accounted for the error internally.
+    act(() =>
+      f.emit("kos.terminal.7", {
+        coreId: 7,
+        chunk: "\x1b[24;1H\x1b[KSTATUS: NOMINAL",
+        fullRepaint: false,
+      }),
+    );
+
+    const text = await readScreen(term());
+    expect(text).toContain("LINE 0");
+    expect(text).toContain("ERROR near line 2");
+    expect(text).toContain("stack trace...");
+    expect(text).toContain("fatal.");
+    expect(text).toContain("STATUS: NOMINAL");
+    // Nothing merged onto another line — each string is on its OWN row,
+    // never sharing a row with another (the shape "lines appear INSIDE
+    // error text" would take).
+    const rows = text.split("\n");
+    const rowOf = (needle: string) => rows.findIndex((r) => r.includes(needle));
+    expect(rowOf("fatal.")).not.toBe(rowOf("STATUS: NOMINAL"));
+    expect(rowOf("stack trace...")).not.toBe(rowOf("fatal."));
+    expect(rows[rowOf("STATUS: NOMINAL")]).toBe("STATUS: NOMINAL");
+    expect(rows[rowOf("fatal.")]).toBe("fatal.");
   });
 
   it("a cursor-positioned status diff mid-composition corrupts neither the screen nor the composition", async () => {
