@@ -25,6 +25,7 @@ import type {
   DataRequirement,
   DataSource,
   DataSourceStatus,
+  DelayClockLike,
   FogRevealSourceDefinition,
   GonogoHost,
   Logger,
@@ -68,6 +69,7 @@ declare const _bodyDef: BodyDefinition;
 declare const _bodyMask: BodyMask;
 declare const _dataSource: DataSource;
 declare const _dataSourceStatus: DataSourceStatus;
+declare const _delayClockLike: DelayClockLike;
 declare const _configField: ConfigField;
 declare const _dataKey: DataKey;
 declare const _screen: Screen;
@@ -116,6 +118,7 @@ export type _ApiShapeProbe = [
   typeof _bodyMask,
   typeof _dataSource,
   typeof _dataSourceStatus,
+  typeof _delayClockLike,
   typeof _configField,
   typeof _dataKey,
   typeof _screen,

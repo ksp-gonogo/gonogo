@@ -70,6 +70,7 @@ export type {
   DataRequirement,
   DataSource,
   DataSourceStatus,
+  DelayClockLike,
   FogRevealSourceDefinition,
   MapPoi,
   MapPoiProviderDefinition,

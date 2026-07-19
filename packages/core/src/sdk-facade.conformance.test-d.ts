@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import type {
+  DelayClockLike as ClientDelayClockLike,
   StreamStatusValue as ClientStreamStatusValue,
   TelemetryClient as ClientTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
@@ -31,6 +32,7 @@ import type {
   DataKey as SdkDataKey,
   DataSource as SdkDataSource,
   DataSourceStatus as SdkDataSourceStatus,
+  DelayClockLike as SdkDelayClockLike,
   MapPoi as SdkMapPoi,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   Screen as SdkScreen,
@@ -146,6 +148,19 @@ type _TelemetryClient = Expect<
   Assignable<ClientTelemetryClient, SdkTelemetryClient>
 >;
 
+// Media delay clock SPI (facade-sealing, kerbcast, 2026-07-19):
+// `DelayClockLike` is owned by sitrep-client too (media/delayed-playout-
+// buffer.ts), same visibility as StreamStatusValue/TelemetryClient above.
+// Unlike TelemetryClient's deliberately-narrowed one-way mirror, the two
+// methods here ARE the real interface's whole surface, so both directions
+// are asserted — the mirror is structurally identical, not a subset.
+type _DelayClockLike = Expect<
+  Assignable<SdkDelayClockLike, ClientDelayClockLike>
+>;
+type _DelayClockLikeBack = Expect<
+  Assignable<ClientDelayClockLike, SdkDelayClockLike>
+>;
+
 // Keep the aliases "used" under noUnusedLocals.
 export type _SdkFacadeConformance = [
   _Component,
@@ -178,4 +193,6 @@ export type _SdkFacadeConformance = [
   _StreamStatus,
   _StreamStatusBack,
   _TelemetryClient,
+  _DelayClockLike,
+  _DelayClockLikeBack,
 ];
