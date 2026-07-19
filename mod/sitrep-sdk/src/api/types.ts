@@ -473,11 +473,34 @@ export interface PerfBudgetHandle {
 }
 
 // --- Hook result shapes -----------------------------------------------------
+//
+// Same leaf constraint again: `CommandStatus` is owned by
+// `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/lifecycle.ts),
+// which the sdk cannot name as a workspace dependency either. Mirrored here
+// verbatim; kept honest by `packages/core/src/sdk-facade.conformance.test-d.ts`.
+
+/**
+ * Lifecycle state for a single dispatched command, keyed by `requestId`.
+ * Mirrors `packages/sitrep-client/src/lifecycle.ts`'s `CommandStatus` —
+ * same leaf constraint as every other type in this file.
+ */
+export type CommandStatus =
+  | { phase: "idle" }
+  | { phase: "in-flight"; requestId: string; etaConfirm: number }
+  | { phase: "confirmed"; requestId: string; result: unknown }
+  | {
+      phase: "failed";
+      requestId: string;
+      error: { code: string; message: string };
+    }
+  | { phase: "lost"; requestId: string; reason: string };
 
 export interface UseCommandResult {
-  send: (payload?: unknown) => void;
-  status: "idle" | "pending" | "done" | "error";
-  error?: unknown;
+  send: (
+    args?: unknown,
+    opts?: { label?: string; topic?: string },
+  ) => Promise<unknown>;
+  status: CommandStatus;
 }
 
 // --- Stream SPI types ---------------------------------------------------------

@@ -1,11 +1,3 @@
-// `useCommand` stays on `@ksp-gonogo/sitrep-client` — the sdk facade's
-// `UseCommandResult` (mod/sitrep-sdk/src/api/types.ts) is a broken mirror:
-// `send` is typed `(payload?: unknown) => void` there vs the real
-// `(args?, opts?) => Promise<unknown>` this file actually calls (label/topic
-// opts + `.catch()`), and `status` is a bare string union there vs the real
-// `CommandStatus` discriminated union (`{ phase: ... }`). Flagged, not
-// force-fit — see task-finish-seal-report.md.
-import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type {
   CommsLink,
   ComponentProps,
@@ -21,6 +13,7 @@ import type {
 import {
   registerComponent,
   safeRandomUuid,
+  useCommand,
   useLatestValue,
   useReplaySessionActive,
   useStream,

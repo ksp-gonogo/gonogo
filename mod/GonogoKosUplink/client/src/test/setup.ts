@@ -12,12 +12,14 @@ import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
+  useCommand,
   useLatestValue,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
   useUtNow,
 } from "@ksp-gonogo/sitrep-client";
+import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installDomStubs();
@@ -52,6 +54,8 @@ installTestHost({
   registerUplinkHandle: registerUplinkHandle as Parameters<
     typeof installTestHost
   >[0]["registerUplinkHandle"],
+  useCommand: (command) =>
+    useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
   useLatestValue,
   useReplaySessionActive,
   useStream,
