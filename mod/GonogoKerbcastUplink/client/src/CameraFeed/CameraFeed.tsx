@@ -271,14 +271,22 @@ export function CameraFeed({
     // If both values are undefined, CommNet data isn't available -- skip.
     if (signalStrength === undefined && commConnected === undefined) return;
 
-    let level: number;
-    if (commConnected === false) {
-      level = 1.0;
-    } else if (typeof signalStrength === "number") {
-      level = Math.max(0, Math.min(1, 1 - signalStrength));
-    } else {
-      return;
-    }
+    // Both signals fold into ONE always-defined level so a blackout's
+    // degrade=1.0 always has a matching reset. The old branching left
+    // `commConnected === false` setting degrade to 1.0 but only resetting it
+    // on the `signalStrength` branch -- when signal returns without a
+    // strength reading (signalStrength undefined), that hit neither branch
+    // and the H.264 decoder stayed wedged at full degrade forever. Folding
+    // "connected" into the same `else` makes signal-return unconditionally
+    // resolve to a level (0 with no strength reading, the derived value
+    // otherwise), so setDegrade is always called with something that undoes
+    // the blackout.
+    const level =
+      commConnected === false
+        ? 1.0 // blackout
+        : typeof signalStrength === "number"
+          ? Math.max(0, Math.min(1, 1 - signalStrength))
+          : 0; // connected, no strength reading -- always resets
 
     if (degradeTimerRef.current !== null) clearTimeout(degradeTimerRef.current);
     degradeTimerRef.current = setTimeout(() => {
