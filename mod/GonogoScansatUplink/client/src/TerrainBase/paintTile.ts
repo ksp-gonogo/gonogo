@@ -21,9 +21,10 @@
 // `containerSize.w`/`h` in packages/components/src/MapView/index.tsx,
 // which changes on every resize and zoom tick. They are NOT a paint
 // resolution and MUST NOT be used to size the canvas this module paints
-// into: doing so would repaint the full 360×180-cell scan grid on every
-// resize, a real perf regression versus the fixed-resolution convention
-// every other base-layer painter in this codebase already uses.
+// into: doing so would repaint the full 720×360-cell scan grid (the
+// payload's own declared width/height) on every resize, a real perf
+// regression versus the fixed-resolution convention every other
+// base-layer painter in this codebase already uses.
 //
 // Instead, `BASE_LAYER_CANVAS_W`/`H` below are a FIXED internal paint
 // resolution, independent of the viewport, matching two existing
@@ -165,7 +166,8 @@ export function withAlpha(rgbComponents: string, alpha: number): string {
 
 /**
  * Paint every `(iLon, iLat)` cell in a `gridWidth`×`gridHeight` scan grid
- * (SCANsat's natural 360×180) onto `ctx`, gated per-tile by the coverage
+ * (the payload's own declared dims — 720×360 for height/biome as of the
+ * res-aware terrain bump) onto `ctx`, gated per-tile by the coverage
  * gate's alpha. `colourAt` returns `null` to skip a cell entirely (no data
  * for that tile — e.g. biome index 0xFF); otherwise an `"r, g, b"` colour
  * component string, composited at the gate-derived alpha via `withAlpha`.
