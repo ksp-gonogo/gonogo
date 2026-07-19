@@ -20,6 +20,7 @@ function roster(
       version: e.version ?? "1.0.0",
       available: e.available ?? true,
       reason: e.reason ?? null,
+      ownedPrefixes: e.ownedPrefixes ?? [],
       health: e.health ?? { state: "healthy", detail: null },
     })),
   };
