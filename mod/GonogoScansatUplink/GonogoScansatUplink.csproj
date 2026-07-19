@@ -1,16 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- GPL-3.0-only, PROVISIONALLY - do NOT relicense to MIT without reading
-       NOTICE-SCANSAT.txt first. gonogo overall is MIT (see LICENSING.md);
-       this uplink is held back because SCANsat's licensing contradicts
-       itself: its repo LICENSE.txt is 3-clause BSD (permissive, which would
-       allow MIT here) but its published CKAN metadata says "restricted"
-       (all-rights-reserved). We compile-time link SCANsat.dll, so which one
-       governs is load-bearing. The question is out with the SCANsat stewards;
-       until it is answered this assembly stays GPL-3.0-only, which costs
-       nothing since nothing references it. SCANsat's BSD attribution notice
-       is retained regardless (NOTICE-SCANSAT.txt alongside this file, and
-       local_docs/telemetry-mod/scansat-migration-spec.md §5). -->
+  <!-- GPL-3.0-only, permanently (operator decision, 2026-07-18) — see
+       NOTICE-SCANSAT.txt for the full statement. gonogo overall is MIT (see
+       LICENSING.md); this uplink is a deliberate exception because it
+       compile-time links SCANsat.dll, a third-party mod. It is a leaf, so
+       nothing else in the repository inherits the GPL obligation.
+       SCANsat's BSD attribution notice is retained regardless
+       (NOTICE-SCANSAT.txt alongside this file). -->
   <PropertyGroup>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <!-- net48, not net472 like Gonogo.KSP: the live SCANsat.dll/SCANsat.Unity.dll
