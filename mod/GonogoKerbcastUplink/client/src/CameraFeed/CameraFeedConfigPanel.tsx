@@ -5,7 +5,7 @@ import {
   FieldHint,
   PrimaryButton,
   Switch,
-} from "@ksp-gonogo/ui";
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { CameraFeedConfig } from "./CameraFeed";
 

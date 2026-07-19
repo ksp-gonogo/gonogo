@@ -15,6 +15,7 @@ import {
   useDataValue,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
@@ -40,6 +41,7 @@ installTestHost({
   getDataSource,
   getGameHost,
   getUplinkHandle,
+  logger,
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],

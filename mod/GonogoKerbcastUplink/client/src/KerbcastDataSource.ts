@@ -7,12 +7,12 @@ import {
   type KerbcastPeer,
   type KerbcastTransport,
 } from "@ksp-gonogo/kerbcast";
-import { logger } from "@ksp-gonogo/logger";
 import type { DataSourceStatus } from "@ksp-gonogo/sitrep-sdk";
 import {
   createPerfBudget,
   GAME_HOST_KEY,
   getGameHost,
+  logger,
   registerUplinkHandle,
   subscribeSetting,
 } from "@ksp-gonogo/sitrep-sdk";

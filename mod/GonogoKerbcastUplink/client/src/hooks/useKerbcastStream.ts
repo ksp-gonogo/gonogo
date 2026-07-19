@@ -1,4 +1,3 @@
-import { logger } from "@ksp-gonogo/logger";
 import {
   attachEncodedWorkerFrameDelay,
   type BuiltDelayedStream,
@@ -10,7 +9,11 @@ import {
   SharedDelayedStreams,
   type SnapshottableDelayClock,
 } from "@ksp-gonogo/sitrep-client";
-import { type DelayClockLike, getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type DelayClockLike,
+  getUplinkHandle,
+  logger,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 

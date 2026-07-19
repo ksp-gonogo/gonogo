@@ -19,9 +19,8 @@
  * See local_docs/centralised_kos_compute.md for the full design.
  */
 
-import { logger } from "@ksp-gonogo/logger";
 import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
-import { createPerfBudget } from "@ksp-gonogo/sitrep-sdk";
+import { createPerfBudget, logger } from "@ksp-gonogo/sitrep-sdk";
 import { hashKosScript } from "../shared/hashKosScript";
 import { isKosScriptError } from "../shared/KosScriptError";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";

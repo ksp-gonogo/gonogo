@@ -1,5 +1,5 @@
 import { registerSettingsTab } from "@ksp-gonogo/sitrep-sdk";
-import { Switch } from "@ksp-gonogo/ui";
+import { Switch } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { type KerbcastDataSource, kerbcastSource } from "../KerbcastDataSource";

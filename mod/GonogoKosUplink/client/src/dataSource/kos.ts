@@ -1,13 +1,13 @@
-import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
-import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type {
   ConfigField,
   DataKey,
   DataSourceStatus,
   KosProcessorInfo,
+  TelemetryClient,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   createPerfBudget,
+  getActiveTelemetryClient,
   LocalStorageStore,
   registerDataSource,
   registerUplinkHandle,

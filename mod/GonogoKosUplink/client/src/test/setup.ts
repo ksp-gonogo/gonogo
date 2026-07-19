@@ -9,6 +9,15 @@ import {
   registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
+import {
+  getActiveTelemetryClient,
+  useLatestValue,
+  useStream,
+  useStreamEvent,
+  useTelemetryClientOptional,
+  useUtNow,
+} from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installDomStubs();
@@ -30,8 +39,12 @@ PerfBudget.installTestGate();
 // contract).
 installTestHost({
   createPerfBudget: (opts) => new PerfBudget(opts),
+  getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
+    typeof installTestHost
+  >[0]["getActiveTelemetryClient"],
   getDataSource,
   getUplinkHandle,
+  logger,
   registerComponent,
   registerDataSource: registerDataSource as Parameters<
     typeof installTestHost
@@ -39,5 +52,12 @@ installTestHost({
   registerUplinkHandle: registerUplinkHandle as Parameters<
     typeof installTestHost
   >[0]["registerUplinkHandle"],
+  useLatestValue,
   useReplaySessionActive,
+  useStream,
+  useStreamEvent,
+  useTelemetryClientOptional: useTelemetryClientOptional as Parameters<
+    typeof installTestHost
+  >[0]["useTelemetryClientOptional"],
+  useUtNow,
 });
