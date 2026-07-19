@@ -33,6 +33,12 @@ interface RawUplinkEntry {
   available: boolean;
   reason: string | null;
   health: RawUplinkHealth;
+  /**
+   * Every topic/prefix this uplink owns — `ChannelEngine.ComputeOwnedPrefixes`'s
+   * output. Optional on the wire type so a pre-Phase-1 mod build (field
+   * absent) decodes safely instead of throwing.
+   */
+  ownedPrefixes?: string[];
 }
 
 /** The raw `system.uplinks` wire payload (`ChannelEngine.BuildSystemUplinksPayload`'s shape). */
@@ -60,6 +66,14 @@ export interface UplinkHealthEntry {
   version: string;
   available: boolean;
   reason: string | null;
+  /**
+   * Every topic/prefix this uplink owns, mod-side source of truth
+   * (`ChannelEngine._channelOwner` / `_dynamicNamespaceOwner`) — the client
+   * NEVER re-derives a TOPIC_OWNER map. `useUplinkHealthFor` resolves a
+   * widget's declared channels against this via longest-prefix match.
+   * Empty array (never absent) for a pre-Phase-1 mod build.
+   */
+  ownedPrefixes: string[];
   health: {
     state: UplinkHealthStateName;
     /** Uplink-authored "what ready means for me" text — opaque, display-only. */
@@ -93,6 +107,7 @@ export function deriveSystemUplinkHealth(
       version: entry.version,
       available: entry.available,
       reason: entry.reason ?? null,
+      ownedPrefixes: entry.ownedPrefixes ?? [],
       health: {
         state: HEALTH_STATE_NAMES[entry.health.state] ?? "unavailable",
         detail: entry.health.detail ?? null,

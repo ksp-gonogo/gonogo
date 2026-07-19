@@ -16,6 +16,7 @@ interface RawUplinkEntry {
   available: boolean;
   reason: string | null;
   health: RawUplinkHealth;
+  ownedPrefixes?: string[];
 }
 
 interface RawSystemUplinksPayload {
@@ -62,6 +63,7 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
           version: "1.0.0",
           available: true,
           reason: null,
+          ownedPrefixes: [],
           health: { state: "degraded", detail: "no active CPU selected" },
         },
       ],
@@ -87,6 +89,7 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
           version: "1.0.0",
           available: false,
           reason: "registration threw: boom",
+          ownedPrefixes: [],
           health: { state: "unavailable", detail: "registration threw: boom" },
         },
       ],
@@ -112,10 +115,56 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
           version: "1.0.0",
           available: true,
           reason: null,
+          ownedPrefixes: [],
           health: { state: "healthy", detail: null },
         },
       ],
     });
+  });
+
+  it("decodes ownedPrefixes straight through — mod-side source of truth, no client re-derivation", () => {
+    const raw: RawSystemUplinksPayload = {
+      uplinks: [
+        {
+          id: "kos",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          ownedPrefixes: ["kos.terminal.", "kos.processors"],
+          health: { state: 0, detail: null },
+        },
+      ],
+    };
+    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+      uplinks: [
+        {
+          id: "kos",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          ownedPrefixes: ["kos.terminal.", "kos.processors"],
+          health: { state: "healthy", detail: null },
+        },
+      ],
+    });
+  });
+
+  it("defaults ownedPrefixes to an empty array for a pre-Phase-1 mod build (wire field absent)", () => {
+    const raw = {
+      uplinks: [
+        {
+          id: "legacy",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+      ],
+    } as unknown as RawSystemUplinksPayload;
+    expect(
+      deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]
+        ?.ownedPrefixes,
+    ).toEqual([]);
   });
 
   it("falls back to unavailable for an out-of-range health.state ordinal — never throws", () => {
