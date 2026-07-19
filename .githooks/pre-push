@@ -1,59 +1,62 @@
 #!/bin/sh
-# Pre-push gate — run what CI runs, before the push that triggers it.
+# Pre-push gate — fast, affected-only checks. CI is the gate of record.
 #
 # A push to main deploys the dev channel, and the deploy only fires when CI is
 # green (deploy.yml triggers on a successful CI workflow_run). So a push that
-# fails CI silently skips the deploy. This hook runs the same checks locally so
-# that failure surfaces here instead of after the push.
+# fails CI silently skips the deploy. This hook catches the common failures
+# locally — but it is deliberately LIGHT: the full cross-package suite and the
+# full cross-browser e2e matrix run in CI on dedicated runners, not here.
 #
-# Why `turbo run test --force` and not plain `pnpm test`:
-#   turbo caches the `test` task per package, keyed on that package's own
-#   source. The design-system ratchet (packages/core/src/styleguide.test.ts)
-#   scans EVERY package's src for raw hex colour literals — so a hex added in
-#   components/ui does NOT invalidate core#test's cache, and a plain `pnpm test`
-#   replays a stale pass. That exact gap cost a red CI + a skipped deploy once.
-#   --force reruns fresh and closes it for this and any other cross-package test.
+# What runs locally:
+#   - biome (format + lint)
+#   - `turbo run test` — cached + affected-only. NOT --force: core#test now
+#     keys its cache on the whole workspace src (packages/core/turbo.json), so
+#     the cross-package design-system hex-scan re-runs on any src change without
+#     forcing every package fresh. CI=true makes vitest treat snapshots as
+#     read-only (a mismatch fails instead of being silently rewritten).
+#   - Playwright e2e ONLY for changed specs, chromium only. The full matrix
+#     (chromium/firefox/webkit) + visual gate run in CI.
 #
-#   CI=true so vitest treats snapshots as read-only — a mismatch fails the run
-#   instead of being silently rewritten (which a local `pnpm test` would do).
-#
-# Playwright e2e runs by default to match CI. For a quick push, skip it with:
-#   SKIP_E2E=1 git push          (CI will still run it.)
-# Bypass the whole hook in a pinch:
-#   git push --no-verify
-echo "pre-push: lint + fresh test gate (mirrors CI)…"
+# Skip e2e for a quick push:  SKIP_E2E=1 git push   (CI still runs the matrix)
+# Bypass the whole hook:      git push --no-verify
+echo "pre-push: lint + affected test gate (CI runs the full matrix)…"
 
 if ! pnpm exec biome check .; then
   echo "✖ pre-push: biome found issues — run 'pnpm lint' to auto-fix, then re-push."
   exit 1
 fi
 
-# --force is load-bearing: see the header. Do not drop it for speed — that is
-# precisely how a cross-package regression slips past to CI.
-#
-# --concurrency=1 runs the packages one at a time. --force reruns EVERY
-# package's vitest fresh, and at turbo's default concurrency that starts ~all
-# the heavy jsdom suites (core/app/components/sitrep-client/…) at once, each
-# spawning its own worker pool — the machine oversubscribes and starved tests
-# trip vitest's 5s per-test timeout even though every suite is green when run
-# alone. Serialising the packages gives each the same isolated condition it
-# passes under (each suite still parallelises its own files internally), so the
-# gate is reliable instead of load-flaky. CI runs the same suites on dedicated
-# runners, so the parity the header cares about (fresh, snapshot-readonly,
-# cross-package) is unchanged — only the local scheduling differs.
-if ! CI=true pnpm exec turbo run test --force --concurrency=1; then
+# --concurrency=1 keeps the run reliable on a loaded machine: several jsdom
+# suites starting at once each spawn a worker pool, oversubscribe the CPU, and
+# trip vitest's per-test timeout even though each is green run alone. With
+# caching (no --force) only the affected packages run, so serial is still fast.
+if ! CI=true pnpm exec turbo run test --concurrency=1; then
   echo "✖ pre-push: tests failed (this is what CI would have caught)."
   exit 1
 fi
 
+# E2E: only the specs affected by this push, on chromium. CI runs the full
+# cross-browser matrix as the gate of record. Playwright's --only-changed
+# traces test-file imports; these specs drive a running server rather than
+# importing app source, so an app-source-only change selects nothing here and
+# relies on CI — which is the intended split. The git-diff gate avoids paying
+# Playwright's webServer startup when no e2e file changed at all.
 if [ "$SKIP_E2E" = "1" ]; then
   echo "pre-push: SKIP_E2E=1 set — skipping Playwright e2e (CI will still run it)."
 else
-  if ! pnpm exec playwright test; then
-    echo "✖ pre-push: Playwright e2e failed."
-    echo "  If browsers are missing: pnpm exec playwright install --with-deps chromium"
-    echo "  Skip e2e for a quick push: SKIP_E2E=1 git push   (CI still gates it)."
-    exit 1
+  BASE="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo origin/main)"
+  if ! git rev-parse --verify --quiet "$BASE" >/dev/null; then
+    echo "pre-push: no base ref ($BASE) to diff e2e against — skipping e2e (CI runs the full matrix)."
+  elif git diff --quiet "$BASE" HEAD -- tests/playwright; then
+    echo "pre-push: no e2e spec changes vs $BASE — skipping e2e (CI runs the full matrix)."
+  else
+    echo "pre-push: e2e specs changed vs $BASE — running affected specs on chromium…"
+    if ! pnpm exec playwright test --only-changed="$BASE" --project=chromium --pass-with-no-tests; then
+      echo "✖ pre-push: affected Playwright e2e failed (full matrix still runs in CI)."
+      echo "  If browsers are missing: pnpm exec playwright install --with-deps chromium"
+      echo "  Skip e2e for a quick push: SKIP_E2E=1 git push   (CI still gates it)."
+      exit 1
+    fi
   fi
 fi
 
