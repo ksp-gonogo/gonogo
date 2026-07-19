@@ -48,7 +48,8 @@ export { buildCameraLabeler } from "./cameraLabels";
 // The generic delayed-media infrastructure (DelayedPlayoutBuffer, the
 // per-frame pipeline, `isFrameDelaySupported`, the capture-clock helpers) moved
 // to `@ksp-gonogo/sitrep-client`'s media layer (2026-07-17) — import it from
-// there, not from this kerbcast client.
+// the sanctioned `@ksp-gonogo/sitrep-client/media` subpath (2026-07-19), not
+// from this kerbcast client and never from the sitrep-client package root.
 export { DockingCameraAugment } from "./DockingCameraAugment";
 export { selectDockingCamera } from "./DockingCameraAugment/selectDockingCamera";
 export { useKerbcastCameras } from "./hooks/useKerbcastCameras";

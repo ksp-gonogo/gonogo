@@ -34,10 +34,23 @@ function aliasEntry(pkgDir: string): [string, string][] {
   const pkgJsonPath = resolve(pkgDir, "package.json");
   const srcIndex = resolve(pkgDir, "src/index.ts");
   if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
-  const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
-    name: string;
-  };
-  return [[name, srcIndex]];
+  const { name, exports: exportsMap } = JSON.parse(
+    readFileSync(pkgJsonPath, "utf-8"),
+  ) as { name: string; exports?: Record<string, unknown> };
+  // Subpath entries (e.g. `./media` -> `./src/media/index.ts`) MUST precede
+  // the bare package entry below: Vite's alias matcher treats a string `find`
+  // as matching `importee === find` OR `importee.startsWith(find + "/")` and
+  // takes the first array match, so if the bare `name` entry came first it
+  // would swallow `name/media` too and append the literal "/media" onto the
+  // resolved `src/index.ts` file path (ENOTDIR at build time). Only string-
+  // valued subpaths are handled — every export in this repo's packages is one.
+  const subpathEntries: [string, string][] = Object.entries(exportsMap ?? {})
+    .filter(([key, value]) => key !== "." && typeof value === "string")
+    .map(([key, value]) => [
+      `${name}/${key.replace(/^\.\//, "")}`,
+      resolve(pkgDir, value as string),
+    ]);
+  return [...subpathEntries, [name, srcIndex]];
 }
 
 const workspaceAlias = Object.fromEntries([
