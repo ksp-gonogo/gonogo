@@ -30,6 +30,15 @@ export default defineConfig({
         import.meta.dirname,
         "../serial/src/index.ts",
       ),
+      // Subpath BEFORE the bare entry (same ordering as core/test above):
+      // vite's alias matcher prefix-matches, so a bare `@ksp-gonogo/sitrep-client`
+      // find would swallow `.../media` and append the literal "/media" onto the
+      // resolved `.ts` path. kerbcast's built client imports this sanctioned
+      // media subpath (B1 seal), so the test resolver must know it too.
+      "@ksp-gonogo/sitrep-client/media": path.resolve(
+        import.meta.dirname,
+        "../sitrep-client/src/media/index.ts",
+      ),
       "@ksp-gonogo/sitrep-client": path.resolve(
         import.meta.dirname,
         "../sitrep-client/src/index.ts",
