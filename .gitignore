@@ -23,3 +23,6 @@ obj/
 *.dll
 *.pdb
 *.tgz
+
+# Playwright output in any package (root /test-results/ is root-anchored)
+**/test-results/
