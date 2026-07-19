@@ -139,17 +139,11 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Second declaration-merge block targeting the sdk facade's OWN (separate)
-// `SlotRegistry` interface — see MapView/index.tsx's identical block for
-// why this is needed (declaration merging keys off the literal module
-// specifier string; docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
-declare module "@ksp-gonogo/sitrep-sdk" {
-  interface SlotRegistry {
-    "distance-to-target.camera": DistanceToTargetHudContext;
-    "distance-to-target.overlay": DistanceToTargetHudContext;
-    "distance-to-target.badges": DistanceToTargetBadgeContext;
-  }
-}
+// The facade-sealed-client copy of this merge lives in
+// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
+// "@ksp-gonogo/sitrep-sdk"` block here — see MapView/index.tsx's identical
+// comment / that module's header for why
+// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
 
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;

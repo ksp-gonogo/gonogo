@@ -19,10 +19,16 @@
 // ---------------------------------------------------------------------------
 
 import type { Logger } from "@ksp-gonogo/logger";
-import type { ComponentType } from "react";
+import type { ReactElement } from "react";
 import { createElement } from "react";
 import type { TopicId, TopicPayload } from "../topics";
 import { getHost } from "./host";
+// Side-effect only: carries the `SlotRegistry` declaration-merge for every
+// first-party slot into any program that imports this barrel (facade-sealing
+// plan §2.3, corrected 2026-07-19 — see ./slots.ts's own header for why the
+// merge lives here rather than in packages/components). No named export
+// added to the barrel by this import.
+import "./slots";
 import type {
   ActionDefinition,
   ActionHandlers,
@@ -35,6 +41,7 @@ import type {
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingsTabDefinition,
+  SlotProps,
   TelemetryClient,
   ThemeDefinition,
 } from "./types";
@@ -334,11 +341,26 @@ export const logger: Logger = new Proxy({} as Logger, {
  * The slot composition point a base widget drops in for augments to fill.
  * Resolves to the host's real `AugmentSlot` so it reads the app's single augment
  * registry; `createElement` (not a direct call) keeps React's hook rules intact.
+ *
+ * Generic over the slot id `S` (2026-07-19, facade-sealing gap 2) — matches
+ * `@ksp-gonogo/core`'s real `AugmentSlot<S extends string>` signature so a
+ * SLOT-OWNING sealed client (one that renders its own `<AugmentSlot>`, not
+ * just fills someone else's) gets `props` typed precisely against
+ * `SlotProps<S>` rather than the loose `Record<string, unknown>` the
+ * previous non-generic signature forced. `getHost().AugmentSlot` itself
+ * stays non-generic (the `GonogoHost` interface member) — the cast below is
+ * the same "structurally fine at runtime, precise at the call site" shape
+ * `registerAugment`'s own generic shim already relies on.
  */
-export const AugmentSlot: ComponentType<{
-  name: string;
-  props?: Record<string, unknown>;
-}> = (props) => createElement(getHost().AugmentSlot, props);
+export function AugmentSlot<S extends string>(props: {
+  name: S;
+  props: SlotProps<S>;
+}): ReactElement {
+  return createElement(
+    getHost().AugmentSlot,
+    props as unknown as { name: string; props?: Record<string, unknown> },
+  );
+}
 
 /**
  * Construct a performance budget on the app's single registry (design: every
