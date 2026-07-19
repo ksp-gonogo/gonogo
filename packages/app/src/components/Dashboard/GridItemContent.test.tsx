@@ -20,10 +20,29 @@ import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
 
 /* Stub context hooks and heavy dependencies pulled in transitively. */
+// Capture what the chrome hands the render-gate so we can assert optionalChannels
+// never reaches it (see the optionalChannels test below).
+const guardCapture = vi.hoisted(() => ({
+  last: null as {
+    requires?: readonly string[];
+    channels?: readonly string[];
+    optionalChannels?: readonly string[];
+  } | null,
+}));
 vi.mock("@ksp-gonogo/components", () => ({
-  RequiresGuard: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
+  RequiresGuard: (props: {
+    children: React.ReactNode;
+    requires?: readonly string[];
+    channels?: readonly string[];
+    optionalChannels?: readonly string[];
+  }) => {
+    guardCapture.last = {
+      requires: props.requires,
+      channels: props.channels,
+      optionalChannels: props.optionalChannels,
+    };
+    return <>{props.children}</>;
+  },
 }));
 
 vi.mock("../../pushToMain/PushClientContext", () => ({
@@ -109,5 +128,40 @@ describe("GridItemContent — draggableCancel structural guard", () => {
 
     expect(cancelTarget).not.toBeNull();
     expect(cancelTarget).toContainElement(removeBtn);
+  });
+
+  it("hands the render-gate def.channels only, never def.optionalChannels", () => {
+    // optionalChannels must never gate: an unhealthy OPTIONAL uplink should not
+    // blank a widget that handles absence itself (SystemView relies on this).
+    // The chrome enforces it by passing the gate def.channels alone — guard that
+    // wiring so a future accidental optionalChannels pass-through is caught.
+    registerComponent({
+      id: "optional-channels-stub",
+      name: "Optional Channels Stub",
+      description: "declares both required and optional channels",
+      tags: [],
+      component: StubWidget,
+      channels: ["comms.link"],
+      optionalChannels: ["vessel.orbit"],
+    });
+
+    const item: DashboardItem = {
+      i: "w3",
+      componentId: "optional-channels-stub",
+    };
+    render(
+      <GridItemContent
+        item={item}
+        w={3}
+        h={3}
+        updateItemConfig={vi.fn()}
+        updateItemMappings={vi.fn()}
+        removeItem={vi.fn()}
+      />,
+    );
+
+    expect(guardCapture.last?.channels).toEqual(["comms.link"]);
+    expect(guardCapture.last?.optionalChannels).toBeUndefined();
+    expect(screen.getByTestId("stub-widget")).toBeInTheDocument();
   });
 });
