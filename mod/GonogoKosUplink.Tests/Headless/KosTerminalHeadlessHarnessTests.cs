@@ -90,6 +90,25 @@ namespace GonogoKosUplink.Tests.Headless
             public void Resize(int cols, int rows) => _buffer.SetSize(rows, cols);
         }
 
+        /// <summary>
+        /// Mirrors kOS.Screen.Interpreter.SetInputLock (kOS.dll, needs
+        /// UnityEngine + full SharedObjects wiring, cannot be constructed
+        /// headlessly) exactly: LineSubBuffer.Enabled = !isLocked. Confirmed
+        /// by decompiling kOS.Safe.Execution.CPU.PushContext/PopContext: input
+        /// locks the instant a program context is pushed (contexts.Count > 1,
+        /// i.e. a script starts running) and unlocks the instant it's popped
+        /// back down to just the interpreter context (contexts.Count == 1) --
+        /// including via KOSFixedUpdate's exception-catch cleanup path, which
+        /// is exactly the runtime-error case this investigation targets. This
+        /// is a plain subclass of the concrete kOS.Safe.Screen.TextEditor
+        /// class (not an interface implementation), so it does not touch the
+        /// kOS.Safe re-entrant-IDumper-load trap.
+        /// </summary>
+        private sealed class InterpreterLikeTextEditor : TextEditor
+        {
+            public void SetInputLock(bool isLocked) => LineSubBuffer.Enabled = !isLocked;
+        }
+
         private static ScreenBuffer NewScreen()
         {
             var buffer = new ScreenBuffer();
@@ -425,6 +444,280 @@ namespace GonogoKosUplink.Tests.Headless
             Assert.Contains("EXISTING LINE C", client.Text);
         }
 
+        [Fact]
+        public void ErrorPrint_MultiLineScroll_SubsequentPrintsLandBelowIt()
+        {
+            // Operator live-test report: "Error prints corrupt subsequent
+            // prints, lines appear INSIDE error text; subsequent lines print
+            // one line too high." None of the tests above ever scroll the
+            // buffer: every burst is short enough to fit under Rows (12), so
+            // ScreenSnapShot.DiffFrom's TopRow-delta branch (the num > 0 path
+            // that prepends the scroll-up private-use chars ScreenDiffMapper
+            // relies on kOS.UserIO.TerminalVT100Mapper to turn into ESC[S) has
+            // never actually fired in this harness. A real kOS runtime error
+            // prints several lines in ONE synchronous Print() call, with no
+            // poll between them, so on a screen that's already mostly full,
+            // the whole error forces a multi-row scroll within a SINGLE diff
+            // (TopRow jumping by more than 1 between two consecutive MapNext
+            // calls), which is exactly the untested shape.
+            var buffer = NewScreen();
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+            var frames = new List<KosTerminalFrame>();
+
+            void Capture(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    frames.Add(new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    });
+                }
+            }
+
+            Capture(force: true); // blank reseed
+
+            // Fill most of the 12-row screen with ordinary prints, one line
+            // per poll (the same shape as the passing Burst_* tests above), so
+            // the cursor sits near the bottom before the error hits.
+            var preErrorLines = new[]
+            {
+                "BOOT SEQUENCE COMPLETE", "STAGE 1 IGNITION", "STAGE 1 SEPARATION",
+                "STAGE 2 IGNITION", "APOAPSIS 74KM", "PERIAPSIS -12KM",
+                "CIRCULARISING", "ORBIT LOCKED", "COAST PHASE",
+            };
+            foreach (var line in preErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            // A kOS runtime error: several lines printed in ONE Print() call,
+            // synchronously, before the next poll. On this already-9-lines-deep
+            // 12-row screen this forces the buffer to scroll multiple rows
+            // within the SINGLE diff captured below.
+            var errorLines = new[]
+            {
+                "Program KOSException:",
+                "Cannot use TARGET before it is set.",
+                "At line 42",
+                "In file boot.ks",
+            };
+            buffer.Print(string.Join("\n", errorLines));
+            Capture(force: false); // the one diff spanning the whole multi-row scroll
+
+            // Normal prints resume after the error, one per poll: the
+            // operator's literal complaint is about where THESE land.
+            var postErrorLines = new[] { "RECOVERING", "TARGET SET", "RESUMING GUIDANCE" };
+            foreach (var line in postErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+            var client = Reconstruct(frames);
+
+            Assert.Equal(truth, client.Text);
+            foreach (var line in postErrorLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
+        }
+
+        [Fact]
+        public void ErrorPrint_MultiLineScroll_OnRealInterpreterScreen_SubsequentPrintsLandBelowIt()
+        {
+            // The test above drives a plain kOS.Safe.Screen.ScreenBuffer and
+            // PASSES: ScreenSnapShot.DiffFrom's TopRow-delta bookkeeping is, by
+            // itself, dimensionally sound for an arbitrary multi-row scroll
+            // inside one diff. But a live kOSProcessor's Screen is never a
+            // plain ScreenBuffer: kOSProcessor.Start sets
+            // `shared.Screen = shared.Interpreter`, and kOS.Screen.Interpreter
+            // extends kOS.Safe.Screen.TextEditor (this harness cannot construct
+            // kOS.Screen.Interpreter itself, it needs UnityEngine, but
+            // TextEditor, the class carrying the behaviour under test, is pure
+            // kOS.Safe and constructs fine headlessly). TextEditor overlays a
+            // SubBuffer (LineSubBuffer, the live not-yet-submitted input line)
+            // that is NOT fixed: its PositionRow is reset to AbsoluteCursorRow
+            // on every ScreenBuffer.GetBuffer() call (TextEditor.
+            // UpdateSubBuffers), so it tracks the cursor down the screen as a
+            // script prints and scrolls. Crucially, moving the overlay does
+            // NOT retouch its ScreenBufferLine's LastChangeTick (only actually
+            // typing into it does, via UpdateLineSubBuffer's ArrayCopyFrom).
+            // So after a multi-line error scroll relocates that overlay to a
+            // display row it did not occupy last snapshot, ScreenSnapShot.
+            // DiffFrom's tick-skip (kOS.Safe code this mapper cannot touch)
+            // can compare the overlay's stale tick against a freshly
+            // deep-copied "older" row and wrongly conclude nothing changed at
+            // that row, leaving the client showing whatever content is left
+            // over there. This is the closest headless equivalent of a live
+            // kOS terminal's command-line row, and this is the exact case the
+            // operator's live test exercised (a real interpreter CPU with the
+            // prompt showing while a script printed a runtime error).
+            var buffer = new TextEditor();
+            buffer.SetSize(Rows, Cols);
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+            var frames = new List<KosTerminalFrame>();
+
+            void Capture(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    frames.Add(new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    });
+                }
+            }
+
+            Capture(force: true); // blank reseed
+
+            var preErrorLines = new[]
+            {
+                "BOOT SEQUENCE COMPLETE", "STAGE 1 IGNITION", "STAGE 1 SEPARATION",
+                "STAGE 2 IGNITION", "APOAPSIS 74KM", "PERIAPSIS -12KM",
+                "CIRCULARISING", "ORBIT LOCKED", "COAST PHASE",
+            };
+            foreach (var line in preErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            var errorLines = new[]
+            {
+                "Program KOSException:",
+                "Cannot use TARGET before it is set.",
+                "At line 42",
+                "In file boot.ks",
+            };
+            buffer.Print(string.Join("\n", errorLines));
+            Capture(force: false); // the one diff spanning the whole multi-row scroll
+
+            var postErrorLines = new[] { "RECOVERING", "TARGET SET", "RESUMING GUIDANCE" };
+            foreach (var line in postErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+            var client = Reconstruct(frames);
+
+            Assert.Equal(truth, client.Text);
+            foreach (var line in postErrorLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
+        }
+
+        [Fact]
+        public void ErrorPrint_WhileOperatorIsTyping_SubsequentPromptTracksCorrectly()
+        {
+            // The one behavioural path the two tests above structurally cannot
+            // exercise: TextEditor.CursorRowShow/CursorColumnShow only diverge
+            // from the raw print-cursor (base.CursorRow/CursorColumn) once the
+            // operator has actually typed into the not-yet-submitted command
+            // line (TextEditor.Type / UpdateLineSubBuffer set cursorRowBuffer /
+            // cursorColumnBuffer; both tests above never call Type, so those
+            // stayed at their zero default the whole run). A live operator is
+            // realistically mid-keystroke, cursor sitting in a partially typed
+            // command, at the exact moment a background trigger's runtime
+            // error interrupts and PRINTs to the screen: script Print() always
+            // targets the raw base.CursorRow (the interpreter's line editor
+            // never moves it, only the overlay), so the error text lands
+            // exactly where the live input line was displayed. This exercises
+            // both the SubBuffer overlay relocation AND the CursorRowShow/
+            // CursorColumnShow offset in the same run.
+            var buffer = new TextEditor();
+            buffer.SetSize(Rows, Cols);
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+            var frames = new List<KosTerminalFrame>();
+
+            void Capture(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    frames.Add(new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    });
+                }
+            }
+
+            Capture(force: true); // blank reseed
+
+            var preErrorLines = new[]
+            {
+                "BOOT SEQUENCE COMPLETE", "STAGE 1 IGNITION", "STAGE 1 SEPARATION",
+                "STAGE 2 IGNITION", "APOAPSIS 74KM", "PERIAPSIS -12KM",
+                "CIRCULARISING", "ORBIT LOCKED", "COAST PHASE",
+            };
+            foreach (var line in preErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            // The operator starts typing a command but hasn't pressed enter.
+            foreach (var ch in "PRINT SHIP:ALT")
+            {
+                buffer.Type(ch);
+            }
+            Capture(force: false); // the prompt overlay showing the partial command
+
+            // A background WHEN trigger throws, mid-keystroke. Script Print()
+            // targets the raw print cursor, not the line-editor's virtual one.
+            var errorLines = new[]
+            {
+                "Program KOSException:",
+                "Cannot use TARGET before it is set.",
+                "At line 42",
+                "In file boot.ks",
+            };
+            buffer.Print(string.Join("\n", errorLines));
+            Capture(force: false); // the one diff spanning the whole multi-row scroll
+
+            // The operator keeps typing, then submits, then a couple more
+            // script prints land (e.g. a recovery handler).
+            foreach (var ch in "ITUDE.")
+            {
+                buffer.Type(ch);
+            }
+            Capture(force: false);
+            buffer.Type('\r'); // submit: NewLine() re-prints "PRINT SHIP:ALTITUDE." via Print()
+            Capture(force: false);
+
+            var postErrorLines = new[] { "RECOVERING", "TARGET SET", "RESUMING GUIDANCE" };
+            foreach (var line in postErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+            var client = Reconstruct(frames);
+
+            Assert.Equal(truth, client.Text);
+            foreach (var line in postErrorLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
+        }
+
         /// <summary>
         /// Runs the real pipeline under NONZERO signal delay while dropping
         /// exactly one incremental diff in transit — the exact class the
@@ -583,6 +876,101 @@ namespace GonogoKosUplink.Tests.Headless
             Assert.True(postStamp < prePeak,
                 $"post-rewind ValidAt {postStamp} must track the rewound clock, below the stale peak {prePeak}");
             Assert.Equal(200.0, postStamp);
+        }
+
+        [Fact]
+        public void ErrorPrint_WithInputLockToggleAroundScriptRun_SubsequentPrintsLandBelowIt()
+        {
+            // The closest-to-production shape this headless harness can drive:
+            // kOSProcessor.InitObjects sets `shared.Interpreter = new
+            // ConnectivityInterpreter(shared); shared.Screen = shared.Interpreter;`
+            // unconditionally (decompiled from kOS.dll) -- ConnectivityInterpreter
+            // extends Interpreter extends TextEditor, and it cannot be
+            // constructed here (needs UnityEngine + a live SharedObjects: CPU,
+            // Window, ScriptHandler...). But the ONE behaviour of that stack
+            // most plausibly tied to "error corrupts subsequent prints" is
+            // input-locking: kOS.Safe.Execution.CPU.PushContext locks input
+            // the instant a program starts running (contexts.Count > 1), and
+            // PopContext unlocks it the instant that program's context is
+            // popped back to just the interpreter (contexts.Count == 1) --
+            // including via KOSFixedUpdate's exception-catch cleanup, i.e.
+            // exactly the runtime-error path. Locked means TextEditor's
+            // LineSubBuffer.Enabled = false, so the live-input-line overlay
+            // stops compositing into GetBuffer() entirely for the run's
+            // duration, then re-enables the instant the error is caught and
+            // the context pops. This test reproduces that exact lock/unlock
+            // timing around the error print using InterpreterLikeTextEditor
+            // (a thin subclass exposing the same LineSubBuffer.Enabled toggle
+            // Interpreter.SetInputLock performs).
+            var buffer = new InterpreterLikeTextEditor();
+            buffer.SetSize(Rows, Cols);
+            var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
+            var screen = new ScreenBufferTerminal(buffer);
+            var frames = new List<KosTerminalFrame>();
+
+            void Capture(bool force)
+            {
+                var result = screen.ReadChunk(force);
+                if (result.HasOutput)
+                {
+                    frames.Add(new KosTerminalFrame
+                    {
+                        CoreId = CoreId,
+                        Chunk = result.Chunk,
+                        FullRepaint = result.FullRepaint,
+                    });
+                }
+            }
+
+            Capture(force: true); // blank reseed, interpreter idle (unlocked)
+
+            var preErrorLines = new[]
+            {
+                "BOOT SEQUENCE COMPLETE", "STAGE 1 IGNITION", "STAGE 1 SEPARATION",
+                "STAGE 2 IGNITION", "APOAPSIS 74KM", "PERIAPSIS -12KM",
+                "CIRCULARISING", "ORBIT LOCKED", "COAST PHASE",
+            };
+
+            // "run boot.ks." submitted: CPU.PushContext locks input for the
+            // run's duration (contexts.Count > 1).
+            buffer.SetInputLock(true);
+            foreach (var line in preErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            // The running script throws. KOSFixedUpdate's catch logs the
+            // exception (Shared.Screen.Print, the multi-line error text) while
+            // STILL locked, then PopFirstContext runs and (contexts.Count==1
+            // again) input unlocks -- all synchronous, same tick, before the
+            // terminal manager's next poll.
+            var errorLines = new[]
+            {
+                "Program KOSException:",
+                "Cannot use TARGET before it is set.",
+                "At line 42",
+                "In file boot.ks",
+            };
+            buffer.Print(string.Join("\n", errorLines));
+            buffer.SetInputLock(false);
+            Capture(force: false); // the one diff spanning the scroll AND the re-enabled overlay
+
+            var postErrorLines = new[] { "RECOVERING", "TARGET SET", "RESUMING GUIDANCE" };
+            foreach (var line in postErrorLines)
+            {
+                buffer.Print(line);
+                Capture(force: false);
+            }
+
+            var truth = RenderFinalScreen(buffer, blankBaseline);
+            var client = Reconstruct(frames);
+
+            Assert.Equal(truth, client.Text);
+            foreach (var line in postErrorLines)
+            {
+                Assert.Contains(line, client.Text);
+            }
         }
     }
 }

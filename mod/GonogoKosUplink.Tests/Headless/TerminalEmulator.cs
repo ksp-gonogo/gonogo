@@ -9,16 +9,17 @@ namespace GonogoKosUplink.Tests.Headless
     /// A deliberately minimal xterm/VT applier — the CLIENT side of the terminal
     /// downlink, standing in for the browser's xterm.js. It applies the exact
     /// same xterm-ready chunks the mod's <see cref="ScreenDiffMapper"/> emits
-    /// (cursor-absolute <c>ESC[r;cH</c> moves, <c>ESC[2J</c> clear, plain text)
-    /// onto a fixed grid, so a reconstructed screen can be compared byte-for-byte
-    /// against the mod's own final screen. It only needs to understand the
-    /// escape vocabulary kOS's <c>TerminalXtermMapper</c> actually produces for a
-    /// plain-text screen; any other <c>ESC[...&lt;final&gt;</c> sequence is
+    /// (cursor-absolute <c>ESC[r;cH</c> moves, <c>ESC[2J</c> clear, <c>ESC[S</c>/
+    /// <c>ESC[T</c> scroll, plain text) onto a fixed grid, so a reconstructed
+    /// screen can be compared byte-for-byte against the mod's own final screen.
+    /// It only needs to understand the escape vocabulary kOS's
+    /// <c>TerminalXtermMapper</c>/<c>TerminalVT100Mapper</c> actually produce for
+    /// a plain-text screen; any other <c>ESC[...&lt;final&gt;</c> sequence is
     /// consumed and ignored rather than mis-rendered.
     /// </summary>
     internal sealed class TerminalEmulator
     {
-        private const char Esc = '\u001b';
+        private const char Esc = '';
 
         private readonly int _rows;
         private readonly int _cols;
@@ -114,10 +115,75 @@ namespace GonogoKosUplink.Tests.Headless
                 case 'K':
                     ClearToEndOfLine();
                     break;
+                case 'S':
+                    // Scroll Up (SU) — kOS.UserIO.TerminalVT100Mapper emits one
+                    // of these per unit of a forward topRow move that
+                    // ScreenSnapShot.DiffFrom detects. Per ECMA-48/xterm, SU
+                    // shifts the scroll region's content up by n rows (default
+                    // 1), discarding the top n rows and filling n blank rows at
+                    // the bottom. The cursor's row/column number is NOT moved.
+                    ScrollUp(ParseCount(paramText));
+                    break;
+                case 'T':
+                    // Scroll Down (SD) — the reverse, for a backward topRow move.
+                    ScrollDown(ParseCount(paramText));
+                    break;
                 // Any other final byte (SGR 'm', etc.) is a display attribute
                 // with no effect on the reconstructed character grid.
             }
             return j + 1;
+        }
+
+        private static int ParseCount(string paramText)
+        {
+            if (paramText.Length == 0)
+            {
+                return 1;
+            }
+            return int.TryParse(paramText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n > 0 ? n : 1;
+        }
+
+        private void ScrollUp(int n)
+        {
+            n = Clamp(n, 0, _rows);
+            for (var r = 0; r < _rows - n; r++)
+            {
+                _grid[r] = _grid[r + n];
+            }
+            for (var r = _rows - n; r < _rows; r++)
+            {
+                _grid[r] = new char[_cols];
+                for (var c = 0; c < _cols; c++)
+                {
+                    _grid[r][c] = ' ';
+                }
+            }
+        }
+
+        private void ScrollDown(int n)
+        {
+            n = Clamp(n, 0, _rows);
+            for (var r = _rows - 1; r >= n; r--)
+            {
+                _grid[r] = _grid[r - n];
+            }
+            for (var r = 0; r < n; r++)
+            {
+                _grid[r] = new char[_cols];
+                for (var c = 0; c < _cols; c++)
+                {
+                    _grid[r][c] = ' ';
+                }
+            }
+        }
+
+        private static int Clamp(int v, int lo, int hi)
+        {
+            if (v < lo)
+            {
+                return lo;
+            }
+            return v > hi ? hi : v;
         }
 
         private void ApplyCursorPosition(string paramText)
