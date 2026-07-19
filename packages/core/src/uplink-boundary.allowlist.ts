@@ -433,7 +433,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/Sitrep.Host/UplinkDiscovery.cs",
-      "packages/app/src/__tests__/peer-client-data-source.test.ts",
       "packages/app/src/alarms/types.ts",
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
@@ -441,7 +440,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // sanctioned self-registration import (`import "@ksp-gonogo/kos"`),
       // same pattern as importing @ksp-gonogo/components.
       "packages/app/src/main.tsx",
-      "packages/app/src/peer/PeerBroadcastingDataSource.ts",
       "packages/components/src/CrewManifest/index.tsx",
       "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/components/src/TargetPicker/index.tsx",
