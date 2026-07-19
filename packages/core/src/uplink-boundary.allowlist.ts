@@ -69,6 +69,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
+      // example Uplinks the Hub can load. Copy, not code coupling.
+      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- Uplink LOADER (Phase A, 2026-07-17; kerbcast migration, 2026-07-18):
       // the runtime client loader names kerbcast as a first-party Uplink it
       // loads via import() behind a flag, same as the pre-existing scansat/kos
@@ -193,6 +196,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
+      // example Uplinks the Hub can load. Copy, not code coupling.
+      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
@@ -314,6 +320,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
+      // example Uplinks the Hub can load. Copy, not code coupling.
+      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- contract/SDK layer (real kOS POCOs, not just topic strings) --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/KosCommands.cs",
