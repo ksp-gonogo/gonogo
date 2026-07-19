@@ -113,12 +113,15 @@ function renderModal(screen_: "main" | "station" = "main") {
  * Data Sources tab's "just this one connection" behaviour is exercised
  * against the real production id, not an arbitrary test id.
  */
-function makeSitrepStub(configureSpy = vi.fn()): DataSource {
+function makeSitrepStub(
+  configureSpy = vi.fn(),
+  status: DataSourceStatus = "disconnected",
+): DataSource {
   const listeners = new Set<(s: DataSourceStatus) => void>();
   return {
     id: "sitrep",
     name: "Sitrep Stream",
-    status: "disconnected" as DataSourceStatus,
+    status,
     connect: async () => {},
     disconnect: () => {},
     schema: () => [],
@@ -285,6 +288,7 @@ describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", (
 describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHealth)", () => {
   it("shows a waiting placeholder before any report has arrived", async () => {
     const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
     await openDataSourcesTab();
     expect(
@@ -294,6 +298,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
 
   it("renders each reported Uplink's id, version and health state", async () => {
     const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
     await openDataSourcesTab();
 
@@ -326,6 +331,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
 
   it("shows the registration-failure reason as detail for an Unavailable uplink", async () => {
     const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
     await openDataSourcesTab();
 
@@ -349,6 +355,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
 
   it("shows a placeholder when the reported uplink list is empty", async () => {
     const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
     await openDataSourcesTab();
 
@@ -357,6 +364,17 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     await waitFor(() =>
       expect(screen.getByText("No uplinks registered")).toBeInTheDocument(),
     );
+  });
+
+  it("shows 'No telemetry host' instead of the generic waiting placeholder when the sitrep source is disconnected", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "disconnected"));
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+    expect(screen.getByText("No telemetry host")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Waiting for uplink health report..."),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -451,6 +469,7 @@ describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)"
       ),
     );
     const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderWithRealQuery(
       <stream.Provider>
         <SettingsModal />

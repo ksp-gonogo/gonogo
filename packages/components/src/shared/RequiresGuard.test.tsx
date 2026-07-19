@@ -1,12 +1,41 @@
 import {
+  clearRegistry,
+  type DataSource,
+  type DataSourceStatus,
+  registerDataSource,
+} from "@ksp-gonogo/core";
+import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { RequiresGuard } from "./RequiresGuard";
+
+function makeSitrepFixture(status: DataSourceStatus): DataSource {
+  return {
+    id: "sitrep",
+    name: "Sitrep Stream",
+    status,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    getConfig: () => ({}),
+    configure: () => {},
+    onStatusChange: () => () => {},
+  };
+}
+
+// Default every test to a CONNECTED host — Task 4's tests exercise the
+// uplink-health/game-context branches and don't care about host status;
+// the two host-down-specific tests below override this explicitly.
+beforeEach(() => registerDataSource(makeSitrepFixture("connected")));
+afterEach(() => clearRegistry());
 
 function rosterPoint(
   uplinks: Array<{
@@ -156,5 +185,27 @@ describe("RequiresGuard — merged with the existing game-context requires gate"
     expect(
       screen.queryByText("Vessel in flight required"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("RequiresGuard — 'No telemetry host' takes priority when channels are declared", () => {
+  it("shows 'No telemetry host' when the sitrep DataSource is disconnected", () => {
+    clearRegistry();
+    registerDataSource(makeSitrepFixture("disconnected"));
+    renderGuard(<div>widget content</div>, { channels: ["kos.terminal.1"] });
+    expect(screen.getByText("No telemetry host")).toBeInTheDocument();
+    expect(screen.queryByText("widget content")).not.toBeInTheDocument();
+  });
+
+  it("renders children through when the host is connected but the roster hasn't arrived yet (genuine wait)", () => {
+    renderGuard(<div>widget content</div>, { channels: ["kos.terminal.1"] });
+    expect(screen.getByText("widget content")).toBeInTheDocument();
+  });
+
+  it("does not gate on host status when the widget declares no channels at all", () => {
+    clearRegistry();
+    registerDataSource(makeSitrepFixture("disconnected"));
+    renderGuard(<div>widget content</div>);
+    expect(screen.getByText("widget content")).toBeInTheDocument();
   });
 });

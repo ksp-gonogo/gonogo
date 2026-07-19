@@ -19,6 +19,7 @@ export * from "./hooks/useExecuteAction";
 export * from "./hooks/useGameContext";
 export * from "./hooks/useOrbitElements";
 export * from "./hooks/useTelemetry";
+export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTouchDevice";
 export * from "./hooks/useUplinkHealthFor";
 // ErrorBoundary stays in core (React-specific). The rest of the

@@ -1,7 +1,9 @@
 import {
   getSettingsTabsForScreen,
+  NO_TELEMETRY_HOST_MESSAGE,
   useDataSources,
   useScreen,
+  useTelemetryHostDown,
 } from "@ksp-gonogo/core";
 import {
   SerialDevicesMenu,
@@ -261,8 +263,12 @@ function UplinkLoaderSection() {
  * OWN health; this never infers readiness from topic staleness.
  */
 function UplinkHealthList() {
+  const hostDown = useTelemetryHostDown();
   const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
 
+  if (hostDown) {
+    return <Placeholder>{NO_TELEMETRY_HOST_MESSAGE}</Placeholder>;
+  }
   if (uplinkHealth === undefined) {
     return <Placeholder>Waiting for uplink health report...</Placeholder>;
   }
