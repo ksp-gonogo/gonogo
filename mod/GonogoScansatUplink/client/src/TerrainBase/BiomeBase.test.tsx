@@ -1,10 +1,6 @@
-import type {} from "@ksp-gonogo/components"; // pulls the "map-view.base" SlotRegistry merge into this program
-import type { DataKey, SlotProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   clearRegistry,
   MockDataSource,
-  registerDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
@@ -13,7 +9,13 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import {
+  AugmentSlot,
+  type DataKey,
+  Quality,
+  registerDataSource,
+  type SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

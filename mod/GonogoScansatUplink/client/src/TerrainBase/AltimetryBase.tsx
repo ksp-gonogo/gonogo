@@ -18,8 +18,11 @@
 // from the T4 coverage paint-gate (see `paintTile.ts`'s coverage-alpha
 // doc comment).
 
-import type {} from "@ksp-gonogo/components"; // pulls MapView's "map-view.base" SlotRegistry merge into this program (see that module's own declare-module comment)
-import { getBody, registerAugment, type SlotProps } from "@ksp-gonogo/core";
+import {
+  getBody,
+  registerAugment,
+  type SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { useScanHeightGrid } from "../FogReveal/useScanLayers";
 import {

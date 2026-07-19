@@ -1,10 +1,10 @@
-import type { ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getBody,
   registerComponent,
   useDataValue,
-} from "@ksp-gonogo/core";
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
@@ -63,13 +63,18 @@ export interface ScanningSlotContext {
   bodyName: string | undefined;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry`.
-// Co-located here so parallel slot work on other widgets never
-// collides on a shared central file — this is what types
-// `registerAugment({ augments: "scanning.sections", ... })` and
+// Declaration-merge the slot ids → props types into the sdk facade's
+// `SlotRegistry`. Co-located here (not centralised in
+// `mod/sitrep-sdk/src/api/slots.ts`, unlike packages/components-owned
+// slots) because Scanning is this Uplink's OWN widget — this file is
+// always part of scansat's own compiled program, so there is no
+// cross-package reachability problem for the slot's OWNER (only for a
+// FOREIGN filler in a different package, which isn't the case here today;
+// see slots.ts's header comment for the full reasoning). This is what
+// types `registerAugment({ augments: "scanning.sections", ... })` and
 // `<AugmentSlot name="scanning.sections" props={...} />` against
 // `ScanningSlotContext` rather than the loose fallback.
-declare module "@ksp-gonogo/core" {
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "scanning.sections": ScanningSlotContext;
     "scanning.badges": ScanningSlotContext;
