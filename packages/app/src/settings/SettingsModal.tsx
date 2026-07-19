@@ -31,6 +31,7 @@ import {
   subscribeUplinkOutcomes,
   type UplinkLoadStatus,
 } from "../uplinks/loaderState";
+import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
 import type { SettingDefinition } from "./registry";
 import { getSetting, getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
@@ -91,6 +92,15 @@ export function SettingsModal() {
       label: "Data Sources",
       content: <DataSourcesPanel />,
       indicator: dataSourceIssue,
+    });
+    // Loading an Uplink client is a main-screen-only action (stations never
+    // talk to the mod directly, same gate as Data Sources above) — hardcoded
+    // here rather than via `registerSettingsTab`, which is reserved for
+    // external contributions (see that hook's own doc comment).
+    tabs.push({
+      id: "uplink-hub",
+      label: "Uplink Hub",
+      content: <UplinkHubWizard />,
     });
   }
   tabs.push({
