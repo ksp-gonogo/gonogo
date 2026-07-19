@@ -17,6 +17,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useFogMaskCache } from "@ksp-gonogo/data";
+import { useLateTelemetrySubscribe } from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installDomStubs();
@@ -59,4 +60,7 @@ installTestHost({
   useFogMaskCache: useFogMaskCache as Parameters<
     typeof installTestHost
   >[0]["useFogMaskCache"],
+  useLateTelemetrySubscribe: useLateTelemetrySubscribe as Parameters<
+    typeof installTestHost
+  >[0]["useLateTelemetrySubscribe"],
 });

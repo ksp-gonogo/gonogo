@@ -1,9 +1,9 @@
 import {
   type BodyDefinition,
-  getDataSource,
   registerFogRevealSource,
   useDataValue,
   useFogMaskCache,
+  useLateTelemetrySubscribe,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { SCAN_TYPE, type SCANCoverageBitmap, type SCANType } from "../schema";
@@ -74,14 +74,18 @@ export function useScanSatFogSync(
     "scansat.available",
   );
   const cache = useFogMaskCache();
+  const subscribe = useLateTelemetrySubscribe();
 
   useEffect(() => {
     if (!scanAvailable) return;
     if (!body || !cache) return;
-    const source = getDataSource(dataSourceId);
-    if (!source) return;
 
-    const unsubs: Array<() => void> = [];
+    // Guards the acquire race: `cache.acquire` resolves on a later
+    // microtask, so a `body`/`cache` change (or unmount) that fires this
+    // effect's cleanup before that resolves must stop the callback from
+    // subscribing at all, not just from writing into a stale mask.
+    // Subscriptions that DID make it through are torn down by
+    // `useLateTelemetrySubscribe` itself, on this hook's owner unmounting.
     let cancelled = false;
 
     // Eagerly acquire each per-type mask so the subscribe handler can
@@ -92,7 +96,7 @@ export function useScanSatFogSync(
       void cache.acquire(body.id, layerId).then((mask) => {
         if (cancelled) return;
         const key = `scansat.mask.${body.name}.${scanType}`;
-        const unsub = source.subscribe(key, (value) => {
+        subscribe<unknown>(key, (value) => {
           if (!value || typeof value !== "object") return;
           const bitmap = value as Partial<SCANCoverageBitmap>;
           if (
@@ -109,13 +113,11 @@ export function useScanSatFogSync(
           );
           if (changed) cache.markDirty(body.id, layerId);
         });
-        unsubs.push(unsub);
       });
     }
 
     return () => {
       cancelled = true;
-      for (const u of unsubs) u();
     };
-  }, [scanAvailable, body, cache, dataSourceId]);
+  }, [scanAvailable, body, cache, subscribe]);
 }
