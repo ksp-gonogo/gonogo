@@ -524,10 +524,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/VesselCommandProvider.cs",
       "packages/sitrep-client/src/map-topic.ts",
       "packages/sitrep-client/src/vessel-state.ts",
+      // f.ag<N>-beyond-10 toggle fix (2026-07-19): actionGroupHome's
+      // doc-comment explains why the write bridge is now a generic
+      // `/^f\.ag(\d+)$/` rule instead of a 10-row static table — AGX assigns
+      // indices up to 250, same rationale as VesselCommandProvider.cs's own
+      // comment above. Prose only; no AGX type or import.
+      "packages/sitrep-client/src/map-command.ts",
 
       // -- TEST-only --
       // Regression-comment mirrors the VesselCommandProvider rationale above.
       "mod/Sitrep.Host.Tests/VesselCommandProviderTests.cs",
+      // map-command.test.ts's new AGX-index test cites "AGX" in a doc-comment
+      // (same rationale as map-command.ts above) — no AGX import, just
+      // exercising the generic mapCommand rule with high indices.
+      "packages/sitrep-client/src/map-command.test.ts",
     ],
   },
 };

@@ -128,9 +128,20 @@ function toggleHome(command: string, readTopic: string): CommandHome {
 }
 
 /**
- * `f.ag1`..`f.ag10` -> `vessel.control.setActionGroup{group, state}`. Same
- * toggle -> absolute bridge as `toggleHome`: read the current state, send its
- * negation as an absolute.
+ * `f.ag<N>` for ANY positive N -> `vessel.control.setActionGroup{group,
+ * state}`. Same toggle -> absolute bridge as `toggleHome`: read the current
+ * state, send its negation as an absolute.
+ *
+ * Stock only ever reports 10 customs, but AGX (Action Groups Extended)
+ * assigns indices up to 250 — the SAME `setActionGroup` command, keyed by
+ * whatever index the elected backend reports (see `actionGroups.ts`'s
+ * `customActionGroup`, which builds every custom toggle as `f.ag${index}`
+ * with no upper bound). This was originally a 10-row static table
+ * (`f.ag1`..`f.ag10`), each row calling this exact function with a literal
+ * N — homogeneous in every respect but the index, so `mapCommand` now
+ * derives N from the key via `parseActionGroupIndex` instead of requiring a
+ * table row per index. `f.ag1`..`f.ag10` resolve to the byte-identical home
+ * they always did; `f.ag11` and up simply stopped being a silent no-op.
  *
  * **This used to index the raw array BY POSITION**
  * (`vessel.control.actionGroups.${groupNumber - 1}`), exploiting the store's
@@ -175,6 +186,22 @@ function actionGroupHome(groupNumber: number): CommandHome {
       return { group: groupNumber, state: !current };
     },
   };
+}
+
+/** Matches the whole `f.ag<N>` family — stock's 1..10 and every AGX index
+ * above it alike. `\d+` alone (no upper bound) is deliberate: AGX's own
+ * ceiling is a mod-side detail this file has no reason to hardcode. */
+const ACTION_GROUP_KEY_PATTERN = /^f\.ag(\d+)$/;
+
+/** Extracts N from an `f.ag<N>` key, or `undefined` for anything else (not
+ * an action-group key, or `N` not a positive integer — `\d+` in the pattern
+ * already rules out negative/non-numeric, this just guards the degenerate
+ * `f.ag0` case). */
+function parseActionGroupIndex(key: string): number | undefined {
+  const match = ACTION_GROUP_KEY_PATTERN.exec(key);
+  if (!match) return undefined;
+  const index = Number(match[1]);
+  return index >= 1 ? index : undefined;
 }
 
 function parseFiniteNumber(raw: string | undefined): number | typeof INVALID {
@@ -393,16 +420,9 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
   "f.light": toggleHome("vessel.control.setLights", "vessel.control.lights"),
   // VesselCommandProvider.SetAbortCommand.
   "f.abort": toggleHome("vessel.control.setAbort", "vessel.control.abort"),
-  "f.ag1": actionGroupHome(1),
-  "f.ag2": actionGroupHome(2),
-  "f.ag3": actionGroupHome(3),
-  "f.ag4": actionGroupHome(4),
-  "f.ag5": actionGroupHome(5),
-  "f.ag6": actionGroupHome(6),
-  "f.ag7": actionGroupHome(7),
-  "f.ag8": actionGroupHome(8),
-  "f.ag9": actionGroupHome(9),
-  "f.ag10": actionGroupHome(10),
+  // f.ag1..f.ag10 (and every AGX index above 10) are handled by a generic
+  // parametric rule in mapCommand/hasCommandHome below (actionGroupHome +
+  // parseActionGroupIndex), not a static table row per index.
 
   // --- vessel.control.* direct actuation — no state to invert ---
   "f.stage": {
@@ -863,7 +883,11 @@ export function mapCommand(
   if (dataSourceId !== "data") return undefined;
 
   const { key, args } = parseLegacyAction(action);
-  const home = TELEMACHUS_COMMAND_HOMES[key];
+  const agIndex = parseActionGroupIndex(key);
+  const home =
+    agIndex !== undefined
+      ? actionGroupHome(agIndex)
+      : TELEMACHUS_COMMAND_HOMES[key];
   if (!home) return undefined;
 
   const built = home.buildArgs(args, getCurrentValue);
@@ -903,5 +927,5 @@ export function isKnownCommandGap(
 export function hasCommandHome(dataSourceId: string, action: string): boolean {
   if (dataSourceId !== "data") return false;
   const { key } = parseLegacyAction(action);
-  return key in TELEMACHUS_COMMAND_HOMES;
+  return key in TELEMACHUS_COMMAND_HOMES || ACTION_GROUP_KEY_PATTERN.test(key);
 }

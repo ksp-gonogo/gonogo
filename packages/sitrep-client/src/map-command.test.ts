@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasCommandHome,
   isKnownCommandGap,
   KNOWN_COMMAND_GAPS,
   mapCommand,
@@ -166,6 +167,60 @@ describe("mapCommand", () => {
 
     it("f.abort is no longer a known command gap", () => {
       expect(isKnownCommandGap("data", "f.abort")).toBe(false);
+    });
+
+    /**
+     * AGX (Action Groups Extended) assigns indices well past the stock 1..10
+     * range — up to 250. `f.ag1`/`f.ag10` are the REGRESSION guard (byte-
+     * identical to the old static-table behaviour); `f.ag11`/`f.ag50`/
+     * `f.ag250` are the bug this test locks down — before the fix these
+     * resolved to `undefined` (no table row), silently no-opping the
+     * toggle even though the group renders correctly off the index-generic
+     * read path.
+     */
+    it("resolves f.ag<N> for ANY positive N, not just the stock 1..10 range (AGX groups)", () => {
+      const control = {
+        actionGroups: [
+          { index: 1, name: "AG1", state: true },
+          { index: 10, name: "AG10", state: false },
+          { index: 11, name: "AG11", state: true },
+          { index: 50, name: "Docking Lights", state: false },
+          { index: 250, name: "Last AGX Slot", state: true },
+        ],
+      };
+      const getCurrentValue = (topic: string): unknown =>
+        topic === "vessel.control" ? control : undefined;
+
+      // Regression guard: f.ag1/f.ag10 resolve exactly as they always did.
+      expect(mapCommand("data", "f.ag1", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 1, state: false },
+      });
+      expect(mapCommand("data", "f.ag10", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 10, state: true },
+      });
+
+      // The bug: these used to be undefined (no static table row).
+      expect(mapCommand("data", "f.ag11", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 11, state: false },
+      });
+      expect(mapCommand("data", "f.ag50", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 50, state: true },
+      });
+      expect(mapCommand("data", "f.ag250", getCurrentValue)).toEqual({
+        command: "vessel.control.setActionGroup",
+        args: { group: 250, state: false },
+      });
+    });
+
+    it("hasCommandHome reports a home for f.ag<N> at any N, not just the stock range", () => {
+      expect(hasCommandHome("data", "f.ag1")).toBe(true);
+      expect(hasCommandHome("data", "f.ag10")).toBe(true);
+      expect(hasCommandHome("data", "f.ag11")).toBe(true);
+      expect(hasCommandHome("data", "f.ag250")).toBe(true);
     });
   });
 
