@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostCompat } from "./hostCompat";
-import { loadEnabledUplinks, type RosterEntry } from "./loader";
+import { loadEnabledUplinks, loadUplinkById, type RosterEntry } from "./loader";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
 
@@ -304,6 +304,69 @@ describe("loadEnabledUplinks", () => {
     });
     expect(outcomes[0].status).toBe("quarantined");
     expect(outcomes[0].reason).toMatch(/not found in the registry index/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+});
+
+describe("loadUplinkById", () => {
+  it("fetches the registry and loads only the requested id", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const outcome = await loadUplinkById(
+      "scansat",
+      ctx({ index: indexWith(goodHash), importBundle }),
+    );
+    expect(outcome.status).toBe("loaded");
+    expect(outcome.id).toBe("scansat");
+    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(getUplinkOutcomes()[0].status).toBe("loaded");
+  });
+
+  it("reuses the ensureConsent/fetchBytes/importBundle DI seam", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const ensureConsent = vi.fn(async () => false);
+    const outcome = await loadUplinkById(
+      "scansat",
+      ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
+    );
+    expect(ensureConsent).toHaveBeenCalled();
+    expect(outcome.status).toBe("quarantined");
+    expect(outcome.reason).toMatch(/consent declined/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines when the id isn't in the registry index", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const outcome = await loadUplinkById("kos", {
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcome.status).toBe("quarantined");
+    expect(outcome.reason).toMatch(/not found in the registry index/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines when the registry is unreadable", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const outcome = await loadUplinkById(
+      "scansat",
+      ctx({ index: "fail", importBundle }),
+    );
+    expect(outcome.status).toBe("quarantined");
+    expect(outcome.reason).toMatch(/registry unavailable/);
     expect(importBundle).not.toHaveBeenCalled();
   });
 });

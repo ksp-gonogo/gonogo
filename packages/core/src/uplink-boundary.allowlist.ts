@@ -168,6 +168,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosExtension.Ksp.cs",
       "mod/GonogoKosUplink/KosHealth.cs",
       "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
+      // loaderState.test.ts (Hub-wizard plumbing, 2026-07-19): TEST-only,
+      // names kerbcast as one of the three bundled-fallback ids it feeds
+      // recordBundledOutcomes() — same shape as loader.test.ts/flag.test.ts
+      // below (loaderState.ts itself is generic and names no mod).
+      "packages/app/src/uplinks/loaderState.test.ts",
     ],
   },
 
@@ -258,6 +263,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // contains all three first-party loader ids (scansat/kos/kerbcast) —
       // TEST-only, same shape as loader.test.ts above.
       "packages/app/src/uplinks/flag.test.ts",
+      // loaderState.test.ts (Hub-wizard plumbing, 2026-07-19): TEST-only,
+      // names scansat as one of the three bundled-fallback ids it feeds
+      // recordBundledOutcomes() — same shape as flag.test.ts above.
+      "packages/app/src/uplinks/loaderState.test.ts",
     ],
   },
 
