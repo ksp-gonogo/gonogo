@@ -11,7 +11,8 @@
  * (see the discovery scenarios below).
  */
 
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { clearRegistry } from "@ksp-gonogo/core";
+import { registerDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isKosScriptError } from "../shared/KosScriptError";

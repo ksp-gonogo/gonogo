@@ -1,4 +1,4 @@
-import type { DataSource } from "@ksp-gonogo/core";
+import type { DataSource } from "@ksp-gonogo/sitrep-sdk";
 import type { KosData, KosScriptArg } from "./kos-data-parser";
 import type { KosManagedScript } from "./useKosWidget";
 

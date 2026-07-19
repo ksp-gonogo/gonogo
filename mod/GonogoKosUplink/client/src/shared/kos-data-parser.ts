@@ -18,7 +18,7 @@
  * per topic, with bare `[KOSDATA]` keyed under `default`.
  */
 
-import { PerfBudget } from "@ksp-gonogo/core";
+import { createPerfBudget } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * Soft cap on parser invocations. The proxy emits one PTY chunk per
@@ -27,7 +27,7 @@ import { PerfBudget } from "@ksp-gonogo/core";
  * catches infinite-loop scripts or runaway kOS PRINTs that would flood
  * the parse pipeline.
  */
-const KOS_PARSE_BUDGET = new PerfBudget({
+const KOS_PARSE_BUDGET = createPerfBudget({
   name: "kos-data-parser.parseKosData calls/sec",
   threshold: 200,
   windowMs: 1000,

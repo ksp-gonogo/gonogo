@@ -19,9 +19,9 @@
  * See local_docs/centralised_kos_compute.md for the full design.
  */
 
-import type { DataKey } from "@ksp-gonogo/core";
-import { PerfBudget } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
+import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
+import { createPerfBudget } from "@ksp-gonogo/sitrep-sdk";
 import { hashKosScript } from "../shared/hashKosScript";
 import { isKosScriptError } from "../shared/KosScriptError";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
@@ -38,7 +38,7 @@ import type { KosManagedScript } from "../shared/useKosWidget";
  * (tight loop, runaway re-subscription) trips this. Threshold is generous
  * because a Ship Map alone emits 1 sample/cycle at a 0.5Hz cadence.
  */
-const KOS_COMPUTE_SAMPLE_BUDGET = new PerfBudget({
+const KOS_COMPUTE_SAMPLE_BUDGET = createPerfBudget({
   name: "KosDataSource.compute samples emitted/sec",
   threshold: 500,
   windowMs: 1000,

@@ -1,6 +1,3 @@
-import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, safeRandomUuid } from "@ksp-gonogo/core";
-import { useReplaySessionActive } from "@ksp-gonogo/data";
 import {
   useCommand,
   useLatestValue,
@@ -10,6 +7,8 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type {
   CommsLink,
+  ComponentProps,
+  ConfigComponentProps,
   KosKeystrokeArgs,
   KosProcessorInfo,
   KosTerminalCloseArgs,
@@ -17,6 +16,11 @@ import type {
   KosTerminalOpenArgs,
   KosTerminalResizeArgs,
   PendingUplinkQueue,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerComponent,
+  safeRandomUuid,
+  useReplaySessionActive,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,

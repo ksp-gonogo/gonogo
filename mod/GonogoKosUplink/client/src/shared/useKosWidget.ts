@@ -1,5 +1,4 @@
-import { getDataSource } from "@ksp-gonogo/core";
-import { useReplaySessionActive } from "@ksp-gonogo/data";
+import { getDataSource, useReplaySessionActive } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isKosScriptError, KosScriptError } from "./KosScriptError";
 import type { KosData, KosScriptArg } from "./kos-data-parser";

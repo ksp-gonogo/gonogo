@@ -1,4 +1,5 @@
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { clearRegistry } from "@ksp-gonogo/core";
+import { registerDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KosScriptError } from "./KosScriptError";
