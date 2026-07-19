@@ -2,12 +2,11 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 
 /**
- * The generalized combobox/listbox primitive extracted from `DataKeyPicker`
- * (kos-terminal-script-picker generalization). `DataKeyPicker` is the first
- * caller to be rebuilt on top of this file; the kOS terminal's `/`-script
- * composer is the second — it drives the listbox from raw keystrokes
- * (xterm's `onData`) rather than a literal `<input>`, so the pure
- * filter/group/navigate functions and the presentational `ComboboxListbox`
+ * The generalized combobox/listbox primitive extracted from `DataKeyPicker`.
+ * `DataKeyPicker` (a literal `<input role="combobox">`) is the first caller to
+ * be rebuilt on top of this file; a second caller drives the same listbox from
+ * raw keystrokes via xterm's `onData` rather than a literal `<input>`, so the
+ * pure filter/group/navigate functions and the presentational `ComboboxListbox`
  * are kept fully decoupled from any specific input surface.
  */
 
@@ -114,11 +113,11 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
 
 /**
  * The presentational half of the combobox pattern: a `role="listbox"`
- * dropdown of grouped, keyboard-navigable options. Owns no state itself —
+ * dropdown of grouped, keyboard-navigable options. Owns no state itself:
  * `activeIndex`/`onHoverIndex`/`onSelectKey` are fully controlled by the
  * caller, so it composes equally well behind a literal `<input
  * role="combobox">` (`DataKeyPicker`) or behind a non-DOM input surface like
- * xterm's `onData` (the kOS terminal's `/`-script composer).
+ * xterm's `onData`.
  */
 export function ComboboxListbox<T extends ComboboxOption>({
   id,
