@@ -2,10 +2,10 @@
 // does — this module MUST be main.tsx's first import.
 //
 // The facade-sealed Uplink clients call the facade's `registerComponent` (and
-// other host-injected surface) at MODULE LOAD. The kerbcast client's
-// `CameraFeed/index.tsx` is a live example, and it is pulled into the static
-// graph transitively via `MainScreen.tsx`'s `@ksp-gonogo/kerbcast-feed` import
-// (a documented bundled-path domain-debt until the loader fully replaces it).
+// other host-injected surface) at MODULE LOAD. A sealed client's component-
+// registration module gets pulled into the static graph transitively via
+// `MainScreen.tsx` (a documented bundled-path domain-debt until the loader
+// fully replaces it), so it runs during the hoisted-import phase.
 // `registerComponent` calls `getHost()`, which throws "the gonogo host has not
 // been installed" if no host is set yet.
 //
