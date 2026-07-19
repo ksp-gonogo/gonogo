@@ -1,6 +1,6 @@
 import {
-  getActiveTelemetryClient,
   TelemetryProvider,
+  useActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import type { ReactNode } from "react";
 
@@ -23,15 +23,25 @@ import type { ReactNode } from "react";
  * has the exact same gap, "Waiting for uplink health report..." forever in
  * a real browser despite `system.uplinks` genuinely flowing over the wire.
  *
- * Reuses the SAME live `TelemetryClient` (captured once, at whatever moment
- * this component itself renders — typically the instant a modal opens, same
- * "capture at the call site" pattern `SettingsFab.tsx`'s `handleClick`
- * already uses for `SettingsProvider`/`ScreenProvider`/`SerialDeviceProvider`)
- * rather than opening a second WebSocket: `TelemetryProvider` auto-builds
- * its own `TimelineStore` when given a `client` with no `store` prop, and
+ * Reuses the SAME live `TelemetryClient` (read reactively via
+ * `useActiveTelemetryClient`, the same "whichever `TelemetryProvider` most
+ * recently mounted" source `SettingsFab.tsx`'s `handleClick` captures once
+ * for `SettingsProvider`/`ScreenProvider`/`SerialDeviceProvider`) rather than
+ * opening a second WebSocket: `TelemetryProvider` auto-builds its own
+ * `TimelineStore` when given a `client` with no `store` prop, and
  * `TelemetryClient.attachStore` supports multiple attached stores — the new
  * store mirrors the exact same wire frames the main dashboard's store does,
  * no extra network connection, no duplicate subscription.
+ *
+ * Deliberately REACTIVE, not a one-shot read at render: a modal can open
+ * before the app's own `TelemetryProvider` has mounted (first-run auto-open
+ * of the Uplink Hub wizard is the confirmed real-world case — it can fire
+ * before the Sitrep client has connected). A one-shot `getActiveTelemetryClient()`
+ * call would capture `undefined` at that moment and never recover, leaving
+ * the modal's telemetry reads (e.g. the wizard's `useUplinkGap`) hung
+ * forever even after the client connects a moment later.
+ * `useActiveTelemetryClient` re-renders this component the instant a
+ * provider mounts, so the modal picks up the client as soon as it exists.
  *
  * Renders `children` untouched if no `TelemetryProvider` is mounted anywhere
  * yet (disconnected / pre-boot / station screen with no stream) — the same
@@ -42,7 +52,7 @@ import type { ReactNode } from "react";
 export function ModalTelemetryBridge({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const client = getActiveTelemetryClient();
+  const client = useActiveTelemetryClient();
   if (!client) return <>{children}</>;
   return <TelemetryProvider client={client}>{children}</TelemetryProvider>;
 }
