@@ -35,6 +35,12 @@ test.describe("Settings — Data Sources tab — main screen", () => {
         // Pre-answer analytics consent so the blocking boot modal doesn't
         // sit over the screen and intercept the FAB click.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
+        // The first-run Uplink Hub wizard auto-opens the Settings modal on a
+        // fresh browser (own unit/component coverage in
+        // UplinkHubWizardHost.test.tsx; e2e coverage in
+        // uplink-hub-wizard.spec.ts) — mark it already-seen so it doesn't
+        // race the manual Settings-FAB open this spec drives below.
+        localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
         /* private mode / quota — ignore; the seed just won't apply */
       }
