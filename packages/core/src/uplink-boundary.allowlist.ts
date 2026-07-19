@@ -155,6 +155,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // only — the file imports sitrep-client/sitrep-sdk types, never
       // anything kerbcast-specific.
       "packages/core/src/sdk-facade.conformance.test-d.ts",
+      // Comms + kOS IUplinkHealthReporter implementations (2026-07-19) cite
+      // KerbcastUplink/KerbcastHealth in doc comments as the reference
+      // reporter pattern they mirror (the KerbcastHealth pure-Evaluate split
+      // was the first-party precedent). Prose only — no import, type, or code
+      // coupling to the kerbcast Uplink; same class as the RA/AGX "worked
+      // example" citations elsewhere in this file.
+      "mod/Gonogo.KSP/CommsCoreUplink.cs",
+      "mod/Sitrep.Host/Comms/CommsHealth.cs",
+      "mod/Sitrep.Host.Tests/CommsHealthTests.cs",
+      "mod/GonogoKosUplink/KosExtension.cs",
+      "mod/GonogoKosUplink/KosExtension.Ksp.cs",
+      "mod/GonogoKosUplink/KosHealth.cs",
+      "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
     ],
   },
 
