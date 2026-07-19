@@ -9,7 +9,7 @@ const root = import.meta.dirname;
  *
  * Runs all packages' tests in a SINGLE vitest process so that cross-package
  * coverage is correctly attributed. For example, the @ksp-gonogo/app integration
- * tests exercise ActionGroupComponent, useDataValue, and useExecuteAction from
+ * tests exercise ActionGroupComponent, useTelemetry, and useExecuteAction from
  * @ksp-gonogo/core / @ksp-gonogo/components — this is the only way to see that coverage.
  *
  * Per-package test runs (pnpm test / turbo test) use each package's own

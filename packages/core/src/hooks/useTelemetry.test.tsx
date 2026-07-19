@@ -15,10 +15,9 @@ import {
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
-import { useDataValue } from "./useDataValue";
 import { useTelemetry } from "./useTelemetry";
 
-// Minimal in-memory legacy DataSource — same shape as useDataValue.test.ts.
+// Minimal in-memory legacy DataSource — same shape as useTelemetry.legacy-datasource.test.ts.
 function makeSource(id = "data") {
   const dataListeners = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(s: DataSourceStatus) => void>();
@@ -119,20 +118,5 @@ describe("useTelemetry — legacy two-arg overload preserved", () => {
     expect(result.current).toBeUndefined();
     act(() => source.emit("career.funds", 289_848));
     expect(result.current).toBe(289_848);
-  });
-});
-
-describe("useDataValue — deprecated alias", () => {
-  it("is the exact same function reference as useTelemetry", () => {
-    expect(useDataValue).toBe(useTelemetry);
-  });
-
-  it("still works through the alias (legacy two-arg call)", () => {
-    const source = makeSource();
-    registerDataSource(source);
-
-    const { result } = renderHook(() => useDataValue("data", "career.funds"));
-    act(() => source.emit("career.funds", 42));
-    expect(result.current).toBe(42);
   });
 });

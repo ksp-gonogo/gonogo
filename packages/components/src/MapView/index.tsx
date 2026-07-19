@@ -14,7 +14,6 @@ import {
   splitOnLongitudeWrap,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSchema } from "@ksp-gonogo/data";
@@ -1143,7 +1142,7 @@ function TelemetryRow({
   label: string;
   colorIndex: number;
 }>) {
-  const value = useDataValue(
+  const value = useTelemetry(
     "data",
     dataKey as keyof DataSourceRegistry["data"],
   );

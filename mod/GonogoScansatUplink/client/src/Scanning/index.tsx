@@ -3,7 +3,7 @@ import {
   AugmentSlot,
   getBody,
   registerComponent,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -110,10 +110,10 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
 function ScanningComponent({
   config,
 }: Readonly<ComponentProps<ScanningConfig>>) {
-  const activeBody = useDataValue<string>("data", "v.body");
+  const activeBody = useTelemetry<string>("data", "v.body");
   const bodyName = config?.bodyName ?? activeBody;
-  const biome = useDataValue<string>("data", "v.biome");
-  const scanAvailable = useDataValue<boolean>("data", "scansat.available");
+  const biome = useTelemetry<string>("data", "v.biome");
+  const scanAvailable = useTelemetry<boolean>("data", "scansat.available");
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 
@@ -284,7 +284,7 @@ function CoverageRow({
   bodyName,
   scanType,
 }: Readonly<{ bodyName: string; scanType: SCANType }>) {
-  const pct = useDataValue<number>(
+  const pct = useTelemetry<number>(
     "data",
     `scansat.coverage.${bodyName}.${scanType}`,
   );

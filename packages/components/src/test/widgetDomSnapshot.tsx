@@ -20,7 +20,7 @@ import {
 
 /**
  * Fixtures authored before the `t.universalTime` client migration
- * (`useDataValue("data", "t.universalTime")` → `useViewUt()`) still carry a
+ * (`useTelemetry("data", "t.universalTime")` → `useViewUt()`) still carry a
  * `"t.universalTime"` key — it's harmless to leave (widgets that don't read
  * it just ignore the emit), but a migrated widget's `useViewUt()` needs a
  * mounted `TelemetryProvider` to resolve to anything at all. Pin one from
@@ -64,7 +64,7 @@ function resolveVesselPartsWire(fixture: Fixture): unknown {
 /**
  * Same story as {@link resolvePinnedUt}/{@link resolveVesselPartsWire}, for the
  * `ActionGroup` canonical-read migration: that widget dropped its legacy
- * `useDataValue("data", group.value)` shim entirely and now reads
+ * `useTelemetry("data", group.value)` shim entirely and now reads
  * `vessel.control` / `vessel.structure` one-arg, so a fixture carrying the old
  * `v.sasValue`/`v.ag1Value`/… keys needs them reshaped onto the wire or the
  * widget would render "—" for every group instead of the fixture's real state.

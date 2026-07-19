@@ -15,7 +15,6 @@ export * from "./hooks/useCommand";
 export * from "./hooks/useDataSourceSubscription";
 export * from "./hooks/useDataSources";
 export * from "./hooks/useDataStreamStatus";
-export * from "./hooks/useDataValue";
 export * from "./hooks/useExecuteAction";
 export * from "./hooks/useGameContext";
 export * from "./hooks/useOrbitElements";

@@ -29,7 +29,7 @@ function withItemContext(instanceId: string, children: ReactNode) {
 
 /**
  * ActionGroup's READ path is the canonical `vessel.control` stream now — its
- * legacy `useDataValue("data", group.value)` shim is gone — so these
+ * legacy `useTelemetry("data", group.value)` shim is gone — so these
  * integration tests drive the group's state through a real
  * `TelemetryProvider` + `TimelineStore` pipeline.
  *

@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
  * Telemachus key a real widget actually asks for — via a declared
- * `dataRequirements` entry or a literal `useDataValue("data", "<key>")` call
+ * `dataRequirements` entry or a literal `useTelemetry("data", "<key>")` call
  * — must be either mapped to a new stream topic (`mapTopic("data", key)`) or
  * explicitly listed as a known gap (`isKnownTelemachusGap`). Anything
  * neither mapped nor gap-listed is a silent miss: a widget that gets
@@ -105,7 +105,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
     }
 
     for (const match of source.matchAll(
-      /useDataValue\(\s*"data"\s*,\s*"([^"]+)"/g,
+      /useTelemetry\(\s*"data"\s*,\s*"([^"]+)"/g,
     )) {
       keys.add(match[1]);
     }
@@ -119,9 +119,9 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * ---------------------------------------------------------------------------
  * There used to be a `collectDynamicTelemachusKeys()` here, and a documented
  * hole it patched: `ActionGroup` resolved its read key dynamically
- * (`useDataValue("data", group?.value ?? "v.sasValue")`) off `@ksp-gonogo/core`'s
+ * (`useTelemetry("data", group?.value ?? "v.sasValue")`) off `@ksp-gonogo/core`'s
  * hardcoded `ACTION_GROUPS` registry, with an empty `dataRequirements: []`. The
- * regex scan above only sees LITERAL `useDataValue("data", "<key>")` strings, so
+ * regex scan above only sees LITERAL `useTelemetry("data", "<key>")` strings, so
  * `v.sasValue`/`v.ag1Value`/… were invisible to it and had to be re-derived from
  * the registry by hand.
  *

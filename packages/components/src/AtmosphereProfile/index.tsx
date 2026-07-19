@@ -5,7 +5,7 @@ import {
   pressureAtAltitude,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { formatStreamStatus, StreamStatusBadge } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
@@ -59,12 +59,12 @@ function AtmosphereProfileComponent({
   w,
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
-  const bodyName = useDataValue<string>("data", "v.body");
+  const bodyName = useTelemetry<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
-  const altitude = useDataValue<number>("data", "v.altitude");
-  const liveDensity = useDataValue<number>("data", "v.atmosphericDensity");
-  const liveAirTemp = useDataValue<number>("data", "v.atmosphericTemperature");
-  const liveSkinTemp = useDataValue<number>("data", "v.externalTemperature");
+  const altitude = useTelemetry<number>("data", "v.altitude");
+  const liveDensity = useTelemetry<number>("data", "v.atmosphericDensity");
+  const liveAirTemp = useTelemetry<number>("data", "v.atmosphericTemperature");
+  const liveSkinTemp = useTelemetry<number>("data", "v.externalTemperature");
   // Connectivity indicator (mirrors the pattern used elsewhere in this widget family).
   // `v.altitude` is this widget's representative MAPPED key — it resolves
   // to the DERIVED `vessel.state.altitudeAsl` subtopic (map-topic.ts's

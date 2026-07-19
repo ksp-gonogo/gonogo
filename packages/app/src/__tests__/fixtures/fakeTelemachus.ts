@@ -5,7 +5,7 @@ import { act } from "@ksp-gonogo/test-utils";
 /**
  * Stands in for a real `TelemachusDataSource` wrapped in a real
  * `BufferedDataSource`, for tests that deliberately exercise the LEGACY
- * `useDataValue("data", key)` shim branch (no `TelemetryProvider` mounted —
+ * `useTelemetry("data", key)` shim branch (no `TelemetryProvider` mounted —
  * see `map-topic.ts`'s doc comment on why that branch survives P4c-b: the
  * mapped+carried resolution never touches the actual `DataSource` instance,
  * but a genuinely-unmapped key, or a test that mounts no stream Provider at

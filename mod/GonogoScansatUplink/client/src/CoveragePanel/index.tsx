@@ -21,7 +21,7 @@
 // it — zero impact on MapView for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useDataValue } from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
@@ -93,7 +93,7 @@ function CoverageRow({
   label: string;
   range: { inRange: boolean; bestRange: boolean } | undefined;
 }>) {
-  const pct = useDataValue<number>(
+  const pct = useTelemetry<number>(
     "data",
     `scansat.coverage.${bodyName}.${scanType}`,
   );

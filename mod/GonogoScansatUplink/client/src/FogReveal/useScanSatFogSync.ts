@@ -1,9 +1,9 @@
 import {
   type BodyDefinition,
   registerFogRevealSource,
-  useDataValue,
   useFogMaskCache,
   useLateTelemetrySubscribe,
+  useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { SCAN_TYPE, type SCANCoverageBitmap, type SCANType } from "../schema";
@@ -69,7 +69,7 @@ export function useScanSatFogSync(
   body: BodyDefinition | undefined,
   dataSourceId = "data",
 ): void {
-  const scanAvailable = useDataValue<boolean>(
+  const scanAvailable = useTelemetry<boolean>(
     dataSourceId,
     "scansat.available",
   );

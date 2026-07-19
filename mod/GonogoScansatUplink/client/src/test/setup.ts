@@ -10,7 +10,6 @@ import {
   registerComponent,
   registerFogRevealSource,
   registerMapPoiProvider,
-  useDataValue,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -48,7 +47,6 @@ installTestHost({
   registerComponent,
   registerFogRevealSource,
   registerMapPoiProvider,
-  useDataValue,
   useExecuteAction,
   useTelemetry,
   useFogMaskCache: useFogMaskCache as Parameters<

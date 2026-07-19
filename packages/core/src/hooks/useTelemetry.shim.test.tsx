@@ -16,9 +16,9 @@ import {
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
-import { useDataValue } from "./useDataValue";
+import { useTelemetry } from "./useTelemetry";
 
-// Minimal in-memory legacy DataSource — same shape as useDataValue.test.ts's
+// Minimal in-memory legacy DataSource — same shape as useTelemetry.test.ts's
 // fixture, reused here to drive the "falls back to the legacy path" side of
 // the shim.
 function makeLegacySource(id = "data") {
@@ -91,7 +91,7 @@ const FLIGHT: VesselFlightPayload = {
 
 beforeEach(() => clearRegistry());
 
-describe("useDataValue shim — mapped key routes to useStream when a TelemetryProvider is mounted", () => {
+describe("useTelemetry shim — mapped key routes to useStream when a TelemetryProvider is mounted", () => {
   it(
     "the M2 bridge's key end-to-end proof: 'v.altitude' (-> vessel.state.altitudeAsl, a DERIVED " +
       "channel) resolves through the real client -> TimelineStore -> hooks pipeline once real " +
@@ -104,7 +104,7 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useDataValue("data", "v.altitude");
+        const alt = useTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
       }
 
@@ -122,7 +122,7 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
         // it happens to read) — the "dev-first per-topic opt-in" half of the
         // gate. Without this, the mapped topic would stay on the legacy path
         // and the rest of this test (which proves the DERIVED-channel
-        // wiring) would never even exercise the stream. See `useDataValue
+        // wiring) would never even exercise the stream. See `useTelemetry
         // gate — carried-channels allowlist` below for the gate's own
         // dedicated coverage.
         <TelemetryProvider
@@ -184,7 +184,7 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
   );
 });
 
-describe("useDataValue shim — unmapped key falls back to the legacy DataSource path even with a provider mounted", () => {
+describe("useTelemetry shim — unmapped key falls back to the legacy DataSource path even with a provider mounted", () => {
   it("a known-gap key ('career.funds') ignores the TelemetryClient and reads the legacy DataSource", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
@@ -192,7 +192,7 @@ describe("useDataValue shim — unmapped key falls back to the legacy DataSource
     registerDataSource(legacySource);
 
     function Funds() {
-      const funds = useDataValue("data", "career.funds");
+      const funds = useTelemetry("data", "career.funds");
       return <div>funds:{funds === undefined ? "—" : String(funds)}</div>;
     }
 
@@ -214,13 +214,13 @@ describe("useDataValue shim — unmapped key falls back to the legacy DataSource
   });
 });
 
-describe("useDataValue shim — no TelemetryProvider mounted behaves exactly like the pre-shim hook", () => {
+describe("useTelemetry shim — no TelemetryProvider mounted behaves exactly like the pre-shim hook", () => {
   it("a mapped key with no provider in the tree still reads the legacy DataSource (unmigrated screens keep working)", () => {
     const source = makeLegacySource();
     registerDataSource(source);
 
     // No <TelemetryProvider> wrapper at all — this is every screen today.
-    const { result } = renderHook(() => useDataValue("data", "v.altitude"));
+    const { result } = renderHook(() => useTelemetry("data", "v.altitude"));
 
     expect(result.current).toBeUndefined();
     act(() => source.emit("v.altitude", 80_000));
@@ -231,7 +231,7 @@ describe("useDataValue shim — no TelemetryProvider mounted behaves exactly lik
     const source = makeLegacySource();
     registerDataSource(source);
 
-    const { result } = renderHook(() => useDataValue("data", "v.altitude"));
+    const { result } = renderHook(() => useTelemetry("data", "v.altitude"));
     act(() => source.emit("v.altitude", 80_000));
     expect(result.current).toBe(80_000);
 
@@ -240,7 +240,7 @@ describe("useDataValue shim — no TelemetryProvider mounted behaves exactly lik
   });
 });
 
-describe("useDataValue shim — raw-field phantom fallback (M3 whole-branch review #2)", () => {
+describe("useTelemetry shim — raw-field phantom fallback (M3 whole-branch review #2)", () => {
   it(
     "falls back to legacy when a mapped raw-field's field is missing from an otherwise-whole parent record " +
       "(wire-shape drift / a wrong fieldpath), instead of serving a permanent dead undefined",
@@ -251,7 +251,7 @@ describe("useDataValue shim — raw-field phantom fallback (M3 whole-branch revi
       registerDataSource(legacySource);
 
       function Throttle() {
-        const throttle = useDataValue("data", "f.throttle");
+        const throttle = useTelemetry("data", "f.throttle");
         return (
           <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>
         );
@@ -308,7 +308,7 @@ describe("useDataValue shim — raw-field phantom fallback (M3 whole-branch revi
   );
 });
 
-describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-bang blank-out fix, m3-migration-plan.md §5.1)", () => {
+describe("useTelemetry gate — M3 Wave 0 carried-channels allowlist (the big-bang blank-out fix, m3-migration-plan.md §5.1)", () => {
   it(
     "a MAPPED topic NOT in carriedChannels reads the LEGACY value, never a blank — " +
       "RED before the gate (mapped + provider mounted always won, permanently blanking an unserved topic), GREEN after",
@@ -318,7 +318,7 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useDataValue("data", "v.altitude");
+        const alt = useTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
       }
 
@@ -348,7 +348,7 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
     registerDataSource(legacySource);
 
     function Throttle() {
-      const throttle = useDataValue("data", "f.throttle");
+      const throttle = useTelemetry("data", "f.throttle");
       return (
         <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>
       );
@@ -387,7 +387,7 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
     registerDataSource(legacySource);
 
     function Alt() {
-      const alt = useDataValue("data", "v.altitude");
+      const alt = useTelemetry("data", "v.altitude");
       return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
     }
 
@@ -427,7 +427,7 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useDataValue("data", "v.altitude");
+        const alt = useTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
       }
 

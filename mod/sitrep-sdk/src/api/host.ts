@@ -51,9 +51,22 @@ export interface GonogoHost {
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
   registerMapPoiProvider(def: MapPoiProviderDefinition): void;
 
-  useDataValue<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
+  /**
+   * Canonical Topic overload — reads a Topic's payload straight off the
+   * mounted TimelineStore (`@ksp-gonogo/core`'s `useTelemetry`, one-arg form).
+   */
   useTelemetry<T extends TopicId>(topic: T): TopicPayload<T> | undefined;
+  /**
+   * Legacy two-arg overload — the retired `useDataValue` shim's shape,
+   * carried over onto `useTelemetry` itself (real `useTelemetry` in
+   * `@ksp-gonogo/core` has always answered both call shapes off the one
+   * function; `useDataValue` was only ever a name for this same call). Still
+   * needed by Uplinks reading a legacy `DataSourceRegistry` key (e.g.
+   * `useTelemetry<number>("data", "comm.signalStrength")`) that has no
+   * canonical Topic yet.
+   */
+  useTelemetry<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useCommand(command: string): UseCommandResult;
   useStream<T>(topic: string): T | undefined;
   useViewClock(): unknown;

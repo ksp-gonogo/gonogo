@@ -62,7 +62,7 @@ function CurrentOrbitComponent({
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  // Every read rides the SDK stream directly, no legacy `useDataValue("data",
+  // Every read rides the SDK stream directly, no legacy `useTelemetry("data",
   // ...)` fallback:
   //   - sma/eccentricity/inclination/argPe are raw `vessel.orbit.*` elements,
   //     read off the canonical whole-`vessel.orbit` Topic.

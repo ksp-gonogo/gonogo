@@ -2,7 +2,7 @@ import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
 import {
   clearRegistry,
   registerDataSource,
-  useDataValue,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { StubTransport } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -66,7 +66,7 @@ function makeLegacySource(id = "data") {
 }
 
 function Throttle() {
-  const throttle = useDataValue("data", "f.throttle");
+  const throttle = useTelemetry("data", "f.throttle");
   return <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>;
 }
 

@@ -97,7 +97,7 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helper: exercise the LEGACY `useDataValue("data", key)` shim branch (no
+// Helper: exercise the LEGACY `useTelemetry("data", key)` shim branch (no
 // `TelemetryProvider` mounted) via a `MockDataSource`-backed fake instead of
 // a real Telemachus WS round trip. `seed()` must be called AFTER the widget
 // renders/subscribes — see `fixtures/fakeTelemachus.ts`.
