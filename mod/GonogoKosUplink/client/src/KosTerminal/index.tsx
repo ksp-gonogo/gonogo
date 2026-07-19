@@ -264,6 +264,42 @@ function recallNewer(
   return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
 }
 
+// ── Uplink strip transit latch ───────────────────────────────────────────────
+
+/**
+ * Latches a pending uplink's transit phase forward-only, guarding the
+ * `UplinkStrip__Arrow` (↑ outbound / ↓ reply) against `useUtNow`'s brief
+ * backward blips (kos-terminal-arrow-judder fix). `ViewClock.utNowEstimate()`
+ * re-anchors to EVERY ingested sample's `deliveredAt` — see
+ * `ViewClock.observeSample` — including unrelated topics sharing the same
+ * store. A sample that arrives with a marginally lower `deliveredAt` than
+ * the previous anchor (ordinary network jitter, nothing to do with this
+ * terminal's own CPU) rewinds the estimate by that same margin for one
+ * frame. Right at the outbound→return crossing, that blip is enough to
+ * swing a raw `utNow < reachUt` comparison back to `true`, flipping the
+ * arrow ↓→↑→↓ — the operator-reported judder "during the up→down
+ * transition". The underlying physical leg only ever moves forward
+ * (outbound once, then return, never back), so once an item is OBSERVED
+ * to have reached its craft it can never legitimately un-reach it —
+ * `reachedIds` is the one-way record of that invariant, independent of
+ * whatever the clock estimate does on a later frame. Mutates `reachedIds`
+ * as its memory of "seen past `reachUt`"; the render site is responsible
+ * for pruning ids that have left the live queue (see `KosTerminalScreen`).
+ */
+function isPastReach(
+  itemId: string,
+  reachUt: number,
+  utNow: number,
+  reachedIds: Set<string>,
+): boolean {
+  if (reachedIds.has(itemId)) return true;
+  if (utNow >= reachUt) {
+    reachedIds.add(itemId);
+    return true;
+  }
+  return false;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function KosTerminalComponent(
@@ -361,6 +397,11 @@ function KosTerminalScreen({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  // Item ids the in-transit strip has observed cross `reachUt` at least
+  // once — the one-way latch `isPastReach` reads/writes so the arrow can
+  // never flip back to ↑ once it has shown ↓ (kos-terminal-arrow-judder
+  // fix). Pruned of ids no longer in `myPending` where it's consulted below.
+  const reachedCraftRef = useRef<Set<string>>(new Set());
   // The in-progress, not-yet-committed line-mode composition (typed since the
   // last Enter), text plus cursor position. It lives in a dedicated input
   // bar, NEVER echoed into the xterm screen — so a server frame can't merge
@@ -757,6 +798,14 @@ function KosTerminalScreen({
   const myPending = (queue?.pending ?? []).filter(
     (item) => item.topic === terminalTopic,
   );
+  // Drop latch entries for items the server has already pruned from the
+  // queue, so `reachedCraftRef` doesn't grow across a long session — see
+  // `isPastReach`'s doc comment.
+  for (const id of reachedCraftRef.current) {
+    if (!myPending.some((item) => item.id === id)) {
+      reachedCraftRef.current.delete(id);
+    }
+  }
 
   return (
     <TerminalShell>
@@ -785,7 +834,14 @@ function KosTerminalScreen({
           {myPending.map((item) => {
             const reachUt = item.dispatchedAt + item.oneWaySeconds;
             const replyUt = item.dispatchedAt + 2 * item.oneWaySeconds;
-            const inTransit = stripUtNow < reachUt;
+            // Latched, not a raw compare — see `isPastReach`'s doc comment
+            // for why the raw `stripUtNow < reachUt` compare judders.
+            const inTransit = !isPastReach(
+              item.id,
+              reachUt,
+              stripUtNow,
+              reachedCraftRef.current,
+            );
             const remaining = (inTransit ? reachUt : replyUt) - stripUtNow;
             return (
               <UplinkStrip__Row key={item.id} $inTransit={inTransit}>

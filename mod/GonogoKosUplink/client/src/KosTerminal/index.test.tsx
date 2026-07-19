@@ -725,6 +725,82 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
   });
 
+  it("the arrow latches ↓ once past the craft — a later sample's earlier deliveredAt re-anchoring useUtNow backward must not judder it back to ↑ (kos-terminal-arrow-judder fix)", async () => {
+    const fixture = await mountLineMode();
+
+    act(() =>
+      fixture.emit(
+        "comms.delay",
+        { oneWaySeconds: 3.8, source: "SignalDelay" },
+        { validAt: 100, deliveredAt: 100 },
+      ),
+    );
+    act(() =>
+      fixture.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "c1",
+              command: "kos.keystroke",
+              label: "run.",
+              topic: "kos/7",
+              vantage: "vessel",
+              dispatchedAt: 100,
+              oneWaySeconds: 3.8,
+            },
+          ],
+        } satisfies PendingUplinkQueue,
+        { validAt: 100, deliveredAt: 100 },
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑"),
+    );
+
+    // Real time crosses dispatchedAt(100) + oneWaySeconds(3.8) = 103.8 — the
+    // arrow flips to ↓ (reply leg), same crossing the up→down test above
+    // exercises.
+    act(() => fixture.wall.advanceBy(4));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓"),
+    );
+
+    // A LATER-arriving sample on an UNRELATED carried channel (ordinary
+    // network jitter — nothing to do with this terminal's own CPU) reports
+    // an EARLIER `deliveredAt` than the fit already anchored to.
+    // `ViewClock.observeSample` re-anchors `utNowEstimate()` to THAT
+    // sample's `deliveredAt` regardless of which topic it arrived on (see
+    // `ViewClock.observeSample`'s own doc comment) — wall time hasn't moved
+    // since the advance above, so this snaps `useUtNow()` back below 103.8
+    // for exactly this frame. Pre-fix, the raw `stripUtNow < reachUt`
+    // compare flipped the arrow straight back to ↑ — the operator-reported
+    // judder.
+    act(() =>
+      fixture.emit(
+        "comms.delay",
+        { oneWaySeconds: 3.8, source: "SignalDelay" },
+        { validAt: 101, deliveredAt: 101 },
+      ),
+    );
+
+    // `useUtNow` only updates via `ViewClock.onFrame`'s own real-wall-clock
+    // tick (unrelated to `fixture.wall`, the fake UT clock) — the reanchor
+    // above is invisible until at least one of those ticks lands. A bare
+    // `waitFor(() => toHaveTextContent("↓"))` here would pass trivially on
+    // its very first (immediate) check, off the STALE pre-reanchor render —
+    // never actually observing what the reanchored estimate does. Settle
+    // past several real ticks first, then assert the settled state
+    // directly.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+
+    // The arrow must stay latched at ↓ — this item already reached the
+    // craft once in real time and can never legitimately un-reach it, no
+    // matter what the clock estimate does next.
+    expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓");
+    expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent("↑");
+  });
+
   it("shows the badge, not the strip, when oneWaySeconds <= 1 in line mode", async () => {
     const fixture = await mountLineMode();
 
