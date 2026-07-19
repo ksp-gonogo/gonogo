@@ -1,6 +1,8 @@
 import {
   type ComponentRequirement,
+  NO_TELEMETRY_HOST_MESSAGE,
   useGameContext,
+  useTelemetryHostDown,
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
@@ -43,8 +45,19 @@ export function RequiresGuard({
   channels,
   children,
 }: RequiresGuardProps) {
+  const hostDown = useTelemetryHostDown();
   const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
+
+  // Host-down outranks a per-uplink health reading: with no telemetry host
+  // at all, "resolved: unhealthy" vs. "unresolved: still booting" is a
+  // distinction without a difference — say so plainly instead. Only gates
+  // when the widget actually declared REQUIRED channels; a channel-less
+  // widget (e.g. a purely local Serial Devices control) has nothing to
+  // block on here.
+  if (hostDown && channels && channels.length > 0) {
+    return <RequiresPlaceholder message={NO_TELEMETRY_HOST_MESSAGE} />;
+  }
 
   if (uplinkHealth.status === "resolved" && uplinkHealth.state !== "healthy") {
     return (
