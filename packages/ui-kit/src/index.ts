@@ -45,6 +45,16 @@ export {
 } from "./Button";
 export { Card, type CardProps } from "./Card";
 export { Cluster, type ClusterJustify, type ClusterProps } from "./Cluster";
+export {
+  ComboboxListbox,
+  type ComboboxListboxProps,
+  type ComboboxOption,
+  comboboxOptionMatches,
+  filterComboboxOptions,
+  flattenComboboxGroups,
+  groupComboboxOptions,
+  moveComboboxActiveIndex,
+} from "./Combobox";
 export { configEqual } from "./configEqual";
 export {
   DataKeyPicker,
