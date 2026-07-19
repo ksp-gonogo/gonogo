@@ -487,7 +487,7 @@ namespace Gonogo.ScansatUplink
         /// x=cos(lat)cos(lon), y=sin(lat), z=cos(lat)sin(lon); subtract
         /// <c>pqsController.radius</c>; round to 0.1 m. SCANsat-independent.
         /// </summary>
-        private static double SampleElevation(CelestialBody body, int lon, int lat)
+        private static double SampleElevation(CelestialBody body, double lon, double lat)
         {
             var pqs = body.pqsController;
             if (pqs == null)
@@ -510,7 +510,7 @@ namespace Gonogo.ScansatUplink
         /// <c>Attributes[]</c>; -1 when no BiomeMap or no match.
         /// SCANsat-independent.
         /// </summary>
-        private static int SampleBiomeIndex(CelestialBody body, int lon, int lat)
+        private static int SampleBiomeIndex(CelestialBody body, double lon, double lat)
         {
             var map = body.BiomeMap;
             if (map == null)

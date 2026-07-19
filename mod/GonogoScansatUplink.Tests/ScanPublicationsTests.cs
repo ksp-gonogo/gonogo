@@ -19,6 +19,16 @@ namespace GonogoScansatUplink.Tests
     /// </summary>
     public class ScanPublicationsTests
     {
+        // SCANsat's own native coverage grid is ALWAYS 360x180, independent
+        // of whatever ScanGrids.Width/Height the height/biome grid uses
+        // (Task 4 decoupled the mask payload's declared dims from
+        // ScanGrids.Width/Height for exactly this reason) - these fixtures
+        // represent realistic coverage arrays, not the height/biome grid
+        // size, so they use their own named constants rather than
+        // ScanGrids.Width/Height.
+        private const int NativeCoverageWidth = 360;
+        private const int NativeCoverageHeight = 180;
+
         private static ScanCapture BuildCapture(short[,] coverage, bool includeHeightBiome)
         {
             return new ScanCapture
@@ -45,7 +55,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void FirstVisitEmitsHeightBiomeOnceAndAKeyframeForEveryClientType()
         {
-            var coverage = new short[ScanGrids.Width, ScanGrids.Height];
+            var coverage = new short[NativeCoverageWidth, NativeCoverageHeight];
             coverage[0, 0] = 1 | 8; // AltimetryLoRes(1) + Biome(8) set in one cell.
 
             var lastHashByBody = new Dictionary<string, ulong>();
@@ -78,7 +88,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void UnchangedCoverageOnARevisitEmitsNothing()
         {
-            var coverage = new short[ScanGrids.Width, ScanGrids.Height];
+            var coverage = new short[NativeCoverageWidth, NativeCoverageHeight];
             coverage[0, 0] = 1;
 
             var lastHashByBody = new Dictionary<string, ulong>();
@@ -101,7 +111,7 @@ namespace GonogoScansatUplink.Tests
             var lastHashByBody = new Dictionary<string, ulong>();
             var lastPackedByBodyType = new Dictionary<string, byte[]>();
 
-            var capture = BuildCapture(coverage: new short[ScanGrids.Width, ScanGrids.Height], includeHeightBiome: true);
+            var capture = BuildCapture(coverage: new short[NativeCoverageWidth, NativeCoverageHeight], includeHeightBiome: true);
             capture.Coverage = null;         // body never scanned yet
             capture.CoveragePercents = null;
 
@@ -116,7 +126,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void FirstVisitPublishesAnomaliesWhenCaptureIncludesThem()
         {
-            var coverage = new short[ScanGrids.Width, ScanGrids.Height];
+            var coverage = new short[NativeCoverageWidth, NativeCoverageHeight];
             coverage[0, 0] = 1;
 
             var lastHashByBody = new Dictionary<string, ulong>();
@@ -139,7 +149,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void NullAnomaliesOnCapture_EmitsNoAnomalyPublication()
         {
-            var coverage = new short[ScanGrids.Width, ScanGrids.Height];
+            var coverage = new short[NativeCoverageWidth, NativeCoverageHeight];
             coverage[0, 0] = 1;
 
             var lastHashByBody = new Dictionary<string, ulong>();
@@ -156,7 +166,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void UnchangedCoverageOnARevisit_DoesNotRepublishAnomalies()
         {
-            var coverage = new short[ScanGrids.Width, ScanGrids.Height];
+            var coverage = new short[NativeCoverageWidth, NativeCoverageHeight];
             coverage[0, 0] = 1;
 
             var lastHashByBody = new Dictionary<string, ulong>();

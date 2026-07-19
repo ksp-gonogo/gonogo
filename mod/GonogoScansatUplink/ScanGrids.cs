@@ -26,8 +26,8 @@ namespace Gonogo.ScansatUplink
     /// </summary>
     public static class ScanGrids
     {
-        public const int Width = 360;
-        public const int Height = 180;
+        public const int Width = 720;
+        public const int Height = 360;
 
         /// <summary>Decoded pieces of a built height grid — see <see cref="BuildHeightPayload"/> for the wire dict this feeds.</summary>
         public readonly struct HeightGrid
