@@ -1,28 +1,58 @@
-import { type ComponentRequirement, useGameContext } from "@ksp-gonogo/core";
+import {
+  type ComponentRequirement,
+  useGameContext,
+  useUplinkHealthFor,
+} from "@ksp-gonogo/core";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
+  /**
+   * The widget's declared REQUIRED `channels` (Uplink architecture spec
+   * §3.2). When any of these resolves to a non-healthy owning Uplink (via
+   * `useUplinkHealthFor`), the gate blocks with that Uplink's
+   * `health.detail` — this check runs BEFORE the `requires` game-context
+   * check, since there's no point reporting "needs flight scene" when the
+   * widget's own data isn't flowing anyway. `optionalChannels` are
+   * deliberately never passed here — they always render through.
+   */
+  channels?: readonly string[];
   children: ReactNode;
 }
 
 /**
- * Wraps a dashboard widget with a state-aware dim overlay when any of
- * its declared `requires` aren't met by the current game context. The
- * widget still renders normally underneath the dim layer — operators
- * see the layout and last-good telemetry but visibly de-emphasised,
- * with a banner explaining why.
+ * Wraps a dashboard widget with the framework's unified "can this widget
+ * render meaningfully now" gate — merges two independent checks into ONE
+ * reason line, in priority order:
  *
- * No requirements = pass-through (no wrapper DOM, no styling drift).
+ * 1. a REQUIRED `channels` topic's owning Uplink is unhealthy -> that
+ *    Uplink's own `health.detail`.
+ * 2. a `requires` game-context precondition (`flight`/`career`) is unmet ->
+ *    the existing scene/career-mode message.
  *
- * Used by the dashboard orchestrator (`GridItemContent`, `MobileDashboard`)
- * so per-widget code stays in `registerComponent({ requires: [...] })`
- * — widgets don't import this file directly.
+ * No requirements/channels = pass-through (no wrapper DOM, no styling
+ * drift). Used by the dashboard orchestrator (`GridItemContent`,
+ * `MobileDashboard`, `PushedDashboardOverlay`) so per-widget code stays in
+ * `registerComponent({ requires: [...], channels: [...] })` — widgets
+ * don't import this file directly.
  */
-export function RequiresGuard({ requires, children }: RequiresGuardProps) {
+export function RequiresGuard({
+  requires,
+  channels,
+  children,
+}: RequiresGuardProps) {
+  const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
+
+  if (uplinkHealth.status === "resolved" && uplinkHealth.state !== "healthy") {
+    return (
+      <RequiresPlaceholder
+        message={uplinkHealth.detail ?? `${uplinkHealth.ownerId}: unavailable`}
+      />
+    );
+  }
 
   if (!requires || requires.length === 0) {
     return <>{children}</>;

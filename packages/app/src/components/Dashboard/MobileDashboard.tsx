@@ -198,7 +198,7 @@ const MobileItemContent = memo(function MobileItemContent({
       <ComponentWrapper>
         <DashboardItemContext.Provider value={itemContext}>
           <ErrorBoundary fallback={renderErrorFallback}>
-            <RequiresGuard requires={def.requires}>
+            <RequiresGuard requires={def.requires} channels={def.channels}>
               <Comp
                 id={item.i}
                 config={item.config}
