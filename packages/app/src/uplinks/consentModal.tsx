@@ -138,7 +138,32 @@ export function promptForConsent(
     document.body.appendChild(container);
     const root = createRoot(container);
 
+    // Nested-modal guard: this can now fire while another modal (e.g. the
+    // Settings > Uplink Hub wizard's Load button) is already open behind it
+    // — both portal as siblings under document.body (this one via its own
+    // createRoot, per the doc comment above; the Settings modal via
+    // `@ksp-gonogo/ui`'s Modal.tsx), so without this, two role="dialog"
+    // elements sit in the accessibility tree at once. Only one modal should
+    // ever be reachable at a time (WCAG dialog pattern), so mark every other
+    // document.body child both `inert` (real focus/pointer-event exclusion)
+    // and `aria-hidden` (belt-and-braces — some engines' accessible-name
+    // computation keys off aria-hidden rather than inert) for as long as
+    // this one is open; both restored on close. Harmless when this is the
+    // boot-time, nothing-else-open call — there are simply no siblings to
+    // mark.
+    const siblings = Array.from(document.body.children).filter(
+      (el) => el !== container,
+    );
+    for (const el of siblings) {
+      el.setAttribute("inert", "");
+      el.setAttribute("aria-hidden", "true");
+    }
+
     const finish = (granted: boolean): void => {
+      for (const el of siblings) {
+        el.removeAttribute("inert");
+        el.removeAttribute("aria-hidden");
+      }
       root.unmount();
       container.remove();
       resolve(granted);
