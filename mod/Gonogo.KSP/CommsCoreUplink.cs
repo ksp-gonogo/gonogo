@@ -23,9 +23,19 @@ namespace Gonogo.KSP
     /// payloads. <c>comms.delay</c> is computed by the CORE
     /// <see cref="SignalDelay"/> math from the captured hop geometry — gonogo's
     /// own light-time computation, not a backend accessor (§3.1).</para>
+    ///
+    /// <para><b>Health:</b> implements <see cref="IUplinkHealthReporter"/> —
+    /// the second real implementation after
+    /// <c>Gonogo.KerbcastUplink.KerbcastUplink</c>, and "zero new plumbing":
+    /// <see cref="Health"/> reuses the exact same <see cref="CommsElection.Elected"/>
+    /// read <see cref="ComputeConnectedOnMain"/>/<see cref="ComputeDelayOnMain"/>/
+    /// <see cref="CaptureOnMain"/> already perform. The state machine itself is
+    /// <see cref="CommsHealth"/> — a pure function, headless-tested in
+    /// <c>Sitrep.Host.Tests</c> (see that type's doc comment for why it lives
+    /// in <c>Sitrep.Host.Comms</c> rather than here).</para>
     /// </summary>
     [SitrepUplink("comms")]
-    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
+    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer, IUplinkHealthReporter
     {
         public const string ConnectivityTopic = "comms.connectivity";
         public const string SignalStrengthTopic = "comms.signalStrength";
@@ -356,6 +366,18 @@ namespace Gonogo.KSP
                 Meta = capture.Connectivity.Meta,
             }, capture.Ut);
         }
+
+        /// <summary>
+        /// The MANDATORY healthcheck (see <see cref="IUplinkHealthReporter"/>) —
+        /// polled on the Courier thread every <c>system.uplinks</c> sample.
+        /// Reuses <see cref="CommsElection.Elected"/>, the exact same pure
+        /// <see cref="Kernel"/> lookup <see cref="ComputeConnectedOnMain"/> and
+        /// <see cref="CaptureOnMain"/> already call — no live KSP/Unity read,
+        /// so it is safe and cheap off the main thread. The state machine
+        /// itself is <see cref="CommsHealth"/>.
+        /// </summary>
+        public UplinkHealth Health() =>
+            CommsHealth.Evaluate(_kernel != null && CommsElection.Elected(_kernel) != null);
 
         /// <summary>Plain cross-thread payload bundle — no live KSP references.</summary>
         private sealed class CommsCapture
