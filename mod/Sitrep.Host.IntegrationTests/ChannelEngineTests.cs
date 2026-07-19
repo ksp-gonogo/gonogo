@@ -3429,6 +3429,107 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Phase 1 of the uplink-health render-gating design
+        /// (local_docs/uplink-health-render-gating-design.md): each roster entry
+        /// carries <c>ownedPrefixes</c> so the client can resolve a widget's
+        /// declared channels to an OWNING uplink via longest-prefix match,
+        /// without re-deriving a client-side TOPIC_OWNER map. Proves both
+        /// sources this list is built from: a plain statically-declared channel
+        /// (<see cref="StaticChannelOwnerTestUplink"/>, sourced from
+        /// <c>_channelOwner</c>) and a dynamic-namespace registration
+        /// (<see cref="DynamicNamespaceOwnerTestUplink"/>, sourced from
+        /// <c>_dynamicNamespaceOwner</c> — mirrors <c>KosExtension.Ksp.cs</c>'s
+        /// real <c>kos.terminal.&lt;coreId&gt;</c> pattern; the prefix itself
+        /// owns before any sub-topic is ever materialized/published).
+        /// </summary>
+        [Fact]
+        public async Task SystemUplinksReportsOwnedPrefixesFromStaticAndDynamicChannels()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(new StaticChannelOwnerTestUplink());
+            engine.RegisterUplink(new DynamicNamespaceOwnerTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinksTopic, Timeout);
+
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var uplinks = Assert.IsType<List<object?>>(payload["uplinks"]);
+
+                var byId = new Dictionary<string, Dictionary<string, object?>>();
+                foreach (var raw in uplinks)
+                {
+                    var entry = Assert.IsType<Dictionary<string, object?>>(raw);
+                    byId[(string)entry["id"]!] = entry;
+                }
+
+                var staticEntry = byId[StaticChannelOwnerTestUplink.UplinkId];
+                var staticPrefixes = Assert.IsType<List<object?>>(staticEntry["ownedPrefixes"]);
+                Assert.Equal(new[] { StaticChannelOwnerTestUplink.Topic }, staticPrefixes.Cast<string>());
+
+                var dynEntry = byId[DynamicNamespaceOwnerTestUplink.UplinkId];
+                var dynPrefixes = Assert.IsType<List<object?>>(dynEntry["ownedPrefixes"]);
+                Assert.Equal(new[] { DynamicNamespaceOwnerTestUplink.Prefix }, dynPrefixes.Cast<string>());
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private sealed class StaticChannelOwnerTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-static-owner";
+            public const string Topic = "test.static.topic";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddChannelSource(Topic, _ => null);
+            }
+        }
+
+        private sealed class DynamicNamespaceOwnerTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-dynamic-owner";
+            public const string Prefix = "test.dyn.";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+                {
+                    Topic = Prefix,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                });
+            }
+        }
+
         private sealed class HealthReportingTestUplink : ISitrepUplink, IUplinkHealthReporter
         {
             public const string UplinkId = "test-health-reporting";
