@@ -1,5 +1,4 @@
-import type { BodyDefinition } from "@ksp-gonogo/core";
-import type { BodyMask } from "@ksp-gonogo/data";
+import type { BodyDefinition, BodyMask } from "@ksp-gonogo/sitrep-sdk";
 import type { SCANCoverageBitmap, SCANType } from "../schema";
 import { SCAN_TYPE } from "../schema";
 

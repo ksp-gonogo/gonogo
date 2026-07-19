@@ -1,11 +1,8 @@
 import "fake-indexeddb/auto";
-import type { BodyDefinition, DataKey } from "@ksp-gonogo/core";
 import {
   clearFogRevealSources,
   clearRegistry,
   MockDataSource,
-  registerDataSource,
-  registerFogRevealSource,
 } from "@ksp-gonogo/core";
 import {
   BufferedDataSource,
@@ -14,6 +11,11 @@ import {
   FogMaskStore,
   MemoryStore,
 } from "@ksp-gonogo/data";
+import type { BodyDefinition, DataKey } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerDataSource,
+  registerFogRevealSource,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

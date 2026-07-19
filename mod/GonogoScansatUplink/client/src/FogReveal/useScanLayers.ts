@@ -1,4 +1,4 @@
-import { useDataValue } from "@ksp-gonogo/core";
+import { useDataValue } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import type {
   SCANAnomalyEntry,

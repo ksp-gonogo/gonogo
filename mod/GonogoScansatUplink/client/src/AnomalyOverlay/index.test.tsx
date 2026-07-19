@@ -2,13 +2,13 @@ import {
   clearRegistry,
   getMapPoiProviders,
   MockDataSource,
-  registerDataSource,
 } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import { registerDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";

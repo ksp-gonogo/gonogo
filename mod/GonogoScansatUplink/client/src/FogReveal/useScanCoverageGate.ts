@@ -10,11 +10,12 @@
 // behaviour, the same way TerrainBase/paintTile.ts's tileToPixelRect is a
 // deliberate byte-for-byte copy of FogReveal/scanDecode.ts's.
 import {
+  type BodyMask,
   type FogRevealSourceDefinition,
   getFogRevealSources,
   onFogRevealSourcesChange,
-} from "@ksp-gonogo/core";
-import { type BodyMask, useFogMaskCache } from "@ksp-gonogo/data";
+  useFogMaskCache,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 export interface ScanCoverageGate {

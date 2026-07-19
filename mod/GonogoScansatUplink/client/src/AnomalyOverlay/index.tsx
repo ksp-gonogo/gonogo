@@ -19,12 +19,12 @@
 // `usePois` once `scansat.available` is live, so an install without
 // SCANsat never surfaces anomaly markers.
 
-import type { MapPoi } from "@ksp-gonogo/core";
+import type { MapPoi } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerMapPoiProvider,
   useExecuteAction,
   useTelemetry,
-} from "@ksp-gonogo/core";
+} from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { useScanAnomalies } from "../FogReveal/useScanLayers";
 
