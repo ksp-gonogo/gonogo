@@ -5,9 +5,10 @@
  *
  * Nothing internal is mocked: the REAL `KosCpuDiscovery` component adopts the
  * live `TelemetryClient` into the REAL `kosSource` (its Uplink executor stands
- * up the standing `kos.processors` subscription), `useKosMainWiring` wires
- * the REAL `KosDataSource.onProcessorsChanged` feed into a REAL
- * `CpuRegistryService` exactly as `MainScreen` does, and a REAL
+ * up the standing `kos.processors` subscription) AND feeds the REAL
+ * `KosDataSource.onProcessorsChanged` feed into a REAL `CpuRegistryService`
+ * exactly as `MainScreen` does (the two used to be a separate
+ * `useKosMainWiring` hook, since merged into this one component). A REAL
  * `TelemetryProvider` supplies the client. Only the wire is faked, via
  * `FakeKosUplink` (a `StubTransport`-backed `kos.processors`/`kos.run`
  * responder — the same fixture the executeScript integration tests use).
@@ -20,13 +21,6 @@ import { CpuRegistryService } from "../shared/CpuRegistryService";
 import { FakeKosUplink } from "./__fixtures__/FakeKosUplink";
 import { KosCpuDiscovery } from "./KosCpuDiscovery";
 import { kosSource } from "./kos";
-import { useKosMainWiring } from "./useKosMainWiring";
-
-/** The exact registry wiring `MainScreen` mounts via `useKosMainWiring`. */
-function CpuRegistryBridge({ registry }: { registry: CpuRegistryService }) {
-  useKosMainWiring(registry);
-  return null;
-}
 
 describe("kOS CPU discovery → registry", () => {
   afterEach(() => {
@@ -41,8 +35,7 @@ describe("kOS CPU discovery → registry", () => {
 
     render(
       <TelemetryProvider client={fake.client}>
-        <KosCpuDiscovery />
-        <CpuRegistryBridge registry={registry} />
+        <KosCpuDiscovery cpuRegistry={registry} />
       </TelemetryProvider>,
     );
 
@@ -67,8 +60,7 @@ describe("kOS CPU discovery → registry", () => {
 
     render(
       <TelemetryProvider client={fake.client}>
-        <KosCpuDiscovery />
-        <CpuRegistryBridge registry={registry} />
+        <KosCpuDiscovery cpuRegistry={registry} />
       </TelemetryProvider>,
     );
 

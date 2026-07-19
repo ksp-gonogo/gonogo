@@ -18,7 +18,6 @@ import {
   CpuRegistryProvider,
   CpuRegistryService,
   KosCpuDiscovery,
-  useKosMainWiring,
 } from "@ksp-gonogo/kos";
 import {
   InputDispatcher,
@@ -175,12 +174,6 @@ export function MainScreen() {
     };
   }, [serialService]);
 
-  // Auto-populates the kOS CPU registry from the mod's native kos.processors
-  // push channel. The standing subscription itself is stood up by
-  // <KosCpuDiscovery> inside the telemetry provider below. Stations don't
-  // call this — they don't dispatch to kOS directly.
-  useKosMainWiring(cpuRegistry);
-
   useEffect(() => {
     const sources = getDataSources();
     sources.forEach((s) => {
@@ -202,7 +195,7 @@ export function MainScreen() {
   return (
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
-      <KosCpuDiscovery />
+      <KosCpuDiscovery cpuRegistry={cpuRegistry} />
       <ReplaySessionProvider>
         <ScreenProvider value="main">
           <SettingsProvider service={settingsService}>
