@@ -288,6 +288,49 @@ async function loadOne(
 }
 
 /**
+ * Load a single Uplink by id via the runtime loader path (design §5), independent
+ * of `ctx.enabledIds` — the seam the Hub-wizard setup-assist step uses to load just
+ * the one Uplink an operator picked. Runs the same gate → consent → fetch → hash →
+ * import sequence as `loadEnabledUplinks`, reusing the same `LoaderContext` DI seam
+ * (so `ensureConsent`/`fetchBytes`/`importBundle` overrides work identically).
+ */
+export async function loadUplinkById(
+  id: string,
+  ctx: LoaderContext,
+): Promise<UplinkLoadOutcome> {
+  let index: Awaited<ReturnType<typeof fetchRegistry>>;
+  try {
+    index = await fetchRegistry(ctx.registrySource);
+  } catch (err) {
+    const reason = `registry unavailable: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
+    logger.warn(`[uplink-loader] ${reason}`);
+    const outcome: UplinkLoadOutcome = {
+      id,
+      name: id,
+      status: "quarantined",
+      reason,
+    };
+    setUplinkOutcome(outcome);
+    return outcome;
+  }
+
+  const descriptor = index.uplinks.find((u) => u.id === id);
+  if (!descriptor) {
+    const outcome: UplinkLoadOutcome = {
+      id,
+      name: id,
+      status: "quarantined",
+      reason: "not found in the registry index",
+    };
+    setUplinkOutcome(outcome);
+    return outcome;
+  }
+  return loadOne(descriptor, ctx);
+}
+
+/**
  * Load every enabled Uplink from the registry. Reads the index once, then loads
  * each enabled id independently (one bad Uplink never blocks a good one). Returns
  * every outcome; also written to the loader-state store for the Uplinks list.

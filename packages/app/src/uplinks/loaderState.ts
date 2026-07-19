@@ -48,6 +48,19 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Record every given id as `loaded` with reason `"bundled"`. Used by main.tsx's
+ * bundled-fallback branch (the runtime-loader flag off, the default path) so the
+ * loaded-outcome set — read by the Settings › Uplinks list and the Hub wizard's
+ * gap computation — isn't permanently empty just because those Uplinks were
+ * loaded via plain static `import()` rather than the runtime loader.
+ */
+export function recordBundledOutcomes(ids: readonly string[]): void {
+  for (const id of ids) {
+    setUplinkOutcome({ id, name: id, status: "loaded", reason: "bundled" });
+  }
+}
+
 /** Test-only: clear all recorded outcomes. */
 export function __resetUplinkOutcomes(): void {
   outcomes.clear();

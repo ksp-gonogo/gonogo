@@ -59,6 +59,16 @@ export function localRegistrySource(): RegistrySource {
 }
 
 /**
+ * The Hub-wizard's registry source. For now this is just the local fixture — the
+ * seam is here so the wizard's setup-assist step has a stable call site to depend
+ * on; swapping it to a real hosted Hub manifest URL (Phase D) is a one-line change
+ * confined to this function.
+ */
+export function hubRegistrySource(): RegistrySource {
+  return localRegistrySource();
+}
+
+/**
  * Fetch + parse the registry index over the given source. In Phase A this is the
  * app's own origin (trusted); in Phase D it is a trusted https metadata transport
  * (design §4.1 — untrusted PeerJS relay only ever carries bundle *bytes*, hashed

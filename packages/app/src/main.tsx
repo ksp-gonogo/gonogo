@@ -32,6 +32,7 @@ import { promptForConsent } from "./uplinks/consentModal";
 import { LOADER_UPLINK_IDS, uplinkLoaderEnabled } from "./uplinks/flag";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
+import { recordBundledOutcomes } from "./uplinks/loaderState";
 import { localRegistrySource } from "./uplinks/registry";
 import { probeUplinkRoster } from "./uplinks/rosterProbe";
 import { BUILD_TIME, VERSION } from "./version";
@@ -118,6 +119,12 @@ async function registerScansatAndRender(): Promise<void> {
       import("@ksp-gonogo/scansat"),
       import("@ksp-gonogo/kerbcast-feed"),
     ]);
+    // Record a "loaded" outcome for each bundled id so the loaded-outcome set
+    // (read by the Settings UplinkLoaderSection and the Hub wizard's gap
+    // computation) isn't permanently empty under the shipped default — the
+    // runtime-loader path calls setUplinkOutcome() per Uplink, but the static
+    // imports above never did.
+    recordBundledOutcomes(LOADER_UPLINK_IDS);
   }
   renderApp();
 }
