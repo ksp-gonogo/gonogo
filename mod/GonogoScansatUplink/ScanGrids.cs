@@ -16,11 +16,13 @@ namespace Gonogo.ScansatUplink
     ///
     /// <para><b>Cell order matches the wire contract verbatim</b>
     /// (<c>telemachus.ts</c> + scansat-migration-spec.md §2.3): row-major
-    /// index <c>ilon * height + ilat</c>, where <c>ilon = (int)(lon+540)%360</c>
-    /// and <c>ilat = (int)(lat+270)%180</c> — so for the standard 360×180
-    /// grid, <c>lon = ilon-180</c> (∈ [-180,179]) and <c>lat = ilat-90</c>
-    /// (∈ [-90,89]), and <c>ilat=0</c> is the south-pole row. A sampler is
-    /// called once per cell in that exact order.</para>
+    /// index <c>ilon * height + ilat</c>, walked at <c>degPerCellLon =
+    /// 360/width</c>, <c>degPerCellLat = 180/height</c> so that <c>lon =
+    /// ilon*degPerCellLon - 180</c> and <c>lat = ilat*degPerCellLat - 90</c>
+    /// — for the standard 360×180 grid this is exactly 1°/cell (<c>lon =
+    /// ilon-180</c> ∈ [-180,179], <c>lat = ilat-90</c> ∈ [-90,89]), and
+    /// <c>ilat=0</c> is the south-pole row. A sampler is called once per
+    /// cell in that exact order.</para>
     /// </summary>
     public static class ScanGrids
     {
@@ -50,20 +52,22 @@ namespace Gonogo.ScansatUplink
         /// (<c>Round(GetSurfaceHeight(rad) - pqsController.radius, 1)</c>);
         /// this method only clamps to Int16 range and tracks min/max.
         /// </summary>
-        public static HeightGrid BuildHeights(int width, int height, Func<int, int, double> sampleMetres)
+        public static HeightGrid BuildHeights(int width, int height, Func<double, double, double> sampleMetres)
         {
             if (sampleMetres == null) throw new ArgumentNullException(nameof(sampleMetres));
 
             var metres = new short[width * height];
             short min = short.MaxValue;
             short max = short.MinValue;
+            double degPerCellLon = 360.0 / width;
+            double degPerCellLat = 180.0 / height;
 
             for (int ilon = 0; ilon < width; ilon++)
             {
                 for (int ilat = 0; ilat < height; ilat++)
                 {
-                    int lon = ilon - 180;
-                    int lat = ilat - 90;
+                    double lon = ilon * degPerCellLon - 180.0;
+                    double lat = ilat * degPerCellLat - 90.0;
                     double m = sampleMetres(lon, lat);
                     short clamped = ClampToInt16(m);
                     metres[ilon * height + ilat] = clamped;
@@ -91,17 +95,19 @@ namespace Gonogo.ScansatUplink
         /// <c>0xFF</c>; indices saturate at 254 (matching the client's
         /// documented ">254 biomes collapse the tail" behavior).
         /// </summary>
-        public static byte[] BuildBiomeIndices(int width, int height, Func<int, int, int> sampleIndex)
+        public static byte[] BuildBiomeIndices(int width, int height, Func<double, double, int> sampleIndex)
         {
             if (sampleIndex == null) throw new ArgumentNullException(nameof(sampleIndex));
 
             var indices = new byte[width * height];
+            double degPerCellLon = 360.0 / width;
+            double degPerCellLat = 180.0 / height;
             for (int ilon = 0; ilon < width; ilon++)
             {
                 for (int ilat = 0; ilat < height; ilat++)
                 {
-                    int lon = ilon - 180;
-                    int lat = ilat - 90;
+                    double lon = ilon * degPerCellLon - 180.0;
+                    double lat = ilat * degPerCellLat - 90.0;
                     int idx = sampleIndex(lon, lat);
                     indices[ilon * height + ilat] = idx < 0 ? (byte)0xFF : (byte)Math.Min(idx, 254);
                 }
