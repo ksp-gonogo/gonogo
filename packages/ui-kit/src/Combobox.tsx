@@ -102,6 +102,14 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
   /** Custom item body (e.g. label + trailing unit). Defaults to `option.label ?? option.key`. */
   renderItem?: (option: T) => ReactNode;
   emptyLabel?: string;
+  /**
+   * Accessible name for the listbox itself. Optional when the owning input
+   * already labels it via `aria-controls` in a way axe recognizes; required
+   * in practice for any caller whose "input" isn't a literal `<input
+   * role="combobox">` (e.g. a non-DOM input surface), since axe's
+   * `aria-input-field-name` rule flags an unnamed `role="listbox"`.
+   */
+  ariaLabel?: string;
 }
 
 /**
@@ -123,9 +131,10 @@ export function ComboboxListbox<T extends ComboboxOption>({
   onSelectKey,
   renderItem,
   emptyLabel = "No matches",
+  ariaLabel,
 }: Readonly<ComboboxListboxProps<T>>) {
   return (
-    <Dropdown role="listbox" id={id}>
+    <Dropdown role="listbox" id={id} aria-label={ariaLabel}>
       {flatOptions.length === 0 ? (
         <EmptyState>{emptyLabel}</EmptyState>
       ) : (

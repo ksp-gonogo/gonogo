@@ -21,21 +21,27 @@ import {
   useUtNow,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  ComboboxListbox,
+  type ComboboxOption,
   ConfigForm,
   EmptyState,
   Field,
   FieldHint,
   FieldLabel,
+  filterComboboxOptions,
+  flattenComboboxGroups,
   formatCountdown,
   GhostButton,
+  groupComboboxOptions,
   Input,
+  moveComboboxActiveIndex,
   Panel,
   PanelTitle,
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import "@xterm/xterm/css/xterm.css";
 
@@ -56,6 +62,14 @@ interface KosTerminalConfig {
    * is one uplink round-trip instead of N. A per-terminal-instance toggle.
    */
   lineMode?: boolean;
+  /**
+   * Script paths offered by the `/`-script picker (kos-terminal-script-picker,
+   * hub-wizard-kos Phase 1, increment (a)). A placeholder data source for
+   * now — increment (b) replaces this with a live drive listing dispatched
+   * over the kos Uplink's `executeScript` RPC, so this field is not exposed
+   * in the config UI below and is expected to go away once that lands.
+   */
+  scriptPaths?: string[];
 }
 
 // The kOS terminal is a FIXED-size grid — mirroring the telnet solution that
@@ -264,6 +278,186 @@ function recallNewer(
   return { index: nextIndex, value: history[history.length - 1 - nextIndex] };
 }
 
+// ── Script composer (`/`-trigger) ────────────────────────────────────────────
+
+/**
+ * The `/`-triggered script-run composer's state machine (kos-terminal-
+ * script-picker, hub-wizard-kos Phase 1 increment (a)). Idle (`null`, held
+ * outside this union) until `/` is typed at the very start of an empty
+ * line-mode composition — see the `term.onData` callsite for the trigger.
+ * "picking" filters `scriptPaths` against `query` and tracks the
+ * arrow/mouse-highlighted option; confirming one (Enter or click) moves to
+ * "args", where further typed characters compose optional whitespace-
+ * separated trailing arguments appended to the eventual RUNPATH call. A
+ * second Enter in "args" builds and sends the whole command through the
+ * SAME `sendKeystrokeRef`/line-history path an ordinary typed line uses —
+ * see `buildRunpathLine` and the `term.onData` callsite.
+ */
+export type ScriptComposerState =
+  | { phase: "picking"; query: string; activeIndex: number }
+  | { phase: "args"; path: string; argsText: string };
+
+/**
+ * Maps a script path to a combobox option, grouping by the path's leading
+ * volume segment (`0:/widget_scripts/foo.ks` → group `"0:"`) so a listing
+ * spanning several of the CPU's drives (goal spec: "across the CPU's
+ * drives") renders as one heading per volume instead of an undifferentiated
+ * flat list. A bare filename with no `/` gets no group (falls into
+ * `groupComboboxOptions`'s default "Other" bucket).
+ */
+function scriptPathOption(path: string): ComboboxOption {
+  const slash = path.indexOf("/");
+  return slash > 0 ? { key: path, group: path.slice(0, slash) } : { key: path };
+}
+
+/**
+ * Filters + groups `scriptPaths` against `query` and flattens back to
+ * render/navigation order, in ONE place — both the pure `onData` reducer
+ * below (for activeIndex bounds + Enter's selection) and the render site's
+ * `ComboboxListbox` props call this, so the highlighted option always
+ * matches what Enter would actually pick.
+ */
+function scriptOptionsFor(
+  paths: readonly string[],
+  query: string,
+): { groups: Array<[string, ComboboxOption[]]>; flat: ComboboxOption[] } {
+  const filtered = filterComboboxOptions(paths.map(scriptPathOption), query);
+  const groups = groupComboboxOptions(filtered);
+  return { groups, flat: flattenComboboxGroups(groups) };
+}
+
+/**
+ * Builds the RUNPATH command line kOS will execute, from a confirmed script
+ * path and raw whitespace-separated argument tokens. Each token is inserted
+ * VERBATIM as a kerboscript literal (e.g. `5`, `true`, `"abc"`) — the
+ * composer does no quoting or type inference, matching the goal spec's
+ * `RUNPATH("<path>"[, arg1, arg2])` shape. Trailing `.` terminates the
+ * kerboscript statement; trailing `\r` is the wire Enter byte, identical to
+ * an ordinary typed line's `reduceLineModeChar` Enter path.
+ */
+function buildRunpathLine(
+  path: string,
+  argsText: string,
+): { chars: string; label: string } {
+  const args = argsText.trim().split(/\s+/).filter(Boolean);
+  const argsPart = args.length > 0 ? `, ${args.join(", ")}` : "";
+  const label = `RUNPATH("${path}"${argsPart}).`;
+  return { chars: `${label}\r`, label };
+}
+
+type ScriptComposerAction =
+  | { kind: "update"; next: ScriptComposerState }
+  | { kind: "cancel" }
+  | { kind: "send"; chars: string; label: string }
+  | { kind: "noop" };
+
+/**
+ * Reduces one raw `onData` payload into the `/`-script composer's next
+ * action — a PURE state machine mirroring `reduceLineModeChar`'s shape:
+ * whole-token escape sequences (arrows/Enter/Escape/backspace) are matched
+ * before any per-character fallthrough, exactly like the ordinary line-mode
+ * handling this composer intercepts ahead of (see the `term.onData`
+ * callsite). `scriptPaths` is read fresh on every call rather than carried
+ * in `state`, so a live-updating list (increment (b)'s drive listing)
+ * is picked up mid-compose without needing to reset the picker.
+ */
+function handleScriptComposerInput(
+  data: string,
+  state: ScriptComposerState,
+  scriptPaths: readonly string[],
+): ScriptComposerAction {
+  if (data === "\x1b") return { kind: "cancel" };
+
+  if (state.phase === "picking") {
+    const { flat } = scriptOptionsFor(scriptPaths, state.query);
+    if (data === "\x1b[A") {
+      return {
+        kind: "update",
+        next: {
+          ...state,
+          activeIndex: moveComboboxActiveIndex(
+            state.activeIndex,
+            -1,
+            flat.length,
+          ),
+        },
+      };
+    }
+    if (data === "\x1b[B") {
+      return {
+        kind: "update",
+        next: {
+          ...state,
+          activeIndex: moveComboboxActiveIndex(
+            state.activeIndex,
+            1,
+            flat.length,
+          ),
+        },
+      };
+    }
+    if (data === "\r" || data === "\n") {
+      // Arrow-highlighted option first; fall back to the first filtered
+      // result so "type a partial path + Enter" works without an arrow key
+      // (matches DataKeyPicker's own Enter-with-no-navigation convention).
+      const chosen = state.activeIndex >= 0 ? flat[state.activeIndex] : flat[0];
+      if (!chosen) return { kind: "noop" };
+      return {
+        kind: "update",
+        next: { phase: "args", path: chosen.key, argsText: "" },
+      };
+    }
+    if (data === "\x7f" || data === "\b") {
+      // Backspace on an empty query cancels the picker — same "typed a
+      // trigger, changed my mind" affordance Escape gives, reachable
+      // without leaving the home row.
+      if (state.query.length === 0) return { kind: "cancel" };
+      return {
+        kind: "update",
+        next: { ...state, query: state.query.slice(0, -1), activeIndex: -1 },
+      };
+    }
+    if (data.startsWith("\x1b")) return { kind: "noop" };
+    let nextQuery = state.query;
+    for (const ch of data) {
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: matching C0 control range is the intent
+      if (/[\x00-\x1f]/.test(ch)) continue;
+      nextQuery += ch;
+    }
+    if (nextQuery === state.query) return { kind: "noop" };
+    return {
+      kind: "update",
+      next: { ...state, query: nextQuery, activeIndex: -1 },
+    };
+  }
+
+  // phase === "args": free-form trailing arguments, appended/backspaced at
+  // the tail only — no cursor movement in this increment. Arrow keys are
+  // swallowed here rather than falling through to the ordinary line-mode
+  // history/cursor handling below, which would silently corrupt a composer
+  // that owns the bar.
+  if (data === "\r" || data === "\n") {
+    const { chars, label } = buildRunpathLine(state.path, state.argsText);
+    return { kind: "send", chars, label };
+  }
+  if (data === "\x7f" || data === "\b") {
+    if (state.argsText.length === 0) return { kind: "noop" };
+    return {
+      kind: "update",
+      next: { ...state, argsText: state.argsText.slice(0, -1) },
+    };
+  }
+  if (data.startsWith("\x1b")) return { kind: "noop" };
+  let nextArgs = state.argsText;
+  for (const ch of data) {
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: matching C0 control range is the intent
+    if (/[\x00-\x1f]/.test(ch)) continue;
+    nextArgs += ch;
+  }
+  if (nextArgs === state.argsText) return { kind: "noop" };
+  return { kind: "update", next: { ...state, argsText: nextArgs } };
+}
+
 // ── Uplink strip transit latch ───────────────────────────────────────────────
 
 /**
@@ -326,6 +520,7 @@ function KosTerminalLive({
   const readOnly = config?.readOnly ?? false;
   const cpuName = config?.cpuName;
   const lineMode = config?.lineMode ?? true;
+  const scriptPaths = config?.scriptPaths ?? [];
 
   // Live CPU list from the mod's kos.processors channel (no telnet menu-scrape).
   const processors = useStream<KosProcessorInfo[]>("kos.processors") ?? [];
@@ -373,6 +568,7 @@ function KosTerminalLive({
       coreId={coreId}
       readOnly={readOnly}
       lineMode={lineMode}
+      scriptPaths={scriptPaths}
     />
   );
 }
@@ -381,12 +577,14 @@ interface KosTerminalScreenProps {
   coreId: number;
   readOnly: boolean;
   lineMode: boolean;
+  scriptPaths: string[];
 }
 
 function KosTerminalScreen({
   coreId,
   readOnly,
   lineMode,
+  scriptPaths,
 }: Readonly<KosTerminalScreenProps>) {
   // One opaque write-lease token per attach — the mod uses it to arbitrate the
   // single-owner shared screen. Keyed by coreId (via the parent), so a CPU
@@ -418,6 +616,19 @@ function KosTerminalScreen({
   const lineHistoryRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number | null>(null);
   const historyDraftRef = useRef<string>("");
+  // The `/`-script composer's state (see `ScriptComposerState`): `null` when
+  // idle, otherwise it OWNS input ahead of the ordinary history/cursor/typing
+  // handling below (kos-terminal-script-picker). Same ref-is-truth /
+  // state-mirrors-for-render split as `lineBufferRef`/`composition` above,
+  // for the same reason — the onData handler is set up once and reads refs.
+  const scriptComposerRef = useRef<ScriptComposerState | null>(null);
+  const [scriptComposer, setScriptComposer] =
+    useState<ScriptComposerState | null>(null);
+  // scriptPaths can change at runtime (increment (b)'s live drive listing) —
+  // read via ref for the same mount-only-closure reason as `lineModeRef`.
+  const scriptPathsRef = useRef<string[]>(scriptPaths);
+  scriptPathsRef.current = scriptPaths;
+  const scriptListboxId = useId();
   // lineMode can flip at runtime (a config edit) and must NOT tear down the
   // live xterm — the onData handler reads this ref per keystroke instead of
   // capturing lineMode in its setup effect, so the running terminal (and its
@@ -442,6 +653,8 @@ function KosTerminalScreen({
     setComposition(EMPTY_COMPOSITION);
     historyIndexRef.current = null;
     historyDraftRef.current = "";
+    scriptComposerRef.current = null;
+    setScriptComposer(null);
   }, [lineMode]);
   // Keep xterm's own cursor blink in sync with which surface owns input —
   // see the matching comment on the `cursorBlink` constructor option above.
@@ -627,6 +840,65 @@ function KosTerminalScreen({
             sendKeystrokeRef.current(data);
             return;
           }
+          // `/`-script composer: while active it owns input exclusively,
+          // ahead of the ordinary history/cursor/typing handling below
+          // (kos-terminal-script-picker). Ctrl+C cancels the composer AND
+          // still forwards the interrupt, same as it does for an ordinary
+          // in-progress line further down.
+          if (scriptComposerRef.current !== null) {
+            if (data === "\x03") {
+              scriptComposerRef.current = null;
+              setScriptComposer(null);
+              sendKeystrokeRef.current("\x03", "^C");
+              return;
+            }
+            const action = handleScriptComposerInput(
+              data,
+              scriptComposerRef.current,
+              scriptPathsRef.current,
+            );
+            if (action.kind === "update") {
+              scriptComposerRef.current = action.next;
+              setScriptComposer(action.next);
+            } else if (action.kind === "cancel") {
+              scriptComposerRef.current = null;
+              setScriptComposer(null);
+            } else if (action.kind === "send") {
+              // Refuses the send with no comms path, same as
+              // `reduceLineModeChar`'s `canSend` guard for an ordinary
+              // line — leaves the composer exactly as-is so the operator
+              // can finish once the path returns, instead of losing the
+              // pending RUNPATH (kos-nopath-block-input parity).
+              if (!noPathRef.current) {
+                scriptComposerRef.current = null;
+                setScriptComposer(null);
+                lineHistoryRef.current = pushLineHistory(
+                  lineHistoryRef.current,
+                  action.label,
+                );
+                sendKeystrokeRef.current(action.chars, action.label);
+              }
+            }
+            return;
+          }
+          // "/" at the very start of an empty line opens the script
+          // composer instead of typing a literal slash — never mid-line, so
+          // a "/" inside a path argument elsewhere in a command still types
+          // normally.
+          if (
+            data === "/" &&
+            lineBufferRef.current.text === "" &&
+            lineBufferRef.current.cursor === 0
+          ) {
+            const next: ScriptComposerState = {
+              phase: "picking",
+              query: "",
+              activeIndex: -1,
+            };
+            scriptComposerRef.current = next;
+            setScriptComposer(next);
+            return;
+          }
           // Up-arrow: recall history, one entry further into the past.
           if (data === "\x1b[A") {
             if (historyIndexRef.current === null) {
@@ -807,6 +1079,17 @@ function KosTerminalScreen({
     }
   }
 
+  // Filtered/grouped options for the `/`-script composer's dropdown, kept
+  // in the SAME order `handleScriptComposerInput` computes for activeIndex
+  // math (`scriptOptionsFor`), so the highlighted row always matches what
+  // Enter would pick.
+  const scriptListing =
+    scriptComposer?.phase === "picking"
+      ? scriptOptionsFor(scriptPaths, scriptComposer.query)
+      : null;
+  const scriptActiveIndex =
+    scriptComposer?.phase === "picking" ? scriptComposer.activeIndex : -1;
+
   return (
     <TerminalShell>
       <TerminalFrame>
@@ -863,18 +1146,63 @@ function KosTerminalScreen({
         <CompositionBarWrap>
           <CompositionBar
             role="group"
-            aria-label="Line-mode input"
+            aria-label={scriptComposer ? "Run script" : "Line-mode input"}
             $noPath={noPath}
           >
             <CompositionBar__Prompt aria-hidden="true">
               ❯
             </CompositionBar__Prompt>
             <CompositionBar__Text>
-              {composition.text.slice(0, composition.cursor)}
-              <CompositionBar__Cursor aria-hidden="true" />
-              {composition.text.slice(composition.cursor)}
+              {scriptComposer ? (
+                scriptComposer.phase === "picking" ? (
+                  <>
+                    /{scriptComposer.query}
+                    <CompositionBar__Cursor aria-hidden="true" />
+                  </>
+                ) : (
+                  <>
+                    {scriptComposer.path} {scriptComposer.argsText}
+                    <CompositionBar__Cursor aria-hidden="true" />
+                  </>
+                )
+              ) : (
+                <>
+                  {composition.text.slice(0, composition.cursor)}
+                  <CompositionBar__Cursor aria-hidden="true" />
+                  {composition.text.slice(composition.cursor)}
+                </>
+              )}
             </CompositionBar__Text>
           </CompositionBar>
+          {scriptListing && (
+            <ComboboxListbox
+              id={scriptListboxId}
+              ariaLabel="Script picker"
+              groups={scriptListing.groups}
+              flatOptions={scriptListing.flat}
+              activeIndex={scriptActiveIndex}
+              getOptionId={(key) => `${scriptListboxId}-${key}`}
+              onHoverIndex={(index) => {
+                if (scriptComposerRef.current?.phase !== "picking") return;
+                const next: ScriptComposerState = {
+                  ...scriptComposerRef.current,
+                  activeIndex: index,
+                };
+                scriptComposerRef.current = next;
+                setScriptComposer(next);
+              }}
+              onSelectKey={(key) => {
+                const next: ScriptComposerState = {
+                  phase: "args",
+                  path: key,
+                  argsText: "",
+                };
+                scriptComposerRef.current = next;
+                setScriptComposer(next);
+              }}
+              emptyLabel="No scripts found"
+            />
+          )}
           {/* A second, compact "NO PATH" flag pinned right on the bar the
               operator is actually looking at while typing — the existing
               `NoPathBadge` above sits in the terminal pane's corner, which is

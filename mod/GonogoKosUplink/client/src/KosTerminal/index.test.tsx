@@ -3,7 +3,13 @@ import type {
   KosProcessorInfo,
   PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
@@ -1164,5 +1170,292 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     expect(
       fixture.commands.filter((c) => c.command === "kos.keystroke"),
     ).toHaveLength(0);
+  });
+});
+
+describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearRegistry();
+  });
+  afterEach(() => {
+    clearRegistry();
+  });
+
+  // Two drives, so the group-by-volume behaviour (`scriptPathOption`) gets
+  // real coverage rather than degenerating to a single "Other" bucket.
+  const SCRIPTS = [
+    "0:/widget_scripts/gravityturn.ks",
+    "0:/widget_scripts/deorbit.ks",
+    "1:/backup.ks",
+  ];
+
+  it("typing / at the start of an empty line opens the picker, listing the configured script paths grouped by volume", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(
+      screen.getByText("0:/widget_scripts/gravityturn.ks"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("0:/widget_scripts/deorbit.ks"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1:/backup.ks")).toBeInTheDocument();
+    expect(screen.getByText("0:")).toBeInTheDocument();
+    expect(screen.getByText("1:")).toBeInTheDocument();
+  });
+
+  it("shows a 'No scripts found' hint when no scriptPaths are configured (increment (a) has no live data yet)", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    expect(screen.getByText("No scripts found")).toBeInTheDocument();
+  });
+
+  it("typing / mid-line (non-empty composition) types a literal slash instead of opening the picker", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "cd 0") onData(ch);
+      onData("/");
+    });
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(
+      screen.getByRole("group", { name: "Line-mode input" }),
+    ).toHaveTextContent("cd 0/");
+  });
+
+  it("ArrowDown highlights an option; Enter confirms it into args mode, and a further Enter injects RUNPATH through the line-mode send path", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    act(() => onData("\x1b[B")); // ArrowDown: highlights the first flattened option
+    act(() => onData("\r")); // confirm -> args mode
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("group", { name: "Run script" })).toHaveTextContent(
+      "0:/widget_scripts/gravityturn.ks",
+    );
+
+    act(() => {
+      for (const ch of "5 10") onData(ch);
+      onData("\r");
+    });
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+      expect((keys[0].args as { chars: string }).chars).toBe(
+        'RUNPATH("0:/widget_scripts/gravityturn.ks", 5, 10).\r',
+      );
+    });
+    // Same label convention as an ordinary composed line — trimmed of the
+    // trailing wire CR, carried on the terminal's own topic.
+    const key = fixture.transport.sentCommands.find(
+      (c) => c.command === "kos.keystroke",
+    );
+    expect(key?.label).toBe(
+      'RUNPATH("0:/widget_scripts/gravityturn.ks", 5, 10).',
+    );
+    expect(key?.topic).toBe("kos/7");
+  });
+
+  it("typing a query filters the list; Enter with no arrow-navigation picks the first filtered result, with no args", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    act(() => {
+      for (const ch of "deorbit") onData(ch);
+    });
+
+    expect(
+      screen.queryByText("0:/widget_scripts/gravityturn.ks"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("0:/widget_scripts/deorbit.ks"),
+    ).toBeInTheDocument();
+
+    act(() => onData("\r")); // confirm the sole filtered match
+    act(() => onData("\r")); // no args — send immediately
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+      expect((keys[0].args as { chars: string }).chars).toBe(
+        'RUNPATH("0:/widget_scripts/deorbit.ks").\r',
+      );
+    });
+  });
+
+  it("Escape cancels the composer back to an empty line-mode input", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    act(() => onData("\x1b"));
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(
+      screen.getByRole("group", { name: "Line-mode input" }),
+    ).toBeInTheDocument();
+  });
+
+  it("backspace on an empty query cancels the picker", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    act(() => onData("\x7f"));
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("clicking a listed script confirms it into args mode the same as Enter", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+    act(() => fireEvent.pointerDown(screen.getByText("1:/backup.ks")));
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("group", { name: "Run script" })).toHaveTextContent(
+      "1:/backup.ks",
+    );
+  });
+
+  it("no comms path blocks the final RUNPATH send but keeps the composer intact for when the path returns", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [...CARRIED, "comms.link"],
+      pinnedUt: 10,
+    });
+    const commands: Array<{ command: string; args: unknown }> = [];
+    fixture.transport.setCommandHandler((command, args) => {
+      commands.push({ command, args });
+      return { success: true };
+    });
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+    act(() => fixture.emit("comms.link", { connected: false }));
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    act(() => onData("\r")); // confirm the first (sole) match -> args mode
+    act(() => onData("\r")); // blocked send
+
+    await Promise.resolve();
+    expect(commands.filter((c) => c.command === "kos.keystroke")).toHaveLength(
+      0,
+    );
+    // The composer is still alive (not silently dropped), so the operator
+    // can send once the path returns instead of retyping.
+    expect(screen.getByRole("group", { name: "Run script" })).toHaveTextContent(
+      "0:/widget_scripts/gravityturn.ks",
+    );
+  });
+
+  it("has no accessible violations with the picker open", async () => {
+    const fixture = terminalFixture();
+    const { container } = render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
