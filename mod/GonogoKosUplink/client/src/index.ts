@@ -32,13 +32,17 @@
 
 export * from "./KosTerminal";
 
-// registerDataSource(kosSource) / registerUplinkHandle("kos", kosSource) —
-// fires whenever this package loads, whether via the runtime Uplink loader
-// or the bundled-fallback static import in main.tsx.
+// registerUplinkHandle("kos", kosSource) — fires whenever this package
+// loads, whether via the runtime Uplink loader or the bundled-fallback
+// static import in main.tsx. kOS is NOT a registered DataSource (no
+// registerDataSource call) — it never appears in the generic Data Sources
+// panel; see kos.ts's module doc.
 import "./dataSource/kos";
 
+// KosCpuDiscovery both stands up the standing kos.processors subscription
+// AND feeds the result into the CpuRegistryService the caller hands it
+// (merged from the former separate useKosMainWiring hook).
 export { KosCpuDiscovery } from "./dataSource/KosCpuDiscovery";
-export { useKosMainWiring } from "./dataSource/useKosMainWiring";
 
 // Shared kOS infra (CpuRegistryService/Context, the [KOSDATA] parser,
 // ScriptableDataSource), re-exported for MainScreen/StationScreen and any
