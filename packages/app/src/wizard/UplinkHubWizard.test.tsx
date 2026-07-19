@@ -123,7 +123,7 @@ function wrapper({ children }: { children: ReactNode }) {
  * first subscribes), so a listener added after `render()` would miss the
  * connection.
  */
-function renderWizard() {
+function renderWizard(props?: { firstRun?: boolean; onFinish?: () => void }) {
   registerDataSource(makeSitrepStub());
   const wsClients: Array<{ send: (data: string) => void }> = [];
   server.use(
@@ -131,7 +131,7 @@ function renderWizard() {
       wsClients.push(client as unknown as { send: (data: string) => void });
     }),
   );
-  const result = render(<UplinkHubWizard />, { wrapper });
+  const result = render(<UplinkHubWizard {...props} />, { wrapper });
   return { ...result, wsClients };
 }
 
@@ -398,6 +398,79 @@ describe("UplinkHubWizard — accessibility", () => {
         screen.getByText(/no uplinks reported by the mod yet/i),
       ).toBeInTheDocument(),
     );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("UplinkHubWizard — firstRun bookends (Welcome/Done)", () => {
+  it("starts on Welcome, not Setup, when firstRun is true", () => {
+    renderWizard({ firstRun: true });
+    expect(
+      screen.getByRole("button", { name: /get started/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /next: check uplinks/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("walks Welcome -> Setup -> Results -> Done and calls onFinish on Close", async () => {
+    serveRegistry({ uplinks: [] });
+    const onFinish = vi.fn();
+    const { wsClients } = renderWizard({ firstRun: true, onFinish });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /get started/i }));
+    expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /next: check uplinks/i }),
+    );
+    await emitRoster(wsClients, []);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no uplinks reported by the mod yet/i),
+      ).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole("button", { name: /finish/i }));
+    expect(
+      screen.getByText(/reopen this any time from settings/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /close/i }));
+    expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not add the firstRun bookends for the persistent entry point (default props)", () => {
+    renderWizard();
+    expect(
+      screen.queryByRole("button", { name: /get started/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /next: check uplinks/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("has no axe violations on the Welcome step", async () => {
+    const { container } = renderWizard({ firstRun: true });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("has no axe violations on the Done step", async () => {
+    serveRegistry({ uplinks: [] });
+    const { container, wsClients } = renderWizard({ firstRun: true });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /get started/i }));
+    await user.click(
+      screen.getByRole("button", { name: /next: check uplinks/i }),
+    );
+    await emitRoster(wsClients, []);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no uplinks reported by the mod yet/i),
+      ).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: /finish/i }));
     expect(await axe(container)).toHaveNoViolations();
   });
 });

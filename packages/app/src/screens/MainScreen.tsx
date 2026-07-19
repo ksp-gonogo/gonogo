@@ -81,6 +81,7 @@ import {
 import { initSoundSettings } from "../sound";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import { UplinkHubWizardHost } from "../wizard/UplinkHubWizardHost";
 import { DEMO_CONFIG } from "./demoConfig";
 
 // ---------------------------------------------------------------------------
@@ -202,6 +203,10 @@ export function MainScreen() {
             <AnalyticsConsentHost
               service={analyticsConsentService}
               peerHost={peerHostService}
+            />
+            <UplinkHubWizardHost
+              settingsService={settingsService}
+              serialService={serialService}
             />
             <AutoRecordControllerWithMissionHistory scene={scene} />
             <AlarmHostProvider service={alarmHost}>

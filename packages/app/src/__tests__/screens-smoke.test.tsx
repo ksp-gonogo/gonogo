@@ -14,15 +14,33 @@ import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
 import "@ksp-gonogo/components"; // self-register the built-in components
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MainScreen } from "../screens/MainScreen";
 import { StationScreen } from "../screens/StationScreen";
 
-/** Mirror the real provider tree from `main.tsx` — ErrorBoundary above, ModalProvider at root. */
+/**
+ * Mirror the real provider tree from `main.tsx` — ErrorBoundary above,
+ * QueryClientProvider above ModalProvider at root. `QueryClientProvider`
+ * joined this list once `SettingsFab`/`SettingsModal` started calling
+ * `useUplinkGap()` (the Uplink Hub attention badge) unconditionally — a
+ * missing ancestor here is exactly the class of provider-order mistake this
+ * file's own doc comment describes hiding a crash for.
+ *
+ * `enabled: false` keeps the client inert: this smoke suite doesn't exercise
+ * the Hub registry fetch (see `SettingsFab.test.tsx`/`SettingsModal.test.tsx`
+ * for that), so disabling it avoids an async network round-trip that could
+ * resolve after a synchronous test's assertions and trip an act() warning.
+ */
 function renderScreen(screenNode: React.ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { enabled: false, retry: false } },
+  });
   return render(
     <ErrorBoundary>
-      <ModalProvider>{screenNode}</ModalProvider>
+      <QueryClientProvider client={queryClient}>
+        <ModalProvider>{screenNode}</ModalProvider>
+      </QueryClientProvider>
     </ErrorBoundary>,
   );
 }
