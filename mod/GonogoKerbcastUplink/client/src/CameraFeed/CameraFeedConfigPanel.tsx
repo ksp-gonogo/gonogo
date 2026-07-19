@@ -1,4 +1,4 @@
-import type { ConfigComponentProps } from "@ksp-gonogo/core";
+import type { ConfigComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,

@@ -19,11 +19,6 @@
  * array.
  */
 
-import type {
-  ComponentProps,
-  DataSource,
-  DataSourceStatus,
-} from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
@@ -32,12 +27,19 @@ import {
   DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
-  registerAugment,
-  registerDataSource,
-  registerUplinkHandle,
 } from "@ksp-gonogo/core";
 import type { CameraLifecycle, Layer } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
+import type {
+  ComponentProps,
+  DataSource,
+  DataSourceStatus,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerAugment,
+  registerDataSource,
+  registerUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,

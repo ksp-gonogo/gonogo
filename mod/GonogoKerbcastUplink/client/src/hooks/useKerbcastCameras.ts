@@ -1,5 +1,5 @@
-import { getUplinkHandle } from "@ksp-gonogo/core";
 import type { CameraState } from "@ksp-gonogo/kerbcast";
+import { getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 

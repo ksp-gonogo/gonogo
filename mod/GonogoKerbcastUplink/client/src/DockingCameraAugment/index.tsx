@@ -20,17 +20,16 @@
 // on the shared ViewClock). That split is the whole design: control plane on
 // the Uplink, media off it.
 
-import type {} from "@ksp-gonogo/components"; // pulls DistanceToTarget's "distance-to-target.camera" SlotRegistry merge into this program (see that module's declare-module comment)
-import type { SlotProps } from "@ksp-gonogo/core";
-import {
-  getUplinkHandle,
-  registerAugment,
-  useTelemetry,
-} from "@ksp-gonogo/core";
 import {
   KerbcastProvider,
   type KerbcastSubscriptions,
 } from "@ksp-gonogo/kerbcast-react";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import {
+  getUplinkHandle,
+  registerAugment,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
 import styled from "styled-components";
 import { useDelayedKerbcastStream } from "../CameraFeed/useDelayedKerbcastStream";

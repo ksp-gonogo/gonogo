@@ -3,8 +3,9 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   type CaptureClockSample,
   interpolateCaptureUt,
-  useViewClockOptional,
 } from "@ksp-gonogo/sitrep-client";
+import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   type DelayedPlayoutResult,
@@ -152,7 +153,11 @@ export function useDelayedKerbcastStream(
   flightId: number | null,
 ): MediaStream | null {
   const raw = useKerbcastStream(flightId);
-  const view = useViewClockOptional();
+  // The facade's `useViewClockOptional` is typed `unknown` (opaque — see its
+  // own doc: the concrete ViewClock stays sitrep-client-internal). Narrow to
+  // the structural `DelayClockLike` contract this module actually drives —
+  // the real `ViewClock` satisfies it (see that class's own doc).
+  const view = useViewClockOptional() as DelayClockLike | undefined;
   const { captureUt, epoch, warpRate } = useKerbcastClock();
 
   // Latch each ~1Hz clock sample with the wall-clock instant we saw it, so the

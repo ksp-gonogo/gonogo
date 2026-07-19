@@ -1,10 +1,3 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  getUplinkHandle,
-  useActionInput,
-  useDataValue,
-} from "@ksp-gonogo/core";
 import {
   type CameraFeedHandle,
   KerbcastProvider,
@@ -12,6 +5,13 @@ import {
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
 import { logger } from "@ksp-gonogo/logger";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import {
+  AugmentSlot,
+  getUplinkHandle,
+  useActionInput,
+  useDataValue,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -87,8 +87,16 @@ export interface CameraBadgesContext {
 
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not a central registry file) so parallel slot
-// work on other widgets never collides on this seam.
-declare module "@ksp-gonogo/core" {
+// work on other widgets never collides on this seam. Targets the sitrep-sdk
+// facade, not @ksp-gonogo/core directly: CameraFeed OWNS these slots (it's the
+// one file that both renders <AugmentSlot> for them AND is sealed onto the
+// facade), so this program's own SlotRegistry merge is the facade's, exactly
+// how Scanning declares its own "scanning.*" slots (see the facade-slotfix
+// report) — the sdk's central mod/sitrep-sdk/src/api/slots.ts deliberately
+// does NOT centrally mirror an Uplink's own slots (would need the sdk leaf to
+// import from an Uplink client package — the exact cycle that file exists to
+// avoid).
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "camera-feed.overlay": CameraOverlayContext;
     "camera-feed.badges": CameraBadgesContext;
