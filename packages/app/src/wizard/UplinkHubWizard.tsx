@@ -82,8 +82,7 @@ export function UplinkHubWizard({
   return (
     <Stack gap="md">
       <Intro>
-        Checks what your Gonogo mod reports and offers to load any Uplink client
-        that isn't downloaded yet.
+        Loads any Uplink client your mod reports but hasn't downloaded yet.
       </Intro>
       <StepHeading aria-live="polite">{stepLabel(step, firstRun)}</StepHeading>
       {step === "welcome" && <WelcomeStep />}

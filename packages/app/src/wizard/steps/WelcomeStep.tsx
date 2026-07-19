@@ -11,13 +11,12 @@ export function WelcomeStep() {
   return (
     <Stack gap="sm">
       <Copy>
-        Gonogo can load extra Uplink clients like SCANsat, kOS, and Kerbcast,
-        plus more as they're published, straight from the Hub the moment your
+        Load Uplink clients like SCANsat, kOS, and Kerbcast from the Hub as your
         mod reports them installed.
       </Copy>
       <Copy>
-        This quick setup checks your connection to the mod, then shows what's
-        ready to load. You can revisit it any time from Settings → Uplink Hub.
+        This checks your mod connection and lists what's ready to load. Reopen
+        it any time from the Uplink Hub tab in Settings.
       </Copy>
     </Stack>
   );

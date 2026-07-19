@@ -10,8 +10,8 @@ export function DoneStep() {
   return (
     <Stack gap="sm">
       <Copy>
-        You're set up. Any Uplink the mod reports that isn't loaded yet will
-        keep showing here — reopen this any time from Settings → Uplink Hub.
+        You're set up. Any Uplink the mod reports that isn't loaded yet keeps
+        showing here. Reopen this any time from the Uplink Hub tab in Settings.
       </Copy>
     </Stack>
   );
