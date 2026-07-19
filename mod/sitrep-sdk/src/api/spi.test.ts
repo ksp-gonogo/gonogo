@@ -6,12 +6,26 @@ import * as barrel from "./index";
  * Phase 0.4 additions — stream SPI, data introspection, and the game-host
  * SPI. Same injected-host contract as every other stateful member (design
  * §4.3 / D-A): fail loud with no host installed, resolve to the injected
- * host's own implementation once one is. The DataSource-author SPI
- * (registerDataSource/getDataSource) that used to live here was removed
- * (kos migration, 2026-07-18) — it had zero production consumers
- * independent of kos, and first-party code always imports
- * @ksp-gonogo/core's registerDataSource/getDataSource directly rather than
- * through this facade.
+ * host's own implementation once one is.
+ *
+ * The DataSource-author SPI (registerDataSource/getDataSource) was removed
+ * from here on 2026-07-18 (kos migration) on the premise that it had zero
+ * production consumers independent of kos, and that first-party code
+ * always imports @ksp-gonogo/core's registerDataSource/getDataSource
+ * directly rather than through this facade.
+ *
+ * Re-added 2026-07-19 (facade-sealing plan,
+ * docs/superpowers/plans/2026-07-19-facade-sealing.md §2.1) — a conscious
+ * reversal, not a silent flip. Both halves of the 07-18 premise stopped
+ * holding: another Uplink's own fog-reveal sync needs getDataSource too,
+ * not just kos; and the whole point of facade-sealing kos is to stop
+ * "first-party code imports core directly" being true for it. The same
+ * reversal also brings back the map/fog SPI (getBody/getFogRevealSources/
+ * onFogRevealSourcesChange/useFogMaskCache), the Uplink-handle SPI
+ * (registerUplinkHandle/getUplinkHandle), the settings-tab SPI
+ * (registerSettingsTab), and the telemetry-client SPI
+ * (getActiveTelemetryClient/useTelemetryClientOptional) — all new gaps the
+ * same plan identified across the currently-first-party Uplink clients.
  */
 describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
   afterEach(() => {
@@ -120,6 +134,143 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
     });
   });
 
+  describe("DataSource-author SPI (re-added 2026-07-19, facade-sealing §2.1)", () => {
+    it("registerDataSource fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const def = { id: "example-ds" } as never;
+      expect(() => barrel.registerDataSource(def)).toThrow(named);
+
+      const registerDataSource = vi.fn();
+      installTestHost({ registerDataSource });
+      barrel.registerDataSource(def);
+      expect(registerDataSource).toHaveBeenCalledWith(def);
+    });
+
+    it("getDataSource fails LOUD with no host, resolves once installed (reaching one's own source)", () => {
+      resetTestHost();
+      expect(() => barrel.getDataSource("example-ds")).toThrow(named);
+
+      const fakeSource = { id: "example-ds" } as never;
+      const getDataSource = vi.fn().mockReturnValue(fakeSource);
+      installTestHost({ getDataSource });
+      expect(barrel.getDataSource("example-ds")).toBe(fakeSource);
+      expect(getDataSource).toHaveBeenCalledWith("example-ds");
+    });
+  });
+
+  describe("map/fog SPI", () => {
+    it("getBody fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getBody("Kerbin")).toThrow(named);
+
+      const fakeBody = { id: "Kerbin" } as never;
+      const getBody = vi.fn().mockReturnValue(fakeBody);
+      installTestHost({ getBody });
+      expect(barrel.getBody("Kerbin")).toBe(fakeBody);
+      expect(getBody).toHaveBeenCalledWith("Kerbin");
+    });
+
+    it("getFogRevealSources fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getFogRevealSources()).toThrow(named);
+
+      const sources = [{ id: "example-uplink:AltimetryHiRes" }] as never;
+      const getFogRevealSources = vi.fn().mockReturnValue(sources);
+      installTestHost({ getFogRevealSources });
+      expect(barrel.getFogRevealSources()).toBe(sources);
+    });
+
+    it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const cb = vi.fn();
+      expect(() => barrel.onFogRevealSourcesChange(cb)).toThrow(named);
+
+      const unsubscribe = vi.fn();
+      const onFogRevealSourcesChange = vi.fn().mockReturnValue(unsubscribe);
+      installTestHost({ onFogRevealSourcesChange });
+      expect(barrel.onFogRevealSourcesChange(cb)).toBe(unsubscribe);
+      expect(onFogRevealSourcesChange).toHaveBeenCalledWith(cb);
+    });
+
+    it("useFogMaskCache fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.useFogMaskCache()).toThrow(named);
+
+      const fakeCache = { acquire: vi.fn() } as never;
+      const useFogMaskCache = vi.fn().mockReturnValue(fakeCache);
+      installTestHost({ useFogMaskCache });
+      expect(barrel.useFogMaskCache()).toBe(fakeCache);
+    });
+  });
+
+  describe("Uplink-handle SPI", () => {
+    it("registerUplinkHandle fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const handle = { foo: "bar" };
+      expect(() =>
+        barrel.registerUplinkHandle("example-uplink", handle),
+      ).toThrow(named);
+
+      const registerUplinkHandle = vi.fn();
+      installTestHost({ registerUplinkHandle });
+      barrel.registerUplinkHandle("example-uplink", handle);
+      expect(registerUplinkHandle).toHaveBeenCalledWith(
+        "example-uplink",
+        handle,
+      );
+    });
+
+    it("getUplinkHandle fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getUplinkHandle("example-uplink")).toThrow(named);
+
+      const handle = { foo: "bar" };
+      const getUplinkHandle = vi.fn().mockReturnValue(handle);
+      installTestHost({ getUplinkHandle });
+      expect(barrel.getUplinkHandle("example-uplink")).toBe(handle);
+      expect(getUplinkHandle).toHaveBeenCalledWith("example-uplink");
+    });
+  });
+
+  describe("settings-tab SPI", () => {
+    it("registerSettingsTab fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const def = {
+        id: "example-uplink",
+        label: "Example Uplink",
+        component: () => null,
+      };
+      expect(() => barrel.registerSettingsTab(def)).toThrow(named);
+
+      const registerSettingsTab = vi.fn();
+      installTestHost({ registerSettingsTab });
+      barrel.registerSettingsTab(def);
+      expect(registerSettingsTab).toHaveBeenCalledWith(def);
+    });
+  });
+
+  describe("telemetry-client SPI", () => {
+    it("getActiveTelemetryClient fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getActiveTelemetryClient()).toThrow(named);
+
+      const fakeClient = { subscribe: vi.fn() } as never;
+      const getActiveTelemetryClient = vi.fn().mockReturnValue(fakeClient);
+      installTestHost({ getActiveTelemetryClient });
+      expect(barrel.getActiveTelemetryClient()).toBe(fakeClient);
+    });
+
+    it("useTelemetryClientOptional fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.useTelemetryClientOptional()).toThrow(named);
+
+      const fakeClient = { subscribe: vi.fn() } as never;
+      const useTelemetryClientOptional = vi.fn().mockReturnValue(fakeClient);
+      installTestHost({ useTelemetryClientOptional });
+      expect(barrel.useTelemetryClientOptional()).toBe(fakeClient);
+    });
+  });
+
   it("GAME_HOST_KEY is the stable settings key, never gated by the host", () => {
     expect(barrel.GAME_HOST_KEY).toBe("gameHost");
   });
@@ -133,5 +284,60 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
     expect(a).toMatch(v4);
     expect(b).toMatch(v4);
     expect(a).not.toBe(b);
+  });
+
+  describe("LocalStorageStore — stateless class, no host needed on the happy path", () => {
+    function fakeStorage(): Storage {
+      const store = new Map<string, string>();
+      return {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          store.set(k, v);
+        },
+        removeItem: (k: string) => {
+          store.delete(k);
+        },
+        clear: () => store.clear(),
+        key: () => null,
+        get length() {
+          return store.size;
+        },
+      } as Storage;
+    }
+
+    it("get/set/patch/clear round-trip with an injected Storage — no host dependency", () => {
+      resetTestHost();
+      const store = new barrel.LocalStorageStore({
+        key: "test.widget",
+        defaults: { enabled: true, count: 0 },
+        storage: fakeStorage(),
+      });
+      expect(store.get()).toEqual({ enabled: true, count: 0 });
+      store.set({ enabled: false, count: 3 });
+      expect(store.get()).toEqual({ enabled: false, count: 3 });
+      store.patch({ count: 5 });
+      expect(store.get()).toEqual({ enabled: false, count: 5 });
+      store.clear();
+      expect(store.get()).toEqual({ enabled: true, count: 0 });
+    });
+
+    it("the DEFAULT corruption logger only touches the host when corruption is actually hit", () => {
+      resetTestHost();
+      const storage = fakeStorage();
+      storage.setItem("test.widget", "{not json");
+      const store = new barrel.LocalStorageStore({
+        key: "test.widget",
+        defaults: { enabled: true },
+        storage,
+      });
+      // Fails loud rather than silently logging to a dead console-only
+      // logger — same reasoning as the `logger` Proxy shim in ./index.ts.
+      expect(() => store.get()).toThrow(named);
+
+      const warn = vi.fn();
+      installTestHost({ logger: { tag: () => ({ warn }) } as never });
+      expect(store.get()).toEqual({ enabled: true });
+      expect(warn).toHaveBeenCalled();
+    });
   });
 });

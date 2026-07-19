@@ -16,19 +16,35 @@
 // (the facade then re-exports the real types and there is nothing to mirror).
 // ---------------------------------------------------------------------------
 
-import type { StreamStatusValue as ClientStreamStatusValue } from "@ksp-gonogo/sitrep-client";
+import type {
+  StreamStatusValue as ClientStreamStatusValue,
+  TelemetryClient as ClientTelemetryClient,
+} from "@ksp-gonogo/sitrep-client";
 import type {
   ActionDefinition as SdkActionDefinition,
   AugmentDefinition as SdkAugmentDefinition,
+  BodyDefinition as SdkBodyDefinition,
   ComponentDefinition as SdkComponentDefinition,
   ComponentProps as SdkComponentProps,
   ConfigComponentProps as SdkConfigComponentProps,
+  ConfigField as SdkConfigField,
+  DataKey as SdkDataKey,
+  DataSource as SdkDataSource,
+  DataSourceStatus as SdkDataSourceStatus,
+  MapPoi as SdkMapPoi,
   PerfBudgetOptions as SdkPerfBudgetOptions,
+  Screen as SdkScreen,
+  SettingsTabDefinition as SdkSettingsTabDefinition,
   StreamStatusValue as SdkStreamStatusValue,
+  TelemetryClient as SdkTelemetryClient,
   ThemeDefinition as SdkThemeDefinition,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
+import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
+import type { Screen as CoreScreen } from "./contexts/ScreenContext";
+import type { MapPoi as CoreMapPoi } from "./mapPoi";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
+import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./settingsTabs";
 import type * as Core from "./types";
 
 type Assignable<A, B> = A extends B ? true : false;
@@ -69,6 +85,47 @@ type _PerfBack = Expect<
 // facade view — is asserted.
 type _Theme = Expect<Assignable<Core.ThemeDefinition, SdkThemeDefinition>>;
 
+// DataSource-author SPI (Phase 0.4, re-added 2026-07-19 — facade-sealing
+// plan §2.1, a conscious reversal of the 2026-07-18 removal): both
+// registerDataSource/getDataSource are typed against the mirror, so both
+// directions matter — an author's def must satisfy core's real
+// registerDataSource, and a source read back via getDataSource must satisfy
+// the author-facing view.
+type _DataSource = Expect<Assignable<SdkDataSource, Core.DataSource>>;
+type _DataSourceBack = Expect<Assignable<Core.DataSource, SdkDataSource>>;
+type _DataSourceStatus = Expect<
+  Assignable<SdkDataSourceStatus, Core.DataSourceStatus>
+>;
+type _DataSourceStatusBack = Expect<
+  Assignable<Core.DataSourceStatus, SdkDataSourceStatus>
+>;
+type _ConfigField = Expect<Assignable<SdkConfigField, Core.ConfigField>>;
+type _ConfigFieldBack = Expect<Assignable<Core.ConfigField, SdkConfigField>>;
+type _DataKey = Expect<Assignable<SdkDataKey, Core.DataKey>>;
+type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
+
+// Map/fog SPI (facade-sealing, 2026-07-19): BodyDefinition and MapPoi are
+// owned by core (bodies.ts / mapPoi.ts), not this file's ./types — checked
+// both directions same as every other core-owned mirror above.
+type _Body = Expect<Assignable<SdkBodyDefinition, CoreBodyDefinition>>;
+type _BodyBack = Expect<Assignable<CoreBodyDefinition, SdkBodyDefinition>>;
+type _MapPoi = Expect<Assignable<SdkMapPoi, CoreMapPoi>>;
+type _MapPoiBack = Expect<Assignable<CoreMapPoi, SdkMapPoi>>;
+
+// Screen identity (facade-sealing, 2026-07-19): owned by
+// contexts/ScreenContext.tsx.
+type _Screen = Expect<Assignable<SdkScreen, CoreScreen>>;
+type _ScreenBack = Expect<Assignable<CoreScreen, SdkScreen>>;
+
+// Settings tabs (facade-sealing, 2026-07-19): owned by settingsTabs.ts.
+// Read direction only — `component: ComponentType` on both sides is
+// already covered structurally by the other ComponentType-bearing checks
+// above; asserting the SDK-authored direction here would require a
+// concrete component value, which isn't the point of this drift guard.
+type _SettingsTab = Expect<
+  Assignable<CoreSettingsTabDefinition, SdkSettingsTabDefinition>
+>;
+
 // Stream SPI (Phase 0.4): StreamStatusValue is owned by sitrep-client, not
 // core, but core carries a real dependency on sitrep-client so it is visible
 // here too — same drift-guard shape as the core-owned types above.
@@ -77,6 +134,16 @@ type _StreamStatus = Expect<
 >;
 type _StreamStatusBack = Expect<
   Assignable<ClientStreamStatusValue, SdkStreamStatusValue>
+>;
+
+// Telemetry client (facade-sealing, 2026-07-19): TelemetryClient is owned
+// by sitrep-client too, same visibility as StreamStatusValue above. Only
+// the read direction is asserted — the sdk's mirror is a deliberately
+// NARROWED subset of the real class's public surface (subscribe/getValue/
+// dispatch/dispose only, see ./types.ts's TelemetryClient doc), so the
+// real class satisfies the mirror but not vice-versa.
+type _TelemetryClient = Expect<
+  Assignable<ClientTelemetryClient, SdkTelemetryClient>
 >;
 
 // Keep the aliases "used" under noUnusedLocals.
@@ -93,6 +160,22 @@ export type _SdkFacadeConformance = [
   _Perf,
   _PerfBack,
   _Theme,
+  _DataSource,
+  _DataSourceBack,
+  _DataSourceStatus,
+  _DataSourceStatusBack,
+  _ConfigField,
+  _ConfigFieldBack,
+  _DataKey,
+  _DataKeyBack,
+  _Body,
+  _BodyBack,
+  _MapPoi,
+  _MapPoiBack,
+  _Screen,
+  _ScreenBack,
+  _SettingsTab,
   _StreamStatus,
   _StreamStatusBack,
+  _TelemetryClient,
 ];

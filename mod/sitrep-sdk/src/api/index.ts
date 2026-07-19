@@ -27,11 +27,15 @@ import type {
   ActionDefinition,
   ActionHandlers,
   AugmentDefinition,
+  BodyDefinition,
   ComponentDefinition,
+  DataSource,
   FogRevealSourceDefinition,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  SettingsTabDefinition,
+  TelemetryClient,
   ThemeDefinition,
 } from "./types";
 
@@ -47,20 +51,30 @@ export type {
   ActionInputPayload,
   AugmentDefinition,
   AugmentSettingField,
+  BodyDefinition,
+  BodyMask,
   ComponentBehavior,
   ComponentDefinition,
   ComponentProps,
   ComponentRequirement,
   ConfigComponentProps,
+  ConfigField,
+  DataKey,
   DataRequirement,
+  DataSource,
+  DataSourceStatus,
   FogRevealSourceDefinition,
+  MapPoi,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  Screen,
+  SettingsTabDefinition,
   SlotId,
   SlotProps,
   SlotRegistry,
   StreamStatusValue,
+  TelemetryClient,
   ThemeDefinition,
   UseCommandResult,
 } from "./types";
@@ -93,6 +107,26 @@ export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
 
 export const registerMapPoiProvider = (def: MapPoiProviderDefinition): void =>
   getHost().registerMapPoiProvider(def);
+
+/**
+ * Author a data source into the app's single registry. Re-added 2026-07-19
+ * (facade-sealing plan §2.1) — this SPI was removed 2026-07-18 on the
+ * premise that first-party code always imports core's registerDataSource
+ * directly; that stopped holding once a facade-sealed kos is exactly the
+ * client the premise assumed away. See `./types.ts`'s DataSource-SPI
+ * comment for the full history.
+ */
+export const registerDataSource = <
+  TConfig extends Record<string, unknown> = Record<string, unknown>,
+>(
+  source: DataSource<TConfig>,
+): void => getHost().registerDataSource(source);
+
+export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
+  getHost().registerUplinkHandle(uplinkId, handle);
+
+export const registerSettingsTab = (def: SettingsTabDefinition): void =>
+  getHost().registerSettingsTab(def);
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
@@ -181,6 +215,23 @@ export function useViewClockOptional(): unknown {
   return getHost().useViewClockOptional();
 }
 
+/**
+ * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
+ * `undefined` when none is mounted — for imperative use outside a hook
+ * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
+ */
+export function getActiveTelemetryClient(): TelemetryClient | undefined {
+  return getHost().getActiveTelemetryClient();
+}
+
+/**
+ * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
+ * `TelemetryClient` — `undefined` with no provider mounted.
+ */
+export function useTelemetryClientOptional(): TelemetryClient | undefined {
+  return getHost().useTelemetryClientOptional();
+}
+
 // --- Data introspection shims (stateful → injected host) ---------------------
 
 /** The enriched schema (key + label/unit/group) for a data source's keys. */
@@ -203,6 +254,47 @@ export function getGameHost(): string {
 /** Subscribe to any change (saved OR seeded) for one shared settings key. */
 export function subscribeSetting(key: string, cb: () => void): () => void {
   return getHost().subscribeSetting(key, cb);
+}
+
+// --- DataSource + registry accessor shims (stateful → injected host) --------
+
+/**
+ * Reach a data source already registered in the app's single registry — for
+ * an Uplink that AUTHORS its own `DataSource` to make imperative calls on its
+ * own instance. See `GonogoHost.getDataSource`'s doc: this is for reaching
+ * your own registered source, not a bypass of `useDataValue`/`useExecuteAction`
+ * for ordinary consumer reads.
+ */
+export function getDataSource(id: string): DataSource | undefined {
+  return getHost().getDataSource(id);
+}
+
+/**
+ * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Resolves to the
+ * app's own registry, not a bundled copy — see `GonogoHost.getBody`'s doc.
+ */
+export function getBody(id: string): BodyDefinition | undefined {
+  return getHost().getBody(id);
+}
+
+/** Every registered fog-of-war reveal source, in registration order. */
+export function getFogRevealSources(): FogRevealSourceDefinition[] {
+  return getHost().getFogRevealSources();
+}
+
+/** Subscribe to any change (register/unregister) in the fog reveal source registry. */
+export function onFogRevealSourcesChange(cb: () => void): () => void {
+  return getHost().onFogRevealSourcesChange(cb);
+}
+
+/** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
+export function useFogMaskCache() {
+  return getHost().useFogMaskCache();
+}
+
+/** Look up a previously registered Uplink handle by id. `undefined` if none. */
+export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
+  return getHost().getUplinkHandle<T>(uplinkId);
 }
 
 // --- Logger shim (stateful → injected host) ---------------------------------
@@ -258,6 +350,13 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
 }
 
 // --- Trivial utils (stateless, self-contained) -------------------------------
+
+/**
+ * A small typed wrapper around `localStorage`. Stateless (no module-global
+ * registry) — a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
+ * not a re-export. See `./localStorageStore.ts`'s module header for why.
+ */
+export { LocalStorageStore } from "./localStorageStore";
 
 /**
  * Like `crypto.randomUUID()` but works on insecure-context pages — most
