@@ -179,7 +179,7 @@ function PushedItem({
                 </MissingComponent>
               )}
             >
-              <RequiresGuard requires={def.requires}>
+              <RequiresGuard requires={def.requires} channels={def.channels}>
                 <def.component
                   id={placement.widget.widgetInstanceId}
                   config={placement.widget.config}
