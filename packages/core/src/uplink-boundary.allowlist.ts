@@ -142,6 +142,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/testing/installDomStubs.ts",
       "packages/data/src/FlightsManager/AutoRecordController.tsx",
       "packages/relay/src/bootstrapConfig.ts",
+      // slots.ts's header comment explains why kerbcast's OWN CameraFeed
+      // slots ("camera-feed.overlay"/".badges") are deliberately NOT
+      // centrally mirrored here (would need the sdk leaf to import from an
+      // Uplink client package — the same turbo `^build` cycle the whole
+      // file's mirroring approach exists to avoid). Comment-only; nothing
+      // kerbcast-specific is imported or re-exported.
+      "mod/sitrep-sdk/src/api/slots.ts",
     ],
   },
 
@@ -171,6 +178,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/topics.test-d.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
       "mod/sitrep-sdk/src/topics.ts",
+      // slots.ts's header comment explains why scansat's OWN Scanning
+      // slots ("scanning.sections"/".badges") are deliberately NOT
+      // centrally mirrored here (would need the sdk leaf to import from an
+      // Uplink client package — the same turbo `^build` cycle the whole
+      // file's mirroring approach exists to avoid). Comment-only; nothing
+      // scansat-specific is imported or re-exported.
+      "mod/sitrep-sdk/src/api/slots.ts",
       "packages/sitrep-client/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-topic.ts",
 
