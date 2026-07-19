@@ -35,6 +35,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { axe } from "../test/axe";
 import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
@@ -324,6 +325,12 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     await waitFor(() => expect(screen.getByText("kos")).toBeInTheDocument());
     expect(screen.getByText("degraded")).toBeInTheDocument();
     expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
+
+    // "system" is healthy with no detail, so it collapses into the N/M
+    // healthy chip by default (Task 6) — expand it to assert its fields too.
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /show/i }));
+
     expect(screen.getByText("system")).toBeInTheDocument();
     expect(screen.getByText("healthy")).toBeInTheDocument();
     expect(screen.getAllByText("v1.0.0")).toHaveLength(2);
@@ -375,6 +382,143 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     expect(
       screen.queryByText("Waiting for uplink health report..."),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsModal Data Sources tab — healthy-uplinks collapse chip", () => {
+  it("folds plain healthy/no-detail uplinks into an N/M healthy chip, collapsed by default", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "vessel",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+        {
+          id: "career",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+        {
+          id: "kos",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 1, detail: "no active CPU selected" },
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("2/3 healthy")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("vessel")).not.toBeInTheDocument();
+    expect(screen.queryByText("career")).not.toBeInTheDocument();
+    // The non-healthy uplink stays individually visible, uncollapsed.
+    expect(screen.getByText("kos")).toBeInTheDocument();
+    expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
+  });
+
+  it("expands the healthy list when the chip's toggle is clicked", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "vessel",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+        {
+          id: "career",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+      ],
+    });
+    await waitFor(() =>
+      expect(screen.getByText("2/2 healthy")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("vessel")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /show/i }));
+
+    expect(screen.getByText("vessel")).toBeInTheDocument();
+    expect(screen.getByText("career")).toBeInTheDocument();
+  });
+
+  it("does NOT collapse a healthy uplink that carries a self-reported detail string", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "comms",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: "backend: CommNet elected" },
+        },
+      ],
+    });
+
+    await waitFor(() => expect(screen.getByText("comms")).toBeInTheDocument());
+    expect(screen.getByText("backend: CommNet elected")).toBeInTheDocument();
+    // No collapse chip renders — distinct from the row's own inline health
+    // state label (also literally "healthy"), which is why this checks the
+    // chip's specific "N/M healthy" wording rather than a bare /healthy$/.
+    expect(screen.queryByText(/\d+\/\d+ healthy/)).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations with a mix of collapsed-healthy and expanded non-healthy uplinks", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    const { container } = renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    stream.emit({
+      uplinks: [
+        {
+          id: "vessel",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: null },
+        },
+        {
+          id: "kos",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 1, detail: "no active CPU selected" },
+        },
+      ],
+    });
+    await waitFor(() =>
+      expect(screen.getByText("1/2 healthy")).toBeInTheDocument(),
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
 

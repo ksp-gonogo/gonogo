@@ -22,6 +22,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
+import { Badge } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
@@ -265,6 +266,7 @@ function UplinkLoaderSection() {
 function UplinkHealthList() {
   const hostDown = useTelemetryHostDown();
   const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const [showHealthy, setShowHealthy] = useState(false);
 
   if (hostDown) {
     return <Placeholder>{NO_TELEMETRY_HOST_MESSAGE}</Placeholder>;
@@ -276,11 +278,46 @@ function UplinkHealthList() {
     return <Placeholder>No uplinks registered</Placeholder>;
   }
 
+  // Collapse a plain derived-from-availability Healthy entry (no
+  // self-reported detail) into the chip below; anything non-healthy, or
+  // healthy-with-a-detail-string (the self-reporting IUplinkHealthReporter
+  // case — see the design doc), stays individually visible.
+  const collapsible = uplinkHealth.uplinks.filter(
+    (u) => u.health.state === "healthy" && u.health.detail === null,
+  );
+  const alwaysVisible = uplinkHealth.uplinks.filter(
+    (u) => !(u.health.state === "healthy" && u.health.detail === null),
+  );
+
   return (
     <UplinkList>
-      {uplinkHealth.uplinks.map((entry) => (
+      {alwaysVisible.map((entry) => (
         <UplinkRow key={entry.id} entry={entry} />
       ))}
+      {collapsible.length > 0 && (
+        <HealthySummaryItem>
+          <HealthySummaryRow>
+            <Badge tone="go">
+              {collapsible.length}/{uplinkHealth.uplinks.length} healthy
+            </Badge>
+            <GhostButton
+              type="button"
+              aria-expanded={showHealthy}
+              aria-controls="uplink-healthy-list"
+              onClick={() => setShowHealthy((v) => !v)}
+            >
+              {showHealthy ? "Hide" : "Show"}
+            </GhostButton>
+          </HealthySummaryRow>
+          {showHealthy && (
+            <UplinkList id="uplink-healthy-list">
+              {collapsible.map((entry) => (
+                <UplinkRow key={entry.id} entry={entry} />
+              ))}
+            </UplinkList>
+          )}
+        </HealthySummaryItem>
+      )}
     </UplinkList>
   );
 }
@@ -497,6 +534,20 @@ const UplinkList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 8px;
+`;
+
+const HealthySummaryItem = styled.li`
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const HealthySummaryRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
 `;
 
 const UplinkItem = styled.li`
