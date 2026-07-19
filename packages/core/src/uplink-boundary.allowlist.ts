@@ -413,6 +413,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // above) — same subject, same category.
       "packages/core/src/hooks/map-command.coverage.test.ts",
       "packages/core/src/styleguide-styled-components.test.ts",
+      // uplink-health-render-gating feature (2026-07-19): uplink-health.test.ts
+      // and useUplinkHealthFor.test.tsx use "kos.terminal."/"kos.processors" as
+      // sample owned-prefix strings exercising the generic longest-prefix-match
+      // resolver — same "topic string, no real kOS import" category as
+      // PeerTransport.test.ts above.
+      "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
+      "packages/sitrep-client/src/uplink-health.test.ts",
       // BufferedDataSource.test.ts / useDataSchema.test.tsx test the doc-
       // comment-only files of the same name below — same subject.
       "packages/data/src/BufferedDataSource.test.ts",
