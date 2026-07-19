@@ -51,7 +51,7 @@ namespace Gonogo.KosUplink
     /// method" behaviour, not a special-cased seam.</para>
     /// </summary>
     [SitrepUplink("kos")]
-    public sealed partial class KosExtension : ISitrepUplink
+    public sealed partial class KosExtension : ISitrepUplink, IUplinkHealthReporter
     {
         // Bound in InstallProductionDefaults() (KosExtension.Ksp.cs) for a
         // production instance; a caller-supplied value (e.g. a test) is left
@@ -71,6 +71,18 @@ namespace Gonogo.KosUplink
         // fake assignment.
 #pragma warning disable CS0649 // field is never assigned to in this compilation unit
         private IChannelPublisher? _processorsPublisher;
+
+        // Health state (see IUplinkHealthReporter / KosHealth), mirroring
+        // KerbcastUplink's volatile-field pattern exactly: _unavailableReason
+        // is written once, in RegisterKspBindings (KosExtension.Ksp.cs), when
+        // the kOS version guard fails; _sampledOnce/_lastProcessorCount are
+        // written on the Courier thread by HandleProcessors below, every
+        // kos.processors sample. Health() itself is polled on EVERY
+        // system.uplinks sample and must stay cheap/non-blocking, hence
+        // volatile reads of cached state rather than touching kOS directly.
+        private volatile string? _unavailableReason;
+        private volatile bool _sampledOnce;
+        private int _lastProcessorCount = -1;
 
         // Interactive terminal-over-Uplink: the kos.terminal.<coreId> screen
         // downlink + single-owner keystroke/resize/open/close commands that
@@ -334,8 +346,27 @@ namespace Gonogo.KosUplink
                     flattened.Add(KosProcessorInfoBuilder.Build(p.CoreId, p.Tag, p.HasBooted, p.BootFilePath, p.ProcessorMode));
                 }
                 _processorsPublisher?.Publish(flattened, capture.Ut);
+
+                // Health bookkeeping (see IUplinkHealthReporter / KosHealth) —
+                // cache the CPU count this sample saw, same seam as the
+                // publish above, so Health() never re-reads kOS itself.
+                Volatile.Write(ref _lastProcessorCount, capture.List.Count);
+                _sampledOnce = true;
             }
         }
+
+        /// <summary>
+        /// The MANDATORY healthcheck (see <see cref="IUplinkHealthReporter"/>) —
+        /// polled on the Courier thread every <c>system.uplinks</c> sample, so
+        /// it only ever reads cached volatile state written above by the
+        /// main-thread-fed processor capture. Never touches kOS/Unity
+        /// directly. The state machine itself is <see cref="KosHealth"/> —
+        /// see that type's doc comment for the divergence from the original
+        /// "no active CPU selected" design framing (a client-side concept
+        /// this mod-side interface cannot observe).
+        /// </summary>
+        public UplinkHealth Health() => KosHealth.Evaluate(
+            _unavailableReason, _sampledOnce, Volatile.Read(ref _lastProcessorCount));
 
         /// <summary>Plain cross-thread payload bundle — no live kOS references (mirrors CommsCoreUplink.CommsCapture).</summary>
         private sealed class ProcessorsCapture

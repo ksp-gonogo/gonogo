@@ -45,6 +45,9 @@
     <Compile Include="..\GonogoKosUplink\KosComputeAccumulator.cs" />
     <Compile Include="..\GonogoKosUplink\KosDataParser.cs" />
     <Compile Include="..\GonogoKosUplink\KosVersionGuard.cs" />
+    <!-- KosExtension.cs's IUplinkHealthReporter.Health() state machine — pure
+         function, no kOS/Unity types, mirrors KerbcastHealth.cs. -->
+    <Compile Include="..\GonogoKosUplink\KosHealth.cs" />
     <Compile Include="..\GonogoKosUplink\KosTerminalManager.cs" />
     <Compile Include="..\GonogoKosUplink\KosRunManager.cs" />
     <Compile Include="..\GonogoKosUplink\MainThreadDispatcher.cs" />
