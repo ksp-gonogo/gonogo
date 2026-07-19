@@ -33,6 +33,11 @@
  * harness generic: any stream-driven widget gets coverage by authoring a
  * fixture, no probe changes required.
  */
+// MUST be the first import: installs the injected gonogo host before the
+// `@ksp-gonogo/kos` side-effect import below self-registers a facade-sealed
+// widget (which would otherwise throw "the gonogo host has not been installed"
+// at module load). ES imports are hoisted in source order.
+import "./probe-install-host";
 import {
   DashboardItemContext,
   getComponent,
