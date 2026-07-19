@@ -64,6 +64,10 @@ namespace Gonogo.KosUplink
             if (!guard.IsAvailable)
             {
                 host.SetAvailability(Availability.Unavailable(guard.Reason ?? "kOS unavailable"));
+                // Mirrors KerbcastUplink's _unavailableReason: wins over
+                // every other Health() state (see KosHealth.Evaluate) since
+                // the uplink never samples past this point.
+                _unavailableReason = guard.Reason ?? "kOS unavailable";
                 // Still publish an empty CPU list so the client can render a
                 // definite "no kOS" rather than a hang. Always empty on this
                 // path, so the element type is nominal — kept as the same
