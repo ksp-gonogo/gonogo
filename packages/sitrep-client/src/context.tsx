@@ -13,6 +13,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { TelemetryClient } from "./client";
 import { DelayAuthority } from "./delay-authority";
@@ -250,11 +251,18 @@ export function TelemetryProvider({
   // Registers the client itself as `getActiveTelemetryClient()`'s source —
   // the plain-class (non-hook) command-dispatch equivalent of
   // `useTelemetryClientOptional()`, same rationale as `activeViewClock`/
-  // `activeTimelineStore` above.
+  // `activeTimelineStore` above. Notifies `activeTelemetryClientListeners`
+  // on both mount and unmount so `useActiveTelemetryClient()` (the reactive
+  // counterpart used by call sites that render BEFORE a provider mounts,
+  // e.g. a modal opened during the app's connect-in-progress window) picks
+  // up the change instead of staying stuck on whatever it read at its own
+  // first render.
   useEffect(() => {
     activeTelemetryClient = client;
+    notifyActiveTelemetryClientListeners();
     return () => {
       if (activeTelemetryClient === client) activeTelemetryClient = undefined;
+      notifyActiveTelemetryClientListeners();
     };
   }, [client]);
   // Registers the carried-channels allowlist as `getActiveCarriedChannels()`'s
@@ -649,6 +657,22 @@ let activeTimelineStore:
 let activeTelemetryClient: TelemetryClient | undefined;
 
 /**
+ * Listeners notified whenever `activeTelemetryClient` changes (a
+ * `TelemetryProvider` mounts, unmounts, or swaps its `client` prop). Backs
+ * `subscribeActiveTelemetryClient`/`useActiveTelemetryClient` — the reactive
+ * counterpart to the plain `getActiveTelemetryClient()` read, for a call
+ * site that renders before any provider is mounted (e.g. a modal opened
+ * during the app's connect-in-progress window) and needs to pick up the
+ * client the moment it appears rather than staying stuck on the `undefined`
+ * it captured at its own first render.
+ */
+const activeTelemetryClientListeners = new Set<() => void>();
+
+function notifyActiveTelemetryClientListeners(): void {
+  for (const listener of activeTelemetryClientListeners) listener();
+}
+
+/**
  * The most recently mounted `TelemetryProvider`'s carried-channels allowlist,
  * tracked outside React — the plain-class equivalent of
  * `useCarriedChannelsOptional()`. See `activeTelemetryClient`'s doc comment.
@@ -791,6 +815,38 @@ export function getActiveTelemetryClient(): TelemetryClient | undefined {
 }
 
 /**
+ * Registers `listener` to fire whenever `activeTelemetryClient` changes.
+ * Backs `useActiveTelemetryClient`; exported directly for any non-React
+ * subscriber that needs the same live notification. Returns an unsubscribe
+ * function.
+ */
+export function subscribeActiveTelemetryClient(
+  listener: () => void,
+): () => void {
+  activeTelemetryClientListeners.add(listener);
+  return () => {
+    activeTelemetryClientListeners.delete(listener);
+  };
+}
+
+/**
+ * Reactive equivalent of `getActiveTelemetryClient()` — re-renders the
+ * calling component whenever the active `TelemetryProvider` mounts,
+ * unmounts, or swaps its `client`. Use this (instead of the plain getter)
+ * from any component that might render BEFORE a `TelemetryProvider` mounts
+ * — the plain getter reads once and never updates, so a component like
+ * `ModalTelemetryBridge` that opens during the app's connect-in-progress
+ * window would otherwise be stuck rendering its children with no telemetry
+ * context for its entire lifetime, even after the real client connects.
+ */
+export function useActiveTelemetryClient(): TelemetryClient | undefined {
+  return useSyncExternalStore(
+    subscribeActiveTelemetryClient,
+    getActiveTelemetryClient,
+  );
+}
+
+/**
  * Non-hook equivalent of `useCarriedChannelsOptional()`. See
  * `activeCarriedChannels`'s doc comment.
  */
@@ -876,6 +932,7 @@ export function setActiveTelemetryClientForTests(
   client: TelemetryClient | undefined,
 ): void {
   activeTelemetryClient = client;
+  notifyActiveTelemetryClientListeners();
 }
 
 /**
