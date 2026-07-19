@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { kosSource } from "../dataSource/kos";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KosTerminalComponent } from "./index";
@@ -1455,6 +1456,235 @@ describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
     act(() => getOnData()("/"));
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("kOS terminal — live drive listing + copy-local (RUNPATH injection increment (b))", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearRegistry();
+  });
+  afterEach(() => {
+    clearRegistry();
+  });
+
+  const SCRIPTS = ["0:/widget_scripts/gravityturn.ks", "1:/backup.ks"];
+
+  /** Carries "kos.run.7" too, so a test can answer the live listing's own kos.run dispatch. */
+  function scriptListingFixture() {
+    const fixture = setupStreamFixture({
+      carriedChannels: [...CARRIED, "kos.run.7"],
+      pinnedUt: 10,
+    });
+    const commands: Array<{ command: string; args: unknown }> = [];
+    fixture.transport.setCommandHandler((command, args) => {
+      commands.push({ command, args });
+      return { success: true };
+    });
+    return { ...fixture, commands };
+  }
+
+  function kosRunRequestId(
+    commands: Array<{ command: string; args: unknown }>,
+    index: number,
+  ): string {
+    const runs = commands.filter((c) => c.command === "kos.run");
+    return (runs[index].args as { requestId: string }).requestId;
+  }
+
+  it("dispatches the resurrected KOS_FILES_SCRIPT via executeScript for each volume and populates the picker once resolved, filtering to *.ks/*.ksm files", async () => {
+    const fixture = scriptListingFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    // Warm the kos Uplink executor's OWN kos.processors subscription BEFORE
+    // the picker ever dispatches — mirrors KosCpuDiscovery's eager adopt at
+    // app-mount (not present in this narrow fixture). Without this, the
+    // executor's tagname → coreId map is cold on its first call and
+    // rejects immediately (kos-execute-uplink.test.ts documents the same
+    // race — "prime it, then publish the CPU list").
+    act(() => {
+      kosSource.attachTelemetryClient(fixture.client);
+      fixture.emit("kos.processors", ONE_CPU);
+    });
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    // The two LISTED_VOLUMES dispatches are serialised through the SAME
+    // per-CPU FIFO queue (KosUplinkCpuQueue) — only one is in flight at a
+    // time, so the second doesn't appear until the first is answered.
+    await waitFor(() => {
+      expect(
+        fixture.commands.filter((c) => c.command === "kos.run"),
+      ).toHaveLength(1);
+    });
+    act(() => {
+      fixture.emit("kos.run.7", {
+        coreId: 7,
+        requestId: kosRunRequestId(fixture.commands, 0),
+        fields: {
+          op: "list",
+          path: "0:",
+          listing: JSON.stringify([
+            { name: "gravityturn.ks", size: 120, isDir: false },
+            { name: "notascript.txt", size: 10, isDir: false },
+            { name: "subdir", size: 0, isDir: true },
+          ]),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        fixture.commands.filter((c) => c.command === "kos.run"),
+      ).toHaveLength(2);
+    });
+    act(() => {
+      fixture.emit("kos.run.7", {
+        coreId: 7,
+        requestId: kosRunRequestId(fixture.commands, 1),
+        fields: { op: "list", path: "1:", listing: "[]" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("0:/gravityturn.ks")).toBeInTheDocument();
+    });
+    // Non-.ks files and directories never make it into the picker.
+    expect(screen.queryByText(/notascript\.txt/)).not.toBeInTheDocument();
+    expect(screen.queryByText("subdir")).not.toBeInTheDocument();
+  });
+
+  it("gracefully shows a hint (never crashes) when the resolved CPU has no tagname to dispatch the live listing to", async () => {
+    const UNTAGGED_CPU: KosProcessorInfo[] = [
+      {
+        coreId: 7,
+        tag: undefined,
+        hasBooted: true,
+        bootFilePath: undefined,
+        processorMode: "READY",
+      },
+    ];
+    const fixture = scriptListingFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", UNTAGGED_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toHaveTextContent(/no tagname/i);
+    });
+    // The tag check short-circuits before ever calling executeScript.
+    expect(
+      fixture.commands.filter((c) => c.command === "kos.run"),
+    ).toHaveLength(0);
+  });
+
+  it("a configured scriptPaths list wins over the live listing — no executeScript dispatch happens at all", async () => {
+    const fixture = scriptListingFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: ["0:/manual.ks"] }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => {
+      kosSource.attachTelemetryClient(fixture.client);
+      fixture.emit("kos.processors", ONE_CPU);
+    });
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    expect(screen.getByText("0:/manual.ks")).toBeInTheDocument();
+    await Promise.resolve();
+    expect(
+      fixture.commands.filter((c) => c.command === "kos.run"),
+    ).toHaveLength(0);
+  });
+
+  it("Ctrl+L toggles 'copy local & run'; the send prefixes COPYPATH before RUNPATH, targeting the local (1:) copy", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => onData("/"));
+    act(() => onData("\r")); // confirm the first match -> args mode
+    act(() => onData("\x0c")); // Ctrl+L toggles copy-local
+
+    expect(
+      screen.getByRole("checkbox", { name: /Copy local & run/i }),
+    ).toBeChecked();
+
+    act(() => {
+      for (const ch of "5") onData(ch);
+      onData("\r");
+    });
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+      expect((keys[0].args as { chars: string }).chars).toBe(
+        'COPYPATH("0:/widget_scripts/gravityturn.ks", "1:/gravityturn.ks"). RUNPATH("1:/gravityturn.ks", 5).\r',
+      );
+    });
+  });
+
+  it("clicking the 'Copy local & run' switch also toggles it", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+    act(() => getOnData()("\r"));
+
+    const toggle = screen.getByRole("checkbox", { name: /Copy local & run/i });
+    fireEvent.click(toggle);
+    expect(toggle).toBeChecked();
+  });
+
+  it("has no accessible violations with the copy-local toggle visible", async () => {
+    const fixture = terminalFixture();
+    const { container } = render(
+      <fixture.Provider>
+        <KosTerminalComponent
+          config={{ lineMode: true, scriptPaths: SCRIPTS }}
+        />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+    act(() => getOnData()("\r"));
 
     expect(await axe(container)).toHaveNoViolations();
   });

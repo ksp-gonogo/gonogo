@@ -43,6 +43,7 @@ import {
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { useKosScriptListing } from "./useKosScriptListing";
 import "@xterm/xterm/css/xterm.css";
 
 interface KosTerminalConfig {
@@ -282,20 +283,24 @@ function recallNewer(
 
 /**
  * The `/`-triggered script-run composer's state machine (kos-terminal-
- * script-picker, hub-wizard-kos Phase 1 increment (a)). Idle (`null`, held
- * outside this union) until `/` is typed at the very start of an empty
- * line-mode composition — see the `term.onData` callsite for the trigger.
- * "picking" filters `scriptPaths` against `query` and tracks the
- * arrow/mouse-highlighted option; confirming one (Enter or click) moves to
- * "args", where further typed characters compose optional whitespace-
- * separated trailing arguments appended to the eventual RUNPATH call. A
+ * script-picker, hub-wizard-kos Phase 1). Idle (`null`, held outside this
+ * union) until `/` is typed at the very start of an empty line-mode
+ * composition — see the `term.onData` callsite for the trigger. "picking"
+ * filters `scriptPaths` against `query` and tracks the arrow/mouse-
+ * highlighted option; confirming one (Enter or click) moves to "args",
+ * where further typed characters compose optional whitespace-separated
+ * trailing arguments appended to the eventual RUNPATH call. `copyLocal`
+ * (increment (b), Ctrl+L to toggle, or the composer's own affordance)
+ * routes the eventual send through a COPYPATH-then-RUNPATH pair against a
+ * local (`1:`) copy instead of running the script where it lives — for
+ * scripts run REPEATEDLY, so the archive round-trip is only paid once. A
  * second Enter in "args" builds and sends the whole command through the
  * SAME `sendKeystrokeRef`/line-history path an ordinary typed line uses —
- * see `buildRunpathLine` and the `term.onData` callsite.
+ * see `buildRunCommand` and the `term.onData` callsite.
  */
 export type ScriptComposerState =
   | { phase: "picking"; query: string; activeIndex: number }
-  | { phase: "args"; path: string; argsText: string };
+  | { phase: "args"; path: string; argsText: string; copyLocal: boolean };
 
 /**
  * Maps a script path to a combobox option, grouping by the path's leading
@@ -327,21 +332,40 @@ function scriptOptionsFor(
 }
 
 /**
- * Builds the RUNPATH command line kOS will execute, from a confirmed script
- * path and raw whitespace-separated argument tokens. Each token is inserted
+ * Basename of a kOS volume-qualified path — `"0:/widget_scripts/foo.ks"` →
+ * `"foo.ks"`. Used to name the local (`1:`) copy `copyLocal` lands.
+ */
+function scriptBasename(path: string): string {
+  const slash = path.lastIndexOf("/");
+  return slash === -1 ? path : path.slice(slash + 1);
+}
+
+/**
+ * Builds the command line kOS will execute, from a confirmed script path
+ * and raw whitespace-separated argument tokens. Each token is inserted
  * VERBATIM as a kerboscript literal (e.g. `5`, `true`, `"abc"`) — the
  * composer does no quoting or type inference, matching the goal spec's
- * `RUNPATH("<path>"[, arg1, arg2])` shape. Trailing `.` terminates the
- * kerboscript statement; trailing `\r` is the wire Enter byte, identical to
- * an ordinary typed line's `reduceLineModeChar` Enter path.
+ * `RUNPATH("<path>"[, arg1, arg2])` shape.
+ *
+ * `copyLocal` (increment (b)'s "copy local & run" toggle) prefixes a
+ * `COPYPATH("<path>", "<local>").` statement ahead of the RUNPATH, targeting
+ * the script's basename on the CPU's local (`1:`) drive — both statements
+ * on ONE line, still a single `kos.keystroke` round trip under light-time
+ * delay, so a script run repeatedly only pays the archive round-trip once
+ * (subsequent runs execute the already-local copy). Trailing `.` terminates
+ * each kerboscript statement; trailing `\r` is the wire Enter byte,
+ * identical to an ordinary typed line's `reduceLineModeChar` Enter path.
  */
-function buildRunpathLine(
+function buildRunCommand(
   path: string,
   argsText: string,
+  copyLocal: boolean,
 ): { chars: string; label: string } {
   const args = argsText.trim().split(/\s+/).filter(Boolean);
   const argsPart = args.length > 0 ? `, ${args.join(", ")}` : "";
-  const label = `RUNPATH("${path}"${argsPart}).`;
+  const runPath = copyLocal ? `1:/${scriptBasename(path)}` : path;
+  const copyPrefix = copyLocal ? `COPYPATH("${path}", "${runPath}"). ` : "";
+  const label = `${copyPrefix}RUNPATH("${runPath}"${argsPart}).`;
   return { chars: `${label}\r`, label };
 }
 
@@ -404,7 +428,12 @@ function handleScriptComposerInput(
       if (!chosen) return { kind: "noop" };
       return {
         kind: "update",
-        next: { phase: "args", path: chosen.key, argsText: "" },
+        next: {
+          phase: "args",
+          path: chosen.key,
+          argsText: "",
+          copyLocal: false,
+        },
       };
     }
     if (data === "\x7f" || data === "\b") {
@@ -437,8 +466,19 @@ function handleScriptComposerInput(
   // history/cursor handling below, which would silently corrupt a composer
   // that owns the bar.
   if (data === "\r" || data === "\n") {
-    const { chars, label } = buildRunpathLine(state.path, state.argsText);
+    const { chars, label } = buildRunCommand(
+      state.path,
+      state.argsText,
+      state.copyLocal,
+    );
     return { kind: "send", chars, label };
+  }
+  // Ctrl+L: toggle "copy local & run" (increment (b)) — otherwise inert in
+  // this phase (it's not forwarded to the CPU either way; see the C0
+  // control-char filter below), so repurposing it here doesn't shadow any
+  // existing behavior.
+  if (data === "\x0c") {
+    return { kind: "update", next: { ...state, copyLocal: !state.copyLocal } };
   }
   if (data === "\x7f" || data === "\b") {
     if (state.argsText.length === 0) return { kind: "noop" };
@@ -529,6 +569,11 @@ function KosTerminalLive({
     () => resolveCoreId(processors, cpuName, pickedCoreId),
     [processors, cpuName, pickedCoreId],
   );
+  // The resolved CPU's tagname — `executeScript` (the `/`-picker's live
+  // drive-listing RPC, increment (b)) dispatches by TAGNAME, not coreId, so
+  // this is looked up here (where `processors` already lives) rather than
+  // re-subscribing to kos.processors a second time inside the screen.
+  const cpuTag = processors.find((p) => p.coreId === coreId)?.tag;
 
   // No CPU yet, or an ambiguous multi-CPU choice: show a status / picker rather
   // than an empty terminal. The live screen is a keyed child so switching CPUs
@@ -566,6 +611,7 @@ function KosTerminalLive({
     <KosTerminalScreen
       key={coreId}
       coreId={coreId}
+      cpuTag={cpuTag}
       readOnly={readOnly}
       lineMode={lineMode}
       scriptPaths={scriptPaths}
@@ -575,6 +621,8 @@ function KosTerminalLive({
 
 interface KosTerminalScreenProps {
   coreId: number;
+  /** The resolved CPU's tagname, if it has one — see the `/`-picker's live listing hook. */
+  cpuTag: string | undefined;
   readOnly: boolean;
   lineMode: boolean;
   scriptPaths: string[];
@@ -582,6 +630,7 @@ interface KosTerminalScreenProps {
 
 function KosTerminalScreen({
   coreId,
+  cpuTag,
   readOnly,
   lineMode,
   scriptPaths,
@@ -624,10 +673,24 @@ function KosTerminalScreen({
   const scriptComposerRef = useRef<ScriptComposerState | null>(null);
   const [scriptComposer, setScriptComposer] =
     useState<ScriptComposerState | null>(null);
+  // Live drive listing (increment (b)) — only dispatched once the composer
+  // is actually open AND no static `scriptPaths` config already supplies a
+  // list, so every test/usage that configures a static list (increment
+  // (a)'s fixtures) never touches the real executeScript RPC. A config
+  // list, when present, wins outright over the live listing rather than
+  // merging with it.
+  const liveListing = useKosScriptListing(
+    coreId,
+    cpuTag,
+    scriptComposer !== null && scriptPaths.length === 0,
+  );
+  const effectiveScriptPaths =
+    scriptPaths.length > 0 ? scriptPaths : liveListing.paths;
+  const scriptListHint = scriptPaths.length > 0 ? null : liveListing.hint;
   // scriptPaths can change at runtime (increment (b)'s live drive listing) —
   // read via ref for the same mount-only-closure reason as `lineModeRef`.
-  const scriptPathsRef = useRef<string[]>(scriptPaths);
-  scriptPathsRef.current = scriptPaths;
+  const scriptPathsRef = useRef<string[]>(effectiveScriptPaths);
+  scriptPathsRef.current = effectiveScriptPaths;
   const scriptListboxId = useId();
   // lineMode can flip at runtime (a config edit) and must NOT tear down the
   // live xterm — the onData handler reads this ref per keystroke instead of
@@ -1085,7 +1148,7 @@ function KosTerminalScreen({
   // Enter would pick.
   const scriptListing =
     scriptComposer?.phase === "picking"
-      ? scriptOptionsFor(scriptPaths, scriptComposer.query)
+      ? scriptOptionsFor(effectiveScriptPaths, scriptComposer.query)
       : null;
   const scriptActiveIndex =
     scriptComposer?.phase === "picking" ? scriptComposer.activeIndex : -1;
@@ -1174,6 +1237,23 @@ function KosTerminalScreen({
               )}
             </CompositionBar__Text>
           </CompositionBar>
+          {scriptComposer?.phase === "args" && (
+            <ScriptComposerOptions>
+              <Switch
+                checked={scriptComposer.copyLocal}
+                onChange={(checked) => {
+                  if (scriptComposerRef.current?.phase !== "args") return;
+                  const next: ScriptComposerState = {
+                    ...scriptComposerRef.current,
+                    copyLocal: checked,
+                  };
+                  scriptComposerRef.current = next;
+                  setScriptComposer(next);
+                }}
+                label="Copy local & run (Ctrl+L)"
+              />
+            </ScriptComposerOptions>
+          )}
           {scriptListing && (
             <ComboboxListbox
               id={scriptListboxId}
@@ -1196,11 +1276,12 @@ function KosTerminalScreen({
                   phase: "args",
                   path: key,
                   argsText: "",
+                  copyLocal: false,
                 };
                 scriptComposerRef.current = next;
                 setScriptComposer(next);
               }}
-              emptyLabel="No scripts found"
+              emptyLabel={scriptListHint ?? "No scripts found"}
             />
           )}
           {/* A second, compact "NO PATH" flag pinned right on the bar the
@@ -1349,6 +1430,16 @@ const Container = styled.div<{ $readOnly?: boolean }>`
 const CompositionBarWrap = styled.div`
   position: relative;
   flex: 0 0 auto;
+`;
+
+// The "copy local & run" toggle (increment (b)), shown only while the
+// `/`-composer is in "args" phase — a compact row under the bar rather than
+// crowding it, matching the composition bar's own font sizing.
+const ScriptComposerOptions = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 0;
+  font-size: 11px;
 `;
 
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
