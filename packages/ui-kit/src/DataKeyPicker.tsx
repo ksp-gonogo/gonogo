@@ -7,12 +7,17 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import {
+  ComboboxListbox,
+  type ComboboxOption,
+  filterComboboxOptions,
+  flattenComboboxGroups,
+  groupComboboxOptions,
+  moveComboboxActiveIndex,
+} from "./Combobox";
 
-export interface KeyOption {
-  key: string;
-  label?: string;
+export interface KeyOption extends ComboboxOption {
   unit?: string;
-  group?: string;
 }
 
 export interface DataKeyPickerProps {
@@ -21,15 +26,6 @@ export interface DataKeyPickerProps {
   onChange: (key: string | null) => void;
   clearable?: boolean;
   placeholder?: string;
-}
-
-function matches(option: KeyOption, query: string): boolean {
-  if (!query) return true;
-  const q = query.toLowerCase();
-  const label = option.label ?? option.key;
-  return (
-    label.toLowerCase().includes(q) || option.key.toLowerCase().includes(q)
-  );
 }
 
 export function DataKeyPicker({
@@ -53,26 +49,17 @@ export function DataKeyPicker({
   const selectedOption = keys.find((k) => k.key === value);
 
   const filtered = useMemo(
-    () => keys.filter((k) => matches(k, query)),
+    () => filterComboboxOptions(keys, query),
     [keys, query],
   );
 
-  const sortedGroups = useMemo(() => {
-    const groups = new Map<string, KeyOption[]>();
-    for (const k of filtered) {
-      const g = k.group ?? "Other";
-      let bucket = groups.get(g);
-      if (!bucket) {
-        bucket = [];
-        groups.set(g, bucket);
-      }
-      bucket.push(k);
-    }
-    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  const sortedGroups = useMemo(
+    () => groupComboboxOptions(filtered),
+    [filtered],
+  );
 
   const flatOptions = useMemo(
-    () => sortedGroups.flatMap(([, items]) => items),
+    () => flattenComboboxGroups(sortedGroups),
     [sortedGroups],
   );
 
@@ -105,10 +92,10 @@ export function DataKeyPicker({
       closePicker();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, flatOptions.length - 1));
+      setActiveIndex((i) => moveComboboxActiveIndex(i, 1, flatOptions.length));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
+      setActiveIndex((i) => moveComboboxActiveIndex(i, -1, flatOptions.length));
     } else if (e.key === "Enter") {
       // Arrow-highlighted item first; fall back to first filtered result so
       // "type a partial label + Enter" works without needing an arrow key.
@@ -163,41 +150,22 @@ export function DataKeyPicker({
         </ClearButton>
       )}
       {open && (
-        <Dropdown role="listbox" id={listboxId}>
-          {flatOptions.length === 0 ? (
-            <EmptyState>No matches</EmptyState>
-          ) : (
-            sortedGroups.map(([group, items]) => (
-              <DropdownGroup key={group}>
-                <GroupHeader>{group}</GroupHeader>
-                {items.map((opt) => {
-                  const globalIdx = flatOptions.indexOf(opt);
-                  const isActive = globalIdx === activeIndex;
-                  return (
-                    <DropdownItem
-                      key={opt.key}
-                      id={optionId(opt.key)}
-                      role="option"
-                      aria-selected={isActive}
-                      $active={isActive}
-                      $selected={opt.key === value}
-                      onPointerDown={(e) => {
-                        // Prevent the input from losing focus (and triggering
-                        // the outside-click dismiss) before the selection runs.
-                        e.preventDefault();
-                        selectOption(opt.key);
-                      }}
-                      onMouseEnter={() => setActiveIndex(globalIdx)}
-                    >
-                      <ItemLabel>{opt.label ?? opt.key}</ItemLabel>
-                      {opt.unit && <ItemUnit>{opt.unit}</ItemUnit>}
-                    </DropdownItem>
-                  );
-                })}
-              </DropdownGroup>
-            ))
+        <ComboboxListbox
+          id={listboxId}
+          groups={sortedGroups}
+          flatOptions={flatOptions}
+          activeIndex={activeIndex}
+          selectedKey={value}
+          getOptionId={optionId}
+          onHoverIndex={setActiveIndex}
+          onSelectKey={selectOption}
+          renderItem={(opt) => (
+            <>
+              <ItemLabel>{opt.label ?? opt.key}</ItemLabel>
+              {opt.unit && <ItemUnit>{opt.unit}</ItemUnit>}
+            </>
           )}
-        </Dropdown>
+        />
       )}
     </Container>
   );
@@ -250,51 +218,6 @@ const ClearButton = styled.button`
   }
 `;
 
-const Dropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  right: 0;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: 100;
-`;
-
-const DropdownGroup = styled.div``;
-
-const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-  padding: 8px 8px 4px;
-  position: sticky;
-  top: 0;
-  background: var(--color-surface-raised);
-`;
-
-const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: ${({ $active, $selected }) =>
-    $active
-      ? "var(--color-border-subtle)"
-      : $selected
-        ? "var(--color-status-go-bg)"
-        : "transparent"};
-
-  &:hover {
-    background: var(--color-border-subtle);
-  }
-`;
-
 const ItemLabel = styled.span`
   font-size: 12px;
   color: var(--color-text-primary);
@@ -304,11 +227,4 @@ const ItemUnit = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   margin-left: 6px;
-`;
-
-const EmptyState = styled.div`
-  padding: 12px 8px;
-  font-size: 12px;
-  color: var(--color-text-faint);
-  text-align: center;
 `;
