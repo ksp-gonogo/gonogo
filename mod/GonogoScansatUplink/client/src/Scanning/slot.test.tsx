@@ -3,14 +3,11 @@ import {
   clearRegistry,
   getAugmentsForSlot,
   MockDataSource,
+  registerDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
-  type DataKey,
-  registerAugment,
-  registerDataSource,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type DataKey, registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";

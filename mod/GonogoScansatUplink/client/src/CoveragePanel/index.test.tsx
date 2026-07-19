@@ -1,4 +1,8 @@
-import { clearRegistry, MockDataSource } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  MockDataSource,
+  registerDataSource,
+} from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   StubTransport,
@@ -9,7 +13,6 @@ import {
   AugmentSlot,
   type DataKey,
   Quality,
-  registerDataSource,
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";

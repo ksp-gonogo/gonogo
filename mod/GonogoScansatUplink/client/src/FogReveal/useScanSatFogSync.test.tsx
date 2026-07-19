@@ -3,6 +3,7 @@ import {
   clearFogRevealSources,
   clearRegistry,
   MockDataSource,
+  registerDataSource,
 } from "@ksp-gonogo/core";
 import type { FogMaskCache } from "@ksp-gonogo/data";
 import {
@@ -16,7 +17,6 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import type { BodyDefinition } from "@ksp-gonogo/sitrep-sdk";
-import { registerDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

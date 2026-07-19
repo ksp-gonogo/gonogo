@@ -3,6 +3,7 @@ import {
   clearFogRevealSources,
   clearRegistry,
   MockDataSource,
+  registerDataSource,
 } from "@ksp-gonogo/core";
 import {
   BufferedDataSource,
@@ -12,10 +13,7 @@ import {
   MemoryStore,
 } from "@ksp-gonogo/data";
 import type { BodyDefinition, DataKey } from "@ksp-gonogo/sitrep-sdk";
-import {
-  registerDataSource,
-  registerFogRevealSource,
-} from "@ksp-gonogo/sitrep-sdk";
+import { registerFogRevealSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

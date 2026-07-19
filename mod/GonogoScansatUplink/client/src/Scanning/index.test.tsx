@@ -1,11 +1,11 @@
 import {
   clearRegistry,
   MockDataSource,
+  registerDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
-import { registerDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

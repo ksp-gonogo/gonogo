@@ -93,12 +93,13 @@ type _PerfBack = Expect<
 // facade view — is asserted.
 type _Theme = Expect<Assignable<Core.ThemeDefinition, SdkThemeDefinition>>;
 
-// DataSource-author SPI (Phase 0.4, re-added 2026-07-19 — facade-sealing
-// plan §2.1, a conscious reversal of the 2026-07-18 removal): both
-// registerDataSource/getDataSource are typed against the mirror, so both
-// directions matter — an author's def must satisfy core's real
-// registerDataSource, and a source read back via getDataSource must satisfy
-// the author-facing view.
+// DataSource type mirror (facade-sealing, 2026-07-19 final removal of the
+// registerDataSource/getDataSource author SPI — kos and scansat are both off
+// it for good now, see mod/sitrep-sdk/src/api/types.ts's own history
+// comment). The mirror itself stays: an Uplink can still type its own
+// connection-status field (e.g. KerbcastDataSource's `status:
+// DataSourceStatus`) against it without registering through the facade, so
+// both directions are still checked here.
 type _DataSource = Expect<Assignable<SdkDataSource, Core.DataSource>>;
 type _DataSourceBack = Expect<Assignable<Core.DataSource, SdkDataSource>>;
 type _DataSourceStatus = Expect<

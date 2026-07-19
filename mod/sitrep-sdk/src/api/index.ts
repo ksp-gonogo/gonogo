@@ -35,7 +35,6 @@ import type {
   AugmentDefinition,
   BodyDefinition,
   ComponentDefinition,
-  DataSource,
   FogRevealSourceDefinition,
   LateTelemetrySubscribe,
   MapPoiProviderDefinition,
@@ -94,8 +93,8 @@ export type {
  * The shared settings key for the host every Uplink dials (design:
  * `@ksp-gonogo/core`'s `settings/gameHost.ts`). A stable string literal, not a
  * value that ever changes at runtime — mirrored directly rather than imported
- * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource-SPI
- * comment for the full constraint) and kept honest by
+ * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource
+ * type-mirror comment for the full constraint) and kept honest by
  * `packages/core/src/sdk-facade.conformance.test-d.ts`.
  */
 export const GAME_HOST_KEY = "gameHost" as const;
@@ -118,20 +117,6 @@ export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
 
 export const registerMapPoiProvider = (def: MapPoiProviderDefinition): void =>
   getHost().registerMapPoiProvider(def);
-
-/**
- * Author a data source into the app's single registry. Re-added 2026-07-19
- * (facade-sealing plan §2.1) — this SPI was removed 2026-07-18 on the
- * premise that first-party code always imports core's registerDataSource
- * directly; that stopped holding once a facade-sealed kos is exactly the
- * client the premise assumed away. See `./types.ts`'s DataSource-SPI
- * comment for the full history.
- */
-export const registerDataSource = <
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
->(
-  source: DataSource<TConfig>,
-): void => getHost().registerDataSource(source);
 
 export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
   getHost().registerUplinkHandle(uplinkId, handle);
@@ -276,18 +261,7 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
   return getHost().subscribeSetting(key, cb);
 }
 
-// --- DataSource + registry accessor shims (stateful → injected host) --------
-
-/**
- * Reach a data source already registered in the app's single registry — for
- * an Uplink that AUTHORS its own `DataSource` to make imperative calls on its
- * own instance. See `GonogoHost.getDataSource`'s doc: this is for reaching
- * your own registered source, not a bypass of `useDataValue`/`useExecuteAction`
- * for ordinary consumer reads.
- */
-export function getDataSource(id: string): DataSource | undefined {
-  return getHost().getDataSource(id);
-}
+// --- Registry accessor shims (stateful → injected host) ---------------------
 
 /**
  * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Resolves to the
