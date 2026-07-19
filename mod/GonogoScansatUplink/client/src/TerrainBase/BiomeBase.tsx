@@ -9,8 +9,11 @@
 // Mutually exclusive with `AltimetryBase` — see that module's header
 // comment for why the two never need to coordinate directly.
 
-import type {} from "@ksp-gonogo/components"; // pulls MapView's "map-view.base" SlotRegistry merge into this program (see that module's own declare-module comment)
-import { getBody, registerAugment, type SlotProps } from "@ksp-gonogo/core";
+import {
+  getBody,
+  registerAugment,
+  type SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { useScanBiomeGrid } from "../FogReveal/useScanLayers";
 import {

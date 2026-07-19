@@ -20,9 +20,8 @@
 // `scansat.available` is live, so an install without SCANsat never mounts
 // it — zero impact on MapView for non-SCANsat users.
 
-import type {} from "@ksp-gonogo/components"; // pulls MapView's "map-view.sections" SlotRegistry merge into this program (see that module's own declare-module comment)
-import type { SlotProps } from "@ksp-gonogo/core";
-import { registerAugment, useDataValue } from "@ksp-gonogo/core";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, useDataValue } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
