@@ -8,12 +8,9 @@
  * on unmount.
  */
 
-import {
-  clearRegistry,
-  clearUplinkHandles,
-  registerUplinkHandle,
-} from "@ksp-gonogo/core";
+import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
+import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

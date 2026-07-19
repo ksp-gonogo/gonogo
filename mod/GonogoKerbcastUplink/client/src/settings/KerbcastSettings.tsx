@@ -1,4 +1,4 @@
-import { registerSettingsTab } from "@ksp-gonogo/core";
+import { registerSettingsTab } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";

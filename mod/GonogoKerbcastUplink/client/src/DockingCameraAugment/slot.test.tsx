@@ -1,15 +1,14 @@
-import {
-  AugmentSlot,
-  clearRegistry,
-  clearUplinkHandles,
-  registerUplinkHandle,
-} from "@ksp-gonogo/core";
+import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import {
+  AugmentSlot,
+  Quality,
+  registerUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 // Importing the real module runs its module-load `registerAugment(...)` once —

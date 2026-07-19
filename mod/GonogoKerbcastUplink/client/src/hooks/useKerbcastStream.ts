@@ -1,4 +1,3 @@
-import { getUplinkHandle } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
   attachEncodedWorkerFrameDelay,
@@ -6,12 +5,12 @@ import {
   type CaptureClockSample,
   createFrameDelayStream,
   createWorkerFrameDelayStream,
-  type DelayClockLike,
   type DelayedStreamBuildContext,
   isFrameDelaySupported,
   SharedDelayedStreams,
   type SnapshottableDelayClock,
 } from "@ksp-gonogo/sitrep-client";
+import { type DelayClockLike, getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 

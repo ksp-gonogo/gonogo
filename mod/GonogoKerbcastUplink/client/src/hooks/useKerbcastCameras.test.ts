@@ -5,8 +5,9 @@
  * WebRTC transport faked by the SDK's canonical MockSidecar.
  */
 
-import { clearUplinkHandles, registerUplinkHandle } from "@ksp-gonogo/core";
+import { clearUplinkHandles } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
+import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

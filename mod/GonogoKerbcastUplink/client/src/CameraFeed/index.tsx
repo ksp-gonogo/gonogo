@@ -1,4 +1,4 @@
-import { registerComponent } from "@ksp-gonogo/core";
+import { registerComponent } from "@ksp-gonogo/sitrep-sdk";
 import {
   CameraFeed,
   type CameraFeedConfig,

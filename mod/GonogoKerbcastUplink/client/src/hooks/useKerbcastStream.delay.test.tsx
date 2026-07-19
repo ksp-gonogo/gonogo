@@ -32,12 +32,9 @@
  * lifecycle wiring AND backend-selection/status reporting.
  */
 
-import {
-  clearRegistry,
-  clearUplinkHandles,
-  registerUplinkHandle,
-} from "@ksp-gonogo/core";
-import type { DelayClockLike } from "@ksp-gonogo/sitrep-client";
+import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
+import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
+import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

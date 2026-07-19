@@ -1,11 +1,3 @@
-import type { DataSourceStatus } from "@ksp-gonogo/core";
-import {
-  GAME_HOST_KEY,
-  getGameHost,
-  PerfBudget,
-  registerUplinkHandle,
-  subscribeSetting,
-} from "@ksp-gonogo/core";
 import {
   type CameraState,
   type ClientMessage,
@@ -16,6 +8,14 @@ import {
   type KerbcastTransport,
 } from "@ksp-gonogo/kerbcast";
 import { logger } from "@ksp-gonogo/logger";
+import type { DataSourceStatus } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createPerfBudget,
+  GAME_HOST_KEY,
+  getGameHost,
+  registerUplinkHandle,
+  subscribeSetting,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the
@@ -105,7 +105,7 @@ async function fetchRelayIceServers(): Promise<RTCIceServer[]> {
   }
 }
 
-const KERBCAST_CAMERAS_BUDGET = new PerfBudget({
+const KERBCAST_CAMERAS_BUDGET = createPerfBudget({
   name: "KerbcastDataSource cameras updates/sec",
   threshold: 50,
   windowMs: 1000,
