@@ -136,7 +136,7 @@ namespace Gonogo.ScansatUplink
                 publications.Add(new ScanPublication(
                     ScanChannelKind.Mask,
                     subTopic,
-                    ScanGrids.BuildMaskPayload(ScanGrids.Width, ScanGrids.Height, typeBit, packed),
+                    ScanGrids.BuildMaskPayload(cap.Coverage.GetLength(0), cap.Coverage.GetLength(1), typeBit, packed),
                     cap.Ut));
             }
 
