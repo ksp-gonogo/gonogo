@@ -147,6 +147,19 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   // composition text — strip it so history-recall assertions can compare the
   // composed line itself.
   const compositionText = () => compositionBar().replace("❯", "");
+  // Reads the visible caret's split point directly off the DOM: the bar
+  // renders `[before-text, <caret span>, after-text]` as the three children
+  // of its text span (`CompositionBar__Text`) — see the component's render.
+  // Asserting on this (rather than only on the flattened `compositionText`)
+  // proves the caret itself is positioned correctly, not just that the text
+  // round-trips.
+  function caretSplit(): [string, string] {
+    const textSpan = screen.getByLabelText("Line-mode input").children[1];
+    return [
+      textSpan?.childNodes[0]?.textContent ?? "",
+      textSpan?.childNodes[2]?.textContent ?? "",
+    ];
+  }
 
   it("a real Enter keypress through the VT engine sends the composed line as the label, tagged with this terminal's topic", async () => {
     const f = await mountAttached({ lineMode: true });
@@ -318,6 +331,151 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
       expect(interrupt?.topic).toBe("kos/7");
     });
   });
+
+  it("left arrow moves the cursor so typed characters insert mid-line, not just append", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    expect(compositionText()).toBe("run.");
+
+    // Two Lefts put the cursor between "ru" and "n." — a typed char there
+    // should insert, not land at the tail as the pre-fix end-only buffer did.
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    act(() => term().dataHandler("X"));
+
+    expect(compositionText()).toBe("ruXn.");
+    expect(
+      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+  });
+
+  it("left then backspace deletes the character before the cursor, not the tail", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    // Cursor after "run." (index 4) — one Left puts it before the ".".
+    act(() => term().dataHandler("\x1b[D"));
+    act(() => term().dataHandler("\x7f"));
+
+    // Backspace removed "n" (the char before the cursor), not "." (the tail).
+    expect(compositionText()).toBe("ru.");
+  });
+
+  it("delete removes the character at the cursor, leaving the cursor in place", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    // Two Lefts: cursor between "ru" and "n.".
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    act(() => term().dataHandler("\x1b[3~"));
+
+    expect(compositionText()).toBe("ru.");
+    // Cursor stayed put (didn't shift onto the deleted char's old neighbour):
+    // typing now inserts right where the deletion happened.
+    act(() => term().dataHandler("X"));
+    expect(compositionText()).toBe("ruX.");
+  });
+
+  it("cursor clamps at the start of the line: left never moves it past position 0", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "ab") term().dataHandler(ch);
+    });
+    // Three Lefts on a 2-char line — the third is a no-op past the start.
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    act(() => term().dataHandler("X"));
+
+    expect(compositionText()).toBe("Xab");
+  });
+
+  it("cursor clamps at the end of the line: right never moves it past the last character", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "ab") term().dataHandler(ch);
+    });
+    // Cursor is already at the end after typing; extra Rights are no-ops.
+    act(() => {
+      term().dataHandler("\x1b[C");
+      term().dataHandler("\x1b[C");
+      term().dataHandler("\x1b[C");
+    });
+    act(() => term().dataHandler("Y"));
+
+    expect(compositionText()).toBe("abY");
+  });
+
+  it("Home and End jump the cursor to the start and end of the composed line", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    act(() => term().dataHandler("\x1b[H")); // Home
+    act(() => term().dataHandler("X"));
+    expect(compositionText()).toBe("Xrun.");
+
+    act(() => term().dataHandler("\x1b[F")); // End
+    act(() => term().dataHandler("Y"));
+    expect(compositionText()).toBe("Xrun.Y");
+  });
+
+  it("renders a visible caret between the composed characters at the cursor position", async () => {
+    await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    expect(caretSplit()).toEqual(["run.", ""]);
+
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    expect(caretSplit()).toEqual(["ru", "n."]);
+  });
+
+  it("Enter still flushes the WHOLE composed line (+ CR) regardless of cursor position", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    // Move the cursor mid-line before committing — Enter must not truncate
+    // at the cursor, it sends everything.
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    act(() => term().dataHandler("\r"));
+
+    await waitFor(() => {
+      const key = f.transport.sentCommands.find(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(key).toBeDefined();
+      expect(key?.label).toBe("run.");
+      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+    });
+    expect(compositionText()).toBe("");
+  });
 });
 
 // kos-nopath-block-input fix: with no comms path, Enter used to clear the
@@ -410,6 +568,35 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     });
     expect(compositionText()).toBe("run");
 
+    await Promise.resolve();
+    expect(
+      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+  });
+
+  it("no-path still blocks Enter while cursor-based editing continues", async () => {
+    const f = await mountAttached({ lineMode: true });
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No path — commands are not being sent/),
+      ).toBeVisible(),
+    );
+
+    act(() => {
+      for (const ch of "run.") term().dataHandler(ch);
+    });
+    // Left-arrow + mid-line insert still edits the composition while blocked.
+    act(() => {
+      term().dataHandler("\x1b[D");
+      term().dataHandler("\x1b[D");
+    });
+    act(() => term().dataHandler("X"));
+    expect(compositionText()).toBe("ruXn.");
+
+    // Enter is still refused — the line stays put, nothing is sent.
+    act(() => term().dataHandler("\r"));
+    expect(compositionText()).toBe("ruXn.");
     await Promise.resolve();
     expect(
       f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
@@ -516,5 +703,24 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
       expect(compositionBorderRule()).toContain("--color-accent-fg"),
     );
     expect(compositionBorderRule()).not.toContain("--color-status-nogo-fg");
+  });
+
+  // Bug 2: the outline alone doesn't say WHY the box turned red — operators
+  // asked for an explicit, visible badge near the input itself (the existing
+  // `NoPathBadge` sits in the terminal pane's corner, easy to miss while
+  // looking at the composition bar). Distinct short text ("NO PATH") from
+  // that badge's fuller sentence so the two `role="status"` queries never
+  // collide with each other.
+  it("shows a visible NO PATH badge next to the composition bar iff there is no comms path", async () => {
+    const f = await mountAttached({ lineMode: true });
+
+    expect(screen.queryByText("NO PATH")).toBeNull();
+
+    act(() => f.emit("comms.link", { connected: false }));
+    await waitFor(() => expect(screen.getByText("NO PATH")).toBeVisible());
+    expect(screen.getByText("NO PATH")).toHaveAttribute("role", "status");
+
+    act(() => f.emit("comms.link", { connected: true }));
+    await waitFor(() => expect(screen.queryByText("NO PATH")).toBeNull());
   });
 });

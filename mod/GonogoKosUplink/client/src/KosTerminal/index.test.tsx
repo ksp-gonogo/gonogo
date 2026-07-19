@@ -966,7 +966,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
 
   it("line-mode: does not dispatch and shows a No path warning when comms.link reports connected: false", async () => {
     const fixture = connectivityFixture();
-    render(
+    const { container } = render(
       <fixture.Provider>
         <KosTerminalComponent config={{ lineMode: true }} />
       </fixture.Provider>,
@@ -980,6 +980,11 @@ describe("KosTerminal — blocks a send with no comms path", () => {
         screen.getByText(/No path — commands are not being sent/),
       ).toBeInTheDocument(),
     );
+    // Bug 2: a second, compact badge right next to the composition bar the
+    // operator is actually looking at while typing, distinct from the
+    // corner-of-the-terminal warning above.
+    expect(screen.getByText("NO PATH")).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
 
     const onData = getOnData();
     act(() => {
