@@ -25,6 +25,7 @@
     <Compile Include="..\GonogoScansatUplink\VersionGuard.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanChannels.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanGrids.cs" />
+    <Compile Include="..\GonogoScansatUplink\TerrainTiering.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanningVessels.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanScience.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanAnomalies.cs" />
