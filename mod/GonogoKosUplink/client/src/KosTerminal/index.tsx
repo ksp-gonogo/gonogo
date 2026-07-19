@@ -95,8 +95,21 @@ function resolveCoreId(
 // ── Line-mode composition ────────────────────────────────────────────────────
 
 /**
+ * The in-progress line-mode composition: the composed text plus a cursor
+ * position within it (0 = before the first character, `text.length` = after
+ * the last). Replaces a bare `string` buffer so Left/Right/Home/End can move
+ * the insertion point instead of typing always appending to the tail.
+ */
+interface LineComposition {
+  text: string;
+  cursor: number;
+}
+
+const EMPTY_COMPOSITION: LineComposition = { text: "", cursor: 0 };
+
+/**
  * Reduces one input character into the in-progress line-mode composition —
- * a PURE buffer transform that never touches the terminal. The composition is
+ * a PURE transform that never touches the terminal. The composition is
  * rendered in a dedicated input bar (see `CompositionBar` in the component),
  * NOT echoed into the shared xterm screen: the terminal shows only the
  * server-authoritative screen, so an absolutely-positioned server frame can
@@ -105,8 +118,14 @@ function resolveCoreId(
  * On Enter the whole line (+ `\r`) is flushed through `sendChars` as one
  * message (one uplink round-trip per line under light-time delay, not per
  * char); kOS's own echo of that line lands in the terminal a round trip later
- * as the sole persisted copy. Backspace edits the buffer; other C0 control
- * chars are ignored. Pasted / multi-char input is processed char-by-char.
+ * as the sole persisted copy. Typed characters INSERT at the cursor (not
+ * always the tail) and the cursor advances past them; backspace deletes the
+ * character BEFORE the cursor. Other C0 control chars are ignored. Pasted /
+ * multi-char input is processed char-by-char. Cursor movement itself
+ * (Left/Right/Home/End/Delete) is handled by the component's `onData`
+ * handler directly via `moveCursor`/`cursorToStart`/`cursorToEnd`/
+ * `deleteForward` below — those arrive as whole escape sequences the handler
+ * matches before ever calling this reducer, same as Up/Down history recall.
  *
  * `canSend` gates Enter specifically (kos-nopath-block-input fix): with no
  * comms path, `sendChars` would no-op at the dispatch layer anyway (the
@@ -114,39 +133,81 @@ function resolveCoreId(
  * and pushed to history — the command visibly "vanished" even though it was
  * never sent. Refusing Enter HERE, at input-acceptance, before either of
  * those side effects, is what actually keeps the typed command in the box.
- * Regular typing/backspace still edits the buffer while blocked, so the
+ * Regular typing/backspace still edits the composition while blocked, so the
  * operator can keep composing for when the path returns.
  */
 function reduceLineModeChar(
   ch: string,
-  buffer: string,
+  comp: LineComposition,
   sendChars: (chars: string) => void,
   canSend: boolean,
-): string {
+): LineComposition {
   if (ch === "\r" || ch === "\n") {
-    if (!canSend) return buffer;
-    sendChars(`${buffer}\r`);
-    return "";
+    if (!canSend) return comp;
+    sendChars(`${comp.text}\r`);
+    return EMPTY_COMPOSITION;
   }
   if (ch === "\x7f" || ch === "\b") {
-    return buffer.length === 0 ? buffer : buffer.slice(0, -1);
+    if (comp.cursor === 0) return comp;
+    return {
+      text: comp.text.slice(0, comp.cursor - 1) + comp.text.slice(comp.cursor),
+      cursor: comp.cursor - 1,
+    };
   }
   // biome-ignore lint/suspicious/noControlCharactersInRegex: matching C0 control range is the intent
-  if (/[\x00-\x1f]/.test(ch)) return buffer;
-  return `${buffer}${ch}`;
+  if (/[\x00-\x1f]/.test(ch)) return comp;
+  return {
+    text: comp.text.slice(0, comp.cursor) + ch + comp.text.slice(comp.cursor),
+    cursor: comp.cursor + 1,
+  };
 }
 
 function reduceLineModeInput(
   data: string,
-  buffer: string,
+  comp: LineComposition,
   sendChars: (chars: string) => void,
   canSend: boolean,
-): string {
-  let next = buffer;
+): LineComposition {
+  let next = comp;
   for (const ch of data) {
     next = reduceLineModeChar(ch, next, sendChars, canSend);
   }
   return next;
+}
+
+/**
+ * Left/Right arrow: moves the cursor by `delta`, clamped to stay within the
+ * composed text (never negative, never past `text.length`). A no-op returns
+ * the SAME object (not a fresh clone) so callers can skip a state update.
+ */
+function moveCursor(comp: LineComposition, delta: number): LineComposition {
+  const cursor = Math.max(0, Math.min(comp.text.length, comp.cursor + delta));
+  return cursor === comp.cursor ? comp : { ...comp, cursor };
+}
+
+/** Home: jumps the cursor to the start of the composed line. */
+function cursorToStart(comp: LineComposition): LineComposition {
+  return comp.cursor === 0 ? comp : { ...comp, cursor: 0 };
+}
+
+/** End: jumps the cursor to the end of the composed line. */
+function cursorToEnd(comp: LineComposition): LineComposition {
+  return comp.cursor === comp.text.length
+    ? comp
+    : { ...comp, cursor: comp.text.length };
+}
+
+/**
+ * Delete (forward-delete): removes the character AT the cursor (the one
+ * immediately after it), leaving the cursor position unchanged. A no-op at
+ * the end of the line, where there is nothing to delete forward.
+ */
+function deleteForward(comp: LineComposition): LineComposition {
+  if (comp.cursor >= comp.text.length) return comp;
+  return {
+    text: comp.text.slice(0, comp.cursor) + comp.text.slice(comp.cursor + 1),
+    cursor: comp.cursor,
+  };
 }
 
 // ── Line-mode history recall ─────────────────────────────────────────────────
@@ -301,12 +362,13 @@ function KosTerminalScreen({
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   // The in-progress, not-yet-committed line-mode composition (typed since the
-  // last Enter). It lives in a dedicated input bar, NEVER echoed into the
-  // xterm screen — so a server frame can't merge into or wipe it. The ref is
-  // the synchronous source of truth the onData handler mutates; `composition`
-  // state mirrors it for the bar's render.
-  const lineBufferRef = useRef<string>("");
-  const [composition, setComposition] = useState("");
+  // last Enter), text plus cursor position. It lives in a dedicated input
+  // bar, NEVER echoed into the xterm screen — so a server frame can't merge
+  // into or wipe it. The ref is the synchronous source of truth the onData
+  // handler mutates; `composition` state mirrors it for the bar's render.
+  const lineBufferRef = useRef<LineComposition>(EMPTY_COMPOSITION);
+  const [composition, setComposition] =
+    useState<LineComposition>(EMPTY_COMPOSITION);
   // Shell-style history recall over lines sent via line-mode Enter this
   // session (see `recallOlder`/`recallNewer`). `historyIndexRef` is `null`
   // while editing the live draft; `historyDraftRef` snapshots that draft the
@@ -335,8 +397,8 @@ function KosTerminalScreen({
   // composition WHEN the mode flips, not to react to values it reads.
   // biome-ignore lint/correctness/useExhaustiveDependencies: lineMode is the trigger, not a read dependency
   useEffect(() => {
-    lineBufferRef.current = "";
-    setComposition("");
+    lineBufferRef.current = EMPTY_COMPOSITION;
+    setComposition(EMPTY_COMPOSITION);
     historyIndexRef.current = null;
     historyDraftRef.current = "";
   }, [lineMode]);
@@ -527,7 +589,7 @@ function KosTerminalScreen({
           // Up-arrow: recall history, one entry further into the past.
           if (data === "\x1b[A") {
             if (historyIndexRef.current === null) {
-              historyDraftRef.current = lineBufferRef.current;
+              historyDraftRef.current = lineBufferRef.current.text;
             }
             const nav = recallOlder(
               lineHistoryRef.current,
@@ -535,8 +597,14 @@ function KosTerminalScreen({
             );
             if (nav) {
               historyIndexRef.current = nav.index;
-              lineBufferRef.current = nav.value;
-              setComposition(nav.value);
+              // History recall replaces the whole line — the cursor lands at
+              // its end, matching shell recall conventions.
+              const recalled: LineComposition = {
+                text: nav.value,
+                cursor: nav.value.length,
+              };
+              lineBufferRef.current = recalled;
+              setComposition(recalled);
             }
             return;
           }
@@ -549,9 +617,41 @@ function KosTerminalScreen({
             );
             if (nav) {
               historyIndexRef.current = nav.index;
-              lineBufferRef.current = nav.value;
-              setComposition(nav.value);
+              const recalled: LineComposition = {
+                text: nav.value,
+                cursor: nav.value.length,
+              };
+              lineBufferRef.current = recalled;
+              setComposition(recalled);
             }
+            return;
+          }
+          // Left/Right-arrow: move the composition cursor without touching
+          // the text — clamped at both ends by `moveCursor`.
+          if (data === "\x1b[D" || data === "\x1b[C") {
+            const moved = moveCursor(
+              lineBufferRef.current,
+              data === "\x1b[D" ? -1 : 1,
+            );
+            lineBufferRef.current = moved;
+            setComposition(moved);
+            return;
+          }
+          // Home/End: jump the cursor to the start/end of the composed line.
+          if (data === "\x1b[H" || data === "\x1b[F") {
+            const moved =
+              data === "\x1b[H"
+                ? cursorToStart(lineBufferRef.current)
+                : cursorToEnd(lineBufferRef.current);
+            lineBufferRef.current = moved;
+            setComposition(moved);
+            return;
+          }
+          // Delete (forward-delete): remove the character AT the cursor.
+          if (data === "\x1b[3~") {
+            const next = deleteForward(lineBufferRef.current);
+            lineBufferRef.current = next;
+            setComposition(next);
             return;
           }
           // Ctrl+C: clear the in-progress line locally AND forward the
@@ -560,8 +660,8 @@ function KosTerminalScreen({
           // history.
           if (data === "\x03") {
             historyIndexRef.current = null;
-            lineBufferRef.current = "";
-            setComposition("");
+            lineBufferRef.current = EMPTY_COMPOSITION;
+            setComposition(EMPTY_COMPOSITION);
             sendKeystrokeRef.current("\x03", "^C");
             return;
           }
@@ -704,11 +804,36 @@ function KosTerminalScreen({
         </UplinkStrip>
       )}
       {lineMode && !readOnly && (
-        <CompositionBar aria-label="Line-mode input" $noPath={noPath}>
-          <CompositionBar__Prompt aria-hidden="true">❯</CompositionBar__Prompt>
-          <CompositionBar__Text>{composition}</CompositionBar__Text>
-          <CompositionBar__Cursor aria-hidden="true" />
-        </CompositionBar>
+        <CompositionBarWrap>
+          <CompositionBar
+            role="group"
+            aria-label="Line-mode input"
+            $noPath={noPath}
+          >
+            <CompositionBar__Prompt aria-hidden="true">
+              ❯
+            </CompositionBar__Prompt>
+            <CompositionBar__Text>
+              {composition.text.slice(0, composition.cursor)}
+              <CompositionBar__Cursor aria-hidden="true" />
+              {composition.text.slice(composition.cursor)}
+            </CompositionBar__Text>
+          </CompositionBar>
+          {/* A second, compact "NO PATH" flag pinned right on the bar the
+              operator is actually looking at while typing — the existing
+              `NoPathBadge` above sits in the terminal pane's corner, which is
+              easy to miss when attention is on the input line, and the
+              error-tone outline alone (`CompositionBar`'s `$noPath` border)
+              doesn't say WHY the box turned red. Distinct, shorter text from
+              `NoPathBadge`'s so `getByText`-style queries for either can't
+              collide. `role="status"` (not `alert`): connectivity loss is an
+              ambient condition to note, not an interrupting emergency. */}
+          {noPath && (
+            <CompositionBar__NoPathFlag role="status">
+              NO PATH
+            </CompositionBar__NoPathFlag>
+          )}
+        </CompositionBarWrap>
       )}
     </TerminalShell>
   );
@@ -832,6 +957,16 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   }
 `;
 
+// Positioning context for `CompositionBar__NoPathFlag` below, pinned to the
+// bar itself rather than floating as its own flex row — takes over the
+// `flex: 0 0 auto` sizing `CompositionBar` used to own directly as a
+// `TerminalShell` child, so the bar's own height/width is unaffected by the
+// wrap (a plain block box hugs its sole child's size).
+const CompositionBarWrap = styled.div`
+  position: relative;
+  flex: 0 0 auto;
+`;
+
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
 // server-authoritative terminal screen so absolutely-positioned frames can
 // never collide with it. Cleared on Enter (the line is sent; kOS's own echo
@@ -842,7 +977,6 @@ const Container = styled.div<{ $readOnly?: boolean }>`
 // whenever `noPath`, so the box reads as blocked on sight — not just after a
 // refused Enter — instead of staying green (kos-nopath-block-input fix).
 const CompositionBar = styled.div<{ $noPath: boolean }>`
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
   padding: 6px 8px;
@@ -855,6 +989,28 @@ const CompositionBar = styled.div<{ $noPath: boolean }>`
   font-family: monospace;
   font-size: 13px;
   box-sizing: border-box;
+`;
+
+// Compact "NO PATH" flag pinned to the top edge of the composition bar
+// itself — see the render-site comment for why this exists alongside the
+// pre-existing `NoPathBadge` in the terminal pane's corner. Absolutely
+// positioned against `CompositionBarWrap`, so it never affects the bar's own
+// layout/height (and therefore never shifts anything below it in
+// `TerminalShell`).
+const CompositionBar__NoPathFlag = styled.div`
+  position: absolute;
+  top: -9px;
+  right: 8px;
+  z-index: 1;
+  padding: 1px 6px;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  color: var(--color-status-nogo-fg);
+  background: var(--color-status-nogo-bg);
+  border: 1px solid var(--color-status-nogo-fg);
+  border-radius: 4px;
 `;
 
 // No gap here — the cursor block must sit flush against the trailing
