@@ -27,6 +27,7 @@ import type {
   DataSource,
   FogMaskCacheHandle,
   FogRevealSourceDefinition,
+  LateTelemetrySubscribe,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -87,6 +88,14 @@ export interface GonogoHost {
     topic: string,
     handler: (payload: T) => void,
   ): void;
+  /**
+   * Returns a stable, imperative subscribe function for topics that are only
+   * known after some async setup resolves, in a count decided at runtime,
+   * the case `useTelemetry`/`useStream`'s declarative "name every topic on
+   * every render" shape can't express. See `LateTelemetrySubscribe`'s own
+   * doc for the full contract.
+   */
+  useLateTelemetrySubscribe(): LateTelemetrySubscribe;
   /** The current view time (UT seconds), reactive per-frame. */
   useUtNow(): number | undefined;
   /**

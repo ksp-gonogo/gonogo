@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
-import type { TopicId } from "../topics";
+import type { TopicId, TopicPayload } from "../topics";
 
 /** A dashboard component's declared data dependency, e.g. `"vessel.altitude"`. */
 export type DataRequirement = string;
@@ -521,3 +521,36 @@ export type StreamStatusValue =
   | "last-before-blackout"
   | "absent"
   | "resyncing";
+
+// --- Late telemetry subscribe SPI (sitrep-client) ----------------------------
+//
+// Same leaf constraint as `TelemetryClient` above: `LateTelemetrySubscribe` is
+// owned by `@ksp-gonogo/sitrep-client` (use-late-telemetry-subscribe.ts),
+// which the sdk cannot depend on either. It builds on `TopicId`/
+// `TopicPayload`, which ARE sdk-native, so the mirror is structurally
+// identical, not a narrowed subset, kept honest by
+// `packages/core/src/sdk-facade.conformance.test-d.ts`.
+//
+// The client's own `Unsubscribe = () => void` alias is NOT re-exported here
+// under that name: the generated wire contract already exports an
+// `Unsubscribe` interface (the `{ type: "unsubscribe"; topic: string }`
+// client message), and this leaf's root barrel re-exports both the
+// generated contract and this curated api barrel with `export *`, so a
+// second top-level `Unsubscribe` would collide. `LateTelemetrySubscribe`'s
+// return position is written out as `() => void` directly instead.
+
+/**
+ * The imperative subscribe function `useLateTelemetrySubscribe` returns: a
+ * `TopicId` argument infers the payload type from `TopicPayloadMap` (the
+ * same canonical typing `useTelemetry(topic)` gives a static topic); a
+ * plain `string` argument (a runtime-templated topic, e.g. a per-body fog
+ * mask) falls back to an explicit `T` type argument at the call site. Each
+ * overload returns an unsubscribe function, safe to call more than once.
+ */
+export interface LateTelemetrySubscribe {
+  <K extends TopicId>(
+    topic: K,
+    onValue: (value: TopicPayload<K>) => void,
+  ): () => void;
+  <T = unknown>(topic: string, onValue: (value: T) => void): () => void;
+}

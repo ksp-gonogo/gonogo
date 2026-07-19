@@ -164,6 +164,11 @@ export {
 } from "./uplink-health";
 export { useCertainty } from "./use-certainty";
 export { type UseCommandResult, useCommand } from "./use-command";
+export {
+  type LateTelemetrySubscribe,
+  type Unsubscribe,
+  useLateTelemetrySubscribe,
+} from "./use-late-telemetry-subscribe";
 export { useLatestValue, useStream } from "./use-stream";
 export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";

@@ -28,6 +28,7 @@ import type {
   DelayClockLike,
   FogRevealSourceDefinition,
   GonogoHost,
+  LateTelemetrySubscribe,
   Logger,
   MapPoi,
   MapPoiProviderDefinition,
@@ -86,6 +87,7 @@ declare const _host: GonogoHost;
 declare const _logger: Logger;
 declare const _taggedLogger: TaggedLogger;
 declare const _streamStatusValue: StreamStatusValue;
+declare const _lateTelemetrySubscribe: LateTelemetrySubscribe;
 
 // The author-set core of a ComponentDefinition must remain assignable — a probe
 // that the required fields don't silently become optional or retyped.
@@ -135,5 +137,6 @@ export type _ApiShapeProbe = [
   typeof _logger,
   typeof _taggedLogger,
   typeof _streamStatusValue,
+  typeof _lateTelemetrySubscribe,
   typeof _probe,
 ];
