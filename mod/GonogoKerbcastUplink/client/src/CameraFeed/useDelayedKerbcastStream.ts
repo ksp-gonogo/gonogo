@@ -2,7 +2,7 @@ import { useKerbcastClock } from "@ksp-gonogo/kerbcast-react";
 import {
   type CaptureClockSample,
   interpolateCaptureUt,
-} from "@ksp-gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client/media";
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
 import { logger, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
@@ -15,9 +15,11 @@ import {
 // Re-exported for backward compat — `interpolateCaptureUt`/`CaptureClockSample`
 // are the generic capture-clock helpers, now in `@ksp-gonogo/sitrep-client`'s
 // media layer (2026-07-17 move out of the kerbcast client) so any camera
-// Uplink's worker-hosted backend shares the exact same interpolation.
-export type { CaptureClockSample } from "@ksp-gonogo/sitrep-client";
-export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-client";
+// Uplink's worker-hosted backend shares the exact same interpolation. Sourced
+// from the sanctioned `@ksp-gonogo/sitrep-client/media` subpath (2026-07-19),
+// not the package root.
+export type { CaptureClockSample } from "@ksp-gonogo/sitrep-client/media";
+export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-client/media";
 
 // ---------------------------------------------------------------------------
 // Delayed-playout STATUS side channel (cross-browser kerbcast video-delay
