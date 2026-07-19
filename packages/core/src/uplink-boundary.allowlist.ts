@@ -149,6 +149,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // file's mirroring approach exists to avoid). Comment-only; nothing
       // kerbcast-specific is imported or re-exported.
       "mod/sitrep-sdk/src/api/slots.ts",
+      // sdk-facade.conformance.test-d.ts: the drift-guard's own comment on
+      // the new DelayClockLike assertion names kerbcast as the mirror's
+      // consumer (facade-sealing the kerbcast client, 2026-07-19). Prose
+      // only — the file imports sitrep-client/sitrep-sdk types, never
+      // anything kerbcast-specific.
+      "packages/core/src/sdk-facade.conformance.test-d.ts",
     ],
   },
 

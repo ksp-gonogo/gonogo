@@ -432,6 +432,32 @@ export interface TelemetryClient {
   dispose(): void;
 }
 
+// --- Media delay clock SPI (sitrep-client) -----------------------------------
+//
+// Same leaf constraint as `TelemetryClient` above: `DelayClockLike` is owned
+// by `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/media/
+// delayed-playout-buffer.ts), which the sdk cannot depend on either. Mirrors
+// the minimal two-method structural contract a camera Uplink's delayed-media
+// pipeline needs off the one delay authority (`ViewClock` satisfies this
+// structurally) — kept honest by
+// `packages/core/src/sdk-facade.conformance.test-d.ts`.
+
+/**
+ * The minimal delay-clock surface a media delay pipeline depends on — a
+ * subset of `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`).
+ * Kept structural (not `ViewClock` itself) so a camera Uplink never needs to
+ * import sitrep-client just to type the clock it's handed.
+ */
+export interface DelayClockLike {
+  /** The certainty horizon: a frame stamped at-or-before this UT is
+   *  releasable. THE one delay authority — never delay-subtracted here. */
+  confirmedEdgeUt(): number;
+  /** Best-effort per-frame notification (real-time driven). Not required
+   *  for correctness — a deterministic caller can drive releases some other
+   *  way instead. */
+  onFrame(cb: (viewUt: number) => void): () => void;
+}
+
 // --- Performance budgets ----------------------------------------------------
 
 export interface PerfBudgetOptions {
