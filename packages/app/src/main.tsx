@@ -1,3 +1,6 @@
+// MUST be first: installs the injected gonogo host before any static import
+// self-registers a facade-sealed Uplink client (see the module's own header).
+import "./uplinks/install-host-first";
 import {
   ErrorBoundary,
   getTheme,
@@ -27,7 +30,6 @@ import App from "./App";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
 import { LOADER_UPLINK_IDS, uplinkLoaderEnabled } from "./uplinks/flag";
-import { installGonogoHost } from "./uplinks/host";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
 import { localRegistrySource } from "./uplinks/registry";
@@ -35,11 +37,6 @@ import { probeUplinkRoster } from "./uplinks/rosterProbe";
 import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
-
-// Install the injected SDK host once at boot, before any Uplink bundle is
-// import()ed (design §2.2c). Inert on the bundled path — nothing reads the host
-// global unless a runtime-loaded Uplink resolves the sdk facade to it.
-installGonogoHost();
 
 // The Axiom transport is opt-in and consent-gated — it is NOT installed
 // here. The main screen installs/removes it via AnalyticsConsentHost once
