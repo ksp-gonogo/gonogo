@@ -15,33 +15,63 @@ namespace GonogoScansatUplink.Tests
     public class ScanGridsTests
     {
         [Fact]
-        public void BuildHeightsWalksCellsInIlonTimesHeightPlusIlatOrderWithLonMinus180LatMinus90()
+        public void BuildHeightsWalksCellsAtDegPerCellDerivedFromWidthAndHeight()
         {
-            // Encode (lon,lat) into the sample so we can prove the exact cell
-            // the builder handed each index. Use a small grid for clarity.
+            // width=4 -> 90 deg/cell; height=2 -> 90 deg/cell. Deliberately NOT
+            // 360x180, to prove the formula is width/height-driven, not a
+            // hardcoded "ilon-180" 1-degree-per-cell shortcut.
             int w = 4, h = 2;
-            // Encode (lon,lat) into a small, distinct, in-Int16-range value.
-            Func<int, int, int> encode = (lon, lat) => (lon + 200) * 100 + (lat + 100);
-            var grid = ScanGrids.BuildHeights(w, h, (lon, lat) => encode(lon, lat));
+            Func<double, double, double> encode = (lon, lat) => lon * 10 + lat;
+            var grid = ScanGrids.BuildHeights(w, h, encode);
 
-            // index = ilon*h + ilat; lon = ilon-180; lat = ilat-90.
+            double degPerCellLon = 360.0 / w; // 90.0
+            double degPerCellLat = 180.0 / h; // 90.0
             for (int ilon = 0; ilon < w; ilon++)
             {
                 for (int ilat = 0; ilat < h; ilat++)
                 {
-                    int lon = ilon - 180;
-                    int lat = ilat - 90;
-                    Assert.Equal((short)encode(lon, lat), grid.Metres[ilon * h + ilat]);
+                    double lon = ilon * degPerCellLon - 180.0;
+                    double lat = ilat * degPerCellLat - 90.0;
+                    Assert.Equal((short)Math.Round(encode(lon, lat)), grid.Metres[ilon * h + ilat]);
                 }
             }
         }
 
         [Fact]
+        public void BuildHeightsAtStandard360x180StillSamplesIntegerDegrees()
+        {
+            // Backward-compat guard: the production grid size (360x180) must
+            // keep sampling exact integer degrees (degPerCell == 1.0), matching
+            // every call site's existing assumption (SampleElevation etc.).
+            var seen = new List<(double, double)>();
+            ScanGrids.BuildHeights(360, 180, (lon, lat) => { seen.Add((lon, lat)); return 0.0; });
+
+            Assert.Contains((-180.0, -90.0), seen); // ilon=0, ilat=0
+            Assert.Contains((-179.0, -90.0), seen); // ilon=1, ilat=0
+            Assert.Contains((179.0, 89.0), seen);   // ilon=359, ilat=179
+        }
+
+        [Fact]
+        public void BuildBiomeIndicesAtNonStandardGridSamplesFractionalDegrees()
+        {
+            int w = 720, h = 360; // the V1 target size — 0.5 deg/cell.
+            var seen = new List<(double, double)>();
+            ScanGrids.BuildBiomeIndices(w, h, (lon, lat) => { seen.Add((lon, lat)); return -1; });
+
+            Assert.Contains((-180.0, -90.0), seen);  // ilon=0, ilat=0
+            Assert.Contains((-179.5, -90.0), seen);  // ilon=1, ilat=0 -> 0.5 deg step
+            Assert.Contains((179.5, 89.5), seen);    // ilon=719, ilat=359
+        }
+
+        [Fact]
         public void BuildHeightsTracksMinAndMax()
         {
-            var grid = ScanGrids.BuildHeights(4, 2, (lon, lat) => lon); // lon ∈ [-180,-177]
+            // width=4 -> 90 deg/cell, so lon walks -180,-90,0,90 (NOT
+            // integer-degree-contiguous — updated for the width-driven
+            // degPerCell formula, see BuildHeightsWalksCellsAtDegPerCell...).
+            var grid = ScanGrids.BuildHeights(4, 2, (lon, lat) => lon);
             Assert.Equal((short)-180, grid.MinMetres);
-            Assert.Equal((short)-177, grid.MaxMetres);
+            Assert.Equal((short)90, grid.MaxMetres);
         }
 
         [Fact]
@@ -54,9 +84,11 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void BuildBiomeIndicesMapsNegativeToFFAndSaturatesAt254()
         {
-            // sampler: index = lon for the first cell region, -1 sentinel, big value
+            // width=3 -> 120 deg/cell, so lon walks -180,-60,60 (NOT
+            // integer-degree-contiguous — updated for the width-driven
+            // degPerCell formula, see BuildHeightsWalksCellsAtDegPerCell...).
             var indices = ScanGrids.BuildBiomeIndices(3, 1, (lon, lat) =>
-                lon == -180 ? -1 : lon == -179 ? 5 : 999);
+                lon == -180 ? -1 : lon == -60 ? 5 : 999);
             Assert.Equal(0xFF, indices[0]); // -1 -> 0xFF
             Assert.Equal(5, indices[1]);    // pass-through
             Assert.Equal(254, indices[2]);  // saturate
