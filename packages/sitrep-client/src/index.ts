@@ -38,7 +38,10 @@ export {
   useViewUt,
   type ViewClockView,
 } from "./context";
-export { DEFAULT_SITREP_CARRIED_TOPICS } from "./default-carried-topics";
+export {
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+} from "./default-carried-topics";
 export {
   COMMS_DELAY_TOPIC,
   DelayAuthority,

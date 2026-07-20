@@ -81,8 +81,9 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —
-  // those strings aren't known up front and need a prefix/glob extension to
-  // the carried gate (deferred to the compute-feed slice).
+  // it is served by `BufferedDataSource` (the kOS DataSource fanout), which
+  // bypasses this stream carried-channels gate entirely, so it needs no
+  // prefix entry here (unlike the scansat dynamic namespaces below).
   "kos.processors",
   // P4a client-derivations batch: career.mode (D1, useGameContext's career
   // mode display map) and science.sensors (D2, ScienceBench's whole-topic
@@ -152,14 +153,13 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // AvailableTopic/ScanningVesselsTopic consts) — same "must be promoted or
   // stays on the legacy read" rule as the science.* siblings above. The
   // dynamic scansat.coverage/mask/height/biome/anomalies.<body>.<type>
-  // namespace is mapped in map-topic.ts's SCANSAT_DYNAMIC but deliberately
-  // NOT listed here: this allowlist is a literal-string set and those keys
-  // are per-(body,type) — same unenumerable-dynamic-namespace gap already
-  // flagged for kos.compute.<id>.<field> above (needs a prefix/glob
-  // extension to the carried-channels gate, not yet built). Until that
-  // lands, the fog-of-war coverage/mask/height/biome reads — and, as of the
-  // P4c-b anomaly-overlay build, the AnomalyOverlay augment's anomaly reads
-  // too — stay on the legacy source even though mapTopic resolves them.
+  // namespace is mapped in map-topic.ts's SCANSAT_DYNAMIC and per-(body,type),
+  // so it can't be an exact entry here — it is carried by
+  // `DYNAMIC_CARRIED_TOPIC_PREFIXES` (below), which `TelemetryProvider` folds
+  // into the carried set and `isTopicCarried` matches by prefix. Before that
+  // landed, those fog-of-war coverage/mask/height/biome/anomaly reads silently
+  // fell back to the removed legacy source even though mapTopic resolved them —
+  // the "coverage never surfaces" client half.
   "scansat.available",
   "scansat.scanningVessels",
   // kerbcast.available/kerbcast.cameras: the two STATIC topics
@@ -190,4 +190,38 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "flight.started",
   "flight.ended",
   "flight.vesselChanged",
+];
+
+/**
+ * Canonical dynamic-namespace PREFIXES (each ends in `.`) for the SCANsat
+ * per-(body,type) topics whose exact keys can't be enumerated up front —
+ * `scansat.coverage.<body>.<typeBit>` / `scansat.mask.<body>.<typeBit>` (4-seg,
+ * per-body-per-type) and `scansat.{height,biome,anomalies}.<body>` (3-seg,
+ * per-body). These are exactly `ScanChannels.{Coverage,Mask,Height,Biome,
+ * Anomalies}Prefix` (mod/GonogoScansatUplink/ScanChannels.cs) — the
+ * `scansat-wire-contract` test asserts the two lists stay equal so a future
+ * namespace can't drift.
+ *
+ * ONE source of truth consumed at BOTH client chokepoints for these dynamic
+ * topics (the whole reason the pipeline's static-2-segment assumptions miss
+ * them):
+ *   • `TimelineStore` (`dynamicWholeTopicPrefixes` option) resolves a topic
+ *     under one of these to its IDENTITY — a whole raw wire topic — instead of
+ *     mis-splitting it into a `<domain.channel>.<fieldPath>` that is never
+ *     published.
+ *   • the carried-channels gate (`isTopicCarried`) treats a trailing-`.` entry
+ *     as a `startsWith` prefix, so the dynamic key routes to the stream instead
+ *     of the removed legacy source. `TelemetryProvider` folds these into the
+ *     carried set it builds.
+ *
+ * A real wire topic never ends in `.`, so a prefix sentinel never collides with
+ * the exact-membership checks these lists also serve. kos.compute.* is NOT here:
+ * it rides `BufferedDataSource`, not this stream path.
+ */
+export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
+  "scansat.coverage.",
+  "scansat.mask.",
+  "scansat.height.",
+  "scansat.biome.",
+  "scansat.anomalies.",
 ];
