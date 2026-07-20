@@ -1430,4 +1430,109 @@ namespace Sitrep.Host.IntegrationTests
         public static KspSnapshot Snapshot(double ut, double delay) =>
             new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["delay"] = delay } };
     }
+
+    /// <summary>
+    /// Mirrors the GonogoScansatUplink capture->publish shape EXACTLY: a
+    /// dynamic namespace whose per-sample capture is subscription-gated on the
+    /// namespace PREFIX (<see cref="IUplinkHost.AddSampledSource"/> prefix
+    /// overload), publishing to a DOTTED sub-topic (<c>Prefix + "Kerbin.1"</c>,
+    /// the shape <c>ScanChannels.BodyTypeSubTopic</c> produces —
+    /// <c>scansat.coverage.Kerbin.1</c>). Used to reproduce, headlessly, the
+    /// live finding that a 4-segment per-(body,type) subscribe does not open
+    /// the sampler gate / receive keyframes while a 3-segment body-level one
+    /// does.
+    /// </summary>
+    internal sealed class DynamicSampledGateTestUplink : ISitrepUplink
+    {
+        public const string Prefix = "dyncov.";
+
+        /// <summary>The dotted sub-topic the mod publishes coverage under, mirroring "&lt;body&gt;.&lt;typeBit&gt;".</summary>
+        public const string DottedSubTopic = "Kerbin.1";
+
+        private int _captureCount;
+        private IDynamicChannelSource? _source;
+
+        public int CaptureCount => System.Threading.Volatile.Read(ref _captureCount);
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "dyn-sampled-gate",
+            Version = "1.0.0",
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+            });
+            host.AddSampledSource(Capture, Handle, Prefix);
+        }
+
+        private object? Capture(KspSnapshot? snapshot)
+        {
+            System.Threading.Interlocked.Increment(ref _captureCount);
+            return snapshot?.Ut ?? 0.0;
+        }
+
+        private void Handle(object? captured) =>
+            _source!.Publisher(DottedSubTopic).Publish(100.0, Convert.ToDouble(captured));
+    }
+
+    /// <summary>
+    /// A sampled source whose capture THROWS while <see cref="StopThrowing"/>
+    /// hasn't been called — the headless analogue of GonogoScansatUplink's
+    /// CaptureOnMain throwing on an early tick because Planetarium isn't ready
+    /// yet. Used to prove a source disabled by an early capture throw RECOVERS
+    /// (re-runs) once the capture stops throwing, rather than being permanently
+    /// disabled + its owner marked Unavailable.
+    /// </summary>
+    internal sealed class RecoveringSampledSourceTestUplink : ISitrepUplink
+    {
+        public const string Topic = "recover.src";
+
+        private volatile bool _throwOnCapture = true;
+        private int _captureCount;
+        private IChannelPublisher? _publisher;
+
+        public int CaptureCount => System.Threading.Volatile.Read(ref _captureCount);
+
+        /// <summary>Simulate "Planetarium is ready now" — capture stops throwing.</summary>
+        public void StopThrowing() => _throwOnCapture = false;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "recover-src",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = Topic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _publisher = host.Publisher(Topic);
+            host.AddSampledSource(Capture, Handle); // ungated: runs every tick
+        }
+
+        private object? Capture(KspSnapshot? snapshot)
+        {
+            if (_throwOnCapture)
+            {
+                throw new InvalidOperationException("simulated Planetarium-not-ready");
+            }
+            System.Threading.Interlocked.Increment(ref _captureCount);
+            return snapshot?.Ut ?? 0.0;
+        }
+
+        private void Handle(object? captured) => _publisher!.Publish(captured, Convert.ToDouble(captured));
+    }
 }

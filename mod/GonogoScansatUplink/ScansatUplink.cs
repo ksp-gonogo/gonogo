@@ -103,6 +103,12 @@ namespace Gonogo.ScansatUplink
         // just the publish.
         private readonly HashSet<string> _heightBiomeCapturedBodies = new HashSet<string>();
 
+        // One-shot guard so a capture that fails because the game isn't ready yet
+        // (Planetarium/SCANsat reads throwing at early ticks) logs ONCE per
+        // failure-streak rather than every tick. Reset on the next successful
+        // capture. MAIN-thread-owned (CaptureOnMain only).
+        private bool _captureFailLogged;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "scansat",
@@ -261,51 +267,80 @@ namespace Gonogo.ScansatUplink
         /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            if (!TryGetActiveBody(out var bodyName, out var body))
+            // Exception-safe: every KSP/SCANsat/stock read below can throw before
+            // the game is fully initialised (e.g. Planetarium not ready at the
+            // early ticks right after load). Returning null (skip this tick)
+            // rather than letting the throw propagate is what keeps the sampler
+            // ALIVE: a propagated capture throw used to permanently disable this
+            // source for the whole session (the "coverage never surfaces" root
+            // cause). The host also now retries a capture throw, but not throwing
+            // in the first place avoids the startup throw/retry churn.
+            try
             {
+                if (!TryGetActiveBody(out var bodyName, out var body))
+                {
+                    return null;
+                }
+
+                var capture = new ScanCapture
+                {
+                    Ut = snapshot?.Ut ?? 0.0,
+                    BodyName = bodyName,
+                };
+
+                // Height/biome first — they don't depend on SCANsat coverage at
+                // all (stock PQS/BiomeMap), so they're captured once per body even
+                // if that body has no SCANdata yet. The once-per-body gate lives
+                // HERE (main thread) so the expensive grid build itself is skipped
+                // on revisits, not merely the publish. Mark the body captured only
+                // AFTER the (Planetarium-dependent) build succeeds — otherwise an
+                // early not-ready failure would mark it done and height/biome would
+                // never be retried for that body.
+                if (!_heightBiomeCapturedBodies.Contains(bodyName))
+                {
+                    var heightGrid = ScanGrids.BuildHeights(ScanGrids.Width, ScanGrids.Height, (lon, lat) =>
+                    {
+                        bool hiRes = SCANUtil.isCovered(lon, lat, body, AltimetryHiResBit);
+                        bool loRes = !hiRes && SCANUtil.isCovered(lon, lat, body, AltimetryLoResBit);
+                        var (sLon, sLat) = TerrainTiering.ResolveSampleCoordinate(lon, lat, hiRes, loRes);
+                        return SampleElevation(body, sLon, sLat);
+                    });
+                    var biomeEntries = BuildBiomeEntries(body);
+                    var biomeIndices = ScanGrids.BuildBiomeIndices(
+                        ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleBiomeIndex(body, lon, lat));
+
+                    capture.IncludeHeightBiome = true;
+                    capture.HeightGrid = heightGrid;
+                    capture.BiomeEntries = biomeEntries;
+                    capture.BiomeIndices = biomeIndices;
+                    _heightBiomeCapturedBodies.Add(bodyName);
+                }
+
+                if (TryGetBodyCoverage(body, out var coverage))
+                {
+                    capture.Coverage = coverage;
+                    var percents = new Dictionary<short, double>();
+                    foreach (var typeBit in ScanChannels.ClientScanTypes)
+                    {
+                        percents[typeBit] = GetCoveragePercent(typeBit, body);
+                    }
+                    capture.CoveragePercents = percents;
+                    capture.Anomalies = BuildAnomalies(body);
+                }
+
+                _captureFailLogged = false; // a good capture clears the failure streak
+                return capture;
+            }
+            catch (Exception ex)
+            {
+                if (!_captureFailLogged)
+                {
+                    _captureFailLogged = true;
+                    Debug.LogWarning("[Gonogo.ScansatUplink] CaptureOnMain skipped "
+                        + "(game/Planetarium likely not ready yet) — will retry: " + ex.Message);
+                }
                 return null;
             }
-
-            var capture = new ScanCapture
-            {
-                Ut = snapshot?.Ut ?? 0.0,
-                BodyName = bodyName,
-            };
-
-            // Height/biome first — they don't depend on SCANsat coverage at
-            // all (stock PQS/BiomeMap), so they're captured once per body even
-            // if that body has no SCANdata yet. The once-per-body gate lives
-            // HERE (main thread) so the expensive grid build itself is skipped
-            // on revisits, not merely the publish.
-            if (!_heightBiomeCapturedBodies.Contains(bodyName))
-            {
-                _heightBiomeCapturedBodies.Add(bodyName);
-                capture.IncludeHeightBiome = true;
-                capture.HeightGrid = ScanGrids.BuildHeights(ScanGrids.Width, ScanGrids.Height, (lon, lat) =>
-                {
-                    bool hiRes = SCANUtil.isCovered(lon, lat, body, AltimetryHiResBit);
-                    bool loRes = !hiRes && SCANUtil.isCovered(lon, lat, body, AltimetryLoResBit);
-                    var (sLon, sLat) = TerrainTiering.ResolveSampleCoordinate(lon, lat, hiRes, loRes);
-                    return SampleElevation(body, sLon, sLat);
-                });
-                capture.BiomeEntries = BuildBiomeEntries(body);
-                capture.BiomeIndices = ScanGrids.BuildBiomeIndices(
-                    ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleBiomeIndex(body, lon, lat));
-            }
-
-            if (TryGetBodyCoverage(body, out var coverage))
-            {
-                capture.Coverage = coverage;
-                var percents = new Dictionary<short, double>();
-                foreach (var typeBit in ScanChannels.ClientScanTypes)
-                {
-                    percents[typeBit] = GetCoveragePercent(typeBit, body);
-                }
-                capture.CoveragePercents = percents;
-                capture.Anomalies = BuildAnomalies(body);
-            }
-
-            return capture;
         }
 
         /// <summary>
@@ -357,6 +392,12 @@ namespace Gonogo.ScansatUplink
         /// </summary>
         internal object? CaptureScienceOnMain(KspSnapshot? snapshot)
         {
+            // Exception-safe for the same reason as CaptureOnMain: the KSP reads
+            // below can throw before the game is ready. Return null (skip this
+            // tick) rather than propagate, so an early not-ready throw never
+            // disables this sampler.
+            try
+            {
             var vessel = FlightGlobals.ActiveVessel;
             if (vessel == null)
             {
@@ -389,6 +430,12 @@ namespace Gonogo.ScansatUplink
                     exp.IsRerunnable()));
             }
             return capture;
+            }
+            catch (Exception)
+            {
+                // Not ready yet — skip this tick; the last value stands.
+                return null;
+            }
         }
 
         /// <summary>

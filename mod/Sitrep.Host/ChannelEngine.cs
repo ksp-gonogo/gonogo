@@ -1696,12 +1696,65 @@ namespace Sitrep.Host
         {
             source.Disabled = true;
             MarkUplinkUnavailable(source.OwnerId, $"sampled source threw: {SafeExceptionMessage(ex)}");
-            Console.Error.WriteLine("[ChannelEngine] sampled source (owner \"" + source.OwnerId + "\") threw: " + SafeExceptionMessage(ex));
+            LogHost("sampled source (owner \"" + source.OwnerId + "\") threw (DISABLED): " + SafeExceptionMessage(ex));
+        }
+
+        /// <summary>
+        /// A CAPTURE-time throw (main-loop read that failed, e.g. a KSP/Planetarium
+        /// read before the game is ready) is treated as TRANSIENT: the source is
+        /// NOT disabled and NOT marked Unavailable — it retries on the next tick,
+        /// and a later successful capture resets the streak. This is the fix for
+        /// the SCANsat "coverage never surfaces" root cause, where an early
+        /// Planetarium-not-ready throw permanently disabled the sampler for the
+        /// whole session. Logged on the first throw and then sparsely, so a
+        /// genuinely-broken capture stays visible without flooding every tick.
+        /// </summary>
+        private void RetrySampledSourceAfterCaptureThrow(SampledSource source, Exception ex)
+        {
+            source.ConsecutiveCaptureThrows++;
+            if (source.ConsecutiveCaptureThrows == 1 || source.ConsecutiveCaptureThrows % 300 == 0)
+            {
+                LogHost("sampled source (owner \"" + source.OwnerId + "\") capture threw (attempt "
+                    + source.ConsecutiveCaptureThrows + ", will retry): " + SafeExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>
+        /// Optional Deck-visible diagnostic sink (e.g. <c>UnityEngine.Debug.LogWarning</c>,
+        /// wired from <c>GonogoAddon</c>). <see cref="Sitrep.Host"/> otherwise logs
+        /// only to <c>Console.Error</c>, which KSP does not capture — so fail-softs
+        /// were invisible in the live log (that invisibility hid the SCANsat root
+        /// cause for the whole investigation). Set once at startup; read on the
+        /// Courier thread.
+        /// </summary>
+        public void SetDiagnosticLog(Action<string> log) => _diagnosticLog = log;
+        private Action<string>? _diagnosticLog;
+
+        /// <summary>Log to Console.Error (always) + the optional Deck-visible sink. Never lets a logging failure break the engine.</summary>
+        private void LogHost(string message)
+        {
+            Console.Error.WriteLine("[ChannelEngine] " + message);
+            var sink = _diagnosticLog;
+            if (sink != null)
+            {
+                try
+                {
+                    sink("[ChannelEngine] " + message);
+                }
+                catch
+                {
+                    // A broken log sink must never take down the Courier thread.
+                }
+            }
         }
 
         private void MarkUplinkUnavailable(string uplinkId, string reason)
         {
             _availability[uplinkId] = Availability.Unavailable(reason);
+            // Never silent: a disabled/unavailable uplink must leave a trace, or
+            // this whole failure class stays invisible (it hid the SCANsat root
+            // cause for the entire investigation).
+            LogHost("uplink \"" + uplinkId + "\" marked UNAVAILABLE: " + reason);
 
             // Keep the whole uplink inert together (IMPORTANT-A): once an
             // owner goes Unavailable through ANY path (a throwing Register, a
@@ -2687,9 +2740,17 @@ namespace Sitrep.Host
 
                     if (captured.Exception != null)
                     {
-                        FailSoftSampledSource(source, captured.Exception);
+                        // TRANSIENT: retry next tick instead of permanent disable
+                        // (see RetrySampledSourceAfterCaptureThrow — the SCANsat
+                        // early-Planetarium-not-ready root cause).
+                        RetrySampledSourceAfterCaptureThrow(source, captured.Exception);
                         continue;
                     }
+
+                    // Successful capture — clear any transient-throw streak so a
+                    // source that recovered (e.g. Planetarium now ready) is back to
+                    // a clean state and its next throw is logged as a fresh attempt.
+                    source.ConsecutiveCaptureThrows = 0;
 
                     try
                     {
@@ -2697,6 +2758,9 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
+                        // A HANDLE throw is off-thread processing of already-captured
+                        // data — far more likely a genuine fault than a not-ready
+                        // transient, so it keeps the permanent fail-soft (now logged).
                         FailSoftSampledSource(source, ex);
                     }
                 }
@@ -3478,6 +3542,14 @@ namespace Sitrep.Host
             // at registration, only read afterward.
             public readonly string[] TopicPrefixes;
             public volatile bool Disabled;
+
+            // Consecutive capture-throw streak, Courier-thread-owned (touched only
+            // in ProcessTick's capture loop). A capture throw is treated as
+            // TRANSIENT (retry next tick) rather than permanently disabling the
+            // source — the SCANsat "coverage never surfaces" root cause was an
+            // early Planetarium-not-ready capture throw permanently disabling the
+            // sampler. Reset to 0 on the next successful capture.
+            public int ConsecutiveCaptureThrows;
 
             public SampledSource(string ownerId, Func<KspSnapshot?, object?> capture, Action<object?> handle, string[] topicPrefixes)
             {
