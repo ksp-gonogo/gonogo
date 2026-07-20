@@ -60,11 +60,16 @@ export interface BaseSurfaceInput {
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
-   * True when at least one registered `map-view.base` augment declares
-   * `suppressesVanillaBase` (spec: the Uplink's mere presence suppresses
-   * the host surface, non-optional, no setting overrides it back on) —
-   * independent of `layers` below, which only reflects what's CURRENTLY
-   * painting. See this module's header comment for the all-off case.
+   * True when at least one registered `map-view.base` augment BOTH
+   * declares `suppressesVanillaBase` AND has a currently-live Domain (spec:
+   * the Uplink's mere presence — meaning its Domain is actually live, not
+   * merely that its client package is registered — suppresses the host
+   * surface, non-optional, no setting overrides it back on) — independent
+   * of `layers` below, which only reflects what's CURRENTLY painting. This
+   * boolean is the caller's job to resolve (MapView/index.tsx, via
+   * `vanillaSuppression.ts`'s `shouldSuppressVanillaBase` +
+   * `useAugmentAvailable`); this module just trusts it. See this module's
+   * header comment for the all-off case.
    */
   suppressVanilla: boolean;
   /**

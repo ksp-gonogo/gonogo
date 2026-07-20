@@ -6,7 +6,7 @@ import {
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-import { AugmentSlot } from "./AugmentSlot";
+import { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
 import {
   clearAugments,
   getAugmentSettings,
@@ -191,6 +191,53 @@ describe("AugmentSlot — Domain presence gating (spec §4.2)", () => {
     render(<AugmentSlot name="power-systems.sections" props={{}} />);
 
     expect(screen.getByText("always")).toBeTruthy();
+  });
+});
+
+// useAugmentAvailable is AugmentEntry's own gate hook, extracted (spec:
+// local_docs/spec-mapview-stackable-layers.md fix-up) so a HOST can ask "is
+// this augment's Domain live" WITHOUT rendering the augment's component —
+// needed for a decision like MapView's vanilla-suppression, which must
+// respect Domain availability exactly like rendering does, not just
+// registry presence (a bundled client package registers its augments
+// unconditionally at import time, whether or not the mod is actually
+// running in KSP).
+describe("useAugmentAvailable", () => {
+  function Probe({ augment }: { augment: { id: string; requires?: string } }) {
+    const available = useAugmentAvailable(
+      augment as Parameters<typeof useAugmentAvailable>[0],
+    );
+    return <div data-testid="probe">available={String(available)}</div>;
+  }
+
+  it("is true for an ungated augment even without a TelemetryProvider", () => {
+    render(<Probe augment={{ id: "ungated" }} />);
+    expect(screen.getByTestId("probe").textContent).toBe("available=true");
+  });
+
+  it("is false for a gated augment before its Domain announces availability, true once it does", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe augment={{ id: "gated", requires: "test-domain" }} />
+      </TelemetryProvider>,
+    );
+
+    expect(screen.getByTestId("probe").textContent).toBe("available=false");
+
+    act(() => {
+      transport.emit(
+        "test-domain.available",
+        { available: true },
+        { quality: Quality.Loaded, source: "test-domain" },
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("probe").textContent).toBe("available=true"),
+    );
   });
 });
 

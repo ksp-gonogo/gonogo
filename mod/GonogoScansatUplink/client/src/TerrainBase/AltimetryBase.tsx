@@ -13,8 +13,12 @@
 // than picking one. This layer sits at the BOTTOM of the stack (the base
 // terrain colouring biome draws translucently on top of — see BiomeBase's
 // own header comment) and declares `suppressesVanillaBase: true`: while
-// either SCANsat base layer is registered, MapView's stock body texture
-// never paints, full stop (spec: "don't like it, don't have the Uplink").
+// either SCANsat base layer's Domain is LIVE (this mod is actually running
+// in KSP — registering this augment alone is NOT enough, see
+// `suppressesVanillaBase`'s own doc comment in packages/core/src/
+// augments.ts), MapView's stock body texture never paints, full stop
+// (spec: "don't like it, don't have the Uplink" — meaning the Domain is
+// live, not merely that this client package is bundled).
 //
 // Per settled model point 2 (T8c task text): this is a standalone
 // colourised height surface REPLACING the map's base texture, not a tint
