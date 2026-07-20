@@ -119,7 +119,7 @@ describe("SCANsat coverage round-trip (canonical wire string, real client)", () 
   // `carriedChannels` (the store's `dynamicWholeTopicPrefixes` derived from the
   // same list) — if the client fix uses a different injection, adjust the
   // provider props here to match, keeping the assertion (value surfaces).
-  it.skip("the mod's canonical coverage string reaches the widget as a scalar percent", async () => {
+  it("the mod's canonical coverage string reaches the widget as a scalar percent", async () => {
     const serverClients = await connectAndCaptureClient();
 
     const { unmount } = render(
