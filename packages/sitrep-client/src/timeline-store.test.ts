@@ -735,3 +735,42 @@ describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-revi
     expect(result?.sma).toBeCloseTo(750_000); // genuinely continuous field still lerps
   });
 });
+
+describe("resolveSubscriptionTopics — dynamicWholeTopicPrefixes (Bug B fix)", () => {
+  const clock = () =>
+    new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+  // Synthetic namespace so this mod-agnostic test names no mod token; the real
+  // dynamic-namespace strings are exercised in the owning Uplink's own
+  // wire-contract test.
+  const PREFIXES = ["dyn.ns."];
+
+  it("resolves a topic under a dynamic whole-topic prefix to its OWN identity", () => {
+    const store = new TimelineStore(clock(), {
+      dynamicWholeTopicPrefixes: PREFIXES,
+    });
+    // 4-segment (per-body-per-type analogue) and 3-segment (per-body analogue)
+    expect(store.resolveSubscriptionTopics("dyn.ns.Kerbin.8")).toEqual([
+      "dyn.ns.Kerbin.8",
+    ]);
+    expect(store.resolveSubscriptionTopics("dyn.ns.Kerbin")).toEqual([
+      "dyn.ns.Kerbin",
+    ]);
+  });
+
+  it("leaves an ordinary nested-field topic OUTSIDE the prefixes unchanged", () => {
+    const store = new TimelineStore(clock(), {
+      dynamicWholeTopicPrefixes: PREFIXES,
+    });
+    // control: a genuine `<raw>.<field>` subtopic still resolves to its 2-seg parent
+    expect(store.resolveSubscriptionTopics("vessel.orbit.sma")).toEqual([
+      "vessel.orbit",
+    ]);
+  });
+
+  it("WITHOUT the option, the same topic mis-parses to its 2-segment parent (the Bug B default)", () => {
+    const store = new TimelineStore(clock());
+    expect(store.resolveSubscriptionTopics("dyn.ns.Kerbin.8")).toEqual([
+      "dyn.ns",
+    ]);
+  });
+});

@@ -47,6 +47,18 @@ export interface TimelineStoreOptions {
   timelineOptions?: ClientTimelineOptions;
   /** Options for the store's `HeartbeatTracker` (the keyframe-cadence heartbeat) — per-topic keyframe intervals, staleness-margin tuning. */
   heartbeatOptions?: HeartbeatTrackerOptions;
+  /**
+   * Dynamic-namespace prefixes (each ending in `.`) whose topics are WHOLE raw
+   * wire topics despite having 3+ dot-segments — the prefix counterpart to the
+   * static `WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS` exemption. A topic that
+   * `startsWith` any of these resolves to its own identity in
+   * `resolveRawFieldSubtopic` (and thus `resolveSubscriptionTopics`), instead of
+   * being mis-split into a `<domain.channel>.<fieldPath>` parent that no channel
+   * publishes. Injected (never hard-coded) so this mod-agnostic store names no
+   * mod token — the app passes `DYNAMIC_CARRIED_TOPIC_PREFIXES`
+   * (`default-carried-topics.ts`) for the Uplink per-(body,type) namespaces.
+   */
+  dynamicWholeTopicPrefixes?: readonly string[];
 }
 
 /**
@@ -1220,6 +1232,16 @@ export class TimelineStore {
     topic: string,
   ): { rawTopic: string; fieldPath: string[] } | undefined {
     if (WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS.has(topic)) return undefined;
+    // Dynamic-namespace whole topics (e.g. a per-(body,type) `<ns>.<sub>.<body>.<bit>`):
+    // the prefix counterpart to the exact exemption above. A topic under an
+    // injected `dynamicWholeTopicPrefixes` entry IS its own raw wire topic, not a
+    // `<domain.channel>.<fieldPath>` split — resolving it as a field-subtopic
+    // would subscribe/sample a 2-segment parent no channel publishes.
+    if (
+      this.options.dynamicWholeTopicPrefixes?.some((p) => topic.startsWith(p))
+    ) {
+      return undefined;
+    }
     const segments = topic.split(".");
     if (segments.length < 3) return undefined;
     return {

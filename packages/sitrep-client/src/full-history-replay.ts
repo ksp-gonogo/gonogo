@@ -1,6 +1,7 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
+import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import type { ReplayFixture } from "./replay-transport";
 import { ReplayTransport } from "./replay-transport";
 import { TimelineStore } from "./timeline-store";
@@ -120,6 +121,9 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
   const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
   const store = new TimelineStore(clock, {
     timelineOptions: { retentionSeconds: Number.POSITIVE_INFINITY },
+    // Match the live store: resolve the injected dynamic namespaces as whole
+    // topics so a full-history replay subscribes/samples the same wire strings.
+    dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES,
   });
 
   const instantClock = new InstantClock();
