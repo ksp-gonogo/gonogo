@@ -165,12 +165,32 @@ export function withAlpha(rgbComponents: string, alpha: number): string {
 }
 
 /**
+ * effectiveAlpha = layerOpacity * coverageAlpha (spec:
+ * local_docs/spec-mapview-stackable-layers.md §1 — "restore the blend").
+ * `coverageAlpha` is surveyed-ness (unchanged, from `coverageAlphaForTile`);
+ * `layerOpacity` is this LAYER's own translucency — e.g. a layer drawn on
+ * top of another, more opaque one. These are two separate channels that
+ * must multiply, not collapse into one: a fully-surveyed tile on a
+ * translucent layer should still show the layer BENEATH it, and a
+ * partially-surveyed tile on that same layer should be dimmer still, not
+ * one or the other.
+ */
+export function effectiveAlpha(
+  coverageAlpha: number,
+  layerOpacity: number,
+): number {
+  return coverageAlpha * layerOpacity;
+}
+
+/**
  * Paint every `(iLon, iLat)` cell in a `gridWidth`×`gridHeight` scan grid
  * (the payload's own declared dims — 720×360 for height/biome as of the
  * res-aware terrain bump) onto `ctx`, gated per-tile by the coverage
- * gate's alpha. `colourAt` returns `null` to skip a cell entirely (no data
+ * gate's alpha times `layerOpacity` (`effectiveAlpha`, above — this layer's
+ * own translucency, e.g. a layer meant to sit on top of another, more
+ * opaque one). `colourAt` returns `null` to skip a cell entirely (no data
  * for that tile — e.g. biome index 0xFF); otherwise an `"r, g, b"` colour
- * component string, composited at the gate-derived alpha via `withAlpha`.
+ * component string, composited at the effective alpha via `withAlpha`.
  *
  * Always paints at the fixed `BASE_LAYER_CANVAS_W`×`H` resolution unless a
  * caller explicitly overrides it (tests only — production call sites never
@@ -185,13 +205,17 @@ export function paintTile(
   colourAt: (iLon: number, iLat: number) => string | null,
   canvasW: number = BASE_LAYER_CANVAS_W,
   canvasH: number = BASE_LAYER_CANVAS_H,
+  layerOpacity = 1,
 ): void {
   ctx.clearRect(0, 0, canvasW, canvasH);
   for (let iLon = 0; iLon < gridWidth; iLon++) {
     for (let iLat = 0; iLat < gridHeight; iLat++) {
       const colour = colourAt(iLon, iLat);
       if (!colour) continue;
-      const alpha = coverageAlphaForTile(iLon, iLat, body, gate);
+      const alpha = effectiveAlpha(
+        coverageAlphaForTile(iLon, iLat, body, gate),
+        layerOpacity,
+      );
       if (alpha <= 0) continue;
       const rect = tileToPixelRect(
         iLon,

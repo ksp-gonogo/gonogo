@@ -4,6 +4,7 @@ import {
   BASE_LAYER_CANVAS_W,
   type CoverageGateLike,
   coverageAlphaForTile,
+  effectiveAlpha,
   paintTile,
   tileToPixelRect,
   withAlpha,
@@ -113,6 +114,23 @@ describe("withAlpha", () => {
   });
 });
 
+describe("effectiveAlpha — restores the layerOpacity * coverageAlpha split", () => {
+  // spec: local_docs/spec-mapview-stackable-layers.md §1 — a layer's own
+  // translucency (e.g. a layer drawn on top of another, more opaque one)
+  // and its surveyed-ness (coverageAlpha, unchanged) are separate channels
+  // that must MULTIPLY, not collapse into one.
+  it("is the product of coverageAlpha and layerOpacity", () => {
+    expect(effectiveAlpha(1, 1)).toBe(1);
+    expect(effectiveAlpha(1, 0.6)).toBeCloseTo(0.6, 5);
+    expect(effectiveAlpha(0.5, 0.6)).toBeCloseTo(0.3, 5);
+  });
+
+  it("stays 0 when either input is 0", () => {
+    expect(effectiveAlpha(0, 1)).toBe(0);
+    expect(effectiveAlpha(1, 0)).toBe(0);
+  });
+});
+
 describe("paintTile — fixed paint-resolution semantics", () => {
   // Pins the resolution choice this task had to settle explicitly (see the
   // module header comment in paintTile.ts and preflight-T6-T9.md's T8c
@@ -207,5 +225,85 @@ describe("paintTile — coverage modulation", () => {
     expect(calls).toEqual([
       `clearRect 0,0,${BASE_LAYER_CANVAS_W},${BASE_LAYER_CANVAS_H}`,
     ]);
+  });
+});
+
+describe("paintTile — layerOpacity (restores the two-channel alpha split)", () => {
+  it("defaults layerOpacity to 1 — fully covered tiles still paint at full opacity", () => {
+    const { ctx, fillStyles } = makeFakeCtx();
+    const width = 4;
+    const height = 4;
+    const data = new Uint8Array(width * height).fill(255);
+    paintTile(
+      ctx,
+      1,
+      1,
+      NO_OFFSETS,
+      gate({ hasAnySource: true, data, width, height }),
+      () => "255, 0, 0",
+    );
+    expect(fillStyles).toContain("rgba(255, 0, 0, 1)");
+  });
+
+  it("multiplies a fully-covered tile's alpha by an explicit layerOpacity", () => {
+    const { ctx, fillStyles } = makeFakeCtx();
+    const width = 4;
+    const height = 4;
+    const data = new Uint8Array(width * height).fill(255);
+    paintTile(
+      ctx,
+      1,
+      1,
+      NO_OFFSETS,
+      gate({ hasAnySource: true, data, width, height }),
+      () => "255, 0, 0",
+      BASE_LAYER_CANVAS_W,
+      BASE_LAYER_CANVAS_H,
+      0.6,
+    );
+    expect(fillStyles).toContain("rgba(255, 0, 0, 0.6)");
+  });
+
+  it("multiplies a partially-covered tile's coverage alpha by layerOpacity, not just the fully-covered case", () => {
+    const { ctx, fillStyles } = makeFakeCtx();
+    const width = 4;
+    const height = 4;
+    const data = new Uint8Array(width * height);
+    const rect = tileToPixelRect(0, 0, width, height);
+    data[rect.y0 * width + rect.x0] = 128; // ~0.502 coverage alpha
+    paintTile(
+      ctx,
+      1,
+      1,
+      NO_OFFSETS,
+      gate({ hasAnySource: true, data, width, height }),
+      () => "0, 255, 0",
+      BASE_LAYER_CANVAS_W,
+      BASE_LAYER_CANVAS_H,
+      0.5,
+    );
+    const style = fillStyles[0] ?? "";
+    const match = /rgba\(0, 255, 0, ([\d.]+)\)/.exec(style);
+    expect(match).not.toBeNull();
+    expect(Number(match?.[1])).toBeCloseTo((128 / 255) * 0.5, 3);
+  });
+
+  it("a zero layerOpacity paints nothing even for a fully-covered tile", () => {
+    const { ctx, calls } = makeFakeCtx();
+    const width = 4;
+    const height = 4;
+    const data = new Uint8Array(width * height).fill(255);
+    paintTile(
+      ctx,
+      1,
+      1,
+      NO_OFFSETS,
+      gate({ hasAnySource: true, data, width, height }),
+      () => "255, 0, 0",
+      BASE_LAYER_CANVAS_W,
+      BASE_LAYER_CANVAS_H,
+      0,
+    );
+    expect(calls.some((c) => c.startsWith("fillRect"))).toBe(false);
   });
 });

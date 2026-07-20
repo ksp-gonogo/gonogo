@@ -21,15 +21,6 @@ export interface MapViewConfig {
    */
   bodyOverride?: string;
   /**
-   * Selects which registered `map-view.base` augment (if any) is active, by
-   * that augment's own id. Unset, or set to an id nothing has registered,
-   * simply means no augment renders and MapView's own stock texture is
-   * what's already underneath, untouched — there is no "vanilla" registry
-   * entry to compare against. See `MapBaseLayerContext`'s doc comment in
-   * `index.tsx`.
-   */
-  baseLayerId?: string;
-  /**
    * Renders the shared POI layer (`map-view.overlay`-adjacent, T-POI-7).
    * Default true — vanilla POIs (KSC, contract targets) are always-relevant
    * reference points, not an opt-in SCANsat-shaped feature.

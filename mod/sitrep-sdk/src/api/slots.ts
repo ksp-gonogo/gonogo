@@ -400,12 +400,11 @@ export interface MapCoverageGate {
   hasAnySource: boolean;
 }
 
-/** Mirrors `MapBaseLayerContext` (MapView/index.tsx). */
+/** Mirrors `MapBaseLayerContext` (MapView/index.tsx). Stackable — any number
+ *  of registered augments may fill this slot at once. */
 export interface MapBaseLayerContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyId: string | undefined;
-  /** MapView's own `config.baseLayerId`. */
-  activeLayerId: string | undefined;
   width: number;
   height: number;
   /** Per-namespace augment settings — same shape/caveat as `MapSectionsContext`. */
@@ -413,8 +412,21 @@ export interface MapBaseLayerContext {
   /** The paint-gate (T4) for this body. */
   coverageGate: MapCoverageGate;
   /** Called by the augment whenever it has a fresh canvas to contribute (or
-   *  `null` to withdraw one). */
-  onLayer: (canvas: HTMLCanvasElement | null, version: number) => void;
+   *  `null` to withdraw one) — MUST pass the augment's OWN id first, since
+   *  more than one augment may hold a canvas at once. */
+  onLayer: (
+    id: string,
+    canvas: HTMLCanvasElement | null,
+    version: number,
+  ) => void;
+}
+
+/** Mirrors `MapActionsContext` (MapView/index.tsx). */
+export interface MapActionsContext {
+  /** Per-namespace augment settings — same shape as `MapSectionsContext`'s own field. */
+  augmentSettings: Record<string, Record<string, unknown>> | undefined;
+  /** Persists ONE augment's `show` setting into this widget instance's own config. */
+  setAugmentShow: (augmentId: string, show: boolean) => void;
 }
 
 // --- TechTree (packages/components/src/TechTree) ---------------------------
@@ -631,6 +643,7 @@ declare module "./types" {
     "map-view.badges": MapBadgesContext;
     "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
+    "map-view.actions": MapActionsContext;
 
     "tech-tree.badges": TechNodeBadgeContext;
 
