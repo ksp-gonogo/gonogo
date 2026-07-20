@@ -186,8 +186,16 @@ describe("BiomeBase — map-view.base slot", () => {
       }),
     );
     act(() => {
-      source.emit("scansat.biome.Kerbin", biomeGridFixture());
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.biome.Kerbin")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.biome.Kerbin", biomeGridFixture(), {
         quality: Quality.Loaded,
         source: "scansat",
       });
@@ -203,8 +211,16 @@ describe("BiomeBase — map-view.base slot", () => {
       baseLayerProps({ onLayer, width: 321, height: 111 }),
     );
     act(() => {
-      source.emit("scansat.biome.Kerbin", biomeGridFixture());
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.biome.Kerbin")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.biome.Kerbin", biomeGridFixture(), {
         quality: Quality.Loaded,
         source: "scansat",
       });
@@ -228,8 +244,16 @@ describe("BiomeBase — map-view.base slot", () => {
       baseLayerProps({ onLayer, coverageGate: fullyUncoveredGate() }),
     );
     act(() => {
-      source.emit("scansat.biome.Kerbin", biomeGridFixture());
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.biome.Kerbin")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.biome.Kerbin", biomeGridFixture(), {
         quality: Quality.Loaded,
         source: "scansat",
       });
@@ -245,8 +269,16 @@ describe("BiomeBase — map-view.base slot", () => {
       baseLayerProps({ onLayer, coverageGate: fullyCoveredGate() }),
     );
     act(() => {
-      source.emit("scansat.biome.Kerbin", biomeGridFixture());
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.biome.Kerbin")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.biome.Kerbin", biomeGridFixture(), {
         quality: Quality.Loaded,
         source: "scansat",
       });
@@ -268,8 +300,16 @@ describe("BiomeBase — map-view.base slot", () => {
       baseLayerProps({ onLayer, coverageGate: openGate() }),
     );
     act(() => {
-      source.emit("scansat.biome.Kerbin", biomeGridFixture());
       transport.emit("scansat.available", true, {
+        quality: Quality.Loaded,
+        source: "scansat",
+      });
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.biome.Kerbin")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.biome.Kerbin", biomeGridFixture(), {
         quality: Quality.Loaded,
         source: "scansat",
       });

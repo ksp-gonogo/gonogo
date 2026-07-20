@@ -151,23 +151,33 @@ describe("CoveragePanel — map-view.sections slot", () => {
         <AugmentSlot name="map-view.sections" props={sectionsProps()} />
       </TelemetryProvider>,
     );
+    // Coverage rides the STREAM now (the dynamic `scansat.coverage.*` prefix is
+    // carried), not the legacy source. The per-type rows only subscribe once the
+    // panel is mounted (availability live), so emit availability first, wait for
+    // the row subscriptions, THEN emit coverage on the transport.
+    const meta = { quality: Quality.Loaded, source: "scansat" };
     act(() => {
       source.emit("scansat.scanningVessels", [vessel({})]);
-      source.emit("scansat.coverage.Kerbin.2", 45.6);
-      source.emit("scansat.coverage.Kerbin.1", 67.6);
-      source.emit("scansat.coverage.Kerbin.8", 29.6);
-      source.emit("scansat.coverage.Kerbin.256", 7.4);
-      source.emit("scansat.coverage.Kerbin.128", 0);
-      transport.emit("scansat.available", true, {
-        quality: Quality.Loaded,
-        source: "scansat",
-      });
+      transport.emit("scansat.available", true, meta);
     });
 
     const panel = await screen.findByRole("region", {
       name: /Scan coverage for Kerbin/i,
     });
-    expect(within(panel).getByText("46%")).toBeInTheDocument(); // AltHiRes
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.coverage.Kerbin.2")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.coverage.Kerbin.2", 45.6, meta);
+      transport.emit("scansat.coverage.Kerbin.1", 67.6, meta);
+      transport.emit("scansat.coverage.Kerbin.8", 29.6, meta);
+      transport.emit("scansat.coverage.Kerbin.256", 7.4, meta);
+      transport.emit("scansat.coverage.Kerbin.128", 0, meta);
+    });
+
+    await waitFor(() =>
+      expect(within(panel).getByText("46%")).toBeInTheDocument(),
+    ); // AltHiRes
     expect(within(panel).getByText("68%")).toBeInTheDocument(); // AltLoRes
     expect(within(panel).getByText("30%")).toBeInTheDocument(); // Biome
     // AltHiRes sensor is bestRange → "best"; Biome sensor inRange → "scan".
@@ -184,17 +194,20 @@ describe("CoveragePanel — map-view.sections slot", () => {
         <AugmentSlot name="map-view.sections" props={sectionsProps()} />
       </TelemetryProvider>,
     );
+    const meta = { quality: Quality.Loaded, source: "scansat" };
     act(() => {
       source.emit("scansat.scanningVessels", [vessel({ body: "Mun" })]);
-      source.emit("scansat.coverage.Kerbin.2", 12);
-      transport.emit("scansat.available", true, {
-        quality: Quality.Loaded,
-        source: "scansat",
-      });
+      transport.emit("scansat.available", true, meta);
     });
 
     const panel = await screen.findByRole("region", {
       name: /Scan coverage for Kerbin/i,
+    });
+    await waitFor(() =>
+      expect(transport.isSubscribed("scansat.coverage.Kerbin.2")).toBe(true),
+    );
+    act(() => {
+      transport.emit("scansat.coverage.Kerbin.2", 12, meta);
     });
     await waitFor(() => {
       expect(within(panel).getByText("12%")).toBeInTheDocument();

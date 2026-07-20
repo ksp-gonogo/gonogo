@@ -16,6 +16,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { TelemetryClient } from "./client";
+import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import { DelayAuthority } from "./delay-authority";
 import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
 import {
@@ -191,6 +192,10 @@ export function TelemetryProvider({
         ...viewClockOptions,
         delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
       }),
+      // Resolve the injected per-(body,type) dynamic namespaces as WHOLE raw
+      // topics, not `<domain.channel>.<field>` splits — the same list the carried
+      // set below folds in, so subscribe + carry agree on the topic.
+      { dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES },
     );
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
@@ -214,10 +219,15 @@ export function TelemetryProvider({
   const [carriedChannels, setCarriedChannels] = useState<ReadonlySet<string>>(
     () => {
       carriedClientRef.current = client;
-      return unionGrow(
-        new Set(client.declaredChannels),
-        carriedChannelsProp ?? [],
-      );
+      return unionGrow(new Set(client.declaredChannels), [
+        ...(carriedChannelsProp ?? []),
+        // The dynamic-namespace prefixes (trailing `.`) — `isTopicCarried`
+        // matches them by `startsWith`, carrying the per-(body,type) topics the
+        // literal allowlist can't enumerate. Folded in here (not left to the app's
+        // prop) so any TelemetryProvider carries them, matching the store's
+        // `dynamicWholeTopicPrefixes` resolution above.
+        ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
+      ]);
     },
   );
 
@@ -225,6 +235,7 @@ export function TelemetryProvider({
     const additions = [
       ...client.declaredChannels,
       ...(carriedChannelsProp ?? []),
+      ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
     ];
     if (carriedClientRef.current !== client) {
       carriedClientRef.current = client;

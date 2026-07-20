@@ -65,4 +65,41 @@ describe("isTopicCarried", () => {
       ),
     ).toBe(true);
   });
+
+  describe("carried namespace prefixes (trailing-dot entries)", () => {
+    // These isolate the GATE's prefix logic: they feed it already-resolved raw
+    // inputs via an identity store. In production the REAL store must ALSO
+    // resolve a dynamic topic to that whole identity first — see
+    // `resolveRawFieldSubtopic`'s 2-segment mis-parse and its
+    // `dynamicWholeTopicPrefixes` exemption. A synthetic namespace keeps this
+    // mechanism test free of any mod token.
+    const idStore = { resolveSubscriptionTopics: (t: string) => [t] };
+
+    it("carries any raw topic under a trailing-dot prefix entry", () => {
+      const carried = new Set(["ns.dynamic."]);
+      expect(isTopicCarried(idStore, carried, "ns.dynamic.Kerbin.8")).toBe(
+        true,
+      );
+      expect(isTopicCarried(idStore, carried, "ns.dynamic.anything")).toBe(
+        true,
+      );
+    });
+
+    it("a prefix entry does NOT match a lookalike outside its namespace", () => {
+      const carried = new Set(["ns.dynamic."]);
+      // no dot boundary — must not be swallowed by the prefix
+      expect(isTopicCarried(idStore, carried, "ns.dynamicX")).toBe(false);
+      // the bare prefix stem (no trailing segment) is not a real wire topic
+      expect(isTopicCarried(idStore, carried, "ns.dynamic")).toBe(false);
+      // an unrelated namespace stays uncarried
+      expect(isTopicCarried(idStore, carried, "other.topic")).toBe(false);
+    });
+
+    it("exact and prefix entries coexist; exact membership is unaffected", () => {
+      const carried = new Set(["vessel.orbit", "ns.dynamic."]);
+      expect(isTopicCarried(idStore, carried, "vessel.orbit")).toBe(true);
+      expect(isTopicCarried(idStore, carried, "ns.dynamic.42")).toBe(true);
+      expect(isTopicCarried(idStore, carried, "vessel.flight")).toBe(false);
+    });
+  });
 });

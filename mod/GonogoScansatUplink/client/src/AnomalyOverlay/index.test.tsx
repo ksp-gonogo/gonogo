@@ -53,7 +53,7 @@ describe("scansat:anomalies map POI provider", () => {
     );
 
     act(() => {
-      anomalySource.emit("scansat.anomalies.Kerbin", [
+      transport.emit("scansat.anomalies.Kerbin", [
         {
           name: "Monolith",
           latitude: 10,
@@ -127,7 +127,7 @@ describe("scansat:anomalies map POI provider", () => {
           { index: 2, name: "Mun" },
         ],
       });
-      anomalySource.emit("scansat.anomalies.Kerbin", [
+      transport.emit("scansat.anomalies.Kerbin", [
         {
           name: "Monolith",
           latitude: 10,
@@ -168,7 +168,7 @@ describe("scansat:anomalies map POI provider", () => {
     );
 
     act(() => {
-      anomalySource.emit("scansat.anomalies.Kerbin", []);
+      transport.emit("scansat.anomalies.Kerbin", []);
     });
 
     await waitFor(() => expect(result.current).toEqual([]));
