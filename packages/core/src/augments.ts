@@ -134,16 +134,25 @@ export interface AugmentDefinition<S extends string = string> {
    */
   settings?: readonly AugmentSettingField[];
   /**
-   * Declares that, while this augment is registered, the host's own
+   * Declares that, while this augment's Domain is LIVE, the host's own
    * default/replaceable surface for the slot it targets is suppressed
-   * outright — a REPLACE, not an overlay. A host reads this straight off
-   * the registry (e.g. via {@link getAugmentsForSlot}) to decide whether to
-   * paint its own default surface at all; it is independent of any other
-   * augment's `settings`/per-instance visibility, and independent of
-   * whether THIS augment currently has anything to draw. A host slot that
-   * has no such default surface can ignore the field entirely — it's an
-   * opt-in contract between a slot and the augments that choose to use it,
-   * not a universal one every slot must interpret (spec:
+   * outright — a REPLACE, not an overlay. This field itself is static and
+   * can be read straight off the registry (e.g. via
+   * {@link getAugmentsForSlot}), but the SUPPRESSION DECISION must NOT stop
+   * there: registration alone only proves the augment's client package was
+   * bundled, not that its Domain is actually live (a bundled client
+   * package registers its augments unconditionally at import time, whether
+   * or not the corresponding mod is running). A host must gate this field
+   * by the same Domain-presence signal `<AugmentSlot>` itself uses before
+   * ever rendering the augment's component — see
+   * {@link useAugmentAvailable} — or every user without that Uplink
+   * installed loses the host's default surface with nothing to replace it
+   * (regression fixed 2026-07-20). Independent of any other augment's
+   * `settings`/per-instance visibility, and independent of whether THIS
+   * augment currently has anything to draw. A host slot that has no such
+   * default surface can ignore the field entirely — it's an opt-in
+   * contract between a slot and the augments that choose to use it, not a
+   * universal one every slot must interpret (spec:
    * local_docs/spec-mapview-stackable-layers.md).
    */
   suppressesVanillaBase?: boolean;

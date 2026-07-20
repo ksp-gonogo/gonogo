@@ -9,6 +9,11 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import {
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalChromeContext, type ModalChromeValue } from "@ksp-gonogo/ui-kit";
@@ -28,7 +33,7 @@ import type {
   MapOverlayContext,
   MapSectionsContext,
 } from "./index";
-import { MapViewComponent } from "./index";
+import { MapViewComponent, VanillaSuppressionProbe } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
 // The vessel kinematics/body read off the stream (vessel.flight + the
@@ -559,6 +564,95 @@ describe("MapViewComponent", () => {
         if (!container.textContent?.includes("show=false")) {
           throw new Error("actions augment has not read back the setting yet");
         }
+      });
+    });
+  });
+
+  // Regression guard (2026-07-20): vanilla-base suppression must respect the
+  // SAME Domain-presence gate `<AugmentSlot>` itself applies before ever
+  // rendering an augment's component — NOT merely that the augment is
+  // registered. An earlier version of this fix suppressed off registry
+  // presence alone, which (since a client bundle registers its augments
+  // unconditionally at import time, whether or not the mod is running in
+  // KSP) blacked out the map for every user without that Uplink installed.
+  // `VanillaSuppressionProbe` is the piece that must get this right — it
+  // reports a `suppressesVanillaBase` augment's live availability up to
+  // MapView independently of whether that augment's own component ever
+  // mounts (it CAN'T report anything itself while ungated, since it never
+  // renders). Tested directly (white-box) rather than through MapView's own
+  // canvas paint, which jsdom can't exercise (`installDomStubs` stubs
+  // `getContext` to null) — the pure combination of this signal with
+  // `suppressesVanillaBase` is covered separately in
+  // vanillaSuppression.test.ts.
+  describe("VanillaSuppressionProbe (regression guard: suppression must respect Domain availability)", () => {
+    const probeTrees: Array<() => void> = [];
+    afterEach(() => {
+      for (const unmount of probeTrees) unmount();
+      probeTrees.length = 0;
+    });
+
+    it("case 1: reports available=false while the augment's required Domain has not announced (vanilla base would still paint)", () => {
+      const calls: Array<[string, boolean]> = [];
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport);
+
+      const result = render(
+        <TelemetryProvider client={client}>
+          <VanillaSuppressionProbe
+            augment={{
+              id: "fake-suppressing-base",
+              augments: "map-view.base",
+              requires: "test-suppress-domain",
+              suppressesVanillaBase: true,
+              component: () => null,
+            }}
+            onAvailableChange={(id, available) => calls.push([id, available])}
+          />
+        </TelemetryProvider>,
+      );
+      probeTrees.push(result.unmount);
+
+      // The regression: registered + suppressesVanillaBase alone must NOT
+      // report available — the Domain was never announced.
+      expect(calls).toEqual([["fake-suppressing-base", false]]);
+    });
+
+    it("case 2: reports available=true once the augment's required Domain announces (vanilla base is suppressed)", async () => {
+      const calls: Array<[string, boolean]> = [];
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport);
+
+      const result = render(
+        <TelemetryProvider client={client}>
+          <VanillaSuppressionProbe
+            augment={{
+              id: "fake-suppressing-base-2",
+              augments: "map-view.base",
+              requires: "test-suppress-domain-2",
+              suppressesVanillaBase: true,
+              component: () => null,
+            }}
+            onAvailableChange={(id, available) => calls.push([id, available])}
+          />
+        </TelemetryProvider>,
+      );
+      probeTrees.push(result.unmount);
+
+      expect(calls).toEqual([["fake-suppressing-base-2", false]]);
+
+      act(() => {
+        transport.emit(
+          "test-suppress-domain-2.available",
+          { available: true },
+          { quality: Quality.Loaded, source: "test-suppress-domain-2" },
+        );
+      });
+
+      await waitFor(() => {
+        expect(calls[calls.length - 1]).toEqual([
+          "fake-suppressing-base-2",
+          true,
+        ]);
       });
     });
   });

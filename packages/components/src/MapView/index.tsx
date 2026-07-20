@@ -1,5 +1,6 @@
 import type {
   ActionDefinition,
+  AnyAugment,
   ComponentProps,
   DataSourceRegistry,
   TrackSample,
@@ -14,6 +15,7 @@ import {
   registerComponent,
   splitOnLongitudeWrap,
   useActionInput,
+  useAugmentAvailable,
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -72,6 +74,7 @@ import { type CoverageGate, useCoverageGate } from "./useCoverageGate";
 import { useMapResize } from "./useMapResize";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
+import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 // Side-effect only — registers the vanilla KSC/launch-site/contract-target
 // POI provider (T-POI-6) so MapPoiLayer below has something to render out
 // of the box. Co-located with MapView per that file's own doc comment.
@@ -346,6 +349,37 @@ function drawFadedSegments(
   }
 }
 
+/**
+ * Reports one `map-view.base` augment's live Domain availability up to
+ * MapView, via `useAugmentAvailable` — the SAME gate `<AugmentSlot>` itself
+ * applies before ever rendering that augment's component. Isolated into its
+ * own component (mirrors `AugmentSlot.tsx`'s own `AugmentEntry`) so the
+ * `useTelemetry` hook underneath has a stable position per augment
+ * regardless of how many candidates are registered or how the set changes.
+ * Renders nothing — this exists purely to feed
+ * `suppressionAvailabilityRef`/`onSuppressAvailabilityChange` in
+ * `MapViewComponent`, decoupled from whether the augment currently has
+ * anything to paint.
+ */
+function VanillaSuppressionProbe({
+  augment,
+  onAvailableChange,
+}: Readonly<{
+  augment: AnyAugment;
+  onAvailableChange: (id: string, available: boolean) => void;
+}>) {
+  const available = useAugmentAvailable(augment);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reports on every value change; onAvailableChange is a stable host callback (useCallback with an empty dep list)
+  useEffect(() => {
+    onAvailableChange(augment.id, available);
+    // Drop this augment's contribution on unmount (e.g. deregistered, or
+    // the collapsed-view branch stops rendering this probe entirely) —
+    // mirrors the onLayer cleanup discussion elsewhere in this file.
+    return () => onAvailableChange(augment.id, false);
+  }, [augment.id, available]);
+  return null;
+}
+
 function MapViewComponent({
   config,
   onConfigChange,
@@ -516,6 +550,27 @@ function MapViewComponent({
     [],
   );
 
+  // Live Domain-availability per `map-view.base` augment that declares
+  // `suppressesVanillaBase` — tracked independently of whether that augment
+  // currently has a canvas to contribute (per-layer `show` and data
+  // readiness are separate concerns; see paintTile.ts). Fed by
+  // `VanillaSuppressionProbe` below, one per candidate augment, using the
+  // SAME `useAugmentAvailable` gate `<AugmentSlot>` itself applies before
+  // ever rendering that augment's component — registry presence alone
+  // (an unconditionally-bundled client package) is NOT the same as the
+  // Domain actually being live (regression fixed 2026-07-20, see
+  // vanillaSuppression.ts's header comment). Reuses `baseLayerVersion` to
+  // trigger a repaint since both signals feed the same paint effect.
+  const suppressionAvailabilityRef = useRef<Map<string, boolean>>(new Map());
+  const onSuppressAvailabilityChange = useCallback(
+    (id: string, available: boolean) => {
+      if (available) suppressionAvailabilityRef.current.set(id, true);
+      else suppressionAvailabilityRef.current.delete(id);
+      setBaseLayerVersion((v) => v + 1);
+    },
+    [],
+  );
+
   // Per-namespace augment settings for map-view.base/map-view.sections,
   // keyed by augment id — the same namespacing `getAugmentSettings` uses.
   // Read straight off this widget's saved config, populated by
@@ -623,16 +678,21 @@ function MapViewComponent({
     // Base surface. `map-view.base` is STACKABLE — every registered
     // augment's currently-active canvas composites in draw order (grouped
     // by Uplink; see orderBaseLayers.ts), on top of the stock texture.
-    // Vanilla suppression is a SEPARATE, declarative decision (read
-    // straight off the registry, not from what's currently painting): any
+    // Vanilla suppression is a SEPARATE, declarative decision: any
     // registered augment declaring `suppressesVanillaBase` skips the
     // stock-texture paint outright, even if every layer is currently
-    // toggled off — see paintBaseSurface.ts for the full rationale,
-    // including why "all layers off" must stay black rather than falling
-    // back to the stock texture.
+    // toggled off — see paintBaseSurface.ts for that rationale, including
+    // why "all layers off" must stay black rather than falling back to the
+    // stock texture. But suppression must ALSO respect Domain availability
+    // exactly like rendering does — a registered augment whose Domain isn't
+    // live yet (or ever) must NOT suppress; see vanillaSuppression.ts's
+    // header comment for the regression this guards against.
     const activeBaseAugments = getAugmentsForSlot("map-view.base");
-    const suppressVanilla = activeBaseAugments.some(
-      (a) => a.suppressesVanillaBase === true,
+    const suppressVanilla = shouldSuppressVanillaBase(
+      activeBaseAugments.map((a) => ({
+        suppressesVanillaBase: a.suppressesVanillaBase,
+        available: suppressionAvailabilityRef.current.get(a.id) === true,
+      })),
     );
     const orderedLayers: BaseSurfaceLayer[] = [];
     for (const augment of groupBaseLayersByUplink(activeBaseAugments)) {
@@ -1149,6 +1209,15 @@ function MapViewComponent({
             {baseLayerContext && (
               <AugmentSlot name="map-view.base" props={baseLayerContext} />
             )}
+            {getAugmentsForSlot("map-view.base")
+              .filter((a) => a.suppressesVanillaBase === true)
+              .map((a) => (
+                <VanillaSuppressionProbe
+                  key={a.id}
+                  augment={a}
+                  onAvailableChange={onSuppressAvailabilityChange}
+                />
+              ))}
             {overlayContext && (
               <OverlayAugmentLayer>
                 <AugmentSlot name="map-view.overlay" props={overlayContext} />
@@ -1269,4 +1338,4 @@ registerComponent<MapViewConfig>({
   requires: ["flight"],
 });
 
-export { MapViewComponent };
+export { MapViewComponent, VanillaSuppressionProbe };

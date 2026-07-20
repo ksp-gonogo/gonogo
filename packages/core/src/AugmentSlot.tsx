@@ -76,6 +76,32 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 }
 
 /**
+ * Domain presence gate (spec §4.2): true when `augment` declares no
+ * `requires` (ungated — always available), or its `<requires>.available`
+ * Topic is currently live (any defined value, not just truthy — matches
+ * the Topic's own "presence, not payload" semantics).
+ *
+ * Extracted so a HOST can ask "is this augment's Domain live right now"
+ * without rendering the augment's own component — e.g. MapView's vanilla-
+ * suppression decision (`suppressesVanillaBase`, augments.ts) must only
+ * suppress its default surface while the declaring augment's Domain is
+ * actually live, not merely because the augment is registered; reading the
+ * registry alone can't answer that, since a bundled-but-not-running mod's
+ * client package registers its augments unconditionally at import time.
+ * `AugmentEntry` below is just this hook's original, sole caller.
+ */
+export function useAugmentAvailable(augment: AnyAugment): boolean {
+  // Always call the hook (stable order); the topic is only meaningful when the
+  // augment declares `requires`. A dummy topic for the ungated case reads
+  // `undefined` off the store and is never consulted.
+  const availabilityTopic = (
+    augment.requires ? `${augment.requires}.available` : ""
+  ) as TopicId;
+  const available = useTelemetry(availabilityTopic);
+  return !augment.requires || available !== undefined;
+}
+
+/**
  * Renders one augment, applying its Domain presence gate. Isolated into its own
  * component so its `useTelemetry` gate hook has a stable position regardless of
  * how many siblings the slot has or how the registered set changes.
@@ -87,15 +113,7 @@ function AugmentEntry({
   augment: AnyAugment;
   slotProps: Record<string, unknown>;
 }): ReactElement | null {
-  // Always call the hook (stable order); the topic is only meaningful when the
-  // augment declares `requires`. A dummy topic for the ungated case reads
-  // `undefined` off the store and is never consulted.
-  const availabilityTopic = (
-    augment.requires ? `${augment.requires}.available` : ""
-  ) as TopicId;
-  const available = useTelemetry(availabilityTopic);
-
-  if (augment.requires && available === undefined) {
+  if (!useAugmentAvailable(augment)) {
     // Domain absent → augment not rendered (spec §4.2).
     return null;
   }
