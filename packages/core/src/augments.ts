@@ -133,6 +133,20 @@ export interface AugmentDefinition<S extends string = string> {
    * namespaced by this augment's id (spec §4.7).
    */
   settings?: readonly AugmentSettingField[];
+  /**
+   * Declares that, while this augment is registered, the host's own
+   * default/replaceable surface for the slot it targets is suppressed
+   * outright — a REPLACE, not an overlay. A host reads this straight off
+   * the registry (e.g. via {@link getAugmentsForSlot}) to decide whether to
+   * paint its own default surface at all; it is independent of any other
+   * augment's `settings`/per-instance visibility, and independent of
+   * whether THIS augment currently has anything to draw. A host slot that
+   * has no such default surface can ignore the field entirely — it's an
+   * opt-in contract between a slot and the augments that choose to use it,
+   * not a universal one every slot must interpret (spec:
+   * local_docs/spec-mapview-stackable-layers.md).
+   */
+  suppressesVanillaBase?: boolean;
 }
 
 // Stored erased to the loose slot type so the registry can hold augments for

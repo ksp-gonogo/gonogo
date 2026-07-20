@@ -79,7 +79,6 @@ function baseLayerProps(
 ): SlotProps<"map-view.base"> {
   return {
     bodyId: "Kerbin",
-    activeLayerId: ALTIMETRY_LAYER_ID,
     width: 900,
     height: 500,
     augmentSettings: undefined,
@@ -170,10 +169,13 @@ describe("AltimetryBase — map-view.base slot", () => {
     expect(onLayer).not.toHaveBeenCalled();
   });
 
-  it("calls onLayer(null, 0) once live but activeLayerId doesn't match this augment's id", async () => {
+  it("calls onLayer(id, null, 0) once live but this layer's own show setting is off", async () => {
     const onLayer = vi.fn();
     const { transport } = mountWithAvailability(
-      baseLayerProps({ onLayer, activeLayerId: "scansat:biome" }),
+      baseLayerProps({
+        onLayer,
+        augmentSettings: { [ALTIMETRY_LAYER_ID]: { show: false } },
+      }),
     );
     act(() => {
       source.emit("scansat.height.Kerbin", heightGridFixture());
@@ -183,7 +185,7 @@ describe("AltimetryBase — map-view.base slot", () => {
       });
     });
     await waitFor(() => {
-      expect(onLayer).toHaveBeenCalledWith(null, 0);
+      expect(onLayer).toHaveBeenCalledWith(ALTIMETRY_LAYER_ID, null, 0);
     });
   });
 
@@ -204,10 +206,12 @@ describe("AltimetryBase — map-view.base slot", () => {
     await waitFor(() => {
       expect(onLayer).toHaveBeenCalled();
     });
-    const [canvas] = onLayer.mock.calls[onLayer.mock.calls.length - 1] as [
+    const [id, canvas] = onLayer.mock.calls[onLayer.mock.calls.length - 1] as [
+      string,
       HTMLCanvasElement,
       number,
     ];
+    expect(id).toBe(ALTIMETRY_LAYER_ID);
     expect(canvas.width).toBe(BASE_LAYER_CANVAS_W);
     expect(canvas.height).toBe(BASE_LAYER_CANVAS_H);
   });

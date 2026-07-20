@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  getAugmentsForSlot,
   getBody,
   getImagingWindow,
   latLonToMap,
@@ -62,7 +63,8 @@ import {
   TelValue,
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
-import { paintBaseSurface } from "./paintBaseSurface";
+import { groupBaseLayersByUplink } from "./orderBaseLayers";
+import { type BaseSurfaceLayer, paintBaseSurface } from "./paintBaseSurface";
 import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
@@ -93,7 +95,7 @@ function canvasColor(
 
 // ---------------------------------------------------------------------------
 // Augment slots (Uplink architecture). MapView is a HOST that exposes
-// four slots; no first-party augment fills them here, so
+// five slots; no first-party augment fills them here, so
 // each renders nothing until an Uplink registers an augment into it. This is
 // THE HARD CASE for slot design: the overlay must draw in
 // the map's own coordinate space, so `map-view.overlay` passes the live
@@ -101,9 +103,11 @@ function canvasColor(
 // layered by priority — an Uplink's own scan-layer, commlink, and
 // trajectory overlays all route HERE. `map-view.sections` is a
 // below-content panel slot (mirrors `objectives.sections`/
-// `power-systems.sections`) and
-// `map-view.base` is the single-pick REPLACE slot for the map's base
-// surface — see each interface's own doc comment below.
+// `power-systems.sections`); `map-view.actions` is a header control-row
+// slot (mirrors `system-view.actions`) for quick per-layer toggles; and
+// `map-view.base` is the STACKABLE REPLACE slot for the map's base
+// surface — many augments may draw, composited in order — see each
+// interface's own doc comment below.
 // ---------------------------------------------------------------------------
 
 /**
@@ -182,30 +186,31 @@ export interface MapSectionsContext {
 }
 
 /**
- * Props for `map-view.base` — the single-pick REPLACE slot for the map's
- * base surface. Unlike every other MapView slot, an augment filling this
- * one doesn't render JSX onto the page — it hands back a canvas via
- * `onLayer`, and that canvas REPLACES MapView's own stock-texture paint
- * entirely (MapView skips painting the stock texture while an augment is
- * active — see paintBaseSurface.ts). There is no "vanilla" provider entry to
- * compare `activeLayerId` against: an unmatched or unset id simply means no
- * augment renders, and MapView's built-in stock-texture paint is what's
- * shown, untouched.
+ * Props for `map-view.base` — the STACKABLE REPLACE slot for the map's base
+ * surface. Any number of registered augments may fill it; each decides for
+ * itself (against its OWN `augmentSettings[itsOwnId]?.show`, and its own
+ * data readiness) whether it currently has anything to paint. Like the old
+ * single-pick shape, an augment filling this slot renders no JSX onto the
+ * page — it hands back a canvas via `onLayer`, keyed by its OWN id (so
+ * multiple augments calling `onLayer` concurrently don't clobber one
+ * another). MapView composites every currently-supplied canvas in draw
+ * order (see orderBaseLayers.ts), on top of its own stock-texture paint —
+ * UNLESS some registered augment in this slot declares
+ * `suppressesVanillaBase` (see augments.ts's `AugmentDefinition`), in which
+ * case the stock texture is skipped outright, independent of which layers
+ * (if any) are currently active. See paintBaseSurface.ts for the full
+ * compositing rationale, including the "all layers off stays black" case.
  */
 export interface MapBaseLayerContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyId: string | undefined;
-  /** MapView's own `config.baseLayerId`. An augment renders its surface
-   *  only when this equals its OWN id — there is no "vanilla" entry to
-   *  compare against, an unmatched or unset id simply means no augment
-   *  renders and MapView's built-in stock-texture paint is what's already
-   *  underneath, untouched. */
-  activeLayerId: string | undefined;
   width: number;
   height: number;
   /** Per-namespace augment settings — see `MapSectionsContext`'s doc
    *  comment; same shape, same "undefined until the read-back loop lands"
-   *  caveat. */
+   *  caveat. An augment reads its OWN `augmentSettings[itsOwnId]?.show`
+   *  (default true when unset) to decide whether it currently contributes
+   *  a layer. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** The paint-gate (T4) for this body — the augment samples this per
    *  output tile while drawing its own surface. `hasAnySource: false`
@@ -213,16 +218,44 @@ export interface MapBaseLayerContext {
   coverageGate: CoverageGate;
   /**
    * Called by the augment whenever it has a fresh canvas to contribute (or
-   * `null` to withdraw one, e.g. deselected). When `activeLayerId` matches a
-   * registered augment's own id AND that augment has called `onLayer` with a
-   * non-null canvas, MapView SKIPS its own stock-texture paint and draws this
-   * canvas instead — the augment owns the background outright. Anything the
-   * augment leaves transparent therefore falls through to the dark panel fill,
-   * NOT to the stock texture, which is what lets a coverage-gated augment
-   * withhold the background for unsurveyed terrain. With no augment active the
-   * stock texture is painted as normal.
+   * `null` to withdraw one, e.g. toggled off). MUST pass the augment's OWN
+   * id as the first argument — MapView keys its per-layer canvas store by
+   * it, since (unlike the old single-pick shape) more than one augment may
+   * hold a canvas at once. Anything a layer leaves transparent falls
+   * through to whatever paints beneath it (another layer, the stock
+   * texture, or the dark panel fill) rather than being forced opaque.
    */
-  onLayer: (canvas: HTMLCanvasElement | null, version: number) => void;
+  onLayer: (
+    id: string,
+    canvas: HTMLCanvasElement | null,
+    version: number,
+  ) => void;
+}
+
+/**
+ * Props for `map-view.actions` — a header control-row slot (mirrors
+ * `system-view.actions`) for quick per-layer toggles, alongside the
+ * generic settings-panel checkboxes `AugmentSettingsPanel` already renders.
+ * Unlike `system-view.actions` (which takes no props — its own toggles are
+ * dashboard-instance-wide, not per-widget), MapView can have multiple
+ * instances (different `bodyOverride` pins), so this slot threads the
+ * CURRENT widget instance's own settings down and a way to persist a change
+ * back into THAT instance's saved config — the same `augmentSettings[id]`
+ * storage `map-view.base`/`map-view.sections` read and the settings-panel
+ * Switch writes, so a quick toggle here and the settings-panel checkbox
+ * always agree (spec: one source of truth, two surfaces).
+ */
+export interface MapActionsContext {
+  /** Per-namespace augment settings — same shape/caveat as
+   *  `MapSectionsContext`'s own field. A read-only snapshot of this widget
+   *  instance's current saved values. */
+  augmentSettings: Record<string, Record<string, unknown>> | undefined;
+  /**
+   * Persists ONE augment's `show` setting into this widget instance's own
+   * config. A no-op when the widget isn't hosted by something that wired
+   * up `onConfigChange` (e.g. an isolated render in a test).
+   */
+  setAugmentShow: (augmentId: string, show: boolean) => void;
 }
 
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
@@ -234,6 +267,7 @@ declare module "@ksp-gonogo/core" {
     "map-view.badges": MapBadgesContext;
     "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
+    "map-view.actions": MapActionsContext;
   }
 }
 
@@ -314,6 +348,7 @@ function drawFadedSegments(
 
 function MapViewComponent({
   config,
+  onConfigChange,
   w,
   h,
 }: Readonly<ComponentProps<MapViewConfig>>) {
@@ -321,10 +356,6 @@ function MapViewComponent({
   const telemetryKeys = config?.telemetryKeys ?? [];
   const showTelemetry = telemetryKeys.length > 0;
   const showPrediction = config?.showPrediction ?? true;
-  // Which registered map-view.base augment (if any) is active — see
-  // MapBaseLayerContext's doc comment. Unset / no match = MapView's own
-  // stock texture, unmodified.
-  const baseLayerId = config?.baseLayerId;
   const bodyOverride = config?.bodyOverride;
   // Vanilla POIs (KSC, contract targets) are always-relevant reference
   // points, not an opt-in extension-shaped feature — default on (T-POI-7).
@@ -457,31 +488,33 @@ function MapViewComponent({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
-  // The map-view.base slot's contributed surface. At most one registered
-  // augment is ever expected to hold this — the one whose own id matches
-  // `baseLayerId` — every other augment must never call `onLayer` with a
-  // non-null canvas (its own `activeLayerId` check gates that). MapView
-  // trusts that contract rather than re-deriving "whose canvas is this"
-  // itself, since `onLayer` carries no augment id.
-  const baseLayerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // The map-view.base slot's contributed surfaces — stackable, so keyed by
+  // each contributing augment's OWN id rather than a single ref (the old
+  // single-pick shape's assumption that at most one augment ever holds
+  // this no longer applies; see MapBaseLayerContext's doc comment). A ref
+  // (not state) because it's mutated on every `onLayer` call and read only
+  // inside the imperative paint effect below — `baseLayerVersion` is the
+  // state that actually triggers a redraw.
+  const baseLayerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(
+    new Map(),
+  );
   const [baseLayerVersion, setBaseLayerVersion] = useState(0);
   const onBaseLayer = useCallback(
-    (canvas: HTMLCanvasElement | null, version: number) => {
-      baseLayerCanvasRef.current = canvas;
-      setBaseLayerVersion(version);
+    (id: string, canvas: HTMLCanvasElement | null, _version: number) => {
+      if (canvas) baseLayerCanvasesRef.current.set(id, canvas);
+      else baseLayerCanvasesRef.current.delete(id);
+      // Bump MapView's OWN counter rather than forwarding the caller's
+      // `_version` into state directly: with a single contributor that
+      // number (typically `Date.now()`) was fine as a change-marker, but
+      // with several augments potentially calling `onLayer` within the
+      // same millisecond, two DIFFERENT augments could hand back an
+      // identical value — React would then skip the re-render for the
+      // second call since the state "changed" to the same number twice.
+      // An unconditional increment can't collide that way.
+      setBaseLayerVersion((v) => v + 1);
     },
     [],
   );
-
-  // A `baseLayerId` change means whatever canvas is currently held may
-  // belong to an augment that's no longer active — drop it immediately
-  // rather than painting a stale surface until the newly-active augment
-  // (if any) supplies its own.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayerId is the trigger, not a value the body reads — this effect exists purely to reset on change
-  useEffect(() => {
-    baseLayerCanvasRef.current = null;
-    setBaseLayerVersion(0);
-  }, [baseLayerId]);
 
   // Per-namespace augment settings for map-view.base/map-view.sections,
   // keyed by augment id — the same namespacing `getAugmentSettings` uses.
@@ -491,6 +524,25 @@ function MapViewComponent({
   // settings) already treats that as "no overrides".
   const augmentSettings: Record<string, Record<string, unknown>> | undefined =
     config?.augmentSettings;
+
+  // Read/write half of `map-view.actions`'s quick per-layer toggles (spec:
+  // the action and the settings-panel checkbox read/write the SAME
+  // `augmentSettings[id].show` — one source of truth, two surfaces). Mirrors
+  // OrbitView's own `onConfigChange?.({ ...config, ... })` inline-persist
+  // pattern; a no-op when nothing wired up `onConfigChange` (e.g. an
+  // isolated test render).
+  const setAugmentShow = useCallback(
+    (augmentId: string, show: boolean) => {
+      onConfigChange?.({
+        ...config,
+        augmentSettings: {
+          ...augmentSettings,
+          [augmentId]: { ...augmentSettings?.[augmentId], show },
+        },
+      });
+    },
+    [config, augmentSettings, onConfigChange],
+  );
 
   // T4's paint-gate — a mod-agnostic map-view.base augment samples this
   // per output tile while drawing its own surface (settled model: zero
@@ -568,26 +620,41 @@ function MapViewComponent({
 
     ctx.setTransform(...cameraTransform(camera, w, h));
 
-    // Base surface. A `map-view.base` augment is a REPLACEMENT base layer:
-    // when one is active it owns the whole surface and MapView skips its own
-    // stock-texture paint, so anything the augment leaves transparent falls
-    // through to the dark fill beneath — which is what lets a coverage-gated
-    // augment actually WITHHOLD the background for unsurveyed terrain instead
-    // of showing the stock texture through it. With no augment active it is
-    // painted exactly as before. Full rationale in paintBaseSurface.ts.
+    // Base surface. `map-view.base` is STACKABLE — every registered
+    // augment's currently-active canvas composites in draw order (grouped
+    // by Uplink; see orderBaseLayers.ts), on top of the stock texture.
+    // Vanilla suppression is a SEPARATE, declarative decision (read
+    // straight off the registry, not from what's currently painting): any
+    // registered augment declaring `suppressesVanillaBase` skips the
+    // stock-texture paint outright, even if every layer is currently
+    // toggled off — see paintBaseSurface.ts for the full rationale,
+    // including why "all layers off" must stay black rather than falling
+    // back to the stock texture.
+    const activeBaseAugments = getAugmentsForSlot("map-view.base");
+    const suppressVanilla = activeBaseAugments.some(
+      (a) => a.suppressesVanillaBase === true,
+    );
+    const orderedLayers: BaseSurfaceLayer[] = [];
+    for (const augment of groupBaseLayersByUplink(activeBaseAugments)) {
+      const layerCanvas = baseLayerCanvasesRef.current.get(augment.id);
+      if (layerCanvas)
+        orderedLayers.push({ id: augment.id, canvas: layerCanvas });
+    }
     paintBaseSurface(ctx, {
       textureImage,
       bodyColor: body?.color,
-      augmentCanvas: baseLayerCanvasRef.current,
+      suppressVanilla,
+      layers: orderedLayers,
       worldW: WORLD_W,
       worldH: WORLD_H,
     });
 
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel.
-    // A painted base surface — stock texture OR a replacement augment — takes
-    // the light grid; only a bare/washed canvas takes the dark one.
+    // A painted base surface — stock texture OR at least one active
+    // replacement layer — takes the light grid; a bare/washed (or fully
+    // suppressed-and-empty) canvas takes the dark one.
     ctx.strokeStyle =
-      textureImage || baseLayerCanvasRef.current
+      textureImage || orderedLayers.length > 0
         ? "rgba(255,255,255,0.05)"
         : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
     ctx.lineWidth = 1 / camera.zoom;
@@ -953,10 +1020,10 @@ function MapViewComponent({
     bodyName: displayName,
     augmentSettings,
   };
+  const actionsContext: MapActionsContext = { augmentSettings, setAugmentShow };
   const baseLayerContext: MapBaseLayerContext | null = containerSize
     ? {
         bodyId: targetBodyId,
-        activeLayerId: baseLayerId,
         width: containerSize.w,
         height: containerSize.h,
         augmentSettings,
@@ -1030,6 +1097,7 @@ function MapViewComponent({
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
         <AugmentSlot name="map-view.badges" props={badgesContext} />
+        <AugmentSlot name="map-view.actions" props={actionsContext} />
         <StreamStatusBadge status={streamStatus} />
         {showBodyLabel && displayName && (
           <BodyLabel>
@@ -1195,6 +1263,7 @@ registerComponent<MapViewConfig>({
     "map-view.badges",
     "map-view.sections",
     "map-view.base",
+    "map-view.actions",
   ],
   pushable: true,
   requires: ["flight"],

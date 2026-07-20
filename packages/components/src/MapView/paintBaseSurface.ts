@@ -1,23 +1,37 @@
 // Background paint for MapView's world canvas.
 //
 // The map is a BACKGROUND, with everything else (overlays, POIs, trajectory,
-// vessel marker) drawn on top of it. A `map-view.base` augment is a REPLACEMENT
-// background, not an overlay: when one is active it owns the background
-// entirely, so MapView must NOT paint its own stock body texture underneath it.
+// vessel marker) drawn on top of it. `map-view.base` is a STACKABLE slot
+// (local_docs/spec-mapview-stackable-layers.md): any number of augments may
+// each contribute a canvas, and every currently-active one is composited in
+// draw order — this module doesn't decide that order (see orderBaseLayers.ts)
+// or which augments count as "active" (that's config/settings, resolved by
+// the caller); it only paints what it's handed.
 //
-// Why this matters (2026-07-20): the previous shape painted the stock texture
-// first, unconditionally, then composited the augment over the top --
-// "replacing its visible pixels wherever the augment's canvas is opaque". A
-// coverage-gated background augment paints NOTHING for unsurveyed tiles, so
-// those tiles stayed transparent and the stock texture showed straight
-// through. The background could therefore never be withheld: the coverage gate
-// could only ever REPLACE pixels, never leave them unpainted. Skipping the stock
-// paint while a replacement background is active lets unsurveyed regions fall
-// through to the dark panel fill already on the canvas, and every future
-// background augment inherits that for free instead of hand-painting black tiles.
+// Whether the host's own stock body texture paints at all is a SEPARATE,
+// declarative decision (`suppressVanilla`, sourced from any registered
+// augment's `suppressesVanillaBase` flag — see augments.ts) — independent of
+// whether any layer currently has a canvas to contribute. That split matters
+// for the "all layers toggled off" case: if suppression is on, the surface
+// stays black (the dark panel fill already on the canvas shows through),
+// never falling back to the stock texture just because nothing is currently
+// painting (spec §5) — "don't like it, don't have the Uplink" is meant
+// literally: the Uplink's mere presence, not its current per-layer
+// visibility, decides this.
 //
-// The no-augment path is deliberately unchanged: an unset or unmatched
-// `baseLayerId` still gets the plain stock texture, ungated.
+// Why the OLD single-augment shape had to change (2026-07-20): the previous
+// design let exactly one `map-view.base` augment "win" (an `activeLayerId`
+// picker with no UI to ever set it), and treated "did the winning augment
+// hand back a canvas" as the suppression signal. That conflated two
+// concepts a real base-layer Uplink keeps separate (an opaque base surface
+// plus a translucent layer ON TOP of it) and made "hide vanilla, draw
+// nothing" unreachable — a coverage-gated layer that paints nothing for
+// unsurveyed tiles could only ever REPLACE pixels, never intentionally
+// withhold the whole surface.
+//
+// The no-suppression, no-layers path is unchanged from before this rework:
+// the stock texture (or a body-colour wash, or nothing) paints exactly as
+// it always did.
 
 /** The subset of the 2D context this module touches. */
 export interface BaseSurfaceCtx {
@@ -33,46 +47,64 @@ export interface BaseSurfaceCtx {
   fillRect(x: number, y: number, w: number, h: number): void;
 }
 
+/** One active `map-view.base` layer's contributed canvas, ready to composite. */
+export interface BaseSurfaceLayer {
+  /** The contributing augment's own id — carried through for callers/tests; drawing itself doesn't need it. */
+  id: string;
+  canvas: CanvasImageSource;
+}
+
 export interface BaseSurfaceInput {
   /** The body's stock texture, or null if none is loaded. */
   textureImage: CanvasImageSource | null;
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
-   * The canvas supplied by the active `map-view.base` augment, or null when no
-   * augment is active. Non-null ONLY when a registered augment's own id matches
-   * `baseLayerId` and it has handed back a canvas.
+   * True when at least one registered `map-view.base` augment declares
+   * `suppressesVanillaBase` (spec: the Uplink's mere presence suppresses
+   * the host surface, non-optional, no setting overrides it back on) —
+   * independent of `layers` below, which only reflects what's CURRENTLY
+   * painting. See this module's header comment for the all-off case.
    */
-  augmentCanvas: CanvasImageSource | null;
+  suppressVanilla: boolean;
+  /**
+   * Every currently-active layer's canvas, already in draw order (earliest
+   * first, so later entries composite on top) — see orderBaseLayers.ts for
+   * how that order is derived.
+   */
+  layers: readonly BaseSurfaceLayer[];
   worldW: number;
   worldH: number;
 }
 
 /**
- * Paint the map's base surface. When `augmentCanvas` is present it is the ONLY
- * thing drawn -- the replacement augment owns the surface. Otherwise the stock
- * texture (plus its dimming wash) is painted, falling back to a body-colour wash.
+ * Paint the map's base surface: the stock texture/colour-wash (skipped
+ * outright when `suppressVanilla` is true), followed by every active
+ * `map-view.base` layer's canvas, in the given order.
  */
 export function paintBaseSurface(
   ctx: BaseSurfaceCtx,
-  { textureImage, bodyColor, augmentCanvas, worldW, worldH }: BaseSurfaceInput,
+  {
+    textureImage,
+    bodyColor,
+    suppressVanilla,
+    layers,
+    worldW,
+    worldH,
+  }: BaseSurfaceInput,
 ): void {
-  if (augmentCanvas) {
-    // Replacement base layer: it owns the surface. Anything it leaves
-    // transparent intentionally falls through to the dark fill beneath.
-    ctx.drawImage(augmentCanvas, 0, 0, worldW, worldH);
-    return;
+  if (!suppressVanilla) {
+    if (textureImage) {
+      ctx.drawImage(textureImage, 0, 0, worldW, worldH);
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.fillRect(0, 0, worldW, worldH);
+    } else if (bodyColor) {
+      ctx.fillStyle = `${bodyColor}22`;
+      ctx.fillRect(0, 0, worldW, worldH);
+    }
   }
 
-  if (textureImage) {
-    ctx.drawImage(textureImage, 0, 0, worldW, worldH);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.fillRect(0, 0, worldW, worldH);
-    return;
-  }
-
-  if (bodyColor) {
-    ctx.fillStyle = `${bodyColor}22`;
-    ctx.fillRect(0, 0, worldW, worldH);
+  for (const layer of layers) {
+    ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
   }
 }

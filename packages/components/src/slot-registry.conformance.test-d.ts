@@ -36,6 +36,7 @@ import type { GroundSurveyBadgesContext } from "./GroundSurvey";
 import type { LandingStatusBadgesContext } from "./LandingStatus";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
+  MapActionsContext,
   MapBadgesContext,
   MapBaseLayerContext,
   MapOverlayContext,
@@ -258,6 +259,12 @@ type _MapBase = Expect<
 >;
 type _MapBaseBack = Expect<
   Assignable<MapBaseLayerContext, SdkSlotProps<"map-view.base">>
+>;
+type _MapActions = Expect<
+  Assignable<SdkSlotProps<"map-view.actions">, MapActionsContext>
+>;
+type _MapActionsBack = Expect<
+  Assignable<MapActionsContext, SdkSlotProps<"map-view.actions">>
 >;
 
 type _TechBadges = Expect<

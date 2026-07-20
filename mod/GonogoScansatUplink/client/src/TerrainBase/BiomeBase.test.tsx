@@ -20,7 +20,11 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANBiomeGrid } from "../schema";
-import { BIOME_LAYER_ID, packedColourToComponents } from "./BiomeBase";
+import {
+  BIOME_LAYER_ID,
+  BIOME_LAYER_OPACITY,
+  packedColourToComponents,
+} from "./BiomeBase";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once — same convention as
 // AltimetryBase.test.tsx / FootprintOverlay/index.test.tsx.
@@ -77,7 +81,6 @@ function baseLayerProps(
 ): SlotProps<"map-view.base"> {
   return {
     bodyId: "Kerbin",
-    activeLayerId: BIOME_LAYER_ID,
     width: 900,
     height: 500,
     augmentSettings: undefined,
@@ -174,10 +177,13 @@ describe("BiomeBase — map-view.base slot", () => {
     expect(onLayer).not.toHaveBeenCalled();
   });
 
-  it("calls onLayer(null, 0) once live but activeLayerId doesn't match this augment's id", async () => {
+  it("calls onLayer(id, null, 0) once live but this layer's own show setting is off", async () => {
     const onLayer = vi.fn();
     const { transport } = mountWithAvailability(
-      baseLayerProps({ onLayer, activeLayerId: "scansat:altimetry" }),
+      baseLayerProps({
+        onLayer,
+        augmentSettings: { [BIOME_LAYER_ID]: { show: false } },
+      }),
     );
     act(() => {
       source.emit("scansat.biome.Kerbin", biomeGridFixture());
@@ -187,7 +193,7 @@ describe("BiomeBase — map-view.base slot", () => {
       });
     });
     await waitFor(() => {
-      expect(onLayer).toHaveBeenCalledWith(null, 0);
+      expect(onLayer).toHaveBeenCalledWith(BIOME_LAYER_ID, null, 0);
     });
   });
 
@@ -206,10 +212,12 @@ describe("BiomeBase — map-view.base slot", () => {
     await waitFor(() => {
       expect(onLayer).toHaveBeenCalled();
     });
-    const [canvas] = onLayer.mock.calls[onLayer.mock.calls.length - 1] as [
+    const [id, canvas] = onLayer.mock.calls[onLayer.mock.calls.length - 1] as [
+      string,
       HTMLCanvasElement,
       number,
     ];
+    expect(id).toBe(BIOME_LAYER_ID);
     expect(canvas.width).toBe(BASE_LAYER_CANVAS_W);
     expect(canvas.height).toBe(BASE_LAYER_CANVAS_H);
   });
@@ -231,7 +239,7 @@ describe("BiomeBase — map-view.base slot", () => {
     expect(paintCalls.every((c) => c.startsWith("clearRect"))).toBe(true);
   });
 
-  it("paints the colormap at full opacity when every tile is fully covered", async () => {
+  it("paints the colormap at this layer's own BIOME_LAYER_OPACITY when every tile is fully covered (restores the layerOpacity * coverageAlpha split)", async () => {
     const onLayer = vi.fn();
     const { transport } = mountWithAvailability(
       baseLayerProps({ onLayer, coverageGate: fullyCoveredGate() }),
@@ -245,7 +253,11 @@ describe("BiomeBase — map-view.base slot", () => {
     });
     await waitFor(() => expect(onLayer).toHaveBeenCalled());
     expect(paintCalls.some((c) => c.startsWith("fillRect"))).toBe(true);
-    expect(paintFillStyles.every((s) => s.endsWith(", 1)"))).toBe(true);
+    // Full coverage (1) * this layer's own translucency (BIOME_LAYER_OPACITY)
+    // — biome draws translucent on top of altimetry, never fully opaque.
+    expect(
+      paintFillStyles.every((s) => s.endsWith(`, ${BIOME_LAYER_OPACITY})`)),
+    ).toBe(true);
     // The 0xFF ("no biome") cell must never be painted.
     expect(paintFillStyles.length).toBeLessThan(4);
   });

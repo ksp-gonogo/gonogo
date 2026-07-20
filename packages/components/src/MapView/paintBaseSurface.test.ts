@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { paintBaseSurface } from "./paintBaseSurface";
 
-// The map is a BACKGROUND with everything else drawn on top. A `map-view.base`
-// augment is a REPLACEMENT background, not an overlay: when one is active it
-// owns the whole background. MapView must therefore skip its own stock-texture
-// paint entirely, so whatever the augment leaves untouched falls through to the
-// dark panel fill underneath. Painting the stock texture first and compositing
-// the augment over it (the pre-fix behaviour) meant an unsurveyed region showed
-// the stock texture through the augment's transparent pixels, so the background
-// could never be withheld.
+// The map is a BACKGROUND with everything else drawn on top. `map-view.base`
+// is a STACKABLE slot (local_docs/spec-mapview-stackable-layers.md): many
+// augments may draw, in order, and the stock texture is skipped only when
+// `suppressVanilla` is true — a declarative decision independent of
+// whether any layer currently has something to paint. "All layers off"
+// while suppression is active must NOT fall back to the stock texture
+// (spec §5) — it falls through to the dark panel fill already on the
+// canvas, same as an individual layer's own un-painted tiles always have.
 
 function fakeCtx() {
   const calls: string[] = [];
@@ -21,68 +21,103 @@ function fakeCtx() {
   };
 }
 
+function layer(id: string) {
+  return { id, canvas: { __id: id } as unknown as CanvasImageSource };
+}
+
 const STOCK = { __id: "stock" } as unknown as CanvasImageSource;
-const AUGMENT = { __id: "augment" } as unknown as CanvasImageSource;
 
 describe("paintBaseSurface", () => {
-  it("paints the stock texture when no base augment is active", () => {
+  it("paints the stock texture when suppression is off and there are no layers", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
       bodyColor: "#ff0000",
-      augmentCanvas: null,
+      suppressVanilla: false,
+      layers: [],
       worldW: 100,
       worldH: 50,
     });
-    expect(ctx.calls).toContain("drawImage stock");
-    expect(ctx.calls).not.toContain("drawImage augment");
+    expect(ctx.calls).toEqual(["drawImage stock", "fillRect 0,0,100,50"]);
   });
 
-  it("does NOT paint the stock texture when a base augment supplies a canvas", () => {
+  it("draws every active layer, in the given order, on top of the stock texture when suppression is off", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
       bodyColor: "#ff0000",
-      augmentCanvas: AUGMENT,
+      suppressVanilla: false,
+      layers: [layer("under"), layer("over")],
       worldW: 100,
       worldH: 50,
     });
-    // The whole point: the replacement augment owns the base surface.
-    expect(ctx.calls).not.toContain("drawImage stock");
-    expect(ctx.calls).toContain("drawImage augment");
+    expect(ctx.calls).toEqual([
+      "drawImage stock",
+      "fillRect 0,0,100,50",
+      "drawImage under",
+      "drawImage over",
+    ]);
   });
 
-  it("skips the colour-wash fallback too when a base augment is active", () => {
+  it("skips the stock texture entirely when suppression is on, drawing only the layers", () => {
+    const ctx = fakeCtx();
+    paintBaseSurface(ctx as never, {
+      textureImage: STOCK,
+      bodyColor: "#ff0000",
+      suppressVanilla: true,
+      layers: [layer("only")],
+      worldW: 100,
+      worldH: 50,
+    });
+    expect(ctx.calls).toEqual(["drawImage only"]);
+  });
+
+  it("paints nothing at all when suppression is on and every layer is currently inactive (spec: all-off is black, never a fallback to vanilla)", () => {
+    const ctx = fakeCtx();
+    paintBaseSurface(ctx as never, {
+      textureImage: STOCK,
+      bodyColor: "#ff0000",
+      suppressVanilla: true,
+      layers: [],
+      worldW: 100,
+      worldH: 50,
+    });
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it("skips the colour-wash fallback too when suppression is on", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
       bodyColor: "#ff0000",
-      augmentCanvas: AUGMENT,
+      suppressVanilla: true,
+      layers: [layer("only")],
       worldW: 100,
       worldH: 50,
     });
-    // No fillRect for the colour wash -- only the augment is drawn.
-    expect(ctx.calls).toEqual(["drawImage augment"]);
+    expect(ctx.calls).toEqual(["drawImage only"]);
   });
 
-  it("falls back to the body colour wash when there is no texture and no augment", () => {
+  it("falls back to the body colour wash when there is no texture, suppression is off, then draws layers on top", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
       bodyColor: "#ff0000",
-      augmentCanvas: null,
+      suppressVanilla: false,
+      layers: [layer("over")],
       worldW: 100,
       worldH: 50,
     });
-    expect(ctx.calls).toEqual(["fillRect 0,0,100,50"]);
+    expect(ctx.calls).toEqual(["fillRect 0,0,100,50", "drawImage over"]);
   });
 
-  it("paints nothing when there is no texture, no colour and no augment", () => {
+  it("paints nothing when there is no texture, no colour, no layers and suppression is off", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
       bodyColor: undefined,
-      augmentCanvas: null,
+      suppressVanilla: false,
+      layers: [],
       worldW: 100,
       worldH: 50,
     });

@@ -22,6 +22,7 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import type {
+  MapActionsContext,
   MapBadgesContext,
   MapBaseLayerContext,
   MapOverlayContext,
@@ -140,6 +141,7 @@ describe("MapViewComponent", () => {
   function renderMap(
     config: Record<string, unknown> = {},
     size?: { w: number; h: number },
+    onConfigChange?: (config: Record<string, unknown>) => void,
   ) {
     const fixture = setupStreamFixture({
       carriedChannels: [...VESSEL_STATE_INPUTS],
@@ -150,6 +152,7 @@ describe("MapViewComponent", () => {
         <Wrap>
           <MapViewComponent
             config={config}
+            onConfigChange={onConfigChange}
             id="map-test"
             w={size?.w}
             h={size?.h}
@@ -419,57 +422,144 @@ describe("MapViewComponent", () => {
       });
     });
 
-    it("map-view.base: draws the augment's canvas over the stock texture only when activeLayerId matches", async () => {
-      const onLayerCalls: Array<HTMLCanvasElement | null> = [];
+    it("map-view.base: every registered augment mounts and can contribute a canvas — no single-pick gating", async () => {
+      const onLayerCalls: string[] = [];
       registerAugment({
-        id: "fake-base",
+        id: "fake-base-a",
         augments: "map-view.base",
         component: (ctx: MapBaseLayerContext) => {
-          // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when this augment's own active/inactive state flips, mirroring the real base-layer augment's own gating contract
+          // biome-ignore lint/correctness/useExhaustiveDependencies: mounts once and reports; mirrors a real base-layer augment's own onLayer call shape
           useEffect(() => {
-            if (ctx.activeLayerId !== "fake-base") return;
             const c = document.createElement("canvas");
             c.width = ctx.width;
             c.height = ctx.height;
-            ctx.onLayer(c, 1);
-            onLayerCalls.push(c);
-          }, [ctx.activeLayerId]);
+            ctx.onLayer("fake-base-a", c, 1);
+            onLayerCalls.push("fake-base-a");
+          }, []);
+          return null;
+        },
+      });
+      registerAugment({
+        id: "fake-base-b",
+        augments: "map-view.base",
+        component: (ctx: MapBaseLayerContext) => {
+          // biome-ignore lint/correctness/useExhaustiveDependencies: mounts once and reports; mirrors a real base-layer augment's own onLayer call shape
+          useEffect(() => {
+            const c = document.createElement("canvas");
+            ctx.onLayer("fake-base-b", c, 1);
+            onLayerCalls.push("fake-base-b");
+          }, []);
           return null;
         },
       });
 
-      const { fixture } = renderMap({ baseLayerId: "fake-base" });
+      const { fixture } = renderMap();
       await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
-        if (onLayerCalls.length !== 1) {
-          throw new Error("onLayer has not been called yet");
+        if (onLayerCalls.length !== 2) {
+          throw new Error("both base augments have not mounted yet");
         }
       });
-      expect(onLayerCalls).toHaveLength(1);
+      expect(onLayerCalls).toContain("fake-base-a");
+      expect(onLayerCalls).toContain("fake-base-b");
     });
 
-    it("map-view.base: an unmatched activeLayerId never calls onLayer with a canvas", async () => {
-      let called = false;
+    it("map-view.base: a per-layer augmentSettings[id].show reads back on ctx.augmentSettings, letting one layer suppress itself while a sibling still contributes", async () => {
+      const calls: string[] = [];
       registerAugment({
-        id: "fake-base-2",
+        id: "fake-base-off",
         augments: "map-view.base",
         component: (ctx: MapBaseLayerContext) => {
-          // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when this augment's own active/inactive state flips, mirroring the real base-layer augment's own gating contract
           useEffect(() => {
-            if (ctx.activeLayerId === "fake-base-2") {
-              called = true;
-              ctx.onLayer(document.createElement("canvas"), 1);
+            if (ctx.augmentSettings?.["fake-base-off"]?.show === false) {
+              ctx.onLayer("fake-base-off", null, 0);
+              return;
             }
-          }, [ctx.activeLayerId]);
+            ctx.onLayer("fake-base-off", document.createElement("canvas"), 1);
+            calls.push("fake-base-off");
+          }, [ctx.augmentSettings, ctx.onLayer]);
+          return null;
+        },
+      });
+      registerAugment({
+        id: "fake-base-on",
+        augments: "map-view.base",
+        component: (ctx: MapBaseLayerContext) => {
+          useEffect(() => {
+            ctx.onLayer("fake-base-on", document.createElement("canvas"), 1);
+            calls.push("fake-base-on");
+          }, [ctx.onLayer]);
           return null;
         },
       });
 
-      const { fixture } = renderMap({ baseLayerId: "something-else" });
+      const { fixture } = renderMap({
+        augmentSettings: { "fake-base-off": { show: false } },
+      });
       await emitVessel(fixture, { body: "Kerbin" });
 
-      expect(called).toBe(false);
+      await waitFor(() => {
+        if (!calls.includes("fake-base-on")) {
+          throw new Error("the un-suppressed sibling has not mounted yet");
+        }
+      });
+      expect(calls).not.toContain("fake-base-off");
+    });
+
+    it("map-view.actions: a registered augment can toggle a base layer's show via setAugmentShow, writing the SAME augmentSettings the settings panel reads", async () => {
+      registerAugment({
+        id: "test-map-actions",
+        augments: "map-view.actions",
+        component: (ctx: MapActionsContext) => (
+          <button
+            type="button"
+            onClick={() => ctx.setAugmentShow("scan-layer", false)}
+          >
+            Toggle scan layer
+          </button>
+        ),
+      });
+
+      const onConfigChange = vi.fn();
+      const { fixture } = renderMap({}, undefined, onConfigChange);
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", { name: "Toggle scan layer" }),
+      );
+
+      expect(onConfigChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          augmentSettings: expect.objectContaining({
+            "scan-layer": expect.objectContaining({ show: false }),
+          }),
+        }),
+      );
+    });
+
+    it("map-view.actions receives the widget's current augmentSettings, the same values the settings panel reads", async () => {
+      registerAugment({
+        id: "test-map-actions-read",
+        augments: "map-view.actions",
+        component: (ctx: MapActionsContext) => (
+          <div data-testid="actions-probe">
+            show={String(ctx.augmentSettings?.["scan-layer"]?.show)}
+          </div>
+        ),
+      });
+
+      const { container, fixture } = renderMap({
+        augmentSettings: { "scan-layer": { show: false } },
+      });
+      await emitVessel(fixture, { body: "Kerbin" });
+
+      await waitFor(() => {
+        if (!container.textContent?.includes("show=false")) {
+          throw new Error("actions augment has not read back the setting yet");
+        }
+      });
     });
   });
 

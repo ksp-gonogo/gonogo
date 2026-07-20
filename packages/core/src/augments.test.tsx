@@ -256,3 +256,42 @@ describe("augment settings merge (spec §4.7)", () => {
     expect(merged[1]?.fields[0]?.key).toBe("enabled");
   });
 });
+
+describe("suppressesVanillaBase (mapview-stackable-layers spec)", () => {
+  it("is undefined by default, and carried through unchanged when declared", () => {
+    registerAugment({
+      id: "plain",
+      augments: "s",
+      component: () => null,
+    });
+    registerAugment({
+      id: "replaces-default",
+      augments: "s",
+      component: () => null,
+      suppressesVanillaBase: true,
+    });
+
+    const [plain, replacer] = getAugmentsForSlot("s");
+    expect(plain?.suppressesVanillaBase).toBeUndefined();
+    expect(replacer?.suppressesVanillaBase).toBe(true);
+  });
+
+  it("is a pure registry read — a host can find every suppressing augment in a slot without rendering anything", () => {
+    registerAugment({
+      id: "a",
+      augments: "s",
+      component: () => null,
+      suppressesVanillaBase: true,
+    });
+    registerAugment({
+      id: "b",
+      augments: "s",
+      component: () => null,
+    });
+
+    const suppressing = getAugmentsForSlot("s").filter(
+      (a) => a.suppressesVanillaBase === true,
+    );
+    expect(suppressing.map((a) => a.id)).toEqual(["a"]);
+  });
+});

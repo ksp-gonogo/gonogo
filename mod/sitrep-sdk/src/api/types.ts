@@ -149,6 +149,11 @@ export interface AugmentDefinition<S extends string = string> {
   requires?: string;
   priority?: number;
   settings?: readonly AugmentSettingField[];
+  /** Declares that, while this augment is registered, the host's own
+   *  default/replaceable surface for its slot is suppressed outright — see
+   *  the real `AugmentDefinition` (packages/core/src/augments.ts) for the
+   *  full rationale. */
+  suppressesVanillaBase?: boolean;
 }
 
 // --- Fog reveal sources ------------------------------------------------------
