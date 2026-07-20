@@ -6,8 +6,18 @@ import {
   useCarriedChannels,
   useCarriedChannelsOptional,
 } from "./context";
+import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import { StubTransport } from "./stub-transport";
 import type { Transport, TransportStatus } from "./transport";
+
+/**
+ * The carried set `TelemetryProvider` builds always folds in the dynamic
+ * whole-topic prefixes (see context.tsx) on top of the transport declaration +
+ * the explicit prop, so expectations union them in.
+ */
+function carriedWith(...topics: string[]): ReadonlySet<string> {
+  return new Set([...topics, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]);
+}
 
 /** A `Transport` that declares a fixed set of carried channels (mirrors what `ReplayTransport` does with the real fixture's topic set). */
 class DeclaringTransport implements Transport {
@@ -44,7 +54,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
         <Probe />
       </TelemetryProvider>,
     );
-    expect(seen).toEqual(new Set(["vessel.orbit", "vessel.flight"]));
+    expect(seen).toEqual(carriedWith("vessel.orbit", "vessel.flight"));
   });
 
   it("unions the explicit carriedChannels prop with the transport's declaration", () => {
@@ -61,7 +71,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
         <Probe />
       </TelemetryProvider>,
     );
-    expect(seen).toEqual(new Set(["vessel.orbit", "vessel.control"]));
+    expect(seen).toEqual(carriedWith("vessel.orbit", "vessel.control"));
   });
 
   it("a transport that does not declare (StubTransport) carries only the explicit promotion list", () => {
@@ -76,7 +86,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
         <Probe />
       </TelemetryProvider>,
     );
-    expect(seen).toEqual(new Set(["vessel.orbit"]));
+    expect(seen).toEqual(carriedWith("vessel.orbit"));
   });
 
   it("MONOTONIC: promoting a topic on a re-render adds it, and a later render that omits it does NOT drop it", () => {
@@ -92,7 +102,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
         <Probe />
       </TelemetryProvider>,
     );
-    expect(seenPerRender.at(-1)).toEqual(new Set(["vessel.orbit"]));
+    expect(seenPerRender.at(-1)).toEqual(carriedWith("vessel.orbit"));
 
     // Promote a second topic.
     rerender(
@@ -104,7 +114,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
       </TelemetryProvider>,
     );
     expect(seenPerRender.at(-1)).toEqual(
-      new Set(["vessel.orbit", "vessel.flight"]),
+      carriedWith("vessel.orbit", "vessel.flight"),
     );
 
     // A later render's prop SHRINKS back to just the first topic — the
@@ -116,7 +126,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
       </TelemetryProvider>,
     );
     expect(seenPerRender.at(-1)).toEqual(
-      new Set(["vessel.orbit", "vessel.flight"]),
+      carriedWith("vessel.orbit", "vessel.flight"),
     );
   });
 });
