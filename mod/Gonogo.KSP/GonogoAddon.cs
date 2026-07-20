@@ -99,6 +99,15 @@ namespace Gonogo.KSP
                 // KspVesselActuator's doc comment used to describe as deferred).
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
 
+                // Route the engine's fail-soft diagnostics to the KSP log.
+                // Sitrep.Host otherwise logs only to Console.Error, which KSP does
+                // NOT capture — so a disabled/unavailable uplink or a retrying
+                // capture-throw was invisible in the live log. That invisibility
+                // hid the SCANsat coverage root cause for the entire
+                // investigation; this sink makes the whole fail-soft class
+                // visible at [WRN] level.
+                _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
+
                 // [SitrepUplink] assembly-scan discovery REPLACES the
                 // previous hardcoded RegisterUplink(new XyzUplink()) list —
                 // see Sitrep.Host.UplinkDiscovery's doc comment. The bundled

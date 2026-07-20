@@ -250,6 +250,98 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// Headless reproduction of the live SCANsat finding: a client
+        /// subscribing to a 4-SEGMENT per-(body,type) dynamic topic
+        /// (<c>prefix + "Kerbin.1"</c>, the shape
+        /// <c>ScanChannels.BodyTypeSubTopic</c> emits) must open the
+        /// subscription-gated sampler (capture runs) AND receive the keyframe
+        /// the uplink publishes to that exact topic — exactly as the
+        /// dot-free body-level sub-topic already does in
+        /// <see cref="DynamicNamespaceSubTopicsGetIndependentKeyframeAndLossySemantics"/>.
+        /// On the Deck this exact sub failed to open the gate / deliver while a
+        /// 3-segment body-level one worked.
+        /// </summary>
+        [Fact]
+        public async Task SubscriptionGatedSampledSourceOpensAndDeliversForADottedDynamicSubTopic()
+        {
+            var uplink = new DynamicSampledGateTestUplink();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                // "dyncov.Kerbin.1" — a dotted sub-topic under the "dyncov." prefix.
+                var dottedTopic =
+                    DynamicSampledGateTestUplink.Prefix + DynamicSampledGateTestUplink.DottedSubTopic;
+                await SubscribeAsync(client, dottedTopic, Timeout);
+
+                // Two ticks: the first opens the gate + captures, the second lets
+                // the enqueued publish become due (mirrors the SampledGate test).
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+                engine.TickAndWait(3.0, new KspSnapshot { Ut = 3.0 }, Timeout);
+
+                Assert.True(
+                    uplink.CaptureCount >= 1,
+                    $"capture should have run once subscribed to a dotted dynamic sub-topic (was {uplink.CaptureCount})");
+
+                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                Assert.NotNull(delivered);
+                Assert.Equal(dottedTopic, delivered!.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Regression for the SCANsat "coverage never surfaces" root cause: a
+        /// sampled source whose capture THROWS on an early tick (Planetarium not
+        /// ready) must NOT be permanently disabled — it must re-run once the
+        /// capture stops throwing. Before the fix, ProcessTick's capture-exception
+        /// branch called FailSoftSampledSource → `source.Disabled = true` +
+        /// MarkUplinkUnavailable, permanently, so the sampler never ran again even
+        /// after the game was ready. The fix retries a transient capture throw.
+        /// </summary>
+        [Fact]
+        public async Task ASampledSourceDisabledByAnEarlyCaptureThrowRecoversOnceCaptureStopsThrowing()
+        {
+            var uplink = new RecoveringSampledSourceTestUplink();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, RecoveringSampledSourceTestUplink.Topic, Timeout);
+
+                // Tick 1: capture throws (Planetarium not ready). It must NOT be
+                // permanently disabled by this transient throw.
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+                Assert.Equal(0, uplink.CaptureCount);
+
+                // "Planetarium is ready now" — capture stops throwing.
+                uplink.StopThrowing();
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+                engine.TickAndWait(3.0, new KspSnapshot { Ut = 3.0 }, Timeout);
+
+                // The source must have RECOVERED (re-run), not stayed disabled.
+                Assert.True(
+                    uplink.CaptureCount >= 1,
+                    $"source must recover once capture stops throwing (was {uplink.CaptureCount})");
+                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                Assert.NotNull(delivered);
+                Assert.Equal(RecoveringSampledSourceTestUplink.Topic, delivered!.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Proves the dynamic-namespace mechanism
         /// (<see cref="IUplinkHost.RegisterDynamicNamespace"/>): two
         /// runtime-computed sub-topics under the same registered prefix

@@ -63,7 +63,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void AThrowingCaptureDegradesOnlyItsOwnUplinkAndTheTickContinues()
+        public void AThrowingCaptureIsRetriedNextTickAndDoesNotDegradeItsUplinkOrTheTick()
         {
             int throwingCaptureCalls = 0;
             int throwingHandleCalls = 0;
@@ -96,23 +96,29 @@ namespace Sitrep.Host.Tests
 
             engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
 
-            // The throwing capture's handle never ran; the healthy one did,
-            // with its exact captured payload — the tick completed for it.
+            // The throwing capture's handle never ran (no value produced); the
+            // healthy one did, with its exact captured payload — the tick
+            // completed for it.
             Assert.Equal(0, throwingHandleCalls);
             Assert.Equal(1, healthyHandleCalls);
             Assert.Same(healthyPayload, healthyReceived);
 
-            // Its owning uplink went Unavailable; the healthy one stayed up.
-            Assert.False(engine.AvailabilityOf("sampled.throwing").IsAvailable);
+            // A CAPTURE throw is TRANSIENT (e.g. a KSP read before the game is
+            // ready): it must NOT mark the uplink Unavailable — it retries. (The
+            // SCANsat "coverage never surfaces" root cause was exactly a transient
+            // early-tick capture throw permanently disabling the sampler.)
+            Assert.True(engine.AvailabilityOf("sampled.throwing").IsAvailable);
             Assert.True(engine.AvailabilityOf("sampled.healthy").IsAvailable);
 
             var throwingCallsAfterFirstTick = throwingCaptureCalls;
 
-            // Second tick: the throwing source no longer even captures (it was
-            // disabled main-side); the healthy one keeps going.
+            // Second tick: the throwing source is RETRIED (not permanently
+            // disabled), so its capture runs again; the healthy one keeps going.
             engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
 
-            Assert.Equal(throwingCallsAfterFirstTick, throwingCaptureCalls);
+            Assert.True(
+                throwingCaptureCalls > throwingCallsAfterFirstTick,
+                "a transient capture throw must be retried on the next tick, not permanently disabled");
             Assert.Equal(2, healthyHandleCalls);
         }
 
