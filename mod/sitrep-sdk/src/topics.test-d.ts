@@ -79,12 +79,11 @@ export type _ResolvesSystemVessels = Expect<
   Equal<TopicPayload<"system.vessels">, SystemVessels>
 >;
 
-// ── scansat: `scansat.available` is a bare JSON boolean with no named contract type
-//    (see topics.ts header); `scansat.scanningVessels` now carries the wire-typed
-//    `ScanningVesselEntry[]` element contract ──────────────────────────────────────
-export type _ResolvesScansatAvailable = Expect<
-  Equal<TopicPayload<"scansat.available">, boolean>
->;
+// ── scansat: `scansat.scanningVessels` carries the wire-typed `ScanningVesselEntry[]`
+//    element contract. (`scansat.available` is a bare JSON boolean owned by the SCANsat
+//    Uplink's own client package — its TopicPayloadMap augmentation is NOT reachable from
+//    this leaf package's program, so its "resolves to boolean" proof lives in
+//    mod/GonogoScansatUplink/client/src/topics.test-d.ts, not here.) ─────────────────
 export type _ResolvesScansatScanningVessels = Expect<
   Equal<TopicPayload<"scansat.scanningVessels">, ScanningVesselEntry[]>
 >;

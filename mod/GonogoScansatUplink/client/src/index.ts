@@ -64,6 +64,7 @@ export { parseScanScience } from "./ScienceAugment";
 // Side-effect registration. Kept as bare imports so the built dist/index.js
 // retains them and bundlers won't tree-shake the registerComponent()/
 // registerAugment() calls away.
+import "./topics"; // registerBarePrimitiveTopic("scansat.available") + TopicPayloadMap augment
 import "./Scanning";
 import "./ScienceAugment";
 import "./AnomalyOverlay";

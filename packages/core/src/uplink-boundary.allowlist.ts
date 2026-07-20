@@ -113,8 +113,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/RtConfig.cs",
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-      "mod/sitrep-sdk/src/topics.test.ts",
-      "mod/sitrep-sdk/src/topics.ts",
+      // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
+      // (2026-07-20). It statically imports every first-party Uplink client
+      // (kerbcast/kos/scansat) so their `registerBarePrimitiveTopic` calls fire
+      // before it reads `getAllKnownTopicIds()`, then asserts that union matches
+      // the C#-declared Topic set. A new test that imports the clients for
+      // registration; no product-code coupling.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
       // default-carried-topics.ts: the raw-topic promotion allowlist, which
       // is a literal-string set and so must name every Uplink's topics —
       // it already names scansat.*, kos.*, recovery.* and comms.* the same
@@ -205,9 +210,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/ScanPayloads.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      // topics.test-d.ts stays: it still type-asserts the GENERATED
+      // `scansat.scanningVessels` Topic (a real Sitrep.Contract payload,
+      // `ScanningVesselEntry[]`). Only the bare-primitive `scansat.available` (which
+      // had no contract type) moved out to the Uplink client — its resolution proof
+      // now lives in mod/GonogoScansatUplink/client/src/topics.ts. (topics.ts and
+      // topics.test.ts were REMOVED from this bucket 2026-07-20: the bare-primitive
+      // fix scrubbed their scansat mentions.)
       "mod/sitrep-sdk/src/topics.test-d.ts",
-      "mod/sitrep-sdk/src/topics.test.ts",
-      "mod/sitrep-sdk/src/topics.ts",
+      // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
+      // (2026-07-20) — statically imports the Uplink clients (incl. scansat) so
+      // their `registerBarePrimitiveTopic` calls fire, then asserts the registry
+      // union matches the C#-declared Topics. A new test importing the clients for
+      // registration; no product-code coupling.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
       // slots.ts's header comment explains why scansat's OWN Scanning
       // slots ("scanning.sections"/".badges") are deliberately NOT
       // centrally mirrored here (would need the sdk leaf to import from an
@@ -340,9 +356,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/UplinkPending.cs",
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      // topics.test-d.ts / topics.test.ts / topics.ts stay in the kos bucket: each
+      // still names a kos.* dynamic namespace or a Kos-prefixed contract type
+      // (`kos.compute.*`, `kos.processors`, `KosProcessorInfo`) as a generic
+      // example. Their scansat/kerbcast mentions were scrubbed by the
+      // bare-primitive fix (2026-07-20), so they left those two buckets — but the
+      // kos references are legitimate and remain.
       "mod/sitrep-sdk/src/topics.test-d.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
       "mod/sitrep-sdk/src/topics.ts",
+      // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
+      // (2026-07-20) — statically imports the Uplink clients (incl. `@ksp-gonogo/kos`)
+      // so registration fires, then asserts the registry union matches the
+      // C#-declared Topics. A new test importing the clients; no product-code coupling.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
       // mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it uses "kos" as
       // an example dataSourceId in a generic `useTelemetry("kos", "k")`
       // assertion, unrelated to the (since-removed) registerKosScript/SPI

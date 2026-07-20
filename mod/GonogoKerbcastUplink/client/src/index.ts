@@ -70,6 +70,7 @@ export { KerbcastSettings } from "./settings/KerbcastSettings";
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps
 // them as bare imports tsc / bundlers won't tree-shake away.
+import "./topics"; // registerBarePrimitiveTopic("kerbcast.available") + TopicPayloadMap augment
 import "./KerbcastDataSource";
 import "./CameraFeed";
 import "./DockingCameraAugment";
