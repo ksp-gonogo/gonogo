@@ -62,6 +62,7 @@ import {
   TelValue,
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
+import { paintBaseSurface } from "./paintBaseSurface";
 import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
@@ -184,11 +185,12 @@ export interface MapSectionsContext {
  * Props for `map-view.base` — the single-pick REPLACE slot for the map's
  * base surface. Unlike every other MapView slot, an augment filling this
  * one doesn't render JSX onto the page — it hands back a canvas via
- * `onLayer`, which MapView composites over its own unconditional stock
- * texture paint. There is no "vanilla" provider entry to compare
- * `activeLayerId` against: an unmatched or unset id simply means no augment
- * renders, and MapView's built-in stock-texture paint is what's already
- * underneath, untouched.
+ * `onLayer`, and that canvas REPLACES MapView's own stock-texture paint
+ * entirely (MapView skips painting the stock texture while an augment is
+ * active — see paintBaseSurface.ts). There is no "vanilla" provider entry to
+ * compare `activeLayerId` against: an unmatched or unset id simply means no
+ * augment renders, and MapView's built-in stock-texture paint is what's
+ * shown, untouched.
  */
 export interface MapBaseLayerContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
@@ -211,12 +213,14 @@ export interface MapBaseLayerContext {
   coverageGate: CoverageGate;
   /**
    * Called by the augment whenever it has a fresh canvas to contribute (or
-   * `null` to withdraw one, e.g. deselected). MapView draws its OWN stock
-   * texture first, unconditionally, THEN — only if `activeLayerId` matches
-   * a registered augment's own id AND that augment has called `onLayer`
-   * with a non-null canvas — draws that canvas via `drawImage` on top,
-   * REPLACING the stock texture's visible pixels wherever the augment's
-   * canvas is opaque.
+   * `null` to withdraw one, e.g. deselected). When `activeLayerId` matches a
+   * registered augment's own id AND that augment has called `onLayer` with a
+   * non-null canvas, MapView SKIPS its own stock-texture paint and draws this
+   * canvas instead — the augment owns the background outright. Anything the
+   * augment leaves transparent therefore falls through to the dark panel fill,
+   * NOT to the stock texture, which is what lets a coverage-gated augment
+   * withhold the background for unsurveyed terrain. With no augment active the
+   * stock texture is painted as normal.
    */
   onLayer: (canvas: HTMLCanvasElement | null, version: number) => void;
 }
@@ -564,30 +568,28 @@ function MapViewComponent({
 
     ctx.setTransform(...cameraTransform(camera, w, h));
 
-    // Base image is the body's stock texture; the colour wash is the
-    // last-resort fallback for bodies without a texture loaded yet.
-    if (textureImage) {
-      ctx.drawImage(textureImage, 0, 0, WORLD_W, WORLD_H);
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-    } else if (body?.color) {
-      ctx.fillStyle = `${body.color}22`;
-      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-    }
+    // Base surface. A `map-view.base` augment is a REPLACEMENT base layer:
+    // when one is active it owns the whole surface and MapView skips its own
+    // stock-texture paint, so anything the augment leaves transparent falls
+    // through to the dark fill beneath — which is what lets a coverage-gated
+    // augment actually WITHHOLD the background for unsurveyed terrain instead
+    // of showing the stock texture through it. With no augment active it is
+    // painted exactly as before. Full rationale in paintBaseSurface.ts.
+    paintBaseSurface(ctx, {
+      textureImage,
+      bodyColor: body?.color,
+      augmentCanvas: baseLayerCanvasRef.current,
+      worldW: WORLD_W,
+      worldH: WORLD_H,
+    });
 
-    // map-view.base composite: only ever non-null when a registered
-    // augment's own id matches `baseLayerId` and it has supplied a fresh
-    // canvas — see baseLayerCanvasRef's own comment above. Drawn straight
-    // over the stock texture/colour wash just painted, replacing its
-    // visible pixels wherever the augment's canvas is opaque.
-    if (baseLayerCanvasRef.current) {
-      ctx.drawImage(baseLayerCanvasRef.current, 0, 0, WORLD_W, WORLD_H);
-    }
-
-    // lineWidth compensates for zoom so grid lines remain 1 screen pixel
-    ctx.strokeStyle = textureImage
-      ? "rgba(255,255,255,0.05)"
-      : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
+    // lineWidth compensates for zoom so grid lines remain 1 screen pixel.
+    // A painted base surface — stock texture OR a replacement augment — takes
+    // the light grid; only a bare/washed canvas takes the dark one.
+    ctx.strokeStyle =
+      textureImage || baseLayerCanvasRef.current
+        ? "rgba(255,255,255,0.05)"
+        : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
     ctx.lineWidth = 1 / camera.zoom;
     for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
       const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
