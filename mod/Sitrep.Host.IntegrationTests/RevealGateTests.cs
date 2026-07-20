@@ -35,6 +35,49 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The live SCANsat coverage shape: a DELAYED, DYNAMIC per-(body,type)
+        /// topic whose keyframe is published exactly ONCE (keyframe-on-change),
+        /// with a real comms delay active. A continuously-subscribed client must
+        /// still receive that one keyframe once its reveal horizon passes — even
+        /// though it is never re-published. Live, coverage (Delayed) never reached
+        /// the subscriber while scansat.available (TrueNow) did; this pins whether
+        /// the reveal gate drops a once-published Delayed dynamic keyframe.
+        /// </summary>
+        [Fact]
+        public async Task ADelayedDynamicKeyframePublishedOnceIsRevealedToASubscriberAfterTheHorizon()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new DelayedDynamicKeyframeOnceTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                // comms.delay carried so the reveal gate has a nonzero horizon,
+                // like the live SignalDelay capability.
+                await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(client, DelayedDynamicKeyframeOnceTestUplink.FullTopic, Timeout);
+
+                // UT 1: gate open → capture → the keyframe publishes ONCE at UT 1,
+                // reveal delay 4 → horizon at UT 5. Never re-published afterwards.
+                engine.TickAndWait(1.0, DelayedDynamicKeyframeOnceTestUplink.Snapshot(1.0, delay: 4.0), Timeout);
+                for (double ut = 2.0; ut <= 4.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, DelayedDynamicKeyframeOnceTestUplink.Snapshot(ut, delay: 4.0), Timeout);
+                }
+                // Cross the horizon.
+                engine.TickAndWait(5.0, DelayedDynamicKeyframeOnceTestUplink.Snapshot(5.0, delay: 4.0), Timeout);
+                engine.TickAndWait(6.0, DelayedDynamicKeyframeOnceTestUplink.Snapshot(6.0, delay: 4.0), Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(frames, f => f.Topic == DelayedDynamicKeyframeOnceTestUplink.FullTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A Delayed channel's sample is WITHHELD from the wire until its UT
         /// crosses the reveal horizon (now − delay), then revealed; a TrueNow
         /// channel is revealed immediately; and <c>comms.delay</c> itself —
