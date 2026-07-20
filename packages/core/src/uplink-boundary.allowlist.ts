@@ -224,6 +224,25 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // union matches the C#-declared Topics. A new test importing the clients for
       // registration; no product-code coupling.
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
+      // scansat-coverage-roundtrip.test.tsx: the app-level MSW acceptance gate
+      // (2026-07-20) for the dynamic-topic fix — drives the real client stack and
+      // asserts the mod's canonical scansat.coverage.<body>.<typeBit> string surfaces
+      // to the widget. A new acceptance test naming the canonical wire string; no
+      // product-code coupling.
+      "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
+      // -- SCANsat startup-recovery fix (2026-07-20): these name "SCANsat" only in
+      // comments/tests, no product coupling. --
+      // GonogoAddon.cs: a doc-comment on the diagnostic sink notes the silent
+      // fail-soft "hid the SCANsat coverage root cause". Comment-only.
+      "mod/Gonogo.KSP/GonogoAddon.cs",
+      // The host retry-recovery regression + its test uplink name scansat as the
+      // concrete case (a sampler disabled by an early-tick throw must re-run). Tests.
+      "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
+      "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs",
+      "mod/Sitrep.Host.Tests/SampledSourceTests.cs",
+      // GonogoDevStampScan.cs: the Deck-only dev tool that stamps SCANsat coverage
+      // for testing (reflects into SCANsat's API). Dev tooling, never shipped.
+      "mod/GonogoDevTools/GonogoDevStampScan.cs",
       // slots.ts's header comment explains why scansat's OWN Scanning
       // slots ("scanning.sections"/".badges") are deliberately NOT
       // centrally mirrored here (would need the sdk leaf to import from an
