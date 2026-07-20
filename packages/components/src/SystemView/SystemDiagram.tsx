@@ -261,7 +261,7 @@ export function SystemDiagram({
           No bodies orbiting <b>{parentName}</b> yet.
         </div>
         <Hint>
-          Telemachus reports {knownCount} {knownCount === 1 ? "body" : "bodies"}
+          Telemetry reports {knownCount} {knownCount === 1 ? "body" : "bodies"}
           {distinctParents.length > 0
             ? `; parents seen: ${distinctParents.join(", ")}`
             : "; no referenceBody values yet"}
