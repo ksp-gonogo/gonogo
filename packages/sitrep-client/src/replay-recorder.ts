@@ -1,11 +1,13 @@
-import { TOPIC_IDS } from "@ksp-gonogo/sitrep-sdk";
+import { getAllKnownTopicIds } from "@ksp-gonogo/sitrep-sdk";
 import type { TelemetryClient } from "./client";
 import type { ReplayFixture } from "./replay-transport";
 
 export interface StreamRecorderOptions {
   /**
    * Full-archive opt-in. When `true`, `start()` additionally subscribes to
-   * EVERY topic in `TOPIC_IDS` (`@ksp-gonogo/sitrep-sdk`, ~109 topics) so the
+   * EVERY topic `getAllKnownTopicIds()` reports (`@ksp-gonogo/sitrep-sdk` — the
+   * SDK's own topics plus every bare-primitive Uplink topic a loaded client has
+   * registered) so the
    * resulting fixture can replay any widget's history, not just whatever the
    * dashboard happened to have mounted while recording. This trades away the
    * carried-channels subscription system's whole efficiency point (the mod
@@ -94,7 +96,11 @@ export class StreamRecorder {
     });
 
     if (this.recordAllTopics) {
-      for (const topic of TOPIC_IDS) {
+      // The full live set — the SDK's own Topics PLUS every bare-primitive Uplink
+      // Topic registered by a loaded client. Those are no longer static members of
+      // `TOPIC_IDS`, so iterating the runtime registry keeps the full-archive
+      // recording complete.
+      for (const topic of getAllKnownTopicIds()) {
         this.extraSubscriptions.push(this.client.subscribe(topic, () => {}));
       }
     }

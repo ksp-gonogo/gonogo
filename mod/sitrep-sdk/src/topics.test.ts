@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 import {
+  getAllKnownTopicIds,
   isTopicId,
+  registerBarePrimitiveTopic,
   TOPIC_IDS,
   type TopicPayload,
   type TopicPayloadMap,
@@ -12,16 +14,13 @@ import {
 
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
- * contract type) — the bare JSON booleans plus the engine-aggregated system channels.
- * See the topics.ts header. Everything else in the registry MUST come from the
- * generated map.
+ * contract type) — the two ENGINE-AGGREGATED system channels. See the topics.ts header.
+ * Everything else in `TOPIC_IDS` MUST come from the generated map. The bare-primitive
+ * Uplink Topics are NO LONGER here: they moved out to their owning Uplink client packages
+ * (each registers its id at load via `registerBarePrimitiveTopic`), so they are not part of
+ * the SDK's own `TOPIC_IDS`.
  */
-const HAND_DECLARED_TOPICS = [
-  "scansat.available",
-  "kerbcast.available",
-  "system.uplinks",
-  "system.uplink.pending",
-];
+const HAND_DECLARED_TOPICS = ["system.uplinks", "system.uplink.pending"];
 
 // mod/sitrep-sdk/src -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -68,22 +67,21 @@ function extractDeclaredTopics(): Set<string> {
 }
 
 describe("typed Topic registry", () => {
-  it("stays in exact sync with the C# ChannelDeclaration Topics", () => {
+  it("every SDK-owned Topic is declared in C# (forward self-check)", () => {
+    // NARROWED (2026-07-20): this SDK package cannot see the Uplink client
+    // packages that own the bare-primitive Topics — importing them here would be
+    // the very `^build` cycle the leaf architecture forbids — so the SDK's own
+    // registry (`TOPIC_IDS`) legitimately does NOT contain them. The FULL
+    // bidirectional C#↔registry sync check (which needs the union of every
+    // registered bare-primitive Topic) therefore lives in `packages/app`,
+    // downstream of all Uplink clients: `topic-cs-sync.test.ts`. Here we keep only
+    // the forward half — every Topic the SDK itself owns must be declared in C#.
     const declared = extractDeclaredTopics();
-    const registry = new Set<string>(TOPIC_IDS);
+    const staleInSdk = [...TOPIC_IDS].filter((t) => !declared.has(t)).sort();
 
-    const missingFromSdk = [...declared].filter((t) => !registry.has(t)).sort();
-    const staleInSdk = [...registry].filter((t) => !declared.has(t)).sort();
-
-    // If these fail: a Topic was added/removed in C# — update src/topics.ts to match.
-    expect(
-      missingFromSdk,
-      "Topics declared in C# but missing from the SDK",
-    ).toEqual([]);
-    expect(
-      staleInSdk,
-      "Topics in the SDK but no longer declared in C#",
-    ).toEqual([]);
+    // If this fails: an SDK-owned Topic (generated or the engine tail) is no
+    // longer declared in C# — regenerate the codegen map / fix the engine tail.
+    expect(staleInSdk, "SDK-owned Topics no longer declared in C#").toEqual([]);
   });
 
   it("has no duplicate TopicIds", () => {
@@ -130,6 +128,35 @@ describe("typed Topic registry", () => {
       expect(isTopicId("vessel.nope")).toBe(false);
       expect(isTopicId("")).toBe(false);
       expect(isTopicId("kos.compute.1.foo")).toBe(false); // dynamic sub-topic, not enumerated
+    });
+  });
+
+  describe("registerBarePrimitiveTopic", () => {
+    // A synthetic id (not a real Uplink Topic) keeps the module-global registry
+    // uncontaminated for the rest of the suite — the real bare topics are
+    // registered by their own Uplink client packages, never by the SDK.
+    const SYNTHETIC = "test.synthetic.bare";
+
+    it("makes a registered bare Topic pass isTopicId and appear in getAllKnownTopicIds", () => {
+      expect(isTopicId(SYNTHETIC)).toBe(false);
+      expect(getAllKnownTopicIds()).not.toContain(SYNTHETIC);
+
+      registerBarePrimitiveTopic(SYNTHETIC);
+
+      expect(isTopicId(SYNTHETIC)).toBe(true);
+      expect(getAllKnownTopicIds()).toContain(SYNTHETIC);
+    });
+
+    it("is idempotent — a double register adds no duplicate", () => {
+      registerBarePrimitiveTopic(SYNTHETIC);
+      registerBarePrimitiveTopic(SYNTHETIC);
+      const all = getAllKnownTopicIds();
+      expect(all.filter((t) => t === SYNTHETIC)).toHaveLength(1);
+    });
+
+    it("getAllKnownTopicIds contains every SDK-owned TOPIC_IDS entry", () => {
+      const all = new Set(getAllKnownTopicIds());
+      for (const id of TOPIC_IDS) expect(all.has(id)).toBe(true);
     });
   });
 });

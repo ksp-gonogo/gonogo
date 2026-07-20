@@ -6,7 +6,9 @@ export * from "./api";
 export { parseServerMessage } from "./client";
 export * from "./envelope";
 export {
+  getAllKnownTopicIds,
   isTopicId,
+  registerBarePrimitiveTopic,
   TOPIC_IDS,
   type TopicId,
   type TopicPayload,

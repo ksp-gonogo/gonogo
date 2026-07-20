@@ -1,5 +1,8 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { TOPIC_IDS } from "@ksp-gonogo/sitrep-sdk";
+import {
+  getAllKnownTopicIds,
+  registerBarePrimitiveTopic,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -66,18 +69,26 @@ describe("StreamRecorder", () => {
     expect(transport.isSubscribed("vessel.orbit")).toBe(true);
   });
 
-  it("recordAllTopics subscribes to every TOPIC_IDS entry while recording, and releases them on stop", () => {
+  it("recordAllTopics subscribes to every getAllKnownTopicIds entry (incl. registered bare Topics) while recording, and releases them on stop", () => {
+    // A registered bare-primitive Uplink Topic must be part of the full-archive
+    // sweep even though it is not a static `TOPIC_IDS` member — this synthetic
+    // registration stands in for a real Uplink's bare presence-gate Topic without
+    // pulling the Uplink clients into this mod-agnostic package's tests.
+    const syntheticBare = "test.replay.bare";
+    registerBarePrimitiveTopic(syntheticBare);
+    expect(getAllKnownTopicIds()).toContain(syntheticBare);
+
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const recorder = new StreamRecorder(client, { recordAllTopics: true });
 
     recorder.start();
-    for (const topic of TOPIC_IDS) {
+    for (const topic of getAllKnownTopicIds()) {
       expect(transport.isSubscribed(topic)).toBe(true);
     }
 
     recorder.stop();
-    for (const topic of TOPIC_IDS) {
+    for (const topic of getAllKnownTopicIds()) {
       expect(transport.isSubscribed(topic)).toBe(false);
     }
   });
