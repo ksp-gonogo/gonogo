@@ -1535,4 +1535,81 @@ namespace Sitrep.Host.IntegrationTests
 
         private void Handle(object? captured) => _publisher!.Publish(captured, Convert.ToDouble(captured));
     }
+
+    /// <summary>
+    /// The live SCANsat coverage shape that plain delivery tests miss: a DELAYED
+    /// (reveal-gated) DYNAMIC per-(body,type) topic whose keyframe is published
+    /// exactly ONCE (keyframe-on-change — the grid stops changing after the first
+    /// capture), while a real comms delay is active. `scansat.available` is TrueNow
+    /// (bypasses the reveal gate) and delivers fine; coverage is Delayed and, live,
+    /// never reached the subscriber. This uplink reproduces that combination
+    /// headlessly. Carries a comms.delay source so the reveal gate has a nonzero
+    /// horizon, like the live SignalDelay capability.
+    /// </summary>
+    internal sealed class DelayedDynamicKeyframeOnceTestUplink : ISitrepUplink
+    {
+        public const string Prefix = "delaydyn.";
+        public const string SubTopic = "Kerbin.1";
+        public static string FullTopic => Prefix + SubTopic;
+
+        private IDynamicChannelSource? _source;
+        private bool _published;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "delay-dyn-once",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+            _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+            });
+            host.AddSampledSource(Capture, Handle, Prefix);
+        }
+
+        private object? Capture(KspSnapshot? snapshot) => snapshot?.Ut ?? 0.0;
+
+        private void Handle(object? captured)
+        {
+            if (_published)
+            {
+                return; // keyframe-on-change: the coverage grid publishes exactly once
+            }
+            _published = true;
+            _source!.Publisher(SubTopic).Publish(100.0, Convert.ToDouble(captured));
+        }
+
+        private static object? MapDelay(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue("delay", out var raw) || raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        /// <summary>A tick snapshot carrying the reveal-gate delay (seconds).</summary>
+        public static KspSnapshot Snapshot(double ut, double delay) =>
+            new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["delay"] = delay } };
+    }
 }
