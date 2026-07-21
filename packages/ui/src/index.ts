@@ -17,6 +17,7 @@ export * from "./Gauge";
 export * from "./Icons";
 export * from "./LineChart";
 export * from "./lineChartMath";
+export * from "./Meter";
 export * from "./Modal";
 export * from "./Panel";
 export * from "./Readout";
