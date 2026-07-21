@@ -132,12 +132,27 @@ namespace Gonogo.DevTools
             // yet.
             yield return null;
 
+            // DECK/gamescope FIX: when KSP launches unfocused (Steam gaming-mode
+            // UI holds focus at launch), the game loses focus and pauses
+            // (Time.timeScale = 0); at the MainMenu nothing resets it back to 1
+            // on refocus, so it stays paused even once gamescope refocuses the
+            // window at 60fps. A paused game renders fine but never advances
+            // SCALED time, so any WaitForSeconds (scaled) below would stall
+            // forever. Force-unpause here (dev-only), and use realtime waits so
+            // this routine is immune to the pause regardless.
+            if (Time.timeScale == 0f)
+            {
+                Debug.Log(LogPrefix + "Time.timeScale was 0 (paused, likely launched unfocused on the Deck); forcing to 1");
+                Time.timeScale = 1f;
+            }
+
             // See MenuSettleDelaySeconds' doc comment: unconditional, runs
             // whether or not the cfg is already present. This is the actual
             // crash fix - closing the window where an already-staged request
             // used to fire the load before MainMenu had settled.
+            // Realtime (unscaled) wait: immune to a timeScale=0 pause.
             Debug.Log(LogPrefix + "settling " + MenuSettleDelaySeconds + "s before looking for a request cfg");
-            yield return new WaitForSeconds(MenuSettleDelaySeconds);
+            yield return new WaitForSecondsRealtime(MenuSettleDelaySeconds);
 
             string? assemblyDir;
             try
@@ -177,7 +192,7 @@ namespace Gonogo.DevTools
                     loggedWaiting = true;
                 }
 
-                yield return new WaitForSeconds(CfgPollIntervalSeconds);
+                yield return new WaitForSecondsRealtime(CfgPollIntervalSeconds);
                 waited += CfgPollIntervalSeconds;
             }
 
@@ -256,6 +271,13 @@ namespace Gonogo.DevTools
             {
                 Debug.LogError(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir) + ") - aborting");
                 yield break;
+            }
+
+            // Re-assert unpause right before triggering the load, in case the
+            // game got re-zeroed during the cfg poll (belt-and-braces).
+            if (Time.timeScale == 0f)
+            {
+                Time.timeScale = 1f;
             }
 
             if (!LoadSave(saveName!, restoreFlight, out var enteredFlight))
@@ -353,7 +375,7 @@ namespace Gonogo.DevTools
                         yield break;
                     }
 
-                    yield return new WaitForSeconds(FlightReadyPollIntervalSeconds);
+                    yield return new WaitForSecondsRealtime(FlightReadyPollIntervalSeconds);
                     waited += FlightReadyPollIntervalSeconds;
                 }
             }
@@ -386,7 +408,7 @@ namespace Gonogo.DevTools
                     yield break;
                 }
 
-                yield return new WaitForSeconds(FlightReadyPollIntervalSeconds);
+                yield return new WaitForSecondsRealtime(FlightReadyPollIntervalSeconds);
                 waited += FlightReadyPollIntervalSeconds;
             }
 
