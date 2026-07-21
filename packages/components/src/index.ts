@@ -38,6 +38,7 @@ export * from "./ScienceOfficer";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
+export * from "./SpaceWeather";
 export * from "./StaffRoster";
 export * from "./StationConnectView";
 export * from "./Strategies";
