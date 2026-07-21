@@ -109,6 +109,25 @@ namespace Gonogo.ScansatUplink
         // capture. MAIN-thread-owned (CaptureOnMain only).
         private bool _captureFailLogged;
 
+        // Reseed support (late-subscriber grid delivery). A dynamic grid keyframe
+        // (biome/height captured once; mask/coverage change-gated) is only RECORDED
+        // when the reveal gate releases it, and the reveal gate consults
+        // ConnectivityAt(entry.Ut) — connectivity at the keyframe's OWN ut. A
+        // keyframe first published while the vessel was dark is withheld forever
+        // (biome/height are then never re-captured), so it never seeds a subscriber
+        // that joins later — which is every real client. Fix: cache the last
+        // payload per topic here (at PUBLISH time, before the reveal gate), and on
+        // a new subscription re-emit it at the CURRENT (hopefully connected) ut so
+        // the reveal gate releases it to the new subscriber. All Courier-thread:
+        // the cache is written in HandleOnCourier and read in the OnSubscribed
+        // reseed, so no main-thread state is touched and no grid is rebuilt.
+        private IUplinkHost? _host;
+        private readonly Dictionary<string, ScanPublication> _lastPublishedByTopic = new Dictionary<string, ScanPublication>();
+        // Coalesce a burst of subscribes (StrictMode double-mount / multiple
+        // clients) into ONE re-emit per topic within the grace window.
+        private readonly Dictionary<string, double> _lastReseedUtByTopic = new Dictionary<string, double>();
+        private const double ReseedGraceSeconds = 5.0;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "scansat",
@@ -237,7 +256,68 @@ namespace Gonogo.ScansatUplink
                 ScanChannels.HeightPrefix,
                 ScanChannels.BiomePrefix,
                 ScanChannels.AnomaliesPrefix);
+
+            // Reseed a NEW subscriber with the last cached grid/scalar, re-emitted
+            // at the current ut so the reveal gate releases it (see _lastPublishedByTopic).
+            // The engine fires OnSubscribed on the Courier thread per session
+            // subscribe, right after ProcessSubscribe forced a keyframe for the
+            // topic — so the re-publish emits even though the value is unchanged.
+            _host = host;
+            _coverageSource.OnSubscribed(ReseedTopic);
+            _maskSource.OnSubscribed(ReseedTopic);
+            _heightSource.OnSubscribed(ReseedTopic);
+            _biomeSource.OnSubscribed(ReseedTopic);
+            _anomaliesSource.OnSubscribed(ReseedTopic);
         }
+
+        /// <summary>
+        /// COURIER-THREAD reseed (see <see cref="IDynamicChannelSource.OnSubscribed"/>):
+        /// re-emit the last cached payload for <paramref name="fullTopic"/> at the
+        /// CURRENT ut so the reveal gate releases it to the newly-subscribed client.
+        /// No main-thread state and no grid rebuild — the cached payload is
+        /// re-published as-is. Coalesced per topic within
+        /// <see cref="ReseedGraceSeconds"/> so a subscribe burst is one re-emit.
+        /// </summary>
+        private void ReseedTopic(string fullTopic)
+        {
+            if (!_lastPublishedByTopic.TryGetValue(fullTopic, out var pub))
+            {
+                return; // nothing captured for this topic yet — the first capture will publish it
+            }
+            var nowUt = _host?.NowUt() ?? pub.Ut;
+            if (_lastReseedUtByTopic.TryGetValue(fullTopic, out var last)
+                && nowUt - last < ReseedGraceSeconds)
+            {
+                return; // coalesce a burst of subscribes into one re-emit
+            }
+            _lastReseedUtByTopic[fullTopic] = nowUt;
+            // Force a keyframe so the re-emit of the UNCHANGED cached payload is not
+            // change-gate-suppressed. ProcessSubscribe's own NotifySubscribed only
+            // forces on a 0->1 subscribe, but a late subscriber (every real client)
+            // joins while others are already subscribed (1->N), so we must force it.
+            _host?.ForceKeyframe(fullTopic);
+            SourceForKind(pub.Kind)?.Publisher(pub.SubTopic).Publish(pub.Payload, nowUt);
+        }
+
+        private IDynamicChannelSource? SourceForKind(ScanChannelKind kind) => kind switch
+        {
+            ScanChannelKind.Coverage => _coverageSource,
+            ScanChannelKind.Mask => _maskSource,
+            ScanChannelKind.Height => _heightSource,
+            ScanChannelKind.Biome => _biomeSource,
+            ScanChannelKind.Anomalies => _anomaliesSource,
+            _ => null,
+        };
+
+        private static string FullTopicFor(ScanChannelKind kind, string subTopic) => (kind switch
+        {
+            ScanChannelKind.Coverage => ScanChannels.CoveragePrefix,
+            ScanChannelKind.Mask => ScanChannels.MaskPrefix,
+            ScanChannelKind.Height => ScanChannels.HeightPrefix,
+            ScanChannelKind.Biome => ScanChannels.BiomePrefix,
+            ScanChannelKind.Anomalies => ScanChannels.AnomaliesPrefix,
+            _ => "",
+        }) + subTopic;
 
         /// <summary>
         /// MAIN-THREAD capture (see
@@ -365,16 +445,12 @@ namespace Gonogo.ScansatUplink
 
             foreach (var publication in ScanPublications.Compute(capture, _lastHashByBody, _lastPackedByBodyType))
             {
-                var source = publication.Kind switch
-                {
-                    ScanChannelKind.Coverage => _coverageSource,
-                    ScanChannelKind.Mask => _maskSource,
-                    ScanChannelKind.Height => _heightSource,
-                    ScanChannelKind.Biome => _biomeSource,
-                    ScanChannelKind.Anomalies => _anomaliesSource,
-                    _ => null,
-                };
-                source?.Publisher(publication.SubTopic).Publish(publication.Payload, publication.Ut);
+                SourceForKind(publication.Kind)?.Publisher(publication.SubTopic).Publish(publication.Payload, publication.Ut);
+                // Cache for late-subscriber reseed (see _lastPublishedByTopic). The
+                // payload is captured here at PUBLISH time — before the reveal gate —
+                // so a keyframe later withheld at a disconnected ut can still be
+                // re-emitted for a new subscriber at a connected ut.
+                _lastPublishedByTopic[FullTopicFor(publication.Kind, publication.SubTopic)] = publication;
             }
         }
 
