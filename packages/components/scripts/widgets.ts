@@ -1044,6 +1044,23 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "compact-5x6", w: 5, h: 6 },
     ],
   },
+  {
+    // LifeSupportSystems — Kerbalism vessel-centric consumable ledger,
+    // habitat, and process board. Fixtures: nominal is a real Deck capture
+    // (kerbalism-fixture-baseline-crp.json); depleting/critical are
+    // synthesised by scaling it down. See local_docs/kerbalism-fixtures/.
+    widgetId: "life-support",
+    fixturesPath: "LifeSupportSystems/__fixtures__",
+    outPath: "renders/life-support-widget",
+    modes: [
+      // Registered default.
+      { name: "default-8x13", w: 8, h: 13 },
+      // Showcase — full habitat + process grids read best with room.
+      { name: "showcase-10x14", w: 10, h: 14 },
+      // Compact — sheds the habitat/process detail grids to one-line summaries.
+      { name: "compact-5x7", w: 5, h: 7 },
+    ],
+  },
 ];
 
 /**
