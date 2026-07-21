@@ -1612,4 +1612,84 @@ namespace Sitrep.Host.IntegrationTests
         public static KspSnapshot Snapshot(double ut, double delay) =>
             new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["delay"] = delay } };
     }
+
+    /// <summary>
+    /// Mirrors GonogoScansatUplink's grid channels + late-subscriber reseed: a
+    /// DELAYED dynamic per-body topic whose keyframe is published exactly ONCE
+    /// (like biome/height). With <c>reseedOnSubscribe</c>, it caches the last
+    /// published payload and, on a new subscribe (OnSubscribed), re-emits it at the
+    /// CURRENT ut — so a keyframe first published while the vessel was disconnected
+    /// (withheld forever by the reveal gate's ConnectivityAt(entry.Ut)) still seeds
+    /// a subscriber that joins after reconnect. Drive connectivity/delay with
+    /// <see cref="FreezeGateTestUplink"/> in the same engine.
+    /// </summary>
+    internal sealed class ReseedGridTestUplink : ISitrepUplink
+    {
+        public const string Prefix = "reseedgrid.";
+        public const string SubTopic = "Kerbin";
+        public static string FullTopic => Prefix + SubTopic;
+
+        private readonly bool _reseedOnSubscribe;
+        private IDynamicChannelSource? _source;
+        private IUplinkHost? _host;
+        private bool _published;
+        private object? _lastPayload;
+        private double _lastReseedUt = double.NegativeInfinity;
+
+        public ReseedGridTestUplink(bool reseedOnSubscribe)
+        {
+            _reseedOnSubscribe = reseedOnSubscribe;
+        }
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "reseed-grid",
+            Version = "1.0.0",
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _host = host;
+            _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+            });
+            host.AddSampledSource(Capture, Handle, Prefix);
+            if (_reseedOnSubscribe)
+            {
+                _source.OnSubscribed(Reseed);
+            }
+        }
+
+        private object? Capture(KspSnapshot? snapshot) => snapshot?.Ut ?? 0.0;
+
+        private void Handle(object? captured)
+        {
+            if (_published)
+            {
+                return; // publish the grid ONCE (keyframe-on-change), like biome/height
+            }
+            _published = true;
+            _lastPayload = 100.0;
+            _source!.Publisher(SubTopic).Publish(_lastPayload, Convert.ToDouble(captured));
+        }
+
+        private void Reseed(string fullTopic)
+        {
+            if (_lastPayload == null)
+            {
+                return;
+            }
+            var nowUt = _host?.NowUt() ?? 0.0;
+            if (nowUt - _lastReseedUt < 5.0)
+            {
+                return;
+            }
+            _lastReseedUt = nowUt;
+            _host?.ForceKeyframe(fullTopic);
+            _source!.Publisher(SubTopic).Publish(_lastPayload, nowUt);
+        }
+    }
 }

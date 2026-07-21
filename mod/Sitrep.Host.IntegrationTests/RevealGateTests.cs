@@ -126,6 +126,99 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The fix for "biome/height/mask never render": a grid keyframe published
+        /// ONCE while the vessel is DISCONNECTED is withheld forever by the reveal
+        /// gate (ConnectivityAt at the keyframe's own ut) and never re-captured — so
+        /// it never seeds a late subscriber. With the OnSubscribed reseed, a
+        /// subscriber joining AFTER reconnect re-triggers a re-emit of the cached
+        /// grid at the current (connected) ut → released → delivered.
+        /// </summary>
+        [Fact]
+        public async Task AGridCapturedWhileDisconnectedIsReseededToALateSubscriberAfterReconnect()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.RegisterUplink(new ReseedGridTestUplink(reseedOnSubscribe: true));
+            engine.Start();
+            try
+            {
+                // Client A opens the sampler gate. UT 1 DISCONNECTED → the grid
+                // publishes ONCE at UT 1 and is WITHHELD (ConnectivityAt(1) = false).
+                await using var a = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(a, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(a, ReseedGridTestUplink.FullTopic, Timeout);
+                for (double ut = 1.0; ut <= 10.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 4.0), Timeout);
+                }
+                var aFrames = await DrainAllStreamDataAsync(a, Quiet);
+                Assert.DoesNotContain(aFrames, f => f.Topic == ReseedGridTestUplink.FullTopic); // withheld
+
+                // Reconnect.
+                for (double ut = 11.0; ut <= 14.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 4.0), Timeout);
+                }
+
+                // Client B joins LATE (connected now) → OnSubscribed reseed re-emits
+                // the cached grid at UT ~14 → revealed by UT 18 → delivered to B.
+                await using var b = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(b, ReseedGridTestUplink.FullTopic, Timeout);
+                for (double ut = 15.0; ut <= 20.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 4.0), Timeout);
+                }
+                var bFrames = await DrainAllStreamDataAsync(b, Quiet);
+                Assert.Contains(bFrames, f => f.Topic == ReseedGridTestUplink.FullTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Negative control for the reseed: WITHOUT the OnSubscribed reseed, the
+        /// once-published grid withheld while disconnected never reaches the late
+        /// subscriber — the exact live bug. Proves the reseed is load-bearing.
+        /// </summary>
+        [Fact]
+        public async Task WithoutTheReseedAGridCapturedWhileDisconnectedNeverReachesALateSubscriber()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.RegisterUplink(new ReseedGridTestUplink(reseedOnSubscribe: false));
+            engine.Start();
+            try
+            {
+                await using var a = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(a, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(a, ReseedGridTestUplink.FullTopic, Timeout);
+                for (double ut = 1.0; ut <= 10.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 4.0), Timeout);
+                }
+                for (double ut = 11.0; ut <= 14.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 4.0), Timeout);
+                }
+
+                await using var b = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(b, ReseedGridTestUplink.FullTopic, Timeout);
+                for (double ut = 15.0; ut <= 20.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 4.0), Timeout);
+                }
+                var bFrames = await DrainAllStreamDataAsync(b, Quiet);
+                Assert.DoesNotContain(bFrames, f => f.Topic == ReseedGridTestUplink.FullTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A Delayed channel's sample is WITHHELD from the wire until its UT
         /// crosses the reveal horizon (now − delay), then revealed; a TrueNow
         /// channel is revealed immediately; and <c>comms.delay</c> itself —
