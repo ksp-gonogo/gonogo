@@ -240,6 +240,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
       "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs",
       "mod/Sitrep.Host.Tests/SampledSourceTests.cs",
+      // RevealGateTests.cs: the reseed/late-subscriber regression tests describe the
+      // SCANsat coverage shape (delayed dynamic per-(body,type)) in comments. Tests.
+      "mod/Sitrep.Host.IntegrationTests/RevealGateTests.cs",
       // GonogoDevStampScan.cs: the Deck-only dev tool that stamps SCANsat coverage
       // for testing (reflects into SCANsat's API). Dev tooling, never shipped.
       "mod/GonogoDevTools/GonogoDevStampScan.cs",
