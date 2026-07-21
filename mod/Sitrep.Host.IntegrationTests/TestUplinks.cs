@@ -32,6 +32,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestSystemUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string RawTopic = "test.raw";
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -100,6 +103,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestVesselUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         private readonly IVesselActuator _actuator;
 
         public TestVesselUplink(IVesselActuator? actuator = null)
@@ -222,6 +228,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestCareerUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-career",
@@ -253,6 +262,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestScienceUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-science",
@@ -298,6 +310,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestPartsUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-parts",
@@ -345,6 +360,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class RevealGateTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayedTopic = "rev.delayed";
         public const string TrueNowTopic = "rev.truenow";
 
@@ -463,6 +481,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class TestCommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayTopic = ChannelEngine.CommsDelayTopic;
 
         private readonly double? _hopDistanceMeters;
@@ -617,6 +638,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class ProdShapeCommsRevealUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayedTopic = "prodrev.delayed";
 
         private IChannelPublisher? _delay;
@@ -730,6 +754,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class DelayRolesTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayedTopic = "vessel.flight";
         public const string TrueNowTopic = "time.warp";
 
@@ -808,6 +835,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class FreezeGateTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayedTopic = "freeze.delayed";
         public const string TrueNowTopic = "freeze.truenow";
 
@@ -975,6 +1005,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class ConnectivityHorizonTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string DelayedTopic = "freeze.delayed";
         public const string LinkTopic = ChannelEngine.ConnectivityMetaTopic;
 
@@ -1122,6 +1155,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class DynamicNamespaceTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Prefix = "dyn.";
 
         private IDynamicChannelSource? _source;
@@ -1173,6 +1209,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class SampledGateTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Topic = "sampled.gate";
 
         private int _captureCount;
@@ -1226,6 +1265,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class RecoverableSourceTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Id = "recoverable-source-test";
         public const string DelayedTopic = "rec.delayed";
 
@@ -1374,6 +1416,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class ReliableRevertTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string ReliableTopic = "reliable.lastEvent";
 
         private IChannelPublisher? _publisher;
@@ -1444,6 +1489,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class DynamicSampledGateTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Prefix = "dyncov.";
 
         /// <summary>The dotted sub-topic the mod publishes coverage under, mirroring "&lt;body&gt;.&lt;typeBit&gt;".</summary>
@@ -1491,6 +1539,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class RecoveringSampledSourceTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Topic = "recover.src";
 
         private volatile bool _throwOnCapture = true;
@@ -1548,6 +1599,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class DelayedDynamicKeyframeOnceTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Prefix = "delaydyn.";
         public const string SubTopic = "Kerbin.1";
         public static string FullTopic => Prefix + SubTopic;
@@ -1625,6 +1679,9 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class ReseedGridTestUplink : ISitrepUplink
     {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public const string Prefix = "reseedgrid.";
         public const string SubTopic = "Kerbin";
         public static string FullTopic => Prefix + SubTopic;

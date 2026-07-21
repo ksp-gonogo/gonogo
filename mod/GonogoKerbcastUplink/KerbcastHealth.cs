@@ -11,7 +11,7 @@ namespace Gonogo.KerbcastUplink
     /// WebRTC connection, which bypassed the mod contract entirely and was
     /// deleted in <c>45111e44</c> ("the Uplinks list is contract-only"). An
     /// Uplink gets a healthcheck for free by implementing
-    /// <see cref="IUplinkHealthReporter"/>; a bolted-on DataSource does not.
+    /// <see cref="ISitrepUplink.Health"/>; a bolted-on DataSource does not.
     /// This is that healthcheck.</para>
     ///
     /// <para>Extracted from <see cref="KerbcastUplink"/> as a pure function over

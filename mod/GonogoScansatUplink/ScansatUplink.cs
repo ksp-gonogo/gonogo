@@ -71,6 +71,12 @@ namespace Gonogo.ScansatUplink
         private const int AltimetryLoResBit = 1;
         private const int AltimetryHiResBit = 2;
 
+        // Set at Register when the SCANsat version-guard fails (the uplink goes
+        // inert); read by Health() on the Courier thread. Null == available. The
+        // guard probe runs at Register only, so Health() reads this cached result
+        // rather than a live (main-thread-only) KSP read.
+        private string? _unavailableReason;
+
         private IChannelPublisher? _scienceSource;
 
         private IDynamicChannelSource? _coverageSource;
@@ -171,6 +177,15 @@ namespace Gonogo.ScansatUplink
             },
         };
 
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
+        /// Unavailable with the version-guard reason when SCANsat is absent or its API drifted
+        /// (the uplink went inert at Register), else Healthy. Courier-thread cheap — reads a
+        /// cached field, never a live main-thread KSP read.</summary>
+        public UplinkHealth Health() =>
+            _unavailableReason != null
+                ? new UplinkHealth(UplinkHealthState.Unavailable, _unavailableReason)
+                : UplinkHealth.Healthy;
+
         public void Register(IUplinkHost host)
         {
             VersionGuardResult guard;
@@ -194,6 +209,7 @@ namespace Gonogo.ScansatUplink
                 Debug.LogWarning("[Gonogo.ScansatUplink] SCANsat uplink UNAVAILABLE — "
                     + (guard.Reason ?? "SCANsat unavailable")
                     + " (all scansat.* channels disabled)");
+                _unavailableReason = guard.Reason ?? "SCANsat unavailable";
                 host.SetAvailability(Availability.Unavailable(guard.Reason ?? "SCANsat unavailable"));
                 host.AddChannelSource(AvailableTopic, _ => false);
                 host.AddChannelSource(ScanningVesselsTopic, _ => new List<object>());

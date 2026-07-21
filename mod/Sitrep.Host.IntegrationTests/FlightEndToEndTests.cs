@@ -248,6 +248,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class TestFlightUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public FlightLifecycleSampler Sampler { get; private set; } = null!;
 
             public UplinkManifest Manifest { get; } = new UplinkManifest

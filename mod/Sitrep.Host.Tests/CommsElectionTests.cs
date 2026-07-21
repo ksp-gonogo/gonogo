@@ -45,6 +45,9 @@ namespace Sitrep.Host.Tests
         // Register — the shape CommsCoreUplink now uses.
         private sealed class CapabilityOwningUplink : ISitrepUplink, IUplinkCapabilityDeclarer
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "comms", Version = "1.0.0" };
             public void DeclareCapabilities(Kernel kernel) =>
                 CommsElection.RegisterCapability(kernel, _ => new FakeBackend("commnet"));
@@ -55,6 +58,9 @@ namespace Sitrep.Host.Tests
         // "comms" PROVIDER in Register and declares no capability of its own.
         private sealed class ProviderOnlyUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "realantennas", Version = "1.0.0" };
             public void Register(IUplinkHost host) =>
                 host.Kernel.RegisterProvider(new ProviderRegistration

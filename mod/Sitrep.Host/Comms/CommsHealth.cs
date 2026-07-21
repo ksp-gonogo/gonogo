@@ -3,7 +3,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Comms
 {
     /// <summary>
-    /// <c>Gonogo.KSP.CommsCoreUplink</c>'s <see cref="IUplinkHealthReporter"/>
+    /// <c>Gonogo.KSP.CommsCoreUplink</c>'s <see cref="ISitrepUplink.Health"/>
     /// state machine, as a pure function — mirrors
     /// <c>Gonogo.KerbcastUplink.KerbcastHealth</c> (see that type's doc
     /// comment for the split rationale: a pure function over plain inputs so

@@ -32,11 +32,11 @@ namespace Gonogo.KerbcastUplink
     /// own <c>KerbcastDataSource.status</c> — a client-side read of a separate
     /// WebRTC connection, bypassing the mod contract entirely. That row was
     /// deleted in <c>45111e44</c> precisely because the Uplinks list is
-    /// contract-only. Implementing <see cref="IUplinkHealthReporter"/> here is
+    /// contract-only. Implementing <see cref="ISitrepUplink.Health"/> here is
     /// what earns the row back honestly: the mod itself reports whether
     /// kerbcast is installed, running, and seeing cameras, over the one Sitrep
     /// connection, exactly like every other Uplink. This is the FIRST real
-    /// <see cref="IUplinkHealthReporter"/> implementation in the repo.</para>
+    /// <see cref="ISitrepUplink.Health"/> implementation in the repo.</para>
     ///
     /// <para>NO compile-time reference to kerbcast's CC-BY-NC-SA-4.0 assembly —
     /// every kerbcast member is reached by reflection
@@ -44,7 +44,7 @@ namespace Gonogo.KerbcastUplink
     /// <c>Sitrep.Contract</c> + stock KSP only.</para>
     /// </summary>
     [SitrepUplink("kerbcast")]
-    public sealed class KerbcastUplink : ISitrepUplink, IUplinkHealthReporter
+    public sealed class KerbcastUplink : ISitrepUplink
     {
         public const string AvailableTopic = "kerbcast.available";
         public const string CamerasTopic = "kerbcast.cameras";

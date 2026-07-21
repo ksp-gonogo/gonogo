@@ -225,6 +225,10 @@ namespace Gonogo.KSP
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
         }
 
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
+        /// channel uplink is Healthy once it has registered without error.</summary>
+        public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;

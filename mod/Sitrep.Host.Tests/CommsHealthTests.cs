@@ -6,7 +6,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// <see cref="CommsHealth"/> — the comms core uplink's
-    /// <see cref="IUplinkHealthReporter"/> state machine (mirrors
+    /// <see cref="ISitrepUplink.Health"/> state machine (mirrors
     /// <c>GonogoKerbcastUplink.Tests.KerbcastHealthTests</c>).
     /// </summary>
     public class CommsHealthTests

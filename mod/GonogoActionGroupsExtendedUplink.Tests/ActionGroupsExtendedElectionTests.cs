@@ -43,6 +43,9 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         // shape VesselUplink uses.
         private sealed class CapabilityOwningUplink : ISitrepUplink, IUplinkCapabilityDeclarer
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "vessel", Version = "1.0.0" };
             public void DeclareCapabilities(Kernel kernel) =>
                 ActionGroupsElection.RegisterCapability(kernel, _ => new FakeActionGroupsBackend("stock"));
@@ -54,6 +57,9 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         // only when available.
         private sealed class ProviderOnlyUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             private readonly IAgxApi _agx;
             public ProviderOnlyUplink(IAgxApi agx) => _agx = agx;
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "actionGroupsExtended", Version = "1.0.0" };

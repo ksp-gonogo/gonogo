@@ -202,7 +202,7 @@ function DataSourcesPanel() {
         <SitrepConnection />
       </Section>
       <Section>
-        <SectionTitle>Uplinks</SectionTitle>
+        <SectionTitle>Uplink health</SectionTitle>
         <UplinkHealthList />
       </Section>
       <UplinkLoaderSection />
@@ -278,10 +278,10 @@ function UplinkHealthList() {
     return <Placeholder>No uplinks registered</Placeholder>;
   }
 
-  // Collapse a plain derived-from-availability Healthy entry (no
-  // self-reported detail) into the chip below; anything non-healthy, or
-  // healthy-with-a-detail-string (the self-reporting IUplinkHealthReporter
-  // case — see the design doc), stays individually visible.
+  // Health is mandatory now (every uplink self-reports — 2026-07-21). Collapse a
+  // plain "Healthy, nothing to say" entry into the chip below; anything
+  // non-healthy, or healthy-WITH a detail string (an uplink offering more than
+  // the trivial floor), stays individually visible.
   const collapsible = uplinkHealth.uplinks.filter(
     (u) => u.health.state === "healthy" && u.health.detail === null,
   );
@@ -587,6 +587,14 @@ const UplinkDetail = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
   margin-left: 16px;
+  /* A rich self-reported detail can be long or multi-line (an uplink that offers
+     more than the trivial floor, e.g. "3 cameras" / "no comms backend elected");
+     render the full string, wrapping cleanly and honouring any line breaks it
+     carries, rather than truncating it. */
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 `;
 
 const loaderStatusColor: Record<UplinkLoadStatus, string> = {

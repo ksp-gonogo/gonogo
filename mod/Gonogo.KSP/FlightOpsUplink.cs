@@ -63,6 +63,10 @@ namespace Gonogo.KSP
             },
         };
 
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
+        /// channel uplink is Healthy once it has registered without error.</summary>
+        public UplinkHealth Health() => UplinkHealth.Healthy;
+
         public void Register(IUplinkHost host)
         {
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RevertToLaunchCommand, args => FlightOpsCommandProvider.HandleRevertToLaunch(_actuator, args));

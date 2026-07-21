@@ -158,6 +158,9 @@ namespace Sitrep.Host.Tests
 
         private sealed class RecordingUplink : ISitrepUplink, ISnapshotSampler
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             private readonly Func<KspSnapshot?, object?> _capture;
             private readonly Action<object?> _handle;
             private readonly Action? _onSample;

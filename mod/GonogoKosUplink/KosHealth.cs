@@ -3,7 +3,7 @@ using Sitrep.Contract;
 namespace Gonogo.KosUplink
 {
     /// <summary>
-    /// <see cref="KosExtension"/>'s <see cref="IUplinkHealthReporter"/> state
+    /// <see cref="KosExtension"/>'s <see cref="ISitrepUplink.Health"/> state
     /// machine, as a pure function — mirrors
     /// <c>Gonogo.KerbcastUplink.KerbcastHealth</c> (same split rationale: a
     /// pure function over plain inputs, headless-tested, while the live
@@ -20,7 +20,7 @@ namespace Gonogo.KosUplink
     /// active vessel carries any kOS CPU at all. That is a strictly weaker
     /// claim than "a CPU is selected" (a vessel can have CPUs and still have
     /// none selected client-side), but it is the honest ceiling of what a
-    /// mod-side <see cref="IUplinkHealthReporter"/> can report.</para>
+    /// mod-side <see cref="ISitrepUplink.Health"/> can report.</para>
     /// </summary>
     public static class KosHealth
     {

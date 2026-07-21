@@ -61,6 +61,9 @@ namespace Sitrep.Host.IntegrationTests
         [SitrepUplink("e2e-discovery-test")]
         public sealed class DiscoveryEchoUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "test.discovery.echo";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest

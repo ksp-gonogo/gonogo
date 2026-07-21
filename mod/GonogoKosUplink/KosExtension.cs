@@ -51,7 +51,7 @@ namespace Gonogo.KosUplink
     /// method" behaviour, not a special-cased seam.</para>
     /// </summary>
     [SitrepUplink("kos")]
-    public sealed partial class KosExtension : ISitrepUplink, IUplinkHealthReporter
+    public sealed partial class KosExtension : ISitrepUplink
     {
         // Bound in InstallProductionDefaults() (KosExtension.Ksp.cs) for a
         // production instance; a caller-supplied value (e.g. a test) is left
@@ -72,7 +72,7 @@ namespace Gonogo.KosUplink
 #pragma warning disable CS0649 // field is never assigned to in this compilation unit
         private IChannelPublisher? _processorsPublisher;
 
-        // Health state (see IUplinkHealthReporter / KosHealth), mirroring
+        // Health state (see ISitrepUplink.Health / KosHealth), mirroring
         // KerbcastUplink's volatile-field pattern exactly: _unavailableReason
         // is written once, in RegisterKspBindings (KosExtension.Ksp.cs), when
         // the kOS version guard fails; _sampledOnce/_lastProcessorCount are
@@ -347,7 +347,7 @@ namespace Gonogo.KosUplink
                 }
                 _processorsPublisher?.Publish(flattened, capture.Ut);
 
-                // Health bookkeeping (see IUplinkHealthReporter / KosHealth) —
+                // Health bookkeeping (see ISitrepUplink.Health / KosHealth) —
                 // cache the CPU count this sample saw, same seam as the
                 // publish above, so Health() never re-reads kOS itself.
                 Volatile.Write(ref _lastProcessorCount, capture.List.Count);
@@ -356,7 +356,7 @@ namespace Gonogo.KosUplink
         }
 
         /// <summary>
-        /// The MANDATORY healthcheck (see <see cref="IUplinkHealthReporter"/>) —
+        /// The MANDATORY healthcheck (see <see cref="ISitrepUplink.Health"/>) —
         /// polled on the Courier thread every <c>system.uplinks</c> sample, so
         /// it only ever reads cached volatile state written above by the
         /// main-thread-fed processor capture. Never touches kOS/Unity

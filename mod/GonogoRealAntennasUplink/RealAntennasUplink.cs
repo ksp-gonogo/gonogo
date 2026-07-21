@@ -68,6 +68,14 @@ namespace Gonogo.RealAntennasUplink
             },
         };
 
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
+        /// Unavailable when the RealAntennas assembly is absent (the uplink went inert at
+        /// Register — <see cref="_ra"/> stays null/unavailable), else Healthy.</summary>
+        public UplinkHealth Health() =>
+            _ra != null && _ra.IsAvailable
+                ? UplinkHealth.Healthy
+                : new UplinkHealth(UplinkHealthState.Unavailable, "RealAntennas assembly not loaded");
+
         public void Register(IUplinkHost host)
         {
             _ra = RaReflection.Probe();
