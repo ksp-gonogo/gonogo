@@ -302,7 +302,7 @@ namespace Sitrep.Host
         // Unlike those maps (which only track ownership/status BY id), this
         // one keeps the actual ISitrepUplink reference, because the built-in
         // system.uplinks channel source (see BuildSystemUplinksPayload) needs
-        // to poll each uplink's own IUplinkHealthReporter.Health() — the
+        // to poll each uplink's own ISitrepUplink.Health.Health() — the
         // engine is the only component that ever sees every registered
         // uplink at once, so this is the sole place that self-report can be
         // aggregated. Single-writer-before-start, same discipline as every
@@ -605,14 +605,14 @@ namespace Sitrep.Host
         /// detail } }</c>. <c>available</c>/<c>reason</c> come straight from
         /// <see cref="AvailabilityOf"/> (the registration-time fail-soft
         /// status this engine already tracked before this feature existed).
-        /// <c>health</c> comes from <see cref="IUplinkHealthReporter.Health"/>
+        /// <c>health</c> comes from <see cref="ISitrepUplink.Health"/>
         /// when the uplink implements it — wrapped in try/catch, same
         /// fail-soft shape <see cref="RegisterUplink"/>'s own Register() call
         /// uses, so a throwing Health() reports as
         /// <see cref="UplinkHealthState.Degraded"/> rather than taking down
         /// this whole channel (or the uplink's OWN availability/other
         /// channels — this is a read, not a registration step). An uplink
-        /// that does NOT implement <see cref="IUplinkHealthReporter"/>
+        /// that does NOT implement <see cref="ISitrepUplink.Health"/>
         /// derives its health straight from availability: Available →
         /// <see cref="UplinkHealthState.Healthy"/>, Unavailable →
         /// <see cref="UplinkHealthState.Unavailable"/> carrying the same
@@ -693,7 +693,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Resolves one uplink's <see cref="UplinkHealth"/> — self-reported
-        /// via <see cref="IUplinkHealthReporter"/> when implemented (fail-soft
+        /// via <see cref="ISitrepUplink.Health"/> when implemented (fail-soft
         /// wrapped), else derived from <paramref name="availability"/> — and
         /// packs it into the wire shape <see cref="BuildSystemUplinksPayload"/>
         /// uses. <see cref="UplinkHealthState"/> is serialized as its integer
@@ -703,23 +703,32 @@ namespace Sitrep.Host
         /// </summary>
         private static Dictionary<string, object?> BuildUplinkHealthPayload(ISitrepUplink uplink, Availability availability)
         {
+            // Health is now MANDATORY on ISitrepUplink (2026-07-21), so the old
+            // "is ISitrepUplink.Health? else availability fallback" branch collapses
+            // to a single self-report call. But availability stays the presence
+            // AUTHORITY: an uplink whose Register threw (fail-soft-caught by the
+            // engine → marked Unavailable) never completed its health setup, so its
+            // Health() cannot be trusted — report Unavailable with the registration
+            // reason instead. An intentionally-inert uplink (RA/AGX/SCANsat) reports
+            // the same Unavailable from its own Health() anyway, so this only changes
+            // the register-threw case. When the uplink IS available, its Health() is
+            // authoritative; the try/catch stays (a thrown Health() → Degraded, a read
+            // fault must not crash the tick or take the uplink's channels down).
             UplinkHealth health;
-            if (uplink is IUplinkHealthReporter reporter)
+            if (!availability.IsAvailable)
+            {
+                health = new UplinkHealth(UplinkHealthState.Unavailable, availability.Reason);
+            }
+            else
             {
                 try
                 {
-                    health = reporter.Health();
+                    health = uplink.Health();
                 }
                 catch (Exception ex)
                 {
                     health = new UplinkHealth(UplinkHealthState.Degraded, "Health() threw: " + SafeExceptionMessage(ex));
                 }
-            }
-            else
-            {
-                health = availability.IsAvailable
-                    ? new UplinkHealth(UplinkHealthState.Healthy)
-                    : new UplinkHealth(UplinkHealthState.Unavailable, availability.Reason);
             }
 
             return new Dictionary<string, object?>

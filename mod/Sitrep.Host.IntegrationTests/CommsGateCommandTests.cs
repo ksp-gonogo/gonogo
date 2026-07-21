@@ -142,6 +142,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class CommsGateTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Command = "gate.keystroke";
             private int _handled;
 

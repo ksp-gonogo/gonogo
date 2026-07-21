@@ -5,7 +5,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests;
 
 /// <summary>
-/// <see cref="KosHealth"/> — the kOS uplink's <see cref="IUplinkHealthReporter"/>
+/// <see cref="KosHealth"/> — the kOS uplink's <see cref="ISitrepUplink.Health"/>
 /// state machine (mirrors <c>GonogoKerbcastUplink.Tests.KerbcastHealthTests</c>).
 /// </summary>
 public class KosHealthTests

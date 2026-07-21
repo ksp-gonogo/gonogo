@@ -151,6 +151,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class TestCrashUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public IChannelPublisher? LastCrash { get; private set; }
             public IChannelPublisher? HasRecent { get; private set; }
 

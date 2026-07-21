@@ -42,6 +42,9 @@ namespace Sitrep.Host.IntegrationTests
         // shape) published on the Courier handle.
         internal sealed class ProcessorsStyleUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "kos.processors";
             private IChannelPublisher? _pub;
 

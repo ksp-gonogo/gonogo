@@ -162,6 +162,22 @@ namespace Sitrep.Host.Tests
             registerIl.Emit(OpCodes.Ret);
             typeBuilder.DefineMethodOverride(registerImpl, registerIface);
 
+            // Health() is now a mandatory ISitrepUplink member, so the emitted type
+            // must implement it or CreateType() fails. Return the trivial floor
+            // (UplinkHealth.Healthy) — this type is never actually registered (the
+            // duplicated-attribute resolution throws first), it just has to be a
+            // valid ISitrepUplink to load.
+            var healthIface = typeof(ISitrepUplink).GetMethod(nameof(ISitrepUplink.Health))!;
+            var healthImpl = typeBuilder.DefineMethod(
+                "Health",
+                MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final,
+                typeof(UplinkHealth),
+                Type.EmptyTypes);
+            var healthIl = healthImpl.GetILGenerator();
+            healthIl.Emit(OpCodes.Ldsfld, typeof(UplinkHealth).GetField(nameof(UplinkHealth.Healthy))!);
+            healthIl.Emit(OpCodes.Ret);
+            typeBuilder.DefineMethodOverride(healthImpl, healthIface);
+
             return typeBuilder.CreateType()!;
         }
 
@@ -221,6 +237,9 @@ namespace Sitrep.Host.Tests
         [SitrepUplink("discovery-test-normal")]
         public sealed class NormalDiscoverableUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public bool RegisterWasCalled { get; private set; }
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -236,6 +255,9 @@ namespace Sitrep.Host.Tests
 
         public sealed class UnattributedUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-unattributed" };
             public void Register(IUplinkHost host) { }
         }
@@ -243,6 +265,9 @@ namespace Sitrep.Host.Tests
         [SitrepUplink("discovery-test-no-parameterless-ctor")]
         public sealed class NoParameterlessCtorUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public NoParameterlessCtorUplink(string _) { }
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-no-parameterless-ctor" };
             public void Register(IUplinkHost host) { }
@@ -251,6 +276,9 @@ namespace Sitrep.Host.Tests
         [SitrepUplink("discovery-test-throwing-ctor")]
         public sealed class ThrowingCtorUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public ThrowingCtorUplink() => throw new InvalidOperationException("boom");
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-throwing-ctor" };
             public void Register(IUplinkHost host) { }
@@ -259,6 +287,9 @@ namespace Sitrep.Host.Tests
         [SitrepUplink("discovery-test-stale", contractMajor: 0, contractMinor: 9)]
         public sealed class StaleContractUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-stale" };
             public void Register(IUplinkHost host) { }
         }

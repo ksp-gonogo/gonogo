@@ -259,6 +259,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class PendingQueueTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Command = "pending-queue-test.dispatch";
             private int _handled;
 

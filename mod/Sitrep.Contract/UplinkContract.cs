@@ -536,6 +536,29 @@ namespace Sitrep.Contract
         /// other registered uplink is unaffected.
         /// </summary>
         void Register(IUplinkHost host);
+
+        /// <summary>
+        /// This uplink's current health — a MANDATORY self-report (2026-07-21,
+        /// <c>local_docs/holiday_week/HIGH-PRIORITY-mandatory-healthchecks.md</c>).
+        /// Every uplink MUST report health: it is a required member of the base
+        /// contract (NOT a default), so an uplink that does not consciously report
+        /// does not compile — only the uplink itself knows what "ready" means for
+        /// it (kOS needs a CPU on the vessel, comms needs a backend elected, a
+        /// plain channel uplink just means "registered without error"). The FLOOR
+        /// is one line — <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>
+        /// via <see cref="UplinkHealth.Healthy"/> — so the mandate is cheap;
+        /// RICHNESS (a denser <see cref="UplinkHealth.Detail"/> string) stays the
+        /// author's choice.
+        ///
+        /// <para>Called on the tick/Courier thread while building
+        /// <c>system.uplinks</c> — polled on EVERY sample — so it must be cheap
+        /// (a simple state check, no blocking I/O) and fail-soft. The engine wraps
+        /// the call in a try/catch regardless: a throw here is reported as
+        /// <see cref="UplinkHealthState.Degraded"/> with the exception message as
+        /// <see cref="UplinkHealth.Detail"/>, and does NOT disable the uplink's
+        /// other channels/commands — this is a read, not a registration step.</para>
+        /// </summary>
+        UplinkHealth Health();
     }
 
     /// <summary>
@@ -610,43 +633,20 @@ namespace Sitrep.Contract
             State = state;
             Detail = detail;
         }
+
+        /// <summary>
+        /// The trivial "all good, nothing to say" result — a shared instance so
+        /// the mandatory floor for a plain uplink is one line:
+        /// <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>. State
+        /// <see cref="UplinkHealthState.Healthy"/>, no <see cref="Detail"/>.
+        /// </summary>
+        public static readonly UplinkHealth Healthy = new UplinkHealth(UplinkHealthState.Healthy);
     }
 
-    /// <summary>
-    /// OPTIONAL companion to <see cref="ISitrepUplink"/> that lets an uplink
-    /// SELF-REPORT its health, instead of the client inferring readiness from
-    /// topic staleness (the design this closes off — see
-    /// <c>local_docs/telemetry-mod/uplink-health-design.md</c>: only the
-    /// uplink itself knows what "ready" means for it — kOS needs an active
-    /// CPU selected, comms needs a backend elected, a channel-only uplink
-    /// might just mean "registered without error"). The engine aggregates
-    /// every registered uplink's <see cref="Health"/> (falling back to plain
-    /// <see cref="Availability"/> for an uplink that doesn't implement this)
-    /// into the built-in <c>system.uplinks</c> channel — see
-    /// <see cref="Sitrep.Host.ChannelEngine"/>'s doc comment on that channel.
-    ///
-    /// <para>Implementing this interface is optional: the 14 built-in
-    /// Uplinks that predate it need NO change — this is an additive Minor
-    /// change, not a contract break. An uplink that implements it is
-    /// responsible for keeping <see cref="Health"/> fast and non-blocking
-    /// (it is polled every <c>system.uplinks</c> sample, on the Courier/tick
-    /// thread — see the call site) and fail-soft in its OWN right where
-    /// possible; the engine wraps the call in a try/catch regardless (a throw
-    /// here is reported as <see cref="UplinkHealthState.Degraded"/> with the
-    /// exception message as <see cref="UplinkHealth.Detail"/>, and does NOT
-    /// affect the uplink's <see cref="Availability"/> or disable its other
-    /// channels/commands — this is a read, not a registration step).</para>
-    /// </summary>
-    public interface IUplinkHealthReporter
-    {
-        /// <summary>
-        /// Returns this uplink's current health. Called on the tick/Courier
-        /// thread while building <c>system.uplinks</c>; must be fail-soft
-        /// (no throw expected, though the engine tolerates one — see this
-        /// interface's doc comment) and cheap (no blocking I/O, no expensive
-        /// computation — a simple state check like "is a CPU selected" or "is
-        /// a backend elected").
-        /// </summary>
-        UplinkHealth Health();
-    }
+    // NOTE (2026-07-21): the former OPTIONAL companion `IUplinkHealthReporter`
+    // was RETIRED when health became mandatory. Its single member `Health()`
+    // moved onto the base `ISitrepUplink` (see that interface's doc), so health
+    // is no longer opt-in — every uplink reports it or does not compile. The
+    // three uplinks that used to implement the companion (Kerbcast, kOS, Comms)
+    // now override the base method with the same body.
 }

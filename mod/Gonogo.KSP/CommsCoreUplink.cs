@@ -24,7 +24,7 @@ namespace Gonogo.KSP
     /// <see cref="SignalDelay"/> math from the captured hop geometry — gonogo's
     /// own light-time computation, not a backend accessor (§3.1).</para>
     ///
-    /// <para><b>Health:</b> implements <see cref="IUplinkHealthReporter"/> —
+    /// <para><b>Health:</b> implements <see cref="ISitrepUplink.Health"/> —
     /// the second real implementation after
     /// <c>Gonogo.KerbcastUplink.KerbcastUplink</c>, and "zero new plumbing":
     /// <see cref="Health"/> reuses the exact same <see cref="CommsElection.Elected"/>
@@ -35,7 +35,7 @@ namespace Gonogo.KSP
     /// in <c>Sitrep.Host.Comms</c> rather than here).</para>
     /// </summary>
     [SitrepUplink("comms")]
-    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer, IUplinkHealthReporter
+    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public const string ConnectivityTopic = "comms.connectivity";
         public const string SignalStrengthTopic = "comms.signalStrength";
@@ -368,7 +368,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The MANDATORY healthcheck (see <see cref="IUplinkHealthReporter"/>) —
+        /// The MANDATORY healthcheck (see <see cref="ISitrepUplink.Health"/>) —
         /// polled on the Courier thread every <c>system.uplinks</c> sample.
         /// Reuses <see cref="CommsElection.Elected"/>, the exact same pure
         /// <see cref="Kernel"/> lookup <see cref="ComputeConnectedOnMain"/> and

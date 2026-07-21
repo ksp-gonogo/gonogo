@@ -360,6 +360,35 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     expect(screen.getByText("registration threw: boom")).toBeInTheDocument();
   });
 
+  it("renders a rich self-reported detail in full and keeps a healthy-with-detail uplink visible", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    // A "rich health" uplink (health mandatory now; richness = a denser detail
+    // string). Healthy-WITH-a-detail is NOT collapsed into the N/M-healthy chip,
+    // and the full formatted string renders (UplinkDetail wraps, never truncates).
+    const richDetail = "3 cameras · docking cam bound · capture core running";
+    stream.emit({
+      uplinks: [
+        {
+          id: "demo-cam",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 0, detail: richDetail },
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(richDetail)).toBeInTheDocument(),
+    );
+    // No plain-healthy entries → no "N/M healthy" collapse chip / Show toggle.
+    expect(screen.queryByRole("button", { name: /show/i })).toBeNull();
+  });
+
   it("shows a placeholder when the reported uplink list is empty", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));

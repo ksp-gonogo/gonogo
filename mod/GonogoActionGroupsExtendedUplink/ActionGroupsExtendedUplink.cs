@@ -31,6 +31,19 @@ namespace Gonogo.ActionGroupsExtendedUplink
     [SitrepUplink("actionGroupsExtended")]
     public sealed class ActionGroupsExtendedUplink : ISitrepUplink
     {
+        // Set at Register when AGX is absent (the uplink goes inert); read by
+        // Health(). Null means available. AgxReflection.Probe() is only run at
+        // Register, so Health() reads this cached result rather than re-probing.
+        private string? _unavailableReason;
+
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
+        /// Unavailable when the Action Groups Extended assembly is absent (the uplink went
+        /// inert at Register), else Healthy.</summary>
+        public UplinkHealth Health() =>
+            _unavailableReason != null
+                ? new UplinkHealth(UplinkHealthState.Unavailable, _unavailableReason)
+                : UplinkHealth.Healthy;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "actionGroupsExtended",
@@ -44,6 +57,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
             {
                 // AGX not installed — go inert. The exclusive actionGroups
                 // capability keeps the stock backend elected.
+                _unavailableReason = "Action Groups Extended assembly not loaded";
                 host.SetAvailability(Availability.Unavailable("Action Groups Extended assembly not loaded"));
                 return;
             }

@@ -995,6 +995,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class MainThreadProbeUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Command = "probe.capture-thread";
 
             private int _lastHandlerThreadId = -1;
@@ -1027,6 +1030,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class SideEffectProbeUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Command = "probe.side-effect";
 
             private int _handlerRunCount;
@@ -1731,6 +1737,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class EqualsThrowsTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-equals-throws";
             public const string Topic = "equals.throws";
 
@@ -1765,6 +1774,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class DecimalPayloadTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-decimal-payload";
             public const string Topic = "decimal.topic";
 
@@ -1797,6 +1809,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Backs <c>ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband</c> — a wide deadband (100) and long keyframe cadence (10,000 UT) so an in-deadband re-tick would ordinarily be skipped, isolating the forced-keyframe path from cadence/change-gate noise.</summary>
         private sealed class ForceKeyframeTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "force.keyframe.topic";
             public const string ForceCommand = "force.keyframe.command";
 
@@ -1839,6 +1854,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class PoisonPayloadTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-poison-payload";
             public const string Topic = "poison.topic";
 
@@ -1867,6 +1885,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class PoisonResultCommandTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-poison-result-command";
             public const string Command = "poison.result.command";
 
@@ -1888,6 +1909,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class GhostPublishTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "ghost.publish.topic";
 
             public IChannelPublisher? Publisher { get; private set; }
@@ -1930,6 +1954,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class CrashyCommandTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-crashy-command";
             public const string Command = "crashy.command";
 
@@ -1951,6 +1978,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class ScalarArgCommandTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-scalar-arg-command";
             public const string Command = "scalar.command";
 
@@ -2087,6 +2117,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class WireArgProbeUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-wire-arg-probe";
             public const string BoolCommand = "probe.bool";
             public const string DoubleCommand = "probe.double";
@@ -2171,6 +2204,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class ThrowsAfterRegisteringTwoChannelsUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-throws-after-registering";
             public const string Chan1 = "broken.chan1";
             public const string Chan2 = "broken.chan2";
@@ -2206,6 +2242,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class PublisherOnlyTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "publisher.only";
 
             public IChannelPublisher? Publisher { get; private set; }
@@ -2233,6 +2272,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class MultiChannelTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-multi",
@@ -2279,6 +2321,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class ThrowingSamplerTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-throwing-sampler";
 
             public ThrowingSampler Sampler { get; } = new ThrowingSampler();
@@ -2303,6 +2348,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class MessageGetterThrowsCommandTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-message-getter-throws-command";
             public const string Command = "message.getter.throws.command";
 
@@ -2324,6 +2372,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class DeliveryClassTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string ReliableTopic = "reliable.topic";
             public const string LossyTopic = "lossy.topic";
 
@@ -2365,6 +2416,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class DelayFlagTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string InfraCommand = "infra.ping";
             public const string VesselCommand = "vessel.ping";
 
@@ -2461,6 +2515,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class VesselCommandTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             private readonly IVesselActuator _actuator;
 
             public VesselCommandTestUplink(IVesselActuator actuator)
@@ -2697,6 +2754,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class TombstoneTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "chan.tombstone";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -2736,6 +2796,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class BornAbsentTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "chan.born-absent";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -3396,6 +3459,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class EpochWireTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string RawTopic = "test.epoch-raw";
             public const string EchoCommand = "test.epoch-echo";
             public const string SyncCommand = "test.epoch-sync";
@@ -3442,18 +3508,18 @@ namespace Sitrep.Host.IntegrationTests
         /// <c>BuildSystemUplinksPayload</c>/<c>BuildUplinkHealthPayload</c>
         /// cover:
         /// <list type="bullet">
-        /// <item><description><see cref="HealthReportingTestUplink"/> implements
-        /// <see cref="IUplinkHealthReporter"/> and self-reports
+        /// <item><description><see cref="HealthReportingTestUplink"/> self-reports
         /// <see cref="UplinkHealthState.Degraded"/> with its own Detail text —
-        /// the uplink-authored "what ready means for me" case.</description></item>
-        /// <item><description><see cref="PlainNoHealthTestUplink"/> implements
-        /// NO health interface at all (proving the 14 built-ins need no
-        /// change) — its health is DERIVED from a successful registration:
-        /// <see cref="UplinkHealthState.Healthy"/>, no detail.</description></item>
+        /// the uplink-authored "what ready means for me" case (health is a
+        /// mandatory member of <see cref="ISitrepUplink"/> now).</description></item>
+        /// <item><description><see cref="PlainNoHealthTestUplink"/> reports the
+        /// trivial <see cref="UplinkHealth.Healthy"/> floor — a plain channel
+        /// uplink that is fine once registered, no detail.</description></item>
         /// <item><description><see cref="ThrowingRegisterTestUplink"/>'s
         /// <see cref="ISitrepUplink.Register"/> throws, so
         /// <see cref="ChannelEngine.RegisterUplink"/>'s own existing fail-soft
-        /// marks it Unavailable — health is DERIVED from that:
+        /// marks it Unavailable — availability is authoritative there (its
+        /// <see cref="ISitrepUplink.Health"/> is never trusted), so health is
         /// <see cref="UplinkHealthState.Unavailable"/>, carrying the same
         /// registration-failure reason as its <c>detail</c>.</description></item>
         /// </list>
@@ -3576,6 +3642,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class StaticChannelOwnerTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-static-owner";
             public const string Topic = "test.static.topic";
 
@@ -3602,6 +3671,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private sealed class DynamicNamespaceOwnerTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string UplinkId = "test-dynamic-owner";
             public const string Prefix = "test.dyn.";
 
@@ -3622,7 +3694,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class HealthReportingTestUplink : ISitrepUplink, IUplinkHealthReporter
+        private sealed class HealthReportingTestUplink : ISitrepUplink
         {
             public const string UplinkId = "test-health-reporting";
             public const string DetailText = "no CPU selected";
@@ -3637,7 +3709,7 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 // No channels/commands needed -- this uplink exists purely
-                // to prove the IUplinkHealthReporter self-report path.
+                // to prove the ISitrepUplink.Health self-report path.
             }
 
             public UplinkHealth Health() => new UplinkHealth(UplinkHealthState.Degraded, DetailText);
@@ -3655,10 +3727,12 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host)
             {
-                // Implements NO IUplinkHealthReporter -- proves the
-                // derive-from-availability fallback every pre-existing
-                // built-in Uplink relies on.
+                // A plain channel uplink: registers fine and reports the trivial
+                // Healthy floor (health is mandatory now — every uplink self-reports).
             }
+
+            // The mandatory floor: a plain uplink that's fine once registered.
+            public UplinkHealth Health() => UplinkHealth.Healthy;
         }
 
         private sealed class ThrowingRegisterTestUplink : ISitrepUplink
@@ -3673,6 +3747,11 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host) =>
                 throw new InvalidOperationException("boom -- register throws");
+
+            // Never actually called: Register throws, so the engine marks this
+            // uplink Unavailable and availability (not this) authors its health.
+            // Present only to satisfy the mandatory ISitrepUplink.Health() member.
+            public UplinkHealth Health() => UplinkHealth.Healthy;
         }
 
         /// <summary>
@@ -3688,6 +3767,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private sealed class TerminalLikeTestUplink : ISitrepUplink
         {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
             public const string Topic = "term.screen";
 
             private IChannelPublisher? _publisher;
