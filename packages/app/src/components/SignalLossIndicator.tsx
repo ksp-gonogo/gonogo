@@ -42,10 +42,13 @@ export function SignalLossIndicator() {
   const comms = useTelemetry("vessel.comms");
   const connected = link?.connected;
   const signalStrength = comms?.signalStrength;
+  // `comms == null` catches BOTH warmup (`undefined`) AND a disconnected-vessel
+  // TOMBSTONE (`null`) — `vessel.comms` goes null the moment a vessel is
+  // comms-dark, and reading `.controlState` off it crashed the whole app
+  // (error-boundary) during a NORMAL signal-loss state. Control state is simply
+  // unknown then; the loss itself is driven by `connected`/`signalStrength`.
   const controlState =
-    comms === undefined
-      ? undefined
-      : collapseControlStateLevel(comms.controlState);
+    comms == null ? undefined : collapseControlStateLevel(comms.controlState);
 
   // Mirror `BufferedDataSource`'s gate: only trust a `false` as a blackout
   // AFTER we've observed a confirmed `true`. Cold-start false (no vessel,

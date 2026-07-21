@@ -123,7 +123,13 @@ export function AutoRecordController({
     });
     if (record) {
       const src = getSource();
-      if (src) void src.saveMission(record);
+      // `getSource()` is a cast (getDataSource returns the base DataSource shape),
+      // so guard the method exists, not just the source: during an abnormal
+      // teardown (e.g. an unrelated error-boundary unmount) the registered
+      // "missionHistory" source may momentarily not be the real
+      // MissionHistorySource, and calling a missing `saveMission` would throw and
+      // mask the original error. `finishAndSave` is fire-and-forget best-effort.
+      if (typeof src?.saveMission === "function") void src.saveMission(record);
     }
     setAutoRecordStatus({ recording: false, vesselName: null, frameCount: 0 });
   }, []);

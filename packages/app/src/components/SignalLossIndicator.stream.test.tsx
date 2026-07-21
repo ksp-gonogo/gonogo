@@ -202,4 +202,43 @@ describe("SignalLossIndicator — genuinely runs off a DELAYED, UNPINNED stream"
       expect(screen.getByText("SIGNAL LOSS")).toBeTruthy();
     },
   );
+
+  it("does not crash when vessel.comms is null (a disconnected-vessel tombstone), renders SIGNAL LOSS", async () => {
+    const delaySeconds = 5;
+    const fixture = setupDelayedStream(delaySeconds);
+
+    render(
+      <fixture.Provider>
+        <SignalLossIndicator />
+      </fixture.Provider>,
+    );
+
+    // Confirm a healthy link first so the blackout gate (hasConfirmedConnection) opens.
+    act(() => {
+      fixture.emit(
+        "vessel.comms",
+        { connected: true, signalStrength: 0.8, controlState: 2 },
+        0,
+      );
+      fixture.emit("comms.link", { connected: true }, 0);
+    });
+    act(() => {
+      fixture.wall.advanceBy(delaySeconds);
+      fixture.store.beginFrame();
+    });
+
+    // Disconnect: the link drops AND vessel.comms goes to a null tombstone — the
+    // real comms-dark case that crashed on `null.controlState` (this test threw
+    // during render before the null-guard fix).
+    act(() => {
+      fixture.emit("comms.link", { connected: false }, 10);
+      fixture.emit("vessel.comms", null, 10);
+    });
+    act(() => {
+      fixture.wall.advanceBy(10 + delaySeconds);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => expect(screen.getByText("SIGNAL LOSS")).toBeTruthy());
+  });
 });
