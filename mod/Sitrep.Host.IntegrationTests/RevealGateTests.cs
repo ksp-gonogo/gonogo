@@ -78,6 +78,54 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The archive DOES seed a once-published Delayed dynamic keyframe to a
+        /// subscriber that joins LONG after it was published + revealed — proven
+        /// here (client B joins at UT ~12, gets the UT-1 keyframe via catch-up).
+        /// This is load-bearing for the live "biome/height/mask never render for
+        /// late subscribers" investigation: it RULES OUT archive-pruning /
+        /// missing-sticky as the cause. The live grids fail to seed because they
+        /// were never RECORDED (the reveal-release ConnectivityAt gate withholds a
+        /// grid buffered at a UT when the vessel was disconnected, and biome/height
+        /// are captured once and never retried), NOT because the archive drops a
+        /// recorded once-published keyframe.
+        /// </summary>
+        [Fact]
+        public async Task ADelayedDynamicKeyframeIsSeededToASubscriberJoiningLongAfterItWasPublished()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new DelayedDynamicKeyframeOnceTestUplink());
+            engine.Start();
+            try
+            {
+                // Client A opens the sampler gate so the keyframe publishes ONCE at
+                // UT 1 (reveal delay 4 → revealed at UT 5), and stays subscribed
+                // while time marches well past it.
+                await using var early = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(early, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(early, DelayedDynamicKeyframeOnceTestUplink.FullTopic, Timeout);
+                for (double ut = 1.0; ut <= 12.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, DelayedDynamicKeyframeOnceTestUplink.Snapshot(ut, delay: 4.0), Timeout);
+                }
+                await DrainAllStreamDataAsync(early, Quiet);
+
+                // Client B joins LATE (long after the UT-1 publish + UT-5 reveal) and
+                // subscribes fresh — it must be seeded with the keyframe. Subscribe
+                // raw (not the ack-only helper) so the catch-up keyframe isn't
+                // discarded, then drain and look for it.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(
+                    new Subscribe { Topic = DelayedDynamicKeyframeOnceTestUplink.FullTopic }));
+                var lateFrames = await DrainAllStreamDataAsync(late, Quiet);
+                Assert.Contains(lateFrames, f => f.Topic == DelayedDynamicKeyframeOnceTestUplink.FullTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A Delayed channel's sample is WITHHELD from the wire until its UT
         /// crosses the reveal horizon (now − delay), then revealed; a TrueNow
         /// channel is revealed immediately; and <c>comms.delay</c> itself —
