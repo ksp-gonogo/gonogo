@@ -5,7 +5,8 @@
        whose obligations could reach a COMBINED work. This uplink therefore NEVER
        links RP-0's assembly and NEVER derives from its types — it reaches every
        RP-1 avionics member by runtime reflection (AvionicsReflection), the same
-       arm's-length pattern as GonogoRealAntennasUplink. That boundary is what
+       arm's-length pattern gonogo uses for every third-party-mod uplink. That
+       boundary is what
        keeps this assembly clear of the NC/ShareAlike obligations. RP-1's
        attribution notice is retained in NOTICE-RP1.txt alongside this file. -->
   <PropertyGroup>

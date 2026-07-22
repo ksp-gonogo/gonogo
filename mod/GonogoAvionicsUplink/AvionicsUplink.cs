@@ -11,12 +11,11 @@ namespace GonogoAvionicsUplink
     /// bare TrueNow <c>avionics.available</c> primitive; the per-vessel status is
     /// Delayed (reveal-gated). Health is Unavailable when RP-1 is not loaded.
     ///
-    /// <para>Accessors mirror the established uplinks: <c>AddChannelSource</c> for
-    /// the bare available boolean (as ScansatUplink does), and the capture-on-main
-    /// / handle-on-Courier <c>AddSampledSource</c> seam for the status (live KSP
-    /// reads stay on the main thread, as RealAntennasUplink does). The active
-    /// vessel comes from <c>FlightGlobals.ActiveVessel</c>; the sampled UT is
-    /// carried on the capture and used at publish time.</para>
+    /// <para>Accessors mirror the established uplink patterns: <c>AddChannelSource</c>
+    /// for the bare available boolean, and the capture-on-main / handle-on-Courier
+    /// <c>AddSampledSource</c> seam for the status (live KSP reads stay on the main
+    /// thread). The active vessel comes from <c>FlightGlobals.ActiveVessel</c>; the
+    /// sampled UT is carried on the capture and used at publish time.</para>
     /// </summary>
     [SitrepUplink("avionics")]
     public sealed class AvionicsUplink : ISitrepUplink
