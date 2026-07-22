@@ -133,6 +133,7 @@ jobs:
             GonogoKerbcastUplink.Tests
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
+            GonogoKerbalismUplink.Tests
           )
           # The real-WebSocket integration suites are CPU-fragile on the shared
           # CI runner: the in-process test server's pump competes with client
