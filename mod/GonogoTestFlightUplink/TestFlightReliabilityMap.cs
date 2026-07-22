@@ -10,11 +10,17 @@ namespace GonogoTestFlightUplink
 {
     public static class TestFlightReliabilityMap
     {
-        public static Dictionary<string, object?> Summary(bool anyMalfunction, bool anyCritical) => new()
+        public static Dictionary<string, object?> Summary(
+            bool anyMalfunction,
+            bool anyCritical,
+            double? worstReliabilityFraction) => new()
         {
             ["unmodeled"] = false,
             ["malfunction"] = anyMalfunction,
             ["critical"] = anyCritical,
+            // TestFlight's headline pre-burn go/no-go: the worst engine's live
+            // reliability probability across the vessel (null when no engines).
+            ["worstReliabilityFraction"] = worstReliabilityFraction,
             ["source"] = "testflight",
         };
 
@@ -29,10 +35,13 @@ namespace GonogoTestFlightUplink
                     ["group"] = "engine",
                     ["broken"] = e.CurrentReliability <= 0.01,
                     ["critical"] = e.MomentaryFailureRate > 0,
-                    // TestFlight expresses health as a live reliability probability, not consumed
-                    // fractions. mtbfHours carries the inverse-failure-rate estimate; ignitions/
-                    // duration consumed stay null (fallback-provider concepts, not applicable to TestFlight). The FleetRoster
+                    // TestFlight's headline signals: the live reliability probability (0..1)
+                    // and the remaining rated burn seconds. mtbfHours keeps the inverse-
+                    // failure-rate estimate too; ignitions/duration consumed stay null
+                    // (fallback-provider concepts, not applicable to TestFlight). The FleetRoster
                     // renderer shows whichever fields are non-null.
+                    ["reliabilityFraction"] = e.CurrentReliability,
+                    ["remainingRatedBurn"] = e.RemainingRatedBurnSeconds,
                     ["mtbfHours"] = e.MomentaryFailureRate > 0 ? (double?)(1.0 / e.MomentaryFailureRate / 3600.0) : null,
                     ["ignitionsConsumed"] = null,
                     ["durationConsumed"] = null,

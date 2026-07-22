@@ -23,11 +23,26 @@ namespace GonogoTestFlightUplink
         public ReliabilitySummary Summary()
         {
             var v = FlightGlobals.ActiveVessel;
+            var malfunction = false;
+            var critical = false;
+            double? worst = null;
+            if (v != null)
+            {
+                foreach (var e in _tf.Engines(v))
+                {
+                    if (e.CurrentReliability < 1.0 && e.MomentaryFailureRate > 0) malfunction = true;
+                    if (e.CurrentReliability <= 0.01) critical = true;
+                    if (worst == null || e.CurrentReliability < worst.Value) worst = e.CurrentReliability;
+                }
+            }
             return new ReliabilitySummary
             {
                 Unmodeled = false,
-                Malfunction = v != null && _tf.AnyMalfunction(v),
-                Critical = v != null && _tf.AnyCritical(v),
+                Malfunction = malfunction,
+                Critical = critical,
+                // TestFlight's headline pre-burn go/no-go: the worst engine's live
+                // reliability probability across the vessel (null when no engines).
+                WorstReliabilityFraction = worst,
                 Source = "testflight",
             };
         }
@@ -46,9 +61,12 @@ namespace GonogoTestFlightUplink
                     Group = "engine",
                     Broken = e.CurrentReliability <= 0.01,
                     Critical = e.MomentaryFailureRate > 0,
-                    // TestFlight expresses health as a live reliability probability, not
-                    // consumed fractions. MtbfHours carries the inverse-failure-rate estimate;
-                    // the ignition/duration consumed slots stay null (fallback-provider concepts, not applicable to TestFlight).
+                    // TestFlight's headline signals: the live reliability probability
+                    // (0..1) and the remaining rated burn seconds. MtbfHours keeps the
+                    // inverse-failure-rate estimate too. The ignition/duration consumed
+                    // slots stay null (fallback-provider concepts, not applicable to TestFlight).
+                    ReliabilityFraction = e.CurrentReliability,
+                    RemainingRatedBurn = e.RemainingRatedBurnSeconds,
                     MtbfHours = e.MomentaryFailureRate > 0 ? (double?)(1.0 / e.MomentaryFailureRate / 3600.0) : null,
                     IgnitionsConsumed = null,
                     DurationConsumed = null,

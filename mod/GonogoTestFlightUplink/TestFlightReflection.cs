@@ -47,6 +47,10 @@ namespace GonogoTestFlightUplink
                     var reliability = InvokeDouble(pm, t, "GetCurrentReliability");
                     var flightData = InvokeDouble(pm, t, "GetFlightData");
                     var momentary = InvokeDouble(pm, t, "GetCurrentFailureRate"); // [verify]
+                    // Remaining rated burn seconds. [verify] the exact read/derivation
+                    // (likely rated burn time minus burn time used) on the RO pass;
+                    // null when unavailable so the wire field degrades cleanly.
+                    var remainingRatedBurn = InvokeDouble(pm, t, "GetRatedBurnTime"); // [verify]
                     yield return new EngineReliabilityRaw
                     {
                         PartId = part.flightID.ToString(),
@@ -54,6 +58,7 @@ namespace GonogoTestFlightUplink
                         CurrentReliability = reliability ?? 1.0,
                         FlightData = flightData ?? 0,
                         MomentaryFailureRate = momentary ?? 0,
+                        RemainingRatedBurnSeconds = remainingRatedBurn,
                     };
                 }
             }

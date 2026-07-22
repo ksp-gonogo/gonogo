@@ -11,5 +11,9 @@ namespace GonogoTestFlightUplink
         public double CurrentReliability = 1.0; // 0..1
         public double FlightData; // "du"
         public double MomentaryFailureRate;
+        // Seconds of rated burn time left before failure risk ramps steeply, or
+        // null when TestFlight does not expose it. [verify] the exact runtime
+        // read on the RO fixture-capture pass.
+        public double? RemainingRatedBurnSeconds;
     }
 }

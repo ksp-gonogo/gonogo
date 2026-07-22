@@ -1,12 +1,17 @@
 // mod/GonogoTestFlightUplink/TestFlightUplink.cs
-// The [SitrepUplink("testflight")] uplink: presence-gate topic + mandatory
-// health + registration of the TestFlight reliability backend at Priority 10.
+// The [SitrepUplink("testflight")] uplink: a client-less reliability PROVIDER.
+// It declares NO channels of its own - TestFlight's presence is conveyed by
+// system.uplinks health (Health() below) and by reliability.summary.source ==
+// "testflight" once its provider wins the election, so a dedicated
+// testflight.available topic (and a client package to register it) would be
+// pure overhead for a provider with no widget.
 //
 // It does NOT declare the "reliability" capability or the reliability.* channels
-// - agent-6's ReliabilityCoreUplink owns those (mirroring how a core capability registrar
-// owns a capability while a mod uplink only registers a provider). Registering
-// the provider IS the election gate, done in Register (the capability is
-// declared in the earlier discovery pass), gated on the TestFlight probe.
+// - the shared reliability core registrar owns those (mirroring how a core
+// capability registrar owns a capability while a mod uplink only registers a
+// provider). Registering the provider IS the election gate, done in Register
+// (the capability is declared in the earlier discovery pass), gated on the
+// TestFlight probe.
 using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
@@ -16,42 +21,22 @@ namespace GonogoTestFlightUplink
     [SitrepUplink("testflight")]
     public sealed class TestFlightUplink : ISitrepUplink
     {
-        private const string AvailableTopic = "testflight.available";
         private readonly TestFlightReflection _tf = new();
 
-        public UplinkManifest Manifest { get; }
-
-        public TestFlightUplink()
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
-            Manifest = new UplinkManifest
-            {
-                Id = "testflight",
-                Version = "1.0.0",
-                Channels = new List<ChannelDeclaration>
-                {
-                    // Ground-side fact (is TestFlight installed) - true-now, bare boolean,
-                    // bypasses the delay clock. The reliability.* vessel telemetry is
-                    // Delayed and declared by the reliability core uplink, not here.
-                    new ChannelDeclaration
-                    {
-                        Topic = AvailableTopic,
-                        Delivery = Delivery.LossyLatest,
-                        Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                        Delay = DelayRole.TrueNow,
-                    },
-                },
-            };
-        }
+            Id = "testflight",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>(),
+        };
 
         public void Register(IUplinkHost host)
         {
-            host.AddChannelSource(AvailableTopic, _ => _tf.IsAvailable);
-
             // Register the TestFlight reliability provider ONLY when TestFlight is
-            // actually loaded - registering IS the election gate (same as the other capability providers).
-            // Priority 10 > the fallback provider's 1, so TestFlight WINS under RO/RP-1 where both
-            // are live. Wrapped so a registration failure is surfaced, not swallowed,
-            // and the uplink still emits testflight.available.
+            // actually loaded - registering IS the election gate (same as the other
+            // capability providers). Priority 10 > the fallback provider's 1, so
+            // TestFlight WINS under RO/RP-1 where both are live. Wrapped so a
+            // registration failure is surfaced, not swallowed.
             if (_tf.IsAvailable)
             {
                 try
