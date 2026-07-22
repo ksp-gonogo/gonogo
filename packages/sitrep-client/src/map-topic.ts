@@ -1050,6 +1050,45 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // ksp.canRevertToEditor / ksp.canRevertToLaunch are mapped on the wire:
   // a dedicated RevertAvailability topic now ships both flags — see
   // TELEMACHUS_CLEAN_HOMES above.
+
+  // --- Kerbalism sw.*/ls.* — pending KerbalismUplink Topics
+  // (spaceweather / lifesupport / crew, being specced). The SpaceWeather and
+  // LifeSupportSystems widgets read these raw off "data" until the uplink
+  // lands; gapped here so the coverage gate stays honest and the reads fall
+  // back to the legacy DataSource rather than silently going undefined once a
+  // future migration removes the raw path.
+  "sw.radiationRadPerHour",
+  "sw.stormState",
+  "sw.stormTimeSec",
+  "sw.innerBelt",
+  "sw.outerBelt",
+  "sw.magnetosphere",
+  "sw.blackout",
+  "sw.shieldingValue",
+  "sw.shieldingCapacity",
+  "sw.altitudeM",
+  "sw.ut",
+  "ls.food.amount",
+  "ls.food.capacity",
+  "ls.food.rate",
+  "ls.water.amount",
+  "ls.water.capacity",
+  "ls.water.rate",
+  "ls.oxygen.amount",
+  "ls.oxygen.capacity",
+  "ls.oxygen.rate",
+  "ls.ec.amount",
+  "ls.ec.capacity",
+  "ls.ec.rate",
+  "ls.pressure",
+  "ls.co2Poisoning",
+  "ls.comfort",
+  "ls.livingSpace",
+  "ls.climatization",
+  "ls.process.scrubber",
+  "ls.process.waterRecycler",
+  "ls.process.wasteProcessor",
+  "ls.process.fuelCell",
 ]);
 
 /**
