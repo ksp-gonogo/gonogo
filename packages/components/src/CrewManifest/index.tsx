@@ -2,19 +2,24 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
+  useDataSourceSubscription,
   useDataStreamStatus,
+  useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   BigReadout,
   EmptyState,
+  Meter,
+  type MeterTone,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ReadoutCaption,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { useState } from "react";
 import styled from "styled-components";
 
 /**
@@ -31,6 +36,158 @@ const TinyReadout = styled(BigReadout)`
 `;
 
 type CrewManifestConfig = Record<string, never>;
+
+// ── Kerbalism per-kerbal survival (additive; absent unless the KerbalismUplink
+// is present, in which case `crew.kerbals` carries per-kerbal rule accumulators
+// — see local_docs/kerbalism-fixtures) ─────────────────────────────────────────
+
+/** Per-kerbal Kerbalism rule accumulators, each 0..1 toward fatal. */
+interface KerbalRules {
+  radiation?: number;
+  stress?: number;
+  eating?: number;
+  drinking?: number;
+  breathing?: number;
+  climatization?: number;
+  "co2 poisoning"?: number;
+}
+
+/** One entry of the `crew.kerbals` array. */
+interface KerbalEntry {
+  name: string;
+  trait?: string;
+  rules?: KerbalRules;
+}
+
+/**
+ * Read a raw wire key off the legacy "data" source (the KerbalismUplink's
+ * `crew.kerbals`/`ls.*` ride it, same as `LifeSupportSystems`). Kept local —
+ * a byte-for-byte mirror of that widget's helper — because CrewManifest's own
+ * roster reads are canonical `useTelemetry` Topics; only the Kerbalism add-on
+ * data comes through here.
+ */
+function useRaw<T>(key: string): T | undefined {
+  return useDataSourceSubscription<T | undefined>(
+    "data",
+    (source, onStoreChange, snapshotRef) =>
+      source.subscribe(key, (v) => {
+        snapshotRef.current = v as T;
+        onStoreChange();
+      }),
+    undefined,
+  );
+}
+const useNum = (key: string): number | undefined => useRaw<number>(key);
+
+/**
+ * Stage 1 of the two-stage death-clock: the soonest life-support resource
+ * time-to-empty across food/water/oxygen (amount ÷ drain-rate), the shared
+ * "time until crew start dying" headline. `null` when nothing is draining.
+ * (Stage 2 — per-kerbal accumulator-time-to-fatal after a resource hits zero —
+ * needs a per-rule degeneration rate the wire does not carry yet; until the
+ * KerbalismUplink adds it, stage 2 is shown as the "% to fatal" accumulator
+ * fraction below, and this readout swaps to a precise countdown then with no
+ * presentation change. See DECISIONS §CrewManifest.)
+ */
+function useLifeSupportTimeToEmptySec(): number | null {
+  // Hooks are called unconditionally at the top level (never in a loop) so the
+  // call order is stable across renders.
+  const foodAmount = useNum("ls.food.amount");
+  const foodRate = useNum("ls.food.rate");
+  const waterAmount = useNum("ls.water.amount");
+  const waterRate = useNum("ls.water.rate");
+  const oxygenAmount = useNum("ls.oxygen.amount");
+  const oxygenRate = useNum("ls.oxygen.rate");
+
+  const ttes: number[] = [];
+  for (const [amount, rate] of [
+    [foodAmount, foodRate],
+    [waterAmount, waterRate],
+    [oxygenAmount, oxygenRate],
+  ]) {
+    if (amount !== undefined && rate !== undefined && rate < 0) {
+      ttes.push(amount / -rate);
+    }
+  }
+  return ttes.length ? Math.min(...ttes) : null;
+}
+
+function formatDuration(sec: number): string {
+  const s = Math.max(0, sec);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+/** Tone for a 0..1-toward-fatal accumulator: calm low, alarming high. */
+function fatalTone(value: number): MeterTone {
+  if (value >= 0.8) return "nogo";
+  if (value >= 0.5) return "warn";
+  return "go";
+}
+const pct = (v: number): string => `${Math.round(v * 100)}%`;
+
+/**
+ * The per-kerbal survival-meters block: dose + stress as 0..1-toward-fatal
+ * meters, plus the derived death-clock readout. Presentational (no hooks) —
+ * the shared stage-1 time-to-empty is computed once in the component and passed
+ * in, so this renders once per crew row without per-row subscriptions.
+ */
+function SurvivalMeters({
+  rules,
+  stage1Sec,
+}: Readonly<{ rules: KerbalRules; stage1Sec: number | null }>) {
+  const dose = rules.radiation ?? 0;
+  const stress = rules.stress ?? 0;
+
+  // Death-clock: while a life-support resource is draining, the headline is the
+  // shared stage-1 time-to-empty. Once one is depleted (stage-1 ~0), fall back
+  // to the kerbal's worst accumulator as the stage-2 "% to fatal" fraction.
+  let clock: { label: string; tone: MeterTone };
+  const worst = Math.max(
+    dose,
+    stress,
+    rules.eating ?? 0,
+    rules.drinking ?? 0,
+    rules.breathing ?? 0,
+    rules.climatization ?? 0,
+    rules["co2 poisoning"] ?? 0,
+  );
+  if (stage1Sec !== null && stage1Sec > 60) {
+    clock = {
+      label: `~${formatDuration(stage1Sec)} to LS depletion`,
+      tone: "warn",
+    };
+  } else if (stage1Sec !== null) {
+    // A resource is essentially out — degeneration is underway.
+    clock = { label: `${pct(worst)} to fatal`, tone: fatalTone(worst) };
+  } else {
+    clock = { label: "stable", tone: "go" };
+  }
+
+  return (
+    <SurvivalStack aria-label="survival meters">
+      <Meter
+        size="sm"
+        label="Dose"
+        value={dose}
+        tone={fatalTone(dose)}
+        valueLabel={pct(dose)}
+      />
+      <Meter
+        size="sm"
+        label="Stress"
+        value={stress}
+        tone={fatalTone(stress)}
+        valueLabel={pct(stress)}
+      />
+      <DeathClock $tone={clock.tone}>{clock.label}</DeathClock>
+    </SurvivalStack>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // The `crew-manifest.badges` slot contract (see augment-slot-map)
@@ -111,6 +268,24 @@ function CrewManifestComponent({
   // `v.crewCount`'s stream status is representative of the whole trio.
   const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
+  // Kerbalism per-kerbal survival — additive, absent unless the KerbalismUplink
+  // publishes `crew.kerbals`. Reads happen unconditionally (stable hook order);
+  // the map is empty and the meters simply never render without the Uplink.
+  const kerbals = useRaw<KerbalEntry[]>("crew.kerbals");
+  const stage1Sec = useLifeSupportTimeToEmptySec();
+  const rulesByName = new Map<string, KerbalRules>();
+  if (Array.isArray(kerbals)) {
+    for (const k of kerbals) {
+      if (k?.name && k.rules) rulesByName.set(k.name, k.rules);
+    }
+  }
+  const hasSurvival = rulesByName.size > 0;
+  // Scene-aware toggle: meters default ON in Flight (where survival matters),
+  // OFF elsewhere; the operator can flip that default per session.
+  const { inFlight } = useGameContext();
+  const [metersOverride, setMetersOverride] = useState<boolean | null>(null);
+  const showMeters = hasSurvival && (metersOverride ?? inFlight);
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -146,14 +321,32 @@ function CrewManifestComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>CREW</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
+        <TitleRight>
+          {hasSurvival && (
+            <MetersToggle
+              type="button"
+              aria-pressed={showMeters}
+              onClick={() => setMetersOverride(!showMeters)}
+            >
+              {showMeters ? "Hide meters" : "Show meters"}
+            </MetersToggle>
+          )}
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRight>
       </TitleRow>
       <PanelSubtitle>
         {known
           ? formatSubtitle(isEVA, crewCount, crewCapacity)
           : "No crew data"}
       </PanelSubtitle>
-      {renderBody({ known, crewCount, names })}
+      {renderBody({
+        known,
+        crewCount,
+        names,
+        showMeters,
+        rulesByName,
+        stage1Sec,
+      })}
     </Panel>
   );
 }
@@ -177,10 +370,16 @@ function renderBody({
   known,
   crewCount,
   names,
+  showMeters,
+  rulesByName,
+  stage1Sec,
 }: {
   known: boolean;
   crewCount: number | undefined;
   names: string[];
+  showMeters: boolean;
+  rulesByName: Map<string, KerbalRules>;
+  stage1Sec: number | null;
 }): React.ReactNode {
   if (!known) return <EmptyState>Waiting for telemetry...</EmptyState>;
 
@@ -209,21 +408,28 @@ function renderBody({
 
   return (
     <Roster>
-      {names.map((name, index) => (
-        <Row key={name}>
-          <Bullet />
-          <Name>{name}</Name>
-          {/* Per-crew inline badges slot. Renders nothing until an Uplink (e.g.
-              Kerbalism Habitat/Radiation) binds — the props carry this row's
-              kerbal identity so the augment badges the right one. */}
-          <Badges>
-            <AugmentSlot
-              name="crew-manifest.badges"
-              props={{ crewName: name, crewIndex: index }}
-            />
-          </Badges>
-        </Row>
-      ))}
+      {names.map((name, index) => {
+        const rules = showMeters ? rulesByName.get(name) : undefined;
+        return (
+          <RosterItem key={name}>
+            <Row>
+              <Bullet />
+              <Name>{name}</Name>
+              {/* Per-crew inline badges slot. Renders nothing until an Uplink
+                  (e.g. Kerbalism Habitat/Radiation) binds — the props carry
+                  this row's kerbal identity so the augment badges the right
+                  one. */}
+              <Badges>
+                <AugmentSlot
+                  name="crew-manifest.badges"
+                  props={{ crewName: name, crewIndex: index }}
+                />
+              </Badges>
+            </Row>
+            {rules && <SurvivalMeters rules={rules} stage1Sec={stage1Sec} />}
+          </RosterItem>
+        );
+      })}
     </Roster>
   );
 }
@@ -239,6 +445,43 @@ const TitleRow = styled.div`
   flex-wrap: wrap;
 `;
 
+// Trailing cluster in the title row: meters toggle + stream badge.
+const TitleRight = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+// Scene-aware meters toggle, shown only when the KerbalismUplink is feeding
+// per-kerbal survival data.
+const MetersToggle = styled.button`
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
+  }
+
+  &[aria-pressed="true"] {
+    color: var(--color-accent-fg);
+    border-color: var(--color-accent-fg);
+  }
+`;
+
 const Roster = styled.ul`
   list-style: none;
   margin: 8px 0 0;
@@ -248,10 +491,38 @@ const Roster = styled.ul`
   gap: 4px;
 `;
 
-const Row = styled.li`
+// One roster entry: the name/badges head line, plus (when survival data is
+// shown) the per-kerbal meters block stacked beneath it.
+const RosterItem = styled.li`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const Row = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+`;
+
+// Per-kerbal survival meters block, indented under the name line.
+const SurvivalStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 0 4px 14px;
+`;
+
+// Derived death-clock readout under the meters. Tone tracks urgency.
+const DeathClock = styled.span<{ $tone: MeterTone }>`
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  color: ${({ $tone }) =>
+    $tone === "nogo"
+      ? "var(--color-danger-fg)"
+      : $tone === "warn"
+        ? "var(--color-warning-fg)"
+        : "var(--color-text-secondary)"};
 `;
 
 const Bullet = styled.span`
@@ -292,7 +563,22 @@ registerComponent<CrewManifestConfig>({
   // Per-crew-row inline badges slot (augment-slot-map: crew-manifest.badges).
   // Unfilled until a Kerbalism-style Uplink binds — the roster renders as before.
   augmentSlots: ["crew-manifest.badges"],
-  dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
+  dataRequirements: [
+    "v.crew",
+    "v.crewCount",
+    "v.crewCapacity",
+    "v.isEVA",
+    // Kerbalism per-kerbal survival (additive; present only with the
+    // KerbalismUplink). `crew.kerbals` carries the rule accumulators; the
+    // `ls.*` amount/rate pairs drive the shared stage-1 death-clock.
+    "crew.kerbals",
+    "ls.food.amount",
+    "ls.food.rate",
+    "ls.water.amount",
+    "ls.water.rate",
+    "ls.oxygen.amount",
+    "ls.oxygen.rate",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,
