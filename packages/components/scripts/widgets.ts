@@ -228,7 +228,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Altitude + descent rows added (rows>=8).
       { name: "standard-6x9", w: 6, h: 9 },
       // Default size: full metric grid + best-impact-inline.
-      { name: "default-8x10", w: 8, h: 10 },
+      { name: "default-8x11", w: 8, h: 11 },
       // Tall atmospheric view: rows>=9 unlocks the ambient section.
       { name: "tall-atm-8x12", w: 8, h: 12 },
     ],
@@ -932,7 +932,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "min-4x4", w: 4, h: 4 },
       { name: "compact-5x7", w: 5, h: 7 },
       // defaultSize 8×10 — the common operator view.
-      { name: "default-8x10", w: 8, h: 10 },
+      { name: "default-8x11", w: 8, h: 11 },
       { name: "wide-12x10", w: 12, h: 10 },
     ],
   },
@@ -1025,6 +1025,40 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { lineMode: false },
         forFixtures: ["char-mode-badges"],
       },
+    ],
+  },
+  {
+    // SpaceWeather — Kerbalism radiation/storm/belt board. Fixtures are the
+    // four SpaceWeatherData showcase states (nominal from a real Deck capture;
+    // storm/inner-belt synthesised to real config magnitudes). See
+    // local_docs/spaceweather-widget-SPEC.md + local_docs/kerbalism-fixtures/.
+    widgetId: "space-weather",
+    fixturesPath: "SpaceWeather/__fixtures__",
+    outPath: "renders/space-weather-widget",
+    modes: [
+      // Registered default.
+      { name: "default-8x11", w: 8, h: 11 },
+      // Showcase — the rich-graphics board reads best with room.
+      { name: "showcase-11x11", w: 11, h: 11 },
+      // Compact — sheds the flux chart + env tags, essentials only.
+      { name: "compact-5x6", w: 5, h: 6 },
+    ],
+  },
+  {
+    // LifeSupportSystems — Kerbalism vessel-centric consumable ledger,
+    // habitat, and process board. Fixtures: nominal is a real Deck capture
+    // (kerbalism-fixture-baseline-crp.json); depleting/critical are
+    // synthesised by scaling it down. See local_docs/kerbalism-fixtures/.
+    widgetId: "life-support",
+    fixturesPath: "LifeSupportSystems/__fixtures__",
+    outPath: "renders/life-support-widget",
+    modes: [
+      // Registered default.
+      { name: "default-8x13", w: 8, h: 13 },
+      // Showcase — full habitat + process grids read best with room.
+      { name: "showcase-10x14", w: 10, h: 14 },
+      // Compact — sheds the habitat/process detail grids to one-line summaries.
+      { name: "compact-5x7", w: 5, h: 7 },
     ],
   },
 ];

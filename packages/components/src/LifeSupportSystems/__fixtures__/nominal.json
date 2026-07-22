@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "scenario": "nominal",
+    "source": "kerbalism-fixture-baseline-crp.json (real Deck capture, tester vessel, Kerbin orbit)"
+  },
+  "ls.food.amount": 1.35,
+  "ls.food.capacity": 1.35,
+  "ls.food.rate": -0.000012035471250352793,
+  "ls.water.amount": 0.7,
+  "ls.water.capacity": 0.7,
+  "ls.water.rate": -0.000006195307937675452,
+  "ls.oxygen.amount": 186.9352674200827,
+  "ls.oxygen.capacity": 187,
+  "ls.oxygen.rate": -0.0017143162437546708,
+  "ls.ec.amount": 446.65850563948504,
+  "ls.ec.capacity": 450,
+  "ls.ec.rate": -0.08942449474961575,
+  "ls.pressure": 0,
+  "ls.co2Poisoning": 0,
+  "ls.comfort": 0.3000000029802322,
+  "ls.livingSpace": 0.1,
+  "ls.climatization": 0.00004937349288767713,
+  "ls.process.scrubber": 1,
+  "ls.process.waterRecycler": 1,
+  "ls.process.wasteProcessor": 1,
+  "ls.process.fuelCell": 0
+}

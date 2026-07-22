@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "scenario": "depleting",
+    "source": "synthesised by scaling kerbalism-fixture-baseline-crp.json — food/water down to ~25%, drain faster, scrubber broken"
+  },
+  "ls.food.amount": 0.35,
+  "ls.food.capacity": 1.35,
+  "ls.food.rate": -0.000036,
+  "ls.water.amount": 0.19,
+  "ls.water.capacity": 0.7,
+  "ls.water.rate": -0.000019,
+  "ls.oxygen.amount": 84.15,
+  "ls.oxygen.capacity": 187,
+  "ls.oxygen.rate": -0.0031,
+  "ls.ec.amount": 247.5,
+  "ls.ec.capacity": 450,
+  "ls.ec.rate": -0.12,
+  "ls.pressure": 0,
+  "ls.co2Poisoning": 0.09,
+  "ls.comfort": 0.22,
+  "ls.livingSpace": 0.1,
+  "ls.climatization": 0.06,
+  "ls.process.scrubber": 2,
+  "ls.process.waterRecycler": 1,
+  "ls.process.wasteProcessor": 1,
+  "ls.process.fuelCell": 0
+}

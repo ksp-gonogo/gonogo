@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "nominal"
+  },
+  "sw.radiationRadPerHour": 0.0143,
+  "sw.stormState": 0,
+  "sw.stormTimeSec": -1,
+  "sw.innerBelt": 0,
+  "sw.outerBelt": 0,
+  "sw.magnetosphere": 1,
+  "sw.blackout": 0,
+  "sw.shieldingValue": 3.308,
+  "sw.shieldingCapacity": 3.308,
+  "sw.altitudeM": 100000,
+  "sw.ut": 149489
+}
