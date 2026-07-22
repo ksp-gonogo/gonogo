@@ -472,7 +472,7 @@ const MetersToggle = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 

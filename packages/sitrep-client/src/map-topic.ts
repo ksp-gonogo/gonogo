@@ -1089,6 +1089,13 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "ls.process.waterRecycler",
   "ls.process.wasteProcessor",
   "ls.process.fuelCell",
+
+  // --- fleet.vessels (FleetRoster) / crew.kerbals (CrewManifest) — new
+  // widget reads pending their owning Uplinks. Same interim treatment as the
+  // sw.*/ls.* keys above: gapped so the coverage gate stays honest and the
+  // reads fall back to the legacy DataSource until the topics are registered.
+  "fleet.vessels",
+  "crew.kerbals",
 ]);
 
 /**

@@ -181,6 +181,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // recordBundledOutcomes() — same shape as loader.test.ts/flag.test.ts
       // below (loaderState.ts itself is generic and names no mod).
       "packages/app/src/uplinks/loaderState.test.ts",
+      // event-timeline.ts (event-stream primitive, 2026-07-22): a text-only
+      // doc-comment mention ("see the kerbcast-Uplink") in a mod-agnostic
+      // sitrep-client primitive. Words only, nothing kerbcast-specific is
+      // imported — permanent, same class as the other doc-mention citations.
+      "packages/sitrep-client/src/event-timeline.ts",
     ],
   },
 
