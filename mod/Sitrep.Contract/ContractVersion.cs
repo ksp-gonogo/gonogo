@@ -206,7 +206,20 @@ namespace Sitrep.Contract
         /// against an older Minor. See
         /// <c>docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md</c>
         /// §T-POI-3.</para>
+        ///
+        /// <para>Major-4 line, Bumped 3 -&gt; 4: additive-only Minor for the
+        /// KerbalismUplink Domain and the reliability capability. New Topics
+        /// <c>kerbalism.spaceweather</c>/<c>kerbalism.lifesupport</c>/<c>kerbalism.crew</c>/
+        /// <c>kerbalism.features</c> (<see cref="KerbalismSpaceWeather"/>,
+        /// <see cref="KerbalismLifeSupport"/>, <see cref="KerbalismCrewEntry"/>,
+        /// <see cref="KerbalismFeatures"/> + nested value shapes) and the
+        /// Domain-neutral <c>reliability.summary</c>/<c>reliability.parts</c>
+        /// (<see cref="ReliabilitySummary"/>, <see cref="ReliabilityPartEntry"/>,
+        /// elected via the <c>reliability</c> Kernel capability, see Reliability.cs).
+        /// All brand-new Topics + value shapes, nothing removed or retyped, so it
+        /// cannot break an Uplink built against an older Minor. See
+        /// <c>docs/superpowers/plans/2026-07-22-kerbalism-uplink.md</c>.</para>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }
