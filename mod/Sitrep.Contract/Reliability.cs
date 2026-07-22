@@ -44,6 +44,8 @@ public class ReliabilitySummary
     public bool? Critical { get; set; }
     /// <summary>Which backend produced this: "kerbalism" | "testflight" | "none".</summary>
     public string? Source { get; set; }
+    /// <summary>Worst engine reliability probability on the vessel (0..1) — the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
+    public double? WorstReliabilityFraction { get; set; }
 }
 
 /// <summary>
@@ -66,8 +68,13 @@ public class ReliabilityPartEntry
     public bool? Broken { get; set; }
     public bool? Critical { get; set; }
     public double? MtbfHours { get; set; }
+    /// <summary>Live/interpolated reliability probability (0..1) — TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
+    public double? ReliabilityFraction { get; set; }
+    /// <summary>Seconds of rated burn left (TestFlight). Distinct from the Kerbalism-only DurationConsumed fraction. Null for Kerbalism.</summary>
+    public double? RemainingRatedBurn { get; set; }
     /// <summary>Fraction of rated ignitions CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
     public double? IgnitionsConsumed { get; set; }
+    /// <summary>Fraction of rated duration CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
     public double? DurationConsumed { get; set; }
     public bool? NeedsRepair { get; set; }
 }

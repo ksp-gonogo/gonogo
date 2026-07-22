@@ -744,6 +744,7 @@ export interface ReliabilitySummary
 	malfunction?: boolean;
 	critical?: boolean;
 	source?: string;
+	worstReliabilityFraction?: number;
 }
 export interface ReliabilityPartEntry
 {
@@ -753,6 +754,8 @@ export interface ReliabilityPartEntry
 	broken?: boolean;
 	critical?: boolean;
 	mtbfHours?: number;
+	reliabilityFraction?: number;
+	remainingRatedBurn?: number;
 	ignitionsConsumed?: number;
 	durationConsumed?: number;
 	needsRepair?: boolean;
