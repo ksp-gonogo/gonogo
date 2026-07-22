@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useDataSourceSubscription } from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Badge, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
@@ -8,27 +8,11 @@ type LifeSupportConfig = Record<string, never>;
 // ---------------------------------------------------------------------------
 // Data read
 //
-// For the offline render the probe emits flat `ls.*` keys on the "data"
-// source (booleans as 0/1, process state as 0=idle/1=running/2=broken). When
-// the real KerbalismUplink Topic lands, swap `useLifeSupport` to read
-// `useTelemetry("lifesupport")`; the presentation below never changes — this
-// hook is the data boundary.
+// Reads the real KerbalismUplink `kerbalism.lifesupport` Topic (canonical
+// one-arg useTelemetry). The presentation below is a pure function of
+// `LifeSupportData`, so the offline snapshot harness feeds the same shape (see
+// widgetDomSnapshot's kerbalism reshape). This hook is the only data boundary.
 // ---------------------------------------------------------------------------
-
-function useRaw<T>(key: string): T | undefined {
-  return useDataSourceSubscription<T | undefined>(
-    "data",
-    (source, onStoreChange, snapshotRef) =>
-      source.subscribe(key, (v) => {
-        snapshotRef.current = v as T;
-        onStoreChange();
-      }),
-    undefined,
-  );
-}
-
-const useNum = (key: string): number | undefined => useRaw<number>(key);
-const useBool = (key: string): boolean => (useRaw<number>(key) ?? 0) > 0.5;
 
 interface Consumable {
   amount: number;
@@ -45,8 +29,6 @@ interface ProcessRow {
   state: ProcessRunState;
 }
 
-const PROCESS_STATES: ProcessRunState[] = ["idle", "running", "broken"];
-
 interface LifeSupportData {
   food: Consumable;
   water: Consumable;
@@ -60,44 +42,80 @@ interface LifeSupportData {
   processes: ProcessRow[];
 }
 
-function useConsumable(prefix: string): Consumable {
+interface WireResource {
+  amount?: number;
+  capacity?: number;
+  rate?: number;
+}
+
+function consumable(r: WireResource | undefined): Consumable {
   return {
-    amount: useNum(`${prefix}.amount`) ?? 0,
-    capacity: useNum(`${prefix}.capacity`) ?? 0,
-    rate: useNum(`${prefix}.rate`) ?? 0,
+    amount: r?.amount ?? 0,
+    capacity: r?.capacity ?? 0,
+    rate: r?.rate ?? 0,
   };
 }
 
-function useProcessRow(id: string, name: string): ProcessRow {
-  const idx = Math.round(useNum(`ls.process.${id}`) ?? 0);
-  return { id, name, state: PROCESS_STATES[idx] ?? "idle" };
+/** Match a live process to a display row by known resource id / title, deriving its run state. */
+function processRow(
+  id: string,
+  name: string,
+  processes: {
+    resource?: string;
+    title?: string;
+    running?: boolean;
+    broken?: boolean;
+  }[],
+): ProcessRow {
+  const p = processes.find(
+    (x) => x.resource === `_${idToResource(id)}` || x.title === name,
+  );
+  const state: ProcessRunState = p?.broken
+    ? "broken"
+    : p?.running
+      ? "running"
+      : "idle";
+  return { id, name, state };
+}
+
+/** Display id -> Kerbalism process resource stem (fixture `resource` is `_<Stem>`). */
+function idToResource(id: string): string {
+  switch (id) {
+    case "scrubber":
+      return "Scrubber";
+    case "waterRecycler":
+      return "WaterRecycler";
+    case "wasteProcessor":
+      return "WasteProcessor";
+    case "fuelCell":
+      return "MonopropFuelCell";
+    default:
+      return id;
+  }
 }
 
 function useLifeSupport(): LifeSupportData {
-  const food = useConsumable("ls.food");
-  const water = useConsumable("ls.water");
-  const oxygen = useConsumable("ls.oxygen");
-  const ec = useConsumable("ls.ec");
-  const pressurized = useBool("ls.pressure");
-  const co2Poisoning = useNum("ls.co2Poisoning") ?? 0;
-  const comfort = useNum("ls.comfort") ?? 0;
-  const livingSpace = useNum("ls.livingSpace") ?? 0;
-  const climatization = useNum("ls.climatization") ?? 0;
-  const scrubber = useProcessRow("scrubber", "Scrubber");
-  const waterRecycler = useProcessRow("waterRecycler", "Water recycler");
-  const wasteProcessor = useProcessRow("wasteProcessor", "Waste processor");
-  const fuelCell = useProcessRow("fuelCell", "Fuel cell");
+  const t = useTelemetry("kerbalism.lifesupport");
+  const processes = t?.processes ?? [];
   return {
-    food,
-    water,
-    oxygen,
-    ec,
-    pressurized,
-    co2Poisoning,
-    comfort,
-    livingSpace,
-    climatization,
-    processes: [scrubber, waterRecycler, wasteProcessor, fuelCell],
+    food: consumable(t?.food),
+    water: consumable(t?.water),
+    oxygen: consumable(t?.oxygen),
+    ec: consumable(t?.electricCharge),
+    pressurized: (t?.habitat?.pressure ?? 0) > 0.5,
+    co2Poisoning: t?.habitat?.poisoning ?? 0,
+    comfort: t?.habitat?.comfort ?? 0,
+    livingSpace: t?.habitat?.livingSpace ?? 0,
+    // Climatization is a per-kerbal rule (rides kerbalism.crew, surfaced in the
+    // CrewManifest death-clock meters), not a vessel-level habitat value — the
+    // vessel LS ledger shows 0 here.
+    climatization: 0,
+    processes: [
+      processRow("scrubber", "Scrubber", processes),
+      processRow("waterRecycler", "Water recycler", processes),
+      processRow("wasteProcessor", "Waste processor", processes),
+      processRow("fuelCell", "Fuel cell", processes),
+    ],
   };
 }
 
@@ -436,29 +454,7 @@ registerComponent<LifeSupportConfig>({
   defaultSize: { w: 8, h: 13 },
   minSize: { w: 3, h: 4 },
   component: LifeSupportSystemsComponent,
-  dataRequirements: [
-    "ls.food.amount",
-    "ls.food.capacity",
-    "ls.food.rate",
-    "ls.water.amount",
-    "ls.water.capacity",
-    "ls.water.rate",
-    "ls.oxygen.amount",
-    "ls.oxygen.capacity",
-    "ls.oxygen.rate",
-    "ls.ec.amount",
-    "ls.ec.capacity",
-    "ls.ec.rate",
-    "ls.pressure",
-    "ls.co2Poisoning",
-    "ls.comfort",
-    "ls.livingSpace",
-    "ls.climatization",
-    "ls.process.scrubber",
-    "ls.process.waterRecycler",
-    "ls.process.wasteProcessor",
-    "ls.process.fuelCell",
-  ],
+  channels: ["kerbalism.lifesupport"],
   defaultConfig: {},
   actions: [],
   requires: ["flight"],

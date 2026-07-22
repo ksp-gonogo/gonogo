@@ -130,6 +130,97 @@ function resolveCommsLinkWire(fixture: Fixture): unknown {
   return typeof raw === "boolean" ? { connected: raw } : undefined;
 }
 
+const fnum = (fixture: Fixture, key: string): number | undefined =>
+  typeof fixture[key] === "number" ? (fixture[key] as number) : undefined;
+const fbool = (fixture: Fixture, key: string): boolean =>
+  (fnum(fixture, key) ?? 0) > 0.5;
+
+/**
+ * `sw.*` -> `kerbalism.spaceweather` — SpaceWeather dropped its legacy
+ * `useDataSourceSubscription("data", "sw.*")` reads for the canonical
+ * `useTelemetry("kerbalism.spaceweather")` Topic, so a fixture carrying the old
+ * `sw.*` keys must reshape them onto the Topic wire or the board renders empty.
+ * Radiation is stored rad/h in the fixture but the Topic (and real mod) is
+ * rad/s, so it is divided by 3600 here — the widget multiplies it back for the
+ * identical readout. Storm state 0/1/2 -> the incoming/inProgress bools.
+ */
+function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
+  const hasSw = Object.keys(fixture).some((k) => k.startsWith("sw."));
+  if (!hasSw) return undefined;
+  const rph = fnum(fixture, "sw.radiationRadPerHour") ?? 0;
+  const stormState = Math.round(fnum(fixture, "sw.stormState") ?? 0);
+  return {
+    radiationRadPerSecond: rph / 3600,
+    habitatRadiationRadPerSecond: rph / 3600,
+    magnetosphere: fbool(fixture, "sw.magnetosphere"),
+    innerBelt: fbool(fixture, "sw.innerBelt"),
+    outerBelt: fbool(fixture, "sw.outerBelt"),
+    stormIncoming: stormState === 1,
+    stormInProgress: stormState === 2,
+    blackout: fbool(fixture, "sw.blackout"),
+    inSunlight: true,
+    shieldingAmount: fnum(fixture, "sw.shieldingValue") ?? 0,
+    shieldingCapacity: fnum(fixture, "sw.shieldingCapacity") ?? 0,
+  };
+}
+
+/** `sw.altitudeM` -> `vessel.flight.altitudeAsl` — SpaceWeather's belt-ring vessel-dot placement. */
+function resolveSpaceWeatherFlightWire(fixture: Fixture): unknown {
+  const alt = fnum(fixture, "sw.altitudeM");
+  return alt !== undefined
+    ? { altitudeAsl: alt, altitudeTerrain: alt }
+    : undefined;
+}
+
+/**
+ * `ls.*` -> `kerbalism.lifesupport` — LifeSupportSystems dropped its legacy
+ * `useDataSourceSubscription("data", "ls.*")` reads for the canonical
+ * `useTelemetry("kerbalism.lifesupport")` Topic. Reshapes the flat consumable
+ * (`ls.<res>.amount/capacity/rate`), habitat (`ls.pressure`/`ls.co2Poisoning`/…)
+ * and process (`ls.process.<id>` 0=idle/1=running/2=broken) keys onto the Topic
+ * payload the widget now reads.
+ */
+function resolveKerbalismLifeSupportWire(fixture: Fixture): unknown {
+  const hasLs = Object.keys(fixture).some((k) => k.startsWith("ls."));
+  if (!hasLs) return undefined;
+  const res = (p: string) => ({
+    amount: fnum(fixture, `${p}.amount`) ?? 0,
+    capacity: fnum(fixture, `${p}.capacity`) ?? 0,
+    rate: fnum(fixture, `${p}.rate`) ?? 0,
+  });
+  const proc = (id: string, resource: string, title: string) => {
+    const state = Math.round(fnum(fixture, `ls.process.${id}`) ?? 0);
+    return {
+      resource,
+      title,
+      capacity: 1.67,
+      running: state === 1,
+      broken: state === 2,
+    };
+  };
+  return {
+    food: res("ls.food"),
+    water: res("ls.water"),
+    oxygen: res("ls.oxygen"),
+    electricCharge: res("ls.ec"),
+    habitat: {
+      pressure: fbool(fixture, "ls.pressure") ? 1 : 0,
+      poisoning: fnum(fixture, "ls.co2Poisoning") ?? 0,
+      shielding: 0,
+      livingSpace: fnum(fixture, "ls.livingSpace") ?? 0,
+      comfort: fnum(fixture, "ls.comfort") ?? 0,
+      volume: 0,
+      surface: 0,
+    },
+    processes: [
+      proc("scrubber", "_Scrubber", "Scrubber"),
+      proc("waterRecycler", "_WaterRecycler", "Water recycler"),
+      proc("wasteProcessor", "_WasteProcessor", "Waste processor"),
+      proc("fuelCell", "_MonopropFuelCell", "Fuel cell"),
+    ],
+  };
+}
+
 /**
  * Per-mode size descriptor consumed by the snapshot helper. Mirrors the
  * `SizeMode` shape in `packages/components/scripts/widgets.ts` so the same
@@ -179,6 +270,8 @@ interface StreamWrap {
   emitVesselParts: () => void;
   /** Emits the fixture's legacy control keys (reshaped) onto `vessel.control`/`vessel.structure`, or a no-op when it carries none. Same `act()` block as the other emits. */
   emitVesselControl: () => void;
+  /** Emits the fixture's `sw.*`/`ls.*` keys (reshaped) onto `kerbalism.spaceweather`/`kerbalism.lifesupport` (+ `vessel.orbit`), or a no-op when it carries none. Same `act()` block as the other emits. */
+  emitKerbalism: () => void;
 }
 
 /**
@@ -197,19 +290,25 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
   const vesselStructureWire = resolveVesselStructureWire(fixture);
   const timeWarpWire = resolveTimeWarpWire(fixture);
   const commsLinkWire = resolveCommsLinkWire(fixture);
+  const kerbalismSpaceWeatherWire = resolveKerbalismSpaceWeatherWire(fixture);
+  const spaceWeatherFlightWire = resolveSpaceWeatherFlightWire(fixture);
+  const kerbalismLifeSupportWire = resolveKerbalismLifeSupportWire(fixture);
   if (
     pinnedUt === undefined &&
     vesselPartsWire === undefined &&
     vesselControlWire === undefined &&
     vesselStructureWire === undefined &&
     timeWarpWire === undefined &&
-    commsLinkWire === undefined
+    commsLinkWire === undefined &&
+    kerbalismSpaceWeatherWire === undefined &&
+    kerbalismLifeSupportWire === undefined
   ) {
     return {
       Wrap: ({ children }) => <Fragment>{children}</Fragment>,
       providerMounted: false,
       emitVesselParts: () => {},
       emitVesselControl: () => {},
+      emitKerbalism: () => {},
     };
   }
   // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
@@ -239,6 +338,17 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
       }
       if (commsLinkWire !== undefined) {
         stream.emit("comms.link", commsLinkWire);
+      }
+    },
+    emitKerbalism: () => {
+      if (kerbalismSpaceWeatherWire !== undefined) {
+        stream.emit("kerbalism.spaceweather", kerbalismSpaceWeatherWire);
+      }
+      if (spaceWeatherFlightWire !== undefined) {
+        stream.emit("vessel.flight", spaceWeatherFlightWire);
+      }
+      if (kerbalismLifeSupportWire !== undefined) {
+        stream.emit("kerbalism.lifesupport", kerbalismLifeSupportWire);
       }
     },
   };
@@ -301,8 +411,13 @@ export async function snapshotWidgetMode<
       ...((opts.mode.config ?? {}) as Cfg),
     };
     const instanceId = opts.instanceId ?? "snap";
-    const { Wrap, providerMounted, emitVesselParts, emitVesselControl } =
-      buildStreamWrap(opts.fixture);
+    const {
+      Wrap,
+      providerMounted,
+      emitVesselParts,
+      emitVesselControl,
+      emitKerbalism,
+    } = buildStreamWrap(opts.fixture);
     const { container } = render(
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
@@ -326,6 +441,7 @@ export async function snapshotWidgetMode<
       }
       emitVesselParts();
       emitVesselControl();
+      emitKerbalism();
     });
     await flushProviderFrame(providerMounted);
 

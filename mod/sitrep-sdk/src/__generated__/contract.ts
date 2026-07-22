@@ -399,6 +399,83 @@ export interface GameDlc
 	breakingGround: boolean;
 	makingHistory: boolean;
 }
+export interface KerbalismSpaceWeather
+{
+	radiationRadPerSecond?: number;
+	habitatRadiationRadPerSecond?: number;
+	magnetosphere?: boolean;
+	innerBelt?: boolean;
+	outerBelt?: boolean;
+	stormIncoming?: boolean;
+	stormInProgress?: boolean;
+	blackout?: boolean;
+	inSunlight?: boolean;
+	shieldingAmount?: number;
+	shieldingCapacity?: number;
+}
+export interface KerbalismResource
+{
+	amount?: number;
+	capacity?: number;
+	rate?: number;
+}
+export interface KerbalismHabitat
+{
+	pressure?: number;
+	poisoning?: number;
+	shielding?: number;
+	livingSpace?: number;
+	comfort?: number;
+	volume?: number;
+	surface?: number;
+}
+export interface KerbalismProcessEntry
+{
+	resource?: string;
+	title?: string;
+	capacity?: number;
+	running?: boolean;
+	broken?: boolean;
+}
+export interface KerbalismLifeSupport
+{
+	food?: KerbalismResource;
+	water?: KerbalismResource;
+	oxygen?: KerbalismResource;
+	electricCharge?: KerbalismResource;
+	habitat?: KerbalismHabitat;
+	processes?: KerbalismProcessEntry[];
+}
+export interface KerbalismCrewRule
+{
+	name?: string;
+	value?: number;
+	degenPerSec?: number;
+	fatalThreshold?: number;
+}
+export interface KerbalismCrewEntry
+{
+	name?: string;
+	trait?: string;
+	rules?: KerbalismCrewRule[];
+	deathClockSec?: number;
+}
+export interface KerbalismFeatures
+{
+	reliability?: boolean;
+	radiation?: boolean;
+	spaceWeather?: boolean;
+	shielding?: boolean;
+	livingSpace?: boolean;
+	comfort?: boolean;
+	poisoning?: boolean;
+	pressure?: boolean;
+	habitat?: boolean;
+	supplies?: boolean;
+	science?: boolean;
+	automation?: boolean;
+	deploy?: boolean;
+}
 export interface KerbcastCameraEntry
 {
 	cameraId?: number;
@@ -660,6 +737,28 @@ export interface RecoveryCrewEntry
 	xpGained: number;
 	levelsGained: number;
 	newLevel: number;
+}
+export interface ReliabilitySummary
+{
+	unmodeled?: boolean;
+	malfunction?: boolean;
+	critical?: boolean;
+	source?: string;
+	worstReliabilityFraction?: number;
+}
+export interface ReliabilityPartEntry
+{
+	partId?: string;
+	title?: string;
+	group?: string;
+	broken?: boolean;
+	critical?: boolean;
+	mtbfHours?: number;
+	reliabilityFraction?: number;
+	remainingRatedBurn?: number;
+	ignitionsConsumed?: number;
+	durationConsumed?: number;
+	needsRepair?: boolean;
 }
 export interface RevertAvailability
 {

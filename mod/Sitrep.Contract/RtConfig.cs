@@ -251,6 +251,18 @@ public static class RtConfig
                 // One NAMED custom action group on vessel.control.actionGroups —
                 // the element type that replaced the positional bool[].
                 typeof(ActionGroupState),
+                // kerbalism.* channels (Domain "kerbalism") + nested value shapes
+                typeof(KerbalismSpaceWeather),
+                typeof(KerbalismResource),
+                typeof(KerbalismHabitat),
+                typeof(KerbalismProcessEntry),
+                typeof(KerbalismLifeSupport),
+                typeof(KerbalismCrewRule),
+                typeof(KerbalismCrewEntry),
+                typeof(KerbalismFeatures),
+                // reliability.* capability channels (Domain-neutral; see Reliability.cs)
+                typeof(ReliabilitySummary),
+                typeof(ReliabilityPartEntry),
             },
             c => c.AutoI(false).WithPublicProperties());
 

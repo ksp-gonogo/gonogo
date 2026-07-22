@@ -17,6 +17,7 @@
     "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
+    "@ksp-gonogo/kerbalism": "workspace:*",
     "@ksp-gonogo/kerbcast-feed": "workspace:*",
     "@ksp-gonogo/kos": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",

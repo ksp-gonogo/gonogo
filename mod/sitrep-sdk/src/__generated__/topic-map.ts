@@ -34,12 +34,18 @@ import type {
   FlightVesselChanged,
   GameDlc,
   InstrumentEntry,
+  KerbalismCrewEntry,
+  KerbalismFeatures,
+  KerbalismLifeSupport,
+  KerbalismSpaceWeather,
   KerbcastCameraEntry,
   KosProcessorInfo,
   LabEntry,
   LaunchSiteEntry,
   PartsPower,
   RecoveryReport,
+  ReliabilityPartEntry,
+  ReliabilitySummary,
   RevertAvailability,
   RoboticsAvailability,
   SavedShipEntry,
@@ -95,12 +101,18 @@ export interface GeneratedTopicPayloadMap {
   "flight.started": FlightStarted;
   "flight.vesselChanged": FlightVesselChanged;
   "game.dlc": GameDlc;
+  "kerbalism.crew": KerbalismCrewEntry[];
+  "kerbalism.features": KerbalismFeatures;
+  "kerbalism.lifesupport": KerbalismLifeSupport;
+  "kerbalism.spaceweather": KerbalismSpaceWeather;
   "kerbcast.cameras": KerbcastCameraEntry[];
   "kos.processors": KosProcessorInfo[];
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
   "parts.robotics": ServoEntry[];
   "recovery.lastSummary": RecoveryReport;
+  "reliability.parts": ReliabilityPartEntry[];
+  "reliability.summary": ReliabilitySummary;
   "robotics.available": RoboticsAvailability;
   "scansat.scanningVessels": ScanningVesselEntry[];
   "scansat.science": ScanScienceEntry[];
@@ -160,12 +172,18 @@ export const GENERATED_TOPIC_IDS = [
   "flight.started",
   "flight.vesselChanged",
   "game.dlc",
+  "kerbalism.crew",
+  "kerbalism.features",
+  "kerbalism.lifesupport",
+  "kerbalism.spaceweather",
   "kerbcast.cameras",
   "kos.processors",
   "ksp.revertAvailability",
   "parts.power",
   "parts.robotics",
   "recovery.lastSummary",
+  "reliability.parts",
+  "reliability.summary",
   "robotics.available",
   "scansat.scanningVessels",
   "scansat.science",

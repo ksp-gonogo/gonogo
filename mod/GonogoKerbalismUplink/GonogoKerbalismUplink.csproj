@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MIT, like the rest of gonogo (see LICENSING.md). Kerbalism is Unlicense
+       (public domain) but this uplink takes the same arm's-length stance as
+       GonogoRealAntennasUplink regardless: it NEVER links Kerbalism's assembly
+       and NEVER derives from its types — every Kerbalism member is reached by
+       runtime reflection (KerbalismReflection), so the uplink stays clean of
+       any dependency-licence surprise and loads presence-safe when Kerbalism
+       is absent. Kerbalism's attribution is retained in NOTICE-Kerbalism.txt. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoKerbalismUplink</AssemblyName>
+    <RootNamespace>Gonogo.KerbalismUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- KspManaged: root for the portable KSP/Unity reference DLLs (below).
+       Defaults to the repo's local dev copy so a plain `dotnet build` with no
+       /p: overrides keeps working; CI passes /p:KspManaged=... instead. Same
+       pattern as GonogoRealAntennasUplink. -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies — Private="false", satisfied by KSP at
+       runtime. Kerbalism itself is NEVER referenced (reached by reflection). -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface.
+       NO reference to Kerbalism.dll, by design. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+GonogoKerbalismUplink reaches Kerbalism entirely by runtime reflection
+(KerbalismReflection.cs). It does NOT link Kerbalism's assembly and does NOT
+derive from its types — the same arm's-length pattern GonogoRealAntennasUplink
+uses for RealAntennas.
+
+Kerbalism is authored by Sir Mortimer and the Kerbalism contributors and
+distributed under the Unlicense (public domain dedication). Kerbalism and
+Community Resource Pack (CRP) are the property of their respective authors; this
+uplink neither bundles nor modifies them. It only observes their public runtime
+surface (KERBALISM.API / KERBALISM.Features / KERBALISM.DB / ProcessController
+PartModules) when they happen to be installed in the player's KSP.
+
+Kerbalism: https://github.com/Kerbalism/Kerbalism

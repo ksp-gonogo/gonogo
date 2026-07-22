@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 // read `getAllKnownTopicIds()` the runtime registry holds the full union — the SDK's own
 // Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
+import "@ksp-gonogo/kerbalism";
 import "@ksp-gonogo/kerbcast-feed";
 import "@ksp-gonogo/kos";
 import "@ksp-gonogo/scansat";
@@ -102,5 +103,6 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     const known = new Set<string>(getAllKnownTopicIds());
     expect(known.has("scansat.available")).toBe(true);
     expect(known.has("kerbcast.available")).toBe(true);
+    expect(known.has("kerbalism.available")).toBe(true);
   });
 });

@@ -159,4 +159,19 @@ describe("typed Topic registry", () => {
       for (const id of TOPIC_IDS) expect(all.has(id)).toBe(true);
     });
   });
+
+  describe("KerbalismUplink + reliability capability topics", () => {
+    it("codegen emits every kerbalism.* and reliability.* topic id", () => {
+      for (const id of [
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.features",
+        "reliability.summary",
+        "reliability.parts",
+      ]) {
+        expect(GENERATED_TOPIC_IDS).toContain(id);
+      }
+    });
+  });
 });

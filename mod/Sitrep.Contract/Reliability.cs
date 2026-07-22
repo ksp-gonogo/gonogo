@@ -1,0 +1,102 @@
+using System.Collections.Generic;
+#if NETSTANDARD2_0
+using Reinforced.Typings.Attributes;
+#endif
+
+namespace Sitrep.Contract;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reliability — a Domain-NEUTRAL capability namespace (reliability.*), exactly
+// like comms.* (Comms.cs). It is NOT owned by one uplink Domain: multiple mods
+// can model reliability (Kerbalism-Reliability, TestFlight), so it rides the
+// Kernel capability election, modelled on the "comms" capability (Kernel.cs,
+// mod/Sitrep.Host/Comms/CommsElection.cs, mod/Gonogo.KSP/CommsCoreUplink.cs).
+//
+//   • ONE exclusive capability "reliability" whose active instance is an
+//     IReliabilityBackend (this file).
+//   • A core registrar (mod/Gonogo.KSP/ReliabilityCoreUplink.cs) OWNS the
+//     capability, ships the vanilla "unmodeled" fallback, declares the two
+//     reliability.* channels ONCE, and sources them from whichever backend the
+//     election picked (Kernel.Query<IReliabilityBackend>("reliability")).
+//   • Providers register in their OWN uplink's Register (host.Kernel.RegisterProvider):
+//       - GonogoKerbalismUplink  → Priority 1  (reports Unmodeled=true when Features.Reliability off)
+//       - GonogoTestFlightUplink → Priority 10 (engine-authoritative; wins under RO)
+//     Under RO only TestFlight is live; in stock Kerbalism only Kerbalism is
+//     live; both-registered resolves by Priority in the Kernel, never in the client.
+//
+// ReliabilitySummary / ReliabilityPartEntry are wire POCOs (typing + codegen).
+// IReliabilityBackend is the capability's active-instance interface — NOT a wire
+// type — parameterless and KSP-free (backends read the active vessel internally,
+// exactly like ICommsBackend), so Sitrep.Contract stays KSP-free / MIT.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>Vessel-level reliability summary. Source-agnostic — the elected backend fills it.</summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+[SitrepTopic("reliability.summary")]
+public class ReliabilitySummary
+{
+    /// <summary>True when the elected backend does not model reliability (Kerbalism with Features.Reliability off).</summary>
+    public bool? Unmodeled { get; set; }
+    public bool? Malfunction { get; set; }
+    public bool? Critical { get; set; }
+    /// <summary>Which backend produced this: "kerbalism" | "testflight" | "none".</summary>
+    public string? Source { get; set; }
+    /// <summary>Worst engine reliability probability on the vessel (0..1) — the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
+    public double? WorstReliabilityFraction { get; set; }
+}
+
+/// <summary>
+/// Per-part reliability. A source-agnostic superset: Kerbalism fills the
+/// consumed-fraction fields (<see cref="IgnitionsConsumed"/>/<see cref="DurationConsumed"/>,
+/// 1.0 = spent, remaining = 1 - value), TestFlight leaves those null and carries
+/// a live reliability estimate via <see cref="MtbfHours"/>. The renderer shows
+/// whichever fields are non-null.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+[SitrepTopic("reliability.parts", isArray: true)]
+public class ReliabilityPartEntry
+{
+    public string? PartId { get; set; }
+    public string? Title { get; set; }
+    public string? Group { get; set; }
+    public bool? Broken { get; set; }
+    public bool? Critical { get; set; }
+    public double? MtbfHours { get; set; }
+    /// <summary>Live/interpolated reliability probability (0..1) — TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
+    public double? ReliabilityFraction { get; set; }
+    /// <summary>Seconds of rated burn left (TestFlight). Distinct from the Kerbalism-only DurationConsumed fraction. Null for Kerbalism.</summary>
+    public double? RemainingRatedBurn { get; set; }
+    /// <summary>Fraction of rated ignitions CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
+    public double? IgnitionsConsumed { get; set; }
+    /// <summary>Fraction of rated duration CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
+    public double? DurationConsumed { get; set; }
+    public bool? NeedsRepair { get; set; }
+}
+
+/// <summary>
+/// The "reliability" capability's active-instance interface (parallel to
+/// <see cref="ICommsBackend"/>). Parameterless + KSP-free: implementations
+/// (in the KSP-referencing uplink projects) read the active vessel internally.
+/// Registered as a Kernel provider by each modelling uplink; the core registrar
+/// resolves the elected one and publishes its readouts on reliability.*.
+/// </summary>
+public interface IReliabilityBackend
+{
+    /// <summary>A short id for the elected backend, e.g. "kerbalism" or "testflight".</summary>
+    string BackendId { get; }
+
+    /// <summary>False when this backend does not model reliability (Kerbalism with Features.Reliability off).</summary>
+    bool IsModeled { get; }
+
+    /// <summary>Vessel-level summary for the active vessel.</summary>
+    ReliabilitySummary Summary();
+
+    /// <summary>Per-part reliability entries for the active vessel.</summary>
+    IReadOnlyList<ReliabilityPartEntry> Parts();
+}
