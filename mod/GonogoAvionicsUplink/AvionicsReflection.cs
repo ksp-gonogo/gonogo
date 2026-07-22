@@ -196,10 +196,4 @@ namespace GonogoAvionicsUplink
             return null;
         }
     }
-
-    public sealed class AvionicsRaw
-    {
-        public double ControllableMassTons;
-        public bool AvionicsActive;
-    }
 }
