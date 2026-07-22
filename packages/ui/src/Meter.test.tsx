@@ -21,6 +21,21 @@ describe("Meter", () => {
     expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
   });
 
+  it("defaults the displayed text and aria-valuetext to a percentage", () => {
+    render(<Meter label="Shielding" value={0.5} />);
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "50%");
+  });
+
+  it("rounds the percentage to the nearest whole number", () => {
+    // 0.365 -> 36.5 -> 37; guards the Math.round in the pct derivation that
+    // the shielding/resource fractions upstream rely on (e.g. 1.2 / 3.308).
+    render(<Meter label="Dose" value={0.365} />);
+    const meter = screen.getByRole("meter", { name: "Dose" });
+    expect(meter).toHaveAttribute("aria-valuenow", "37");
+    expect(screen.getByText("37%")).toBeInTheDocument();
+  });
+
   it("shows a custom valueLabel as text and aria-valuetext", () => {
     render(<Meter label="Dose" value={0.2} valueLabel="5.0 rad/h" />);
     expect(screen.getByText("5.0 rad/h")).toBeInTheDocument();
