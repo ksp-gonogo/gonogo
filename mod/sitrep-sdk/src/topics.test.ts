@@ -88,6 +88,10 @@ describe("typed Topic registry", () => {
     expect(new Set(TOPIC_IDS).size).toBe(TOPIC_IDS.length);
   });
 
+  it("carries the avionics.status Topic from codegen", () => {
+    expect(GENERATED_TOPIC_IDS).toContain("avionics.status");
+  });
+
   it("is driven by the generated (codegen) map, not a hand-authored one", () => {
     // The registry must be exactly the generated ids plus the documented hand tail —
     // proving the map really comes from codegen (a stale/hand-maintained map would

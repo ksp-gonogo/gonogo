@@ -251,6 +251,8 @@ public static class RtConfig
                 // One NAMED custom action group on vessel.control.actionGroups —
                 // the element type that replaced the positional bool[].
                 typeof(ActionGroupState),
+                // avionics.status — RP-1 controllable-mass ascent go/no-go
+                typeof(AvionicsStatus),
             },
             c => c.AutoI(false).WithPublicProperties());
 
