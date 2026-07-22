@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 // Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
 import "@ksp-gonogo/kerbalism";
+import "@ksp-gonogo/avionics";
 import "@ksp-gonogo/kerbcast-feed";
 import "@ksp-gonogo/kos";
 import "@ksp-gonogo/scansat";
@@ -96,13 +97,14 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     ).toEqual([]);
   });
 
-  it("the two bare-primitive Uplink Topics are present via client registration", () => {
-    // A focused witness that the relocation's whole point holds: these two are NOT in the
+  it("the bare-primitive Uplink Topics are present via client registration", () => {
+    // A focused witness that the relocation's whole point holds: these are NOT in the
     // SDK's static TOPIC_IDS, so their presence proves the client imports above fired their
     // registration.
     const known = new Set<string>(getAllKnownTopicIds());
     expect(known.has("scansat.available")).toBe(true);
     expect(known.has("kerbcast.available")).toBe(true);
     expect(known.has("kerbalism.available")).toBe(true);
+    expect(known.has("avionics.available")).toBe(true);
   });
 });

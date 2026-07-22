@@ -263,6 +263,8 @@ public static class RtConfig
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
+                // avionics.status — RP-1 controllable-mass ascent go/no-go
+                typeof(AvionicsStatus),
             },
             c => c.AutoI(false).WithPublicProperties());
 

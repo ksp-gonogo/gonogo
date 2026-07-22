@@ -122,6 +122,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // body + 2 call sites + the helper's own declaration line = 3 helper
   // matches. 1 explicit + 3 helper = 4.
   "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 4,
+  // avionics.available: whether the RP-1 avionics assembly is INSTALLED — a
+  // fact about the player's install the command centre knows independent of any
+  // vessel's comms link, same class as kerbcast.available / uplink health. (Its
+  // sibling avionics.status is the per-vessel controllable-mass reading and is
+  // correctly Delayed.) 1 explicit declaration.
+  "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
 
   // system.uplinks (registered-uplink health/availability — a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

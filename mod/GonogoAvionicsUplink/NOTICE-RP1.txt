@@ -1,0 +1,19 @@
+GonogoAvionicsUplink integrates with RP-1 / Realistic Progression One (the
+RP-0 plugin, https://github.com/KSP-RO/RP-0) entirely at ARM'S LENGTH: it reads
+RP-1's avionics runtime state (ModuleAvionics / ModuleProceduralAvionics
+CurrentMassLimit) through reflection ONLY. It does NOT link the RP-0 assembly
+at build time, does NOT derive from RP-1 types, and bundles NO RP-1 source or
+assets.
+
+RP-1 is distributed under the Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International licence (CC-BY-NC-SA-4.0):
+
+  https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Because this uplink incorporates none of RP-1's code (arm's-length reflection
+over the running plugin's members), the NonCommercial and ShareAlike
+obligations are not triggered, and GonogoAvionicsUplink is licensed MIT, in
+line with the rest of gonogo. This notice is retained to attribute RP-1 and its
+authors for the avionics controllability model this uplink reads.
+
+RP-0/RP-1 contributors: https://github.com/KSP-RO/RP-0/graphs/contributors

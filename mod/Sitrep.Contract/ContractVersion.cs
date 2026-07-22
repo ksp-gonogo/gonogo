@@ -219,7 +219,14 @@ namespace Sitrep.Contract
         /// All brand-new Topics + value shapes, nothing removed or retyped, so it
         /// cannot break an Uplink built against an older Minor. See
         /// <c>docs/superpowers/plans/2026-07-22-kerbalism-uplink.md</c>.</para>
+        ///
+        /// <para>Major-4 line, Bumped 4 -&gt; 5: additive-only Minor for the
+        /// <c>avionics.status</c> Topic (<see cref="AvionicsStatus"/>) — the RP-1
+        /// controllable-mass ascent go/no-go emitted by <c>GonogoAvionicsUplink</c>.
+        /// A brand-new <c>[SitrepContract]</c> type only, nothing removed or
+        /// retyped, so it cannot break an Uplink built against an older Minor. See
+        /// <c>docs/superpowers/plans/2026-07-22-avionics-uplink.md</c>.</para>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

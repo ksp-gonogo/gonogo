@@ -10,6 +10,7 @@
 // bare JSON array of the element type.
 
 import type {
+  AvionicsStatus,
   CareerMode,
   CareerStatus,
   CommsConnectivity,
@@ -81,6 +82,7 @@ import type {
 } from "./contract";
 
 export interface GeneratedTopicPayloadMap {
+  "avionics.status": AvionicsStatus;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
   "comms.connectivity": CommsConnectivity;
@@ -152,6 +154,7 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "avionics.status",
   "career.mode",
   "career.status",
   "comms.connectivity",

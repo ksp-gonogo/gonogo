@@ -2,6 +2,13 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+export interface AvionicsStatus
+{
+	avionicsActive?: boolean;
+	controllableMassTons?: number;
+	vesselMassTons?: number;
+	controllable?: boolean;
+}
 export interface ActivateStrategyArgs
 {
 	strategyId: string;

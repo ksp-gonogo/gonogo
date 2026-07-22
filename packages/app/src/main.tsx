@@ -123,6 +123,7 @@ async function registerScansatAndRender(): Promise<void> {
       import("@ksp-gonogo/scansat"),
       import("@ksp-gonogo/kerbcast-feed"),
       import("@ksp-gonogo/kerbalism"),
+      import("@ksp-gonogo/avionics"),
     ]);
     // Record a "loaded" outcome for each bundled id so the loaded-outcome set
     // (read by the Settings UplinkLoaderSection and the Hub wizard's gap
