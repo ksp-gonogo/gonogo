@@ -24,7 +24,7 @@ namespace Sitrep.Contract;
 //
 // kerbalism.available is a BARE JSON boolean declared client-side
 // (mod/GonogoKerbalismUplink/client/src/topics.ts via registerBarePrimitiveTopic),
-// NOT here — same treatment as scansat.available.
+// NOT here — same treatment as the other Uplinks' bare `<domain>.available`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>

@@ -114,6 +114,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // declaration.
   "mod/GonogoScansatUplink/ScansatUplink.cs": 1,
 
+  // kerbalism.available (whether the Kerbalism mod is INSTALLED — same
+  // install-fact class as scansat/kerbcast .available) + kerbalism.features
+  // (the profile's auto-detected feature toggles — a ground-side fact about
+  // the save's Kerbalism configuration, not a live vessel reading). Both via
+  // the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside the helper
+  // body + 2 call sites + the helper's own declaration line = 3 helper
+  // matches. 1 explicit + 3 helper = 4.
+  "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 4,
+
   // system.uplinks (registered-uplink health/availability — a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
   // and when — ground-side bookkeeping, not vessel telemetry). 2 explicit

@@ -87,9 +87,10 @@ namespace Gonogo.KerbalismUplink
 
             // Register Kerbalism as the Priority-1 "reliability" provider. The capability
             // is owned + declared by ReliabilityCoreUplink (bundled core) in the pre-Register
-            // pass, so it is present here regardless of assembly-scan order (same guarantee
-            // RealAntennas relies on for "comms"). The provider self-reports unmodeled when
-            // Features.Reliability is off; TestFlight (Priority 10) supersedes it under RO.
+            // pass, so it is present here regardless of assembly-scan order (the same two-pass
+            // guarantee the comms capability provider relies on). The provider self-reports
+            // unmodeled when Features.Reliability is off; TestFlight (Priority 10) supersedes
+            // it under RO.
             if (_k.IsAvailable)
             {
                 try
