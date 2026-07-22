@@ -1,0 +1,10 @@
+GonogoTestFlightUplink reads TestFlight state ENTIRELY by runtime reflection
+(see TestFlightReflection.cs). This assembly does not link, bundle, or derive
+from TestFlight (TestFlightCore.dll / TestFlightAPI.dll) - it holds no
+compile-time reference to them and copies none of their code. GonogoTestFlightUplink
+itself is MIT-licensed (see LICENSING.md).
+
+TestFlight is an independent Kerbal Space Program mod by its own authors,
+distributed under its own licence. This notice retains its attribution; no part
+of TestFlight is redistributed here. Install TestFlight separately (via CKAN or
+its own distribution) for this uplink to have anything to reflect against.
