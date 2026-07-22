@@ -234,6 +234,17 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "mechjeb",
+    fixturesPath: "MechJeb/__fixtures__",
+    outPath: "renders/mechjeb-widget",
+    modes: [
+      // Minimum size — both sections tight.
+      { name: "compact-3x5", w: 3, h: 5 },
+      // Default registered size.
+      { name: "default-5x7", w: 5, h: 7 },
+    ],
+  },
+  {
     widgetId: "comm-signal",
     fixturesPath: "CommSignal/__fixtures__",
     outPath: "renders/comm-signal-widget",

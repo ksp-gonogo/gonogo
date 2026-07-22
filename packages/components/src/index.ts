@@ -27,6 +27,7 @@ export * from "./ManeuverPlanner/presets";
 export * from "./ManeuverPlanner/triggerService";
 export * from "./ManeuverPlanner/triggerTypes";
 export * from "./MapView";
+export * from "./MechJeb";
 export * from "./Navball";
 export * from "./Objectives";
 export * from "./OrbitalAscent";
