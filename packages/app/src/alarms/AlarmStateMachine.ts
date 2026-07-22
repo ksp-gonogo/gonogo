@@ -1,11 +1,26 @@
 import { slopeFit } from "@ksp-gonogo/core";
-import { getContractsActive, getValue } from "@ksp-gonogo/sitrep-client";
+import {
+  type EventOccurrence,
+  getContractsActive,
+  getValue,
+} from "@ksp-gonogo/sitrep-client";
 import type {
   Alarm,
   ContractParameterTrigger,
+  EventTrigger,
   ThresholdOp,
   ThresholdTrigger,
 } from "./types";
+
+/**
+ * Reader for the revealed occurrences on an event topic — the seam the
+ * `event` trigger consumes. Returns occurrences already past the reveal gate
+ * (delay + connectivity), newest-last; see `EventTimeline.revealed`. Defaults
+ * to empty on the host until a producer topic is wired.
+ */
+export type RevealedEventsReader = (
+  topic: string,
+) => readonly EventOccurrence[];
 
 interface ThresholdSample {
   ut: number;
@@ -33,10 +48,19 @@ const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
  */
 export class AlarmStateMachine {
   private thresholdSamples = new Map<string, ThresholdSample[]>();
+  /**
+   * Per-event-alarm watch baseline: the observed UT at which the alarm first
+   * ticked. Only occurrences revealed after this fire, so an alarm never
+   * replays an event already in the buffer when it's created. Not persisted —
+   * a reload restarts the watch from the reload UT (old events don't re-fire;
+   * an already-latched `matchSinceUT` still keeps the alarm fired).
+   */
+  private eventWatchFrom = new Map<string, number>();
 
   constructor(
     private readonly getAlarms: () => readonly Alarm[],
     private readonly getObservedUT: () => number | null,
+    private readonly getRevealedEvents: RevealedEventsReader = () => [],
   ) {}
 
   /**
@@ -88,9 +112,34 @@ export class AlarmStateMachine {
     return false;
   }
 
+  /**
+   * Latch an event alarm the moment a matching occurrence is revealed after
+   * the alarm began watching. Edge-triggered: `matchSinceUT` is set to the
+   * observed UT at reveal (NOT the occurrence's own UT — a delayed occurrence
+   * reveals long after it happened, and the firing window must start from
+   * reveal so the `firing` transition isn't skipped). Once latched it never
+   * clears; an occurrence is a fact of the past. Returns true iff it changed.
+   */
+  updateEventTracking(alarm: Alarm, ut: number): boolean {
+    if (alarm.trigger.kind !== "event") return false;
+    if (alarm.matchSinceUT != null) return false;
+    const from = this.eventWatchFrom.get(alarm.id);
+    if (from == null) {
+      // First tick for this alarm — start watching from now.
+      this.eventWatchFrom.set(alarm.id, ut);
+      return false;
+    }
+    if (this.hasEventMatch(alarm.trigger, from, ut)) {
+      alarm.matchSinceUT = ut;
+      return true;
+    }
+    return false;
+  }
+
   /** Drop sample buffer for an alarm — used on delete or trigger change. */
   forget(alarmId: string): void {
     this.thresholdSamples.delete(alarmId);
+    this.eventWatchFrom.delete(alarmId);
   }
 
   /** Compute the next state for an alarm given the current observed UT. */
@@ -105,6 +154,14 @@ export class AlarmStateMachine {
       if (now >= ut) return "fired";
       if (ut - now <= leadSeconds) return "arming";
       return "pending";
+    }
+    if (alarm.trigger.kind === "event") {
+      // Edge-triggered: no arming, no sustain. Fire the instant a matching
+      // occurrence latched `matchSinceUT`, hold `firing` for the standard 2s
+      // banner window, then settle to `fired`.
+      if (alarm.state === "fired") return "fired";
+      if (alarm.matchSinceUT == null) return "pending";
+      return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
     }
     if (alarm.state === "fired") return "fired";
     // Threshold and contract-parameter both use the matchSinceUT +
@@ -154,9 +211,10 @@ export class AlarmStateMachine {
     for (const a of this.getAlarms()) {
       if (a.state !== "pending") continue;
       if (a.trigger.kind === "time") return a;
-      // Contract-parameter triggers are discrete state transitions;
+      // Contract-parameter and event triggers are discrete transitions;
       // there's no scalar to warp toward, so they're not warp-targetable.
       if (a.trigger.kind === "contract-parameter") continue;
+      if (a.trigger.kind === "event") continue;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") continue;
       if (a.matchSinceUT != null) continue;
@@ -205,6 +263,26 @@ export class AlarmStateMachine {
         return p.state === t.targetState;
       }
       return false;
+    }
+    return false;
+  }
+
+  /**
+   * True iff a revealed occurrence on the trigger's topic happened strictly
+   * after the watch baseline and by the current observed UT, matching the
+   * optional `eventKind` filter. The reader returns already-revealed
+   * occurrences (delay + connectivity applied upstream); the `fromUt`/`nowUt`
+   * bounds gate the watch window.
+   */
+  private hasEventMatch(
+    t: EventTrigger,
+    fromUt: number,
+    nowUt: number,
+  ): boolean {
+    for (const o of this.getRevealedEvents(t.topic)) {
+      if (o.ut <= fromUt || o.ut > nowUt) continue;
+      if (t.eventKind != null && o.kind !== t.eventKind) continue;
+      return true;
     }
     return false;
   }

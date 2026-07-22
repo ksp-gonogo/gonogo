@@ -59,6 +59,13 @@ export {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
+export type {
+  ConnectivityAt,
+  EventOccurrence,
+  EventRevealOptions,
+  EventTimelineOptions,
+} from "./event-timeline";
+export { EventTimeline } from "./event-timeline";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";

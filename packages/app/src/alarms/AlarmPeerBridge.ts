@@ -90,8 +90,11 @@ export class AlarmPeerBridge {
     const firedUt =
       alarm.trigger.kind === "time"
         ? alarm.trigger.ut
-        : (alarm.matchSinceUT ?? observedUT ?? 0) +
-          alarm.trigger.sustainSeconds;
+        : alarm.trigger.kind === "event"
+          ? // Event: matchSinceUT is the reveal UT (no sustain to add).
+            (alarm.matchSinceUT ?? observedUT ?? 0)
+          : (alarm.matchSinceUT ?? observedUT ?? 0) +
+            alarm.trigger.sustainSeconds;
     this.host?.broadcast({
       type: "alarm-fired",
       id: alarm.id,

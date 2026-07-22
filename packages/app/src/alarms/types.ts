@@ -65,10 +65,42 @@ export interface ContractParameterTrigger {
   sustainSeconds: number;
 }
 
+/**
+ * Fires on the arrival of a discrete occurrence on an `event` stream topic
+ * (the discrete-occurrence primitive — see `EventTimeline` in
+ * `@ksp-gonogo/sitrep-client`). Unlike threshold / contract-parameter, which
+ * are level-triggered (a condition that holds), an event trigger is
+ * edge-triggered: it latches the moment a matching occurrence is *revealed*,
+ * then fires and stays fired — an occurrence is a fact of the past, it never
+ * "un-happens".
+ *
+ * Only occurrences revealed *after* the alarm begins watching count, so
+ * creating an alarm never replays an event already in the buffer (mirrors
+ * `useStreamEvent`, which skips the sticky replay). No `sustainSeconds`: a
+ * discrete edge has nothing to sustain.
+ *
+ * Scaffold note: no producer topic is wired yet. The host reads revealed
+ * occurrences through an injected reader on `AlarmStateMachine` that currently
+ * defaults to empty — so an `event` alarm sits perpetually pending until a
+ * producer is wired. Fail-safe, same posture as a typo'd contract-parameter.
+ */
+export interface EventTrigger {
+  kind: "event";
+  /** Event-stream topic id whose occurrences drive this alarm. */
+  topic: string;
+  /**
+   * Optional occurrence-kind filter. When set, only occurrences whose `kind`
+   * string-equals this fire the alarm; unset fires on any occurrence on the
+   * topic.
+   */
+  eventKind?: string;
+}
+
 export type AlarmTrigger =
   | TimeTrigger
   | ThresholdTrigger
-  | ContractParameterTrigger;
+  | ContractParameterTrigger
+  | EventTrigger;
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group
@@ -238,6 +270,23 @@ export function migrateAlarm(raw: unknown): Alarm | null {
           targetState,
           sustainSeconds:
             typeof t.sustainSeconds === "number" ? t.sustainSeconds : 0,
+        },
+        state: state ?? "pending",
+        createdBy,
+        createdAt,
+        matchSinceUT,
+        onFire,
+      };
+    }
+    if (t.kind === "event" && typeof t.topic === "string") {
+      return {
+        id: r.id,
+        name: r.name,
+        notes,
+        trigger: {
+          kind: "event",
+          topic: t.topic,
+          eventKind: typeof t.eventKind === "string" ? t.eventKind : undefined,
         },
         state: state ?? "pending",
         createdBy,

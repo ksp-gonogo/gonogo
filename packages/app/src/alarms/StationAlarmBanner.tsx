@@ -76,6 +76,10 @@ function describe(alarm: Alarm): string {
   if (alarm.trigger.kind === "contract-parameter") {
     return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;
   }
+  if (alarm.trigger.kind === "event") {
+    const { topic, eventKind } = alarm.trigger;
+    return eventKind != null ? `${topic} · ${eventKind}` : topic;
+  }
   const t = alarm.trigger;
   return `${t.dataKey} ${t.op} ${t.value}`;
 }
