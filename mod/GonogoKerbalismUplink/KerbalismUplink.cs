@@ -1,0 +1,182 @@
+using System;
+using System.Collections.Generic;
+using Sitrep.Contract;
+
+namespace Gonogo.KerbalismUplink
+{
+    /// <summary>
+    /// The KerbalismUplink (Domain "kerbalism"): emits space weather, life
+    /// support, per-kerbal survival state and the Kerbalism feature flags for the
+    /// active vessel, all by reflection over Kerbalism (KerbalismReflection — zero
+    /// compile-time link, presence-safe). It ALSO registers Kerbalism as the
+    /// low-specificity (Priority 1) provider of the Domain-neutral "reliability"
+    /// Kernel capability (owned by ReliabilityCoreUplink); TestFlight registers
+    /// Priority 10 and supersedes it under RO. Presence-gated (kerbalism.available),
+    /// mandatory Health(), delay-gated per Topic (presence/features TrueNow, the
+    /// vessel telemetry Delayed).
+    /// </summary>
+    [SitrepUplink("kerbalism")]
+    public sealed class KerbalismUplink : ISitrepUplink
+    {
+        private const string AvailableTopic = "kerbalism.available";
+        private const string FeaturesTopic = "kerbalism.features";
+        private const string SpaceWeatherTopic = "kerbalism.spaceweather";
+        private const string LifeSupportTopic = "kerbalism.lifesupport";
+        private const string CrewTopic = "kerbalism.crew";
+
+        private readonly KerbalismReflection _k = new();
+
+        private IChannelPublisher? _spaceWeather;
+        private IChannelPublisher? _lifeSupport;
+        private IChannelPublisher? _crew;
+
+        public UplinkManifest Manifest { get; }
+
+        public KerbalismUplink()
+        {
+            Manifest = new UplinkManifest
+            {
+                Id = "kerbalism",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    TrueNow(AvailableTopic),
+                    TrueNow(FeaturesTopic),
+                    Delayed(SpaceWeatherTopic),
+                    Delayed(LifeSupportTopic),
+                    Delayed(CrewTopic),
+                },
+            };
+        }
+
+        private static ChannelDeclaration TrueNow(string topic) => new()
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            Delay = DelayRole.TrueNow,
+        };
+
+        private static ChannelDeclaration Delayed(string topic) => new()
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            Delay = DelayRole.Delayed,
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            // Ground-side facts (presence + feature flags) — pull-style, Courier-thread,
+            // no live-KSP read beyond the cheap reflection cache.
+            host.AddChannelSource(AvailableTopic, _ => _k.IsAvailable);
+            host.AddChannelSource(FeaturesTopic, _ =>
+                _k.IsAvailable ? KerbalismCapture.BuildFeatures(_k.Features()) : null);
+
+            _spaceWeather = host.Publisher(SpaceWeatherTopic);
+            _lifeSupport = host.Publisher(LifeSupportTopic);
+            _crew = host.Publisher(CrewTopic);
+
+            // Vessel telemetry — capture live Kerbalism on the main thread, publish off it.
+            host.AddSampledSource(
+                CaptureOnMain,
+                HandleOnCourier,
+                SpaceWeatherTopic,
+                LifeSupportTopic,
+                CrewTopic);
+
+            // Register Kerbalism as the Priority-1 "reliability" provider. The capability
+            // is owned + declared by ReliabilityCoreUplink (bundled core) in the pre-Register
+            // pass, so it is present here regardless of assembly-scan order (same guarantee
+            // RealAntennas relies on for "comms"). The provider self-reports unmodeled when
+            // Features.Reliability is off; TestFlight (Priority 10) supersedes it under RO.
+            if (_k.IsAvailable)
+            {
+                try
+                {
+                    host.Kernel.RegisterProvider(new ProviderRegistration
+                    {
+                        Capability = "reliability",
+                        Id = "kerbalism",
+                        Priority = 1.0,
+                        Factory = _ => new KerbalismReliabilityBackend(_k),
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("[KerbalismUplink] could not register reliability provider: " + ex.Message);
+                }
+            }
+        }
+
+        /// <summary>MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP handles cross threads).</summary>
+        private object? CaptureOnMain(KspSnapshot? snapshot)
+        {
+            var v = FlightGlobals.ActiveVessel;
+            if (v == null || !_k.IsAvailable) return null;
+
+            double R(string res) => _k.ApiResource("ResourceAmount", v, res) ?? 0;
+            double Cap(string res) => _k.ApiResource("ResourceCapacity", v, res) ?? 0;
+            double Rate(string res) => _k.ApiResource("ResourceAverageRate", v, res) ?? 0;
+
+            var s = new KerbalismSnapshot
+            {
+                Radiation = _k.Api("Radiation", v) ?? 0,
+                HabitatRadiation = _k.Api("HabitatRadiation", v) ?? 0,
+                Magnetosphere = _k.ApiBool("Magnetosphere", v) ?? false,
+                InnerBelt = _k.ApiBool("InnerBelt", v) ?? false,
+                OuterBelt = _k.ApiBool("OuterBelt", v) ?? false,
+                StormIncoming = _k.ApiBool("StormIncoming", v) ?? false,
+                StormInProgress = _k.ApiBool("StormInProgress", v) ?? false,
+                Blackout = _k.ApiBool("Blackout", v) ?? false,
+                InSunlight = _k.ApiBool("InSunlight", v) ?? false,
+                ShieldingAmount = R("Shielding"),
+                ShieldingCapacity = Cap("Shielding"),
+                FoodAmount = R("Food"), FoodCapacity = Cap("Food"), FoodRate = Rate("Food"),
+                WaterAmount = R("Water"), WaterCapacity = Cap("Water"), WaterRate = Rate("Water"),
+                OxygenAmount = R("Oxygen"), OxygenCapacity = Cap("Oxygen"), OxygenRate = Rate("Oxygen"),
+                EcAmount = R("ElectricCharge"), EcCapacity = Cap("ElectricCharge"), EcRate = Rate("ElectricCharge"),
+                Pressure = _k.Api("Pressure", v) ?? 0,
+                Poisoning = _k.Api("Poisoning", v) ?? 0,
+                Shielding = _k.Api("Shielding", v) ?? 0,
+                LivingSpace = _k.Api("LivingSpace", v) ?? 0,
+                Comfort = _k.Api("Comfort", v) ?? 0,
+                Volume = _k.Api("Volume", v) ?? 0,
+                Surface = _k.Api("Surface", v) ?? 0,
+            };
+
+            return new KerbalismCaptured
+            {
+                Ut = snapshot?.Ut ?? 0.0,
+                Snapshot = s,
+                Processes = new List<ProcessRaw>(_k.Processes(v)),
+                Crew = new List<KerbalRulesRaw>(_k.CrewRules(v)),
+                RuleConstants = _k.RuleConstants(),
+            };
+        }
+
+        /// <summary>COURIER-THREAD handle: publish the captured value trees. No KSP access.</summary>
+        private void HandleOnCourier(object? captured)
+        {
+            if (captured is not KerbalismCaptured c) return;
+            _spaceWeather?.Publish(KerbalismCapture.BuildSpaceWeather(c.Snapshot), c.Ut);
+            _lifeSupport?.Publish(KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes), c.Ut);
+            _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants), c.Ut);
+        }
+
+        public UplinkHealth Health() =>
+            _k.IsAvailable
+                ? UplinkHealth.Healthy
+                : new UplinkHealth(UplinkHealthState.Unavailable, "Kerbalism assembly not loaded");
+
+        /// <summary>Plain cross-thread bundle — no live KSP references.</summary>
+        private sealed class KerbalismCaptured
+        {
+            public double Ut;
+            public KerbalismSnapshot Snapshot;
+            public List<ProcessRaw> Processes = new();
+            public List<KerbalRulesRaw> Crew = new();
+            public IReadOnlyDictionary<string, RuleConstants> RuleConstants = new Dictionary<string, RuleConstants>();
+        }
+    }
+}
