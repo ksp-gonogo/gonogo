@@ -64,6 +64,14 @@ export interface BodyDefinition {
   latitudeOffset?: number;
   /** ID of the parent body (e.g. "Kerbin" for "Mun"). Absent for the star. */
   parent?: string;
+  /**
+   * Radius of the sphere of influence in metres. In KSP this is the distance
+   * from the body's centre within which its gravity dominates the parent's;
+   * the game computes it as `a·(m/M)^0.4` unless a config overrides it.
+   * Stored explicitly because it drives SOI-transition markers and reveal
+   * bounds. Optional — stock bodies derive it on demand and may omit it.
+   */
+  soi?: number;
   /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
   map?: BodyMapConfig;
   /** If the body has an atmosphere */

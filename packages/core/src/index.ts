@@ -31,6 +31,7 @@ export * from "./mapPoi";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
 export * from "./registry";
+export * from "./rss-bodies";
 export * from "./safeRandomUuid";
 export * from "./schemas/orbit";
 export * from "./schemas/telemachus";
