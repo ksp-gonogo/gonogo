@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "scenario": "all-nominal",
+    "source": "SYNTHESISED — a healthy 3-vessel fleet, all connected and nominal (the quiet-day baseline)."
+  },
+  "fleet.vessels": [
+    {
+      "id": "v-station-1",
+      "name": "Kerbin Station Alpha",
+      "body": "Kerbin",
+      "crew": 6,
+      "crewCapacity": 6,
+      "comms": "connected",
+      "status": "nominal"
+    },
+    {
+      "id": "v-comsat-1",
+      "name": "ComSat Keostationary 1",
+      "body": "Kerbin",
+      "crew": 0,
+      "comms": "connected",
+      "status": "nominal"
+    },
+    {
+      "id": "v-transfer-1",
+      "name": "Jool Transfer Vehicle",
+      "body": "Sun",
+      "crew": 3,
+      "crewCapacity": 4,
+      "comms": "relay",
+      "status": "nominal"
+    }
+  ]
+}

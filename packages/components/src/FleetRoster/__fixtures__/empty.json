@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "scenario": "empty",
+    "source": "SYNTHESISED — no tracked vessels, to exercise the empty-state render."
+  },
+  "fleet.vessels": []
+}
