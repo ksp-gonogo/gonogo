@@ -247,6 +247,8 @@ export interface BodyDefinition {
   latitudeOffset?: number;
   /** ID of the parent body (e.g. "Kerbin" for "Mun"). Absent for the star. */
   parent?: string;
+  /** Radius of the sphere of influence in metres (KSP `a·(m/M)^0.4`). */
+  soi?: number;
   /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
   map?: {
     type: "equirectangular";

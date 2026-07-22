@@ -29,6 +29,9 @@ const ALLOWED_PATHS = [
   // (KSP planets/moons). These are data, not theme tokens — each body
   // needs a distinct colour for map / orbit / system views.
   "packages/core/src/stock-bodies.ts",
+  // rss-bodies.ts: same per-body colour metadata for the RealSolarSystem
+  // bodies (Earth/Moon/Mars/…). Data, not theme tokens.
+  "packages/core/src/rss-bodies.ts",
   // ShipMap/render.ts: embeds the design tokens as a literal <style>
   // block inside the standalone SVG so the snapshot harness and export
   // path render the same colours as the live widget without a runtime
