@@ -20,10 +20,17 @@ namespace GonogoDevTools
     ///   - Greenhouse / ProcessController PartModules on the active vessel — public field/prop dump.
     ///   - Per-kerbal <c>KerbalData.rules</c> problem accumulators (best-effort via the Kerbalism DB).
     ///   - The <c>Features.*</c> static bools (the unmodeled-vs-healthy gates).
+    ///   - <c>bodies</c> — the RSS/RO celestial body registry (real radii/mass/SOI/atmosphere),
+    ///     reflected from <c>FlightGlobals.Bodies</c>. Body-only, no active vessel required.
+    ///   - <c>roParts</c> — every active-vessel PartModule whose type belongs to a recognised RO/RP-1
+    ///     mod (TestFlight, RealFuels, RP-1, RealHeat, ROLib/ROSolar, SolverEngines, ...), field/prop dumped.
     /// Output: <c>PluginData/kerbalism-fixture-&lt;scenario&gt;.json</c>. Result cfg records ok + path + counts.
     /// The whole thing is fail-soft: a missing type / thrown method is recorded as null, never fatal.
+    /// Runs at both FLIGHT and the SPACE CENTER (<c>FlightAndKSC</c>) so the body registry can be
+    /// captured with no vessel in play; every vessel-specific section below null-guards on
+    /// <c>FlightGlobals.ActiveVessel</c> being absent.
     /// </summary>
-    [KSPAddon(KSPAddon.Startup.Flight, once: false)]
+    [KSPAddon(KSPAddon.Startup.FlightAndKSC, once: false)]
     public sealed class GonogoDevKerbalismDump : MonoBehaviour
     {
         private const string LogPrefix = "[Gonogo] dev-kerbalism-dump: ";
@@ -44,6 +51,15 @@ namespace GonogoDevTools
             // RO / ROKerbalism + niche resources (read 0 when absent, harmless)
             "LithiumHydroxide", "KO2", "PotassiumSuperoxide", "Shielding", "Sickness",
             "KuarqPowder", "Antimatter",
+        };
+
+        // Namespace/assembly-name substrings that identify an RO/RP-1 PartModule. Matched against
+        // both GetType().Namespace and GetType().Assembly.GetName().Name so mods that don't namespace
+        // their modules (some don't) are still caught via the assembly.
+        private static readonly string[] RoNamespaceHints =
+        {
+            "TestFlight", "RealFuels", "RP0", "RP0Avionics", "RealHeat", "ROLib", "ROSolar",
+            "SolverEngines", "KerbalismContracts", "AtmosphereAutopilot",
         };
 
         private void Start()
@@ -102,14 +118,20 @@ namespace GonogoDevTools
             int kerbCount = DumpKerbals(sb, v);
             sb.Append(",\n");
             int featCount = DumpFeatures(sb);
+            sb.Append(",\n");
+            int bodyCount = DumpBodies(sb);
+            sb.Append(",\n");
+            int roCount = DumpRoParts(sb, v);
             sb.Append("\n}\n");
 
             var outPath = Path.Combine(_pluginData, "kerbalism-fixture-" + Sanitize(scenario) + ".json");
             File.WriteAllText(outPath, sb.ToString());
             Debug.Log(LogPrefix + "wrote " + outPath + " (api=" + apiCount + " gh=" + ghCount +
-                      " proc=" + pcCount + " kerbals=" + kerbCount + " features=" + featCount + ")");
+                      " proc=" + pcCount + " kerbals=" + kerbCount + " features=" + featCount +
+                      " bodies=" + bodyCount + " roParts=" + roCount + ")");
             WriteResult(id, true, outPath,
-                "api=" + apiCount + " gh=" + ghCount + " proc=" + pcCount + " kerbals=" + kerbCount + " features=" + featCount);
+                "api=" + apiCount + " gh=" + ghCount + " proc=" + pcCount + " kerbals=" + kerbCount +
+                " features=" + featCount + " bodies=" + bodyCount + " roParts=" + roCount);
         }
 
         /// <summary>Invoke every public static API method that takes (Vessel) or (Vessel,string-resource).</summary>
@@ -250,6 +272,97 @@ namespace GonogoDevTools
             }
             sb.Append("}");
             return n;
+        }
+
+        /// <summary>
+        /// The RSS/RO celestial body registry (real radii/mass/SOI/atmosphere), reflected from
+        /// <c>FlightGlobals.Bodies</c>. No active vessel required - this runs at the Space Center too.
+        /// </summary>
+        private static int DumpBodies(StringBuilder sb)
+        {
+            sb.Append("  \"bodies\": [");
+            int n = 0;
+            var bodies = FlightGlobals.Bodies;
+            if (bodies != null)
+            {
+                bool firstBody = true;
+                foreach (var b in bodies)
+                {
+                    if (b == null) continue;
+                    if (!firstBody) sb.Append(", ");
+                    firstBody = false;
+                    sb.Append("{");
+                    bool firstField = true;
+                    AppendKv(sb, ref firstField, "bodyName", b.bodyName);
+                    AppendKv(sb, ref firstField, "Radius", b.Radius);
+                    AppendKv(sb, ref firstField, "Mass", b.Mass);
+                    AppendKv(sb, ref firstField, "sphereOfInfluence", b.sphereOfInfluence);
+                    AppendKv(sb, ref firstField, "atmosphere", b.atmosphere);
+                    AppendKv(sb, ref firstField, "atmosphereDepth", b.atmosphereDepth);
+                    AppendKv(sb, ref firstField, "GeeASL", b.GeeASL);
+                    AppendKv(sb, ref firstField, "rotationPeriod", b.rotationPeriod);
+                    AppendKv(sb, ref firstField, "orbitingBodiesCount", b.orbitingBodies != null ? b.orbitingBodies.Count : 0);
+                    AppendKv(sb, ref firstField, "referenceBody", b.referenceBody != null ? b.referenceBody.bodyName : null);
+                    sb.Append("}");
+                    n++;
+                }
+            }
+            sb.Append("]");
+            return n;
+        }
+
+        /// <summary>
+        /// Every active-vessel PartModule whose type belongs to a recognised RO/RP-1 mod (see
+        /// <see cref="RoNamespaceHints"/>) - TestFlight reliability state, RealFuels tank config,
+        /// RP-1 avionics controllable mass, RealHeat thermal, etc. Field/prop dump reuses
+        /// <see cref="DumpPublicMembers"/>, same as the Kerbalism greenhouse/process sections.
+        /// </summary>
+        private static int DumpRoParts(StringBuilder sb, Vessel v)
+        {
+            sb.Append("  \"roParts\": [");
+            int n = 0;
+            if (v != null && v.parts != null)
+            {
+                bool firstMod = true;
+                foreach (var part in v.parts)
+                {
+                    if (part.Modules == null) continue;
+                    for (int i = 0; i < part.Modules.Count; i++)
+                    {
+                        var pm = part.Modules[i];
+                        if (pm == null) continue;
+                        var t = pm.GetType();
+                        if (!IsRoType(t)) continue;
+                        if (!firstMod) sb.Append(", ");
+                        firstMod = false;
+                        sb.Append("{");
+                        bool firstField = true;
+                        AppendKv(sb, ref firstField, "_type", t.Name);
+                        AppendKv(sb, ref firstField, "_part", part.partInfo != null ? part.partInfo.name : part.name);
+                        DumpPublicMembers(sb, ref firstField, pm);
+                        sb.Append("}");
+                        n++;
+                    }
+                }
+            }
+            sb.Append("]");
+            return n;
+        }
+
+        private static bool IsRoType(Type t)
+        {
+            var ns = t.Namespace ?? "";
+            string asmName;
+            try { asmName = t.Assembly.GetName().Name ?? ""; } catch { asmName = ""; }
+            foreach (var hint in RoNamespaceHints)
+            {
+                if (ns.IndexOf(hint, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    asmName.IndexOf(hint, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void DumpPublicMembers(StringBuilder sb, ref bool first, object obj)

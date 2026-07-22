@@ -21,6 +21,14 @@ namespace Gonogo.DevTools
     /// Hard safety rule: the save named "Unnamed" (KSP's default sandbox scratch
     /// save) is off limits and can NEVER be auto-loaded, regardless of config.
     ///
+    /// A third optional cfg line, <c>newsandbox</c>, covers the case where the
+    /// requested save doesn't exist on disk yet (e.g. the first RO/RP-1 capture
+    /// run, with no pre-built save): instead of aborting, a brand-new SANDBOX
+    /// game is created under that save name (via <c>GamePersistence.CreateNewGame</c>,
+    /// same call the stock "Start New Game" flow uses) and loaded straight to the
+    /// SPACE CENTER, never FLIGHT - a fresh sandbox has no protoVessels to
+    /// restore into flight. Absent -> unchanged behaviour: a missing save aborts.
+    ///
     /// Every decision point below logs with a <c>[GonogoDevAutoLoad]</c> prefix
     /// (via <c>Debug.Log</c> / <c>Debug.LogError</c>) so a failed attempt is
     /// always explained in KSP.log - there must never be a silent "nothing
@@ -225,6 +233,7 @@ namespace Gonogo.DevTools
             // validated without this. Absent -> Space Center, unchanged.
             string? saveName = null;
             var restoreFlight = false;
+            var newSandboxRequested = false;
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
@@ -241,6 +250,10 @@ namespace Gonogo.DevTools
                 {
                     restoreFlight = true;
                 }
+                else if (string.Equals(trimmed, "newsandbox", StringComparison.OrdinalIgnoreCase))
+                {
+                    newSandboxRequested = true;
+                }
             }
 
             if (string.IsNullOrEmpty(saveName))
@@ -249,7 +262,8 @@ namespace Gonogo.DevTools
                 yield break;
             }
 
-            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' restoreFlight=" + restoreFlight);
+            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' restoreFlight=" + restoreFlight
+                + " newSandboxRequested=" + newSandboxRequested);
 
             // HARD SAFETY RULE: "Unnamed" is off limits and can never be
             // auto-loaded. This gate is unconditional and must be impossible
@@ -267,9 +281,15 @@ namespace Gonogo.DevTools
             {
                 Debug.Log(LogPrefix + "save found: " + sfsPath);
             }
+            else if (newSandboxRequested)
+            {
+                Debug.Log(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
+                    + ") but 'newsandbox' was requested; will create a fresh SANDBOX game instead of aborting");
+            }
             else
             {
-                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir) + ") - aborting");
+                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
+                    + ") - aborting (add a 'newsandbox' line to the cfg to create one instead)");
                 yield break;
             }
 
@@ -280,7 +300,23 @@ namespace Gonogo.DevTools
                 Time.timeScale = 1f;
             }
 
-            if (!LoadSave(saveName!, restoreFlight, out var enteredFlight))
+            bool enteredFlight;
+            bool triggered;
+            if (saveExists)
+            {
+                triggered = LoadSave(saveName!, restoreFlight, out enteredFlight);
+            }
+            else
+            {
+                if (restoreFlight)
+                {
+                    Debug.Log(LogPrefix + "'flight' was also requested but is ignored for a freshly created sandbox (no protoVessels to restore)");
+                }
+
+                triggered = CreateSandbox(saveName!, out enteredFlight);
+            }
+
+            if (!triggered)
             {
                 yield break;
             }
@@ -523,6 +559,58 @@ namespace Gonogo.DevTools
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "load failed: " + ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates a brand-new SANDBOX game and queues a load straight to the
+        /// SPACE CENTER, for the case where the requested save name doesn't
+        /// exist on disk yet (gated on the <c>newsandbox</c> cfg line - see
+        /// <see cref="AutoLoadRoutine"/>). Verified against the decompiled
+        /// <c>GamePersistence.CreateNewGame</c>: it builds the save directory,
+        /// constructs the <c>Game</c> object (mode/parameters/scenario modules)
+        /// and persists it to disk, but does NOT assign
+        /// <c>HighLogic.CurrentGame</c> or call <c>Start()</c> - same as
+        /// <c>LoadGameCfg</c> in <see cref="LoadSave"/>, both are on the caller.
+        ///
+        /// <c>new GameParameters()</c> is the stock default-parameters
+        /// constructor - decompiled, it populates every difficulty/flight/
+        /// editor sub-node from its <c>Preset.Normal</c> defaults via
+        /// reflection over the <c>CustomParameterUI</c>-attributed types, the
+        /// same set a player gets from "Start New Game" without touching the
+        /// difficulty screen.
+        ///
+        /// Always targets SPACE CENTER, never FLIGHT - a freshly created
+        /// sandbox has no protoVessels to restore into flight, so
+        /// <paramref name="enteredFlight"/> is always <c>false</c> on success.
+        /// </summary>
+        private static bool CreateSandbox(string saveName, out bool enteredFlight)
+        {
+            enteredFlight = false;
+            try
+            {
+                Debug.Log(LogPrefix + "no existing save named '" + saveName + "'; creating a new SANDBOX game via GamePersistence.CreateNewGame");
+
+                var parameters = new GameParameters();
+                var game = GamePersistence.CreateNewGame(saveName, Game.Modes.SANDBOX, parameters, "", GameScenes.SPACECENTER, EditorFacility.VAB);
+                if (game == null)
+                {
+                    Debug.LogError(LogPrefix + "GamePersistence.CreateNewGame returned null for '" + saveName + "'");
+                    return false;
+                }
+
+                Debug.Log(LogPrefix + "new sandbox game created + persisted to saves/" + HighLogic.SaveFolder
+                    + "; assigning HighLogic.CurrentGame and starting");
+                HighLogic.CurrentGame = game;
+                HighLogic.CurrentGame.Start();
+                Debug.Log(LogPrefix + "queued SPACE CENTER load for freshly created sandbox '" + saveName
+                    + "' - waiting for the scene to actually finish loading");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(LogPrefix + "new sandbox creation failed: " + ex);
                 return false;
             }
         }
