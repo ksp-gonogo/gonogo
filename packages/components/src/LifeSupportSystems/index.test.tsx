@@ -1,142 +1,165 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import {
-  clearRegistry,
-  DashboardItemContext,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LifeSupportSystemsComponent } from "./index";
 
-const KEYS: DataKey[] = [
-  "ls.food.amount",
-  "ls.food.capacity",
-  "ls.food.rate",
-  "ls.water.amount",
-  "ls.water.capacity",
-  "ls.water.rate",
-  "ls.oxygen.amount",
-  "ls.oxygen.capacity",
-  "ls.oxygen.rate",
-  "ls.ec.amount",
-  "ls.ec.capacity",
-  "ls.ec.rate",
-  "ls.pressure",
-  "ls.co2Poisoning",
-  "ls.comfort",
-  "ls.livingSpace",
-  "ls.climatization",
-  "ls.process.scrubber",
-  "ls.process.waterRecycler",
-  "ls.process.wasteProcessor",
-  "ls.process.fuelCell",
-].map((key) => ({ key }));
+// LifeSupportSystems reads the real `kerbalism.lifesupport` Topic (canonical
+// one-arg useTelemetry), so the tests drive it through a real stream
+// (setupStreamFixture) rather than the legacy MockDataSource.
 
-type LsFixture = Record<string, number>;
+interface Consumable {
+  amount: number;
+  capacity: number;
+  rate: number;
+}
 
-const NOMINAL: LsFixture = {
-  "ls.food.amount": 1.35,
-  "ls.food.capacity": 1.35,
-  "ls.food.rate": -0.000012035471250352793,
-  "ls.water.amount": 0.7,
-  "ls.water.capacity": 0.7,
-  "ls.water.rate": -0.000006195307937675452,
-  "ls.oxygen.amount": 186.9352674200827,
-  "ls.oxygen.capacity": 187,
-  "ls.oxygen.rate": -0.0017143162437546708,
-  "ls.ec.amount": 446.65850563948504,
-  "ls.ec.capacity": 450,
-  "ls.ec.rate": -0.08942449474961575,
-  "ls.pressure": 0,
-  "ls.co2Poisoning": 0,
-  "ls.comfort": 0.3000000029802322,
-  "ls.livingSpace": 0.1,
-  "ls.climatization": 0.00004937349288767713,
-  "ls.process.scrubber": 1,
-  "ls.process.waterRecycler": 1,
-  "ls.process.wasteProcessor": 1,
-  "ls.process.fuelCell": 0,
+interface LsState {
+  food: Consumable;
+  water: Consumable;
+  oxygen: Consumable;
+  ec: Consumable;
+  pressure: number;
+  co2Poisoning: number;
+  comfort: number;
+  livingSpace: number;
+  /** 0=idle, 1=running, 2=broken, matching the old process fixture encoding. */
+  processStates: {
+    scrubber: number;
+    waterRecycler: number;
+    wasteProcessor: number;
+    fuelCell: number;
+  };
+}
+
+const NOMINAL: LsState = {
+  food: { amount: 1.35, capacity: 1.35, rate: -0.000012035471250352793 },
+  water: { amount: 0.7, capacity: 0.7, rate: -0.000006195307937675452 },
+  oxygen: {
+    amount: 186.9352674200827,
+    capacity: 187,
+    rate: -0.0017143162437546708,
+  },
+  ec: { amount: 446.65850563948504, capacity: 450, rate: -0.08942449474961575 },
+  pressure: 0,
+  co2Poisoning: 0,
+  comfort: 0.3000000029802322,
+  livingSpace: 0.1,
+  processStates: {
+    scrubber: 1,
+    waterRecycler: 1,
+    wasteProcessor: 1,
+    fuelCell: 0,
+  },
 };
 
-const DEPLETING: LsFixture = {
+const DEPLETING: LsState = {
   ...NOMINAL,
-  "ls.food.amount": 0.35,
-  "ls.food.rate": -0.000036,
-  "ls.water.amount": 0.19,
-  "ls.water.rate": -0.000019,
-  "ls.oxygen.amount": 84.15,
-  "ls.oxygen.rate": -0.0031,
-  "ls.ec.amount": 247.5,
-  "ls.ec.rate": -0.12,
-  "ls.co2Poisoning": 0.09,
-  "ls.comfort": 0.22,
-  "ls.climatization": 0.06,
-  "ls.process.scrubber": 2,
+  food: { amount: 0.35, capacity: 1.35, rate: -0.000036 },
+  water: { amount: 0.19, capacity: 0.7, rate: -0.000019 },
+  oxygen: { amount: 84.15, capacity: 187, rate: -0.0031 },
+  ec: { amount: 247.5, capacity: 450, rate: -0.12 },
+  co2Poisoning: 0.09,
+  comfort: 0.22,
+  processStates: {
+    scrubber: 2,
+    waterRecycler: 1,
+    wasteProcessor: 1,
+    fuelCell: 0,
+  },
 };
 
-const CRITICAL: LsFixture = {
+const CRITICAL: LsState = {
   ...NOMINAL,
-  "ls.food.amount": 0.11,
-  "ls.food.rate": -0.00004,
-  "ls.water.amount": 0.06,
-  "ls.water.rate": -0.000021,
-  "ls.oxygen.amount": 9.35,
-  "ls.oxygen.rate": -0.006,
-  "ls.ec.amount": 54,
-  "ls.ec.rate": -0.15,
-  "ls.co2Poisoning": 0.65,
-  "ls.comfort": 0.15,
-  "ls.climatization": 0.22,
-  "ls.process.scrubber": 2,
-  "ls.process.fuelCell": 2,
+  food: { amount: 0.11, capacity: 1.35, rate: -0.00004 },
+  water: { amount: 0.06, capacity: 0.7, rate: -0.000021 },
+  oxygen: { amount: 9.35, capacity: 187, rate: -0.006 },
+  ec: { amount: 54, capacity: 450, rate: -0.15 },
+  co2Poisoning: 0.65,
+  comfort: 0.15,
+  processStates: {
+    scrubber: 2,
+    waterRecycler: 1,
+    wasteProcessor: 1,
+    fuelCell: 2,
+  },
 };
+
+function proc(resource: string, title: string, state: number) {
+  return {
+    resource,
+    title,
+    capacity: 1.67,
+    running: state === 1,
+    broken: state === 2,
+  };
+}
 
 describe("LifeSupportSystemsComponent", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
+  let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-  });
-
-  afterEach(() => {
-    buffered.disconnect();
-  });
-
-  function emit(fixture: LsFixture) {
-    act(() => {
-      for (const [key, value] of Object.entries(fixture)) {
-        source.emit(key, value);
-      }
+    stream = setupStreamFixture({
+      carriedChannels: ["kerbalism.lifesupport"],
+      pinnedUt: 149_489,
     });
-  }
+  });
 
   function renderWidget(size = { w: 8, h: 13 }) {
     return render(
-      <DashboardItemContext.Provider value={{ instanceId: "ls-test" }}>
-        <LifeSupportSystemsComponent
-          config={{}}
-          id="ls-test"
-          w={size.w}
-          h={size.h}
-        />
-      </DashboardItemContext.Provider>,
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ls-test" }}>
+          <LifeSupportSystemsComponent
+            config={{}}
+            id="ls-test"
+            w={size.w}
+            h={size.h}
+          />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
     );
+  }
+
+  function emit(ls: LsState) {
+    act(() => {
+      stream.emit("kerbalism.lifesupport", {
+        food: ls.food,
+        water: ls.water,
+        oxygen: ls.oxygen,
+        electricCharge: ls.ec,
+        habitat: {
+          pressure: ls.pressure,
+          poisoning: ls.co2Poisoning,
+          shielding: 0,
+          livingSpace: ls.livingSpace,
+          comfort: ls.comfort,
+          volume: 0.798,
+          surface: 3.31,
+        },
+        processes: [
+          proc("_Scrubber", "Scrubber", ls.processStates.scrubber),
+          proc(
+            "_WaterRecycler",
+            "Water recycler",
+            ls.processStates.waterRecycler,
+          ),
+          proc(
+            "_WasteProcessor",
+            "Waste processor",
+            ls.processStates.wasteProcessor,
+          ),
+          proc("_MonopropFuelCell", "Fuel cell", ls.processStates.fuelCell),
+        ],
+      });
+    });
   }
 
   it("shows the consumable ledger and a Nominal status when nominal", async () => {
     renderWidget();
     emit(NOMINAL);
-    await waitFor(() => {
-      expect(screen.getByText(/1\.35 \/ 1\.35/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/1\.35 \/ 1\.35/)).toBeInTheDocument();
     expect(screen.getByText("Nominal")).toBeInTheDocument();
     expect(screen.getByText("Unpressurized")).toBeInTheDocument();
     // Food fraction is 100% -> go tone.
@@ -149,9 +172,7 @@ describe("LifeSupportSystemsComponent", () => {
   it("flags a broken process and a Degraded status when depleting", async () => {
     renderWidget();
     emit(DEPLETING);
-    await waitFor(() => {
-      expect(screen.getByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
     expect(screen.getByText("Degraded")).toBeInTheDocument();
     expect(screen.getByText("broken")).toBeInTheDocument();
     expect(screen.getByText(/1 broken/)).toBeInTheDocument();
@@ -160,9 +181,7 @@ describe("LifeSupportSystemsComponent", () => {
   it("surfaces a Critical status when oxygen and power are low", async () => {
     renderWidget();
     emit(CRITICAL);
-    await waitFor(() => {
-      expect(screen.getByText(/9\.35 \/ 187/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/9\.35 \/ 187/)).toBeInTheDocument();
     expect(screen.getByText("Critical")).toBeInTheDocument();
     // Power fraction 54/450 = 12% -> nogo.
     expect(screen.getByRole("meter", { name: "Power" })).toHaveAttribute(
@@ -174,9 +193,7 @@ describe("LifeSupportSystemsComponent", () => {
   it("has no axe violations", async () => {
     const { container } = renderWidget();
     emit(DEPLETING);
-    await waitFor(() => {
-      expect(screen.getByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

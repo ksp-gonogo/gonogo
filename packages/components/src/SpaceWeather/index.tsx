@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useDataSourceSubscription } from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Badge, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
@@ -8,26 +8,13 @@ type SpaceWeatherConfig = Record<string, never>;
 // ---------------------------------------------------------------------------
 // Data read
 //
-// For the offline render the probe emits flat `sw.*` keys on the "data" source
-// (booleans as 0/1, storm state as 0/1/2). When the real KerbalismUplink Topic
-// lands, swap `useSpaceWeather` to read `useTelemetry("spaceweather")`; the
-// presentation below never changes — this hook is the data boundary.
+// Reads the real KerbalismUplink `kerbalism.spaceweather` Topic (canonical
+// one-arg useTelemetry — streams whenever a provider is mounted). Vessel
+// altitude (belt-ring placement) comes from the always-carried `vessel.orbit`.
+// The presentation below is a pure function of `SpaceWeatherData`, so the
+// offline snapshot harness feeds the same shape (see widgetDomSnapshot's
+// kerbalism reshape). This hook is the only data boundary.
 // ---------------------------------------------------------------------------
-
-function useRaw<T>(key: string): T | undefined {
-  return useDataSourceSubscription<T | undefined>(
-    "data",
-    (source, onStoreChange, snapshotRef) =>
-      source.subscribe(key, (v) => {
-        snapshotRef.current = v as T;
-        onStoreChange();
-      }),
-    undefined,
-  );
-}
-
-const useNum = (key: string): number | undefined => useRaw<number>(key);
-const useBool = (key: string): boolean => (useRaw<number>(key) ?? 0) > 0.5;
 
 type StormState = "none" | "incoming" | "inprogress";
 
@@ -45,23 +32,44 @@ interface SpaceWeatherData {
   seed: number;
 }
 
-const STORM_STATES: StormState[] = ["none", "incoming", "inprogress"];
-
 function useSpaceWeather(): SpaceWeatherData {
-  const stormIdx = Math.round(useNum("sw.stormState") ?? 0);
-  const stormTime = useNum("sw.stormTimeSec") ?? -1;
+  const t = useTelemetry("kerbalism.spaceweather");
+  const flight = useTelemetry("vessel.flight");
+
+  const stormState: StormState = t?.stormInProgress
+    ? "inprogress"
+    : t?.stormIncoming
+      ? "incoming"
+      : "none";
+  // Kerbalism's public API exposes storm PRESENCE (bools), not a storm clock,
+  // so there is no precise onset/clear countdown to show — see
+  // local_docs/spaceweather-widget-SPEC.md (storm_time [fixture-confirm]) and
+  // the fixtures README (storm states are synthesised). The timeline renders
+  // the phase without a numeric countdown.
+  const radiationRadPerHour = (t?.radiationRadPerSecond ?? 0) * 3600; // API is rad/s
+  const innerBelt = t?.innerBelt ?? false;
+  const outerBelt = t?.outerBelt ?? false;
+  const magnetosphere = t?.magnetosphere ?? false;
+
   return {
-    radiationRadPerHour: useNum("sw.radiationRadPerHour") ?? 0,
-    stormState: STORM_STATES[stormIdx] ?? "none",
-    stormTimeSec: stormTime >= 0 ? stormTime : null,
-    innerBelt: useBool("sw.innerBelt"),
-    outerBelt: useBool("sw.outerBelt"),
-    magnetosphere: useBool("sw.magnetosphere"),
-    blackout: useBool("sw.blackout"),
-    shieldingValue: useNum("sw.shieldingValue") ?? 0,
-    shieldingCapacity: useNum("sw.shieldingCapacity") ?? 1,
-    altitudeKm: (useNum("sw.altitudeM") ?? 0) / 1000,
-    seed: Math.round(useNum("sw.ut") ?? 0),
+    radiationRadPerHour,
+    stormState,
+    stormTimeSec: null,
+    innerBelt,
+    outerBelt,
+    magnetosphere,
+    blackout: t?.blackout ?? false,
+    shieldingValue: t?.shieldingAmount ?? 0,
+    shieldingCapacity: t?.shieldingCapacity ?? 1,
+    altitudeKm: (flight?.altitudeAsl ?? 0) / 1000,
+    // Deterministic noise seed derived from the weather state itself (stable
+    // across renders for snapshots; no Math.random, no clock/provider needed).
+    seed:
+      Math.round(radiationRadPerHour * 1000) +
+      (magnetosphere ? 7 : 0) +
+      (innerBelt ? 13 : 0) +
+      (outerBelt ? 29 : 0) +
+      (stormState === "inprogress" ? 101 : stormState === "incoming" ? 53 : 0),
   };
 }
 
@@ -589,19 +597,8 @@ registerComponent<SpaceWeatherConfig>({
   defaultSize: { w: 8, h: 11 },
   minSize: { w: 3, h: 4 },
   component: SpaceWeatherComponent,
-  dataRequirements: [
-    "sw.radiationRadPerHour",
-    "sw.stormState",
-    "sw.stormTimeSec",
-    "sw.innerBelt",
-    "sw.outerBelt",
-    "sw.magnetosphere",
-    "sw.blackout",
-    "sw.shieldingValue",
-    "sw.shieldingCapacity",
-    "sw.altitudeM",
-    "sw.ut",
-  ],
+  channels: ["kerbalism.spaceweather"],
+  optionalChannels: ["vessel.flight"],
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
