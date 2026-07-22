@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
+    "@ksp-gonogo/avionics": "workspace:*",
     "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
