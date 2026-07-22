@@ -1,5 +1,19 @@
-import { registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import type { DataKey } from "@ksp-gonogo/core";
+import {
+  MockDataSource,
+  registerAugment,
+  registerDataSource,
+  unregisterDataSource,
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { type CrewBadgeContext, CrewManifestComponent } from "./index";
@@ -222,5 +236,123 @@ describe("CrewManifestComponent", () => {
     expect(
       within(jebRow as HTMLElement).getByTestId("crew-badge"),
     ).toHaveTextContent("Jebediah Kerman ✓");
+  });
+});
+
+/**
+ * Kerbalism per-kerbal survival meters. These ride the legacy "data" source
+ * (`crew.kerbals` + `ls.*`, same plumbing as LifeSupportSystems), so the
+ * fixture here pairs the stream (for `vessel.crew`) with a registered
+ * `MockDataSource`. Absent the KerbalismUplink there is no "data" source at
+ * all and `useRaw` returns undefined — so the meters simply never render and
+ * the roster behaves exactly as the tests above assert.
+ */
+describe("CrewManifestComponent — survival meters", () => {
+  const SURVIVAL_KEYS: DataKey[] = [
+    "crew.kerbals",
+    "ls.food.amount",
+    "ls.food.rate",
+    "ls.water.amount",
+    "ls.water.rate",
+    "ls.oxygen.amount",
+    "ls.oxygen.rate",
+  ].map((key) => ({ key }));
+
+  let source: MockDataSource;
+  let buffered: BufferedDataSource;
+  const trees: Array<() => void> = [];
+
+  async function setup() {
+    source = new MockDataSource({ keys: SURVIVAL_KEYS });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.crew", "vessel.state"],
+      pinnedUt: 10,
+    });
+    const { unmount } = render(
+      <fixture.Provider>
+        <CrewManifestComponent config={{}} id="crew" w={6} h={8} />
+      </fixture.Provider>,
+    );
+    trees.push(unmount);
+    return fixture;
+  }
+
+  afterEach(() => {
+    for (const unmount of trees) unmount();
+    trees.length = 0;
+    buffered?.disconnect();
+    unregisterDataSource("data");
+  });
+
+  it("renders per-kerbal dose + stress meters and a death-clock once toggled on", async () => {
+    const fixture = await setup();
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+      // A life-support resource draining → stage-1 death-clock is a real time.
+      source.emit("ls.food.amount", 0.35);
+      source.emit("ls.food.rate", -0.000036);
+      source.emit("crew.kerbals", [
+        {
+          name: "Jebediah Kerman",
+          trait: "Pilot",
+          rules: { radiation: 0.6, stress: 0.3 },
+        },
+        {
+          name: "Bill Kerman",
+          trait: "Engineer",
+          rules: { radiation: 0.1, stress: 0.05 },
+        },
+      ]);
+    });
+
+    // Roster renders first; meters are off by default outside Flight, behind
+    // the scene-aware toggle.
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("meter", { name: "Dose" }),
+    ).not.toBeInTheDocument();
+
+    // Flip the toggle on and the per-kerbal meters appear.
+    fireEvent.click(screen.getByRole("button", { name: /show meters/i }));
+
+    const doseMeters = await screen.findAllByRole("meter", { name: "Dose" });
+    expect(doseMeters).toHaveLength(2);
+    expect(screen.getAllByRole("meter", { name: "Stress" })).toHaveLength(2);
+
+    // Jeb's dose is 0.6 → 60% on his meter.
+    const jebRow = screen.getByText("Jebediah Kerman").closest("li");
+    expect(
+      within(jebRow as HTMLElement).getByRole("meter", { name: "Dose" }),
+    ).toHaveAttribute("aria-valuenow", "60");
+
+    // Stage-1 death-clock headline while resources drain.
+    expect(screen.getAllByText(/to LS depletion/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows no meters toggle when no per-kerbal survival data is present", async () => {
+    const fixture = await setup();
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("button", { name: /meters/i }),
+    ).not.toBeInTheDocument();
   });
 });
