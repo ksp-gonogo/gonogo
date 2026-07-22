@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "scenario": "mixed-fleet",
+    "source": "SYNTHESISED — only one real vessel captured on the Deck. A 4-vessel fleet spanning the table's range: crewed station nominal, an uncrewed probe, a lander in warn, and a comms-blackout vessel in critical."
+  },
+  "fleet.vessels": [
+    {
+      "id": "v-station-1",
+      "name": "Kerbin Station Alpha",
+      "body": "Kerbin",
+      "crew": 6,
+      "crewCapacity": 6,
+      "comms": "connected",
+      "status": "nominal"
+    },
+    {
+      "id": "v-probe-mun",
+      "name": "Munar Relay Probe",
+      "body": "Mun",
+      "crew": 0,
+      "comms": "relay",
+      "status": "nominal"
+    },
+    {
+      "id": "v-lander-duna",
+      "name": "Duna Lander Bravo",
+      "body": "Duna",
+      "crew": 2,
+      "crewCapacity": 3,
+      "comms": "relay",
+      "status": "warn",
+      "updates": [
+        { "text": "Battery 18% — draining", "tone": "warn" },
+        { "text": "Reaction wheel worn 71%", "tone": "info" }
+      ]
+    },
+    {
+      "id": "v-orbiter-eve",
+      "name": "Eve Orbiter Charlie",
+      "body": "Eve",
+      "crew": 1,
+      "crewCapacity": 1,
+      "comms": "none",
+      "status": "critical",
+      "updates": [
+        { "text": "Comms blackout", "tone": "nogo" },
+        { "text": "Oxygen 11h to empty", "tone": "warn" }
+      ]
+    }
+  ]
+}

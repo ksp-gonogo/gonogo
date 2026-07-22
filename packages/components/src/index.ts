@@ -13,6 +13,7 @@ export * from "./DeployedScience";
 export * from "./DistanceToTarget";
 export * from "./EscapeProfile";
 export * from "./FleetComms";
+export * from "./FleetRoster";
 export * from "./FuelStatus";
 export * from "./Graph";
 export * from "./GroundSurvey";
