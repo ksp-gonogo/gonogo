@@ -186,6 +186,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // sitrep-client primitive. Words only, nothing kerbcast-specific is
       // imported — permanent, same class as the other doc-mention citations.
       "packages/sitrep-client/src/event-timeline.ts",
+      // AlarmHostService.ts (event alarm wiring, 2026-07-22): a text-only
+      // doc-comment mention ("the kerbcast Uplink's producer") — the service
+      // is mod-agnostic and takes an externally-wired producer; nothing
+      // kerbcast-specific is imported. Its test names the "kerbcast.events"
+      // topic id as a string literal only (TEST-only, same class as
+      // loaderState.test.ts / flag.test.ts above). Both permanent.
+      "packages/app/src/alarms/AlarmHostService.ts",
+      "packages/app/src/alarms/AlarmHostService.test.ts",
     ],
   },
 
