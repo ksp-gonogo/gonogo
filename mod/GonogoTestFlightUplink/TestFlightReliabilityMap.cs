@@ -1,7 +1,7 @@
 // mod/GonogoTestFlightUplink/TestFlightReliabilityMap.cs
 // Pure (KSP-free) mapper: per-engine reflection reads -> the shared reliability
 // wire shape (ReliabilitySummary / ReliabilityPartEntry, defined in
-// Sitrep.Contract by the Kerbalism spec). Emits plain dictionaries so this file
+// Sitrep.Contract by the shared reliability contract). Emits plain dictionaries so this file
 // carries NO compile-time dependency on the shared POCOs and stays headlessly
 // testable; the elected-provider wiring adapts these dicts to the contract.
 using System.Collections.Generic;
@@ -31,7 +31,7 @@ namespace GonogoTestFlightUplink
                     ["critical"] = e.MomentaryFailureRate > 0,
                     // TestFlight expresses health as a live reliability probability, not consumed
                     // fractions. mtbfHours carries the inverse-failure-rate estimate; ignitions/
-                    // duration consumed stay null (Kerbalism-only concepts). The FleetRoster
+                    // duration consumed stay null (fallback-provider concepts, not applicable to TestFlight). The FleetRoster
                     // renderer shows whichever fields are non-null.
                     ["mtbfHours"] = e.MomentaryFailureRate > 0 ? (double?)(1.0 / e.MomentaryFailureRate / 3600.0) : null,
                     ["ignitionsConsumed"] = null,

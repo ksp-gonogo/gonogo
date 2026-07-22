@@ -18,7 +18,7 @@
 
   <!-- Compile only the PURE, KSP-free files from the uplink so the tests never
        need the KSP/reflection-dependent assembly (same selective-Compile pattern
-       GonogoRealAntennasUplink.Tests / GonogoScansatUplink.Tests use). The pure
+       the sibling uplink Tests projects use). The pure
        mapper emits plain dictionaries, so no Sitrep.Contract reference is needed. -->
   <ItemGroup>
     <Compile Include="..\GonogoTestFlightUplink\EngineReliabilityRaw.cs" />

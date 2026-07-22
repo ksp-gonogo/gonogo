@@ -24,7 +24,7 @@ public class TestFlightReliabilityMapTests
         Assert.Equal("42", p["partId"]);
         Assert.Equal("LR-79", p["title"]);
         // TestFlight has no ignition/duration fractions; those consumed-fraction
-        // slots stay null (Kerbalism-only concepts).
+        // slots stay null (fallback-provider concepts, not applicable to TestFlight).
         Assert.Null(p["ignitionsConsumed"]);
         Assert.Null(p["durationConsumed"]);
     }

@@ -1,9 +1,9 @@
 // mod/GonogoTestFlightUplink/TestFlightReliabilityBackend.cs
 // TestFlight's implementation of the shared reliability Kernel capability
-// (IReliabilityBackend, owned by agent-6's ReliabilityCoreUplink in
+// (IReliabilityBackend, owned by the shared reliability core registrar in
 // Sitrep.Contract/Reliability.cs). Parameterless + reads the active vessel
-// internally, mirroring ICommsBackend. Registered at Priority 10 so it WINS
-// the election over Kerbalism's Priority-1 unmodeled fallback under RO/RP-1.
+// internally, like the other capability backends. Registered at Priority 10 so it WINS
+// the election over the Priority-1 unmodeled fallback provider under RO/RP-1.
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -48,7 +48,7 @@ namespace GonogoTestFlightUplink
                     Critical = e.MomentaryFailureRate > 0,
                     // TestFlight expresses health as a live reliability probability, not
                     // consumed fractions. MtbfHours carries the inverse-failure-rate estimate;
-                    // the ignition/duration consumed slots stay null (Kerbalism-only concepts).
+                    // the ignition/duration consumed slots stay null (fallback-provider concepts, not applicable to TestFlight).
                     MtbfHours = e.MomentaryFailureRate > 0 ? (double?)(1.0 / e.MomentaryFailureRate / 3600.0) : null,
                     IgnitionsConsumed = null,
                     DurationConsumed = null,

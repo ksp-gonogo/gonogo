@@ -114,6 +114,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // declaration.
   "mod/GonogoScansatUplink/ScansatUplink.cs": 1,
 
+  // testflight.available: whether the TestFlight mod is INSTALLED — a
+  // ground-side fact about the player's install (same class as
+  // kerbcast.available / SCANsat availability), NOT a live vessel reading. The
+  // reliability.* vessel telemetry TestFlight feeds is correctly Delayed and
+  // declared by the reliability core registrar, not here. 1 explicit declaration.
+  "mod/GonogoTestFlightUplink/TestFlightUplink.cs": 1,
+
   // system.uplinks (registered-uplink health/availability — a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
   // and when — ground-side bookkeeping, not vessel telemetry). 2 explicit

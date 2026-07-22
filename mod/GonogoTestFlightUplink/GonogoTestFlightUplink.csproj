@@ -3,8 +3,8 @@
   <!-- MIT, like the rest of gonogo (see LICENSING.md). TestFlight is
        reached ENTIRELY by runtime reflection (TestFlightReflection) - this
        assembly NEVER links TestFlightCore.dll / TestFlightAPI.dll and NEVER
-       derives from their types, the same arm's-length pattern the
-       RealAntennas uplink uses. TestFlight's attribution notice is retained in
+       derives from their types, the same arm's-length reflection pattern the
+       other reflection-only uplinks use. TestFlight's attribution notice is retained in
        NOTICE-TestFlight.txt alongside this file. -->
   <PropertyGroup>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -29,7 +29,7 @@
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies - same portable copy + Private="false"
-       pattern as Gonogo.KSP / the RealAntennas uplink. Only the TestFlight
+       pattern as the other KSP-referencing uplinks. Only the TestFlight
        assemblies are forbidden as a compile-time reference (reached by
        reflection instead). -->
   <ItemGroup>

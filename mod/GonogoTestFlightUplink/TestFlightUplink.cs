@@ -3,8 +3,8 @@
 // health + registration of the TestFlight reliability backend at Priority 10.
 //
 // It does NOT declare the "reliability" capability or the reliability.* channels
-// - agent-6's ReliabilityCoreUplink owns those (mirroring how CommsCoreUplink
-// owns "comms" while RealAntennasUplink only registers a provider). Registering
+// - agent-6's ReliabilityCoreUplink owns those (mirroring how a core capability registrar
+// owns a capability while a mod uplink only registers a provider). Registering
 // the provider IS the election gate, done in Register (the capability is
 // declared in the earlier discovery pass), gated on the TestFlight probe.
 using System;
@@ -48,8 +48,8 @@ namespace GonogoTestFlightUplink
             host.AddChannelSource(AvailableTopic, _ => _tf.IsAvailable);
 
             // Register the TestFlight reliability provider ONLY when TestFlight is
-            // actually loaded - registering IS the election gate (same as RA/comms).
-            // Priority 10 > Kerbalism's 1, so TestFlight WINS under RO/RP-1 where both
+            // actually loaded - registering IS the election gate (same as the other capability providers).
+            // Priority 10 > the fallback provider's 1, so TestFlight WINS under RO/RP-1 where both
             // are live. Wrapped so a registration failure is surfaced, not swallowed,
             // and the uplink still emits testflight.available.
             if (_tf.IsAvailable)
