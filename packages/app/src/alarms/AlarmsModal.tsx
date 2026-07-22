@@ -692,7 +692,16 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
       </code>
     );
   }
-  // Threshold — narrow exhausted by the two `kind` checks above.
+  if (a.trigger.kind === "event") {
+    const t = a.trigger;
+    return (
+      <code>
+        {t.topic}
+        {t.eventKind != null && ` · ${t.eventKind}`}
+      </code>
+    );
+  }
+  // Threshold — narrow exhausted by the three `kind` checks above.
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null

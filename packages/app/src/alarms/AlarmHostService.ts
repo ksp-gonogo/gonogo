@@ -17,12 +17,17 @@ import { WarpControl } from "./WarpControl";
 import { WarpObserver } from "./WarpObserver";
 
 /**
- * Trigger kinds that need contiguous-match tracking via `matchSinceUT`.
- * Time triggers don't (they fire purely on UT comparison); threshold
- * and contract-parameter both do.
+ * Trigger kinds that need match tracking via `matchSinceUT`. Time triggers
+ * don't (they fire purely on UT comparison); threshold and contract-parameter
+ * track a contiguous match, and event latches `matchSinceUT` on the first
+ * matching occurrence.
  */
 function requiresMatchTracking(trigger: AlarmTrigger): boolean {
-  return trigger.kind === "threshold" || trigger.kind === "contract-parameter";
+  return (
+    trigger.kind === "threshold" ||
+    trigger.kind === "contract-parameter" ||
+    trigger.kind === "event"
+  );
 }
 
 /**
@@ -314,6 +319,13 @@ export class AlarmHostService {
         // approach.
         if (alarm.trigger.kind === "contract-parameter") {
           if (this.stateMachine.updateContractParameterTracking(alarm, ut)) {
+            changed = true;
+          }
+        }
+        // Event triggers latch on the first matching occurrence revealed
+        // after the alarm began watching — edge-triggered, no sustain.
+        if (alarm.trigger.kind === "event") {
+          if (this.stateMachine.updateEventTracking(alarm, ut)) {
             changed = true;
           }
         }
