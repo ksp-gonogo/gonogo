@@ -3,7 +3,10 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
 import { dispatchActiveCommand, getViewUt } from "@ksp-gonogo/sitrep-client";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
-import { AlarmStateMachine } from "./AlarmStateMachine";
+import {
+  AlarmStateMachine,
+  type RevealedEventsReader,
+} from "./AlarmStateMachine";
 import {
   type Alarm,
   type AlarmSnapshot,
@@ -62,6 +65,12 @@ export interface AlarmHostOptions {
   nowMs?: () => number;
   tickIntervalMs?: number;
   storage?: Storage;
+  /**
+   * Reader for revealed `event`-topic occurrences, backing the `event`
+   * trigger kind. Defaults to empty (no event alarm ever fires) when omitted;
+   * the main screen passes one wired to the kerbcast Uplink's producer.
+   */
+  getRevealedEvents?: RevealedEventsReader;
 }
 
 export class AlarmHostService {
@@ -93,6 +102,7 @@ export class AlarmHostService {
     this.stateMachine = new AlarmStateMachine(
       () => this.alarms,
       () => this.observedUT,
+      opts.getRevealedEvents,
     );
 
     const initialMargin = this.loadMargin();
