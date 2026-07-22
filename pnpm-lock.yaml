@@ -77,6 +77,19 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
 
+  mod/GonogoKerbalismUplink/client:
+    dependencies:
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../sitrep-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
   mod/GonogoKerbcastUplink/client:
     dependencies:
       '@ksp-gonogo/components':
@@ -348,6 +361,9 @@ importers:
       '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../data
+      '@ksp-gonogo/kerbalism':
+        specifier: workspace:*
+        version: link:../../mod/GonogoKerbalismUplink/client
       '@ksp-gonogo/kerbcast-feed':
         specifier: workspace:*
         version: link:../../mod/GonogoKerbcastUplink/client
