@@ -63,6 +63,18 @@ export {
   useKerbcastStream,
 } from "./hooks/useKerbcastStream";
 export * from "./KerbcastDataSource";
+export type {
+  CameraAddedPayload,
+  CameraRemovedPayload,
+  KerbcastEdgeSource,
+  KerbcastEventKind,
+  SignalLostPayload,
+  StreamDegradedPayload,
+} from "./KerbcastEventProducer";
+export {
+  KERBCAST_EVENTS_TOPIC,
+  KerbcastEventProducer,
+} from "./KerbcastEventProducer";
 export type { CameraLifecycle } from "./lifecycle";
 export { getCameraLifecycle } from "./lifecycle";
 export { KerbcastSettings } from "./settings/KerbcastSettings";

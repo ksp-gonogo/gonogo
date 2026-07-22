@@ -13,7 +13,11 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
-import { useKerbcastMainConnect } from "@ksp-gonogo/kerbcast-feed";
+import {
+  KERBCAST_EVENTS_TOPIC,
+  kerbcastSource,
+  useKerbcastMainConnect,
+} from "@ksp-gonogo/kerbcast-feed";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
@@ -25,6 +29,7 @@ import {
   SerialDeviceService,
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
+import { getViewUt } from "@ksp-gonogo/sitrep-client";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -127,7 +132,18 @@ export function MainScreen() {
   // (the useState initializer only runs once per mount cycle).
   const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
   const [pushHost] = useState(() => new PushHostService(peerHostService));
-  const [alarmHost] = useState(() => createAlarmHost(peerHostService));
+  const [alarmHost] = useState(() =>
+    createAlarmHost(peerHostService, {
+      // Feed the `event` alarm trigger from the kerbcast Uplink's producer.
+      // `getViewUt()` is the operator's delayed view clock, so a kerbcast edge
+      // (stamped at its live capture UT) reveals only once the view catches up
+      // past it — the signal delay realised for free.
+      getRevealedEvents: (topic) =>
+        topic === KERBCAST_EVENTS_TOPIC
+          ? kerbcastSource.revealedEvents(getViewUt())
+          : [],
+    }),
+  );
   const [notesHost] = useState(() => createNotesHost(peerHostService));
   const [maneuverTriggerHost] = useState(() =>
     createManeuverTriggerHost(peerHostService),

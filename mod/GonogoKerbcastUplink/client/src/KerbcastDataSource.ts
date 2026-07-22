@@ -7,6 +7,7 @@ import {
   type KerbcastPeer,
   type KerbcastTransport,
 } from "@ksp-gonogo/kerbcast";
+import type { EventOccurrence } from "@ksp-gonogo/sitrep-client";
 import type { DataSourceStatus } from "@ksp-gonogo/sitrep-sdk";
 import {
   createPerfBudget,
@@ -16,6 +17,10 @@ import {
   registerUplinkHandle,
   subscribeSetting,
 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type KerbcastEventKind,
+  KerbcastEventProducer,
+} from "./KerbcastEventProducer";
 
 /**
  * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the
@@ -408,6 +413,12 @@ export class KerbcastDataSource {
   private reconnectAttempts = 0;
   private reconnectEnabled = false;
   private unsubGameHost: (() => void) | null = null;
+  /**
+   * Synthesises the reveal-gated `event` primitive from this uplink's discrete
+   * edges (camera add/remove, adaptive-shed, scene/connection loss). Re-attached
+   * to each rebuilt client in `buildClient`, detached in `teardownClient`.
+   */
+  private readonly eventProducer = new KerbcastEventProducer();
 
   constructor(config?: KerbcastConfig, transport?: KerbcastTransport) {
     this.cfg = config ?? loadConfig();
@@ -423,6 +434,18 @@ export class KerbcastDataSource {
   /** Underlying client (hooks reach in directly via this). */
   getClient(): KerbcastClient {
     return this.client;
+  }
+
+  /**
+   * Reveal-gated `event`-primitive occurrences synthesised from this uplink's
+   * discrete edges, at the operator's (delayed) view UT `now`. Backs the alarm
+   * host's `RevealedEventsReader` for the `KERBCAST_EVENTS_TOPIC` topic. Empty
+   * when `now` is unknown (no stream mounted).
+   */
+  revealedEvents(
+    now: number | null | undefined,
+  ): readonly EventOccurrence<KerbcastEventKind>[] {
+    return this.eventProducer.revealed(now);
   }
 
   /**
@@ -779,6 +802,10 @@ export class KerbcastDataSource {
         });
       }),
     );
+    // Synthesise `event`-primitive occurrences from this client's discrete
+    // edges. Its own listeners live/die with the client instance (detached in
+    // teardownClient), so a rebuild re-attaches cleanly onto the new client.
+    this.eventProducer.attach(client);
     return client;
   }
 
@@ -811,6 +838,7 @@ export class KerbcastDataSource {
 
   private teardownClient(): void {
     this.clearTimers();
+    this.eventProducer.detach();
     this.client.disconnect();
     this.clientUnsubs.forEach((off) => {
       off();

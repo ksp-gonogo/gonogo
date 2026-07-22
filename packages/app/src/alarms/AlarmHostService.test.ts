@@ -1,5 +1,6 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
+  type EventOccurrence,
   mapTopic,
   StubTransport,
   setActiveCarriedChannelsForTests,
@@ -174,6 +175,38 @@ describe("AlarmHostService", () => {
     });
     return { svc, telemetry };
   }
+
+  it("fires an event alarm when the revealed-events reader surfaces a matching occurrence", () => {
+    const telemetry = fakeTelemetry();
+    telemetry.set("t.universalTime", 1000);
+    telemetry.set("t.currentRateIndex", 0);
+    telemetry.set("t.currentRate", 1);
+    const revealed: EventOccurrence[] = [];
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: 1000,
+      storage: memoryStorage(),
+      getRevealedEvents: (topic) =>
+        topic === "kerbcast.events" ? revealed : [],
+    });
+    svc.addAlarm({
+      name: "Signal lost",
+      trigger: {
+        kind: "event",
+        topic: "kerbcast.events",
+        eventKind: "signal-lost",
+      },
+    });
+    // Baseline established at ut 1000, no occurrence yet.
+    vi.advanceTimersByTime(1000);
+    expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+    // An occurrence reveals after the watch baseline.
+    telemetry.set("t.universalTime", 1005);
+    revealed.push({ ut: 1002, kind: "signal-lost", payload: {}, epoch: 0 });
+    vi.advanceTimersByTime(1000);
+    expect(svc.snapshot().alarms[0].state).toBe("firing");
+  });
 
   it("adds an alarm and surfaces it in the snapshot", async () => {
     const { svc } = makeService();
