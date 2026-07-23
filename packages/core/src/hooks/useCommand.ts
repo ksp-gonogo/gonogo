@@ -15,12 +15,16 @@ import { getDataSource } from "../registry";
  *
  * Fires an action (legacy Telemachus `execute(action: string)`) or, once M3
  * has migrated it, a typed stream command (`m3-migration-plan.md`
- * §4-commands, §Build 1 "command shim"). Same allowlist-gated, legacy-fallback
- * contract as the `useTelemetry` read shim:
+ * §4-commands, §Build 1 "command shim"). Same mapped-or-legacy-fallback
+ * contract as the `useTelemetry` read shim. NOTE: the carried-channels check
+ * below is a dev-time PROMOTION gate (which topics the app has wired onto the
+ * stream), NOT an authorization/allowlist control. Command authority is not
+ * gated here and, by design, is not gated anywhere (any screen may fire any
+ * command; the trust boundary is the widget, not the transport):
  *
  * - **Mapped action** (`mapCommand(dataSourceId, action)` resolves) **+ a
  *   `TelemetryProvider` is mounted + the command topic is CARRIED**
- *   (`useCarriedChannelsOptional`'s allowlist — the SAME allowlist a
+ *   (`useCarriedChannelsOptional`'s carried-channels set — the SAME set a
  *   `TelemetryProvider`'s `carriedChannels` prop grows for read topics;
  *   commands are promoted into the identical set) -> dispatches via
  *   `TelemetryClient.dispatch(command, args)`.

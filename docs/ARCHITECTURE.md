@@ -46,7 +46,7 @@ The foundation for everything extensible.
 - **Plugin registry**: `registerComponent(def)`, `registerTheme(def)`, and `registerDataSource(def)` are the three extension points. Calling these at module load time is all that's needed to extend the app.
 - **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `DataSourceDefinition`, `StationConfig`, `DataRequirement`, `Behavior`, …
 - **React contexts**: `DashboardContext` (current layout, orchestrator state), `PeerContext` (PeerJS connection state), `StationContext` (station identity/role from localStorage).
-- **GO/NO-GO system** aggregates GO/NO-GO state across all active stations. A widget declares `behaviors: ['gonogo-participant']` to contribute to the global state.
+- **GO/NO-GO system** aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else, so no widget feeds into it.
 
 ### The data-source interface (repository pattern)
 
@@ -122,7 +122,7 @@ registerComponent({
   component: MyCustomGauge,
   dataRequirements: ['vessel.altitude'],
   actions: [],            // declare what the widget can do (serial input maps onto these)
-  behaviors: [],          // e.g. ['gonogo-participant'] to join GO/NO-GO
+  behaviors: [],          // opt-in behavior flags
   defaultConfig: {},
 });
 ```
