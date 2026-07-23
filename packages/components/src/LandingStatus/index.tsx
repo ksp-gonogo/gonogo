@@ -32,6 +32,7 @@ import {
   StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
+import { deriveBoard } from "./board";
 import { deriveDelayClocks, type LandingRegime } from "./clocks";
 import { solveSuicideBurn } from "./solveLanding";
 
@@ -273,19 +274,9 @@ function LandingStatusComponent({
 
   // Board state drives WHICH readouts exist — we never show a confident number
   // from a model that doesn't apply. Atmospheric bodies suppress the vacuum
-  // burn/impact numbers entirely rather than hedge a wrong one.
-  const board:
-    | "not-descending"
-    | "no-solution"
-    | "atmospheric-unmodelled"
-    | "vacuum-solved" =
-    solution.state === "not-descending"
-      ? "not-descending"
-      : atmospheric
-        ? "atmospheric-unmodelled"
-        : solution.state === "no-solution"
-          ? "no-solution"
-          : "vacuum-solved";
+  // burn/impact numbers entirely rather than hedge a wrong one. (Pure state
+  // machine extracted to ./board; see board.test.ts for the pinned truth table.)
+  const board = deriveBoard({ solutionState: solution.state, atmospheric });
 
   const rows = h ?? 10;
   const showSubtitle = rows >= 6;
