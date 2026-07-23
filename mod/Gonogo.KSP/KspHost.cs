@@ -4357,7 +4357,10 @@ namespace Gonogo.KSP
         /// Covers the module types whose deploy/activation state is a
         /// single decompile-verified public field: solar panels / radiators
         /// / antennas (shared <see cref="ModuleDeployablePart.DeployState"/>),
-        /// parachutes (<see cref="ModuleParachute.deploymentStates"/>),
+        /// parachutes (stock <see cref="ModuleParachute.deploymentStates"/> plus
+        /// RO's <c>RealChuteModule</c> per-canopy <c>depState</c>, read
+        /// reflectively since that mod subclasses <c>PartModule</c> not
+        /// <c>ModuleParachute</c>),
         /// engines (<see cref="ModuleEngines.EngineIgnited"/>/<c>flameout</c>),
         /// drills (<see cref="ModuleResourceHarvester"/>'s inherited
         /// <c>BaseConverter.IsActivated</c>), and landing gear
@@ -4457,6 +4460,49 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 Debug.LogWarning("[Gonogo] vessel.parts moduleStates parachute read failed, skipping: " + ex);
+            }
+
+            try
+            {
+                // RealChute (the parachute mod every RO capsule/booster recovery
+                // chute uses) subclasses PartModule, NOT ModuleParachute, so the
+                // stock reader above misses it entirely — under RO the parachute
+                // state would always be empty. Read RealChuteModule's per-canopy
+                // deploy state reflectively; RealChute.dll ships only in an RO
+                // install so it is never referenced at compile time (same
+                // by-name reflection pattern as ModuleGroundExperiment above).
+                // Verified public surface (RealChute 1.4): RealChuteModule.armed
+                // (bool field), RealChuteModule.parachutes (List<Parachute>);
+                // Parachute.depState (string field = DeploymentStates enum name:
+                // NONE / STOWED / LOWDEPLOYED / PREDEPLOYED / DEPLOYED / CUT).
+                // Emitted through the same "parachute" ModuleStateEntry shape as
+                // the stock reader so the client widget consumes both uniformly.
+                foreach (var module in part.Modules)
+                {
+                    if (module == null || module.GetType().Name != "RealChuteModule")
+                    {
+                        continue;
+                    }
+
+                    var rcType = module.GetType();
+                    var armed = ReflectBool(rcType, module, "armed") ?? false;
+                    if (ReflectMemberValue(rcType, module, "parachutes") is System.Collections.IEnumerable canopies)
+                    {
+                        foreach (var canopy in canopies)
+                        {
+                            if (canopy == null)
+                            {
+                                continue;
+                            }
+                            var depState = ReflectString(canopy.GetType(), canopy, "depState");
+                            result.Add(ModuleStateEntry("parachute", MapRealChuteState(depState, armed)));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] vessel.parts moduleStates RealChute read failed, skipping: " + ex);
             }
 
             try
@@ -4570,6 +4616,36 @@ namespace Gonogo.KSP
                 case ModuleParachute.deploymentStates.CUT:
                     return "broken";
                 default:
+                    return "unknown";
+            }
+        }
+
+        /// <summary>
+        /// Maps a RealChute per-canopy <c>Parachute.depState</c> (the
+        /// <c>DeploymentStates</c> enum name, read reflectively as a string)
+        /// onto the SAME vocabulary <see cref="MapParachuteState"/> uses for the
+        /// stock <c>ModuleParachute</c>, so the client widget treats RO
+        /// RealChute canopies and stock chutes identically. RealChute's enum:
+        /// NONE / STOWED / LOWDEPLOYED / PREDEPLOYED / DEPLOYED / CUT. A STOWED
+        /// canopy whose module is <paramref name="armed"/> is reported "armed"
+        /// (deploy triggered, waiting on the pressure/altitude condition) —
+        /// mirroring stock ACTIVE -> "armed"; the pre/low/full deployed stages
+        /// all collapse to "extended" like stock SEMIDEPLOYED/DEPLOYED.
+        /// </summary>
+        private static string MapRealChuteState(string? depState, bool armed)
+        {
+            switch (depState)
+            {
+                case "STOWED":
+                    return armed ? "armed" : "stowed";
+                case "LOWDEPLOYED":
+                case "PREDEPLOYED":
+                case "DEPLOYED":
+                    return "extended";
+                case "CUT":
+                    return "broken";
+                default:
+                    // NONE (uninitialised) or an unrecognised/renamed value.
                     return "unknown";
             }
         }
