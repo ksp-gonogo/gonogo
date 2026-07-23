@@ -35,7 +35,17 @@ function makeSitrepFixture(status: DataSourceStatus): DataSource {
 // uplink-health/game-context branches and don't care about host status;
 // the two host-down-specific tests below override this explicitly.
 beforeEach(() => registerDataSource(makeSitrepFixture("connected")));
-afterEach(() => clearRegistry());
+
+// Unmount each rendered tree BEFORE clearRegistry() — clearing the DataSource
+// registry re-renders a still-mounted RequiresGuard (host → gone), a state
+// update outside act(). RTL auto-cleanup runs after this file's afterEach, too
+// late to unmount first.
+const renderedTrees: Array<() => void> = [];
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearRegistry();
+});
 
 function rosterPoint(
   uplinks: Array<{
@@ -76,6 +86,7 @@ function renderGuard(
       </RequiresGuard>
     </TelemetryProvider>,
   );
+  renderedTrees.push(view.unmount);
   return { transport, ...view };
 }
 

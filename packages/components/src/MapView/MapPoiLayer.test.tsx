@@ -8,9 +8,26 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { MapPoiLayer } from "./MapPoiLayer";
 
-afterEach(() => clearMapPoiProviders());
+// Unmount each rendered tree BEFORE clearMapPoiProviders() — clearing the
+// provider registry re-renders a still-mounted MapPoiLayer (providers gone), a
+// state update outside act(). RTL auto-cleanup runs after this file's afterEach,
+// too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearMapPoiProviders();
+});
 
 const project = (lat: number, lon: number) => ({ x: lat, y: lon });
+
+function renderLayer() {
+  const view = render(
+    <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />,
+  );
+  renderedTrees.push(view.unmount);
+  return view;
+}
 
 function makePoi(overrides: Partial<MapPoi> = {}): MapPoi {
   return {
@@ -36,14 +53,7 @@ describe("MapPoiLayer", () => {
       usePois: () => [makePoi({ id: "ungated-poi", label: "Ungated POI" })],
     });
 
-    render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    renderLayer();
 
     expect(screen.queryByRole("button", { name: "Gated POI" })).toBeNull();
     expect(
@@ -65,14 +75,7 @@ describe("MapPoiLayer", () => {
       ],
     });
 
-    render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    renderLayer();
 
     expect(screen.queryByText("Launch pad")).toBeNull();
 
@@ -100,14 +103,7 @@ describe("MapPoiLayer", () => {
       ],
     });
 
-    render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    renderLayer();
 
     fireEvent.mouseEnter(
       screen.getByRole("button", { name: "Recover the flag" }),
@@ -130,14 +126,7 @@ describe("MapPoiLayer", () => {
       ],
     });
 
-    render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    renderLayer();
 
     fireEvent.mouseEnter(screen.getByRole("button", { name: "Runway" }));
     fireEvent.click(screen.getByRole("button", { name: "Set as Target" }));
@@ -153,27 +142,13 @@ describe("MapPoiLayer", () => {
       ],
     });
 
-    render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    renderLayer();
 
     expect(screen.getByRole("button", { name: "Mystery" })).toBeInTheDocument();
   });
 
   it("renders nothing extra when no providers are registered", () => {
-    const { container } = render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    const { container } = renderLayer();
 
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(container.querySelectorAll("*").length).toBeGreaterThan(0);
@@ -194,14 +169,7 @@ describe("MapPoiLayer", () => {
       ],
     });
 
-    const { container } = render(
-      <MapPoiLayer
-        bodyId="Kerbin"
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    const { container } = renderLayer();
 
     fireEvent.mouseEnter(screen.getByRole("button", { name: "Runway" }));
 
