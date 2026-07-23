@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paintBaseSurface } from "./paintBaseSurface";
+import { baseSurfacePainted, paintBaseSurface } from "./paintBaseSurface";
 
 // The map is a BACKGROUND with everything else drawn on top. `map-view.base`
 // is a STACKABLE slot (local_docs/spec-mapview-stackable-layers.md): many
@@ -122,5 +122,67 @@ describe("paintBaseSurface", () => {
       worldH: 50,
     });
     expect(ctx.calls).toEqual([]);
+  });
+});
+
+// The grid stroke keys its light-vs-dark choice off whether a surface was
+// actually painted (mirrors paintBaseSurface's own paint decision). The
+// regression this guards: the stroke used `textureImage || layers.length` and
+// ignored suppressVanilla, so a suppressed-and-empty (deliberately black) map
+// with a stock texture still loaded took the LIGHT grid.
+describe("baseSurfacePainted", () => {
+  it("true when the stock texture paints (no suppression)", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: STOCK,
+        bodyColor: undefined,
+        suppressVanilla: false,
+        layers: [],
+      }),
+    ).toBe(true);
+  });
+
+  it("true when a body-colour wash paints (no suppression, no texture)", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: null,
+        bodyColor: "#334455",
+        suppressVanilla: false,
+        layers: [],
+      }),
+    ).toBe(true);
+  });
+
+  it("FALSE when vanilla is suppressed and no layer contributes — even with a stock texture loaded", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: STOCK,
+        bodyColor: "#334455",
+        suppressVanilla: true,
+        layers: [],
+      }),
+    ).toBe(false);
+  });
+
+  it("true when suppressed but a layer contributes a canvas", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: null,
+        bodyColor: undefined,
+        suppressVanilla: true,
+        layers: [layer("only")],
+      }),
+    ).toBe(true);
+  });
+
+  it("false on a bare canvas — no texture, no colour, no layers, no suppression", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: null,
+        bodyColor: undefined,
+        suppressVanilla: false,
+        layers: [],
+      }),
+    ).toBe(false);
   });
 });

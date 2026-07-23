@@ -7,10 +7,11 @@
  * cover the visual layer DOM snapshots can't (styled-components CSS, the
  * consumable meters paint, fonts).
  *
- * LifeSupportSystems reads flat `ls.*` keys off the `"data"` source, so these
- * render through the shared MockDataSource harness like the widget's own
- * index.test.tsx — no TelemetryProvider needed. Missing keys default to 0, so
- * the ledger always renders populated.
+ * LifeSupportSystems reads the canonical `kerbalism.lifesupport` Topic via
+ * useTelemetry, so the shared harness reshapes each fixture's flat `ls.*` keys
+ * onto that Topic payload and streams them through a mounted TelemetryProvider
+ * (setupStreamFixture) — see widgetDomSnapshot's kerbalism reshape. Missing
+ * keys default to 0, so the ledger always renders populated.
  *
  * If the widget output intentionally changes, regenerate with
  * `pnpm --filter @ksp-gonogo/components exec vitest run src/LifeSupportSystems/snapshots -u`.

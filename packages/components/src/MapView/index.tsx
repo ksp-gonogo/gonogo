@@ -11,6 +11,7 @@ import {
   getBody,
   getImagingWindow,
   latLonToMap,
+  onAugmentsChange,
   predictGroundTrack,
   registerComponent,
   splitOnLongitudeWrap,
@@ -66,7 +67,11 @@ import {
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
 import { groupBaseLayersByUplink } from "./orderBaseLayers";
-import { type BaseSurfaceLayer, paintBaseSurface } from "./paintBaseSurface";
+import {
+  type BaseSurfaceLayer,
+  baseSurfacePainted,
+  paintBaseSurface,
+} from "./paintBaseSurface";
 import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
@@ -571,6 +576,21 @@ function MapViewComponent({
     [],
   );
 
+  // Re-render (and so repaint) when the augment REGISTRY changes — an augment
+  // registers/deregisters for any slot. The `map-view.base` canvas path is
+  // already covered (a contributing augment calls `onLayer`, bumping
+  // baseLayerVersion), but the VanillaSuppressionProbe list below is built from
+  // `getAugmentsForSlot(...)` at render time with no subscription of its own —
+  // so a PURE-suppression augment (`suppressesVanillaBase` with no canvas, the
+  // spec's "hide vanilla, draw nothing" case) registered AFTER mount would get
+  // no probe, and its suppression wouldn't take effect until an unrelated
+  // repaint. Bumping baseLayerVersion on registry change refreshes both the
+  // probe list and the paint effect's `getAugmentsForSlot` read.
+  useEffect(
+    () => onAugmentsChange(() => setBaseLayerVersion((v) => v + 1)),
+    [],
+  );
+
   // Per-namespace augment settings for map-view.base/map-view.sections,
   // keyed by augment id — the same namespacing `getAugmentSettings` uses.
   // Read straight off this widget's saved config, populated by
@@ -710,13 +730,20 @@ function MapViewComponent({
     });
 
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel.
-    // A painted base surface — stock texture OR at least one active
-    // replacement layer — takes the light grid; a bare/washed (or fully
-    // suppressed-and-empty) canvas takes the dark one.
-    ctx.strokeStyle =
-      textureImage || orderedLayers.length > 0
-        ? "rgba(255,255,255,0.05)"
-        : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
+    // A painted base surface — stock texture / colour wash (only when NOT
+    // suppressed) OR at least one active layer — takes the light grid; a
+    // bare/washed OR fully suppressed-and-empty (deliberately black) canvas
+    // takes the dark one. Keyed off the same predicate paintBaseSurface uses,
+    // so it can't disagree with what was actually painted.
+    const surfacePainted = baseSurfacePainted({
+      textureImage,
+      bodyColor: body?.color,
+      suppressVanilla,
+      layers: orderedLayers,
+    });
+    ctx.strokeStyle = surfacePainted
+      ? "rgba(255,255,255,0.05)"
+      : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
     ctx.lineWidth = 1 / camera.zoom;
     for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
       const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
@@ -733,7 +760,7 @@ function MapViewComponent({
       ctx.stroke();
     }
 
-    ctx.strokeStyle = textureImage
+    ctx.strokeStyle = surfacePainted
       ? "rgba(255,255,255,0.15)"
       : canvasColor(canvas, "--color-border-subtle", "#2a2a2a");
     ctx.lineWidth = 1.5 / camera.zoom;
@@ -944,7 +971,11 @@ function MapViewComponent({
           break;
         }
       }
-      if (last !== null) {
+      if (
+        last !== null &&
+        Number.isFinite(last.lat) &&
+        Number.isFinite(last.lon)
+      ) {
         const { x: ex, y: ey } = adjustedMap(
           WORLD_W,
           WORLD_H,
@@ -1021,7 +1052,15 @@ function MapViewComponent({
 
     // The vessel marker is only meaningful when the mapped body is the
     // one the vessel is at — under a divergent bodyOverride, suppress it.
-    if (vesselOnThisBody && lat !== undefined && lon !== undefined) {
+    // Guard NaN lat/lon (bad frame) the same way the impact marker does, so a
+    // bad sample can't feed NaN into the projection.
+    if (
+      vesselOnThisBody &&
+      lat !== undefined &&
+      lon !== undefined &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lon)
+    ) {
       const { x: wx, y: wy } = adjustedMap(WORLD_W, WORLD_H, lat, lon);
       const { x, y } = worldToScreen(wx, wy, camera, w, h);
 
@@ -1319,8 +1358,6 @@ registerComponent<MapViewConfig>({
     "o.encounterTime",
     "o.nextApsisType",
     "o.timeToNextApsis",
-    "n.pitch",
-    "n.heading",
   ],
   defaultConfig: {
     trajectoryLength: 2000,

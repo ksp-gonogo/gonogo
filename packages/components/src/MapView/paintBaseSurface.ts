@@ -113,3 +113,26 @@ export function paintBaseSurface(
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
   }
 }
+
+/**
+ * Whether {@link paintBaseSurface} actually drew any surface pixels for these
+ * inputs: the stock texture / body-colour wash (only when NOT suppressed) OR at
+ * least one layer canvas. Mirrors the paint decision above exactly — the
+ * MapView grid-stroke keys its light-vs-dark choice off this so a
+ * suppressed-and-empty (deliberately black) map takes the DARK grid, even when
+ * a stock texture happens to still be loaded. Keying off `textureImage` alone
+ * (the old bug) drew a faint light grid on that black surface.
+ */
+export function baseSurfacePainted({
+  textureImage,
+  bodyColor,
+  suppressVanilla,
+  layers,
+}: Pick<
+  BaseSurfaceInput,
+  "textureImage" | "bodyColor" | "suppressVanilla" | "layers"
+>): boolean {
+  const vanillaPainted =
+    !suppressVanilla && (textureImage != null || bodyColor != null);
+  return vanillaPainted || layers.length > 0;
+}

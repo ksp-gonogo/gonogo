@@ -196,4 +196,82 @@ describe("LifeSupportSystemsComponent", () => {
     expect(await screen.findByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // Process-agnostic regression guard (audit 2026-07-22): the widget must render
+  // WHATEVER processes the profile carries, not a fixed stock id set. Ground
+  // truth from the crewed ROKerbalism capture (ro-fixtures/
+  // kerbalism-fixture-ro-crewed-orbit.json, ROC-MercuryCMBDB, 5 ProcessController
+  // processes) — 4 of the 5 are RO-specific and the old hardcoded lookup dropped
+  // them. This asserts all five render by their real titles.
+  it("renders every process the ROKerbalism profile carries (5 RO processes)", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("kerbalism.lifesupport", {
+        food: { amount: 1, capacity: 1, rate: -1e-5 },
+        water: { amount: 1, capacity: 1, rate: -1e-5 },
+        oxygen: { amount: 1, capacity: 1, rate: -1e-5 },
+        electricCharge: { amount: 400, capacity: 450, rate: -0.05 },
+        habitat: {
+          pressure: 1,
+          poisoning: 0,
+          shielding: 0,
+          livingSpace: 0.2,
+          comfort: 0.3,
+          volume: 2,
+          surface: 5,
+        },
+        processes: [
+          {
+            resource: "_PressureControlOxygen",
+            title: "O2 Pressure Controller",
+            capacity: 1,
+            running: true,
+            broken: false,
+          },
+          {
+            resource: "_NonRegenScrubber",
+            title: "Non Regen LiOH Scrubber",
+            capacity: 1.1,
+            running: true,
+            broken: false,
+          },
+          {
+            resource: "_Scrubber",
+            title: "LiOH Scrubber",
+            capacity: 1.1,
+            running: true,
+            broken: false,
+          },
+          {
+            resource: "_VacScrubber",
+            title: "Vac Scrubber",
+            capacity: 1.1,
+            running: true,
+            broken: false,
+          },
+          {
+            resource: "_AdvScrubber",
+            title: "Adv Vac Scrubber",
+            capacity: 1.1,
+            running: true,
+            broken: false,
+          },
+        ],
+      });
+    });
+    // All five RO process titles render — none dropped by a stock-id filter.
+    expect(
+      await screen.findByText("O2 Pressure Controller"),
+    ).toBeInTheDocument();
+    for (const title of [
+      "Non Regen LiOH Scrubber",
+      "LiOH Scrubber",
+      "Vac Scrubber",
+      "Adv Vac Scrubber",
+    ]) {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    }
+    // 5 running, 0 broken.
+    expect(screen.getByText(/5 \/ 5 running/)).toBeInTheDocument();
+  });
 });

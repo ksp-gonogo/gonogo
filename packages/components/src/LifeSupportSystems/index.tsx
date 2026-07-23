@@ -24,9 +24,12 @@ interface Consumable {
 type ProcessRunState = "idle" | "running" | "broken";
 
 interface ProcessRow {
+  /** The process resource id (unique React key), e.g. "_VacScrubber". */
   id: string;
+  /** Display title, e.g. "Vac Scrubber". */
   name: string;
   state: ProcessRunState;
+  capacity: number;
 }
 
 interface LifeSupportData {
@@ -38,7 +41,6 @@ interface LifeSupportData {
   co2Poisoning: number;
   comfort: number;
   livingSpace: number;
-  climatization: number;
   processes: ProcessRow[];
 }
 
@@ -56,47 +58,32 @@ function consumable(r: WireResource | undefined): Consumable {
   };
 }
 
-/** Match a live process to a display row by known resource id / title, deriving its run state. */
-function processRow(
-  id: string,
-  name: string,
-  processes: {
-    resource?: string;
-    title?: string;
-    running?: boolean;
-    broken?: boolean;
-  }[],
-): ProcessRow {
-  const p = processes.find(
-    (x) => x.resource === `_${idToResource(id)}` || x.title === name,
-  );
-  const state: ProcessRunState = p?.broken
-    ? "broken"
-    : p?.running
-      ? "running"
-      : "idle";
-  return { id, name, state };
+interface WireProcess {
+  resource?: string;
+  title?: string;
+  capacity?: number;
+  running?: boolean;
+  broken?: boolean;
 }
 
-/** Display id -> Kerbalism process resource stem (fixture `resource` is `_<Stem>`). */
-function idToResource(id: string): string {
-  switch (id) {
-    case "scrubber":
-      return "Scrubber";
-    case "waterRecycler":
-      return "WaterRecycler";
-    case "wasteProcessor":
-      return "WasteProcessor";
-    case "fuelCell":
-      return "MonopropFuelCell";
-    default:
-      return id;
-  }
+/**
+ * Map ONE live process to a display row, PROCESS-AGNOSTIC: whatever the profile
+ * carries (stock Scrubber/WaterRecycler/…, ROKerbalism _PressureControlOxygen/
+ * _NonRegenScrubber/_Scrubber/_VacScrubber/_AdvScrubber, or any future set) is
+ * rendered as-is from the data. Deliberately NOT a fixed stock id lookup — that
+ * dropped 4 of 5 RO processes (audit 2026-07-22, DECISIONS §RO "resource-agnostic").
+ */
+function toProcessRow(p: WireProcess, index: number): ProcessRow {
+  return {
+    id: p.resource || p.title || `process-${index}`,
+    name: p.title || p.resource || "Process",
+    state: p.broken ? "broken" : p.running ? "running" : "idle",
+    capacity: p.capacity ?? 0,
+  };
 }
 
 function useLifeSupport(): LifeSupportData {
   const t = useTelemetry("kerbalism.lifesupport");
-  const processes = t?.processes ?? [];
   return {
     food: consumable(t?.food),
     water: consumable(t?.water),
@@ -106,16 +93,10 @@ function useLifeSupport(): LifeSupportData {
     co2Poisoning: t?.habitat?.poisoning ?? 0,
     comfort: t?.habitat?.comfort ?? 0,
     livingSpace: t?.habitat?.livingSpace ?? 0,
-    // Climatization is a per-kerbal rule (rides kerbalism.crew, surfaced in the
-    // CrewManifest death-clock meters), not a vessel-level habitat value — the
-    // vessel LS ledger shows 0 here.
-    climatization: 0,
-    processes: [
-      processRow("scrubber", "Scrubber", processes),
-      processRow("waterRecycler", "Water recycler", processes),
-      processRow("wasteProcessor", "Waste processor", processes),
-      processRow("fuelCell", "Fuel cell", processes),
-    ],
+    // Climatization is deliberately NOT here: it's a per-kerbal survival rule
+    // (rides kerbalism.crew → CrewManifest death-clock meters), not a
+    // vessel-level habitat value, so this vessel widget doesn't surface it.
+    processes: (t?.processes ?? []).map(toProcessRow),
   };
 }
 
@@ -147,7 +128,9 @@ function fmtAmt(n: number): string {
 }
 
 function consumableFraction(c: Consumable): number {
-  return c.capacity > 0 ? c.amount / c.capacity : 0;
+  // Clamp to [0,1] — a transient amount>capacity (e.g. a tank overfill tick)
+  // would otherwise push the meter's aria-valuenow past 100.
+  return c.capacity > 0 ? Math.min(1, c.amount / c.capacity) : 0;
 }
 
 type Tone = "go" | "info" | "warn" | "nogo";
@@ -166,7 +149,7 @@ function levelTone(frac: number): Tone {
   return "nogo";
 }
 
-/** Higher value is worse (CO2 poisoning, climatization stress). */
+/** Higher value is worse (e.g. CO2 poisoning). */
 function riskTone(frac: number): Tone {
   if (frac >= 0.5) return "nogo";
   if (frac >= 0.2) return "warn";
@@ -196,7 +179,6 @@ function overallStatus(d: LifeSupportData): { label: string; tone: Tone } {
   const tones: Tone[] = [
     ...consumableTones,
     riskTone(d.co2Poisoning),
-    riskTone(d.climatization),
     processTone,
   ];
   if (tones.includes("nogo")) return { label: "Critical", tone: "nogo" };
@@ -241,6 +223,8 @@ function LifeSupportSystemsComponent({
       <HeaderRow>
         <PanelTitle>Life Support</PanelTitle>
         <Badge
+          role="status"
+          aria-live="polite"
           tone={
             status.tone === "go"
               ? "go"
@@ -310,12 +294,6 @@ function LifeSupportSystemsComponent({
               label="CO2 poisoning"
               value={d.co2Poisoning}
               tone={riskTone(d.co2Poisoning)}
-              size="sm"
-            />
-            <Meter
-              label="Climatization"
-              value={d.climatization}
-              tone={riskTone(d.climatization)}
               size="sm"
             />
           </HabitatGrid>
