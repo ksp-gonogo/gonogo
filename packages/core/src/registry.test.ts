@@ -93,12 +93,20 @@ describe("registerComponent / getComponent / getComponents", () => {
     expect(getComponents()[0]).toBe(mockComponent);
   });
 
-  it("overwrites a component registered with the same id", () => {
+  it("throws on a duplicate id from a different definition, naming the id + both names", () => {
     registerComponent(mockComponent);
-    const updated = { ...mockComponent, name: "Updated" };
-    registerComponent(updated);
-    expect(getComponent("test-component")?.name).toBe("Updated");
+    const clashing = { ...mockComponent, name: "Updated" };
+    expect(() => registerComponent(clashing)).toThrow(/test-component/);
+    // The original registration is left intact, not partially replaced.
+    expect(getComponent("test-component")).toBe(mockComponent);
     expect(getComponents()).toHaveLength(1);
+  });
+
+  it("does not throw when re-registering the exact same def (idempotent re-import)", () => {
+    registerComponent(mockComponent);
+    expect(() => registerComponent(mockComponent)).not.toThrow();
+    expect(getComponents()).toHaveLength(1);
+    expect(getComponent("test-component")).toBe(mockComponent);
   });
 });
 
@@ -111,6 +119,18 @@ describe("registerDataSource / getDataSources", () => {
 
   it("returns empty array when none are registered", () => {
     expect(getDataSources()).toHaveLength(0);
+  });
+
+  it("replaces a source registered under the same id, without throwing (intentional swap)", () => {
+    // Unlike components/themes, re-registering a data source under an existing
+    // id is a supported swap (live -> replay, PeerHost wrapping, station
+    // PeerClient replacement — see registerDataSource's doc comment). It must
+    // replace + notify, never throw.
+    registerDataSource(mockDataSource);
+    const swapped: DataSource = { ...mockDataSource, name: "Swapped" };
+    expect(() => registerDataSource(swapped)).not.toThrow();
+    expect(getDataSources()).toHaveLength(1);
+    expect(getDataSources()[0].name).toBe("Swapped");
   });
 });
 
@@ -126,6 +146,20 @@ describe("registerTheme / getTheme / getThemes", () => {
 
   it("returns all registered themes", () => {
     registerTheme(mockTheme);
+    expect(getThemes()).toHaveLength(1);
+  });
+
+  it("throws on a duplicate theme id from a different definition", () => {
+    registerTheme(mockTheme);
+    const clashing = { ...mockTheme, name: "Updated" };
+    expect(() => registerTheme(clashing)).toThrow(/test-theme/);
+    expect(getTheme("test-theme")).toBe(mockTheme);
+    expect(getThemes()).toHaveLength(1);
+  });
+
+  it("does not throw when re-registering the exact same theme def", () => {
+    registerTheme(mockTheme);
+    expect(() => registerTheme(mockTheme)).not.toThrow();
     expect(getThemes()).toHaveLength(1);
   });
 });

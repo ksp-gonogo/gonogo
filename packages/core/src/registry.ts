@@ -29,9 +29,30 @@ export function onDataSourcesChange(cb: () => void): () => void {
 
 // Generic so that component/defaultConfig pairing is checked at the call site,
 // but erased to AnyDef in the registry so the orchestrator can render any component.
+//
+// Ids share one flat namespace across every registered package, and a duplicate
+// id is a hard error (below). There is no formal per-package namespace: external
+// and uplink widgets SHOULD prefix their id with their package/mod slug
+// (a "foo" mod's widgets as `foo-status`, `foo-map`, …) to stay clear of the
+// built-ins and each other. The hard error enforces uniqueness; the prefix
+// convention is how you avoid tripping it.
 export function registerComponent<TConfig = Record<string, unknown>>(
   def: ComponentDefinition<TConfig>,
 ): void {
+  const existing = components.get(def.id);
+  if (existing !== undefined) {
+    // Re-registering the exact same def is a benign idempotent re-import (a
+    // module evaluated once still calls this once, but keep the guard so a
+    // repeated identical registration never throws). A DIFFERENT def under the
+    // same id is a real collision — two packages fighting for one id would
+    // otherwise silently clobber each other, an invisible latent bug in the
+    // self-registration extension model. Fail loud instead.
+    if (existing === (def as AnyDef)) return;
+    throw new Error(
+      `Component id "${def.id}" is already registered by "${existing.name}"; ` +
+        `"${def.name}" cannot re-use it. Component ids must be unique across all registered packages.`,
+    );
+  }
   logger.info(`REGISTERED ${def.name}`);
   components.set(def.id, def as AnyDef);
 }
@@ -54,6 +75,15 @@ export function unregisterDataSource(id: string): void {
 }
 
 export function registerTheme(def: ThemeDefinition): void {
+  const existing = themes.get(def.id);
+  if (existing !== undefined) {
+    // Same idempotent-vs-collision rule as registerComponent — see its comment.
+    if (existing === def) return;
+    throw new Error(
+      `Theme id "${def.id}" is already registered by "${existing.name}"; ` +
+        `"${def.name}" cannot re-use it. Theme ids must be unique across all registered packages.`,
+    );
+  }
   themes.set(def.id, def);
 }
 

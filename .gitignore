@@ -5,6 +5,10 @@ dist/
 .env
 .env.local
 .dev-build-cache/
+# `pnpm build` bundles the uplink clients into the app's static assets; it's
+# build output, not source. Left untracked it made a dev who built before
+# committing trip the pre-commit biome check on the bundled JS.
+packages/app/public/uplinks/
 coverage/
 .DS_Store
 memory/
