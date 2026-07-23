@@ -10,7 +10,7 @@ type SpaceWeatherConfig = Record<string, never>;
 //
 // Reads the real KerbalismUplink `kerbalism.spaceweather` Topic (canonical
 // one-arg useTelemetry — streams whenever a provider is mounted). Vessel
-// altitude (belt-ring placement) comes from the always-carried `vessel.orbit`.
+// altitude (belt-ring placement) comes from the `vessel.flight` channel.
 // The presentation below is a pure function of `SpaceWeatherData`, so the
 // offline snapshot harness feeds the same shape (see widgetDomSnapshot's
 // kerbalism reshape). This hook is the only data boundary.
@@ -21,7 +21,6 @@ type StormState = "none" | "incoming" | "inprogress";
 interface SpaceWeatherData {
   radiationRadPerHour: number;
   stormState: StormState;
-  stormTimeSec: number | null;
   innerBelt: boolean;
   outerBelt: boolean;
   magnetosphere: boolean;
@@ -41,11 +40,12 @@ function useSpaceWeather(): SpaceWeatherData {
     : t?.stormIncoming
       ? "incoming"
       : "none";
-  // Kerbalism's public API exposes storm PRESENCE (bools), not a storm clock,
-  // so there is no precise onset/clear countdown to show — see
-  // local_docs/spaceweather-widget-SPEC.md (storm_time [fixture-confirm]) and
-  // the fixtures README (storm states are synthesised). The timeline renders
-  // the phase without a numeric countdown.
+  // FUTURE: storm-ETA countdown. The mod emits storm PRESENCE only
+  // (stormIncoming/stormInProgress bools, KerbalismCapture.cs) — no onset/clear
+  // clock — so the timeline renders the phase WITHOUT a numeric countdown. A
+  // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
+  // timing internally / reflectable) surfaced on the Topic; the UI was designed
+  // for it, the data isn't wired. Tracked in local_docs/feature_log/.
   const radiationRadPerHour = (t?.radiationRadPerSecond ?? 0) * 3600; // API is rad/s
   const innerBelt = t?.innerBelt ?? false;
   const outerBelt = t?.outerBelt ?? false;
@@ -54,12 +54,12 @@ function useSpaceWeather(): SpaceWeatherData {
   return {
     radiationRadPerHour,
     stormState,
-    stormTimeSec: null,
     innerBelt,
     outerBelt,
     magnetosphere,
     blackout: t?.blackout ?? false,
     shieldingValue: t?.shieldingAmount ?? 0,
+    // (stormTimeSec removed — see the FUTURE note above.)
     shieldingCapacity: t?.shieldingCapacity ?? 1,
     altitudeKm: (flight?.altitudeAsl ?? 0) / 1000,
     // Deterministic noise seed derived from the weather state itself (stable
@@ -87,15 +87,6 @@ function mulberry32(seed: number): () => number {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-function formatDuration(sec: number): string {
-  const s = Math.max(0, Math.round(sec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  const ss = s % 60;
-  return m > 0 ? `${m}m ${ss}s` : `${ss}s`;
 }
 
 /** rad/h -> 0..1 on a log scale so background (~0.01) is still visible next to storm (~5). */
@@ -135,13 +126,7 @@ function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
 // Sub-sections (inline SVG — the harness rasterises SVG + a Playwright PNG)
 // ---------------------------------------------------------------------------
 
-function StormTimeline({
-  state,
-  timeSec,
-}: {
-  state: StormState;
-  timeSec: number | null;
-}) {
+function StormTimeline({ state }: { state: StormState }) {
   // Phases along a fixed axis: quiet | incoming | in-progress | passed.
   const phases = [
     { key: "quiet", label: "Quiet", tone: "go" as Tone, w: 34 },
@@ -151,11 +136,13 @@ function StormTimeline({
   ];
   // "now" marker position (0..100) by state.
   const nowPct = state === "none" ? 17 : state === "incoming" ? 45 : 67;
+  // Phase only — no numeric countdown (the mod emits storm presence, not a
+  // clock; see the FUTURE note in useSpaceWeather).
   const headline =
     state === "inprogress"
-      ? `Storm in progress${timeSec != null ? ` · clears in ${formatDuration(timeSec)}` : ""}`
+      ? "Storm in progress"
       : state === "incoming"
-        ? `CME inbound · impact in ${timeSec != null ? formatDuration(timeSec) : "—"}`
+        ? "CME inbound"
         : "No storm activity";
   let acc = 0;
   return (
@@ -229,8 +216,17 @@ function BeltRings({
     { r: 40, tone: "warn" as Tone, label: "Outer belt", active: outer },
     { r: 26, tone: "nogo" as Tone, label: "Inner belt", active: inner },
   ];
-  // Vessel radius in box units: map altitude 0..8000km across body(12)..pause(48).
-  const vr = 12 + Math.min(1, Math.max(0, altitudeKm / 8000)) * 36;
+  // Vessel radius in box units. When the vessel is IN a belt, snap the dot onto
+  // that belt's ring so the "you are here" dot sits on the lit band (the belt
+  // bool is authoritative for membership; the ring radii are fixed visual
+  // bands, not an altitude scale). Outside any belt, fall back to the altitude
+  // map (0..8000km across body(12)..pause(48)) — correct for the low-orbit /
+  // between-bands case.
+  const vr = inner
+    ? 26
+    : outer
+      ? 40
+      : 12 + Math.min(1, Math.max(0, altitudeKm / 8000)) * 36;
   const vesselTone: Tone = inner
     ? "nogo"
     : outer
@@ -356,6 +352,8 @@ function SpaceWeatherComponent({
       <HeaderRow>
         <PanelTitle>Space Weather</PanelTitle>
         <Badge
+          role="status"
+          aria-live="polite"
           tone={
             status.tone === "go"
               ? "go"
@@ -368,7 +366,7 @@ function SpaceWeatherComponent({
         </Badge>
       </HeaderRow>
 
-      <StormTimeline state={d.stormState} timeSec={d.stormTimeSec} />
+      <StormTimeline state={d.stormState} />
 
       <MidRow $compact={compact}>
         <RingsSlot>

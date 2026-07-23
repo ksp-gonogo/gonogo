@@ -34,4 +34,5 @@ export * from "./ToggleButton";
 export * from "./themes/defaultDark";
 export * from "./useElementSize";
 export * from "./VersionMismatchBanner";
+export * from "./VisuallyHidden";
 export * from "./WidgetHeader";

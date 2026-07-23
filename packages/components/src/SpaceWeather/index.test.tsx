@@ -125,6 +125,26 @@ describe("SpaceWeatherComponent", () => {
     expect(screen.getByText("Comms blackout")).toBeInTheDocument();
   });
 
+  it("shows a CME-inbound headline and Exposed status when a storm is incoming", async () => {
+    renderWidget();
+    emit({ ...NOMINAL, stormState: 1 });
+    expect(await screen.findByText("CME inbound")).toBeInTheDocument();
+    expect(screen.getByText("Exposed")).toBeInTheDocument();
+  });
+
+  it("announces the mission-state via a polite live region", async () => {
+    renderWidget();
+    emit(STORM_PEAK);
+    // Wait for the storm state to propagate before reading the badge (the
+    // pre-emit render shows the default "Unshielded").
+    await screen.findByText("5.00 rad/h");
+    // The status badge is the discrete mission-state announcement (label
+    // changes only on a state transition, not every telemetry tick).
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Take cover");
+    expect(status).toHaveAttribute("aria-live", "polite");
+  });
+
   it("has no axe violations", async () => {
     const { container } = renderWidget();
     emit(INNER_BELT);

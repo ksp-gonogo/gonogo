@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "dark-side-drain",
-    "notes": "On the night side of Kerbin — solar panels deployed but shaded, producing zero. RTG still running. Shows the idle section (solar panels with nominalFlow but flow=0). Net negative from RTG-only production minus base draw."
+    "notes": "On the night side of Kerbin — solar panels deployed but shaded, producing zero. RTG still running (+0.75). Command pod + reaction wheel holding attitude on batteries draw 0.90, exceeding the RTG, so NET is negative (-0.15/s) and the battery drains. Shows the idle section (shaded solar panels with nominalFlow but flow=0)."
   },
   "v.topologySeq": 4,
   "v.topology": {
@@ -99,7 +99,7 @@
     "ElectricCharge": {
       "amount": 50.0,
       "maxAmount": 50.0,
-      "flow": -0.05
+      "flow": -0.9
     }
   },
   "r.resourceFor[1002]": {

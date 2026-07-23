@@ -4,7 +4,6 @@
   },
   "sw.radiationRadPerHour": 0.5,
   "sw.stormState": 1,
-  "sw.stormTimeSec": 1800,
   "sw.innerBelt": 0,
   "sw.outerBelt": 0,
   "sw.magnetosphere": 1,

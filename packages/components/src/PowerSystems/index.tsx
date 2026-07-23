@@ -25,6 +25,7 @@ import {
   Sparkline,
   StreamStatusBadge,
   useModalSaveBar,
+  VisuallyHidden,
 } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -154,12 +155,15 @@ function PowerSystemsComponent({
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
-  // Re-seed the selection when the config default changes (Save in the
-  // config modal). The user's in-widget pick stays sticky during a session
-  // until they explicitly change it, since `setResource` overrides this on
-  // subsequent renders.
+  // Tracks whether the operator has made an explicit in-widget pick this
+  // session. Once they have, the pick is sticky even if that resource's flow
+  // transiently vanishes (e.g. an engine cuts off) — the auto-jump below only
+  // fires for a never-picked default. A config-default change resets it (a
+  // fresh starting point re-enables the auto-jump helper).
+  const [userPicked, setUserPicked] = useState(false);
   useEffect(() => {
     setResource(defaultResource);
+    setUserPicked(false);
   }, [defaultResource]);
 
   // Resources that have a live `flow` contribution across the vessel.
@@ -175,15 +179,30 @@ function PowerSystemsComponent({
     return Array.from(set).sort();
   }, [liveByFlightId]);
 
-  // Make sure the selected resource is always one with data when it's
-  // available — if the current pick has no contributions but others do,
-  // jump to the first that does. (Common at vessel-swap.)
+  // Auto-pick a resource with data when the operator hasn't chosen one — if
+  // the (default) pick has no contributions but others do, jump to the first
+  // that does. Skipped once the operator has explicitly picked, so a
+  // deliberate choice survives a transient flow dropout (engine cutoff) rather
+  // than being silently reset out from under them.
   useEffect(() => {
+    if (userPicked) return;
     if (resourcesWithFlow.length === 0) return;
     if (!resourcesWithFlow.includes(resource)) {
       setResource(resourcesWithFlow[0]);
     }
-  }, [resourcesWithFlow, resource]);
+  }, [resourcesWithFlow, resource, userPicked]);
+
+  // Picker options: the resources with live flow, PLUS the current pick even if
+  // its flow has transiently vanished — so a deliberate pick stays visible and
+  // selected in the dropdown instead of falling back to the browser's first
+  // option.
+  const pickerResources = useMemo(
+    () =>
+      resourcesWithFlow.includes(resource)
+        ? resourcesWithFlow
+        : [...resourcesWithFlow, resource].sort(),
+    [resourcesWithFlow, resource],
+  );
 
   useActionInput<PowerSystemsActions>({
     cycleResource: (payload) => {
@@ -192,6 +211,7 @@ function PowerSystemsComponent({
       const idx = resourcesWithFlow.indexOf(resource);
       const next = resourcesWithFlow[(idx + 1) % resourcesWithFlow.length];
       setResource(next);
+      setUserPicked(true);
       return { resource: next };
     },
   });
@@ -391,16 +411,37 @@ function PowerSystemsComponent({
         </HeaderTitle>
         <ResourceSelect
           value={resource}
-          onChange={(e) => setResource(e.target.value)}
+          onChange={(e) => {
+            setResource(e.target.value);
+            setUserPicked(true);
+          }}
           aria-label="Resource"
         >
-          {resourcesWithFlow.map((name) => (
+          {pickerResources.map((name) => (
             <option key={name} value={name}>
               {name}
             </option>
           ))}
         </ResourceSelect>
       </Header>
+
+      {/* Discrete power-state announcement for assistive tech — the visible NET
+          readout communicates surplus/deficit through colour + a ticking
+          number; this narrates the state word and updates only when the state
+          flips (kept out of the ticking value so it doesn't flood). */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {netTone === "go"
+          ? "Power surplus"
+          : netTone === "warn"
+            ? "Power deficit"
+            : "Power balanced"}
+      </VisuallyHidden>
+
+      {contributions.length === 0 && (
+        <PanelSubtitle role="status">
+          No active {splitCamel(resource)} flow right now.
+        </PanelSubtitle>
+      )}
 
       <Totals>
         <NetCell $tone={netTone}>
