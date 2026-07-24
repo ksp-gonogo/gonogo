@@ -149,7 +149,7 @@ describe("a11y smoke (jest-axe)", () => {
           { value: 180, label: "S" },
           { value: 270, label: "W" },
         ]}
-        zones={[{ from: 60, to: 120, color: "var(--color-warn-fg, #d9a441)" }]}
+        zones={[{ from: 60, to: 120, color: "var(--color-status-warning-fg)" }]}
         ariaLabel="Slope fall direction"
       />,
     );

@@ -435,6 +435,7 @@ registerComponent<LandingStatusConfig>({
     "vessel.surface",
     "vessel.propulsion",
     "vessel.control",
+    "vessel.landing",
     "dv.summary",
     "comms.delay",
   ],

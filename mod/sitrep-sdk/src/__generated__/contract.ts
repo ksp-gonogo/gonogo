@@ -1264,6 +1264,30 @@ export interface VesselIdentity
 	launchUt?: number;
 	meta: PayloadMeta;
 }
+export interface VesselLanding
+{
+	outcome?: string;
+	terrainElevationUnderVessel?: number;
+	slopeAngleUnderVessel?: number;
+	predictedLatitude?: number;
+	predictedLongitude?: number;
+	predictedTerrainElevation?: number;
+	predictedSlopeAngle?: number;
+	predictedSlopeHeading?: number;
+	predictedRoughness?: number;
+	roughnessFootprintMeters?: number;
+	slopeSampleRadiusMeters?: number;
+	predictedBiome?: string;
+	terrainPatch?: number[];
+	terrainPatchSize?: number;
+	terrainPatchExtentMeters?: number;
+	terminalVelocity?: number;
+	projectedTouchdownSpeed?: number;
+	atmosphericTimeToImpact?: number;
+	descentRegime?: string;
+	parachuteState?: string;
+	meta: PayloadMeta;
+}
 export interface ManeuverNode
 {
 	id: string;

@@ -7,9 +7,9 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The <c>vessel.landing</c> channel payload — terrain-informed landing data
 /// that needs KSP's PQS heightmap, which no client-side derivation can source
-/// (the only client candidate, SCANsat's 1x1-degree height grid, is coarser
-/// than a lander-scale slope by orders of magnitude), plus an atmosphere-aware
-/// descent estimate that needs per-part drag the client does not have.
+/// (no client-side height grid is anywhere near fine-grained enough for a
+/// lander-scale slope), plus an atmosphere-aware descent estimate that needs
+/// per-part drag the client does not have.
 ///
 /// <para>Distinct from the client-derived vacuum ballistic scalars (the
 /// LandingStatus widget's own <c>solveSuicideBurn</c>), which need no terrain

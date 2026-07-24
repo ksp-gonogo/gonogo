@@ -71,7 +71,7 @@ export function DescentScope({
           {
             from: 0,
             to: ignition,
-            color: "var(--color-alert-fg, #e0533d)",
+            color: "var(--color-status-nogo-fg)",
             label: "burn",
           },
         ]
@@ -110,9 +110,9 @@ export function DescentScope({
           width={110}
           height={70}
           zones={[
-            { from: 0, to: 1, color: "var(--color-alert-fg, #e0533d)" },
-            { from: 1, to: 1.5, color: "var(--color-warn-fg, #d9a441)" },
-            { from: 1.5, to: 3, color: "var(--color-go-fg, #4bd07a)" },
+            { from: 0, to: 1, color: "var(--color-status-nogo-fg)" },
+            { from: 1, to: 1.5, color: "var(--color-status-warning-fg)" },
+            { from: 1.5, to: 3, color: "var(--color-status-go-fg)" },
           ]}
           valueLabel={twr == null ? "—" : twr.toFixed(2)}
           unitLabel="TWR"
@@ -195,7 +195,7 @@ function VelocityVector({
         y1={oy}
         x2={ox + dx}
         y2={oy}
-        stroke="var(--color-warn-fg, #d9a441)"
+        stroke="var(--color-status-warning-fg)"
         strokeWidth={2}
       />
       {/* resultant */}
@@ -221,7 +221,7 @@ function VelocityVector({
         y={oy - 3}
         fontSize={8}
         textAnchor="end"
-        fill="var(--color-warn-fg, #d9a441)"
+        fill="var(--color-status-warning-fg)"
       >
         {fmtSpeed(horizontal)}
       </text>

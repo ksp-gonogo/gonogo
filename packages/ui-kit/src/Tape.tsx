@@ -160,7 +160,7 @@ export function Tape({
                 y={yHi}
                 width={TRACK_W}
                 height={h}
-                fill={z.color ?? "var(--color-warn-fg, #d9a441)"}
+                fill={z.color ?? "var(--color-status-warning-fg)"}
                 opacity={0.55}
               />
               {z.label && (
