@@ -1334,6 +1334,12 @@ export interface VesselPart
 	fuelLineTargetId?: string;
 	resources: { [key:string]: PartResourceFlow };
 	moduleStates: PartModuleState[];
+	actionBindings: ActionBinding[];
+}
+export interface ActionBinding
+{
+	action: string;
+	groups: string[];
 }
 export interface PartResourceFlow
 {

@@ -75,7 +75,7 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
  * isn't a selectable option at all. Mount the minimal real stream carrying the
  * ten stock customs, exactly as the mod sends them.
  */
-function renderWithControlStream(ui: React.ReactElement) {
+function renderWithControlStream(ui: React.ReactElement, parts?: unknown) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const store = new TimelineStore(
@@ -90,7 +90,7 @@ function renderWithControlStream(ui: React.ReactElement) {
     <TelemetryProvider
       client={client}
       store={store}
-      carriedChannels={new Set(["vessel.control"])}
+      carriedChannels={new Set(["vessel.control", "vessel.parts"])}
     >
       {ui}
     </TelemetryProvider>,
@@ -105,6 +105,9 @@ function renderWithControlStream(ui: React.ReactElement) {
         state: false,
       })),
     });
+    if (parts !== undefined) {
+      transport.emit("vessel.parts", parts);
+    }
     store.beginFrame();
   });
   return result;
@@ -138,6 +141,39 @@ describe("AlarmsModal onFire editor", () => {
     expect(onAdd.mock.calls[0][0].onFire).toEqual([
       { kind: "action-group", action: "f.ag1" },
     ]);
+  });
+
+  it("derives the action-group caption from the parts tree (vessel.parts actionBindings)", async () => {
+    renderWithControlStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      // One part with an action bound to Custom01 (== the f.ag1 toggle) — the
+      // caption now derives from this, not the retired f.ag.bindings shim.
+      {
+        parts: [
+          {
+            id: "1",
+            name: "solarPanel",
+            title: "OX-4L Solar Panel",
+            actionBindings: [
+              { action: "Toggle Solar Panel", groups: ["Custom01"] },
+            ],
+          },
+        ],
+        meta: {},
+      },
+    );
+
+    // The AG1 option's caption is derived from the part's actionBindings
+    // (Custom01 -> "Toggle Solar Panel"), proving the shim replacement works.
+    await screen.findByLabelText(/action group to fire/i);
+    await screen.findByRole("option", {
+      name: /AG1 \(f\.ag1\) — Toggle Solar Panel/,
+    });
   });
 
   it("clears an attached action with × and forwards onFire: [] to onUpdate", async () => {

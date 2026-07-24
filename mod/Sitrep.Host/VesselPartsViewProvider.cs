@@ -113,7 +113,38 @@ namespace Sitrep.Host
                 FuelLineTargetId = GetString(raw, "fuelLineTargetId"),
                 Resources = MapResources(raw),
                 ModuleStates = MapModuleStates(raw),
+                ActionBindings = MapActionBindings(raw),
             };
+        }
+
+        private static List<ActionBinding> MapActionBindings(IDictionary<string, object?> raw)
+        {
+            var result = new List<ActionBinding>();
+            if (raw.TryGetValue("actionBindings", out var rawBindings) && rawBindings is IEnumerable<object?> list)
+            {
+                foreach (var entry in list)
+                {
+                    if (entry is IDictionary<string, object?> row)
+                    {
+                        var groups = new List<string>();
+                        if (row.TryGetValue("groups", out var rawGroups) && rawGroups is IEnumerable<object?> g)
+                        {
+                            foreach (var name in g)
+                            {
+                                if (name is string s) groups.Add(s);
+                            }
+                        }
+
+                        result.Add(new ActionBinding
+                        {
+                            Action = GetString(row, "action") ?? "",
+                            Groups = groups,
+                        });
+                    }
+                }
+            }
+
+            return result;
         }
 
         private static Dictionary<string, PartResourceFlow> MapResources(IDictionary<string, object?> raw)
@@ -228,6 +259,13 @@ namespace Sitrep.Host
             ["fuelLineTargetId"] = part.FuelLineTargetId,
             ["resources"] = part.Resources.ToDictionary(kvp => kvp.Key, kvp => (object?)ToWire(kvp.Value)),
             ["moduleStates"] = part.ModuleStates.Select(m => (object?)ToWire(m)).ToList(),
+            ["actionBindings"] = part.ActionBindings.Select(b => (object?)ToWire(b)).ToList(),
+        };
+
+        private static Dictionary<string, object?> ToWire(ActionBinding binding) => new Dictionary<string, object?>
+        {
+            ["action"] = binding.Action,
+            ["groups"] = binding.Groups.Select(g => (object?)g).ToList(),
         };
 
         private static Dictionary<string, object?> ToWire(PartResourceFlow row) => new Dictionary<string, object?>

@@ -226,7 +226,16 @@ namespace Sitrep.Contract
         /// A brand-new <c>[SitrepContract]</c> type only, nothing removed or
         /// retyped, so it cannot break an Uplink built against an older Minor. See
         /// <c>docs/superpowers/plans/2026-07-22-avionics-uplink.md</c>.</para>
+        ///
+        /// <para>Major-4 line, Bumped 5 -&gt; 6: additive-only Minor adding
+        /// <see cref="VesselPart.ActionBindings"/> (a new <c>List&lt;ActionBinding&gt;</c>
+        /// field on the existing <see cref="VesselPart"/>) + the brand-new
+        /// <see cref="ActionBinding"/> <c>[SitrepContract]</c> type — per-action
+        /// action-group bindings in the parts tree, retiring the legacy
+        /// <c>f.ag.bindings</c> shim read. A NEW field on an existing wire type +
+        /// a new type is additive (never removes/renames/retypes a member), so it
+        /// cannot break an Uplink built against an older Minor.</para>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

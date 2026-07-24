@@ -3955,7 +3955,70 @@ namespace Gonogo.KSP
                 ["fuelLineTargetId"] = FuelLineTargetId(part),
                 ["resources"] = BuildPartResources(part),
                 ["moduleStates"] = BuildPartModuleStates(part),
+                ["actionBindings"] = BuildActionBindings(part),
             };
+        }
+
+        // The named KSPActionGroup members a part action can be bound to, in
+        // canonical order (None / REPLACEWITHDEFAULT are deliberately excluded —
+        // they aren't real groups). Emitted as their enum-name strings, matching
+        // the client's kspActionGroupName vocabulary.
+        private static readonly KSPActionGroup[] NamedActionGroups =
+        {
+            KSPActionGroup.Stage, KSPActionGroup.Gear, KSPActionGroup.Light,
+            KSPActionGroup.RCS, KSPActionGroup.SAS, KSPActionGroup.Brakes,
+            KSPActionGroup.Abort,
+            KSPActionGroup.Custom01, KSPActionGroup.Custom02, KSPActionGroup.Custom03,
+            KSPActionGroup.Custom04, KSPActionGroup.Custom05, KSPActionGroup.Custom06,
+            KSPActionGroup.Custom07, KSPActionGroup.Custom08, KSPActionGroup.Custom09,
+            KSPActionGroup.Custom10,
+        };
+
+        /// <summary>
+        /// Per-action action-group bindings for the parts tree — one entry per
+        /// part action bound to at least one action group. <c>BaseAction.actionGroup</c>
+        /// is a <see cref="KSPActionGroup"/> Flags bitmask; decode it to the named
+        /// groups (Custom01…, SAS, Brakes, …) + the action's <c>guiName</c>.
+        /// Actions bound to no group are omitted. Retires the legacy
+        /// <c>f.ag.bindings</c> shim.
+        /// </summary>
+        private static List<object?> BuildActionBindings(Part part)
+        {
+            var result = new List<object?>();
+            if (part.Actions == null)
+            {
+                return result;
+            }
+
+            foreach (var action in part.Actions)
+            {
+                if (action == null)
+                {
+                    continue;
+                }
+
+                var groups = new List<object?>();
+                foreach (var group in NamedActionGroups)
+                {
+                    if ((action.actionGroup & group) == group)
+                    {
+                        groups.Add(group.ToString());
+                    }
+                }
+
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
+                result.Add(new Dictionary<string, object?>
+                {
+                    ["action"] = action.guiName ?? "",
+                    ["groups"] = groups,
+                });
+            }
+
+            return result;
         }
 
         /// <summary>

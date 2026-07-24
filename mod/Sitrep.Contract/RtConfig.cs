@@ -219,6 +219,9 @@ public static class RtConfig
                 // gap-close — un-gaps usePartsLive off the legacy source)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),
+                // vessel.parts per-part action-group bindings (retires the
+                // f.ag.bindings shim)
+                typeof(ActionBinding),
                 // spaceCenter.launchSites / spaceCenter.scene (P1b)
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),
