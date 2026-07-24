@@ -61,6 +61,12 @@ export {
   type DataKeyPickerProps,
   type KeyOption,
 } from "./DataKeyPicker";
+export {
+  Dial,
+  type DialProps,
+  type DialTick,
+  type DialZone,
+} from "./Dial";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,

@@ -5,6 +5,7 @@ import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
+import { Dial } from "./Dial";
 import { EmptyState } from "./EmptyState";
 import { Grid } from "./Grid";
 import { Panel, PanelTitle } from "./Panel";
@@ -128,6 +129,28 @@ describe("a11y smoke (jest-axe)", () => {
         zones={[{ from: 400, to: 900, label: "ignition" }]}
         markers={[{ value: 150, label: "gear" }]}
         ariaLabel="Altitude above terrain"
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Dial has no axe violations (compass with zones + ticks)", async () => {
+    const { container } = render(
+      <Dial
+        value={135}
+        min={0}
+        max={360}
+        wrap
+        unit="°"
+        ticks={[
+          { value: 0, label: "N" },
+          { value: 90, label: "E" },
+          { value: 180, label: "S" },
+          { value: 270, label: "W" },
+        ]}
+        zones={[{ from: 60, to: 120, color: "var(--color-warn-fg, #d9a441)" }]}
+        ariaLabel="Slope fall direction"
       />,
     );
     const results = await axe(container);
