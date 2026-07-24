@@ -1,5 +1,7 @@
 import {
+  getDataSource,
   getSettingsTabsForScreen,
+  getUplinkHandle,
   NO_TELEMETRY_HOST_MESSAGE,
   useDataSources,
   useScreen,
@@ -36,8 +38,8 @@ import {
 } from "../uplinks/loaderState";
 import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
 import { useUplinkGap } from "../wizard/useUplinkGap";
-import type { SettingDefinition } from "./registry";
-import { getSetting, getSettingsForScreen } from "./registry";
+import type { SettingDefinition, SourceBackedSetting } from "./registry";
+import { getSettingDefinition, getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
 import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
 
@@ -409,19 +411,55 @@ function AnalyticsConsentRow() {
 }
 
 function SettingRow({ def }: { def: SettingDefinition }) {
-  // Only boolean is defined today. Switch renders inline; its own <label>
-  // wrapper supplies the accessible name, and we render the long-form
-  // description alongside.
-  if (def.type === "boolean") {
-    return <BooleanRow def={def} />;
+  // Split by BACKING at the component boundary (not a conditional hook): a
+  // source-backed row reads/writes a DataSource via useSyncExternalStore, a
+  // client-pref row reads/writes localStorage via useSetting. Each row calls
+  // exactly one hook path, so rules-of-hooks stays honest.
+  if (def.backing === "source-backed") {
+    return <SourceBackedRow def={def} />;
   }
-  return null;
+  return <ClientPrefRow def={def} />;
 }
 
-function BooleanRow({
+/**
+ * A source-backed setting's row. Its value lives on the Uplink's `DataSource`
+ * (looked up by `sourceId`), read/written through the client-supplied binding
+ * closures — NEVER through `SettingsService`/localStorage. When the source
+ * isn't registered the row renders inert (disabled) rather than crashing —
+ * the same graceful-absence posture an absent-source-gated surface has.
+ */
+function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
+  // An Uplink's source is looked up first in the uplink-handle registry —
+  // where Uplink singletons register (via `registerUplinkHandle`) — then the
+  // DataSource registry as a fallback for sources registered that way.
+  const source: unknown =
+    getUplinkHandle(def.sourceId) ?? getDataSource(def.sourceId);
+  const value = useSyncExternalStore(
+    (cb) => (source ? def.subscribe(source, cb) : () => {}),
+    () => (source ? def.read(source) : false),
+  );
+  return (
+    <Row>
+      <RowText>
+        <RowLabel>{def.label}</RowLabel>
+        {def.description && <RowDesc>{def.description}</RowDesc>}
+      </RowText>
+      <Switch
+        checked={value}
+        onChange={(next) => {
+          if (source) def.write(source, next);
+        }}
+        disabled={source === undefined}
+        aria-label={def.label}
+      />
+    </Row>
+  );
+}
+
+function ClientPrefRow({
   def,
 }: {
-  def: Extract<SettingDefinition, { type: "boolean" }>;
+  def: Extract<SettingDefinition, { backing?: "client-pref" }>;
 }) {
   const [value, setValue] = useSetting<boolean>(def.id, def.defaultValue);
   // `dependsOn` is a rendering-only hint (see its doc comment in
@@ -430,10 +468,15 @@ function BooleanRow({
   // toggles off — no registry-level enforcement, just an honest reflection
   // of what the consuming hook (e.g. `useMissionHistorySettings`) actually
   // does with these two values.
-  const parent = def.dependsOn ? getSetting(def.dependsOn) : undefined;
+  const parent = def.dependsOn
+    ? getSettingDefinition(def.dependsOn)
+    : undefined;
+  // A dependsOn parent is a client-pref boolean by construction (its value
+  // lives in localStorage, which is what this row reads); a source-backed
+  // setting has no localStorage default, so fall back to "on".
   const [parentValue] = useSetting<boolean>(
     def.dependsOn ?? "__no_parent__",
-    parent?.type === "boolean" ? parent.defaultValue : true,
+    parent && parent.backing !== "source-backed" ? parent.defaultValue : true,
   );
   const inert = def.dependsOn !== undefined && !parentValue;
 

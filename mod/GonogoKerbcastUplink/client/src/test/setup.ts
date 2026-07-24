@@ -6,10 +6,12 @@ import {
   PerfBudget,
   registerAugment,
   registerComponent,
+  registerSetting,
   registerSettingsTab,
   registerUplinkHandle,
   subscribeSetting,
   useActionInput,
+  useSetting,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
@@ -42,12 +44,14 @@ installTestHost({
     typeof installTestHost
   >[0]["registerAugment"],
   registerComponent,
+  registerSetting,
   registerSettingsTab,
   registerUplinkHandle: registerUplinkHandle as Parameters<
     typeof installTestHost
   >[0]["registerUplinkHandle"],
   subscribeSetting,
   useActionInput,
+  useSetting,
   useTelemetry,
   useViewClockOptional,
 });

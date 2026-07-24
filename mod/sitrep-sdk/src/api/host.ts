@@ -30,6 +30,7 @@ import type {
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  SettingDefinition,
   SettingsTabDefinition,
   TelemetryClient,
   ThemeDefinition,
@@ -164,6 +165,22 @@ export interface GonogoHost {
 
   /** Register (or replace) a full custom Settings-modal tab. */
   registerSettingsTab(def: SettingsTabDefinition): void;
+
+  /**
+   * Register (or replace) a declarative setting the app renders in its Settings
+   * surface — the PREFERRED path over a custom tab. A client-pref setting
+   * persists to localStorage; a source-backed one reads/writes the Uplink's
+   * own `DataSource` (see `SettingDefinition`).
+   */
+  registerSetting(def: SettingDefinition): void;
+  /**
+   * Reactive read of a client-pref setting by key — `[value, setValue]`, the
+   * value persisted via the app's `SettingsService`. This is the hook a
+   * consumer uses to gate on a kill-switch etc. Source-backed settings are not
+   * read through here (their value lives on a `DataSource`); the Settings UI
+   * renders those with a dedicated source-bound row.
+   */
+  useSetting<T>(key: string, defaultValue: T): [T, (v: T) => void];
 
   /**
    * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or

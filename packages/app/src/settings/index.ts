@@ -7,12 +7,14 @@ export {
 } from "./missionHistorySettings";
 export {
   __clearSettingsForTests,
+  type ClientPrefSetting,
   getAllSettings,
-  getSetting,
+  getSettingDefinition,
   getSettingsForScreen,
   registerSetting,
   type SettingDefinition,
   type SettingType,
+  type SourceBackedSetting,
 } from "./registry";
 export {
   SettingsProvider,

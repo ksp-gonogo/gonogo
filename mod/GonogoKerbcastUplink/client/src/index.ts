@@ -43,6 +43,10 @@ export {
   useDelayedKerbcastStream,
   useDelayedPlaybackStatus,
 } from "./CameraFeed/useDelayedKerbcastStream";
+// The embedded-facecam kill-switch gate (read-path stub; not yet wired into a
+// slot — see its own header). Exported so the eventual crew-manifest.avatar
+// wiring is a drop-in.
+export { KerbcastAvatarAugment } from "./CrewAvatarGate";
 export type { LabelableCamera } from "./cameraLabels";
 export { buildCameraLabeler } from "./cameraLabels";
 // The generic delayed-media infrastructure (DelayedPlayoutBuffer, the
@@ -77,7 +81,6 @@ export {
 } from "./KerbcastEventProducer";
 export type { CameraLifecycle } from "./lifecycle";
 export { getCameraLifecycle } from "./lifecycle";
-export { KerbcastSettings } from "./settings/KerbcastSettings";
 
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps
@@ -86,4 +89,4 @@ import "./topics"; // registerBarePrimitiveTopic("kerbcast.available") + TopicPa
 import "./KerbcastDataSource";
 import "./CameraFeed";
 import "./DockingCameraAugment";
-import "./settings/KerbcastSettings";
+import "./settings/registerKerbcastSettings"; // registerSetting × 2 (declarative "Kerbcast" category)

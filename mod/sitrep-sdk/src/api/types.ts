@@ -415,6 +415,52 @@ export interface SettingsTabDefinition {
   screens?: readonly Screen[];
 }
 
+// --- Declarative settings ---------------------------------------------------
+
+/**
+ * Mirrors `packages/core/src/settings/registry.ts`'s `SettingDefinition` — same
+ * leaf constraint (the sdk cannot import core). `registerSetting` is the
+ * PREFERRED way an Uplink surfaces a setting: a declarative row the app renders
+ * and (for client-pref) persists, without a bespoke tab. Reach for
+ * `registerSettingsTab` only when a setting's UI genuinely can't be a row.
+ */
+export type SettingType = "boolean";
+
+export interface SettingDefinitionBase {
+  id: string;
+  label: string;
+  description?: string;
+  category: string;
+  /** Which screens this setting is relevant on. Omit for both. */
+  screens?: readonly Screen[];
+  /** Id of a parent boolean setting this one nests under (rendering hint). */
+  dependsOn?: string;
+}
+
+/** localStorage-backed preference — pure gonogo-side, no mod round-trip. */
+export interface ClientPrefSetting extends SettingDefinitionBase {
+  backing?: "client-pref";
+  type: "boolean";
+  defaultValue: boolean;
+}
+
+/**
+ * Source-backed setting — value lives on the Uplink's `DataSource` (by
+ * `sourceId`), read/written through the client-supplied binding closures, never
+ * localStorage. The registry stores them type-erased (`source: unknown`); the
+ * client casts to the concrete source type it owns.
+ */
+export interface SourceBackedSetting extends SettingDefinitionBase {
+  backing: "source-backed";
+  type: "boolean";
+  sourceId: string;
+  read: (source: unknown) => boolean;
+  write: (source: unknown, value: boolean) => void;
+  subscribe: (source: unknown, cb: () => void) => () => void;
+}
+
+export type SettingDefinition = ClientPrefSetting | SourceBackedSetting;
+
 // --- Telemetry client (sitrep-client) SPI ------------------------------------
 //
 // Same leaf constraint as `StreamStatusValue` below: `TelemetryClient` is
