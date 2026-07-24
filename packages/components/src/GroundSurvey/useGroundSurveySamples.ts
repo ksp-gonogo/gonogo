@@ -110,6 +110,13 @@ export function useGroundSurveySamples(
 ): SurveyResult {
   const cfg = { ...DEFAULT_OPTS, ...opts };
   const flight = useTelemetry("vessel.flight");
+  // Prefer the mod's lowest-point-to-ground reading (`vessel.surface`) — the
+  // number a landing/freeze decision actually cares about — over
+  // `vessel.flight.altitudeTerrain` (KSP radarAltitude, from the CENTRE OF
+  // MASS). Same datum preference LandingStatus uses; the CoM value is the
+  // fallback when the capture nulls `vessel.surface` (orbiting/escaping, or no
+  // comms). See VesselSurface.cs.
+  const surface = useTelemetry("vessel.surface");
   const vesselState = useStream<VesselState>("vessel.state");
   const bodyRaw = vesselState?.parentBodyName;
   const splashedRaw = vesselState?.isSplashed;
@@ -152,7 +159,9 @@ export function useGroundSurveySamples(
     if (!flight) return;
     const s = stateRef.current;
     const altitude = flight.altitudeAsl;
-    const hft = flight.altitudeTerrain;
+    // Lowest-point height from `vessel.surface`, falling back to the CoM
+    // radar altitude when the surface channel is absent this tick.
+    const hft = surface?.heightFromTerrain ?? flight.altitudeTerrain;
     const surfaceSpeed = flight.surfaceSpeed;
     if (!Number.isFinite(altitude) || !Number.isFinite(hft)) return;
 
@@ -191,7 +200,7 @@ export function useGroundSurveySamples(
       s.samples.shift();
     }
     bump();
-  }, [flight, cfg.surveyCeilingM, cfg.freezeBelowM, cfg.windowMs]);
+  }, [flight, surface, cfg.surveyCeilingM, cfg.freezeBelowM, cfg.windowMs]);
 
   const s = stateRef.current;
   const surveyState: SurveyResult["surveyState"] =

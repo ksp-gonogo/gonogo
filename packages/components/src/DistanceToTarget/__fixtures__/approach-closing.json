@@ -1,11 +1,29 @@
 {
   "_meta": {
     "scenario": "approach-closing",
-    "notes": "Vessel target at 1800m in the approach band (100m–5km). Distance + closing rate derive from vessel.target's Vec3 fields; negative radial rate = closing gap — closing rate renders in green/accent tone. TCA (o.closestTgtApprUT minus SDK view-UT) needs a TelemetryProvider for view-UT, so under the bare snapshot harness it degrades to '—'; the stream test covers the live TCA readout."
+    "notes": "Vessel target at 1800m in the approach band (100m–5km). Distance + closing rate derive from vessel.target's Vec3 fields; negative radial rate = closing gap — closing rate renders in green/accent tone. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
   },
   "tar.name": "Test Station",
   "tar.type": "Vessel",
   "tar.relativePosition": { "x": 0, "y": 0, "z": 1800 },
   "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": -4.7 },
-  "o.closestTgtApprUT": 5125
+  "o.closestTgtApprUT": 5125,
+  "_stream": {
+    "carriedChannels": ["vessel.target"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Test Station",
+          "kind": 0,
+          "vesselId": "target-vessel",
+          "bodyIndex": null,
+          "relativePosition": { "x": 0, "y": 0, "z": 1800 },
+          "relativeVelocity": { "x": 0, "y": 0, "z": -4.7 },
+          "closestApproach": { "time": 5125, "distance": 0 }
+        }
+      }
+    ]
+  }
 }

@@ -204,7 +204,16 @@ function CurrentOrbitComponent({
 
               <Label>t-Pe</Label>
               <Value $accent="pe">
-                {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
+                {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
+                    elliptical solver degrades timeToPe to null (and a legacy
+                    0-sentinel source would read as "arriving now") — render an
+                    em-dash rather than a countdown. `=== undefined` alone
+                    misses `null` (`null === undefined` is false). */}
+                {timeToPe === undefined || timeToPe === null
+                  ? "—"
+                  : hyperbolic
+                    ? "—"
+                    : formatDuration(timeToPe)}
               </Value>
             </>
           )}

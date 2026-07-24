@@ -84,8 +84,10 @@ describe("DistanceToTargetComponent", () => {
     expect(container.textContent).toMatch(/\d[\d.]*\s*(k?m|Mm)/);
   });
 
-  it("auto-switches to the docking HUD when a Vessel target drops under 100 m", async () => {
-    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+  it("auto-switches to the docking HUD when a docking-port target with dock data drops under 100 m", async () => {
+    fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+    });
     renderWidget(fixture);
     act(() => {
       fixture.emit("vessel.target", {
@@ -94,12 +96,44 @@ describe("DistanceToTargetComponent", () => {
         relativePosition: atRange(90),
         relativeVelocity: atRange(-0.8),
       });
+      // A real docking scenario: the mod carries vessel.dock (relative
+      // position of the two ports). Only then does the HUD reticle have signal.
+      fixture.emit("vessel.dock", {
+        relativePosition: atRange(90),
+        relativeVelocity: atRange(-0.8),
+        distance: 90,
+        forwardDot: 0.99,
+      });
     });
     await waitFor(() =>
       expect(
         screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
       ).toBeInTheDocument(),
     );
+  });
+
+  it("does NOT enter the docking HUD for a Vessel target with no vessel.dock (T2)", async () => {
+    // T2: a plain Vessel target has no dock channel — promoting it to the HUD
+    // on distance alone rendered a dead-centre reticle with all rows "—".
+    // Under 100 m with no dock it must stay in the approach view instead.
+    fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+    });
+    renderWidget(fixture);
+    act(() => {
+      fixture.emit("vessel.target", {
+        name: "Free Flyer",
+        kind: KIND.Vessel,
+        relativePosition: atRange(60),
+        relativeVelocity: atRange(-0.5),
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Free Flyer")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+    // It's an eligible rendezvous target, so it lands in the approach view.
+    expect(screen.getByText("APPROACH")).toBeInTheDocument();
   });
 
   it("never HUD-switches on CelestialBody targets", async () => {
@@ -135,7 +169,9 @@ describe("DistanceToTargetComponent", () => {
   });
 
   it("applies hysteresis — stays in HUD until distance rises past 150 m", async () => {
-    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+    });
     renderWidget(fixture);
     act(() => {
       fixture.emit("vessel.target", {
@@ -143,6 +179,13 @@ describe("DistanceToTargetComponent", () => {
         kind: KIND.Vessel,
         relativePosition: atRange(80),
         relativeVelocity: null,
+      });
+      // Dock data present throughout — the HUD enter/exit is distance-driven.
+      fixture.emit("vessel.dock", {
+        relativePosition: atRange(80),
+        relativeVelocity: null,
+        distance: 80,
+        forwardDot: 0.99,
       });
     });
     await waitFor(() =>
@@ -217,8 +260,10 @@ describe("DistanceToTargetComponent", () => {
     expect(screen.queryByText("APPROACH")).toBeNull();
   });
 
-  it("steps through tracking → approach → docking-hud as a vessel closes", async () => {
-    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+  it("steps through tracking → approach → docking-hud as a docking target closes", async () => {
+    fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+    });
     renderWidget(fixture);
     act(() => {
       fixture.emit("vessel.target", {
@@ -226,6 +271,14 @@ describe("DistanceToTargetComponent", () => {
         kind: KIND.Vessel,
         relativePosition: atRange(50_000),
         relativeVelocity: null,
+      });
+      // Dock data present from the start; the HUD still only opens once the
+      // distance drops under 100 m (tracking → approach → docking-hud).
+      fixture.emit("vessel.dock", {
+        relativePosition: atRange(50_000),
+        relativeVelocity: null,
+        distance: 50_000,
+        forwardDot: 0.99,
       });
     });
     await waitFor(() => expect(screen.getByText("TARGET")).toBeInTheDocument());
@@ -325,7 +378,9 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
       ),
     });
 
-    const fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+    });
     renderWidget(fixture, { cameraFlightId: 7 }, { w: 12, h: 9 });
     act(() => {
       fixture.emit("vessel.target", {
@@ -333,6 +388,13 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
         kind: KIND.Vessel,
         relativePosition: atRange(80),
         relativeVelocity: atRange(-0.5),
+      });
+      // Dock data present → a real docking scenario, so the HUD opens.
+      fixture.emit("vessel.dock", {
+        relativePosition: atRange(80),
+        relativeVelocity: atRange(-0.5),
+        distance: 80,
+        forwardDot: 0.99,
       });
     });
 

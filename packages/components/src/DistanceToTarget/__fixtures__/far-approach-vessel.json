@@ -1,11 +1,29 @@
 {
   "_meta": {
     "scenario": "far-approach-vessel",
-    "notes": "Target vessel at 48 Mm — long-range tracking mode. dockable=true (Vessel) but distance >> 5500m threshold so mode stays 'tracking'. Distance + closing rate derive from vessel.target's Vec3 fields (tar.relativePosition / tar.relativeVelocityVec); relVel positive (opening gap) gives a sub-readout when rows>=5."
+    "notes": "Target vessel at 48 Mm — long-range tracking mode. dockable=true (Vessel) but distance >> 5500m threshold so mode stays 'tracking'. Distance + closing rate derive from vessel.target's Vec3 fields; relVel positive (opening gap) gives a sub-readout when rows>=5. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness. Keep the two in sync."
   },
   "tar.name": "Minmus Station Alpha",
   "tar.type": "Vessel",
   "tar.relativePosition": { "x": 0, "y": 0, "z": 48000000 },
   "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 312.5 },
-  "o.closestTgtApprUT": 2567890
+  "o.closestTgtApprUT": 2567890,
+  "_stream": {
+    "carriedChannels": ["vessel.target"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Minmus Station Alpha",
+          "kind": 0,
+          "vesselId": "target-vessel",
+          "bodyIndex": null,
+          "relativePosition": { "x": 0, "y": 0, "z": 48000000 },
+          "relativeVelocity": { "x": 0, "y": 0, "z": 312.5 },
+          "closestApproach": { "time": 2567890, "distance": 0 }
+        }
+      }
+    ]
+  }
 }

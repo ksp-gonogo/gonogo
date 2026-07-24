@@ -371,7 +371,7 @@ registerComponent<GroundSurveyConfig>({
   minSize: { w: 3, h: 3 },
   component: GroundSurveyComponent,
   configComponent: GroundSurveyConfigComponent,
-  dataRequirements: ["vessel.flight"],
+  dataRequirements: ["vessel.flight", "vessel.surface"],
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
   // Broad badges escape-hatch slot in the header meta row. No

@@ -285,13 +285,23 @@ function DistanceToTargetComponent({
   // upgrade direction is asymmetric (smaller window to enter than to exit).
   const [mode, setMode] = useState<ViewMode>("tracking");
 
-  // Dockable = a real target that isn't a celestial body. Now covers Parts
-  // (docking ports) too, which the old `tarType !== "CelestialBody"` string
-  // check already did implicitly.
+  // "Close-ops eligible" = a real target that isn't a celestial body — drives
+  // the mid-range APPROACH view (rendezvous distance/closing rate), valid for
+  // any Vessel/Part target, matching the old `tarType !== "CelestialBody"`.
   const dockable =
     tarKind !== undefined &&
     tarKind !== TargetKind.Body &&
     tarName !== undefined;
+
+  // The docking HUD's reticle + α/β alignment instrument only has signal when
+  // the mod is actually publishing `vessel.dock`, which it does ONLY for a
+  // docking-port target with a free "Ready" port on the active vessel
+  // (VesselDock.cs). A plain Vessel/Other target (or a port with no free port
+  // on our side) has no dock channel, so promoting it to the HUD on distance
+  // alone rendered a dead-centre reticle with every alignment row "—". Gate HUD
+  // entry on the dock channel actually carrying a relative position, NOT on
+  // "any non-body target under 100 m".
+  const dockingAvailable = dockRelPos !== undefined;
 
   useEffect(() => {
     if (!autoSwitch || !dockable || tarDistance === undefined) {
@@ -299,15 +309,19 @@ function DistanceToTargetComponent({
       return;
     }
     if (mode === "tracking") {
-      if (tarDistance <= HUD_ENTER_M) setMode("docking-hud");
+      if (dockingAvailable && tarDistance <= HUD_ENTER_M)
+        setMode("docking-hud");
       else if (tarDistance < APPROACH_ENTER_M) setMode("approach");
     } else if (mode === "approach") {
-      if (tarDistance <= HUD_ENTER_M) setMode("docking-hud");
+      if (dockingAvailable && tarDistance <= HUD_ENTER_M)
+        setMode("docking-hud");
       else if (tarDistance > APPROACH_EXIT_M) setMode("tracking");
     } else if (mode === "docking-hud") {
-      if (tarDistance > HUD_EXIT_M) setMode("approach");
+      // Left the docking scenario (port deselected / lost the free port) or
+      // backed out of HUD range — fall back to the approach view.
+      if (!dockingAvailable || tarDistance > HUD_EXIT_M) setMode("approach");
     }
-  }, [autoSwitch, dockable, tarDistance, mode]);
+  }, [autoSwitch, dockable, dockingAvailable, tarDistance, mode]);
 
   if (tarName === undefined) {
     return (

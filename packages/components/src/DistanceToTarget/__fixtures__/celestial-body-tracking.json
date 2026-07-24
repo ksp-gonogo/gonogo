@@ -1,11 +1,29 @@
 {
   "_meta": {
     "scenario": "celestial-body-tracking",
-    "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect. Distance derives from vessel.target's Vec3 field."
+    "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect. The legacy `tar.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
   },
   "tar.name": "Mun",
   "tar.type": "CelestialBody",
   "tar.relativePosition": { "x": 0, "y": 0, "z": 850000 },
   "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 547.8 },
-  "o.closestTgtApprUT": 0
+  "o.closestTgtApprUT": 0,
+  "_stream": {
+    "carriedChannels": ["vessel.target"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Mun",
+          "kind": 1,
+          "vesselId": "target-vessel",
+          "bodyIndex": null,
+          "relativePosition": { "x": 0, "y": 0, "z": 850000 },
+          "relativeVelocity": { "x": 0, "y": 0, "z": 547.8 },
+          "closestApproach": { "time": 0, "distance": 0 }
+        }
+      }
+    ]
+  }
 }
