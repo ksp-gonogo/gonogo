@@ -1,10 +1,7 @@
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@ksp-gonogo/test-utils";
+import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { CommitLayer } from "./CommitLayer";
-
-const gear = { on: false, phase: "idle", onToggle: vi.fn() };
-const brakes = { on: false, phase: "idle", onToggle: vi.fn() };
 
 const live = {
   regime: "live" as const,
@@ -15,8 +12,6 @@ const live = {
   committed: false,
   blindInSeconds: null,
   blind: false,
-  gear,
-  brakes,
 };
 
 describe("CommitLayer", () => {
@@ -56,27 +51,12 @@ describe("CommitLayer", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/UNCOMMANDABLE/i);
   });
 
-  it("surfaces the gear command lifecycle", () => {
-    const { rerender } = render(
-      <CommitLayer {...live} gear={{ ...gear, phase: "in-flight" }} />,
-    );
-    expect(screen.getByText("sending…")).toBeInTheDocument();
-    rerender(
-      <CommitLayer
-        {...live}
-        gear={{ ...gear, on: true, phase: "confirmed" }}
-      />,
-    );
-    expect(screen.getByText("on")).toBeInTheDocument();
-    rerender(<CommitLayer {...live} gear={{ ...gear, phase: "failed" }} />);
-    expect(screen.getByText("no reply")).toBeInTheDocument();
-  });
-
-  it("fires the gear toggle on click", () => {
-    const onToggle = vi.fn();
-    render(<CommitLayer {...live} gear={{ ...gear, onToggle }} />);
-    fireEvent.click(screen.getByRole("button", { name: /toggle gear/i }));
-    expect(onToggle).toHaveBeenCalledOnce();
+  it("holds no command controls — Landing is an instrument, not a command surface", () => {
+    render(<CommitLayer {...live} />);
+    // Gear/brakes are fired from the operator's own action-group widgets; the
+    // commit layer must expose no toggle buttons of its own.
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByText(/configuration/i)).toBeNull();
   });
 
   it("has no axe violations", async () => {

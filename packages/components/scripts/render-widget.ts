@@ -43,6 +43,10 @@ async function main(): Promise<void> {
   const renderOpts = {
     engine,
     outSuffix: engine === "chromium" ? "" : `--${engine}`,
+    // Review renders show the WHOLE widget, uncropped — grow past the tile
+    // height so nothing is hidden below the fold. Harness-wide (every widget),
+    // distinct from the visual gate which keeps its per-tile crops.
+    fullContent: true,
   };
 
   if (args.includes("--list")) {

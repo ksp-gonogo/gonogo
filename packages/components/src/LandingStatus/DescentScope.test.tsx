@@ -5,22 +5,11 @@ import { DescentScope } from "./DescentScope";
 
 describe("DescentScope", () => {
   const solved = {
-    aglMeters: 1200,
     verticalSpeed: 40,
     horizontalSpeed: 15,
-    ignitionAltitude: 300,
-    suicideBurnCountdown: 8,
     twr: 2.4,
     usingComDatum: false,
   };
-
-  it("renders the altitude ladder as a meter reporting AGL", () => {
-    render(<DescentScope {...solved} />);
-    const ladder = screen.getByRole("meter", {
-      name: /altitude above terrain/i,
-    });
-    expect(ladder).toHaveAttribute("aria-valuenow", "1200");
-  });
 
   it("renders a TWR gauge and a velocity vector with a text equivalent", () => {
     render(<DescentScope {...solved} />);
@@ -39,18 +28,15 @@ describe("DescentScope", () => {
   it("survives a fully-null (pre-data) state without throwing", () => {
     render(
       <DescentScope
-        aglMeters={null}
         verticalSpeed={null}
         horizontalSpeed={null}
-        ignitionAltitude={null}
-        suicideBurnCountdown={null}
         twr={null}
         usingComDatum={false}
       />,
     );
-    // AGL meter still present, reporting 0 with no data.
+    // The velocity vector still renders its (empty) text equivalent.
     expect(
-      screen.getByRole("meter", { name: /altitude above terrain/i }),
+      screen.getByRole("img", { name: /descent .*drift/i }),
     ).toBeInTheDocument();
   });
 

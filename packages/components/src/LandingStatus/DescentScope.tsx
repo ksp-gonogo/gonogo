@@ -1,9 +1,9 @@
 /**
- * DescentScope — the real-time flight picture for the landing widget: a
- * composed instrument, not a list of numbers.
+ * DescentScope — the real-time flight-instrument cluster for the landing
+ * widget: the "how am I coming down" picture, sitting beside the touchdown
+ * reticle. The altimeter itself is a separate full-height rail (see
+ * `AltitudeRail`); this is the velocity + thrust pair.
  *
- * - Altitude ladder (ui-kit Tape): AGL falling toward a ground line, with the
- *   suicide-burn region shaded as a hot band the pointer descends into.
  * - Velocity vector (bespoke SVG): vertical descent vs horizontal drift as a 2D
  *   vector, so "coming down straight" vs "sliding sideways" reads at a glance.
  *   Magnitude-only for now (surface-velocity direction is not on the wire yet);
@@ -16,32 +16,17 @@
  */
 
 import { Gauge } from "@ksp-gonogo/ui";
-import { Cluster, Stack, Tape, Value } from "@ksp-gonogo/ui-kit";
+import { Value } from "@ksp-gonogo/ui-kit";
 
 export interface DescentScopeProps {
-  /** Height of the vessel's lowest point above terrain, metres. */
-  aglMeters: number | null;
   /** Descent rate, m/s (down-positive). */
   verticalSpeed: number | null;
   /** Horizontal component of surface velocity, m/s. */
   horizontalSpeed: number | null;
-  /** AGL at which the suicide burn must begin, metres. */
-  ignitionAltitude: number | null;
-  /** Seconds to the latest ignition. */
-  suicideBurnCountdown: number | null;
   /** Thrust-to-weight ratio (maxAccel / local gravity). */
   twr: number | null;
   /** True when AGL is the centre-of-mass radar altitude, not the lowest point. */
   usingComDatum: boolean;
-}
-
-/** Round up to a "nice" 1/2/5 x 10^n ceiling for the ladder's top of scale. */
-function niceCeil(x: number): number {
-  if (!(x > 0)) return 100;
-  const pow = 10 ** Math.floor(Math.log10(x));
-  const n = x / pow;
-  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
-  return step * pow;
 }
 
 function fmtSpeed(v: number | null): string {
@@ -50,59 +35,22 @@ function fmtSpeed(v: number | null): string {
 }
 
 export function DescentScope({
-  aglMeters,
   verticalSpeed,
   horizontalSpeed,
-  ignitionAltitude,
-  suicideBurnCountdown,
   twr,
   usingComDatum,
 }: Readonly<DescentScopeProps>) {
-  const agl = aglMeters ?? 0;
-  const ignition =
-    ignitionAltitude != null && ignitionAltitude > 0 ? ignitionAltitude : null;
-  const maxScale = niceCeil(Math.max(agl, ignition ?? 0, 1) * 1.1);
-
-  // The hot band: from the ground up to the ignition altitude — the region in
-  // which the burn must already have started.
-  const zones =
-    ignition != null
-      ? [
-          {
-            from: 0,
-            to: ignition,
-            color: "var(--color-status-nogo-fg)",
-            label: "burn",
-          },
-        ]
-      : undefined;
-
-  const near = suicideBurnCountdown != null && suicideBurnCountdown <= 5;
-
   return (
-    <Cluster gap="md">
-      <Stack gap="xs">
-        <Tape
-          value={agl}
-          min={0}
-          max={maxScale}
-          unit="m"
-          tickStep={maxScale / 4}
-          groundLine={0}
-          zones={zones}
-          ariaLabel="Altitude above terrain"
-        />
-        <Value tone={near ? "accent" : "muted"} size="xs">
-          {suicideBurnCountdown == null
-            ? "no burn"
-            : suicideBurnCountdown <= 0
-              ? "past ignition"
-              : `ignite in ${Math.ceil(suicideBurnCountdown)}s`}
-        </Value>
-      </Stack>
-
-      <Stack gap="sm">
-        <VelocityVector vertical={verticalSpeed} horizontal={horizontalSpeed} />
+    <div
+      style={{
+        display: "flex",
+        gap: "1rem",
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
+      <VelocityVector vertical={verticalSpeed} horizontal={horizontalSpeed} />
+      <div>
         <Gauge
           value={twr ?? 0}
           min={0}
@@ -123,8 +71,8 @@ export function DescentScope({
             centre-of-mass altitude (lowest-point datum unavailable)
           </Value>
         )}
-      </Stack>
-    </Cluster>
+      </div>
+    </div>
   );
 }
 

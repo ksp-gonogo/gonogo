@@ -184,7 +184,23 @@ export async function renderWidget(config: WidgetRenderConfig): Promise<void> {
  *  session. Bundle is built once, page is reused. */
 export async function renderWidgets(
   configs: WidgetRenderConfig[],
-  opts: { engine?: Engine; outSuffix?: string; outBase?: string } = {},
+  opts: {
+    engine?: Engine;
+    outSuffix?: string;
+    outBase?: string;
+    /**
+     * Capture each widget's FULL rendered content rather than the fixed
+     * grid-tile crop. The mount still uses the mode's `w`/`h` (so the widget
+     * lays out at the real tile size and its responsive breakpoints engage),
+     * but before the screenshot the harness grows `#root` to swallow any
+     * content clipped by the Panel's `overflow:hidden` or trapped inside a
+     * ScrollArea — so nothing below the fold is lost. The review path
+     * (`render-widget`) turns this ON harness-wide so every widget renders
+     * uncropped; the VISUAL GATE leaves it OFF so its per-tile baselines are
+     * unaffected.
+     */
+    fullContent?: boolean;
+  } = {},
 ): Promise<void> {
   if (configs.length === 0) {
     console.error("renderWidgets: no widget configs provided");
@@ -194,6 +210,7 @@ export async function renderWidgets(
   const engine = opts.engine ?? "chromium";
   const outSuffix = opts.outSuffix ?? "";
   const outBase = opts.outBase ?? LOCAL_DOCS;
+  const fullContent = opts.fullContent ?? false;
 
   const slug =
     configs.length === 1 ? (configs[0].slug ?? configs[0].widgetId) : "all";
@@ -240,7 +257,7 @@ export async function renderWidgets(
     );
 
     for (const config of configs) {
-      await renderOneWidget(page, config, outSuffix, outBase);
+      await renderOneWidget(page, config, outSuffix, outBase, fullContent);
     }
   } finally {
     await browser.close();
@@ -360,6 +377,7 @@ async function renderOneWidget(
   config: WidgetRenderConfig,
   outSuffix = "",
   outBase: string = LOCAL_DOCS,
+  fullContent = false,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -422,6 +440,51 @@ async function renderOneWidget(
           ).__renderProbe(p),
         payload as unknown as Record<string, unknown>,
       );
+      // Full-content capture (review path): grow `#root` until nothing is
+      // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
+      // Content can hide in two places — behind the Panel's `overflow:hidden`,
+      // or inside a ScrollArea's `overflow:auto` — so we measure both (the
+      // Panel is `#root`'s first child; ScrollArea inners carry a stable
+      // `data-scroll-area-inner` attribute) and grow to swallow the larger
+      // overflow, iterating to a fixpoint since growing the box can reveal a
+      // little more. The mount already laid out at the real tile WIDTH, so
+      // responsive breakpoints stay honest — only the vertical crop is lifted.
+      // OFF for the visual gate, so its per-tile baselines are unaffected.
+      if (fullContent) {
+        // NB: no named `const fn = () => …` helpers inside this evaluate —
+        // tsx's keepNames wraps them with a `__name(…)` helper that is only
+        // defined in the module scope, not the serialized page context, so a
+        // named arrow here throws "__name is not defined". Keep it inline.
+        await page.evaluate(() => {
+          const el = document.getElementById("root");
+          if (!el) return;
+          el.style.overflow = "visible";
+          for (let i = 0; i < 8; i++) {
+            const nodes = [
+              el,
+              el.firstElementChild,
+              ...document.querySelectorAll("[data-scroll-area-inner]"),
+            ];
+            let need = 0;
+            for (const n of nodes) {
+              if (n) need = Math.max(need, n.scrollHeight - n.clientHeight);
+            }
+            if (need <= 1) break;
+            el.style.height = `${el.clientHeight + need}px`;
+            // Force a synchronous reflow so the next iteration sees new sizes.
+            void el.offsetHeight;
+          }
+        });
+        // Let ResizeObserver-driven bits (ScrollArea glow, Gauge/Tape sizing)
+        // settle at the final height before the shot.
+        await page.evaluate(
+          () =>
+            new Promise<void>((res) => {
+              requestAnimationFrame(() => requestAnimationFrame(() => res()));
+            }),
+        );
+        await page.waitForTimeout(150);
+      }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");
       const outName = `${fixture.name}--${mode.name}${outSuffix}.png`;

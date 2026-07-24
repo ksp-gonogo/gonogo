@@ -17,6 +17,7 @@
  * of any zones/markers that a non-sighted operator needs.
  */
 
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 export interface TapeZone {
@@ -48,6 +49,15 @@ export interface TapeProps {
   max: number;
   width?: number;
   height?: number;
+  /**
+   * Fill the parent's height instead of using a fixed `height`. The tape
+   * becomes a full-height rail: a ResizeObserver measures the wrapper (which
+   * stretches to the parent) and the scale is drawn at that pixel height with
+   * the fixed `width`. Use inside a flex row where the tape should run the full
+   * height of the widget beside the main content. `height` is the pre-measure
+   * fallback.
+   */
+  fillHeight?: boolean;
   /** Interior tick spacing in value units. Omit for no interior ticks. */
   tickStep?: number;
   zones?: ReadonlyArray<TapeZone>;
@@ -86,6 +96,7 @@ export function Tape({
   max,
   width = 92,
   height = 220,
+  fillHeight = false,
   tickStep,
   zones,
   markers,
@@ -94,6 +105,27 @@ export function Tape({
   format,
   ariaLabel,
 }: Readonly<TapeProps>) {
+  // Full-height rail: measure the (stretched) wrapper and draw the scale at
+  // that pixel height. The wrapper is `height:100%`, so its measured height is
+  // parent-driven, not content-driven — no feedback loop with the SVG we size
+  // from it. `height` is the fallback until the first measurement lands.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState(height);
+  useEffect(() => {
+    if (!fillHeight) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.clientHeight;
+      if (h > 0) setMeasured(h);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fillHeight]);
+  const h = fillHeight ? measured : height;
+
   const span = max - min;
   const safe = Number.isFinite(value) ? value : min;
   const clamped = span > 0 ? Math.max(min, Math.min(max, safe)) : min;
@@ -102,7 +134,7 @@ export function Tape({
   const fmt = (v: number) => (format ? format(v) : defaultFormat(v, unit));
   const label = (v: number) => (format ? format(v) : defaultNumber(v));
 
-  const usable = height - PAD_TOP - PAD_BOTTOM;
+  const usable = h - PAD_TOP - PAD_BOTTOM;
   // value -> y: max at the top (y = PAD_TOP), min at the bottom.
   const yOf = (v: number): number => {
     if (!(span > 0)) return PAD_TOP + usable;
@@ -124,26 +156,32 @@ export function Tape({
 
   return (
     <Tape__Meter
+      ref={wrapRef}
       role="meter"
       aria-label={ariaLabel ?? "Tape"}
       aria-valuenow={clamped}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuetext={fmt(safe)}
+      style={fillHeight ? { height: "100%" } : undefined}
     >
       {/* The scale is decorative for a screen reader — the meter value above
           carries the reading; zone/marker labels are visual aids. */}
       <svg
         width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        height={h}
+        viewBox={`0 0 ${width} ${h}`}
         aria-hidden="true"
-        style={{
-          display: "block",
-          fontFamily: "monospace",
-          maxWidth: "100%",
-          height: "auto",
-        }}
+        style={
+          fillHeight
+            ? { display: "block", fontFamily: "monospace" }
+            : {
+                display: "block",
+                fontFamily: "monospace",
+                maxWidth: "100%",
+                height: "auto",
+              }
+        }
       >
         {/* Track */}
         <rect

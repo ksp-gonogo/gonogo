@@ -1,17 +1,12 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
   registerComponent,
-  useActionInput,
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  useCommand,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
@@ -31,6 +26,7 @@ import {
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
+import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
@@ -59,24 +55,6 @@ declare module "@ksp-gonogo/core" {
     "landing-status.badges": LandingStatusBadgesContext;
   }
 }
-
-// ── Actions ────────────────────────────────────────────────────────────────
-
-const landingActions = [
-  {
-    id: "toggle-gear",
-    label: "Toggle gear",
-    accepts: ["button"],
-    description: "Deploys or retracts the landing gear.",
-  },
-  {
-    id: "toggle-brakes",
-    label: "Toggle brakes",
-    accepts: ["button"],
-    description: "Toggles the wheel brakes.",
-  },
-] as const satisfies readonly ActionDefinition[];
-export type LandingActions = typeof landingActions;
 
 // ── Formatting ───────────────────────────────────────────────────────────────
 
@@ -132,6 +110,28 @@ function Field({
   );
 }
 
+/**
+ * A caption-over-value readout for the reticle's narrow side column, where a
+ * side-by-side label + value would force the value to wrap. Stacked, it fills
+ * the column beside the tall reticle without wrapping.
+ */
+function StackedField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  // Column so the caption sits ABOVE the value (both are inline elements, so
+  // without this they flow side-by-side and the value wraps in a narrow col).
+  return (
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <ReadoutCaption>{label}</ReadoutCaption>
+      <Value>{children}</Value>
+    </div>
+  );
+}
+
 const DESCENT_HISTORY_MAX = 60;
 
 function LandingStatusComponent({
@@ -146,7 +146,6 @@ function LandingStatusComponent({
   const surface = useTelemetry("vessel.surface");
   const propulsion = useTelemetry("vessel.propulsion");
   const orbit = useTelemetry("vessel.orbit");
-  const control = useTelemetry("vessel.control");
   const summary = useTelemetry("dv.summary");
   const commsDelay = useTelemetry("comms.delay");
   const landing = useTelemetry("vessel.landing");
@@ -190,34 +189,6 @@ function LandingStatusComponent({
       ? solution.maxAccel / solution.gravity
       : null;
 
-  const gearCmd = useCommand("vessel.control.setGear");
-  const brakesCmd = useCommand("vessel.control.setBrakes");
-  const gearOn = control?.gear;
-  const brakesOn = control?.brakes;
-  const toggleGear = () =>
-    void gearCmd.send(
-      { enabled: !gearOn },
-      { label: gearOn ? "Retract gear" : "Deploy gear" },
-    );
-  const toggleBrakes = () =>
-    void brakesCmd.send(
-      { enabled: !brakesOn },
-      { label: brakesOn ? "Release brakes" : "Set brakes" },
-    );
-
-  useActionInput<LandingActions>({
-    "toggle-gear": (payload) => {
-      if (payload.kind === "button" && payload.value !== true) return undefined;
-      toggleGear();
-      return { gear: !gearOn };
-    },
-    "toggle-brakes": (payload) => {
-      if (payload.kind === "button" && payload.value !== true) return undefined;
-      toggleBrakes();
-      return { brakes: !brakesOn };
-    },
-  });
-
   const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
@@ -250,13 +221,14 @@ function LandingStatusComponent({
   };
 
   const live = clocks.regime === "live" || clocks.regime === "no-path";
-  const showScope = (w ?? 8) >= 6;
-  // The reticle is the large-size site view; show it once terrain was sampled
-  // (either the predicted point or the sub-vessel fallback).
-  const showReticle = (w ?? 8) >= 10 && landing?.sampleSource != null;
-  // At a wide size, split into two columns (reticle | readouts+scope) so the
-  // tile fills and nothing valuable falls below the fold.
-  const wide = (w ?? 8) >= 10;
+  const width = w ?? 8;
+  // The flight instruments (velocity vector + TWR) and the full-height altitude
+  // rail come in together at a comfortable width; below that, plain readouts.
+  const showScope = width >= 6;
+  const showRail = showScope;
+  // The reticle is the centerpiece — shown once terrain was sampled (predicted
+  // point or the sub-vessel fallback) and there's width to make it prominent.
+  const showReticle = width >= 10 && landing?.sampleSource != null;
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle,
     roughnessSigma: landing?.predictedRoughness,
@@ -264,33 +236,76 @@ function LandingStatusComponent({
     lateralSpeed: solution.horizontalSpeed,
     biome: landing?.predictedBiome,
   });
-  // The DescentScope only renders for a solved vacuum descent at a wide size; it
-  // carries the AGL ladder + velocity vector. Everywhere else (small size, or an
-  // atmospheric / no-solution board) fall back to the plain velocity + height
-  // readouts, which are drag-independent and always valid.
+  // The velocity vector + TWR only carry a meaningful vacuum picture for a
+  // solved descent at a wide size; elsewhere fall back to the plain, always-
+  // valid velocity/height readouts.
   const scopeShown = board === "vacuum-solved" && showScope;
 
-  const reticleSection = showReticle ? (
-    <Section>
-      <SectionTitle>Touchdown site</SectionTitle>
-      <TouchdownReticle
-        siteLat={landing?.predictedLatitude ?? null}
-        siteLon={landing?.predictedLongitude ?? null}
-        vesselLat={flight?.latitude ?? null}
-        vesselLon={flight?.longitude ?? null}
-        bodyRadius={body?.radius ?? null}
-        slopeDeg={landing?.predictedSlopeAngle ?? null}
-        slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
-        biome={landing?.predictedBiome ?? null}
-        sampleSource={landing?.sampleSource ?? null}
-        verdict={hazardVerdict}
-        terrainPatch={landing?.terrainPatch ?? null}
-        terrainPatchSize={landing?.terrainPatchSize ?? null}
-      />
-    </Section>
+  // ── Section fragments (composed into the layout below) ─────────────────────
+
+  const instrumentsEl = scopeShown ? (
+    <DescentScope
+      verticalSpeed={solution.verticalSpeed}
+      horizontalSpeed={solution.horizontalSpeed}
+      twr={twr}
+      usingComDatum={usingComDatum}
+    />
   ) : null;
 
-  const boardSection =
+  const burnReadouts =
+    board === "vacuum-solved" ? (
+      <>
+        <Section>
+          <SectionTitle>Burn</SectionTitle>
+          <Grid cols="auto 1fr" gap="xs">
+            <Field label="Burn dV">{formatDv(requiredDv)}</Field>
+            <Field label="Duration">
+              {solution.burnDuration == null
+                ? "—"
+                : formatDuration(solution.burnDuration, { ms: true })}
+            </Field>
+            <Field label="Available dV">{formatDv(availableDv)}</Field>
+            <ReadoutCaption>Affordable</ReadoutCaption>
+            {affordable == null ? (
+              <Value tone="muted">—</Value>
+            ) : (
+              <Badge tone={affordable ? "go" : "nogo"} size="sm">
+                {affordable ? "yes" : "insufficient dV"}
+              </Badge>
+            )}
+          </Grid>
+        </Section>
+
+        <Section>
+          <SectionTitle>Touchdown</SectionTitle>
+          <Grid cols="auto 1fr" gap="xs">
+            <Field label="If nothing">
+              {formatMps(solution.speedAtImpact)}
+            </Field>
+            <Field label="If burn now">
+              {solution.bestSpeedAtImpact == null
+                ? "—"
+                : formatMps(solution.bestSpeedAtImpact)}
+            </Field>
+            <Field label="Impact in">
+              {solution.timeToImpact == null
+                ? "—"
+                : formatDuration(solution.timeToImpact, { ms: true })}
+            </Field>
+          </Grid>
+          {scopeShown && descentHistory.length >= 2 && (
+            <Sparkline
+              values={descentHistory}
+              width={160}
+              height={28}
+              ariaLabel="Descent-rate trend"
+            />
+          )}
+        </Section>
+      </>
+    ) : null;
+
+  const boardEl =
     board === "atmospheric-aware" ? (
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
@@ -330,73 +345,9 @@ function LandingStatusComponent({
       <Section>
         <Value tone="muted">No landing solution — body data unavailable.</Value>
       </Section>
-    ) : (
-      <>
-        {showScope && (
-          <Section>
-            <DescentScope
-              aglMeters={heightFromTerrain ?? null}
-              verticalSpeed={solution.verticalSpeed}
-              horizontalSpeed={solution.horizontalSpeed}
-              ignitionAltitude={solution.ignitionAltitude}
-              suicideBurnCountdown={solution.suicideBurnCountdown}
-              twr={twr}
-              usingComDatum={usingComDatum}
-            />
-          </Section>
-        )}
+    ) : null;
 
-        <Section>
-          <SectionTitle>Burn</SectionTitle>
-          <Grid cols="auto 1fr" gap="xs">
-            <Field label="Burn dV">{formatDv(requiredDv)}</Field>
-            <Field label="Duration">
-              {solution.burnDuration == null
-                ? "—"
-                : formatDuration(solution.burnDuration, { ms: true })}
-            </Field>
-            <Field label="Available dV">{formatDv(availableDv)}</Field>
-            <ReadoutCaption>Affordable</ReadoutCaption>
-            {affordable == null ? (
-              <Value tone="muted">—</Value>
-            ) : (
-              <Badge tone={affordable ? "go" : "nogo"} size="sm">
-                {affordable ? "yes" : "insufficient dV"}
-              </Badge>
-            )}
-          </Grid>
-        </Section>
-
-        <Section>
-          <SectionTitle>Touchdown</SectionTitle>
-          <Grid cols="auto 1fr" gap="xs">
-            <Field label="If nothing">
-              {formatMps(solution.speedAtImpact)}
-            </Field>
-            <Field label="If burn now">
-              {solution.bestSpeedAtImpact == null
-                ? "—"
-                : formatMps(solution.bestSpeedAtImpact)}
-            </Field>
-            <Field label="Impact in">
-              {solution.timeToImpact == null
-                ? "—"
-                : formatDuration(solution.timeToImpact, { ms: true })}
-            </Field>
-          </Grid>
-          {showScope && descentHistory.length >= 2 && (
-            <Sparkline
-              values={descentHistory}
-              width={160}
-              height={28}
-              ariaLabel="Descent-rate trend"
-            />
-          )}
-        </Section>
-      </>
-    );
-
-  const velocitySection =
+  const velocityEl =
     !scopeShown && solution.horizontalSpeed != null ? (
       <Section>
         <SectionTitle>Velocity</SectionTitle>
@@ -409,7 +360,9 @@ function LandingStatusComponent({
       </Section>
     ) : null;
 
-  const heightSection = !scopeShown ? (
+  // Plain AGL readout only when there's no altitude rail (small size). The rail
+  // is the altitude carrier everywhere else.
+  const heightEl = !showRail ? (
     <Section>
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="xs">
@@ -423,7 +376,7 @@ function LandingStatusComponent({
     </Section>
   ) : null;
 
-  const divertSection =
+  const divertEl =
     vs?.targetDistance != null ? (
       <Section>
         <SectionTitle>Divert</SectionTitle>
@@ -443,14 +396,105 @@ function LandingStatusComponent({
       committed={clocks.committed}
       blindInSeconds={clocks.blindInSeconds}
       blind={clocks.blind}
-      gear={{ on: gearOn, phase: gearCmd.status.phase, onToggle: toggleGear }}
-      brakes={{
-        on: brakesOn,
-        phase: brakesCmd.status.phase,
-        onToggle: toggleBrakes,
-      }}
     />
   );
+
+  // Everything that isn't the reticle: instruments + numbers + notes, in the
+  // order they matter. Non-relevant fragments are null and drop out. Used at
+  // sizes without the reticle (full width, so the readouts have room).
+  const detailStack = (
+    <Stack gap="sm">
+      {instrumentsEl}
+      {boardEl}
+      {velocityEl}
+      {burnReadouts}
+      {heightEl}
+      {divertEl}
+    </Stack>
+  );
+
+  // Compact, caption-over-value burn/touchdown readouts for the reticle's
+  // narrow side column — fills the column beside the tall reticle without the
+  // side-by-side grid forcing values to wrap.
+  const compactReadouts =
+    board === "vacuum-solved" ? (
+      <Stack gap="xs">
+        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
+        <StackedField label="Burn duration">
+          {solution.burnDuration == null
+            ? "—"
+            : formatDuration(solution.burnDuration, { ms: true })}
+        </StackedField>
+        <StackedField label="Available dV">
+          {formatDv(availableDv)}
+        </StackedField>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "start",
+          }}
+        >
+          <ReadoutCaption>Affordable</ReadoutCaption>
+          {affordable == null ? (
+            <Value tone="muted">—</Value>
+          ) : (
+            <Badge tone={affordable ? "go" : "nogo"} size="sm">
+              {affordable ? "yes" : "insufficient dV"}
+            </Badge>
+          )}
+        </div>
+        <StackedField label="Touchdown (coast)">
+          {formatMps(solution.speedAtImpact)}
+        </StackedField>
+        <StackedField label="Touchdown (burn now)">
+          {solution.bestSpeedAtImpact == null
+            ? "—"
+            : formatMps(solution.bestSpeedAtImpact)}
+        </StackedField>
+        <StackedField label="Impact in">
+          {solution.timeToImpact == null
+            ? "—"
+            : formatDuration(solution.timeToImpact, { ms: true })}
+        </StackedField>
+        {vs?.targetDistance != null && (
+          <StackedField label="Target range">
+            {formatMeters(vs.targetDistance)}
+          </StackedField>
+        )}
+      </Stack>
+    ) : null;
+
+  // Beside the reticle (the narrow column): the compact instruments, any board
+  // note, and the compact readouts — enough to fill the column beside the tall
+  // reticle rather than leaving dead space under a short instrument stack.
+  const reticleSideCol = (
+    <Stack gap="sm">
+      {instrumentsEl}
+      {boardEl}
+      {compactReadouts}
+    </Stack>
+  );
+
+  const reticleEl = showReticle ? (
+    <Section>
+      <SectionTitle>Touchdown site</SectionTitle>
+      <TouchdownReticle
+        siteLat={landing?.predictedLatitude ?? null}
+        siteLon={landing?.predictedLongitude ?? null}
+        vesselLat={flight?.latitude ?? null}
+        vesselLon={flight?.longitude ?? null}
+        bodyRadius={body?.radius ?? null}
+        slopeDeg={landing?.predictedSlopeAngle ?? null}
+        slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
+        biome={landing?.predictedBiome ?? null}
+        sampleSource={landing?.sampleSource ?? null}
+        verdict={hazardVerdict}
+        terrainPatch={landing?.terrainPatch ?? null}
+        terrainPatchSize={landing?.terrainPatchSize ?? null}
+      />
+    </Section>
+  ) : null;
 
   return (
     <Panel>
@@ -469,30 +513,44 @@ function LandingStatusComponent({
       {board === "not-descending" ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
-        <ScrollArea>
-          <Section>
-            {commitLayerEl}
-            {wide ? (
-              <Grid cols="1fr 1fr" gap="md">
-                <Stack gap="sm">{reticleSection}</Stack>
-                <Stack gap="sm">
-                  {boardSection}
-                  {velocitySection}
-                  {heightSection}
-                  {divertSection}
-                </Stack>
-              </Grid>
-            ) : (
-              <>
-                {reticleSection}
-                {boardSection}
-                {velocitySection}
-                {heightSection}
-                {divertSection}
-              </>
-            )}
-          </Section>
-        </ScrollArea>
+        // The body is a row: the altitude rail runs the full height down the
+        // left edge, the scrolling main content fills the rest.
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            minHeight: 0,
+            gap: "0.75rem",
+            alignItems: "stretch",
+          }}
+        >
+          {showRail && (
+            <div style={{ flex: "0 0 auto", width: 72 }}>
+              <AltitudeRail
+                aglMeters={heightFromTerrain ?? null}
+                ignitionAltitude={solution.ignitionAltitude}
+                suicideBurnCountdown={solution.suicideBurnCountdown}
+              />
+            </div>
+          )}
+          <ScrollArea>
+            <Section>
+              {commitLayerEl}
+              {showReticle ? (
+                // The reticle is the dominant column; the compact velocity
+                // vector + TWR + readouts fill the column beside it.
+                // `align-items:start` keeps the reticle pinned to the top
+                // (Grid centres by default).
+                <Grid cols="1.6fr 1fr" gap="md" style={{ alignItems: "start" }}>
+                  {reticleEl}
+                  {reticleSideCol}
+                </Grid>
+              ) : (
+                detailStack
+              )}
+            </Section>
+          </ScrollArea>
+        </div>
       )}
     </Panel>
   );
@@ -504,7 +562,7 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Composed descent instrument: altitude ladder, velocity vector, TWR gauge, delay-native commit/uncommandable clocks, affordability, and gear/brakes confirmation — built for landing under signal delay.",
+    "Composed descent instrument: a full-height altitude rail, the touchdown-site terrain reticle, velocity vector + TWR, and delay-native commit/uncommandable clocks with the suicide-burn cue — built for landing under signal delay. An instrument, not a command surface (fly gear/brakes from your own action-group widgets).",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 4, h: 6 },
@@ -520,13 +578,11 @@ registerComponent<LandingStatusConfig>({
     "vessel.flight",
     "vessel.surface",
     "vessel.propulsion",
-    "vessel.control",
     "vessel.landing",
     "dv.summary",
     "comms.delay",
   ],
   defaultConfig: {},
-  actions: landingActions,
   augmentSlots: ["landing-status.badges"],
   pushable: true,
   requires: ["flight"],

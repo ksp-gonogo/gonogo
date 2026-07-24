@@ -187,12 +187,12 @@ export function TouchdownReticle({
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         role="img"
         aria-label={reticleLabel}
-        // Grow to fill the column (up to a sensible cap) so the site view uses
-        // the space rather than sitting small with dead area beside it.
+        // The reticle is the centerpiece — fill the dominant column (up to a
+        // sensible cap) so the terrain read is the star, not a thumbnail.
         style={{
           display: "block",
           width: "100%",
-          maxWidth: 190,
+          maxWidth: 320,
           height: "auto",
           marginTop: "0.15rem",
         }}

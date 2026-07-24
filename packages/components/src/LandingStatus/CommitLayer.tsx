@@ -11,14 +11,15 @@
  *   a command sent now cannot be confirmed in time. Arguably the single most
  *   valuable thing this widget can say.
  * - Blind line: the outcome is fixed and merely not yet visible.
- * - Gear / brakes commanded-vs-confirmed lifecycle, made prominent (under delay
- *   you fire the command and do not know for 2N seconds whether it took).
+ *
+ * Landing is an INSTRUMENT, not a command surface — gear/brakes are fired from
+ * the operator's own action-group widgets placed alongside, so this layer holds
+ * only decision-support (clocks, uncommandable, ignition cue), no commands.
  *
  * Presentational: the clocks are derived upstream by `deriveDelayClocks`.
  */
 
 import {
-  Badge,
   Cluster,
   formatDuration,
   Readout,
@@ -45,13 +46,6 @@ const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
   "no-path": "default",
 };
 
-export interface CommandRow {
-  on: boolean | undefined;
-  /** The `useCommand` status phase: idle / in-flight / confirmed / failed / lost. */
-  phase: string;
-  onToggle: () => void;
-}
-
 export interface CommitLayerProps {
   regime: LandingRegime;
   roundTripSeconds: number | null;
@@ -62,49 +56,6 @@ export interface CommitLayerProps {
   committed: boolean;
   blindInSeconds: number | null;
   blind: boolean;
-  gear: CommandRow;
-  brakes: CommandRow;
-}
-
-function ConfigRow({
-  label,
-  on,
-  phase,
-  onToggle,
-}: {
-  label: string;
-  on: boolean | undefined;
-  phase: string;
-  onToggle: () => void;
-}) {
-  const pending = phase === "in-flight";
-  const failed = phase === "failed" || phase === "lost";
-  const tone: "neutral" | "go" | "nogo" | "warn" = failed
-    ? "nogo"
-    : pending
-      ? "warn"
-      : on
-        ? "go"
-        : "neutral";
-  const stateText = pending
-    ? "sending…"
-    : failed
-      ? "no reply"
-      : on === undefined
-        ? "—"
-        : on
-          ? "on"
-          : "off";
-  return (
-    <Cluster justify="between" gap="sm">
-      <button type="button" onClick={onToggle} aria-label={`Toggle ${label}`}>
-        {label}
-      </button>
-      <Badge tone={tone} size="sm">
-        {stateText}
-      </Badge>
-    </Cluster>
-  );
 }
 
 export function CommitLayer({
@@ -116,8 +67,6 @@ export function CommitLayer({
   committed,
   blindInSeconds,
   blind,
-  gear,
-  brakes,
 }: Readonly<CommitLayerProps>) {
   const countdown = suicideBurnCountdown;
 
@@ -207,22 +156,6 @@ export function CommitLayer({
               : `Blind in ${formatDuration(blindInSeconds, { ms: true })}`}
           </Value>
         )}
-      </Section>
-
-      <Section>
-        <SectionTitle>Configuration</SectionTitle>
-        <ConfigRow
-          label="Gear"
-          on={gear.on}
-          phase={gear.phase}
-          onToggle={gear.onToggle}
-        />
-        <ConfigRow
-          label="Brakes"
-          on={brakes.on}
-          phase={brakes.phase}
-          onToggle={brakes.onToggle}
-        />
       </Section>
     </>
   );

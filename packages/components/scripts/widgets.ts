@@ -28,7 +28,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "landing-status",
     fixturesPath: "LandingStatus/__render__",
     outPath: "renders/landing-widget",
-    modes: [{ name: "full-12x16", w: 12, h: 16 }],
+    // Full-content capture at the real 12-col tile width — the whole tile,
+    // uncropped, so the composed instrument can actually be reviewed.
+    modes: [{ name: "full-w12", w: 12, h: 16 }],
   },
   {
     // Terrain-type showcase: the Touchdown Reticle relief across distinct
@@ -39,7 +41,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     label: "landing-terrains",
     fixturesPath: "LandingStatus/__render_terrains__",
     outPath: "renders/landing-terrains",
-    modes: [{ name: "full-12x16", w: 12, h: 16 }],
+    modes: [{ name: "full-w12", w: 12, h: 16 }],
   },
   {
     // MapView paints to <canvas> (equirectangular body texture + fog

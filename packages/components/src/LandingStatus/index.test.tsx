@@ -359,7 +359,7 @@ describe("LandingStatusComponent", () => {
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
   });
 
-  it("renders gear and brakes configuration rows with confirmed state", async () => {
+  it("exposes no command controls — Landing is an instrument, not a command surface", async () => {
     renderWidget();
     act(() => {
       emitVessel(stream, {
@@ -372,14 +372,12 @@ describe("LandingStatusComponent", () => {
         },
         availableThrust: 3,
       });
-      stream.emit("vessel.control", { gear: true, brakes: false });
     });
-    expect(
-      await screen.findByRole("button", { name: /toggle gear/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /toggle brakes/i }),
-    ).toBeInTheDocument();
+    await screen.findByText(/mun · vacuum/i);
+    // Gear/brakes are fired from the operator's own action-group widgets; the
+    // instrument itself must offer no toggle buttons.
+    expect(screen.queryByRole("button", { name: /toggle gear/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /toggle brakes/i })).toBeNull();
   });
 
   it("escalates to role=alert when the burn is already committed (ignite now)", async () => {
