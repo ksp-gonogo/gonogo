@@ -74,6 +74,7 @@ namespace Sitrep.Host
         // ---- M3 R3 capture-adds ----
         public const string DockTopic = "vessel.dock";
         public const string SurfaceTopic = "vessel.surface";
+        public const string LandingTopic = "vessel.landing";
 
         /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
@@ -81,7 +82,7 @@ namespace Sitrep.Host
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
-            DockTopic, SurfaceTopic,
+            DockTopic, SurfaceTopic, LandingTopic,
         };
 
         // ----------------------------------------------------------------
@@ -923,6 +924,45 @@ namespace Sitrep.Host
             };
         }
 
+        /// <summary>The <c>vessel.landing</c> channel — see <see cref="VesselLanding"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildLanding</c> omitted the raw group (the relevance gate is closed: not descending toward a solid, PQS-backed surface). A trivial copy — the atmosphere maths already ran source-side (<see cref="LandingModel"/>) and its scalar results are on the raw group; terrain fields fill in as the PQS sampler lands.</summary>
+        public static VesselLanding? BuildLanding(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "landing", out var landing))
+            {
+                return null;
+            }
+
+            return new VesselLanding
+            {
+                Outcome = GetString(landing, "outcome"),
+                TerrainElevationUnderVessel = GetDouble(landing, "terrainElevationUnderVessel"),
+                SlopeAngleUnderVessel = GetDouble(landing, "slopeAngleUnderVessel"),
+                PredictedLatitude = GetDouble(landing, "predictedLatitude"),
+                PredictedLongitude = GetDouble(landing, "predictedLongitude"),
+                PredictedTerrainElevation = GetDouble(landing, "predictedTerrainElevation"),
+                PredictedSlopeAngle = GetDouble(landing, "predictedSlopeAngle"),
+                PredictedSlopeHeading = GetDouble(landing, "predictedSlopeHeading"),
+                PredictedRoughness = GetDouble(landing, "predictedRoughness"),
+                RoughnessFootprintMeters = GetDouble(landing, "roughnessFootprintMeters"),
+                SlopeSampleRadiusMeters = GetDouble(landing, "slopeSampleRadiusMeters"),
+                PredictedBiome = GetString(landing, "predictedBiome"),
+                TerrainPatchSize = GetInt(landing, "terrainPatchSize"),
+                TerrainPatchExtentMeters = GetDouble(landing, "terrainPatchExtentMeters"),
+                TerminalVelocity = GetDouble(landing, "terminalVelocity"),
+                ProjectedTouchdownSpeed = GetDouble(landing, "projectedTouchdownSpeed"),
+                AtmosphericTimeToImpact = GetDouble(landing, "atmosphericTimeToImpact"),
+                DescentRegime = GetString(landing, "descentRegime"),
+                ParachuteState = GetString(landing, "parachuteState"),
+                Meta = BuildMeta(vesselId),
+            };
+        }
+
         public static VesselCrew? BuildCrew(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -1114,6 +1154,9 @@ namespace Sitrep.Host
 
         public static object? BuildSurfaceWire(KspSnapshot? snapshot) =>
             BuildSurface(snapshot) is { } surface ? ToWire(surface) : null;
+
+        public static object? BuildLandingWire(KspSnapshot? snapshot) =>
+            BuildLanding(snapshot) is { } landing ? ToWire(landing) : null;
 
         private static Dictionary<string, object?> ToWire(VesselIdentity id) => new Dictionary<string, object?>
         {
@@ -1340,6 +1383,31 @@ namespace Sitrep.Host
             ["landedAt"] = surface.LandedAt,
             ["heightFromTerrain"] = surface.HeightFromTerrain,
             ["meta"] = ToWire(surface.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselLanding landing) => new Dictionary<string, object?>
+        {
+            ["outcome"] = landing.Outcome,
+            ["terrainElevationUnderVessel"] = landing.TerrainElevationUnderVessel,
+            ["slopeAngleUnderVessel"] = landing.SlopeAngleUnderVessel,
+            ["predictedLatitude"] = landing.PredictedLatitude,
+            ["predictedLongitude"] = landing.PredictedLongitude,
+            ["predictedTerrainElevation"] = landing.PredictedTerrainElevation,
+            ["predictedSlopeAngle"] = landing.PredictedSlopeAngle,
+            ["predictedSlopeHeading"] = landing.PredictedSlopeHeading,
+            ["predictedRoughness"] = landing.PredictedRoughness,
+            ["roughnessFootprintMeters"] = landing.RoughnessFootprintMeters,
+            ["slopeSampleRadiusMeters"] = landing.SlopeSampleRadiusMeters,
+            ["predictedBiome"] = landing.PredictedBiome,
+            ["terrainPatch"] = landing.TerrainPatch,
+            ["terrainPatchSize"] = landing.TerrainPatchSize,
+            ["terrainPatchExtentMeters"] = landing.TerrainPatchExtentMeters,
+            ["terminalVelocity"] = landing.TerminalVelocity,
+            ["projectedTouchdownSpeed"] = landing.ProjectedTouchdownSpeed,
+            ["atmosphericTimeToImpact"] = landing.AtmosphericTimeToImpact,
+            ["descentRegime"] = landing.DescentRegime,
+            ["parachuteState"] = landing.ParachuteState,
+            ["meta"] = ToWire(landing.Meta),
         };
 
         private static Dictionary<string, object?> ToWire(VesselCrew crew) => new Dictionary<string, object?>

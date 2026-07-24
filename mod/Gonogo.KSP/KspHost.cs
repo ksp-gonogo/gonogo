@@ -417,6 +417,7 @@ namespace Gonogo.KSP
             // ---- M3 R3 capture-adds ----
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
             TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
+            TryBuildGroup(entry, "landing", () => BuildLanding(vessel, orbit));
             // ---- P1b slice 2 topology capture-add — the full part tree the
             // vessel.parts channel (VesselPartsViewProvider) maps. Same
             // try/omit discipline; per-part reads are individually guarded in
@@ -591,6 +592,14 @@ namespace Gonogo.KSP
 
         /// <summary>Bound on <see cref="BuildOrbitPatchChain"/>'s walk -- see that method's doc comment.</summary>
         private const int MaxOrbitPatches = 16;
+
+        /// <summary>
+        /// The <c>vessel.landing</c> relevance-gate closure horizon: seconds-to-
+        /// terrain above which a descent is not yet "landing" and the channel
+        /// stays absent. The internally-tuned metric (see <see cref="LandingModel.IsRelevant"/>);
+        /// a starting value, widened/narrowed once the PQS sample cost is benchmarked.
+        /// </summary>
+        private const double LandingGateHorizonSeconds = 180.0;
 
         /// <summary>
         /// Walks a patched-conic chain starting at <paramref name="start"/>
@@ -1486,6 +1495,142 @@ namespace Gonogo.KSP
                 ["landedAt"] = string.IsNullOrEmpty(vessel.landedAt) ? null : vessel.landedAt,
                 ["heightFromTerrain"] = (double)vessel.heightFromTerrain,
             };
+        }
+
+        /// <summary>
+        /// The <c>vessel.landing</c> capture (B1 slice: relevance gate +
+        /// atmosphere-aware descent estimate; PQS terrain fields follow). Reads
+        /// the live vessel/body and feeds the KSP-free <see cref="LandingModel"/>
+        /// so the maths stays unit-tested. Returns null (group omitted) unless
+        /// the source relevance gate is open: descending toward a solid,
+        /// PQS-backed surface within the closure horizon. Scalar results only —
+        /// never an unverified 0.0.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildLanding(Vessel vessel, Orbit? orbit)
+        {
+            var body = orbit?.referenceBody;
+            if (body == null)
+            {
+                return null;
+            }
+
+            var heightFromTerrain = (double)vessel.heightFromTerrain;
+            if (!LandingModel.IsRelevant(
+                    body.hasSolidSurface,
+                    body.pqsController != null,
+                    vessel.verticalSpeed,
+                    heightFromTerrain,
+                    LandingGateHorizonSeconds))
+            {
+                return null;
+            }
+
+            var result = new Dictionary<string, object?>();
+
+            if (body.atmosphere)
+            {
+                // Aggregate current drag force (kN) — a real measurement, no sim.
+                double dragForce = 0.0;
+                var parts = vessel.parts;
+                if (parts != null)
+                {
+                    for (int i = 0; i < parts.Count; i++)
+                    {
+                        dragForce += parts[i].dragScalar;
+                    }
+                }
+
+                double altAsl = vessel.altitude;
+                double r = body.Radius + altAsl;
+                // Local gravity g = GM / r^2; weight in kN (tonnes * m/s^2 = kN),
+                // the same force unit as dragScalar so the ratio is unit-clean.
+                double g = r > 0 ? body.gravParameter / (r * r) : 0.0;
+                double weight = vessel.totalMass * g;
+                double vNow = vessel.srfSpeed;
+                double rhoNow = vessel.atmDensity;
+
+                // The ASL altitude of the ground beneath the lowest point.
+                double groundAlt = Math.Max(0.0, altAsl - heightFromTerrain);
+                double rhoGround = DensityAt(body, groundAlt);
+
+                // Density profile down the fall column for the TTI integral.
+                const int steps = 8;
+                var alts = new double[steps + 1];
+                var rhos = new double[steps + 1];
+                for (int i = 0; i <= steps; i++)
+                {
+                    double a = altAsl - (altAsl - groundAlt) * i / steps;
+                    alts[i] = a;
+                    rhos[i] = DensityAt(body, a);
+                }
+
+                result["terminalVelocity"] =
+                    LandingModel.TerminalVelocityAt(dragForce, weight, vNow, rhoNow, rhoNow);
+                result["projectedTouchdownSpeed"] =
+                    LandingModel.TerminalVelocityAt(dragForce, weight, vNow, rhoNow, rhoGround);
+                result["atmosphericTimeToImpact"] =
+                    LandingModel.AtmosphericTimeToImpact(dragForce, weight, vNow, rhoNow, alts, rhos);
+                result["descentRegime"] = LandingModel.ClassifyRegime(dragForce, weight);
+                result["parachuteState"] = BuildParachuteState(vessel);
+                result["outcome"] = "atmospheric-aware";
+            }
+            else
+            {
+                result["outcome"] = "vacuum-solved";
+            }
+
+            return result;
+        }
+
+        /// <summary>Air density at an ASL altitude, via the body's pressure/temperature curves.</summary>
+        private static double DensityAt(CelestialBody body, double altitude)
+        {
+            double pressure = body.GetPressure(altitude);
+            double temperature = body.GetTemperature(altitude);
+            return body.GetDensity(pressure, temperature);
+        }
+
+        /// <summary>
+        /// Parachute state affecting the terminal-velocity estimate:
+        /// "deployed" (its drag is already in the measured aggregate, so the
+        /// estimate self-corrects), "armed" (a future step change the instant
+        /// model cannot see — flag it), or "none".
+        /// </summary>
+        private static string BuildParachuteState(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null)
+            {
+                return "none";
+            }
+
+            bool armed = false;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var modules = parts[i].Modules;
+                if (modules == null)
+                {
+                    continue;
+                }
+
+                for (int m = 0; m < modules.Count; m++)
+                {
+                    if (modules[m] is ModuleParachute chute)
+                    {
+                        switch (chute.deploymentState)
+                        {
+                            case ModuleParachute.deploymentStates.DEPLOYED:
+                            case ModuleParachute.deploymentStates.SEMIDEPLOYED:
+                                return "deployed";
+                            case ModuleParachute.deploymentStates.ACTIVE:
+                                armed = true;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            return armed ? "armed" : "none";
         }
 
         /// <summary>
