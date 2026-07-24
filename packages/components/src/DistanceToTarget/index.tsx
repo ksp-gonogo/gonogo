@@ -37,6 +37,7 @@ import styled from "styled-components";
 import {
   deriveDockAngles,
   radialSpeed,
+  targetKindLabel,
   type Vec3,
   vecMagnitude,
 } from "../shared/dockAngles";
@@ -69,24 +70,6 @@ function useStreamStatusOptional(topic: string): StreamStatusValue {
     [store, topic],
   );
   return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-/** `TargetKind` ordinal -> the display label the badge/mode logic used to get
- * from the legacy `tar.type` string. Docking modes gate on "not a body", so
- * only the Body case needs to read as the old `"CelestialBody"`. */
-function targetKindLabel(kind: TargetKind | undefined): string | undefined {
-  switch (kind) {
-    case TargetKind.Vessel:
-      return "Vessel";
-    case TargetKind.Body:
-      return "CelestialBody";
-    case TargetKind.Part:
-      return "Docking Port";
-    case TargetKind.Other:
-      return "Other";
-    default:
-      return undefined;
-  }
 }
 
 interface DistanceToTargetConfig {

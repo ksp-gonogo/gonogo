@@ -5,7 +5,6 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -175,6 +174,34 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, []);
     await screen.findByText(/No targets in range/i);
+  });
+
+  // T1: a modded ITargetable surfaces as TargetKind.Other (2), and any kind the
+  // consumer doesn't recognise (e.g. Position = 3) must degrade gracefully too
+  // — both bucket into an "Other" section rather than falling into no list and
+  // rendering invisibly, and carry a distance (kind-agnostic — Jon's explicit
+  // requirement).
+  it("buckets Other / unknown-kind targetables into an 'Other' section with distance (T1)", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, [
+      KERBIN,
+      {
+        kind: 2,
+        name: "Deployed Ground Station",
+        distance: 340,
+        isCurrent: true,
+      },
+      { kind: 3, name: "Flag Marker", distance: 12_000, isCurrent: false },
+    ]);
+
+    // The Other category section appears (2 entries) — previously an Other/
+    // unknown-kind entry landed in no list and was invisible.
+    await screen.findByRole("button", { name: /^Other/ });
+    expect(screen.getByText("Deployed Ground Station")).toBeInTheDocument();
+    expect(screen.getByText("Flag Marker")).toBeInTheDocument();
+    // Distance is populated + shown for the Other bucket, same as every other
+    // category.
+    expect(screen.getByText(/340\s*m/)).toBeInTheDocument();
   });
 
   it("builds Suggested from the 2 closest bodies + 2 closest vessels + all parts, hidden SpaceObject excluded", async () => {
@@ -383,20 +410,13 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     act(() => {
-      // tarType/tarDistance/tarRelVel read off the `vessel.state` derived
-      // channel, which stays a whole-record `undefined` until its
-      // `vessel.orbit`/`vessel.flight` inputs land — Loaded quality skips
-      // the OnRails Kepler solve entirely, same minimal-unblock pattern as
-      // AtmosphereProfile/MapView's stream tests.
-      fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
-      fixture.emit("vessel.flight", {
-        altitudeAsl: 0,
-        verticalSpeed: 0,
-        surfaceSpeed: 0,
-        orbitalSpeed: 0,
-      });
-      // kind: 0 -> targetKind "Vessel". relativePosition magnitude 1500 ->
-      // targetDistance; dot(relPos, relVel)/|relPos| == -2.5 -> closing.
+      // producer-consumer-T4: tarType/tarDistance/tarRelVel now derive
+      // NATIVELY off `vessel.target` alone (kind/relativePosition/
+      // relativeVelocity) — no `vessel.state` emission (no
+      // `vessel.orbit`/`vessel.flight` inputs) needed to unblock them, unlike
+      // before the fix. kind: 0 -> targetKind "Vessel". relativePosition
+      // magnitude 1500 -> targetDistance; dot(relPos, relVel)/|relPos| ==
+      // -2.5 -> closing.
       fixture.emit("vessel.target", {
         name: "Test Station",
         kind: 0,
@@ -408,11 +428,35 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
       expect(screen.getByText("Vessel")).toBeInTheDocument();
+      expect(screen.getByText("1.5 km")).toBeInTheDocument();
+      expect(screen.getByText("Δv -2.50 m/s")).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
+    });
+  });
+
+  it("producer-consumer-T4: current-target kind/distance/Δv render off vessel.target's kind/Part TargetKind, with no vessel.state emission at all", async () => {
+    renderPicker(fixture);
+    act(() => {
+      // kind: 4 -> Part (a docking port) -> targetKindLabel "Docking Port".
+      // No `vessel.orbit`/`vessel.flight`/any `vessel.state` input is emitted
+      // anywhere in this test — proves the derived `vessel.state` channel is
+      // no longer a dependency of the current-target detail readout.
+      fixture.emit("vessel.target", {
+        name: "Port Alpha",
+        kind: 4,
+        relativePosition: { x: 30, y: 40, z: 0 },
+        relativeVelocity: { x: 0, y: 0, z: 1 },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Docking Port")).toBeInTheDocument();
+      // |relativePosition| = hypot(30,40,0) = 50 m.
+      expect(screen.getByText("50 m")).toBeInTheDocument();
     });
   });
 

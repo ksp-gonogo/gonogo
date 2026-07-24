@@ -10,7 +10,13 @@
  * is to DROP those true axes and use the LINE-OF-SIGHT offset off the
  * `relativePosition` Vec3 as a HUD proxy instead (a genuinely new derivation,
  * not a reproduction of a legacy formula).
+ *
+ * `targetKindLabel` lives here too — it's the same "derive off native
+ * `vessel.target`" family (the SDK `TargetKind` -> the display string
+ * widgets render), and both DistanceToTarget and TargetPicker need the
+ * identical mapping so a current-target's kind reads the same everywhere.
  */
+import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * `{x,y,z}` — the wire shape of every `vessel.target`/`vessel.dock` Vec3
@@ -56,4 +62,26 @@ export function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
   const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;
   const ay = (Math.atan2(position.y, Math.abs(position.z)) * 180) / Math.PI;
   return { ax, ay };
+}
+
+/**
+ * `TargetKind` ordinal -> the display label the badge/mode logic used to get
+ * from the legacy `tar.type` string. Docking modes gate on "not a body", so
+ * only the Body case needs to read as the old `"CelestialBody"`.
+ */
+export function targetKindLabel(
+  kind: TargetKind | undefined,
+): string | undefined {
+  switch (kind) {
+    case TargetKind.Vessel:
+      return "Vessel";
+    case TargetKind.Body:
+      return "CelestialBody";
+    case TargetKind.Part:
+      return "Docking Port";
+    case TargetKind.Other:
+      return "Other";
+    default:
+      return undefined;
+  }
 }

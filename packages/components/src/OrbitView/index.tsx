@@ -55,18 +55,8 @@ function useStreamOptional<T>(topic: string): T | undefined {
   );
   const getSnapshot = useCallback((): T | undefined => {
     if (!store) return undefined;
-    // A derived channel's `derive` runs inside `sample` and can throw — e.g.
-    // `deriveVesselState`'s OnRails branch calls the elliptical-only Kepler
-    // solver, which throws for a hyperbolic orbit (ecc≥1, an escape
-    // trajectory). Degrade to `undefined` rather than crashing the widget;
-    // the fields read through this hook (trueAnomaly / parentBodyName) are
-    // non-essential and their consumers already tolerate `undefined`.
-    try {
-      const point = store.sample<T>(topic, store.currentFrame());
-      return point ? (point.payload as T | undefined) : undefined;
-    } catch {
-      return undefined;
-    }
+    const point = store.sample<T>(topic, store.currentFrame());
+    return point ? (point.payload as T | undefined) : undefined;
   }, [store, topic]);
   return useSyncExternalStore(subscribe, getSnapshot);
 }
@@ -120,18 +110,24 @@ interface OrbitViewConfig {
  * body-centric in SVG user-units that match these orbital elements: the body
  * sits at `center` (the SVG origin), +x runs along the apsis line before
  * `argPe` rotation, +y is up in the orbital frame, and the visible half-extent
- * is ~`scale` units (apoapsis-driven, matching the diagram's own scale
- * reference). An overlay augment — e.g. a future N-body / SOI-transition Uplink
- * — builds a matching viewBox / transform from these to draw markers in the
- * diagram's coordinate space.
+ * is ~`scale` units — apoapsis-driven, matching the diagram's own scale
+ * reference, EXCEPT on a hyperbolic orbit (`ecc >= 1`), where apoapsis is
+ * meaningless and both this and the diagram itself scale off periapsis
+ * instead (see `OrbitDiagram`'s `HYPERBOLIC_SCALE`). An overlay augment —
+ * e.g. a future N-body / SOI-transition Uplink — builds a matching viewBox /
+ * transform from these to draw markers in the diagram's coordinate space.
  */
 export interface OrbitOverlayContext {
   /** Semi-major axis, distance units (metres from body centre). */
   sma: number;
   /** Eccentricity. */
   ecc: number;
-  /** Apoapsis radius from body centre, same units. */
-  apoapsis: number;
+  /**
+   * Apoapsis radius from body centre, same units. `undefined` on a
+   * hyperbolic orbit (`ecc >= 1`) — there is no apoapsis to report (see
+   * `VesselState.apoapsisRadius`'s doc comment).
+   */
+  apoapsis?: number;
   /** Periapsis radius from body centre, same units. */
   periapsis: number;
   /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
@@ -199,14 +195,17 @@ function OrbitViewComponent({
   // `useTelemetry("data", ...)` fallback.
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
   //  - `vessel.state` (client-side derived channel) carries
-  //    `trueAnomaly` (propagated at view-UT) and `parentBodyName` (identity
-  //    index → `system.bodies` name). It isn't a wire `TopicId`, so it reads
-  //    through the provider-optional `useStreamOptional`.
-  //  - The apsis RADII are the raw elements themselves (`sma·(1±ecc)`) — a
-  //    trivial, conic-agnostic formula computed here rather than read from
-  //    `vessel.state.apoapsisRadius`/`periapsisRadius`, because
-  //    `deriveVesselState`'s OnRails branch throws for hyperbolic orbits
-  //    (ecc≥1, escape trajectories) before it ever computes those fields.
+  //    `trueAnomaly` (propagated at view-UT), `parentBodyName` (identity
+  //    index → `system.bodies` name), `basis` ("propagated" | "measured"),
+  //    and the apsis RADII. It isn't a wire `TopicId`, so it reads through
+  //    the provider-optional `useStreamOptional`.
+  //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
+  //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`) — that
+  //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
+  //    makes it a finite but GARBAGE negative number) and for both apsides
+  //    in the "measured" basis (Loaded-basis osculating elements). Correctly
+  //    `null` in both cases per `deriveVesselState`'s `trySolve`/
+  //    `trySolveAnomalies` (non-throwing — see `vessel-state.ts`).
   //  - `useBodyRotation` derives the pole marker client-side from the body's
   //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
   const orbit = useTelemetry("vessel.orbit");
@@ -216,14 +215,13 @@ function OrbitViewComponent({
   const argPe = orbit?.argPe ?? undefined;
   const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
-  const apoapsisR =
-    sma !== undefined && eccentricity !== undefined
-      ? sma * (1 + eccentricity)
-      : undefined;
-  const periapsisR =
-    sma !== undefined && eccentricity !== undefined
-      ? sma * (1 - eccentricity)
-      : undefined;
+  const basis = vesselState?.basis;
+  // `null` on a hyperbolic orbit (no apoapsis exists) or in the "measured"
+  // basis (both apsides) — see `VesselState.apoapsisRadius`'s doc comment.
+  const apoapsisR = vesselState?.apoapsisRadius;
+  // `null` only in the "measured" basis — always real whenever there's a
+  // resolvable orbit, hyperbolic or not.
+  const periapsisR = vesselState?.periapsisRadius;
   // Connectivity indicator — `vessel.orbit` is this widget's representative
   // read Topic (it gates the diagram's elements), so one badge speaks for the
   // whole widget.
@@ -239,11 +237,13 @@ function OrbitViewComponent({
     typeof bodyName === "string" ? bodyName : null,
   );
 
-  const hasOrbit =
-    sma !== undefined &&
-    eccentricity !== undefined &&
-    apoapsisR !== undefined &&
-    periapsisR !== undefined;
+  // Apoapsis is intentionally NOT required — it's `null` on a hyperbolic
+  // orbit (no apoapsis exists) by design, not an error. Periapsis is
+  // always real whenever there IS an orbit, so it (plus sma/eccentricity)
+  // is the true "do we have an orbit" signal. `!= null` catches both
+  // `null` and `undefined` (a naive `apoapsisRadius ?? undefined` upstream
+  // must not be able to flip this gate).
+  const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
 
   // Selective rendering — at small sizes the SVG diagram doesn't have room
   // to be readable, so collapse to a single status pill (the user's
@@ -287,7 +287,10 @@ function OrbitViewComponent({
       variant="full"
       sma={sma}
       ecc={eccentricity}
-      apoapsis={apoapsisR}
+      // `apoapsisR` is `null` on a hyperbolic orbit — OrbitDiagram already
+      // detects that itself (`ecc >= 1 || sma <= 0`) and ignores this value
+      // in that branch, so the fallback is never actually rendered from.
+      apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
       trueAnomaly={trueAnomaly ?? 0}
       argPe={argPe ?? 0}
@@ -312,21 +315,26 @@ function OrbitViewComponent({
   // draw in the SVG's coordinate space. `overlay` is null until the elements
   // resolve — the wrapper only mounts the slot once there's a diagram beneath.
   const badgesContext: OrbitBadgesContext = { bodyName };
+  // Mirrors `OrbitDiagram`'s own `HYPERBOLIC_SCALE` constant so the overlay
+  // slot's declared `scale` matches the diagram's ACTUAL bounds on a
+  // hyperbolic trajectory, where apoapsis is meaningless and the diagram
+  // scales off periapsis instead (see OrbitDiagram.tsx).
+  const HYPERBOLIC_OVERLAY_SCALE = 5;
   const overlayContext: OrbitOverlayContext | null =
-    sma !== undefined &&
-    eccentricity !== undefined &&
-    apoapsisR !== undefined &&
-    periapsisR !== undefined
+    sma != null && eccentricity != null && periapsisR != null
       ? {
           sma,
           ecc: eccentricity,
-          apoapsis: apoapsisR,
+          apoapsis: apoapsisR ?? undefined,
           periapsis: periapsisR,
           argPe: argPe ?? 0,
           trueAnomaly: trueAnomaly ?? 0,
           bodyRadius: body?.radius,
           center: { x: 0, y: 0 },
-          scale: apoapsisR,
+          scale:
+            eccentricity >= 1
+              ? periapsisR * HYPERBOLIC_OVERLAY_SCALE
+              : (apoapsisR ?? periapsisR),
         }
       : null;
 
@@ -383,7 +391,15 @@ function OrbitViewComponent({
       )}
 
       {!hasOrbit ? (
-        <NoData>No orbital data</NoData>
+        <NoData>
+          {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
+              osculating elements to derive a diagram from — distinct from
+              the genuine no-data case (basis undefined, nothing has
+              arrived yet). */}
+          {basis === "measured"
+            ? "No osculating orbit (packed)"
+            : "No orbital data"}
+        </NoData>
       ) : showDiagram ? (
         diagramWithOverlay
       ) : (

@@ -9,14 +9,17 @@ import { renderOrbitViewStream } from "./streamHarness";
  *
  * Every read is now stream-native:
  * - `vessel.orbit` (raw Topic) → `sma`/`ecc`/`argPe`.
- * - `vessel.state` (derived channel) → `trueAnomaly` (propagated at view-UT)
- *   and `parentBodyName` (identity index → `system.bodies` name).
- * - Apsis radii are computed in-widget off the raw elements (`sma·(1±ecc)`).
+ * - `vessel.state` (derived channel) → `trueAnomaly` (propagated at view-UT),
+ *   `parentBodyName` (identity index → `system.bodies` name), and the apsis
+ *   radii (`apoapsisRadius`/`periapsisRadius` — `null` on a hyperbolic orbit
+ *   or in the "measured" basis, real as soon as `vessel.orbit` lands
+ *   otherwise).
  *
- * Because the apsis radii now come off `vessel.orbit` alone, `hasOrbit` goes
- * true and the diagram renders — the exact opposite of the pre-migration
- * correlated-gap behaviour, where those keys were gapped and the widget could
- * never leave its empty state off the stream.
+ * Because `vessel.state.periapsisRadius` resolves as soon as `vessel.orbit`
+ * lands (OnRails), `hasOrbit` goes true and the diagram renders — the exact
+ * opposite of the pre-migration correlated-gap behaviour, where those keys
+ * were gapped and the widget could never leave its empty state off the
+ * stream.
  */
 
 describe("OrbitView — genuinely runs off the stream (R6 de-Telemachus)", () => {

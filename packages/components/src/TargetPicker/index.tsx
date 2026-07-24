@@ -14,12 +14,14 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type StreamStatusValue,
-  useStream,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { TargetKind, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
+import {
+  TargetKind,
+  type TargetListEntry,
+  VesselType,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   ConfigForm,
@@ -41,6 +43,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
+import {
+  radialSpeed,
+  targetKindLabel,
+  type Vec3,
+  vecMagnitude,
+} from "../shared/dockAngles";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 
 // Config is empty — bodies/vessels/parts all come off the one
@@ -70,7 +78,15 @@ declare module "@ksp-gonogo/core" {
 
 /** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
  * ordinal -> display-label bridge for a `target.available` entry's
- * `vesselType` (set for Vessel/Part-kind entries — the owning vessel's type). */
+ * `vesselType` (set for Vessel/Part-kind entries — the owning vessel's type).
+ * Hand-ordered to match the generated SDK `VesselType` enum (source of
+ * truth, since it's generated straight off the C# contract) — index
+ * alignment is locked by the drift-guard test in `enumLabelDrift.test.ts`
+ * (imported there under the `TARGET_PICKER_VESSEL_TYPE_LABELS` alias at the
+ * bottom of this file — LaunchDirector declares an identically-named const
+ * of its own, and both can't be bare-named at the package's `export *`
+ * barrel), so an inserted C# enum member fails CI here instead of silently
+ * mis-labelling every row. */
 const VESSEL_TYPE_LABELS: readonly string[] = [
   "Ship",
   "Station",
@@ -89,12 +105,15 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
   "Unknown",
 ];
 
-/** Ordinal within `VESSEL_TYPE_LABELS` for the asteroid/comet toggle. */
-const SPACE_OBJECT_VESSEL_TYPE = 10;
+/** Ordinal for the asteroid/comet toggle, DERIVED from the generated SDK
+ * enum (not a bare literal) so it can never point at the wrong
+ * `VesselType` member even if the C# declaration order changes. */
+export const SPACE_OBJECT_VESSEL_TYPE = VesselType.SpaceObject;
 
 /** `Sitrep.Contract.Situation`'s C# declared order — the ordinal -> label
  * bridge for a `target.available` entry's `situation` (set for Vessel-kind
- * entries only). */
+ * entries only). Index-alignment with the generated SDK `Situation` enum is
+ * locked by the drift-guard test in `enumLabelDrift.test.ts`. */
 const SITUATION_LABELS: readonly string[] = [
   "Landed",
   "Splashed",
@@ -195,16 +214,23 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   // Canonical native reads: the whole `target.available` list, and the
-  // target-detail scalars (name off `vessel.target.name`, type/distance/Δv
-  // off the `vessel.state` derived channel — `deriveVesselState` produces
-  // the shape these widgets expect).
+  // target-detail scalars off the whole `vessel.target` Topic (name, kind,
+  // and the Vec3 fields distance/Δv derive from) — the same native-shim
+  // reads DistanceToTarget uses, not the `vessel.state` derived channel
+  // (which isn't a wire Topic and so can't be declared in
+  // `dataRequirements` — see the ratchet test in
+  // `packages/core/src/hooks/mapTopic.coverage.test.ts`).
   const available = useTelemetry("target.available");
-  const tarName = resolveTargetName(useTelemetry("vessel.target")?.name);
-  const tarType = useStream<VesselState>("vessel.state")?.targetKind as
-    | string
-    | undefined;
-  const tarDistance = useStream<VesselState>("vessel.state")?.targetDistance;
-  const tarRelVel = useStream<VesselState>("vessel.state")?.targetRelativeSpeed;
+  const target = useTelemetry("vessel.target");
+  const tarName = resolveTargetName(target?.name);
+  const tarType = targetKindLabel(target?.kind);
+  const tarRelPos = target?.relativePosition as Vec3 | undefined;
+  const tarRelVelVec = target?.relativeVelocity as Vec3 | undefined;
+  const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
+  const tarRelVel =
+    tarRelPos && tarRelVelVec
+      ? radialSpeed(tarRelPos, tarRelVelVec)
+      : undefined;
   const execute = useExecuteAction("data");
   const streamStatus = useStreamStatusOptional("target.available");
 
@@ -213,6 +239,7 @@ function TargetPickerComponent({
   const [bodiesExpanded, setBodiesExpanded] = useState(true);
   const [vesselsExpanded, setVesselsExpanded] = useState(true);
   const [partsExpanded, setPartsExpanded] = useState(true);
+  const [otherExpanded, setOtherExpanded] = useState(true);
 
   useActionInput<TargetPickerActions>({
     "clear-target": (payload) => {
@@ -256,6 +283,12 @@ function TargetPickerComponent({
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
       void execute(`tar.setTargetPart[${entry.vesselId},${entry.partId}]`);
     }
+    // T1: an `Other`/unknown-kind entry (a modded ITargetable) has no id-based
+    // `tar.setTarget*` command to re-select it — the producer only surfaces one
+    // when it's ALREADY the current target — so a click is intentionally a
+    // graceful no-op here (the row still shows name + distance + the TARGET
+    // tag). Documented so this fall-through reads as deliberate, not an
+    // accidental missing branch.
   };
   const clearTarget = () => {
     setPendingTarget(null);
@@ -310,6 +343,23 @@ function TargetPickerComponent({
     () => sortByDistance(visible.filter((e) => e.kind === TargetKind.Part)),
     [visible],
   );
+  // T1: anything that isn't a Body/Vessel/Part — `TargetKind.Other` (a modded
+  // ITargetable the producer surfaces as the current target) or any kind the
+  // consumer doesn't recognise — buckets here rather than falling into no list
+  // and rendering invisibly. Distance is kind-agnostic (every ITargetable has
+  // a transform), so it shows + distance-sorts like the others.
+  const otherList = useMemo(
+    () =>
+      sortByDistance(
+        visible.filter(
+          (e) =>
+            e.kind !== TargetKind.Body &&
+            e.kind !== TargetKind.Vessel &&
+            e.kind !== TargetKind.Part,
+        ),
+      ),
+    [visible],
+  );
 
   // Suggested: 2 closest Bodies + 2 closest Vessels + ALL Parts (already
   // off-vessel by construction) — each source list is already closest-first.
@@ -321,7 +371,8 @@ function TargetPickerComponent({
   const noCategoriesHaveEntries =
     bodiesList.length === 0 &&
     vesselsList.length === 0 &&
-    partsList.length === 0;
+    partsList.length === 0 &&
+    otherList.length === 0;
 
   // Selective rendering — at very small sizes the picker doesn't have room,
   // so collapse to a current-target readout (clear button if there's any width).
@@ -485,6 +536,17 @@ function TargetPickerComponent({
               onToggle={() => setPartsExpanded((v) => !v)}
             >
               {partsList.map((entry) => renderRow(entry, "part"))}
+            </CategorySection>
+          )}
+          {otherList.length > 0 && (
+            <CategorySection
+              id="other"
+              label="Other"
+              count={otherList.length}
+              expanded={otherExpanded}
+              onToggle={() => setOtherExpanded((v) => !v)}
+            >
+              {otherList.map((entry) => renderRow(entry, "other"))}
             </CategorySection>
           )}
           {noCategoriesHaveEntries && (
@@ -873,4 +935,12 @@ registerComponent<TargetPickerConfig>({
   requires: ["flight"],
 });
 
-export { TargetPickerComponent };
+// Test-only surface for the T3 drift-guard (`enumLabelDrift.test.ts`) — aliased
+// rather than exported bare, since LaunchDirector declares an identically-named
+// `VESSEL_TYPE_LABELS` const of its own and the package barrel (`src/index.ts`)
+// re-exports every widget's `*`, which would otherwise collide.
+export {
+  SITUATION_LABELS as TARGET_PICKER_SITUATION_LABELS,
+  TargetPickerComponent,
+  VESSEL_TYPE_LABELS as TARGET_PICKER_VESSEL_TYPE_LABELS,
+};

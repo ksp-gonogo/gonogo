@@ -306,6 +306,41 @@ describe("ManeuverPlannerComponent", () => {
     // Per-field checklist rows appear with the underlying data-key labels.
     expect(screen.getByText("o.sma")).toBeInTheDocument();
     expect(screen.getByText("t.universalTime")).toBeInTheDocument();
+    // O5: the plain no-data case must NOT show the hyperbolic notice — only
+    // a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
+    expect(screen.queryByText(/Hyperbolic trajectory/i)).toBeNull();
+  });
+
+  // O5: ManeuverPlanner conflated "hyperbolic orbit" with "no data" — both
+  // used to fall into the same generic "Waiting for telemetry" empty state
+  // because `buildCurrentOrbit` legitimately returns null on a hyperbolic
+  // orbit (no apoapsis, so ApR/timeToAp come back NaN/null even once real
+  // telemetry has landed). The fix reads the raw `vessel.orbit.ecc` (always
+  // present once the orbit topic arrives, independent of the derived
+  // `currentOrbit`) to tell the two cases apart.
+  it("shows a distinct hyperbolic-trajectory notice (not the generic waiting panel) when ecc >= 1", async () => {
+    render(
+      <utFixture.Provider>
+        <ManeuverPlannerComponent id="mnv" config={{}} />
+      </utFixture.Provider>,
+    );
+    act(() => {
+      // Hyperbolic: ecc >= 1, sma conventionally negative. Real telemetry
+      // has arrived (unlike the plain no-data case above) — it's just an
+      // orbit shape the planner can't offer circularize/rendezvous presets
+      // for.
+      utFixture.emit("vessel.orbit", {
+        ...VESSEL_ORBIT_STREAM_FIXTURE,
+        sma: -700_000,
+        ecc: 1.5,
+      });
+    });
+    await flushViewUt();
+    expect(screen.getByText(/Hyperbolic trajectory/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/maneuver planning is not available/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Waiting for telemetry$/i)).toBeNull();
   });
 
   it("transitions out of the waiting state once telemetry lands", async () => {

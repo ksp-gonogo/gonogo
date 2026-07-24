@@ -4,12 +4,14 @@ import {
   getBody,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  type StreamStatusValue,
   useCommand,
   useStream,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
@@ -32,6 +34,7 @@ import {
   StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
+import { useCallback, useSyncExternalStore } from "react";
 import { deriveDelayClocks, type LandingRegime } from "./clocks";
 import { solveSuicideBurn } from "./solveLanding";
 
@@ -188,6 +191,34 @@ function ConfigRow({
   );
 }
 
+/** Native per-topic stream status (same helper OrbitView/DistanceToTarget use)
+ * — `"disconnected"` when no `TelemetryProvider` is mounted. */
+function useStreamStatusOptional(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
+  );
+  const getSnapshot = useCallback(
+    (): StreamStatusValue =>
+      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
+    [store, topic],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
 function LandingStatusComponent({
   h,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
@@ -269,7 +300,14 @@ function LandingStatusComponent({
     },
   });
 
-  const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
+  // Watch the datum the widget actually displays: `vessel.surface` (the
+  // lowest-point burn height). vessel.surface is a SEPARATE, independently
+  // gated channel — withheld while Orbiting/Escaping and under signal delay,
+  // independently of vessel.flight — so binding the badge to vessel.flight
+  // (as before) read healthy even when the shown height had silently dropped
+  // to the CoM fallback. The `usingComDatum` note explains the fallback; the
+  // badge now reflects the primary datum's freshness.
+  const streamStatus = useStreamStatusOptional("vessel.surface");
 
   // Board state drives WHICH readouts exist — we never show a confident number
   // from a model that doesn't apply. Atmospheric bodies suppress the vacuum

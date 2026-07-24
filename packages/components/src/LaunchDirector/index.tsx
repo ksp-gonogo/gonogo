@@ -94,7 +94,12 @@ const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
 
 /** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
  * ordinal -> display-label bridge for the `target.available` roster. Same
- * array TargetPicker's `normalizeRoster` uses. */
+ * array TargetPicker's `normalizeRoster` uses. Index-alignment with the
+ * generated SDK `VesselType` enum is locked by the drift-guard test in
+ * `../TargetPicker/enumLabelDrift.test.ts` (imported there under the
+ * `LAUNCH_DIRECTOR_VESSEL_TYPE_LABELS` alias exported at the bottom of this
+ * file — TargetPicker declares an identically-named const of its own, and
+ * both can't be bare-named at the package's `export *` barrel). */
 const VESSEL_TYPE_LABELS: readonly string[] = [
   "Ship",
   "Station",
@@ -1371,4 +1376,12 @@ registerComponent<LaunchDirectorConfig>({
   pushable: true,
 });
 
-export { LaunchDirectorComponent };
+// Test-only surface for the T3 drift-guard (`../TargetPicker/enumLabelDrift.test.ts`)
+// — aliased rather than exported bare, since TargetPicker declares an
+// identically-named `VESSEL_TYPE_LABELS` const of its own and the package
+// barrel (`src/index.ts`) re-exports every widget's `*`, which would
+// otherwise collide.
+export {
+  LaunchDirectorComponent,
+  VESSEL_TYPE_LABELS as LAUNCH_DIRECTOR_VESSEL_TYPE_LABELS,
+};

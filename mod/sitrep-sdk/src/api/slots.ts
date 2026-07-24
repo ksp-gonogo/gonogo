@@ -487,8 +487,12 @@ export interface OrbitOverlayContext {
   sma: number;
   /** Eccentricity. */
   ecc: number;
-  /** Apoapsis radius from body centre, same units. */
-  apoapsis: number;
+  /**
+   * Apoapsis radius from body centre, same units. `undefined` on a hyperbolic
+   * orbit (`ecc >= 1`) — there is no apoapsis to report (see
+   * `VesselState.apoapsisRadius`'s doc comment).
+   */
+  apoapsis?: number;
   /** Periapsis radius from body centre, same units. */
   periapsis: number;
   /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
