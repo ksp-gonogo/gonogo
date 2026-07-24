@@ -21,6 +21,24 @@ describe("deriveBoard", () => {
     ).toBe("atmospheric-unmodelled");
   });
 
+  it("an atmospheric body shows the atmosphere-aware estimate when the source provides one", () => {
+    expect(
+      deriveBoard({
+        solutionState: "vacuum-solved",
+        atmospheric: true,
+        atmosphereAware: true,
+      }),
+    ).toBe("atmospheric-aware");
+    // but not-descending still wins over an available estimate
+    expect(
+      deriveBoard({
+        solutionState: "not-descending",
+        atmospheric: true,
+        atmosphereAware: true,
+      }),
+    ).toBe("not-descending");
+  });
+
   it("an atmospheric body suppresses even a no-solution vacuum result", () => {
     expect(
       deriveBoard({ solutionState: "no-solution", atmospheric: true }),

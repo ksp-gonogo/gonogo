@@ -146,6 +146,7 @@ function LandingStatusComponent({
   const control = useTelemetry("vessel.control");
   const summary = useTelemetry("dv.summary");
   const commsDelay = useTelemetry("comms.delay");
+  const landing = useTelemetry("vessel.landing");
 
   // Burn datum: the vessel's LOWEST point above terrain. Falls back to the CoM
   // radar altitude with a visible note when `vessel.surface` is nulled (Orbiting
@@ -216,7 +217,15 @@ function LandingStatusComponent({
 
   const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
 
-  const board = deriveBoard({ solutionState: solution.state, atmospheric });
+  // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
+  // when the vessel.landing channel carries a terminal velocity — only in an
+  // atmosphere while the relevance gate is open.
+  const atmosphereAware = landing?.terminalVelocity != null;
+  const board = deriveBoard({
+    solutionState: solution.state,
+    atmospheric,
+    atmosphereAware,
+  });
 
   // Descent-rate trend — a bounded history of vertical speed, so a developing
   // over-speed reads as a trend not a single tick. Appended after render.
@@ -285,7 +294,36 @@ function LandingStatusComponent({
               }}
             />
 
-            {board === "atmospheric-unmodelled" ? (
+            {board === "atmospheric-aware" ? (
+              <Section>
+                <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
+                <Grid cols="auto 1fr" gap="xs">
+                  <Field label="Terminal">
+                    {formatMps(landing?.terminalVelocity)}
+                  </Field>
+                  <Field label="Touchdown">
+                    {formatMps(landing?.projectedTouchdownSpeed)}
+                  </Field>
+                  <Field label="Impact in">
+                    {landing?.atmosphericTimeToImpact == null
+                      ? "—"
+                      : formatDuration(landing.atmosphericTimeToImpact, {
+                          ms: true,
+                        })}
+                  </Field>
+                  {landing?.descentRegime && (
+                    <Field label="Regime">{landing.descentRegime}</Field>
+                  )}
+                </Grid>
+                <Value tone="muted" size="xs">
+                  Estimate — assumes current config
+                  {landing?.parachuteState === "armed"
+                    ? "; excludes the pending parachute"
+                    : ""}
+                  .
+                </Value>
+              </Section>
+            ) : board === "atmospheric-unmodelled" ? (
               <Section>
                 <Badge tone="warn" size="sm">
                   atmospheric — descent unmodelled

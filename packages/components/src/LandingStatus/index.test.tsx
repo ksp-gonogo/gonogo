@@ -25,6 +25,7 @@ const CARRIED = [
   "vessel.target",
   "vessel.propulsion",
   "vessel.surface",
+  "vessel.landing",
   "dv.summary",
   "comms.delay",
 ];
@@ -269,6 +270,40 @@ describe("LandingStatusComponent", () => {
     expect(screen.queryByText("Touchdown")).toBeNull();
     // But the (drag-independent) velocity split still shows.
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
+  });
+
+  it("shows the atmosphere-aware descent estimate when vessel.landing carries one", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: KERBIN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 3000,
+          verticalSpeed: 80,
+          surfaceSpeed: 85,
+        },
+      });
+      // The mod-side terminal-velocity model, delivered on vessel.landing.
+      stream.emit("vessel.landing", {
+        outcome: "atmospheric-aware",
+        terminalVelocity: 85,
+        projectedTouchdownSpeed: 62,
+        atmosphericTimeToImpact: 41.5,
+        descentRegime: "at-terminal",
+        parachuteState: "armed",
+      });
+    });
+    expect(
+      await screen.findByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/85.0 m\/s/)).toBeInTheDocument();
+    expect(screen.getByText("at-terminal")).toBeInTheDocument();
+    // The armed-chute caveat surfaces; the "unmodelled" suppression note is gone.
+    expect(
+      screen.getByText(/excludes the pending parachute/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
   });
 
   it("shows the delayed regime banner off comms.delay", async () => {

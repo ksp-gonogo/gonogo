@@ -23,6 +23,7 @@ export type LandingBoard =
   | "not-descending"
   | "no-solution"
   | "atmospheric-unmodelled"
+  | "atmospheric-aware"
   | "vacuum-solved";
 
 export interface BoardInputs {
@@ -30,20 +31,30 @@ export interface BoardInputs {
   solutionState: LandingSolutionState;
   /** Whether the parent body has an atmosphere (drives the vacuum/atmo split). */
   atmospheric: boolean;
+  /**
+   * Whether the mod-side atmosphere-aware descent estimate is available this
+   * tick (the `vessel.landing` channel carried a terminal-velocity reading).
+   * When true, an atmospheric body shows real (estimated) descent numbers
+   * instead of the suppressed "unmodelled" note. Defaults to false.
+   */
+  atmosphereAware?: boolean;
 }
 
 /**
  * Precedence, highest first: a craft that is not descending shows nothing
- * regardless of body; an atmospheric body suppresses the (vacuum-only) solve
- * even when it would otherwise solve or fail; a vacuum body with missing data is
- * `no-solution`; otherwise the vacuum solution stands.
+ * regardless of body; an atmospheric body shows the atmosphere-aware estimate
+ * when the source provides one, else suppresses the (vacuum-only) solve; a
+ * vacuum body with missing data is `no-solution`; otherwise the vacuum solution
+ * stands.
  */
 export function deriveBoard({
   solutionState,
   atmospheric,
+  atmosphereAware = false,
 }: BoardInputs): LandingBoard {
   if (solutionState === "not-descending") return "not-descending";
-  if (atmospheric) return "atmospheric-unmodelled";
+  if (atmospheric)
+    return atmosphereAware ? "atmospheric-aware" : "atmospheric-unmodelled";
   if (solutionState === "no-solution") return "no-solution";
   return "vacuum-solved";
 }
