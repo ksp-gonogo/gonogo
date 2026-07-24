@@ -127,12 +127,14 @@ export function CommitLayer({
           <StatusPill $tone={REGIME_TONE[regime]}>
             {REGIME_LABEL[regime]}
           </StatusPill>
-          {roundTripSeconds != null && roundTripSeconds > 0 && (
-            <Value tone="muted">
-              RT {formatDuration(roundTripSeconds, { ms: true })}
-            </Value>
-          )}
         </Cluster>
+        {/* RT on its OWN line (not crammed beside the pill) so the readouts +
+            TWR above can move up and fill the right column. */}
+        {roundTripSeconds != null && roundTripSeconds > 0 && (
+          <Value tone="muted">
+            RT {formatDuration(roundTripSeconds, { ms: true })}
+          </Value>
+        )}
       </Section>
 
       <Section

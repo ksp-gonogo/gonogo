@@ -8,7 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
-import { Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
+import { Gauge, Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
@@ -29,8 +29,9 @@ import { useEffect, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
+import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
-import { DescentScope } from "./DescentScope";
+import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 import { TouchdownReticle } from "./TouchdownReticle";
@@ -243,66 +244,116 @@ function LandingStatusComponent({
 
   // ── Section fragments (composed into the layout below) ─────────────────────
 
-  const instrumentsEl = scopeShown ? (
-    <DescentScope
+  // Ground-track bearing (sub-vessel → predicted site) — the slice direction
+  // for the side-on cross-section (and the plan-view travel direction).
+  const driftBearingDeg =
+    flight?.latitude != null &&
+    flight?.longitude != null &&
+    landing?.predictedLatitude != null &&
+    landing?.predictedLongitude != null &&
+    body?.radius != null
+      ? greatCircle(
+          flight.latitude,
+          flight.longitude,
+          landing.predictedLatitude,
+          landing.predictedLongitude,
+          body.radius,
+        ).bearingDeg
+      : null;
+
+  // The side-on cross-section plot (terrain profile along the ground track +
+  // the velocity vector in the vertical plane), paired with the top-down reticle.
+  const crossSectionEl = scopeShown ? (
+    <CrossSection
+      patch={landing?.terrainPatch ?? null}
+      patchSize={landing?.terrainPatchSize ?? null}
+      bearingDeg={driftBearingDeg}
       verticalSpeed={solution.verticalSpeed}
       horizontalSpeed={solution.horizontalSpeed}
-      twr={twr}
-      usingComDatum={usingComDatum}
     />
   ) : null;
 
-  const burnReadouts =
-    board === "vacuum-solved" ? (
-      <>
-        <Section>
-          <SectionTitle>Burn</SectionTitle>
-          <Grid cols="auto 1fr" gap="xs">
-            <Field label="Burn dV">{formatDv(requiredDv)}</Field>
-            <Field label="Duration">
-              {solution.burnDuration == null
-                ? "—"
-                : formatDuration(solution.burnDuration, { ms: true })}
-            </Field>
-            <Field label="Available dV">{formatDv(availableDv)}</Field>
-            <ReadoutCaption>Affordable</ReadoutCaption>
-            {affordable == null ? (
-              <Value tone="muted">—</Value>
-            ) : (
-              <Badge tone={affordable ? "go" : "nogo"} size="sm">
-                {affordable ? "yes" : "insufficient dV"}
-              </Badge>
-            )}
-          </Grid>
-        </Section>
+  const twrGaugeEl = (
+    <Gauge
+      value={twr ?? 0}
+      min={0}
+      max={3}
+      width={132}
+      height={84}
+      zones={[
+        { from: 0, to: 1, color: "var(--color-status-nogo-fg)" },
+        { from: 1, to: 1.5, color: "var(--color-status-warning-fg)" },
+        { from: 1.5, to: 3, color: "var(--color-status-go-fg)" },
+      ]}
+      valueLabel={twr == null ? "—" : twr.toFixed(2)}
+      unitLabel="TWR"
+      ariaLabel={`TWR ${twr == null ? "unknown" : twr.toFixed(2)}`}
+    />
+  );
 
-        <Section>
-          <SectionTitle>Touchdown</SectionTitle>
-          <Grid cols="auto 1fr" gap="xs">
-            <Field label="If nothing">
-              {formatMps(solution.speedAtImpact)}
-            </Field>
-            <Field label="If burn now">
-              {solution.bestSpeedAtImpact == null
-                ? "—"
-                : formatMps(solution.bestSpeedAtImpact)}
-            </Field>
-            <Field label="Impact in">
-              {solution.timeToImpact == null
-                ? "—"
-                : formatDuration(solution.timeToImpact, { ms: true })}
-            </Field>
-          </Grid>
-          {scopeShown && descentHistory.length >= 2 && (
-            <Sparkline
-              values={descentHistory}
-              width={160}
-              height={28}
-              ariaLabel="Descent-rate trend"
-            />
+  const comDatumNote = usingComDatum ? (
+    <Value tone="muted" size="xs">
+      centre-of-mass altitude (lowest-point datum unavailable)
+    </Value>
+  ) : null;
+
+  // Compact caption-over-value burn/touchdown readouts, used both in the
+  // reticle's right-column third and in the small-size detail stack.
+  const readoutsStack =
+    board === "vacuum-solved" ? (
+      <Stack gap="xs">
+        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
+        <StackedField label="Burn duration">
+          {solution.burnDuration == null
+            ? "—"
+            : formatDuration(solution.burnDuration, { ms: true })}
+        </StackedField>
+        <StackedField label="Available dV">
+          {formatDv(availableDv)}
+        </StackedField>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "start",
+          }}
+        >
+          <ReadoutCaption>Affordable</ReadoutCaption>
+          {affordable == null ? (
+            <Value tone="muted">—</Value>
+          ) : (
+            <Badge tone={affordable ? "go" : "nogo"} size="sm">
+              {affordable ? "yes" : "insufficient dV"}
+            </Badge>
           )}
-        </Section>
-      </>
+        </div>
+        <StackedField label="Touchdown (coast)">
+          {formatMps(solution.speedAtImpact)}
+        </StackedField>
+        <StackedField label="Touchdown (burn now)">
+          {solution.bestSpeedAtImpact == null
+            ? "—"
+            : formatMps(solution.bestSpeedAtImpact)}
+        </StackedField>
+        <StackedField label="Impact in">
+          {solution.timeToImpact == null
+            ? "—"
+            : formatDuration(solution.timeToImpact, { ms: true })}
+        </StackedField>
+        {vs?.targetDistance != null && (
+          <StackedField label="Target range">
+            {formatMeters(vs.targetDistance)}
+          </StackedField>
+        )}
+        {scopeShown && descentHistory.length >= 2 && (
+          <Sparkline
+            values={descentHistory}
+            width={120}
+            height={24}
+            ariaLabel="Descent-rate trend"
+          />
+        )}
+      </Stack>
     ) : null;
 
   const boardEl =
@@ -361,11 +412,8 @@ function LandingStatusComponent({
       <Grid cols="auto 1fr" gap="xs">
         <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
       </Grid>
-      {usingComDatum && (
-        <Value tone="muted" size="xs">
-          centre-of-mass altitude (lowest-point datum unavailable)
-        </Value>
-      )}
+      {/* The CoM-datum caveat is carried once by `comDatumNote` (in the detail
+          stack / right column), so it isn't repeated here. */}
     </Section>
   ) : null;
 
@@ -392,71 +440,21 @@ function LandingStatusComponent({
     />
   );
 
-  // Everything that isn't the reticle: instruments + numbers + notes, in the
-  // order they matter. Non-relevant fragments are null and drop out. Used at
-  // sizes without the reticle (full width, so the readouts have room).
+  // Everything that isn't the reticle: the cross-section, TWR, numbers + notes,
+  // in the order they matter. Non-relevant fragments are null and drop out. Used
+  // at sizes without the reticle (below the wide-size two-plots layout).
   const detailStack = (
     <Stack gap="sm">
-      {instrumentsEl}
+      {crossSectionEl}
+      {scopeShown && twrGaugeEl}
       {boardEl}
       {velocityEl}
-      {burnReadouts}
+      {readoutsStack}
+      {comDatumNote}
       {heightEl}
       {divertEl}
     </Stack>
   );
-
-  // All the vacuum-burn readouts in ONE compact full-width grid that sits BELOW
-  // the reticle + descent-profile row — so that row stays short and there's no
-  // dead void under the terrain, and the values (caption over value) never wrap.
-  const readoutGrid =
-    board === "vacuum-solved" ? (
-      <Grid cols="1fr 1fr 1fr" gap="sm">
-        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
-        <StackedField label="Burn duration">
-          {solution.burnDuration == null
-            ? "—"
-            : formatDuration(solution.burnDuration, { ms: true })}
-        </StackedField>
-        <StackedField label="Available dV">
-          {formatDv(availableDv)}
-        </StackedField>
-        <StackedField label="Touchdown (coast)">
-          {formatMps(solution.speedAtImpact)}
-        </StackedField>
-        <StackedField label="Touchdown (burn now)">
-          {solution.bestSpeedAtImpact == null
-            ? "—"
-            : formatMps(solution.bestSpeedAtImpact)}
-        </StackedField>
-        <StackedField label="Impact in">
-          {solution.timeToImpact == null
-            ? "—"
-            : formatDuration(solution.timeToImpact, { ms: true })}
-        </StackedField>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "start",
-          }}
-        >
-          <ReadoutCaption>Affordable</ReadoutCaption>
-          {affordable == null ? (
-            <Value tone="muted">—</Value>
-          ) : (
-            <Badge tone={affordable ? "go" : "nogo"} size="sm">
-              {affordable ? "yes" : "insufficient dV"}
-            </Badge>
-          )}
-        </div>
-        {vs?.targetDistance != null && (
-          <StackedField label="Target range">
-            {formatMeters(vs.targetDistance)}
-          </StackedField>
-        )}
-      </Grid>
-    ) : null;
 
   const reticleEl = showReticle ? (
     <Section>
@@ -521,20 +519,28 @@ function LandingStatusComponent({
             <Stack gap="lg">
               {commitLayerEl}
               {showReticle ? (
-                // A short top row (reticle map | descent-profile + TWR), then
-                // all the readouts full-width below — so there's no tall column
-                // and no dead void under the terrain. `align-items:start` keeps
-                // both cells pinned to the top (Grid centres by default).
-                <>
-                  <Grid cols="1fr 1fr" gap="md" style={{ alignItems: "start" }}>
+                // Two square altimetry plots side by side (top-down reticle |
+                // side-on cross-section) in the left two-thirds, with the TWR
+                // gauge + readouts filling the right column third.
+                // `align-items:start` keeps cells pinned to the top.
+                <Grid cols="2fr 1fr" gap="md" style={{ alignItems: "start" }}>
+                  <Grid cols="1fr 1fr" gap="sm" style={{ alignItems: "start" }}>
                     {reticleEl}
-                    <Stack gap="sm">
-                      {instrumentsEl}
-                      {boardEl}
-                    </Stack>
+                    {crossSectionEl && (
+                      <Section>
+                        <SectionTitle>Cross-section</SectionTitle>
+                        {crossSectionEl}
+                      </Section>
+                    )}
                   </Grid>
-                  {readoutGrid}
-                </>
+                  <Stack gap="sm">
+                    {twrGaugeEl}
+                    {boardEl}
+                    {readoutsStack}
+                    {comDatumNote}
+                    {divertEl}
+                  </Stack>
+                </Grid>
               ) : (
                 detailStack
               )}
@@ -552,7 +558,7 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Composed descent instrument for landing under signal delay: a full-height altitude rail, the touchdown-site terrain reticle, velocity vector + TWR, and delay-native commit/uncommandable clocks with the suicide-burn cue. An instrument, not a command surface (fly gear/brakes from action-group widgets).",
+    "Composed descent instrument for landing under signal delay: a full-height altitude rail, two altimetry plots (top-down touchdown reticle + side-on terrain cross-section with the velocity vector), TWR, and delay-native commit/uncommandable clocks with the suicide-burn cue. An instrument, not a command surface (fly gear/brakes from action-group widgets).",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 4, h: 6 },

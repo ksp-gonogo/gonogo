@@ -77,12 +77,14 @@ function normHeights(
 // the boundaries between bands are the iso-height contour lines (close together
 // = steep, a bullseye = a crater/peak). No simulated light anywhere.
 const HYPSO_BANDS = 6;
+// Dimmed, desaturated low→high ramp — a low-key "tech" elevation palette. The
+// high band is a muted grey, not a harsh cream/white.
 const HYPSO: Array<[number, [number, number, number]]> = [
-  [0.0, [36, 46, 60]],
-  [0.35, [46, 82, 86]],
-  [0.6, [96, 106, 92]],
-  [0.8, [156, 142, 104]],
-  [1.0, [226, 222, 206]],
+  [0.0, [26, 32, 40]],
+  [0.35, [36, 52, 56]],
+  [0.6, [58, 70, 66]],
+  [0.8, [90, 90, 74]],
+  [1.0, [132, 130, 116]],
 ];
 
 function hypso(t: number): [number, number, number] {
@@ -359,6 +361,34 @@ export function TouchdownReticle({
             return <g>{out}</g>;
           })()
         )}
+
+        {/* Vertex dots — one per height-grid point, radius (and brightness)
+            scaled by altitude, over the dimmed contour base. The dot field IS
+            the terrain read; higher points read as larger, brighter dots. */}
+        {heights &&
+          terrainPatchSize &&
+          (() => {
+            const n = terrainPatchSize;
+            const inner = SIZE - 10;
+            const cell = inner / n;
+            const dots: ReactNode[] = [];
+            for (let r = 0; r < n; r++) {
+              for (let c = 0; c < n; c++) {
+                const h = heights.norm[r * n + c];
+                dots.push(
+                  <circle
+                    key={`dot-${r}-${c}`}
+                    cx={5 + (c + 0.5) * cell}
+                    cy={5 + (r + 0.5) * cell}
+                    r={0.8 + h * 3}
+                    fill="var(--color-text-primary)"
+                    opacity={0.28 + h * 0.42}
+                  />,
+                );
+              }
+            }
+            return <g>{dots}</g>;
+          })()}
 
         {/* Current → site: the primary spatial readout. A plain line (no head —
             the off-centre current crosshair and the centred site marker
