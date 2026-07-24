@@ -247,13 +247,11 @@ const CARRIED = [
   "vessel.landing",
 ];
 
-function streamFixture(
-  f: Frame,
-  oneWaySeconds: number,
+function fixtureFromChannels(
+  ch: Record<string, unknown>,
   scenario: string,
   notes: string,
 ): Record<string, unknown> {
-  const ch = channelsFor(f, oneWaySeconds);
   const emits = CARRIED.map((channel) => {
     const value = ch[channel];
     // vessel.orbit must carry quality:1 (Loaded) so vessel.state derives in the
@@ -270,6 +268,153 @@ function streamFixture(
     },
     _stream: { carriedChannels: CARRIED, pinnedUt: 10, emits },
   };
+}
+
+function streamFixture(
+  f: Frame,
+  oneWaySeconds: number,
+  scenario: string,
+  notes: string,
+): Record<string, unknown> {
+  return fixtureFromChannels(channelsFor(f, oneWaySeconds), scenario, notes);
+}
+
+// ── Terrain-type showcase: distinct patch shapes for the reticle relief ───────
+const PATCH_N = 16;
+const PATCH_EXT = 200; // metres
+
+/** Build a flattened NxN patch from a height function of local east/north (m). */
+function buildPatch(h: (east: number, north: number) => number): number[] {
+  const cell = PATCH_EXT / PATCH_N;
+  const grid = new Array<number>(PATCH_N * PATCH_N);
+  for (let r = 0; r < PATCH_N; r++) {
+    for (let c = 0; c < PATCH_N; c++) {
+      const east = (c - (PATCH_N - 1) / 2) * cell;
+      const north = ((PATCH_N - 1) / 2 - r) * cell;
+      grid[r * PATCH_N + c] = h(east, north);
+    }
+  }
+  return grid;
+}
+
+function tiltPatch(slopeDeg: number, headingDeg: number): number[] {
+  const de = Math.sin(headingDeg * DEG);
+  const dn = Math.cos(headingDeg * DEG);
+  const t = Math.tan(slopeDeg * DEG);
+  return buildPatch(
+    (e, n) =>
+      -(e * de + n * dn) * t + 1.5 * Math.sin(e * 0.15) * Math.cos(n * 0.13),
+  );
+}
+
+interface TerrainPreset {
+  name: string;
+  slope: number;
+  heading: number;
+  roughness: number;
+  biome: string;
+  patch: number[];
+  note: string;
+}
+
+const gauss = (d: number, s: number) => Math.exp(-((d / s) ** 2) / 2);
+
+const PRESETS: TerrainPreset[] = [
+  {
+    name: "flat-plains",
+    slope: 1,
+    heading: 90,
+    roughness: 15,
+    biome: "Lowlands",
+    patch: buildPatch((e, n) => 1.2 * Math.sin(e * 0.2) * Math.cos(n * 0.18)),
+    note: "Flat plains — near-zero slope, smooth => SAFE",
+  },
+  {
+    name: "gentle-slope",
+    slope: 9,
+    heading: 110,
+    roughness: 45,
+    biome: "Midlands",
+    patch: tiltPatch(9, 110),
+    note: "Gentle slope (~9deg) => MARGINAL on slope",
+  },
+  {
+    name: "steep-slope",
+    slope: 22,
+    heading: 200,
+    roughness: 70,
+    biome: "Highlands",
+    patch: tiltPatch(22, 200),
+    note: "Steep slope (>15deg) => DIVERT on slope",
+  },
+  {
+    name: "crater-field",
+    slope: 4,
+    heading: 90,
+    roughness: 220,
+    biome: "Midlands",
+    patch: buildPatch((e, n) => {
+      const d = Math.hypot(e, n);
+      return (
+        -30 * gauss(d, PATCH_EXT * 0.16) +
+        11 * gauss(d - PATCH_EXT * 0.28, PATCH_EXT * 0.05)
+      );
+    }),
+    note: "Crater — deep central dip + raised rim => MARGINAL on roughness",
+  },
+  {
+    name: "ridge-mountainous",
+    slope: 18,
+    heading: 300,
+    roughness: 320,
+    biome: "Highlands",
+    patch: buildPatch((e, n) => {
+      const along = (e - n) / Math.SQRT2;
+      return 26 * gauss(along, PATCH_EXT * 0.11) + 2 * Math.sin(n * 0.1);
+    }),
+    note: "Sharp ridge / mountainous => DIVERT (slope + roughness)",
+  },
+  {
+    name: "boulder-rough",
+    slope: 3,
+    heading: 90,
+    roughness: 200,
+    biome: "Midlands",
+    patch: buildPatch(
+      (e, n) =>
+        6 * Math.sin(e * 0.5) * Math.sin(n * 0.55) +
+        4 * Math.cos(e * 0.33 + n * 0.4) +
+        3 * Math.sin(e * 0.7 - n * 0.2),
+    ),
+    note: "Boulder-rough — low slope, high residual roughness => MARGINAL on roughness",
+  },
+];
+
+/** A single slow near-touchdown state, so the verdict tracks the TERRAIN not speed. */
+const SHOWCASE_FRAME: Frame = {
+  t: 0,
+  aglMeters: 60,
+  vDown: 1.3,
+  vHoriz: 0.4,
+  lat: 0,
+  lon: 0.001,
+  burning: true,
+};
+
+function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
+  const ch = channelsFor(SHOWCASE_FRAME, 2);
+  (ch["vessel.surface"] as Record<string, unknown>).biome = preset.biome;
+  ch["vessel.landing"] = {
+    ...(ch["vessel.landing"] as Record<string, unknown>),
+    predictedSlopeAngle: preset.slope,
+    predictedSlopeHeading: preset.heading,
+    predictedRoughness: preset.roughness,
+    predictedBiome: preset.biome,
+    terrainPatch: preset.patch,
+    terrainPatchSize: PATCH_N,
+    terrainPatchExtentMeters: PATCH_EXT,
+  };
+  return fixtureFromChannels(ch, preset.name, preset.note);
 }
 
 // ── Emit ──────────────────────────────────────────────────────────────────────
@@ -329,9 +474,24 @@ writeFileSync(
   `${JSON.stringify(streamFixture(final, 4, "descent-final", "Final: near touchdown, smooth flat site -> SAFE, gear down."), null, 2)}\n`,
 );
 
+// Terrain-type showcase — one near-touchdown frame per distinct terrain, so the
+// reticle relief + verdict range is visible across flat/slope/crater/ridge/etc.
+const showcaseDir = resolve(
+  import.meta.dirname,
+  "../src/LandingStatus/__render_terrains__",
+);
+mkdirSync(showcaseDir, { recursive: true });
+for (const preset of PRESETS) {
+  writeFileSync(
+    resolve(showcaseDir, `${preset.name}.json`),
+    `${JSON.stringify(showcaseFixture(preset), null, 2)}\n`,
+  );
+}
+
 console.log(`frames: ${frames.length}`);
 console.log(
   `high: agl=${Math.round(high.aglMeters)} ignition: agl=${Math.round(ignition.aglMeters)} burning=${ignition.burning} final: agl=${Math.round(final.aglMeters)}`,
 );
 console.log(`ndjson -> ${resolve(ndjsonDir, "synthetic-descent-mun.ndjson")}`);
 console.log(`fixtures -> ${fixDir}`);
+console.log(`terrain showcase (${PRESETS.length}) -> ${showcaseDir}`);

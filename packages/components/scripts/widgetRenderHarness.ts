@@ -105,6 +105,10 @@ export interface SizeMode {
 export interface WidgetRenderConfig {
   /** Registered widget id passed to the probe (matches `registerComponent({ id: ... })`). */
   widgetId: string;
+  /** CLI lookup key for `render-widget <id>`; defaults to widgetId. Lets two
+   * configs share one widgetId (e.g. a widget rendered against two fixture
+   * sets) while staying individually addressable. */
+  label?: string;
   /** Filename slug used for the tmpdir probe HTML; defaults to widgetId. */
   slug?: string;
   /** Fixtures directory path relative to `packages/components/src/`. */
