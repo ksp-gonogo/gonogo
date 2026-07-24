@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "scenario": "descent-final",
+    "synthetic": true,
+    "notes": "SYNTHETIC (model-generated, NOT captured). Final: near touchdown, smooth flat site -> SAFE, gear down."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "vessel.identity",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.surface",
+      "vessel.propulsion",
+      "vessel.control",
+      "dv.summary",
+      "comms.delay",
+      "vessel.landing"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 3,
+              "parentIndex": 0,
+              "radius": 200000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "synthetic-lander",
+          "name": "Synthetic Lander",
+          "vesselType": 0,
+          "situation": 0,
+          "parentBodyIndex": 3,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 3,
+          "sma": 250000,
+          "ecc": 0.02,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 65138398000
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 1.3139832101666855,
+          "altitudeAsl": 39.00687820869966,
+          "altitudeTerrain": 39.00687820869966,
+          "verticalSpeed": -1.4041098808959562,
+          "surfaceSpeed": 1.4041098808959562,
+          "orbitalSpeed": 1.4041098808959562,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.surface",
+        "value": {
+          "biome": "Lowlands",
+          "landedAt": null,
+          "heightFromTerrain": 39.00687820869966
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 5,
+          "dryMass": 3,
+          "currentThrust": 18,
+          "availableThrust": 18
+        }
+      },
+      {
+        "channel": "vessel.control",
+        "value": {
+          "gear": true,
+          "brakes": false
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "totalDvActual": 900,
+          "totalDvVac": 950
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 4
+        }
+      },
+      {
+        "channel": "vessel.landing",
+        "value": {
+          "outcome": "terrain-assessed",
+          "sampleSource": "predicted",
+          "predictedLatitude": 0,
+          "predictedLongitude": 1.3139832101666864,
+          "predictedTerrainElevation": 120,
+          "predictedSlopeAngle": 3,
+          "predictedSlopeHeading": 80,
+          "predictedRoughness": 28,
+          "roughnessFootprintMeters": 100,
+          "slopeSampleRadiusMeters": 100,
+          "predictedBiome": "Lowlands"
+        }
+      }
+    ]
+  }
+}

@@ -64,14 +64,20 @@ export interface TapeProps {
 
 const PAD_TOP = 12;
 const PAD_BOTTOM = 12;
-const TRACK_X = 40;
+// Left gutter wide enough for a 5-digit unit-less label (e.g. "10000").
+const TRACK_X = 52;
 const TRACK_W = 10;
 
 function defaultFormat(v: number, unit?: string): string {
-  const a = Math.abs(v);
-  const n =
-    a >= 100 || Number.isInteger(v) ? Math.round(v) : Number(v.toFixed(1));
+  const n = defaultNumber(v);
   return unit ? `${n} ${unit}` : `${n}`;
+}
+
+/** Compact number-only label for the on-scale ticks + pointer flag (the unit is
+ * shown once as a header, so multi-digit values don't clip the narrow scale). */
+function defaultNumber(v: number): string {
+  const a = Math.abs(v);
+  return a >= 100 || Number.isInteger(v) ? String(Math.round(v)) : v.toFixed(1);
 }
 
 export function Tape({
@@ -91,7 +97,10 @@ export function Tape({
   const span = max - min;
   const safe = Number.isFinite(value) ? value : min;
   const clamped = span > 0 ? Math.max(min, Math.min(max, safe)) : min;
+  // `fmt` (with unit) is the accessible value text; `label` is the compact,
+  // unit-less form drawn on the narrow scale so multi-digit values don't clip.
   const fmt = (v: number) => (format ? format(v) : defaultFormat(v, unit));
+  const label = (v: number) => (format ? format(v) : defaultNumber(v));
 
   const usable = height - PAD_TOP - PAD_BOTTOM;
   // value -> y: max at the top (y = PAD_TOP), min at the bottom.
@@ -211,7 +220,7 @@ export function Tape({
                 fontSize={8}
                 fill="var(--color-text-faint)"
               >
-                {fmt(t)}
+                {label(t)}
               </text>
             </g>
           );
@@ -260,8 +269,21 @@ export function Tape({
           fontWeight="bold"
           fill="var(--color-accent-fg)"
         >
-          {fmt(safe)}
+          {label(safe)}
         </text>
+
+        {/* Unit shown once (the ticks + flag are unit-less to fit the scale). */}
+        {unit && (
+          <text
+            x={TRACK_X + TRACK_W / 2}
+            y={trackTop - 3}
+            textAnchor="middle"
+            fontSize={8}
+            fill="var(--color-text-faint)"
+          >
+            {unit}
+          </text>
+        )}
       </svg>
     </Tape__Meter>
   );

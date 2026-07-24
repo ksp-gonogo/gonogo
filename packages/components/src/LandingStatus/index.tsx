@@ -306,6 +306,24 @@ function LandingStatusComponent({
               }}
             />
 
+            {showReticle && (
+              <Section>
+                <SectionTitle>Touchdown site</SectionTitle>
+                <TouchdownReticle
+                  siteLat={landing?.predictedLatitude ?? null}
+                  siteLon={landing?.predictedLongitude ?? null}
+                  vesselLat={flight?.latitude ?? null}
+                  vesselLon={flight?.longitude ?? null}
+                  bodyRadius={body?.radius ?? null}
+                  slopeDeg={landing?.predictedSlopeAngle ?? null}
+                  slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
+                  biome={landing?.predictedBiome ?? null}
+                  sampleSource={landing?.sampleSource ?? null}
+                  verdict={hazardVerdict}
+                />
+              </Section>
+            )}
+
             {board === "atmospheric-aware" ? (
               <Section>
                 <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
@@ -415,24 +433,6 @@ function LandingStatusComponent({
                   )}
                 </Section>
               </>
-            )}
-
-            {showReticle && (
-              <Section>
-                <SectionTitle>Touchdown site</SectionTitle>
-                <TouchdownReticle
-                  siteLat={landing?.predictedLatitude ?? null}
-                  siteLon={landing?.predictedLongitude ?? null}
-                  vesselLat={flight?.latitude ?? null}
-                  vesselLon={flight?.longitude ?? null}
-                  bodyRadius={body?.radius ?? null}
-                  slopeDeg={landing?.predictedSlopeAngle ?? null}
-                  slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
-                  biome={landing?.predictedBiome ?? null}
-                  sampleSource={landing?.sampleSource ?? null}
-                  verdict={hazardVerdict}
-                />
-              </Section>
             )}
 
             {!scopeShown && solution.horizontalSpeed != null && (

@@ -20,6 +20,17 @@ import type {
 
 const WIDGETS: WidgetRenderConfig[] = [
   {
+    // The rebooted Landing widget on a SYNTHETIC Mun descent (model-generated,
+    // see scripts/synthesize-landing-descent.ts). Three _stream frames sweep
+    // the UX: high (DIVERT site far downrange), ignition (burn band lit +
+    // commit window, MARGINAL), final (SAFE, gear down, near touchdown). Large
+    // size so the Touchdown Reticle + Descent Scope + Commit Layer all render.
+    widgetId: "landing-status",
+    fixturesPath: "LandingStatus/__render__",
+    outPath: "renders/landing-widget",
+    modes: [{ name: "full-12x16", w: 12, h: 16 }],
+  },
+  {
     // MapView paints to <canvas> (equirectangular body texture + fog
     // overlay + vessel trail). The playwright harness captures the
     // canvas pixels directly — no parallel SVG renderer needed for

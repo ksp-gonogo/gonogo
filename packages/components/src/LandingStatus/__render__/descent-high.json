@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "scenario": "descent-high",
+    "synthetic": true,
+    "notes": "SYNTHETIC (model-generated, NOT captured). High descent: reticle far downrange, steep+rough site -> DIVERT; STAGED delay."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "vessel.identity",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.surface",
+      "vessel.propulsion",
+      "vessel.control",
+      "dv.summary",
+      "comms.delay",
+      "vessel.landing"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 3,
+              "parentIndex": 0,
+              "radius": 200000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "synthetic-lander",
+          "name": "Synthetic Lander",
+          "vesselType": 0,
+          "situation": 0,
+          "parentBodyIndex": 3,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 3,
+          "sma": 250000,
+          "ecc": 0.02,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 65138398000
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0.6417127305465219,
+          "altitudeAsl": 7491.706994041398,
+          "altitudeTerrain": 7491.706994041398,
+          "verticalSpeed": -46.12139550124694,
+          "surfaceSpeed": 166.51481352415,
+          "orbitalSpeed": 166.51481352415,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.surface",
+        "value": {
+          "biome": "Midlands",
+          "landedAt": null,
+          "heightFromTerrain": 7491.706994041398
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 5,
+          "dryMass": 3,
+          "currentThrust": 0,
+          "availableThrust": 18
+        }
+      },
+      {
+        "channel": "vessel.control",
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "totalDvActual": 900,
+          "totalDvVac": 950
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.4
+        }
+      },
+      {
+        "channel": "vessel.landing",
+        "value": {
+          "outcome": "terrain-assessed",
+          "sampleSource": "predicted",
+          "predictedLatitude": 0,
+          "predictedLongitude": 2.328394757807659,
+          "predictedTerrainElevation": 120,
+          "predictedSlopeAngle": 20,
+          "predictedSlopeHeading": 135,
+          "predictedRoughness": 260,
+          "roughnessFootprintMeters": 100,
+          "slopeSampleRadiusMeters": 100,
+          "predictedBiome": "Midlands"
+        }
+      }
+    ]
+  }
+}
