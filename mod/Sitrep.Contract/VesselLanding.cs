@@ -44,6 +44,17 @@ public class VesselLanding
     /// </summary>
     public string? Outcome { get; set; }
 
+    /// <summary>
+    /// Which sampling source produced the terrain fields this tick:
+    /// <c>"predicted"</c> (sampled at the mod's predicted downrange touchdown
+    /// point — the site you are heading for) or <c>"sub-vessel"</c> (the
+    /// graceful fallback — sampled directly under the vessel when no touchdown
+    /// solution is available). The client surfaces this so the operator knows
+    /// whether they are seeing downrange or under-ship terrain. Null when no
+    /// terrain was sampled.
+    /// </summary>
+    public string? SampleSource { get; set; }
+
     // ── Tier 1: under-vessel terrain (cached Vessel.* fields, no PQS call) ───
 
     /// <summary>Metres — terrain elevation above the body mean radius directly beneath the vessel, from <c>Vessel.terrainAltitude</c> (a cached field, costs no PQS call). Null when the body has no solid surface / no pqsController.</summary>

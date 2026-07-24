@@ -941,6 +941,7 @@ namespace Sitrep.Host
             return new VesselLanding
             {
                 Outcome = GetString(landing, "outcome"),
+                SampleSource = GetString(landing, "sampleSource"),
                 TerrainElevationUnderVessel = GetDouble(landing, "terrainElevationUnderVessel"),
                 SlopeAngleUnderVessel = GetDouble(landing, "slopeAngleUnderVessel"),
                 PredictedLatitude = GetDouble(landing, "predictedLatitude"),
@@ -1388,6 +1389,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(VesselLanding landing) => new Dictionary<string, object?>
         {
             ["outcome"] = landing.Outcome,
+            ["sampleSource"] = landing.SampleSource,
             ["terrainElevationUnderVessel"] = landing.TerrainElevationUnderVessel,
             ["slopeAngleUnderVessel"] = landing.SlopeAngleUnderVessel,
             ["predictedLatitude"] = landing.PredictedLatitude,

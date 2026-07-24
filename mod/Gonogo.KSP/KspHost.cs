@@ -1572,14 +1572,162 @@ namespace Gonogo.KSP
                     LandingModel.AtmosphericTimeToImpact(dragForce, weight, vNow, rhoNow, alts, rhos);
                 result["descentRegime"] = LandingModel.ClassifyRegime(dragForce, weight);
                 result["parachuteState"] = BuildParachuteState(vessel);
-                result["outcome"] = "atmospheric-aware";
+            }
+
+            // Terrain sampling — option 1 (mod-side predicted touchdown point)
+            // with a sub-vessel fallback, behind an injectable sample-source.
+            SampleTerrain(result, vessel, orbit, body);
+
+            // Outcome: atmosphere headlines when present; else terrain-assessed
+            // once we have a slope reading; else the bare vacuum case.
+            result["outcome"] = body.atmosphere
+                ? "atmospheric-aware"
+                : result.ContainsKey("predictedSlopeAngle")
+                    ? "terrain-assessed"
+                    : "vacuum-solved";
+
+            return result;
+        }
+
+        /// <summary>
+        /// Sample terrain (slope / heading / residual roughness / elevation /
+        /// biome) into the landing group. Tries the mod-side predicted-touchdown
+        /// point first (the site the craft is heading for); falls back to the
+        /// sub-vessel point when no touchdown solution is available. The live
+        /// source is reported in <c>sampleSource</c>. All PQS reads are on the
+        /// main thread (this runs in <see cref="Sample"/>), one at a time; a
+        /// null pqsController was already gated out by the relevance check.
+        /// </summary>
+        private static void SampleTerrain(
+            Dictionary<string, object?> result,
+            Vessel vessel,
+            Orbit? orbit,
+            CelestialBody body)
+        {
+            double sampleLat;
+            double sampleLon;
+            string sampleSource;
+            var predicted = orbit != null ? PredictImpact(orbit, body) : null;
+            if (predicted.HasValue)
+            {
+                sampleLat = predicted.Value.lat;
+                sampleLon = predicted.Value.lon;
+                sampleSource = "predicted";
             }
             else
             {
-                result["outcome"] = "vacuum-solved";
+                sampleLat = vessel.latitude;
+                sampleLon = vessel.longitude;
+                sampleSource = "sub-vessel";
             }
 
-            return result;
+            result["sampleSource"] = sampleSource;
+            result["predictedLatitude"] = sampleLat;
+            result["predictedLongitude"] = sampleLon;
+            // allowNegative so ocean floor reads honestly rather than clamping to 0.
+            result["predictedTerrainElevation"] =
+                body.TerrainAltitude(sampleLat, sampleLon, allowNegative: true);
+            result["predictedBiome"] = BiomeAt(body, sampleLat, sampleLon);
+
+            // Footprint wide enough that residual sigma grades on GroundSurvey's
+            // shared scale (§2e). One ring gives slope + heading + residual
+            // roughness from a single plane fit.
+            const double footprintMeters = 100.0;
+            var samples = SampleTerrainRing(body, sampleLat, sampleLon, footprintMeters);
+            var fit = LandingTerrain.FitPlane(samples);
+            if (fit.HasValue)
+            {
+                result["predictedSlopeAngle"] = fit.Value.SlopeDeg;
+                result["predictedSlopeHeading"] = fit.Value.HeadingDeg;
+                result["predictedRoughness"] = fit.Value.Roughness;
+                result["roughnessFootprintMeters"] = footprintMeters;
+                result["slopeSampleRadiusMeters"] = footprintMeters;
+            }
+        }
+
+        /// <summary>
+        /// A 9-point (centre + 8 compass) terrain-height ring around a lat/lon,
+        /// as local east/north/height samples for the plane fit. PQS heights via
+        /// <c>CelestialBody.TerrainAltitude(allowNegative: true)</c>.
+        /// </summary>
+        private static List<LandingTerrain.Sample> SampleTerrainRing(
+            CelestialBody body,
+            double lat,
+            double lon,
+            double footprintMeters)
+        {
+            double r = body.Radius;
+            double cosLat = Math.Cos(lat * Math.PI / 180.0);
+            if (Math.Abs(cosLat) < 1e-6)
+                cosLat = 1e-6;
+            // metres -> degree offsets for the given footprint.
+            double dLatDeg = footprintMeters / r * (180.0 / Math.PI);
+            double dLonDeg = footprintMeters / (r * cosLat) * (180.0 / Math.PI);
+
+            // (northSteps, eastSteps) for centre + 8 neighbours.
+            int[,] ring =
+            {
+                { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+                { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+            };
+            var samples = new List<LandingTerrain.Sample>();
+            for (int i = 0; i < ring.GetLength(0); i++)
+            {
+                int n = ring[i, 0];
+                int e = ring[i, 1];
+                double la = lat + n * dLatDeg;
+                double lo = lon + e * dLonDeg;
+                double h = body.TerrainAltitude(la, lo, allowNegative: true);
+                samples.Add(new LandingTerrain.Sample(
+                    e * footprintMeters, n * footprintMeters, h));
+            }
+            return samples;
+        }
+
+        /// <summary>KSP biome name at a lat/lon (degrees), or null when the body has no biome map.</summary>
+        private static string? BiomeAt(CelestialBody body, double lat, double lon)
+        {
+            if (body.BiomeMap == null)
+                return null;
+            var b = ScienceUtil.GetExperimentBiome(body, lat, lon);
+            return string.IsNullOrEmpty(b) ? null : b;
+        }
+
+        /// <summary>
+        /// Best-effort mod-side predicted touchdown lat/lon: a conic patch-walk
+        /// of the live orbit to the surface crossing (option 1), mirroring the
+        /// client's proven <c>findImpactPoint</c>. Returns null (→ sub-vessel
+        /// fallback) when the body does not rotate normally or the trajectory
+        /// does not reach the surface within the horizon. The KSP-frame maths
+        /// (position → lat/lon with the rotation correction) is Deck-to-verify;
+        /// the pure search is unit-tested in <see cref="LandingPredictor"/>.
+        /// </summary>
+        private static (double lat, double lon)? PredictImpact(Orbit orbit, CelestialBody body)
+        {
+            double rot = body.rotationPeriod;
+            if (!(rot > 0))
+                return null;
+            double now = Planetarium.GetUniversalTime();
+            double degPerSec = 360.0 / rot;
+
+            LandingPredictor.GeoPoint Sampler(double ut)
+            {
+                Vector3d wpos = orbit.getPositionAtUT(ut);
+                double alt = body.GetAltitude(wpos);
+                double lat = body.GetLatitude(wpos);
+                // getPositionAtUT is inertial; GetLongitude uses the body's
+                // CURRENT rotation, so correct for the rotation between now and
+                // ut. KSP bodies rotate prograde; sign is Deck-to-verify.
+                double lon = body.GetLongitude(wpos) - (ut - now) * degPerSec;
+                lon = ((lon % 360.0) + 360.0) % 360.0;
+                if (lon > 180.0)
+                    lon -= 360.0;
+                return new LandingPredictor.GeoPoint(lat, lon, alt);
+            }
+
+            double horizon = orbit.period > 0 ? Math.Min(orbit.period, 1200.0) : 1200.0;
+            double step = Math.Max(1.0, horizon / 240.0);
+            return LandingPredictor.FindImpact(Sampler, now, horizon, step, -100.0);
         }
 
         /// <summary>Air density at an ASL altitude, via the body's pressure/temperature curves.</summary>

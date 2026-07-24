@@ -1267,6 +1267,7 @@ export interface VesselIdentity
 export interface VesselLanding
 {
 	outcome?: string;
+	sampleSource?: string;
 	terrainElevationUnderVessel?: number;
 	slopeAngleUnderVessel?: number;
 	predictedLatitude?: number;
