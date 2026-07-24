@@ -171,13 +171,31 @@ export function TouchdownReticle({
 
   return (
     <div>
+      {/* Verdict banner FIRST so it is always visible even when the relief
+          fills the column below it (the text carrier; colour never alone). */}
+      <div role="status" aria-live="polite">
+        {v ? (
+          <StatusPill $tone={BANNER_TONE[v]}>{v}</StatusPill>
+        ) : (
+          <StatusPill $tone="default">SITE —</StatusPill>
+        )}
+      </div>
+
       <svg
         width={SIZE}
         height={SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         role="img"
         aria-label={reticleLabel}
-        style={{ display: "block", maxWidth: "100%", height: "auto" }}
+        // Grow to fill the column (up to a sensible cap) so the site view uses
+        // the space rather than sitting small with dead area beside it.
+        style={{
+          display: "block",
+          width: "100%",
+          maxWidth: 190,
+          height: "auto",
+          marginTop: "0.15rem",
+        }}
       >
         <title>{reticleLabel}</title>
         {/* Site panel, tinted by the verdict (paired with the text banner). */}
@@ -276,29 +294,37 @@ export function TouchdownReticle({
           strokeWidth={1}
         />
 
-        {/* Biome label. */}
+        {/* Biome label — pinned to the TOP of the terrain (always visible even
+            when the reticle runs to the fold), on a translucent dark backing
+            chip plus a stroke halo so it reads over any hillshade shading. */}
         {biome && (
-          <text
-            x={C}
-            y={SIZE - 10}
-            textAnchor="middle"
-            fontSize={10}
-            fill="var(--color-text-faint)"
-            fontFamily="monospace"
-          >
-            {biome}
-          </text>
+          <g>
+            <rect
+              x={C - (biome.length * 6.6 + 10) / 2}
+              y={7}
+              width={biome.length * 6.6 + 10}
+              height={17}
+              rx={3}
+              fill="black"
+              opacity={0.5}
+            />
+            <text
+              x={C}
+              y={19}
+              textAnchor="middle"
+              fontSize={11}
+              fontWeight="bold"
+              fill="var(--color-text-primary)"
+              stroke="black"
+              strokeWidth={3}
+              paintOrder="stroke"
+              fontFamily="monospace"
+            >
+              {biome}
+            </text>
+          </g>
         )}
       </svg>
-
-      {/* The verdict banner — the text carrier (colour is never alone). */}
-      <div role="status" aria-live="polite">
-        {v ? (
-          <StatusPill $tone={BANNER_TONE[v]}>{v}</StatusPill>
-        ) : (
-          <StatusPill $tone="default">SITE —</StatusPill>
-        )}
-      </div>
 
       {/* Honest source + terrain readout (a11y text equivalent of the SVG). */}
       <div style={{ fontSize: "0.75rem", opacity: 0.75 }}>

@@ -27,6 +27,7 @@ import {
   ScrollArea,
   Section,
   SectionTitle,
+  Stack,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
@@ -253,6 +254,9 @@ function LandingStatusComponent({
   // The reticle is the large-size site view; show it once terrain was sampled
   // (either the predicted point or the sub-vessel fallback).
   const showReticle = (w ?? 8) >= 10 && landing?.sampleSource != null;
+  // At a wide size, split into two columns (reticle | readouts+scope) so the
+  // tile fills and nothing valuable falls below the fold.
+  const wide = (w ?? 8) >= 10;
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle,
     roughnessSigma: landing?.predictedRoughness,
@@ -265,6 +269,188 @@ function LandingStatusComponent({
   // atmospheric / no-solution board) fall back to the plain velocity + height
   // readouts, which are drag-independent and always valid.
   const scopeShown = board === "vacuum-solved" && showScope;
+
+  const reticleSection = showReticle ? (
+    <Section>
+      <SectionTitle>Touchdown site</SectionTitle>
+      <TouchdownReticle
+        siteLat={landing?.predictedLatitude ?? null}
+        siteLon={landing?.predictedLongitude ?? null}
+        vesselLat={flight?.latitude ?? null}
+        vesselLon={flight?.longitude ?? null}
+        bodyRadius={body?.radius ?? null}
+        slopeDeg={landing?.predictedSlopeAngle ?? null}
+        slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
+        biome={landing?.predictedBiome ?? null}
+        sampleSource={landing?.sampleSource ?? null}
+        verdict={hazardVerdict}
+        terrainPatch={landing?.terrainPatch ?? null}
+        terrainPatchSize={landing?.terrainPatchSize ?? null}
+      />
+    </Section>
+  ) : null;
+
+  const boardSection =
+    board === "atmospheric-aware" ? (
+      <Section>
+        <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
+        <Grid cols="auto 1fr" gap="xs">
+          <Field label="Terminal">{formatMps(landing?.terminalVelocity)}</Field>
+          <Field label="Touchdown">
+            {formatMps(landing?.projectedTouchdownSpeed)}
+          </Field>
+          <Field label="Impact in">
+            {landing?.atmosphericTimeToImpact == null
+              ? "—"
+              : formatDuration(landing.atmosphericTimeToImpact, { ms: true })}
+          </Field>
+          {landing?.descentRegime && (
+            <Field label="Regime">{landing.descentRegime}</Field>
+          )}
+        </Grid>
+        <Value tone="muted" size="xs">
+          Estimate — assumes current config
+          {landing?.parachuteState === "armed"
+            ? "; excludes the pending parachute"
+            : ""}
+          .
+        </Value>
+      </Section>
+    ) : board === "atmospheric-unmodelled" ? (
+      <Section>
+        <Badge tone="warn" size="sm">
+          atmospheric — descent unmodelled
+        </Badge>
+        <Value tone="muted" size="xs">
+          No drag model. Burn and impact numbers are suppressed rather than
+          shown wrong.
+        </Value>
+      </Section>
+    ) : board === "no-solution" ? (
+      <Section>
+        <Value tone="muted">No landing solution — body data unavailable.</Value>
+      </Section>
+    ) : (
+      <>
+        {showScope && (
+          <Section>
+            <DescentScope
+              aglMeters={heightFromTerrain ?? null}
+              verticalSpeed={solution.verticalSpeed}
+              horizontalSpeed={solution.horizontalSpeed}
+              ignitionAltitude={solution.ignitionAltitude}
+              suicideBurnCountdown={solution.suicideBurnCountdown}
+              twr={twr}
+              usingComDatum={usingComDatum}
+            />
+          </Section>
+        )}
+
+        <Section>
+          <SectionTitle>Burn</SectionTitle>
+          <Grid cols="auto 1fr" gap="xs">
+            <Field label="Burn dV">{formatDv(requiredDv)}</Field>
+            <Field label="Duration">
+              {solution.burnDuration == null
+                ? "—"
+                : formatDuration(solution.burnDuration, { ms: true })}
+            </Field>
+            <Field label="Available dV">{formatDv(availableDv)}</Field>
+            <ReadoutCaption>Affordable</ReadoutCaption>
+            {affordable == null ? (
+              <Value tone="muted">—</Value>
+            ) : (
+              <Badge tone={affordable ? "go" : "nogo"} size="sm">
+                {affordable ? "yes" : "insufficient dV"}
+              </Badge>
+            )}
+          </Grid>
+        </Section>
+
+        <Section>
+          <SectionTitle>Touchdown</SectionTitle>
+          <Grid cols="auto 1fr" gap="xs">
+            <Field label="If nothing">
+              {formatMps(solution.speedAtImpact)}
+            </Field>
+            <Field label="If burn now">
+              {solution.bestSpeedAtImpact == null
+                ? "—"
+                : formatMps(solution.bestSpeedAtImpact)}
+            </Field>
+            <Field label="Impact in">
+              {solution.timeToImpact == null
+                ? "—"
+                : formatDuration(solution.timeToImpact, { ms: true })}
+            </Field>
+          </Grid>
+          {showScope && descentHistory.length >= 2 && (
+            <Sparkline
+              values={descentHistory}
+              width={160}
+              height={28}
+              ariaLabel="Descent-rate trend"
+            />
+          )}
+        </Section>
+      </>
+    );
+
+  const velocitySection =
+    !scopeShown && solution.horizontalSpeed != null ? (
+      <Section>
+        <SectionTitle>Velocity</SectionTitle>
+        <Grid cols="auto 1fr" gap="xs">
+          <Field label="Vertical">{formatMps(solution.verticalSpeed)}</Field>
+          <Field label="Horizontal">
+            {formatMps(solution.horizontalSpeed)}
+          </Field>
+        </Grid>
+      </Section>
+    ) : null;
+
+  const heightSection = !scopeShown ? (
+    <Section>
+      <SectionTitle>Height</SectionTitle>
+      <Grid cols="auto 1fr" gap="xs">
+        <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
+      </Grid>
+      {usingComDatum && (
+        <Value tone="muted" size="xs">
+          centre-of-mass altitude (lowest-point datum unavailable)
+        </Value>
+      )}
+    </Section>
+  ) : null;
+
+  const divertSection =
+    vs?.targetDistance != null ? (
+      <Section>
+        <SectionTitle>Divert</SectionTitle>
+        <Grid cols="auto 1fr" gap="xs">
+          <Field label="Target range">{formatMeters(vs.targetDistance)}</Field>
+        </Grid>
+      </Section>
+    ) : null;
+
+  const commitLayerEl = (
+    <CommitLayer
+      regime={clocks.regime}
+      roundTripSeconds={clocks.roundTripSeconds}
+      live={live}
+      suicideBurnCountdown={solution.suicideBurnCountdown}
+      commitInSeconds={clocks.commitInSeconds}
+      committed={clocks.committed}
+      blindInSeconds={clocks.blindInSeconds}
+      blind={clocks.blind}
+      gear={{ on: gearOn, phase: gearCmd.status.phase, onToggle: toggleGear }}
+      brakes={{
+        on: brakesOn,
+        phase: brakesCmd.status.phase,
+        onToggle: toggleBrakes,
+      }}
+    />
+  );
 
   return (
     <Panel>
@@ -285,195 +471,25 @@ function LandingStatusComponent({
       ) : (
         <ScrollArea>
           <Section>
-            <CommitLayer
-              regime={clocks.regime}
-              roundTripSeconds={clocks.roundTripSeconds}
-              live={live}
-              suicideBurnCountdown={solution.suicideBurnCountdown}
-              commitInSeconds={clocks.commitInSeconds}
-              committed={clocks.committed}
-              blindInSeconds={clocks.blindInSeconds}
-              blind={clocks.blind}
-              gear={{
-                on: gearOn,
-                phase: gearCmd.status.phase,
-                onToggle: toggleGear,
-              }}
-              brakes={{
-                on: brakesOn,
-                phase: brakesCmd.status.phase,
-                onToggle: toggleBrakes,
-              }}
-            />
-
-            {showReticle && (
-              <Section>
-                <SectionTitle>Touchdown site</SectionTitle>
-                <TouchdownReticle
-                  siteLat={landing?.predictedLatitude ?? null}
-                  siteLon={landing?.predictedLongitude ?? null}
-                  vesselLat={flight?.latitude ?? null}
-                  vesselLon={flight?.longitude ?? null}
-                  bodyRadius={body?.radius ?? null}
-                  slopeDeg={landing?.predictedSlopeAngle ?? null}
-                  slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
-                  biome={landing?.predictedBiome ?? null}
-                  sampleSource={landing?.sampleSource ?? null}
-                  verdict={hazardVerdict}
-                  terrainPatch={landing?.terrainPatch ?? null}
-                  terrainPatchSize={landing?.terrainPatchSize ?? null}
-                />
-              </Section>
-            )}
-
-            {board === "atmospheric-aware" ? (
-              <Section>
-                <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
-                <Grid cols="auto 1fr" gap="xs">
-                  <Field label="Terminal">
-                    {formatMps(landing?.terminalVelocity)}
-                  </Field>
-                  <Field label="Touchdown">
-                    {formatMps(landing?.projectedTouchdownSpeed)}
-                  </Field>
-                  <Field label="Impact in">
-                    {landing?.atmosphericTimeToImpact == null
-                      ? "—"
-                      : formatDuration(landing.atmosphericTimeToImpact, {
-                          ms: true,
-                        })}
-                  </Field>
-                  {landing?.descentRegime && (
-                    <Field label="Regime">{landing.descentRegime}</Field>
-                  )}
-                </Grid>
-                <Value tone="muted" size="xs">
-                  Estimate — assumes current config
-                  {landing?.parachuteState === "armed"
-                    ? "; excludes the pending parachute"
-                    : ""}
-                  .
-                </Value>
-              </Section>
-            ) : board === "atmospheric-unmodelled" ? (
-              <Section>
-                <Badge tone="warn" size="sm">
-                  atmospheric — descent unmodelled
-                </Badge>
-                <Value tone="muted" size="xs">
-                  No drag model. Burn and impact numbers are suppressed rather
-                  than shown wrong.
-                </Value>
-              </Section>
-            ) : board === "no-solution" ? (
-              <Section>
-                <Value tone="muted">
-                  No landing solution — body data unavailable.
-                </Value>
-              </Section>
+            {commitLayerEl}
+            {wide ? (
+              <Grid cols="1fr 1fr" gap="md">
+                <Stack gap="sm">{reticleSection}</Stack>
+                <Stack gap="sm">
+                  {boardSection}
+                  {velocitySection}
+                  {heightSection}
+                  {divertSection}
+                </Stack>
+              </Grid>
             ) : (
               <>
-                {showScope && (
-                  <Section>
-                    <DescentScope
-                      aglMeters={heightFromTerrain ?? null}
-                      verticalSpeed={solution.verticalSpeed}
-                      horizontalSpeed={solution.horizontalSpeed}
-                      ignitionAltitude={solution.ignitionAltitude}
-                      suicideBurnCountdown={solution.suicideBurnCountdown}
-                      twr={twr}
-                      usingComDatum={usingComDatum}
-                    />
-                  </Section>
-                )}
-
-                <Section>
-                  <SectionTitle>Burn</SectionTitle>
-                  <Grid cols="auto 1fr" gap="xs">
-                    <Field label="Burn dV">{formatDv(requiredDv)}</Field>
-                    <Field label="Duration">
-                      {solution.burnDuration == null
-                        ? "—"
-                        : formatDuration(solution.burnDuration, { ms: true })}
-                    </Field>
-                    <Field label="Available dV">{formatDv(availableDv)}</Field>
-                    <ReadoutCaption>Affordable</ReadoutCaption>
-                    {affordable == null ? (
-                      <Value tone="muted">—</Value>
-                    ) : (
-                      <Badge tone={affordable ? "go" : "nogo"} size="sm">
-                        {affordable ? "yes" : "insufficient dV"}
-                      </Badge>
-                    )}
-                  </Grid>
-                </Section>
-
-                <Section>
-                  <SectionTitle>Touchdown</SectionTitle>
-                  <Grid cols="auto 1fr" gap="xs">
-                    <Field label="If nothing">
-                      {formatMps(solution.speedAtImpact)}
-                    </Field>
-                    <Field label="If burn now">
-                      {solution.bestSpeedAtImpact == null
-                        ? "—"
-                        : formatMps(solution.bestSpeedAtImpact)}
-                    </Field>
-                    <Field label="Impact in">
-                      {solution.timeToImpact == null
-                        ? "—"
-                        : formatDuration(solution.timeToImpact, { ms: true })}
-                    </Field>
-                  </Grid>
-                  {showScope && descentHistory.length >= 2 && (
-                    <Sparkline
-                      values={descentHistory}
-                      width={160}
-                      height={28}
-                      ariaLabel="Descent-rate trend"
-                    />
-                  )}
-                </Section>
+                {reticleSection}
+                {boardSection}
+                {velocitySection}
+                {heightSection}
+                {divertSection}
               </>
-            )}
-
-            {!scopeShown && solution.horizontalSpeed != null && (
-              <Section>
-                <SectionTitle>Velocity</SectionTitle>
-                <Grid cols="auto 1fr" gap="xs">
-                  <Field label="Vertical">
-                    {formatMps(solution.verticalSpeed)}
-                  </Field>
-                  <Field label="Horizontal">
-                    {formatMps(solution.horizontalSpeed)}
-                  </Field>
-                </Grid>
-              </Section>
-            )}
-
-            {!scopeShown && (
-              <Section>
-                <SectionTitle>Height</SectionTitle>
-                <Grid cols="auto 1fr" gap="xs">
-                  <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
-                </Grid>
-                {usingComDatum && (
-                  <Value tone="muted" size="xs">
-                    centre-of-mass altitude (lowest-point datum unavailable)
-                  </Value>
-                )}
-              </Section>
-            )}
-
-            {vs?.targetDistance != null && (
-              <Section>
-                <SectionTitle>Divert</SectionTitle>
-                <Grid cols="auto 1fr" gap="xs">
-                  <Field label="Target range">
-                    {formatMeters(vs.targetDistance)}
-                  </Field>
-                </Grid>
-              </Section>
             )}
           </Section>
         </ScrollArea>
