@@ -501,6 +501,10 @@ const Header = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  /* Full-bleed standard: the Panel no longer imposes a uniform inset, and this
+     bespoke header (not PanelTitle) carried none of its own — so it self-pads
+     to the standard local inset to stay readable. */
+  padding: 12px 16px 8px;
 `;
 
 const LabelArea = styled.div`
