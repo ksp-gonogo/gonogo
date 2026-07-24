@@ -1,5 +1,6 @@
 import type { DataKey } from "@ksp-gonogo/core";
 import {
+  clearAugments,
   MockDataSource,
   registerAugment,
   registerDataSource,
@@ -16,7 +17,11 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { type CrewBadgeContext, CrewManifestComponent } from "./index";
+import {
+  type CrewAvatarContext,
+  type CrewBadgeContext,
+  CrewManifestComponent,
+} from "./index";
 
 /**
  * CrewManifest runs entirely off the stream: `vessel.crew`
@@ -72,6 +77,9 @@ function renderCrew(fixture: ReturnType<typeof newFixture>) {
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
+  // Slot augments are registered globally — clear so an avatar/badges augment
+  // bound in one test can't leak into the "empty slot" assertions of the next.
+  clearAugments();
 });
 
 describe("CrewManifestComponent", () => {
@@ -236,6 +244,110 @@ describe("CrewManifestComponent", () => {
     expect(
       within(jebRow as HTMLElement).getByTestId("crew-badge"),
     ).toHaveTextContent("Jebediah Kerman ✓");
+  });
+});
+
+/**
+ * The leading `crew-manifest.avatar` slot — the SDK-independent shell of the
+ * kerbcast facecam. A per-kerbal square cell left of the name where the bullet
+ * renders today; the kerbcast Uplink will later register an augment that fills
+ * it with a live face. Until then (and whenever the augment yields nothing — no
+ * Uplink, embedded-facecams off, kerbal not seated) the cell falls back to the
+ * bullet dot, so CrewManifest renders fully with the slot empty. This suite
+ * builds ONLY the slot + fallback; no facecam subscription (later task).
+ */
+describe("CrewManifestComponent — avatar slot", () => {
+  it("falls back to the bullet in every row when no avatar augment is bound", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    // Roster renders as before; each row shows the fallback bullet, and no
+    // augment content is present.
+    expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
+    expect(screen.getAllByTestId("crew-avatar-fallback")).toHaveLength(2);
+    expect(screen.queryByTestId("crew-avatar")).not.toBeInTheDocument();
+  });
+
+  it("composes a bound crew-manifest.avatar augment once per row, carrying each kerbal's identity", async () => {
+    // A test Uplink binds the avatar slot and echoes the slot props — proves the
+    // slot is exposed, an augment composes into it, and the per-row props carry
+    // the right kerbal. `requires` omitted so no Domain presence gate applies.
+    registerAugment<"crew-manifest.avatar">({
+      id: "test-crew-avatar",
+      augments: "crew-manifest.avatar",
+      component: ({ crewName, crewIndex }: CrewAvatarContext) => (
+        <span data-testid="crew-avatar" data-index={crewIndex}>
+          {crewName} face
+        </span>
+      ),
+    });
+
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 3,
+        capacity: 3,
+        crew: [
+          { name: "Jebediah Kerman" },
+          { name: "Bill Kerman" },
+          { name: "Bob Kerman" },
+        ],
+      });
+    });
+
+    const avatars = await screen.findAllByTestId("crew-avatar");
+    expect(avatars).toHaveLength(3);
+    expect(avatars.map((a) => a.textContent)).toEqual([
+      "Jebediah Kerman face",
+      "Bill Kerman face",
+      "Bob Kerman face",
+    ]);
+    // The augment lands in the right kerbal's row (props identity is correct).
+    const billRow = screen.getByText("Bill Kerman").closest("li");
+    expect(billRow).not.toBeNull();
+    expect(
+      within(billRow as HTMLElement).getByTestId("crew-avatar"),
+    ).toHaveTextContent("Bill Kerman face");
+  });
+
+  it("keeps the roster + avatar cell at both small and large widget sizes", async () => {
+    // The avatar cell lives in the roster branch, which renders whenever the
+    // widget is at least 4x5. Assert it survives the min-roster size and a large
+    // size — the fallback bullet is present per row in both.
+    for (const [w, h] of [
+      [4, 5],
+      [10, 12],
+    ] as const) {
+      const fixture = newFixture();
+      const { unmount } = render(
+        <fixture.Provider>
+          <CrewManifestComponent config={{}} id="crew" w={w} h={h} />
+        </fixture.Provider>,
+      );
+      act(() => {
+        fixture.emit("vessel.crew", {
+          count: 1,
+          capacity: 1,
+          crew: [{ name: "Jebediah Kerman" }],
+        });
+      });
+      await waitFor(() =>
+        expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId("crew-avatar-fallback")).toBeInTheDocument();
+      unmount();
+    }
   });
 });
 
