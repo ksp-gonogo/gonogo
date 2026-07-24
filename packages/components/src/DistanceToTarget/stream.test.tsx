@@ -201,11 +201,7 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [
-        { key: "tar.name" },
-        { key: "tar.type" },
-        { key: "o.closestTgtApprUT" },
-      ],
+      keys: [{ key: "tar.name" }, { key: "tar.type" }],
       connectSource: true,
     });
 
@@ -220,11 +216,12 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
     act(() => {
       legacyAux.source.emit("tar.name", "Rendezvous Target");
       legacyAux.source.emit("tar.type", "Vessel");
-      // closest approach at UT 1125 → 125 s from the pinned view-UT (1000) →
-      // T−2m 5s.
-      legacyAux.source.emit("o.closestTgtApprUT", 1125);
       // 2000 m puts the widget in approach mode (100 m – 5 km); z-only Vec3
-      // so |relPos| = 2000 and the radial rate is −5 (closing).
+      // so |relPos| = 2000 and the radial rate is −5 (closing). Closest
+      // approach at UT 1125 → 125 s from the pinned view-UT (1000) →
+      // T−2m 5s — now carried inside vessel.target.closestApproach (the
+      // MOD-side ITargetApproachSolver output) rather than a separate
+      // o.closestTgtApprUT key.
       fixture.emit("vessel.target", {
         name: "Rendezvous Target",
         kind: 0,
@@ -232,6 +229,7 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
         bodyIndex: null,
         relativePosition: { x: 0, y: 0, z: 2000 },
         relativeVelocity: { x: 0, y: 0, z: -5 },
+        closestApproach: { time: 1125, distance: 0 },
       });
     });
 

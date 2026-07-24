@@ -638,6 +638,27 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
+  // tar.setTargetPart[vesselId,partId] -> vessel.target.set with the Part arm
+  // (Target API). A docking port is identified by its OWNING vessel guid plus
+  // its Part.flightID (a part id is unique only within its vessel), both read
+  // straight off a target.available entry. The mod resolves the node
+  // server-side against that vessel's parts (KspVesselActuator.SetTarget Part
+  // arm). An empty vesselId or non-numeric partId can't resolve a port, so it
+  // falls back to legacy rather than dispatching a command the handler rejects.
+  "tar.setTargetPart": {
+    command: "vessel.target.set",
+    buildArgs: (rawArgs) => {
+      const vesselId = rawArgs[0];
+      const rawPart = rawArgs[1];
+      // Reject an empty/missing part arg BEFORE parsing -- parseFiniteNumber("")
+      // is 0, a valid integer, which would wrongly build a partId=0 command.
+      if (!vesselId || !rawPart) return INVALID;
+      const partId = parseFiniteNumber(rawPart);
+      if (partId === INVALID || !Number.isInteger(partId)) return INVALID;
+      return { kind: 4 /* TargetKind.Part */, vesselId, partId };
+    },
+  },
+
   // --- career.* commands. career.status.* already streams every id these
   // commands key on — strategy id (`strategies.all[].id`), tech id
   // (`tech.nodes[].id`), contract id (`contracts.*[].id`) all read straight

@@ -522,7 +522,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
       "packages/components/src/CrewManifest/index.tsx",
       "packages/components/src/ManeuverPlanner/index.tsx",
-      "packages/components/src/TargetPicker/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
       "packages/core/src/testing/installDomStubs.ts",
       "packages/core/src/types.ts",

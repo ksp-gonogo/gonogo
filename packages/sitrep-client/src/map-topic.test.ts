@@ -111,7 +111,6 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
       "vessel.state.situationName",
     );
     expect(mapTopic("data", "f.sasMode")).toBe("vessel.state.sasModeName");
-    expect(mapTopic("data", "tar.type")).toBe("vessel.state.targetKind");
     expect(mapTopic("data", "comm.controlStateName")).toBe(
       "vessel.state.commsControlStateName",
     );
@@ -121,7 +120,6 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     for (const key of [
       "v.situationString",
       "f.sasMode",
-      "tar.type",
       "comm.controlStateName",
       "comm.controlState",
     ]) {
@@ -226,7 +224,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "v.angleToPrograde")).toBe(true);
   });
 
-  it("maps the R6 shared-derivations batch (twr, controllable/EVA/splashed flags, action groups, closest approach) onto vessel.state.*", () => {
+  it("maps the R6 shared-derivations batch (twr, controllable/EVA/splashed flags, action groups) onto vessel.state.*", () => {
     expect(mapTopic("data", "dv.currentTWR")).toBe("vessel.state.twr");
     expect(mapTopic("data", "v.isControllable")).toBe(
       "vessel.state.isControllable",
@@ -235,9 +233,6 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "v.splashed")).toBe("vessel.state.isSplashed");
     expect(mapTopic("data", "v.ag1Value")).toBe("vessel.state.actionGroup1");
     expect(mapTopic("data", "v.ag10Value")).toBe("vessel.state.actionGroup10");
-    expect(mapTopic("data", "o.closestTgtApprUT")).toBe(
-      "vessel.state.closestApproachUt",
-    );
     for (const key of [
       "dv.currentTWR",
       "v.isControllable",
@@ -245,7 +240,6 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
       "v.splashed",
       "v.ag1Value",
       "v.ag10Value",
-      "o.closestTgtApprUT",
     ]) {
       expect(isKnownTelemachusGap("data", key)).toBe(false);
     }
@@ -387,18 +381,10 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     );
   });
 
-  it("maps the M3 vessel-gap batch's newly-added roster / dock / node-id keys", () => {
+  it("maps the M3 vessel-gap batch's newly-added roster / node-id keys", () => {
     // tar.availableVessels roster -> system.vessels (2-segment whole topic).
     expect(mapTopic("data", "tar.availableVessels")).toBe("system.vessels");
     expect(isKnownTelemachusGap("data", "tar.availableVessels")).toBe(false);
-    // The raw Vec3 reads DistanceToTarget derives its scalars/angles from.
-    expect(mapTopic("data", "tar.relativePosition")).toBe(
-      "vessel.target.relativePosition",
-    );
-    expect(mapTopic("data", "dock.relativePosition")).toBe(
-      "vessel.dock.relativePosition",
-    );
-    expect(mapTopic("data", "dock.forwardDot")).toBe("vessel.dock.forwardDot");
     // ManeuverPlanner's node-id read for the update/remove command bridge.
     expect(mapTopic("data", "o.maneuverNodeIds")).toBe("vessel.maneuver.nodes");
   });

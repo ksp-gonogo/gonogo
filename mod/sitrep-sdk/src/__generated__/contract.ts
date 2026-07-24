@@ -1041,6 +1041,22 @@ export interface VesselRosterEntry
 	situation: Situation;
 	bodyIndex?: number;
 }
+export interface TargetListEntry
+{
+	kind: TargetKind;
+	name: string;
+	vesselId?: string;
+	bodyIndex?: number;
+	partId?: number;
+	vesselType?: VesselType;
+	situation?: Situation;
+	distance?: number;
+	isCurrent: boolean;
+}
+export interface TargetAvailable
+{
+	entries: TargetListEntry[];
+}
 export interface PendingUplink
 {
 	id: string;
@@ -1111,6 +1127,7 @@ export interface SetTargetArgs
 {
 	kind: TargetKind;
 	vesselId?: string;
+	partId?: number;
 	bodyIndex?: number;
 	latitude?: number;
 	longitude?: number;
@@ -1408,7 +1425,13 @@ export enum TargetKind {
 	Vessel = 0,
 	Body = 1,
 	Other = 2,
-	Position = 3
+	Position = 3,
+	Part = 4
+}
+export interface ClosestApproach
+{
+	time: number;
+	distance: number;
 }
 export interface VesselTarget
 {
@@ -1416,9 +1439,11 @@ export interface VesselTarget
 	kind: TargetKind;
 	vesselId?: string;
 	bodyIndex?: number;
+	partId?: number;
 	relativePosition?: Vec3;
 	relativeVelocity?: Vec3;
 	orbit?: VesselOrbit;
+	closestApproach?: ClosestApproach;
 	meta: PayloadMeta;
 }
 export interface ThermalHottestPart

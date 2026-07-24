@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Sitrep.Host;
 using Sitrep.Host.ActionGroups;
+using Sitrep.Host.Targeting;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -149,6 +150,13 @@ namespace Gonogo.KSP
                 var engine = _engine;
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
+
+                // Same late-bound install for the closest-approach solver
+                // (stock Kepler vanilla, or Principia when elected) -- KspHost
+                // samples it on the main thread and stamps vessel.target's
+                // closestApproach.
+                _host.SetApproachSolverSource(
+                    () => TargetApproachElection.Elected(engine.Kernel));
 
                 _engine.Start();
 

@@ -1662,55 +1662,6 @@ describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v
   });
 });
 
-describe("R6 closestApproachUt — vessel.state.closestApproachUt (o.closestTgtApprUT)", () => {
-  it("solves closest approach when both orbits share a reference body", () => {
-    const target: VesselTargetPayload = {
-      kind: 0,
-      orbit: { ...CIRCULAR_ORBIT, sma: 900_000 },
-    };
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.target": pt(target),
-    });
-    const ut = deriveVesselState(get, 0)?.closestApproachUt;
-    expect(typeof ut).toBe("number");
-    expect(ut as number).toBeGreaterThanOrEqual(0);
-  });
-
-  it("undefined when the target orbits a different body", () => {
-    const target: VesselTargetPayload = {
-      kind: 0,
-      orbit: { ...CIRCULAR_ORBIT, referenceBodyIndex: 5, sma: 900_000 },
-    };
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.target": pt(target),
-    });
-    expect(deriveVesselState(get, 0)?.closestApproachUt).toBeUndefined();
-  });
-
-  it("undefined in the measured basis (no propagated self conic)", () => {
-    const target: VesselTargetPayload = {
-      kind: 0,
-      orbit: { ...CIRCULAR_ORBIT, sma: 900_000 },
-    };
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
-      "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      "vessel.target": pt(target),
-    });
-    expect(deriveVesselState(get, 0, get)?.closestApproachUt).toBeUndefined();
-  });
-
-  it("null on a vessel.target tombstone", () => {
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.target": pt<VesselTargetPayload>(null),
-    });
-    expect(deriveVesselState(get, 0)?.closestApproachUt).toBeNull();
-  });
-});
-
 describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory never throws (ecc >= 1 crash fix)", () => {
   // A genuine hyperbolic orbit (fast escape/flyby): ecc > 1, and by the same
   // convention `orbitalPeriod`/vis-viva use everywhere else in this package,
@@ -1729,7 +1680,7 @@ describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory ne
     mu: 3.5316e12,
   };
 
-  it("an OnRails vessel on a hyperbolic orbit does not throw; anomaly/period/apoapsis/time-to-apsis/closest-approach fields degrade to null, periapsis + non-orbital fields still resolve", () => {
+  it("an OnRails vessel on a hyperbolic orbit does not throw; anomaly/period/apoapsis/time-to-apsis fields degrade to null, periapsis + non-orbital fields still resolve", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(HYPERBOLIC_ORBIT, {
         quality: Quality.OnRails,
@@ -1744,7 +1695,7 @@ describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory ne
       }),
       "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
       // An elliptical target sharing the same reference body -- exercises
-      // deriveClosestApproachUt's self-conic (hyperbolic) side too.
+      // the target-relative derivations' handling of a hyperbolic self orbit.
       "vessel.target": targetPoint({
         kind: 0,
         relativePosition: { x: 100, y: 0, z: 0 },
@@ -1769,10 +1720,6 @@ describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory ne
     expect(state?.apoapsisRadius).toBeNull();
     expect(state?.nextApsisType).toBeNull();
     expect(state?.timeToNextApsis).toBeNull();
-    // closestApproachUt needs a propagated self conic; hyperbolic self can't
-    // provide one -- same "not resolvable" outcome as a different reference
-    // body (see the sibling describe block above).
-    expect(state?.closestApproachUt).toBeUndefined();
 
     // Periapsis is still valid on a hyperbolic orbit -- sma < 0, ecc > 1, so
     // sma * (1 - ecc) is still a positive radius.

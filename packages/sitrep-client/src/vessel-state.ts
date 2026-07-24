@@ -8,7 +8,7 @@ import {
   type OrbitPatchWirePayload,
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
-import { closestApproach, STANDARD_GRAVITY } from "./propagation";
+import { STANDARD_GRAVITY } from "./propagation";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
@@ -621,18 +621,6 @@ export interface VesselState {
   actionGroup9: boolean | null | undefined;
   /** Action group 10 engaged (old `v.ag10Value`). */
   actionGroup10: boolean | null | undefined;
-  /**
-   * UT (seconds) of closest approach to the current target — the SDK-side
-   * two-body closest-approach solve over `vessel.orbit` + `vessel.target.orbit`
-   * (old Telemachus `o.closestTgtApprUT`, DistanceToTarget). Requires both
-   * orbits to share a reference body (a cross-SOI approach isn't a single
-   * two-body problem). OnRails basis only (needs the self orbit's elements as
-   * a propagated conic). `undefined` while `vessel.target` hasn't arrived, the
-   * target has no orbit, the two orbits are around different bodies, or in the
-   * measured basis; `null` on a confirmed `vessel.target` tombstone or a
-   * degenerate solve.
-   */
-  closestApproachUt: number | null | undefined;
   /**
    * Seconds until a no-burn ballistic vacuum fall reaches the terrain below —
    * the positive root of `altitudeTerrain = vDown·t + ½·g·t²` (old Telemachus
@@ -1421,38 +1409,6 @@ function deriveActionGroups(get: DerivedGet): {
 }
 
 /**
- * Closest-approach UT to the current target (`vessel.state.closestApproachUt`,
- * old `o.closestTgtApprUT`) — the SDK-side two-body solve (`propagation.ts`'s
- * `closestApproach`) over the self orbit + `vessel.target.orbit`. `self` is
- * the already-built self-vessel elements (OnRails branch only — the measured
- * basis has no propagated conic to solve against). Requires both orbits to
- * share a reference body. `undefined` when `vessel.target` hasn't arrived, the
- * target has no orbit, the two orbits are around different bodies, or the
- * solve is degenerate; `null` on a confirmed `vessel.target` tombstone. Never
- * throws.
- */
-function deriveClosestApproachUt(
-  get: DerivedGet,
-  self: VesselOrbitPayload,
-  selfElements: OrbitElements,
-  viewUt: number,
-): number | null | undefined {
-  const point = get<VesselTargetPayload>("vessel.target");
-  if (!point) return undefined;
-  if (point.payload === null) return null;
-  const targetOrbit = point.payload.orbit;
-  if (targetOrbit == null) return undefined;
-  if (targetOrbit.referenceBodyIndex !== self.referenceBodyIndex)
-    return undefined;
-  const result = closestApproach(
-    selfElements,
-    buildElements(targetOrbit),
-    viewUt,
-  );
-  return result === null ? undefined : (finiteOrNull(result.ut) ?? undefined);
-}
-
-/**
  * The `vessel.state` derivation. Reads `vessel.orbit`
  * + `vessel.flight` at the SAME frozen `viewUt` (the `get` closure enforces
  * this structurally — see `TimelineStore`) and quality-picks per
@@ -1811,8 +1767,6 @@ export function deriveVesselState(
       isControllable: deriveIsControllable(get),
       ...deriveIdentityFlags(get),
       ...deriveActionGroups(get),
-      // Closest approach needs a propagated self conic — OnRails only.
-      closestApproachUt: deriveClosestApproachUt(get, orbit, elements, viewUt),
       // Landing scalars are surface-frame MEASURED quantities (read
       // vessel.flight) — null in the propagated basis, like altitudeAsl/
       // verticalSpeed/surfaceSpeed/horizontalSpeed above.
@@ -1887,9 +1841,6 @@ export function deriveVesselState(
     isControllable: deriveIsControllable(get),
     ...deriveIdentityFlags(get),
     ...deriveActionGroups(get),
-    // Closest approach needs a propagated self conic (osculating garbage in
-    // the measured basis) — OnRails only, null here.
-    closestApproachUt: undefined,
     // Ballistic landing scalars — LIVE here (measured basis), off vessel.flight
     // + vessel.orbit.mu + the system.bodies radius + vessel.propulsion.
     ...deriveLanding(get, orbit, flight, orbitPatchesLegacy, viewUt),
@@ -1984,7 +1935,7 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   // too — so `DEFAULT_SITREP_CARRIED_TOPICS` and every test `carriedChannels`
   // allowlist that reads any `vessel.state.*` field was extended to list it.
   // The other flag/derivation additions (`isControllable`/`isEVA`/
-  // `isSplashed`/`actionGroup*`/`closestApproachUt`) read only channels
+  // `isSplashed`/`actionGroup*`) read only channels
   // ALREADY declared here (`vessel.comms`/`vessel.identity`/`vessel.control`/
   // `vessel.target`), so they added no new input.
   inputs: [

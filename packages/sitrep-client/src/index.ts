@@ -125,8 +125,6 @@ export {
 export type {
   BuildPatchesInput,
   BuildPatchesOptions,
-  ClosestApproach,
-  ClosestApproachOptions,
   ManeuverBurn,
   ManeuverPreview,
   OrbitPatch,
@@ -135,7 +133,6 @@ export type {
 } from "./propagation";
 export {
   buildOrbitPatches,
-  closestApproach,
   orbitalPeriod,
   previewManeuver,
   rvToElements,

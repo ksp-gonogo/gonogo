@@ -9,6 +9,7 @@ using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.ActionGroups;
+using Sitrep.Host.Targeting;
 using Strategies;
 using UnityEngine;
 using Sitrep.Contract;
@@ -91,6 +92,27 @@ namespace Gonogo.KSP
             _actionGroupsBackend = resolver;
         }
 
+        /// <summary>
+        /// The elected closest-approach solver resolver (see
+        /// <see cref="Sitrep.Host.Targeting.ITargetApproachSolver"/>). Same
+        /// late-bound install shape as <see cref="_actionGroupsBackend"/>:
+        /// stamped onto <c>vessel.target</c>'s <c>closestApproach</c> on the
+        /// main-thread sample, the mod-side replacement for the former
+        /// SDK-side two-body solve.
+        /// </summary>
+        private Func<ITargetApproachSolver?>? _approachSolver;
+
+        /// <summary>
+        /// Installs the elected closest-approach solver resolver. Called by
+        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved —
+        /// see <see cref="_approachSolver"/> / <see cref="_actionGroupsBackend"/>
+        /// for why this can't be a constructor argument.
+        /// </summary>
+        public void SetApproachSolverSource(Func<ITargetApproachSolver?> resolver)
+        {
+            _approachSolver = resolver;
+        }
+
         public KspHost(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
@@ -169,7 +191,13 @@ namespace Gonogo.KSP
                     var activeVessel = FlightGlobals.ActiveVessel;
                     if (activeVessel != null)
                     {
-                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry, _actionGroupsBackend?.Invoke());
+                        // Closest approach comes from the elected solver (stock
+                        // Kepler by default; Principia when loaded), sampled on
+                        // this main thread at the current UT. Null when there's
+                        // no target / no encounter -- stamped onto vessel.target
+                        // below, replacing the old SDK-side two-body solve.
+                        var closestApproach = _approachSolver != null ? _approachSolver.Invoke()?.Solve(ut) : null;
+                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry, _actionGroupsBackend?.Invoke(), closestApproach);
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -181,6 +209,15 @@ namespace Gonogo.KSP
                         // vessel.* group above.
                         TryBuildGroup(values, "science", () => BuildScience(activeVessel));
                         TryBuildGroup(values, "parts", () => BuildParts(activeVessel));
+
+                        // target.available -- everything the active vessel
+                        // could target right now (generic ITargetable
+                        // enumeration -- vessels, bodies, in-range docking
+                        // ports). Active-vessel-scoped: distance,
+                        // self-exclusion and isCurrent all need it. Its own
+                        // TryBuildGroup so an enumeration hiccup can't take out
+                        // the vessel/parts groups.
+                        TryBuildGroup(values, "targetAvailable", () => BuildTargetAvailable(activeVessel));
                     }
 
                     // M3 R3 capture-add: the FULL known-vessel roster (not
@@ -391,7 +428,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry, IActionGroupsBackend? actionGroupsBackend)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry, IActionGroupsBackend? actionGroupsBackend, ClosestApproach? closestApproach)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -413,7 +450,7 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
             TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
             TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel, maneuverNodeIdRegistry));
-            TryBuildGroup(entry, "target", () => BuildTarget(vessel));
+            TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
             // ---- M3 R3 capture-adds ----
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
             TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
@@ -1328,6 +1365,125 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The <c>target.available</c> raw group -- the list of everything the
+        /// active vessel could target right now. Built GENERICALLY: enumerate
+        /// candidate <c>ITargetable</c>s from the game (vessels, bodies, and
+        /// docking ports on loaded in-range vessels) and classify each by
+        /// concrete type into a kind + stable id, rather than three hardcoded
+        /// per-kind passes -- so a modded ITargetable falls through to "Other"
+        /// with no code change. Filters the same vessel types the fork's
+        /// <c>tar.availableVessels</c> did (Flag/EVA/Debris/Unknown) plus the
+        /// active vessel itself; keeps SpaceObject (asteroids/comets). Each
+        /// entry carries a metric <c>distance</c> to the active vessel (a
+        /// coarse picker sort aid, not a HUD value) and <c>isCurrent</c> (== the
+        /// live <c>VesselTarget</c>). The host-side
+        /// <c>SystemViewProvider.BuildTargetAvailable</c> maps the string enums
+        /// to ordinals; this producer emits the raw shapes, mirroring
+        /// <see cref="BuildVesselRosterEntry"/>.
+        /// </summary>
+        private static Dictionary<string, object?> BuildTargetAvailable(Vessel active)
+        {
+            var entries = new List<object?>();
+            var current = FlightGlobals.fetch != null ? FlightGlobals.fetch.VesselTarget : null;
+            var activeTransform = active.GetTransform();
+            Vector3d? activePos = activeTransform != null ? (Vector3d)activeTransform.position : (Vector3d?)null;
+
+            double? DistanceTo(ITargetable t)
+            {
+                if (activePos == null)
+                {
+                    return null;
+                }
+                var tf = t.GetTransform();
+                return tf != null ? (double?)((Vector3d)tf.position - activePos.Value).magnitude : null;
+            }
+
+            var vessels = FlightGlobals.Vessels;
+            if (vessels != null)
+            {
+                foreach (var v in vessels)
+                {
+                    if (v == null || ReferenceEquals(v, active) || IsFilteredTargetVesselType(v.vesselType))
+                    {
+                        continue;
+                    }
+
+                    entries.Add(new Dictionary<string, object?>
+                    {
+                        ["kind"] = "Vessel",
+                        ["name"] = v.GetName(),
+                        ["vesselId"] = v.id.ToString(),
+                        ["vesselType"] = v.vesselType.ToString(),
+                        ["situation"] = v.situation.ToString(),
+                        ["distance"] = DistanceTo(v),
+                        ["isCurrent"] = ReferenceEquals(current, v),
+                    });
+
+                    // Docking ports on LOADED vessels only -- enumerating every
+                    // part on every unloaded vessel is neither cheap nor useful,
+                    // and only loaded ports are in physics/docking range.
+                    if (v.loaded)
+                    {
+                        foreach (var node in v.FindPartModulesImplementing<ModuleDockingNode>())
+                        {
+                            if (node == null || node.part == null)
+                            {
+                                continue;
+                            }
+                            entries.Add(new Dictionary<string, object?>
+                            {
+                                ["kind"] = "Part",
+                                ["name"] = node.GetName(),
+                                ["vesselId"] = v.id.ToString(),
+                                ["partId"] = node.part.flightID,
+                                ["vesselType"] = v.vesselType.ToString(),
+                                ["distance"] = DistanceTo(node),
+                                ["isCurrent"] = ReferenceEquals(current, node),
+                            });
+                        }
+                    }
+                }
+            }
+
+            var bodies = FlightGlobals.Bodies;
+            if (bodies != null)
+            {
+                for (var i = 0; i < bodies.Count; i++)
+                {
+                    var b = bodies[i];
+                    if (b == null)
+                    {
+                        continue;
+                    }
+                    entries.Add(new Dictionary<string, object?>
+                    {
+                        // i is the system.bodies index (BuildBodyEntry
+                        // enumerates FlightGlobals.Bodies in the SAME order).
+                        ["kind"] = "Body",
+                        ["name"] = b.GetName(),
+                        ["bodyIndex"] = i,
+                        ["distance"] = DistanceTo(b),
+                        ["isCurrent"] = ReferenceEquals(current, b),
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?> { ["entries"] = entries };
+        }
+
+        /// <summary>
+        /// The vessel types the available-targets list drops (same filter the
+        /// fork's <c>tar.availableVessels</c> applied): flags, EVA kerbals,
+        /// debris, and unclassified. SpaceObject (asteroids/comets) is
+        /// deliberately kept.
+        /// </summary>
+        private static bool IsFilteredTargetVesselType(VesselType type) =>
+            type == VesselType.Flag
+            || type == VesselType.EVA
+            || type == VesselType.Debris
+            || type == VesselType.Unknown;
+
+        /// <summary>
         /// The M3 R3 <c>vessel.dock</c> capture-add's raw group -- docking
         /// alignment between the active vessel's nearest FREE (not currently
         /// docked/disabled) <see cref="ModuleDockingNode"/> and the
@@ -1503,7 +1659,7 @@ namespace Gonogo.KSP
         /// (rendezvous range), which is the only time a target's relative
         /// state matters.
         /// </summary>
-        private static Dictionary<string, object?>? BuildTarget(Vessel vessel)
+        private static Dictionary<string, object?>? BuildTarget(Vessel vessel, ClosestApproach? closestApproach)
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
@@ -1517,15 +1673,32 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            // Classify + resolve the target's OWN stable identity. Order
+            // matters: a ModuleDockingNode's GetVessel() returns the OWNING
+            // vessel (non-null), so a bare "GetVessel() != null -> Vessel"
+            // would misread a docking port as a vessel. Check PartModule
+            // FIRST. targetVesselId carries the vessel guid for a Vessel
+            // target AND the owning vessel for a Part target (the parser reads
+            // it for both); partId is the port's Part.flightID, Part only.
             var targetVessel = target.GetVessel();
             string targetType;
-            if (targetVessel != null)
-            {
-                targetType = targetVessel.vesselType.ToString();
-            }
-            else if (target is CelestialBody)
+            string? targetVesselId = null;
+            uint? partId = null;
+            if (target is CelestialBody)
             {
                 targetType = "CelestialBody";
+            }
+            else if (target is PartModule partModule)
+            {
+                // A part target -- in practice a docking port.
+                targetType = "Part";
+                partId = partModule.part != null ? partModule.part.flightID : (uint?)null;
+                targetVesselId = partModule.vessel != null ? partModule.vessel.id.ToString() : null;
+            }
+            else if (targetVessel != null)
+            {
+                targetType = targetVessel.vesselType.ToString();
+                targetVesselId = targetVessel.id.ToString();
             }
             else
             {
@@ -1547,6 +1720,8 @@ namespace Gonogo.KSP
             {
                 ["name"] = target.GetName(),
                 ["type"] = targetType,
+                ["targetVesselId"] = targetVesselId,
+                ["partId"] = partId,
                 ["relativePosition"] = relativePosition,
                 ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
             };
@@ -1555,6 +1730,18 @@ namespace Gonogo.KSP
             if (targetOrbit != null)
             {
                 result["orbit"] = BuildOrbit(targetOrbit);
+            }
+
+            // Mod-side closest approach from the elected solver (computed in
+            // Sample at the current UT). Omit the key entirely when there's no
+            // encounter -- the parser leaves VesselTarget.ClosestApproach null.
+            if (closestApproach != null)
+            {
+                result["closestApproach"] = new Dictionary<string, object?>
+                {
+                    ["time"] = closestApproach.Time,
+                    ["distance"] = closestApproach.Distance,
+                };
             }
 
             return result;

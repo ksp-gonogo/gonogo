@@ -1458,6 +1458,45 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildTargetMapsClosestApproachWhenTheSolverStampedIt()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Munar Relay",
+                    ["type"] = "Relay",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                    ["closestApproach"] = new Dictionary<string, object?>
+                    {
+                        ["time"] = 123456.0,
+                        ["distance"] = 8420.0,
+                    },
+                });
+
+            var target = VesselViewProvider.BuildTarget(snapshot)!;
+
+            Assert.NotNull(target.ClosestApproach);
+            Assert.Equal(123456.0, target.ClosestApproach!.Time);
+            Assert.Equal(8420.0, target.ClosestApproach.Distance);
+        }
+
+        [Fact]
+        public void BuildTargetLeavesClosestApproachNullWhenTheSolverReportedNoEncounter()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Munar Relay",
+                    ["type"] = "Relay",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+
+            Assert.Null(VesselViewProvider.BuildTarget(snapshot)!.ClosestApproach);
+        }
+
+        [Fact]
         public void BuildTargetReturnsNullWhenNothingTargetedTheCommonCase()
         {
             var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
@@ -1505,6 +1544,28 @@ namespace Sitrep.Host.Tests
             Assert.Equal(TargetKind.Body, target.Kind);
             Assert.Null(target.VesselId);
             Assert.Equal(2, target.BodyIndex); // "Mun" -> index 2 per KerbinAndMun()
+        }
+
+        [Fact]
+        public void BuildTargetClassifiesPartAndMapsPartIdAndOwningVesselId()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Clamp-O-Tron Sr.",
+                    ["type"] = "Part", // producer marks a docking-port target as Part
+                    ["targetVesselId"] = "77777777-8888-9999-aaaa-bbbbbbbbbbbb",
+                    ["partId"] = 4242.0,
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+
+            var target = VesselViewProvider.BuildTarget(snapshot)!;
+
+            Assert.Equal(TargetKind.Part, target.Kind);
+            Assert.Equal("77777777-8888-9999-aaaa-bbbbbbbbbbbb", target.VesselId);
+            Assert.Equal(4242u, target.PartId);
+            Assert.Null(target.BodyIndex);
         }
 
         [Fact]

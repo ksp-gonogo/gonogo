@@ -1,227 +1,279 @@
-import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { DistanceToTargetComponent } from "./index";
 
 /**
- * Mode-transition + docking-gate behavior, exercised through the legacy
- * `DataSource` fallback path (no `TelemetryProvider` mounted). The
- * widget derives distance / closing rate / docking angles client-side from
+ * Mode-transition + docking-gate behavior, exercised through the stream
+ * (`TelemetryProvider`/`TelemetryClient`/`TimelineStore`) pipeline via
+ * `setupStreamFixture` — the widget's legacy `MockDataSource` fallback path
+ * is gone (`vessel.target`/`vessel.dock` are its only reads). The widget
+ * derives distance / closing rate / docking angles client-side from
  * `vessel.target`/`vessel.dock`'s Vec3 fields, so these tests feed those Vec3
- * reads directly — the widget's `tarDistance` (which drives every mode switch)
- * is `|tar.relativePosition|`. The live TCA readout, which needs the SDK
- * view-UT (`useViewUt`, provider-only), is covered in `stream.test.tsx`.
+ * reads directly — the widget's `tarDistance` (which drives every mode
+ * switch) is `|vessel.target.relativePosition|`. The live TCA readout, which
+ * needs the SDK view-UT (`useViewUt`, provider-only), is covered in
+ * `stream.test.tsx`.
+ *
+ * Every assertion that follows a `fixture.emit` is wrapped in `waitFor` —
+ * the streamed value only lands via `TimelineStore`'s `subscribeFrame`
+ * (a `requestAnimationFrame`-scheduled commit, unlike the old synchronous
+ * `MockDataSource` emit), so a bare post-`act()` read races the update.
  */
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "comm.connected" },
-  { key: "tar.name" },
-  { key: "tar.type" },
-  { key: "tar.relativePosition" },
-  { key: "tar.relativeVelocityVec" },
-  { key: "dock.relativePosition" },
-  { key: "dock.relativeVelocityVec" },
-  { key: "dock.distanceScalar" },
-  { key: "dock.forwardDot" },
-  { key: "o.closestTgtApprUT" },
-];
 
 /** Vec3 purely along z, so `|relativePosition|` (the mode driver) === `d`. */
 function atRange(d: number) {
   return { x: 0, y: 0, z: d };
 }
 
-function prime(source: MockDataSource): void {
-  source.emit("comm.connected", true);
-  source.emit("v.name", "Test");
-  source.emit("v.missionTime", 0);
+/** `tar.type` legacy string -> the `vessel.target.kind` ordinal it now maps to. */
+const KIND: Record<string, number> = { Vessel: 0, CelestialBody: 1 };
+
+function renderWidget(
+  fixture: StreamFixture,
+  config: Record<string, unknown> = {},
+  props: { id?: string; w?: number; h?: number } = {},
+) {
+  return render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: props.id ?? "tar" }}>
+        <DistanceToTargetComponent
+          config={config}
+          id={props.id ?? "tar"}
+          w={props.w}
+          h={props.h}
+        />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
 }
 
 describe("DistanceToTargetComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-    });
-    source = fixture.source;
-  });
+  let fixture: StreamFixture;
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    clearAugments();
   });
 
-  it("shows a 'no target set' hint until tar.name is reported", () => {
-    const { container } = render(
-      <DistanceToTargetComponent config={{}} id="tar" />,
-    );
+  it("shows a 'no target set' hint until vessel.target is reported", () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    const { container } = renderWidget(fixture);
     expect(container.textContent).toContain("No target set in KSP");
   });
 
-  it("renders compact-mode distance once target name + distance arrive", () => {
-    const { container } = render(
-      <DistanceToTargetComponent config={{}} id="tar" />,
-    );
+  it("renders compact-mode distance once target name + distance arrive", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    const { container } = renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Minmus");
-      source.emit("tar.type", "CelestialBody");
-      source.emit("tar.relativePosition", atRange(47_000_000));
+      fixture.emit("vessel.target", {
+        name: "Minmus",
+        kind: KIND.CelestialBody,
+        relativePosition: atRange(47_000_000),
+        relativeVelocity: null,
+      });
     });
-    expect(container.textContent).toContain("Minmus");
+    await waitFor(() => expect(container.textContent).toContain("Minmus"));
     expect(container.textContent).toMatch(/\d[\d.]*\s*(k?m|Mm)/);
   });
 
-  it("auto-switches to the docking HUD when a Vessel target drops under 100 m", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+  it("auto-switches to the docking HUD when a Vessel target drops under 100 m", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(90));
-      source.emit("tar.relativeVelocityVec", atRange(-0.8));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(90),
+        relativeVelocity: atRange(-0.8),
+      });
     });
-    expect(
-      screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
-    ).toBeInTheDocument();
-  });
-
-  it("never HUD-switches on CelestialBody targets", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
-    act(() => {
-      prime(source);
-      source.emit("tar.name", "Mun");
-      source.emit("tar.type", "CelestialBody");
-      source.emit("tar.relativePosition", atRange(50));
-    });
-    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    expect(screen.getByText("Mun")).toBeInTheDocument();
-  });
-
-  it("honours autoSwitch=false", () => {
-    render(
-      <DistanceToTargetComponent config={{ autoSwitch: false }} id="tar" />,
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
+      ).toBeInTheDocument(),
     );
+  });
+
+  it("never HUD-switches on CelestialBody targets", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(50));
+      fixture.emit("vessel.target", {
+        name: "Mun",
+        kind: KIND.CelestialBody,
+        relativePosition: atRange(50),
+        relativeVelocity: null,
+      });
     });
+    await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
 
-  it("applies hysteresis — stays in HUD until distance rises past 150 m", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+  it("honours autoSwitch=false", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    const { container } = renderWidget(fixture, { autoSwitch: false });
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(80));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(50),
+        relativeVelocity: null,
+      });
     });
-    expect(
-      screen.getByRole("region", { name: /Docking HUD/ }),
-    ).toBeInTheDocument();
-
-    act(() => {
-      source.emit("tar.relativePosition", atRange(130));
-    });
-    expect(
-      screen.getByRole("region", { name: /Docking HUD/ }),
-    ).toBeInTheDocument();
-
-    act(() => {
-      source.emit("tar.relativePosition", atRange(200));
-    });
+    await waitFor(() =>
+      expect(container.textContent).toContain("Test Station"),
+    );
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
 
-  it("switches to approach mode for Vessel targets between 100 m and 5 km", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+  it("applies hysteresis — stays in HUD until distance rises past 150 m", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(1_500));
-      source.emit("tar.relativeVelocityVec", atRange(-3.4));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(80),
+        relativeVelocity: null,
+      });
     });
-    expect(screen.getByText("APPROACH")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
+
+    act(() => {
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(130),
+        relativeVelocity: null,
+      });
+    });
+    // Still in HUD — 130 m is above the 100 m enter threshold but below the
+    // 150 m exit threshold. There's no distinct settle signal to wait on
+    // here (the DOM shouldn't change), so give the frame a chance to run
+    // before asserting nothing has flipped.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
+
+    act(() => {
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(200),
+        relativeVelocity: null,
+      });
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
+    );
+  });
+
+  it("switches to approach mode for Vessel targets between 100 m and 5 km", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
+    act(() => {
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(1_500),
+        relativeVelocity: atRange(-3.4),
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("APPROACH")).toBeInTheDocument(),
+    );
     expect(screen.getByText("Test Station")).toBeInTheDocument();
     expect(screen.getByText("Closing rate")).toBeInTheDocument();
     // Closing → negative radial rate → minus-sign + magnitude
     expect(screen.getByText(/−3\.4 m\/s/)).toBeInTheDocument();
   });
 
-  it("never enters approach mode for CelestialBody targets even at close range", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+  it("never enters approach mode for CelestialBody targets even at close range", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Mun");
-      source.emit("tar.type", "CelestialBody");
-      source.emit("tar.relativePosition", atRange(1_500));
+      fixture.emit("vessel.target", {
+        name: "Mun",
+        kind: KIND.CelestialBody,
+        relativePosition: atRange(1_500),
+        relativeVelocity: null,
+      });
     });
+    await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.queryByText("APPROACH")).toBeNull();
-    expect(screen.getByText("Mun")).toBeInTheDocument();
   });
 
-  it("steps through tracking → approach → docking-hud as a vessel closes", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+  it("steps through tracking → approach → docking-hud as a vessel closes", async () => {
+    fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture);
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(50_000));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(50_000),
+        relativeVelocity: null,
+      });
     });
-    expect(screen.getByText("TARGET")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("TARGET")).toBeInTheDocument());
 
     act(() => {
-      source.emit("tar.relativePosition", atRange(2_000));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(2_000),
+        relativeVelocity: null,
+      });
     });
-    expect(screen.getByText("APPROACH")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("APPROACH")).toBeInTheDocument(),
+    );
 
     act(() => {
-      source.emit("tar.relativePosition", atRange(80));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(80),
+        relativeVelocity: null,
+      });
     });
-    expect(
-      screen.getByRole("region", { name: /Docking HUD/ }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
   });
 });
 
 describe("DistanceToTarget — augment slots (spec §4)", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
-
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-    });
-    source = fixture.source;
-  });
-
   afterEach(() => {
-    // teardownMockDataSource() unmounts (cleanup()) before its own disconnect;
-    // clearAugments() must come after that unmount too, else a still-mounted
+    // clearAugments() must come after unmount, else a still-mounted
     // AugmentSlot re-renders outside act() when the registry notifies
-    // (CLAUDE.md → Testing Philosophy, act() warning pattern).
-    teardownMockDataSource(fixture);
+    // (CLAUDE.md → Testing Philosophy, act() warning pattern). testing-library's
+    // auto-cleanup between tests already unmounts before this runs.
     clearAugments();
   });
 
-  it("exposes the header .badges slot empty, then composes a registered augment with target context", () => {
+  it("exposes the header .badges slot empty, then composes a registered augment with target context", async () => {
     // No augment registered yet: the slot renders nothing and the header is
     // otherwise unchanged.
-    const first = render(<DistanceToTargetComponent config={{}} id="tar" />);
+    const firstFixture = setupStreamFixture({
+      carriedChannels: ["vessel.target"],
+    });
+    const first = renderWidget(firstFixture);
     expect(first.container.textContent).toContain("No target set in KSP");
     expect(screen.queryByTestId("badge")).toBeNull();
     first.unmount();
@@ -234,21 +286,28 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
       ),
     });
 
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    const secondFixture = setupStreamFixture({
+      carriedChannels: ["vessel.target"],
+    });
+    renderWidget(secondFixture);
     // Header renders even with no target; the badge composes with undefined name.
     expect(screen.getByTestId("badge").textContent).toBe("badge:none");
 
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Minmus");
-      source.emit("tar.type", "CelestialBody");
-      source.emit("tar.relativePosition", atRange(1_000));
+      secondFixture.emit("vessel.target", {
+        name: "Minmus",
+        kind: KIND.CelestialBody,
+        relativePosition: atRange(1_000),
+        relativeVelocity: null,
+      });
     });
     // Slot-props flow live target data to the badge.
-    expect(screen.getByTestId("badge").textContent).toBe("badge:Minmus");
+    await waitFor(() =>
+      expect(screen.getByTestId("badge").textContent).toBe("badge:Minmus"),
+    );
   });
 
-  it("exposes the docking-HUD .overlay + .camera slots and passes the reticle/camera context", () => {
+  it("exposes the docking-HUD .overlay + .camera slots and passes the reticle/camera context", async () => {
     registerAugment<"distance-to-target.overlay">({
       id: "test-overlay",
       augments: "distance-to-target.overlay",
@@ -266,26 +325,23 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
       ),
     });
 
-    render(
-      <DistanceToTargetComponent
-        config={{ cameraFlightId: 7 }}
-        id="tar"
-        w={12}
-        h={9}
-      />,
-    );
+    const fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
+    renderWidget(fixture, { cameraFlightId: 7 }, { w: 12, h: 9 });
     act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.relativePosition", atRange(80));
-      source.emit("tar.relativeVelocityVec", atRange(-0.5));
+      fixture.emit("vessel.target", {
+        name: "Test Station",
+        kind: KIND.Vessel,
+        relativePosition: atRange(80),
+        relativeVelocity: atRange(-0.5),
+      });
     });
 
     // HUD is up → both overlay slots composed with the passed coordinate frame.
-    expect(
-      screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
+      ).toBeInTheDocument(),
+    );
     expect(screen.getByTestId("ovl").textContent).toBe("maxDeg=8/travel=40");
     expect(screen.getByTestId("cam").textContent).toBe("cam=7");
   });

@@ -78,7 +78,7 @@ namespace Sitrep.Host
         /// unused for the <see cref="TargetKind.Vessel"/>/<see cref="TargetKind.Body"/>
         /// cases.
         /// </summary>
-        CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon);
+        CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon, uint? partId);
 
         CommandResult ClearTarget();
 

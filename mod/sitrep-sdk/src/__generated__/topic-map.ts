@@ -61,6 +61,7 @@ import type {
   StageDeltaVSummary,
   SystemBodies,
   SystemVessels,
+  TargetAvailable,
   VesselAttitude,
   VesselComms,
   VesselControl,
@@ -132,6 +133,7 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.scene": SpaceCenterScene;
   "system.bodies": SystemBodies;
   "system.vessels": SystemVessels;
+  "target.available": TargetAvailable;
   "time.warp": WarpState;
   "vessel.attitude": VesselAttitude;
   "vessel.comms": VesselComms;
@@ -204,6 +206,7 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.scene",
   "system.bodies",
   "system.vessels",
+  "target.available",
   "time.warp",
   "vessel.attitude",
   "vessel.comms",

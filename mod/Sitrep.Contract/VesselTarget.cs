@@ -35,6 +35,39 @@ public enum TargetKind
     Body,
     Other,
     Position,
+
+    /// <summary>
+    /// A part of a vessel — in practice a docking port (<c>ModuleDockingNode</c>,
+    /// which implements <c>ITargetable</c>). Identity is the owning vessel's
+    /// <see cref="VesselTarget.VesselId"/> guid PLUS the part's
+    /// <see cref="VesselTarget.PartId"/> (KSP <c>Part.flightID</c>) — a part id
+    /// alone is not globally unique, only within its vessel. Appended (never
+    /// inserted) per this contract's wire-significant enum-order convention.
+    /// </summary>
+    Part,
+}
+
+/// <summary>
+/// Next closest approach between the active vessel and its current target,
+/// computed MOD-side by the elected <c>ITargetApproachSolver</c> (stock
+/// two-body Kepler by default, a Principia n-body backend when elected over
+/// it). Replaces the SDK's former client-side <c>o.closestTgtApprUT</c>
+/// two-body solve: the authority moves into the mod so an n-body physics mod
+/// can supply the true encounter instead of a Kepler approximation that is
+/// simply wrong under n-body. Null on <see cref="VesselTarget"/> when there is
+/// no target, no shared reference frame, or no encounter within the horizon.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class ClosestApproach
+{
+    /// <summary>Universal Time (seconds) of the minimum separation at or after the sample's UT.</summary>
+    public double Time { get; set; }
+
+    /// <summary>Separation (metres) at <see cref="Time"/>.</summary>
+    public double Distance { get; set; }
 }
 
 /// <summary>
@@ -94,6 +127,16 @@ public class VesselTarget
     /// </summary>
     public int? BodyIndex { get; set; }
 
+    /// <summary>
+    /// The target part's KSP <c>Part.flightID</c> — populated ONLY when
+    /// <see cref="Kind"/> is <see cref="TargetKind.Part"/> (a docking port),
+    /// scoped by <see cref="VesselId"/> (which carries the owning vessel's guid
+    /// in the Part case). Null for every other kind. A widget reads this pair
+    /// straight off <c>vessel.target</c> and hands it back into
+    /// <see cref="SetTargetArgs.PartId"/> to re-target the same port.
+    /// </summary>
+    public uint? PartId { get; set; }
+
     /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>
     public Vec3? RelativePosition { get; set; }
 
@@ -102,6 +145,9 @@ public class VesselTarget
 
     /// <summary>Null when the target has no orbit (e.g. it's landed, or its orbit couldn't be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
+
+    /// <summary>Next closest approach (mod-side, elected solver). Null when there is no encounter to report — see <see cref="ClosestApproach"/>.</summary>
+    public ClosestApproach? ClosestApproach { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();
 }

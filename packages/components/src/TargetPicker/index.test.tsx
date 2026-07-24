@@ -1,14 +1,15 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
+  clearActionHandlers,
   clearAugments,
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "../test/axe";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -21,181 +22,362 @@ import {
 import { TargetPickerComponent } from "./index";
 
 /**
- * The body tree rides `system.bodies` off the stream (`useCelestialBodies`);
- * the target-detail scalars now read canonically too — `tarName` off
- * `vessel.target.name` and `tarType`/`tarDistance`/`tarRelVel` off the
- * `vessel.state` derived channel (`targetKind`/`targetDistance`/
- * `targetRelativeSpeed`), both via one-arg stream reads with no legacy
- * fallback. `MockDataSource` stays wired only for the `tar.*` command
- * execution (`useExecuteAction("data")`) and the `tar.availableVessels`
- * legacy status read (`useDataStreamStatus`, no one-arg form yet).
+ * TargetPicker's Suggested + categorised UX, driven entirely by the
+ * `target.available` channel (`useTelemetry("target.available")` — the
+ * CANONICAL one-arg Topic read, which has no legacy fallback at all, so
+ * every test here needs a real `TelemetryProvider` mounted, unlike the old
+ * Bodies-tree/Vessels-roster/Current-tab widget this replaces). The `"data"`
+ * `MockDataSource` is only wired for `useExecuteAction("data")`'s legacy
+ * fallback — none of `carriedChannels` below include `vessel.target.set`,
+ * so every dispatch in this file resolves through that fallback and lands
+ * on `onExecute` as the literal legacy action string.
  */
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "tar.name" },
-  { key: "tar.type" },
-  { key: "tar.distance" },
-  { key: "tar.o.relativeVelocity" },
-];
-
 function renderPicker(
   fixture: StreamFixture,
-  config: Parameters<typeof TargetPickerComponent>[0]["config"] = {},
+  opts: { w?: number; h?: number; instanceId?: string } = {},
 ) {
   return render(
     <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
-        <TargetPickerComponent config={config} id="tp" />
+      <DashboardItemContext.Provider
+        value={{ instanceId: opts.instanceId ?? "tp" }}
+      >
+        <TargetPickerComponent
+          id={opts.instanceId ?? "tp"}
+          w={opts.w ?? 10}
+          h={opts.h ?? 14}
+        />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
 }
 
-describe("TargetPickerComponent", () => {
+function emitAvailable(
+  fixture: StreamFixture,
+  entries: readonly Record<string, unknown>[],
+) {
+  act(() => {
+    fixture.emit("target.available", { entries });
+  });
+}
+
+/** One body, two vessels (one a hidden-by-default SpaceObject), one docking
+ * port — enough to exercise Suggested composition, per-category sort, the
+ * asteroid toggle, and all three dispatch kinds in one fixture. */
+const KERBIN = {
+  kind: 1, // Body
+  name: "Kerbin",
+  bodyIndex: 1,
+  distance: 500,
+  isCurrent: false,
+};
+const MUN = {
+  kind: 1,
+  name: "Mun",
+  bodyIndex: 2,
+  distance: 2000,
+  isCurrent: false,
+};
+const MINMUS = {
+  kind: 1,
+  name: "Minmus",
+  bodyIndex: 3,
+  distance: 50_000,
+  isCurrent: false,
+};
+const RELAY_ONE = {
+  kind: 0, // Vessel
+  name: "Relay One",
+  vesselId: "vessel-relay-1",
+  vesselType: 6, // Relay
+  situation: 3, // Orbiting
+  distance: 1000,
+  isCurrent: false,
+};
+const RELAY_TWO = {
+  kind: 0,
+  name: "Relay Two",
+  vesselId: "vessel-relay-2",
+  vesselType: 6,
+  situation: 3,
+  distance: 2000,
+  isCurrent: false,
+};
+const RELAY_THREE = {
+  kind: 0,
+  name: "Relay Three",
+  vesselId: "vessel-relay-3",
+  vesselType: 6,
+  situation: 3,
+  distance: 5000,
+  isCurrent: false,
+};
+const ASTEROID = {
+  kind: 0,
+  name: "Ast. UQR-118",
+  vesselId: "vessel-asteroid-1",
+  vesselType: 10, // SpaceObject — closer than every vessel above, hidden by default
+  situation: 3,
+  distance: 10,
+  isCurrent: false,
+};
+const PORT_ALPHA = {
+  kind: 4, // Part
+  name: "Port Alpha",
+  vesselId: "vessel-relay-1",
+  partId: 11,
+  vesselType: 6,
+  distance: 800,
+  isCurrent: false,
+};
+const PORT_BETA = {
+  kind: 4,
+  name: "Port Beta",
+  vesselId: "vessel-relay-2",
+  partId: 22,
+  vesselType: 6,
+  distance: 1500,
+  isCurrent: false,
+};
+
+const FULL_ENTRIES = [
+  MINMUS,
+  KERBIN,
+  MUN,
+  RELAY_THREE,
+  RELAY_ONE,
+  RELAY_TWO,
+  ASTEROID,
+  PORT_BETA,
+  PORT_ALPHA,
+];
+
+describe("TargetPickerComponent — Suggested + categorised list", () => {
   let dataFixture: MockDataSourceFixture;
   let fixture: StreamFixture;
   let onExecute: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     onExecute = vi.fn();
-    dataFixture = await setupMockDataSource({ keys: KEYS, onExecute });
-    fixture = setupStreamFixture({
-      carriedChannels: ["system.bodies"],
-      pinnedUt: 0,
-    });
+    dataFixture = await setupMockDataSource({ keys: [], onExecute });
+    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
   });
 
   afterEach(() => {
     teardownMockDataSource(dataFixture);
   });
 
-  // Kerbol → Kerbin → Mun, streamed as system.bodies (parentIndex tree).
-  function primeBodies() {
-    act(() => {
-      fixture.emit("system.bodies", {
-        bodies: [
-          { index: 0, name: "Kerbol", parentIndex: null, orbit: null },
-          {
-            index: 1,
-            name: "Kerbin",
-            parentIndex: 0,
-            gravParameter: 1.1723328e18,
-            orbit: {
-              sma: 13_599_840_256,
-              ecc: 0,
-              inc: 0,
-              lan: 0,
-              argPe: 0,
-              meanAnomalyAtEpoch: 0,
-              epoch: 0,
-            },
-          },
-          {
-            index: 2,
-            name: "Mun",
-            parentIndex: 1,
-            gravParameter: 3.5316e12,
-            orbit: {
-              sma: 12_000_000,
-              ecc: 0,
-              inc: 0,
-              lan: 0,
-              argPe: 0,
-              meanAnomalyAtEpoch: 0,
-              epoch: 0,
-            },
-          },
-        ],
-      });
-    });
-  }
-
-  it("waits for body data on the bodies tab", () => {
+  it("shows a waiting hint before target.available arrives", () => {
     renderPicker(fixture);
-    expect(screen.getByText(/Waiting for body data/i)).toBeInTheDocument();
+    expect(screen.getByText(/Waiting for target list/i)).toBeInTheDocument();
   });
 
-  it("treats the Telemachus no-target sentinel as no target", () => {
-    // Telemachus' tar.name returns the literal "No Target Selected." (not ""
-    // or null) when nothing is targeted. The compact readout (w<4||h<6) must
-    // show its no-target branch, never the sentinel as a phantom target name.
-    render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
-          <TargetPickerComponent config={{}} id="tp" w={3} h={4} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.emit("vessel.target", { name: "No Target Selected." });
+  it("shows a no-targets hint for an empty entries list", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, []);
+    await screen.findByText(/No targets in range/i);
+  });
+
+  it("builds Suggested from the 2 closest bodies + 2 closest vessels + all parts, hidden SpaceObject excluded", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    await screen.findByText("Suggested");
+    const suggestedSection = screen.getByText("Suggested")
+      .parentElement as HTMLElement;
+    const names = within(suggestedSection)
+      .getAllByRole("button")
+      .map((el) => el.textContent);
+
+    // 2 closest bodies (Kerbin 500, Mun 2000 — Minmus 50000 excluded),
+    // 2 closest vessels (Relay One 1000, Relay Two 2000 — the asteroid at
+    // distance 10 is closer than both but hidden by default so it's
+    // excluded from "closest", and Relay Three 5000 doesn't make the cut),
+    // then ALL parts regardless of distance (Port Alpha, Port Beta).
+    expect(names).toHaveLength(6);
+    expect(names[0]).toMatch(/Kerbin/);
+    expect(names[1]).toMatch(/Mun/);
+    expect(names[2]).toMatch(/Relay One/);
+    expect(names[3]).toMatch(/Relay Two/);
+    expect(names[4]).toMatch(/Port Alpha/);
+    expect(names[5]).toMatch(/Port Beta/);
+    expect(screen.queryByText(/Ast\. UQR-118/)).not.toBeInTheDocument();
+  });
+
+  it("sorts each category by ascending distance", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    const bodiesToggle = await screen.findByRole("button", {
+      name: /^Bodies/,
     });
-    expect(screen.getByText(/No target set/i)).toBeInTheDocument();
-    expect(screen.queryByText(/No Target Selected\./)).not.toBeInTheDocument();
+    const bodiesPanelId = bodiesToggle.getAttribute("aria-controls");
+    expect(bodiesPanelId).toBeTruthy();
+    const bodiesPanel = document.getElementById(bodiesPanelId as string);
+    const bodyNames = within(bodiesPanel as HTMLElement)
+      .getAllByRole("button")
+      .map((el) => el.textContent);
+    expect(bodyNames[0]).toMatch(/Kerbin/);
+    expect(bodyNames[1]).toMatch(/Mun/);
+    expect(bodyNames[2]).toMatch(/Minmus/);
+
+    const vesselsToggle = screen.getByRole("button", { name: /^Vessels/ });
+    const vesselsPanelId = vesselsToggle.getAttribute("aria-controls");
+    const vesselsPanel = document.getElementById(vesselsPanelId as string);
+    const vesselNames = within(vesselsPanel as HTMLElement)
+      .getAllByRole("button")
+      .map((el) => el.textContent);
+    // Asteroid hidden by default — only the three Relay vessels, closest first.
+    expect(vesselNames).toEqual([
+      expect.stringContaining("Relay One"),
+      expect.stringContaining("Relay Two"),
+      expect.stringContaining("Relay Three"),
+    ]);
   });
 
-  it("renders bodies grouped by reference body and targets on click", async () => {
+  it("omits a category section entirely when it has no entries", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, [KERBIN]);
+    await screen.findByRole("button", { name: /^Bodies/ });
+    expect(
+      screen.queryByRole("button", { name: /^Vessels/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Parts/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("collapses a category via its disclosure button", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
-    primeBodies();
-    await user.click(await screen.findByRole("button", { name: /Mun/ }));
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    const bodiesToggle = await screen.findByRole("button", {
+      name: /^Bodies/,
+    });
+    expect(bodiesToggle).toHaveAttribute("aria-expanded", "true");
+    const panelId = bodiesToggle.getAttribute("aria-controls") as string;
+    expect(document.getElementById(panelId)).not.toBeNull();
+
+    await user.click(bodiesToggle);
+    expect(bodiesToggle).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById(panelId)).toBeNull();
+  });
+
+  it("hides SpaceObject vessels by default and reveals them via the toggle", async () => {
+    const user = userEvent.setup();
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    // Scoped to the Vessels category panel — once revealed, the asteroid
+    // (distance 10) is also the globally closest vessel, so it legitimately
+    // appears a SECOND time in Suggested too; scoping avoids that collision.
+    const vesselsToggle = await screen.findByRole("button", {
+      name: /^Vessels/,
+    });
+    const panelId = vesselsToggle.getAttribute("aria-controls") as string;
+    expect(
+      within(document.getElementById(panelId) as HTMLElement).queryByText(
+        /Ast\. UQR-118/,
+      ),
+    ).not.toBeInTheDocument();
+    const spaceObjectToggle = screen.getByRole("button", {
+      name: /Asteroids: hidden \(1\)/,
+    });
+
+    await user.click(spaceObjectToggle);
+    expect(
+      screen.getByRole("button", { name: /Asteroids: shown \(1\)/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(document.getElementById(panelId) as HTMLElement).getByText(
+        /Ast\. UQR-118/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("filters rows across every section by name, case-insensitive", async () => {
+    const user = userEvent.setup();
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    await screen.findByRole("button", { name: /^Bodies/ });
+    const filterInput = screen.getByLabelText("Filter targets");
+    await user.type(filterInput, "relay one");
+
+    expect(screen.queryByRole("button", { name: /^Bodies/ })).toBeNull();
+    expect(screen.queryByText(/Relay Two/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Relay One/).length).toBeGreaterThan(0);
+  });
+
+  it("shows a no-match hint when the filter excludes every entry", async () => {
+    const user = userEvent.setup();
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    await screen.findByRole("button", { name: /^Bodies/ });
+    const filterInput = screen.getByLabelText("Filter targets");
+    await user.type(filterInput, "nonexistent-zzz");
+
+    expect(screen.getByText(/No targets match/i)).toBeInTheDocument();
+  });
+
+  it("dispatches tar.setTargetBody[index] on a Body row", async () => {
+    const user = userEvent.setup();
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    // Kerbin appears both in Suggested and in the Bodies category — either
+    // instance dispatches identically, so the first match is fine.
+    const rows = await screen.findAllByRole("button", { name: /^Kerbin/ });
+    await user.click(rows[0]);
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("tar.setTargetBody[2]");
+      expect(onExecute).toHaveBeenCalledWith("tar.setTargetBody[1]");
     });
   });
 
-  it("treats a root star (no parent) and its descendants as a tree", async () => {
-    // system.bodies fixes Telemachus's "star lists itself as parent" wart at
-    // the source: the root has parentIndex null, so it's a root and its
-    // children hang off it via the parentIndex tree.
-    renderPicker(fixture);
-    act(() => {
-      fixture.emit("system.bodies", {
-        bodies: [
-          { index: 0, name: "Sun", parentIndex: null, orbit: null },
-          { index: 1, name: "Kerbin", parentIndex: 0, orbit: null },
-          { index: 2, name: "Mun", parentIndex: 1, orbit: null },
-        ],
-      });
-    });
-    expect(
-      await screen.findByRole("button", { name: /Sun/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Kerbin/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
-  });
-
-  it("surfaces orphan bodies as roots when their parent isn't in the tree", async () => {
-    renderPicker(fixture);
-    act(() => {
-      fixture.emit("system.bodies", {
-        bodies: [
-          // parentIndex 5 isn't present → referenceBody resolves null → root.
-          { index: 1, name: "Kerbin", parentIndex: 5, orbit: null },
-          { index: 2, name: "Mun", parentIndex: 1, orbit: null },
-        ],
-      });
-    });
-    expect(
-      await screen.findByRole("button", { name: /Kerbin/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
-  });
-
-  it("filters the list as the user types", async () => {
+  it("dispatches tar.setTargetVessel[vesselId] on a Vessel row", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
-    primeBodies();
-    const filter = screen.getByLabelText("Filter bodies");
-    await user.clear(filter);
-    await user.type(filter, "mun");
-    expect(screen.queryByRole("button", { name: /Kerbol/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    // Relay Three only appears in the Vessels category, not Suggested —
+    // proves the category (not just Suggested) rows dispatch correctly.
+    const row = await screen.findByRole("button", { name: /Relay Three/ });
+    await user.click(row);
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledWith(
+        "tar.setTargetVessel[vessel-relay-3]",
+      );
+    });
   });
 
-  // The Vessels tab reads the `system.vessels` roster canonically off the
-  // stream — roster rendering and click-to-target are covered by
-  // `stream.test.tsx`.
+  it("dispatches tar.setTargetPart[vesselId,partId] on a Part row", async () => {
+    const user = userEvent.setup();
+    renderPicker(fixture);
+    emitAvailable(fixture, FULL_ENTRIES);
+
+    // Port Alpha appears both in Suggested (parts are always ALL included)
+    // and in the Parts category — either instance dispatches identically.
+    const rows = await screen.findAllByRole("button", { name: /Port Alpha/ });
+    await user.click(rows[0]);
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledWith(
+        "tar.setTargetPart[vessel-relay-1,11]",
+      );
+    });
+  });
+
+  it("marks the current target with a TARGET tag", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, [KERBIN, { ...MUN, isCurrent: true }, RELAY_ONE]);
+    // Mun appears in both Suggested and the Bodies category (only 2 bodies
+    // total, both fit in "2 closest") — both instances carry the tag.
+    const rows = await screen.findAllByRole("button", { name: /^Mun/ });
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(within(row).getByText("TARGET")).toBeInTheDocument();
+    }
+  });
 
   it("renders current target details and clears via tar.clearTarget", async () => {
     const user = userEvent.setup();
@@ -203,10 +385,9 @@ describe("TargetPickerComponent", () => {
     act(() => {
       // tarType/tarDistance/tarRelVel read off the `vessel.state` derived
       // channel, which stays a whole-record `undefined` until its
-      // `vessel.orbit`/`vessel.flight` inputs land (deriveVesselState's own
-      // "not whole yet" gate) — Loaded quality skips the OnRails Kepler
-      // solve entirely, same minimal-unblock pattern as AtmosphereProfile/
-      // MapView's stream tests.
+      // `vessel.orbit`/`vessel.flight` inputs land — Loaded quality skips
+      // the OnRails Kepler solve entirely, same minimal-unblock pattern as
+      // AtmosphereProfile/MapView's stream tests.
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
         altitudeAsl: 0,
@@ -214,9 +395,8 @@ describe("TargetPickerComponent", () => {
         surfaceSpeed: 0,
         orbitalSpeed: 0,
       });
-      // kind: 0 -> targetKind "Vessel" (TARGET_KIND_NAMES). relativePosition
-      // magnitude 1500 -> targetDistance; dot(relPos, relVel)/|relPos| ==
-      // -2.5 -> targetRelativeSpeed (closing).
+      // kind: 0 -> targetKind "Vessel". relativePosition magnitude 1500 ->
+      // targetDistance; dot(relPos, relVel)/|relPos| == -2.5 -> closing.
       fixture.emit("vessel.target", {
         name: "Test Station",
         kind: 0,
@@ -224,10 +404,7 @@ describe("TargetPickerComponent", () => {
         relativeVelocity: { x: -2.5, y: 0, z: 0 },
       });
     });
-    await user.click(screen.getByRole("tab", { name: "Current" }));
-    // The target-detail fields land off the derived `vessel.state` channel,
-    // one scheduled store frame after the raw `vessel.target` emit — waitFor
-    // tolerates that microtask hop instead of asserting synchronously.
+
     await waitFor(() => {
       expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
       expect(screen.getByText("Vessel")).toBeInTheDocument();
@@ -238,6 +415,35 @@ describe("TargetPickerComponent", () => {
       expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
     });
   });
+
+  it("shows a no-target hint when nothing is targeted", () => {
+    renderPicker(fixture);
+    expect(screen.getByText(/No target set in KSP/i)).toBeInTheDocument();
+  });
+
+  it("treats the Telemachus no-target sentinel as no target in compact mode", () => {
+    renderPicker(fixture, { w: 3, h: 4 });
+    act(() => {
+      fixture.emit("vessel.target", { name: "No Target Selected." });
+    });
+    expect(screen.getByText(/No target set/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No Target Selected\./)).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations with a populated list and a current target", async () => {
+    const { container } = renderPicker(fixture);
+    act(() => {
+      fixture.emit("vessel.target", { name: "Relay One", kind: 0 });
+    });
+    emitAvailable(fixture, [
+      KERBIN,
+      MUN,
+      { ...RELAY_ONE, isCurrent: true },
+      PORT_ALPHA,
+    ]);
+    await screen.findByRole("button", { name: /^Bodies/ });
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });
 
 describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => {
@@ -245,11 +451,9 @@ describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => 
   let fixture: StreamFixture;
 
   beforeEach(async () => {
-    dataFixture = await setupMockDataSource({ keys: KEYS });
-    fixture = setupStreamFixture({
-      carriedChannels: ["system.bodies"],
-      pinnedUt: 0,
-    });
+    clearActionHandlers();
+    dataFixture = await setupMockDataSource({ keys: [] });
+    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
   });
 
   afterEach(() => {

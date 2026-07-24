@@ -69,6 +69,20 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                // target.available -- everything the active vessel could target
+                // (vessels/bodies/in-range docking ports), for the TargetPicker.
+                // Same cadence as system.vessels: a fresh Dictionary/List every
+                // call reads as "changed" (per-entry distance moves every tick),
+                // and the 30s keyframe floor covers a genuinely idle scene.
+                // Delayed like system.vessels -- it carries OTHER vessels'/ports'
+                // comms-derived positions/distances, not a ground-side fact.
+                new ChannelDeclaration
+                {
+                    Topic = SystemViewProvider.TargetAvailableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
                 // ksp.revertAvailability -- whether the two stock in-flight
                 // "revert" actions are available right now, for LaunchDirector's
                 // revert-availability gating. A flight-scene game-state fact
@@ -110,6 +124,7 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
             host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);
+            host.AddChannelSource(SystemViewProvider.TargetAvailableTopic, SystemViewProvider.BuildTargetAvailable);
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
         }

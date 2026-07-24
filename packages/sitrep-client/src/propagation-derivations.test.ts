@@ -3,7 +3,6 @@ import type { OrbitElements } from "./kepler";
 import { solve } from "./kepler";
 import {
   buildOrbitPatches,
-  closestApproach,
   orbitalPeriod,
   previewManeuver,
   rvToElements,
@@ -11,10 +10,10 @@ import {
 
 /**
  * Unit coverage for the client-side orbit derivations (`propagation.ts`):
- * closest-approach solve (`o.closestTgtApprUT`), state-vector→elements
- * round-trip + post-burn maneuver preview (`o.maneuverNodes`), and the
- * patched-conic chain reconstruction (`o.orbitPatches`). All bottom out in
- * `kepler.solve`, which the golden fixtures already pin against C#.
+ * state-vector→elements round-trip + post-burn maneuver preview
+ * (`o.maneuverNodes`), and the patched-conic chain reconstruction
+ * (`o.orbitPatches`). All bottom out in `kepler.solve`, which the golden
+ * fixtures already pin against C#.
  */
 
 const MU_KERBIN = 3.5316e12;
@@ -42,46 +41,6 @@ describe("orbitalPeriod", () => {
 
   it("is null for a non-bound sma", () => {
     expect(orbitalPeriod({ ...circular(700_000), sma: -1 })).toBeNull();
-  });
-});
-
-describe("closestApproach", () => {
-  it("returns ~zero separation for two identical, co-phased orbits", () => {
-    const orbit = circular(800_000);
-    const result = closestApproach(orbit, orbit, 0);
-    expect(result).not.toBeNull();
-    expect((result as { distance: number }).distance).toBeLessThan(1);
-  });
-
-  it("finds the minimum separation of two co-orbital but phase-shifted orbits", () => {
-    // Same radius/period, target a quarter-orbit ahead — separation is
-    // constant over time (co-orbital), so closest approach is the fixed chord
-    // length 2·r·sin(Δθ/2) with Δθ = π/2.
-    const radius = 800_000;
-    const self = circular(radius, 0);
-    const target = circular(radius, Math.PI / 2);
-    const result = closestApproach(self, target, 0);
-    expect(result).not.toBeNull();
-    const expectedChord = 2 * radius * Math.sin(Math.PI / 4);
-    expect((result as { distance: number }).distance).toBeCloseTo(
-      expectedChord,
-      -1,
-    );
-  });
-
-  it("drives the separation of two different-radius orbits toward the radius gap at conjunction", () => {
-    const self = circular(700_000);
-    const target = circular(900_000);
-    const result = closestApproach(self, target, 0);
-    expect(result).not.toBeNull();
-    // The minimum over a synodic period is when they line up radially: 200 km.
-    expect((result as { distance: number }).distance).toBeLessThan(210_000);
-    expect((result as { distance: number }).distance).toBeGreaterThan(190_000);
-  });
-
-  it("returns null for a degenerate orbit", () => {
-    const bad = { ...circular(700_000), sma: 0 };
-    expect(closestApproach(bad, circular(800_000), 0)).toBeNull();
   });
 });
 

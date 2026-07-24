@@ -238,9 +238,24 @@ describe("DistanceToTargetComponent", () => {
   });
 
   it("shows target name with dash when distance is unavailable", async () => {
-    const telemetry = await setupTelemetry({ "tar.name": "Duna" });
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
-    telemetry.seed();
+    // P1 de-Telemachus: `tar.name` has no shim left to map through (the
+    // widget reads `vessel.target` natively) — feed the name via the stream
+    // with no `relativePosition`, so `tarDistance` stays undefined and the
+    // distance readout falls back to the dash.
+    const stream = setupTelemetryStream(["vessel.target"]);
+    render(
+      <stream.Provider>
+        <DistanceToTargetComponent config={{}} id="tar" />
+      </stream.Provider>,
+    );
+    act(() => {
+      stream.emit("vessel.target", {
+        name: "Duna",
+        kind: 1,
+        vesselId: null,
+        bodyIndex: 2,
+      });
+    });
     await waitFor(() => expect(screen.getByText("Duna")).toBeInTheDocument());
     expect(screen.getByText("—")).toBeInTheDocument();
   });

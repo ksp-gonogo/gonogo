@@ -23,6 +23,7 @@ import type {
   ServoEntry,
   SystemBodies,
   SystemVessels,
+  TargetAvailable,
   VesselOrbit,
   VesselResources,
 } from "./__generated__/contract";
@@ -65,6 +66,9 @@ export type _ResolvesPartsRobotics = Expect<
 >;
 export type _ResolvesScienceExperiments = Expect<
   Equal<TopicPayload<"science.experiments">, ExperimentEntry[]>
+>;
+export type _ResolvesTargetAvailable = Expect<
+  Equal<TopicPayload<"target.available">, TargetAvailable>
 >;
 export type _ResolvesScienceLab = Expect<
   Equal<TopicPayload<"science.lab">, LabEntry[]>

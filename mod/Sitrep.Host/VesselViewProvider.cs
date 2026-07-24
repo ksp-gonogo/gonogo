@@ -828,6 +828,19 @@ namespace Sitrep.Host
                 orbit = MapOrbit(rawOrbit, vesselId, snapshot!);
             }
 
+            // Mod-side closest approach (the elected ITargetApproachSolver's
+            // result, stamped by KspHost.BuildTarget). Absent group -> null,
+            // never a sentinel zero record.
+            ClosestApproach? closestApproach = null;
+            if (TryGetGroup(target, "closestApproach", out var rawCa))
+            {
+                closestApproach = new ClosestApproach
+                {
+                    Time = GetDouble(rawCa, "time") ?? 0.0,
+                    Distance = GetDouble(rawCa, "distance") ?? 0.0,
+                };
+            }
+
             var kind = ClassifyTargetKind(GetString(target, "type"));
 
             // M3 R3: the target's OWN stable id, closing the §6.4 round-trip
@@ -836,9 +849,17 @@ namespace Sitrep.Host
             // own Kind-discriminated shape.
             string? targetVesselId = null;
             int? targetBodyIndex = null;
+            uint? targetPartId = null;
             if (kind == TargetKind.Vessel)
             {
                 targetVesselId = GetString(target, "targetVesselId");
+            }
+            else if (kind == TargetKind.Part)
+            {
+                // A docking port: the OWNING vessel's guid plus the port's own
+                // Part.flightID (a part id is unique only within its vessel).
+                targetVesselId = GetString(target, "targetVesselId");
+                targetPartId = (uint?)GetDouble(target, "partId");
             }
             else if (kind == TargetKind.Body)
             {
@@ -855,12 +876,14 @@ namespace Sitrep.Host
                 Kind = kind,
                 VesselId = targetVesselId,
                 BodyIndex = targetBodyIndex,
+                PartId = targetPartId,
                 // Null only when the transform data needed to compute it
                 // wasn't available this tick -- see Vec3 in the class doc
                 // comment (one canonical shape everywhere -- kills V-8).
                 RelativePosition = GetVec3(target, "relativePosition"),
                 RelativeVelocity = relativeVelocity,
                 Orbit = orbit,
+                ClosestApproach = closestApproach,
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -1319,10 +1342,18 @@ namespace Sitrep.Host
             ["kind"] = (int)target.Kind,
             ["vesselId"] = target.VesselId,
             ["bodyIndex"] = target.BodyIndex,
+            ["partId"] = target.PartId,
             ["relativePosition"] = target.RelativePosition != null ? ToWire(target.RelativePosition) : null,
             ["relativeVelocity"] = target.RelativeVelocity != null ? ToWire(target.RelativeVelocity) : null,
             ["orbit"] = target.Orbit != null ? ToWire(target.Orbit) : null,
+            ["closestApproach"] = target.ClosestApproach != null ? ToWire(target.ClosestApproach) : null,
             ["meta"] = ToWire(target.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(ClosestApproach ca) => new Dictionary<string, object?>
+        {
+            ["time"] = ca.Time,
+            ["distance"] = ca.Distance,
         };
 
         private static Dictionary<string, object?> ToWire(DockAlignment dock) => new Dictionary<string, object?>
@@ -1578,6 +1609,15 @@ namespace Sitrep.Host
             if (raw == "CelestialBody")
             {
                 return TargetKind.Body;
+            }
+            if (raw == "Part")
+            {
+                // A part target -- in practice a docking port. The producer
+                // (KspHost.BuildTarget) emits the literal "Part" for any
+                // ITargetable PartModule so it is not mistaken for a vessel
+                // (GetVessel() returns the OWNING vessel, whose vesselType
+                // would otherwise classify the port as a Vessel).
+                return TargetKind.Part;
             }
             if (SharedMappers.IsKnownVesselType(raw))
             {

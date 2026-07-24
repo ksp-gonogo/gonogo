@@ -1,4 +1,4 @@
-import type { AvailableVesselEntry, ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatDistance,
@@ -13,6 +13,11 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import {
+  TargetKind,
+  type TargetListEntry,
+  VesselType,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Panel,
   PanelSubtitle,
@@ -86,6 +91,27 @@ export interface LaunchSiteEntry {
 }
 
 const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
+
+/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
+ * ordinal -> display-label bridge for the `target.available` roster. Same
+ * array TargetPicker's `normalizeRoster` uses. */
+const VESSEL_TYPE_LABELS: readonly string[] = [
+  "Ship",
+  "Station",
+  "Lander",
+  "Probe",
+  "Rover",
+  "Base",
+  "Relay",
+  "EVA",
+  "Flag",
+  "Debris",
+  "SpaceObject",
+  "DeployedScienceController",
+  "DeployedSciencePart",
+  "DroppedPart",
+  "Unknown",
+];
 
 /**
  * Parse `kc.launchSites`. Returns null when the key is absent (older fork
@@ -209,10 +235,11 @@ function LaunchDirectorComponent({
   // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
   // dedicated topics too (map-topic.ts); crash.hasRecent/crash.lastCrash now
   // read their topics directly (useStream/useTelemetry), off the shim.
-  // The rest of the kc.*/ksp.*/tar.availableVessels reads below stay legacy
-  // — kc.* has no career.status equivalent shape (see map-topic.ts's doc
-  // comment on the facilities gap), the others are separate provider
-  // families or vessel-provider gaps with no wire home yet.
+  // The rest of the kc.*/ksp.* reads below stay legacy — kc.* has no
+  // career.status equivalent shape (see map-topic.ts's doc comment on the
+  // facilities gap), the others are separate provider families or
+  // vessel-provider gaps with no wire home yet. The vessel-switcher below
+  // reads `target.available` directly (a canonical topic, no shim).
   const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
   const vesselName = useTelemetry("vessel.identity")?.name;
@@ -238,18 +265,14 @@ function LaunchDirectorComponent({
   // data key (it was never a stream; it IS the SDK view-UT), so read that
   // directly.
   const universalTime = useViewUt();
-  // `system.vessels` ships the NEW roster shape (`{ vessels: [...] }`, entries
-  // keyed by `vesselId`/`vesselType`, no `position`) — the vessel-switcher
-  // below still expects the legacy bare `AvailableVesselEntry[]`
-  // (`position`/`type`/`index`) and hasn't been migrated to normalise the new
-  // shape the way TargetPicker's `normalizeRoster` does (see the switcher's
-  // own comment). `Array.isArray` guards against the object shape exactly
-  // like the always-`undefined` legacy dead read used to — same degrade,
-  // now off the real topic instead of a source that never existed.
-  const systemVesselsRaw = useTelemetry("system.vessels");
-  const availableVessels = Array.isArray(systemVesselsRaw)
-    ? systemVesselsRaw
-    : undefined;
+  // `target.available` ships the switcher's real roster — the producer
+  // (TargetProvider) already excludes the active vessel itself, so no extra
+  // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
+  // parts aren't "switch active vessel" targets.
+  const targetAvailable = useTelemetry("target.available");
+  const availableVessels = targetAvailable?.entries?.filter(
+    (e) => e.kind === TargetKind.Vessel,
+  );
   const execute = useExecuteAction("data");
 
   const ships = parseSavedShips(savedShipsRaw);
@@ -416,9 +439,9 @@ function LaunchDirectorComponent({
               setArmed(null);
               void execute("ksp.toTrackingStation");
             }}
-            onSwitchVessel={(idx) => {
+            onSwitchVessel={(vesselId) => {
               setArmed(null);
-              void execute(`tar.switchVessel[${idx}]`);
+              void execute(`tar.switchVessel[${vesselId}]`);
             }}
           />
         ) : padOccupied ? (
@@ -635,34 +658,37 @@ function InFlightPanel({
   onArm: (
     k: "recover" | "revert" | "revert-vab" | "tracking-station" | null,
   ) => void;
-  availableVessels: AvailableVesselEntry[] | undefined;
+  availableVessels: TargetListEntry[] | undefined;
   onRecover: () => void;
   onRevertToLaunch: () => void;
   onRevertToVAB: () => void;
   onToTrackingStation: () => void;
-  onSwitchVessel: (vesselIndex: number) => void;
+  onSwitchVessel: (vesselId: string) => void;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [showSpaceObjects, setShowSpaceObjects] = useState(false);
+  const totalAvailable = availableVessels?.length ?? 0;
+  const spaceObjectCount = useMemo(
+    () =>
+      (availableVessels ?? []).filter(
+        (e) => e.vesselType === VesselType.SpaceObject,
+      ).length,
+    [availableVessels],
+  );
   const switchableVessels = useMemo(() => {
-    // The stream's `tar.availableVessels` -> `system.vessels` topic delivers
-    // the NEW roster shape `{ vessels: [...] }` (object), not the legacy bare
-    // `AvailableVesselEntry[]`, and its entries carry `vesselType`/`vesselId`
-    // rather than the `type`/`position`/`index` this switcher was written
-    // against. Until this switcher is migrated to normalise that roster (the
-    // way TargetPicker's `normalizeRoster` does) and dispatch by `vesselId`,
-    // guard against the object shape so the panel renders instead of throwing
-    // `raw.filter is not a function`. A non-array collapses to an empty list,
-    // which disables the "Switch to vessel" control rather than firing a
-    // `tar.switchVessel[undefined]` against the wrong entry shape.
-    const raw = Array.isArray(availableVessels) ? availableVessels : [];
-    // Filter SpaceObjects (asteroids / comets) — same UX call as the
-    // TargetPicker. Operator can pop open the Tracking Station for the
-    // long tail if they actually want to switch to an asteroid.
-    const list = raw.filter((v) => v.type !== "SpaceObject");
-    return list
-      .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
-      .sort((a, b) => a.distance - b.distance);
-  }, [availableVessels]);
+    const entries = availableVessels ?? [];
+    // Filter SpaceObjects (asteroids / comets) by default — same UX call as
+    // the TargetPicker. The toggle below reveals them for the long tail
+    // where the operator actually wants to switch to one.
+    const list = showSpaceObjects
+      ? entries
+      : entries.filter((e) => e.vesselType !== VesselType.SpaceObject);
+    return [...list].sort((a, b) => {
+      const da = a.distance ?? Number.POSITIVE_INFINITY;
+      const db = b.distance ?? Number.POSITIVE_INFINITY;
+      return da - db;
+    });
+  }, [availableVessels, showSpaceObjects]);
   return (
     <InFlightWrap>
       {crashBlocked && (
@@ -732,52 +758,69 @@ function InFlightPanel({
         )}
         <TrackingStationButton
           type="button"
-          disabled={switchableVessels.length === 0}
+          disabled={totalAvailable === 0}
           aria-expanded={switchOpen}
           aria-haspopup="listbox"
           onClick={() => setSwitchOpen((v) => !v)}
           title={
-            switchableVessels.length === 0
+            totalAvailable === 0
               ? "No other vessels in this save"
-              : `Switch to one of ${switchableVessels.length} other vessel${switchableVessels.length === 1 ? "" : "s"}`
+              : `Switch to one of ${totalAvailable} other vessel${totalAvailable === 1 ? "" : "s"}`
           }
         >
           Switch to vessel ▾
         </TrackingStationButton>
       </PadActions>
-      {switchOpen && switchableVessels.length > 0 && (
+      {switchOpen && totalAvailable > 0 && (
         <VesselSwitchPanel role="listbox" aria-label="Switch active vessel">
-          {switchableVessels.map(({ entry, distance }) => (
-            <VesselSwitchRow
-              key={entry.index}
+          {spaceObjectCount > 0 && (
+            <SpaceObjectToggle
               type="button"
-              onClick={() => {
-                setSwitchOpen(false);
-                onSwitchVessel(entry.index);
-              }}
+              aria-pressed={showSpaceObjects}
+              onClick={() => setShowSpaceObjects((v) => !v)}
+              title={
+                showSpaceObjects
+                  ? "Hide asteroids / comets from the list"
+                  : "Show asteroids / comets in the list"
+              }
             >
-              <VesselSwitchName>
-                <span>{entry.name}</span>
-                <VesselSwitchMeta>
-                  {entry.type}
-                  {entry.body ? ` · ${entry.body}` : ""}
-                  {entry.situation ? ` · ${entry.situation.toLowerCase()}` : ""}
-                </VesselSwitchMeta>
-              </VesselSwitchName>
-              <VesselSwitchDistance>
-                {Number.isFinite(distance) ? formatDistance(distance) : "—"}
-              </VesselSwitchDistance>
-            </VesselSwitchRow>
-          ))}
+              {showSpaceObjects
+                ? `Asteroids: shown (${spaceObjectCount})`
+                : `Asteroids: hidden (${spaceObjectCount})`}
+            </SpaceObjectToggle>
+          )}
+          {switchableVessels.length === 0 ? (
+            <VesselSwitchHint>No other vessels to show.</VesselSwitchHint>
+          ) : (
+            switchableVessels.map((entry) => (
+              <VesselSwitchRow
+                key={entry.vesselId ?? entry.name}
+                type="button"
+                onClick={() => {
+                  if (!entry.vesselId) return;
+                  setSwitchOpen(false);
+                  onSwitchVessel(entry.vesselId);
+                }}
+              >
+                <VesselSwitchName>
+                  <span>{entry.name}</span>
+                  <VesselSwitchMeta>
+                    {VESSEL_TYPE_LABELS[entry.vesselType ?? -1] ?? "Unknown"}
+                  </VesselSwitchMeta>
+                </VesselSwitchName>
+                <VesselSwitchDistance>
+                  {typeof entry.distance === "number" &&
+                  Number.isFinite(entry.distance)
+                    ? formatDistance(entry.distance)
+                    : "—"}
+                </VesselSwitchDistance>
+              </VesselSwitchRow>
+            ))
+          )}
         </VesselSwitchPanel>
       )}
     </InFlightWrap>
   );
-}
-
-function vectorMagnitude(v: [number, number, number] | undefined): number {
-  if (!v) return Number.POSITIVE_INFINITY;
-  return Math.hypot(v[0], v[1], v[2]);
 }
 
 function formatMissionTime(s: number | null): string {
@@ -1226,6 +1269,40 @@ const VesselSwitchDistance = styled.span`
   margin-right: 4px;
 `;
 
+const VesselSwitchHint = styled.div`
+  padding: 6px 8px;
+  font-size: 10px;
+  color: var(--color-text-faint);
+  line-height: 1.4;
+`;
+
+/** Same asteroid/comet visibility toggle as the TargetPicker's Vessels tab —
+ * hidden by default, the count-carrying label doubles as the reveal button. */
+const SpaceObjectToggle = styled.button`
+  align-self: flex-start;
+  margin: 2px 2px 4px;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-surface-raised);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+  &[aria-pressed="true"] {
+    color: var(--color-status-info-fg);
+    border-color: var(--color-status-info-fg);
+  }
+  &:hover {
+    filter: brightness(1.15);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
 const ConfirmButton = styled.button<{
   $kind: "launch" | "recover" | "revert";
 }>`
@@ -1287,7 +1364,7 @@ registerComponent<LaunchDirectorConfig>({
     "ksp.canRevertToEditor",
     "crash.hasRecent",
     "crash.lastCrash",
-    "tar.availableVessels",
+    "target.available",
   ],
   defaultConfig: {},
   actions: [],

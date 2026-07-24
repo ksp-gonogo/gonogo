@@ -4,10 +4,15 @@ import {
   formatDistance,
   registerComponent,
   resolveTargetName,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  type StreamStatusValue,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
+import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -21,7 +26,13 @@ import {
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
 import { formatDuration } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
 import {
   deriveDockAngles,
@@ -31,6 +42,52 @@ import {
 } from "../shared/dockAngles";
 
 type DockingHudMode = "hud" | "hud-with-camera";
+
+/** Native per-topic stream status (copy of OrbitView's helper) —
+ * `"disconnected"` when no `TelemetryProvider` is mounted. */
+function useStreamStatusOptional(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
+  );
+  const getSnapshot = useCallback(
+    (): StreamStatusValue =>
+      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
+    [store, topic],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/** `TargetKind` ordinal -> the display label the badge/mode logic used to get
+ * from the legacy `tar.type` string. Docking modes gate on "not a body", so
+ * only the Body case needs to read as the old `"CelestialBody"`. */
+function targetKindLabel(kind: TargetKind | undefined): string | undefined {
+  switch (kind) {
+    case TargetKind.Vessel:
+      return "Vessel";
+    case TargetKind.Body:
+      return "CelestialBody";
+    case TargetKind.Part:
+      return "Docking Port";
+    case TargetKind.Other:
+      return "Other";
+    default:
+      return undefined;
+  }
+}
 
 interface DistanceToTargetConfig {
   /**
@@ -161,35 +218,33 @@ function DistanceToTargetComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
-  const tarType = useTelemetry("data", "tar.type");
-  // o.closestTgtApprUT is a clean home (map-topic.ts) — the SDK's two-body
-  // closest-approach solve exposed on `vessel.state.closestApproachUt`
-  // (propagation.ts). `t.universalTime` is dropped as a data key: the
-  // "current time" it carried IS the SDK view-UT the propagation is
-  // evaluated at, so read that directly via `useViewUt` instead.
-  const closestApproachUT = useTelemetry("data", "o.closestTgtApprUT");
+  // Canonical native reads: the whole `vessel.target`/`vessel.dock` Topics,
+  // off the shim (Target API). Every scalar/angle is derived client-side from
+  // the Vec3 fields (`vecMagnitude`/`radialSpeed`/`deriveDockAngles`).
+  const target = useTelemetry("vessel.target");
+  const dock = useTelemetry("vessel.dock");
+
+  const tarName = resolveTargetName(target?.name);
+  const tarKind = target?.kind;
+  const tarType = targetKindLabel(tarKind);
+  // Closest approach is now MOD-side (the elected ITargetApproachSolver),
+  // carried on `vessel.target.closestApproach` — replaces the former SDK-side
+  // two-body solve (o.closestTgtApprUT / vessel.state.closestApproachUt).
+  // `t.universalTime` stays dropped: the "current time" IS the SDK view-UT the
+  // propagation is evaluated at, read directly via `useViewUt`.
+  const closestApproachUT = target?.closestApproach?.time;
   const universalTime = useViewUt();
 
-  // The `vessel.target`/`vessel.dock` Vec3 reads — the widget derives every
-  // scalar/angle it needs client-side. The legacy `tar.distance`/
-  // `tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/`dock.ay` scalar
-  // reads and their `?? legacy` fallbacks are all dropped (each is cleanly
-  // derivable off these Vec3s — see shared/dockAngles.ts), and the true
-  // docking roll/az axis is dropped outright (no wire source).
-  const tarRelPos = useTelemetry<Vec3>("data", "tar.relativePosition");
-  const tarRelVelVec = useTelemetry<Vec3>("data", "tar.relativeVelocityVec");
+  const tarRelPos = target?.relativePosition as Vec3 | undefined;
+  const tarRelVelVec = target?.relativeVelocity as Vec3 | undefined;
   // vessel.dock is null unless the target is a docking port with a free
   // port on the active vessel — undefined here legitimately means "not a
   // docking scenario right now", not "still loading".
-  const dockRelPos = useTelemetry<Vec3>("data", "dock.relativePosition");
-  const dockRelVelVec = useTelemetry<Vec3>("data", "dock.relativeVelocityVec");
-  const dockDistanceStream = useTelemetry<number>(
-    "data",
-    "dock.distanceScalar",
-  );
-  const dockForwardDot = useTelemetry<number>("data", "dock.forwardDot");
-  const streamStatus = useDataStreamStatus("data", "tar.relativePosition");
+  const dockRelPos = dock?.relativePosition as Vec3 | undefined;
+  const dockRelVelVec = dock?.relativeVelocity as Vec3 | undefined;
+  const dockDistanceStream = dock?.distance;
+  const dockForwardDot = dock?.forwardDot;
+  const streamStatus = useStreamStatusOptional("vessel.target");
 
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const relVel =
@@ -222,7 +277,7 @@ function DistanceToTargetComponent({
   // modes keep their own bespoke headers.
   const badgeContext: DistanceToTargetBadgeContext = {
     targetName: tarName,
-    targetType: typeof tarType === "string" ? tarType : undefined,
+    targetType: tarType,
     distance: tarDistance,
   };
 
@@ -230,10 +285,12 @@ function DistanceToTargetComponent({
   // upgrade direction is asymmetric (smaller window to enter than to exit).
   const [mode, setMode] = useState<ViewMode>("tracking");
 
+  // Dockable = a real target that isn't a celestial body. Now covers Parts
+  // (docking ports) too, which the old `tarType !== "CelestialBody"` string
+  // check already did implicitly.
   const dockable =
-    tarType !== undefined &&
-    tarType !== "" &&
-    tarType !== "CelestialBody" &&
+    tarKind !== undefined &&
+    tarKind !== TargetKind.Body &&
     tarName !== undefined;
 
   useEffect(() => {
@@ -710,17 +767,7 @@ registerComponent<DistanceToTargetConfig>({
   minSize: { w: 3, h: 4 },
   component: DistanceToTargetComponent,
   configComponent: DistanceToTargetConfigComponent,
-  dataRequirements: [
-    "tar.name",
-    "tar.type",
-    "o.closestTgtApprUT",
-    "tar.relativePosition",
-    "tar.relativeVelocityVec",
-    "dock.relativePosition",
-    "dock.relativeVelocityVec",
-    "dock.distanceScalar",
-    "dock.forwardDot",
-  ],
+  dataRequirements: ["vessel.target", "vessel.dock"],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: [
     "distance-to-target.camera",

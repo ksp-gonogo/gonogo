@@ -3,6 +3,7 @@ using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 using Sitrep.Host.ActionGroups;
+using Sitrep.Host.Targeting;
 
 namespace Gonogo.KSP
 {
@@ -223,6 +224,7 @@ namespace Gonogo.KSP
         public void DeclareCapabilities(Kernel kernel)
         {
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
+            TargetApproachElection.RegisterCapability(kernel, _ => new StockKeplerApproachSolver());
         }
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain

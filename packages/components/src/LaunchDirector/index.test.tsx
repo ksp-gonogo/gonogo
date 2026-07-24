@@ -54,6 +54,7 @@ const CARRIED = [
   "ksp.revertAvailability",
   "crash.hasRecent",
   "crash.lastCrash",
+  "target.available",
 ];
 
 function emitFunds(
@@ -347,6 +348,71 @@ describe("LaunchDirectorComponent", () => {
     const confirm = screen.getByText(/Confirm — flight may revert/i);
     await user.click(confirm);
     expect(onExecute).toHaveBeenCalledWith("ksp.toTrackingStation");
+  });
+
+  // The vessel switcher drives off `target.available` — the producer already
+  // excludes the active vessel itself, so every entry here is "other". It
+  // must dispatch the roster's stable `vesselId` guid, not a positional
+  // array index (`tar.switchVessel` only resolves by guid server-side —
+  // map-command.ts's own doc comment). Body-kind entries aren't offered
+  // (they aren't a "switch active vessel" target), and a SpaceObject entry
+  // stays hidden until the asteroid/comet toggle is used.
+  it("switches vessel via target.available, dispatching the stable vesselId guid", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Probe X", altitudeAsl: 2000 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: false,
+      });
+      stream.emit("crash.hasRecent", false);
+      stream.emit("target.available", {
+        entries: [
+          {
+            kind: 0, // TargetKind.Vessel
+            name: "Relay Sat A",
+            vesselId: "vessel-guid-aaa",
+            vesselType: 6, // VesselType.Relay
+            situation: 3, // Situation.Orbiting
+            distance: 5000,
+            isCurrent: false,
+          },
+          {
+            kind: 0,
+            name: "Mun Rock",
+            vesselId: "vessel-guid-space-object",
+            vesselType: 10, // VesselType.SpaceObject
+            situation: 3,
+            distance: 1000,
+            isCurrent: false,
+          },
+          {
+            kind: 1, // TargetKind.Body — never offered by the switcher
+            name: "Mun",
+            distance: 12_000_000,
+            isCurrent: false,
+          },
+        ],
+      });
+    });
+
+    await screen.findByText(/In flight: Probe X/i);
+
+    const switcher = screen.getByRole("button", {
+      name: /Switch to vessel/i,
+    });
+    expect(switcher).not.toBeDisabled();
+    await user.click(switcher);
+
+    // SpaceObject is present but hidden until the toggle is used.
+    expect(screen.queryByText("Mun Rock")).not.toBeInTheDocument();
+    expect(screen.getByText("Relay Sat A")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Relay Sat A"));
+    expect(onExecute).toHaveBeenCalledWith("tar.switchVessel[vessel-guid-aaa]");
   });
 
   // Regression from 2026-05-17 (21:15, 23:12 BST): debris from a previous

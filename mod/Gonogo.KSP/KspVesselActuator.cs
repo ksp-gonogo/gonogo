@@ -479,7 +479,7 @@ namespace Gonogo.KSP
         /// KSP API here. See <see cref="_poiTarget"/>'s own doc comment for
         /// why the instance is cached rather than reconstructed per call.</para>
         /// </summary>
-        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon)
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon, uint? partId)
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
@@ -503,6 +503,51 @@ namespace Gonogo.KSP
                     return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
                 fetch.SetVesselTarget(found);
+                return CommandResult.Ok();
+            }
+
+            if (kind == TargetKind.Part)
+            {
+                // A docking port: find the owning vessel by guid, then the
+                // ModuleDockingNode whose part.flightID matches. NotFound when
+                // the vessel is unknown; ModeUnavailable when it's not loaded
+                // (a ModuleDockingNode only exists on a loaded part tree);
+                // Range when the vessel has no port with that flightID.
+                if (string.IsNullOrEmpty(vesselId) || partId == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
+                }
+                Vessel? owner = null;
+                foreach (var candidate in FlightGlobals.Vessels)
+                {
+                    if (candidate != null && string.Equals(candidate.id.ToString(), vesselId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        owner = candidate;
+                        break;
+                    }
+                }
+                if (owner == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
+                }
+                if (!owner.loaded)
+                {
+                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                }
+                ModuleDockingNode? node = null;
+                foreach (var candidate in owner.FindPartModulesImplementing<ModuleDockingNode>())
+                {
+                    if (candidate != null && candidate.part != null && candidate.part.flightID == partId.Value)
+                    {
+                        node = candidate;
+                        break;
+                    }
+                }
+                if (node == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.Range);
+                }
+                fetch.SetVesselTarget(node);
                 return CommandResult.Ok();
             }
 

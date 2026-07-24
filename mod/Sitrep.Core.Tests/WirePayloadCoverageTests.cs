@@ -55,6 +55,10 @@ namespace Sitrep.Core.Tests
             "VesselPropulsion", "VesselStructure", "VesselSurface", "VesselTarget",
             "VesselThermal", "ThermalHottestPart", "ManeuverNode", "OrbitPatch", "Vec3",
             "DockAlignment", "WarpState", "CrewMember", "VesselPhysicsMode",
+            // ClosestApproach rides VesselTarget — VesselViewProvider.ToWire(VesselTarget)
+            // flattens it into the target dictionary, so JsonWriter only ever
+            // sees the flattened value, never this POCO.
+            "ClosestApproach",
             // vessel.parts — VesselPartsViewProvider.ToWire flattens VesselParts/
             // VesselPart/PartBounds/PartResourceFlow/PartModuleState to
             // Dictionary<string, object?> before Publish; TS-shape-only, never
@@ -89,6 +93,10 @@ namespace Sitrep.Core.Tests
             // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
             "GameDlc", "RevertAvailability", "SystemBodies", "BodyEntry",
             "OrbitEntry", "AtmosphereEntry", "SystemVessels", "VesselRosterEntry",
+            // target.available — TargetAvailableProvider hand-builds a
+            // Dictionary<string, object?> ({ entries: [...] }) before Publish,
+            // same as BuildSystemVessels; the POCOs are TS-shape markers only.
+            "TargetAvailable", "TargetListEntry",
             // dv.* — StageDeltaVViewProvider.BuildStages/BuildSummary hand-build
             // Dictionary/List trees; these POCOs are TS-shape-only.
             "StageDeltaVEntry", "StageDeltaVSummary",

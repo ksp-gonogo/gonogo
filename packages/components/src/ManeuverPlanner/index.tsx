@@ -614,7 +614,6 @@ registerComponent<ManeuverPlannerConfig>({
     "o.maneuverNodeIds",
     "v.body",
     "dv.stages",
-    "tar.name",
     "tar.o.inclination",
     "tar.o.lan",
     "tar.o.sma",
