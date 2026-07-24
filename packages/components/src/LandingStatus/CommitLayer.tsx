@@ -102,6 +102,9 @@ export function CommitLayer({
     if (committed) {
       heroValue = "COMMITTED";
       heroTone = "alert";
+      // Past the commit point the "COMMIT IN" caption is stale/contradictory —
+      // the value already says COMMITTED, so drop the caption.
+      heroCaption = "";
     } else if (commitInSeconds == null) {
       heroValue = "—";
       heroTone = "default";
@@ -138,7 +141,7 @@ export function CommitLayer({
       >
         <Readout $tone={heroTone}>
           {heroValue}
-          <ReadoutCaption>{heroCaption}</ReadoutCaption>
+          {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
         </Readout>
 
         {uncommandable && (

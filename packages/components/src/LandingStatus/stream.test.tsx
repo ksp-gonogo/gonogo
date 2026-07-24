@@ -130,7 +130,7 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
     // its label carrying both components (horizontal ≈538 m/s dominating).
     expect(
       await screen.findByRole("img", {
-        name: /descent 50 m\/s, drift 538 m\/s/i,
+        name: /descent 50 m\/s, ground speed 538 m\/s/i,
       }),
     ).toBeInTheDocument();
     // The altitude ladder surfaces the streamed AGL datum (5000 m).

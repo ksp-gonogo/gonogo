@@ -16,7 +16,7 @@ describe("DescentScope", () => {
     expect(screen.getByRole("img", { name: /TWR/i })).toBeInTheDocument();
     // The velocity vector carries its numbers in the accessible name.
     expect(
-      screen.getByRole("img", { name: /descent .*drift/i }),
+      screen.getByRole("img", { name: /descent .*ground speed/i }),
     ).toBeInTheDocument();
   });
 
@@ -36,7 +36,7 @@ describe("DescentScope", () => {
     );
     // The velocity vector still renders its (empty) text equivalent.
     expect(
-      screen.getByRole("img", { name: /descent .*drift/i }),
+      screen.getByRole("img", { name: /descent .*ground speed/i }),
     ).toBeInTheDocument();
   });
 

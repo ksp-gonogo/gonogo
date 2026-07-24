@@ -156,7 +156,7 @@ describe("LandingStatusComponent", () => {
     // The horizontal component the old vertical-only model ignored is surfaced
     // in the velocity vector's accessible label.
     expect(
-      await screen.findByRole("img", { name: /drift 538 m\/s/i }),
+      await screen.findByRole("img", { name: /ground speed 538 m\/s/i }),
     ).toBeInTheDocument();
     // Burn-now touchdown is a large nonzero speed — the fatal-direction fix.
     expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe("LandingStatusComponent", () => {
     // carries both components, horizontal (538) dominating the 50 m/s descent.
     expect(
       await screen.findByRole("img", {
-        name: /descent 50 m\/s, drift 538 m\/s/i,
+        name: /descent 50 m\/s, ground speed 538 m\/s/i,
       }),
     ).toBeInTheDocument();
   });

@@ -1,39 +1,28 @@
 /**
- * DescentScope — the real-time flight-instrument cluster beside the touchdown
- * reticle. The altimeter is a separate full-height rail (see `AltitudeRail`);
- * this is the velocity-vs-slope compass + the TWR gauge.
+ * DescentScope — the "how am I coming in" profile beside the touchdown reticle
+ * (which is the "where will I land" map). A GROUND-PERSPECTIVE side elevation:
+ * imagine watching the craft descend from the ground — a horizon line, the craft
+ * above it, and its velocity drawn side-on (vertical = descent rate, horizontal =
+ * ground speed). The ANGLE and length of that vector read the approach at a
+ * glance ("steep and fast" vs "gentle"). Paired with the TWR gauge.
  *
- * The compass is the fixed-perspective (north-up) view of the same pairing the
- * reticle overlays on the terrain: the green velocity line read against the
- * neutral downhill gradient ticks, so "am I drifting downhill / across the tilt"
- * reads without the relief. Descent rate rides as a label (it is into the page
- * in a plan view). The velocity DIRECTION uses the drift bearing (sub-vessel →
- * predicted site) since no surface-velocity bearing is on the wire yet.
- *
- * Purely presentational: every value is derived upstream from `solveSuicideBurn`
- * (+ the reticle's drift geometry) and passed in. All inputs are nullable — the
- * compass renders a safe empty frame before data arrives.
+ * Purely presentational: values are derived upstream from `solveSuicideBurn`.
+ * All inputs nullable — a safe empty frame renders before data arrives. No fake
+ * 3D, no arrowheads (the origin is the craft, obvious); a clean side elevation.
  */
 
 import { Gauge } from "@ksp-gonogo/ui";
 import { Value } from "@ksp-gonogo/ui-kit";
-import { VelocitySlopeField, velocityFraction } from "./VelocitySlopeField";
 
 export interface DescentScopeProps {
   /** Descent rate, m/s (down-positive). */
   verticalSpeed: number | null;
-  /** Horizontal component of surface velocity, m/s. */
+  /** Horizontal (ground) speed, m/s. */
   horizontalSpeed: number | null;
   /** Thrust-to-weight ratio (maxAccel / local gravity). */
   twr: number | null;
   /** True when AGL is the centre-of-mass radar altitude, not the lowest point. */
   usingComDatum: boolean;
-  /** Travel bearing (deg cw from north) for the velocity line. */
-  driftBearingDeg?: number | null;
-  /** Downhill bearing (deg cw from north) for the slope ticks. */
-  slopeHeadingDeg?: number | null;
-  /** Terrain slope at the site, degrees (labelled). */
-  slopeDeg?: number | null;
 }
 
 function fmtSpeed(v: number | null): string {
@@ -46,9 +35,6 @@ export function DescentScope({
   horizontalSpeed,
   twr,
   usingComDatum,
-  driftBearingDeg,
-  slopeHeadingDeg,
-  slopeDeg,
 }: Readonly<DescentScopeProps>) {
   return (
     <div
@@ -59,13 +45,7 @@ export function DescentScope({
         flexWrap: "wrap",
       }}
     >
-      <VelocitySlopeCompass
-        vertical={verticalSpeed}
-        horizontal={horizontalSpeed}
-        driftBearingDeg={driftBearingDeg ?? null}
-        slopeHeadingDeg={slopeHeadingDeg ?? null}
-        slopeDeg={slopeDeg ?? null}
-      />
+      <DescentProfile vertical={verticalSpeed} horizontal={horizontalSpeed} />
       <div>
         <Gauge
           value={twr ?? 0}
@@ -93,72 +73,88 @@ export function DescentScope({
 }
 
 /**
- * The fixed-perspective velocity-vs-slope compass: a north-up plan view with the
- * green velocity line and the neutral downhill gradient ticks sharing an origin,
- * plus descent / drift / slope labels. The accessible name carries the numbers
- * so the picture is never the sole carrier.
+ * Side-elevation velocity: the craft above a horizon line, its velocity vector
+ * drawn in that ground-perspective frame (down = descent rate, right = ground
+ * speed). The vector's slope IS the approach angle; its length is the speed.
+ * The accessible name carries both numbers so the picture is never the sole
+ * carrier.
  */
-function VelocitySlopeCompass({
+function DescentProfile({
   vertical,
   horizontal,
-  driftBearingDeg,
-  slopeHeadingDeg,
-  slopeDeg,
 }: {
   vertical: number | null;
   horizontal: number | null;
-  driftBearingDeg: number | null;
-  slopeHeadingDeg: number | null;
-  slopeDeg: number | null;
 }) {
-  const S = 118;
-  const c = S / 2;
-  const radius = 44;
-  const slopeText = slopeDeg == null ? "" : `, ${slopeDeg.toFixed(0)}° slope`;
-  const label = `Descent ${fmtSpeed(vertical)}, drift ${fmtSpeed(
+  const W = 148;
+  const H = 108;
+  const ox = 40;
+  const oy = 16;
+  const groundY = H - 14;
+  const maxLen = 74;
+  const vDown = vertical != null && vertical > 0 ? vertical : 0;
+  const vHor = horizontal != null && horizontal > 0 ? horizontal : 0;
+  const scale = Math.max(vDown, vHor, 1);
+  const dx = (vHor / scale) * maxLen;
+  const dy = (vDown / scale) * maxLen;
+  const tipX = ox + dx;
+  const tipY = oy + dy;
+
+  const label = `Descent ${fmtSpeed(vertical)}, ground speed ${fmtSpeed(
     horizontal,
-  )}${slopeText}`;
+  )}`;
 
   return (
     <svg
-      width={S}
-      height={S}
-      viewBox={`0 0 ${S} ${S}`}
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
       role="img"
       aria-label={label}
       style={{ display: "block", maxWidth: "100%", height: "auto" }}
     >
       <title>{label}</title>
-      {/* Faint reference ring + origin + up tick (north-up plan view). */}
-      <circle
-        cx={c}
-        cy={c}
-        r={radius}
-        fill="none"
+      {/* Ground / horizon line. */}
+      <line
+        x1={4}
+        y1={groundY}
+        x2={W - 4}
+        y2={groundY}
+        stroke="var(--color-border-subtle)"
+        strokeWidth={1.5}
+      />
+      {/* Faint reference: straight-down and level from the craft, so the
+          velocity vector's angle reads against vertical + horizontal. */}
+      <line
+        x1={ox}
+        y1={oy}
+        x2={ox}
+        y2={groundY}
         stroke="var(--color-border-subtle)"
         strokeWidth={1}
+        strokeDasharray="2 3"
       />
       <line
-        x1={c}
-        y1={c - radius}
-        x2={c}
-        y2={c - radius + 6}
+        x1={ox}
+        y1={oy}
+        x2={ox + maxLen}
+        y2={oy}
         stroke="var(--color-border-subtle)"
         strokeWidth={1}
+        strokeDasharray="2 3"
       />
-      <circle cx={c} cy={c} r={2} fill="var(--color-text-dim)" />
-
-      <VelocitySlopeField
-        cx={c}
-        cy={c}
-        radius={radius}
-        velBearingDeg={driftBearingDeg}
-        velFrac={velocityFraction(horizontal)}
-        slopeBearingDeg={slopeHeadingDeg}
+      {/* Velocity vector (green, no head) — slope = approach angle. */}
+      <line
+        x1={ox}
+        y1={oy}
+        x2={tipX}
+        y2={tipY}
+        stroke="var(--color-accent-fg)"
+        strokeWidth={2.5}
       />
-
-      {/* Labels: descent rate + horizontal drift (colour-keyed to their glyph
-          roles), slope magnitude neutral. */}
+      {/* The craft, at the vector's origin. */}
+      <circle cx={ox} cy={oy} r={3.5} fill="var(--color-text-primary)" />
+      {/* Magnitudes. */}
       <text
         x={4}
         y={12}
@@ -169,7 +165,7 @@ function VelocitySlopeCompass({
         ↓ {fmtSpeed(vertical)}
       </text>
       <text
-        x={S - 4}
+        x={W - 4}
         y={12}
         fontSize={9}
         textAnchor="end"
@@ -178,18 +174,6 @@ function VelocitySlopeCompass({
       >
         → {fmtSpeed(horizontal)}
       </text>
-      {slopeDeg != null && (
-        <text
-          x={c}
-          y={S - 4}
-          fontSize={9}
-          textAnchor="middle"
-          fill="var(--color-text-dim)"
-          fontFamily="monospace"
-        >
-          {slopeDeg.toFixed(0)}° slope
-        </text>
-      )}
     </svg>
   );
 }

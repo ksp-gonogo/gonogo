@@ -31,7 +31,6 @@ import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
 import { DescentScope } from "./DescentScope";
-import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 import { TouchdownReticle } from "./TouchdownReticle";
@@ -242,23 +241,6 @@ function LandingStatusComponent({
   // valid velocity/height readouts.
   const scopeShown = board === "vacuum-solved" && showScope;
 
-  // Travel bearing (sub-vessel → predicted site) — the horizontal-velocity
-  // direction proxy for the top-right compass's velocity line.
-  const driftBearingDeg =
-    flight?.latitude != null &&
-    flight?.longitude != null &&
-    landing?.predictedLatitude != null &&
-    landing?.predictedLongitude != null &&
-    body?.radius != null
-      ? greatCircle(
-          flight.latitude,
-          flight.longitude,
-          landing.predictedLatitude,
-          landing.predictedLongitude,
-          body.radius,
-        ).bearingDeg
-      : null;
-
   // ── Section fragments (composed into the layout below) ─────────────────────
 
   const instrumentsEl = scopeShown ? (
@@ -267,9 +249,6 @@ function LandingStatusComponent({
       horizontalSpeed={solution.horizontalSpeed}
       twr={twr}
       usingComDatum={usingComDatum}
-      driftBearingDeg={driftBearingDeg}
-      slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
-      slopeDeg={landing?.predictedSlopeAngle ?? null}
     />
   ) : null;
 
@@ -427,12 +406,12 @@ function LandingStatusComponent({
     </Stack>
   );
 
-  // Compact, caption-over-value burn/touchdown readouts for the reticle's
-  // narrow side column — fills the column beside the tall reticle without the
-  // side-by-side grid forcing values to wrap.
-  const compactReadouts =
+  // All the vacuum-burn readouts in ONE compact full-width grid that sits BELOW
+  // the reticle + descent-profile row — so that row stays short and there's no
+  // dead void under the terrain, and the values (caption over value) never wrap.
+  const readoutGrid =
     board === "vacuum-solved" ? (
-      <Stack gap="xs">
+      <Grid cols="1fr 1fr 1fr" gap="sm">
         <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
         <StackedField label="Burn duration">
           {solution.burnDuration == null
@@ -441,6 +420,19 @@ function LandingStatusComponent({
         </StackedField>
         <StackedField label="Available dV">
           {formatDv(availableDv)}
+        </StackedField>
+        <StackedField label="Touchdown (coast)">
+          {formatMps(solution.speedAtImpact)}
+        </StackedField>
+        <StackedField label="Touchdown (burn now)">
+          {solution.bestSpeedAtImpact == null
+            ? "—"
+            : formatMps(solution.bestSpeedAtImpact)}
+        </StackedField>
+        <StackedField label="Impact in">
+          {solution.timeToImpact == null
+            ? "—"
+            : formatDuration(solution.timeToImpact, { ms: true })}
         </StackedField>
         <div
           style={{
@@ -458,37 +450,13 @@ function LandingStatusComponent({
             </Badge>
           )}
         </div>
-        <StackedField label="Touchdown (coast)">
-          {formatMps(solution.speedAtImpact)}
-        </StackedField>
-        <StackedField label="Touchdown (burn now)">
-          {solution.bestSpeedAtImpact == null
-            ? "—"
-            : formatMps(solution.bestSpeedAtImpact)}
-        </StackedField>
-        <StackedField label="Impact in">
-          {solution.timeToImpact == null
-            ? "—"
-            : formatDuration(solution.timeToImpact, { ms: true })}
-        </StackedField>
         {vs?.targetDistance != null && (
           <StackedField label="Target range">
             {formatMeters(vs.targetDistance)}
           </StackedField>
         )}
-      </Stack>
+      </Grid>
     ) : null;
-
-  // Beside the reticle (the narrow column): the compact instruments, any board
-  // note, and the compact readouts — enough to fill the column beside the tall
-  // reticle rather than leaving dead space under a short instrument stack.
-  const reticleSideCol = (
-    <Stack gap="sm">
-      {instrumentsEl}
-      {boardEl}
-      {compactReadouts}
-    </Stack>
-  );
 
   const reticleEl = showReticle ? (
     <Section>
@@ -553,14 +521,20 @@ function LandingStatusComponent({
             <Stack gap="lg">
               {commitLayerEl}
               {showReticle ? (
-                // The reticle is the dominant column; the compact velocity
-                // vector + TWR + readouts fill the column beside it.
-                // `align-items:start` keeps the reticle pinned to the top
-                // (Grid centres by default).
-                <Grid cols="1.6fr 1fr" gap="md" style={{ alignItems: "start" }}>
-                  {reticleEl}
-                  {reticleSideCol}
-                </Grid>
+                // A short top row (reticle map | descent-profile + TWR), then
+                // all the readouts full-width below — so there's no tall column
+                // and no dead void under the terrain. `align-items:start` keeps
+                // both cells pinned to the top (Grid centres by default).
+                <>
+                  <Grid cols="1fr 1fr" gap="md" style={{ alignItems: "start" }}>
+                    {reticleEl}
+                    <Stack gap="sm">
+                      {instrumentsEl}
+                      {boardEl}
+                    </Stack>
+                  </Grid>
+                  {readoutGrid}
+                </>
               ) : (
                 detailStack
               )}

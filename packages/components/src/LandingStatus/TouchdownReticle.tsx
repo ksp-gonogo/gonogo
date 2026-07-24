@@ -3,15 +3,16 @@
  * anchored on the PREDICTED landing site at centre (target ring + X). The
  * CURRENT sub-vessel position sits off-centre by the drift, and a prominent line
  * runs from it to the centred site, so you read how far and which way you are
- * from where you'll land. Behind it, the sampled terrain renders as a smooth
- * interpolated gradient (shaded from the height-grid points) so the slope reads
- * naturally from the surface — no explicit slope arrow needed. A SAFE /
- * MARGINAL / DIVERT banner + the biome/slope readout carry the hazard in text.
+ * from where you'll land. Behind it, the sampled terrain renders as DIRECT
+ * altimetry — a hypsometric colour ramp (colour = altitude) with contour
+ * iso-lines at the band edges, so slope/shape read precisely (close contours =
+ * steep, a bullseye = a crater/peak). A SAFE / MARGINAL / DIVERT banner + the
+ * biome/slope readout carry the hazard in text.
  *
- * This is telemetry alerting, never GO/NO-GO. The smooth relief is painted to a
- * small canvas and up-scaled by the browser (bilinear) into a continuous
- * gradient; where canvas is unavailable (jsdom snapshots) it falls back to a
- * per-cell grid. Colour is never the sole carrier (banner + labels carry it).
+ * This is telemetry alerting, never GO/NO-GO. The relief is painted to a small
+ * canvas + up-scaled by the browser; where canvas is unavailable (jsdom
+ * snapshots) it falls back to a per-cell banded grid. Colour is never the sole
+ * verdict carrier (banner + labels carry it; the terrain palette is neutral).
  *
  * Purely presentational: the hazard verdict is derived upstream; terrain fields
  * come off `vessel.landing`.
@@ -46,14 +47,15 @@ export interface TouchdownReticleProps {
 }
 
 /**
- * Per-vertex hillshade (0..1) over a normalised height grid: a light from the
- * top-left carves ridges/craters into visible relief. Returns null when the
- * patch is missing or degenerate (the reticle then shows the flat verdict tint).
+ * Normalise the height grid to 0..1 (and report the raw metre range for the
+ * relief-scale cue). Returns null when the patch is missing or degenerate (the
+ * reticle then shows the flat neutral panel). This is the altimetry input — no
+ * lighting model; colour encodes height directly downstream.
  */
-function hillshade(
+function normHeights(
   patch: readonly number[] | null | undefined,
   size: number | null | undefined,
-): number[] | null {
+): { norm: number[]; rangeMeters: number } | null {
   if (!patch || !size || size < 2 || patch.length < size * size) return null;
   let lo = Infinity;
   let hi = -Infinity;
@@ -64,73 +66,122 @@ function hillshade(
     if (h > hi) hi = h;
   }
   const range = hi - lo;
-  const norm = (r: number, c: number) =>
-    range > 0 ? (patch[r * size + c] - lo) / range : 0.5;
-  // Light direction (top-left, elevated) and vertical exaggeration.
-  const lx = -0.6;
-  const ly = -0.6;
-  const lz = 0.52;
-  const ll = Math.hypot(lx, ly, lz);
-  const k = 0.28;
-  const shade = new Array<number>(size * size);
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      const dzdx =
-        norm(r, Math.min(size - 1, c + 1)) - norm(r, Math.max(0, c - 1));
-      const dzdy =
-        norm(Math.min(size - 1, r + 1), c) - norm(Math.max(0, r - 1), c);
-      const nl = Math.hypot(-dzdx, -dzdy, k) || 1;
-      const dot = (-dzdx * lx + -dzdy * ly + k * lz) / (nl * ll);
-      shade[r * size + c] = Math.max(0.1, Math.min(1, 0.5 + dot * 0.7));
-    }
+  const norm = new Array<number>(size * size);
+  for (let i = 0; i < size * size; i++) {
+    norm[i] = range > 0 ? (patch[i] - lo) / range : 0.5;
   }
-  return shade;
+  return { norm, rangeMeters: range };
 }
 
-/** Shadow strength (black overlay alpha) for a shade value. */
-function shadowAlpha(s: number): number {
-  return s < 0.5 ? Math.min(0.6, (0.5 - s) * 1.3) : 0;
+// Elevation bands + a neutral hypsometric ramp (low → high). Colour IS altitude;
+// the boundaries between bands are the iso-height contour lines (close together
+// = steep, a bullseye = a crater/peak). No simulated light anywhere.
+const HYPSO_BANDS = 6;
+const HYPSO: Array<[number, [number, number, number]]> = [
+  [0.0, [36, 46, 60]],
+  [0.35, [46, 82, 86]],
+  [0.6, [96, 106, 92]],
+  [0.8, [156, 142, 104]],
+  [1.0, [226, 222, 206]],
+];
+
+function hypso(t: number): [number, number, number] {
+  const x = Math.max(0, Math.min(1, t));
+  for (let i = 1; i < HYPSO.length; i++) {
+    if (x <= HYPSO[i][0]) {
+      const [t0, c0] = HYPSO[i - 1];
+      const [t1, c1] = HYPSO[i];
+      const f = t1 > t0 ? (x - t0) / (t1 - t0) : 0;
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * f),
+        Math.round(c0[1] + (c1[1] - c0[1]) * f),
+        Math.round(c0[2] + (c1[2] - c0[2]) * f),
+      ];
+    }
+  }
+  return HYPSO[HYPSO.length - 1][1];
 }
-/** Light strength (white overlay alpha) for a shade value. */
-function lightAlpha(s: number): number {
-  return s > 0.62 ? Math.min(0.6, (s - 0.62) * 0.9) : 0;
+
+/** Colour for a discrete elevation band (0..HYPSO_BANDS-1). */
+function bandColour(band: number): string {
+  const [r, g, b] = hypso(band / (HYPSO_BANDS - 1));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** Bilinear sample of the normalised height grid at continuous (cx,cy). */
+function sampleNorm(
+  norm: number[],
+  size: number,
+  cx: number,
+  cy: number,
+): number {
+  const x0 = Math.floor(cx);
+  const y0 = Math.floor(cy);
+  const x1 = Math.min(size - 1, x0 + 1);
+  const y1 = Math.min(size - 1, y0 + 1);
+  const fx = cx - x0;
+  const fy = cy - y0;
+  const a = norm[y0 * size + x0];
+  const b = norm[y0 * size + x1];
+  const c = norm[y1 * size + x0];
+  const d = norm[y1 * size + x1];
+  const top = a + (b - a) * fx;
+  const bot = c + (d - c) * fx;
+  return top + (bot - top) * fy;
 }
 
 /**
- * Paint the shade grid to a small canvas (black shadows / white highlights over
- * transparency) and return a data URI. The browser up-scales it bilinearly into
- * a smooth gradient — "shade from the points", the continuous-surface look.
- * Returns null where canvas is unavailable (jsdom), so the caller falls back to
- * a per-cell grid for the DOM-snapshot path.
+ * Render the height grid DIRECTLY as altimetry: bilinear-upsample the normalised
+ * heights, quantise into elevation bands (hypsometric colour = altitude), and
+ * darken the band boundaries into contour iso-lines. No lighting model. Returns
+ * a data URI, or null where canvas is unavailable (jsdom) so the caller falls
+ * back to a per-cell banded grid for the DOM-snapshot path.
  */
 function reliefDataUri(
-  shade: number[] | null,
-  size: number | null | undefined,
+  norm: number[] | null,
+  size: number | null,
 ): string | null {
-  if (!shade || !size) return null;
+  if (!norm || !size) return null;
   if (typeof document === "undefined") return null;
-  // Under test (jsdom) canvas isn't implemented — skip straight to the rect
-  // fallback so the DOM snapshot stays small/stable and jsdom emits no
-  // "getContext not implemented" noise. Browser/app builds run the canvas path.
+  // Under test (jsdom) canvas isn't implemented — skip to the rect fallback so
+  // the DOM snapshot stays small/stable and jsdom emits no "getContext" noise.
   if (process.env.NODE_ENV === "test") return null;
+  const F = 72;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = F;
+  canvas.height = F;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  const img = ctx.createImageData(size, size);
-  for (let i = 0; i < size * size; i++) {
-    const s = shade[i];
-    const shadow = shadowAlpha(s);
-    const light = lightAlpha(s);
-    const isShadow = shadow >= light;
-    const alpha = Math.max(shadow, light);
-    const val = isShadow ? 0 : 255;
-    const j = i * 4;
-    img.data[j] = val;
-    img.data[j + 1] = val;
-    img.data[j + 2] = val;
-    img.data[j + 3] = Math.round(alpha * 255);
+  const bandF = new Int16Array(F * F);
+  for (let fy = 0; fy < F; fy++) {
+    for (let fx = 0; fx < F; fx++) {
+      const h = sampleNorm(
+        norm,
+        size,
+        (fx / (F - 1)) * (size - 1),
+        (fy / (F - 1)) * (size - 1),
+      );
+      bandF[fy * F + fx] = Math.max(
+        0,
+        Math.min(HYPSO_BANDS - 1, Math.floor(h * HYPSO_BANDS)),
+      );
+    }
+  }
+  const img = ctx.createImageData(F, F);
+  for (let fy = 0; fy < F; fy++) {
+    for (let fx = 0; fx < F; fx++) {
+      const band = bandF[fy * F + fx];
+      const [r, g, b] = hypso(band / (HYPSO_BANDS - 1));
+      // Contour iso-line: darken where the band steps up/down vs a neighbour.
+      const left = fx > 0 ? bandF[fy * F + fx - 1] : band;
+      const up = fy > 0 ? bandF[(fy - 1) * F + fx] : band;
+      const edge = left !== band || up !== band ? 0.5 : 1;
+      const j = (fy * F + fx) * 4;
+      img.data[j] = Math.round(r * edge);
+      img.data[j + 1] = Math.round(g * edge);
+      img.data[j + 2] = Math.round(b * edge);
+      img.data[j + 3] = 255;
+    }
   }
   ctx.putImageData(img, 0, 0);
   return canvas.toDataURL();
@@ -148,12 +199,16 @@ const BANNER_TONE: Record<Hazard, "go" | "warning" | "alert"> = {
   DIVERT: "alert",
 };
 
-/** Roughness/verdict tint for the site panel — paired with the text banner. */
-function panelTint(verdict: Hazard | null): string {
-  if (verdict === "DIVERT") return "var(--color-status-nogo-bg)";
-  if (verdict === "MARGINAL") return "var(--color-status-warning-bg)";
-  if (verdict === "SAFE") return "var(--color-status-go-bg)";
-  return "var(--color-surface-raised)";
+/**
+ * Verdict signal on the panel BORDER (paired with the text banner) — kept off
+ * the terrain fill so the grey relief stays legible. Colour is never the sole
+ * carrier: the SAFE/MARGINAL/DIVERT banner carries it in text.
+ */
+function verdictBorder(verdict: Hazard | null): string {
+  if (verdict === "DIVERT") return "var(--color-status-nogo-fg)";
+  if (verdict === "MARGINAL") return "var(--color-status-warning-fg)";
+  if (verdict === "SAFE") return "var(--color-status-go-fg)";
+  return "var(--color-border-subtle)";
 }
 
 /** Point at `deg` clockwise from up (north), `len` from the centre. */
@@ -176,8 +231,11 @@ export function TouchdownReticle({
   terrainPatchSize,
 }: Readonly<TouchdownReticleProps>) {
   const v = verdict.verdict;
-  const shade = hillshade(terrainPatch, terrainPatchSize);
-  const reliefUri = reliefDataUri(shade, terrainPatchSize);
+  const heights = normHeights(terrainPatch, terrainPatchSize);
+  const reliefUri = reliefDataUri(
+    heights?.norm ?? null,
+    terrainPatchSize ?? null,
+  );
 
   // Displacement from the CURRENT sub-vessel point to the predicted site.
   const drift =
@@ -244,20 +302,22 @@ export function TouchdownReticle({
         }}
       >
         <title>{reticleLabel}</title>
-        {/* Site panel, tinted by the verdict (paired with the text banner). */}
+        {/* Neutral site panel; the verdict rides the BORDER (+ the banner), not
+            the terrain fill, so the grey relief stays legible. */}
         <rect
           x={4}
           y={4}
           width={SIZE - 8}
           height={SIZE - 8}
           rx={4}
-          fill={panelTint(v)}
-          stroke="var(--color-border-subtle)"
+          fill="var(--color-surface-raised)"
+          stroke={verdictBorder(v)}
+          strokeWidth={2.5}
         />
 
-        {/* Terrain relief. Smooth path: a small shade canvas up-scaled by the
-            browser into a continuous gradient. Fallback path (no canvas, e.g.
-            jsdom): a per-cell grid so the DOM snapshot stays small + stable. */}
+        {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
+            iso-lines painted to a canvas + up-scaled. Fallback (no canvas, e.g.
+            jsdom): a per-cell banded grid so the DOM snapshot stays small. */}
         {reliefUri ? (
           <image
             href={reliefUri}
@@ -268,7 +328,7 @@ export function TouchdownReticle({
             preserveAspectRatio="none"
           />
         ) : (
-          shade &&
+          heights &&
           terrainPatchSize &&
           (() => {
             const n = terrainPatchSize;
@@ -277,12 +337,13 @@ export function TouchdownReticle({
             const out: ReactNode[] = [];
             for (let r = 0; r < n; r++) {
               for (let c = 0; c < n; c++) {
-                const s = shade[r * n + c];
-                const shadow = shadowAlpha(s);
-                const light = lightAlpha(s);
-                const fill = shadow >= light ? "black" : "white";
-                const op = Math.max(shadow, light);
-                if (op <= 0.02) continue;
+                const band = Math.max(
+                  0,
+                  Math.min(
+                    HYPSO_BANDS - 1,
+                    Math.floor(heights.norm[r * n + c] * HYPSO_BANDS),
+                  ),
+                );
                 out.push(
                   <rect
                     key={`relief-${r}-${c}`}
@@ -290,8 +351,7 @@ export function TouchdownReticle({
                     y={4 + r * cell}
                     width={cell + 0.5}
                     height={cell + 0.5}
-                    fill={fill}
-                    opacity={op}
+                    fill={bandColour(band)}
                   />,
                 );
               }
@@ -314,64 +374,28 @@ export function TouchdownReticle({
           />
         )}
 
-        {/* Predicted landing site — the ANCHOR: a target ring + X at centre.
-            Clearly the landing spot the whole instrument is assessing. */}
-        <g>
-          <circle
-            cx={C}
-            cy={C}
-            r={8}
-            fill="none"
-            stroke="var(--color-accent-fg)"
-            strokeWidth={2.5}
-          />
-          <line
-            x1={C - 5}
-            y1={C - 5}
-            x2={C + 5}
-            y2={C + 5}
-            stroke="var(--color-accent-fg)"
-            strokeWidth={2}
-          />
-          <line
-            x1={C - 5}
-            y1={C + 5}
-            x2={C + 5}
-            y2={C - 5}
-            stroke="var(--color-accent-fg)"
-            strokeWidth={2}
-          />
-        </g>
+        {/* Predicted landing site — the ANCHOR: a small filled dot at centre.
+            Unobtrusive point, not a glyph that dominates the terrain. */}
+        <circle
+          cx={C}
+          cy={C}
+          r={4.5}
+          fill="var(--color-accent-fg)"
+          stroke="var(--color-surface-app)"
+          strokeWidth={1}
+        />
 
         {/* Current position — off-centre by the drift (a small, distinct white
-            crosshair). Omitted when you're right over the site. */}
+            dot). Omitted when you're right over the site. */}
         {currentTip && (
-          <g>
-            <circle
-              cx={currentTip.x}
-              cy={currentTip.y}
-              r={4}
-              fill="none"
-              stroke="var(--color-text-primary)"
-              strokeWidth={1.5}
-            />
-            <line
-              x1={currentTip.x - 8}
-              y1={currentTip.y}
-              x2={currentTip.x + 8}
-              y2={currentTip.y}
-              stroke="var(--color-text-primary)"
-              strokeWidth={1}
-            />
-            <line
-              x1={currentTip.x}
-              y1={currentTip.y - 8}
-              x2={currentTip.x}
-              y2={currentTip.y + 8}
-              stroke="var(--color-text-primary)"
-              strokeWidth={1}
-            />
-          </g>
+          <circle
+            cx={currentTip.x}
+            cy={currentTip.y}
+            r={3.5}
+            fill="none"
+            stroke="var(--color-text-primary)"
+            strokeWidth={1.5}
+          />
         )}
       </svg>
 
@@ -380,6 +404,9 @@ export function TouchdownReticle({
       <div style={{ fontSize: "0.75rem", opacity: 0.75 }}>
         {biome ? `${biome} · ` : ""}
         {slopeText}
+        {heights && heights.rangeMeters >= 1
+          ? ` · Δ ${Math.round(heights.rangeMeters)} m relief`
+          : ""}
         {drift != null
           ? ` · ${Math.round(drift.distanceMeters)} m downrange`
           : ""}
