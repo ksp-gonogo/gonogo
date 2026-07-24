@@ -248,11 +248,11 @@ describe("CrewManifestComponent", () => {
 });
 
 /**
- * The leading `crew-manifest.avatar` slot — the SDK-independent shell of the
- * kerbcast facecam. A per-kerbal square cell left of the name where the bullet
- * renders today; the kerbcast Uplink will later register an augment that fills
+ * The leading `crew-manifest.avatar` slot — the SDK-independent shell of a
+ * per-kerbal avatar/portrait. A per-kerbal square cell left of the name where
+ * the bullet renders today; an Uplink can later register an augment that fills
  * it with a live face. Until then (and whenever the augment yields nothing — no
- * Uplink, embedded-facecams off, kerbal not seated) the cell falls back to the
+ * Uplink, the avatar source off, kerbal not seated) the cell falls back to the
  * bullet dot, so CrewManifest renders fully with the slot empty. This suite
  * builds ONLY the slot + fallback; no facecam subscription (later task).
  */

@@ -223,14 +223,14 @@ declare module "@ksp-gonogo/core" {
 // The `crew-manifest.avatar` slot contract (see augment-slot-map)
 //
 // A per-crew-row LEADING square cell (left of the name, where the bullet dot
-// renders today): the SDK-independent shell of the kerbcast facecam. The
-// kerbcast Uplink registers an augment that fills it with a live face, matching
-// kerbal name -> stable name-derived flightId. Same per-row keying as
-// `crew-manifest.badges` — `crewName` is the augment's identity handle and
-// `crewIndex` disambiguates duplicate names. Whenever the augment yields nothing
-// (no kerbcast Uplink, embedded-facecams off, kerbal not seated) the cell falls
-// back to the bullet, so CrewManifest renders fully with the slot empty —
-// kerbcast is an optional Uplink.
+// renders today): the SDK-independent shell of a per-kerbal avatar/portrait. An
+// Uplink can register an augment that fills it with a live face, keyed by
+// kerbal identity. Same per-row keying as `crew-manifest.badges` — `crewName`
+// is the augment's identity handle and `crewIndex` disambiguates duplicate
+// names. Whenever the augment yields nothing (no Uplink providing avatars, the
+// avatar source disabled, kerbal not seated) the cell falls back to the bullet,
+// so CrewManifest renders fully with the slot empty — the avatar augment is
+// entirely optional.
 // ---------------------------------------------------------------------------
 
 /** Props passed to every `crew-manifest.avatar` augment — one per crew row. */
@@ -441,8 +441,8 @@ function renderBody({
         return (
           <RosterItem key={name}>
             <Row>
-              {/* Leading per-crew avatar slot: a square cell where the kerbcast
-                  Uplink's face augment composes. The fallback bullet is a base
+              {/* Leading per-crew avatar slot: a square cell where an Uplink's
+                  avatar augment composes. The fallback bullet is a base
                   layer under the slot — with no augment bound (or the augment
                   yielding nothing: no Uplink, facecams off, kerbal not seated)
                   it shows through, so the roster degrades gracefully. */}
@@ -568,7 +568,7 @@ const DeathClock = styled.span<{ $tone: MeterTone }>`
         : "var(--color-text-secondary)"};
 `;
 
-// Leading per-crew avatar cell: a square that reserves room for a kerbcast face
+// Leading per-crew avatar cell: a square that reserves room for an avatar-face
 // augment. Sized ~40px, scaling with the widget and clamped 36-56px (mirrors
 // TinyReadout's vw-clamp idiom). `position: relative` so the fallback and the
 // augment slot stack in the same box.
@@ -643,7 +643,7 @@ registerComponent<CrewManifestConfig>({
   // Per-crew-row augment slots (augment-slot-map). Both unfilled until an Uplink
   // binds — the roster renders as before:
   //   crew-manifest.badges — trailing inline badges (e.g. Kerbalism dose/comfort)
-  //   crew-manifest.avatar — leading square face cell (kerbcast facecam), falls
+  //   crew-manifest.avatar — leading square face cell (Uplink-provided avatar), falls
   //     back to the bullet when empty.
   augmentSlots: ["crew-manifest.badges", "crew-manifest.avatar"],
   dataRequirements: [
