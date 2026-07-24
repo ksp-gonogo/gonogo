@@ -55,12 +55,19 @@ public class VesselLanding
     /// </summary>
     public string? SampleSource { get; set; }
 
-    // ── Tier 1: under-vessel terrain (cached Vessel.* fields, no PQS call) ───
+    // ── Tier 1: under-vessel terrain (forward-compat placeholders) ───────────
+    // Not populated in the current build: a Deck capture (pre-flight V1)
+    // confirmed KSP does not surface a cheap terrain normal on vessel.surface,
+    // so under-vessel slope is NOT derived from Vessel.terrainNormal. Slope
+    // comes from the Tier-2 PQS plane-fit instead (which the sub-vessel fallback
+    // runs directly under the vessel anyway, strictly better than a float
+    // normal). These stay in the shape so a future terrain-normal publish can
+    // light them up without a contract change.
 
-    /// <summary>Metres — terrain elevation above the body mean radius directly beneath the vessel, from <c>Vessel.terrainAltitude</c> (a cached field, costs no PQS call). Null when the body has no solid surface / no pqsController.</summary>
+    /// <summary>Metres — terrain elevation above the body mean radius directly beneath the vessel. Currently null (see the Tier-1 note); the sub-vessel-fallback <see cref="PredictedTerrainElevation"/> carries the under-ship elevation.</summary>
     public double? TerrainElevationUnderVessel { get; set; }
 
-    /// <summary>Degrees, 0 = flat — terrain slope beneath the vessel, from <c>Vessel.terrainNormal</c> against the body up vector. Null when the normal is not populated (unlanded / out of physics range).</summary>
+    /// <summary>Degrees, 0 = flat — under-vessel terrain slope. Currently null (see the Tier-1 note); under-vessel slope comes from the Tier-2 plane-fit via the sub-vessel sampling fallback.</summary>
     public double? SlopeAngleUnderVessel { get; set; }
 
     // ── Tier 2: PQS-sampled at the PREDICTED touchdown point ─────────────────
