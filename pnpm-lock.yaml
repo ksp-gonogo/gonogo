@@ -160,11 +160,11 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/core
       '@ksp-gonogo/kerbcast':
-        specifier: ^1.6.2
-        version: 1.6.2
+        specifier: ^1.7.0
+        version: 1.7.0
       '@ksp-gonogo/kerbcast-react':
-        specifier: ^1.6.2
-        version: 1.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: ^1.7.0
+        version: 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../../../packages/logger
@@ -1813,15 +1813,15 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@ksp-gonogo/kerbcast-react@1.6.2':
-    resolution: {integrity: sha512-94sFXlrWb2R05aQPz9Q1lSMKqeLLsWPZI6W62WAXNGARYImigyz0N2Af5Sj7O3Lh1VjayZQ7BnIVZ06JQTFiqQ==}
+  '@ksp-gonogo/kerbcast-react@1.7.0':
+    resolution: {integrity: sha512-9AEt0+nFNPVYzq8Si/GERqAX0Nu9lm4dghxs6fGyfU0Q4nHVmjkIZ8mfSTh3eIhT437RoUYsOeMLDvJFcp7b8A==}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
       styled-components: ^6
 
-  '@ksp-gonogo/kerbcast@1.6.2':
-    resolution: {integrity: sha512-+O26z5Yh6hO5Ty5QVyuQsqY6quIRwJltrICUFFhkrTlgKynIvibbu4YMxVwIkKBcOWXQDfHhO1SUMXtPlRxOZw==}
+  '@ksp-gonogo/kerbcast@1.7.0':
+    resolution: {integrity: sha512-hpfDywxJfPhhPnE9sacsQc0h6qht19Kv0zbfe/jRgJ5h024BsU9aP54uHUHvyA4p+cqFbwgbyGrrQpGexTS2Fw==}
 
   '@msgpack/msgpack@2.8.0':
     resolution: {integrity: sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==}
@@ -4261,14 +4261,14 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@ksp-gonogo/kerbcast-react@1.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@ksp-gonogo/kerbcast-react@1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@ksp-gonogo/kerbcast': 1.6.2
+      '@ksp-gonogo/kerbcast': 1.7.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@ksp-gonogo/kerbcast@1.6.2': {}
+  '@ksp-gonogo/kerbcast@1.7.0': {}
 
   '@msgpack/msgpack@2.8.0': {}
 
