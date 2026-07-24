@@ -112,6 +112,43 @@ function terrainFor(aglMeters: number): {
   return { slope: 3, heading: 80, roughness: 28, biome: "Lowlands" };
 }
 
+/**
+ * A plausible NxN terrain-height grid (metres, relative) for the reticle relief:
+ * a plane tilted by the site slope along its downhill heading, plus a crater dip
+ * and a ridge, plus fine deterministic texture. Deterministic (no RNG) so renders
+ * are stable.
+ */
+function terrainPatchGrid(slopeDeg: number, headingDeg: number): number[] {
+  const n = 16;
+  const extent = 200; // metres the patch spans
+  const cell = extent / n;
+  const slopeRad = slopeDeg * DEG;
+  const de = Math.sin(headingDeg * DEG); // downhill east component
+  const dn = Math.cos(headingDeg * DEG); // downhill north component
+  const grid = new Array<number>(n * n);
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const east = (c - (n - 1) / 2) * cell;
+      const north = ((n - 1) / 2 - r) * cell;
+      // Tilted plane: elevation falls in the downhill direction.
+      let h = -(east * de + north * dn) * Math.tan(slopeRad);
+      // A crater dip in one quadrant, a ridge in the other.
+      const cd =
+        ((east - extent * 0.2) ** 2 + (north - extent * 0.15) ** 2) /
+        (2 * (extent * 0.18) ** 2);
+      h -= 18 * Math.exp(-cd);
+      const rd =
+        ((east + extent * 0.25) ** 2 + (north + extent * 0.2) ** 2) /
+        (2 * (extent * 0.22) ** 2);
+      h += 12 * Math.exp(-rd);
+      // Fine, deterministic surface texture.
+      h += 2.5 * Math.sin(east * 0.15) * Math.cos(north * 0.13);
+      grid[r * n + c] = h;
+    }
+  }
+  return grid;
+}
+
 /** The predicted touchdown point: current point + remaining downrange travel. */
 function predictedPoint(f: Frame): { lat: number; lon: number } {
   const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
@@ -190,6 +227,9 @@ function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
       roughnessFootprintMeters: 100,
       slopeSampleRadiusMeters: 100,
       predictedBiome: terrain.biome,
+      terrainPatch: terrainPatchGrid(terrain.slope, terrain.heading),
+      terrainPatchSize: 16,
+      terrainPatchExtentMeters: 200,
     },
   };
 }

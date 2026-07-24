@@ -48,6 +48,25 @@ describe("TouchdownReticle", () => {
     );
   });
 
+  it("renders relief cells when a terrain patch is present, and stays a labelled image", () => {
+    const verdict = deriveHazardVerdict({ slopeDeg: 8 });
+    // A 4x4 patch with a clear high/low split so the hillshade produces cells.
+    const patch = [0, 1, 4, 9, 1, 2, 5, 10, 4, 5, 8, 13, 9, 10, 13, 18];
+    const { container } = render(
+      <TouchdownReticle
+        {...base}
+        verdict={verdict}
+        terrainPatch={patch}
+        terrainPatchSize={4}
+      />,
+    );
+    // The relief adds shaded <rect> cells; the reticle is still one labelled img.
+    expect(
+      screen.getByRole("img", { name: /touchdown site/i }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll("rect").length).toBeGreaterThan(1);
+  });
+
   it("has no axe violations", async () => {
     const verdict = deriveHazardVerdict({ slopeDeg: 8, biome: "Highlands" });
     const { container } = render(

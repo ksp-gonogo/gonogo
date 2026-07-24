@@ -320,6 +320,8 @@ function LandingStatusComponent({
                   biome={landing?.predictedBiome ?? null}
                   sampleSource={landing?.sampleSource ?? null}
                   verdict={hazardVerdict}
+                  terrainPatch={landing?.terrainPatch ?? null}
+                  terrainPatchSize={landing?.terrainPatchSize ?? null}
                 />
               </Section>
             )}

@@ -6,15 +6,17 @@
  * DIVERT hazard banner. An honest source badge says whether the terrain is the
  * PREDICTED touchdown point or a SUB-VESSEL estimate.
  *
- * This is telemetry alerting, never GO/NO-GO. Bespoke SVG (no relief yet — the
- * shaded heightmap patch arrives with B8); the panel is tinted by the roughness
- * grade, never colour-alone (the banner + labels carry the verdict in text).
+ * This is telemetry alerting, never GO/NO-GO. Bespoke SVG: when a terrain patch
+ * is present it renders a hillshaded relief (terrain shape) over the verdict
+ * tint, else a flat tint; colour is never the sole carrier (the banner + labels
+ * carry the verdict in text).
  *
  * Purely presentational: the hazard verdict is derived upstream; terrain fields
  * come off `vessel.landing`.
  */
 
 import { StatusPill } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { greatCircle } from "./geo";
 import type { Hazard, HazardResult } from "./hazardVerdict";
 
@@ -37,6 +39,52 @@ export interface TouchdownReticleProps {
   sampleSource: string | null;
   /** The site hazard verdict (worst-band-wins). */
   verdict: HazardResult;
+  /** Flattened row-major NxN terrain-height grid for the relief shading. */
+  terrainPatch?: readonly number[] | null;
+  /** The N of the NxN terrain patch. */
+  terrainPatchSize?: number | null;
+}
+
+/**
+ * Per-cell hillshade (0..1) over a normalised height grid: a light from the
+ * top-left carves ridges/craters into visible relief. Returns null when the
+ * patch is missing or degenerate (the reticle then shows the flat verdict tint).
+ */
+function hillshade(
+  patch: readonly number[] | null | undefined,
+  size: number | null | undefined,
+): number[] | null {
+  if (!patch || !size || size < 2 || patch.length < size * size) return null;
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < size * size; i++) {
+    const h = patch[i];
+    if (!Number.isFinite(h)) return null;
+    if (h < lo) lo = h;
+    if (h > hi) hi = h;
+  }
+  const range = hi - lo;
+  const norm = (r: number, c: number) =>
+    range > 0 ? (patch[r * size + c] - lo) / range : 0.5;
+  // Light direction (top-left, elevated) and vertical exaggeration.
+  const lx = -0.6;
+  const ly = -0.6;
+  const lz = 0.52;
+  const ll = Math.hypot(lx, ly, lz);
+  const k = 0.28;
+  const shade = new Array<number>(size * size);
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const dzdx =
+        norm(r, Math.min(size - 1, c + 1)) - norm(r, Math.max(0, c - 1));
+      const dzdy =
+        norm(Math.min(size - 1, r + 1), c) - norm(Math.max(0, r - 1), c);
+      const nl = Math.hypot(-dzdx, -dzdy, k) || 1;
+      const dot = (-dzdx * lx + -dzdy * ly + k * lz) / (nl * ll);
+      shade[r * size + c] = Math.max(0.1, Math.min(1, 0.5 + dot * 0.7));
+    }
+  }
+  return shade;
 }
 
 const SIZE = 160;
@@ -76,8 +124,11 @@ export function TouchdownReticle({
   biome,
   sampleSource,
   verdict,
+  terrainPatch,
+  terrainPatchSize,
 }: Readonly<TouchdownReticleProps>) {
   const v = verdict.verdict;
+  const relief = hillshade(terrainPatch, terrainPatchSize);
 
   // Drift from directly-below to the sampled site (downrange displacement).
   const drift =
@@ -139,6 +190,40 @@ export function TouchdownReticle({
           fill={panelTint(v)}
           stroke="var(--color-border-subtle)"
         />
+
+        {/* Terrain relief — a hillshaded heightmap over the verdict-tinted
+            panel (shadows carved black, lit slopes lifted white), so the site's
+            shape reads. Falls back to the flat tint above when no patch. */}
+        {relief &&
+          terrainPatchSize &&
+          (() => {
+            const n = terrainPatchSize;
+            const inner = SIZE - 8;
+            const cell = inner / n;
+            const out: ReactNode[] = [];
+            for (let r = 0; r < n; r++) {
+              for (let c = 0; c < n; c++) {
+                const s = relief[r * n + c];
+                const shadow = s < 0.5 ? (0.5 - s) * 1.3 : 0;
+                const light = s > 0.62 ? (s - 0.62) * 0.9 : 0;
+                const fill = shadow > light ? "black" : "white";
+                const op = Math.max(shadow, light);
+                if (op <= 0.02) continue;
+                out.push(
+                  <rect
+                    key={`relief-${r}-${c}`}
+                    x={4 + c * cell}
+                    y={4 + r * cell}
+                    width={cell + 0.5}
+                    height={cell + 0.5}
+                    fill={fill}
+                    opacity={Math.min(0.6, op)}
+                  />,
+                );
+              }
+            }
+            return <g>{out}</g>;
+          })()}
 
         {/* Drift vector (from directly-below toward the site). */}
         {driftTip && (
