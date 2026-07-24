@@ -36,11 +36,6 @@ import type {
 import { MapViewComponent, VanillaSuppressionProbe } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
-// The vessel kinematics/body read off the stream (vessel.flight + the
-// derived vessel.state); the per-key TelemetryRow stays on the legacy "data"
-// shim, so a legacy source is registered alongside the stream fixture for it
-// even though this suite doesn't emit any legacy keys onto it.
-
 // All eight vessel.state inputs — the carried gate is parent-channel-scoped.
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",

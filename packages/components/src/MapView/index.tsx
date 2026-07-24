@@ -2,7 +2,6 @@ import type {
   ActionDefinition,
   AnyAugment,
   ComponentProps,
-  DataSourceRegistry,
   TrackSample,
 } from "@ksp-gonogo/core";
 import {
@@ -20,7 +19,6 @@ import {
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useDataSchema } from "@ksp-gonogo/data";
 import {
   useStream,
   useViewUt,
@@ -29,7 +27,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { dataColor } from "../shared/dataPalette";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
   cameraTransform,
@@ -60,10 +57,6 @@ import {
   OverlayCanvas,
   PersistentDataCanvas,
   PredictionCanvas,
-  TelemetryPanel,
-  TelKey,
-  TelRow,
-  TelValue,
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
 import { groupBaseLayersByUplink } from "./orderBaseLayers";
@@ -392,16 +385,11 @@ function MapViewComponent({
   h,
 }: Readonly<ComponentProps<MapViewConfig>>) {
   const trajectoryLength = config?.trajectoryLength ?? 2000;
-  const telemetryKeys = config?.telemetryKeys ?? [];
-  const showTelemetry = telemetryKeys.length > 0;
   const showPrediction = config?.showPrediction ?? true;
   const bodyOverride = config?.bodyOverride;
   // Vanilla POIs (KSC, contract targets) are always-relevant reference
   // points, not an opt-in extension-shaped feature — default on (T-POI-7).
   const showPois = config?.showPois ?? true;
-
-  const schema = useDataSchema("data");
-  const labelMap = new Map(schema.map((k) => [k.key, k.label]));
 
   // Vessel kinematics read straight off the stream: raw `vessel.flight.*`
   // fields for the surface-frame measurements, and the client-derived
@@ -433,10 +421,7 @@ function MapViewComponent({
   // readouts.
   const encounterExists = vesselState?.encounterExists;
   // Connectivity indicator, still sourced off the legacy `DataSource` status
-  // channel (`v.lat` is representative of the widget's stream reads). The
-  // per-key `TelemetryRow` readouts remain unmapped — `mapTopic` has no
-  // entry for them, so those `useDataValue` reads fall back to legacy
-  // automatically.
+  // channel (`v.lat` is representative of the widget's stream reads).
   const streamStatus = useDataStreamStatus("data", "v.lat");
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
@@ -1277,59 +1262,7 @@ function MapViewComponent({
       <MapSections>
         <AugmentSlot name="map-view.sections" props={sectionsContext} />
       </MapSections>
-
-      {showTelemetry && (
-        <TelemetryPanel>
-          {telemetryKeys.map((key, idx) => (
-            <TelemetryRow
-              key={key}
-              dataKey={key}
-              label={labelMap.get(key) ?? key}
-              colorIndex={idx}
-            />
-          ))}
-        </TelemetryPanel>
-      )}
     </Panel>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Telemetry row — own component so useDataValue can be called per key
-// ---------------------------------------------------------------------------
-
-function formatTelValue(value: unknown): string {
-  if (value === undefined) return "—";
-  const n = Number(value);
-  if (!Number.isNaN(n) && typeof value !== "boolean") return n.toFixed(2);
-  // Explicit type-switch so `String(value)` can never fall onto Object's
-  // default "[object Object]" (or throw on a Symbol). Anything we don't
-  // have a sensible readout for becomes "—".
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "string") return value;
-  if (typeof value === "object") return JSON.stringify(value);
-  return "—";
-}
-
-function TelemetryRow({
-  dataKey,
-  label,
-  colorIndex,
-}: Readonly<{
-  dataKey: string;
-  label: string;
-  colorIndex: number;
-}>) {
-  const value = useTelemetry(
-    "data",
-    dataKey as keyof DataSourceRegistry["data"],
-  );
-  const colour = dataColor(colorIndex);
-  return (
-    <TelRow>
-      <TelKey $colour={colour}>{label}</TelKey>
-      <TelValue $colour={colour}>{formatTelValue(value)}</TelValue>
-    </TelRow>
   );
 }
 

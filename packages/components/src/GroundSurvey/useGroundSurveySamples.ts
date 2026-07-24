@@ -1,4 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useReducer, useRef } from "react";
 
 export interface SurveySample {
@@ -33,13 +34,6 @@ export interface SurveyResult {
 }
 
 export interface UseGroundSurveyOpts {
-  /** Legacy `DataSource` id `v.body`/`v.splashed`/`land.predictedLat`/
-   *  `land.predictedLon` route through (via the `useTelemetry` mapTopic
-   *  shim — see this hook's own doc comment for why these four stay on the
-   *  2-arg legacy-key overload while altitude/heightFromTerrain/
-   *  surfaceSpeed read the canonical `vessel.flight` Topic directly).
-   *  Default `"data"`. */
-  sourceId?: string;
   /** Rolling time window for the strip, ms. Default 120 000 (2 min). */
   windowMs?: number;
   /** Below this hft (m) the survey freezes. Default 1000. */
@@ -68,7 +62,6 @@ interface InternalState {
 }
 
 const DEFAULT_OPTS: Required<UseGroundSurveyOpts> = {
-  sourceId: "data",
   windowMs: 120_000,
   freezeBelowM: 1000,
   surveyCeilingM: 10_000,
@@ -91,13 +84,12 @@ function freshState(): InternalState {
  * Reads `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed — a single
  * atomic per-tick capture, `KspHost.BuildFlight`) as a canonical Topic read
  * (no legacy fallback, matches `useTopology`'s posture — see that hook's
- * own doc comment). Body/splashed/predicted-landing stay on the 2-arg
- * `useTelemetry(sourceId, key)` mapTopic-shimmed overload — those four
- * resolve to `vessel.state.*` (a DERIVED, client-side-only channel with no
- * `[SitrepTopic]` tag of its own, so it has no canonical single-arg Topic
- * id to read directly) via the SAME `v.body`/`v.splashed`/
- * `land.predictedLat`/`land.predictedLon` legacy keys every other migrated
- * widget already uses for this shim, zero call-site change either way.
+ * own doc comment). Body/splashed/predicted-landing read the `vessel.state`
+ * DERIVED channel directly via `useStream` — `parentBodyName`/`isSplashed`/
+ * `landingPredictedLat`/`landingPredictedLon` — the same channel
+ * `DistanceToTarget`/`TargetPicker`/`ManeuverPlanner`/`CurrentOrbit` read for
+ * their own `vessel.state.*` fields, off the legacy `useTelemetry(sourceId,
+ * "v.body"/"v.splashed"/"land.predictedLat"/"land.predictedLon")` shim.
  *
  * The old Telemachus fork delivered `v.altitude`/`v.heightFromTerrain` as
  * two INDEPENDENT WebSocket key pushes that could land on different
@@ -118,16 +110,11 @@ export function useGroundSurveySamples(
 ): SurveyResult {
   const cfg = { ...DEFAULT_OPTS, ...opts };
   const flight = useTelemetry("vessel.flight");
-  const bodyRaw = useTelemetry<string>(cfg.sourceId, "v.body");
-  const splashedRaw = useTelemetry<boolean>(cfg.sourceId, "v.splashed");
-  const predictedLatRaw = useTelemetry<number>(
-    cfg.sourceId,
-    "land.predictedLat",
-  );
-  const predictedLonRaw = useTelemetry<number>(
-    cfg.sourceId,
-    "land.predictedLon",
-  );
+  const vesselState = useStream<VesselState>("vessel.state");
+  const bodyRaw = vesselState?.parentBodyName;
+  const splashedRaw = vesselState?.isSplashed;
+  const predictedLatRaw = vesselState?.landingPredictedLat;
+  const predictedLonRaw = vesselState?.landingPredictedLon;
   const predictedLat =
     typeof predictedLatRaw === "number" && Number.isFinite(predictedLatRaw)
       ? predictedLatRaw

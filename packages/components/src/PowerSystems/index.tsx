@@ -64,16 +64,6 @@ interface Contribution {
   nominalFlow?: number;
 }
 
-/**
- * `parts.power` wire shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a NEW
- * capability with no legacy Telemachus analogue (see map-topic.ts). Only
- * `totalProductionEc` is consumed today; the per-part
- * arrays exist on the wire for a future breakdown but aren't read here yet.
- */
-interface PartsPowerPayload {
-  totalProductionEc?: number;
-}
-
 // ---------------------------------------------------------------------------
 // Augment slots (PowerSystems is THE worked
 // example — see augment-slot-map.md "Power / resources").
@@ -150,7 +140,7 @@ function PowerSystemsComponent({
   // measurement meaningfully DISAGREES with that total, it's surfaced
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
-  const streamPower = useTelemetry<PartsPowerPayload>("data", "parts.power");
+  const streamPower = useTelemetry("parts.power");
   const streamStatus = useDataStreamStatus("data", "parts.power");
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";

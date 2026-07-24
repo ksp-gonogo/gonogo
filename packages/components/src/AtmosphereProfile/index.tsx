@@ -7,6 +7,7 @@ import {
   useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { formatStreamStatus, StreamStatusBadge } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
@@ -59,24 +60,23 @@ function AtmosphereProfileComponent({
   w,
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
-  const bodyName = useTelemetry<string>("data", "v.body");
+  // Canonical native reads: `v.body`/`v.altitude` off the `vessel.state`
+  // derived channel (SDK-side `deriveVesselState` — `parentBodyName`/
+  // `altitudeAsl`), `v.atmosphericDensity`/`v.atmosphericTemperature`/
+  // `v.externalTemperature` off the raw `vessel.flight` Topic — replacing
+  // every legacy two-arg `data`-source shim read this widget used to make.
+  const vesselState = useStream<VesselState>("vessel.state");
+  const flight = useTelemetry("vessel.flight");
+  const bodyName = vesselState?.parentBodyName ?? undefined;
   const body = bodyName ? getBody(bodyName) : undefined;
-  const altitude = useTelemetry<number>("data", "v.altitude");
-  const liveDensity = useTelemetry<number>("data", "v.atmosphericDensity");
-  const liveAirTemp = useTelemetry<number>("data", "v.atmosphericTemperature");
-  const liveSkinTemp = useTelemetry<number>("data", "v.externalTemperature");
-  // Connectivity indicator (mirrors the pattern used elsewhere in this widget family).
-  // `v.altitude` is this widget's representative MAPPED key — it resolves
-  // to the DERIVED `vessel.state.altitudeAsl` subtopic (map-topic.ts's
-  // `TELEMACHUS_CLEAN_HOMES`), the first widget to route its badge through a
-  // derived channel rather than a raw wire topic.
-  // `v.atmosphericDensity` is also mapped (raw `vessel.flight.atmDensity`).
-  // `v.atmosphericTemperature`/`v.externalTemperature` are mapped too
-  // (map-topic.ts routes them to `vessel.flight.atmosphericTemperature`
-  // / `vessel.flight.externalTemperature`, the same already-carried channel
-  // as the density read) — `useDataValue` picks that up with zero call-site
-  // change. Only `v.body` remains GAPPED (needs a display-map subtopic the
-  // widget can resolve a `BodyDefinition` from) and stays legacy.
+  const altitude = vesselState?.altitudeAsl ?? undefined;
+  const liveDensity = flight?.atmDensity;
+  const liveAirTemp = flight?.atmosphericTemperature;
+  const liveSkinTemp = flight?.externalTemperature;
+  // Connectivity indicator (mirrors the pattern used elsewhere in this widget
+  // family) — left on the legacy `useDataStreamStatus` two-arg shim
+  // (untouched by this migration; `v.altitude` still resolves to the same
+  // `vessel.state.altitudeAsl` subtopic the badge tracks).
   const streamStatus = useDataStreamStatus("data", "v.altitude");
 
   const cols = w ?? 8;
@@ -325,13 +325,7 @@ registerComponent<AtmosphereProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: AtmosphereProfileComponent,
-  dataRequirements: [
-    "v.altitude",
-    "v.body",
-    "v.atmosphericDensity",
-    "v.atmosphericTemperature",
-    "v.externalTemperature",
-  ],
+  dataRequirements: ["vessel.flight"],
   defaultConfig: {},
   actions: [],
   pushable: true,

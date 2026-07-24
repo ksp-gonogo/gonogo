@@ -1,31 +1,52 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearBodies,
   DashboardItemContext,
-  type MockDataSource,
   registerBody,
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
-const ESCAPE_KEYS: DataKey[] = [
-  { key: "v.altitude", unit: "m" },
-  { key: "v.orbitalVelocity", unit: "m/s" },
-  { key: "v.body" },
+// vessel.state's carried-channels gate is parent-channel-scoped — every
+// vessel.state.* field needs ALL of vesselStateChannel.inputs carried.
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
 ];
 
-describe("EscapeProfileComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+/** Resolves `vessel.state.parentBodyName` to `name` via a single-entry `system.bodies` table. */
+function emitBody(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  name: string,
+) {
+  fixture.emit("vessel.orbit", {
+    referenceBodyIndex: 1,
+    sma: 700_000,
+    ecc: 0,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    mu: 3.5316e12,
+    meanAnomalyAtEpoch: 0,
+    epoch: 10,
+    encounter: null,
+  });
+  fixture.emit("system.bodies", {
+    bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],
+  });
+  fixture.emit("vessel.identity", { parentBodyIndex: 1 });
+}
 
-  beforeEach(async () => {
+describe("EscapeProfileComponent", () => {
+  beforeEach(() => {
     clearBodies();
     registerStockBodies();
     vi.stubGlobal(
@@ -49,22 +70,26 @@ describe("EscapeProfileComponent", () => {
         disconnect() {}
       },
     );
-    fixture = await setupMockDataSource({ keys: ESCAPE_KEYS });
-    source = fixture.source;
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
     clearBodies();
     vi.unstubAllGlobals();
   });
 
   function renderEscape() {
-    return render(
-      <DashboardItemContext.Provider value={{ instanceId: "esc-test" }}>
-        <EscapeProfileComponent config={{}} id="esc-test" />
-      </DashboardItemContext.Provider>,
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+    });
+    const rendered = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "esc-test" }}>
+          <EscapeProfileComponent config={{}} id="esc-test" />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
     );
+    return { fixture, ...rendered };
   }
 
   it("renders the title and no curve before v.body arrives", async () => {
@@ -76,10 +101,10 @@ describe("EscapeProfileComponent", () => {
   });
 
   it("draws the escape-velocity curve once the body is known", async () => {
-    const { container } = renderEscape();
+    const { fixture, container } = renderEscape();
 
     act(() => {
-      source.emit("v.body", "Kerbin");
+      emitBody(fixture, "Kerbin");
     });
 
     await waitFor(() => {
@@ -98,10 +123,10 @@ describe("EscapeProfileComponent", () => {
       maxAtmosphere: 0,
     });
 
-    renderEscape();
+    const { fixture } = renderEscape();
 
     act(() => {
-      source.emit("v.body", "Modtopia");
+      emitBody(fixture, "Modtopia");
     });
 
     expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();

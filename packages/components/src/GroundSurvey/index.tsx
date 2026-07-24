@@ -36,7 +36,7 @@ interface GroundSurveyConfig {
  * context is passed down.
  */
 export interface GroundSurveyBadgesContext {
-  /** Body currently being surveyed (`v.body`), when known. */
+  /** Body currently being surveyed (`vessel.state.parentBodyName`), when known. */
   body: string | null;
   /** Survey phase driving the strip. */
   surveyState: "idle" | "active" | "frozen" | "above-ceiling";
@@ -371,15 +371,7 @@ registerComponent<GroundSurveyConfig>({
   minSize: { w: 3, h: 3 },
   component: GroundSurveyComponent,
   configComponent: GroundSurveyConfigComponent,
-  dataRequirements: [
-    "v.altitude",
-    "v.heightFromTerrain",
-    "v.surfaceSpeed",
-    "v.body",
-    "v.splashed",
-    "land.predictedLat",
-    "land.predictedLon",
-  ],
+  dataRequirements: ["vessel.flight"],
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
   // Broad badges escape-hatch slot in the header meta row. No

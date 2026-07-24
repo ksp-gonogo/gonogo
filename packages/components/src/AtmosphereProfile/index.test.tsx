@@ -1,29 +1,46 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearBodies,
   DashboardItemContext,
-  type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
-const ATMO_KEYS: DataKey[] = [
-  { key: "v.altitude", unit: "m" },
-  { key: "v.body" },
+const CARRIED_CHANNELS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
 ];
 
-describe("AtmosphereProfileComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+/**
+ * Resolves `vessel.state.parentBodyName` to `name` via a single-entry
+ * `system.bodies` table. `vessel.flight` must ALSO be present here — in the
+ * "measured" (Loaded) basis `deriveVesselState` gates the WHOLE
+ * `vessel.state` record (not just `altitudeAsl`) on `vessel.flight` having
+ * arrived at all.
+ */
+function emitBody(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  name: string,
+) {
+  fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
+  fixture.emit("vessel.flight", {});
+  fixture.emit("vessel.identity", { parentBodyIndex: 1 });
+  fixture.emit("system.bodies", {
+    bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],
+  });
+}
 
-  beforeEach(async () => {
+describe("AtmosphereProfileComponent", () => {
+  beforeEach(() => {
     clearBodies();
     registerStockBodies();
     vi.stubGlobal(
@@ -47,29 +64,33 @@ describe("AtmosphereProfileComponent", () => {
         disconnect() {}
       },
     );
-    fixture = await setupMockDataSource({ keys: ATMO_KEYS });
-    source = fixture.source;
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
     clearBodies();
     vi.unstubAllGlobals();
   });
 
   function renderAtmo() {
-    return render(
-      <DashboardItemContext.Provider value={{ instanceId: "atmo-test" }}>
-        <AtmosphereProfileComponent config={{}} id="atmo-test" />
-      </DashboardItemContext.Provider>,
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+    });
+    const rendered = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "atmo-test" }}>
+          <AtmosphereProfileComponent config={{}} id="atmo-test" />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
     );
+    return { fixture, ...rendered };
   }
 
   it("draws a pressure curve for an atmospheric body", async () => {
-    const { container } = renderAtmo();
+    const { fixture, container } = renderAtmo();
 
     act(() => {
-      source.emit("v.body", "Kerbin");
+      emitBody(fixture, "Kerbin");
     });
 
     await waitFor(() => {
@@ -80,11 +101,11 @@ describe("AtmosphereProfileComponent", () => {
   });
 
   it("draws a current-altitude threshold line once altitude arrives", async () => {
-    const { container } = renderAtmo();
+    const { fixture, container } = renderAtmo();
 
     act(() => {
-      source.emit("v.body", "Kerbin");
-      source.emit("v.altitude", 5_600);
+      emitBody(fixture, "Kerbin");
+      fixture.emit("vessel.flight", { altitudeAsl: 5_600 });
     });
 
     await waitFor(() => {
@@ -96,10 +117,10 @@ describe("AtmosphereProfileComponent", () => {
   });
 
   it("shows the airless notice for non-atmospheric bodies", async () => {
-    const { container } = renderAtmo();
+    const { fixture, container } = renderAtmo();
 
     act(() => {
-      source.emit("v.body", "Mun");
+      emitBody(fixture, "Mun");
     });
 
     await waitFor(() => {
