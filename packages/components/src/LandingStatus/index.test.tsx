@@ -306,6 +306,40 @@ describe("LandingStatusComponent", () => {
     expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
   });
 
+  it("renders the touchdown reticle + hazard verdict at a large size", async () => {
+    renderWidget({ w: 12, h: 14 });
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 3000,
+          verticalSpeed: 30,
+          surfaceSpeed: 40,
+        },
+        availableThrust: 20,
+      });
+      stream.emit("vessel.landing", {
+        outcome: "terrain-assessed",
+        sampleSource: "predicted",
+        predictedLatitude: 0.5,
+        predictedLongitude: 0.5,
+        predictedSlopeAngle: 20, // > 15 => DIVERT
+        predictedSlopeHeading: 135,
+        predictedRoughness: 30,
+        predictedBiome: "Highlands",
+      });
+    });
+    expect(
+      await screen.findByRole("img", { name: /touchdown site/i }),
+    ).toBeInTheDocument();
+    // The 20° slope trips a DIVERT verdict in a status banner.
+    const statuses = screen.getAllByRole("status");
+    expect(statuses.some((s) => /DIVERT/.test(s.textContent ?? ""))).toBe(true);
+    // The source is surfaced honestly.
+    expect(screen.getAllByText(/predicted/i).length).toBeGreaterThan(0);
+  });
+
   it("shows the delayed regime banner off comms.delay", async () => {
     renderWidget();
     act(() => {

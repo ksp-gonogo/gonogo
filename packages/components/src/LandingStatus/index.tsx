@@ -34,7 +34,9 @@ import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
 import { DescentScope } from "./DescentScope";
+import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
+import { TouchdownReticle } from "./TouchdownReticle";
 
 // Empty config — kept for forward-compat with the old widget's config slot.
 type LandingStatusConfig = Record<string, never>;
@@ -248,6 +250,16 @@ function LandingStatusComponent({
 
   const live = clocks.regime === "live" || clocks.regime === "no-path";
   const showScope = (w ?? 8) >= 6;
+  // The reticle is the large-size site view; show it once terrain was sampled
+  // (either the predicted point or the sub-vessel fallback).
+  const showReticle = (w ?? 8) >= 10 && landing?.sampleSource != null;
+  const hazardVerdict = deriveHazardVerdict({
+    slopeDeg: landing?.predictedSlopeAngle,
+    roughnessSigma: landing?.predictedRoughness,
+    verticalSpeed: solution.verticalSpeed,
+    lateralSpeed: solution.horizontalSpeed,
+    biome: landing?.predictedBiome,
+  });
   // The DescentScope only renders for a solved vacuum descent at a wide size; it
   // carries the AGL ladder + velocity vector. Everywhere else (small size, or an
   // atmospheric / no-solution board) fall back to the plain velocity + height
@@ -403,6 +415,24 @@ function LandingStatusComponent({
                   )}
                 </Section>
               </>
+            )}
+
+            {showReticle && (
+              <Section>
+                <SectionTitle>Touchdown site</SectionTitle>
+                <TouchdownReticle
+                  siteLat={landing?.predictedLatitude ?? null}
+                  siteLon={landing?.predictedLongitude ?? null}
+                  vesselLat={flight?.latitude ?? null}
+                  vesselLon={flight?.longitude ?? null}
+                  bodyRadius={body?.radius ?? null}
+                  slopeDeg={landing?.predictedSlopeAngle ?? null}
+                  slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
+                  biome={landing?.predictedBiome ?? null}
+                  sampleSource={landing?.sampleSource ?? null}
+                  verdict={hazardVerdict}
+                />
+              </Section>
             )}
 
             {!scopeShown && solution.horizontalSpeed != null && (
