@@ -11,25 +11,37 @@ import styled from "styled-components";
 export const Panel = styled.div`
   /* Glow extension picked up by ScrollArea — descendant glows extend by these
      amounts so they sit flush with the panel chrome rather than the inner
-     scroll-container edge. Panel's overflow:hidden clips the overhang. */
-  --scroll-glow-pad-y: 12px;
-  --scroll-glow-pad-x: 16px;
+     scroll-container edge. Panel's overflow:hidden clips the overhang. The
+     Panel itself imposes NO content inset (full-bleed standard — content
+     reaches every edge; margin lives outside, in the dashboard gutter), so a
+     ScrollArea that sits DIRECTLY in the Panel body needs no glow extension.
+     A ScrollArea nested inside a padded PanelBody re-sets these to PanelBody's
+     inset so its glow still reaches the chrome. */
+  --scroll-glow-pad-y: 0px;
+  --scroll-glow-pad-x: 0px;
 
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
-  padding: 12px 16px;
+  /* Full-bleed: no uniform content inset. Visual content (charts/maps/gauges/
+     plots/full-width lists) bleeds to the body edge; text/readouts stay
+     readable via LOCAL padding on PanelTitle/PanelSubtitle and PanelBody. */
+  padding: 0;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
 `;
 
+/* The header IS text, so it carries its own inset (the Panel no longer does).
+   Rendered as a direct Panel child by ~every widget, so self-padding here keeps
+   all headers readable with no per-widget change while the body below bleeds. */
 export const PanelTitle = styled.h3`
   margin: 0;
+  padding: 12px 16px 8px;
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -38,10 +50,31 @@ export const PanelTitle = styled.h3`
 `;
 
 export const PanelSubtitle = styled.div`
+  padding: 0 16px;
   font-size: 12px;
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
   margin-top: -4px;
+`;
+
+/**
+ * Padded body region for TEXT/readout content, restoring the standard inset the
+ * Panel no longer imposes (full-bleed standard). Wrap a widget's textual body
+ * in this so it stays readable; leave VISUAL content (charts, maps, gauges,
+ * plots, full-width list rows) directly in the Panel so it bleeds to the edge.
+ * Fills the remaining Panel height (`flex:1; min-height:0`) and re-sets the
+ * ScrollArea glow-pad vars to its own inset so a nested ScrollArea's edge glow
+ * still reaches the Panel chrome.
+ */
+export const PanelBody = styled.div`
+  --scroll-glow-pad-y: 8px;
+  --scroll-glow-pad-x: 16px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px 12px;
 `;
 
 const ScrollAreaRoot = styled.div`
