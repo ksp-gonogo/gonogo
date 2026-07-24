@@ -1,5 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useEffect, useReducer, useRef } from "react";
+import { rateTerrainRoughness } from "../shared/roughnessGrade";
 
 export interface SurveySample {
   /** Unix ms — wall-clock time this sample was received (`Date.now()` at
@@ -261,12 +262,8 @@ export function rateSmoothness(
     if (v > max) max = v;
   }
   const peakToTrough = max - min;
-  if (stddev < 50) return { badge: "A", label: "Smooth", stddev, peakToTrough };
-  if (stddev < 150) {
-    return { badge: "B", label: "Acceptable", stddev, peakToTrough };
-  }
-  if (stddev < 400) {
-    return { badge: "C", label: "Rough", stddev, peakToTrough };
-  }
-  return { badge: "F", label: "Hazardous", stddev, peakToTrough };
+  // Badge/label come from the shared calibration so GroundSurvey and the
+  // Landing hazard verdict cannot drift onto different σ scales.
+  const grade = rateTerrainRoughness(stddev);
+  return { badge: grade.badge, label: grade.label, stddev, peakToTrough };
 }
