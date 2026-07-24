@@ -324,26 +324,19 @@ function LandingStatusComponent({
           )}
         </Grid>
         <Value tone="muted" size="xs">
-          Estimate — assumes current config
-          {landing?.parachuteState === "armed"
-            ? "; excludes the pending parachute"
-            : ""}
-          .
+          est · current config
+          {landing?.parachuteState === "armed" ? " · excludes chute" : ""}
         </Value>
       </Section>
     ) : board === "atmospheric-unmodelled" ? (
       <Section>
         <Badge tone="warn" size="sm">
-          atmospheric — descent unmodelled
+          descent unmodelled
         </Badge>
-        <Value tone="muted" size="xs">
-          No drag model. Burn and impact numbers are suppressed rather than
-          shown wrong.
-        </Value>
       </Section>
     ) : board === "no-solution" ? (
       <Section>
-        <Value tone="muted">No landing solution — body data unavailable.</Value>
+        <Value tone="muted">no solution · no body data</Value>
       </Section>
     ) : null;
 
@@ -534,7 +527,10 @@ function LandingStatusComponent({
             </div>
           )}
           <ScrollArea>
-            <Section>
+            {/* `lg` gap gives the major blocks (delay, commit hero, site) real
+                vertical separation — Section's own `xs` (2px) is the tight
+                within-group gap and read as cramped between headings. */}
+            <Stack gap="lg">
               {commitLayerEl}
               {showReticle ? (
                 // The reticle is the dominant column; the compact velocity
@@ -548,7 +544,7 @@ function LandingStatusComponent({
               ) : (
                 detailStack
               )}
-            </Section>
+            </Stack>
           </ScrollArea>
         </div>
       )}
@@ -562,7 +558,7 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Composed descent instrument: a full-height altitude rail, the touchdown-site terrain reticle, velocity vector + TWR, and delay-native commit/uncommandable clocks with the suicide-burn cue — built for landing under signal delay. An instrument, not a command surface (fly gear/brakes from your own action-group widgets).",
+    "Composed descent instrument for landing under signal delay: a full-height altitude rail, the touchdown-site terrain reticle, velocity vector + TWR, and delay-native commit/uncommandable clocks with the suicide-burn cue. An instrument, not a command surface (fly gear/brakes from action-group widgets).",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 4, h: 6 },

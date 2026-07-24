@@ -17,6 +17,7 @@
 
 import { Gauge } from "@ksp-gonogo/ui";
 import { Value } from "@ksp-gonogo/ui-kit";
+import { DirectionArrow } from "./DirectionArrow";
 
 export interface DescentScopeProps {
   /** Descent rate, m/s (down-positive). */
@@ -111,7 +112,8 @@ function VelocityVector({
       style={{ display: "block", maxWidth: "100%", height: "auto" }}
     >
       <title>{label}</title>
-      {/* axes */}
+      {/* Faint reference axes + the descent/drift legs — context for the
+          direction arrow, not the star of the show. */}
       <line
         x1={ox}
         y1={oy}
@@ -128,33 +130,34 @@ function VelocityVector({
         stroke="var(--color-border-subtle)"
         strokeWidth={1}
       />
-      {/* vertical (descent) */}
       <line
         x1={ox}
         y1={oy}
         x2={ox}
         y2={oy + dy}
-        stroke="var(--color-accent-fg)"
-        strokeWidth={2}
+        stroke="var(--color-border-subtle)"
+        strokeWidth={1}
+        strokeDasharray="2 2"
       />
-      {/* horizontal (drift) */}
       <line
         x1={ox}
         y1={oy}
         x2={ox + dx}
         y2={oy}
-        stroke="var(--color-status-warning-fg)"
-        strokeWidth={2}
+        stroke="var(--color-border-subtle)"
+        strokeWidth={1}
+        strokeDasharray="2 2"
       />
-      {/* resultant */}
-      <line
+      {/* Velocity direction: the shared DirectionArrow glyph (same as the
+          reticle's slope arrow), pointing along the resultant. */}
+      <DirectionArrow
         x1={ox}
         y1={oy}
         x2={ox + dx}
         y2={oy + dy}
-        stroke="var(--color-text-primary)"
-        strokeWidth={1.5}
-        strokeDasharray="3 2"
+        color="var(--color-accent-fg)"
+        strokeWidth={2}
+        headLength={7}
       />
       <text
         x={ox + 3}

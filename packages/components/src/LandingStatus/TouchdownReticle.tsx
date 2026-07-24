@@ -17,6 +17,7 @@
 
 import { StatusPill } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { DirectionArrow } from "./DirectionArrow";
 import { greatCircle } from "./geo";
 import type { Hazard, HazardResult } from "./hazardVerdict";
 
@@ -177,7 +178,7 @@ export function TouchdownReticle({
         {v ? (
           <StatusPill $tone={BANNER_TONE[v]}>{v}</StatusPill>
         ) : (
-          <StatusPill $tone="default">SITE —</StatusPill>
+          <StatusPill $tone="default">NO SITE</StatusPill>
         )}
       </div>
 
@@ -256,15 +257,15 @@ export function TouchdownReticle({
           />
         )}
 
-        {/* Slope arrow (downhill). */}
+        {/* Slope arrow (downhill) — the shared DirectionArrow glyph, same as
+            the velocity vector's resultant, oriented to the terrain gradient. */}
         {slopeTip && (
-          <line
+          <DirectionArrow
             x1={C}
             y1={C}
             x2={slopeTip.x}
             y2={slopeTip.y}
-            stroke="var(--color-accent-fg)"
-            strokeWidth={2.5}
+            color="var(--color-accent-fg)"
           />
         )}
 

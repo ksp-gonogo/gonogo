@@ -299,10 +299,8 @@ describe("LandingStatusComponent", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/85.0 m\/s/)).toBeInTheDocument();
     expect(screen.getByText("at-terminal")).toBeInTheDocument();
-    // The armed-chute caveat surfaces; the "unmodelled" suppression note is gone.
-    expect(
-      screen.getByText(/excludes the pending parachute/i),
-    ).toBeInTheDocument();
+    // The armed-chute caveat surfaces (terse); the unmodelled badge is gone.
+    expect(screen.getByText(/excludes chute/i)).toBeInTheDocument();
     expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
   });
 

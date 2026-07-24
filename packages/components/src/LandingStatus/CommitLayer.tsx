@@ -36,7 +36,7 @@ const REGIME_LABEL: Record<LandingRegime, string> = {
   live: "LIVE",
   staged: "STAGED",
   autonomous: "AUTONOMOUS",
-  "no-path": "LINK —",
+  "no-path": "NO LINK",
 };
 
 const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
@@ -143,16 +143,16 @@ export function CommitLayer({
 
         {uncommandable && (
           <Value tone="accent" size="sm">
-            UNCOMMANDABLE — round-trip{" "}
-            {formatDuration(roundTripSeconds as number, { ms: true })} exceeds
-            remaining {formatDuration(countdown as number, { ms: true })}
+            UNCOMMANDABLE · RT{" "}
+            {formatDuration(roundTripSeconds as number, { ms: true })} {">"}{" "}
+            {formatDuration(countdown as number, { ms: true })} left
           </Value>
         )}
 
         {!live && blindInSeconds != null && (
           <Value tone={blind ? "accent" : "muted"} size="sm">
             {blind
-              ? "BLIND — outcome determined"
+              ? "BLIND"
               : `Blind in ${formatDuration(blindInSeconds, { ms: true })}`}
           </Value>
         )}
