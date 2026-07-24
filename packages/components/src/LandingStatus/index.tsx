@@ -13,7 +13,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
-import { StreamStatusBadge } from "@ksp-gonogo/ui";
+import { Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
@@ -23,17 +23,17 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
-  Readout,
   ReadoutCaption,
-  type ReadoutTone,
   ScrollArea,
   Section,
   SectionTitle,
-  StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
+import { useEffect, useState } from "react";
 import { deriveBoard } from "./board";
-import { deriveDelayClocks, type LandingRegime } from "./clocks";
+import { CommitLayer } from "./CommitLayer";
+import { deriveDelayClocks } from "./clocks";
+import { DescentScope } from "./DescentScope";
 import { solveSuicideBurn } from "./solveLanding";
 
 // Empty config — kept for forward-compat with the old widget's config slot.
@@ -41,10 +41,7 @@ type LandingStatusConfig = Record<string, never>;
 
 /**
  * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot,
- * rendered in the header row next to the title. A cheap integration seam for
- * small inline status chips an Uplink wants beside the "LANDING" title (e.g. a
- * landing-guidance quality chip). Badge augments read their own Topics via
- * hooks, so only labelling context is passed down. Preserved verbatim from the
+ * rendered in the header row next to the title. Preserved verbatim from the
  * predecessor so existing augment bindings keep working across the reboot.
  */
 export interface LandingStatusBadgesContext {
@@ -114,20 +111,6 @@ function readOneWaySeconds(
   return typeof s === "number" && Number.isFinite(s) && s >= 0 ? s : 0;
 }
 
-const REGIME_LABEL: Record<LandingRegime, string> = {
-  live: "LIVE",
-  staged: "STAGED",
-  autonomous: "AUTONOMOUS",
-  "no-path": "LINK —",
-};
-
-const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
-  live: "go",
-  staged: "warning",
-  autonomous: "alert",
-  "no-path": "default",
-};
-
 /** A labelled value row inside a two-column readout grid. */
 function Field({
   label,
@@ -146,51 +129,10 @@ function Field({
   );
 }
 
-// ── Configuration row (gear/brakes with pending/confirmed lifecycle) ──────────
-
-function ConfigRow({
-  label,
-  on,
-  phase,
-  onToggle,
-}: {
-  label: string;
-  on: boolean | undefined;
-  phase: string;
-  onToggle: () => void;
-}) {
-  const pending = phase === "in-flight";
-  const failed = phase === "failed" || phase === "lost";
-  const tone: "neutral" | "go" | "nogo" | "warn" = failed
-    ? "nogo"
-    : pending
-      ? "warn"
-      : on
-        ? "go"
-        : "neutral";
-  const stateText = pending
-    ? "sending…"
-    : failed
-      ? "no reply"
-      : on === undefined
-        ? "—"
-        : on
-          ? "on"
-          : "off";
-  return (
-    <Cluster justify="between" gap="sm">
-      <button type="button" onClick={onToggle} aria-label={`Toggle ${label}`}>
-        {label}
-      </button>
-      <Badge tone={tone} size="sm">
-        {stateText}
-      </Badge>
-    </Cluster>
-  );
-}
+const DESCENT_HISTORY_MAX = 60;
 
 function LandingStatusComponent({
-  h,
+  w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
@@ -205,12 +147,9 @@ function LandingStatusComponent({
   const summary = useTelemetry("dv.summary");
   const commsDelay = useTelemetry("comms.delay");
 
-  // Burn datum: the vessel's LOWEST point above terrain, not its centre of
-  // mass. `vessel.surface.heightFromTerrain` is the number a suicide-burn
-  // widget actually cares about — how far the gear is from the ground. The
-  // capture side nulls the whole `vessel.surface` channel while Orbiting/
-  // Escaping, so fall back to the CoM radar altitude (`vessel.flight.
-  // altitudeTerrain`) with a visible note when it's absent.
+  // Burn datum: the vessel's LOWEST point above terrain. Falls back to the CoM
+  // radar altitude with a visible note when `vessel.surface` is nulled (Orbiting
+  // / Escaping capture guard).
   const surfaceHeight = surface?.heightFromTerrain;
   const heightFromTerrain = surfaceHeight ?? flight?.altitudeTerrain;
   const usingComDatum = surfaceHeight == null && heightFromTerrain != null;
@@ -233,13 +172,18 @@ function LandingStatusComponent({
     timeToImpact: solution.timeToImpact,
   });
 
-  // Affordability — required burn dV vs. remaining dV in the stack. Total
-  // remaining actual dV is the honest "can I afford this at all" denominator.
   const availableDv = summary?.totalDvActual ?? summary?.totalDvVac;
   const requiredDv = solution.burnDeltaV;
   const affordable =
     requiredDv != null && availableDv != null
       ? requiredDv <= availableDv
+      : null;
+
+  const twr =
+    solution.maxAccel != null &&
+    solution.gravity != null &&
+    solution.gravity > 0
+      ? solution.maxAccel / solution.gravity
       : null;
 
   const gearCmd = useCommand("vessel.control.setGear");
@@ -272,14 +216,21 @@ function LandingStatusComponent({
 
   const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
 
-  // Board state drives WHICH readouts exist — we never show a confident number
-  // from a model that doesn't apply. Atmospheric bodies suppress the vacuum
-  // burn/impact numbers entirely rather than hedge a wrong one. (Pure state
-  // machine extracted to ./board; see board.test.ts for the pinned truth table.)
   const board = deriveBoard({ solutionState: solution.state, atmospheric });
 
-  const rows = h ?? 10;
-  const showSubtitle = rows >= 6;
+  // Descent-rate trend — a bounded history of vertical speed, so a developing
+  // over-speed reads as a trend not a single tick. Appended after render.
+  const [descentHistory, setDescentHistory] = useState<number[]>([]);
+  const currentVs = flight?.verticalSpeed;
+  useEffect(() => {
+    if (currentVs == null || !Number.isFinite(currentVs)) return;
+    setDescentHistory((h) => {
+      const next = [...h, currentVs];
+      return next.length > DESCENT_HISTORY_MAX
+        ? next.slice(next.length - DESCENT_HISTORY_MAX)
+        : next;
+    });
+  }, [currentVs]);
 
   const badgesContext: LandingStatusBadgesContext = {
     bodyName: bodyName ?? null,
@@ -287,42 +238,12 @@ function LandingStatusComponent({
   };
 
   const live = clocks.regime === "live" || clocks.regime === "no-path";
-
-  // Headline hero. Live/no-delay: the ignition countdown. Delayed: the Commit
-  // Clock — the last instant a GO can still reach the vessel — which is the
-  // number that actually matters once the loop can't be closed.
-  const countdown = solution.suicideBurnCountdown;
-  let heroValue: string;
-  let heroCaption: string;
-  let heroTone: ReadoutTone;
-  let urgent = false;
-  if (live) {
-    heroCaption = "SUICIDE BURN";
-    if (countdown == null) {
-      heroValue = "—";
-      heroTone = "default";
-    } else if (countdown <= 0) {
-      heroValue = "IGNITE";
-      heroTone = "alert";
-      urgent = true;
-    } else {
-      heroValue = `T−${formatDuration(countdown, { ms: true })}`;
-      urgent = countdown <= 5;
-      heroTone = urgent ? "alert" : "warning";
-    }
-  } else {
-    heroCaption = "COMMIT IN";
-    if (clocks.committed) {
-      heroValue = "COMMITTED";
-      heroTone = "alert";
-    } else if (clocks.commitInSeconds == null) {
-      heroValue = "—";
-      heroTone = "default";
-    } else {
-      heroValue = `T−${formatDuration(clocks.commitInSeconds, { ms: true })}`;
-      heroTone = "warning";
-    }
-  }
+  const showScope = (w ?? 8) >= 6;
+  // The DescentScope only renders for a solved vacuum descent at a wide size; it
+  // carries the AGL ladder + velocity vector. Everywhere else (small size, or an
+  // atmospheric / no-solution board) fall back to the plain velocity + height
+  // readouts, which are drag-independent and always valid.
+  const scopeShown = board === "vacuum-solved" && showScope;
 
   return (
     <Panel>
@@ -331,7 +252,7 @@ function LandingStatusComponent({
         <AugmentSlot name="landing-status.badges" props={badgesContext} />
         <StreamStatusBadge status={streamStatus} />
       </Cluster>
-      {showSubtitle && bodyName !== undefined && (
+      {bodyName !== undefined && (
         <PanelSubtitle>
           {bodyName}
           {atmospheric ? " · atmospheric" : " · vacuum"}
@@ -341,185 +262,153 @@ function LandingStatusComponent({
       {board === "not-descending" ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
-        <Body>
+        <ScrollArea>
           <Section>
-            <SectionTitle>Delay</SectionTitle>
-            <Cluster justify="start" gap="sm">
-              <StatusPill $tone={REGIME_TONE[clocks.regime]}>
-                {REGIME_LABEL[clocks.regime]}
-              </StatusPill>
-              {clocks.roundTripSeconds != null &&
-                clocks.roundTripSeconds > 0 && (
-                  <Value tone="muted">
-                    RT {formatDuration(clocks.roundTripSeconds, { ms: true })}
-                  </Value>
-                )}
-            </Cluster>
-          </Section>
+            <CommitLayer
+              regime={clocks.regime}
+              roundTripSeconds={clocks.roundTripSeconds}
+              live={live}
+              suicideBurnCountdown={solution.suicideBurnCountdown}
+              commitInSeconds={clocks.commitInSeconds}
+              committed={clocks.committed}
+              blindInSeconds={clocks.blindInSeconds}
+              blind={clocks.blind}
+              gear={{
+                on: gearOn,
+                phase: gearCmd.status.phase,
+                onToggle: toggleGear,
+              }}
+              brakes={{
+                on: brakesOn,
+                phase: brakesCmd.status.phase,
+                onToggle: toggleBrakes,
+              }}
+            />
 
-          {board === "atmospheric-unmodelled" ? (
-            <Section>
-              <Badge tone="warn" size="sm">
-                atmospheric — descent unmodelled
-              </Badge>
-              <Value tone="muted" size="xs">
-                No drag model. Burn and impact numbers are suppressed rather
-                than shown wrong.
-              </Value>
-            </Section>
-          ) : board === "no-solution" ? (
-            <Section>
-              <Value tone="muted">
-                No landing solution — body data unavailable.
-              </Value>
-            </Section>
-          ) : (
-            <>
-              <Section
-                role={urgent ? "alert" : "status"}
-                aria-live={urgent ? "assertive" : "polite"}
-              >
-                <Readout $tone={heroTone}>
-                  {heroValue}
-                  <ReadoutCaption>{heroCaption}</ReadoutCaption>
-                </Readout>
-                {!live && clocks.blindInSeconds != null && (
-                  <Value tone={clocks.blind ? "accent" : "muted"} size="sm">
-                    {clocks.blind
-                      ? "BLIND — outcome determined"
-                      : `Blind in ${formatDuration(clocks.blindInSeconds, { ms: true })}`}
-                  </Value>
-                )}
-              </Section>
-
+            {board === "atmospheric-unmodelled" ? (
               <Section>
-                <SectionTitle>Burn</SectionTitle>
-                <Grid cols="auto 1fr" gap="xs">
-                  <Field label="Ignition">
-                    {countdown == null
-                      ? "—"
-                      : countdown <= 0
-                        ? "now"
-                        : `T−${formatDuration(countdown, { ms: true })}`}
-                  </Field>
-                  <Field label="Burn dV">{formatDv(requiredDv)}</Field>
-                  <Field label="Duration">
-                    {solution.burnDuration == null
-                      ? "—"
-                      : formatDuration(solution.burnDuration, { ms: true })}
-                  </Field>
-                  <Field label="Available dV">{formatDv(availableDv)}</Field>
-                  <ReadoutCaption>Affordable</ReadoutCaption>
-                  {affordable == null ? (
-                    <Value tone="muted">—</Value>
-                  ) : (
-                    <Badge tone={affordable ? "go" : "nogo"} size="sm">
-                      {affordable ? "yes" : "insufficient dV"}
-                    </Badge>
+                <Badge tone="warn" size="sm">
+                  atmospheric — descent unmodelled
+                </Badge>
+                <Value tone="muted" size="xs">
+                  No drag model. Burn and impact numbers are suppressed rather
+                  than shown wrong.
+                </Value>
+              </Section>
+            ) : board === "no-solution" ? (
+              <Section>
+                <Value tone="muted">
+                  No landing solution — body data unavailable.
+                </Value>
+              </Section>
+            ) : (
+              <>
+                {showScope && (
+                  <Section>
+                    <DescentScope
+                      aglMeters={heightFromTerrain ?? null}
+                      verticalSpeed={solution.verticalSpeed}
+                      horizontalSpeed={solution.horizontalSpeed}
+                      ignitionAltitude={solution.ignitionAltitude}
+                      suicideBurnCountdown={solution.suicideBurnCountdown}
+                      twr={twr}
+                      usingComDatum={usingComDatum}
+                    />
+                  </Section>
+                )}
+
+                <Section>
+                  <SectionTitle>Burn</SectionTitle>
+                  <Grid cols="auto 1fr" gap="xs">
+                    <Field label="Burn dV">{formatDv(requiredDv)}</Field>
+                    <Field label="Duration">
+                      {solution.burnDuration == null
+                        ? "—"
+                        : formatDuration(solution.burnDuration, { ms: true })}
+                    </Field>
+                    <Field label="Available dV">{formatDv(availableDv)}</Field>
+                    <ReadoutCaption>Affordable</ReadoutCaption>
+                    {affordable == null ? (
+                      <Value tone="muted">—</Value>
+                    ) : (
+                      <Badge tone={affordable ? "go" : "nogo"} size="sm">
+                        {affordable ? "yes" : "insufficient dV"}
+                      </Badge>
+                    )}
+                  </Grid>
+                </Section>
+
+                <Section>
+                  <SectionTitle>Touchdown</SectionTitle>
+                  <Grid cols="auto 1fr" gap="xs">
+                    <Field label="If nothing">
+                      {formatMps(solution.speedAtImpact)}
+                    </Field>
+                    <Field label="If burn now">
+                      {solution.bestSpeedAtImpact == null
+                        ? "—"
+                        : formatMps(solution.bestSpeedAtImpact)}
+                    </Field>
+                    <Field label="Impact in">
+                      {solution.timeToImpact == null
+                        ? "—"
+                        : formatDuration(solution.timeToImpact, { ms: true })}
+                    </Field>
+                  </Grid>
+                  {showScope && descentHistory.length >= 2 && (
+                    <Sparkline
+                      values={descentHistory}
+                      width={160}
+                      height={28}
+                      ariaLabel="Descent-rate trend"
+                    />
                   )}
-                </Grid>
-              </Section>
+                </Section>
+              </>
+            )}
 
+            {!scopeShown && solution.horizontalSpeed != null && (
               <Section>
-                <SectionTitle>Touchdown</SectionTitle>
+                <SectionTitle>Velocity</SectionTitle>
                 <Grid cols="auto 1fr" gap="xs">
-                  <Field label="If nothing">
-                    {formatMps(solution.speedAtImpact)}
+                  <Field label="Vertical">
+                    {formatMps(solution.verticalSpeed)}
                   </Field>
-                  <Field label="If burn now">
-                    {solution.bestSpeedAtImpact == null
-                      ? "—"
-                      : formatMps(solution.bestSpeedAtImpact)}
-                  </Field>
-                  <Field label="Impact in">
-                    {solution.timeToImpact == null
-                      ? "—"
-                      : formatDuration(solution.timeToImpact, { ms: true })}
+                  <Field label="Horizontal">
+                    {formatMps(solution.horizontalSpeed)}
                   </Field>
                 </Grid>
               </Section>
-            </>
-          )}
+            )}
 
-          {/* Velocity split — vertical AND horizontal, always, on vacuum and
-              atmospheric bodies alike. Horizontal is the component the old
-              vertical-only model ignored, and the one that tips a lander over. */}
-          {solution.horizontalSpeed != null && (
-            <Section>
-              <SectionTitle>Velocity</SectionTitle>
-              <Grid cols="auto 1fr" gap="xs">
-                <Field label="Vertical">
-                  {formatMps(solution.verticalSpeed)}
-                </Field>
-                <Field label="Horizontal">
-                  {formatMps(solution.horizontalSpeed)}
-                </Field>
-              </Grid>
-            </Section>
-          )}
+            {!scopeShown && (
+              <Section>
+                <SectionTitle>Height</SectionTitle>
+                <Grid cols="auto 1fr" gap="xs">
+                  <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
+                </Grid>
+                {usingComDatum && (
+                  <Value tone="muted" size="xs">
+                    centre-of-mass altitude (lowest-point datum unavailable)
+                  </Value>
+                )}
+              </Section>
+            )}
 
-          <Section>
-            <SectionTitle>Height</SectionTitle>
-            <Grid cols="auto 1fr" gap="xs">
-              <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
-              {solution.verticalSpeed != null && (
-                <Field label="Descent">
-                  {formatMps(solution.verticalSpeed)}
-                </Field>
-              )}
-            </Grid>
-            {usingComDatum && (
-              <Value tone="muted" size="xs">
-                centre-of-mass altitude (lowest-point datum unavailable)
-              </Value>
+            {vs?.targetDistance != null && (
+              <Section>
+                <SectionTitle>Divert</SectionTitle>
+                <Grid cols="auto 1fr" gap="xs">
+                  <Field label="Target range">
+                    {formatMeters(vs.targetDistance)}
+                  </Field>
+                </Grid>
+              </Section>
             )}
           </Section>
-
-          <Section>
-            <SectionTitle>Configuration</SectionTitle>
-            <ConfigRow
-              label="Gear"
-              on={gearOn}
-              phase={gearCmd.status.phase}
-              onToggle={toggleGear}
-            />
-            <ConfigRow
-              label="Brakes"
-              on={brakesOn}
-              phase={brakesCmd.status.phase}
-              onToggle={toggleBrakes}
-            />
-          </Section>
-
-          {vs?.targetDistance != null && (
-            <Section>
-              <SectionTitle>Divert</SectionTitle>
-              <Grid cols="auto 1fr" gap="xs">
-                <Field label="Target range">
-                  {formatMeters(vs.targetDistance)}
-                </Field>
-              </Grid>
-            </Section>
-          )}
-        </Body>
+        </ScrollArea>
       )}
     </Panel>
-  );
-}
-
-// ── Body layout ───────────────────────────────────────────────────────────────
-
-/**
- * Scrollable column so no section is ever unreachable at small sizes — the
- * headline hero + delay banner sit at the top, so a compact widget always shows
- * the two things that matter (regime + commit/ignition clock) and the operator
- * can scroll to the rest. Composed from ui-kit's ScrollArea; no bespoke CSS.
- */
-function Body({ children }: { children: React.ReactNode }) {
-  return (
-    <ScrollArea>
-      <Section>{children}</Section>
-    </ScrollArea>
   );
 }
 
@@ -529,10 +418,10 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Full-vector suicide-burn solve, delay-native commit/blind clocks, velocity split, affordability, and gear/brakes confirmation — built for landing under signal delay.",
+    "Composed descent instrument: altitude ladder, velocity vector, TWR gauge, delay-native commit/uncommandable clocks, affordability, and gear/brakes confirmation — built for landing under signal delay.",
   tags: ["telemetry", "landing"],
-  defaultSize: { w: 8, h: 10 },
-  minSize: { w: 4, h: 5 },
+  defaultSize: { w: 8, h: 12 },
+  minSize: { w: 4, h: 6 },
   component: LandingStatusComponent,
   dataRequirements: [
     // `vessel.state` (parentBodyName + targetDistance) is a DERIVED channel

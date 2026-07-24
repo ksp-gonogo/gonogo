@@ -126,14 +126,17 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
       emitMunDescent();
     });
 
-    // The velocity split — vertical AND horizontal — renders off the stream.
-    expect(await screen.findByText("Vertical")).toBeInTheDocument();
-    expect(screen.getByText("Horizontal")).toBeInTheDocument();
-    // The horizontal component the old vertical-only model ignored (≈538 m/s).
-    expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
-    // The Height section surfaces the streamed AGL datum (5.00 km).
-    expect(screen.getByText("AGL")).toBeInTheDocument();
-    expect(screen.getByText(/5\.00 km/)).toBeInTheDocument();
+    // The velocity split renders off the stream as the DescentScope vector,
+    // its label carrying both components (horizontal ≈538 m/s dominating).
+    expect(
+      await screen.findByRole("img", {
+        name: /descent 50 m\/s, drift 538 m\/s/i,
+      }),
+    ).toBeInTheDocument();
+    // The altitude ladder surfaces the streamed AGL datum (5000 m).
+    expect(
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
+    ).toHaveAttribute("aria-valuenow", "5000");
     // The subtitle resolves the body off the derived vessel.state channel.
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
     // Empty state is gone once the descent is streaming.

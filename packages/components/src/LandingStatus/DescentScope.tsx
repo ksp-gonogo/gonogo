@@ -96,7 +96,7 @@ export function DescentScope({
           {suicideBurnCountdown == null
             ? "no burn"
             : suicideBurnCountdown <= 0
-              ? "IGNITE"
+              ? "past ignition"
               : `ignite in ${Math.ceil(suicideBurnCountdown)}s`}
         </Value>
       </Stack>

@@ -152,16 +152,42 @@ describe("LandingStatusComponent", () => {
       });
     });
 
-    // The horizontal component the old vertical-only model ignored is surfaced.
-    expect(await screen.findByText(/538 m\/s/)).toBeInTheDocument();
+    // The horizontal component the old vertical-only model ignored is surfaced
+    // in the velocity vector's accessible label.
+    expect(
+      await screen.findByRole("img", { name: /drift 538 m\/s/i }),
+    ).toBeInTheDocument();
     // Burn-now touchdown is a large nonzero speed — the fatal-direction fix.
     expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
     // The burn no longer fits: ignite now, not a comfortable countdown.
     expect(screen.getByText("IGNITE")).toBeInTheDocument();
   });
 
-  it("splits velocity into vertical and horizontal", async () => {
+  it("splits velocity into vertical and horizontal (the vector at a wide size)", async () => {
     renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
+        },
+        availableThrust: 20,
+      });
+    });
+    // At a wide size the split is the DescentScope velocity vector; its label
+    // carries both components, horizontal (538) dominating the 50 m/s descent.
+    expect(
+      await screen.findByRole("img", {
+        name: /descent 50 m\/s, drift 538 m\/s/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the plain vertical/horizontal split at a small size", async () => {
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -176,12 +202,12 @@ describe("LandingStatusComponent", () => {
     });
     expect(await screen.findByText("Vertical")).toBeInTheDocument();
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
-    // Horizontal (538 m/s) dominates the 50 m/s descent — the whole point.
     expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
   });
 
   it("uses the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
-    renderWidget();
+    // Small size renders the plain Height readout (km-formatted AGL).
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -204,7 +230,7 @@ describe("LandingStatusComponent", () => {
   });
 
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {
-    renderWidget();
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -322,7 +348,7 @@ describe("LandingStatusComponent", () => {
       });
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
-    await screen.findByText("Vertical");
+    await screen.findByRole("img", { name: /descent/i });
     expect(await axe(container)).toHaveNoViolations();
   });
 });
