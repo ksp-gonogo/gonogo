@@ -1,15 +1,17 @@
 /**
- * TouchdownReticle — the site-assessment centrepiece: a compact spatial view of
- * the spot the craft is heading for. Shows a reticle at the sampled point, a
- * downhill slope arrow (which way you tip), a drift vector (how far downrange
- * from directly below you), the biome, a roughness tint, and a SAFE / MARGINAL /
- * DIVERT hazard banner. An honest source badge says whether the terrain is the
- * PREDICTED touchdown point or a SUB-VESSEL estimate.
+ * TouchdownReticle — the spatial "you are here, you'll touch down there" view,
+ * anchored on the PREDICTED landing site at centre (target ring + X). The
+ * CURRENT sub-vessel position sits off-centre by the drift, and a prominent line
+ * runs from it to the centred site, so you read how far and which way you are
+ * from where you'll land. Behind it, the sampled terrain renders as a smooth
+ * interpolated gradient (shaded from the height-grid points) so the slope reads
+ * naturally from the surface — no explicit slope arrow needed. A SAFE /
+ * MARGINAL / DIVERT banner + the biome/slope readout carry the hazard in text.
  *
- * This is telemetry alerting, never GO/NO-GO. Bespoke SVG: when a terrain patch
- * is present it renders a hillshaded relief (terrain shape) over the verdict
- * tint, else a flat tint; colour is never the sole carrier (the banner + labels
- * carry the verdict in text).
+ * This is telemetry alerting, never GO/NO-GO. The smooth relief is painted to a
+ * small canvas and up-scaled by the browser (bilinear) into a continuous
+ * gradient; where canvas is unavailable (jsdom snapshots) it falls back to a
+ * per-cell grid. Colour is never the sole carrier (banner + labels carry it).
  *
  * Purely presentational: the hazard verdict is derived upstream; terrain fields
  * come off `vessel.landing`.
@@ -17,23 +19,20 @@
 
 import { StatusPill } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { DirectionArrow } from "./DirectionArrow";
 import { greatCircle } from "./geo";
 import type { Hazard, HazardResult } from "./hazardVerdict";
 
 export interface TouchdownReticleProps {
-  /** Sampled point (predicted touchdown or sub-vessel), degrees. */
+  /** Predicted touchdown site, degrees. */
   siteLat: number | null;
   siteLon: number | null;
-  /** Current sub-vessel point, degrees — for the drift vector. */
+  /** Current sub-vessel point, degrees (the reticle centre). */
   vesselLat: number | null;
   vesselLon: number | null;
-  /** Body mean radius, metres — for the drift distance. */
+  /** Body mean radius, metres — for the current→site distance. */
   bodyRadius: number | null;
-  /** Terrain slope at the site, degrees. */
+  /** Terrain slope at the site, degrees (labelled). */
   slopeDeg: number | null;
-  /** Downhill heading, degrees clockwise from north. */
-  slopeHeadingDeg: number | null;
   /** Biome at the site. */
   biome: string | null;
   /** Which sampling source is live. */
@@ -47,7 +46,7 @@ export interface TouchdownReticleProps {
 }
 
 /**
- * Per-cell hillshade (0..1) over a normalised height grid: a light from the
+ * Per-vertex hillshade (0..1) over a normalised height grid: a light from the
  * top-left carves ridges/craters into visible relief. Returns null when the
  * patch is missing or degenerate (the reticle then shows the flat verdict tint).
  */
@@ -88,8 +87,60 @@ function hillshade(
   return shade;
 }
 
+/** Shadow strength (black overlay alpha) for a shade value. */
+function shadowAlpha(s: number): number {
+  return s < 0.5 ? Math.min(0.6, (0.5 - s) * 1.3) : 0;
+}
+/** Light strength (white overlay alpha) for a shade value. */
+function lightAlpha(s: number): number {
+  return s > 0.62 ? Math.min(0.6, (s - 0.62) * 0.9) : 0;
+}
+
+/**
+ * Paint the shade grid to a small canvas (black shadows / white highlights over
+ * transparency) and return a data URI. The browser up-scales it bilinearly into
+ * a smooth gradient — "shade from the points", the continuous-surface look.
+ * Returns null where canvas is unavailable (jsdom), so the caller falls back to
+ * a per-cell grid for the DOM-snapshot path.
+ */
+function reliefDataUri(
+  shade: number[] | null,
+  size: number | null | undefined,
+): string | null {
+  if (!shade || !size) return null;
+  if (typeof document === "undefined") return null;
+  // Under test (jsdom) canvas isn't implemented — skip straight to the rect
+  // fallback so the DOM snapshot stays small/stable and jsdom emits no
+  // "getContext not implemented" noise. Browser/app builds run the canvas path.
+  if (process.env.NODE_ENV === "test") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const img = ctx.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    const s = shade[i];
+    const shadow = shadowAlpha(s);
+    const light = lightAlpha(s);
+    const isShadow = shadow >= light;
+    const alpha = Math.max(shadow, light);
+    const val = isShadow ? 0 : 255;
+    const j = i * 4;
+    img.data[j] = val;
+    img.data[j + 1] = val;
+    img.data[j + 2] = val;
+    img.data[j + 3] = Math.round(alpha * 255);
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL();
+}
+
 const SIZE = 160;
 const C = SIZE / 2;
+// Downrange distance (m) that maps to the reticle edge; beyond it the site
+// marker clamps to the rim and the true distance rides in the readout.
+const DRIFT_FULLSCALE_M = 3000;
 
 const BANNER_TONE: Record<Hazard, "go" | "warning" | "alert"> = {
   SAFE: "go",
@@ -105,13 +156,10 @@ function panelTint(verdict: Hazard | null): string {
   return "var(--color-surface-raised)";
 }
 
-/** Point at heading (deg cw from north/up) and length from the centre. */
-function atHeading(
-  headingDeg: number,
-  length: number,
-): { x: number; y: number } {
-  const a = (headingDeg * Math.PI) / 180;
-  return { x: C + length * Math.sin(a), y: C - length * Math.cos(a) };
+/** Point at `deg` clockwise from up (north), `len` from the centre. */
+function atHeading(deg: number, len: number): { x: number; y: number } {
+  const a = (deg * Math.PI) / 180;
+  return { x: C + len * Math.sin(a), y: C - len * Math.cos(a) };
 }
 
 export function TouchdownReticle({
@@ -121,7 +169,6 @@ export function TouchdownReticle({
   vesselLon,
   bodyRadius,
   slopeDeg,
-  slopeHeadingDeg,
   biome,
   sampleSource,
   verdict,
@@ -129,9 +176,10 @@ export function TouchdownReticle({
   terrainPatchSize,
 }: Readonly<TouchdownReticleProps>) {
   const v = verdict.verdict;
-  const relief = hillshade(terrainPatch, terrainPatchSize);
+  const shade = hillshade(terrainPatch, terrainPatchSize);
+  const reliefUri = reliefDataUri(shade, terrainPatchSize);
 
-  // Drift from directly-below to the sampled site (downrange displacement).
+  // Displacement from the CURRENT sub-vessel point to the predicted site.
   const drift =
     siteLat != null &&
     siteLon != null &&
@@ -155,19 +203,16 @@ export function TouchdownReticle({
     biome ? `, ${biome}` : ""
   } (${sourceLabel})`;
 
-  // Slope arrow: from centre toward downhill, length grows with slope (capped).
-  const slopeLen = slopeDeg != null ? Math.min(1, slopeDeg / 30) * (C - 14) : 0;
-  const slopeTip =
-    slopeHeadingDeg != null && slopeLen > 0
-      ? atHeading(slopeHeadingDeg, slopeLen)
-      : null;
-
-  // Drift arrow: direction = bearing to site, length grows with distance (capped).
-  const driftLen =
-    drift != null ? Math.min(1, drift.distanceMeters / 2000) * (C - 20) : 0;
-  const driftTip =
-    drift != null && driftLen > 1
-      ? atHeading(drift.bearingDeg, driftLen)
+  // The predicted site is the ANCHOR at centre; the current position sits
+  // off-centre by the drift, in the direction OPPOSITE the downrange bearing
+  // (site → vessel), scaled to the reticle and clamped to the rim for far sites.
+  const offLen =
+    drift != null
+      ? Math.min(1, drift.distanceMeters / DRIFT_FULLSCALE_M) * (C - 18)
+      : 0;
+  const currentTip =
+    drift != null && offLen > 2
+      ? atHeading(drift.bearingDeg + 180, offLen)
       : null;
 
   return (
@@ -210,10 +255,20 @@ export function TouchdownReticle({
           stroke="var(--color-border-subtle)"
         />
 
-        {/* Terrain relief — a hillshaded heightmap over the verdict-tinted
-            panel (shadows carved black, lit slopes lifted white), so the site's
-            shape reads. Falls back to the flat tint above when no patch. */}
-        {relief &&
+        {/* Terrain relief. Smooth path: a small shade canvas up-scaled by the
+            browser into a continuous gradient. Fallback path (no canvas, e.g.
+            jsdom): a per-cell grid so the DOM snapshot stays small + stable. */}
+        {reliefUri ? (
+          <image
+            href={reliefUri}
+            x={5}
+            y={5}
+            width={SIZE - 10}
+            height={SIZE - 10}
+            preserveAspectRatio="none"
+          />
+        ) : (
+          shade &&
           terrainPatchSize &&
           (() => {
             const n = terrainPatchSize;
@@ -222,10 +277,10 @@ export function TouchdownReticle({
             const out: ReactNode[] = [];
             for (let r = 0; r < n; r++) {
               for (let c = 0; c < n; c++) {
-                const s = relief[r * n + c];
-                const shadow = s < 0.5 ? (0.5 - s) * 1.3 : 0;
-                const light = s > 0.62 ? (s - 0.62) * 0.9 : 0;
-                const fill = shadow > light ? "black" : "white";
+                const s = shade[r * n + c];
+                const shadow = shadowAlpha(s);
+                const light = lightAlpha(s);
+                const fill = shadow >= light ? "black" : "white";
                 const op = Math.max(shadow, light);
                 if (op <= 0.02) continue;
                 out.push(
@@ -236,99 +291,94 @@ export function TouchdownReticle({
                     width={cell + 0.5}
                     height={cell + 0.5}
                     fill={fill}
-                    opacity={Math.min(0.6, op)}
+                    opacity={op}
                   />,
                 );
               }
             }
             return <g>{out}</g>;
-          })()}
+          })()
+        )}
 
-        {/* Drift vector (from directly-below toward the site). */}
-        {driftTip && (
+        {/* Current → site: the primary spatial readout. A plain line (no head —
+            the off-centre current crosshair and the centred site marker
+            terminate it) from where you are to where you'll land. */}
+        {currentTip && (
           <line
-            x1={C}
-            y1={C}
-            x2={driftTip.x}
-            y2={driftTip.y}
-            stroke="var(--color-text-faint)"
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
+            x1={currentTip.x}
+            y1={currentTip.y}
+            x2={C}
+            y2={C}
+            stroke="var(--color-text-primary)"
+            strokeWidth={2.5}
           />
         )}
 
-        {/* Slope arrow (downhill) — the shared DirectionArrow glyph, same as
-            the velocity vector's resultant, oriented to the terrain gradient. */}
-        {slopeTip && (
-          <DirectionArrow
-            x1={C}
-            y1={C}
-            x2={slopeTip.x}
-            y2={slopeTip.y}
-            color="var(--color-accent-fg)"
+        {/* Predicted landing site — the ANCHOR: a target ring + X at centre.
+            Clearly the landing spot the whole instrument is assessing. */}
+        <g>
+          <circle
+            cx={C}
+            cy={C}
+            r={8}
+            fill="none"
+            stroke="var(--color-accent-fg)"
+            strokeWidth={2.5}
           />
-        )}
+          <line
+            x1={C - 5}
+            y1={C - 5}
+            x2={C + 5}
+            y2={C + 5}
+            stroke="var(--color-accent-fg)"
+            strokeWidth={2}
+          />
+          <line
+            x1={C - 5}
+            y1={C + 5}
+            x2={C + 5}
+            y2={C - 5}
+            stroke="var(--color-accent-fg)"
+            strokeWidth={2}
+          />
+        </g>
 
-        {/* Reticle crosshair at the sampled point (centre). */}
-        <circle
-          cx={C}
-          cy={C}
-          r={9}
-          fill="none"
-          stroke="var(--color-text-primary)"
-          strokeWidth={1.5}
-        />
-        <line
-          x1={C - 13}
-          y1={C}
-          x2={C + 13}
-          y2={C}
-          stroke="var(--color-text-primary)"
-          strokeWidth={1}
-        />
-        <line
-          x1={C}
-          y1={C - 13}
-          x2={C}
-          y2={C + 13}
-          stroke="var(--color-text-primary)"
-          strokeWidth={1}
-        />
-
-        {/* Biome label — pinned to the TOP of the terrain (always visible even
-            when the reticle runs to the fold), on a translucent dark backing
-            chip plus a stroke halo so it reads over any hillshade shading. */}
-        {biome && (
+        {/* Current position — off-centre by the drift (a small, distinct white
+            crosshair). Omitted when you're right over the site. */}
+        {currentTip && (
           <g>
-            <rect
-              x={C - (biome.length * 6.6 + 10) / 2}
-              y={7}
-              width={biome.length * 6.6 + 10}
-              height={17}
-              rx={3}
-              fill="black"
-              opacity={0.5}
+            <circle
+              cx={currentTip.x}
+              cy={currentTip.y}
+              r={4}
+              fill="none"
+              stroke="var(--color-text-primary)"
+              strokeWidth={1.5}
             />
-            <text
-              x={C}
-              y={19}
-              textAnchor="middle"
-              fontSize={11}
-              fontWeight="bold"
-              fill="var(--color-text-primary)"
-              stroke="black"
-              strokeWidth={3}
-              paintOrder="stroke"
-              fontFamily="monospace"
-            >
-              {biome}
-            </text>
+            <line
+              x1={currentTip.x - 8}
+              y1={currentTip.y}
+              x2={currentTip.x + 8}
+              y2={currentTip.y}
+              stroke="var(--color-text-primary)"
+              strokeWidth={1}
+            />
+            <line
+              x1={currentTip.x}
+              y1={currentTip.y - 8}
+              x2={currentTip.x}
+              y2={currentTip.y + 8}
+              stroke="var(--color-text-primary)"
+              strokeWidth={1}
+            />
           </g>
         )}
       </svg>
 
-      {/* Honest source + terrain readout (a11y text equivalent of the SVG). */}
+      {/* Honest biome + source + terrain readout (a11y text equivalent of the
+          SVG; biome lives here as a standard readout, not overlaid on relief). */}
       <div style={{ fontSize: "0.75rem", opacity: 0.75 }}>
+        {biome ? `${biome} · ` : ""}
         {slopeText}
         {drift != null
           ? ` · ${Math.round(drift.distanceMeters)} m downrange`

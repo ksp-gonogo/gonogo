@@ -11,7 +11,6 @@ const base = {
   vesselLon: 0,
   bodyRadius: 600_000,
   slopeDeg: 8,
-  slopeHeadingDeg: 135,
   biome: "Highlands",
   sampleSource: "predicted" as const,
 };

@@ -31,6 +31,7 @@ import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
 import { DescentScope } from "./DescentScope";
+import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 import { TouchdownReticle } from "./TouchdownReticle";
@@ -241,6 +242,23 @@ function LandingStatusComponent({
   // valid velocity/height readouts.
   const scopeShown = board === "vacuum-solved" && showScope;
 
+  // Travel bearing (sub-vessel → predicted site) — the horizontal-velocity
+  // direction proxy for the top-right compass's velocity line.
+  const driftBearingDeg =
+    flight?.latitude != null &&
+    flight?.longitude != null &&
+    landing?.predictedLatitude != null &&
+    landing?.predictedLongitude != null &&
+    body?.radius != null
+      ? greatCircle(
+          flight.latitude,
+          flight.longitude,
+          landing.predictedLatitude,
+          landing.predictedLongitude,
+          body.radius,
+        ).bearingDeg
+      : null;
+
   // ── Section fragments (composed into the layout below) ─────────────────────
 
   const instrumentsEl = scopeShown ? (
@@ -249,6 +267,9 @@ function LandingStatusComponent({
       horizontalSpeed={solution.horizontalSpeed}
       twr={twr}
       usingComDatum={usingComDatum}
+      driftBearingDeg={driftBearingDeg}
+      slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
+      slopeDeg={landing?.predictedSlopeAngle ?? null}
     />
   ) : null;
 
@@ -479,7 +500,6 @@ function LandingStatusComponent({
         vesselLon={flight?.longitude ?? null}
         bodyRadius={body?.radius ?? null}
         slopeDeg={landing?.predictedSlopeAngle ?? null}
-        slopeHeadingDeg={landing?.predictedSlopeHeading ?? null}
         biome={landing?.predictedBiome ?? null}
         sampleSource={landing?.sampleSource ?? null}
         verdict={hazardVerdict}
