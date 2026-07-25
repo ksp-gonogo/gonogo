@@ -449,16 +449,19 @@ async function loadThirdParty(
   }
 
   if (manifest.integrity !== roster.expectedClientHash) {
-    // Informational only — the ENFORCED integrity value is the mod-vouched
-    // hash (see `descriptorFromClientSource`'s doc comment); a disagreeing
-    // self-declared manifest integrity is still worth a log line since it
-    // means the bundle publisher and the mod disagree about the bundle's own
-    // hash, which is a smell even though it isn't independently gated here.
-    logger.warn(
-      `[uplink-loader] ${id}: manifest-declared integrity ` +
-        `(${manifest.integrity}) differs from mod-vouched ` +
-        `expectedClientHash (${roster.expectedClientHash}) — the mod-vouched ` +
-        "value is what's enforced",
+    // Hard refuse BEFORE import (operator ruling 2026-07-25). The mod and its
+    // client bundle ship as one release, so a self-declared manifest integrity
+    // that disagrees with the mod-vouched expectedClientHash is a real fault
+    // (mod/client version skew, or a tampered manifest), never an expected
+    // state — quarantine-with-reason like every other integrity gate rather
+    // than loading past it. This is the manifest-declared vs mod-vouched
+    // agreement; the bytes-hash verification in `loadOne` is separate and
+    // stays as-is.
+    return quarantineOutcome(
+      id,
+      `manifest-declared integrity (${manifest.integrity}) != mod-vouched ` +
+        `expectedClientHash (${roster.expectedClientHash}) — mod/client ` +
+        "version skew (they release together), refusing before import",
     );
   }
 
@@ -595,6 +598,17 @@ export async function loadUplinkById(
 
   const descriptor = index.uplinks.find((u) => u.id === id);
   if (!descriptor) {
+    // #5 (operator ruling 2026-07-25): no first-party descriptor doesn't mean
+    // "unloadable" — an installed id the mod self-describes via `clientSource`
+    // (D5) is a third-party Uplink. Reuse the SAME `loadThirdParty` path
+    // `loadEnabledUplinks` dispatches to (build the descriptor from
+    // `clientSource` + the bundle's manifest, then `loadOne`), so the wizard's
+    // single-pick can load a third-party too. Only when the roster carries no
+    // `clientSource` for it either is this the genuine not-found quarantine.
+    const roster = ctx.roster?.find((r) => r.id === id);
+    if (roster?.clientSource) {
+      return loadThirdParty(id, roster, ctx);
+    }
     const outcome: UplinkLoadOutcome = {
       id,
       name: id,
