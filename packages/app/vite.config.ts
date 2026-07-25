@@ -179,6 +179,17 @@ const UPLINK_EXTERNALS: {
     ["@ksp-gonogo/ui", "ext-ui"],
     ["@ksp-gonogo/ui-kit", "ext-ui-kit"],
     ["@ksp-gonogo/sitrep-client", "ext-sitrep-client"],
+    // The delayed-media infra (DelayedPlayoutBuffer, capture-clock helpers)
+    // lives at this sanctioned subpath (CLAUDE.md's kerbcast section) —
+    // kerbcast's client imports it directly. esbuild's `external` matching
+    // already treats it as external once the bare `@ksp-gonogo/sitrep-client`
+    // specifier above is listed (package-external prefix matching), but the
+    // baked import map only maps specifiers this array knows about — without
+    // its OWN entry here, the browser's native `import()` had nothing to
+    // resolve the bare "@ksp-gonogo/sitrep-client/media" specifier to
+    // (`Failed to resolve module specifier` — caught by
+    // uplink-loader.spec.ts's kerbcast loaded-outcome assertion).
+    ["@ksp-gonogo/sitrep-client/media", "ext-sitrep-client-media"],
     ["@ksp-gonogo/sitrep-sdk", "ext-sitrep-sdk"],
     ["@ksp-gonogo/logger", "ext-logger"],
   ] as const

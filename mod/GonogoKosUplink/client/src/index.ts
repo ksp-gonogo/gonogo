@@ -33,23 +33,16 @@
 // defineUplinkClient(KOS) — every widget/augment this package registers
 // stamps the returned handle as `owner`, so the widget picker's mod search
 // tags derive "kos" automatically (Uplink Client Contract design §3.1/§3.3).
+// (Also re-run by `./runtime`, below — idempotent, see that module's doc.)
 import "./uplink";
 
 export * from "./KosTerminal";
 
-// registerUplinkHandle("kos", kosSource) — fires whenever this package
-// loads, whether via the runtime Uplink loader or the bundled-fallback
-// static import in main.tsx. kOS is NOT a registered DataSource (no
-// registerDataSource call) — it never appears in the generic Data Sources
-// panel; see kos.ts's module doc.
-import "./dataSource/kos";
-
-// KosCpuDiscovery both stands up the standing kos.processors subscription
-// AND feeds the result into the CpuRegistryService the caller hands it
-// (merged from the former separate useKosMainWiring hook).
-export { KosCpuDiscovery } from "./dataSource/KosCpuDiscovery";
-
-// Shared kOS infra (CpuRegistryService/Context, the [KOSDATA] parser,
-// ScriptableDataSource), re-exported for MainScreen/StationScreen and any
-// future kOS-driven widget.
-export * from "./shared";
+// Non-widget infra (defineUplinkClient/registerUplinkHandle side effects,
+// KosCpuDiscovery, the shared CpuRegistryService/Context/[KOSDATA] parser/
+// ScriptableDataSource) lives in `./runtime`, split out specifically so
+// MainScreen/StationScreen can depend on it WITHOUT also evaluating
+// `./KosTerminal` above (see `./runtime`'s own doc comment for why that
+// matters to the Uplink loader). Re-exported here too so the package root
+// keeps its full existing surface for every other consumer.
+export * from "./runtime";

@@ -13,16 +13,22 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
+// From the `/runtime` subpaths (not the package roots) — MainScreen needs
+// this infra regardless of whether the CameraFeed/KosTerminal WIDGETS are
+// statically bundled or loaded at runtime via the Uplink loader; importing
+// the package root would also evaluate the widget's own module and collide
+// with the loader's registerComponent (see each package's `runtime.ts` doc
+// comment for the full mechanism).
 import {
   KERBCAST_EVENTS_TOPIC,
   kerbcastSource,
   useKerbcastMainConnect,
-} from "@ksp-gonogo/kerbcast-feed";
+} from "@ksp-gonogo/kerbcast-feed/runtime";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
   KosCpuDiscovery,
-} from "@ksp-gonogo/kos";
+} from "@ksp-gonogo/kos/runtime";
 import {
   InputDispatcher,
   SerialDeviceProvider,
