@@ -13,6 +13,7 @@
 // core / data / sitrep-client singletons the probe already imports. Its own
 // imports carry no facade self-registration, so running it first is safe.
 import {
+  defineUplinkClient,
   getDataSource,
   getUplinkHandle,
   PerfBudget,
@@ -36,6 +37,7 @@ import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installTestHost({
   createPerfBudget: (opts) => new PerfBudget(opts),
+  defineUplinkClient,
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],
