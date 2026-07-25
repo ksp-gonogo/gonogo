@@ -81,13 +81,18 @@ export function AltitudeRail({
           ariaLabel="Altitude above terrain"
         />
       </div>
-      <Value tone={near ? "accent" : "muted"} size="xs">
-        {suicideBurnCountdown == null
-          ? "no burn"
-          : suicideBurnCountdown <= 0
-            ? "past ignition"
-            : `ignite in ${Math.ceil(suicideBurnCountdown)}s`}
-      </Value>
+      {/* The Tape (visual) bleeds to the panel edge, but this label is TEXT —
+          give it a readable local left inset (matches the commit text) so it
+          isn't jammed against the edge. */}
+      <div style={{ alignSelf: "stretch", paddingLeft: "12px" }}>
+        <Value tone={near ? "accent" : "muted"} size="xs">
+          {suicideBurnCountdown == null
+            ? "no burn"
+            : suicideBurnCountdown <= 0
+              ? "past ignition"
+              : `ignite in ${Math.ceil(suicideBurnCountdown)}s`}
+        </Value>
+      </div>
     </div>
   );
 }
