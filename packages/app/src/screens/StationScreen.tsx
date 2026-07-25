@@ -84,6 +84,7 @@ import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   SitrepTelemetryProvider,
 } from "../telemetry/SitrepTelemetryProvider";
+import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -415,31 +416,37 @@ export function StationScreen() {
                             >
                               <Layout as="main" aria-label="Station dashboard">
                                 <MissionBanner />
-                                <Dashboard
-                                  items={dashboard.items}
-                                  layouts={dashboard.layouts}
-                                  currentLayouts={dashboard.currentLayouts}
-                                  breakpoint={dashboard.breakpoint}
-                                  onLayoutChange={dashboard.handleLayoutChange}
-                                  onBreakpointChange={
-                                    dashboard.handleBreakpointChange
-                                  }
-                                  updateItemConfig={dashboard.updateItemConfig}
-                                  updateItemMappings={
-                                    dashboard.updateItemMappings
-                                  }
-                                  updateItemMobileWidth={
-                                    dashboard.updateItemMobileWidth
-                                  }
-                                  updateItemMobileHeight={
-                                    dashboard.updateItemMobileHeight
-                                  }
-                                  removeItem={dashboard.removeItem}
-                                  moveItemUp={dashboard.moveItemUp}
-                                  moveItemDown={dashboard.moveItemDown}
-                                  lastAddedId={dashboard.lastAddedId}
-                                  clearLastAdded={dashboard.clearLastAdded}
-                                />
+                                <StationUplinkLoader>
+                                  <Dashboard
+                                    items={dashboard.items}
+                                    layouts={dashboard.layouts}
+                                    currentLayouts={dashboard.currentLayouts}
+                                    breakpoint={dashboard.breakpoint}
+                                    onLayoutChange={
+                                      dashboard.handleLayoutChange
+                                    }
+                                    onBreakpointChange={
+                                      dashboard.handleBreakpointChange
+                                    }
+                                    updateItemConfig={
+                                      dashboard.updateItemConfig
+                                    }
+                                    updateItemMappings={
+                                      dashboard.updateItemMappings
+                                    }
+                                    updateItemMobileWidth={
+                                      dashboard.updateItemMobileWidth
+                                    }
+                                    updateItemMobileHeight={
+                                      dashboard.updateItemMobileHeight
+                                    }
+                                    removeItem={dashboard.removeItem}
+                                    moveItemUp={dashboard.moveItemUp}
+                                    moveItemDown={dashboard.moveItemDown}
+                                    lastAddedId={dashboard.lastAddedId}
+                                    clearLastAdded={dashboard.clearLastAdded}
+                                  />
+                                </StationUplinkLoader>
                                 <FabClusterProvider>
                                   <ComponentOverlay
                                     currentLayouts={dashboard.currentLayouts}

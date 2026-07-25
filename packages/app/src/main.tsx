@@ -21,6 +21,7 @@ import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
 import "./notes/NotesComponent"; // app-level component — registers on import
 import App from "./App";
+import { isStationRoute } from "./screens/isStationRoute";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
 import { LOADER_UPLINK_IDS, loaderBootIdsOverride } from "./uplinks/flag";
@@ -99,6 +100,23 @@ function renderApp(): void {
 // by however long those chunks take to fetch, for no benefit — starting both
 // in the same tick keeps the probe's timing independent of the static-import
 // half's duration.
+//
+// STATION BOOT (#6, station boot re-sequence, 2026-07-25): a station NEVER
+// talks to KSP or an Uplink author host directly — it gets everything from
+// the main screen over PeerJS. `probeUplinkRoster()` opens its own direct
+// `WebSocketTransport` to KSP and `loadEnabledUplinks`'s default `fetchBytes`
+// is a direct `fetch()` of the bundle bytes — both are exactly the
+// station→KSP / station→author-host paths the peer architecture forbids. So
+// on `/station` this function skips both calls entirely: the static
+// (kerbalism/avionics) imports are in-app self-registering imports with no
+// network involved, so they stay; the fetch-based loader for
+// scansat/kos/kerbcast instead runs LATER, inside `StationUplinkLoader`
+// (`./uplinks/StationUplinkLoader.tsx`), mounted by `StationScreen` once the
+// station is connected to a host and has its own peer-backed
+// `TelemetryClient` to read `system.uplinks` off and its own
+// `PeerClientService` to route bundle-byte fetches through
+// (`createPeerBundleFetcher`, D6). `renderApp()` still runs unconditionally
+// here — it mounts `<App>`, which is what renders `StationScreen` at all.
 async function registerScansatAndRender(): Promise<void> {
   const staticImports = Promise.all([
     import("@ksp-gonogo/kerbalism"),
@@ -107,8 +125,20 @@ async function registerScansatAndRender(): Promise<void> {
 
   // Wire the real modal-backed consent prompt before the loader runs (the
   // store defaults to "deny" until this is set). Renders in the app's active
-  // theme so it matches the app it is about to extend.
+  // theme so it matches the app it is about to extend. Needed on BOTH
+  // screens: a station's deferred `StationUplinkLoader` run still gates its
+  // first load on this same consent seam.
   setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
+
+  if (isStationRoute()) {
+    // No roster probe, no fetch-based loader here — see the doc comment
+    // above. `StationUplinkLoader` runs the equivalent sequence later,
+    // post-connect, through the peer conduit.
+    await staticImports;
+    renderApp();
+    return;
+  }
+
   const loaderRun = (async () => {
     try {
       // A bounded read of the live system.uplinks roster so the loader can
