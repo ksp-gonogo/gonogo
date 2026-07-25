@@ -4,10 +4,8 @@ import {
   getAugmentSettings,
   getFogRevealSourceSettings,
 } from "@ksp-gonogo/core";
-import { useDataSchema } from "@ksp-gonogo/data";
 import {
   ConfigForm,
-  DataKeyMultiPicker,
   Field,
   FieldHint,
   FieldLabel,
@@ -28,9 +26,6 @@ export function MapViewConfigComponent({
 }: Readonly<ConfigComponentProps<MapViewConfig>>) {
   const [trajectoryLength, setTrajectoryLength] = useState(
     String(config?.trajectoryLength ?? 2000),
-  );
-  const [selected, setSelected] = useState<Set<string>>(
-    new Set(config?.telemetryKeys ?? []),
   );
   const [showPrediction, setShowPrediction] = useState(
     config?.showPrediction ?? true,
@@ -62,49 +57,25 @@ export function MapViewConfigComponent({
     [],
   );
 
-  const allKeys = useDataSchema("data");
-
   // Stock bodies for the picker. Sorted by name for a predictable list.
   const bodies = useMemo(
     () => [...getAllBodies()].sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
 
-  // Show numeric keys only — exclude booleans, enums and raw values that
-  // aren't meaningful in a small telemetry panel.
-  const numericKeys = useMemo(
-    () =>
-      allKeys.filter(
-        (k) =>
-          k.unit !== "bool" &&
-          k.unit !== "enum" &&
-          k.unit !== "raw" &&
-          k.group !== "Actions",
-      ),
-    [allKeys],
-  );
-
-  const candidate = useMemo<MapViewConfig>(() => {
-    const keys = numericKeys.map((k) => k.key).filter((k) => selected.has(k));
-    return {
+  const candidate = useMemo<MapViewConfig>(
+    () => ({
       trajectoryLength: Math.max(
         1,
         Number.parseInt(trajectoryLength, 10) || 2000,
       ),
-      telemetryKeys: keys.length > 0 ? keys : undefined,
       showPrediction,
       bodyOverride: bodyOverride || undefined,
       augmentSettings:
         Object.keys(augmentValues).length > 0 ? augmentValues : undefined,
-    };
-  }, [
-    numericKeys,
-    selected,
-    trajectoryLength,
-    showPrediction,
-    bodyOverride,
-    augmentValues,
-  ]);
+    }),
+    [trajectoryLength, showPrediction, bodyOverride, augmentValues],
+  );
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -153,16 +124,6 @@ export function MapViewConfigComponent({
             label="Trajectory prediction"
           />
         </FieldRow>
-      </Field>
-      <Field>
-        <FieldLabel>Telemetry panel</FieldLabel>
-        <DataKeyMultiPicker
-          keys={numericKeys}
-          value={selected}
-          onChange={setSelected}
-          emptyHint="Connect a data source to see available keys."
-        />
-        <FieldHint>Selected values are shown below the map.</FieldHint>
       </Field>
       {augmentSettingsBlocks.length > 0 && (
         <Field>

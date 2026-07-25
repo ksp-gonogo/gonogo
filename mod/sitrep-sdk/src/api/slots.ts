@@ -233,6 +233,14 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
+/** Mirrors `CrewAvatarContext` (CrewManifest/index.tsx). */
+export interface CrewAvatarContext {
+  /** The crew member this avatar belongs to — its identity for the augment. */
+  crewName: string;
+  /** Position in the roster; disambiguates duplicate names. */
+  crewIndex: number;
+}
+
 // --- LaunchDirector (packages/components/src/LaunchDirector) ---------------
 
 /** Mirrors `LaunchDirectorSlotContext` (LaunchDirector/index.tsx). */
@@ -479,8 +487,12 @@ export interface OrbitOverlayContext {
   sma: number;
   /** Eccentricity. */
   ecc: number;
-  /** Apoapsis radius from body centre, same units. */
-  apoapsis: number;
+  /**
+   * Apoapsis radius from body centre, same units. `undefined` on a hyperbolic
+   * orbit (`ecc >= 1`) — there is no apoapsis to report (see
+   * `VesselState.apoapsisRadius`'s doc comment).
+   */
+  apoapsis?: number;
   /** Periapsis radius from body centre, same units. */
   periapsis: number;
   /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
@@ -624,6 +636,7 @@ declare module "./types" {
     "contract-manager.badges": ContractBadgeContext;
 
     "crew-manifest.badges": CrewBadgeContext;
+    "crew-manifest.avatar": CrewAvatarContext;
 
     "launch-director.badges": LaunchDirectorSlotContext;
     "launch-director.sections": LaunchDirectorSlotContext;

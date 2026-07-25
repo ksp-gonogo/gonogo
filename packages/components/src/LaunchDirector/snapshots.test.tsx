@@ -53,19 +53,18 @@ const CARRIED = [
  * a genuine `TelemetryProvider` pipeline, rather than a `setupMockDataSource`
  * fixture the widget no longer reads.
  *
- * Two deliberate, documented drops from a literal 1:1 replay:
+ * One deliberate, documented drop from a literal 1:1 replay:
  * - `v.missionTime`/`v.altitude` can't BOTH resolve simultaneously off the
  *   real `vessel.state` derivation — `met` only derives in the OnRails
  *   basis, `altitudeAsl` only in the Loaded basis (`vessel-state.ts`'s own
  *   doc; see `stream.test.tsx`). This always emits the Loaded basis (real
  *   `altitudeAsl`, `met` stays null/"—") since the in-flight fixtures were
  *   authored to show the altitude readout.
- * - `tar.availableVessels` (-> `system.vessels`) ships the OLD bare-array
- *   roster shape; the new `system.vessels` topic is a `{ vessels: [...] }`
- *   object the vessel-switcher hasn't been migrated to normalise yet
- *   (`index.tsx`'s own comment). Emitting the old array onto the new topic
- *   would misrepresent what the real wire actually sends, so it's left
- *   unemitted — the switcher renders its real, current empty state.
+ *
+ * These legacy fixtures have no `target.available` equivalent, so the
+ * vessel-switcher renders its real, current empty state here — see
+ * `index.test.tsx`'s dedicated switcher test for coverage of a populated
+ * roster.
  */
 function emitLegacyFixture(
   stream: ReturnType<typeof setupStreamFixture>,

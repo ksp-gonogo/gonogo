@@ -438,6 +438,15 @@ function ManeuverPlannerComponent({
   ];
   const waiting = telemetryStatus.some((s) => !s.ok);
 
+  // O5: a hyperbolic/escape orbit (ecc >= 1) has no apoapsis, so
+  // `buildCurrentOrbit` legitimately returns null (ApR/timeToAp are NaN) —
+  // that reads as `waiting` above, which is indistinguishable from genuinely
+  // no telemetry at all. Read the raw `vessel.orbit.ecc` directly (always
+  // present once the orbit topic lands, unlike the derived `currentOrbit`)
+  // so we can tell the operator "escaping, planner N/A" instead of showing
+  // the generic empty/no-data panel.
+  const hyperbolic = isFiniteNumber(ecc) && ecc >= 1;
+
   // Render split into nested helpers so the component's cognitive
   // complexity stays below Sonar's S3776 threshold. Each helper is
   // measured independently by the rule.
@@ -496,6 +505,18 @@ function ManeuverPlannerComponent({
     );
   }
 
+  function renderHyperbolicPanel() {
+    return (
+      <WaitingPanel>
+        <SectionTitle>Hyperbolic trajectory</SectionTitle>
+        <HyperbolicNotice>
+          Escaping on a hyperbolic orbit (no apoapsis) — maneuver planning is
+          not available.
+        </HyperbolicNotice>
+      </WaitingPanel>
+    );
+  }
+
   function renderArmedTriggersSection() {
     if (armedTriggers.length === 0) return null;
     return (
@@ -527,7 +548,11 @@ function ManeuverPlannerComponent({
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? (
-          renderWaitingPanel()
+          hyperbolic ? (
+            renderHyperbolicPanel()
+          ) : (
+            renderWaitingPanel()
+          )
         ) : (
           <ManeuverPreview
             plan={plan}
@@ -614,7 +639,6 @@ registerComponent<ManeuverPlannerConfig>({
     "o.maneuverNodeIds",
     "v.body",
     "dv.stages",
-    "tar.name",
     "tar.o.inclination",
     "tar.o.lan",
     "tar.o.sma",
@@ -712,4 +736,11 @@ const StatusDot = styled.span<{ $ok: boolean }>`
 const StatusLabel = styled.span`
   font-size: 11px;
   color: var(--color-text-muted);
+`;
+
+const HyperbolicNotice = styled.p`
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.4;
 `;

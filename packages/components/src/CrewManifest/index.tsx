@@ -219,6 +219,34 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The `crew-manifest.avatar` slot contract (see augment-slot-map)
+//
+// A per-crew-row LEADING square cell (left of the name, where the bullet dot
+// renders today): the SDK-independent shell of a per-kerbal avatar/portrait. An
+// Uplink can register an augment that fills it with a live face, keyed by
+// kerbal identity. Same per-row keying as `crew-manifest.badges` — `crewName`
+// is the augment's identity handle and `crewIndex` disambiguates duplicate
+// names. Whenever the augment yields nothing (no Uplink providing avatars, the
+// avatar source disabled, kerbal not seated) the cell falls back to the bullet,
+// so CrewManifest renders fully with the slot empty — the avatar augment is
+// entirely optional.
+// ---------------------------------------------------------------------------
+
+/** Props passed to every `crew-manifest.avatar` augment — one per crew row. */
+export interface CrewAvatarContext {
+  /** The crew member this avatar belongs to — its identity for the augment. */
+  crewName: string;
+  /** Position in the roster; disambiguates duplicate names. */
+  crewIndex: number;
+}
+
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "crew-manifest.avatar": CrewAvatarContext;
+  }
+}
+
 /**
  * `v.crew` is documented as `string[]` ("List of crew names") in the
  * Telemachus Reborn readme. Kerbalism augments the same key with
@@ -413,7 +441,22 @@ function renderBody({
         return (
           <RosterItem key={name}>
             <Row>
-              <Bullet />
+              {/* Leading per-crew avatar slot: a square cell where an Uplink's
+                  avatar augment composes. The fallback bullet is a base
+                  layer under the slot — with no augment bound (or the augment
+                  yielding nothing: no Uplink, facecams off, kerbal not seated)
+                  it shows through, so the roster degrades gracefully. */}
+              <Avatar>
+                <AvatarFallback data-testid="crew-avatar-fallback" aria-hidden>
+                  <Bullet />
+                </AvatarFallback>
+                <AvatarSlot>
+                  <AugmentSlot
+                    name="crew-manifest.avatar"
+                    props={{ crewName: name, crewIndex: index }}
+                  />
+                </AvatarSlot>
+              </Avatar>
               <Name>{name}</Name>
               {/* Per-crew inline badges slot. Renders nothing until an Uplink
                   (e.g. Kerbalism Habitat/Radiation) binds — the props carry
@@ -525,6 +568,43 @@ const DeathClock = styled.span<{ $tone: MeterTone }>`
         : "var(--color-text-secondary)"};
 `;
 
+// Leading per-crew avatar cell: a square that reserves room for an avatar-face
+// augment. Sized ~40px, scaling with the widget and clamped 36-56px (mirrors
+// TinyReadout's vw-clamp idiom). `position: relative` so the fallback and the
+// augment slot stack in the same box.
+const Avatar = styled.div`
+  position: relative;
+  flex: 0 0 auto;
+  width: clamp(36px, 8vw, 56px);
+  height: clamp(36px, 8vw, 56px);
+`;
+
+// Base layer: the bullet dot, centred in the avatar cell. Shows whenever the
+// slot yields nothing (no augment / facecams off / kerbal not seated); an
+// augment paints over it. Decorative — the name carries the identity.
+const AvatarFallback = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// Overlay layer: the augment slot, filling the cell above the fallback. A live
+// face covers the bullet; an empty slot adds nothing and the fallback shows.
+const AvatarSlot = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  & > * {
+    width: 100%;
+    height: 100%;
+  }
+`;
+
 const Bullet = styled.span`
   width: 6px;
   height: 6px;
@@ -560,9 +640,12 @@ registerComponent<CrewManifestConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewManifestComponent,
-  // Per-crew-row inline badges slot (augment-slot-map: crew-manifest.badges).
-  // Unfilled until a Kerbalism-style Uplink binds — the roster renders as before.
-  augmentSlots: ["crew-manifest.badges"],
+  // Per-crew-row augment slots (augment-slot-map). Both unfilled until an Uplink
+  // binds — the roster renders as before:
+  //   crew-manifest.badges — trailing inline badges (e.g. Kerbalism dose/comfort)
+  //   crew-manifest.avatar — leading square face cell (Uplink-provided avatar), falls
+  //     back to the bullet when empty.
+  augmentSlots: ["crew-manifest.badges", "crew-manifest.avatar"],
   dataRequirements: [
     "v.crew",
     "v.crewCount",

@@ -1,4 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useReducer, useRef } from "react";
 import { rateTerrainRoughness } from "../shared/roughnessGrade";
 
@@ -34,13 +35,6 @@ export interface SurveyResult {
 }
 
 export interface UseGroundSurveyOpts {
-  /** Legacy `DataSource` id `v.body`/`v.splashed`/`land.predictedLat`/
-   *  `land.predictedLon` route through (via the `useTelemetry` mapTopic
-   *  shim — see this hook's own doc comment for why these four stay on the
-   *  2-arg legacy-key overload while altitude/heightFromTerrain/
-   *  surfaceSpeed read the canonical `vessel.flight` Topic directly).
-   *  Default `"data"`. */
-  sourceId?: string;
   /** Rolling time window for the strip, ms. Default 120 000 (2 min). */
   windowMs?: number;
   /** Below this hft (m) the survey freezes. Default 1000. */
@@ -69,7 +63,6 @@ interface InternalState {
 }
 
 const DEFAULT_OPTS: Required<UseGroundSurveyOpts> = {
-  sourceId: "data",
   windowMs: 120_000,
   freezeBelowM: 1000,
   surveyCeilingM: 10_000,
@@ -92,13 +85,12 @@ function freshState(): InternalState {
  * Reads `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed — a single
  * atomic per-tick capture, `KspHost.BuildFlight`) as a canonical Topic read
  * (no legacy fallback, matches `useTopology`'s posture — see that hook's
- * own doc comment). Body/splashed/predicted-landing stay on the 2-arg
- * `useTelemetry(sourceId, key)` mapTopic-shimmed overload — those four
- * resolve to `vessel.state.*` (a DERIVED, client-side-only channel with no
- * `[SitrepTopic]` tag of its own, so it has no canonical single-arg Topic
- * id to read directly) via the SAME `v.body`/`v.splashed`/
- * `land.predictedLat`/`land.predictedLon` legacy keys every other migrated
- * widget already uses for this shim, zero call-site change either way.
+ * own doc comment). Body/splashed/predicted-landing read the `vessel.state`
+ * DERIVED channel directly via `useStream` — `parentBodyName`/`isSplashed`/
+ * `landingPredictedLat`/`landingPredictedLon` — the same channel
+ * `DistanceToTarget`/`TargetPicker`/`ManeuverPlanner`/`CurrentOrbit` read for
+ * their own `vessel.state.*` fields, off the legacy `useTelemetry(sourceId,
+ * "v.body"/"v.splashed"/"land.predictedLat"/"land.predictedLon")` shim.
  *
  * The old Telemachus fork delivered `v.altitude`/`v.heightFromTerrain` as
  * two INDEPENDENT WebSocket key pushes that could land on different
@@ -119,16 +111,18 @@ export function useGroundSurveySamples(
 ): SurveyResult {
   const cfg = { ...DEFAULT_OPTS, ...opts };
   const flight = useTelemetry("vessel.flight");
-  const bodyRaw = useTelemetry<string>(cfg.sourceId, "v.body");
-  const splashedRaw = useTelemetry<boolean>(cfg.sourceId, "v.splashed");
-  const predictedLatRaw = useTelemetry<number>(
-    cfg.sourceId,
-    "land.predictedLat",
-  );
-  const predictedLonRaw = useTelemetry<number>(
-    cfg.sourceId,
-    "land.predictedLon",
-  );
+  // Prefer the mod's lowest-point-to-ground reading (`vessel.surface`) — the
+  // number a landing/freeze decision actually cares about — over
+  // `vessel.flight.altitudeTerrain` (KSP radarAltitude, from the CENTRE OF
+  // MASS). Same datum preference LandingStatus uses; the CoM value is the
+  // fallback when the capture nulls `vessel.surface` (orbiting/escaping, or no
+  // comms). See VesselSurface.cs.
+  const surface = useTelemetry("vessel.surface");
+  const vesselState = useStream<VesselState>("vessel.state");
+  const bodyRaw = vesselState?.parentBodyName;
+  const splashedRaw = vesselState?.isSplashed;
+  const predictedLatRaw = vesselState?.landingPredictedLat;
+  const predictedLonRaw = vesselState?.landingPredictedLon;
   const predictedLat =
     typeof predictedLatRaw === "number" && Number.isFinite(predictedLatRaw)
       ? predictedLatRaw
@@ -166,7 +160,9 @@ export function useGroundSurveySamples(
     if (!flight) return;
     const s = stateRef.current;
     const altitude = flight.altitudeAsl;
-    const hft = flight.altitudeTerrain;
+    // Lowest-point height from `vessel.surface`, falling back to the CoM
+    // radar altitude when the surface channel is absent this tick.
+    const hft = surface?.heightFromTerrain ?? flight.altitudeTerrain;
     const surfaceSpeed = flight.surfaceSpeed;
     if (!Number.isFinite(altitude) || !Number.isFinite(hft)) return;
 
@@ -205,7 +201,7 @@ export function useGroundSurveySamples(
       s.samples.shift();
     }
     bump();
-  }, [flight, cfg.surveyCeilingM, cfg.freezeBelowM, cfg.windowMs]);
+  }, [flight, surface, cfg.surveyCeilingM, cfg.freezeBelowM, cfg.windowMs]);
 
   const s = stateRef.current;
   const surveyState: SurveyResult["surveyState"] =

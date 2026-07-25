@@ -226,7 +226,27 @@ namespace Sitrep.Contract
         /// A brand-new <c>[SitrepContract]</c> type only, nothing removed or
         /// retyped, so it cannot break an Uplink built against an older Minor. See
         /// <c>docs/superpowers/plans/2026-07-22-avionics-uplink.md</c>.</para>
+        ///
+        /// <para>Major-4 line, Bumped 5 -&gt; 6: additive-only Minor adding
+        /// <see cref="VesselPart.ActionBindings"/> (a new <c>List&lt;ActionBinding&gt;</c>
+        /// field on the existing <see cref="VesselPart"/>) + the brand-new
+        /// <see cref="ActionBinding"/> <c>[SitrepContract]</c> type — per-action
+        /// action-group bindings in the parts tree, retiring the legacy
+        /// <c>f.ag.bindings</c> shim read. A NEW field on an existing wire type +
+        /// a new type is additive (never removes/renames/retypes a member), so it
+        /// cannot break an Uplink built against an older Minor.</para>
+        ///
+        /// <para>Bumped 6 -&gt; 7: the Target API additions — <see cref="TargetKind.Part"/>
+        /// (appended enum member), <see cref="VesselTarget.PartId"/> +
+        /// <see cref="VesselTarget.ClosestApproach"/>, <see cref="SetTargetArgs.PartId"/>,
+        /// and the new <c>target.available</c> channel (<see cref="TargetAvailable"/>/
+        /// <see cref="TargetListEntry"/>) + <see cref="ClosestApproach"/>. All additive
+        /// (new members / new types / an appended enum member), nothing removed or
+        /// retyped, so it cannot break an Uplink built against an older Minor.
+        /// Consolidated onto staging alongside the 5 -&gt; 6 action-bindings bump
+        /// (both additive field sets coexist). See
+        /// <c>docs/superpowers/plans/2026-07-23-target-api-plan.md</c>.</para>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 7;
     }
 }

@@ -1,10 +1,4 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -12,11 +6,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundSurveyComponent } from "./index";
 import { rateSmoothness, type SurveySample } from "./useGroundSurveySamples";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
-// legacy source. RTL auto-cleanup runs after this file's afterEach, so it can't
-// be relied on to unmount first — buffered.disconnect() firing on a
-// still-mounted widget is a state update outside act(), the documented
-// anti-pattern in CLAUDE.md.
+// Rendered trees, tracked so afterEach can unmount them BEFORE the stream
+// fixture goes away. RTL auto-cleanup runs after this file's afterEach, so it
+// can't be relied on to unmount first.
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -31,47 +23,24 @@ function unmountAll() {
 }
 
 /**
- * `v.body`/`v.splashed`/`land.predictedLat`/`land.predictedLon` stay on the
- * legacy `MockDataSource`+`BufferedDataSource` pair — those four still read
- * through the 2-arg `useTelemetry` mapTopic shim, which falls back to the
- * legacy source exactly as before when the resolved `vessel.state.*` topic
- * isn't carried (see `useGroundSurveySamples`'s own doc comment).
- * `v.altitude`/`v.heightFromTerrain`/`v.surfaceSpeed` no longer exist as
- * legacy keys at all in this test — they're replaced by a single
- * `vessel.flight` stream emission (`emitFlight`), mounted via a
- * `TelemetryProvider` (`setupStreamFixture`) alongside the legacy source.
+ * `v.body`/`v.splashed`/`land.predictedLat`/`land.predictedLon` now read the
+ * `vessel.state` DERIVED channel directly (`useGroundSurveySamples`'s own
+ * doc comment) — no legacy `MockDataSource`/`BufferedDataSource` pair at
+ * all any more. `v.body`'s replacement (`vessel.state.parentBodyName`)
+ * resolves `vessel.identity.parentBodyIndex` against a `system.bodies`
+ * table; `v.altitude`/`v.heightFromTerrain`/`v.surfaceSpeed` stay a single
+ * `vessel.flight` stream emission (`emitFlight`), same as before this file's
+ * migration.
  */
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.body" },
-  { key: "v.splashed" },
-  { key: "land.predictedLat" },
-  { key: "land.predictedLon" },
-];
-
 describe("GroundSurveyComponent", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
   let streamFixture: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
-    clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
+  beforeEach(() => {
     streamFixture = setupStreamFixture({ carriedChannels: [] });
-    // `useTelemetry("vessel.flight")`'s canonical read only delivers once
-    // the widget itself has subscribed — it always has by the time a test
-    // calls `emitFlight`, since render() happens first — but StubTransport's
-    // subscription-gating (see its own doc comment) still needs SOMETHING
-    // to have asked first; the widget's own mount satisfies that.
   });
 
   afterEach(() => {
     unmountAll();
-    buffered.disconnect();
   });
 
   function renderWidget() {
@@ -83,14 +52,44 @@ describe("GroundSurveyComponent", () => {
   }
 
   /**
-   * Prime: BufferedDataSource only fans the legacy `v.body`/`v.splashed`
-   * reads out once a flight has been detected (v.name + v.missionTime).
+   * Prime the body: `vessel.orbit` (Loaded quality, so `deriveVesselState`
+   * runs the "measured" basis `vessel.flight` also feeds), `vessel.identity`
+   * (parentBodyIndex 1), and a matching `system.bodies` entry.
    */
   function prime(body = "Mun") {
     act(() => {
-      source.emit("v.name", "Test");
-      source.emit("v.missionTime", 0);
-      source.emit("v.body", body);
+      streamFixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
+      streamFixture.emit("vessel.identity", { parentBodyIndex: 1 });
+      streamFixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: body,
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+          },
+        ],
+      });
+      streamFixture.store.beginFrame();
+    });
+  }
+
+  /** Simulate a SOI transition by swapping the resolved body's name. */
+  function changeBody(body: string) {
+    act(() => {
+      streamFixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: body,
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+          },
+        ],
+      });
+      streamFixture.store.beginFrame();
     });
   }
 
@@ -160,9 +159,7 @@ describe("GroundSurveyComponent", () => {
     }
     // Confirm we have something to wipe.
     expect(screen.getByText(/Mun/)).toBeInTheDocument();
-    act(() => {
-      source.emit("v.body", "Minmus");
-    });
+    changeBody("Minmus");
     // Body label updated; the strip should have reset (no badge yet because
     // we need ≥3 real samples again).
     expect(screen.getByText(/Minmus/)).toBeInTheDocument();

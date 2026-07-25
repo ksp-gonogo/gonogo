@@ -3,8 +3,8 @@
  * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces: the
  * mod streams sparse orbital ELEMENTS (plus the next SOI
  * `encounter`), and the SDK reconstructs everything a widget used to read as a
- * precomputed Telemachus scalar — closest-approach UT, a post-burn maneuver
- * preview, and the patched-conic chain — client-side.
+ * precomputed Telemachus scalar — a post-burn maneuver preview and the
+ * patched-conic chain — client-side.
  *
  * Everything here is deterministic and side-effect-free (no wall-clock, no
  * RNG), the same discipline as `kepler.ts` — it all bottoms out in `solve`/
@@ -61,119 +61,6 @@ export function orbitalPeriod(elements: OrbitElements): number | null {
   if (elements.sma <= 0 || !Number.isFinite(elements.sma)) return null;
   const period = TWO_PI * Math.sqrt(elements.sma ** 3 / elements.mu);
   return Number.isFinite(period) ? period : null;
-}
-
-// ── closest approach ────────────────────────────────────────────────────────
-
-/** Result of a two-body closest-approach solve. */
-export interface ClosestApproach {
-  /** UT (seconds) of the minimum separation within the searched horizon. */
-  ut: number;
-  /** Separation (metres) at `ut`. */
-  distance: number;
-}
-
-export interface ClosestApproachOptions {
-  /**
-   * How far ahead of `startUt` to search (seconds). Defaults to the two
-   * orbits' synodic period (the interval over which their relative geometry
-   * repeats), capped so a near-resonant pair with an enormous synodic period
-   * still terminates.
-   */
-  horizonSeconds?: number;
-  /** Coarse-scan sample count across the horizon. Default 1440 (¼° of a co-orbital pair). */
-  coarseSamples?: number;
-}
-
-const MAX_HORIZON_SECONDS = 100 * 365 * 24 * 3600; // 100 Kerbin-ish years — a terminating cap
-const GOLDEN_REFINE_ITERATIONS = 60;
-
-function separationAt(
-  self: OrbitElements,
-  target: OrbitElements,
-  ut: number,
-): number {
-  const a = solve(self, ut).position;
-  const b = solve(target, ut).position;
-  return magnitude(sub(a, b));
-}
-
-/**
- * Two-body closest-approach solve over `self` and `target` — the SDK-side
- * replacement for Telemachus's precomputed `o.closestTgtApprUT`
- * (DistanceToTarget). Both orbits MUST be around the same body (same `mu`,
- * same reference frame) — the caller is responsible for that gate (a
- * cross-SOI approach isn't a single two-body problem). Returns the UT of
- * minimum separation at or after `startUt` and the separation there, or
- * `null` for a degenerate/non-finite orbit.
- *
- * Coarse-scans the search horizon for the best bracket, then golden-section
- * refines it — separation is smooth and (over one synodic period) has a
- * single dominant minimum, so a bracket-then-refine is both cheap and
- * robust. Deterministic: same inputs → same output.
- */
-export function closestApproach(
-  self: OrbitElements,
-  target: OrbitElements,
-  startUt: number,
-  options: ClosestApproachOptions = {},
-): ClosestApproach | null {
-  const selfPeriod = orbitalPeriod(self);
-  const targetPeriod = orbitalPeriod(target);
-  if (selfPeriod === null || targetPeriod === null) return null;
-
-  let horizon = options.horizonSeconds;
-  if (horizon === undefined) {
-    const relRate = Math.abs(1 / selfPeriod - 1 / targetPeriod);
-    // Co-orbital (identical periods): the geometry is static, so one period
-    // covers every phase. Otherwise the synodic period is the repeat window.
-    horizon = relRate === 0 ? selfPeriod : 1 / relRate;
-  }
-  if (!Number.isFinite(horizon) || horizon <= 0) horizon = selfPeriod;
-  horizon = Math.min(horizon, MAX_HORIZON_SECONDS);
-
-  const samples = Math.max(2, options.coarseSamples ?? 1440);
-  const step = horizon / samples;
-
-  let bestUt = startUt;
-  let bestDist = separationAt(self, target, startUt);
-  for (let i = 1; i <= samples; i++) {
-    const ut = startUt + i * step;
-    const d = separationAt(self, target, ut);
-    if (d < bestDist) {
-      bestDist = d;
-      bestUt = ut;
-    }
-  }
-  if (!Number.isFinite(bestDist)) return null;
-
-  // Golden-section refine within the bracket straddling the coarse minimum.
-  let lo = Math.max(startUt, bestUt - step);
-  let hi = bestUt + step;
-  const invPhi = (Math.sqrt(5) - 1) / 2;
-  let c = hi - (hi - lo) * invPhi;
-  let d = lo + (hi - lo) * invPhi;
-  let fc = separationAt(self, target, c);
-  let fd = separationAt(self, target, d);
-  for (let i = 0; i < GOLDEN_REFINE_ITERATIONS; i++) {
-    if (fc < fd) {
-      hi = d;
-      d = c;
-      fd = fc;
-      c = hi - (hi - lo) * invPhi;
-      fc = separationAt(self, target, c);
-    } else {
-      lo = c;
-      c = d;
-      fc = fd;
-      d = lo + (hi - lo) * invPhi;
-      fd = separationAt(self, target, d);
-    }
-  }
-  const ut = (lo + hi) / 2;
-  const distance = separationAt(self, target, ut);
-  if (!Number.isFinite(distance)) return null;
-  return { ut, distance };
 }
 
 // ── state-vector → osculating elements (RV2COE) ─────────────────────────────

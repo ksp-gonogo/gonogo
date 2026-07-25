@@ -140,6 +140,36 @@ public class VesselPart
     /// carries no module of a mapped type.
     /// </summary>
     public List<PartModuleState> ModuleStates { get; set; } = new();
+
+    /// <summary>
+    /// Action-group bindings on this part — one entry per bound part action
+    /// (<see cref="ActionBinding.Action"/> = <c>BaseAction.guiName</c>, and the
+    /// named groups its <c>BaseAction.actionGroup</c> Flags bitmask decodes to).
+    /// Per-ACTION, not per-part. Empty when no action on the part is bound to
+    /// any group. Retires the legacy <c>f.ag.bindings</c> shim: the client
+    /// derives the human-readable action-group caption from this field.
+    /// </summary>
+    public List<ActionBinding> ActionBindings { get; set; } = new();
+}
+
+/// <summary>
+/// One action-group binding in <see cref="VesselPart.ActionBindings"/>: a
+/// single part action and the named action groups it fires with. <see cref="Groups"/>
+/// are the <c>KSPActionGroup</c> enum member names (<c>SAS</c>/<c>RCS</c>/
+/// <c>Brakes</c>/<c>Gear</c>/<c>Light</c>/<c>Abort</c>/<c>Stage</c>/
+/// <c>Custom01</c>…) the action's Flags bitmask decodes to (<c>None</c> excluded).
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class ActionBinding
+{
+    /// <summary>The action's PAW label — <c>BaseAction.guiName</c> (e.g. "Toggle", "Extend Panel").</summary>
+    public string Action { get; set; } = "";
+
+    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty — an action bound to no group isn't emitted.</summary>
+    public List<string> Groups { get; set; } = new();
 }
 
 /// <summary>

@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
@@ -47,11 +47,15 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
-  function renderWidget() {
+  function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
-          <LandingStatusComponent id="landing-stream" w={8} h={10} />
+          <LandingStatusComponent
+            id="landing-stream"
+            w={size?.w ?? 8}
+            h={size?.h ?? 10}
+          />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -141,5 +145,41 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
     // Empty state is gone once the descent is streaming.
     expect(container.textContent).not.toContain("No landing in progress");
+  });
+
+  // L2 (producer-consumer disagreement): the health badge must track the datum
+  // the widget actually displays — vessel.surface (the lowest-point burn
+  // height) — not vessel.flight. vessel.surface is independently gated (withheld
+  // while Orbiting/Escaping and under signal delay), so a badge bound to
+  // vessel.flight read healthy even when the shown height had silently dropped
+  // to the CoM fallback.
+  it("binds the health badge to vessel.surface, not vessel.flight (L2)", async () => {
+    // Small size renders the plain AGL readout (at wide sizes altitude is the
+    // full-height rail, which carries no "AGL" text); the badge binding under
+    // test is size-independent.
+    renderWidget({ w: 4, h: 10 });
+
+    // A full descent WITH flight flowing but vessel.surface WITHHELD — the
+    // widget falls back to the CoM datum (usingComDatum) and keeps rendering.
+    act(() => {
+      emitMunDescent(); // emits vessel.flight, NOT vessel.surface
+    });
+    await screen.findByText("AGL");
+
+    // Badge reflects the withheld PRIMARY datum, not the live fallback channel:
+    // vessel.surface is carried but not yet delivered -> a non-live status
+    // ("SYNCING"). Before the fix it watched vessel.flight -> "live" -> no
+    // badge span at all, so this assertion would fail.
+    expect(screen.getByText("SYNCING")).toBeInTheDocument();
+
+    // Once vessel.surface arrives the badge clears (live) and the shown AGL
+    // switches to the lowest-point datum.
+    act(() => {
+      stream.emit("vessel.surface", { heightFromTerrain: 4800 });
+    });
+    await waitFor(() =>
+      expect(screen.queryByText("SYNCING")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText(/4\.80 km/)).toBeInTheDocument();
   });
 });

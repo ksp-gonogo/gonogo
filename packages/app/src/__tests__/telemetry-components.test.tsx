@@ -27,13 +27,10 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type FakeTelemachusHandle,
-  setupFakeTelemachus,
-} from "./fixtures/fakeTelemachus";
 
 function renderWidget(tree: ReactElement, instanceId = "t") {
   return render(
@@ -42,8 +39,6 @@ function renderWidget(tree: ReactElement, instanceId = "t") {
     </DashboardItemContext.Provider>,
   );
 }
-
-let fake: FakeTelemachusHandle | null = null;
 
 beforeEach(() => {
   clearRegistry();
@@ -76,8 +71,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fake?.buffered.disconnect();
-  fake = null;
   clearBodies();
   vi.unstubAllGlobals();
 });
@@ -95,19 +88,6 @@ const VESSEL_STATE_INPUTS = [
   "vessel.comms",
   "vessel.propulsion",
 ];
-
-// ---------------------------------------------------------------------------
-// Helper: exercise the LEGACY `useTelemetry("data", key)` shim branch (no
-// `TelemetryProvider` mounted) via a `MockDataSource`-backed fake instead of
-// a real Telemachus WS round trip. `seed()` must be called AFTER the widget
-// renders/subscribes — see `fixtures/fakeTelemachus.ts`.
-// ---------------------------------------------------------------------------
-async function setupTelemetry(
-  snapshot: Record<string, unknown>,
-): Promise<FakeTelemachusHandle> {
-  fake = await setupFakeTelemachus(snapshot);
-  return fake;
-}
 
 // ---------------------------------------------------------------------------
 // Helper: mount a real TelemetryProvider (TelemetryClient + TimelineStore
@@ -143,7 +123,11 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
   }
 
   return {
-    emit: (topic: string, payload: unknown) => transport.emit(topic, payload),
+    // Forwards the transport's optional 3rd meta arg (e.g. quality) so tests
+    // can emit an OnRails vessel.orbit — the basis vessel.state's propagated
+    // apoapsis/periapsis fields require.
+    emit: (...args: Parameters<typeof transport.emit>) =>
+      transport.emit(...args),
     Provider,
   };
 }
@@ -164,16 +148,49 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows apoapsis value when data arrives", async () => {
-    const telemetry = await setupTelemetry({
-      "o.ApA": 250_000,
-      "o.PeA": 80_000,
-      "o.eccentricity": 0.1,
+    // CurrentOrbit reads apoapsis via useOrbitElements -> the native
+    // `vessel.state` derived channel. apoapsisAlt = sma*(1+ecc) - bodyRadius;
+    // the propagated apoapsis fields only populate in the OnRails basis and
+    // need system.bodies for the reference body's radius. sma 850k, ecc 0,
+    // Kerbin radius 600k -> apoapsisAlt 250_000 -> formatDistance = '250.0 km'.
+    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    renderWidget(
+      <stream.Provider>
+        <CurrentOrbitComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => {
+      stream.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+          },
+        ],
+      });
+      stream.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 1,
+          sma: 850_000,
+          ecc: 0,
+          inc: 0,
+          lan: null,
+          argPe: null,
+          meanAnomalyAtEpoch: 0,
+          epoch: 0,
+          mu: 3.5316e12,
+        },
+        { quality: Quality.OnRails },
+      );
     });
-    renderWidget(<CurrentOrbitComponent id="t" />);
-    telemetry.seed();
-    // formatDistance(250_000) = '250.0 km'
     await waitFor(() =>
-      expect(screen.getByText("250.0 km")).toBeInTheDocument(),
+      expect(
+        screen.getByLabelText(/Apoapsis altitude 250\.0 km/),
+      ).toBeInTheDocument(),
     );
   });
 
@@ -238,9 +255,24 @@ describe("DistanceToTargetComponent", () => {
   });
 
   it("shows target name with dash when distance is unavailable", async () => {
-    const telemetry = await setupTelemetry({ "tar.name": "Duna" });
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
-    telemetry.seed();
+    // P1 de-Telemachus: `tar.name` has no shim left to map through (the
+    // widget reads `vessel.target` natively) — feed the name via the stream
+    // with no `relativePosition`, so `tarDistance` stays undefined and the
+    // distance readout falls back to the dash.
+    const stream = setupTelemetryStream(["vessel.target"]);
+    render(
+      <stream.Provider>
+        <DistanceToTargetComponent config={{}} id="tar" />
+      </stream.Provider>,
+    );
+    act(() => {
+      stream.emit("vessel.target", {
+        name: "Duna",
+        kind: 1,
+        vesselId: null,
+        bodyIndex: 2,
+      });
+    });
     await waitFor(() => expect(screen.getByText("Duna")).toBeInTheDocument());
     expect(screen.getByText("—")).toBeInTheDocument();
   });

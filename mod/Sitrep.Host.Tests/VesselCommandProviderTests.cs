@@ -297,6 +297,30 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleTargetSetPassesPartKindWithOwningVesselIdAndPartIdThrough()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Part, VesselId = "guid-1", PartId = 4242u });
+
+            Assert.Equal(TargetKind.Part, actuator.LastSetTargetKind);
+            Assert.Equal("guid-1", actuator.LastSetTargetVesselId);
+            Assert.Equal(4242u, actuator.LastSetTargetPartId);
+        }
+
+        [Fact]
+        public void HandleTargetSetRejectsAPartKindWithNoPartIdWithoutEverCallingTheActuator()
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Part, VesselId = "guid-1", PartId = null });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastSetTargetKind);
+        }
+
+        [Fact]
         public void HandleTargetSetRejectsAPositionKindWithNoLatLonWithoutEverCallingTheActuator()
         {
             var actuator = new FakeVesselActuator();

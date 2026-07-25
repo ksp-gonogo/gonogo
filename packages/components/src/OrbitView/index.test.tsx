@@ -98,7 +98,12 @@ describe("OrbitView augment slots", () => {
       id: "test-orbit-overlay",
       augments: "orbit-view.overlay",
       component: (ctx: OrbitOverlayContext) => (
-        <div data-testid="overlay-probe">apo={Math.round(ctx.apoapsis)}</div>
+        // `apoapsis` is `undefined` on a hyperbolic orbit (no apoapsis) —
+        // this scenario (LKO) is elliptical, so it's always a real number
+        // here; the `?? Number.NaN` only satisfies the type.
+        <div data-testid="overlay-probe">
+          apo={Math.round(ctx.apoapsis ?? Number.NaN)}
+        </div>
       ),
     });
 

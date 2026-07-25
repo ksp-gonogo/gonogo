@@ -65,6 +65,7 @@ function streamFrame(topic: string, payload: unknown): string {
 // The exact per-(body,type) coverage read CoveragePanel performs — scalar
 // percent under the 4-segment canonical string.
 function CoverageProbe() {
+  // @ts-expect-error two-arg form is type-banned; runtime shim still under test
   const pct = useTelemetry<number>("data", "scansat.coverage.Kerbin.8");
   return <div>coverage:{pct === undefined ? "—" : String(pct)}</div>;
 }
@@ -74,6 +75,7 @@ function CoverageProbe() {
 // `vessel.control` field `throttle`) — proves the MSW + live-transport harness
 // is sound, so a red scansat assertion is the dynamic path, never the harness.
 function ControlProbe() {
+  // @ts-expect-error two-arg form is type-banned; runtime shim still under test
   const throttle = useTelemetry("data", "f.throttle");
   return <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>;
 }

@@ -171,36 +171,3 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
         ? "var(--color-tag-yellow-fg)"
         : "var(--color-text-muted)"};
 `;
-
-export const TelemetryPanel = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  padding-top: 4px;
-  border-top: 1px solid var(--color-surface-raised);
-  flex-shrink: 0;
-`;
-
-export const TelRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-`;
-
-export const TelKey = styled.span<{ $colour: string }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $colour }) => $colour};
-  opacity: 0.6;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-`;
-
-export const TelValue = styled.span<{ $colour: string }>`
-  font-size: 12px;
-  font-weight: 600;
-  color: ${({ $colour }) => $colour};
-  font-variant-numeric: tabular-nums;
-  min-width: 7ch;
-  white-space: nowrap;
-`;

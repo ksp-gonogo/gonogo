@@ -91,6 +91,9 @@ namespace Sitrep.Host
         /// </summary>
         public const string VesselsTopic = "system.vessels";
 
+        /// <summary>The <c>target.available</c> channel — see <see cref="BuildTargetAvailable"/>.</summary>
+        public const string TargetAvailableTopic = "target.available";
+
         /// <summary>
         /// The R6 revert-availability capture-add — whether the two stock
         /// in-flight "revert" actions are currently available, split out
@@ -281,6 +284,87 @@ namespace Sitrep.Host
             return new Dictionary<string, object?>
             {
                 ["vessels"] = vessels,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"targetAvailable"</c> group
+        /// (<c>Gonogo.KSP.KspHost.BuildTargetAvailable</c>'s shape:
+        /// <c>{ entries: [ { kind, name, vesselId?, bodyIndex?, partId?,
+        /// vesselType?, situation?, distance?, isCurrent }, ... ] }</c>) to the
+        /// <c>target.available</c> payload — the same wrapper-object convention
+        /// as <see cref="BuildSystemVessels"/>. The producer classifies
+        /// generically and emits the kind/type/situation as strings; this maps
+        /// them to their contract enum ordinals (kind via
+        /// <see cref="System.Enum.TryParse{TEnum}(string, out TEnum)"/> over the
+        /// <see cref="TargetKind"/> names the producer emits), and passes the
+        /// stable ids / distance / isCurrent through. Entries with no resolvable
+        /// stable id per their kind are dropped (same rule
+        /// <see cref="BuildSystemVessels"/> applies).
+        /// </summary>
+        public static object? BuildTargetAvailable(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("targetAvailable", out var rawGroup)
+                || rawGroup is not IDictionary<string, object?> group
+                || !group.TryGetValue("entries", out var rawEntries)
+                || rawEntries is not IEnumerable<object?> rawList)
+            {
+                return null;
+            }
+
+            var entries = new List<object?>();
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is not IDictionary<string, object?> raw)
+                {
+                    continue;
+                }
+
+                if (!System.Enum.TryParse<TargetKind>(GetString(raw, "kind"), out var kind))
+                {
+                    kind = TargetKind.Other;
+                }
+
+                var vesselId = GetString(raw, "vesselId");
+                var bodyIndex = GetInt(raw, "bodyIndex");
+                var partId = (uint?)GetDouble(raw, "partId");
+
+                // Drop an entry that lacks the stable id its kind requires --
+                // it can't round-trip into vessel.target.set (same
+                // never-a-fabricated-id rule as VesselRosterEntry).
+                var hasStableId = kind switch
+                {
+                    TargetKind.Vessel => !string.IsNullOrEmpty(vesselId),
+                    TargetKind.Part => !string.IsNullOrEmpty(vesselId) && partId.HasValue,
+                    TargetKind.Body => bodyIndex.HasValue,
+                    _ => true,
+                };
+                if (!hasStableId)
+                {
+                    continue;
+                }
+
+                var vesselTypeRaw = GetString(raw, "vesselType");
+                var situationRaw = GetString(raw, "situation");
+
+                entries.Add(new Dictionary<string, object?>
+                {
+                    ["kind"] = (int)kind,
+                    ["name"] = GetString(raw, "name") ?? "",
+                    ["vesselId"] = vesselId,
+                    ["bodyIndex"] = bodyIndex,
+                    ["partId"] = partId,
+                    ["vesselType"] = vesselTypeRaw != null ? (int?)SharedMappers.ParseVesselType(vesselTypeRaw) : null,
+                    ["situation"] = situationRaw != null ? (int?)SharedMappers.ParseSituation(situationRaw) : null,
+                    ["distance"] = GetDouble(raw, "distance"),
+                    ["isCurrent"] = GetBool(raw, "isCurrent") ?? false,
+                });
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["entries"] = entries,
             };
         }
 

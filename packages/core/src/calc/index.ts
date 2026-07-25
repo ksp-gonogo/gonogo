@@ -1,5 +1,7 @@
+export * from "./lambert";
 export * from "./maneuver";
 export { mapClamped } from "./map";
+export * from "./porkchop";
 export {
   type SlopeFitResult,
   type SlopeSample,
@@ -20,3 +22,4 @@ export {
   type TrackSample,
   wrap180,
 } from "./trajectory";
+export * from "./transfer";

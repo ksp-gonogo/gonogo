@@ -1,24 +1,20 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
-  clearRegistry,
   getAugmentsForSlot,
-  MockDataSource,
   registerAugment,
-  registerDataSource,
 } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { type GroundSurveyBadgesContext, GroundSurveyComponent } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
-// legacy source or clearing the augment registry. RTL auto-cleanup runs after
-// this file's afterEach, so it can't be relied on to unmount first —
-// buffered.disconnect()/clearAugments() firing on a still-mounted widget is a
-// state update outside act(), the documented anti-pattern in CLAUDE.md.
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
+// augment registry. RTL auto-cleanup runs after this file's afterEach, so it
+// can't be relied on to unmount first — clearAugments() firing on a
+// still-mounted widget is a state update outside act(), the documented
+// anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -40,35 +36,21 @@ function unmountAll() {
  * smoothness badge, receiving the widget's labelling context as typed slot
  * props.
  *
- * `v.body` still resolves through the legacy `MockDataSource` (the
- * `useTelemetry` mapTopic shim's fallback); altitude/heightFromTerrain now
- * stream via `vessel.flight` — see `useGroundSurveySamples`'s doc comment.
+ * `v.body`/altitude/heightFromTerrain all stream natively now — `v.body`
+ * via `vessel.state.parentBodyName` (`vessel.identity` + `system.bodies`),
+ * altitude/heightFromTerrain via `vessel.flight` — see
+ * `useGroundSurveySamples`'s doc comment.
  */
-
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.body" },
-];
-
 describe("GroundSurvey — augment slots (spec §4)", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
   let streamFixture: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
-    clearRegistry();
+  beforeEach(() => {
     clearAugments();
-    source = new MockDataSource({ keys: KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
     streamFixture = setupStreamFixture({ carriedChannels: [] });
   });
 
   afterEach(() => {
     unmountAll();
-    buffered.disconnect();
     clearAugments();
   });
 
@@ -76,11 +58,19 @@ describe("GroundSurvey — augment slots (spec §4)", () => {
   // freeze threshold), where the header badge area renders.
   function drive(body = "Mun") {
     act(() => {
-      source.emit("v.name", "Test");
-      source.emit("v.missionTime", 0);
-      source.emit("v.body", body);
-    });
-    act(() => {
+      streamFixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
+      streamFixture.emit("vessel.identity", { parentBodyIndex: 1 });
+      streamFixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: body,
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+          },
+        ],
+      });
       streamFixture.emit("vessel.flight", {
         latitude: 0,
         longitude: 0,

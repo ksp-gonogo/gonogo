@@ -322,6 +322,85 @@ namespace Sitrep.Host.Tests
         // ----------------------------------------------------------------
 
         [Fact]
+        public void BuildTargetAvailableMapsEveryKindWithStableIdsDistanceAndIsCurrent()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["targetAvailable"] = new Dictionary<string, object?>
+                    {
+                        ["entries"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["kind"] = "Vessel",
+                                ["name"] = "Munar Relay",
+                                ["vesselId"] = "66666666-7777-8888-9999-000000000000",
+                                ["vesselType"] = "Relay",
+                                ["situation"] = "ORBITING",
+                                ["distance"] = 42000.0,
+                                ["isCurrent"] = true,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["kind"] = "Part",
+                                ["name"] = "Clamp-O-Tron Sr.",
+                                ["vesselId"] = "66666666-7777-8888-9999-000000000000",
+                                ["partId"] = 4242.0,
+                                ["vesselType"] = "Relay",
+                                ["distance"] = 88.0,
+                                ["isCurrent"] = false,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["kind"] = "Body",
+                                ["name"] = "Mun",
+                                ["bodyIndex"] = 2,
+                                ["distance"] = 2_000_000.0,
+                                ["isCurrent"] = false,
+                            },
+                            // dropped: a Vessel entry with no id can't round-trip.
+                            new Dictionary<string, object?> { ["kind"] = "Vessel", ["name"] = "No Id" },
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildTargetAvailable(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var entries = Assert.IsType<List<object?>>(root["entries"]);
+            Assert.Equal(3, entries.Count); // the idless vessel is dropped
+
+            var vessel = Assert.IsType<Dictionary<string, object?>>(entries[0]);
+            Assert.Equal((int)TargetKind.Vessel, vessel["kind"]);
+            Assert.Equal("66666666-7777-8888-9999-000000000000", vessel["vesselId"]);
+            Assert.Equal((int)VesselType.Relay, vessel["vesselType"]);
+            Assert.Equal((int)Situation.Orbiting, vessel["situation"]);
+            Assert.Equal(42000.0, vessel["distance"]);
+            Assert.Equal(true, vessel["isCurrent"]);
+
+            var part = Assert.IsType<Dictionary<string, object?>>(entries[1]);
+            Assert.Equal((int)TargetKind.Part, part["kind"]);
+            Assert.Equal(4242u, part["partId"]);
+            Assert.Equal("66666666-7777-8888-9999-000000000000", part["vesselId"]);
+
+            var body = Assert.IsType<Dictionary<string, object?>>(entries[2]);
+            Assert.Equal((int)TargetKind.Body, body["kind"]);
+            Assert.Equal(2, body["bodyIndex"]);
+            Assert.Null(body["vesselType"]);
+        }
+
+        [Fact]
+        public void BuildTargetAvailableReturnsNullWhenNoGroup()
+        {
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+            Assert.Null(SystemViewProvider.BuildTargetAvailable(snapshot));
+        }
+
+        [Fact]
         public void BuildSystemVesselsMapsEveryVesselAndResolvesMainBodyToAnIndex()
         {
             var snapshot = new KspSnapshot

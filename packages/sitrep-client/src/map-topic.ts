@@ -167,13 +167,14 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // pattern as the body-NAME maps above, zero per-widget change:
   //  - situationName            (Situation enum → name; ScienceBench)
   //  - sasModeName              (SasMode enum → name; Navball's SAS_MODES)
-  //  - targetKind               (TargetKind enum → widget string; Body→"CelestialBody")
   //  - commsControlStateName    (ControlState enum → name; CommSignal label/tone)
   //  - commsControlStateOrdinal (ControlState enum → CommSignal's 0/1/2 level)
+  // (targetKind is the same display map, but TargetPicker/DistanceToTarget
+  // now read `vessel.state.targetKind` directly — no `tar.type` shim key
+  // left to map.)
   // ---
   "v.situationString": "vessel.state.situationName",
   "f.sasMode": "vessel.state.sasModeName",
-  "tar.type": "vessel.state.targetKind",
   "comm.controlStateName": "vessel.state.commsControlStateName",
   "comm.controlState": "vessel.state.commsControlStateOrdinal",
 
@@ -233,8 +234,6 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   //  - isEVA/isSplashed (v.isEVA/v.splashed) from vessel.identity.
   //  - actionGroup1..10 (v.ag{n}Value) from vessel.control.actionGroups[]
   //    (dynamic keyed map `vessel.state.actionGroups` also produced for AGX).
-  //  - closestApproachUt (o.closestTgtApprUT) = two-body closest-approach
-  //    solve over vessel.orbit + vessel.target.orbit (propagation.ts).
   // ---
   "dv.currentTWR": "vessel.state.twr",
   "v.isControllable": "vessel.state.isControllable",
@@ -250,7 +249,6 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.ag8Value": "vessel.state.actionGroup8",
   "v.ag9Value": "vessel.state.actionGroup9",
   "v.ag10Value": "vessel.state.actionGroup10",
-  "o.closestTgtApprUT": "vessel.state.closestApproachUt",
 
   // --- land.* ballistic scalars: closed-form vacuum landing solves derived
   // client-side (vessel-state.ts `deriveLanding`) off channels already on the
@@ -363,7 +361,6 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // r.resource[X]/r.resourceMax[X] family) ---
 
   // --- vessel.target ---
-  "tar.name": "vessel.target.name",
   "tar.o.sma": "vessel.target.orbit.sma",
   "tar.o.inclination": "vessel.target.orbit.inc",
   "tar.o.lan": "vessel.target.orbit.lan",
@@ -374,30 +371,6 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "t.timeWarp": "time.warp.warpRateIndex",
   "t.warpMode": "time.warp.warpMode",
   "t.isPaused": "time.warp.paused",
-
-  // --- DistanceToTarget/TargetPicker dock+roster migration. These are NEW
-  // widget-facing keys (no legacy equivalent — added by the migrating
-  // widgets themselves) that expose the raw Vec3
-  // fields so the widget can derive a scalar/angle client-side and merge it
-  // with the still-legacy read via a `??` fallback — the same
-  // MIXED-source-within-one-render pattern CurrentOrbit's own migration
-  // established. See DistanceToTarget/index.tsx's
-  // `vecMagnitude`/`deriveDockAngles`. Of the legacy keys that pattern backs,
-  // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y` have since been
-  // mapped on the wire (they ARE cleanly derivable — see the CLEAN_HOMES
-  // blocks above); only the docking-ORIENTATION angles
-  // `dock.ax`/`dock.ay`/`dock.az` stay gapped (no ax/ay/az decomposition on
-  // the wire, only a single ForwardDot — see TELEMACHUS_KNOWN_GAPS below). ---
-  "tar.relativePosition": "vessel.target.relativePosition",
-  "tar.relativeVelocityVec": "vessel.target.relativeVelocity",
-  // vessel.dock is null whenever the target isn't a docking port with a
-  // free port on the active vessel (DockAlignment's own doc comment,
-  // mod/Sitrep.Host/VesselViewProvider.cs) — undefined here means "not a
-  // docking scenario", not "not loaded yet".
-  "dock.relativePosition": "vessel.dock.relativePosition",
-  "dock.relativeVelocityVec": "vessel.dock.relativeVelocity",
-  "dock.distanceScalar": "vessel.dock.distance",
-  "dock.forwardDot": "vessel.dock.forwardDot",
 
   // --- ManeuverPlanner node-id command bridge. NEW
   // widget-facing key (no legacy equivalent) exposing the raw
@@ -498,9 +471,8 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // alternators/totalProductionEc, mod/Sitrep.Host/PartsViewProvider.cs) and
   // `parts.robotics` (raw array of hinge+piston+rotor servo state) are both
   // 2-segment raw wire topics read WHOLESALE (same "no legacy analogue, key
-  // == topic" shape as `tar.relativePosition` etc. above) rather than a
-  // `<domain>.<channel>.<field>` walk — matches `system.vessels`'s own
-  // whole-topic mapping precedent. PowerSystems reads `parts.power` as a
+  // == topic" shape `system.vessels`'s own whole-topic mapping precedent
+  // established) rather than a `<domain>.<channel>.<field>` walk. PowerSystems reads `parts.power` as a
   // MIXED-source enrichment (preferring `totalProductionEc` over its
   // topology-summed total when carried, `??` falls back otherwise — same
   // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
@@ -800,14 +772,15 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // findings above, just one level deeper than the raw-path
   // check `map-topic.rawFieldRoots.coverage.test.ts` already runs. ---
 
-  // v.situationString / f.sasMode / tar.type are mapped on the wire: each
+  // v.situationString / f.sasMode are mapped on the wire: each
   // mod field (vessel.identity.situation /
-  // vessel.control.sasMode / vessel.target.kind) is a NUMERIC contract-enum
+  // vessel.control.sasMode) is a NUMERIC contract-enum
   // ordinal on the wire; `deriveVesselState` resolves each to the STRING the
-  // widget reads — `vessel.state.situationName` / `sasModeName` / `targetKind`
-  // (`tar.type`'s `Body` normalized to the legacy "CelestialBody" string
-  // DistanceToTarget's dockable gate compares against). See
-  // TELEMACHUS_CLEAN_HOMES above.
+  // widget reads — `vessel.state.situationName` / `sasModeName`. See
+  // TELEMACHUS_CLEAN_HOMES above. (`vessel.target.kind` gets the same
+  // ordinal→"CelestialBody"-normalized-string treatment on
+  // `vessel.state.targetKind`, which TargetPicker/DistanceToTarget now read
+  // directly — no `tar.type` shim key left to map.)
 
   // tar.o.relativeVelocity is mapped on the wire: the signed scalar
   // closing-speed is now derived on `vessel.state.targetRelativeSpeed` — the
@@ -939,11 +912,6 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // — dead requirement).
   // gap: needs a facing vector + a defined prograde frame, neither on the wire
   "v.angleToPrograde",
-
-  // o.closestTgtApprUT is mapped on the wire: the two-body
-  // closest-approach solve over vessel.orbit + vessel.target.orbit now runs
-  // client-side (propagation.ts's `closestApproach`), exposed on
-  // `vessel.state.closestApproachUt`. See TELEMACHUS_CLEAN_HOMES above.
 
   // dock.ax/dock.ay/dock.az: the true docking-port ORIENTATION misalignment
   // axes aren't on the wire (vessel.dock carries only RelativePosition/

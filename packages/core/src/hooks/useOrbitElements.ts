@@ -1,11 +1,22 @@
-import { useTelemetry } from "./useTelemetry";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 
 /**
  * Consolidated apo/peri/timeToAp/timeToPe orbital readings.
  *
  * Each field is `undefined` until the underlying data source emits a value
  * (or after a non-`connected` status transition clears it), mirroring
- * `useDataValue` semantics.
+ * `useDataValue` semantics. On `VesselState` these fields are legitimately
+ * `null` (not `undefined`) once ORBIT data has arrived but the specific
+ * value is inapplicable — apoapsis on a hyperbolic trajectory (`ecc >= 1`
+ * has no apoapsis), or the two time-to-apsis countdowns on the same
+ * hyperbolic case. That `null` is deliberately passed through here rather
+ * than folded into `undefined`: this hook's `!== undefined` contract with
+ * callers (`CurrentOrbit`'s `hasOrbit` gate, in particular) treats "arrived,
+ * value doesn't apply" as arrived, exactly the same as the legacy two-arg
+ * `data`-source read this replaced — that shim's
+ * generic `<number>` annotation never actually excluded `null` at runtime
+ * either. The type below stays `number | undefined` for API compatibility;
+ * see the inline casts.
  */
 export interface OrbitElements {
   /** `o.ApR` — apoapsis radius from body centre, metres. */
@@ -23,24 +34,24 @@ export interface OrbitElements {
 }
 
 /**
- * Read the standard apo/peri/timeToAp/timeToPe orbital elements from a single
- * data source in one call. Defaults to the buffered `"data"` source registered
- * by `@ksp-gonogo/data`.
+ * Read the standard apo/peri/timeToAp/timeToPe orbital elements in one call.
+ *
+ * Native read: the whole `vessel.state` derived channel (SDK-side
+ * `deriveVesselState`), off the shim — the same channel `DistanceToTarget`/
+ * `TargetPicker`/`ManeuverPlanner`/`CurrentOrbit` read for their own
+ * `vessel.state.*` fields. See this file's class-level doc comment for why
+ * a `null` value (arrived, inapplicable) is passed through as-is rather than
+ * normalized to `undefined`.
  */
-export function useOrbitElements(dataSourceId: string = "data"): OrbitElements {
-  const apoapsisRadius = useTelemetry<number>(dataSourceId, "o.ApR");
-  const periapsisRadius = useTelemetry<number>(dataSourceId, "o.PeR");
-  const apoapsisAltitude = useTelemetry<number>(dataSourceId, "o.ApA");
-  const periapsisAltitude = useTelemetry<number>(dataSourceId, "o.PeA");
-  const timeToApoapsis = useTelemetry<number>(dataSourceId, "o.timeToAp");
-  const timeToPeriapsis = useTelemetry<number>(dataSourceId, "o.timeToPe");
+export function useOrbitElements(): OrbitElements {
+  const vesselState = useStream<VesselState>("vessel.state");
 
   return {
-    apoapsisRadius,
-    periapsisRadius,
-    apoapsisAltitude,
-    periapsisAltitude,
-    timeToApoapsis,
-    timeToPeriapsis,
+    apoapsisRadius: vesselState?.apoapsisRadius as number | undefined,
+    periapsisRadius: vesselState?.periapsisRadius as number | undefined,
+    apoapsisAltitude: vesselState?.apoapsisAlt as number | undefined,
+    periapsisAltitude: vesselState?.periapsisAlt as number | undefined,
+    timeToApoapsis: vesselState?.timeToAp as number | undefined,
+    timeToPeriapsis: vesselState?.timeToPe as number | undefined,
   };
 }

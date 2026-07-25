@@ -20,10 +20,9 @@ import { LaunchDirectorComponent } from "./index";
  * the `vessel.state` derived channel's `met`/`altitudeAsl`),
  * `ksp.canRevertToLaunch`/`ksp.canRevertToEditor` (->
  * `ksp.revertAvailability`), and `crash.hasRecent`/`crash.lastCrash` (->
- * themselves, whole-topic identity reads). `tar.availableVessels` (->
- * `system.vessels`) is carried too, though the switcher hasn't been
- * migrated to normalise the new roster shape yet (see `index.tsx`'s own
- * comment) — its list stays empty regardless of what's emitted.
+ * themselves, whole-topic identity reads). The vessel-switcher reads
+ * `target.available` directly (a canonical topic, no shim) — see
+ * `index.test.tsx`'s dedicated switcher test for coverage of that read.
  *
  * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design
  * (`vessel-state.ts`'s own doc): `met` only derives in the OnRails/

@@ -49,6 +49,19 @@ export interface OrbitScenario {
   argPe?: number;
   /** Mean anomaly at epoch (radians). Default 0 → vessel sits at periapsis for a viewUt-0 clock. */
   meanAnomalyAtEpoch?: number;
+  /**
+   * `vessel.orbit`'s sample quality, which drives `vessel.state.basis`
+   * (OnRails → "propagated", Loaded → "measured"). Default `Quality.OnRails`
+   * — every pre-existing scenario/test keeps its prior behaviour unchanged.
+   */
+  quality?: Quality;
+  /** Also emit `vessel.flight` — needed for a "measured" (Loaded) basis scenario, whose `deriveVesselState` branch reads it. Ignored under OnRails. */
+  flight?: {
+    altitudeAsl?: number;
+    verticalSpeed?: number;
+    surfaceSpeed?: number;
+    orbitalSpeed?: number;
+  };
 }
 
 registerStockBodies();
@@ -70,8 +83,26 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
         epoch: 0,
         mu: KERBIN_MU,
       },
-      { quality: Quality.OnRails },
+      { quality: s.quality ?? Quality.OnRails },
     );
+    if (s.quality === Quality.Loaded) {
+      // The "measured" basis branch of `deriveVesselState` needs a whole
+      // `vessel.flight` point to resolve at all (undefined otherwise) — see
+      // that function's Loaded branch.
+      fixture.emit("vessel.flight", {
+        latitude: 0,
+        longitude: 0,
+        altitudeAsl: s.flight?.altitudeAsl ?? 70000,
+        altitudeTerrain: s.flight?.altitudeAsl ?? 70000,
+        verticalSpeed: s.flight?.verticalSpeed ?? 0,
+        surfaceSpeed: s.flight?.surfaceSpeed ?? 2200,
+        orbitalSpeed: s.flight?.orbitalSpeed ?? 2200,
+        gForce: 0,
+        dynamicPressureKPa: 0,
+        mach: 0,
+        atmDensity: 0,
+      });
+    }
     if (s.bodyName !== undefined) {
       fixture.emit("vessel.identity", {
         vesselId: "v1",

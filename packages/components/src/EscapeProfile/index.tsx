@@ -1,10 +1,6 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
-import {
-  escapeVelocity,
-  getBody,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { escapeVelocity, getBody, registerComponent } from "@ksp-gonogo/core";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
@@ -60,12 +56,13 @@ function EscapeProfileComponent({
   config,
   w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
-  // `v.body` is a clean home (`map-topic.ts`) — the derived
-  // `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`
-  // resolved against `system.bodies`). Read via the canonical telemetry hook;
-  // with a `TelemetryProvider` carrying `vessel.state`'s inputs this rides the
-  // stream, and there is no Telemachus read-fallback for this widget.
-  const bodyName = useTelemetry<string>("data", "v.body");
+  // Native read: the `vessel.state` DERIVED channel's `parentBodyName`
+  // display map (`vessel.identity.parentBodyIndex` resolved against
+  // `system.bodies`) — the same channel `DistanceToTarget`/`TargetPicker`/
+  // `ManeuverPlanner`/`CurrentOrbit` read for their own `vessel.state.*`
+  // fields, off the legacy two-arg `data`-source shim.
+  const bodyName =
+    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
   const body = bodyName ? getBody(bodyName) : undefined;
 
   const windowSec = config?.windowSec ?? 600;
@@ -154,7 +151,7 @@ registerComponent<EscapeProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: EscapeProfileComponent,
-  dataRequirements: ["v.altitude", "v.orbitalVelocity", "v.body"],
+  dataRequirements: ["v.altitude", "v.orbitalVelocity"],
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,

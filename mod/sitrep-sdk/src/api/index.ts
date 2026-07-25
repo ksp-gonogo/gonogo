@@ -40,6 +40,7 @@ import type {
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  SettingDefinition,
   SettingsTabDefinition,
   SlotProps,
   TelemetryClient,
@@ -60,6 +61,7 @@ export type {
   AugmentSettingField,
   BodyDefinition,
   BodyMask,
+  ClientPrefSetting,
   CommandStatus,
   ComponentBehavior,
   ComponentDefinition,
@@ -79,10 +81,14 @@ export type {
   PerfBudgetHandle,
   PerfBudgetOptions,
   Screen,
+  SettingDefinition,
+  SettingDefinitionBase,
   SettingsTabDefinition,
+  SettingType,
   SlotId,
   SlotProps,
   SlotRegistry,
+  SourceBackedSetting,
   StreamStatusValue,
   TelemetryClient,
   ThemeDefinition,
@@ -123,6 +129,15 @@ export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
 
 export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);
+
+/**
+ * Declare a setting the app renders in its Settings surface — the PREFERRED
+ * path over a custom tab (`registerSettingsTab`). A client-pref setting
+ * persists to localStorage; a source-backed one binds to the Uplink's own
+ * `DataSource`. See `SettingDefinition`.
+ */
+export const registerSetting = (def: SettingDefinition): void =>
+  getHost().registerSetting(def);
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
@@ -178,6 +193,18 @@ export function useActionInput<TActions extends readonly ActionDefinition[]>(
 
 export function useDataSources(): unknown {
   return getHost().useDataSources();
+}
+
+/**
+ * Reactive read of a client-pref setting by key — `[value, setValue]`, the
+ * value persisted through the app's `SettingsService`. Use it to gate on a
+ * declared kill-switch etc. Source-backed settings are not read here.
+ */
+export function useSetting<T>(
+  key: string,
+  defaultValue: T,
+): [T, (v: T) => void] {
+  return getHost().useSetting<T>(key, defaultValue);
 }
 
 // --- Stream SPI shims (stateful → injected host) -----------------------------

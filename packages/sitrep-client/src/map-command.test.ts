@@ -420,6 +420,22 @@ describe("mapCommand", () => {
     it("an empty tar.setTargetVessel id falls back to legacy", () => {
       expect(mapCommand("data", "tar.setTargetVessel[]")).toBeUndefined();
     });
+
+    it("tar.setTargetPart carries owning vesselId + partId with kind=Part(4)", () => {
+      expect(
+        mapCommand("data", "tar.setTargetPart[aaaa-1111-bbbb-2222,4242]"),
+      ).toEqual({
+        command: "vessel.target.set",
+        args: { kind: 4, vesselId: "aaaa-1111-bbbb-2222", partId: 4242 },
+      });
+    });
+
+    it("a tar.setTargetPart with no partId or empty vesselId falls back to legacy", () => {
+      expect(
+        mapCommand("data", "tar.setTargetPart[aaaa-1111-bbbb-2222,]"),
+      ).toBeUndefined();
+      expect(mapCommand("data", "tar.setTargetPart[,4242]")).toBeUndefined();
+    });
   });
 
   describe("science.experiment.* — partId passthrough", () => {

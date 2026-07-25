@@ -7,6 +7,11 @@ import type { Screen } from "./contexts/ScreenContext";
  * co-locates a whole tab's registration with the code that owns it, and
  * `SettingsModal` renders whatever's registered, generically, with no
  * per-mod knowledge.
+ *
+ * PREFER `registerSetting` (see `./settings/registry.ts`): declarative rows
+ * render + persist with no bespoke UI. Reach for a whole custom tab only when
+ * a setting's UI genuinely can't be a declarative row — this is the rare
+ * escape hatch, not a co-equal default.
  */
 export interface SettingsTabDefinition {
   /** Stable id — React key and tab id. */

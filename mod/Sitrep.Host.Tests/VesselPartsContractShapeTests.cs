@@ -59,6 +59,10 @@ namespace Sitrep.Host.Tests
             var moduleStates = Assert.IsType<List<object?>>(part["moduleStates"]);
             var moduleState = Assert.IsType<Dictionary<string, object?>>(Assert.Single(moduleStates));
             AssertKeysMatchType(typeof(PartModuleState), moduleState);
+
+            var actionBindings = Assert.IsType<List<object?>>(part["actionBindings"]);
+            var actionBinding = Assert.IsType<Dictionary<string, object?>>(Assert.Single(actionBindings));
+            AssertKeysMatchType(typeof(ActionBinding), actionBinding);
         }
 
         [Fact]
@@ -121,6 +125,14 @@ namespace Sitrep.Host.Tests
                                     ["flameout"] = null,
                                 },
                             },
+                            ["actionBindings"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["action"] = "Toggle",
+                                    ["groups"] = new List<object?> { "SAS", "Custom01" },
+                                },
+                            },
                         },
                     },
                 },
@@ -146,7 +158,7 @@ namespace Sitrep.Host.Tests
             // resources/moduleStates are dict-of-dicts / list-of-dicts (like
             // bounds' nested Vec3s) — their per-row shape is asserted
             // separately by the caller via AssertKeysMatchType, not here.
-            var nestedObjectKeys = new HashSet<string> { "position", "up", "bounds", "resources", "moduleStates" };
+            var nestedObjectKeys = new HashSet<string> { "position", "up", "bounds", "resources", "moduleStates", "actionBindings" };
 
             foreach (var (key, value) in emitted)
             {

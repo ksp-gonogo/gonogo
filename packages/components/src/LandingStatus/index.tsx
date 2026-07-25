@@ -3,10 +3,15 @@ import {
   AugmentSlot,
   getBody,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type StreamStatusValue,
+  useStream,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
@@ -25,7 +30,7 @@ import {
   Stack,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
@@ -133,6 +138,35 @@ function StackedField({
   );
 }
 
+/** Native per-topic stream status (same helper OrbitView/DistanceToTarget use)
+ * — `"disconnected"` when no `TelemetryProvider` is mounted. Bound to
+ * `vessel.surface`, the lowest-point burn datum the widget actually shows. */
+function useStreamStatusOptional(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
+  );
+  const getSnapshot = useCallback(
+    (): StreamStatusValue =>
+      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
+    [store, topic],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
 const DESCENT_HISTORY_MAX = 60;
 
 function LandingStatusComponent({
@@ -190,7 +224,7 @@ function LandingStatusComponent({
       ? solution.maxAccel / solution.gravity
       : null;
 
-  const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
+  const streamStatus = useStreamStatusOptional("vessel.surface");
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
   // when the vessel.landing channel carries a terminal velocity — only in an

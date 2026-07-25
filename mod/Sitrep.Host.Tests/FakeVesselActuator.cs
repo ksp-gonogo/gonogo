@@ -43,6 +43,7 @@ namespace Sitrep.Host.Tests
         public int? LastSetTargetBodyIndex;
         public double? LastSetTargetLatitude;
         public double? LastSetTargetLongitude;
+        public uint? LastSetTargetPartId;
         public int ClearTargetCallCount;
         public int? LastSetWarpIndex;
         public bool? LastSetPause;
@@ -166,13 +167,14 @@ namespace Sitrep.Host.Tests
             return RemoveManeuverNodeResult;
         }
 
-        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon)
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon, uint? partId)
         {
             LastSetTargetKind = kind;
             LastSetTargetVesselId = vesselId;
             LastSetTargetBodyIndex = bodyIndex;
             LastSetTargetLatitude = lat;
             LastSetTargetLongitude = lon;
+            LastSetTargetPartId = partId;
             return SetTargetResult;
         }
 

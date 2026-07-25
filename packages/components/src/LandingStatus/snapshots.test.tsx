@@ -185,6 +185,13 @@ async function snapshotLandingStatusFixture(
         atmosphericTemperature: scenario.descent.atmosphericTemperature ?? 0,
         externalTemperature: scenario.descent.externalTemperature ?? 0,
       });
+      // The lowest-point burn datum the widget PREFERS (over the CoM radar
+      // altitude on vessel.flight) — present in these near-surface descent
+      // scenarios, so the health badge reads live and the AGL is the
+      // surface datum rather than the CoM fallback.
+      stream.emit("vessel.surface", {
+        heightFromTerrain: scenario.descent.heightFromTerrain,
+      });
     }
     if (scenario.availableThrust !== undefined) {
       stream.emit("vessel.propulsion", {

@@ -25,6 +25,7 @@ import {
   registerComponent,
   registerFogRevealSource,
   registerMapPoiProvider,
+  registerSetting,
   registerSettingsTab,
   registerTheme,
   registerUplinkHandle,
@@ -32,6 +33,7 @@ import {
   useActionInput,
   useDataSources,
   useExecuteAction,
+  useSetting,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -147,6 +149,11 @@ export function buildGonogoHost(): GonogoHost {
 
     registerSettingsTab: (def) =>
       registerSettingsTab(def as Parameters<typeof registerSettingsTab>[0]),
+
+    registerSetting: (def) =>
+      registerSetting(def as Parameters<typeof registerSetting>[0]),
+    useSetting: ((key: string, defaultValue: unknown) =>
+      useSetting(key, defaultValue)) as GonogoHost["useSetting"],
 
     AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
     createPerfBudget: (opts) => new PerfBudget(opts),

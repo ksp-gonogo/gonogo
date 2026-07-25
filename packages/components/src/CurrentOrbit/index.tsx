@@ -105,11 +105,14 @@ function CurrentOrbitComponent({
     return () => ro.disconnect();
   }, []);
 
-  const hasOrbit =
-    sma !== undefined &&
-    eccentricity !== undefined &&
-    apoapsisR !== undefined &&
-    periapsisR !== undefined;
+  // Apoapsis is intentionally NOT required — it's `null` on a hyperbolic
+  // orbit (no apoapsis exists) by design (`VesselState.apoapsisRadius`), not
+  // an error. Periapsis is always real whenever there's a resolvable orbit,
+  // so it (plus sma/eccentricity) is the true "do we have an orbit" signal.
+  // `!= null` catches both `null` and `undefined` — `apoapsisR`/`periapsisR`
+  // are `useOrbitElements`' apsis radii, which pass `null` through as-is
+  // (see that hook's own doc comment).
+  const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
 
   // Selective rendering — Ap/Pe always; supplementary rows drop bottom-up
   // as height shrinks. Diagram needs real area to be readable.
@@ -204,7 +207,16 @@ function CurrentOrbitComponent({
 
               <Label>t-Pe</Label>
               <Value $accent="pe">
-                {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
+                {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
+                    elliptical solver degrades timeToPe to null (and a legacy
+                    0-sentinel source would read as "arriving now") — render an
+                    em-dash rather than a countdown. `=== undefined` alone
+                    misses `null` (`null === undefined` is false). */}
+                {timeToPe === undefined || timeToPe === null
+                  ? "—"
+                  : hyperbolic
+                    ? "—"
+                    : formatDuration(timeToPe)}
               </Value>
             </>
           )}
@@ -237,7 +249,11 @@ function CurrentOrbitComponent({
               variant="mini"
               sma={sma}
               ecc={eccentricity}
-              apoapsis={apoapsisR}
+              // `apoapsisR` is `null` on a hyperbolic orbit — OrbitDiagram
+              // already detects that itself (`ecc >= 1 || sma <= 0`) and
+              // ignores this value in that branch, so the fallback below is
+              // never actually rendered from.
+              apoapsis={apoapsisR ?? 0}
               periapsis={periapsisR}
               trueAnomaly={trueAnomaly ?? 0}
               argPe={argPe ?? 0}

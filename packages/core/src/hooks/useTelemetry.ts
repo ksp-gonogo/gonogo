@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useSyncExternalStore } from "react";
-import type { DataSource, DataSourceRegistry } from "../types";
+import type { DataSource } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
 
 /**
@@ -31,20 +31,12 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * consult the M3 carried-channels allowlist — that gate exists only to protect
  * a legacy fallback, and a native Topic read has none.
  *
- * **Typed legacy overload** — when the source ID is registered in
- * `DataSourceRegistry`, the key is constrained to valid keys for that source
- * and the return type is inferred automatically:
- *
- *   // DataSourceRegistry has { data: { 'v.altitude': number; ... } }
- *   const alt = useTelemetry('data', 'v.altitude');
- *   //    ^ number | undefined  ✓  — no <T> annotation needed
- *
- * **Fallback legacy overload** — for sources not yet in the registry, or when
- * an explicit type annotation is preferred (backward-compatible with existing
- * code):
- *
- *   const val = useTelemetry<boolean>('data', dynamicKey);
- *   //    ^ boolean | undefined
+ * The two-arg legacy overloads (`useTelemetry(dataSourceId, key)`) are now a
+ * compile error — every production caller has migrated to the canonical
+ * Topic form above. The runtime shim body below still handles a two-arg call
+ * at the type level of the implementation signature; it stays live only to
+ * back the tests that exercise it directly, until the shim implementation
+ * itself is torn out at M4.
  *
  * ---
  *
@@ -121,23 +113,6 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
 export function useTelemetry<T extends TopicId>(
   topic: T,
 ): TopicPayload<T> | undefined;
-
-// Typed legacy overload: source is in DataSourceRegistry → key and return type are inferred
-export function useTelemetry<
-  TSource extends keyof DataSourceRegistry,
-  TKey extends keyof DataSourceRegistry[TSource] & string,
->(
-  dataSourceId: TSource,
-  key: TKey,
-): DataSourceRegistry[TSource][TKey] | undefined;
-
-// Fallback legacy overload: source NOT in DataSourceRegistry, or explicit T annotation.
-// Excludes known source IDs so that passing a registered source with an invalid
-// key produces a compile error rather than silently falling through to unknown.
-export function useTelemetry<T = unknown>(
-  dataSourceId: Exclude<string, keyof DataSourceRegistry>,
-  key: string,
-): T | undefined;
 
 // Implementation (not part of the public API surface)
 export function useTelemetry(dataSourceId: string, key?: string): unknown {

@@ -748,8 +748,8 @@ interface OnFireEditorProps {
 
 /**
  * Translate a gonogo ACTION_GROUPS toggle key (e.g. `f.ag1`, `f.sas`,
- * `f.brake`) into the matching KSPActionGroup enum name returned by
- * Telemachus's `f.ag.bindings` payload (`Custom01`, `SAS`, `Brakes`).
+ * `f.brake`) into the matching KSPActionGroup enum name carried in the parts
+ * tree's `actionBindings[].groups` (`Custom01`, `SAS`, `Brakes`).
  * Returns null for toggle keys with no KSP equivalent.
  */
 function kspActionGroupName(toggle: string | null): string | null {
@@ -785,14 +785,33 @@ interface AgBinding {
   actionGuiName: string;
 }
 
-function isAgBindingArray(v: unknown): v is AgBinding[] {
-  if (!Array.isArray(v)) return false;
-  return v.every(
-    (x) =>
-      x &&
-      typeof x === "object" &&
-      typeof (x as AgBinding).actionGroup === "string",
-  );
+/**
+ * Action-group bindings for the caption, derived from the parts tree
+ * (`vessel.parts` → each part's `actionBindings`). Replaces the retired
+ * `f.ag.bindings` shim: flattens the per-part `{ action, groups[] }` contract
+ * into the caption's per-(group, action) {@link AgBinding} shape. `null` until
+ * the parts tree arrives (vessel-scoped — empty outside Flight), so the caption
+ * falls back to the plain "(f.ag1)" label.
+ */
+function useActionGroupBindings(): AgBinding[] | null {
+  const parts = useTelemetry("vessel.parts");
+  return useMemo(() => {
+    if (!parts?.parts) return null;
+    const out: AgBinding[] = [];
+    for (const part of parts.parts) {
+      for (const binding of part.actionBindings ?? []) {
+        for (const group of binding.groups) {
+          out.push({
+            actionGroup: group,
+            partName: part.name,
+            partTitle: part.title,
+            actionGuiName: binding.action,
+          });
+        }
+      }
+    }
+    return out;
+  }, [parts]);
 }
 
 function captionForAg(
@@ -816,10 +835,10 @@ function OnFireEditor({
   onPickerChange,
   onAdd,
 }: OnFireEditorProps) {
-  // `f.ag.bindings` is vessel-scoped — returns nothing outside Flight.
-  // That's fine: caption falls back to the plain "(f.ag1)" label.
-  const bindingsRaw = useTelemetry("data", "f.ag.bindings");
-  const bindings = isAgBindingArray(bindingsRaw) ? bindingsRaw : null;
+  // Action-group captions now derive from the parts tree (vessel.parts →
+  // actionBindings), not the retired `f.ag.bindings` shim. Vessel-scoped, so
+  // null outside Flight — the caption falls back to the plain "(f.ag1)" label.
+  const bindings = useActionGroupBindings();
   const firableActions = useFirableActions();
 
   return (

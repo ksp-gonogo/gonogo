@@ -144,8 +144,11 @@ public class SetTargetArgs
 {
     public TargetKind Kind { get; set; }
 
-    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>.</summary>
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>. ALSO required when <see cref="Kind"/> is <see cref="TargetKind.Part"/> — the guid of the vessel that OWNS the target part (a part id is unique only within its vessel).</summary>
     public string? VesselId { get; set; }
+
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Part"/> — the docking port's KSP <c>Part.flightID</c>, resolved server-side against the parts of the vessel named by <see cref="VesselId"/>. Null for every other kind.</summary>
+    public uint? PartId { get; set; }
 
     /// <summary>
     /// Required when <see cref="Kind"/> is <see cref="TargetKind.Body"/> —

@@ -85,6 +85,11 @@ public static class RtConfig
                 typeof(VesselLanding),
                 typeof(VesselTarget),
                 typeof(VesselThermal),
+                // target.available list channel + its entry + the mod-side
+                // closest-approach payload carried on vessel.target
+                typeof(TargetAvailable),
+                typeof(TargetListEntry),
+                typeof(ClosestApproach),
                 // nested payload records
                 typeof(OrbitEncounter),
                 typeof(OrbitPatch),
@@ -220,6 +225,9 @@ public static class RtConfig
                 // gap-close — un-gaps usePartsLive off the legacy source)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),
+                // vessel.parts per-part action-group bindings (retires the
+                // f.ag.bindings shim)
+                typeof(ActionBinding),
                 // spaceCenter.launchSites / spaceCenter.scene (P1b)
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),

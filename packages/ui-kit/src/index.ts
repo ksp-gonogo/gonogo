@@ -138,7 +138,13 @@ export {
   useModalSaveBar,
 } from "./ModalSaveBar";
 // ── Panel family ─────────────────────────────────────────────────────────────
-export { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "./Panel";
+export {
+  Panel,
+  PanelBody,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "./Panel";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
 export {
   BigReadout,

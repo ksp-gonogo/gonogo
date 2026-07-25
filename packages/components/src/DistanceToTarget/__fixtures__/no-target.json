@@ -1,7 +1,12 @@
 {
   "_meta": {
     "scenario": "no-target",
-    "notes": "No target set in KSP. tar.name is absent so the widget's target name read stays undefined — it renders the empty-state hint 'No target set in KSP'."
+    "notes": "No target set in KSP. vessel.target is emitted as null so the widget's target-name read stays undefined — it renders the empty-state hint 'No target set in KSP'. The legacy `tar.*` keys drive snapshots.test.tsx (buildVesselTarget returns null with no name); the `_stream` block drives the probe render harness now that the widget reads native vessel.target/vessel.dock topics. Keep the two in sync."
   },
-  "tar.type": ""
+  "tar.type": "",
+  "_stream": {
+    "carriedChannels": ["vessel.target"],
+    "pinnedUt": 0,
+    "emits": [{ "channel": "vessel.target", "value": null }]
+  }
 }

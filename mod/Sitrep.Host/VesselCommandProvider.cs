@@ -200,12 +200,13 @@ namespace Sitrep.Host
             switch (args.Kind)
             {
                 case TargetKind.Vessel when string.IsNullOrEmpty(args.VesselId):
+                case TargetKind.Part when string.IsNullOrEmpty(args.VesselId) || !args.PartId.HasValue:
                 case TargetKind.Body when !args.BodyIndex.HasValue:
                 case TargetKind.Position when !args.BodyIndex.HasValue || !args.Latitude.HasValue || !args.Longitude.HasValue:
                 case TargetKind.Other:
                     return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.SetTarget(args.Kind, args.VesselId, args.BodyIndex, args.Latitude, args.Longitude);
+            return actuator.SetTarget(args.Kind, args.VesselId, args.BodyIndex, args.Latitude, args.Longitude, args.PartId);
         }
 
         public static CommandResult HandleTargetClear(IVesselActuator actuator, object? _) =>
