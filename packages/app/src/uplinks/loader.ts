@@ -13,6 +13,7 @@ import {
   checkUplinkCompat,
   type GonogoUplinkManifest,
   parseSemver,
+  parseUplinkManifest,
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { type ConsentInfo, ensureConsent } from "./consent";
@@ -46,8 +47,14 @@ export interface RosterEntry {
    * dev-server URL / local build dir for a third-party dev loop). `null`/absent
    * for a mod-only Uplink with no client half, or a mod that predates D5. This
    * makes a third-party Uplink self-describing (the app learns the client URL
-   * from the mod, no central index). Read-only for now: the loader/RegistrySource
-   * CONSUMPTION of this field is a separate follow-on — this only surfaces it.
+   * from the mod, no central index).
+   *
+   * CONSUMED as of the D5-loader follow-on (2026-07-25): an id installed in
+   * the roster with no local-registry descriptor but a `clientSource` is
+   * still enabled (`deriveEnabledIds`), and the loader builds an
+   * `UplinkDescriptor` for it from this field + the bundle's own manifest
+   * sidecar rather than the local index — see `descriptorFromClientSource`
+   * and `loadThirdParty` below.
    */
   clientSource?: { url: string; devPath: string | null } | null;
 }
@@ -102,6 +109,17 @@ export interface LoaderContext {
   importBundle?: (url: string) => Promise<unknown>;
   /** Fetch bundle bytes. Injected for tests; defaults to `fetch`. */
   fetchBytes?: (url: string) => Promise<ArrayBuffer>;
+  /**
+   * Fetch a third-party Uplink's manifest sidecar (the D5-loader follow-on —
+   * a `clientSource`-only id has no local registry entry, so the compat
+   * fields (apiVersion/uiKitVersion/contractMajor/contractMinor/
+   * minAppVersion) the local index would otherwise supply come from this
+   * fetch instead, at the conventional sidecar URL `manifestUrlFor` derives).
+   * Returns the parsed-or-parseable JSON value (a string OR an already-parsed
+   * object are both accepted by `parseUplinkManifest`). Injected for tests;
+   * defaults to a real `fetch` + `.json()`.
+   */
+  fetchManifest?: (url: string) => Promise<unknown>;
 }
 
 /** A refusal: the loader stops here and quarantines with this reason. */
@@ -226,6 +244,213 @@ function defaultImportBundle(url: string): Promise<unknown> {
   // @vite-ignore — a runtime URL, NOT an app-graph module. The browser fetches it
   // and resolves its bare imports through the page's baked import map.
   return import(/* @vite-ignore */ url);
+}
+
+async function defaultFetchManifest(url: string): Promise<unknown> {
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) {
+    throw new Error(`manifest fetch failed: HTTP ${res.status} for ${url}`);
+  }
+  return res.json();
+}
+
+/**
+ * Derive a client bundle's manifest-sidecar URL by convention: same
+ * directory as the bundle, filename `gonogo-uplink.json` — the name already
+ * named (but not yet load-bearing) in two doc comments predating this
+ * follow-on: `UplinkClientHandle.id` (core's `uplinkClients.ts` — "MUST
+ * match ... its gonogo-uplink.json id") and `parseUplinkManifest` (core's
+ * `uplinkVersionCompat.ts` — "as fetched from a bundle's sidecar
+ * `gonogo-uplink.json`"). This function is what makes that convention real:
+ * it's the ONE place the sidecar filename is spelled out, so a future rename
+ * only touches here.
+ *
+ * Plain string slicing, not `new URL(rel, base)`: a `clientSource.url`/
+ * `devPath` MAY be a bare path with no origin (a same-origin fixture in
+ * dev/test), and `URL`'s relative-base form throws when the base itself
+ * isn't an absolute URL — string slicing works for both a bare path and a
+ * full `http://host:port/...` URL uniformly.
+ */
+export function manifestUrlFor(bundleUrl: string): string {
+  const idx = bundleUrl.lastIndexOf("/");
+  const dir = idx === -1 ? "" : bundleUrl.slice(0, idx + 1);
+  return `${dir}gonogo-uplink.json`;
+}
+
+/**
+ * Resolve which of `clientSource`'s two URLs the loader actually fetches from,
+ * plus which one was picked (for logging — the precedence itself is a
+ * meaningful runtime decision, never silent). `devPath` (a third-party
+ * author's local dev-server loop) wins over `url` (the distributable release
+ * bundle) when present, matching the doc comment on `RosterEntry.clientSource`.
+ */
+export function resolveClientBundleUrl(clientSource: {
+  url: string;
+  devPath: string | null;
+}): { url: string; picked: "devPath" | "url" } {
+  if (clientSource.devPath)
+    return { url: clientSource.devPath, picked: "devPath" };
+  return { url: clientSource.url, picked: "url" };
+}
+
+/**
+ * Build an `UplinkDescriptor` for a third-party Uplink — one the mod reports
+ * installed with NO matching entry in the local registry index, only a
+ * self-declared `clientSource` (D5) — from that `clientSource` plus the
+ * bundle's own parsed manifest sidecar. Pure: no I/O, no logging, so it's
+ * fully unit-testable from a fixture roster entry + fixture manifest without
+ * a live third-party host (`loadThirdParty` below is the impure caller that
+ * does the actual manifest fetch and feeds this function the result).
+ *
+ * Field provenance, each a deliberate call (logged here, not just in code):
+ *   - `bundleUrl` — `resolveClientBundleUrl(roster.clientSource)`: devPath
+ *     when present, else url.
+ *   - `integrity` — `roster.expectedClientHash` (REQUIRED — the caller must
+ *     guard this non-null before calling; see `loadThirdParty`). For a
+ *     first-party descriptor, `integrity` is H_index (the Hub-published
+ *     hash) and `roster.expectedClientHash` is the SEPARATE H_mod arm the
+ *     three-way check reconciles against it. A third-party id has no
+ *     Hub-published index entry at all, so there is no independent H_index
+ *     to serve as the trust anchor — the mod's own vouched hash is the ONLY
+ *     anchor available, so it fills the `integrity` slot directly. This
+ *     collapses the "three-way" agreement to two arms for a third-party
+ *     bundle (mod-vouched-hash == fetched-bytes-hash), which is still a real
+ *     hash gate, just not a three-independent-party one — there IS no third
+ *     independent party here.
+ *   - `name`/`author`/`repo` — the roster carries none of these (only
+ *     id/version/available/reason/expectedClientHash/clientSource), and
+ *     `GonogoUplinkManifest` doesn't carry them either (design §6.2 — it's
+ *     the compat-gate shape only). Rather than fabricate a plausible-looking
+ *     name/author, this uses the id as the name (matching the existing
+ *     "not found in the registry index" quarantine's same fallback) and an
+ *     explicit "unknown (third-party — no local registry entry)" author, so
+ *     the consent modal (which surfaces `descriptor.author`) never claims
+ *     authorship data the loader doesn't actually have.
+ *   - the compat fields (apiVersion/uiKitVersion/contractMajor/
+ *     contractMinor/minAppVersion) come straight from the parsed manifest —
+ *     this is the whole point of the manifest-fetch seam: it's the one place
+ *     a `clientSource`-only id's compat identity comes from, since there is
+ *     no local index entry to hold them instead.
+ */
+export function descriptorFromClientSource(
+  roster: RosterEntry,
+  manifest: GonogoUplinkManifest,
+): UplinkDescriptor {
+  if (!roster.clientSource) {
+    throw new Error(
+      `descriptorFromClientSource: ${roster.id} has no clientSource`,
+    );
+  }
+  if (roster.expectedClientHash == null) {
+    throw new Error(
+      `descriptorFromClientSource: ${roster.id} has no expectedClientHash ` +
+        "(caller must guard this before building a third-party descriptor)",
+    );
+  }
+  const { url: bundleUrl } = resolveClientBundleUrl(roster.clientSource);
+  return {
+    id: roster.id,
+    name: roster.id,
+    author: "unknown (third-party — no local registry entry)",
+    repo: "",
+    versions: [
+      {
+        version: manifest.version,
+        minAppVersion: manifest.minAppVersion,
+        apiVersion: manifest.apiVersion,
+        uiKitVersion: manifest.uiKitVersion,
+        contractMajor: manifest.contractMajor,
+        contractMinor: manifest.contractMinor,
+        bundleUrl,
+        integrity: roster.expectedClientHash,
+        expectedClientHash: roster.expectedClientHash,
+      },
+    ],
+  };
+}
+
+function quarantineOutcome(id: string, reason: string): UplinkLoadOutcome {
+  const outcome: UplinkLoadOutcome = {
+    id,
+    name: id,
+    status: "quarantined",
+    reason,
+  };
+  setUplinkOutcome(outcome);
+  logger.warn(`[uplink-loader] ${id} quarantined: ${reason}`);
+  return outcome;
+}
+
+/**
+ * Load a third-party Uplink end-to-end: fetch its manifest sidecar, build a
+ * descriptor from it + `clientSource`, then hand off to the SAME `loadOne`
+ * gate → consent → fetch → hash → import sequence a first-party Uplink runs
+ * (design §5) — the only difference from the first-party path is where the
+ * descriptor comes from, never how it's subsequently gated/loaded.
+ *
+ * `roster.expectedClientHash == null` refuses BEFORE any fetch (manifest or
+ * bundle): a third-party id has no Hub-published index entry, so an absent
+ * mod-vouched hash means there is no integrity anchor at all — loading
+ * hash-blind would be exactly the silent-trust gap D3 exists to close.
+ */
+async function loadThirdParty(
+  id: string,
+  roster: RosterEntry,
+  ctx: LoaderContext,
+): Promise<UplinkLoadOutcome> {
+  setUplinkOutcome({ id, name: id, status: "loading" });
+
+  if (!roster.clientSource) {
+    // Guarded by the caller (`loadEnabledUplinks` only calls this when
+    // `roster.clientSource` is present) — defensive only.
+    return quarantineOutcome(id, "no clientSource on the roster entry");
+  }
+  const { url: bundleUrl, picked } = resolveClientBundleUrl(
+    roster.clientSource,
+  );
+  logger.info(
+    `[uplink-loader] ${id}: third-party client — resolved bundleUrl from ` +
+      `clientSource.${picked} (${bundleUrl})`,
+  );
+
+  if (roster.expectedClientHash == null) {
+    return quarantineOutcome(
+      id,
+      "third-party Uplink has no mod-vouched client hash " +
+        "(expectedClientHash absent) — refusing hash-blind load",
+    );
+  }
+
+  const manifestUrl = manifestUrlFor(bundleUrl);
+  const fetchManifest = ctx.fetchManifest ?? defaultFetchManifest;
+  let manifest: GonogoUplinkManifest;
+  try {
+    const raw = await fetchManifest(manifestUrl);
+    manifest = parseUplinkManifest(raw);
+  } catch (err) {
+    return quarantineOutcome(
+      id,
+      `third-party manifest fetch/parse failed (${manifestUrl}): ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  if (manifest.integrity !== roster.expectedClientHash) {
+    // Informational only — the ENFORCED integrity value is the mod-vouched
+    // hash (see `descriptorFromClientSource`'s doc comment); a disagreeing
+    // self-declared manifest integrity is still worth a log line since it
+    // means the bundle publisher and the mod disagree about the bundle's own
+    // hash, which is a smell even though it isn't independently gated here.
+    logger.warn(
+      `[uplink-loader] ${id}: manifest-declared integrity ` +
+        `(${manifest.integrity}) differs from mod-vouched ` +
+        `expectedClientHash (${roster.expectedClientHash}) — the mod-vouched ` +
+        "value is what's enforced",
+    );
+  }
+
+  const descriptor = descriptorFromClientSource(roster, manifest);
+  return loadOne(descriptor, ctx);
 }
 
 /** Load one Uplink end-to-end, returning its outcome (never throws). */
@@ -372,11 +597,16 @@ export async function loadUplinkById(
  * rather than a static id list:
  *
  *   - `roster` PRESENT (the mod answered, even with an empty list) → enable
- *     exactly the ids the roster reports INSTALLED that also have a
- *     first-party descriptor in `index` (`registry.local.json` — first-party
- *     scope is deliberately just "exists in the local registry"; the
- *     mod-side self-describing-URL / third-party path is HELD, not built
- *     here). "Installed" here matches `computeUplinkGapEntries`'s own
+ *     exactly the ids the roster reports INSTALLED that either (a) have a
+ *     first-party descriptor in `index` (`registry.local.json`), OR (b) have
+ *     no local descriptor but DO carry a self-declared `clientSource` (D5) —
+ *     the third-party path this follow-on adds (2026-07-25): `loadEnabledUplinks`
+ *     builds a descriptor for those from `clientSource` + the bundle's own
+ *     manifest instead of the local index (see `descriptorFromClientSource`/
+ *     `loadThirdParty`). An installed id with NEITHER a local descriptor NOR
+ *     a `clientSource` is still excluded here — that's the genuine
+ *     `installed-no-client` gap the wizard surfaces, not a loadable id.
+ *     "Installed" here matches `computeUplinkGapEntries`'s own
  *     definition — present in the roster regardless of its `available` flag
  *     — so a mod-reported-unavailable id is still ENABLED (attempted) and
  *     falls to `checkCompat`'s existing per-descriptor availability veto,
@@ -416,8 +646,18 @@ function deriveEnabledIds(
     [],
     index,
   );
+  const rosterById = new Map(roster.map((r) => [r.id, r]));
   return gapEntries
-    .filter((entry) => entry.installed && entry.hubDescriptor !== null)
+    .filter((entry) => {
+      if (!entry.installed) return false;
+      if (entry.hubDescriptor !== null) return true;
+      // No first-party descriptor — enable it anyway when the mod
+      // self-describes a client source (D5); `loadEnabledUplinks` builds the
+      // descriptor from `clientSource` instead of the local index. No
+      // `clientSource` either → this is the genuine `installed-no-client`
+      // gap, left excluded exactly as before.
+      return rosterById.get(entry.id)?.clientSource != null;
+    })
     .map((entry) => entry.id);
 }
 
@@ -464,18 +704,30 @@ export async function loadEnabledUplinks(
   const outcomes: UplinkLoadOutcome[] = [];
   for (const id of effectiveIds) {
     const descriptor = index.uplinks.find((u) => u.id === id);
-    if (!descriptor) {
-      const outcome: UplinkLoadOutcome = {
-        id,
-        name: id,
-        status: "quarantined",
-        reason: "not found in the registry index",
-      };
-      setUplinkOutcome(outcome);
-      outcomes.push(outcome);
+    if (descriptor) {
+      outcomes.push(await loadOne(descriptor, ctx));
       continue;
     }
-    outcomes.push(await loadOne(descriptor, ctx));
+    // No first-party descriptor — `deriveEnabledIds` only put this id in
+    // `effectiveIds` without one because the roster carries a `clientSource`
+    // for it (D5-loader follow-on), so build+load via that path instead.
+    // The plain "not found in the registry index" quarantine below is now
+    // unreachable via the roster-driven path (kept as a defensive fallback
+    // for a caller that hand-supplies `enabledIds`/`override` naming an id
+    // that's in neither the index nor the roster at all).
+    const rosterEntry = ctx.roster?.find((r) => r.id === id);
+    if (rosterEntry?.clientSource) {
+      outcomes.push(await loadThirdParty(id, rosterEntry, ctx));
+      continue;
+    }
+    const outcome: UplinkLoadOutcome = {
+      id,
+      name: id,
+      status: "quarantined",
+      reason: "not found in the registry index",
+    };
+    setUplinkOutcome(outcome);
+    outcomes.push(outcome);
   }
   return outcomes;
 }

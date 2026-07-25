@@ -1,6 +1,13 @@
+import type { GonogoUplinkManifest } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostCompat } from "./hostCompat";
-import { loadEnabledUplinks, loadUplinkById, type RosterEntry } from "./loader";
+import {
+  descriptorFromClientSource,
+  loadEnabledUplinks,
+  loadUplinkById,
+  manifestUrlFor,
+  type RosterEntry,
+} from "./loader";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
 
@@ -550,5 +557,471 @@ describe("loadUplinkById", () => {
     expect(outcome.status).toBe("quarantined");
     expect(outcome.reason).toMatch(/registry unavailable/);
     expect(importBundle).not.toHaveBeenCalled();
+  });
+});
+
+describe("manifestUrlFor", () => {
+  it("derives the sidecar URL from the bundle's directory (full origin)", () => {
+    expect(
+      manifestUrlFor("https://cdn.example/uplinks/widget-y.client.js"),
+    ).toBe("https://cdn.example/uplinks/gonogo-uplink.json");
+  });
+
+  it("works for a bare path with no origin", () => {
+    expect(manifestUrlFor("/uplinks/widget-y.client.js")).toBe(
+      "/uplinks/gonogo-uplink.json",
+    );
+  });
+
+  it("works for a dev-server URL with a port", () => {
+    expect(manifestUrlFor("http://localhost:5173/widget-y.client.js")).toBe(
+      "http://localhost:5173/gonogo-uplink.json",
+    );
+  });
+});
+
+describe("descriptorFromClientSource", () => {
+  const manifest: GonogoUplinkManifest = {
+    id: "widget-y",
+    version: "2.0.0",
+    minAppVersion: "1.0.0",
+    apiVersion: "1.2.5",
+    uiKitVersion: "0.3.9",
+    contractMajor: 3,
+    contractMinor: 3,
+    integrity: "sha256-manifest-self-declared",
+  };
+
+  function rosterEntry(overrides: Partial<RosterEntry> = {}): RosterEntry {
+    return {
+      id: "widget-y",
+      version: "2.0.0",
+      available: true,
+      reason: null,
+      expectedClientHash: "sha256-mod-vouched",
+      clientSource: {
+        url: "https://cdn.example/widget-y.client.js",
+        devPath: null,
+      },
+      ...overrides,
+    };
+  }
+
+  it("prefers clientSource.devPath over clientSource.url for bundleUrl", () => {
+    const descriptor = descriptorFromClientSource(
+      rosterEntry({
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: "http://localhost:5173/widget-y.client.js",
+        },
+      }),
+      manifest,
+    );
+    expect(descriptor.versions[0].bundleUrl).toBe(
+      "http://localhost:5173/widget-y.client.js",
+    );
+  });
+
+  it("falls back to clientSource.url when devPath is null", () => {
+    const descriptor = descriptorFromClientSource(rosterEntry(), manifest);
+    expect(descriptor.versions[0].bundleUrl).toBe(
+      "https://cdn.example/widget-y.client.js",
+    );
+  });
+
+  it("uses the roster's expectedClientHash as integrity, NOT the manifest's own integrity", () => {
+    const descriptor = descriptorFromClientSource(rosterEntry(), manifest);
+    expect(descriptor.versions[0].integrity).toBe("sha256-mod-vouched");
+    expect(descriptor.versions[0].integrity).not.toBe(manifest.integrity);
+  });
+
+  it("carries the compat fields straight from the manifest", () => {
+    const descriptor = descriptorFromClientSource(rosterEntry(), manifest);
+    const version = descriptor.versions[0];
+    expect(version.version).toBe(manifest.version);
+    expect(version.minAppVersion).toBe(manifest.minAppVersion);
+    expect(version.apiVersion).toBe(manifest.apiVersion);
+    expect(version.uiKitVersion).toBe(manifest.uiKitVersion);
+    expect(version.contractMajor).toBe(manifest.contractMajor);
+    expect(version.contractMinor).toBe(manifest.contractMinor);
+    expect(descriptor.id).toBe("widget-y");
+  });
+
+  it("throws when clientSource is missing", () => {
+    const { clientSource: _clientSource, ...withoutClientSource } =
+      rosterEntry();
+    expect(() =>
+      descriptorFromClientSource(withoutClientSource, manifest),
+    ).toThrow(/clientSource/);
+  });
+
+  it("throws when expectedClientHash is missing", () => {
+    expect(() =>
+      descriptorFromClientSource(
+        rosterEntry({ expectedClientHash: null }),
+        manifest,
+      ),
+    ).toThrow(/expectedClientHash/);
+  });
+});
+
+describe("loadEnabledUplinks — third-party clientSource path (D5-loader follow-on, 2026-07-25)", () => {
+  const THIRD_PARTY_BYTES = new TextEncoder().encode(
+    "export const marker = 'widget-y client bytes';",
+  ).buffer as ArrayBuffer;
+
+  function manifestFor(
+    overrides: Partial<GonogoUplinkManifest> = {},
+  ): GonogoUplinkManifest {
+    return {
+      id: "widget-y",
+      version: "2.0.0",
+      minAppVersion: "1.0.0",
+      apiVersion: "1.2.5", // same major.minor as HOST 1.2.0 → passes
+      uiKitVersion: "0.3.9", // HOST is 0.x (0.3.0) → same minor (3) → passes
+      contractMajor: 3, // == HOST's 3 → passes
+      contractMinor: 3, // <= HOST's 5 → passes
+      integrity: "sha256-manifest-self-declared",
+      ...overrides,
+    };
+  }
+
+  it("loads a third-party id via clientSource + a fetched manifest, preferring devPath", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash)); // local index only ever ships "scansat"
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: thirdPartyHash,
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: "http://localhost:5173/widget-y.client.js",
+        },
+      },
+    ];
+    const fetchManifest = vi.fn(async (url: string) => {
+      expect(url).toBe("http://localhost:5173/gonogo-uplink.json");
+      return manifestFor({ integrity: thirdPartyHash });
+    });
+    const fetchBytes = vi.fn(async (url: string) => {
+      expect(url).toBe("http://localhost:5173/widget-y.client.js");
+      return THIRD_PARTY_BYTES;
+    });
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes,
+      fetchManifest,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe("widget-y");
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledWith(
+      "http://localhost:5173/widget-y.client.js",
+    );
+  });
+
+  it("uses clientSource.url when devPath is absent", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: thirdPartyHash,
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const fetchManifest = vi.fn(async (url: string) => {
+      expect(url).toBe("https://cdn.example/gonogo-uplink.json");
+      return manifestFor({ integrity: thirdPartyHash });
+    });
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest,
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledWith(
+      "https://cdn.example/widget-y.client.js",
+    );
+  });
+
+  it("refuses hash-blind BEFORE any fetch when the mod hasn't vouched a hash", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: null,
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const fetchManifest = vi.fn(async () => manifestFor());
+    const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes,
+      fetchManifest,
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/no mod-vouched client hash/);
+    expect(fetchManifest).not.toHaveBeenCalled();
+    expect(fetchBytes).not.toHaveBeenCalled();
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines with a legible reason when the manifest fetch fails", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: "sha256-mod-vouched",
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest: async () => {
+        throw new Error("network unreachable");
+      },
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(
+      /manifest fetch\/parse failed.*network unreachable/,
+    );
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines with a legible reason when the fetched manifest is malformed", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: "sha256-mod-vouched",
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest: async () => ({ id: "widget-y" }), // missing every other field
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/manifest fetch\/parse failed/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines a compat-incompatible third-party manifest BEFORE fetching bundle bytes", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: "sha256-mod-vouched",
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes,
+      fetchManifest: async () => manifestFor({ apiVersion: "2.0.0" }),
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/apiVersion major mismatch/);
+    expect(fetchBytes).not.toHaveBeenCalled();
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines on a bundle-hash mismatch and never imports", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: true,
+        reason: null,
+        expectedClientHash: "sha256-mod-vouched-but-wrong",
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest: async () =>
+        manifestFor({ integrity: "sha256-mod-vouched-but-wrong" }),
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/hash .* != index/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("quarantines with 'unavailable' when the mod reports the third-party Uplink unavailable", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const roster: RosterEntry[] = [
+      {
+        id: "widget-y",
+        version: "2.0.0",
+        available: false,
+        reason: "widget-y dependency not installed",
+        expectedClientHash: thirdPartyHash,
+        clientSource: {
+          url: "https://cdn.example/widget-y.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest: async () => manifestFor({ integrity: thirdPartyHash }),
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/unavailable/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("prefers the local first-party descriptor when BOTH it and a clientSource exist for the same id", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash)); // "scansat" has a first-party descriptor
+    const fetchManifest = vi.fn(async () => manifestFor());
+    const roster: RosterEntry[] = [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        // Even with a (nonsense) clientSource present, the first-party
+        // descriptor must win — clientSource is only consulted when the
+        // local index has NO descriptor for the id.
+        clientSource: {
+          url: "https://cdn.example/scansat.client.js",
+          devPath: null,
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      fetchManifest,
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(fetchManifest).not.toHaveBeenCalled();
   });
 });
