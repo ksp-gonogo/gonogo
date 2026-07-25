@@ -115,6 +115,9 @@ export function CrossSection({
   // Terrain rendered as JUST the top surface line (the skyline): an open polyline
   // of the profile points, over a soft closed fill that reads "ground below".
   // No bottom/closure line and no ground baseline — only the top terrain line.
+  // The fill closes at the SQUARE's bottom edge (not the terrain baseline) so the
+  // ground reads solid all the way down, with no abrupt stop above the bottom.
+  const fillBottom = SIZE - 4; // inner bottom edge of the panel rect
   let topLine = ""; // open polyline: the surface profile only
   let fillArea = ""; // closed polygon (fill only, no stroke): ground beneath
   if (profile) {
@@ -124,7 +127,7 @@ export function CrossSection({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
     topLine = pts.join(" ");
-    fillArea = `${pad},${baseY} ${pts.join(" ")} ${pad + plotW},${baseY}`;
+    fillArea = `${pad},${fillBottom} ${pts.join(" ")} ${pad + plotW},${fillBottom}`;
   }
 
   // Predicted landing site: marked on the terrain at the slice CENTRE (on the

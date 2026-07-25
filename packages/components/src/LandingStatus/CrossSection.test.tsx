@@ -90,6 +90,28 @@ describe("CrossSection", () => {
     expect(bottomBaseline).toBe(false);
   });
 
+  it("fills the ground down to the bottom edge of the square (no abrupt stop)", () => {
+    const { container } = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={40}
+        horizontalSpeed={5}
+        aglMeters={2000}
+      />,
+    );
+    const fill = container.querySelector("polygon");
+    expect(fill).not.toBeNull();
+    const ys = (fill?.getAttribute("points") ?? "")
+      .split(/\s+/)
+      .map((p) => Number(p.split(",")[1]))
+      .filter((n) => Number.isFinite(n));
+    // The fill reaches the bottom edge of the plot square (SIZE=160, bottom ≈ 156),
+    // rather than stopping at the terrain baseline (144).
+    expect(Math.max(...ys)).toBeGreaterThanOrEqual(150);
+  });
+
   it("survives a null-velocity, no-patch state without throwing", () => {
     render(<CrossSection verticalSpeed={null} horizontalSpeed={null} />);
     expect(
