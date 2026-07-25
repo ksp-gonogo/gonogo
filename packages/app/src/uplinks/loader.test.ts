@@ -346,6 +346,53 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
   });
 
+  // Override-precedence: an explicit `?uplinkLoaderIds=` is a deliberate dev/test
+  // intent and must WIN over the roster (regression for the Hub-wizard e2e, whose
+  // fixture always supplies a roster — the override was silently ignored before).
+  it("an explicit override (even empty) wins over the roster — loads nothing", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      { id: "scansat", version: "1.0.0", available: true, reason: null },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: ["scansat"],
+      override: [], // explicit "load nothing" — must beat the roster's scansat
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(0);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("an explicit override loads its ids even when the roster omits them", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      override: ["scansat"], // explicit — must win over the roster's "nothing installed"
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [], // mod reports nothing installed
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe("scansat");
+    expect(outcomes[0].status).toBe("loaded");
+  });
+
   it("does NOT enable a static ctx.enabledIds entry the roster omits (installed-drives, not a static allowlist)", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),

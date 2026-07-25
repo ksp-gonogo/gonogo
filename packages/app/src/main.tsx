@@ -118,7 +118,10 @@ async function registerScansatAndRender(): Promise<void> {
       const roster = await probeUplinkRoster();
       await loadEnabledUplinks({
         registrySource: localRegistrySource(),
-        enabledIds: loaderBootIdsOverride() ?? [...LOADER_UPLINK_IDS],
+        enabledIds: [...LOADER_UPLINK_IDS],
+        // Explicit `?uplinkLoaderIds=` override wins over the roster + the
+        // default above (see LoaderContext.override) — undefined when unset.
+        override: loaderBootIdsOverride(),
         hostCompat,
         appVersion: VERSION,
         roster,

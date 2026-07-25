@@ -64,9 +64,19 @@ export interface LoaderContext {
    * `deriveEnabledIds`) and this field is IGNORED. `enabledIds` only takes
    * effect as the degraded-boot fallback, when `roster` is `undefined` (no
    * mod talking — dev / e2e / offline first boot): the client half still
-   * loads on the shipped default rather than loading nothing.
+   * loads on the shipped default rather than loading nothing. An explicit
+   * `override` (below) wins over BOTH this and the roster.
    */
   enabledIds: string[];
+  /**
+   * The explicit `?uplinkLoaderIds=` override (dev/test), if the param is
+   * present. Takes PRECEDENCE over the roster and `enabledIds` — a deliberate
+   * override is intent, so it must win even when a roster is talking (e.g. the
+   * Hub wizard e2e boots with `?uplinkLoaderIds=` to keep an installed Uplink
+   * UNloaded and prove the gap surface). `[]` (empty param) means "load
+   * nothing"; `undefined` (no param) defers to roster/`enabledIds`.
+   */
+  override?: readonly string[];
   /** The app's compat identity — gated against each descriptor's declared versions. */
   hostCompat: HostCompat;
   /** The app's own version, for the advisory minAppVersion check. */
@@ -393,7 +403,13 @@ function deriveEnabledIds(
   roster: RosterEntry[] | undefined,
   index: RegistryIndex,
   fallback: readonly string[],
+  override?: readonly string[],
 ): string[] {
+  // An EXPLICIT `?uplinkLoaderIds=` override is a deliberate dev/test intent and
+  // wins outright — over the roster AND the default fallback. `[]` (empty
+  // `?uplinkLoaderIds=`) is a meaningful "load nothing" and is honoured too; only
+  // `undefined` (no override param) defers to the roster/fallback below.
+  if (override !== undefined) return [...override];
   if (!roster) return [...fallback];
   const gapEntries = computeUplinkGapEntries(
     roster.map((r) => ({ id: r.id, available: r.available, reason: r.reason })),
@@ -439,7 +455,12 @@ export async function loadEnabledUplinks(
     });
   }
 
-  const effectiveIds = deriveEnabledIds(ctx.roster, index, ctx.enabledIds);
+  const effectiveIds = deriveEnabledIds(
+    ctx.roster,
+    index,
+    ctx.enabledIds,
+    ctx.override,
+  );
   const outcomes: UplinkLoadOutcome[] = [];
   for (const id of effectiveIds) {
     const descriptor = index.uplinks.find((u) => u.id === id);
