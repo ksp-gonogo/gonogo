@@ -2,15 +2,18 @@
  * CrossSection — the SIDE-ON altimetry plot, paired with the top-down reticle.
  * It slices the terrain patch ALONG THE GROUND TRACK (the horizontal-velocity
  * bearing) through the site and draws that height profile as a vertical terrain
- * cross-section — the ground the craft would meet if it kept coming down along
- * its current path. The velocity vector is drawn over it side-on (descent rate
- * vs ground speed), so its ANGLE against the profile reads whether the
- * trajectory clears the ridge ahead or drives into it.
+ * cross-section. The predicted landing site is marked on the terrain profile
+ * (the shared target marker), and the TRAJECTORY is drawn as a line from the
+ * current position DOWN to that marked point at the descent angle — reaching the
+ * terrain, never a mid-air stub — so its slope against the profile reads whether
+ * the path clears the ridge ahead or drives into it. Speeds ride the ↓/→ labels.
  *
  * Purely presentational. No arrowheads (standing rule); a clean side elevation.
  * The accessible name carries the numbers so the picture is never the sole
  * carrier (and matches the reticle's descent/ground-speed wording).
  */
+
+import { SiteMarker } from "./SiteMarker";
 
 const SIZE = 160;
 
@@ -115,18 +118,33 @@ export function CrossSection({
     silhouette = `${pad},${baseY} ${pts.join(" ")} ${pad + plotW},${baseY}`;
   }
 
-  // Velocity vector: forward (ground speed, +x = direction of travel) and down
-  // (descent, +y), from the craft above the site (centre). Its slope is the
-  // approach angle read against the profile.
+  // Landing point: the site at the slice CENTRE, on the terrain surface.
+  const siteX = pad + plotW * 0.5;
+  const siteHeight = profile ? profile[(profile.length - 1) >> 1] : 0;
+  const siteY = profile ? baseY - siteHeight * amp : baseY;
+
+  // Trajectory: a straight line at the descent angle (down-right) from the craft
+  // DOWN to the marked site, reaching the terrain. Back-project up the approach
+  // from the site until it exits the plot top (or the left edge) — the craft.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;
   const vHor =
     horizontalSpeed != null && horizontalSpeed > 0 ? horizontalSpeed : 0;
-  const scale = Math.max(vDown, vHor, 1);
-  const maxLen = 60;
-  const craftX = pad + plotW * 0.42;
-  const craftY = topY;
-  const tipX = craftX + (vHor / scale) * maxLen;
-  const tipY = craftY + (vDown / scale) * maxLen;
+  let craftX: number;
+  let craftY: number;
+  if (vHor <= 0.001) {
+    craftX = siteX;
+    craftY = topY;
+  } else {
+    const m = vDown / vHor; // dy/dx, down-right (descent angle)
+    const yAtLeft = siteY - m * (siteX - pad);
+    if (yAtLeft >= topY) {
+      craftX = pad;
+      craftY = yAtLeft;
+    } else {
+      craftX = siteX - (siteY - topY) / m;
+      craftY = topY;
+    }
+  }
 
   return (
     <svg
@@ -135,13 +153,7 @@ export function CrossSection({
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       role="img"
       aria-label={label}
-      style={{
-        display: "block",
-        width: "100%",
-        maxWidth: 320,
-        height: "auto",
-        marginTop: "0.15rem",
-      }}
+      style={{ display: "block", width: "100%", height: "auto" }}
     >
       <title>{label}</title>
       <rect
@@ -171,41 +183,20 @@ export function CrossSection({
         stroke="var(--color-border-subtle)"
         strokeWidth={1}
       />
-      {/* Faint down + level references from the craft, so the vector angle reads. */}
+      {/* Trajectory: current position DOWN to the marked site, at the descent
+          angle, reaching the terrain (green, no head). */}
       <line
         x1={craftX}
         y1={craftY}
-        x2={craftX}
-        y2={baseY}
-        stroke="var(--color-border-subtle)"
-        strokeWidth={1}
-        strokeDasharray="2 3"
-      />
-      <line
-        x1={craftX}
-        y1={craftY}
-        x2={craftX + maxLen}
-        y2={craftY}
-        stroke="var(--color-border-subtle)"
-        strokeWidth={1}
-        strokeDasharray="2 3"
-      />
-      {/* Velocity vector (green, no head) — slope = approach angle vs terrain. */}
-      <line
-        x1={craftX}
-        y1={craftY}
-        x2={tipX}
-        y2={tipY}
+        x2={siteX}
+        y2={siteY}
         stroke="var(--color-accent-fg)"
         strokeWidth={2.5}
       />
-      {/* The craft, at the vector's origin. */}
-      <circle
-        cx={craftX}
-        cy={craftY}
-        r={3.5}
-        fill="var(--color-text-primary)"
-      />
+      {/* Current position — the craft at the trajectory's origin. */}
+      <circle cx={craftX} cy={craftY} r={3} fill="var(--color-text-primary)" />
+      {/* Predicted landing site marked on the terrain profile. */}
+      <SiteMarker cx={siteX} cy={siteY} />
       {/* Magnitudes. */}
       <text
         x={8}

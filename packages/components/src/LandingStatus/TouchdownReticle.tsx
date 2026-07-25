@@ -22,6 +22,7 @@
 import type { ReactNode } from "react";
 import { greatCircle } from "./geo";
 import type { Hazard, HazardResult } from "./hazardVerdict";
+import { SiteMarker } from "./SiteMarker";
 
 export interface TouchdownReticleProps {
   /** Predicted touchdown site, degrees. */
@@ -357,7 +358,7 @@ export function TouchdownReticle({
                   key={`dot-${r}-${c}`}
                   cx={5 + (c + 0.5) * cell}
                   cy={5 + (r + 0.5) * cell}
-                  r={0.4 + h * 1.5}
+                  r={0.3 + h * 1.1}
                   fill="var(--color-text-primary)"
                   opacity={0.28 + h * 0.42}
                 />,
@@ -381,16 +382,9 @@ export function TouchdownReticle({
         />
       )}
 
-      {/* Predicted landing site — the ANCHOR: a small filled dot at centre.
-            Unobtrusive point, not a glyph that dominates the terrain. */}
-      <circle
-        cx={C}
-        cy={C}
-        r={4.5}
-        fill="var(--color-accent-fg)"
-        stroke="var(--color-surface-app)"
-        strokeWidth={1}
-      />
+      {/* Predicted landing site — the ANCHOR: the shared target marker (same as
+          the side-on plot) so it clearly reads as "you'll land HERE". */}
+      <SiteMarker cx={C} cy={C} />
 
       {/* Current position — off-centre by the drift (a small, distinct white
             dot). Omitted when you're right over the site. */}
