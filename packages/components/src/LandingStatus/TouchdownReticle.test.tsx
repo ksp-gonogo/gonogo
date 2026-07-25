@@ -1,7 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { deriveHazardVerdict } from "./hazardVerdict";
 import { TouchdownReticle } from "./TouchdownReticle";
 
 const base = {
@@ -17,8 +16,7 @@ const base = {
 
 describe("TouchdownReticle", () => {
   it("renders the site as an image with slope, downrange, biome + source in the label", () => {
-    const verdict = deriveHazardVerdict({ slopeDeg: 8, biome: "Highlands" });
-    render(<TouchdownReticle {...base} verdict={verdict} />);
+    render(<TouchdownReticle {...base} />);
     const img = screen.getByRole("img", { name: /touchdown site/i });
     expect(img.getAttribute("aria-label")).toMatch(/8\.0° slope/);
     expect(img.getAttribute("aria-label")).toMatch(/downrange/);
@@ -29,29 +27,16 @@ describe("TouchdownReticle", () => {
   // (below the plots) so the reticle stays a bare square that aligns with the
   // cross-section; the source still rides the reticle's accessible label.
   it("labels a sub-vessel fallback honestly as an estimate (in the label)", () => {
-    const verdict = deriveHazardVerdict({ slopeDeg: 3 });
-    render(
-      <TouchdownReticle
-        {...base}
-        sampleSource="sub-vessel"
-        verdict={verdict}
-      />,
-    );
+    render(<TouchdownReticle {...base} sampleSource="sub-vessel" />);
     const img = screen.getByRole("img", { name: /touchdown site/i });
     expect(img.getAttribute("aria-label")).toMatch(/sub-vessel \(est\.\)/i);
   });
 
   it("renders relief cells when a terrain patch is present, and stays a labelled image", () => {
-    const verdict = deriveHazardVerdict({ slopeDeg: 8 });
     // A 4x4 patch with a clear high/low split so the hillshade produces cells.
     const patch = [0, 1, 4, 9, 1, 2, 5, 10, 4, 5, 8, 13, 9, 10, 13, 18];
     const { container } = render(
-      <TouchdownReticle
-        {...base}
-        verdict={verdict}
-        terrainPatch={patch}
-        terrainPatchSize={4}
-      />,
+      <TouchdownReticle {...base} terrainPatch={patch} terrainPatchSize={4} />,
     );
     // The relief adds shaded <rect> cells; the reticle is still one labelled img.
     expect(
@@ -61,10 +46,7 @@ describe("TouchdownReticle", () => {
   });
 
   it("has no axe violations", async () => {
-    const verdict = deriveHazardVerdict({ slopeDeg: 8, biome: "Highlands" });
-    const { container } = render(
-      <TouchdownReticle {...base} verdict={verdict} />,
-    );
+    const { container } = render(<TouchdownReticle {...base} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

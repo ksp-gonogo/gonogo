@@ -308,6 +308,7 @@ function LandingStatusComponent({
       bearingDeg={driftBearingDeg}
       verticalSpeed={solution.verticalSpeed}
       horizontalSpeed={solution.horizontalSpeed}
+      aglMeters={heightFromTerrain ?? null}
     />
   ) : null;
 
@@ -507,7 +508,6 @@ function LandingStatusComponent({
       slopeDeg={landing?.predictedSlopeAngle ?? null}
       biome={landing?.predictedBiome ?? null}
       sampleSource={landing?.sampleSource ?? null}
-      verdict={hazardVerdict}
       terrainPatch={landing?.terrainPatch ?? null}
       terrainPatchSize={landing?.terrainPatchSize ?? null}
     />

@@ -28,6 +28,8 @@ export interface CrossSectionProps {
   verticalSpeed: number | null;
   /** Horizontal (ground) speed, m/s. */
   horizontalSpeed: number | null;
+  /** Height above terrain, metres — drives the vessel's descent down the plot. */
+  aglMeters?: number | null;
 }
 
 function fmtSpeed(v: number | null): string {
@@ -95,6 +97,7 @@ export function CrossSection({
   bearingDeg,
   verticalSpeed,
   horizontalSpeed,
+  aglMeters,
 }: Readonly<CrossSectionProps>) {
   const profile = sliceProfile(patch, patchSize, bearingDeg);
   const label = `Descent ${fmtSpeed(verticalSpeed)}, ground speed ${fmtSpeed(
@@ -126,11 +129,31 @@ export function CrossSection({
   const siteHeight = profile ? profile[(profile.length - 1) >> 1] : 0;
   const siteY = profile ? baseY - siteHeight * amp : baseY;
 
-  // Vessel: the current position, ABOVE the terrain (it's descending), upwind of
-  // the site. `vesselY` sits above the tallest terrain so nothing draws through
-  // the surface (relief amp is capped for exactly this headroom).
+  // Vessel: the current position, ABOVE the terrain, upwind of the site. It
+  // DESCENDS down the plot as altitude drops — high near the top of the sky when
+  // far up, easing onto the surface at touchdown. The vertical fraction uses
+  // agl/(agl+K) so any altitude maps monotonically into the plot without needing
+  // a known start-of-descent reference, and eases in near the ground.
   const vesselX = pad + plotW * 0.3;
-  const vesselY = topY - 6;
+  const topBound = topY - 6;
+  // Terrain surface height directly under the vessel (its column of the slice).
+  const surfAtVessel = profile
+    ? baseY - profile[Math.round(0.3 * (profile.length - 1))] * amp
+    : baseY;
+  const AGL_SOFTNESS = 1200; // metres; larger ⇒ vessel stays high longer
+  const altFrac =
+    aglMeters == null
+      ? 1 // no altitude ⇒ draw high (as before)
+      : aglMeters <= 0
+        ? 0
+        : aglMeters / (aglMeters + AGL_SOFTNESS);
+  const vesselY = Math.max(
+    topBound,
+    Math.min(
+      surfAtVessel - 3,
+      surfAtVessel - altFrac * (surfAtVessel - topBound),
+    ),
+  );
   // Accurate velocity vector: true descent angle + length ∝ speed (consistently
   // scaled). Short — it represents current motion, not a line to the site.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;

@@ -23,7 +23,11 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { integrate, streamFixture } from "./synthesize-landing-descent";
+import {
+  type Frame,
+  integrate,
+  streamFixture,
+} from "./synthesize-landing-descent";
 import { renderWidget } from "./widgetRenderHarness";
 
 const execFileAsync = promisify(execFile);
@@ -40,24 +44,34 @@ const TARGET_SECONDS = 15;
 const ONE_WAY_SECONDS = 2; // a delayed regime so the commit clocks are live
 
 /**
- * Sample the descent down to ~TARGET_FRAMES, eased so the tail (suicide burn +
- * touchdown) is dense and the long cruise is sparse. Without this, a linear
- * sample over a ~250s descent spends most frames on the static coast and skips
- * through the burn. p(u) = 1-(1-u)^2 has dp/du → 0 as u → 1, i.e. small
- * time-steps near the end. First and last frames are always kept.
+ * Sample the descent down to ~TARGET_FRAMES evenly in ALTITUDE (not in time).
+ * A ~250s descent spends its first two thirds dropping fast and its last third
+ * crawling the final few hundred metres; sampling evenly in time would waste
+ * most frames on that slow tail (vessel barely moving) and skip the fast upper
+ * descent. Even-in-altitude gives a constant visual descent rate AND covers the
+ * window where the ground-track drift shrinks, so both the side-on descent and
+ * the top-down marker-tracks-in read smoothly. Frames are monotonic-decreasing
+ * in agl, so each altitude rung maps to its nearest frame.
  */
-function sampleFrames<T>(frames: T[], target: number): T[] {
+function sampleFrames(frames: Frame[], target: number): Frame[] {
   if (frames.length <= target) return frames;
-  const last = frames.length - 1;
-  const out: T[] = [];
+  const maxAgl = frames[0].aglMeters;
+  const out: Frame[] = [];
   let prevIdx = -1;
   for (let i = 0; i < target; i++) {
-    const u = i / (target - 1);
-    const p = 1 - (1 - u) ** 2;
-    const idx = Math.round(p * last);
-    if (idx !== prevIdx) {
-      out.push(frames[idx]);
-      prevIdx = idx;
+    const targetAgl = maxAgl * (1 - i / (target - 1)); // maxAgl → 0
+    let best = 0;
+    let bestDelta = Number.POSITIVE_INFINITY;
+    for (let j = 0; j < frames.length; j++) {
+      const delta = Math.abs(frames[j].aglMeters - targetAgl);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        best = j;
+      }
+    }
+    if (best !== prevIdx) {
+      out.push(frames[best]);
+      prevIdx = best;
     }
   }
   return out;

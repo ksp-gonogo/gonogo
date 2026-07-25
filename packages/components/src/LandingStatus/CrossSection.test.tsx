@@ -24,6 +24,41 @@ describe("CrossSection", () => {
     expect(img.getAttribute("aria-label")).toMatch(/ground speed 15 m\/s/i);
   });
 
+  it("descends the vessel toward the terrain as altitude drops", () => {
+    const vesselCy = (container: HTMLElement): number => {
+      // The vessel is the r=3 dot (SiteMarker uses r=5 / r=1.4, never r=3).
+      const dot = [...container.querySelectorAll("circle")].find(
+        (el) => el.getAttribute("r") === "3",
+      );
+      return Number(dot?.getAttribute("cy"));
+    };
+    const high = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={40}
+        horizontalSpeed={5}
+        aglMeters={6000}
+      />,
+    );
+    const highCy = vesselCy(high.container);
+    high.unmount();
+    const low = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={40}
+        horizontalSpeed={5}
+        aglMeters={60}
+      />,
+    );
+    const lowCy = vesselCy(low.container);
+    // Higher altitude ⇒ vessel drawn higher on screen ⇒ smaller y.
+    expect(highCy).toBeLessThan(lowCy);
+  });
+
   it("survives a null-velocity, no-patch state without throwing", () => {
     render(<CrossSection verticalSpeed={null} horizontalSpeed={null} />);
     expect(

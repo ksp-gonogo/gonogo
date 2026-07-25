@@ -146,17 +146,27 @@ export function CommitLayer({
           {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
         </Readout>
 
-        {uncommandable && (
-          <>
-            <Value tone="accent" size="sm">
-              UNCOMMANDABLE
-            </Value>
-            <Value tone="accent" size="xs">
-              RT {formatDuration(roundTripSeconds as number, { ms: true })}{" "}
-              {">"} {formatDuration(countdown as number, { ms: true })} left
-            </Value>
-          </>
-        )}
+        {/* Fixed two-line slot. UNCOMMANDABLE pops in and out mid-descent; if
+            the lines were conditionally mounted the whole widget would jump
+            taller/shorter each time. Reserve the space always (same two lines,
+            same sizes) and only flip visibility, so it appears/clears in place
+            without reflowing. */}
+        <div
+          data-testid="uncommandable-slot"
+          aria-hidden={uncommandable ? undefined : true}
+          style={uncommandable ? undefined : { visibility: "hidden" }}
+        >
+          <Value tone="accent" size="sm">
+            {uncommandable ? "UNCOMMANDABLE" : " "}
+          </Value>
+          <Value tone="accent" size="xs">
+            {uncommandable
+              ? `RT ${formatDuration(roundTripSeconds as number, {
+                  ms: true,
+                })} > ${formatDuration(countdown as number, { ms: true })} left`
+              : " "}
+          </Value>
+        </div>
 
         {!live && blindInSeconds != null && (
           <Value tone={blind ? "accent" : "muted"} size="sm">
