@@ -1008,6 +1008,21 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // Transfer Window — client-derived interplanetary planner. Fixtures emit an
+    // RSS Sun/Earth/Mars/Venus system + a LEO vessel + Mars targeted. Two states:
+    // GO (phase on the Hohmann ideal) and HOLD (phase far off). The two modes
+    // exercise the responsive reflow — default (stacked: dial + list, chart
+    // below) and wide (side-by-side: list left, chart flowing right) — and the
+    // auto-appended portrait/landscape modes catch the aspect extremes.
+    widgetId: "transfer-window",
+    fixturesPath: "TransferWindow/__fixtures__",
+    outPath: "renders/transfer-window",
+    modes: [
+      { name: "default-12x20", w: 12, h: 20 },
+      { name: "wide-18x18", w: 18, h: 18 },
+    ],
+  },
+  {
     // kOS Terminal (mod/GonogoKosUplink/client/src/KosTerminal). A STREAM-DRIVEN
     // widget — it reads `kos.processors` / `kos.terminal.<coreId>` straight
     // off a mounted TelemetryProvider via `useStream`/`useStreamEvent`, never

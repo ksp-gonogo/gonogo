@@ -60,6 +60,12 @@ export interface PorkchopInput {
   /** Transfer direction; prograde by default. */
   prograde?: boolean;
   /**
+   * Force the ≤180° short-way arc for every cell. A planner porkchop sets this
+   * so the whole grid is one coherent lobe of sensible transfers (no divergent
+   * Type-II long-way region punching holes through the plot). Default false.
+   */
+  shortWay?: boolean;
+  /**
    * Minimum time of flight (s) to attempt a Lambert solve — skips near-zero
    * and (optionally) near-degenerate transfers. Defaults to 0 (only arr>dep is
    * required).
@@ -80,6 +86,7 @@ export function buildPorkchop(input: PorkchopInput): PorkchopGrid {
     departureUts,
     arrivalUts,
     prograde = true,
+    shortWay = false,
     minTofSec = 0,
   } = input;
 
@@ -126,6 +133,7 @@ export function buildPorkchop(input: PorkchopInput): PorkchopGrid {
         tofSec,
         muParent,
         prograde,
+        shortWay,
       );
       if (!sol) {
         row.push({ depUt, arrUt, tofSec, deltaV: null });

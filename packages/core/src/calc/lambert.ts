@@ -64,6 +64,15 @@ const TOL = 1e-8;
  * Solve Lambert's problem. `prograde` selects the transfer direction (the sign
  * of the swept angle Δθ). Returns `null` if the geometry is degenerate or the
  * Newton iteration fails to converge.
+ *
+ * `shortWay` forces the ≤180° arc regardless of the bodies' angular separation.
+ * The default (`false`) picks the swept angle from the prograde/retrograde
+ * direction, which for a target more than 180° ahead takes the "long way"
+ * (Δθ>180°, a Type-II transfer) — a valid but high-energy arc whose
+ * universal-variable solve is ill-conditioned for large reflex angles. A
+ * porkchop planner wants a single coherent lobe of the sensible short transfers,
+ * so it forces short-way: the field stays continuous (A≥0, well-conditioned)
+ * and contours to one clean bowl instead of two lobes split by a divergent ridge.
  */
 export function solveLambert(
   r1v: Vec3Tuple,
@@ -71,6 +80,7 @@ export function solveLambert(
   tof: number,
   mu: number,
   prograde = true,
+  shortWay = false,
 ): LambertResult | null {
   if (!(tof > 0) || !(mu > 0)) return null;
 
@@ -82,14 +92,17 @@ export function solveLambert(
   let cosDtheta = dot(r1v, r2v) / (r1 * r2);
   cosDtheta = Math.max(-1, Math.min(1, cosDtheta));
 
-  // Swept angle Δθ in [0, 2π), branch chosen by prograde/retrograde via the
-  // sign of the transfer-normal z-component (Curtis Alg 5.2).
+  // Swept angle Δθ. Short-way forces the ≤180° arc; otherwise the branch is
+  // chosen by prograde/retrograde via the sign of the transfer-normal
+  // z-component (Curtis Alg 5.2), which may take the >180° long way.
   let dtheta = Math.acos(cosDtheta);
   const zComp = c[2];
-  if (prograde) {
-    if (zComp < 0) dtheta = 2 * Math.PI - dtheta;
-  } else {
-    if (zComp >= 0) dtheta = 2 * Math.PI - dtheta;
+  if (!shortWay) {
+    if (prograde) {
+      if (zComp < 0) dtheta = 2 * Math.PI - dtheta;
+    } else {
+      if (zComp >= 0) dtheta = 2 * Math.PI - dtheta;
+    }
   }
 
   const sinDtheta = Math.sin(dtheta);
@@ -103,42 +116,60 @@ export function solveLambert(
     return r1 + r2 + (A * (z * stumpffS(z) - 1)) / Math.sqrt(C);
   };
 
-  // F(z) = 0 is the time-of-flight constraint. Newton-Raphson from z=0.
-  let z = 0;
+  // Time of flight as a function of the universal variable z. Monotonically
+  // increasing in z where defined (y>0), and NaN where y≤0. This is the
+  // constraint we invert: find z with tofAt(z) = tof.
   const sqrtMu = Math.sqrt(mu);
-  let iter = 0;
-  for (; iter < MAX_ITERS; iter++) {
+  const tofAt = (z: number): number => {
     const C = stumpffC(z);
-    const S = stumpffS(z);
+    if (!(C > 0)) return Number.NaN;
     const y = yOf(z);
-    if (!(y > 0)) {
-      // y must stay positive; nudge z up and retry (Curtis's guard).
-      z += 0.1;
+    if (!(y > 0)) return Number.NaN;
+    return ((y / C) ** 1.5 * stumpffS(z) + A * Math.sqrt(y)) / sqrtMu;
+  };
+
+  // Bracket the root, then bisect. A globally convergent solve (unlike a
+  // Newton iteration from z=0, which diverges for the large reflex swept
+  // angles of long-way / Type-II transfers). Single-revolution: z is bounded
+  // above by (2π)²; below it runs negative (hyperbolic transfer arcs). Scan for
+  // the first sub-interval where tofAt crosses `tof` from below.
+  const Z_MAX = 4 * Math.PI * Math.PI - 1e-6;
+  const Z_MIN = -4 * Math.PI * Math.PI;
+  const SCAN_STEPS = 200;
+  let zLo = Number.NaN;
+  let zHi = Number.NaN;
+  let prevZ = Number.NaN;
+  let prevG = Number.NaN;
+  for (let k = 0; k <= SCAN_STEPS; k++) {
+    const zk = Z_MIN + ((Z_MAX - Z_MIN) * k) / SCAN_STEPS;
+    const t = tofAt(zk);
+    const g = Number.isFinite(t) ? t - tof : Number.NaN;
+    if (Number.isFinite(g) && Number.isFinite(prevG) && prevG <= 0 && g >= 0) {
+      zLo = prevZ;
+      zHi = zk;
+      break;
+    }
+    prevZ = zk;
+    prevG = g;
+  }
+  // No sign change → the requested tof is outside the single-rev range for this
+  // geometry (no solution). A porkchop simply skips the cell.
+  if (Number.isNaN(zLo)) return null;
+
+  let z = (zLo + zHi) / 2;
+  for (let iter = 0; iter < MAX_ITERS; iter++) {
+    z = (zLo + zHi) / 2;
+    const t = tofAt(z);
+    if (!Number.isFinite(t)) {
+      // Stepped into a y≤0 gap; pull the bound in from the NaN side.
+      zLo = z;
       continue;
     }
-    const sqrtY = Math.sqrt(y);
-    const F = (y / C) ** 1.5 * S + A * sqrtY - sqrtMu * tof;
-
-    // dF/dz (Curtis Eq. 5.43), with the z=0 special case.
-    let dF: number;
-    if (Math.abs(z) < 1e-12) {
-      const y0 = yOf(0);
-      dF =
-        (Math.SQRT2 / 40) * y0 ** 1.5 +
-        (A / 8) * (Math.sqrt(y0) + A * Math.sqrt(1 / (2 * y0)));
-    } else {
-      dF =
-        (y / C) ** 1.5 *
-          ((1 / (2 * z)) * (C - (3 * S) / (2 * C)) + (3 * S ** 2) / (4 * C)) +
-        (A / 8) * (((3 * S) / C) * sqrtY + A * Math.sqrt(C / y));
-    }
-    if (!Number.isFinite(dF) || dF === 0) return null;
-
-    const dz = F / dF;
-    z -= dz;
-    if (Math.abs(dz) < TOL) break;
+    if (Math.abs(t - tof) <= tof * TOL) break;
+    if (t < tof) zLo = z;
+    else zHi = z;
+    if (zHi - zLo < 1e-12) break;
   }
-  if (iter >= MAX_ITERS) return null;
 
   const y = yOf(z);
   if (!(y > 0) || !Number.isFinite(y)) return null;

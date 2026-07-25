@@ -4,7 +4,6 @@ import {
   hohmannTransferTime,
   keplerTransferSolver,
   type PorkchopGrid,
-  synodicPeriod,
   type TransferSolution,
 } from "@ksp-gonogo/core";
 import { type OrbitElements, solve } from "@ksp-gonogo/sitrep-client";
@@ -135,24 +134,41 @@ export interface PorkchopBuildInput {
   dest: CelestialBody;
   bodies: CelestialBody[];
   nowUt: number;
-  /** Departure-axis samples. Default 24. */
+  /** Departure-axis samples. Default 32. */
   departureSamples?: number;
-  /** Arrival-axis samples. Default 24. */
+  /** Arrival-axis samples. Default 32. */
   arrivalSamples?: number;
+  /**
+   * UT the grid centres its departure axis on — the ideal departure of the
+   * window being shown. Default `nowUt`. Set it (from a selected window's
+   * `departureUt`) to focus the chart on that window's Δv surface.
+   */
+  centerDepUt?: number;
 }
 
 /**
  * Build the porkchop grid for the origin→dest pair by wiring the streaming
- * Keplerian `solve` into core's `buildPorkchop`. Departure spans one synodic
- * period from now; arrival spans 0.5×–2.0× the Hohmann transfer time after
- * each departure — the band that brackets the useful single-rev transfers.
+ * Keplerian `solve` into core's `buildPorkchop`.
+ *
+ * The grid is a tight WINDOW around the transfer optimum, not a broad survey:
+ * departure spans `centerDep ± 0.4·T_Hohmann`, arrival is centred on
+ * `centerDep + T_Hohmann` and spans `± 0.4·T_Hohmann`. That keeps the time of
+ * flight in `[0.2, 1.8]·T_Hohmann` across every cell — always positive, never
+ * near-degenerate — so the whole grid solves and the Δv field is a smooth bowl
+ * with a single central minimum (it contours to the canonical nested-bullseye
+ * porkchop). A broad survey would fold in the arr≤dep triangle and the
+ * long-TOF / multi-rev region, punching no-solution holes through the plot.
+ *
+ * Departures are never sampled before `nowUt` (you can't leave in the past); a
+ * window whose ideal departure is "now" therefore shows the right half of the
+ * bowl, which is correct rather than lopsided.
  */
 export function buildTransferPorkchop(
   input: PorkchopBuildInput,
 ): PorkchopGrid | null {
   const { origin, dest, bodies, nowUt } = input;
-  const departureSamples = input.departureSamples ?? 24;
-  const arrivalSamples = input.arrivalSamples ?? 24;
+  const departureSamples = input.departureSamples ?? 32;
+  const arrivalSamples = input.arrivalSamples ?? 32;
 
   const originEl = celestialToOrbitElements(origin, bodies);
   const destEl = celestialToOrbitElements(dest, bodies);
@@ -169,38 +185,106 @@ export function buildTransferPorkchop(
     return null;
   }
 
-  const synodic = synodicPeriod(origin.period, dest.period);
   const tHohmann = hohmannTransferTime(
     muParent,
     origin.semiMajorAxis,
     dest.semiMajorAxis,
   );
-  const depSpan = Number.isFinite(synodic) ? synodic : 2 * tHohmann;
-  const tofMin = 0.5 * tHohmann;
-  const tofMax = 2.0 * tHohmann;
+  const depHalf = 0.4 * tHohmann;
+  const arrHalf = 0.4 * tHohmann;
+  const centerDep = input.centerDepUt ?? nowUt;
+  const centerArr = centerDep + tHohmann;
 
-  const departureUts = Array.from(
-    { length: departureSamples },
-    (_, i) => nowUt + (depSpan * i) / (departureSamples - 1),
-  );
-  // Arrival axis is absolute UT spanning [now + tofMin, now + depSpan + tofMax]
-  // so every departure's usable transfer band is covered.
-  const arrStart = nowUt + tofMin;
-  const arrEnd = nowUt + depSpan + tofMax;
-  const arrivalUts = Array.from(
-    { length: arrivalSamples },
-    (_, j) => arrStart + ((arrEnd - arrStart) * j) / (arrivalSamples - 1),
-  );
+  const depStart = Math.max(nowUt, centerDep - depHalf);
+  const depEnd = Math.max(depStart + 1, centerDep + depHalf);
+  const arrStart = centerArr - arrHalf;
+  const arrEnd = centerArr + arrHalf;
+
+  const linspace = (a: number, b: number, n: number): number[] =>
+    Array.from({ length: n }, (_, k) => a + ((b - a) * k) / (n - 1));
 
   return buildPorkchop({
     muParent,
     propagateOrigin: (ut) => solve(originEl, ut),
     propagateDest: (ut) => solve(destEl, ut),
-    departureUts,
-    arrivalUts,
-    // A Hohmann sits at ~180°; skip the near-degenerate cells right at it.
-    minTofSec: 0.1 * tHohmann,
+    departureUts: linspace(depStart, depEnd, departureSamples),
+    arrivalUts: linspace(arrStart, arrEnd, arrivalSamples),
   });
+}
+
+export interface TransferWindowEntry {
+  /** 0 = the next window; higher = successive synodic repeats. */
+  index: number;
+  /** Departure UT of this window's optimum. */
+  departureUt: number;
+  /** Seconds from now until departure. */
+  waitSeconds: number;
+  /** Characteristic transfer Δv (m/s) — the porkchop optimum. */
+  deltaV: number;
+  /** Ejection burn Δv from the parking orbit (m/s). */
+  ejectionDeltaV: number;
+  /** Ejection angle from the parent's prograde (deg). */
+  ejectionAngleDeg: number;
+  /** Transfer time (s). */
+  transferTimeSec: number;
+  /** Arrival UT. */
+  arrivalUt: number;
+}
+
+function makeWindow(
+  index: number,
+  departureUt: number,
+  deltaV: number,
+  transferTimeSec: number,
+  solution: TransferSolution,
+  nowUt: number,
+): TransferWindowEntry {
+  return {
+    index,
+    departureUt,
+    waitSeconds: Math.max(0, departureUt - nowUt),
+    deltaV,
+    ejectionDeltaV: solution.ejectionDeltaV,
+    ejectionAngleDeg: solution.ejectionAngleDeg,
+    transferTimeSec,
+    arrivalUt: departureUt + transferTimeSec,
+  };
+}
+
+/**
+ * The next `count` transfer windows to the destination. Window 0 is the next
+ * one; each subsequent window is a synodic period later with the same repeating
+ * geometry (Δv / transfer-time stay constant for near-circular orbits, so the
+ * useful signal across rows is the date/countdown: "miss this one, the next is
+ * in N years"). Empty when no transfer solves.
+ *
+ * Window TIMING comes from the phase solution (`departureUt` = the synodic
+ * countdown to the ideal phase, so window 0 reads "now" when the phase is open),
+ * NOT from the porkchop's global-min departure (which can land a synodic away).
+ * The Δv MAGNITUDE comes from the porkchop optimum; ejection figures + transfer
+ * time from the coplanar solution.
+ */
+export function upcomingWindows(
+  solution: TransferSolution,
+  grid: PorkchopGrid,
+  nowUt: number,
+  count: number,
+): TransferWindowEntry[] {
+  const best = grid.best;
+  if (!best) return [];
+  const baseDep = solution.departureUt;
+  const tof = solution.transferTimeSec;
+  const dv = best.deltaV;
+  const synodic = solution.synodicPeriodSec;
+  if (!Number.isFinite(synodic) || synodic <= 0) {
+    // Co-orbital / degenerate: only the one window is meaningful.
+    return [makeWindow(0, baseDep, dv, tof, solution, nowUt)];
+  }
+  const out: TransferWindowEntry[] = [];
+  for (let k = 0; k < count; k++) {
+    out.push(makeWindow(k, baseDep + k * synodic, dv, tof, solution, nowUt));
+  }
+  return out;
 }
 
 /**

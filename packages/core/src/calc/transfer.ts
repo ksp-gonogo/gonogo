@@ -244,13 +244,21 @@ export const keplerTransferSolver: ITransferSolver = {
       input.originPeriod,
       input.destPeriod,
     );
-    const waitSeconds = nextTransferWindowWait({
-      currentPhaseDeg: input.currentPhaseDeg,
-      idealPhaseDeg,
-      originPeriod: input.originPeriod,
-      destPeriod: input.destPeriod,
-      synodicPeriodSec,
-    });
+    const status = transferStatus(phaseDeltaDeg);
+    // At the ideal phase (status "go") the window is open NOW, so the wait is
+    // zero. Computing it from the drift rate is numerically ambiguous right at
+    // the ideal (a hair either side wraps to 0 or a full synodic), so key it
+    // off the phase status instead.
+    const waitSeconds =
+      status === "go"
+        ? 0
+        : nextTransferWindowWait({
+            currentPhaseDeg: input.currentPhaseDeg,
+            idealPhaseDeg,
+            originPeriod: input.originPeriod,
+            destPeriod: input.destPeriod,
+            synodicPeriodSec,
+          });
     const transferTimeSec = hohmannTransferTime(
       input.muParent,
       input.originRadius,
@@ -268,7 +276,7 @@ export const keplerTransferSolver: ITransferSolver = {
       idealPhaseDeg,
       currentPhaseDeg: input.currentPhaseDeg,
       phaseDeltaDeg,
-      status: transferStatus(phaseDeltaDeg),
+      status,
       synodicPeriodSec,
       waitSeconds,
       nowUt: input.nowUt,
