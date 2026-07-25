@@ -13,6 +13,7 @@ function rosterPayload(): unknown {
         available: true,
         reason: null,
         expectedClientHash: "sha256-abc",
+        clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
         health: { state: 0, detail: null },
       },
       {
@@ -32,7 +33,7 @@ afterEach(() => {
 });
 
 describe("probeUplinkRoster", () => {
-  it("resolves the decoded roster with expectedClientHash carried", async () => {
+  it("resolves the decoded roster with expectedClientHash + clientSource carried", async () => {
     const stub = new StubTransport();
     const pending = probeUplinkRoster({ transport: stub, timeoutMs: 1000 });
     // The probe subscribes synchronously in the Promise executor, so the topic
@@ -47,6 +48,8 @@ describe("probeUplinkRoster", () => {
         available: true,
         reason: null,
         expectedClientHash: "sha256-abc",
+        // D5 — the client-source declaration is carried through to RosterEntry.
+        clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
       },
       {
         id: "beta",
@@ -54,6 +57,8 @@ describe("probeUplinkRoster", () => {
         available: false,
         reason: "not ready",
         expectedClientHash: null,
+        // A mod-only entry (no clientSource on the wire) decodes to null.
+        clientSource: null,
       },
     ]);
   });

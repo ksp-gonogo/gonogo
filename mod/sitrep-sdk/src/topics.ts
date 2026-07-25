@@ -75,6 +75,17 @@ export interface SystemUplinksTopicPayloadMap {
        * engine-built, not a `[SitrepTopic]` reflected payload.
        */
       expectedClientHash: string | null;
+      /**
+       * Where the Uplink's CLIENT bundle lives (D5) — its distributable `url`
+       * plus an optional `devPath` (a localhost dev-server URL or local build
+       * dir for a third-party dev loop). `null` for a mod-only Uplink with no
+       * client half. Hand-declared here (not codegen) for the same reason as
+       * the rest of this shape — `system.uplinks` is engine-built, not a
+       * `[SitrepTopic]` reflected payload. The bundle's integrity hash is NOT
+       * repeated here; it stays on `expectedClientHash` (the loader's three-way
+       * check reads it there).
+       */
+      clientSource: { url: string; devPath: string | null } | null;
       health: { state: number; detail: string | null };
     }>;
   };

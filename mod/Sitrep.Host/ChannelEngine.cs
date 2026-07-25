@@ -629,11 +629,21 @@ namespace Sitrep.Host
                 var id = kvp.Key;
                 var uplink = kvp.Value;
                 var availability = AvailabilityOf(id);
+                var clientSource = uplink.Manifest.ClientSource;
                 entries.Add(new Dictionary<string, object?>
                 {
                     ["id"] = id,
                     ["version"] = uplink.Manifest.Version,
                     ["expectedClientHash"] = uplink.Manifest.ExpectedClientHash,   // H_mod (null for mod-only / older / dev DLL)
+                    // D5 — where the client bundle lives, so a third-party Uplink
+                    // is self-describing. null for a mod-only Uplink (no client half).
+                    ["clientSource"] = clientSource == null
+                        ? null
+                        : new Dictionary<string, object?>
+                        {
+                            ["url"] = clientSource.Url,
+                            ["devPath"] = clientSource.DevPath,
+                        },
                     ["available"] = availability.IsAvailable,
                     ["reason"] = availability.Reason,
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),
