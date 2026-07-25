@@ -59,6 +59,37 @@ describe("CrossSection", () => {
     expect(highCy).toBeLessThan(lowCy);
   });
 
+  it("draws only the top terrain line (open skyline), with no bottom/closure line", () => {
+    const { container } = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={40}
+        horizontalSpeed={5}
+        aglMeters={2000}
+      />,
+    );
+    // The terrain skyline is an OPEN polyline (top surface only), not a stroked
+    // closed shape.
+    expect(container.querySelector("polyline")).not.toBeNull();
+    // Any soft fill polygon carries no stroke — so there is no perimeter/bottom
+    // line drawn around the terrain.
+    for (const poly of container.querySelectorAll("polygon")) {
+      const stroke = poly.getAttribute("stroke");
+      expect(stroke === null || stroke === "none").toBe(true);
+    }
+    // No full-width horizontal baseline along the bottom of the plot.
+    const bottomBaseline = [...container.querySelectorAll("line")].some(
+      (ln) => {
+        const y1 = ln.getAttribute("y1");
+        const y2 = ln.getAttribute("y2");
+        return y1 === y2 && Number(y1) >= 140; // baseY = SIZE-16 = 144
+      },
+    );
+    expect(bottomBaseline).toBe(false);
+  });
+
   it("survives a null-velocity, no-patch state without throwing", () => {
     render(<CrossSection verticalSpeed={null} horizontalSpeed={null} />);
     expect(
