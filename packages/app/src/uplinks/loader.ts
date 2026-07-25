@@ -40,6 +40,16 @@ export interface RosterEntry {
    * records the mod-hash arm as pending.
    */
   expectedClientHash?: string | null;
+  /**
+   * Where the running mod says this Uplink's CLIENT bundle lives (design §3.2,
+   * D5) — its distributable `url` plus an optional `devPath` (localhost
+   * dev-server URL / local build dir for a third-party dev loop). `null`/absent
+   * for a mod-only Uplink with no client half, or a mod that predates D5. This
+   * makes a third-party Uplink self-describing (the app learns the client URL
+   * from the mod, no central index). Read-only for now: the loader/RegistrySource
+   * CONSUMPTION of this field is a separate follow-on — this only surfaces it.
+   */
+  clientSource?: { url: string; devPath: string | null } | null;
 }
 
 export interface LoaderContext {

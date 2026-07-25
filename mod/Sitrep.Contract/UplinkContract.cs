@@ -127,6 +127,36 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// Where an Uplink's CLIENT bundle lives, so a third-party Uplink is
+    /// self-describing — the app learns the client URL from the running mod, no
+    /// central index (design §3.2, D5). A manifest declares this only when it
+    /// HAS a client half; a mod-only Uplink leaves
+    /// <see cref="UplinkManifest.ClientSource"/> null.
+    ///
+    /// <para>The integrity hash for this bundle is NOT repeated here — it stays
+    /// on <see cref="UplinkManifest.ExpectedClientHash"/> (H_mod), carried
+    /// alongside on the same manifest/roster, because the loader's three-way
+    /// agreement reads it there.</para>
+    /// </summary>
+    public sealed class UplinkClientSource
+    {
+        /// <summary>
+        /// The distributable client bundle URL — REQUIRED for a production
+        /// Uplink (this is what the app fetches the client half from when the
+        /// Uplink ships). Never null on a declared client source.
+        /// </summary>
+        public string Url { get; set; } = "";
+
+        /// <summary>
+        /// Optional local/dev override — a localhost dev-server URL or a local
+        /// build directory a third-party dev points at while iterating, so they
+        /// get a dev loop without publishing to <see cref="Url"/> each change.
+        /// <c>null</c> for a released Uplink (which serves from <see cref="Url"/>).
+        /// </summary>
+        public string? DevPath { get; set; }
+    }
+
+    /// <summary>
     /// The manifest an <see cref="ISitrepUplink"/> exposes — one
     /// registry-unique <see cref="Id"/>, one shared semver <see cref="Version"/>,
     /// and every channel/command it owns. See the design doc §1.1: this is
@@ -147,6 +177,12 @@ namespace Sitrep.Contract
         /// agreement (index == mod == bytes) before importing the client.
         /// </summary>
         public string? ExpectedClientHash { get; set; }
+        /// <summary>
+        /// Where this Uplink's client bundle lives (D5) — its distributable URL
+        /// plus an optional local/dev path. <c>null</c> for a mod-only Uplink
+        /// with no client half. Emitted on <c>system.uplinks.clientSource</c>.
+        /// </summary>
+        public UplinkClientSource? ClientSource { get; set; }
         public IReadOnlyList<ChannelDeclaration> Channels { get; set; } = Array.Empty<ChannelDeclaration>();
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
     }

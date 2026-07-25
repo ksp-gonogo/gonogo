@@ -25,6 +25,7 @@ interface RawRosterEntry {
   available: boolean;
   reason: string | null;
   expectedClientHash?: string | null;
+  clientSource?: { url: string; devPath: string | null } | null;
   health?: unknown;
 }
 
@@ -78,6 +79,10 @@ export async function probeUplinkRoster(
               available: e.available,
               reason: e.reason ?? null,
               expectedClientHash: e.expectedClientHash ?? null,
+              // D5 — carry the mod's client-source declaration through so it's
+              // readable on RosterEntry. The loader/RegistrySource does not
+              // consume it yet (separate follow-on); this only surfaces it.
+              clientSource: e.clientSource ?? null,
             })),
           );
         },
