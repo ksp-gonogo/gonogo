@@ -963,35 +963,23 @@ const WIDGETS: WidgetRenderConfig[] = [
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
     // `"data"` source (tar.* / b.* / o.* keys) — no probe kos wiring needed.
-    // Defaults to the Bodies tab, so the base modes show the body tree +
-    // header TARGET chip + OrbitalEventChips. The Vessels and Current tabs
-    // are reached only via clicks — `role="tab"` buttons inside the tablist,
-    // selected by position (2 = Vessels, 3 = Current). The vessel-list and
-    // current-target panels would never appear in a static render otherwise.
+    // The Target API redesign (a00c4307) replaced the old TABBED layout with a
+    // single scrolling view: the Suggested + categorised sections (Bodies /
+    // Vessels / Parts / Other) plus the current-target summary all render AT
+    // ONCE. There is no tablist to click any more, so every list appears in a
+    // static render — the former `role="tab"` reveal-clicks (which threw once
+    // the tabs were gone) are dropped.
     widgetId: "target-picker",
     fixturesPath: "TargetPicker/__fixtures__",
     outPath: "renders/target-picker-widget",
     modes: [
-      // Below the tabs threshold (rows<6 || cols<4): compact current-target
+      // Below the picker threshold (rows<6 || cols<4): compact current-target
       // readout (name + distance) or "No target set".
       { name: "compact-3x4", w: 3, h: 4 },
-      // defaultSize 6×11 — tabbed picker, Bodies tab (default) with the tree.
+      // defaultSize 6×11 — the full sectioned picker (Suggested + Bodies +
+      // Vessels + Parts + Other) with the current-target summary when set.
       { name: "default-6x11", w: 6, h: 11 },
-      // Vessels tab — distance-sorted tar.availableVessels list + asteroid toggle.
-      {
-        name: "vessels-6x11",
-        w: 6,
-        h: 11,
-        clicks: [{ selector: '[role="tablist"] [role="tab"]:nth-of-type(2)' }],
-      },
-      // Current tab — selected target's name / type / distance / Δv + Clear.
-      {
-        name: "current-6x11",
-        w: 6,
-        h: 11,
-        clicks: [{ selector: '[role="tablist"] [role="tab"]:nth-of-type(3)' }],
-      },
-      // wide — tabs + body tree have horizontal room.
+      // wide — the sections have horizontal room.
       { name: "wide-9x12", w: 9, h: 12 },
     ],
   },
