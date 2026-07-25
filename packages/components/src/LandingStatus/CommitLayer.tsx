@@ -147,11 +147,15 @@ export function CommitLayer({
         </Readout>
 
         {uncommandable && (
-          <Value tone="accent" size="sm">
-            UNCOMMANDABLE · RT{" "}
-            {formatDuration(roundTripSeconds as number, { ms: true })} {">"}{" "}
-            {formatDuration(countdown as number, { ms: true })} left
-          </Value>
+          <>
+            <Value tone="accent" size="sm">
+              UNCOMMANDABLE
+            </Value>
+            <Value tone="accent" size="xs">
+              RT {formatDuration(roundTripSeconds as number, { ms: true })}{" "}
+              {">"} {formatDuration(countdown as number, { ms: true })} left
+            </Value>
+          </>
         )}
 
         {!live && blindInSeconds != null && (

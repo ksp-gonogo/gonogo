@@ -6,19 +6,19 @@
  * from where you'll land. Behind it, the sampled terrain renders as DIRECT
  * altimetry — a hypsometric colour ramp (colour = altitude) with contour
  * iso-lines at the band edges, so slope/shape read precisely (close contours =
- * steep, a bullseye = a crater/peak). A SAFE / MARGINAL / DIVERT banner + the
- * biome/slope readout carry the hazard in text.
+ * steep, a bullseye = a crater/peak). This is a bare square SVG: the widget
+ * composes the SAFE / MARGINAL / DIVERT banner + the biome/slope readout below
+ * it (so the two altimetry plots align), and the verdict rides the panel border.
  *
  * This is telemetry alerting, never GO/NO-GO. The relief is painted to a small
  * canvas + up-scaled by the browser; where canvas is unavailable (jsdom
- * snapshots) it falls back to a per-cell banded grid. Colour is never the sole
- * verdict carrier (banner + labels carry it; the terrain palette is neutral).
+ * snapshots) it falls back to a per-cell banded grid. The terrain palette is
+ * neutral; colour is never the sole verdict carrier (the widget's banner is).
  *
  * Purely presentational: the hazard verdict is derived upstream; terrain fields
  * come off `vessel.landing`.
  */
 
-import { StatusPill } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { greatCircle } from "./geo";
 import type { Hazard, HazardResult } from "./hazardVerdict";
@@ -195,12 +195,6 @@ const C = SIZE / 2;
 // marker clamps to the rim and the true distance rides in the readout.
 const DRIFT_FULLSCALE_M = 3000;
 
-const BANNER_TONE: Record<Hazard, "go" | "warning" | "alert"> = {
-  SAFE: "go",
-  MARGINAL: "warning",
-  DIVERT: "alert",
-};
-
 /**
  * Verdict signal on the panel BORDER (paired with the text banner) — kept off
  * the terrain fill so the grey relief stays legible. Colour is never the sole
@@ -275,173 +269,141 @@ export function TouchdownReticle({
       ? atHeading(drift.bearingDeg + 180, offLen)
       : null;
 
+  // svg-only: the verdict banner + biome/terrain readout are composed by the
+  // widget (below the plots) so this square aligns with the cross-section plot.
   return (
-    <div>
-      {/* Verdict banner FIRST so it is always visible even when the relief
-          fills the column below it (the text carrier; colour never alone). */}
-      <div role="status" aria-live="polite">
-        {v ? (
-          <StatusPill $tone={BANNER_TONE[v]}>{v}</StatusPill>
-        ) : (
-          <StatusPill $tone="default">NO SITE</StatusPill>
-        )}
-      </div>
-
-      <svg
-        width={SIZE}
-        height={SIZE}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        role="img"
-        aria-label={reticleLabel}
-        // The reticle is the centerpiece — fill the dominant column (up to a
-        // sensible cap) so the terrain read is the star, not a thumbnail.
-        style={{
-          display: "block",
-          width: "100%",
-          maxWidth: 320,
-          height: "auto",
-          marginTop: "0.15rem",
-        }}
-      >
-        <title>{reticleLabel}</title>
-        {/* Neutral site panel; the verdict rides the BORDER (+ the banner), not
+    <svg
+      width={SIZE}
+      height={SIZE}
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      role="img"
+      aria-label={reticleLabel}
+      style={{ display: "block", width: "100%", height: "auto" }}
+    >
+      <title>{reticleLabel}</title>
+      {/* Neutral site panel; the verdict rides the BORDER (+ the banner), not
             the terrain fill, so the grey relief stays legible. */}
-        <rect
-          x={4}
-          y={4}
-          width={SIZE - 8}
-          height={SIZE - 8}
-          rx={4}
-          fill="var(--color-surface-raised)"
-          stroke={verdictBorder(v)}
-          strokeWidth={2.5}
-        />
+      <rect
+        x={4}
+        y={4}
+        width={SIZE - 8}
+        height={SIZE - 8}
+        rx={4}
+        fill="var(--color-surface-raised)"
+        stroke={verdictBorder(v)}
+        strokeWidth={2.5}
+      />
 
-        {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
+      {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
             iso-lines painted to a canvas + up-scaled. Fallback (no canvas, e.g.
             jsdom): a per-cell banded grid so the DOM snapshot stays small. */}
-        {reliefUri ? (
-          <image
-            href={reliefUri}
-            x={5}
-            y={5}
-            width={SIZE - 10}
-            height={SIZE - 10}
-            preserveAspectRatio="none"
-          />
-        ) : (
-          heights &&
-          terrainPatchSize &&
-          (() => {
-            const n = terrainPatchSize;
-            const inner = SIZE - 8;
-            const cell = inner / n;
-            const out: ReactNode[] = [];
-            for (let r = 0; r < n; r++) {
-              for (let c = 0; c < n; c++) {
-                const band = Math.max(
-                  0,
-                  Math.min(
-                    HYPSO_BANDS - 1,
-                    Math.floor(heights.norm[r * n + c] * HYPSO_BANDS),
-                  ),
-                );
-                out.push(
-                  <rect
-                    key={`relief-${r}-${c}`}
-                    x={4 + c * cell}
-                    y={4 + r * cell}
-                    width={cell + 0.5}
-                    height={cell + 0.5}
-                    fill={bandColour(band)}
-                  />,
-                );
-              }
+      {reliefUri ? (
+        <image
+          href={reliefUri}
+          x={5}
+          y={5}
+          width={SIZE - 10}
+          height={SIZE - 10}
+          preserveAspectRatio="none"
+        />
+      ) : (
+        heights &&
+        terrainPatchSize &&
+        (() => {
+          const n = terrainPatchSize;
+          const inner = SIZE - 8;
+          const cell = inner / n;
+          const out: ReactNode[] = [];
+          for (let r = 0; r < n; r++) {
+            for (let c = 0; c < n; c++) {
+              const band = Math.max(
+                0,
+                Math.min(
+                  HYPSO_BANDS - 1,
+                  Math.floor(heights.norm[r * n + c] * HYPSO_BANDS),
+                ),
+              );
+              out.push(
+                <rect
+                  key={`relief-${r}-${c}`}
+                  x={4 + c * cell}
+                  y={4 + r * cell}
+                  width={cell + 0.5}
+                  height={cell + 0.5}
+                  fill={bandColour(band)}
+                />,
+              );
             }
-            return <g>{out}</g>;
-          })()
-        )}
+          }
+          return <g>{out}</g>;
+        })()
+      )}
 
-        {/* Vertex dots — one per height-grid point, radius (and brightness)
+      {/* Vertex dots — one per height-grid point, radius (and brightness)
             scaled by altitude, over the dimmed contour base. The dot field IS
             the terrain read; higher points read as larger, brighter dots. */}
-        {heights &&
-          terrainPatchSize &&
-          (() => {
-            const n = terrainPatchSize;
-            const inner = SIZE - 10;
-            const cell = inner / n;
-            const dots: ReactNode[] = [];
-            for (let r = 0; r < n; r++) {
-              for (let c = 0; c < n; c++) {
-                const h = heights.norm[r * n + c];
-                dots.push(
-                  <circle
-                    key={`dot-${r}-${c}`}
-                    cx={5 + (c + 0.5) * cell}
-                    cy={5 + (r + 0.5) * cell}
-                    r={0.8 + h * 3}
-                    fill="var(--color-text-primary)"
-                    opacity={0.28 + h * 0.42}
-                  />,
-                );
-              }
+      {heights &&
+        terrainPatchSize &&
+        (() => {
+          const n = terrainPatchSize;
+          const inner = SIZE - 10;
+          const cell = inner / n;
+          const dots: ReactNode[] = [];
+          for (let r = 0; r < n; r++) {
+            for (let c = 0; c < n; c++) {
+              const h = heights.norm[r * n + c];
+              dots.push(
+                <circle
+                  key={`dot-${r}-${c}`}
+                  cx={5 + (c + 0.5) * cell}
+                  cy={5 + (r + 0.5) * cell}
+                  r={0.4 + h * 1.5}
+                  fill="var(--color-text-primary)"
+                  opacity={0.28 + h * 0.42}
+                />,
+              );
             }
-            return <g>{dots}</g>;
-          })()}
+          }
+          return <g>{dots}</g>;
+        })()}
 
-        {/* Current → site: the primary spatial readout. A plain line (no head —
+      {/* Current → site: the primary spatial readout. A plain line (no head —
             the off-centre current crosshair and the centred site marker
             terminate it) from where you are to where you'll land. */}
-        {currentTip && (
-          <line
-            x1={currentTip.x}
-            y1={currentTip.y}
-            x2={C}
-            y2={C}
-            stroke="var(--color-text-primary)"
-            strokeWidth={2.5}
-          />
-        )}
-
-        {/* Predicted landing site — the ANCHOR: a small filled dot at centre.
-            Unobtrusive point, not a glyph that dominates the terrain. */}
-        <circle
-          cx={C}
-          cy={C}
-          r={4.5}
-          fill="var(--color-accent-fg)"
-          stroke="var(--color-surface-app)"
-          strokeWidth={1}
+      {currentTip && (
+        <line
+          x1={currentTip.x}
+          y1={currentTip.y}
+          x2={C}
+          y2={C}
+          stroke="var(--color-text-primary)"
+          strokeWidth={2.5}
         />
+      )}
 
-        {/* Current position — off-centre by the drift (a small, distinct white
+      {/* Predicted landing site — the ANCHOR: a small filled dot at centre.
+            Unobtrusive point, not a glyph that dominates the terrain. */}
+      <circle
+        cx={C}
+        cy={C}
+        r={4.5}
+        fill="var(--color-accent-fg)"
+        stroke="var(--color-surface-app)"
+        strokeWidth={1}
+      />
+
+      {/* Current position — off-centre by the drift (a small, distinct white
             dot). Omitted when you're right over the site. */}
-        {currentTip && (
-          <circle
-            cx={currentTip.x}
-            cy={currentTip.y}
-            r={3.5}
-            fill="none"
-            stroke="var(--color-text-primary)"
-            strokeWidth={1.5}
-          />
-        )}
-      </svg>
-
-      {/* Honest biome + source + terrain readout (a11y text equivalent of the
-          SVG; biome lives here as a standard readout, not overlaid on relief). */}
-      <div style={{ fontSize: "0.75rem", opacity: 0.75 }}>
-        {biome ? `${biome} · ` : ""}
-        {slopeText}
-        {heights && heights.rangeMeters >= 1
-          ? ` · Δ ${Math.round(heights.rangeMeters)} m relief`
-          : ""}
-        {drift != null
-          ? ` · ${Math.round(drift.distanceMeters)} m downrange`
-          : ""}
-        {` · ${sourceLabel}`}
-      </div>
-    </div>
+      {currentTip && (
+        <circle
+          cx={currentTip.x}
+          cy={currentTip.y}
+          r={3.5}
+          fill="none"
+          stroke="var(--color-text-primary)"
+          strokeWidth={1.5}
+        />
+      )}
+    </svg>
   );
 }

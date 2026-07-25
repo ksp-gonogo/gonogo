@@ -25,15 +25,10 @@ describe("TouchdownReticle", () => {
     expect(img.getAttribute("aria-label")).toMatch(/predicted/);
   });
 
-  it("shows the hazard verdict in a polite live-region banner", () => {
-    const verdict = deriveHazardVerdict({ slopeDeg: 20 }); // DIVERT (>15)
-    render(<TouchdownReticle {...base} slopeDeg={20} verdict={verdict} />);
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("DIVERT");
-    expect(status).toHaveAttribute("aria-live", "polite");
-  });
-
-  it("labels a sub-vessel fallback honestly as an estimate", () => {
+  // The verdict banner + biome/source readout are now composed by the widget
+  // (below the plots) so the reticle stays a bare square that aligns with the
+  // cross-section; the source still rides the reticle's accessible label.
+  it("labels a sub-vessel fallback honestly as an estimate (in the label)", () => {
     const verdict = deriveHazardVerdict({ slopeDeg: 3 });
     render(
       <TouchdownReticle
@@ -42,9 +37,8 @@ describe("TouchdownReticle", () => {
         verdict={verdict}
       />,
     );
-    expect(screen.getAllByText(/sub-vessel \(est\.\)/i).length).toBeGreaterThan(
-      0,
-    );
+    const img = screen.getByRole("img", { name: /touchdown site/i });
+    expect(img.getAttribute("aria-label")).toMatch(/sub-vessel \(est\.\)/i);
   });
 
   it("renders relief cells when a terrain patch is present, and stays a labelled image", () => {

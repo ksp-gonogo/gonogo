@@ -21,13 +21,16 @@ import {
   formatDuration,
   Grid,
   Panel,
+  PanelBody,
   PanelSubtitle,
   PanelTitle,
   ReadoutCaption,
+  type ReadoutTone,
   ScrollArea,
   Section,
   SectionTitle,
   Stack,
+  StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
@@ -278,9 +281,9 @@ function LandingStatusComponent({
 
   // ── Section fragments (composed into the layout below) ─────────────────────
 
-  // Ground-track bearing (sub-vessel → predicted site) — the slice direction
-  // for the side-on cross-section (and the plan-view travel direction).
-  const driftBearingDeg =
+  // Displacement sub-vessel → predicted site: bearing is the ground-track slice
+  // direction for the cross-section; distance is the downrange readout.
+  const siteDrift =
     flight?.latitude != null &&
     flight?.longitude != null &&
     landing?.predictedLatitude != null &&
@@ -292,8 +295,9 @@ function LandingStatusComponent({
           landing.predictedLatitude,
           landing.predictedLongitude,
           body.radius,
-        ).bearingDeg
+        )
       : null;
+  const driftBearingDeg = siteDrift?.bearingDeg ?? null;
 
   // The side-on cross-section plot (terrain profile along the ground track +
   // the velocity vector in the vertical plane), paired with the top-down reticle.
@@ -331,11 +335,12 @@ function LandingStatusComponent({
     </Value>
   ) : null;
 
-  // Compact caption-over-value burn/touchdown readouts, used both in the
-  // reticle's right-column third and in the small-size detail stack.
+  // Compact caption-over-value burn/touchdown readouts. `minColWidth` makes it
+  // auto-column: one column in the narrow detail stack, a multi-column row when
+  // it sits full-width underneath the plots.
   const readoutsStack =
     board === "vacuum-solved" ? (
-      <Stack gap="xs">
+      <Grid minColWidth="130px" gap="sm">
         <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
         <StackedField label="Burn duration">
           {solution.burnDuration == null
@@ -387,7 +392,7 @@ function LandingStatusComponent({
             ariaLabel="Descent-rate trend"
           />
         )}
-      </Stack>
+      </Grid>
     ) : null;
 
   const boardEl =
@@ -490,23 +495,73 @@ function LandingStatusComponent({
     </Stack>
   );
 
-  const reticleEl = showReticle ? (
-    <Section>
-      <SectionTitle>Touchdown site</SectionTitle>
-      <TouchdownReticle
-        siteLat={landing?.predictedLatitude ?? null}
-        siteLon={landing?.predictedLongitude ?? null}
-        vesselLat={flight?.latitude ?? null}
-        vesselLon={flight?.longitude ?? null}
-        bodyRadius={body?.radius ?? null}
-        slopeDeg={landing?.predictedSlopeAngle ?? null}
-        biome={landing?.predictedBiome ?? null}
-        sampleSource={landing?.sampleSource ?? null}
-        verdict={hazardVerdict}
-        terrainPatch={landing?.terrainPatch ?? null}
-        terrainPatchSize={landing?.terrainPatchSize ?? null}
-      />
-    </Section>
+  // The reticle is now svg-only so it aligns with the cross-section square; the
+  // verdict banner + biome/terrain readout are composed here, below the plots.
+  const reticleSquare = showReticle ? (
+    <TouchdownReticle
+      siteLat={landing?.predictedLatitude ?? null}
+      siteLon={landing?.predictedLongitude ?? null}
+      vesselLat={flight?.latitude ?? null}
+      vesselLon={flight?.longitude ?? null}
+      bodyRadius={body?.radius ?? null}
+      slopeDeg={landing?.predictedSlopeAngle ?? null}
+      biome={landing?.predictedBiome ?? null}
+      sampleSource={landing?.sampleSource ?? null}
+      verdict={hazardVerdict}
+      terrainPatch={landing?.terrainPatch ?? null}
+      terrainPatchSize={landing?.terrainPatchSize ?? null}
+    />
+  ) : null;
+
+  const hazard = hazardVerdict.verdict;
+  const bannerTone: ReadoutTone =
+    hazard === "DIVERT"
+      ? "alert"
+      : hazard === "MARGINAL"
+        ? "warning"
+        : hazard === "SAFE"
+          ? "go"
+          : "default";
+  const verdictBannerEl = showReticle ? (
+    <div role="status" aria-live="polite">
+      <StatusPill $tone={bannerTone}>{hazard ?? "NO SITE"}</StatusPill>
+    </div>
+  ) : null;
+
+  // Relief range (metres) for the terrain-scale cue.
+  const reliefRange =
+    landing?.terrainPatch && landing.terrainPatch.length > 0
+      ? (() => {
+          let lo = Number.POSITIVE_INFINITY;
+          let hi = Number.NEGATIVE_INFINITY;
+          for (const hgt of landing.terrainPatch) {
+            if (!Number.isFinite(hgt)) continue;
+            if (hgt < lo) lo = hgt;
+            if (hgt > hi) hi = hgt;
+          }
+          return Number.isFinite(lo) && hi > lo ? hi - lo : null;
+        })()
+      : null;
+  const sourceLabel =
+    landing?.sampleSource === "predicted"
+      ? "predicted"
+      : landing?.sampleSource === "sub-vessel"
+        ? "sub-vessel (est.)"
+        : null;
+  const terrainReadoutEl = showReticle ? (
+    <Value tone="muted" size="xs">
+      {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
+      {landing?.predictedSlopeAngle != null
+        ? `${landing.predictedSlopeAngle.toFixed(1)}° slope`
+        : "—"}
+      {reliefRange != null && reliefRange >= 1
+        ? ` · Δ ${Math.round(reliefRange)} m relief`
+        : ""}
+      {siteDrift != null
+        ? ` · ${Math.round(siteDrift.distanceMeters)} m downrange`
+        : ""}
+      {sourceLabel ? ` · ${sourceLabel}` : ""}
+    </Value>
   ) : null;
 
   return (
@@ -524,21 +579,24 @@ function LandingStatusComponent({
       )}
 
       {board === "not-descending" ? (
-        <EmptyState>No landing in progress</EmptyState>
+        <PanelBody>
+          <EmptyState>No landing in progress</EmptyState>
+        </PanelBody>
       ) : (
-        // The body is a row: the altitude rail runs the full height down the
-        // left edge, the scrolling main content fills the rest.
+        // Full-bleed body: the altitude rail runs full height at the very left
+        // edge (visual, bleeds); the main content fills the rest. Panel padding
+        // is 0, so VISUAL bodies (rail, plots, gauge) reach the edge while TEXT
+        // bands carry their own local inset.
         <div
           style={{
             display: "flex",
             flex: 1,
             minHeight: 0,
-            gap: "0.75rem",
             alignItems: "stretch",
           }}
         >
           {showRail && (
-            <div style={{ flex: "0 0 auto", width: 72 }}>
+            <div style={{ flex: "0 0 auto", width: 64 }}>
               <AltitudeRail
                 aglMeters={heightFromTerrain ?? null}
                 ignitionAltitude={solution.ignitionAltitude}
@@ -547,38 +605,58 @@ function LandingStatusComponent({
             </div>
           )}
           <ScrollArea>
-            {/* `lg` gap gives the major blocks (delay, commit hero, site) real
-                vertical separation — Section's own `xs` (2px) is the tight
-                within-group gap and read as cramped between headings. */}
-            <Stack gap="lg">
-              {commitLayerEl}
-              {showReticle ? (
-                // Two square altimetry plots side by side (top-down reticle |
-                // side-on cross-section) in the left two-thirds, with the TWR
-                // gauge + readouts filling the right column third.
-                // `align-items:start` keeps cells pinned to the top.
-                <Grid cols="2fr 1fr" gap="md" style={{ alignItems: "start" }}>
-                  <Grid cols="1fr 1fr" gap="sm" style={{ alignItems: "start" }}>
-                    {reticleEl}
-                    {crossSectionEl && (
-                      <Section>
-                        <SectionTitle>Cross-section</SectionTitle>
-                        {crossSectionEl}
-                      </Section>
-                    )}
-                  </Grid>
-                  <Stack gap="sm">
+            {showReticle ? (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {/* Top band: commit text (inset) + the larger TWR gauge pinned
+                    to the top-right corner (bleeds). */}
+                <div style={{ display: "flex", alignItems: "flex-start" }}>
+                  <div
+                    style={{ flex: 1, minWidth: 0, padding: "8px 8px 0 12px" }}
+                  >
+                    {commitLayerEl}
+                  </div>
+                  <div style={{ flex: "0 0 auto", padding: "8px 8px 0 0" }}>
                     {twrGaugeEl}
-                    {boardEl}
-                    {readoutsStack}
-                    {comDatumNote}
-                    {divertEl}
-                  </Stack>
-                </Grid>
-              ) : (
-                detailStack
-              )}
-            </Stack>
+                  </div>
+                </div>
+                {/* Two equal, ALIGNED altimetry squares in a shared row — same
+                    top, size, baseline — bleeding to the right edge. */}
+                <div style={{ display: "flex", gap: "6px", padding: "8px 0" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <SectionTitle>Touchdown site</SectionTitle>
+                    {reticleSquare}
+                  </div>
+                  {crossSectionEl && (
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <SectionTitle>Cross-section</SectionTitle>
+                      {crossSectionEl}
+                    </div>
+                  )}
+                </div>
+                {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
+                    terrain readout, then the numeric readout grid full-width. */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "4px 16px 12px",
+                  }}
+                >
+                  {verdictBannerEl}
+                  {terrainReadoutEl}
+                  {boardEl}
+                  {readoutsStack}
+                  {comDatumNote}
+                  {divertEl}
+                </div>
+              </div>
+            ) : (
+              <PanelBody>
+                {commitLayerEl}
+                {detailStack}
+              </PanelBody>
+            )}
           </ScrollArea>
         </div>
       )}
