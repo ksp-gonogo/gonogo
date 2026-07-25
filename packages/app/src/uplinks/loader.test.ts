@@ -321,6 +321,128 @@ describe("loadEnabledUplinks", () => {
   });
 });
 
+describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (2026-07-24)", () => {
+  it("enables an installed first-party id absent from ctx.enabledIds", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      { id: "scansat", version: "1.0.0", available: true, reason: null },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [], // empty — the roster alone drives enabling
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe("scansat");
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+  });
+
+  it("does NOT enable a static ctx.enabledIds entry the roster omits (installed-drives, not a static allowlist)", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: ["scansat"], // the OLD static default — must be ignored
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [], // mod answered: nothing installed
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(0);
+    expect(importBundle).not.toHaveBeenCalled();
+    expect(getUplinkOutcomes()).toHaveLength(0);
+  });
+
+  it("does not attempt an installed roster id that has no first-party descriptor in the local registry (installed-no-client — a gap, not an auto-load)", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    // The local registry only ships "scansat" — "widget-y" is a mod the
+    // roster reports installed with no published client at all.
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      { id: "widget-y", version: "1.0.0", available: true, reason: null },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(0);
+    expect(importBundle).not.toHaveBeenCalled();
+    // No outcome recorded at all (never "quarantined: not found in the
+    // registry index" either) — this id was never enabled in the first
+    // place, distinct from an enabled-but-missing-descriptor case. The
+    // wizard's `useUplinkGap` (`computeUplinkGap`) is what turns this exact
+    // shape (installed, no loaded outcome, hub index has no descriptor for
+    // it) into the visible `installed-no-client` gap row — see
+    // `useUplinkGap.test.ts`'s "installed-no-client" cases, which exercise
+    // the same shared join (`rosterGap.ts`) this derivation calls.
+    expect(getUplinkOutcomes()).toHaveLength(0);
+  });
+
+  it("roster ABSENT (undefined) falls back to ctx.enabledIds unchanged — degraded boot preserved", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const outcomes = await loadEnabledUplinks(
+      // No `roster` key at all — the real "no mod talking yet" shape.
+      ctx({ index: indexWith(goodHash), importBundle }),
+    );
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe("scansat");
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+  });
+
+  it("a mod-reported-unavailable installed id is still ENABLED (attempted) so checkCompat's veto can quarantine it with a reason", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch(indexWith(goodHash));
+    const roster: RosterEntry[] = [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: false,
+        reason: "SCANsat not installed",
+      },
+    ];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      enabledIds: [],
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster,
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/unavailable/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+});
+
 describe("loadUplinkById", () => {
   it("fetches the registry and loads only the requested id", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
