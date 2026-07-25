@@ -23,6 +23,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
 import styled from "styled-components";
+import { SCANSAT } from "../uplink";
 
 /**
  * Parses `scansat.science` (`Sitrep.Contract.ScanScienceEntry[]`, built by
@@ -160,6 +161,7 @@ registerAugment({
   requires: "scansat",
   channels: ["scansat.science"],
   component: ScansatScienceAugment,
+  owner: SCANSAT,
 });
 
 export { ScansatScienceAugment };

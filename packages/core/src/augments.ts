@@ -1,6 +1,7 @@
 import { logger } from "@ksp-gonogo/logger";
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
+import type { UplinkClientHandle } from "./uplinkClients";
 
 // ---------------------------------------------------------------------------
 // The augment model (Uplink architecture spec §4)
@@ -156,6 +157,16 @@ export interface AugmentDefinition<S extends string = string> {
    * local_docs/spec-mapview-stackable-layers.md).
    */
   suppressesVanillaBase?: boolean;
+  /**
+   * The Uplink client that registered this augment (Uplink Client Contract
+   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle —
+   * never set by hand. Purely for provenance / mod search tags on the HOST
+   * widget it augments (`effectiveSearchTags` reads `augment.requires`, not
+   * this field, to derive that tag — `owner` here is provenance for the
+   * augment itself, e.g. future health/version surfaces). Plays no part in
+   * augment registration or slot composition.
+   */
+  owner?: UplinkClientHandle;
 }
 
 // Stored erased to the loose slot type so the registry can hold augments for

@@ -15,6 +15,7 @@
 
 import {
   AugmentSlot,
+  defineUplinkClient,
   getBody,
   getFogRevealSources,
   getGameHost,
@@ -146,6 +147,7 @@ export function buildGonogoHost(): GonogoHost {
     registerUplinkHandle: (uplinkId, handle) =>
       registerUplinkHandle(uplinkId, handle),
     getUplinkHandle: (uplinkId) => getUplinkHandle(uplinkId),
+    defineUplinkClient: (cfg) => defineUplinkClient(cfg),
 
     registerSettingsTab: (def) =>
       registerSettingsTab(def as Parameters<typeof registerSettingsTab>[0]),

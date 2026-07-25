@@ -45,6 +45,7 @@ import type {
   StreamStatusValue as SdkStreamStatusValue,
   TelemetryClient as SdkTelemetryClient,
   ThemeDefinition as SdkThemeDefinition,
+  UplinkClientHandle as SdkUplinkClientHandle,
   UseCommandResult as SdkUseCommandResult,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
@@ -54,6 +55,7 @@ import type { MapPoi as CoreMapPoi } from "./mapPoi";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
 import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./settingsTabs";
 import type * as Core from "./types";
+import type { UplinkClientHandle as CoreUplinkClientHandle } from "./uplinkClients";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
@@ -204,6 +206,16 @@ type _LateTelemetrySubscribeBack = Expect<
   Assignable<ClientLateTelemetrySubscribe, SdkLateTelemetrySubscribe>
 >;
 
+// Uplink client identity (Uplink Client Contract design §3.1): owned by
+// core's uplinkClients.ts. Structurally identical mirror (not a narrowed
+// subset), so both directions are asserted, same shape as DelayClockLike.
+type _UplinkClientHandle = Expect<
+  Assignable<SdkUplinkClientHandle, CoreUplinkClientHandle>
+>;
+type _UplinkClientHandleBack = Expect<
+  Assignable<CoreUplinkClientHandle, SdkUplinkClientHandle>
+>;
+
 // Keep the aliases "used" under noUnusedLocals.
 export type _SdkFacadeConformance = [
   _Component,
@@ -244,4 +256,6 @@ export type _SdkFacadeConformance = [
   _UseCommandResultBack,
   _LateTelemetrySubscribe,
   _LateTelemetrySubscribeBack,
+  _UplinkClientHandle,
+  _UplinkClientHandleBack,
 ];

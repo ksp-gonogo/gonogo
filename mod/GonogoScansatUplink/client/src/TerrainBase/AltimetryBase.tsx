@@ -37,6 +37,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { useScanHeightGrid } from "../FogReveal/useScanLayers";
+import { SCANSAT } from "../uplink";
 import {
   BASE_LAYER_CANVAS_H,
   BASE_LAYER_CANVAS_W,
@@ -134,6 +135,7 @@ registerAugment({
       default: true,
     },
   ],
+  owner: SCANSAT,
 });
 
 export { AltimetryBase };

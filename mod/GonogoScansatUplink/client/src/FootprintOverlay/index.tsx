@@ -32,6 +32,7 @@ import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef } from "react";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
 import type { SCANScanningVessel } from "../schema";
+import { SCANSAT } from "../uplink";
 
 /** Fixed screen-pixel stroke width — see module doc comment for why this
  *  replaces the old world-space `1 / camZoom` compensation. `project()`
@@ -154,6 +155,7 @@ registerAugment({
   augments: "map-view.overlay",
   requires: "scansat",
   component: FootprintOverlay,
+  owner: SCANSAT,
 });
 
 export { FootprintOverlay };

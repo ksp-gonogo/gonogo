@@ -27,6 +27,7 @@ import {
 } from "../FogReveal/useScanLayers";
 import type { SCANType } from "../schema";
 import { SCAN_TYPE } from "../schema";
+import { SCANSAT } from "../uplink";
 import { MinimapForActiveVessel } from "./Minimap";
 
 // ---------------------------------------------------------------------------
@@ -334,6 +335,7 @@ registerComponent<ScanningConfig>({
   // nothing until an Uplink registers. Custom map LAYERS go to map-view.overlay.
   augmentSlots: ["scanning.sections", "scanning.badges"],
   pushable: true,
+  owner: SCANSAT,
 });
 
 export { ScanningComponent };

@@ -19,6 +19,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "GONOGO_HOST_KEY",
   "LocalStorageStore",
   "createPerfBudget",
+  "defineUplinkClient",
   "getActiveTelemetryClient",
   "getBody",
   "getFogRevealSources",
@@ -93,6 +94,9 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
       named,
     );
     expect(() => barrel.logger.info("x")).toThrow(named);
+    expect(() =>
+      barrel.defineUplinkClient({ id: "x", version: "0.0.0", name: "X" }),
+    ).toThrow(named);
   });
 
   it("hasHost reflects installation and never throws", () => {

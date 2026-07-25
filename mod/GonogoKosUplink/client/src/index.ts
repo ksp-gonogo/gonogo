@@ -30,6 +30,11 @@
 // transport — see the kos migration plan (2026-07-18) for the full
 // before/after.
 
+// defineUplinkClient(KOS) — every widget/augment this package registers
+// stamps the returned handle as `owner`, so the widget picker's mod search
+// tags derive "kos" automatically (Uplink Client Contract design §3.1/§3.3).
+import "./uplink";
+
 export * from "./KosTerminal";
 
 // registerUplinkHandle("kos", kosSource) — fires whenever this package
