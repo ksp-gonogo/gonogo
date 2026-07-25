@@ -51,6 +51,7 @@ export * from "./theme";
 export * from "./types";
 export * from "./uplinkClients";
 export * from "./uplinkHandles";
+export * from "./uplinkVersionCompat";
 export * from "./utils/format";
 export * from "./utils/math";
 export * from "./version/compare";

@@ -183,4 +183,5 @@ export {
   type ValueSize,
   type ValueTone,
 } from "./Value";
+export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";
