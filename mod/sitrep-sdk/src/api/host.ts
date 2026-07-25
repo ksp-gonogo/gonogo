@@ -34,6 +34,7 @@ import type {
   SettingsTabDefinition,
   TelemetryClient,
   ThemeDefinition,
+  UplinkClientHandle,
   UseCommandResult,
 } from "./types";
 
@@ -162,6 +163,15 @@ export interface GonogoHost {
   registerUplinkHandle<T>(uplinkId: string, handle: T): void;
   /** Look up a previously registered handle by Uplink id. `undefined` if none. */
   getUplinkHandle<T = unknown>(uplinkId: string): T | undefined;
+
+  /**
+   * Declare an Uplink client's identity (Uplink Client Contract design
+   * §3.1) and record it in the app's client registry — the membership half
+   * (which clients are actually present in this build). Returns a frozen
+   * handle; the client stamps it as `owner` on every `registerComponent`/
+   * `registerAugment` call it makes.
+   */
+  defineUplinkClient(cfg: UplinkClientHandle): UplinkClientHandle;
 
   /** Register (or replace) a full custom Settings-modal tab. */
   registerSettingsTab(def: SettingsTabDefinition): void;

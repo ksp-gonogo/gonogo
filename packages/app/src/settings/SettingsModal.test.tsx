@@ -607,6 +607,7 @@ describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)"
                   apiVersion: "1.0.0",
                   uiKitVersion: "1.0.0",
                   contractMajor: 1,
+                  contractMinor: 1,
                   bundleUrl: "/uplinks/widget-hub.client.js",
                   integrity: "sha256-fake",
                 },

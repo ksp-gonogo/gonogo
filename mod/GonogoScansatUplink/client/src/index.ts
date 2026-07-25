@@ -5,6 +5,11 @@
 // §1). Importing this package's entry point side-effects the widget
 // registration into @ksp-gonogo/core's global component registry:
 //
+//   - `uplink.ts` → defineUplinkClient({ id: "scansat", ... }) declares this
+//     client's identity (Uplink Client Contract design §3.1); every
+//     registration below stamps the returned SCANSAT handle as `owner`, so
+//     the widget picker's mod search tags derive "scansat" automatically.
+//
 //   - `Scanning` component → registerComponent({ id: "scanning", ... }) so it
 //     is placeable from the dashboard widget picker.
 //   - `ScansatScienceAugment` → registerAugment({ id: "scansat-science", ... })
@@ -65,6 +70,7 @@ export { parseScanScience } from "./ScienceAugment";
 // retains them and bundlers won't tree-shake the registerComponent()/
 // registerAugment() calls away.
 import "./topics"; // registerBarePrimitiveTopic("scansat.available") + TopicPayloadMap augment
+import "./uplink"; // defineUplinkClient(SCANSAT) — every widget/augment below stamps `owner: SCANSAT`
 import "./Scanning";
 import "./ScienceAugment";
 import "./AnomalyOverlay";

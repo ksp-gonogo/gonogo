@@ -17,62 +17,28 @@ import {
   fetchRegistry,
   hubRegistrySource,
   type RegistryIndex,
-  type UplinkDescriptor,
 } from "../uplinks/registry";
+import {
+  computeUplinkGapEntries,
+  type UplinkGapEntry,
+  type UplinkGapState,
+} from "../uplinks/rosterGap";
+
+// Re-exported so existing consumers (`ResultsStep.tsx` et al.) keep importing
+// these types from this module — the join itself now lives in
+// `../uplinks/rosterGap.ts`, shared with the loader's enabled-set derivation
+// (`../uplinks/loader.ts`). See that module's header for why it was
+// extracted rather than called directly with a fabricated `SystemUplinkHealth`.
+export type { UplinkGapEntry, UplinkGapState };
 
 /**
- * One Uplink's resolved gap state. The design's Results step (§3 step 6)
- * names four badge outcomes — `loaded`, `load-from-hub`, `installed-no-client`,
- * `unavailable` — all of which assume the Hub registry fetch SUCCEEDED. This
- * module adds a fifth, `hub-unknown`, for when it didn't: an installed +
- * available Uplink that isn't loaded must not be reported as
- * `installed-no-client` (a confirmed "no client published") when the truth
- * is "the Hub couldn't be checked" — design §7 states this explicitly
- * ("the wizard must not claim 'no client published' when it actually just
- * couldn't check — that would be a lie"). Collapsing those two would be
- * exactly that lie, so they're kept as distinct states.
- */
-export type UplinkGapState =
-  | "loaded"
-  | "load-from-hub"
-  | "installed-no-client"
-  | "unavailable"
-  | "hub-unknown";
-
-/** design §2.2 — the cross-reference join's per-Uplink result. */
-export interface UplinkGapEntry {
-  id: string;
-  /** From the Hub descriptor if known, else the roster id (design §2.2). */
-  name: string;
-  /** Present in `system.uplinks` (regardless of its `available` flag). */
-  installed: boolean;
-  /** `roster.available` — only meaningful when `installed` is true. */
-  modAvailable: boolean;
-  /** `roster.reason`, surfaced verbatim, never reworded (design §3 step 6 / §7). */
-  modReason: string | null;
-  /** Present in the generalized loaderState — loaded via either load path. */
-  loaded: boolean;
-  /**
-   * From `fetchRegistry(hubRegistrySource())`. `null` means "no descriptor
-   * for this id in a SUCCESSFULLY fetched index" — see `state` to
-   * distinguish that from a failed/not-yet-fetched index (`hub-unknown`).
-   */
-  hubDescriptor: UplinkDescriptor | null;
-  /** The resolved state driving the wizard's row. See `UplinkGapState`. */
-  state: UplinkGapState;
-}
-
-/**
- * Pure join (design §2.2) — no hooks, no I/O. Entries are produced for the
- * union of every roster id and every loaded id: a row must exist both for an
- * Uplink the roster reports that hasn't loaded yet, AND for one that's
- * loaded but has since dropped out of the roster (e.g. the mod unloaded
- * mid-session) — losing that second row would make an operator's already-
- * running widget vanish from the wizard's view of the world for no reason.
- * An id that appears ONLY in the Hub manifest — no roster entry, not loaded —
- * produces no row: the Results step renders one row per roster entry
- * (design §3 step 6), and hub-only "not installed anywhere" rows are
- * explicitly out of scope for v1 (same section's parenthetical).
+ * Pure join (design §2.2) — thin adapter over the shared
+ * `computeUplinkGapEntries` join (`../uplinks/rosterGap.ts`), which the
+ * loader's enabled-set derivation also calls. This wrapper's only job is
+ * unwrapping the wizard's `SystemUplinkHealth` shape down to the join's
+ * minimal `GapRosterEntry[]` input — see `rosterGap.ts`'s header for why
+ * that adaptation lives at each call site instead of forcing one shape to
+ * impersonate the other.
  *
  * `roster`:
  *   - `undefined` — `system.uplinkHealth` hasn't resolved yet (still
@@ -96,57 +62,7 @@ export function computeUplinkGap(
   loadedIds: readonly string[],
   hubIndex: RegistryIndex | null,
 ): UplinkGapEntry[] {
-  const loadedSet = new Set(loadedIds);
-  const rosterEntries = roster?.uplinks ?? [];
-  const rosterById = new Map(rosterEntries.map((entry) => [entry.id, entry]));
-  const hubById = new Map(
-    (hubIndex?.uplinks ?? []).map((descriptor) => [descriptor.id, descriptor]),
-  );
-
-  // Set iteration preserves insertion order, so this naturally yields
-  // roster order first, then any loaded-only ids in the order given.
-  const ids = new Set<string>([...rosterById.keys(), ...loadedSet]);
-
-  const entries: UplinkGapEntry[] = [];
-  for (const id of ids) {
-    const rosterEntry = rosterById.get(id);
-    const hubDescriptor = hubById.get(id) ?? null;
-    const loaded = loadedSet.has(id);
-    const installed = rosterEntry !== undefined;
-    const modAvailable = rosterEntry?.available ?? false;
-    const modReason = rosterEntry?.reason ?? null;
-    const name = hubDescriptor?.name ?? id;
-
-    let state: UplinkGapState;
-    if (loaded) {
-      state = "loaded";
-    } else if (!modAvailable) {
-      // `ids` only ever contains roster keys and loaded ids; reaching this
-      // branch with `loaded === false` means this id came from
-      // `rosterById`, so `installed` is guaranteed true here — this is the
-      // mod's own "unavailable" report, not an absent entry.
-      state = "unavailable";
-    } else if (hubIndex === null) {
-      state = "hub-unknown";
-    } else if (hubDescriptor) {
-      state = "load-from-hub";
-    } else {
-      state = "installed-no-client";
-    }
-
-    entries.push({
-      id,
-      name,
-      installed,
-      modAvailable,
-      modReason,
-      loaded,
-      hubDescriptor,
-      state,
-    });
-  }
-
-  return entries;
+  return computeUplinkGapEntries(roster?.uplinks ?? [], loadedIds, hubIndex);
 }
 
 const HUB_REGISTRY_QUERY_KEY = ["uplink-hub", "registry"] as const;

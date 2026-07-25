@@ -43,6 +43,7 @@ import {
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { KOS } from "../uplink";
 import { useKosScriptListing } from "./useKosScriptListing";
 import "@xterm/xterm/css/xterm.css";
 
@@ -1377,6 +1378,7 @@ registerComponent<KosTerminalConfig>({
   configComponent: KosTerminalConfigComponent,
   dataRequirements: [],
   defaultConfig: { lineMode: true },
+  owner: KOS,
 });
 
 export { KosTerminalComponent };

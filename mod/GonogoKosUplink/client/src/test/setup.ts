@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  defineUplinkClient,
   getUplinkHandle,
   installDomStubs,
   PerfBudget,
@@ -39,6 +40,7 @@ PerfBudget.installTestGate();
 // contract).
 installTestHost({
   createPerfBudget: (opts) => new PerfBudget(opts),
+  defineUplinkClient,
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],

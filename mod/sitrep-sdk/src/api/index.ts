@@ -45,6 +45,7 @@ import type {
   SlotProps,
   TelemetryClient,
   ThemeDefinition,
+  UplinkClientHandle,
 } from "./types";
 
 // --- Author-facing types (re-exported real, erased at runtime) --------------
@@ -92,6 +93,7 @@ export type {
   StreamStatusValue,
   TelemetryClient,
   ThemeDefinition,
+  UplinkClientHandle,
   UseCommandResult,
 } from "./types";
 
@@ -126,6 +128,15 @@ export const registerMapPoiProvider = (def: MapPoiProviderDefinition): void =>
 
 export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
   getHost().registerUplinkHandle(uplinkId, handle);
+
+/**
+ * Declare an Uplink client's identity (Uplink Client Contract design §3.1).
+ * One call per client bundle; stamp the returned handle as `owner` on every
+ * `registerComponent`/`registerAugment` call the client makes.
+ */
+export const defineUplinkClient = (
+  cfg: UplinkClientHandle,
+): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);

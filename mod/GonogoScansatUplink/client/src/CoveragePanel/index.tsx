@@ -27,6 +27,7 @@ import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
 import type { SCANType } from "../schema";
 import { SCAN_TYPE } from "../schema";
+import { SCANSAT } from "../uplink";
 
 const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
   { type: SCAN_TYPE.AltimetryHiRes, label: "Alt Hi" },
@@ -185,6 +186,7 @@ registerAugment({
   augments: "map-view.sections",
   requires: "scansat",
   component: CoveragePanel,
+  owner: SCANSAT,
 });
 
 export { CoveragePanel };

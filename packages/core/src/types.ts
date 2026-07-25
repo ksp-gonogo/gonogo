@@ -4,6 +4,7 @@ import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { TelemaachusSchema } from "./schemas/telemachus";
 import type { GonogoTheme } from "./theme";
+import type { UplinkClientHandle } from "./uplinkClients";
 
 export type DataSourceStatus =
   | "connected"
@@ -293,6 +294,18 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * conflict ({@link getReplacementConflicts}), never silently merged.
    */
   replaces?: string;
+  /**
+   * The Uplink client that registered this widget (Uplink Client Contract
+   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle —
+   * never set by hand. Purely for provenance / mod search tags
+   * (`effectiveSearchTags`) and future health/version surfaces; it plays no
+   * part in registration collision handling (that stays the existing
+   * same-id-different-def throw in `registerComponent`, unconditioned on
+   * `owner`) and no part in gating (`requires`/`channels` still own
+   * survive-without-mod). Absent for core / mod-agnostic widgets, which are
+   * never forced to name an Uplink.
+   */
+  owner?: UplinkClientHandle;
 }
 
 /**

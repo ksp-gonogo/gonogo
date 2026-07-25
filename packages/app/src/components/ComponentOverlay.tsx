@@ -1,5 +1,10 @@
 import type { ComponentDefinition } from "@ksp-gonogo/core";
-import { getComponents, safeRandomUuid, useChromeWrap } from "@ksp-gonogo/core";
+import {
+  effectiveSearchTags,
+  getComponents,
+  safeRandomUuid,
+  useChromeWrap,
+} from "@ksp-gonogo/core";
 import {
   SerialDeviceProvider,
   useSerialDeviceService,
@@ -113,7 +118,8 @@ export function ComponentOverlay({
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const def of allComponents) {
-      for (const t of def.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+      for (const t of effectiveSearchTags(def))
+        counts.set(t, (counts.get(t) ?? 0) + 1);
     }
     return Array.from(counts.entries())
       .filter(([, count]) => count > 1)
@@ -126,15 +132,16 @@ export function ComponentOverlay({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allComponents.filter((def) => {
+      const searchTags = effectiveSearchTags(def);
       if (q) {
         const matchesQuery =
           def.name.toLowerCase().includes(q) ||
-          def.tags.some((t) => t.toLowerCase().includes(q));
+          searchTags.some((t) => t.toLowerCase().includes(q));
         if (!matchesQuery) return false;
       }
       if (selectedTags.size > 0) {
         // Additive: a widget passes if it matches ANY selected tag.
-        const matchesTag = def.tags.some((t) => selectedTags.has(t));
+        const matchesTag = searchTags.some((t) => selectedTags.has(t));
         if (!matchesTag) return false;
       }
       return true;

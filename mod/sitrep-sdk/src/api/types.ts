@@ -102,6 +102,12 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   augmentSlots?: string[];
   /** Declares this widget REPLACES the widget with the given id. */
   replaces?: string;
+  /**
+   * The Uplink client that registered this widget, stamped via
+   * `defineUplinkClient`'s returned handle — see `UplinkClientHandle`'s own
+   * doc below. Provenance / mod search tags only; never hand-set.
+   */
+  owner?: UplinkClientHandle;
 }
 
 // --- Themes -----------------------------------------------------------------
@@ -154,6 +160,27 @@ export interface AugmentDefinition<S extends string = string> {
    *  the real `AugmentDefinition` (packages/core/src/augments.ts) for the
    *  full rationale. */
   suppressesVanillaBase?: boolean;
+  /**
+   * The Uplink client that registered this augment, stamped via
+   * `defineUplinkClient`'s returned handle. Provenance only; never hand-set.
+   */
+  owner?: UplinkClientHandle;
+}
+
+// --- Uplink client identity (Uplink Client Contract design §3.1) -----------
+
+/**
+ * Mirrors `packages/core/src/uplinkClients.ts`'s `UplinkClientHandle` — same
+ * leaf constraint as every other type in this file. One declaration per
+ * client bundle (`defineUplinkClient`); widgets/augments stamp it as `owner`.
+ */
+export interface UplinkClientHandle {
+  /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */
+  id: string;
+  /** The Uplink's one version line (mod + client). */
+  version: string;
+  /** Human label for management/health surfaces. */
+  name: string;
 }
 
 // --- Fog reveal sources ------------------------------------------------------

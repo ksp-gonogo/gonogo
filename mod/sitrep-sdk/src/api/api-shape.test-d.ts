@@ -43,6 +43,7 @@ import type {
   TaggedLogger,
   TelemetryClient,
   ThemeDefinition,
+  UplinkClientHandle,
   UseCommandResult,
 } from "./index";
 
@@ -88,6 +89,7 @@ declare const _logger: Logger;
 declare const _taggedLogger: TaggedLogger;
 declare const _streamStatusValue: StreamStatusValue;
 declare const _lateTelemetrySubscribe: LateTelemetrySubscribe;
+declare const _uplinkClientHandle: UplinkClientHandle;
 
 // The author-set core of a ComponentDefinition must remain assignable — a probe
 // that the required fields don't silently become optional or retyped.
@@ -138,5 +140,6 @@ export type _ApiShapeProbe = [
   typeof _taggedLogger,
   typeof _streamStatusValue,
   typeof _lateTelemetrySubscribe,
+  typeof _uplinkClientHandle,
   typeof _probe,
 ];

@@ -66,9 +66,30 @@ const pkg = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf-8"),
 ) as { version: string };
 
-function readPkgVersion(pkgJsonPath: string): string {
-  return (JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as { version: string })
-    .version;
+/**
+ * Extract a `export const NAME = "value";` string literal straight out of a
+ * TS source file — no import, no build. A plain `import` here would resolve
+ * through normal node_modules resolution to that package's BUILT
+ * `dist/index.js` (this file runs in raw Node, before the `resolve.alias`
+ * below kicks in — that alias only rewires imports inside the APP's own vite
+ * module graph, not this config's own top-level imports), and `dist` is
+ * gitignored — absent on a fresh checkout until `pnpm build` runs. Reading
+ * the source as text keeps the "no build step needed before `pnpm dev`"
+ * property the workspace-alias comment above already establishes. Same
+ * rationale as the old `readPkgVersion` this replaces, just pointed at the
+ * canonical exported constant instead of the package's own version field.
+ */
+function readExportedStringConst(filePath: string, exportName: string): string {
+  const src = readFileSync(filePath, "utf-8");
+  const match = new RegExp(`export const ${exportName}\\s*=\\s*"([^"]+)"`).exec(
+    src,
+  );
+  if (!match) {
+    throw new Error(
+      `readExportedStringConst: could not find "export const ${exportName}" in ${filePath}`,
+    );
+  }
+  return match[1];
 }
 
 // The app's compat identity — the values a runtime-loaded Uplink is gated
@@ -76,20 +97,28 @@ function readPkgVersion(pkgJsonPath: string): string {
 // exposed to the app via `define` below AND written into the local registry
 // fixture by the uplink-bundle plugin, so the host and the descriptor can never
 // drift in Phase A. See src/uplinks/hostCompat.ts.
-//   • apiVersion  — the @ksp-gonogo extension-API surface, tracked by sitrep-sdk's
-//     version today (a dedicated EXTENSION_API_VERSION + TS api-shape gate is the
-//     sdk-one-import §6 follow-up; sitrep-sdk's version is the honest marker now).
-//   • uiKitVersion — @ksp-gonogo/ui-kit.
-//   • contractMajor — mirrors the C# ContractVersion.Major stamp (Sitrep.Contract's
-//     `ContractVersion.Major`, currently 4). Held as an app constant; both the host
-//     `define` and the registry fixture read it, so host and descriptor still agree.
-const HOST_API_VERSION = readPkgVersion(
-  resolve(modDir, "sitrep-sdk/package.json"),
+//   • apiVersion — core's `EXTENSION_API_VERSION`
+//     (packages/core/src/uplinkVersionCompat.ts), the dedicated hand-managed
+//     API-surface gate. Previously this was a stand-in read off sitrep-sdk's
+//     package.json version ("0.0.1", unrelated to the gate's "1.0.0") — now
+//     single-sourced from the same constant hostCompat.ts gates on, so the
+//     two can never drift.
+//   • uiKitVersion — @ksp-gonogo/ui-kit's `UI_KIT_VERSION` (src/version.ts).
+//   • contractMajor / contractMinor — mirror the C# `ContractVersion.Major`/
+//     `.Minor` stamp (Sitrep.Contract's `ContractVersion`, currently 4.7).
+//     Held as hand-maintained app constants (the C# contract owns bumping
+//     them, not this dedupe); both the host `define`s and the registry
+//     fixture read them, so host and descriptor still agree.
+const HOST_API_VERSION = readExportedStringConst(
+  resolve(packagesDir, "core/src/uplinkVersionCompat.ts"),
+  "EXTENSION_API_VERSION",
 );
-const HOST_UIKIT_VERSION = readPkgVersion(
-  resolve(packagesDir, "ui-kit/package.json"),
+const HOST_UIKIT_VERSION = readExportedStringConst(
+  resolve(packagesDir, "ui-kit/src/version.ts"),
+  "UI_KIT_VERSION",
 );
 const HOST_CONTRACT_MAJOR = 4;
+const HOST_CONTRACT_MINOR = 7;
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
 // bundles (Phase B: scansat + kos — the loader was proven on scansat first in
@@ -239,6 +268,7 @@ const uplinkBundles = (): PluginOption => ({
             apiVersion: HOST_API_VERSION,
             uiKitVersion: HOST_UIKIT_VERSION,
             contractMajor: HOST_CONTRACT_MAJOR,
+            contractMinor: HOST_CONTRACT_MINOR,
             // Phase A: bundle is co-located under the app's own public/. Phase D
             // swaps this for the author's GitHub release-asset URL; the loader's
             // registry seam already treats bundleUrl as opaque.
@@ -372,10 +402,12 @@ export default defineConfig({
   define: {
     __GONOGO_VERSION__: JSON.stringify(VERSION),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
-    // The app's Uplink-compat identity — read by src/uplinks/hostCompat.ts and
-    // gated against a descriptor's declared versions before any bundle is loaded.
-    __GONOGO_API_VERSION__: JSON.stringify(HOST_API_VERSION),
-    __GONOGO_UIKIT_VERSION__: JSON.stringify(HOST_UIKIT_VERSION),
+    // The C# contract's half of the app's Uplink-compat identity — read by
+    // src/uplinks/hostCompat.ts and gated against a descriptor's declared
+    // versions before any bundle is loaded. apiVersion/uiKitVersion don't need
+    // a define: hostCompat.ts imports EXTENSION_API_VERSION/UI_KIT_VERSION
+    // directly from @ksp-gonogo/core / @ksp-gonogo/ui-kit.
     __GONOGO_CONTRACT_MAJOR__: JSON.stringify(HOST_CONTRACT_MAJOR),
+    __GONOGO_CONTRACT_MINOR__: JSON.stringify(HOST_CONTRACT_MINOR),
   },
 });

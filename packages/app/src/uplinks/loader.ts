@@ -8,17 +8,24 @@
 // runs against the injected host. Every refusal quarantines with a legible reason
 // surfaced in the in-app Uplinks list — never a silent load, never a silent no-op.
 
-import { parseSemver } from "@ksp-gonogo/core";
+import {
+  type AppCompatIdentity,
+  checkUplinkCompat,
+  type GonogoUplinkManifest,
+  parseSemver,
+} from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { type ConsentInfo, ensureConsent } from "./consent";
 import type { HostCompat } from "./hostCompat";
 import { setUplinkOutcome, type UplinkLoadOutcome } from "./loaderState";
 import {
   fetchRegistry,
+  type RegistryIndex,
   type RegistrySource,
   type UplinkDescriptor,
   type UplinkVersionDescriptor,
 } from "./registry";
+import { computeUplinkGapEntries } from "./rosterGap";
 
 /** One entry of the live `system.uplinks` roster the loader consults (design §3.2). */
 export interface RosterEntry {
@@ -38,7 +45,16 @@ export interface RosterEntry {
 export interface LoaderContext {
   /** Where to read the registry index (Phase A: local fixture; Phase D: the Hub). */
   registrySource: RegistrySource;
-  /** The Uplink ids to load via the runtime path (first-party, flag-gated). */
+  /**
+   * The DEFAULT Uplink ids to load via the runtime path (first-party,
+   * flag-gated). Operator decision 2026-07-24: the installed-mod roster is
+   * the source of truth for what loads — when `roster` is present,
+   * `loadEnabledUplinks` derives the enabled set from it instead (see
+   * `deriveEnabledIds`) and this field is IGNORED. `enabledIds` only takes
+   * effect as the degraded-boot fallback, when `roster` is `undefined` (no
+   * mod talking — dev / e2e / offline first boot): the client half still
+   * loads on the shipped default rather than loading nothing.
+   */
   enabledIds: string[];
   /** The app's compat identity — gated against each descriptor's declared versions. */
   hostCompat: HostCompat;
@@ -87,53 +103,60 @@ function pickVersion(
   return sorted[0];
 }
 
-/** Compare two versions' major fields; `null` if either is unparseable. */
-function majorMatch(a: string, b: string): boolean | null {
-  const pa = parseSemver(a);
-  const pb = parseSemver(b);
-  if (!pa || !pb) return null;
-  return pa.major === pb.major;
+/**
+ * Map a registry descriptor + one of its version lines into core's
+ * `GonogoUplinkManifest` shape — the input `checkUplinkCompat` gates on. See
+ * the doc comment on `UplinkVersionDescriptor` (registry.ts) for why these
+ * are two distinct types (index entry vs. build-shipped manifest) rather
+ * than one merged shape.
+ */
+function toCompatManifest(
+  descriptor: UplinkDescriptor,
+  version: UplinkVersionDescriptor,
+): GonogoUplinkManifest {
+  return {
+    id: descriptor.id,
+    version: version.version,
+    minAppVersion: version.minAppVersion,
+    apiVersion: version.apiVersion,
+    uiKitVersion: version.uiKitVersion,
+    contractMajor: version.contractMajor,
+    contractMinor: version.contractMinor,
+    integrity: version.integrity,
+  };
 }
 
 /**
- * The compat + mod-hash gate — runs BEFORE any bytes are fetched (design §5 step
- * 3). apiVersion and uiKitVersion gate on the major line (a major bump is a
- * breaking API/design-system change); contractMajor must match exactly;
- * minAppVersion is advisory (warn, don't refuse).
+ * The compat + roster + mod-hash gate — runs BEFORE any bytes are fetched
+ * (design §5 step 3). The VERSION verdict itself (apiVersion/uiKitVersion/
+ * contractMajor/contractMinor/minAppVersion — design §6.3) is delegated
+ * whole to core's `checkUplinkCompat`, the single source of truth for that
+ * rule table; this function keeps only the orchestration core doesn't know
+ * about: roster availability and the mod-hash gate (design §3.3), both
+ * app-side concerns with no equivalent in the pure manifest-vs-identity
+ * check.
  */
 function checkCompat(
+  descriptor: UplinkDescriptor,
   version: UplinkVersionDescriptor,
   ctx: LoaderContext,
   roster: RosterEntry | undefined,
 ): void {
-  const api = majorMatch(ctx.hostCompat.apiVersion, version.apiVersion);
-  if (api === null) {
-    refuse(
-      `unreadable apiVersion (host ${ctx.hostCompat.apiVersion}, needs ${version.apiVersion})`,
-    );
+  const manifest = toCompatManifest(descriptor, version);
+  const app: AppCompatIdentity = {
+    apiVersion: ctx.hostCompat.apiVersion,
+    uiKitVersion: ctx.hostCompat.uiKitVersion,
+    contractMajor: ctx.hostCompat.contractMajor,
+    contractMinor: ctx.hostCompat.contractMinor,
+    appVersion: ctx.appVersion,
+  };
+  const verdict = checkUplinkCompat(manifest, app);
+  if (verdict.verdict === "refuse") {
+    refuse(verdict.reason);
   }
-  if (api === false) {
-    refuse(
-      `apiVersion incompatible: host ${ctx.hostCompat.apiVersion}, client built for ${version.apiVersion}`,
-    );
-  }
-
-  const ui = majorMatch(ctx.hostCompat.uiKitVersion, version.uiKitVersion);
-  if (ui === null) {
-    refuse(
-      `unreadable uiKitVersion (host ${ctx.hostCompat.uiKitVersion}, needs ${version.uiKitVersion})`,
-    );
-  }
-  if (ui === false) {
-    refuse(
-      `uiKitVersion incompatible: host ${ctx.hostCompat.uiKitVersion}, client built for ${version.uiKitVersion}`,
-    );
-  }
-
-  if (ctx.hostCompat.contractMajor !== version.contractMajor) {
-    refuse(
-      `contractMajor incompatible: host ${ctx.hostCompat.contractMajor}, client built for ${version.contractMajor}`,
-    );
+  if (verdict.verdict === "warn-load") {
+    // Advisory only (minAppVersion floor) — log and continue loading.
+    logger.warn(`[uplink-loader] ${version.version}: ${verdict.reason}`);
   }
 
   // Roster availability: only refuse on an EXPLICIT unavailable report. Absence
@@ -152,14 +175,6 @@ function checkCompat(
         `mod expects client ${roster.expectedClientHash}, Hub offers ${version.integrity} (version skew — reconcile mod/client)`,
       );
     }
-  }
-
-  // Advisory only.
-  const appCmp = majorMatch(ctx.appVersion, version.minAppVersion);
-  if (appCmp === false) {
-    logger.warn(
-      `[uplink-loader] ${version.version}: minAppVersion ${version.minAppVersion} is a major ahead of app ${ctx.appVersion} (advisory)`,
-    );
   }
 }
 
@@ -212,7 +227,7 @@ async function loadOne(
     const roster = ctx.roster?.find((r) => r.id === descriptor.id);
 
     // Gate BEFORE fetch (design §5 step 3).
-    checkCompat(version, ctx, roster);
+    checkCompat(descriptor, version, ctx, roster);
 
     // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
     // First-party ids are NOT pre-trusted — a first load at a new id@version asks
@@ -331,8 +346,58 @@ export async function loadUplinkById(
 }
 
 /**
- * Load every enabled Uplink from the registry. Reads the index once, then loads
- * each enabled id independently (one bad Uplink never blocks a good one). Returns
+ * Derive the set of ids `loadEnabledUplinks` attempts, per the operator
+ * decision (2026-07-24) that the installed-mod roster drives the loader
+ * rather than a static id list:
+ *
+ *   - `roster` PRESENT (the mod answered, even with an empty list) → enable
+ *     exactly the ids the roster reports INSTALLED that also have a
+ *     first-party descriptor in `index` (`registry.local.json` — first-party
+ *     scope is deliberately just "exists in the local registry"; the
+ *     mod-side self-describing-URL / third-party path is HELD, not built
+ *     here). "Installed" here matches `computeUplinkGapEntries`'s own
+ *     definition — present in the roster regardless of its `available` flag
+ *     — so a mod-reported-unavailable id is still ENABLED (attempted) and
+ *     falls to `checkCompat`'s existing per-descriptor availability veto,
+ *     which quarantines it with a legible reason. Excluding it here instead
+ *     would silently drop it with no outcome at all, which is strictly less
+ *     visible than a "quarantined: mod reports Uplink unavailable" row.
+ *   - `roster` ABSENT (`undefined` — no mod talking: dev / e2e / offline
+ *     first boot) → fall back to `fallback` (`ctx.enabledIds`, i.e. the
+ *     shipped `LOADER_UPLINK_IDS` default at the real boot call site). This
+ *     preserves the degraded-boot rule on `LoaderContext.roster`: the client
+ *     half still loads when no mod is talking yet.
+ *
+ * Reuses `computeUplinkGapEntries` — the SAME join the wizard's
+ * `useUplinkGap` classifies `installed-no-client` gaps from (`../wizard/
+ * useUplinkGap.ts`, via `./rosterGap.ts`) — rather than a second, parallel
+ * roster×registry join that could silently drift from the wizard's. This
+ * function only differs from the wizard's call in what it asks the join for:
+ * the wizard reads `.state` (`load-from-hub` etc.) for its badge; this reads
+ * `.installed` + `.hubDescriptor` directly, because "should the loader
+ * attempt this" must include the `unavailable` state too (see above), which
+ * `.state` alone can't distinguish from "not installed at all".
+ */
+function deriveEnabledIds(
+  roster: RosterEntry[] | undefined,
+  index: RegistryIndex,
+  fallback: readonly string[],
+): string[] {
+  if (!roster) return [...fallback];
+  const gapEntries = computeUplinkGapEntries(
+    roster.map((r) => ({ id: r.id, available: r.available, reason: r.reason })),
+    [],
+    index,
+  );
+  return gapEntries
+    .filter((entry) => entry.installed && entry.hubDescriptor !== null)
+    .map((entry) => entry.id);
+}
+
+/**
+ * Load every enabled Uplink from the registry. Reads the index once, derives
+ * the enabled set from the live roster (`deriveEnabledIds`), then loads each
+ * enabled id independently (one bad Uplink never blocks a good one). Returns
  * every outcome; also written to the loader-state store for the Uplinks list.
  */
 export async function loadEnabledUplinks(
@@ -342,7 +407,10 @@ export async function loadEnabledUplinks(
   try {
     index = await fetchRegistry(ctx.registrySource);
   } catch (err) {
-    // A registry we can't read quarantines every enabled id with the reason, so
+    // A registry we can't read means we also can't derive the roster-driven
+    // enabled set (that join needs `index`), so this falls back to whatever
+    // `ctx.enabledIds` was given rather than attempting the derivation with
+    // no registry — quarantining every one of those ids with the reason, so
     // the failure is visible rather than a blank dashboard.
     const reason = `registry unavailable: ${
       err instanceof Error ? err.message : String(err)
@@ -360,8 +428,9 @@ export async function loadEnabledUplinks(
     });
   }
 
+  const effectiveIds = deriveEnabledIds(ctx.roster, index, ctx.enabledIds);
   const outcomes: UplinkLoadOutcome[] = [];
-  for (const id of ctx.enabledIds) {
+  for (const id of effectiveIds) {
     const descriptor = index.uplinks.find((u) => u.id === id);
     if (!descriptor) {
       const outcome: UplinkLoadOutcome = {

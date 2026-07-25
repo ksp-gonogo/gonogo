@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   AugmentSlot,
+  defineUplinkClient,
   getBody,
   getFogRevealSources,
   installDomStubs,
@@ -38,6 +39,7 @@ installTestHost({
   AugmentSlot: AugmentSlot as Parameters<
     typeof installTestHost
   >[0]["AugmentSlot"],
+  defineUplinkClient,
   getBody,
   getFogRevealSources,
   onFogRevealSourcesChange,
