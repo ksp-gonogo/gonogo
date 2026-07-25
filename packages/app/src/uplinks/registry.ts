@@ -5,7 +5,20 @@
 // to the real Hub is a different `registrySource` URL and nothing else — the
 // shapes here mirror the published index schema exactly.
 
-/** One published version line of an Uplink (both halves ship on one tag). */
+/**
+ * One published version line of an Uplink (both halves ship on one tag).
+ *
+ * The gate fields (`apiVersion`/`uiKitVersion`/`contractMajor`/`contractMinor`/
+ * `minAppVersion`) are the registry-INDEX twin of core's `GonogoUplinkManifest`
+ * (`packages/core/src/uplinkVersionCompat.ts`) — same values, different home:
+ * this is one entry in the Hub's per-uplink `versions[]` list (no `id` of its
+ * own — see `UplinkDescriptor` below — plus loader-only fields like
+ * `bundleUrl`/`expectedClientHash` core never sees), where `GonogoUplinkManifest`
+ * is the sidecar manifest a single built bundle ships. The actual §6.3 verdict
+ * logic lives once, in core's `checkUplinkCompat`; `loader.ts`'s
+ * `toCompatManifest` converts one of these (+ the parent descriptor's `id`)
+ * into a `GonogoUplinkManifest` before calling it.
+ */
 export interface UplinkVersionDescriptor {
   /** The Uplink's single version line (DLL == client). */
   version: string;
@@ -17,6 +30,8 @@ export interface UplinkVersionDescriptor {
   uiKitVersion: string;
   /** GATE — mirrors the C# ContractVersion.Major stamp. */
   contractMajor: number;
+  /** GATE — mirrors the C# ContractVersion.Minor stamp (additive contract growth). */
+  contractMinor: number;
   /** Where the client bundle is fetched from (opaque to the loader). */
   bundleUrl: string;
   /** H_index — sha256 of the client bundle, `sha256-<hex>` (design §3.3 row A). */

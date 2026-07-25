@@ -18,10 +18,20 @@ export const EXTENSION_API_VERSION = "1.0.0";
 
 /**
  * The manifest an Uplink client bundle ships alongside (design §6.2). Every
- * field mirrors a `UplinkVersionDescriptor` value that today lives in
+ * version-gate field mirrors a `UplinkVersionDescriptor` value from
  * `packages/app/src/uplinks/registry.ts` — this is the pure, package-level
  * home for the shape and its compat rule, so the loader (and any future
  * consumer) doesn't need to reach into the app package for it.
+ *
+ * Not identical to `UplinkVersionDescriptor`, and deliberately not merged
+ * into it: this type is the sidecar manifest a single BUNDLE ships (`id` +
+ * one version's worth of gate fields), while `UplinkVersionDescriptor` is one
+ * entry in the Hub/registry INDEX's per-uplink `versions[]` list (no `id` —
+ * that lives on the parent `UplinkDescriptor` — plus loader-only concerns
+ * like `bundleUrl`/`expectedClientHash` this module never touches). The
+ * loader (`packages/app/src/uplinks/loader.ts`) maps an
+ * `UplinkDescriptor`+`UplinkVersionDescriptor` pair into one of these before
+ * calling `checkUplinkCompat` — see `toCompatManifest` there.
  */
 export interface GonogoUplinkManifest {
   id: string;

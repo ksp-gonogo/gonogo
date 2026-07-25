@@ -20,6 +20,7 @@ const HOST: HostCompat = {
   apiVersion: "1.2.0",
   uiKitVersion: "0.3.0",
   contractMajor: 3,
+  contractMinor: 5,
 };
 
 function indexWith(
@@ -37,9 +38,10 @@ function indexWith(
           {
             version: "1.0.0",
             minAppVersion: "1.0.0",
-            apiVersion: "1.5.0", // same major as host 1.2.0 → passes
-            uiKitVersion: "0.3.9", // same major as host 0.3.0 → passes
+            apiVersion: "1.2.5", // same major.minor as host 1.2.0, patch differs → passes (checkUplinkCompat gates major exactly + client minor <= host minor)
+            uiKitVersion: "0.3.9", // host is 0.x (0.3.0) → exact minor match required; both minor 3, patch differs → passes
             contractMajor: 3,
+            contractMinor: 3, // <= host's 5 → passes
             bundleUrl: "/uplinks/scansat.client.js",
             integrity,
             expectedClientHash: null,
@@ -147,7 +149,7 @@ describe("loadEnabledUplinks", () => {
       importBundle,
     });
     expect(outcomes[0].status).toBe("quarantined");
-    expect(outcomes[0].reason).toMatch(/apiVersion incompatible/);
+    expect(outcomes[0].reason).toMatch(/apiVersion major mismatch/);
     expect(fetchBytes).not.toHaveBeenCalled();
     expect(importBundle).not.toHaveBeenCalled();
   });
@@ -160,7 +162,18 @@ describe("loadEnabledUplinks", () => {
       ctx({ index: indexWith(goodHash, { contractMajor: 2 }), importBundle }),
     );
     expect(outcomes[0].status).toBe("quarantined");
-    expect(outcomes[0].reason).toMatch(/contractMajor incompatible/);
+    expect(outcomes[0].reason).toMatch(/contractMajor mismatch/);
+  });
+
+  it("refuses a contractMinor that's newer than the host's", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const outcomes = await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash, { contractMinor: 6 }), importBundle }),
+    );
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/contractMinor too new/);
   });
 
   it("refuses when the live mod reports the Uplink unavailable", async () => {

@@ -8,7 +8,12 @@
 // runs against the injected host. Every refusal quarantines with a legible reason
 // surfaced in the in-app Uplinks list — never a silent load, never a silent no-op.
 
-import { parseSemver } from "@ksp-gonogo/core";
+import {
+  type AppCompatIdentity,
+  checkUplinkCompat,
+  type GonogoUplinkManifest,
+  parseSemver,
+} from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { type ConsentInfo, ensureConsent } from "./consent";
 import type { HostCompat } from "./hostCompat";
@@ -87,53 +92,60 @@ function pickVersion(
   return sorted[0];
 }
 
-/** Compare two versions' major fields; `null` if either is unparseable. */
-function majorMatch(a: string, b: string): boolean | null {
-  const pa = parseSemver(a);
-  const pb = parseSemver(b);
-  if (!pa || !pb) return null;
-  return pa.major === pb.major;
+/**
+ * Map a registry descriptor + one of its version lines into core's
+ * `GonogoUplinkManifest` shape — the input `checkUplinkCompat` gates on. See
+ * the doc comment on `UplinkVersionDescriptor` (registry.ts) for why these
+ * are two distinct types (index entry vs. build-shipped manifest) rather
+ * than one merged shape.
+ */
+function toCompatManifest(
+  descriptor: UplinkDescriptor,
+  version: UplinkVersionDescriptor,
+): GonogoUplinkManifest {
+  return {
+    id: descriptor.id,
+    version: version.version,
+    minAppVersion: version.minAppVersion,
+    apiVersion: version.apiVersion,
+    uiKitVersion: version.uiKitVersion,
+    contractMajor: version.contractMajor,
+    contractMinor: version.contractMinor,
+    integrity: version.integrity,
+  };
 }
 
 /**
- * The compat + mod-hash gate — runs BEFORE any bytes are fetched (design §5 step
- * 3). apiVersion and uiKitVersion gate on the major line (a major bump is a
- * breaking API/design-system change); contractMajor must match exactly;
- * minAppVersion is advisory (warn, don't refuse).
+ * The compat + roster + mod-hash gate — runs BEFORE any bytes are fetched
+ * (design §5 step 3). The VERSION verdict itself (apiVersion/uiKitVersion/
+ * contractMajor/contractMinor/minAppVersion — design §6.3) is delegated
+ * whole to core's `checkUplinkCompat`, the single source of truth for that
+ * rule table; this function keeps only the orchestration core doesn't know
+ * about: roster availability and the mod-hash gate (design §3.3), both
+ * app-side concerns with no equivalent in the pure manifest-vs-identity
+ * check.
  */
 function checkCompat(
+  descriptor: UplinkDescriptor,
   version: UplinkVersionDescriptor,
   ctx: LoaderContext,
   roster: RosterEntry | undefined,
 ): void {
-  const api = majorMatch(ctx.hostCompat.apiVersion, version.apiVersion);
-  if (api === null) {
-    refuse(
-      `unreadable apiVersion (host ${ctx.hostCompat.apiVersion}, needs ${version.apiVersion})`,
-    );
+  const manifest = toCompatManifest(descriptor, version);
+  const app: AppCompatIdentity = {
+    apiVersion: ctx.hostCompat.apiVersion,
+    uiKitVersion: ctx.hostCompat.uiKitVersion,
+    contractMajor: ctx.hostCompat.contractMajor,
+    contractMinor: ctx.hostCompat.contractMinor,
+    appVersion: ctx.appVersion,
+  };
+  const verdict = checkUplinkCompat(manifest, app);
+  if (verdict.verdict === "refuse") {
+    refuse(verdict.reason);
   }
-  if (api === false) {
-    refuse(
-      `apiVersion incompatible: host ${ctx.hostCompat.apiVersion}, client built for ${version.apiVersion}`,
-    );
-  }
-
-  const ui = majorMatch(ctx.hostCompat.uiKitVersion, version.uiKitVersion);
-  if (ui === null) {
-    refuse(
-      `unreadable uiKitVersion (host ${ctx.hostCompat.uiKitVersion}, needs ${version.uiKitVersion})`,
-    );
-  }
-  if (ui === false) {
-    refuse(
-      `uiKitVersion incompatible: host ${ctx.hostCompat.uiKitVersion}, client built for ${version.uiKitVersion}`,
-    );
-  }
-
-  if (ctx.hostCompat.contractMajor !== version.contractMajor) {
-    refuse(
-      `contractMajor incompatible: host ${ctx.hostCompat.contractMajor}, client built for ${version.contractMajor}`,
-    );
+  if (verdict.verdict === "warn-load") {
+    // Advisory only (minAppVersion floor) — log and continue loading.
+    logger.warn(`[uplink-loader] ${version.version}: ${verdict.reason}`);
   }
 
   // Roster availability: only refuse on an EXPLICIT unavailable report. Absence
@@ -152,14 +164,6 @@ function checkCompat(
         `mod expects client ${roster.expectedClientHash}, Hub offers ${version.integrity} (version skew — reconcile mod/client)`,
       );
     }
-  }
-
-  // Advisory only.
-  const appCmp = majorMatch(ctx.appVersion, version.minAppVersion);
-  if (appCmp === false) {
-    logger.warn(
-      `[uplink-loader] ${version.version}: minAppVersion ${version.minAppVersion} is a major ahead of app ${ctx.appVersion} (advisory)`,
-    );
   }
 }
 
@@ -212,7 +216,7 @@ async function loadOne(
     const roster = ctx.roster?.find((r) => r.id === descriptor.id);
 
     // Gate BEFORE fetch (design §5 step 3).
-    checkCompat(version, ctx, roster);
+    checkCompat(descriptor, version, ctx, roster);
 
     // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
     // First-party ids are NOT pre-trusted — a first load at a new id@version asks

@@ -212,6 +212,7 @@ describe("UplinkHubWizard — results step", () => {
               apiVersion: "1.0.0",
               uiKitVersion: "1.0.0",
               contractMajor: 1,
+              contractMinor: 1,
               bundleUrl: "/uplinks/hub-widget.client.js",
               integrity: "sha256-fake",
             },
