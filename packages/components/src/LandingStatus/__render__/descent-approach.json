@@ -65,12 +65,12 @@
         "channel": "vessel.flight",
         "value": {
           "latitude": 0,
-          "longitude": 1.3139832101457243,
+          "longitude": 2.7562343631912856,
           "altitudeAsl": 148.99750962914914,
           "altitudeTerrain": 148.99750962914914,
           "verticalSpeed": -2.5151263598903952,
-          "surfaceSpeed": 2.5151263598903952,
-          "orbitalSpeed": 2.5151263598903952,
+          "surfaceSpeed": 3.9380569005480845,
+          "orbitalSpeed": 3.9380569005480845,
           "atmDensity": 0
         }
       },
@@ -118,7 +118,7 @@
           "outcome": "terrain-assessed",
           "sampleSource": "predicted",
           "predictedLatitude": 0,
-          "predictedLongitude": 1.3139832101680657,
+          "predictedLongitude": 2.761477198187212,
           "predictedTerrainElevation": 120,
           "predictedSlopeAngle": 9,
           "predictedSlopeHeading": 110,

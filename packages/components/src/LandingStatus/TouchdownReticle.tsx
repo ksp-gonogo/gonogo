@@ -8,7 +8,8 @@
  * iso-lines at the band edges, so slope/shape read precisely (close contours =
  * steep, a bullseye = a crater/peak). This is a bare square SVG: the widget
  * composes the SAFE / MARGINAL / DIVERT banner + the biome/slope readout below
- * it (so the two altimetry plots align), and the verdict rides the panel border.
+ * it (so the two altimetry plots align), and the verdict rides that banner (the
+ * reticle box itself is borderless — the tint read as noise).
  *
  * This is telemetry alerting, never GO/NO-GO. The relief is painted to a small
  * canvas + up-scaled by the browser; where canvas is unavailable (jsdom
@@ -21,7 +22,6 @@
 
 import type { ReactNode } from "react";
 import { greatCircle } from "./geo";
-import type { Hazard, HazardResult } from "./hazardVerdict";
 import { SiteMarker } from "./SiteMarker";
 
 export interface TouchdownReticleProps {
@@ -39,8 +39,6 @@ export interface TouchdownReticleProps {
   biome: string | null;
   /** Which sampling source is live. */
   sampleSource: string | null;
-  /** The site hazard verdict (worst-band-wins). */
-  verdict: HazardResult;
   /** Flattened row-major NxN terrain-height grid for the relief shading. */
   terrainPatch?: readonly number[] | null;
   /** The N of the NxN terrain patch. */
@@ -196,18 +194,6 @@ const C = SIZE / 2;
 // marker clamps to the rim and the true distance rides in the readout.
 const DRIFT_FULLSCALE_M = 3000;
 
-/**
- * Verdict signal on the panel BORDER (paired with the text banner) — kept off
- * the terrain fill so the grey relief stays legible. Colour is never the sole
- * carrier: the SAFE/MARGINAL/DIVERT banner carries it in text.
- */
-function verdictBorder(verdict: Hazard | null): string {
-  if (verdict === "DIVERT") return "var(--color-status-nogo-fg)";
-  if (verdict === "MARGINAL") return "var(--color-status-warning-fg)";
-  if (verdict === "SAFE") return "var(--color-status-go-fg)";
-  return "var(--color-border-subtle)";
-}
-
 /** Point at `deg` clockwise from up (north), `len` from the centre. */
 function atHeading(deg: number, len: number): { x: number; y: number } {
   const a = (deg * Math.PI) / 180;
@@ -223,11 +209,9 @@ export function TouchdownReticle({
   slopeDeg,
   biome,
   sampleSource,
-  verdict,
   terrainPatch,
   terrainPatchSize,
 }: Readonly<TouchdownReticleProps>) {
-  const v = verdict.verdict;
   const heights = normHeights(terrainPatch, terrainPatchSize);
   const reliefUri = reliefDataUri(
     heights?.norm ?? null,
@@ -282,8 +266,9 @@ export function TouchdownReticle({
       style={{ display: "block", width: "100%", height: "auto" }}
     >
       <title>{reticleLabel}</title>
-      {/* Neutral site panel; the verdict rides the BORDER (+ the banner), not
-            the terrain fill, so the grey relief stays legible. */}
+      {/* Neutral, BORDERLESS site panel. The verdict is carried by the widget's
+            text banner below; a verdict-tinted box border read as inconsistent
+            noise, so it's gone (the grey relief stays legible either way). */}
       <rect
         x={4}
         y={4}
@@ -291,8 +276,6 @@ export function TouchdownReticle({
         height={SIZE - 8}
         rx={4}
         fill="var(--color-surface-raised)"
-        stroke={verdictBorder(v)}
-        strokeWidth={2.5}
       />
 
       {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour

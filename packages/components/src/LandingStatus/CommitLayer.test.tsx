@@ -51,6 +51,38 @@ describe("CommitLayer", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/UNCOMMANDABLE/i);
   });
 
+  it("reserves the UNCOMMANDABLE slot so toggling it does not reflow the widget height", () => {
+    const delayed = {
+      ...live,
+      regime: "autonomous" as const,
+      live: false,
+      roundTripSeconds: 8.4,
+      commitInSeconds: -1,
+      committed: true,
+    };
+    // countdown 30 > rt 8.4 ⇒ commandable (line NOT shown), but the slot must
+    // still be present to hold the space.
+    const commandable = render(
+      <CommitLayer {...delayed} suicideBurnCountdown={30} />,
+    );
+    const slotA = commandable.container.querySelector(
+      '[data-testid="uncommandable-slot"]',
+    );
+    expect(slotA).not.toBeNull();
+    expect(slotA).not.toHaveTextContent(/UNCOMMANDABLE/i);
+    commandable.unmount();
+
+    // countdown 3 < rt 8.4 ⇒ uncommandable; SAME slot now carries the text.
+    const uncommandable = render(
+      <CommitLayer {...delayed} suicideBurnCountdown={3} />,
+    );
+    const slotB = uncommandable.container.querySelector(
+      '[data-testid="uncommandable-slot"]',
+    );
+    expect(slotB).not.toBeNull();
+    expect(slotB).toHaveTextContent(/UNCOMMANDABLE/i);
+  });
+
   it("holds no command controls — Landing is an instrument, not a command surface", () => {
     render(<CommitLayer {...live} />);
     // Gear/brakes are fired from the operator's own action-group widgets; the

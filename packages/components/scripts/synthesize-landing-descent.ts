@@ -73,18 +73,19 @@ export function integrate(): Frame[] {
 
     const aMax = THRUST / MASS;
     if (burning) {
-      // Guided suicide burn: null lateral drift first (real landers kill
-      // horizontal, then descend), and hold the descent rate on a constant-net-
-      // deceleration profile that reaches ~0 at the ground, easing to a gentle
-      // final approach below 150 m so the touchdown is genuinely soft.
-      vHoriz *= 0.85;
+      // Guided suicide burn. Bleed horizontal velocity off GRADUALLY, tied to
+      // altitude (vHoriz ≤ agl·k), so the ground track converges on the site
+      // smoothly across the WHOLE descent instead of nulling lateral in the
+      // first few seconds and then sitting dead over the site. This is what
+      // makes the predicted-point drift shrink visibly frame-to-frame (the
+      // top-down current marker tracks in toward the centred site). Hold the
+      // descent rate on a constant-net-deceleration profile that reaches ~0 at
+      // the ground, easing to a gentle final approach so touchdown is soft.
+      vHoriz = Math.min(vHoriz, agl * 0.02);
       let targetVDown = Math.sqrt(
         2 * Math.max(0.1, aMax - g) * Math.max(agl, 0),
       );
-      if (agl < 400) {
-        targetVDown = Math.min(targetVDown, 1.0 + agl / 100);
-        vHoriz = Math.min(vHoriz, 0.3 + agl / 400);
-      }
+      if (agl < 400) targetVDown = Math.min(targetVDown, 1.0 + agl / 100);
       vDown = Math.min(vDown + g * dt, targetVDown);
     } else {
       vDown += g * dt; // freefall
