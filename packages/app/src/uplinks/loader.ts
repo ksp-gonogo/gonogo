@@ -46,8 +46,9 @@ export interface LoaderContext {
   /** Where to read the registry index (Phase A: local fixture; Phase D: the Hub). */
   registrySource: RegistrySource;
   /**
-   * The DEFAULT Uplink ids to load via the runtime path (first-party,
-   * flag-gated). Operator decision 2026-07-24: the installed-mod roster is
+   * The DEFAULT Uplink ids to load via the runtime path (first-party;
+   * unconditional as of D4 step 2, 2026-07-25 — no flag gates this anymore).
+   * Operator decision 2026-07-24: the installed-mod roster is
    * the source of truth for what loads — when `roster` is present,
    * `loadEnabledUplinks` derives the enabled set from it instead (see
    * `deriveEnabledIds`) and this field is IGNORED. `enabledIds` only takes

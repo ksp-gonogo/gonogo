@@ -17,26 +17,15 @@ import { ThemeProvider } from "styled-components";
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
-// kOS and SCANsat are normally bundled static imports. Behind the Uplink-loader
-// flag they are instead loaded at runtime as standalone ESM bundles (see
-// ./uplinks) — the static imports stay the default/fallback path (moved into the
-// else branch of registerScansatAndRender so they don't ALSO run under the flag);
-// the loaded path is ADDITIVE and must never displace the fallback until it is
-// proven on all three engines.
 import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
 import "./notes/NotesComponent"; // app-level component — registers on import
 import App from "./App";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
-import {
-  LOADER_UPLINK_IDS,
-  loaderBootIdsOverride,
-  uplinkLoaderEnabled,
-} from "./uplinks/flag";
+import { LOADER_UPLINK_IDS, loaderBootIdsOverride } from "./uplinks/flag";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
-import { recordBundledOutcomes } from "./uplinks/loaderState";
 import { localRegistrySource } from "./uplinks/registry";
 import { probeUplinkRoster } from "./uplinks/rosterProbe";
 import { BUILD_TIME, VERSION } from "./version";
@@ -83,18 +72,44 @@ function renderApp(): void {
   );
 }
 
-// SCANsat registration happens before first render so the widget is in the
-// registry when the dashboard mounts. Default path: bundled static import. Flagged
-// path (`?uplinkLoader=1`): the runtime loader fetches + verifies + import()s the
-// standalone bundle, its externals resolving through the baked import map to the
-// app's singletons. Either way render proceeds — a quarantined Uplink degrades to
-// "widget not loaded (reason)" in Settings, never a blank dashboard.
+// Uplink registration happens before first render so widgets are in the
+// registry when the dashboard mounts. Two paths, unconditional (D4 step 2 —
+// the loader is no longer flag-gated for the first-party 3):
+//
+//  - kerbalism + avionics have no runtime-loader bundle/registry entry yet
+//    (out of the loader's scope this step), so they stay plain static
+//    imports, each self-registering on import.
+//  - scansat + kos + kerbcast (`LOADER_UPLINK_IDS`) ALWAYS go through the
+//    runtime loader: it fetches + verifies + import()s each standalone
+//    bundle, its externals resolving through the baked import map to the
+//    app's singletons. With no live roster (dev / e2e / offline first boot)
+//    `loadEnabledUplinks` still loads this default set — see
+//    `deriveEnabledIds` in loader.ts. `?uplinkLoaderIds=` remains a dev-only
+//    override of which ids that boot call attempts (e.g. the Hub-wizard
+//    dogfood e2e, which deliberately boots with one id left out).
+//
+// Either way render proceeds — a quarantined Uplink degrades to "widget not
+// loaded (reason)" in Settings, never a blank dashboard.
+//
+// The two halves run CONCURRENTLY, not sequentially: `probeUplinkRoster()`'s
+// system.uplinks read is bounded by its own timeout (default 3000ms) measured
+// from the moment it's called, and the roster-vs-fallback boot behaviour
+// (`deriveEnabledIds` in loader.ts) is timing-sensitive. Awaiting the
+// kerbalism/avionics imports first would needlessly delay the probe's start
+// by however long those chunks take to fetch, for no benefit — starting both
+// in the same tick keeps the probe's timing independent of the static-import
+// half's duration.
 async function registerScansatAndRender(): Promise<void> {
-  if (uplinkLoaderEnabled()) {
-    // Wire the real modal-backed consent prompt before the loader runs (the
-    // store defaults to "deny" until this is set). Renders in the app's active
-    // theme so it matches the app it is about to extend.
-    setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
+  const staticImports = Promise.all([
+    import("@ksp-gonogo/kerbalism"),
+    import("@ksp-gonogo/avionics"),
+  ]);
+
+  // Wire the real modal-backed consent prompt before the loader runs (the
+  // store defaults to "deny" until this is set). Renders in the app's active
+  // theme so it matches the app it is about to extend.
+  setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
+  const loaderRun = (async () => {
     try {
       // A bounded read of the live system.uplinks roster so the loader can
       // enforce the three-way mod-hash check; undefined when no mod is talking
@@ -114,24 +129,9 @@ async function registerScansatAndRender(): Promise<void> {
         err instanceof Error ? err : new Error(String(err)),
       );
     }
-  } else {
-    // Bundled fallback path (flag off): both clients as plain static imports,
-    // each self-registering on import. Kept until the loaded path is proven on
-    // all three engines (design R9).
-    await Promise.all([
-      import("@ksp-gonogo/kos"),
-      import("@ksp-gonogo/scansat"),
-      import("@ksp-gonogo/kerbcast-feed"),
-      import("@ksp-gonogo/kerbalism"),
-      import("@ksp-gonogo/avionics"),
-    ]);
-    // Record a "loaded" outcome for each bundled id so the loaded-outcome set
-    // (read by the Settings UplinkLoaderSection and the Hub wizard's gap
-    // computation) isn't permanently empty under the shipped default — the
-    // runtime-loader path calls setUplinkOutcome() per Uplink, but the static
-    // imports above never did.
-    recordBundledOutcomes(LOADER_UPLINK_IDS);
-  }
+  })();
+
+  await Promise.all([staticImports, loaderRun]);
   renderApp();
 }
 

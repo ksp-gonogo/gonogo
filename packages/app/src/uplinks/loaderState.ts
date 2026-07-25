@@ -49,11 +49,18 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
 }
 
 /**
- * Record every given id as `loaded` with reason `"bundled"`. Used by main.tsx's
- * bundled-fallback branch (the runtime-loader flag off, the default path) so the
- * loaded-outcome set — read by the Settings › Uplinks list and the Hub wizard's
- * gap computation — isn't permanently empty just because those Uplinks were
- * loaded via plain static `import()` rather than the runtime loader.
+ * Record every given id as `loaded` with reason `"bundled"` — for an Uplink
+ * loaded via a plain static `import()` rather than the runtime loader, so the
+ * loaded-outcome set (read by the Settings › Uplinks list and the Hub
+ * wizard's gap computation) isn't left empty for it.
+ *
+ * D4 step 2 (2026-07-25): main.tsx no longer calls this. The three loader-
+ * covered first-party Uplinks (`flag.ts`'s `LOADER_UPLINK_IDS`) now always go
+ * through the runtime loader, which records its own outcomes via
+ * `setUplinkOutcome`; the two Uplinks still statically bundled outside the
+ * loader's scope never had a Settings-visible outcome and still don't. Kept
+ * as a general-purpose helper for a future statically-bundled Uplink that
+ * wants one, and for its own unit coverage below.
  */
 export function recordBundledOutcomes(ids: readonly string[]): void {
   for (const id of ids) {

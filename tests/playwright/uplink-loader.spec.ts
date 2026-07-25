@@ -3,23 +3,28 @@ import { PORTS } from "../../playwright.config";
 import { dashboardWithWidget } from "./helpers";
 
 /**
- * Dual-path smoke test for the production Uplink client loader (design
- * docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md). Proves, in a
- * REAL browser on all three engines, that ALL THREE first-party Uplinks
- * (scansat + kos + kerbcast):
+ * Smoke test for the production Uplink client loader (design
+ * docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md), updated
+ * for D4 step 2 (2026-07-25): the runtime loader is now the unconditional
+ * DEFAULT path for the first-party 3 — there is no more static-bundled
+ * fallback for scansat/kos/kerbcast to fall back to, and no `?uplinkLoader=1`
+ * gate to flip (main.tsx always runs the loader for these three; see that
+ * file's `registerScansatAndRender`). Proves, in a REAL browser on all three
+ * engines, that ALL THREE first-party Uplinks (scansat + kos + kerbcast):
  *
- *  1. behind `?uplinkLoader=1` are NOT statically bundled — each is fetched as a
- *     standalone ESM bundle (/uplinks/<id>.client.js) and import()ed at runtime,
- *     its bare imports resolving through the baked import map to the app's
- *     singleton chunks, so its module-load registerComponent writes into the app's
- *     ONE registry (`scanning` + `kos-terminal` + `camera-feed` all appear);
+ *  1. with NO query param at all, are NOT statically bundled — each is fetched
+ *     as a standalone ESM bundle (/uplinks/<id>.client.js) and import()ed at
+ *     runtime, its bare imports resolving through the baked import map to the
+ *     app's singleton chunks, so its module-load registerComponent writes into
+ *     the app's ONE registry (`scanning` + `kos-terminal` + `camera-feed` all
+ *     appear);
  *  2. the injected SDK host is installed on globalThis;
  *  3. a widget from a LOADED (not statically-bundled) Uplink actually RENDERS on
  *     the dashboard — not merely registers. The dashboard is seeded (same
  *     `dashboardWithWidget` mechanism `tests/playwright/helpers.ts`'s
  *     `bootstrapPair` uses for every widget-DOM-mirror spec) with the scansat
- *     `scanning` widget before the flagged navigation; because `main.tsx` only
- *     calls `renderApp()` AFTER `loadEnabledUplinks` resolves (registerScansatAndRender
+ *     `scanning` widget before navigation; because `main.tsx` only calls
+ *     `renderApp()` AFTER `loadEnabledUplinks` resolves (registerScansatAndRender
  *     awaits the whole load sequence before the first render), by the time React
  *     mounts the widget's `registerComponent` has already run — so waiting for the
  *     widget's own panel title is a genuine post-load-and-mount render proof, not a
@@ -33,14 +38,17 @@ import { dashboardWithWidget } from "./helpers";
  *     is an app-internal module, not one of the externalised bare specifiers baked
  *     into the import map (`vite.config.ts`'s `UPLINK_EXTERNALS`), so there is no
  *     `import("@ksp-gonogo/app")` (or similar) seam to reach it directly — going
- *     through the real UI is the faithful proof here, not a workaround;
- *  5. flag OFF, all three widgets are still present via the bundled static imports
- *     — the fallback the design forbids removing until the loaded path is
- *     triple-engine green (§6 / R9) — and NEITHER loader bundle is requested.
+ *     through the real UI is the faithful proof here, not a workaround.
+ *
+ * A second test proves the `?uplinkLoaderIds=` dev override (`flag.ts`'s
+ * `loaderBootIdsOverride`, unchanged by D4 step 2 and still relied on by
+ * `uplink-hub-wizard.spec.ts`) actually changes which ids the boot call
+ * attempts: restricting the boot set to just `scansat` fetches only the
+ * scansat bundle and leaves kos/kerbcast unloaded.
  *
  * Consent: the loader gates each first load at a new id@version behind operator
- * consent (design §3.5). The loaded-path test seeds a remembered grant in
- * localStorage so the load reaches import() without a manual modal click.
+ * consent (design §3.5). Both tests seed a remembered grant in localStorage so
+ * the load reaches import() without a manual modal click.
  *
  * Runs against the production `vite preview` webServer (PORTS.preview): the loader
  * mechanism is build-only, so the dev server every other spec uses can't exercise
@@ -102,13 +110,13 @@ async function seedRenderAndSettingsState(
   );
 }
 
-test.describe("Uplink loader (dual-path)", () => {
-  test("scansat + kos + kerbcast load via the runtime loader into the singleton registry", async ({
+test.describe("Uplink loader (default path)", () => {
+  test("scansat + kos + kerbcast load via the runtime loader by default (no flag)", async ({
     page,
   }) => {
     // Establish the origin, then seed consent + the dashboard/Settings-UI
-    // extras so the flagged reload reaches import() and the follow-on render
-    // + Settings assertions have what they need.
+    // extras so the reload reaches import() and the follow-on render +
+    // Settings assertions have what they need.
     await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
     await seedConsent(page);
     await seedRenderAndSettingsState(page);
@@ -126,7 +134,8 @@ test.describe("Uplink loader (dual-path)", () => {
       { timeout: 30_000 },
     );
 
-    await page.goto(`${PREVIEW}/?uplinkLoader=1`, { waitUntil: "load" });
+    // No `?uplinkLoader=1` — the loader is the unconditional default now.
+    await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
 
     // All three standalone bundles were fetched by the loader (not statically
     // imported).
@@ -162,7 +171,7 @@ test.describe("Uplink loader (dual-path)", () => {
 
     // RENDER proof, not just registration: the scansat `scanning` widget was
     // seeded onto the dashboard (`seedRenderAndSettingsState`, above) before
-    // the flagged navigation. `main.tsx`'s `registerScansatAndRender` only
+    // the navigation. `main.tsx`'s `registerScansatAndRender` only
     // calls `renderApp()` after `loadEnabledUplinks` resolves, so if the
     // widget's own panel title becomes visible, React mounted the dashboard
     // AFTER the loaded bundle's `registerComponent` already ran — this is a
@@ -200,39 +209,47 @@ test.describe("Uplink loader (dual-path)", () => {
     ).toHaveCount(0);
   });
 
-  test("flag OFF keeps scansat + kos + kerbcast via the bundled static imports (fallback intact)", async ({
+  test("?uplinkLoaderIds= overrides which ids the boot call attempts", async ({
     page,
   }) => {
-    let loaderBundleRequested = false;
+    // Establish the origin first so localStorage seeding (consent) has an
+    // origin to write against, same as the default-path test above.
+    await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
+    await seedConsent(page);
+
+    let kosRequested = false;
+    let kerbcastRequested = false;
     page.on("request", (r) => {
-      if (
-        r.url().includes("/uplinks/scansat.client.js") ||
-        r.url().includes("/uplinks/kos.client.js") ||
-        r.url().includes("/uplinks/kerbcast.client.js")
-      ) {
-        loaderBundleRequested = true;
+      if (r.url().includes("/uplinks/kos.client.js")) kosRequested = true;
+      if (r.url().includes("/uplinks/kerbcast.client.js")) {
+        kerbcastRequested = true;
       }
     });
+    const scansatFetched = page.waitForResponse(
+      (r) => r.url().includes("/uplinks/scansat.client.js") && r.ok(),
+      { timeout: 30_000 },
+    );
 
-    await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
+    // Restrict the boot-time enabled set to just scansat (`flag.ts`'s
+    // `loaderBootIdsOverride`) — the shipped `LOADER_UPLINK_IDS` default
+    // (scansat/kos/kerbcast) is unaffected; this is a per-page-load override.
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=scansat`, {
+      waitUntil: "load",
+    });
 
-    // All three widgets are still present — via the bundled static imports,
-    // not the loader.
+    expect((await scansatFetched).status()).toBe(200);
+
     await expect
       .poll(
-        async () => {
-          const ids = await registeredComponentIds(page);
-          return (
-            ids.includes("scanning") &&
-            ids.includes("kos-terminal") &&
-            ids.includes("camera-feed")
-          );
-        },
+        async () => (await registeredComponentIds(page)).includes("scanning"),
         { timeout: 15_000 },
       )
       .toBe(true);
 
-    // The loader path did not run: neither standalone bundle was fetched.
-    expect(loaderBundleRequested).toBe(false);
+    const ids = await registeredComponentIds(page);
+    expect(ids).not.toContain("kos-terminal");
+    expect(ids).not.toContain("camera-feed");
+    expect(kosRequested).toBe(false);
+    expect(kerbcastRequested).toBe(false);
   });
 });

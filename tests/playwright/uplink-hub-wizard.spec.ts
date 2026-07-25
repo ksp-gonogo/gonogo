@@ -85,10 +85,11 @@ test.describe("Uplink Hub wizard — dogfood (scansat gap -> load)", () => {
   }) => {
     await seedBrowserState(page);
 
-    // Boot with the runtime loader ON but scansat excluded from the
+    // Boot with the runtime loader (unconditional as of D4 step 2, 2026-07-25 —
+    // no `?uplinkLoader=1` needed anymore) but scansat excluded from the
     // boot-time load call — installed (mod roster) + available, but NOT
     // loaded, so the wizard has an actionable gap to find.
-    const bootUrl = `${PREVIEW}/?uplinkLoader=1&uplinkLoaderIds=`;
+    const bootUrl = `${PREVIEW}/?uplinkLoaderIds=`;
     await page.goto(bootUrl, { waitUntil: "load" });
 
     // The Settings FAB lives in the same speed-dial cluster as the "Add
