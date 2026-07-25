@@ -57,7 +57,6 @@ export { buildCameraLabeler } from "./cameraLabels";
 export { DockingCameraAugment } from "./DockingCameraAugment";
 export { selectDockingCamera } from "./DockingCameraAugment/selectDockingCamera";
 export { useKerbcastCameras } from "./hooks/useKerbcastCameras";
-export { useKerbcastMainConnect } from "./hooks/useKerbcastMainConnect";
 export type {
   DelayedPlayoutResult,
   KerbcastStreamDelayOptions,
@@ -66,7 +65,6 @@ export {
   useDelayedPlayout,
   useKerbcastStream,
 } from "./hooks/useKerbcastStream";
-export * from "./KerbcastDataSource";
 export type {
   CameraAddedPayload,
   CameraRemovedPayload,
@@ -75,18 +73,20 @@ export type {
   SignalLostPayload,
   StreamDegradedPayload,
 } from "./KerbcastEventProducer";
-export {
-  KERBCAST_EVENTS_TOPIC,
-  KerbcastEventProducer,
-} from "./KerbcastEventProducer";
 export type { CameraLifecycle } from "./lifecycle";
 export { getCameraLifecycle } from "./lifecycle";
+// Non-widget infra (defineUplinkClient-equivalent registerUplinkHandle side
+// effect, kerbcastSource, KERBCAST_EVENTS_TOPIC, useKerbcastMainConnect)
+// lives in `./runtime`, split out specifically so MainScreen can depend on
+// it WITHOUT also evaluating `./CameraFeed` above (see `./runtime`'s own doc
+// comment for why that matters to the Uplink loader). Re-exported here too
+// so the package root keeps its full existing surface for every other
+// consumer.
+export * from "./runtime";
 
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps
 // them as bare imports tsc / bundlers won't tree-shake away.
-import "./topics"; // registerBarePrimitiveTopic("kerbcast.available") + TopicPayloadMap augment
-import "./KerbcastDataSource";
 import "./CameraFeed";
 import "./DockingCameraAugment";
 import "./settings/registerKerbcastSettings"; // registerSetting × 2 (declarative "Kerbcast" category)

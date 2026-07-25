@@ -1,40 +1,21 @@
-// The Phase A loader flag. OFF by default — the bundled static-import path is the
-// production default and stays the working fallback until the loaded path is
-// proven on all three engines (design §6 / R9: never drop the fallback early).
-//
-// Enabled by either `?uplinkLoader=1` in the URL or `localStorage
-// gonogo.uplinkLoader = "1"`, so it can be driven from an e2e test (query param)
-// or toggled for a manual session (localStorage) without a rebuild.
+// D4 step 2 (2026-07-25): the Phase A `?uplinkLoader=1` / `localStorage
+// gonogo.uplinkLoader` gate is RETIRED — the runtime loader is now the
+// unconditional default path for the first-party 3 (main.tsx no longer
+// branches on it; step 1 proved the loaded path green on all three engines).
+// `uplinkLoaderEnabled()`/`UPLINK_LOADER_FLAG` were deleted with it — grep
+// found no other consumer. `?uplinkLoaderIds=` below is UNCHANGED: it's a
+// separate dev-only override of *which* ids the boot call attempts, still
+// used by the Hub-wizard dogfood e2e (tests/playwright/uplink-hub-wizard.spec.ts)
+// to boot with an id deliberately left unloaded.
 
-export const UPLINK_LOADER_FLAG = "uplinkLoader";
-const STORAGE_KEY = "gonogo.uplinkLoader";
-
-/** The first-party Uplinks routed through the runtime loader when the flag is on. */
+/** The first-party Uplinks routed through the runtime loader at boot. */
 export const LOADER_UPLINK_IDS = ["scansat", "kos", "kerbcast"] as const;
 
-export function uplinkLoaderEnabled(): boolean {
-  try {
-    if (
-      new URLSearchParams(window.location.search).get(UPLINK_LOADER_FLAG) ===
-      "1"
-    ) {
-      return true;
-    }
-  } catch {
-    // no window.location (non-browser) — fall through
-  }
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Test-only override for the boot-time enabled-id set, read once alongside
- * the loader flag. `?uplinkLoaderIds=a,b` (comma-separated, an empty string
- * is valid and means "load nothing at boot") replaces `LOADER_UPLINK_IDS`
- * for that page load only — the shipped constant itself is never mutated.
+ * Test-only override for the boot-time enabled-id set. `?uplinkLoaderIds=a,b`
+ * (comma-separated, an empty string is valid and means "load nothing at
+ * boot") replaces `LOADER_UPLINK_IDS` for that page load only — the shipped
+ * constant itself is never mutated.
  * `undefined` (param absent, the default) means "use the shipped default".
  *
  * Exists so the Hub wizard's dogfood e2e

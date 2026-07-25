@@ -74,11 +74,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- Uplink LOADER (Phase A, 2026-07-17; kerbcast migration, 2026-07-18):
       // the runtime client loader names kerbcast as a first-party Uplink it
-      // loads via import() behind a flag, same as the pre-existing scansat/kos
-      // entries. main.tsx's bundled-fallback Promise.all() gained a third
-      // `import("@ksp-gonogo/kerbcast-feed")` alongside kos/scansat; flag.ts's
-      // LOADER_UPLINK_IDS gained "kerbcast"; flag.test.ts asserts all three ids
-      // are present — sanctioned loader-config, not a boundary hole.
+      // loads via import(), same as the pre-existing scansat/kos entries.
+      // flag.ts's LOADER_UPLINK_IDS names "kerbcast"; flag.test.ts asserts all
+      // three ids are present — sanctioned loader-config, not a boundary hole.
+      // main.tsx (D4 step 2, 2026-07-25): its `registerScansatAndRender`
+      // function name and doc comments name "kerbcast" as one of the loader-
+      // covered first-party 3 — no static import left, prose only.
       "packages/app/src/main.tsx",
       "packages/app/src/uplinks/flag.test.ts",
       "packages/app/src/uplinks/flag.ts",
@@ -288,8 +289,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosVersionGuard.cs",
       "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
-      // sanctioned self-registration import, same pattern as `@ksp-gonogo/kos`
-      // in main.tsx below.
+      // main.tsx (D4 step 2, 2026-07-25): no more static `@ksp-gonogo/scansat`
+      // import — scansat now always loads through the runtime loader. Its
+      // `registerScansatAndRender` function name and doc comments still name
+      // "scansat" as one of the loader-covered first-party 3 — prose only.
       "packages/app/src/main.tsx",
       // T11 (2026-07-19) re-verified this one against current code, not just
       // the original audit prose: FogMaskStore.ts's fog-store rewrite
@@ -517,9 +520,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
       "packages/app/src/logs/LogsManager.tsx",
-      // sanctioned self-registration import (`import "@ksp-gonogo/kos"`),
-      // same pattern as importing @ksp-gonogo/components.
-      "packages/app/src/main.tsx",
+      // main.tsx was here (`import "@ksp-gonogo/kos"`, a sanctioned self-
+      // registration import). D4 step 2 (2026-07-25) removed the static
+      // import — kos now always loads through the runtime loader, referenced
+      // only via flag.ts's `LOADER_UPLINK_IDS` (no "kOS"/"Kos*"/"kos.*"
+      // distinctive-form text left in main.tsx itself) — stale, ratcheted off.
       "packages/components/src/CrewManifest/index.tsx",
       "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
