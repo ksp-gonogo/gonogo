@@ -81,6 +81,9 @@ describe("CommitLayer", () => {
     );
     expect(slotB).not.toBeNull();
     expect(slotB).toHaveTextContent(/UNCOMMANDABLE/i);
+    // The two lines are inline <Value> spans; the slot must stack them so
+    // "UNCOMMANDABLE" and the "RT … left" line don't run onto one line.
+    expect((slotB as HTMLElement).style.flexDirection).toBe("column");
   });
 
   it("holds no command controls — Landing is an instrument, not a command surface", () => {

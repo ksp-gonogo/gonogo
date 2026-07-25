@@ -150,11 +150,16 @@ export function CommitLayer({
             the lines were conditionally mounted the whole widget would jump
             taller/shorter each time. Reserve the space always (same two lines,
             same sizes) and only flip visibility, so it appears/clears in place
-            without reflowing. */}
+            without reflowing. The lines are inline <Value> spans, so the slot
+            stacks them as a flex column (otherwise they'd flow onto one line). */}
         <div
           data-testid="uncommandable-slot"
           aria-hidden={uncommandable ? undefined : true}
-          style={uncommandable ? undefined : { visibility: "hidden" }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            ...(uncommandable ? undefined : { visibility: "hidden" }),
+          }}
         >
           <Value tone="accent" size="sm">
             {uncommandable ? "UNCOMMANDABLE" : " "}

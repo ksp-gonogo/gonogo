@@ -30,6 +30,9 @@ export interface CrossSectionProps {
   horizontalSpeed: number | null;
   /** Height above terrain, metres — drives the vessel's descent down the plot. */
   aglMeters?: number | null;
+  /** Distance from the vessel to the predicted site, metres — drives the
+   * vessel's horizontal convergence onto the site as the landing nears. */
+  driftMeters?: number | null;
 }
 
 function fmtSpeed(v: number | null): string {
@@ -98,6 +101,7 @@ export function CrossSection({
   verticalSpeed,
   horizontalSpeed,
   aglMeters,
+  driftMeters,
 }: Readonly<CrossSectionProps>) {
   const profile = sliceProfile(patch, patchSize, bearingDeg);
   const label = `Descent ${fmtSpeed(verticalSpeed)}, ground speed ${fmtSpeed(
@@ -136,16 +140,30 @@ export function CrossSection({
   const siteHeight = profile ? profile[(profile.length - 1) >> 1] : 0;
   const siteY = profile ? baseY - siteHeight * amp : baseY;
 
-  // Vessel: the current position, ABOVE the terrain, upwind of the site. It
-  // DESCENDS down the plot as altitude drops — high near the top of the sky when
-  // far up, easing onto the surface at touchdown. The vertical fraction uses
-  // agl/(agl+K) so any altitude maps monotonically into the plot without needing
-  // a known start-of-descent reference, and eases in near the ground.
-  const vesselX = pad + plotW * 0.3;
+  // Vessel: the current position, ABOVE the terrain, upwind of the site. Two
+  // axes of motion:
+  //  - VERTICAL: it descends down the plot as altitude drops (agl/(agl+K)), high
+  //    in the sky when far up, easing onto the surface at touchdown.
+  //  - HORIZONTAL: it CONVERGES on the site (plot centre) as the ground-track
+  //    drift shrinks — far downrange it sits well upwind (left), and by touchdown
+  //    (drift ≈ 0) it coincides with the site marker, so the descent visibly
+  //    arrives AT the predicted point rather than sailing past it.
+  const SITE_FRAC = 0.5; // site sits at the slice centre
+  const MIN_VESSEL_FRAC = 0.12; // furthest upwind, at/above full-scale drift
+  const DRIFT_FULLSCALE_M = 3000; // matches the top-down reticle
+  const driftFrac =
+    driftMeters != null && driftMeters > 0
+      ? Math.min(1, driftMeters / DRIFT_FULLSCALE_M)
+      : 0;
+  const vesselFrac =
+    driftMeters == null
+      ? 0.3 // no drift data ⇒ a static upwind default
+      : SITE_FRAC - driftFrac * (SITE_FRAC - MIN_VESSEL_FRAC);
+  const vesselX = pad + plotW * vesselFrac;
   const topBound = topY - 6;
   // Terrain surface height directly under the vessel (its column of the slice).
   const surfAtVessel = profile
-    ? baseY - profile[Math.round(0.3 * (profile.length - 1))] * amp
+    ? baseY - profile[Math.round(vesselFrac * (profile.length - 1))] * amp
     : baseY;
   const AGL_SOFTNESS = 1200; // metres; larger ⇒ vessel stays high longer
   const altFrac =
