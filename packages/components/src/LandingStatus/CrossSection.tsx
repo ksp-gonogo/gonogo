@@ -2,11 +2,11 @@
  * CrossSection — the SIDE-ON altimetry plot, paired with the top-down reticle.
  * It slices the terrain patch ALONG THE GROUND TRACK (the horizontal-velocity
  * bearing) through the site and draws that height profile as a vertical terrain
- * cross-section. The predicted landing site is marked on the terrain profile
- * (the shared target marker), and the TRAJECTORY is drawn as a line from the
- * current position DOWN to that marked point at the descent angle — reaching the
- * terrain, never a mid-air stub — so its slope against the profile reads whether
- * the path clears the ridge ahead or drives into it. Speeds ride the ↓/→ labels.
+ * cross-section. Two SEPARATE things ride over it: the predicted landing site,
+ * marked on the terrain profile (the shared target marker), and an ACCURATE
+ * velocity vector from the vessel's current position (above the terrain) — true
+ * descent angle, length ∝ speed — which is free to cut off in mid-air (it is
+ * current motion, not a line to the site). Speeds also ride the ↓/→ labels.
  *
  * Purely presentational. No arrowheads (standing rule); a clean side elevation.
  * The accessible name carries the numbers so the picture is never the sole
@@ -105,7 +105,9 @@ export function CrossSection({
   const plotW = SIZE - pad * 2;
   const baseY = SIZE - 16;
   const topY = 30;
-  const amp = (baseY - topY) * 0.7;
+  // Terrain amplitude kept modest so there's sky headroom above it for the
+  // descending vessel + its velocity vector (which must never clip the surface).
+  const amp = (baseY - topY) * 0.55;
 
   // Terrain silhouette polygon (profile heights + the two bottom corners).
   let silhouette = "";
@@ -118,33 +120,27 @@ export function CrossSection({
     silhouette = `${pad},${baseY} ${pts.join(" ")} ${pad + plotW},${baseY}`;
   }
 
-  // Landing point: the site at the slice CENTRE, on the terrain surface.
+  // Predicted landing site: marked on the terrain at the slice CENTRE (on the
+  // surface). Independent of the velocity vector.
   const siteX = pad + plotW * 0.5;
   const siteHeight = profile ? profile[(profile.length - 1) >> 1] : 0;
   const siteY = profile ? baseY - siteHeight * amp : baseY;
 
-  // Trajectory: a straight line at the descent angle (down-right) from the craft
-  // DOWN to the marked site, reaching the terrain. Back-project up the approach
-  // from the site until it exits the plot top (or the left edge) — the craft.
+  // Vessel: the current position, ABOVE the terrain (it's descending), upwind of
+  // the site. `vesselY` sits above the tallest terrain so nothing draws through
+  // the surface (relief amp is capped for exactly this headroom).
+  const vesselX = pad + plotW * 0.3;
+  const vesselY = topY - 6;
+  // Accurate velocity vector: true descent angle + length ∝ speed (consistently
+  // scaled). Short — it represents current motion, not a line to the site.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;
   const vHor =
     horizontalSpeed != null && horizontalSpeed > 0 ? horizontalSpeed : 0;
-  let craftX: number;
-  let craftY: number;
-  if (vHor <= 0.001) {
-    craftX = siteX;
-    craftY = topY;
-  } else {
-    const m = vDown / vHor; // dy/dx, down-right (descent angle)
-    const yAtLeft = siteY - m * (siteX - pad);
-    if (yAtLeft >= topY) {
-      craftX = pad;
-      craftY = yAtLeft;
-    } else {
-      craftX = siteX - (siteY - topY) / m;
-      craftY = topY;
-    }
-  }
+  const speed = Math.hypot(vDown, vHor);
+  const SPEED_FULLSCALE = 250;
+  const velLen = speed > 0 ? Math.min(1, speed / SPEED_FULLSCALE) * 48 : 0;
+  const velTipX = speed > 0 ? vesselX + (vHor / speed) * velLen : vesselX;
+  const velTipY = speed > 0 ? vesselY + (vDown / speed) * velLen : vesselY;
 
   return (
     <svg
@@ -183,19 +179,25 @@ export function CrossSection({
         stroke="var(--color-border-subtle)"
         strokeWidth={1}
       />
-      {/* Trajectory: current position DOWN to the marked site, at the descent
-          angle, reaching the terrain (green, no head). */}
+      {/* Accurate velocity vector from the vessel (green, no head): true descent
+          angle, length ∝ speed. It represents current motion — short, and free
+          to cut off in mid-air; it is NOT a line to the site. */}
       <line
-        x1={craftX}
-        y1={craftY}
-        x2={siteX}
-        y2={siteY}
+        x1={vesselX}
+        y1={vesselY}
+        x2={velTipX}
+        y2={velTipY}
         stroke="var(--color-accent-fg)"
         strokeWidth={2.5}
       />
-      {/* Current position — the craft at the trajectory's origin. */}
-      <circle cx={craftX} cy={craftY} r={3} fill="var(--color-text-primary)" />
-      {/* Predicted landing site marked on the terrain profile. */}
+      {/* The vessel, above the terrain (descending). */}
+      <circle
+        cx={vesselX}
+        cy={vesselY}
+        r={3}
+        fill="var(--color-text-primary)"
+      />
+      {/* Predicted landing site — a SEPARATE marker on the terrain profile. */}
       <SiteMarker cx={siteX} cy={siteY} />
       {/* Magnitudes. */}
       <text
