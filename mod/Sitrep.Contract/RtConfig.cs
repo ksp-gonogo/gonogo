@@ -82,6 +82,7 @@ public static class RtConfig
                 typeof(VesselResources),
                 typeof(VesselStructure),
                 typeof(VesselSurface),
+                typeof(VesselLanding),
                 typeof(VesselTarget),
                 typeof(VesselThermal),
                 // target.available list channel + its entry + the mod-side

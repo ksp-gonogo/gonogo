@@ -132,6 +132,11 @@ namespace Gonogo.KSP
                 // reasoning as vessel.target/crew above).
                 Channel(VesselViewProvider.DockTopic, absenceIsData: true),
                 Channel(VesselViewProvider.SurfaceTopic),
+                // vessel.landing — terrain-informed landing data + an
+                // atmosphere-aware descent estimate. Whole-record absence is
+                // meaningful ("not descending toward a solid surface"), so
+                // absenceIsData: true (same as vessel.dock/target/crew).
+                Channel(VesselViewProvider.LandingTopic, absenceIsData: true),
                 // vessel.parts (P1b slice 2) — the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; per-
@@ -260,6 +265,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
             host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
             host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
+            host.AddChannelSource(VesselViewProvider.LandingTopic, VesselViewProvider.BuildLandingWire);
             host.AddChannelSource(VesselPartsViewProvider.PartsTopic, VesselPartsViewProvider.BuildPartsWire);
             host.AddChannelSource(StageDeltaVViewProvider.StagesTopic, StageDeltaVViewProvider.BuildStages);
             host.AddChannelSource(StageDeltaVViewProvider.SummaryTopic, StageDeltaVViewProvider.BuildSummary);

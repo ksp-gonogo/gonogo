@@ -5,6 +5,7 @@ import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
+import { Dial } from "./Dial";
 import { EmptyState } from "./EmptyState";
 import { Grid } from "./Grid";
 import { Panel, PanelTitle } from "./Panel";
@@ -13,6 +14,7 @@ import { Row, RowName } from "./Row";
 import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
+import { Tape } from "./Tape";
 import { axe } from "./test/axe";
 import { WidgetHeader } from "./WidgetHeader";
 
@@ -110,6 +112,46 @@ describe("a11y smoke (jest-axe)", () => {
   it("ProgressBar has no axe violations", async () => {
     const { container } = render(
       <ProgressBar value={64} ariaLabel="Biome coverage — Kerbin" />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Tape has no axe violations (with zones, markers, ground line)", async () => {
+    const { container } = render(
+      <Tape
+        value={1200}
+        min={0}
+        max={5000}
+        unit="m"
+        tickStep={1000}
+        groundLine={0}
+        zones={[{ from: 400, to: 900, label: "ignition" }]}
+        markers={[{ value: 150, label: "gear" }]}
+        ariaLabel="Altitude above terrain"
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Dial has no axe violations (compass with zones + ticks)", async () => {
+    const { container } = render(
+      <Dial
+        value={135}
+        min={0}
+        max={360}
+        wrap
+        unit="°"
+        ticks={[
+          { value: 0, label: "N" },
+          { value: 90, label: "E" },
+          { value: 180, label: "S" },
+          { value: 270, label: "W" },
+        ]}
+        zones={[{ from: 60, to: 120, color: "var(--color-status-warning-fg)" }]}
+        ariaLabel="Slope fall direction"
+      />,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();

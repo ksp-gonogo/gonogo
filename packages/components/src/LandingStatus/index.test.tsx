@@ -25,6 +25,7 @@ const CARRIED = [
   "vessel.target",
   "vessel.propulsion",
   "vessel.surface",
+  "vessel.landing",
   "dv.summary",
   "comms.delay",
 ];
@@ -152,16 +153,42 @@ describe("LandingStatusComponent", () => {
       });
     });
 
-    // The horizontal component the old vertical-only model ignored is surfaced.
-    expect(await screen.findByText(/538 m\/s/)).toBeInTheDocument();
+    // The horizontal component the old vertical-only model ignored is surfaced
+    // in the velocity vector's accessible label.
+    expect(
+      await screen.findByRole("img", { name: /ground speed 538 m\/s/i }),
+    ).toBeInTheDocument();
     // Burn-now touchdown is a large nonzero speed — the fatal-direction fix.
     expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
     // The burn no longer fits: ignite now, not a comfortable countdown.
     expect(screen.getByText("IGNITE")).toBeInTheDocument();
   });
 
-  it("splits velocity into vertical and horizontal", async () => {
+  it("splits velocity into vertical and horizontal (the vector at a wide size)", async () => {
     renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 5000,
+          verticalSpeed: 50,
+          surfaceSpeed: 540,
+        },
+        availableThrust: 20,
+      });
+    });
+    // At a wide size the split is the DescentScope velocity vector; its label
+    // carries both components, horizontal (538) dominating the 50 m/s descent.
+    expect(
+      await screen.findByRole("img", {
+        name: /descent 50 m\/s, ground speed 538 m\/s/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the plain vertical/horizontal split at a small size", async () => {
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -176,12 +203,12 @@ describe("LandingStatusComponent", () => {
     });
     expect(await screen.findByText("Vertical")).toBeInTheDocument();
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
-    // Horizontal (538 m/s) dominates the 50 m/s descent — the whole point.
     expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
   });
 
   it("uses the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
-    renderWidget();
+    // Small size renders the plain Height readout (km-formatted AGL).
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -204,7 +231,7 @@ describe("LandingStatusComponent", () => {
   });
 
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {
-    renderWidget();
+    renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -245,6 +272,72 @@ describe("LandingStatusComponent", () => {
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
   });
 
+  it("shows the atmosphere-aware descent estimate when vessel.landing carries one", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: KERBIN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 3000,
+          verticalSpeed: 80,
+          surfaceSpeed: 85,
+        },
+      });
+      // The mod-side terminal-velocity model, delivered on vessel.landing.
+      stream.emit("vessel.landing", {
+        outcome: "atmospheric-aware",
+        terminalVelocity: 85,
+        projectedTouchdownSpeed: 62,
+        atmosphericTimeToImpact: 41.5,
+        descentRegime: "at-terminal",
+        parachuteState: "armed",
+      });
+    });
+    expect(
+      await screen.findByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/85.0 m\/s/)).toBeInTheDocument();
+    expect(screen.getByText("at-terminal")).toBeInTheDocument();
+    // The armed-chute caveat surfaces (terse); the unmodelled badge is gone.
+    expect(screen.getByText(/excludes chute/i)).toBeInTheDocument();
+    expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
+  });
+
+  it("renders the touchdown reticle + hazard verdict at a large size", async () => {
+    renderWidget({ w: 12, h: 14 });
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 3000,
+          verticalSpeed: 30,
+          surfaceSpeed: 40,
+        },
+        availableThrust: 20,
+      });
+      stream.emit("vessel.landing", {
+        outcome: "terrain-assessed",
+        sampleSource: "predicted",
+        predictedLatitude: 0.5,
+        predictedLongitude: 0.5,
+        predictedSlopeAngle: 20, // > 15 => DIVERT
+        predictedSlopeHeading: 135,
+        predictedRoughness: 30,
+        predictedBiome: "Highlands",
+      });
+    });
+    expect(
+      await screen.findByRole("img", { name: /touchdown site/i }),
+    ).toBeInTheDocument();
+    // The 20° slope trips a DIVERT verdict in a status banner.
+    const statuses = screen.getAllByRole("status");
+    expect(statuses.some((s) => /DIVERT/.test(s.textContent ?? ""))).toBe(true);
+    // The source is surfaced honestly.
+    expect(screen.getAllByText(/predicted/i).length).toBeGreaterThan(0);
+  });
+
   it("shows the delayed regime banner off comms.delay", async () => {
     renderWidget();
     act(() => {
@@ -264,7 +357,7 @@ describe("LandingStatusComponent", () => {
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
   });
 
-  it("renders gear and brakes configuration rows with confirmed state", async () => {
+  it("exposes no command controls — Landing is an instrument, not a command surface", async () => {
     renderWidget();
     act(() => {
       emitVessel(stream, {
@@ -277,14 +370,12 @@ describe("LandingStatusComponent", () => {
         },
         availableThrust: 3,
       });
-      stream.emit("vessel.control", { gear: true, brakes: false });
     });
-    expect(
-      await screen.findByRole("button", { name: /toggle gear/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /toggle brakes/i }),
-    ).toBeInTheDocument();
+    await screen.findByText(/mun · vacuum/i);
+    // Gear/brakes are fired from the operator's own action-group widgets; the
+    // instrument itself must offer no toggle buttons.
+    expect(screen.queryByRole("button", { name: /toggle gear/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /toggle brakes/i })).toBeNull();
   });
 
   it("escalates to role=alert when the burn is already committed (ignite now)", async () => {
@@ -322,7 +413,7 @@ describe("LandingStatusComponent", () => {
       });
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
-    await screen.findByText("Vertical");
+    await screen.findByRole("img", { name: /descent/i });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

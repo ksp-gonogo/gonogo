@@ -47,11 +47,15 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
-  function renderWidget() {
+  function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
-          <LandingStatusComponent id="landing-stream" w={8} h={10} />
+          <LandingStatusComponent
+            id="landing-stream"
+            w={size?.w ?? 8}
+            h={size?.h ?? 10}
+          />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -126,14 +130,17 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
       emitMunDescent();
     });
 
-    // The velocity split — vertical AND horizontal — renders off the stream.
-    expect(await screen.findByText("Vertical")).toBeInTheDocument();
-    expect(screen.getByText("Horizontal")).toBeInTheDocument();
-    // The horizontal component the old vertical-only model ignored (≈538 m/s).
-    expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
-    // The Height section surfaces the streamed AGL datum (5.00 km).
-    expect(screen.getByText("AGL")).toBeInTheDocument();
-    expect(screen.getByText(/5\.00 km/)).toBeInTheDocument();
+    // The velocity split renders off the stream as the DescentScope vector,
+    // its label carrying both components (horizontal ≈538 m/s dominating).
+    expect(
+      await screen.findByRole("img", {
+        name: /descent 50 m\/s, ground speed 538 m\/s/i,
+      }),
+    ).toBeInTheDocument();
+    // The altitude ladder surfaces the streamed AGL datum (5000 m).
+    expect(
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
+    ).toHaveAttribute("aria-valuenow", "5000");
     // The subtitle resolves the body off the derived vessel.state channel.
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
     // Empty state is gone once the descent is streaming.
@@ -147,7 +154,10 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
   // vessel.flight read healthy even when the shown height had silently dropped
   // to the CoM fallback.
   it("binds the health badge to vessel.surface, not vessel.flight (L2)", async () => {
-    renderWidget();
+    // Small size renders the plain AGL readout (at wide sizes altitude is the
+    // full-height rail, which carries no "AGL" text); the badge binding under
+    // test is size-independent.
+    renderWidget({ w: 4, h: 10 });
 
     // A full descent WITH flight flowing but vessel.surface WITHHELD — the
     // widget falls back to the CoM datum (usingComDatum) and keeps rendering.

@@ -1691,6 +1691,47 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildSurface(snapshot));
         }
 
+        // ---- vessel.landing ----
+
+        [Fact]
+        public void BuildLandingMapsAtmosphereAwareScalars()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                landing: new Dictionary<string, object?>
+                {
+                    ["outcome"] = "atmospheric-aware",
+                    ["terminalVelocity"] = 85.0,
+                    ["projectedTouchdownSpeed"] = 62.0,
+                    ["atmosphericTimeToImpact"] = 41.5,
+                    ["descentRegime"] = "at-terminal",
+                    ["parachuteState"] = "armed",
+                });
+
+            var landing = VesselViewProvider.BuildLanding(snapshot);
+
+            Assert.NotNull(landing);
+            Assert.Equal("atmospheric-aware", landing!.Outcome);
+            Assert.Equal(85.0, landing.TerminalVelocity);
+            Assert.Equal(62.0, landing.ProjectedTouchdownSpeed);
+            Assert.Equal(41.5, landing.AtmosphericTimeToImpact);
+            Assert.Equal("at-terminal", landing.DescentRegime);
+            Assert.Equal("armed", landing.ParachuteState);
+            // Terrain fields are individually null until the PQS sampler lands.
+            Assert.Null(landing.PredictedSlopeAngle);
+            Assert.Null(landing.PredictedBiome);
+        }
+
+        [Fact]
+        public void BuildLandingReturnsNullWhenGroupIsAbsentGateClosed()
+        {
+            // KspHost.BuildLanding omits the "landing" group entirely when the
+            // relevance gate is closed (not descending toward a solid surface).
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildLanding(snapshot));
+        }
+
         // ---- vessel.crew ----
 
         [Fact]
@@ -2332,6 +2373,7 @@ namespace Sitrep.Host.Tests
             Dictionary<string, object?>? time = null,
             Dictionary<string, object?>? dock = null,
             Dictionary<string, object?>? surface = null,
+            Dictionary<string, object?>? landing = null,
             Dictionary<string, object?>? crew = null)
         {
             var vessel = new Dictionary<string, object?>();
@@ -2394,6 +2436,10 @@ namespace Sitrep.Host.Tests
             if (surface != null)
             {
                 vessel["surface"] = surface;
+            }
+            if (landing != null)
+            {
+                vessel["landing"] = landing;
             }
             if (crew != null)
             {

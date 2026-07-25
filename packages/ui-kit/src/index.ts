@@ -61,6 +61,12 @@ export {
   type DataKeyPickerProps,
   type KeyOption,
 } from "./DataKeyPicker";
+export {
+  Dial,
+  type DialProps,
+  type DialTick,
+  type DialZone,
+} from "./Dial";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,
@@ -163,6 +169,12 @@ export {
   type ScienceExperimentRowProps,
   type ScienceInstrument,
 } from "./science/ScienceExperimentRow";
+export {
+  Tape,
+  type TapeMarker,
+  type TapeProps,
+  type TapeZone,
+} from "./Tape";
 export { Truncate } from "./Truncate";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {

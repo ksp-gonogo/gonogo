@@ -20,6 +20,30 @@ import type {
 
 const WIDGETS: WidgetRenderConfig[] = [
   {
+    // The rebooted Landing widget on a SYNTHETIC Mun descent (model-generated,
+    // see scripts/synthesize-landing-descent.ts). Three _stream frames sweep
+    // the UX: high (DIVERT site far downrange), ignition (burn band lit +
+    // commit window, MARGINAL), final (SAFE, gear down, near touchdown). Large
+    // size so the Touchdown Reticle + Descent Scope + Commit Layer all render.
+    widgetId: "landing-status",
+    fixturesPath: "LandingStatus/__render__",
+    outPath: "renders/landing-widget",
+    // Full-content capture at the real 12-col tile width — the whole tile,
+    // uncropped, so the composed instrument can actually be reviewed.
+    modes: [{ name: "full-w12", w: 12, h: 16 }],
+  },
+  {
+    // Terrain-type showcase: the Touchdown Reticle relief across distinct
+    // synthesized terrains (flat / slope / steep / crater / ridge / boulder),
+    // one near-touchdown frame each so the hillshade + SAFE/MARGINAL/DIVERT
+    // verdict tracks the terrain. Same widget, a dedicated fixtures dir.
+    widgetId: "landing-status",
+    label: "landing-terrains",
+    fixturesPath: "LandingStatus/__render_terrains__",
+    outPath: "renders/landing-terrains",
+    modes: [{ name: "full-w12", w: 12, h: 16 }],
+  },
+  {
     // MapView paints to <canvas> (equirectangular body texture + fog
     // overlay + vessel trail). The playwright harness captures the
     // canvas pixels directly — no parallel SVG renderer needed for
@@ -1139,7 +1163,7 @@ export function listWidgets(): readonly WidgetRenderConfig[] {
 }
 
 export function getWidget(id: string): WidgetRenderConfig | undefined {
-  const found = WIDGETS.find((w) => w.widgetId === id);
+  const found = WIDGETS.find((w) => (w.label ?? w.widgetId) === id);
   return found ? withAutoModes(found) : undefined;
 }
 
