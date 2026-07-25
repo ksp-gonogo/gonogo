@@ -283,6 +283,10 @@ export class PeerClientService {
   }>();
   private pendingFlightRpc = new RequestTracker<unknown>();
   private pendingUplinkRelay = new RequestTracker<unknown>();
+  // D6: the Uplink bundle-byte conduit. Tracked separately (its own typed
+  // map) because the resolved value shape (raw bytes) differs from every
+  // other RequestTracker on this class — see sendBundleFetch.
+  private pendingBundleFetch = new RequestTracker<Uint8Array>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -688,6 +692,54 @@ export class PeerClientService {
     return pending;
   }
 
+  /**
+   * D6: ask the host to fetch+verify an Uplink bundle's bytes and relay
+   * them back over the data channel — the station-side half of the
+   * "main screen downloads once, stations pull from it" split (see
+   * protocol.ts's `uplink-bundle-request`/`-response` doc comment). Never
+   * fetches `bundleUrl` itself; a station has no route to an author host.
+   *
+   * Resolves with the verified `ArrayBuffer` (converted from the wire's
+   * `Uint8Array` — see the dispatcher entry below) so this method is a
+   * drop-in for the loader's `LoaderContext.fetchBytes` seam once wrapped
+   * by `../uplinks/peerBundleFetch.ts`'s `createPeerBundleFetcher`.
+   * Rejects on a hash mismatch, a host-side fetch failure, a timeout, or
+   * the connection dropping mid-request — same shape as `sendUplinkRelay`.
+   *
+   * 30s default timeout: a bundle download can be materially larger than a
+   * single RPC round-trip (the host fetches the WHOLE file before
+   * replying), so this gets a longer budget than `sendUplinkRelay`'s 15s.
+   */
+  sendBundleFetch(
+    bundleUrl: string,
+    expectedHash: string,
+    timeoutMs = 30_000,
+  ): Promise<ArrayBuffer> {
+    if (!this.conn) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const requestId = safeRandomUuid();
+    const pending = this.pendingBundleFetch.track(
+      requestId,
+      timeoutMs,
+      `bundle fetch timeout (${bundleUrl})`,
+    );
+    this.conn.send({
+      type: "uplink-bundle-request",
+      requestId,
+      bundleUrl,
+      expectedHash,
+    } satisfies PeerMessage);
+    return pending.then((bytes) => {
+      // `.slice()` copies into a fresh, exactly-sized ArrayBuffer — the
+      // wire's Uint8Array may be a view into a larger decode buffer
+      // (PeerJS's BinaryPack), and the loader's sha256Hex re-verification
+      // needs the EXACT bytes, nothing extra either side.
+      const copy = bytes.slice();
+      return copy.buffer as ArrayBuffer;
+    });
+  }
+
   // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
   //
   // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
@@ -754,6 +806,7 @@ export class PeerClientService {
     this.pendingQueries.rejectAll(reason);
     this.pendingFlightRpc.rejectAll(reason);
     this.pendingUplinkRelay.rejectAll(reason);
+    this.pendingBundleFetch.rejectAll(reason);
   }
 
   /**
@@ -989,6 +1042,22 @@ export class PeerClientService {
         );
       } else {
         this.pendingUplinkRelay.resolve(msg.requestId, msg.result);
+      }
+    },
+    "uplink-bundle-response": (msg) => {
+      if (msg.error) {
+        this.pendingBundleFetch.reject(msg.requestId, new Error(msg.error));
+      } else if (msg.bytes) {
+        this.pendingBundleFetch.resolve(msg.requestId, msg.bytes);
+      } else {
+        // Neither `bytes` nor `error` — a malformed response the host
+        // should never actually send (handleUplinkBundleRequest always
+        // sets one or the other), but rejecting with a clear reason beats
+        // leaving the request pending until it times out.
+        this.pendingBundleFetch.reject(
+          msg.requestId,
+          new Error("uplink-bundle-response carried neither bytes nor error"),
+        );
       }
     },
     "flight-rpc-response": (msg) => {

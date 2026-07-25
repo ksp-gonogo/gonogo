@@ -649,6 +649,126 @@ describe("PeerClientService.sendUplinkRelay", () => {
   });
 });
 
+describe("PeerClientService.sendBundleFetch", () => {
+  beforeEach(() => {
+    FakePeer.instances = [];
+  });
+
+  function connectedSvc() {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    return { svc, peer };
+  }
+
+  const BUNDLE_URL = "https://example.test/bundle.js";
+  const EXPECTED_HASH = "sha256-deadbeef";
+
+  it("rejects if called before the conn is open", async () => {
+    const svc = new PeerClientService();
+    await expect(
+      svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH),
+    ).rejects.toThrow(/not connected/);
+  });
+
+  it("sends an uplink-bundle-request carrying bundleUrl/expectedHash and resolves with an ArrayBuffer of the returned bytes", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH);
+    const first = sent[0];
+    if (!first || first.type !== "uplink-bundle-request") {
+      throw new Error("expected uplink-bundle-request");
+    }
+    expect(first.bundleUrl).toBe(BUNDLE_URL);
+    expect(first.expectedHash).toBe(EXPECTED_HASH);
+
+    const wireBytes = new Uint8Array([1, 2, 3, 4, 5]);
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "uplink-bundle-response",
+      requestId: first.requestId,
+      bytes: wireBytes,
+    });
+
+    const result = await pending;
+    expect(result).toBeInstanceOf(ArrayBuffer);
+    expect(new Uint8Array(result)).toEqual(wireBytes);
+  });
+
+  it("rejects when the host reports an error (e.g. hash mismatch or fetch failure)", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH);
+    const first = sent[0];
+    if (!first || first.type !== "uplink-bundle-request") {
+      throw new Error("expected uplink-bundle-request");
+    }
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "uplink-bundle-response",
+      requestId: first.requestId,
+      error: "bundle hash sha256-actual != expected sha256-deadbeef",
+    });
+
+    await expect(pending).rejects.toThrow(/hash sha256-actual/);
+  });
+
+  it("rejects with timeout when no response arrives within timeoutMs", async () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[0];
+      peer.emit("open");
+      peer._lastConn?.emit("open");
+      if (!peer._lastConn)
+        throw new Error("expected an active peer connection");
+      peer._lastConn.send = () => {};
+
+      const pending = svc
+        .sendBundleFetch(BUNDLE_URL, EXPECTED_HASH, 100)
+        .catch((e: Error) => e);
+
+      vi.advanceTimersByTime(100);
+      const result = await pending;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(
+        /bundle fetch timeout \(https:\/\/example\.test\/bundle\.js\)/,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects pending bundle fetches when the connection drops", async () => {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    peer._lastConn.send = () => {};
+
+    const pending = svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH);
+    peer._lastConn.emit("close");
+
+    await expect(pending).rejects.toThrow(/closed|disconnected/);
+  });
+});
+
 describe("PeerClientService.sendFlightRpc", () => {
   beforeEach(() => {
     FakePeer.instances = [];

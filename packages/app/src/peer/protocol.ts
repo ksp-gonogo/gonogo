@@ -397,4 +397,37 @@ export type PeerMessage =
       requestId: string;
       code: string;
       message: string;
+    }
+  // ──────────────────────────────────────────────────────────────────────
+  // D6: Uplink bundle-byte conduit. A station has no route to an Uplink's
+  // author host (see the app's "main screen is the sole KSP/author-host
+  // consumer" constraint) — the loader's `fetchBytes(url)` seam
+  // (packages/app/src/uplinks/loader.ts) must go through the host instead
+  // of a direct `fetch(bundleUrl)` on a station. The host downloads each
+  // bundleUrl ONCE (`BundleFetchCache`, see
+  // `PeerHostService.handleUplinkBundleRequest`), SHA-256-verifies it
+  // against the requester's `expectedHash`, and redistributes the SAME
+  // verified bytes to every station that asks for that url.
+  // requestId-correlated like `query-range-*`/`uplink-relay-*`.
+  //
+  // Wire shape: `bytes` travels as a raw `Uint8Array`, NOT base64 — PeerJS's
+  // default "binary" serialization (BinaryPack) already passes a
+  // `Uint8Array` through untouched (see the `fog-snapshot`'s `masks[].data`
+  // doc comment above — same precedent); base64 would only add ~33%
+  // overhead on a channel that already carries binary natively. A fetch or
+  // hash-mismatch failure is a distinct `error` variant (no `bytes`) rather
+  // than a thrown exception on the wire — same convention as
+  // `query-range-response`/`flight-rpc-response`.
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "uplink-bundle-request";
+      requestId: string;
+      bundleUrl: string;
+      expectedHash: string;
+    }
+  | {
+      type: "uplink-bundle-response";
+      requestId: string;
+      bytes?: Uint8Array;
+      error?: string;
     };

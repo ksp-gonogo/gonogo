@@ -96,7 +96,7 @@ function ctx(extra: {
   roster?: RosterEntry[];
   importBundle: (url: string) => Promise<unknown>;
   ensureConsent?: (info: { id: string }) => Promise<boolean>;
-  fetchBytes?: (url: string) => Promise<ArrayBuffer>;
+  fetchBytes?: (url: string, expectedHash?: string) => Promise<ArrayBuffer>;
 }) {
   stubRegistryFetch(extra.index);
   return {
@@ -124,6 +124,23 @@ describe("loadEnabledUplinks", () => {
     expect(outcomes[0].status).toBe("loaded");
     expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
+  });
+
+  it("calls fetchBytes with (bundleUrl, expectedHash) — the D6 seam a peer-backed fetchBytes needs", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    const fetchBytes = vi.fn<
+      (url: string, expectedHash?: string) => Promise<ArrayBuffer>
+    >(async () => BUNDLE_BYTES);
+    const outcomes = await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), importBundle, fetchBytes }),
+    );
+    expect(outcomes[0].status).toBe("loaded");
+    expect(fetchBytes).toHaveBeenCalledWith(
+      "/uplinks/scansat.client.js",
+      goodHash,
+    );
   });
 
   it("quarantines on a bundle-hash mismatch and never imports", async () => {

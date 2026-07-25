@@ -9,6 +9,7 @@ import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
+import { BundleFetchCache } from "./BundleFetchCache";
 import { deriveHostPeerId } from "./hostPeerId";
 import { fetchHostIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -297,6 +298,10 @@ export class PeerHostService {
   // fresh peerId — without this the GO/NO-GO list shows the same station
   // twice for ~60 s while the broker times out the old conn.
   private peerIdToStationKey = new Map<string, string>();
+
+  // D6: download-once cache for Uplink bundle bytes, keyed by bundleUrl.
+  // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
+  private readonly bundleFetchCache = new BundleFetchCache();
 
   // Selective subscription state. Maps each connected DataConnection to:
   //   - mode: "broadcast-all" (default) or "selective"
@@ -1192,6 +1197,9 @@ export class PeerHostService {
     "sitrep-command-request": (msg, conn) => {
       void this.handleSitrepCommand(msg, conn);
     },
+    "uplink-bundle-request": (msg, conn) => {
+      void this.handleUplinkBundleRequest(msg, conn);
+    },
     "station-info": (msg, conn) => {
       if (msg.stationKey) {
         // If another live connection claims the same stationKey, it's a
@@ -1496,6 +1504,70 @@ export class PeerHostService {
       respond(undefined, error.message, meta);
     }
   }
+
+  /**
+   * D6: the station conduit for Uplink bundle bytes. The host is the only
+   * thing with a route to an Uplink's author host, so a station's loader
+   * `fetchBytes` (see `../uplinks/peerBundleFetch.ts`) relays through here
+   * instead of fetching `msg.bundleUrl` directly. `BundleFetchCache`
+   * collapses concurrent/repeat requests for the same url onto a single
+   * download; this handler's own job is just the per-request hash check
+   * (against THIS request's `expectedHash` — a second requester could in
+   * principle pass a different one, and each gets its own verdict) and
+   * wiring the verified-or-error response back to the requesting station.
+   * Verified bytes are NEVER sent back on a hash mismatch — same "refuse,
+   * never silently load" rule the loader itself enforces (design D3).
+   */
+  private async handleUplinkBundleRequest(
+    msg: Extract<PeerMessage, { type: "uplink-bundle-request" }>,
+    conn: DataConnection,
+  ): Promise<void> {
+    const respond = (bytes?: Uint8Array, error?: string) => {
+      conn.send({
+        type: "uplink-bundle-response",
+        requestId: msg.requestId,
+        bytes,
+        error,
+      } satisfies PeerMessage);
+    };
+    try {
+      const { bytes, digest } = await this.bundleFetchCache.fetchVerified(
+        msg.bundleUrl,
+        this.fetchBundleBytes,
+      );
+      if (digest !== msg.expectedHash) {
+        logger.warn(
+          `[PeerHost] bundle hash mismatch for ${msg.bundleUrl} — got ${digest}, station expected ${msg.expectedHash}`,
+        );
+        respond(
+          undefined,
+          `bundle hash ${digest} != expected ${msg.expectedHash} (tampered or wrong URL)`,
+        );
+        return;
+      }
+      respond(bytes);
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `[PeerHost] bundle fetch failed for ${msg.bundleUrl} — ${error}`,
+      );
+      respond(undefined, `bundle fetch failed: ${error}`);
+    }
+  }
+
+  /**
+   * Real bundle-byte fetch — module-scope `fetch`, mirroring the loader's
+   * own `defaultFetchBytes`. Kept as an instance property (not a free
+   * function) so a test can substitute it without a global `fetch` stub if
+   * it prefers to.
+   */
+  private readonly fetchBundleBytes = async (
+    url: string,
+  ): Promise<ArrayBuffer> => {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) throw new Error(`bundle fetch failed: HTTP ${res.status}`);
+    return res.arrayBuffer();
+  };
 
   /**
    * Subscribe once to `MissionHistorySource.onFlightListChange` and

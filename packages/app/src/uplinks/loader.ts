@@ -107,8 +107,21 @@ export interface LoaderContext {
    * network `import()`. Defaults to a `@vite-ignore` dynamic import of the URL.
    */
   importBundle?: (url: string) => Promise<unknown>;
-  /** Fetch bundle bytes. Injected for tests; defaults to `fetch`. */
-  fetchBytes?: (url: string) => Promise<ArrayBuffer>;
+  /**
+   * Fetch bundle bytes. Injected for tests; defaults to `defaultFetchBytes`
+   * (a direct `fetch`). `expectedHash` is the SAME value `loadOne` is about
+   * to verify the returned bytes against (`version.integrity`) — passed
+   * through as of the D6 station-conduit follow-on (2026-07-25) so a
+   * peer-backed implementation (`../peer/PeerClientService.sendBundleFetch`
+   * via `./peerBundleFetch.ts`'s `createPeerBundleFetcher`) can put it on
+   * the wire for the HOST to verify before it ever sends bytes back to a
+   * station — a station has no route to the author host to verify against
+   * directly. Optional (not a breaking widen): the default direct-fetch
+   * path ignores it entirely, and every existing single-arg
+   * `(url) => Promise<ArrayBuffer>` test double is still structurally
+   * assignable to this type.
+   */
+  fetchBytes?: (url: string, expectedHash?: string) => Promise<ArrayBuffer>;
   /**
    * Fetch a third-party Uplink's manifest sidecar (the D5-loader follow-on —
    * a `clientSource`-only id has no local registry entry, so the compat
@@ -489,8 +502,11 @@ async function loadOne(
     if (!consented) refuse("consent declined");
 
     // Fetch, then verify the bytes BEFORE import (design §5 step 5).
+    // `version.integrity` is threaded through as `expectedHash` (D6) so a
+    // peer-backed `fetchBytes` can hand it to the host for verification —
+    // see the doc comment on `LoaderContext.fetchBytes`.
     const fetchBytes = ctx.fetchBytes ?? defaultFetchBytes;
-    const bytes = await fetchBytes(version.bundleUrl);
+    const bytes = await fetchBytes(version.bundleUrl, version.integrity);
     const digest = await sha256Hex(bytes);
 
     if (digest !== version.integrity) {
