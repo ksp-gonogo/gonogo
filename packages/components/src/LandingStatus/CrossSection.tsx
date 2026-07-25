@@ -112,15 +112,19 @@ export function CrossSection({
   // descending vessel + its velocity vector (which must never clip the surface).
   const amp = (baseY - topY) * 0.55;
 
-  // Terrain silhouette polygon (profile heights + the two bottom corners).
-  let silhouette = "";
+  // Terrain rendered as JUST the top surface line (the skyline): an open polyline
+  // of the profile points, over a soft closed fill that reads "ground below".
+  // No bottom/closure line and no ground baseline — only the top terrain line.
+  let topLine = ""; // open polyline: the surface profile only
+  let fillArea = ""; // closed polygon (fill only, no stroke): ground beneath
   if (profile) {
     const pts = profile.map((h, i) => {
       const x = pad + plotW * (i / (profile.length - 1));
       const y = baseY - h * amp;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-    silhouette = `${pad},${baseY} ${pts.join(" ")} ${pad + plotW},${baseY}`;
+    topLine = pts.join(" ");
+    fillArea = `${pad},${baseY} ${pts.join(" ")} ${pad + plotW},${baseY}`;
   }
 
   // Predicted landing site: marked on the terrain at the slice CENTRE (on the
@@ -184,24 +188,20 @@ export function CrossSection({
         fill="var(--color-surface-raised)"
         stroke="var(--color-border-subtle)"
       />
-      {/* Terrain cross-section silhouette (neutral fill). */}
-      {silhouette && (
-        <polygon
-          points={silhouette}
-          fill="var(--color-surface-app)"
+      {/* Soft fill beneath the terrain (no stroke) so "ground below, sky above"
+          reads without drawing any perimeter or bottom line. */}
+      {fillArea && (
+        <polygon points={fillArea} fill="var(--color-surface-app)" />
+      )}
+      {/* The terrain itself: JUST the top surface line (open skyline). */}
+      {topLine && (
+        <polyline
+          points={topLine}
+          fill="none"
           stroke="var(--color-text-dim)"
           strokeWidth={1.5}
         />
       )}
-      {/* Ground track baseline. */}
-      <line
-        x1={pad}
-        y1={baseY}
-        x2={pad + plotW}
-        y2={baseY}
-        stroke="var(--color-border-subtle)"
-        strokeWidth={1}
-      />
       {/* Accurate velocity vector from the vessel (green, no head): true descent
           angle, length ∝ speed. It represents current motion — short, and free
           to cut off in mid-air; it is NOT a line to the site. */}
