@@ -309,6 +309,7 @@ function LandingStatusComponent({
       verticalSpeed={solution.verticalSpeed}
       horizontalSpeed={solution.horizontalSpeed}
       aglMeters={heightFromTerrain ?? null}
+      driftMeters={siteDrift?.distanceMeters ?? null}
     />
   ) : null;
 

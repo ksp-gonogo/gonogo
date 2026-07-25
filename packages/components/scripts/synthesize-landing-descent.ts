@@ -150,8 +150,10 @@ function terrainPatchGrid(slopeDeg: number, headingDeg: number): number[] {
   return grid;
 }
 
-/** The predicted touchdown point: current point + remaining downrange travel. */
-function predictedPoint(f: Frame): { lat: number; lon: number } {
+/** The predicted touchdown point: current point + remaining downrange travel.
+ * Exported for the convergence guard test (predicted → actual touchdown as
+ * agl → 0). */
+export function predictedPoint(f: Frame): { lat: number; lon: number } {
   const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
   const g = MU / (R + f.aglMeters) ** 2;
   const tImpact =

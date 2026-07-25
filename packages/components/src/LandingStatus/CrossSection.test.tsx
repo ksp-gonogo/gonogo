@@ -112,6 +112,45 @@ describe("CrossSection", () => {
     expect(Math.max(...ys)).toBeGreaterThanOrEqual(150);
   });
 
+  it("converges the side-on vessel onto the site as drift shrinks to zero", () => {
+    const cx = (container: HTMLElement, r: string): number =>
+      Number(
+        [...container.querySelectorAll("circle")]
+          .find((c) => c.getAttribute("r") === r)
+          ?.getAttribute("cx"),
+      );
+    // Far downrange: vessel sits well upwind of the site (large horizontal gap).
+    const far = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={40}
+        horizontalSpeed={30}
+        aglMeters={4000}
+        driftMeters={3000}
+      />,
+    );
+    const farGap = Math.abs(cx(far.container, "3") - cx(far.container, "5"));
+    far.unmount();
+    // At touchdown drift is ~0: the vessel (r=3) coincides with the site
+    // marker (ring r=5) — no miss.
+    const near = render(
+      <CrossSection
+        patch={patch}
+        patchSize={4}
+        bearingDeg={90}
+        verticalSpeed={2}
+        horizontalSpeed={0}
+        aglMeters={5}
+        driftMeters={0}
+      />,
+    );
+    const nearGap = Math.abs(cx(near.container, "3") - cx(near.container, "5"));
+    expect(nearGap).toBeLessThan(farGap);
+    expect(nearGap).toBeLessThan(2);
+  });
+
   it("survives a null-velocity, no-patch state without throwing", () => {
     render(<CrossSection verticalSpeed={null} horizontalSpeed={null} />);
     expect(
