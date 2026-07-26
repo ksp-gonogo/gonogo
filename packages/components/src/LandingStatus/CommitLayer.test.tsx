@@ -101,7 +101,8 @@ describe("CommitLayer", () => {
         landed
       />,
     );
-    expect(screen.getByText(/LANDED|DOWN/i)).toBeInTheDocument();
+    expect(screen.getByText("LANDED")).toBeInTheDocument();
+    expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
     // No stale future "Blind in 50s" and no commit countdown once landed.
     expect(screen.queryByText(/Blind in/i)).toBeNull();
     expect(screen.queryByText(/COMMIT IN/i)).toBeNull();

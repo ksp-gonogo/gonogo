@@ -91,9 +91,9 @@ export function CommitLayer({
   let urgent = false;
   if (landed) {
     // Settled on the surface: the descent is over, so no commit / blind / burn
-    // countdown — just the landed state.
+    // countdown — a confident touchdown confirmation instead.
     heroValue = "LANDED";
-    heroCaption = "";
+    heroCaption = "TOUCHDOWN CONFIRMED";
     heroTone = "go";
   } else if (live) {
     heroCaption = "SUICIDE BURN";
