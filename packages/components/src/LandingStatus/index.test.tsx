@@ -44,6 +44,8 @@ function emitVessel(
       surfaceSpeed: number;
     };
     availableThrust?: number;
+    /** Situation ordinal (0 = Landed, 6 = SubOrbital, the descending default). */
+    situation?: number;
   },
 ) {
   stream.emit("system.bodies", {
@@ -61,7 +63,7 @@ function emitVessel(
     vesselId: "test-vessel",
     name: "Test Vessel",
     vesselType: 0,
-    situation: 0,
+    situation: opts.situation ?? 6,
     parentBodyIndex: opts.body.index,
     launchUt: null,
   });

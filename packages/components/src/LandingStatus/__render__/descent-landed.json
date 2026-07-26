@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "scenario": "descent-final",
+    "scenario": "descent-landed",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Final: near touchdown, smooth flat site -> SAFE, gear down."
+    "notes": "SYNTHETIC (model-generated, NOT captured). Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."
   },
   "_stream": {
     "carriedChannels": [
@@ -39,7 +39,7 @@
           "vesselId": "synthetic-lander",
           "name": "Synthetic Lander",
           "vesselType": 0,
-          "situation": 6,
+          "situation": 0,
           "parentBodyIndex": 3,
           "launchUt": null
         }
@@ -65,12 +65,12 @@
         "channel": "vessel.flight",
         "value": {
           "latitude": 0,
-          "longitude": 2.786022800737405,
-          "altitudeAsl": 39.00687820869966,
-          "altitudeTerrain": 39.00687820869966,
-          "verticalSpeed": -1.4041098808959562,
-          "surfaceSpeed": 1.620106089421502,
-          "orbitalSpeed": 1.620106089421502,
+          "longitude": 2.789596566243266,
+          "altitudeAsl": 0,
+          "altitudeTerrain": 0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
           "atmDensity": 0
         }
       },
@@ -78,8 +78,8 @@
         "channel": "vessel.surface",
         "value": {
           "biome": "Lowlands",
-          "landedAt": null,
-          "heightFromTerrain": 39.00687820869966
+          "landedAt": "267",
+          "heightFromTerrain": 0
         }
       },
       {
@@ -87,7 +87,7 @@
         "value": {
           "totalMass": 5,
           "dryMass": 3,
-          "currentThrust": 18,
+          "currentThrust": 0,
           "availableThrust": 18
         }
       },
@@ -118,7 +118,7 @@
           "outcome": "terrain-assessed",
           "sampleSource": "predicted",
           "predictedLatitude": 0,
-          "predictedLongitude": 2.7867305845104324,
+          "predictedLongitude": 2.789596566243266,
           "predictedTerrainElevation": 120,
           "predictedSlopeAngle": 3,
           "predictedSlopeHeading": 80,

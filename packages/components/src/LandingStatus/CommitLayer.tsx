@@ -56,6 +56,9 @@ export interface CommitLayerProps {
   committed: boolean;
   blindInSeconds: number | null;
   blind: boolean;
+  /** True once the vessel has touched down — the descent clocks are then void
+   * and the hero shows a settled LANDED state instead of a stale countdown. */
+  landed?: boolean;
 }
 
 export function CommitLayer({
@@ -67,12 +70,15 @@ export function CommitLayer({
   committed,
   blindInSeconds,
   blind,
+  landed = false,
 }: Readonly<CommitLayerProps>) {
   const countdown = suicideBurnCountdown;
 
   // Uncommandable: a full round-trip no longer fits inside the remaining burn
   // window, so a command sent now cannot be confirmed (or corrected) in time.
+  // Void once landed — there is no burn window left.
   const uncommandable =
+    !landed &&
     roundTripSeconds != null &&
     roundTripSeconds > 0 &&
     countdown != null &&
@@ -83,7 +89,13 @@ export function CommitLayer({
   let heroCaption: string;
   let heroTone: ReadoutTone;
   let urgent = false;
-  if (live) {
+  if (landed) {
+    // Settled on the surface: the descent is over, so no commit / blind / burn
+    // countdown — just the landed state.
+    heroValue = "LANDED";
+    heroCaption = "";
+    heroTone = "go";
+  } else if (live) {
     heroCaption = "SUICIDE BURN";
     if (countdown == null) {
       heroValue = "—";
@@ -173,7 +185,7 @@ export function CommitLayer({
           </Value>
         </div>
 
-        {!live && blindInSeconds != null && (
+        {!landed && !live && blindInSeconds != null && (
           <Value tone={blind ? "accent" : "muted"} size="sm">
             {blind
               ? "BLIND"

@@ -206,11 +206,22 @@ function LandingStatusComponent({
     totalMass: propulsion?.totalMass,
   });
 
+  // Touched down: a landed (or splashed) vessel can still report a residual
+  // altitude + a stale time-to-impact, so gate the descent clocks on the landed
+  // STATE rather than on the impact figure. `vessel.surface.landedAt` (the UT of
+  // touchdown) is the direct, reliable signal; the situation-name / splashed
+  // flags back it up where a source populates those instead.
+  const landed =
+    surface?.landedAt != null ||
+    vs?.situationName === "Landed" ||
+    vs?.isSplashed === true;
+
   const oneWaySeconds = readOneWaySeconds(commsDelay);
   const clocks = deriveDelayClocks({
     oneWaySeconds,
     suicideBurnCountdown: solution.suicideBurnCountdown,
     timeToImpact: solution.timeToImpact,
+    landed,
   });
 
   const availableDv = summary?.totalDvActual ?? summary?.totalDvVac;
@@ -377,7 +388,7 @@ function LandingStatusComponent({
             : formatMps(solution.bestSpeedAtImpact)}
         </StackedField>
         <StackedField label="Impact in">
-          {solution.timeToImpact == null
+          {landed || solution.timeToImpact == null
             ? "—"
             : formatDuration(solution.timeToImpact, { ms: true })}
         </StackedField>
@@ -478,6 +489,7 @@ function LandingStatusComponent({
       committed={clocks.committed}
       blindInSeconds={clocks.blindInSeconds}
       blind={clocks.blind}
+      landed={landed}
     />
   );
 
@@ -581,7 +593,9 @@ function LandingStatusComponent({
 
       {board === "not-descending" ? (
         <PanelBody>
-          <EmptyState>No landing in progress</EmptyState>
+          <EmptyState>
+            {landed ? "Landed" : "No landing in progress"}
+          </EmptyState>
         </PanelBody>
       ) : (
         // Full-bleed body: the altitude rail runs full height at the very left
@@ -600,8 +614,10 @@ function LandingStatusComponent({
             <div style={{ flex: "0 0 auto", width: 64 }}>
               <AltitudeRail
                 aglMeters={heightFromTerrain ?? null}
-                ignitionAltitude={solution.ignitionAltitude}
-                suicideBurnCountdown={solution.suicideBurnCountdown}
+                ignitionAltitude={landed ? null : solution.ignitionAltitude}
+                suicideBurnCountdown={
+                  landed ? null : solution.suicideBurnCountdown
+                }
               />
             </div>
           )}

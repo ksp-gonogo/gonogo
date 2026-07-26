@@ -1,8 +1,10 @@
 #!/usr/bin/env tsx
 /**
  * Synthesize a physically-grounded Mun descent and emit (a) a 1 Hz SYNTHETIC
- * time-series ndjson for the record, and (b) three `_stream` render fixtures
- * (high / ignition / final) for the Landing widget render harness.
+ * time-series ndjson for the record, and (b) `_stream` render fixtures
+ * (high / ignition / approach / final / landed) for the Landing widget render
+ * harness. The descent ends on a settled LANDED frame (situation Landed, motion
+ * nulled) so the widget reads landed, not a stale descent countdown.
  *
  * The trajectory is integrated forward with the widget's OWN full-vector burn
  * solve (`solveSuicideBurn`) driving when the suicide burn starts, so the data
@@ -35,6 +37,8 @@ interface Frame {
   lat: number;
   lon: number;
   burning: boolean;
+  /** True on the final touched-down frame (situation → Landed, all motion 0). */
+  landed?: boolean;
 }
 
 /** Integrate a deorbit-to-touchdown descent at 1 Hz. */
@@ -96,6 +100,20 @@ export function integrate(): Frame[] {
     agl -= vDown * dt;
     if (agl < 0) agl = 0;
   }
+  // Touchdown: a final settled frame on the surface (all motion nulled). This is
+  // what makes the widget read LANDED at the end of the descent rather than a
+  // stale "Blind in Xs" future countdown.
+  const last = frames[frames.length - 1];
+  frames.push({
+    t: (last?.t ?? 0) + 1,
+    aglMeters: 0,
+    vDown: 0,
+    vHoriz: 0,
+    lat,
+    lon,
+    burning: false,
+    landed: true,
+  });
   return frames;
 }
 
@@ -179,7 +197,9 @@ function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
       vesselId: "synthetic-lander",
       name: "Synthetic Lander",
       vesselType: 0,
-      situation: 0,
+      // Situation ordinals (VesselEnums.cs): 0 = Landed, 6 = SubOrbital. The
+      // descent reads SubOrbital; only the final touched-down frame is Landed.
+      situation: f.landed ? 0 : 6,
       parentBodyIndex: 3,
       launchUt: null,
     },
@@ -206,7 +226,7 @@ function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
     },
     "vessel.surface": {
       biome: terrain.biome,
-      landedAt: null,
+      landedAt: f.landed ? String(10 + f.t) : null,
       heightFromTerrain: f.aglMeters,
     },
     "vessel.propulsion": {
@@ -461,6 +481,9 @@ function emitAll(): void {
     frames[frames.length - 2];
   const final =
     frames.find((f) => f.aglMeters <= 40) ?? frames[frames.length - 1];
+  // The settled touched-down frame (last): situation Landed, all motion nulled —
+  // the widget shows the landed state, no stale descent countdown.
+  const landedFrame = frames.find((f) => f.landed) ?? frames[frames.length - 1];
 
   const fixDir = resolve(
     import.meta.dirname,
@@ -482,6 +505,10 @@ function emitAll(): void {
   writeFileSync(
     resolve(fixDir, "descent-final.json"),
     `${JSON.stringify(streamFixture(final, 4, "descent-final", "Final: near touchdown, smooth flat site -> SAFE, gear down."), null, 2)}\n`,
+  );
+  writeFileSync(
+    resolve(fixDir, "descent-landed.json"),
+    `${JSON.stringify(streamFixture(landedFrame, 4, "descent-landed", "Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."), null, 2)}\n`,
   );
 
   // Terrain-type showcase — one near-touchdown frame per distinct terrain, so the

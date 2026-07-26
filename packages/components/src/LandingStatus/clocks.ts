@@ -74,12 +74,18 @@ export interface DelayClocks {
   blindInSeconds: number | null;
   /** True once past the blind point — the outcome is fixed and merely unseen. */
   blind: boolean;
+  /** True once the vessel has landed — every descent countdown is then void. */
+  landed: boolean;
 }
 
 export interface DelayClockInputs {
   oneWaySeconds: number | null | undefined;
   suicideBurnCountdown: number | null;
   timeToImpact: number | null;
+  /** True once the vessel has touched down. A landed vessel can still report a
+   * non-zero time-to-impact (residual CoM altitude, zero descent rate), so the
+   * descent clocks MUST be gated on this rather than on the impact figure. */
+  landed?: boolean;
 }
 
 export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
@@ -89,19 +95,27 @@ export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
   const roundTrip = oneWay === null ? null : 2 * oneWay;
   const regime = classifyRegime(inp.oneWaySeconds, inp.timeToImpact);
 
+  const landed = inp.landed === true;
+
   const countdown = inp.suicideBurnCountdown;
+  // Once landed every descent countdown is void: the burn is over, there is no
+  // commit point left and no future blind moment. Gate on the landed STATE, not
+  // the impact figure (which can stay non-zero after touchdown).
   const commitInSeconds =
-    countdown != null && Number.isFinite(countdown) && oneWay !== null
+    !landed &&
+    countdown != null &&
+    Number.isFinite(countdown) &&
+    oneWay !== null
       ? countdown - oneWay
       : null;
-  const committed = commitInSeconds != null && commitInSeconds <= 0;
+  const committed = !landed && commitInSeconds != null && commitInSeconds <= 0;
 
   const impact = inp.timeToImpact;
   const blindInSeconds =
-    impact != null && Number.isFinite(impact) && roundTrip !== null
+    !landed && impact != null && Number.isFinite(impact) && roundTrip !== null
       ? impact - roundTrip
       : null;
-  const blind = blindInSeconds != null && blindInSeconds <= 0;
+  const blind = !landed && blindInSeconds != null && blindInSeconds <= 0;
 
   return {
     regime,
@@ -111,5 +125,6 @@ export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
     committed,
     blindInSeconds,
     blind,
+    landed,
   };
 }

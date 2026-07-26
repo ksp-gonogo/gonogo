@@ -56,6 +56,9 @@ interface Scenario {
   oneWaySeconds?: number;
   /** Remaining actual stack dV (`dv.summary.totalDvActual`) to exercise the affordability render. */
   totalDvActual?: number;
+  /** Situation ordinal (VesselEnums.cs): 0 = Landed, 6 = SubOrbital (default,
+   * the descending case). Set 0 to exercise the landed-state clock gate. */
+  situation?: number;
 }
 
 const SCENARIOS: Record<string, Scenario> = {
@@ -90,11 +93,12 @@ const SCENARIOS: Record<string, Scenario> = {
     descent: { heightFromTerrain: 180, verticalSpeed: 8.1, surfaceSpeed: 80 },
     availableThrust: 1.9,
   },
-  // verticalSpeed=0 -> not descending -> LANDING_NONE regardless of radius;
-  // "No landing in progress" (not the "waiting" variant).
+  // Touched down (situation = Landed): verticalSpeed=0, on the surface. Exercises
+  // the landed-state gate — the commit layer shows LANDED, not a stale countdown.
   "landed-mun": {
     body: MUN,
     descent: { heightFromTerrain: 0.3, verticalSpeed: 0, surfaceSpeed: 0 },
+    situation: 0,
   },
   // Kerbin (atmospheric), h=28000m/vDown=210.4 m/s, no propulsion (a
   // passive reentry) -> timeToImpact≈57.1s, best/suicide stay null.
@@ -153,7 +157,7 @@ async function snapshotLandingStatusFixture(
       vesselId: "test-vessel",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 0,
+      situation: scenario.situation ?? 6,
       parentBodyIndex: scenario.body.index,
       launchUt: null,
     });
@@ -191,6 +195,8 @@ async function snapshotLandingStatusFixture(
       // surface datum rather than the CoM fallback.
       stream.emit("vessel.surface", {
         heightFromTerrain: scenario.descent.heightFromTerrain,
+        // A landed vessel carries the touchdown UT — the widget's landed gate.
+        landedAt: scenario.situation === 0 ? "10" : undefined,
       });
     }
     if (scenario.availableThrust !== undefined) {
