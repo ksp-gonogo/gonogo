@@ -2,13 +2,15 @@
  * Widget DOM mirror — ManeuverPlanner. Asserts the panel title and both
  * section titles render identically on host and station.
  *
- * The recorded fixture actually does ship a single maneuver node in
- * `o.maneuverNodes` (1146 m/s prograde burn from a launch-pad save),
- * so `useManeuverNodes` returns a non-empty list and ManeuverNodeList
- * renders a NodeRow — not the "No maneuver nodes planned." empty
- * state. The section titles `Planned nodes` and `New maneuver` sit
- * outside the waiting / preview ternary, so they're the most
- * deterministic strings.
+ * The recorded fixture does NOT ship any maneuver node — it carries no
+ * `vessel.maneuver` (nor the legacy `o.maneuverNodes`), so `useManeuverNodes`
+ * returns an empty list and ManeuverNodeList shows its empty state, not a
+ * NodeRow. This test does not exercise node data at all: the section titles
+ * `Planned nodes` and `New maneuver` render UNCONDITIONALLY (outside the
+ * waiting / preview ternary), so they green regardless of node/telemetry
+ * state and are the deterministic strings to assert. (An earlier version of
+ * this comment wrongly claimed the fixture ships a 1146 m/s node; it does
+ * not, and nothing in the test depends on one.)
  *
  * Seeded at the widget's registered defaultSize (10x18); the helper's
  * default 8x6 would be clamped up by `applyMinSizes` anyway, but
