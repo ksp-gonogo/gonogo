@@ -40,12 +40,20 @@ host, ready to commit. (This is the local equivalent of
 
 ## Notes
 
+- **Font-baked image.** The stock `playwright:noble` image is font-minimal, so
+  text-heavy widgets drift against CI's baselines (the gate embeds JetBrains
+  Mono, but text still falls back to system fonts for `°`/`↓`/`→`/`·`/`Δ` and
+  fontconfig hinting). `scripts/visual-preview.Containerfile` derives an image
+  with ubuntu-latest's font set on top of the base; the script builds it once
+  (cached by tag `localhost/gonogo-visual-preview:pw<ver>`) so text renders
+  faithfully. Bump the fonts / rebuild if a widget uses a new glyph range.
 - The container does its own Linux `pnpm install` into **named volumes** (the
   host's `node_modules` are macOS-native and can't be reused). First run is slow
-  (full install); named volumes make re-runs fast. Your host `node_modules` are
-  never touched — each is shadowed by a volume.
+  (image build + full install); named volumes make re-runs fast. Your host
+  `node_modules` are never touched — each is shadowed by a volume.
 - Diff PNGs land at `local_docs/renders/_visual-gate-diffs/<engine>/<widget>/`
-  (gitignored) on the host.
+  (gitignored) on the host. **The gate clears that dir at the START of each run**
+  — Read/copy a run's diffs before launching the next one.
 - Keep the `PLAYWRIGHT_VERSION` in the script in lock-step with the lockfile's
   resolved `playwright` (= CI). If an UNCHANGED widget shows drift in preview,
   the image tag no longer matches CI's rasterisation — fix the tag.

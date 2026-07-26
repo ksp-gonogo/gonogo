@@ -34,7 +34,13 @@ PODMAN="${PODMAN:-/opt/podman/bin/podman}"
 # MUST match pnpm-lock.yaml's resolved `playwright` version (= what CI's
 # `visual` job installs). noble = 24.04 = ubuntu-latest. Bump both together.
 PLAYWRIGHT_VERSION="1.60.0"
-IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+BASE_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+# We render against a FONT-BAKED derived image (visual-preview.Containerfile:
+# base + ubuntu-latest's font set), because the stock playwright:noble image is
+# font-minimal and text-heavy widgets drift against CI's baselines otherwise.
+# Built once, cached by tag. $VISUAL_PREVIEW_IMAGE overrides (e.g. to A/B the
+# base image).
+IMAGE="${VISUAL_PREVIEW_IMAGE:-localhost/gonogo-visual-preview:pw${PLAYWRIGHT_VERSION}}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 STORE_VOL="gonogo-visualpreview-pnpm-store"
@@ -70,6 +76,18 @@ if [ ! -f "$HOME/.npmrc" ]; then
   echo "error: ~/.npmrc not found — needed for registry auth inside the container." >&2
   echo "       Run a local 'pnpm install' once, or create ~/.npmrc with the @ksp-gonogo registry + token." >&2
   exit 2
+fi
+
+# Build the font-baked image on first use (cached by tag thereafter). Skipped
+# when $VISUAL_PREVIEW_IMAGE points elsewhere.
+if [ "$IMAGE" = "localhost/gonogo-visual-preview:pw${PLAYWRIGHT_VERSION}" ] \
+   && ! "$PODMAN" image exists "$IMAGE" 2>/dev/null; then
+  echo "building font-baked image $IMAGE (first time — pulls the base + installs fonts)…"
+  "$PODMAN" build \
+    --build-arg "PW_VERSION=${PLAYWRIGHT_VERSION}" \
+    -t "$IMAGE" \
+    -f "$REPO_ROOT/scripts/visual-preview.Containerfile" \
+    "$REPO_ROOT/scripts"
 fi
 
 # Shadow every workspace package's node_modules (root + globs) with its own
@@ -169,6 +187,7 @@ if grep -q "MISSING baseline:" "$LOG"; then
 fi
 echo
 echo "${count} drifted render(s) with baseline/actual/diff PNGs above."
+echo "(The gate clears these at the START of the next run — Read/copy them first.)"
 echo "Review, get an OK, then re-run with --update to write committable baselines."
 rm -f "$LOG"
 exit 0
