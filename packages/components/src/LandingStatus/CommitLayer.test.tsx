@@ -20,7 +20,7 @@ describe("CommitLayer", () => {
     expect(screen.getByText("SUICIDE BURN")).toBeInTheDocument();
   });
 
-  it("shows COMMITTED once the commit clock has passed under delay", () => {
+  it("shows BURN LOCKED once the burn-GO deadline has passed under delay", () => {
     render(
       <CommitLayer
         {...live}
@@ -31,7 +31,21 @@ describe("CommitLayer", () => {
         committed
       />,
     );
-    expect(screen.getByText("COMMITTED")).toBeInTheDocument();
+    expect(screen.getByText("BURN LOCKED")).toBeInTheDocument();
+  });
+
+  it("labels the impact-command deadline as the COMMIT POINT", () => {
+    render(
+      <CommitLayer
+        {...live}
+        regime="staged"
+        live={false}
+        roundTripSeconds={8}
+        commitInSeconds={5}
+        blindInSeconds={40}
+      />,
+    );
+    expect(screen.getByText(/commit point in/i)).toBeInTheDocument();
   });
 
   it("flags UNCOMMANDABLE when the round-trip exceeds the remaining burn window", () => {

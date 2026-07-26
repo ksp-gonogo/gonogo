@@ -5,12 +5,15 @@
  * before I went blind":
  *
  * - Regime pill (LIVE / STAGED / AUTONOMOUS / LINK —) + round-trip.
- * - Hero: live → the ignition countdown; delayed → the Commit Clock (the last
- *   instant a GO can still reach the vessel) → COMMITTED once past it.
+ * - Hero: live → the ignition countdown; delayed → the burn-GO clock (the last
+ *   instant a GO can still reach the vessel to START the burn, T_ignition − N) →
+ *   BURN LOCKED once past it.
  * - UNCOMMANDABLE banner: when the round-trip exceeds the remaining burn window,
  *   a command sent now cannot be confirmed in time. Arguably the single most
  *   valuable thing this widget can say.
- * - Blind line: the outcome is fixed and merely not yet visible.
+ * - COMMIT POINT line: the last instant a command's RESULT can still be seen
+ *   before impact (T_impact − 2N); past it the outcome is fixed and merely not
+ *   yet visible. (The spaceflight-standard term for what was internally "blind".)
  *
  * Landing is an INSTRUMENT, not a command surface — gear/brakes are fired from
  * the operator's own action-group widgets placed alongside, so this layer holds
@@ -110,12 +113,16 @@ export function CommitLayer({
       heroTone = urgent ? "alert" : "warning";
     }
   } else {
-    heroCaption = "COMMIT IN";
+    // The burn-GO deadline: the last instant a human GO can still reach the
+    // vessel in time to START the suicide burn (T_ignition − N). Named apart
+    // from the COMMIT POINT (the impact-command deadline below) to avoid a
+    // "COMMITTED vs commit point" clash.
+    heroCaption = "BURN GO IN";
     if (committed) {
-      heroValue = "COMMITTED";
+      heroValue = "BURN LOCKED";
       heroTone = "alert";
-      // Past the commit point the "COMMIT IN" caption is stale/contradictory —
-      // the value already says COMMITTED, so drop the caption.
+      // Past the deadline a GO can no longer arrive in time — the burn plan is
+      // locked in (autonomous), so the "BURN GO IN" caption is dropped.
       heroCaption = "";
     } else if (commitInSeconds == null) {
       heroValue = "—";
@@ -185,11 +192,16 @@ export function CommitLayer({
           </Value>
         </div>
 
+        {/* The COMMIT POINT (T_impact − 2N): the last instant a command can be
+            sent and its RESULT still be seen before impact. Past it the outcome
+            is fixed and merely not-yet-visible under delay. */}
         {!landed && !live && blindInSeconds != null && (
           <Value tone={blind ? "accent" : "muted"} size="sm">
             {blind
-              ? "BLIND"
-              : `Blind in ${formatDuration(blindInSeconds, { ms: true })}`}
+              ? "PAST COMMIT POINT"
+              : `Commit point in ${formatDuration(blindInSeconds, {
+                  ms: true,
+                })}`}
           </Value>
         )}
       </Section>

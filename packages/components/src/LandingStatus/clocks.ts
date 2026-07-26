@@ -12,7 +12,11 @@
  *   <= 0 the burn either happens autonomously or not at all: COMMITTED.
  * - **Blind Clock** — `T_blind = T_impact - 2N`. The last instant you could send
  *   anything and still SEE the result before impact. Margin = `impact - 2N`.
- *   Once <= 0 the outcome is already determined and merely not yet visible: BLIND.
+ *   Once <= 0 the outcome is already determined and merely not yet visible.
+ *   Surfaced in the UI as the **COMMIT POINT** (the spaceflight-standard term);
+ *   the field names here stay `blind`/`blindInSeconds` as the internal spelling.
+ *   Distinct from the Commit Clock above: that is the burn-START GO deadline
+ *   (T_ignition − N); this is the impact-command deadline (T_impact − 2N).
  *
  * The regime classifier turns the round-trip delay into the operator's role
  * (pilot / flight director / mission planner), which is what changes under

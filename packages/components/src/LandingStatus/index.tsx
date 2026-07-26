@@ -231,12 +231,28 @@ function LandingStatusComponent({
       ? requiredDv <= availableDv
       : null;
 
+  // TWR is thrust-to-weight (can-I-take-off / hover capability) and is meaningful
+  // even when idle on the surface, so fall back to a static thrust/mass ÷ local
+  // gravity when the burn solve isn't producing one (landed, no active descent).
+  // Same units as the solver: availableThrust(kN)/totalMass(t) = m/s²; g = μ/r².
+  const staticMaxAccel =
+    propulsion?.availableThrust != null &&
+    propulsion.totalMass != null &&
+    propulsion.totalMass > 0
+      ? propulsion.availableThrust / propulsion.totalMass
+      : null;
+  const localGravity =
+    orbit?.mu != null && body?.radius != null && body.radius > 0
+      ? orbit.mu / (body.radius + (heightFromTerrain ?? 0)) ** 2
+      : null;
   const twr =
     solution.maxAccel != null &&
     solution.gravity != null &&
     solution.gravity > 0
       ? solution.maxAccel / solution.gravity
-      : null;
+      : staticMaxAccel != null && localGravity != null && localGravity > 0
+        ? staticMaxAccel / localGravity
+        : null;
 
   const streamStatus = useStreamStatusOptional("vessel.surface");
 

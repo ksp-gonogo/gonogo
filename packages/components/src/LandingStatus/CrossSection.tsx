@@ -13,6 +13,7 @@
  * carrier (and matches the reticle's descent/ground-speed wording).
  */
 
+import { useId } from "react";
 import { SiteMarker } from "./SiteMarker";
 
 const SIZE = 160;
@@ -103,12 +104,16 @@ export function CrossSection({
   aglMeters,
   driftMeters,
 }: Readonly<CrossSectionProps>) {
+  const clipId = useId();
   const profile = sliceProfile(patch, patchSize, bearingDeg);
   const label = `Descent ${fmtSpeed(verticalSpeed)}, ground speed ${fmtSpeed(
     horizontalSpeed,
   )}`;
 
-  const pad = 8;
+  // Terrain spans nearly the full box width (a 1px inset inside the rounded
+  // border, matching the top-down reticle) and is clipped to the rounded rect
+  // below, so it fills the container without spilling past the sides/corners.
+  const pad = 5;
   const plotW = SIZE - pad * 2;
   const baseY = SIZE - 16;
   const topY = 30;
@@ -200,49 +205,59 @@ export function CrossSection({
       style={{ display: "block", width: "100%", height: "auto" }}
     >
       <title>{label}</title>
+      {/* Round the plot box and CLIP the terrain/markers to it, so the skyline
+          and fill can't spill past the rounded corners or the sides (matches the
+          top-down reticle's containment). */}
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={4} y={4} width={SIZE - 8} height={SIZE - 8} rx={6} />
+        </clipPath>
+      </defs>
       <rect
         x={4}
         y={4}
         width={SIZE - 8}
         height={SIZE - 8}
-        rx={4}
+        rx={6}
         fill="var(--color-surface-raised)"
         stroke="var(--color-border-subtle)"
       />
-      {/* Soft fill beneath the terrain (no stroke) so "ground below, sky above"
-          reads without drawing any perimeter or bottom line. */}
-      {fillArea && (
-        <polygon points={fillArea} fill="var(--color-surface-app)" />
-      )}
-      {/* The terrain itself: JUST the top surface line (open skyline). */}
-      {topLine && (
-        <polyline
-          points={topLine}
-          fill="none"
-          stroke="var(--color-text-dim)"
-          strokeWidth={1.5}
+      <g clipPath={`url(#${clipId})`}>
+        {/* Soft fill beneath the terrain (no stroke) so "ground below, sky
+            above" reads without drawing any perimeter or bottom line. */}
+        {fillArea && (
+          <polygon points={fillArea} fill="var(--color-surface-app)" />
+        )}
+        {/* The terrain itself: JUST the top surface line (open skyline). */}
+        {topLine && (
+          <polyline
+            points={topLine}
+            fill="none"
+            stroke="var(--color-text-dim)"
+            strokeWidth={1.5}
+          />
+        )}
+        {/* Accurate velocity vector from the vessel (green, no head): true
+            descent angle, length ∝ speed. It represents current motion — short,
+            and free to cut off in mid-air; it is NOT a line to the site. */}
+        <line
+          x1={vesselX}
+          y1={vesselY}
+          x2={velTipX}
+          y2={velTipY}
+          stroke="var(--color-accent-fg)"
+          strokeWidth={2.5}
         />
-      )}
-      {/* Accurate velocity vector from the vessel (green, no head): true descent
-          angle, length ∝ speed. It represents current motion — short, and free
-          to cut off in mid-air; it is NOT a line to the site. */}
-      <line
-        x1={vesselX}
-        y1={vesselY}
-        x2={velTipX}
-        y2={velTipY}
-        stroke="var(--color-accent-fg)"
-        strokeWidth={2.5}
-      />
-      {/* The vessel, above the terrain (descending). */}
-      <circle
-        cx={vesselX}
-        cy={vesselY}
-        r={3}
-        fill="var(--color-text-primary)"
-      />
-      {/* Predicted landing site — a SEPARATE marker on the terrain profile. */}
-      <SiteMarker cx={siteX} cy={siteY} />
+        {/* The vessel, above the terrain (descending). */}
+        <circle
+          cx={vesselX}
+          cy={vesselY}
+          r={3}
+          fill="var(--color-text-primary)"
+        />
+        {/* Predicted landing site — a SEPARATE marker on the terrain profile. */}
+        <SiteMarker cx={siteX} cy={siteY} />
+      </g>
       {/* Magnitudes. */}
       <text
         x={8}
