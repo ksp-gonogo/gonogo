@@ -13,14 +13,14 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@ksp-gonogo/data";
-import type { KerbcastDataSource } from "@ksp-gonogo/kerbcast-feed";
+import type { KerbcastDataSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
 // From the `/runtime` subpath, not the package root — same reason
-// MainScreen.tsx does (see `@ksp-gonogo/kos`'s `runtime.ts` doc comment):
+// MainScreen.tsx does (see `@ksp-gonogo/gonogo-kos-uplink`'s `runtime.ts` doc comment):
 // avoids evaluating `./KosTerminal`'s widget-registration side effect.
 import {
   CpuRegistryProvider,
   CpuRegistryService,
-} from "@ksp-gonogo/kos/runtime";
+} from "@ksp-gonogo/gonogo-kos-uplink/runtime";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,

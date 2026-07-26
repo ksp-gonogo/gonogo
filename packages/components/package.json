@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@ksp-gonogo/kos": "workspace:*",
+    "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/test-utils": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",

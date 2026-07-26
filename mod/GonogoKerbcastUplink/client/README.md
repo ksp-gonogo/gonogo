@@ -1,10 +1,10 @@
-# @ksp-gonogo/kerbcast-feed
+# @ksp-gonogo/gonogo-kerbcast-uplink
 
 The client half of the **GonogoKerbcastUplink**, living beside the C# mod it
 ships with. Consumer of the [kerbcast](https://github.com/jonpepler/kerbcast)
 KSP camera-streaming sidecar.
 
-The npm name is `@ksp-gonogo/kerbcast-feed`, not `@ksp-gonogo/kerbcast` — that
+The npm name is `@ksp-gonogo/gonogo-kerbcast-uplink`, not `@ksp-gonogo/kerbcast` — that
 one is the external kerbcast protocol SDK this package depends on from public
 npm.
 
@@ -22,7 +22,7 @@ Wire it into the app once, alongside the other data-source imports:
 
 ```ts
 // packages/app/src/dataSources/index.ts
-import "@ksp-gonogo/kerbcast-feed";
+import "@ksp-gonogo/gonogo-kerbcast-uplink";
 ```
 
 After that, "Kerbcast" appears in the Data Sources widget (with the

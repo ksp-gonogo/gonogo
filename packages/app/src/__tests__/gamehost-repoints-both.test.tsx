@@ -3,7 +3,7 @@ import {
   resetSettingsForTests,
   setSetting,
 } from "@ksp-gonogo/core";
-import { kerbcastSource } from "@ksp-gonogo/kerbcast-feed";
+import { kerbcastSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getSitrepHostConfig,

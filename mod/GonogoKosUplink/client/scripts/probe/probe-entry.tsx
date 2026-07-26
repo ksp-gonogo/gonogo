@@ -12,7 +12,7 @@
  * key prefixed `kos.` to it. It is registered *unbuffered* — buffer-wrapping
  * would hide the topic-status methods so `useKosScriptStatus` would silently
  * fall back to the empty status. Mirrors the shared components probe pattern
- * (the harness the widget used before it moved to `@ksp-gonogo/kos`).
+ * (the harness the widget used before it moved to `@ksp-gonogo/gonogo-kos-uplink`).
  *
  * NOTE: the Playwright driver + `visual-gate` script + CI job that consume this
  * entry still need to be ported from `@ksp-gonogo/components` scripts. The baselines

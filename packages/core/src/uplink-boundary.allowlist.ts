@@ -60,7 +60,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/screens/MainScreen.tsx",
       "packages/app/src/screens/StationScreen.tsx",
       // packages/components/src/DistanceToTarget/index.tsx was here: its built-in
-      // HudCamera imported @ksp-gonogo/kerbcast-feed directly. That backdrop is
+      // HudCamera imported @ksp-gonogo/gonogo-kerbcast-uplink directly. That backdrop is
       // now the `kerbcast-docking-camera` AUGMENT filling the widget's
       // `distance-to-target.camera` slot, and the widget names no camera mod at
       // all — so the entry went stale and ratcheted off.
@@ -289,7 +289,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosVersionGuard.cs",
       "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
-      // main.tsx (D4 step 2, 2026-07-25): no more static `@ksp-gonogo/scansat`
+      // main.tsx (D4 step 2, 2026-07-25): no more static `@ksp-gonogo/gonogo-scansat-uplink`
       // import — scansat now always loads through the runtime loader. Its
       // `registerScansatAndRender` function name and doc comments still name
       // "scansat" as one of the loader-covered first-party 3 — prose only.
@@ -362,7 +362,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/screens/StationScreen.tsx",
       // Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
       // kosChromeProvider self-registration (via CpuRegistryProvider/
-      // CpuRegistryService, both re-exported by @ksp-gonogo/kos) rather than
+      // CpuRegistryService, both re-exported by @ksp-gonogo/gonogo-kos-uplink) rather than
       // hand-rolling a bespoke fixture — the more honest integration test per
       // this repo's "mock as little as possible" philosophy, and TEST-only
       // exercising the real domain-coupled provider above.
@@ -404,7 +404,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/topics.test.ts",
       "mod/sitrep-sdk/src/topics.ts",
       // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
-      // (2026-07-20) — statically imports the Uplink clients (incl. `@ksp-gonogo/kos`)
+      // (2026-07-20) — statically imports the Uplink clients (incl. `@ksp-gonogo/gonogo-kos-uplink`)
       // so registration fires, then asserts the registry union matches the
       // C#-declared Topics. A new test importing the clients; no product-code coupling.
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
@@ -520,7 +520,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
       "packages/app/src/logs/LogsManager.tsx",
-      // main.tsx was here (`import "@ksp-gonogo/kos"`, a sanctioned self-
+      // main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
       // registration import). D4 step 2 (2026-07-25) removed the static
       // import — kos now always loads through the runtime loader, referenced
       // only via flag.ts's `LOADER_UPLINK_IDS` (no "kOS"/"Kos*"/"kos.*"

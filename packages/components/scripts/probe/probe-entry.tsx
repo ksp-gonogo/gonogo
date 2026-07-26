@@ -34,7 +34,7 @@
  * fixture, no probe changes required.
  */
 // MUST be the first import: installs the injected gonogo host before the
-// `@ksp-gonogo/kos` side-effect import below self-registers a facade-sealed
+// `@ksp-gonogo/gonogo-kos-uplink` side-effect import below self-registers a facade-sealed
 // widget (which would otherwise throw "the gonogo host has not been installed"
 // at module load). ES imports are hoisted in source order.
 import "./probe-install-host";
@@ -50,7 +50,7 @@ import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 // Side-effect import: mod-client widgets (kOS terminal, processors, …)
 // self-register on module load, same contract as the built-in library.
-import "@ksp-gonogo/kos";
+import "@ksp-gonogo/gonogo-kos-uplink";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";

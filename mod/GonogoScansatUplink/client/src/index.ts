@@ -43,7 +43,7 @@
 //     Uplink contributes fog reveal, even before anything calls
 //     useScanSatFogSync itself.
 //
-// To wire it into the app: `import "@ksp-gonogo/scansat";` during app bootstrap
+// To wire it into the app: `import "@ksp-gonogo/gonogo-scansat-uplink";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
 // The scan schema/decode/sync logic (`schema.ts`, `FogReveal/*`) is this

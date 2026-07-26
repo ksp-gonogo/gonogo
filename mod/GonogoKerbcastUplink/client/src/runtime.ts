@@ -5,7 +5,7 @@
 // `useKerbcastMainConnect` regardless of whether the CameraFeed WIDGET itself
 // is statically bundled or loaded at runtime via the Uplink loader
 // (`app/src/uplinks/loader.ts`). Before this split it imported those names
-// from the package root (`@ksp-gonogo/kerbcast-feed`), which forced
+// from the package root (`@ksp-gonogo/gonogo-kerbcast-uplink`), which forced
 // evaluation of the WHOLE `index.ts` module — ES module evaluation always
 // runs a module's full top-level code once, regardless of which named export
 // the importer actually uses — including `import "./CameraFeed";`, which
@@ -26,7 +26,7 @@
 //
 // `index.ts` re-exports this file, so nothing downstream of the package root
 // loses access to these names — only MainScreen needs to import from
-// `@ksp-gonogo/kerbcast-feed/runtime` specifically instead of the package
+// `@ksp-gonogo/gonogo-kerbcast-uplink/runtime` specifically instead of the package
 // root. DockingCameraAugment, the widget-picker settings category, and
 // CameraFeed itself stay package-root-only: they're registered either by
 // `main.tsx`'s bundled-fallback full-package import (flag off) or by the

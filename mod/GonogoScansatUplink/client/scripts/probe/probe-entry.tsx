@@ -8,7 +8,7 @@
  * BufferedDataSource so late re-subscribes keep the seeded value), then
  * synchronously emits every key from the synthetic `kerbin-partial-scan`
  * fixture. Mirrors the shared components probe pattern (the harness the widget
- * used before it moved to `@ksp-gonogo/scansat`).
+ * used before it moved to `@ksp-gonogo/gonogo-scansat-uplink`).
  *
  * NOTE: the Playwright driver + `visual-gate` script + CI job that consume this
  * entry still need to be ported from `@ksp-gonogo/components` scripts. The baselines
