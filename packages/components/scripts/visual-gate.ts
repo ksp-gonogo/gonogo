@@ -27,7 +27,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { diffRatio, writeDiff } from "./crossBrowserComposite";
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
-import { getWidget, listWidgets } from "./widgets";
+import { listWidgets } from "./widgets";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE_ROOT = resolve(HERE, "../visual-baselines");
@@ -77,9 +77,17 @@ async function main(): Promise<void> {
   const widgetIdx = args.indexOf("--widget");
   const widgetId = widgetIdx !== -1 ? args[widgetIdx + 1] : undefined;
 
+  // Select EVERY config for this id, not just the first: multiple render
+  // configs can share a `widgetId` (e.g. landing-status has three —
+  // landing-widget / landing-terrains / landing-status-widget). A singular
+  // getWidget() lookup rendered only the first, silently hiding the others'
+  // drift — and, via this same scoping in update-baselines, never regenerating
+  // their baselines. Match by widgetId OR a config's own `label`, so a label
+  // still scopes to its single config.
+  const all = listWidgets();
   const configs = widgetId
-    ? [getWidget(widgetId)].filter((c): c is WidgetRenderConfig => Boolean(c))
-    : [...listWidgets()];
+    ? all.filter((c) => c.widgetId === widgetId || c.label === widgetId)
+    : [...all];
   if (configs.length === 0) {
     console.error(widgetId ? `Unknown widget id: ${widgetId}` : "No widgets");
     process.exit(1);
