@@ -182,6 +182,30 @@ namespace Sitrep.Core.Tests
             // UplinkPendingTopic channel-source mapper) and has its own
             // JsonWriter case, exercised by this test.
             "PendingUplink",
+            // avionics.status — GonogoAvionicsUplink.AvionicsCapture.Build returns a
+            // Dictionary<string, object?> and AvionicsUplink publishes that
+            // (AvionicsUplink.cs's _status.Publish(AvionicsCapture.Build(...))), so
+            // JsonWriter only ever sees the flattened dictionary; the POCO exists for
+            // the generated TS shape only.
+            "AvionicsStatus",
+            // kerbalism.* — GonogoKerbalismUplink.KerbalismCapture.BuildSpaceWeather/
+            // BuildLifeSupport/BuildCrew/BuildFeatures each return a
+            // Dictionary<string, object?> tree (habitat/resources/processes/crew rules
+            // + entries built as nested dictionaries in those methods) and
+            // KerbalismUplink publishes those dictionaries; these POCOs are
+            // TS-shape-only, never handed to AppendValue raw.
+            "KerbalismSpaceWeather", "KerbalismLifeSupport", "KerbalismResource",
+            "KerbalismHabitat", "KerbalismProcessEntry", "KerbalismCrewRule",
+            "KerbalismCrewEntry", "KerbalismFeatures",
+            // vessel.landing — VesselViewProvider.ToWire(VesselLanding) flattens it to
+            // a Dictionary<string, object?> before Publish, same as every other
+            // vessel.* POCO above; JsonWriter only ever sees the dictionary.
+            "VesselLanding",
+            // vessel.parts action bindings — VesselPartsViewProvider.ToWire(ActionBinding)
+            // flattens each binding to a Dictionary<string, object?> nested in the
+            // part's "actionBindings" list, same pattern as VesselPart/PartBounds
+            // above; the POCO is TS-shape-only.
+            "ActionBinding",
         };
 
         private static IEnumerable<Type> ContractPayloadTypes() =>

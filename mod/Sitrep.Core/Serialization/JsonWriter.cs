@@ -299,6 +299,20 @@ namespace Sitrep.Core.Serialization
                     // subscriber got zero stream-data for this topic.
                     AppendPendingUplinkQueue(sb, pendingUplinkQueue);
                     break;
+                case Sitrep.Contract.ReliabilitySummary reliabilitySummary:
+                    // Same "producer owns the flatten" boundary as CommsDelay
+                    // above: reliability.summary's producer
+                    // (Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier) publishes
+                    // the ReliabilitySummary POCO RAW (capture.Summary), and
+                    // reliability.parts publishes a List<ReliabilityPartEntry>
+                    // whose elements route through here one by one. Without these
+                    // cases a populated payload threw NotSupportedException at the
+                    // wire boundary and every subscriber got zero stream-data.
+                    AppendReliabilitySummary(sb, reliabilitySummary);
+                    break;
+                case Sitrep.Contract.ReliabilityPartEntry reliabilityPartEntry:
+                    AppendReliabilityPartEntry(sb, reliabilityPartEntry);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -395,6 +409,141 @@ namespace Sitrep.Core.Serialization
             AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
 
+            sb.Append('}');
+        }
+
+        // Nullable-field writers for the reliability.* POCOs (nearly every field
+        // is optional). Each is exactly the inline "HasValue / non-null ? value :
+        // JSON null" idiom the sibling helpers already use (AppendCommsDelay's
+        // oneWaySeconds, AppendCommsControlState's reason) — named so the two
+        // reliability writers below stay one line per field.
+        private static void AppendNullableBool(StringBuilder sb, bool? value)
+        {
+            if (value.HasValue)
+            {
+                AppendBool(sb, value.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+        }
+
+        private static void AppendNullableNumber(StringBuilder sb, double? value)
+        {
+            if (value.HasValue)
+            {
+                AppendNumber(sb, value.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+        }
+
+        private static void AppendNullableString(StringBuilder sb, string? value)
+        {
+            if (value == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendString(sb, value);
+            }
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
+        /// object <c>{ unmodeled, malfunction, critical, source,
+        /// worstReliabilityFraction }</c> — camelCase keys, JSON null for absent
+        /// nullable fields, matching the generated SDK interface. reliability.summary
+        /// (<c>Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier</c>) publishes this
+        /// POCO raw, so before this existed a populated payload threw
+        /// <c>NotSupportedException</c> at the wire boundary. See the <c>case</c> in
+        /// <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
+        {
+            sb.Append('{');
+            AppendString(sb, "unmodeled");
+            sb.Append(':');
+            AppendNullableBool(sb, r.Unmodeled);
+            sb.Append(',');
+            AppendString(sb, "malfunction");
+            sb.Append(':');
+            AppendNullableBool(sb, r.Malfunction);
+            sb.Append(',');
+            AppendString(sb, "critical");
+            sb.Append(':');
+            AppendNullableBool(sb, r.Critical);
+            sb.Append(',');
+            AppendString(sb, "source");
+            sb.Append(':');
+            AppendNullableString(sb, r.Source);
+            sb.Append(',');
+            AppendString(sb, "worstReliabilityFraction");
+            sb.Append(':');
+            AppendNullableNumber(sb, r.WorstReliabilityFraction);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
+        /// object <c>{ partId, title, group, broken, critical, mtbfHours,
+        /// reliabilityFraction, remainingRatedBurn, ignitionsConsumed,
+        /// durationConsumed, needsRepair }</c> — camelCase keys, JSON null for absent
+        /// nullable fields, matching the generated SDK interface. reliability.parts
+        /// publishes a <c>List&lt;ReliabilityPartEntry&gt;</c> raw, whose elements
+        /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
+        /// See the <c>case</c> in <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendReliabilityPartEntry(StringBuilder sb, Sitrep.Contract.ReliabilityPartEntry p)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, p.PartId);
+            sb.Append(',');
+            AppendString(sb, "title");
+            sb.Append(':');
+            AppendNullableString(sb, p.Title);
+            sb.Append(',');
+            AppendString(sb, "group");
+            sb.Append(':');
+            AppendNullableString(sb, p.Group);
+            sb.Append(',');
+            AppendString(sb, "broken");
+            sb.Append(':');
+            AppendNullableBool(sb, p.Broken);
+            sb.Append(',');
+            AppendString(sb, "critical");
+            sb.Append(':');
+            AppendNullableBool(sb, p.Critical);
+            sb.Append(',');
+            AppendString(sb, "mtbfHours");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.MtbfHours);
+            sb.Append(',');
+            AppendString(sb, "reliabilityFraction");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.ReliabilityFraction);
+            sb.Append(',');
+            AppendString(sb, "remainingRatedBurn");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.RemainingRatedBurn);
+            sb.Append(',');
+            AppendString(sb, "ignitionsConsumed");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.IgnitionsConsumed);
+            sb.Append(',');
+            AppendString(sb, "durationConsumed");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.DurationConsumed);
+            sb.Append(',');
+            AppendString(sb, "needsRepair");
+            sb.Append(':');
+            AppendNullableBool(sb, p.NeedsRepair);
             sb.Append('}');
         }
 
