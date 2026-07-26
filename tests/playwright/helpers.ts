@@ -112,6 +112,10 @@ export async function seedContext(
         // (blocking until answered) doesn't sit over the dashboard and
         // intercept clicks. "disabled" = answered + Axiom off.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
+        // Mark the Uplink Hub first-run wizard as seen so its auto-open host
+        // doesn't pop the Settings modal over the dashboard on a fresh boot.
+        // These specs don't drive the wizard; uplink-hub-wizard.spec owns it.
+        localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
         /* private mode / quota — ignore; the seed just won't apply */
       }
@@ -156,6 +160,28 @@ export async function getHostPeerId(page: Page): Promise<string> {
     .then((handle) => handle.jsonValue() as Promise<string>);
 }
 
+/**
+ * Seed a remembered Uplink-consent grant for every id@version in the built
+ * registry (`/uplinks/registry.local.json`), so a subsequent boot's runtime
+ * loader reaches `import()` without the per-version consent modal. Same
+ * mechanism as `uplink-loader.spec.ts`'s `seedConsent` — versions are derived
+ * from the registry, never hand-coded. Granting every id is harmless: only the
+ * ids named in `?uplinkLoaderIds=` actually load. Call after `goto` (needs a
+ * same-origin document to fetch + set localStorage), then `reload`.
+ */
+async function seedUplinkConsent(page: Page): Promise<void> {
+  const keys = await page.evaluate(async () => {
+    const res = await fetch("/uplinks/registry.local.json");
+    const index = (await res.json()) as {
+      uplinks: { id: string; versions: { version: string }[] }[];
+    };
+    return index.uplinks.map((u) => `${u.id}@${u.versions[0].version}`);
+  });
+  await page.evaluate((granted) => {
+    localStorage.setItem("gonogo.uplinkConsent", JSON.stringify(granted));
+  }, keys);
+}
+
 export interface BootstrappedPair {
   mainContext: BrowserContext;
   stationContext: BrowserContext;
@@ -193,6 +219,19 @@ export async function bootstrapPair(
      * in CI.
      */
     contextOptions?: Parameters<Browser["newContext"]>[0];
+    /**
+     * Uplink ids the runtime loader should actually load, for specs testing a
+     * widget PROVIDED BY an Uplink (camera-feed = kerbcast) or one whose data
+     * comes from an Uplink feed (target-picker = kos). Default (omitted or
+     * empty) = load NOTHING, the loader-agnostic boot every built-in-widget
+     * spec wants. When set, both pages run against the PRODUCTION preview
+     * server (the loader is build-time-only, see the boot comment below), boot
+     * with `?uplinkLoaderIds=<ids>`, have consent pre-seeded (so no modal),
+     * then reload so the loader runs with the grant in place. The station runs
+     * its own loader (StationUplinkLoader) off the same query, so it loads the
+     * widget too.
+     */
+    loadUplinkIds?: string[];
   },
 ): Promise<BootstrappedPair> {
   const dashboard = dashboardWithWidget(componentId, opts.widget);
@@ -201,19 +240,38 @@ export async function bootstrapPair(
   const stationContext = await browser.newContext(opts.contextOptions);
   await seedContext(stationContext, "gonogo:dashboard:station", dashboard);
 
-  // Boot with an empty `?uplinkLoaderIds=` override so the runtime Uplink
-  // loader loads NOTHING (same mechanism uplink-hub-wizard.spec.ts uses).
-  // These specs test widget rendering + the peer handshake, not the loader;
-  // without this the per-Uplink consent modal ("Load Uplink …?") covers the
-  // screen and `waitForMain` times out. `&` for the station because `?host=`
-  // is already present.
+  // `?uplinkLoaderIds=<ids>` controls what the runtime Uplink loader loads at
+  // boot (same seam uplink-hub-wizard.spec.ts uses). Default is EMPTY = load
+  // nothing: these specs test widget rendering + the peer handshake, not the
+  // loader, and without the override the per-Uplink consent modal ("Load
+  // Uplink …?") covers the screen and `waitForMain` times out. `&` for the
+  // station because `?host=` is already present.
+  //
+  // For specs whose widget comes FROM an Uplink (`loadUplinkIds`) we must load
+  // that Uplink AND run against the PRODUCTION preview server: the loader is a
+  // build-time mechanism (external-entry chunks + a baked import map exist only
+  // in `vite build`), so the dev server can't `import()` the /public client
+  // bundles. Point those specs at PREVIEW (same broker/relay env is baked in),
+  // pre-seed consent, and reload so the loader runs with the grant in place.
+  const loadIds = opts.loadUplinkIds ?? [];
+  const loaderQuery = `uplinkLoaderIds=${loadIds.join(",")}`;
+  const origin = loadIds.length > 0 ? `http://localhost:${PORTS.preview}` : "";
+
   const main = await mainContext.newPage();
-  await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
+  await main.goto(`${origin}${MAIN_URL}?${loaderQuery}`);
+  if (loadIds.length > 0) {
+    await seedUplinkConsent(main);
+    await main.reload();
+  }
   await opts.waitForMain(main);
   const peerId = await getHostPeerId(main);
 
   const station = await stationContext.newPage();
-  await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
+  await station.goto(`${origin}${STATION_URL}?host=${peerId}&${loaderQuery}`);
+  if (loadIds.length > 0) {
+    await seedUplinkConsent(station);
+    await station.reload();
+  }
   await (opts.waitForStation ?? opts.waitForMain)(station);
 
   return { mainContext, stationContext, main, station, peerId };

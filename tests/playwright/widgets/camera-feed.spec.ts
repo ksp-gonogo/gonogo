@@ -17,6 +17,9 @@ test.describe("CameraFeed — widget scaffold", () => {
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "camera-feed", {
+      // camera-feed IS the kerbcast Uplink's own widget — load kerbcast so it
+      // registers (consent is pre-seeded by bootstrapPair).
+      loadUplinkIds: ["kerbcast"],
       widget: {
         config: {
           flightId: null,
