@@ -212,6 +212,27 @@ const SNAPSHOT = {
   // widget branches correct.
   "vessel.target": null,
 
+  // The AVAILABLE target LIST — a DIFFERENT Topic from `vessel.target` (the
+  // SELECTED target, kept null above). TargetPicker's Bodies/Vessels/Parts
+  // sections derive from this; without it the widget sits on "Waiting for
+  // target list...". Carried so target-picker.spec can assert a real,
+  // data-bearing list. Faithful to the recording: the "Mun Tester" is a lone
+  // craft (Bob Kerman aboard, nothing else nearby), so there are NO other
+  // vessels/parts to target — only the always-available celestial bodies. Two
+  // bodies (Mun, Minmus) is enough to render the Bodies section + Suggested.
+  // `isCurrent:false` on both (nothing is selected — consistent with the null
+  // `vessel.target`). Payload shape is `TargetAvailable { entries:
+  // TargetListEntry[] }`; `kind:1` is `TargetKind.Body` (Vessel=0,Body=1,
+  // Other=2,Position=3,Part=4). Adding this leaves DistanceToTarget's
+  // "No target set in KSP" branch intact — that widget reads `vessel.target`
+  // (still null), never this list.
+  "target.available": {
+    entries: [
+      { kind: 1, name: "Mun", bodyIndex: 2, isCurrent: false },
+      { kind: 1, name: "Minmus", bodyIndex: 3, isCurrent: false },
+    ],
+  },
+
   "vessel.crew": {
     count: 1,
     capacity: 1,

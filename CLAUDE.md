@@ -210,8 +210,8 @@ The kOS data source runs registered kerboscripts on the user's active CPU and fa
 
 ### When to use this vs. raw `executeScript`
 
-- **Centralised feed** (this section) — passive listing / telemetry / state snapshot, same payload for every subscriber. Examples: ShipMap parts, KosProcessors listing, TargetPicker vessel list. The widget calls `useDataValue` and is done.
-- **Raw `executeScript`** — RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents), TargetPicker's set-target click. The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout.
+- **Centralised feed** (this section) — passive listing / telemetry / state snapshot, same payload for every subscriber. Examples: ShipMap parts, KosProcessors listing. The widget calls `useDataValue` and is done. (NOT TargetPicker — its Bodies/Vessels/Parts list is the `target.available` stream Topic, read with `useTelemetry`, not a kOS feed.)
+- **Raw `executeScript`** — RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents). The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout. (NOT TargetPicker's set-target click — that fires `useExecuteAction("data")` with `tar.setTargetBody/Vessel/Part[…]`, a data-source action, not a kOS script.)
 
 ### Adding a new feed-style widget
 

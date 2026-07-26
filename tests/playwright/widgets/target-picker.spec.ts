@@ -1,27 +1,36 @@
 /**
- * Widget DOM mirror — TargetPicker. Asserts the panel title, tab labels, and
- * the no-target header state mirror across host and station.
+ * Widget DOM mirror — TargetPicker. Asserts the panel title mirrors across
+ * host and station, and (on the host, which mounts the stream provider) the
+ * available-target LIST renders from the fixture's `target.available` entries
+ * while the selected-target summary stays on its no-target branch.
  *
- * The recorded fixture's final snapshot has tar.name = "No Target Selected."
- * — the KSP NO_TARGET_SENTINEL, which `resolveTargetName` maps to undefined.
- * So the header renders the title and tabs but NOT the current-target chip
- * (it only appears when a target is set). The tab labels render regardless of
- * data state, so they're a stable mirror assertion.
+ * Fixture snapshot (`sitrep-stream-server.mjs`):
+ *   - target.available.entries = [{Mun, Body}, {Minmus, Body}]  (isCurrent:false)
+ *   - vessel.target            = null  (nothing selected)
+ *
+ * So on the host the widget renders:
+ *   - a collapsible "Bodies (2)" category section (TargetPicker uses
+ *     disclosure `<button aria-expanded>` sections + a "Suggested" section,
+ *     NOT a tablist — there is no `role="tab"` and no "Current" tab anywhere
+ *     in the component; the pre-2026-07-26 assertions asserted a tab UI that
+ *     never existed, which is why this test was `fixme`),
+ *   - the Mun / Minmus rows (each also mirrored into "Suggested"), and
+ *   - "No target set in KSP." for the selected-target summary, because
+ *     `vessel.target` is null (adding the LIST does not select a target —
+ *     the two are separate Topics, so DistanceToTarget's no-target branch is
+ *     untouched).
+ *
+ * Station-side scope: only the "TARGET PICKER" title (static chrome) is
+ * checked on the station — the list is live Sitrep data and only the MAIN
+ * screen mounts `SitrepTelemetryProvider` today (station stream forwarding
+ * over PeerJS is a documented pending gap). On the station the widget sits on
+ * "Waiting for target list…", by design, not a bug.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror — TargetPicker", () => {
-  // FIXME(fixture): TargetPicker's whole list (Bodies/Vessels/Parts tabs)
-  // derives from the `target.available` stream Topic, which the recorded
-  // replay fixture does NOT carry (sitrep-stream-server.mjs SNAPSHOT omits it,
-  // and its header warns against adding topics carelessly). So the widget sits
-  // on "Waiting for target list…" and never renders its tabs. This is NOT the
-  // consent/loader issue (the consent fix merely unmasked it, and it is NOT a
-  // kos dependency — the list is not a kos feed) — it needs a fixture-design
-  // decision to add a synthetic `target.available` to the curated recording.
-  // Tracked separately; see the fleet report 2026-07-26.
-  test.fixme("title, tabs, and no-target header mirror across host and station", async ({
+  test("title mirrors; available-target list + no-target summary render on host", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "target-picker", {
@@ -32,23 +41,36 @@ test.describe("widget DOM mirror — TargetPicker", () => {
       },
     });
 
+    // Static chrome — the panel title mirrors on both screens.
     for (const page of [pair.main, pair.station]) {
       await expect(
         page.getByText("TARGET PICKER", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByRole("tab", { name: "Bodies" })).toBeVisible({
-        timeout: 15_000,
-      });
-      await expect(page.getByRole("tab", { name: "Vessels" })).toBeVisible({
-        timeout: 15_000,
-      });
-      await expect(page.getByRole("tab", { name: "Current" })).toBeVisible({
-        timeout: 15_000,
-      });
-      // No target in the fixture (NO_TARGET_SENTINEL) -> the current-target
-      // chip is absent, on both screens.
-      await expect(page.getByLabel(/^Current target:/)).toHaveCount(0);
     }
+
+    // Host (stream provider mounted): the list rendered from the two fixture
+    // body entries. The "Bodies (2)" disclosure button is the real DOM the
+    // component emits (a `<button aria-expanded>` whose accessible name is
+    // "Bodies (2)" — the ▸ chevron is aria-hidden); its presence + count of 2
+    // proves `target.available` was carried and parsed.
+    await expect(
+      pair.main.getByRole("button", { name: /Bodies \(2\)/ }),
+    ).toBeVisible({ timeout: 15_000 });
+    // The waiting placeholder is gone once the list arrives.
+    await expect(pair.main.getByText(/Waiting for target list/)).toHaveCount(0);
+    // The two body entries render as rows (each also mirrored into the
+    // "Suggested" section, so it appears more than once — assert at least one).
+    await expect(
+      pair.main.getByText("Mun", { exact: true }).first(),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      pair.main.getByText("Minmus", { exact: true }).first(),
+    ).toBeVisible({ timeout: 15_000 });
+    // No target is SELECTED (vessel.target = null) — the selected-target
+    // summary stays on its no-target branch even though the list is populated.
+    await expect(
+      pair.main.getByText("No target set in KSP.", { exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
 
     await teardownPair(pair);
   });
