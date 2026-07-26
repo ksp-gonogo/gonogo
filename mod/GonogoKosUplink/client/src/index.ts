@@ -15,7 +15,7 @@
 //     KosTerminal doesn't use that pattern, it reads kos.processors and
 //     the terminal frame stream directly.
 //
-// To wire it into the app: `import "@ksp-gonogo/kos";` during app bootstrap
+// To wire it into the app: `import "@ksp-gonogo/gonogo-kos-uplink";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
 // Everything kOS-specific lives in this package: the CPU registry, the

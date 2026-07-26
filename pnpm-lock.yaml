@@ -413,9 +413,6 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
-      '@ksp-gonogo/avionics':
-        specifier: workspace:*
-        version: link:../../mod/GonogoAvionicsUplink/client
       '@ksp-gonogo/components':
         specifier: workspace:*
         version: link:../components
@@ -425,21 +422,24 @@ importers:
       '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../data
-      '@ksp-gonogo/kerbalism':
+      '@ksp-gonogo/gonogo-avionics-uplink':
+        specifier: workspace:*
+        version: link:../../mod/GonogoAvionicsUplink/client
+      '@ksp-gonogo/gonogo-kerbalism-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKerbalismUplink/client
-      '@ksp-gonogo/kerbcast-feed':
+      '@ksp-gonogo/gonogo-kerbcast-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKerbcastUplink/client
-      '@ksp-gonogo/kos':
+      '@ksp-gonogo/gonogo-kos-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKosUplink/client
+      '@ksp-gonogo/gonogo-scansat-uplink':
+        specifier: workspace:*
+        version: link:../../mod/GonogoScansatUplink/client
       '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@ksp-gonogo/scansat':
-        specifier: workspace:*
-        version: link:../../mod/GonogoScansatUplink/client
       '@ksp-gonogo/serial':
         specifier: workspace:*
         version: link:../serial
@@ -565,7 +565,7 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
-      '@ksp-gonogo/kos':
+      '@ksp-gonogo/gonogo-kos-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKosUplink/client
       '@ksp-gonogo/sitrep-sdk':

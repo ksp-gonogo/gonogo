@@ -20,8 +20,8 @@ able to write an Uplink too.
 
 | Component | Licence | Why |
 |---|---|---|
-| `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/kos`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
-| `mod/GonogoScansatUplink` (+ `@ksp-gonogo/scansat`) | GPL-3.0-only | **Provisional — on hold.** See below. |
+| `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-kos-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
+| `mod/GonogoScansatUplink` (+ `@ksp-gonogo/gonogo-scansat-uplink`) | GPL-3.0-only | **Provisional — on hold.** See below. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
 Both exceptions are **dependency leaves** — nothing in the repository references either one — so
@@ -55,7 +55,7 @@ to govern, the problem is bigger than a licence field, because we link the DLL. 
 
 **gonogo's own source is MIT. The *built SPA bundle* is not currently MIT-usable as a whole.**
 
-`@ksp-gonogo/app` depends (via `@ksp-gonogo/kerbcast-feed`) on `@ksp-gonogo/kerbcast` and
+`@ksp-gonogo/app` depends (via `@ksp-gonogo/gonogo-kerbcast-uplink`) on `@ksp-gonogo/kerbcast` and
 `@ksp-gonogo/kerbcast-react` — the camera client SDKs from the sibling kerbcast repo — which are
 currently **CC-BY-NC-SA-4.0**. Those SDKs are bundled into the shipped artifact, not merely
 aggregated alongside it. So the deployed SPA carries a NonCommercial restriction that gonogo's own

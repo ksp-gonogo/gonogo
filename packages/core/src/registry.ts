@@ -201,10 +201,10 @@ export function getTheme(id: string): ThemeDefinition | undefined {
  * registry tests clear it explicitly with `clearAugments()` instead.
  *
  * Also deliberately does NOT clear the kOS script registry — that registry
- * now lives in the kos Uplink (`@ksp-gonogo/kos`'s `clearKosScripts`), not
+ * now lives in the kos Uplink (`@ksp-gonogo/gonogo-kos-uplink`'s `clearKosScripts`), not
  * core; core can never depend on a mod Uplink package. Tests that need a
  * clean kOS-script registry between cases call `clearKosScripts()` directly
- * from `@ksp-gonogo/kos`.
+ * from `@ksp-gonogo/gonogo-kos-uplink`.
  */
 export function clearRegistry(): void {
   components.clear();

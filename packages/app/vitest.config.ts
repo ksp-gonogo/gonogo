@@ -47,7 +47,7 @@ export default defineConfig({
       // Aliased to src so the topic-cs-sync test resolves it without a prior
       // build, same as the workspace deps above (scansat/kos/kerbcast-feed
       // resolve via their built dist).
-      "@ksp-gonogo/kerbalism": path.resolve(
+      "@ksp-gonogo/gonogo-kerbalism-uplink": path.resolve(
         import.meta.dirname,
         "../../mod/GonogoKerbalismUplink/client/src/index.ts",
       ),

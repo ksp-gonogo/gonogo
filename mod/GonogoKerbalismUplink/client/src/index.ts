@@ -1,4 +1,4 @@
-// @ksp-gonogo/kerbalism — the KerbalismUplink client package entry.
+// @ksp-gonogo/gonogo-kerbalism-uplink — the KerbalismUplink client package entry.
 //
 // Registers the Kerbalism Domain's bare-primitive presence Topic. Bare
 // side-effect import so bundlers never tree-shake the registration call.

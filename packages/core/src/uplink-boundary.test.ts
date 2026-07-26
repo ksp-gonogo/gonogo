@@ -71,7 +71,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // GonogoKerbcastUplink owns kerbcast's CONTROL plane (camera inventory,
     // capabilities, docking-port association, health, aim/zoom commands) — see
     // .superpowers/sdd/kerbcast-uplink-design.md. Its §8 left open whether the
-    // MEDIA half (the WebRTC/playout path, npm name @ksp-gonogo/kerbcast-feed)
+    // MEDIA half (the WebRTC/playout path, npm name @ksp-gonogo/gonogo-kerbcast-uplink)
     // folds into the Uplink's client; it now has: that package moved from
     // packages/kerbcast to this Uplink's client/ half, so ONE directory owns
     // both planes and the client is no longer a special-cased core package.
@@ -102,11 +102,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   },
   kos: {
     // "kos" alone false-matches inside unrelated words, so match only
-    // distinctive forms: the npm package, PascalCase Kos-prefixed
-    // identifiers, the kos.* topic namespaces, and the mod's own
-    // capitalisation "kOS".
+    // distinctive forms: the npm package (renamed to the
+    // gonogo-<mod>-uplink convention), PascalCase Kos-prefixed identifiers,
+    // the kos.* topic namespaces, and the mod's own capitalisation "kOS".
     patterns: [
-      /@ksp-gonogo\/kos/,
+      /@ksp-gonogo\/gonogo-kos-uplink/,
       /Kos[A-Z]/,
       /kos\.(processors|run|compute|terminal|keystroke)/,
       /kOS/,

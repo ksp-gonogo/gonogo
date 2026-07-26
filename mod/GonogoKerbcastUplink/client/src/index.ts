@@ -3,7 +3,7 @@
 // Co-located with the GonogoKerbcastUplink C# mod (mod/GonogoKerbcastUplink):
 // one directory holds the mod and the client TS it ships (Uplink architecture
 // §1), the same layout every sibling Uplink client uses. It keeps the npm name
-// `@ksp-gonogo/kerbcast-feed` — `@ksp-gonogo/kerbcast` is NOT available to
+// `@ksp-gonogo/gonogo-kerbcast-uplink` — `@ksp-gonogo/kerbcast` is NOT available to
 // rename onto, being the external kerbcast protocol SDK this package consumes
 // from public npm (see .npmrc). So the package NAME deviates from the sibling
 // convention; the layout does not.
@@ -33,7 +33,7 @@
 //     kerbcast wired directly into the core client — the thing this package's
 //     move exists to end.
 //
-// To wire it into the app: `import "@ksp-gonogo/kerbcast-feed";` during app
+// To wire it into the app: `import "@ksp-gonogo/gonogo-kerbcast-uplink";` during app
 // bootstrap (alongside the other data-source/registration imports in
 // app/src/dataSources/index.ts).
 

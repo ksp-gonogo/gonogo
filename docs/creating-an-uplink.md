@@ -277,7 +277,7 @@ in place of the published `bundleUrl`, so an edit-refresh loop is instant.
 That mod-side local-URL / dev-directory mechanism is not built yet (it is gated behind on-device Deck
 work). The dev path is a promise this guide is making, not a button that exists today. Until it lands, the
 first-party workflow is to develop your client as a workspace package imported into the app build (the
-`import "@ksp-gonogo/scansat"` line in `packages/app/src/main.tsx` is exactly this): the widget registers
+`import "@ksp-gonogo/gonogo-scansat-uplink"` line in `packages/app/src/main.tsx` is exactly this): the widget registers
 and renders in `pnpm dev` with a normal HMR loop, and you switch to the fetch-and-verify loader path only
 when you package for distribution. When the local-URL mechanism lands, this section will describe pointing
 the loader at your local build directly.

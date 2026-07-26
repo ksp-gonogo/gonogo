@@ -5,7 +5,7 @@
 // `KosCpuDiscovery` regardless of whether the KosTerminal WIDGET itself is
 // statically bundled or loaded at runtime via the Uplink loader
 // (`app/src/uplinks/loader.ts`). Before this split they imported those names
-// from the package root (`@ksp-gonogo/kos`), which forced evaluation of the
+// from the package root (`@ksp-gonogo/gonogo-kos-uplink`), which forced evaluation of the
 // WHOLE `index.ts` module — ES module evaluation always runs a module's full
 // top-level code once, regardless of which named export the importer actually
 // uses — including `export * from "./KosTerminal"`, which self-registers the
@@ -23,7 +23,7 @@
 //
 // `index.ts` re-exports this file, so nothing downstream of the package root
 // loses access to these names — only MainScreen/StationScreen need to import
-// from `@ksp-gonogo/kos/runtime` specifically instead of the package root.
+// from `@ksp-gonogo/gonogo-kos-uplink/runtime` specifically instead of the package root.
 
 import "./uplink"; // defineUplinkClient(KOS) — idempotent re-registration
 import "./dataSource/kos"; // registerUplinkHandle("kos", kosSource) — idempotent

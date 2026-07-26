@@ -1,7 +1,7 @@
 /**
  * `ViewClock`'s certainty-horizon math, extracted as pure functions so a
  * SECOND context — the kerbcast per-frame video-delay worker
- * (`@ksp-gonogo/kerbcast-feed`'s `worker/` glue) — can mirror it EXACTLY,
+ * (`@ksp-gonogo/gonogo-kerbcast-uplink`'s `worker/` glue) — can mirror it EXACTLY,
  * never forking the formula (cross-browser kerbcast video-delay design,
  * 2026-07-16, "Clock seam"). `ViewClock` itself is refactored to call these
  * same functions (`view-clock.ts`'s `utNowEstimate`/`confirmedEdgeUt`), so

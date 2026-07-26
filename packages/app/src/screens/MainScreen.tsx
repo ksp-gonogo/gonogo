@@ -23,12 +23,12 @@ import {
   KERBCAST_EVENTS_TOPIC,
   kerbcastSource,
   useKerbcastMainConnect,
-} from "@ksp-gonogo/kerbcast-feed/runtime";
+} from "@ksp-gonogo/gonogo-kerbcast-uplink/runtime";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
   KosCpuDiscovery,
-} from "@ksp-gonogo/kos/runtime";
+} from "@ksp-gonogo/gonogo-kos-uplink/runtime";
 import {
   InputDispatcher,
   SerialDeviceProvider,

@@ -119,8 +119,8 @@ function renderApp(): void {
 // here — it mounts `<App>`, which is what renders `StationScreen` at all.
 async function registerScansatAndRender(): Promise<void> {
   const staticImports = Promise.all([
-    import("@ksp-gonogo/kerbalism"),
-    import("@ksp-gonogo/avionics"),
+    import("@ksp-gonogo/gonogo-kerbalism-uplink"),
+    import("@ksp-gonogo/gonogo-avionics-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

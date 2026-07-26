@@ -6,11 +6,11 @@ import { fileURLToPath } from "node:url";
 // read `getAllKnownTopicIds()` the runtime registry holds the full union — the SDK's own
 // Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
-import "@ksp-gonogo/kerbalism";
-import "@ksp-gonogo/avionics";
-import "@ksp-gonogo/kerbcast-feed";
-import "@ksp-gonogo/kos";
-import "@ksp-gonogo/scansat";
+import "@ksp-gonogo/gonogo-kerbalism-uplink";
+import "@ksp-gonogo/gonogo-avionics-uplink";
+import "@ksp-gonogo/gonogo-kerbcast-uplink";
+import "@ksp-gonogo/gonogo-kos-uplink";
+import "@ksp-gonogo/gonogo-scansat-uplink";
 import { getAllKnownTopicIds } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 

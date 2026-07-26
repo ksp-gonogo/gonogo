@@ -35,7 +35,7 @@ import { MinimapForActiveVessel } from "./Minimap";
 //
 // Scanning is a SCANsat-OWNED widget that nonetheless exposes slots OTHER
 // Uplinks fill — a cross-Uplink example — even before the package
-// itself moves to `@ksp-gonogo/scansat`. Two slots:
+// itself moves to `@ksp-gonogo/gonogo-scansat-uplink`. Two slots:
 //
 // `scanning.sections` — a body/section slot appended to the per-scan-type
 // coverage list. The flagship future filler is another scanning mod
