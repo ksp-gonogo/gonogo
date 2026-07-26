@@ -143,14 +143,16 @@ test.describe("widget DOM mirror", () => {
     await seedContext(stationContext, "gonogo:dashboard:station");
 
     const main = await mainContext.newPage();
-    await main.goto(MAIN_URL);
+    // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal
+    // over the dashboard (see helpers.ts bootstrapPair for the full why).
+    await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
     await expect(main.getByText("ORBIT", { exact: true })).toBeVisible({
       timeout: 30_000,
     });
     const peerId = await getHostPeerId(main);
 
     const station = await stationContext.newPage();
-    await station.goto(`${STATION_URL}?host=${peerId}`);
+    await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
     await expect(station.getByText("ORBIT", { exact: true })).toBeVisible({
       timeout: 30_000,
     });

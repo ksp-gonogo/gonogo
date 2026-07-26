@@ -78,7 +78,7 @@ test.describe("station connects directly via the share code", () => {
     const stationContext = await browser.newContext();
 
     const main = await mainContext.newPage();
-    await main.goto(MAIN_URL);
+    await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
     await expect(
       main.getByRole("button", { name: /add component/i }),
     ).toBeVisible({ timeout: 30_000 });
@@ -90,7 +90,7 @@ test.describe("station connects directly via the share code", () => {
     expect(shareCode).not.toBe(peerId);
 
     const station = await stationContext.newPage();
-    await station.goto(`${STATION_URL}?host=${shareCode}`);
+    await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);
 
     // Reaching the dashboard means the station derived the host's id from the
     // share code, connected over the broker, and completed the data handshake.
@@ -113,7 +113,7 @@ test.describe("main + station co-resident", () => {
     const stationContext = await browser.newContext();
 
     const main = await mainContext.newPage();
-    await main.goto(MAIN_URL);
+    await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
 
     // Main eventually opens its PeerJS connection — the dashboard renders
     // first (so the assertion isn't gated on widgets that might take time
@@ -130,7 +130,7 @@ test.describe("main + station co-resident", () => {
     // "Connect" form — the host param triggers auto-connect (the station
     // derives `gonogo-host-<code>` and connects directly).
     const station = await stationContext.newPage();
-    await station.goto(`${STATION_URL}?host=${shareCode}`);
+    await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);
 
     // The schema-arrival flip is the cleanest "we're connected" signal.
     // Until the host's schema lands, the station sits on the connection

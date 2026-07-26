@@ -201,13 +201,19 @@ export async function bootstrapPair(
   const stationContext = await browser.newContext(opts.contextOptions);
   await seedContext(stationContext, "gonogo:dashboard:station", dashboard);
 
+  // Boot with an empty `?uplinkLoaderIds=` override so the runtime Uplink
+  // loader loads NOTHING (same mechanism uplink-hub-wizard.spec.ts uses).
+  // These specs test widget rendering + the peer handshake, not the loader;
+  // without this the per-Uplink consent modal ("Load Uplink …?") covers the
+  // screen and `waitForMain` times out. `&` for the station because `?host=`
+  // is already present.
   const main = await mainContext.newPage();
-  await main.goto(MAIN_URL);
+  await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
   await opts.waitForMain(main);
   const peerId = await getHostPeerId(main);
 
   const station = await stationContext.newPage();
-  await station.goto(`${STATION_URL}?host=${peerId}`);
+  await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
   await (opts.waitForStation ?? opts.waitForMain)(station);
 
   return { mainContext, stationContext, main, station, peerId };

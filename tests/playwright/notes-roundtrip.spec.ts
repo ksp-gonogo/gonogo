@@ -127,14 +127,15 @@ test.describe("notes widget round-trip", () => {
     await seedContext(stationContext, "gonogo:dashboard:station");
 
     const main = await mainContext.newPage();
-    await main.goto(MAIN_URL);
+    // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal.
+    await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
     await expect(main.getByLabel(NOTES_INPUT_LABEL)).toBeVisible({
       timeout: 30_000,
     });
     const peerId = await getHostPeerId(main);
 
     const station = await stationContext.newPage();
-    await station.goto(`${STATION_URL}?host=${peerId}`);
+    await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
     await expect(station.getByLabel(NOTES_INPUT_LABEL)).toBeVisible({
       timeout: 30_000,
     });

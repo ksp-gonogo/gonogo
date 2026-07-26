@@ -45,7 +45,8 @@ test.describe("Serial devices — graceful degradation", () => {
       }
     });
 
-    await page.goto(MAIN_URL);
+    // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal.
+    await page.goto(`${MAIN_URL}?uplinkLoaderIds=`);
 
     // Open Settings from the FAB. Secondary FABs are hidden
     // (pointer-events:none) until the cluster is active; focusing the button
