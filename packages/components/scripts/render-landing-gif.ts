@@ -9,9 +9,11 @@
  *   1. Integrate the descent (shared with synthesize-landing-descent.ts), sample
  *      ~N evenly-spaced frames, write each as a `_stream` render fixture into a
  *      temp dir under `src/` (fixturesPath is relative to src/).
- *   2. `renderWidget` at one FIXED-size mode (so every frame is the same pixel
- *      box — the GIF needs uniform frames) → one PNG per frame.
- *   3. Stitch the PNGs into a looping GIF with ImageMagick (`convert`).
+ *   2. `renderWidgets` with `fullContent` (grow `#root` to the content height
+ *      before capture) so the WHOLE widget is captured, nothing clipped below
+ *      the fold → one PNG per frame at that frame's natural height.
+ *   3. Pad every frame to the tallest frame's height (top-aligned, panel bg) so
+ *      the GIF has uniform frames, then stitch into a looping GIF (ImageMagick).
  *   4. Clean up the temp fixtures + scratch PNGs.
  *
  * Output: `local_docs/renders/landing-widget/landing-descent-15s.gif`
@@ -28,7 +30,7 @@ import {
   integrate,
   streamFixture,
 } from "./synthesize-landing-descent";
-import { renderWidget } from "./widgetRenderHarness";
+import { renderWidgets } from "./widgetRenderHarness";
 
 const execFileAsync = promisify(execFile);
 
@@ -104,21 +106,55 @@ async function main(): Promise<void> {
       );
     }
 
-    // Fixed-size mode (NOT full-content) so every frame is the same box.
-    await renderWidget({
-      widgetId: "landing-status",
-      slug: "landing-gif",
-      fixturesPath: fixturesRel,
-      outPath: outRel,
-      modes: [{ name: "frame", w: 12, h: 20 }],
-    });
+    // fullContent grows #root to the natural content height before capture, so
+    // the whole widget is in frame (nothing clipped below the fold). Width is
+    // fixed by the mode (w=12); only height varies frame to frame.
+    await renderWidgets(
+      [
+        {
+          widgetId: "landing-status",
+          slug: "landing-gif",
+          fixturesPath: fixturesRel,
+          outPath: outRel,
+          modes: [{ name: "frame", w: 12, h: 20 }],
+        },
+      ],
+      { fullContent: true },
+    );
 
     const frameFiles = (await readdir(outAbs))
       .filter((f) => f.endsWith("--frame.png"))
-      .sort();
+      .sort()
+      .map((f) => join(outAbs, f));
     if (frameFiles.length === 0) {
       throw new Error(`No frame PNGs found in ${outAbs}`);
     }
+
+    // fullContent frames vary in height; the GIF needs uniform frames. Pad every
+    // frame up to the TALLEST frame's box, top-aligned, filling the extra space
+    // with the panel background (sampled from a frame corner) so the padding is
+    // seamless. Width is already uniform.
+    const dims = await execFileAsync("magick", [
+      "identify",
+      "-format",
+      "%w %h\n",
+      ...frameFiles,
+    ]);
+    let maxW = 0;
+    let maxH = 0;
+    for (const line of dims.stdout.trim().split("\n")) {
+      const [w, h] = line.trim().split(/\s+/).map(Number);
+      if (w > maxW) maxW = w;
+      if (h > maxH) maxH = h;
+    }
+    const bg = (
+      await execFileAsync("magick", [
+        frameFiles[0],
+        "-format",
+        "%[pixel:p{2,2}]",
+        "info:",
+      ])
+    ).stdout.trim();
 
     const outDir = resolve(LOCAL_DOCS, "renders/landing-widget");
     await mkdir(outDir, { recursive: true });
@@ -127,18 +163,25 @@ async function main(): Promise<void> {
       4,
       Math.round((TARGET_SECONDS * 100) / frameFiles.length),
     );
-    await execFileAsync("convert", [
+    await execFileAsync("magick", [
       "-loop",
       "0",
       "-delay",
       String(delayCs),
-      ...frameFiles.map((f) => join(outAbs, f)),
+      ...frameFiles,
+      "-gravity",
+      "north",
+      "-background",
+      bg,
+      "-extent",
+      `${maxW}x${maxH}`,
+      "+repage",
       "-layers",
       "optimize",
       gifOut,
     ]);
     console.log(
-      `\nWrote ${gifOut} (${frameFiles.length} frames @ ${delayCs}cs ≈ ${((frameFiles.length * delayCs) / 100).toFixed(1)}s)`,
+      `\nWrote ${gifOut} (${frameFiles.length} frames @ ${delayCs}cs ≈ ${((frameFiles.length * delayCs) / 100).toFixed(1)}s, ${maxW}x${maxH})`,
     );
   } finally {
     await rm(fixturesAbs, { recursive: true, force: true });

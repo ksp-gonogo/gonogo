@@ -39,7 +39,7 @@
           "vesselId": "synthetic-lander",
           "name": "Synthetic Lander",
           "vesselType": 0,
-          "situation": 0,
+          "situation": 6,
           "parentBodyIndex": 3,
           "launchUt": null
         }

@@ -206,11 +206,22 @@ function LandingStatusComponent({
     totalMass: propulsion?.totalMass,
   });
 
+  // Touched down: a landed (or splashed) vessel can still report a residual
+  // altitude + a stale time-to-impact, so gate the descent clocks on the landed
+  // STATE rather than on the impact figure. `vessel.surface.landedAt` (the UT of
+  // touchdown) is the direct, reliable signal; the situation-name / splashed
+  // flags back it up where a source populates those instead.
+  const landed =
+    surface?.landedAt != null ||
+    vs?.situationName === "Landed" ||
+    vs?.isSplashed === true;
+
   const oneWaySeconds = readOneWaySeconds(commsDelay);
   const clocks = deriveDelayClocks({
     oneWaySeconds,
     suicideBurnCountdown: solution.suicideBurnCountdown,
     timeToImpact: solution.timeToImpact,
+    landed,
   });
 
   const availableDv = summary?.totalDvActual ?? summary?.totalDvVac;
@@ -276,8 +287,10 @@ function LandingStatusComponent({
   });
   // The velocity vector + TWR only carry a meaningful vacuum picture for a
   // solved descent at a wide size; elsewhere fall back to the plain, always-
-  // valid velocity/height readouts.
-  const scopeShown = board === "vacuum-solved" && showScope;
+  // valid velocity/height readouts. Once landed we KEEP the spatial scope (the
+  // plots showing the vessel now AT the site) even though the burn solution has
+  // gone idle — a "touchdown confirmed" view, not a blank panel.
+  const scopeShown = (board === "vacuum-solved" || landed) && showScope;
 
   // ── Section fragments (composed into the layout below) ─────────────────────
 
@@ -340,62 +353,71 @@ function LandingStatusComponent({
   // Compact caption-over-value burn/touchdown readouts. `minColWidth` makes it
   // auto-column: one column in the narrow detail stack, a multi-column row when
   // it sits full-width underneath the plots.
-  const readoutsStack =
-    board === "vacuum-solved" ? (
-      <Grid minColWidth="130px" gap="sm">
-        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
-        <StackedField label="Burn duration">
-          {solution.burnDuration == null
-            ? "—"
-            : formatDuration(solution.burnDuration, { ms: true })}
-        </StackedField>
-        <StackedField label="Available dV">
-          {formatDv(availableDv)}
-        </StackedField>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "start",
-          }}
-        >
-          <ReadoutCaption>Affordable</ReadoutCaption>
-          {affordable == null ? (
-            <Value tone="muted">—</Value>
-          ) : (
-            <Badge tone={affordable ? "go" : "nogo"} size="sm">
-              {affordable ? "yes" : "insufficient dV"}
-            </Badge>
-          )}
-        </div>
-        <StackedField label="Touchdown (coast)">
-          {formatMps(solution.speedAtImpact)}
-        </StackedField>
-        <StackedField label="Touchdown (burn now)">
-          {solution.bestSpeedAtImpact == null
-            ? "—"
-            : formatMps(solution.bestSpeedAtImpact)}
-        </StackedField>
-        <StackedField label="Impact in">
-          {solution.timeToImpact == null
-            ? "—"
-            : formatDuration(solution.timeToImpact, { ms: true })}
-        </StackedField>
-        {vs?.targetDistance != null && (
-          <StackedField label="Target range">
-            {formatMeters(vs.targetDistance)}
-          </StackedField>
+  const readoutsStack = landed ? (
+    // Touchdown-confirmed readouts: the outcome-relevant numbers (how soft, how
+    // much fuel is left), not the now-void in-flight burn countdowns. The site
+    // verdict + biome/slope ride the banner + terrain readout above.
+    <Grid minColWidth="130px" gap="sm">
+      <StackedField label="Touchdown speed">
+        {formatMps(flight?.surfaceSpeed ?? solution.horizontalSpeed)}
+      </StackedField>
+      <StackedField label="Fuel remaining">
+        {formatDv(availableDv)}
+      </StackedField>
+    </Grid>
+  ) : board === "vacuum-solved" ? (
+    <Grid minColWidth="130px" gap="sm">
+      <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
+      <StackedField label="Burn duration">
+        {solution.burnDuration == null
+          ? "—"
+          : formatDuration(solution.burnDuration, { ms: true })}
+      </StackedField>
+      <StackedField label="Available dV">{formatDv(availableDv)}</StackedField>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "start",
+        }}
+      >
+        <ReadoutCaption>Affordable</ReadoutCaption>
+        {affordable == null ? (
+          <Value tone="muted">—</Value>
+        ) : (
+          <Badge tone={affordable ? "go" : "nogo"} size="sm">
+            {affordable ? "yes" : "insufficient dV"}
+          </Badge>
         )}
-        {scopeShown && descentHistory.length >= 2 && (
-          <Sparkline
-            values={descentHistory}
-            width={120}
-            height={24}
-            ariaLabel="Descent-rate trend"
-          />
-        )}
-      </Grid>
-    ) : null;
+      </div>
+      <StackedField label="Touchdown (coast)">
+        {formatMps(solution.speedAtImpact)}
+      </StackedField>
+      <StackedField label="Touchdown (burn now)">
+        {solution.bestSpeedAtImpact == null
+          ? "—"
+          : formatMps(solution.bestSpeedAtImpact)}
+      </StackedField>
+      <StackedField label="Impact in">
+        {landed || solution.timeToImpact == null
+          ? "—"
+          : formatDuration(solution.timeToImpact, { ms: true })}
+      </StackedField>
+      {vs?.targetDistance != null && (
+        <StackedField label="Target range">
+          {formatMeters(vs.targetDistance)}
+        </StackedField>
+      )}
+      {scopeShown && descentHistory.length >= 2 && (
+        <Sparkline
+          values={descentHistory}
+          width={120}
+          height={24}
+          ariaLabel="Descent-rate trend"
+        />
+      )}
+    </Grid>
+  ) : null;
 
   const boardEl =
     board === "atmospheric-aware" ? (
@@ -459,7 +481,7 @@ function LandingStatusComponent({
   ) : null;
 
   const divertEl =
-    vs?.targetDistance != null ? (
+    !landed && vs?.targetDistance != null ? (
       <Section>
         <SectionTitle>Divert</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
@@ -478,6 +500,7 @@ function LandingStatusComponent({
       committed={clocks.committed}
       blindInSeconds={clocks.blindInSeconds}
       blind={clocks.blind}
+      landed={landed}
     />
   );
 
@@ -579,7 +602,7 @@ function LandingStatusComponent({
         </PanelSubtitle>
       )}
 
-      {board === "not-descending" ? (
+      {board === "not-descending" && !landed ? (
         <PanelBody>
           <EmptyState>No landing in progress</EmptyState>
         </PanelBody>
@@ -600,8 +623,10 @@ function LandingStatusComponent({
             <div style={{ flex: "0 0 auto", width: 64 }}>
               <AltitudeRail
                 aglMeters={heightFromTerrain ?? null}
-                ignitionAltitude={solution.ignitionAltitude}
-                suicideBurnCountdown={solution.suicideBurnCountdown}
+                ignitionAltitude={landed ? null : solution.ignitionAltitude}
+                suicideBurnCountdown={
+                  landed ? null : solution.suicideBurnCountdown
+                }
               />
             </div>
           )}

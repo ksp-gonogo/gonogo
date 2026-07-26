@@ -44,6 +44,8 @@ function emitVessel(
       surfaceSpeed: number;
     };
     availableThrust?: number;
+    /** Situation ordinal (0 = Landed, 6 = SubOrbital, the descending default). */
+    situation?: number;
   },
 ) {
   stream.emit("system.bodies", {
@@ -61,7 +63,7 @@ function emitVessel(
     vesselId: "test-vessel",
     name: "Test Vessel",
     vesselType: 0,
-    situation: 0,
+    situation: opts.situation ?? 6,
     parentBodyIndex: opts.body.index,
     launchUt: null,
   });
@@ -336,6 +338,47 @@ describe("LandingStatusComponent", () => {
     expect(statuses.some((s) => /DIVERT/.test(s.textContent ?? ""))).toBe(true);
     // The source is surfaced honestly.
     expect(screen.getAllByText(/predicted/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows a touchdown-confirmed view once landed — plots kept, countdowns gone", async () => {
+    renderWidget({ w: 12, h: 20 });
+    act(() => {
+      emitVessel(stream, {
+        body: MUN,
+        quality: Quality.Loaded,
+        situation: 0, // Landed
+        descent: {
+          heightFromTerrain: 0.4,
+          verticalSpeed: 0,
+          surfaceSpeed: 0,
+        },
+        availableThrust: 20,
+      });
+      stream.emit("vessel.landing", {
+        outcome: "terrain-assessed",
+        sampleSource: "predicted",
+        predictedLatitude: 0.5,
+        predictedLongitude: 0.5,
+        predictedSlopeAngle: 3,
+        predictedSlopeHeading: 80,
+        predictedRoughness: 20,
+        predictedBiome: "Lowlands",
+      });
+    });
+    // Confident touchdown confirmation, not a blank panel.
+    expect(await screen.findByText("LANDED")).toBeInTheDocument();
+    expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
+    // Spatial context is KEPT: both altimetry plots still render.
+    expect(
+      screen.getByRole("img", { name: /touchdown site/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /ground speed/i }),
+    ).toBeInTheDocument();
+    // The now-void in-flight countdowns are gone.
+    expect(screen.queryByText(/Blind in/i)).toBeNull();
+    expect(screen.queryByText(/COMMIT IN/i)).toBeNull();
+    expect(screen.queryByText(/No landing in progress/i)).toBeNull();
   });
 
   it("shows the delayed regime banner off comms.delay", async () => {

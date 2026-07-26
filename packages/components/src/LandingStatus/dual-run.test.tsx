@@ -65,7 +65,9 @@ describe("LandingStatus — atmospheric stream render golden (delay=0)", () => {
         vesselId: "test-vessel",
         name: "Test Vessel",
         vesselType: 0,
-        situation: 0,
+        // Reentering (descending), not landed — situation SubOrbital, so the
+        // landed-state gate doesn't fire on an in-flight vessel.
+        situation: 6,
         parentBodyIndex: 1,
         launchUt: null,
       });

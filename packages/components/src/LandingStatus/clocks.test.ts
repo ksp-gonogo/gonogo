@@ -30,6 +30,23 @@ describe("classifyRegime", () => {
 });
 
 describe("deriveDelayClocks", () => {
+  it("collapses every clock when LANDED — no stale future countdown", () => {
+    // Reproduces the bug: a landed vessel can still report a non-zero
+    // time-to-impact (residual CoM altitude, zero descent rate), which used to
+    // surface as "Blind in ~46s" long after touchdown.
+    const c = deriveDelayClocks({
+      oneWaySeconds: 2,
+      suicideBurnCountdown: 30,
+      timeToImpact: 50,
+      landed: true,
+    });
+    expect(c.landed).toBe(true);
+    expect(c.blindInSeconds).toBeNull();
+    expect(c.blind).toBe(false);
+    expect(c.commitInSeconds).toBeNull();
+    expect(c.committed).toBe(false);
+  });
+
   it("no path => no clocks, no-path regime", () => {
     const c = deriveDelayClocks({
       oneWaySeconds: null,
