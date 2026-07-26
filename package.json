@@ -14,6 +14,7 @@
     "test": "turbo test",
     "test:playwright": "playwright test",
     "typecheck": "turbo typecheck",
+    "visual-preview": "scripts/visual-preview.sh",
     "coverage": "vitest run --coverage",
     "lint": "biome check --write .",
     "release:patch": "node scripts/release.mjs patch",
