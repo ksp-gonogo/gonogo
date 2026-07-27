@@ -21,6 +21,12 @@ const APP_PORT = 15173;
 // Deliberately NOT the production default 8090 — same "don't collide with a
 // developer's own dev stack" rationale as APP_PORT/RELAY_PORT above.
 const SITREP_REPLAY_PORT = 18090;
+// A SEPARATE fake Sitrep server/port carrying `vessel.parts`/`dv.*`/
+// `vessel.structure` on top of the same base snapshot — see
+// sitrep-stream-server-topology.mjs's doc comment for why this can't just be
+// added to the shared SITREP_REPLAY_PORT server. Used only by
+// power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
+const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
 // The relay (/ice-config + coturn + the host-discovery registry).
 //
 // Port deliberately offset from the production default (3002) so the
@@ -88,6 +94,17 @@ export default defineConfig({
       timeout: 15_000,
       env: {
         SITREP_REPLAY_PORT: String(SITREP_REPLAY_PORT),
+      },
+    },
+    {
+      command: "node ./tests/playwright/sitrep-stream-server-topology.mjs",
+      url: `http://localhost:${SITREP_REPLAY_TOPOLOGY_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 15_000,
+      env: {
+        SITREP_REPLAY_TOPOLOGY_PORT: String(SITREP_REPLAY_TOPOLOGY_PORT),
       },
     },
     {
@@ -163,6 +180,7 @@ export const PORTS = {
   app: APP_PORT,
   broker: BROKER_PORT,
   sitrepReplay: SITREP_REPLAY_PORT,
+  sitrepReplayTopology: SITREP_REPLAY_TOPOLOGY_PORT,
   relay: RELAY_PORT,
   preview: PREVIEW_PORT,
 } as const;

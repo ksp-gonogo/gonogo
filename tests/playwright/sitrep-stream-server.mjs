@@ -40,9 +40,15 @@
  * topic resolves to `undefined` forever, no throw — see
  * `packages/core/src/hooks/useTelemetry.ts`). A handful of widget specs rely
  * on exactly that (ContractManager's "Awaiting contract telemetry",
- * PowerSystems's "Waiting for vessel topology…", TargetPicker/
- * DistanceToTarget's "no target" branch) — don't add those topics without
- * re-checking the spec that depends on their absence.
+ * TargetPicker/DistanceToTarget's "no target" branch) — don't add those
+ * topics without re-checking the spec that depends on their absence.
+ * `vessel.parts`/`dv.stages`/`dv.summary`/`vessel.structure` are deliberately
+ * ALSO never in `SNAPSHOT` for the same reason (this is what used to make
+ * PowerSystems fall into its "Waiting for vessel topology…" branch here) —
+ * power-systems.spec.ts/fuel-status.spec.ts now get that data from a
+ * SEPARATE fixture/port instead: see `sitrep-stream-server-topology.mjs`,
+ * which imports `startReplayServer` below and layers those topics on top of
+ * this same `SNAPSHOT` without mutating it.
  *
  * `vessel.state.*` (the derived, quality-picked kinematics/body-name
  * surface most widgets actually read) only produces ANY field once ALL
@@ -101,7 +107,7 @@ const KERBIN_INDEX = 1;
 const KERBIN_MU = 3.5316e12; // stock Kerbin GM
 const KERBIN_RADIUS = 600000; // stock Kerbin mean radius, metres
 
-const SNAPSHOT = {
+export const SNAPSHOT = {
   "system.bodies": {
     bodies: [
       {
@@ -307,89 +313,114 @@ const SNAPSHOT = {
   },
 };
 
-let seq = 0;
+/**
+ * Starts a replay server. `extraTopics` (if given) is shallow-merged OVER
+ * `SNAPSHOT` — used by `sitrep-stream-server-topology.mjs` to stand up a
+ * SEPARATE server/port carrying `vessel.parts`/`dv.*`/`vessel.structure`
+ * for the power-systems/fuel-status specs, without touching this module's
+ * own `SNAPSHOT` (and therefore without touching any spec that runs
+ * against the plain port). Exported so that variant script can reuse this
+ * server plumbing instead of duplicating it.
+ */
+export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
+  const snapshot = { ...SNAPSHOT, ...extraTopics };
+  let seq = 0;
 
-const http = createServer((req, res) => {
-  if (req.url === "/version") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ version: "fake", buildTime: "test" }));
-    return;
-  }
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("ok\n");
-    return;
-  }
-  res.writeHead(404);
-  res.end();
-});
-
-// No fixed `path` — the real mod server accepts the WebSocket at its root
-// (WebSocketTransport builds `ws://host:port` with no path suffix).
-const wss = new WebSocketServer({ server: http });
-
-let connectCount = 0;
-
-wss.on("connection", (ws) => {
-  connectCount += 1;
-  const myId = connectCount;
-  process.stdout.write(`[sitrep-replay] connect (#${myId})\n`);
-  const subs = new Set();
-
-  function sendSnapshot(topic) {
-    if (!(topic in SNAPSHOT) || ws.readyState !== ws.OPEN) return;
-    seq += 1;
-    ws.send(
-      JSON.stringify({
-        type: "stream-data",
-        topic,
-        payload: SNAPSHOT[topic],
-        meta: frameMeta(seq),
-      }),
-    );
-  }
-
-  // Periodic re-emit — mirrors the mod's own periodic reconfirmation and
-  // covers the same "late subscriber" race the Telemachus replay server's
-  // own ticker existed for.
-  const ticker = setInterval(() => {
-    if (ws.readyState !== ws.OPEN) return;
-    for (const topic of subs) sendSnapshot(topic);
-  }, 250);
-
-  ws.on("message", (raw) => {
-    const text = raw.toString("utf8");
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
+  const http = createServer((req, res) => {
+    if (req.url === "/version") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ version: "fake", buildTime: "test" }));
       return;
     }
-    if (typeof data !== "object" || data === null) return;
-
-    if (data.type === "subscribe" && typeof data.topic === "string") {
-      subs.add(data.topic);
-      sendSnapshot(data.topic);
-    } else if (data.type === "unsubscribe" && typeof data.topic === "string") {
-      subs.delete(data.topic);
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("ok\n");
+      return;
     }
+    res.writeHead(404);
+    res.end();
   });
 
-  ws.on("close", () => {
-    clearInterval(ticker);
-    process.stdout.write(`[sitrep-replay] disconnect (was #${myId})\n`);
-  });
-});
+  // No fixed `path` — the real mod server accepts the WebSocket at its root
+  // (WebSocketTransport builds `ws://host:port` with no path suffix).
+  const wss = new WebSocketServer({ server: http });
 
-http.listen(PORT, () => {
-  process.stdout.write(
-    `[sitrep-replay] listening on ws://localhost:${PORT} (snapshot model, ${Object.keys(SNAPSHOT).length} topics)\n`,
-  );
-});
+  let connectCount = 0;
 
-for (const sig of ["SIGINT", "SIGTERM"]) {
-  process.on(sig, () => {
-    process.stdout.write(`[sitrep-replay] received ${sig}, shutting down\n`);
-    http.close(() => process.exit(0));
+  wss.on("connection", (ws) => {
+    connectCount += 1;
+    const myId = connectCount;
+    process.stdout.write(`[sitrep-replay] connect (#${myId})\n`);
+    const subs = new Set();
+
+    function sendSnapshot(topic) {
+      if (!(topic in snapshot) || ws.readyState !== ws.OPEN) return;
+      seq += 1;
+      ws.send(
+        JSON.stringify({
+          type: "stream-data",
+          topic,
+          payload: snapshot[topic],
+          meta: frameMeta(seq),
+        }),
+      );
+    }
+
+    // Periodic re-emit — mirrors the mod's own periodic reconfirmation and
+    // covers the same "late subscriber" race the Telemachus replay server's
+    // own ticker existed for.
+    const ticker = setInterval(() => {
+      if (ws.readyState !== ws.OPEN) return;
+      for (const topic of subs) sendSnapshot(topic);
+    }, 250);
+
+    ws.on("message", (raw) => {
+      const text = raw.toString("utf8");
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return;
+      }
+      if (typeof data !== "object" || data === null) return;
+
+      if (data.type === "subscribe" && typeof data.topic === "string") {
+        subs.add(data.topic);
+        sendSnapshot(data.topic);
+      } else if (
+        data.type === "unsubscribe" &&
+        typeof data.topic === "string"
+      ) {
+        subs.delete(data.topic);
+      }
+    });
+
+    ws.on("close", () => {
+      clearInterval(ticker);
+      process.stdout.write(`[sitrep-replay] disconnect (was #${myId})\n`);
+    });
   });
+
+  http.listen(port, () => {
+    process.stdout.write(
+      `[sitrep-replay] listening on ws://localhost:${port} (snapshot model, ${Object.keys(snapshot).length} topics)\n`,
+    );
+  });
+
+  for (const sig of ["SIGINT", "SIGTERM"]) {
+    process.on(sig, () => {
+      process.stdout.write(`[sitrep-replay] received ${sig}, shutting down\n`);
+      http.close(() => process.exit(0));
+    });
+  }
+
+  return http;
+}
+
+// Only auto-start when run directly (`node sitrep-stream-server.mjs`), not
+// when imported by the topology variant script below.
+const isMain =
+  process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  startReplayServer();
 }

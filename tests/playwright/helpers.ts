@@ -35,10 +35,9 @@ import { PORTS } from "../../playwright.config";
 const MAIN_URL = "/";
 const STATION_URL = "/station";
 
-const SITREP_CONFIG = JSON.stringify({
-  host: "localhost",
-  port: PORTS.sitrepReplay,
-});
+function sitrepConfig(port: number = PORTS.sitrepReplay): string {
+  return JSON.stringify({ host: "localhost", port });
+}
 
 export interface DashboardItem {
   i: string;
@@ -93,6 +92,7 @@ export async function seedContext(
   context: BrowserContext,
   dashboardKey: "gonogo:dashboard:main" | "gonogo:dashboard:station",
   dashboard: ReturnType<typeof dashboardWithWidget>,
+  sitrepPort: number = PORTS.sitrepReplay,
 ): Promise<void> {
   const dashboardJson = JSON.stringify(dashboard);
   await context.addInitScript(
@@ -121,7 +121,7 @@ export async function seedContext(
       }
     },
     {
-      sitrepCfg: SITREP_CONFIG,
+      sitrepCfg: sitrepConfig(sitrepPort),
       dashboardKey,
       dashboard: dashboardJson,
     },
@@ -232,13 +232,34 @@ export async function bootstrapPair(
      * widget too.
      */
     loadUplinkIds?: string[];
+    /**
+     * Which fake Sitrep replay server/port this pair points at. Default
+     * `PORTS.sitrepReplay` — the shared snapshot every widget spec normally
+     * runs against, deliberately WITHOUT `vessel.parts`/`dv.*` (see
+     * sitrep-stream-server.mjs's doc comment). Pass
+     * `PORTS.sitrepReplayTopology` for a spec that needs real topology/ΔV
+     * data (power-systems, fuel-status) — a SEPARATE server carrying those
+     * extra topics on top of the same base snapshot, so the shared fixture
+     * (and every absence-dependent assertion built on it) is untouched.
+     */
+    sitrepPort?: number;
   },
 ): Promise<BootstrappedPair> {
   const dashboard = dashboardWithWidget(componentId, opts.widget);
   const mainContext = await browser.newContext(opts.contextOptions);
-  await seedContext(mainContext, "gonogo:dashboard:main", dashboard);
+  await seedContext(
+    mainContext,
+    "gonogo:dashboard:main",
+    dashboard,
+    opts.sitrepPort,
+  );
   const stationContext = await browser.newContext(opts.contextOptions);
-  await seedContext(stationContext, "gonogo:dashboard:station", dashboard);
+  await seedContext(
+    stationContext,
+    "gonogo:dashboard:station",
+    dashboard,
+    opts.sitrepPort,
+  );
 
   // `?uplinkLoaderIds=<ids>` controls what the runtime Uplink loader loads at
   // boot (same seam uplink-hub-wizard.spec.ts uses). Default is EMPTY = load
