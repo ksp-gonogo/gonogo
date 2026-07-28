@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "greenhouse-blocked",
-    "source": "ls.* fields: same as depleting.json — synthesised by scaling kerbalism-fixture-baseline-crp.json (food/water down to ~25%, drain faster, scrubber broken). greenhouse.* fields: Kerbalism source at the pinned kerbalism-src checkout — src/Kerbalism/Modules/Greenhouse.cs (`Greenhouse.Data` + `SimulateGreenhouse`'s lighting gate: `bool lighting = natural + artificial >= g.light_tolerance;`) and GameData/KerbalismConfig/Profiles/Default.cfg's `kerbalism-greenhouse` part config (same constants as greenhouse-growing.json). Issue text is the real localization string #KERBALISM_Greenhouse_issue1 = 'insufficient lighting' (GameData/Kerbalism/Localization/en-us.cfg) — the prior fixture used the near-miss string 'insufficient light', not the real one. CORRECTED: removed the fabricated 'growth'/'timeToHarvestSec' fields — see greenhouse-growing.json's _meta for the full explanation (no growth/harvest-countdown concept exists anywhere in Kerbalism; Food is a continuous ResourceRecipe output, gated on/off by natural+artificial < light_tolerance with no partial-credit accumulator). `greenhouse.lampEcDrawPerSec` here is the derived actual draw `ec_rate * (artificial / light_tolerance)` from SimulateGreenhouse's recipe construction (2.5 * (120/400) = 0.75), not the raw ec_rate config constant (see greenhouse.ecRateMaxPerSec, unchanged from config). No greenhouse capture path exists yet in mod/GonogoKerbalismUplink and no widget consumes this fixture as of this fix."
+    "source": "ls.* fields: same as depleting.json, synthesised by scaling kerbalism-fixture-baseline-crp.json (food/water down to ~25%, drain faster, scrubber broken). greenhouse.* fields: Kerbalism source at the pinned kerbalism-src checkout, src/Kerbalism/Modules/Greenhouse.cs (`Greenhouse.Data` + `SimulateGreenhouse`'s lighting gate: `bool lighting = natural + artificial >= g.light_tolerance;`) and GameData/KerbalismConfig/Profiles/Default.cfg's `kerbalism-greenhouse` part config (same constants as greenhouse-growing.json). Issue text is the real localization string #KERBALISM_Greenhouse_issue1 = 'insufficient lighting' (GameData/Kerbalism/Localization/en-us.cfg). CORRECTED (prior pass): removed the fabricated 'growth'/'timeToHarvestSec' fields, see greenhouse-growing.json's _meta for the full explanation (no growth/harvest-countdown concept exists anywhere in Kerbalism; Food is a continuous ResourceRecipe output, gated on/off by natural+artificial < light_tolerance with no partial-credit accumulator). `greenhouse.lampEcDrawPerSec` here is the derived actual draw `ec_rate * (artificial / light_tolerance)` from SimulateGreenhouse's recipe construction (2.5 * (120/400) = 0.75), not the raw ec_rate config constant (see greenhouse.ecRateMaxPerSec, unchanged from config). Note `active: true` even though the greenhouse is blocked, `active` is only the player's own on/off toggle, not whether it is currently producing; the widget's Growing/Blocked/Off badge derives state from `active` + `issue` together, never from `active` alone. FIXED (this pass): `greenhouse.foodRatePerSec` was carrying the same 0.0001148431 nominal rate as the growing fixture even though this scenario is lighting-gated off, real Kerbalism zeroes the ResourceRecipe entirely while `natural + artificial < light_tolerance` (40 + 120 = 160 < 400 here), so a blocked greenhouse produces nothing; corrected to 0. WIRED (this pass): `kerbalism.lifesupport.greenhouses` is now a real field on the wire contract (`KerbalismLifeSupport.Greenhouses` in mod/Sitrep.Contract/KerbalismPayloads.cs) and the widget renders it through the new `life-support.sections` augment slot (`LifeSupportSystems/GreenhouseSection.tsx`), fed here via the `_stream` block below, same reasoning as greenhouse-growing.json's _meta. STILL NOT wired: `GonogoKerbalismUplink`'s capture pipeline does not populate `greenhouses` yet; that reflection work is separate, out of scope for this pass. Until it lands, `greenhouses` arrives as `undefined` in production and the section renders nothing."
   },
   "ls.food.amount": 0.35,
   "ls.food.capacity": 1.35,
@@ -25,14 +25,98 @@
   "ls.process.wasteProcessor": 1,
   "ls.process.fuelCell": 0,
   "greenhouse.cropResource": "Food",
-  "greenhouse.foodRatePerSec": 0.0001148431,
+  "greenhouse.foodRatePerSec": 0,
   "greenhouse.natural": 40,
   "greenhouse.artificial": 120,
   "greenhouse.active": true,
   "greenhouse.issue": "insufficient lighting",
   "greenhouse.ecRateMaxPerSec": 2.5,
   "greenhouse.lampEcDrawPerSec": 0.75,
-  "greenhouse.lightToleranceWm2": 400.0,
+  "greenhouse.lightToleranceWm2": 400,
   "greenhouse.pressureTolerance": 0.1,
-  "greenhouse.radiationToleranceRadPerSec": 0.000008333
+  "greenhouse.radiationToleranceRadPerSec": 0.000008333,
+  "_stream": {
+    "carriedChannels": ["kerbalism.lifesupport"],
+    "emits": [
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "food": {
+            "amount": 0.35,
+            "capacity": 1.35,
+            "rate": -0.000036
+          },
+          "water": {
+            "amount": 0.19,
+            "capacity": 0.7,
+            "rate": -0.000019
+          },
+          "oxygen": {
+            "amount": 84.15,
+            "capacity": 187,
+            "rate": -0.0031
+          },
+          "electricCharge": {
+            "amount": 247.5,
+            "capacity": 450,
+            "rate": -0.12
+          },
+          "habitat": {
+            "pressure": 0,
+            "poisoning": 0.09,
+            "shielding": 0,
+            "livingSpace": 0.1,
+            "comfort": 0.22,
+            "volume": 0,
+            "surface": 0
+          },
+          "processes": [
+            {
+              "resource": "_Scrubber",
+              "title": "Scrubber",
+              "capacity": 1.67,
+              "running": false,
+              "broken": true
+            },
+            {
+              "resource": "_WaterRecycler",
+              "title": "Water recycler",
+              "capacity": 1.67,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_WasteProcessor",
+              "title": "Waste processor",
+              "capacity": 1.67,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_MonopropFuelCell",
+              "title": "Fuel cell",
+              "capacity": 1.67,
+              "running": false,
+              "broken": false
+            }
+          ],
+          "greenhouses": [
+            {
+              "cropResource": "Food",
+              "foodRatePerSec": 0,
+              "natural": 40,
+              "artificial": 120,
+              "active": true,
+              "issue": "insufficient lighting",
+              "ecRateMaxPerSec": 2.5,
+              "lampEcDrawPerSec": 0.75,
+              "lightToleranceWm2": 400,
+              "pressureTolerance": 0.1,
+              "radiationToleranceRadPerSec": 0.000008333
+            }
+          ]
+        }
+      }
+    ]
+  }
 }

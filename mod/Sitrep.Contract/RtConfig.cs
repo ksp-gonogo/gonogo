@@ -21,7 +21,7 @@ public static class RtConfig
         // Register directly via ExportAsInterface<T>(), which shares the same
         // TypeBlueprint the [TsInterface] attribute already created for the type.
         // AutoI(false) keeps the plain C# name (no I-prefix); WithPublicProperties
-        // emits DATA SHAPES ONLY — no constructors, no static factory methods
+        // emits DATA SHAPES ONLY, no constructors, no static factory methods
         // (e.g. Vec3's ctors, CommandResult.Ok/Fail) leak onto the wire type.
         builder.ExportAsInterface<Meta>().AutoI(false).WithPublicProperties().OverrideName("Meta");
         builder.ExportAsInterface<EventMsg>().AutoI(false).WithPublicProperties().OverrideName("EventMsg");
@@ -50,7 +50,7 @@ public static class RtConfig
         // The generic result carries a distinct name (CommandResultOf<T>) from its
         // non-generic base (CommandResult). Two `export interface CommandResult`
         // declarations of differing arity would be a TS2428 error ("all declarations
-        // must have identical type parameters") — TS interface-merging cannot span a
+        // must have identical type parameters"), TS interface-merging cannot span a
         // generic/non-generic pair. Renaming the generic sidesteps the collision while
         // keeping the base name stable; CommandResultOf<T> still `extends CommandResult`.
         builder.ExportAsInterfaces(
@@ -118,13 +118,13 @@ public static class RtConfig
                 typeof(KosComputeStatus),
                 typeof(KosExecArgs),
                 typeof(KosReEnableArgs),
-                // kos.terminal.<coreId> interactive terminal — downlink frame + command args
+                // kos.terminal.<coreId> interactive terminal, downlink frame + command args
                 typeof(KosTerminalFrame),
                 typeof(KosTerminalOpenArgs),
                 typeof(KosKeystrokeArgs),
                 typeof(KosTerminalResizeArgs),
                 typeof(KosTerminalCloseArgs),
-                // kos.run.<coreId> ad-hoc RPC (kos-uplink-full-migration.md) — command args + result
+                // kos.run.<coreId> ad-hoc RPC (kos-uplink-full-migration.md), command args + result
                 typeof(KosRunArgs),
                 typeof(KosRunResult),
                 // command args
@@ -180,7 +180,7 @@ public static class RtConfig
                 // science.experimentBreakdown per-subject rollup
                 typeof(ExperimentBreakdownEntry),
                 // system.* channel payloads + entries (P0.5)
-                // system.uplink.pending — the in-transit command queue snapshot
+                // system.uplink.pending, the in-transit command queue snapshot
                 // (engine-declared channel, no [SitrepTopic]; hand-declared in
                 // topics.ts). Registered here for AutoI(false) so the generated
                 // interfaces stay I-prefix-free like every other payload.
@@ -210,10 +210,10 @@ public static class RtConfig
                 // scansat.science payload (per-part map-experiment state)
                 typeof(ScanScienceEntry),
                 // scansat.anomalies.<body> dynamic-namespace element shape
-                // (typing-only — no [SitrepTopic], see ScanAnomalyEntry's doc)
+                // (typing-only, no [SitrepTopic], see ScanAnomalyEntry's doc)
                 typeof(ScanAnomalyEntry),
                 // kerbcast.cameras payload + its command args (control plane
-                // only — kerbcast's video stays on WebRTC, see KerbcastPayloads)
+                // only, kerbcast's video stays on WebRTC, see KerbcastPayloads)
                 typeof(KerbcastCameraEntry),
                 typeof(KerbcastSetFieldOfViewArgs),
                 typeof(KerbcastSetPanArgs),
@@ -222,7 +222,7 @@ public static class RtConfig
                 typeof(VesselPart),
                 typeof(PartBounds),
                 // vessel.parts per-part live data (resources/module state
-                // gap-close — un-gaps usePartsLive off the legacy source)
+                // gap-close, un-gaps usePartsLive off the legacy source)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),
                 // vessel.parts per-part action-group bindings (retires the
@@ -251,13 +251,13 @@ public static class RtConfig
                 typeof(RecoveryResourceEntry),
                 typeof(RecoveryCrewEntry),
                 // flight.current / flight.started / flight.ended / flight.vesselChanged
-                // — the flight-lifecycle domain (P4c-b flight-lifecycle spec,
+                //, the flight-lifecycle domain (P4c-b flight-lifecycle spec,
                 // 2026-07-11). Replaces the client-side FlightDetector heuristic.
                 typeof(FlightCurrent),
                 typeof(FlightStarted),
                 typeof(FlightEnded),
                 typeof(FlightVesselChanged),
-                // One NAMED custom action group on vessel.control.actionGroups —
+                // One NAMED custom action group on vessel.control.actionGroups,
                 // the element type that replaced the positional bool[].
                 typeof(ActionGroupState),
                 // kerbalism.* channels (Domain "kerbalism") + nested value shapes
@@ -265,6 +265,7 @@ public static class RtConfig
                 typeof(KerbalismResource),
                 typeof(KerbalismHabitat),
                 typeof(KerbalismProcessEntry),
+                typeof(KerbalismGreenhouseEntry),
                 typeof(KerbalismLifeSupport),
                 typeof(KerbalismCrewRule),
                 typeof(KerbalismCrewEntry),
@@ -272,7 +273,7 @@ public static class RtConfig
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
-                // avionics.status — RP-1 controllable-mass ascent go/no-go
+                // avionics.status, RP-1 controllable-mass ascent go/no-go
                 typeof(AvionicsStatus),
             },
             c => c.AutoI(false).WithPublicProperties());
@@ -308,7 +309,7 @@ public static class RtConfig
         // is present we reflect over every [SitrepTopic]-tagged type in this
         // assembly and write that map alongside contract.ts, so ONE `codegen.sh`
         // run regenerates both committed artifacts from the same contract source.
-        // No-op (and no dependency) when the env var is unset — e.g. a bare rtcli
+        // No-op (and no dependency) when the env var is unset, e.g. a bare rtcli
         // invocation that only wants contract.ts.
         var topicMapOut = Environment.GetEnvironmentVariable("SITREP_TOPICMAP_OUT");
         if (!string.IsNullOrEmpty(topicMapOut))
@@ -357,7 +358,7 @@ public static class RtConfig
         sb.Append("// Derived by reflecting over every [SitrepTopic]-tagged payload type in\n");
         sb.Append("// Sitrep.Contract: the attribute's TopicId is the map key and the tagged\n");
         sb.Append("// type's generated interface (its plain C# name in ./contract.ts) is the\n");
-        sb.Append("// value — with `[]` appended for the IsArray channels whose payload is a\n");
+        sb.Append("// value, with `[]` appended for the IsArray channels whose payload is a\n");
         sb.Append("// bare JSON array of the element type.\n\n");
 
         sb.Append("import type {\n");

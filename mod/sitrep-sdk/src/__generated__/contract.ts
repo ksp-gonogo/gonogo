@@ -444,6 +444,20 @@ export interface KerbalismProcessEntry
 	running?: boolean;
 	broken?: boolean;
 }
+export interface KerbalismGreenhouseEntry
+{
+	cropResource?: string;
+	foodRatePerSec?: number;
+	natural?: number;
+	artificial?: number;
+	active?: boolean;
+	issue?: string;
+	ecRateMaxPerSec?: number;
+	lampEcDrawPerSec?: number;
+	lightToleranceWm2?: number;
+	pressureTolerance?: number;
+	radiationToleranceRadPerSec?: number;
+}
 export interface KerbalismLifeSupport
 {
 	food?: KerbalismResource;
@@ -452,6 +466,7 @@ export interface KerbalismLifeSupport
 	electricCharge?: KerbalismResource;
 	habitat?: KerbalismHabitat;
 	processes?: KerbalismProcessEntry[];
+	greenhouses?: KerbalismGreenhouseEntry[];
 }
 export interface KerbalismCrewRule
 {

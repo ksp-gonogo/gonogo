@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "critical",
-    "source": "synthesised by scaling kerbalism-fixture-baseline-crp.json — oxygen ~5%, CO2 poisoning rising, EC low, two processes broken"
+    "source": "synthesised by scaling kerbalism-fixture-baseline-crp.json, oxygen ~5%, CO2 poisoning rising, EC low, two processes broken. The legacy flat ls.* keys drive the vitest DOM snapshot (snapshots.test.tsx, via widgetDomSnapshot's ls.* reshape onto the kerbalism.lifesupport Topic). The widget reads that Topic canonically (useTelemetry, no legacy DataSource fallback under this id), so the playwright probe/visual-gate harness needs the same values delivered as a real Topic emit instead - the `_stream` block does that (probe-entry.tsx's documented StreamFixtureBlock convention, same as LaunchDirector's fixtures). Keep both in sync: this is the SAME translation twice, not two sources of truth."
   },
   "ls.food.amount": 0.11,
   "ls.food.capacity": 1.35,
@@ -23,5 +23,74 @@
   "ls.process.scrubber": 2,
   "ls.process.waterRecycler": 1,
   "ls.process.wasteProcessor": 1,
-  "ls.process.fuelCell": 2
+  "ls.process.fuelCell": 2,
+  "_stream": {
+    "carriedChannels": ["kerbalism.lifesupport"],
+    "emits": [
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "food": {
+            "amount": 0.11,
+            "capacity": 1.35,
+            "rate": -0.00004
+          },
+          "water": {
+            "amount": 0.06,
+            "capacity": 0.7,
+            "rate": -0.000021
+          },
+          "oxygen": {
+            "amount": 9.35,
+            "capacity": 187,
+            "rate": -0.006
+          },
+          "electricCharge": {
+            "amount": 54,
+            "capacity": 450,
+            "rate": -0.15
+          },
+          "habitat": {
+            "pressure": 0,
+            "poisoning": 0.65,
+            "shielding": 0,
+            "livingSpace": 0.1,
+            "comfort": 0.15,
+            "volume": 0,
+            "surface": 0
+          },
+          "processes": [
+            {
+              "resource": "_Scrubber",
+              "title": "Scrubber",
+              "capacity": 1.67,
+              "running": false,
+              "broken": true
+            },
+            {
+              "resource": "_WaterRecycler",
+              "title": "Water recycler",
+              "capacity": 1.67,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_WasteProcessor",
+              "title": "Waste processor",
+              "capacity": 1.67,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_MonopropFuelCell",
+              "title": "Fuel cell",
+              "capacity": 1.67,
+              "running": false,
+              "broken": true
+            }
+          ]
+        }
+      }
+    ]
+  }
 }

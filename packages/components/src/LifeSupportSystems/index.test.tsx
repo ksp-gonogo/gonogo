@@ -201,7 +201,7 @@ describe("LifeSupportSystemsComponent", () => {
   // WHATEVER processes the profile carries, not a fixed stock id set. Ground
   // truth from the crewed ROKerbalism capture (ro-fixtures/
   // kerbalism-fixture-ro-crewed-orbit.json, ROC-MercuryCMBDB, 5 ProcessController
-  // processes) — 4 of the 5 are RO-specific and the old hardcoded lookup dropped
+  // processes), 4 of the 5 are RO-specific and the old hardcoded lookup dropped
   // them. This asserts all five render by their real titles.
   it("renders every process the ROKerbalism profile carries (5 RO processes)", async () => {
     renderWidget();
@@ -259,7 +259,7 @@ describe("LifeSupportSystemsComponent", () => {
         ],
       });
     });
-    // All five RO process titles render — none dropped by a stock-id filter.
+    // All five RO process titles render, none dropped by a stock-id filter.
     expect(
       await screen.findByText("O2 Pressure Controller"),
     ).toBeInTheDocument();
@@ -273,5 +273,130 @@ describe("LifeSupportSystemsComponent", () => {
     }
     // 5 running, 0 broken.
     expect(screen.getByText(/5 \/ 5 running/)).toBeInTheDocument();
+  });
+
+  // The `life-support.sections` augment slot's built-in Greenhouse filler
+  // (`./GreenhouseSection`, registered as a side effect of importing
+  // `./index`). Kerbalism's `Greenhouse.Data` carries exactly `natural`,
+  // `artificial`, and `issue`, no growth fraction, no harvest countdown,
+  // so these assertions are scoped to what the fixture/wire actually carry.
+  describe("greenhouse section (life-support.sections augment)", () => {
+    function emitWithGreenhouse(greenhouses: unknown[]) {
+      act(() => {
+        stream.emit("kerbalism.lifesupport", {
+          food: NOMINAL.food,
+          water: NOMINAL.water,
+          oxygen: NOMINAL.oxygen,
+          electricCharge: NOMINAL.ec,
+          habitat: {
+            pressure: NOMINAL.pressure,
+            poisoning: NOMINAL.co2Poisoning,
+            shielding: 0,
+            livingSpace: NOMINAL.livingSpace,
+            comfort: NOMINAL.comfort,
+            volume: 0.798,
+            surface: 3.31,
+          },
+          processes: [
+            proc("_Scrubber", "Scrubber", NOMINAL.processStates.scrubber),
+            proc(
+              "_WaterRecycler",
+              "Water recycler",
+              NOMINAL.processStates.waterRecycler,
+            ),
+            proc(
+              "_WasteProcessor",
+              "Waste processor",
+              NOMINAL.processStates.wasteProcessor,
+            ),
+            proc(
+              "_MonopropFuelCell",
+              "Fuel cell",
+              NOMINAL.processStates.fuelCell,
+            ),
+          ],
+          greenhouses,
+        });
+      });
+    }
+
+    it("renders nothing when the vessel carries no greenhouse part", async () => {
+      renderWidget();
+      emitWithGreenhouse([]);
+      expect(await screen.findByText("Nominal")).toBeInTheDocument();
+      expect(screen.queryByText("Greenhouse")).toBeNull();
+    });
+
+    it("shows natural vs artificial light (never summed) and Growing when lit and active", async () => {
+      renderWidget();
+      emitWithGreenhouse([
+        {
+          cropResource: "Food",
+          foodRatePerSec: 0.0001148431,
+          natural: 1361,
+          artificial: 0,
+          active: true,
+          issue: "",
+        },
+      ]);
+      expect(await screen.findByText("Greenhouse")).toBeInTheDocument();
+      expect(screen.getByText("Growing")).toBeInTheDocument();
+      // Natural and artificial render as their own separate figures, never
+      // summed into one combined "total light" number.
+      expect(
+        screen.getByText(/Natural 1361 W\/m.*Artificial 0 W\/m/),
+      ).toBeInTheDocument();
+      // No growth meter, no harvest countdown, neither concept exists in
+      // Kerbalism (see GreenhouseSection's own doc comment).
+      expect(screen.queryByText(/growth/i)).toBeNull();
+      expect(screen.queryByText(/harvest/i)).toBeNull();
+    });
+
+    it("shows Blocked with the real blocking issue string when lighting is insufficient", async () => {
+      renderWidget();
+      emitWithGreenhouse([
+        {
+          cropResource: "Food",
+          foodRatePerSec: 0,
+          natural: 40,
+          artificial: 120,
+          active: true,
+          issue: "insufficient lighting",
+        },
+      ]);
+      expect(await screen.findByText("Blocked")).toBeInTheDocument();
+      expect(screen.getByText("insufficient lighting")).toBeInTheDocument();
+    });
+
+    it("shows Off (not Blocked) when the player's own toggle is off, regardless of issue", async () => {
+      renderWidget();
+      emitWithGreenhouse([
+        {
+          cropResource: "Food",
+          foodRatePerSec: 0,
+          natural: 1361,
+          artificial: 0,
+          active: false,
+          issue: "",
+        },
+      ]);
+      expect(await screen.findByText("Off")).toBeInTheDocument();
+    });
+
+    it("has no axe violations with the greenhouse section rendered", async () => {
+      const { container } = renderWidget();
+      emitWithGreenhouse([
+        {
+          cropResource: "Food",
+          foodRatePerSec: 0,
+          natural: 40,
+          artificial: 120,
+          active: true,
+          issue: "insufficient lighting",
+        },
+      ]);
+      expect(await screen.findByText("Blocked")).toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });
