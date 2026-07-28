@@ -46,6 +46,7 @@ import type {
   TelemetryClient,
   ThemeDefinition,
   UplinkClientHandle,
+  UseRouteCommandsResult,
 } from "./types";
 
 // --- Author-facing types (re-exported real, erased at runtime) --------------
@@ -75,12 +76,15 @@ export type {
   DataSource,
   DataSourceStatus,
   DelayClockLike,
+  DelayMode,
   FogRevealSourceDefinition,
+  InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  PredictedPhase,
   Screen,
   SettingDefinition,
   SettingDefinitionBase,
@@ -95,6 +99,7 @@ export type {
   ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
+  UseRouteCommandsResult,
 } from "./types";
 
 /**
@@ -186,6 +191,16 @@ export function useTelemetry(dataSourceIdOrTopic: string, key?: string) {
 
 export function useCommand(command: string) {
   return getHost().useCommand(command);
+}
+
+/**
+ * Cross-origin route reader: every currently-pending command addressed to
+ * `topic`, regardless of which command centre dispatched it — the
+ * companion to `useCommand`'s own-dispatch `inFlight`. See
+ * `@ksp-gonogo/sitrep-client`'s `useRouteCommands` for the full contract.
+ */
+export function useRouteCommands(topic: string): UseRouteCommandsResult {
+  return getHost().useRouteCommands(topic);
 }
 
 export function useStream<T>(topic: string): T | undefined {

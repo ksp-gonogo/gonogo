@@ -417,6 +417,26 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // line-mode command whose composed text becomes the queue label —
       // comment-only, no kOS coupling in the client spine.
       "packages/sitrep-client/src/client.ts",
+      // command-delay.ts's doc-comment cites the kOS terminal's original
+      // isPastReach judder fix as the precedent latchForward generalizes;
+      // its test fixture uses "kos.run"/"kos/7" as sample command/topic
+      // strings (same class as PeerTransport.test.ts's sample strings
+      // below) — the delayed-command primitives themselves are mod-
+      // agnostic and import nothing kOS-specific.
+      "packages/sitrep-client/src/command-delay.ts",
+      "packages/sitrep-client/src/command-delay.test.ts",
+      // use-route-commands.ts's doc-comment cites the kOS terminal's
+      // original hand-rolled strip as the precedent it generalizes; its
+      // test fixture uses "kos/7"/"kos.run" as sample topic/command
+      // strings. Same class as command-delay.ts above — mod-agnostic,
+      // imports nothing kOS-specific.
+      "packages/sitrep-client/src/use-route-commands.ts",
+      "packages/sitrep-client/src/use-route-commands.test.tsx",
+      // connectivity-history.ts's doc-comment cites the kOS terminal's own
+      // noPath gate convention ("undefined/unknown = connected") as the
+      // precedent its own unknown-history default follows — doc-mention
+      // only, no kOS import or coupling.
+      "packages/sitrep-client/src/connectivity-history.ts",
       // -- comment/doc + pending-topic mentions (no kOS coupling) --
       // FleetComms + CameraFeed doc-comments reference `KosTerminal`'s
       // in-transit-strip / command-response pattern; Comms.cs's CommsLink doc
@@ -470,6 +490,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // own kOS mention (below) is doc-comment-only — same subject, same
       // category.
       "packages/components/src/ManeuverPlanner/index.test.tsx",
+      // MechJeb/index.tsx's toInFlightListItems doc-comment cites the kOS
+      // terminal's useRouteCommands -> InFlightList wiring as the mapping
+      // precedent it mirrors — doc-mention only, no kOS import or coupling.
+      "packages/components/src/MechJeb/index.tsx",
       // widgets.axe.test.tsx's only kOS mention is a doc-comment pointing
       // implementers at Kos*-specific axe-smoke test files elsewhere — no
       // import, no coupling.

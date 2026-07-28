@@ -19,10 +19,12 @@
 import type {
   CommandStatus as ClientCommandStatus,
   DelayClockLike as ClientDelayClockLike,
+  InFlightCommand as ClientInFlightCommand,
   LateTelemetrySubscribe as ClientLateTelemetrySubscribe,
   StreamStatusValue as ClientStreamStatusValue,
   TelemetryClient as ClientTelemetryClient,
   UseCommandResult as ClientUseCommandResult,
+  UseRouteCommandsResult as ClientUseRouteCommandsResult,
 } from "@ksp-gonogo/sitrep-client";
 import type {
   ActionDefinition as SdkActionDefinition,
@@ -37,6 +39,7 @@ import type {
   DataSource as SdkDataSource,
   DataSourceStatus as SdkDataSourceStatus,
   DelayClockLike as SdkDelayClockLike,
+  InFlightCommand as SdkInFlightCommand,
   LateTelemetrySubscribe as SdkLateTelemetrySubscribe,
   MapPoi as SdkMapPoi,
   PerfBudgetOptions as SdkPerfBudgetOptions,
@@ -47,6 +50,7 @@ import type {
   ThemeDefinition as SdkThemeDefinition,
   UplinkClientHandle as SdkUplinkClientHandle,
   UseCommandResult as SdkUseCommandResult,
+  UseRouteCommandsResult as SdkUseRouteCommandsResult,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
 import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
@@ -188,6 +192,24 @@ type _UseCommandResultBack = Expect<
   Assignable<ClientUseCommandResult, SdkUseCommandResult>
 >;
 
+// Delayed-command primitives (delayed-command-ux, 2026-07-28): InFlightCommand
+// and UseRouteCommandsResult are owned by sitrep-client too (command-delay.ts /
+// use-route-commands.ts), same visibility as CommandStatus/UseCommandResult
+// above. Both are structurally identical mirrors, so both directions are
+// asserted for each.
+type _InFlightCommand = Expect<
+  Assignable<SdkInFlightCommand, ClientInFlightCommand>
+>;
+type _InFlightCommandBack = Expect<
+  Assignable<ClientInFlightCommand, SdkInFlightCommand>
+>;
+type _UseRouteCommandsResult = Expect<
+  Assignable<SdkUseRouteCommandsResult, ClientUseRouteCommandsResult>
+>;
+type _UseRouteCommandsResultBack = Expect<
+  Assignable<ClientUseRouteCommandsResult, SdkUseRouteCommandsResult>
+>;
+
 // Late telemetry subscribe SPI (facade-sealing, scansat fog-sync, 2026-07-19):
 // LateTelemetrySubscribe is owned by sitrep-client too
 // (use-late-telemetry-subscribe.ts), same visibility as StreamStatusValue/
@@ -254,6 +276,10 @@ export type _SdkFacadeConformance = [
   _CommandStatusBack,
   _UseCommandResult,
   _UseCommandResultBack,
+  _InFlightCommand,
+  _InFlightCommandBack,
+  _UseRouteCommandsResult,
+  _UseRouteCommandsResultBack,
   _LateTelemetrySubscribe,
   _LateTelemetrySubscribeBack,
   _UplinkClientHandle,

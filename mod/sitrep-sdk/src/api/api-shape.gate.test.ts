@@ -47,6 +47,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useLateTelemetrySubscribe",
   "useLatestValue",
   "useReplaySessionActive",
+  "useRouteCommands",
   "useSetting",
   "useStream",
   "useStreamEvent",

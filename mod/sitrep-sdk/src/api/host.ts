@@ -36,6 +36,7 @@ import type {
   ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
+  UseRouteCommandsResult,
 } from "./types";
 
 /**
@@ -70,6 +71,14 @@ export interface GonogoHost {
    */
   useTelemetry<T = unknown>(dataSourceId: string, key: string): T | undefined;
   useCommand(command: string): UseCommandResult;
+  /**
+   * Cross-origin route reader: every currently-pending command addressed to
+   * `topic`, regardless of which command centre dispatched it — the
+   * companion to `useCommand`'s own-dispatch `inFlight`. Queue-only, no
+   * memory of its own — see `@ksp-gonogo/sitrep-client`'s
+   * `useRouteCommands` for the full contract.
+   */
+  useRouteCommands(topic: string): UseRouteCommandsResult;
   useStream<T>(topic: string): T | undefined;
   useViewClock(): unknown;
   useActionInput<TActions extends readonly ActionDefinition[]>(

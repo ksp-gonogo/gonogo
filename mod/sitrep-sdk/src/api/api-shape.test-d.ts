@@ -26,14 +26,17 @@ import type {
   DataSource,
   DataSourceStatus,
   DelayClockLike,
+  DelayMode,
   FogRevealSourceDefinition,
   GonogoHost,
+  InFlightCommand,
   LateTelemetrySubscribe,
   Logger,
   MapPoi,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
+  PredictedPhase,
   Screen,
   SettingsTabDefinition,
   SlotId,
@@ -45,6 +48,7 @@ import type {
   ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
+  UseRouteCommandsResult,
 } from "./index";
 
 // Reference every exported type so a removal/rename is a compile error. The
@@ -84,6 +88,10 @@ declare const _themeDef: ThemeDefinition;
 declare const _perfOpts: PerfBudgetOptions;
 declare const _perfHandle: PerfBudgetHandle;
 declare const _useCommandResult: UseCommandResult;
+declare const _predictedPhase: PredictedPhase;
+declare const _delayMode: DelayMode;
+declare const _inFlightCommand: InFlightCommand;
+declare const _useRouteCommandsResult: UseRouteCommandsResult;
 declare const _host: GonogoHost;
 declare const _logger: Logger;
 declare const _taggedLogger: TaggedLogger;
@@ -135,6 +143,10 @@ export type _ApiShapeProbe = [
   typeof _perfOpts,
   typeof _perfHandle,
   typeof _useCommandResult,
+  typeof _predictedPhase,
+  typeof _delayMode,
+  typeof _inFlightCommand,
+  typeof _useRouteCommandsResult,
   typeof _host,
   typeof _logger,
   typeof _taggedLogger,

@@ -575,12 +575,57 @@ export type CommandStatus =
     }
   | { phase: "lost"; requestId: string; reason: string };
 
+/**
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `PredictedPhase` —
+ * same leaf constraint as every other type in this file.
+ */
+export type PredictedPhase =
+  | "in-transit"
+  | "awaiting-reply"
+  | "due"
+  | "overdue"
+  | "lost";
+
+/**
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `DelayMode` — same
+ * leaf constraint as every other type in this file.
+ */
+export type DelayMode = "live" | "staged" | "no-path";
+
+/**
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `InFlightCommand`
+ * — the shared display shape both `useCommand`'s `inFlight` and
+ * `useRouteCommands`'s `items` return. Same leaf constraint as every other
+ * type in this file.
+ */
+export interface InFlightCommand {
+  id: string;
+  label: string;
+  command: string;
+  topic: string;
+  dispatchedAt: number;
+  reachEtaSeconds: number | null;
+  replyEtaSeconds: number | null;
+  predictedPhase: PredictedPhase;
+}
+
 export interface UseCommandResult {
   send: (
     args?: unknown,
     opts?: { label?: string; topic?: string },
   ) => Promise<unknown>;
   status: CommandStatus;
+  inFlight: InFlightCommand[];
+}
+
+/**
+ * Mirrors `packages/sitrep-client/src/use-route-commands.ts`'s
+ * `UseRouteCommandsResult` — same leaf constraint as every other type in
+ * this file.
+ */
+export interface UseRouteCommandsResult {
+  items: InFlightCommand[];
+  mode: DelayMode;
 }
 
 // --- Stream SPI types ---------------------------------------------------------

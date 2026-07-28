@@ -8,7 +8,6 @@ import type {
   KosTerminalFrame,
   KosTerminalOpenArgs,
   KosTerminalResizeArgs,
-  PendingUplinkQueue,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
@@ -16,9 +15,9 @@ import {
   useCommand,
   useLatestValue,
   useReplaySessionActive,
+  useRouteCommands,
   useStream,
   useStreamEvent,
-  useUtNow,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   ComboboxListbox,
@@ -30,9 +29,10 @@ import {
   FieldLabel,
   filterComboboxOptions,
   flattenComboboxGroups,
-  formatCountdown,
   GhostButton,
   groupComboboxOptions,
+  InFlightList,
+  type InFlightListItem,
   Input,
   moveComboboxActiveIndex,
   Panel,
@@ -499,42 +499,6 @@ function handleScriptComposerInput(
   return { kind: "update", next: { ...state, argsText: nextArgs } };
 }
 
-// ── Uplink strip transit latch ───────────────────────────────────────────────
-
-/**
- * Latches a pending uplink's transit phase forward-only, guarding the
- * `UplinkStrip__Arrow` (↑ outbound / ↓ reply) against `useUtNow`'s brief
- * backward blips (kos-terminal-arrow-judder fix). `ViewClock.utNowEstimate()`
- * re-anchors to EVERY ingested sample's `deliveredAt` — see
- * `ViewClock.observeSample` — including unrelated topics sharing the same
- * store. A sample that arrives with a marginally lower `deliveredAt` than
- * the previous anchor (ordinary network jitter, nothing to do with this
- * terminal's own CPU) rewinds the estimate by that same margin for one
- * frame. Right at the outbound→return crossing, that blip is enough to
- * swing a raw `utNow < reachUt` comparison back to `true`, flipping the
- * arrow ↓→↑→↓ — the operator-reported judder "during the up→down
- * transition". The underlying physical leg only ever moves forward
- * (outbound once, then return, never back), so once an item is OBSERVED
- * to have reached its craft it can never legitimately un-reach it —
- * `reachedIds` is the one-way record of that invariant, independent of
- * whatever the clock estimate does on a later frame. Mutates `reachedIds`
- * as its memory of "seen past `reachUt`"; the render site is responsible
- * for pruning ids that have left the live queue (see `KosTerminalScreen`).
- */
-function isPastReach(
-  itemId: string,
-  reachUt: number,
-  utNow: number,
-  reachedIds: Set<string>,
-): boolean {
-  if (reachedIds.has(itemId)) return true;
-  if (utNow >= reachUt) {
-    reachedIds.add(itemId);
-    return true;
-  }
-  return false;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function KosTerminalComponent(
@@ -645,11 +609,10 @@ function KosTerminalScreen({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
-  // Item ids the in-transit strip has observed cross `reachUt` at least
-  // once — the one-way latch `isPastReach` reads/writes so the arrow can
-  // never flip back to ↑ once it has shown ↓ (kos-terminal-arrow-judder
-  // fix). Pruned of ids no longer in `myPending` where it's consulted below.
-  const reachedCraftRef = useRef<Set<string>>(new Set());
+  // Scopes this terminal's uplinks to its own CPU — used both to tag
+  // outgoing line-mode sends and to scope the in-transit strip below, so
+  // the two never drift apart.
+  const terminalTopic = `kos/${coreId}`;
   // The in-progress, not-yet-committed line-mode composition (typed since the
   // last Enter), text plus cursor position. It lives in a dedicated input
   // bar, NEVER echoed into the xterm screen — so a server frame can't merge
@@ -732,35 +695,31 @@ function KosTerminalScreen({
     }
   }, [lineMode, readOnly]);
 
-  // `comms.delay`/`system.uplink.pending`/`comms.link` are all read through
-  // `useLatestValue`, NOT the certainty-gated `useStream`/`useViewUt` path.
-  // comms.delay and the pending-uplink queue's `dispatchedAt` are TrueNow
-  // command-centre bookkeeping stamped in real UT; comms.link is Delayed but
-  // freeze-EXEMPT, so useLatestValue reads its most-recent arrived frame (the
-  // link edge at the light-time horizon) directly. Reading any of them through
-  // `useStream`/`useViewUt` — the
-  // certainty-gated, delay-consistent path meant for the vessel's own
-  // (genuinely delayed) telemetry — makes the strip appear, and clear, one
-  // whole one-way-delay late: the queue entry isn't visible until the
-  // delayed view frame reaches its `validAt`, and the countdown is
-  // computed against a `utNow` that's already lagging by the same amount.
-  // `useLatestValue`/`useUtNow` read the client's raw sticky value / the
-  // clock's undelayed `utNowEstimate()` directly, so the strip tracks real
-  // dispatch time instead of the delayed view.
-  // `oneWaySeconds` is nullable — null when there is no measurable
-  // ControlPath, as opposed to 0 for the delay-feature-disabled-but-
-  // connected case (comms-delay-nullable-when-no-path fix). Both read as
-  // "nothing to show" below, same as the pre-fix 0 sentinel did.
+  // `comms.delay`/`comms.link` are read through `useLatestValue`, NOT the
+  // certainty-gated `useStream`/`useViewUt` path — comms.delay is TrueNow
+  // command-centre bookkeeping; comms.link is Delayed but freeze-EXEMPT, so
+  // useLatestValue reads its most-recent arrived frame (the link edge at the
+  // light-time horizon) directly. `oneWaySeconds` is nullable — null when
+  // there is no measurable ControlPath, as opposed to 0 for the delay-
+  // feature-disabled-but-connected case (comms-delay-nullable-when-no-path
+  // fix). Both read as "nothing to show" below, same as the pre-fix 0
+  // sentinel did.
   const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
     "comms.delay",
   );
 
-  // PURE prediction fuel for the strip below. Nothing here is ever read for
-  // anything execution/result-shaped: the payload has no such field, and a
-  // row disappears only because the engine pruned it from a later snapshot,
+  // The in-transit strip's PURE prediction fuel, scoped to this terminal's
+  // own CPU (`terminalTopic`) — the shared delayed-command-ux primitive
+  // (`@ksp-gonogo/sitrep-sdk`'s `useRouteCommands`), which reads
+  // `system.uplink.pending`/the real-time view clock the same
+  // delay-consistent way this terminal always has, plus the judder-latch
+  // (`kos-terminal-arrow-judder` fix) this terminal's own `isPastReach`
+  // used to hand-roll. Nothing here is ever read for anything
+  // execution/result-shaped: the payload has no such field, and a row
+  // disappears only because the engine pruned it from a later snapshot,
   // never because this widget decided a command "completed".
-  const queue = useLatestValue<PendingUplinkQueue>("system.uplink.pending");
-  const utNow = useUtNow();
+  const { items: routeItems, mode: routeMode } =
+    useRouteCommands(terminalTopic);
 
   // Whether the ground station has a path to the craft — read off the
   // client-facing `comms.link` connectivity MetaTopic (the de-publicised
@@ -782,11 +741,6 @@ function KosTerminalScreen({
   const { send: sendOpen } = useCommand("kos.terminal.open");
   const { send: sendClose } = useCommand("kos.terminal.close");
   const { send: sendResize } = useCommand("kos.terminal.resize");
-
-  // Scopes this terminal's uplinks to its own CPU — used both to tag
-  // outgoing line-mode sends and to filter the in-transit strip below, so
-  // the two never drift apart.
-  const terminalTopic = `kos/${coreId}`;
 
   // `label` is only ever non-empty for a line-mode Enter (the composed line
   // IS the label, see `reduceLineModeInput`'s callsite below); char-mode
@@ -1118,30 +1072,26 @@ function KosTerminalScreen({
     commsDelay !== undefined &&
     (commsDelay.oneWaySeconds ?? 0) > 0 &&
     (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
-  const showStrip =
-    lineMode &&
-    !readOnly &&
-    commsDelay !== undefined &&
-    (commsDelay.oneWaySeconds ?? 0) > 1 &&
-    utNow !== undefined;
-  // Narrowed, non-optional locals for the JSX below — `showBadge`/`showStrip`
-  // are plain booleans, so TS can't carry their truthiness back onto
-  // `commsDelay`/`utNow` at the read sites; only-render-when-defined instead.
+  // `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
+  // threshold `currentMode` applies — equivalent to the old raw check, minus
+  // the redundant `commsDelay !== undefined` (folded into "staged" itself).
+  const showStrip = lineMode && !readOnly && routeMode === "staged";
+  // Narrowed, non-optional local for the JSX below — `showBadge` is a plain
+  // boolean, so TS can't carry its truthiness back onto `commsDelay` at the
+  // read site; only-render-when-defined instead.
   const badgeDelay = showBadge ? commsDelay : undefined;
-  const stripUtNow = showStrip ? utNow : undefined;
-  // Scope the strip to THIS terminal's CPU — the queue is a single
-  // server-wide snapshot shared across every open terminal.
-  const myPending = (queue?.pending ?? []).filter(
-    (item) => item.topic === terminalTopic,
-  );
-  // Drop latch entries for items the server has already pruned from the
-  // queue, so `reachedCraftRef` doesn't grow across a long session — see
-  // `isPastReach`'s doc comment.
-  for (const id of reachedCraftRef.current) {
-    if (!myPending.some((item) => item.id === id)) {
-      reachedCraftRef.current.delete(id);
-    }
-  }
+  // The in-transit strip's display shape: reach-leg items count down to
+  // reaching the craft (↑), everything else counts down to the reply (↓) —
+  // `InFlightList` picks the arrow from `phase` itself.
+  const stripItems: InFlightListItem[] = routeItems.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
 
   // Filtered/grouped options for the `/`-script composer's dropdown, kept
   // in the SAME order `handleScriptComposerInput` computes for activeIndex
@@ -1176,35 +1126,8 @@ function KosTerminalScreen({
           </NoPathBadge>
         )}
       </TerminalFrame>
-      {stripUtNow !== undefined && myPending.length > 0 && (
-        <UplinkStrip aria-label="Uplink queue">
-          {myPending.map((item) => {
-            const reachUt = item.dispatchedAt + item.oneWaySeconds;
-            const replyUt = item.dispatchedAt + 2 * item.oneWaySeconds;
-            // Latched, not a raw compare — see `isPastReach`'s doc comment
-            // for why the raw `stripUtNow < reachUt` compare judders.
-            const inTransit = !isPastReach(
-              item.id,
-              reachUt,
-              stripUtNow,
-              reachedCraftRef.current,
-            );
-            const remaining = (inTransit ? reachUt : replyUt) - stripUtNow;
-            return (
-              <UplinkStrip__Row key={item.id} $inTransit={inTransit}>
-                <UplinkStrip__Arrow aria-hidden="true">
-                  {inTransit ? "↑" : "↓"}
-                </UplinkStrip__Arrow>
-                <UplinkStrip__Label>
-                  {item.label || item.command}
-                </UplinkStrip__Label>
-                <UplinkStrip__Phase>
-                  {formatCountdown(remaining)}
-                </UplinkStrip__Phase>
-              </UplinkStrip__Row>
-            );
-          })}
-        </UplinkStrip>
+      {showStrip && (
+        <InFlightList items={stripItems} ariaLabel="Uplink queue" />
       )}
       {lineMode && !readOnly && (
         <CompositionBarWrap>
@@ -1572,62 +1495,6 @@ const DelayBadge = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
-`;
-
-// Line-mode, oneWaySeconds > 1: one row per in-flight command from
-// `system.uplink.pending`, predicting its transit/reply phase from
-// `dispatchedAt + oneWaySeconds` against the live view UT — never anything
-// execution/result-shaped (the payload carries none). Rows disappear only
-// because the engine pruned them from a later snapshot.
-const UplinkStrip = styled.div`
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px;
-  font-family: monospace;
-  font-size: 11px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  box-sizing: border-box;
-`;
-
-const UplinkStrip__Row = styled.div<{ $inTransit: boolean }>`
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  color: ${({ $inTransit }) =>
-    $inTransit ? "var(--color-text-primary)" : "var(--color-text-muted)"};
-`;
-
-const UplinkStrip__Arrow = styled.span`
-  flex: 0 0 auto;
-  color: var(--color-accent-fg);
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: kos-uplink-pulse 1.6s ease-in-out infinite;
-  }
-
-  @keyframes kos-uplink-pulse {
-    50% {
-      opacity: 0.35;
-    }
-  }
-`;
-
-const UplinkStrip__Label = styled.span`
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const UplinkStrip__Phase = styled.span`
-  flex: 0 0 auto;
-  color: inherit;
-  opacity: 0.85;
 `;
 
 const CpuPicker = styled.div`

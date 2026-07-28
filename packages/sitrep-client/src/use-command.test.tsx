@@ -10,9 +10,12 @@ import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { TelemetryProvider } from "./context";
+import { createFakeWallClock } from "./fake-wall-clock";
 import { StubTransport } from "./stub-transport";
+import { TimelineStore } from "./timeline-store";
 import type { Transport, TransportStatus } from "./transport";
 import { useCommand } from "./use-command";
+import { ViewClock } from "./view-clock";
 
 function Deploy() {
   const { send, status } = useCommand("deploy");
@@ -144,5 +147,224 @@ describe("useCommand", () => {
     });
 
     expect(screen.getByText("phase:lost")).toBeTruthy();
+  });
+});
+
+// ── inFlight: this hook's own accumulated dispatch set ───────────────────
+
+/**
+ * Local, self-contained stream fixture — same `FixedViewClock` +
+ * `StubTransport` pattern `use-route-commands.test.tsx` uses (sitrep-client
+ * can't depend on `@ksp-gonogo/components`' `setupStreamFixture`, which
+ * sits above it in the dependency graph).
+ */
+function setupFixture() {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  const store = new TimelineStore(clock);
+  const carriedChannels = ["comms.link", "system.uplink.pending"];
+
+  function Provider({ children }: { children: React.ReactNode }) {
+    return (
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={carriedChannels}
+      >
+        {children}
+      </TelemetryProvider>
+    );
+  }
+
+  return { transport, client, store, wall, Provider };
+}
+
+function DeployWithInFlight() {
+  const { send, inFlight } = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void send(1).catch(() => {})}>
+        go1
+      </button>
+      <button type="button" onClick={() => void send(2).catch(() => {})}>
+        go2
+      </button>
+      <span>count:{inFlight.length}</span>
+      <span>
+        phases:{inFlight.map((item) => item.predictedPhase).join(",")}
+      </span>
+    </div>
+  );
+}
+
+describe("useCommand inFlight", () => {
+  it(
+    "accumulates concurrent dispatches, drops one once past reply under a " +
+      "connected path, and retains a comms-dropped one as lost even after " +
+      "the queue ages it out",
+    async () => {
+      const fixture = setupFixture();
+      render(
+        <fixture.Provider>
+          <DeployWithInFlight />
+        </fixture.Provider>,
+      );
+
+      // Anchor nowUt at 0 and record an initial connected observation.
+      act(() => {
+        fixture.transport.emit(
+          "comms.link",
+          { connected: true },
+          { validAt: 0, deliveredAt: 0 },
+        );
+      });
+
+      fireEvent.click(screen.getByText("go1"));
+      fireEvent.click(screen.getByText("go2"));
+      expect(fixture.transport.sentCommands).toHaveLength(2);
+      const [r1id, r2id] = fixture.transport.sentCommands.map(
+        (c) => c.requestId,
+      );
+
+      // r1: short window [0,4]. r2: long window [0,12]. Both present, both
+      // still in-transit at nowUt 0.
+      act(() => {
+        fixture.transport.emit(
+          "system.uplink.pending",
+          {
+            pending: [
+              {
+                id: r1id,
+                command: "deploy",
+                label: "",
+                topic: "t",
+                vantage: "ksc",
+                dispatchedAt: 0,
+                oneWaySeconds: 2,
+              },
+              {
+                id: r2id,
+                command: "deploy",
+                label: "",
+                topic: "t",
+                vantage: "ksc",
+                dispatchedAt: 0,
+                oneWaySeconds: 6,
+              },
+            ],
+          },
+          { validAt: 0, deliveredAt: 0 },
+        );
+      });
+      await waitFor(() =>
+        expect(screen.getByText("phases:in-transit,in-transit")).toBeTruthy(),
+      );
+
+      // Advance nowUt to 5 (past r1's reply at 4, before r2's reach at 6),
+      // path still connected throughout [0,4] -> r1 resolves ("due") and
+      // drops; r2 stays in-transit.
+      act(() => {
+        fixture.transport.emit(
+          "system.uplink.pending",
+          {
+            pending: [
+              {
+                id: r1id,
+                command: "deploy",
+                label: "",
+                topic: "t",
+                vantage: "ksc",
+                dispatchedAt: 0,
+                oneWaySeconds: 2,
+              },
+              {
+                id: r2id,
+                command: "deploy",
+                label: "",
+                topic: "t",
+                vantage: "ksc",
+                dispatchedAt: 0,
+                oneWaySeconds: 6,
+              },
+            ],
+          },
+          { validAt: 5, deliveredAt: 5 },
+        );
+      });
+      await waitFor(() =>
+        expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+      );
+      expect(screen.getByText("count:1")).toBeTruthy();
+
+      // Drop the path at nowUt 8 — inside r2's [0,12] window.
+      // classifyRetained's `lost` check evaluates pathConnectedDuring over
+      // the FULL fixed window, so this reclassifies r2 as lost immediately
+      // (not merely once nowUt reaches the reply) — a stronger failure
+      // signal than lateness, per the design's no-path/lost distinction.
+      act(() => {
+        fixture.transport.emit(
+          "comms.link",
+          { connected: false },
+          { validAt: 8, deliveredAt: 8 },
+        );
+      });
+      await waitFor(() => expect(screen.getByText("phases:lost")).toBeTruthy());
+
+      // r2 ages out of the queue entirely (nowUt 20, past its reply at
+      // 12) — retained anyway (own-dispatch memory) and stays classified
+      // "lost" because the path was down somewhere inside its [0,12] window.
+      act(() => {
+        fixture.transport.emit(
+          "system.uplink.pending",
+          { pending: [] },
+          { validAt: 20, deliveredAt: 20 },
+        );
+      });
+      await waitFor(() => expect(screen.getByText("phases:lost")).toBeTruthy());
+      expect(screen.getByText("count:1")).toBeTruthy();
+    },
+  );
+
+  it("degrades gracefully: a dispatch that never gets a queue entry drops after the never-tracked grace window", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    fireEvent.click(screen.getByText("go1"));
+    // No queue entry has arrived yet — nothing classified to show, but the
+    // dispatch is still tracked internally (within the grace window).
+    expect(screen.getByText("count:0")).toBeTruthy();
+
+    // No system.uplink.pending entry ever arrives for this dispatch (a
+    // live/no-delay path) — advance nowUt well past the grace window
+    // without ever emitting a matching queue entry. The dispatch drops out
+    // of tracking instead of leaking forever; observable here only as
+    // "still nothing shown, no crash, no stray entry" — see
+    // resolveTracked's "expired" branch for the internal prune.
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 10, deliveredAt: 10 },
+      );
+    });
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
   });
 });
