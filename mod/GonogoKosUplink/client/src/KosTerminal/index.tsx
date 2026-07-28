@@ -1407,9 +1407,9 @@ const CompositionBar__NoPathFlag = styled.div`
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 0.04em;
-  color: var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-fg);
+  border: 1px solid var(--color-status-nogo-on-bg);
   border-radius: 4px;
 `;
 
@@ -1470,9 +1470,9 @@ const NoPathBadge = styled.div`
   font-family: monospace;
   font-size: 11px;
   font-weight: bold;
-  color: var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-fg);
+  border: 1px solid var(--color-status-nogo-on-bg);
   border-radius: 4px;
 `;
 

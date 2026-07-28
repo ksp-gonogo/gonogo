@@ -720,7 +720,7 @@ const DeclineButtonStyled = styled(ActionButton)`
 
 const ConfirmDeclineButton = styled(ActionButton)`
   background: var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-on-bg);
   border-color: transparent;
   /* The animation property must live inside the same media guard as
      the keyframes: wrapping only the keyframes leaves the animation
@@ -753,7 +753,7 @@ const CancelButtonStyled = styled(ActionButton)`
 
 const ConfirmCancelButton = styled(ActionButton)`
   background: var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-on-bg);
   border-color: transparent;
   font-size: 10px;
   padding: 2px 8px;

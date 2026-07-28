@@ -34,6 +34,13 @@
   --color-status-go-bg: #2e5a2e;
   --color-status-nogo-fg: #ffdede;
   --color-status-nogo-bg: #ff4d4d;
+  /* Text sitting ON --color-status-nogo-bg, not beside it. The -fg token is
+     a light pink for nogo-toned text on a DARK panel (60+ call sites), so
+     reusing it on the red badge gives 2.61:1, under the 4.5:1 AA floor for
+     normal text. Dark text on the same red is 5.32:1, which is how the warn
+     tone already works (#1a1a1a on #ff8c00, 7.46:1). This token exists so
+     the two jobs stop sharing one value. */
+  --color-status-nogo-on-bg: #1a1a1a;
   --color-status-warning-fg: #1a1a1a;
   --color-status-warning-bg: #ff8c00;
   --color-status-info-fg: #7cf;

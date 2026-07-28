@@ -86,7 +86,7 @@ const CommandGroup__CommitButton = styled.button<{ $gated: boolean }>`
       cursor: not-allowed;
       border-color: var(--color-status-nogo-bg);
       background: var(--color-status-nogo-bg);
-      color: var(--color-status-nogo-fg);
+      color: var(--color-status-nogo-on-bg);
       opacity: 0.7;
     `}
 `;

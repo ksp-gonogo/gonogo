@@ -728,7 +728,7 @@ const RecordingBadge = styled.span`
   gap: 4px;
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-on-bg);
   font-size: var(--font-size-xs);
   padding: 4px 10px;
   border-radius: 2px;

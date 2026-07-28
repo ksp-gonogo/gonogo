@@ -42,7 +42,7 @@ const TONE_STYLES = {
   nogo: css`
     background: var(--color-status-nogo-bg);
     border-color: var(--color-status-nogo-bg);
-    color: var(--color-status-nogo-fg);
+    color: var(--color-status-nogo-on-bg);
   `,
   warn: css`
     background: var(--color-status-warning-bg);
