@@ -235,8 +235,10 @@ export async function renderWidgets(
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
+    const pageErrors: string[] = [];
     page.on("pageerror", (err) => {
       console.error("  [page error]", err.message);
+      pageErrors.push(err.message);
     });
     page.on("console", (msg) => {
       if (msg.type() === "error") {
@@ -258,6 +260,19 @@ export async function renderWidgets(
 
     for (const config of configs) {
       await renderOneWidget(page, config, outSuffix, outBase, fullContent);
+    }
+
+    // An uncaught exception during a render means the widget did not render.
+    // Fail loudly rather than only logging: a crashed widget still writes a
+    // PNG, just an empty one, and on a mostly-dark widget an empty frame
+    // reads as a couple of percent of pixel drift. That is how a completely
+    // blank kOS terminal once scored 1.90% and looked like a font-hinting
+    // nudge. A render error must never be something you catch by eye.
+    if (pageErrors.length > 0) {
+      const unique = [...new Set(pageErrors)];
+      throw new Error(
+        `Widget render raised ${pageErrors.length} uncaught error(s); the renders are not trustworthy:\n  ${unique.join("\n  ")}`,
+      );
     }
   } finally {
     await browser.close();

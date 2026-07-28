@@ -27,6 +27,7 @@ import {
   getActiveTelemetryClient,
   useCommand,
   useLatestValue,
+  useRouteCommands,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
@@ -54,6 +55,10 @@ installTestHost({
   useCommand: (command) =>
     useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
   useLatestValue,
+  useRouteCommands: (topic) =>
+    useRouteCommands(topic) as unknown as ReturnType<
+      GonogoHost["useRouteCommands"]
+    >,
   useReplaySessionActive,
   useStream,
   useStreamEvent,
