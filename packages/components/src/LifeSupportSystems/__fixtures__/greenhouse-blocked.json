@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "greenhouse-blocked",
-    "source": "synthesized — no kerbalism-greenhouse part was in flight on the captured tester vessel (see local_docs/kerbalism-fixtures/README.md's greenhouse note), so this cannot be a real Deck capture. Values follow the field semantics documented in local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md §8 (Modules/Greenhouse.cs); numeric magnitudes are plausible round numbers, NOT verified against GameData/KerbalismConfig part configs. See local_docs/design/specs/2026-07-28-kerbalism-greenhouse-spec.md."
+    "source": "ls.* fields: same as depleting.json — synthesised by scaling kerbalism-fixture-baseline-crp.json (food/water down to ~25%, drain faster, scrubber broken). greenhouse.* fields: Kerbalism source at the pinned kerbalism-src checkout — src/Kerbalism/Modules/Greenhouse.cs (`Greenhouse.Data` + `SimulateGreenhouse`'s lighting gate: `bool lighting = natural + artificial >= g.light_tolerance;`) and GameData/KerbalismConfig/Profiles/Default.cfg's `kerbalism-greenhouse` part config (same constants as greenhouse-growing.json). Issue text is the real localization string #KERBALISM_Greenhouse_issue1 = 'insufficient lighting' (GameData/Kerbalism/Localization/en-us.cfg) — the prior fixture used the near-miss string 'insufficient light', not the real one. CORRECTED: removed the fabricated 'growth'/'timeToHarvestSec' fields — see greenhouse-growing.json's _meta for the full explanation (no growth/harvest-countdown concept exists anywhere in Kerbalism; Food is a continuous ResourceRecipe output, gated on/off by natural+artificial < light_tolerance with no partial-credit accumulator). `greenhouse.lampEcDrawPerSec` here is the derived actual draw `ec_rate * (artificial / light_tolerance)` from SimulateGreenhouse's recipe construction (2.5 * (120/400) = 0.75), not the raw ec_rate config constant (see greenhouse.ecRateMaxPerSec, unchanged from config). No greenhouse capture path exists yet in mod/GonogoKerbalismUplink and no widget consumes this fixture as of this fix."
   },
   "ls.food.amount": 0.35,
   "ls.food.capacity": 1.35,
@@ -24,12 +24,15 @@
   "ls.process.waterRecycler": 1,
   "ls.process.wasteProcessor": 1,
   "ls.process.fuelCell": 0,
-  "ls.greenhouse.cropResource": "Food",
-  "ls.greenhouse.growth": 0.18,
-  "ls.greenhouse.timeToHarvestSec": 708775,
-  "ls.greenhouse.naturalLightWm2": 40,
-  "ls.greenhouse.artificialLightWm2": 120,
-  "ls.greenhouse.lampEcPerSec": 0.6,
-  "ls.greenhouse.active": true,
-  "ls.greenhouse.issue": "insufficient light"
+  "greenhouse.cropResource": "Food",
+  "greenhouse.foodRatePerSec": 0.0001148431,
+  "greenhouse.natural": 40,
+  "greenhouse.artificial": 120,
+  "greenhouse.active": true,
+  "greenhouse.issue": "insufficient lighting",
+  "greenhouse.ecRateMaxPerSec": 2.5,
+  "greenhouse.lampEcDrawPerSec": 0.75,
+  "greenhouse.lightToleranceWm2": 400.0,
+  "greenhouse.pressureTolerance": 0.1,
+  "greenhouse.radiationToleranceRadPerSec": 0.000008333
 }

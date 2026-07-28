@@ -549,7 +549,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // import — kos now always loads through the runtime loader, referenced
       // only via flag.ts's `LOADER_UPLINK_IDS` (no "kOS"/"Kos*"/"kos.*"
       // distinctive-form text left in main.tsx itself) — stale, ratcheted off.
-      "packages/components/src/CrewManifest/index.tsx",
+      // CrewManifest/index.tsx was here (a doc-comment aside claiming gonogo
+      // "doesn't support Kerbalism because of the known kOS sensor
+      // incompatibility"). Kerbalism-fixture-truth's crew-rules verification
+      // pass found that claim stale — the widget already reads real Kerbalism
+      // survival data off `kerbalism.crew`/`kerbalism.lifesupport` — and
+      // rewrote the comment to describe the actual Kerbalism integration
+      // instead, dropping the only "kOS" text in the file — stale, ratcheted off.
       "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
       "packages/core/src/testing/installDomStubs.ts",

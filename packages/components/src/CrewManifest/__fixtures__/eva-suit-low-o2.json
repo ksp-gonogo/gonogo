@@ -1,26 +1,27 @@
 {
   "_meta": {
     "scenario": "eva-suit-low-o2",
-    "source": "synthesized, PLACEHOLDER-GRADE — EVA suit life-support was never captured on the Deck (no live-EVA session in any available capture material) and its access path is an unconfirmed working hypothesis (see local_docs/design/specs/2026-07-28-kerbalism-eva-suit-augment-spec.md). Resource magnitudes are round numbers loosely anchored to the RO 'doubled EVA allocations' note in local_docs/kerbalism-widget-plan-CONSENSUS.md §4 (O2 195 for an 8-hour EVA), not independently verified.",
-    "notes": "Scoped to the crew.kerbals key this widget's useRaw<KerbalEntry[]>('crew.kerbals') hook reads (see CrewManifest/index.tsx) — the whole array is one JSON value on the wire, not flat dot-keys, so this fixture extends one KerbalEntry with the evaSuit field this spec proposes rather than inventing a flat-key shape the widget doesn't use. Not a full end-to-end widget probe fixture (vessel.crew / vessel.state Topics are separate reads, unaffected by this addition)."
+    "source": "Kerbalism source at the pinned kerbalism-src checkout, settling the working hypothesis definitively: an EVA kerbal IS its own real Vessel (single Part, stock KSP mechanic — System/Callbacks.cs's `ToEVA`/`DelayedOnEVA` runs on `GameEvents.onCrewOnEva`, transferring a share of the origin vessel's resources onto the new EVA Part/Vessel), so the existing `API.ResourceAmount/ResourceCapacity/ResourceAverageRate(Vessel, string)` reads (System/API.cs ~445-475) work completely unchanged pointed at it — no separate 'EVA suit' read path is needed, exactly the working hypothesis. What actually rides on the suit: `Profile/Supply.cs`'s `SetupEva` only attaches a PartResource for a Supply whose `on_eva` is nonzero. In the shipped default profile (GameData/KerbalismConfig/Profiles/Default.cfg) that is exactly two resources — `ElectricCharge` (on_eva = 33.0) and `Oxygen` (on_eva = 12.5, commented '2 hrs' in the source) — real resource names, no suit-specific aliasing. Food/Water/CarbonDioxide/Nitrogen/Hydrogen/Ammonia all have no `on_eva` value in Default.cfg, so `SetupEva` skips them entirely: an EVA kerbal carries NO food, water, or CO2 resource at all (`Rule.Execute`'s eating/drinking rules still run against the EVA vessel's crew list, but with input capacity 0 they immediately fall into the 'no resource' degeneration branch — hunger/thirst accumulate the moment a kerbal steps outside, they just aren't resource-tracked). CORRECTED: the prior fixture invented a 'co2' suit resource (no CarbonDioxide is ever added to an EVA kerbal's part) and a 'recallSec' wire field (grepped kerbalism-src for 'recall' case-insensitively across every .cs file: zero matches — there is no recall-countdown mechanic in Kerbalism at all). It also used Oxygen capacity=195 / EC capacity=1260, lifted from local_docs/kerbalism-widget-plan-CONSENSUS.md's speculative Realism-Overhaul 'doubled allocations, 8-hour EVA' brainstorm entry, not the actual stock Default.cfg on_eva values (12.5 / 33.0) — a real magnitude bug, now fixed. Oxygen depletion rate below (0.00172379825/s baseline) is the real `breathing` Rule's configured `rate` (Profile/Rule.cs config field, GameData/KerbalismConfig/Profiles/Default.cfg's `breathing` Rule) — 12.5 / 0.00172379825 ≈ 7250s ≈ 2.01h, matching the config comment. The ElectricCharge drain rate is NOT similarly grounded (EC draw on an EVA kerbal comes from the `climatization` Rule's temperature/volume-dependent modifier product, which isn't statically computable from config alone) — that field is marked ungrounded below. No EVA-suit read path or widget UI exists yet in this repo (grepped for evaSuit/eva-suit across packages/: no hits outside this fixture) — this is a corrected-shape placeholder matching the real wire topic (`kerbalism.crew`, read via `useTelemetry` in CrewManifest/index.tsx) plus a proposed `evaSuit` extension, not a currently-consumed shape.",
+    "ungrounded": [
+      "kerbals[0].evaSuit.electricCharge.rate — illustrative only, not derived from a specific Kerbalism formula"
+    ]
   },
-  "crew.kerbals": [
+  "kerbalism.crew": [
     {
       "name": "Jebediah Kerman",
       "trait": "Pilot",
-      "rules": {
-        "radiation": 0.02,
-        "stress": 0.05,
-        "eating": 0.01,
-        "drinking": 0.01,
-        "breathing": 0.01,
-        "climatization": 0.03,
-        "co2 poisoning": 0.01
-      },
+      "rules": [
+        { "name": "radiation", "value": 1.0, "fatalThreshold": 50.0 },
+        { "name": "stress", "value": 0.05, "fatalThreshold": 1.0 },
+        { "name": "eating", "value": 0.02, "fatalThreshold": 1.0 },
+        { "name": "drinking", "value": 0.02, "fatalThreshold": 1.0 },
+        { "name": "breathing", "value": 0.01, "fatalThreshold": 1.0 },
+        { "name": "climatization", "value": 0.03, "fatalThreshold": 1.0 },
+        { "name": "co2 poisoning", "value": 0.0, "fatalThreshold": 1.0 }
+      ],
       "evaSuit": {
-        "oxygen": { "amount": 12.4, "capacity": 195, "rate": -0.005 },
-        "co2": { "amount": 3.1, "capacity": 40, "rate": 0.0009 },
-        "recallSec": 2480
+        "oxygen": { "amount": 1.9, "capacity": 12.5, "rate": -0.00172379825 },
+        "electricCharge": { "amount": 6.1, "capacity": 33.0, "rate": -0.02 }
       }
     }
   ]

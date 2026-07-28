@@ -268,10 +268,12 @@ declare module "@ksp-gonogo/core" {
 
 /**
  * `v.crew` is documented as `string[]` ("List of crew names") in the
- * Telemachus Reborn readme. Kerbalism augments the same key with
- * per-kerbal health/stress/radiation, but gonogo doesn't support
- * Kerbalism because of the known kOS sensor incompatibility, so we
- * treat the value as a plain string array.
+ * Telemachus Reborn readme. (Historical note, kept for the object-shape
+ * guard below: Telemachus-era Kerbalism installs augmented this same key
+ * with per-kerbal health/stress/radiation inline; that path is superseded
+ * here by the dedicated `kerbalism.crew` Topic — see the Kerbalism
+ * per-kerbal survival block above — but the defensive object-shape parsing
+ * stays useful for any `v.crew`-shaped source.)
  *
  * `v.crew` lives on the wire at `vessel.crew.crew`, a `CrewMember[]`
  * (`contract.ts`'s `{name?, trait?, ...}`), read here off the canonical

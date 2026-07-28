@@ -41,7 +41,12 @@ namespace Sitrep.Contract;
 [SitrepTopic("kerbalism.spaceweather")]
 public class KerbalismSpaceWeather
 {
-    /// <summary>Raw <c>API.Radiation(v)</c>. Units [fixture-confirm]: Kerbalism source is rad/s; the client multiplies by 3600 for rad/h.</summary>
+    /// <summary>
+    /// Raw <c>API.Radiation(v)</c>, i.e. <c>VesselData.EnvRadiation</c>. Units
+    /// confirmed rad/s from Kerbalism source (UI/Monitor.cs computes rad/h
+    /// display values as <c>EnvHabitatRadiation * 3600.0</c> — the same
+    /// per-second-to-per-hour factor the client applies here).
+    /// </summary>
     public double? RadiationRadPerSecond { get; set; }
     public double? HabitatRadiationRadPerSecond { get; set; }
     public bool? Magnetosphere { get; set; }
@@ -128,9 +133,19 @@ public class KerbalismCrewRule
     public string? Name { get; set; }
     /// <summary>Current accumulator value ("problem") from KerbalData.rules.</summary>
     public double? Value { get; set; }
-    /// <summary>Per-rule degeneration rate (units/s) from Profile.rules[].degeneration. Stage-2 death-clock input. [fixture-confirm]</summary>
+    /// <summary>
+    /// Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
+    /// Stage-2 death-clock input. Confirmed against Kerbalism source: `Rule.degeneration`
+    /// is a public double field (Profile/Rule.cs); values are set per-rule in
+    /// GameData/KerbalismConfig/Profiles/Default.cfg.
+    /// </summary>
     public double? DegenPerSec { get; set; }
-    /// <summary>Fatal accumulator threshold from Profile.rules[].fatal_threshold. [fixture-confirm]</summary>
+    /// <summary>
+    /// Fatal accumulator threshold from Profile.rules[].fatal_threshold. Confirmed
+    /// against Kerbalism source (Profile/Rule.cs ctor defaults this to 1.0; the
+    /// default profile overrides it only for the radiation rule, to 50.0 —
+    /// GameData/KerbalismConfig/Profiles/Default.cfg's radiation Rule block).
+    /// </summary>
     public double? FatalThreshold { get; set; }
 }
 

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "greenhouse-growing",
-    "source": "synthesized — no kerbalism-greenhouse part was in flight on the captured tester vessel (see local_docs/kerbalism-fixtures/README.md's greenhouse note), so this cannot be a real Deck capture. Values follow the field semantics documented in local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md §8 (Modules/Greenhouse.cs); numeric magnitudes (light_tolerance, crop_rate defaults) are plausible round numbers, NOT verified against GameData/KerbalismConfig part configs. See local_docs/design/specs/2026-07-28-kerbalism-greenhouse-spec.md."
+    "source": "ls.* fields: kerbalism-fixture-baseline-crp.json (real Deck capture, tester vessel, Kerbin orbit — that vessel carries no greenhouse part, so `greenhouses: []` there; reused here verbatim as the life-support baseline). greenhouse.* fields: Kerbalism source at the pinned kerbalism-src checkout — src/Kerbalism/Modules/Greenhouse.cs (the `Greenhouse.Data` class returned by `Greenhouses(Vessel)` line ~435, and `SimulateGreenhouse` lines ~189-281 for the lighting/pressure/radiation gate logic) and GameData/KerbalismConfig/Profiles/Default.cfg lines ~1245-1310 (the `kerbalism-greenhouse` part's MODULE config: crop_size=496.125, crop_rate=0.00000023148, ec_rate=2.5, light_tolerance=400.0, pressure_tolerance=0.1, radiation_tolerance=0.000008333). Issue string text is the real localization key #KERBALISM_Greenhouse_issue1 from GameData/Kerbalism/Localization/en-us.cfg. CORRECTED: the prior version of this fixture invented a 'growth' fraction and a 'timeToHarvestSec' countdown — neither exists in Kerbalism. `Greenhouse.Data` has exactly three fields (natural, artificial, issue); Food is produced continuously via a ResourceRecipe at a constant rate (crop_size * crop_rate), there is no discrete harvest event or accumulated-growth percentage anywhere in the mod (confirmed: no 'growth'/'tta' field in Modules/Greenhouse.cs, Automation/Devices/Greenhouse.cs, or UI/Monitor.cs's Problem_greenhouses, which only ever surfaces the issue string). `active` is a persisted KSPField (works loaded + unloaded via ProtoPartModuleSnapshot); ec_rate/light_tolerance/crop_rate/etc. are plain (non-persistent) KSPFields NOT saved to the protovessel snapshot, so an unloaded-vessel capture can only get them by reading the part prefab's module defaults, not the ProtoPartModuleSnapshot alone (loaded vessels can reflect the live PartModule instance directly, as the existing dev-tool GonogoDevKerbalismDump.cs already does for greenhouse/process modules). No greenhouse capture path exists yet in mod/GonogoKerbalismUplink and no widget consumes this fixture as of this fix — this is a corrected-shape placeholder for when that capture is built. `greenhouse.natural` (1361 W/m^2) is an illustrative full-sunlight-near-Kerbin flux figure, NOT read from a specific Kerbalism/KSP constant — this specific number is UNGROUNDED and should be re-derived from the live system's actual solar-luminosity-at-home if this fixture is ever wired to a real widget."
   },
   "ls.food.amount": 1.35,
   "ls.food.capacity": 1.35,
@@ -17,19 +17,22 @@
   "ls.ec.rate": -0.08942449474961575,
   "ls.pressure": 0,
   "ls.co2Poisoning": 0,
-  "ls.comfort": 0.30000000298,
+  "ls.comfort": 0.3000000029802322,
   "ls.livingSpace": 0.1,
-  "ls.climatization": 0.0000493734928877,
+  "ls.climatization": 0.00004937349288767713,
   "ls.process.scrubber": 1,
   "ls.process.waterRecycler": 1,
   "ls.process.wasteProcessor": 1,
   "ls.process.fuelCell": 0,
-  "ls.greenhouse.cropResource": "Food",
-  "ls.greenhouse.growth": 0.42,
-  "ls.greenhouse.timeToHarvestSec": 501120,
-  "ls.greenhouse.naturalLightWm2": 1361,
-  "ls.greenhouse.artificialLightWm2": 0,
-  "ls.greenhouse.lampEcPerSec": 0,
-  "ls.greenhouse.active": true,
-  "ls.greenhouse.issue": ""
+  "greenhouse.cropResource": "Food",
+  "greenhouse.foodRatePerSec": 0.0001148431,
+  "greenhouse.natural": 1361,
+  "greenhouse.artificial": 0,
+  "greenhouse.active": true,
+  "greenhouse.issue": "",
+  "greenhouse.ecRateMaxPerSec": 2.5,
+  "greenhouse.lampEcDrawPerSec": 0,
+  "greenhouse.lightToleranceWm2": 400.0,
+  "greenhouse.pressureTolerance": 0.1,
+  "greenhouse.radiationToleranceRadPerSec": 0.000008333
 }
