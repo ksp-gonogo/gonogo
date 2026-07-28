@@ -1348,7 +1348,9 @@ namespace Gonogo.KSP
         /// <summary>
         /// The M3 R3 <c>system.vessels</c> roster capture-add's raw per-vessel
         /// entry (primitives only, same discipline as every other Build*
-        /// helper in this class): id/name/vesselType/situation/mainBody.
+        /// helper in this class): id/name/vesselType/situation/mainBody, plus
+        /// the FleetRoster crew/comms capture-add (crewCount/crewCapacity/
+        /// commsConnected/commsControlSource).
         /// <c>mainBody</c> is the raw BODY NAME (not yet resolved to an
         /// index -- <c>SystemViewProvider.BuildSystemVessels</c> resolves it
         /// against <c>snapshot.Values["bodies"]</c>, same two-step pattern
@@ -1357,13 +1359,23 @@ namespace Gonogo.KSP
         /// computed <c>Vessel.mainBody</c> property, which NREs when
         /// <c>orbitDriver</c> is null -- e.g. a vessel that hasn't finished
         /// spawning yet -- see this class's doc comment).
+        ///
+        /// <para>This runs for EVERY known vessel each tick -- unlike
+        /// <see cref="BuildCrew"/>/<see cref="BuildComms"/> above, which only
+        /// ever see the (always-loaded) active vessel -- so most calls here
+        /// are against an UNLOADED vessel. Both the crew and comms reads are
+        /// therefore their own try/catch, defaulting to a null field rather
+        /// than letting one bad vessel (mid-unload, corrupted debris, a
+        /// CommNet graph node that hasn't settled) take out this vessel's
+        /// entire roster entry -- or, since the caller has no per-vessel
+        /// guard of its own, the WHOLE <c>Sample()</c> capture for the tick.</para>
         /// </summary>
         private static Dictionary<string, object?> BuildVesselRosterEntry(Vessel vessel)
         {
             var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
             var body = orbit?.referenceBody;
 
-            return new Dictionary<string, object?>
+            var entry = new Dictionary<string, object?>
             {
                 ["id"] = vessel.id.ToString(),
                 ["name"] = vessel.vesselName,
@@ -1371,6 +1383,131 @@ namespace Gonogo.KSP
                 ["situation"] = vessel.situation.ToString(),
                 ["mainBody"] = body != null ? body.bodyName : null,
             };
+
+            AddRosterCrewFields(entry, vessel);
+            AddRosterCommsFields(entry, vessel);
+
+            return entry;
+        }
+
+        /// <summary>
+        /// Crew count/capacity for one <see cref="BuildVesselRosterEntry"/>
+        /// entry. <c>Vessel.GetCrewCount()</c>/<c>GetCrewCapacity()</c> (the
+        /// same calls <see cref="BuildCrew"/>/<see cref="BuildMisc"/> use for
+        /// the always-loaded active vessel) walk live <c>Part</c>s, which an
+        /// unloaded vessel doesn't have -- so for an unloaded vessel this
+        /// reads <c>Vessel.protoVessel</c> instead: <c>ProtoVessel.GetVesselCrew()</c>
+        /// for the roster (count = its length), and the sum of each
+        /// <c>ProtoPartSnapshot</c>'s prefab <c>CrewCapacity</c> for the seat
+        /// count (there is no single proto-side capacity getter). Both fields
+        /// stay null (never a fabricated zero) if the vessel is unloaded with
+        /// no <c>protoVessel</c> yet, or if any read throws.
+        /// </summary>
+        private static void AddRosterCrewFields(Dictionary<string, object?> entry, Vessel vessel)
+        {
+            int? crewCount = null;
+            int? crewCapacity = null;
+            try
+            {
+                if (vessel.loaded)
+                {
+                    crewCount = vessel.GetCrewCount();
+                    crewCapacity = vessel.GetCrewCapacity();
+                }
+                else
+                {
+                    var proto = vessel.protoVessel;
+                    if (proto != null)
+                    {
+                        crewCount = proto.GetVesselCrew()?.Count ?? 0;
+
+                        var capacity = 0;
+                        var protoParts = proto.protoPartSnapshots;
+                        if (protoParts != null)
+                        {
+                            foreach (var pps in protoParts)
+                            {
+                                var prefab = pps?.partInfo?.partPrefab;
+                                if (prefab != null)
+                                {
+                                    capacity += prefab.CrewCapacity;
+                                }
+                            }
+                        }
+                        crewCapacity = capacity;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] roster crew read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                crewCount = null;
+                crewCapacity = null;
+            }
+
+            entry["crewCount"] = crewCount;
+            entry["crewCapacity"] = crewCapacity;
+        }
+
+        /// <summary>
+        /// Comms connectivity for one <see cref="BuildVesselRosterEntry"/>
+        /// entry -- a NEW, direct read of stock <c>Vessel.connection</c>
+        /// against every roster vessel, deliberately NOT routed through the
+        /// active-vessel-only elected-backend <c>ICommsBackend</c>/<c>CommsElection</c>
+        /// machinery (<see cref="BuildComms"/> above and <c>CommNetBackend</c>
+        /// are that family; they only ever run against
+        /// <c>FlightGlobals.ActiveVessel</c>). Stock CommNet maintains its
+        /// graph for every vessel regardless of load state, so this can read
+        /// a background vessel's link -- but <c>CommNetBackend.Connection</c>'s
+        /// own doc comment warns that <c>connection</c>/<c>ControlPath</c> can
+        /// dereference torn-down state and NRE during a scene-transition
+        /// settle window; both fields stay null (never a fabricated "no
+        /// link") if that happens here, or if CommNet has no connection
+        /// object for this vessel at all.
+        /// </summary>
+        private static void AddRosterCommsFields(Dictionary<string, object?> entry, Vessel vessel)
+        {
+            bool? connected = null;
+            string? controlSource = null;
+            try
+            {
+                var conn = vessel.connection;
+                if (conn != null)
+                {
+                    connected = conn.IsConnected;
+                    controlSource = MapRosterControlSource(conn.GetControlLevel());
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] roster comms read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                connected = null;
+                controlSource = null;
+            }
+
+            entry["commsConnected"] = connected;
+            entry["commsControlSource"] = controlSource;
+        }
+
+        /// <summary>
+        /// <c>Vessel.ControlLevel</c> -&gt; the roster's raw control-source
+        /// string (mirrors <c>CommNetBackend.MapControlSource</c>'s
+        /// none/partial/full tiering exactly, kept as an independent copy
+        /// here since the roster read is deliberately NOT part of that
+        /// backend -- see <see cref="AddRosterCommsFields"/>).
+        /// </summary>
+        private static string MapRosterControlSource(Vessel.ControlLevel level)
+        {
+            switch (level)
+            {
+                case Vessel.ControlLevel.FULL:
+                    return "Full";
+                case Vessel.ControlLevel.PARTIAL_MANNED:
+                case Vessel.ControlLevel.PARTIAL_UNMANNED:
+                    return "Partial";
+                default:
+                    return "None";
+            }
         }
 
         /// <summary>

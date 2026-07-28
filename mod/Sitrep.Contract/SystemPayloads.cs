@@ -183,6 +183,26 @@ public class SystemVessels
 }
 
 /// <summary>
+/// Roster-level control-link tier for <see cref="VesselRosterEntry.CommsControlSource"/>.
+/// Deliberately its OWN enum, not a reuse of <see cref="Sitrep.Contract.CommsControlSource"/>
+/// — that type belongs to the active-vessel-only <c>comms.*</c> elected-backend
+/// family (<see cref="ICommsBackend"/>/<c>CommsElection</c>), which this roster
+/// read does not touch (see <see cref="VesselRosterEntry"/>'s own doc comment).
+/// The three tiers happen to mirror stock <c>Vessel.ControlLevel</c>'s
+/// none/partial/full shape, which is coincidence, not a shared contract.
+/// </summary>
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+[SitrepContract]
+public enum RosterCommsControlSource
+{
+    None,
+    Partial,
+    Full,
+}
+
+/// <summary>
 /// One vessel in the <see cref="SystemVessels"/> roster. Mirrors the exact
 /// per-vessel dict the provider emits. A roster entry with no resolvable
 /// stable id is dropped by the provider, never emitted with a fabricated one,
@@ -208,4 +228,35 @@ public class VesselRosterEntry
 
     /// <summary>Index into <see cref="SystemBodies"/> of this vessel's main body; null when absent or unresolved.</summary>
     public int? BodyIndex { get; set; }
+
+    /// <summary>
+    /// Kerbals aboard right now. Read off the LOADED vessel's crew when
+    /// loaded, off <c>ProtoVessel</c> otherwise (<c>KspHost.BuildVesselRosterEntry</c>'s
+    /// doc comment) — so an unloaded background vessel still reports a real
+    /// count. Null only if the read itself failed (the producer omits the raw
+    /// key rather than fabricate a zero); never used to distinguish "probe"
+    /// from "unknown" — that is <see cref="CrewCount"/> == 0 vs. null.
+    /// </summary>
+    public int? CrewCount { get; set; }
+
+    /// <summary>Seat capacity, same loaded/proto read as <see cref="CrewCount"/>. Null only if the read failed.</summary>
+    public int? CrewCapacity { get; set; }
+
+    /// <summary>
+    /// Whether stock CommNet reports a live control link home for this
+    /// vessel right now — a raw <c>Vessel.connection.IsConnected</c> read
+    /// against EVERY roster vessel (loaded or not), NOT the active-vessel-only
+    /// elected-backend <c>comms.*</c> family. Null when CommNet has no
+    /// connection object to read for this vessel this tick (no CommNet graph
+    /// node yet, or the read raced a scene transition) — an honest "unknown",
+    /// not a fabricated "no link".
+    /// </summary>
+    public bool? CommsConnected { get; set; }
+
+    /// <summary>
+    /// The same read's control-level tier, for the roster's connected/partial/
+    /// none link-quality tag. Null under the same "nothing to read" condition
+    /// as <see cref="CommsConnected"/>.
+    /// </summary>
+    public RosterCommsControlSource? CommsControlSource { get; set; }
 }

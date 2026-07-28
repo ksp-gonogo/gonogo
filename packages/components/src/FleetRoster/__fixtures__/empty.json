@@ -1,7 +1,16 @@
 {
   "_meta": {
     "scenario": "empty",
-    "source": "SYNTHESISED — no tracked vessels, to exercise the empty-state render."
+    "source": "SYNTHESISED to the real system.vessels wire shape — a genuinely empty roster (the key present, the array empty), to exercise the confirmed-zero-vessels empty state (distinct from the not-available-yet state, which needs no emit at all)."
   },
-  "fleet.vessels": []
+  "_stream": {
+    "carriedChannels": ["system.vessels", "system.bodies"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.vessels",
+        "value": { "vessels": [] }
+      }
+    ]
+  }
 }

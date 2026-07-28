@@ -225,9 +225,11 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"vessels"</c> list
         /// (<c>Gonogo.KSP.KspHost.BuildVesselRosterEntry</c>'s shape — id/
-        /// name/vesselType/situation/mainBody, primitives only) to the
+        /// name/vesselType/situation/mainBody/crewCount/crewCapacity/
+        /// commsConnected/commsControlSource, primitives only) to the
         /// <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
-        /// name, vesselType, situation, bodyIndex }, ... ] }</c>. Follows
+        /// name, vesselType, situation, bodyIndex, crewCount, crewCapacity,
+        /// commsConnected, commsControlSource }, ... ] }</c>. Follows
         /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
         /// (no separate Sitrep.Contract POCO — this channel isn't
         /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
@@ -237,7 +239,13 @@ namespace Sitrep.Host
         /// at all (main menu / nothing loaded yet), same "no data yet" vs.
         /// "zero vessels" distinction <see cref="BuildSystemBodies"/> makes.
         /// A roster entry with no resolvable <c>id</c> is dropped, never
-        /// emitted with a fabricated one (R1).
+        /// emitted with a fabricated one (R1). The crew/comms fields carry
+        /// through as typed <c>null</c> whenever the producer omitted them
+        /// (an unreadable/unresolved per-vessel read) — never a fabricated
+        /// zero/false (FleetRoster capture-add; see
+        /// <see cref="VesselRosterEntry"/>'s own doc comments for the
+        /// loaded-vs-proto crew read and the comms read's independence from
+        /// <see cref="ICommsBackend"/>).
         /// </summary>
         public static object? BuildSystemVessels(KspSnapshot? snapshot)
         {
@@ -270,6 +278,7 @@ namespace Sitrep.Host
 
                 var mainBodyName = GetString(rawVessel, "mainBody");
                 int? bodyIndex = mainBodyName != null ? SharedMappers.ResolveBodyIndex(snapshot, mainBodyName) : null;
+                var controlSource = SharedMappers.ParseRosterCommsControlSource(GetString(rawVessel, "commsControlSource"));
 
                 vessels.Add(new Dictionary<string, object?>
                 {
@@ -278,6 +287,10 @@ namespace Sitrep.Host
                     ["vesselType"] = (int)SharedMappers.ParseVesselType(GetString(rawVessel, "vesselType")),
                     ["situation"] = (int)SharedMappers.ParseSituation(GetString(rawVessel, "situation")),
                     ["bodyIndex"] = bodyIndex,
+                    ["crewCount"] = GetInt(rawVessel, "crewCount"),
+                    ["crewCapacity"] = GetInt(rawVessel, "crewCapacity"),
+                    ["commsConnected"] = GetBool(rawVessel, "commsConnected"),
+                    ["commsControlSource"] = controlSource.HasValue ? (int)controlSource.Value : (int?)null,
                 });
             }
 

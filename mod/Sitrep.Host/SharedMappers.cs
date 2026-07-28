@@ -108,5 +108,24 @@ namespace Sitrep.Host
                 _ => Sitrep.Contract.Situation.Unknown,
             };
         }
+
+        /// <summary>
+        /// <c>KspHost.MapRosterControlSource</c>'s raw "None"/"Partial"/"Full"
+        /// string mapped onto <see cref="RosterCommsControlSource"/>. Null
+        /// input (the producer's own "nothing to read this tick" case) maps
+        /// to null, not a fabricated <c>None</c> — see
+        /// <see cref="VesselRosterEntry.CommsControlSource"/>. Hand-rolled,
+        /// same reason as <see cref="ParseVesselType"/>.
+        /// </summary>
+        public static RosterCommsControlSource? ParseRosterCommsControlSource(string? raw)
+        {
+            return raw switch
+            {
+                "Full" => RosterCommsControlSource.Full,
+                "Partial" => RosterCommsControlSource.Partial,
+                "None" => RosterCommsControlSource.None,
+                _ => null,
+            };
+        }
     }
 }

@@ -534,6 +534,106 @@ namespace Sitrep.Host.Tests
             Assert.Null(SystemViewProvider.BuildSystemVessels(snapshot));
         }
 
+        [Fact]
+        public void BuildSystemVesselsMapsCrewAndCommsFieldsWhenThePresenterReadThem()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "11111111-2222-3333-4444-555555555555",
+                            ["name"] = "Crewed Station",
+                            ["crewCount"] = 3,
+                            ["crewCapacity"] = 6,
+                            ["commsConnected"] = true,
+                            ["commsControlSource"] = "Full",
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
+
+            Assert.Equal(3, entry["crewCount"]);
+            Assert.Equal(6, entry["crewCapacity"]);
+            Assert.Equal(true, entry["commsConnected"]);
+            Assert.Equal((int)RosterCommsControlSource.Full, entry["commsControlSource"]);
+        }
+
+        [Fact]
+        public void BuildSystemVesselsLeavesCrewAndCommsNullWhenThePresenterCouldNotReadThem()
+        {
+            // The producer omits crewCount/crewCapacity/commsConnected/
+            // commsControlSource entirely (never a fabricated zero/false)
+            // whenever its own try/catch caught something — assert the
+            // mapper preserves that as a typed null, not a sentinel.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "22222222-0000-0000-0000-000000000000",
+                            ["name"] = "Unresolvable Debris",
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
+
+            Assert.Null(entry["crewCount"]);
+            Assert.Null(entry["crewCapacity"]);
+            Assert.Null(entry["commsConnected"]);
+            Assert.Null(entry["commsControlSource"]);
+        }
+
+        [Theory]
+        [InlineData("None", RosterCommsControlSource.None)]
+        [InlineData("Partial", RosterCommsControlSource.Partial)]
+        [InlineData("Full", RosterCommsControlSource.Full)]
+        public void BuildSystemVesselsMapsEveryRosterControlSourceTier(string raw, RosterCommsControlSource expected)
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "33333333-0000-0000-0000-000000000000",
+                            ["commsControlSource"] = raw,
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
+
+            Assert.Equal((int)expected, entry["commsControlSource"]);
+        }
+
         // ----------------------------------------------------------------
         // game.dlc -- installed-DLC capability capture-add (Meta.Dlc path)
         // ----------------------------------------------------------------

@@ -1,51 +1,81 @@
 {
   "_meta": {
     "scenario": "mixed-fleet",
-    "source": "SYNTHESISED — only one real vessel captured on the Deck. A 4-vessel fleet spanning the table's range: crewed station nominal, an uncrewed probe, a lander in warn, and a comms-blackout vessel in critical."
+    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape (KspHost.BuildVesselRosterEntry -> SystemViewProvider.BuildSystemVessels). A 5-vessel fleet spanning the comms range this widget can actually observe: direct link, relay link, no link, and one entry with no crew/comms fields at all (the producer's own \"could not read this tick\" case) to exercise the honest unknown state. There is no reliability/health signal behind any entry - this widget does not compute a per-vessel status."
   },
-  "fleet.vessels": [
-    {
-      "id": "v-station-1",
-      "name": "Kerbin Station Alpha",
-      "body": "Kerbin",
-      "crew": 6,
-      "crewCapacity": 6,
-      "comms": "connected",
-      "status": "nominal"
-    },
-    {
-      "id": "v-probe-mun",
-      "name": "Munar Relay Probe",
-      "body": "Mun",
-      "crew": 0,
-      "comms": "relay",
-      "status": "nominal"
-    },
-    {
-      "id": "v-lander-duna",
-      "name": "Duna Lander Bravo",
-      "body": "Duna",
-      "crew": 2,
-      "crewCapacity": 3,
-      "comms": "relay",
-      "status": "warn",
-      "updates": [
-        { "text": "Battery 18% — draining", "tone": "warn" },
-        { "text": "Reaction wheel worn 71%", "tone": "info" }
-      ]
-    },
-    {
-      "id": "v-orbiter-eve",
-      "name": "Eve Orbiter Charlie",
-      "body": "Eve",
-      "crew": 1,
-      "crewCapacity": 1,
-      "comms": "none",
-      "status": "critical",
-      "updates": [
-        { "text": "Comms blackout", "tone": "nogo" },
-        { "text": "Oxygen 11h to empty", "tone": "warn" }
-      ]
-    }
-  ]
+  "_stream": {
+    "carriedChannels": ["system.vessels", "system.bodies"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            { "index": 0, "name": "Kerbin" },
+            { "index": 1, "name": "Mun" },
+            { "index": 2, "name": "Duna" },
+            { "index": 3, "name": "Eve" }
+          ]
+        }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-station-1",
+              "name": "Kerbin Station Alpha",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 6,
+              "crewCapacity": 6,
+              "commsConnected": true,
+              "commsControlSource": 2
+            },
+            {
+              "vesselId": "v-probe-mun",
+              "name": "Munar Relay Probe",
+              "vesselType": 3,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 1
+            },
+            {
+              "vesselId": "v-lander-duna",
+              "name": "Duna Lander Bravo",
+              "vesselType": 2,
+              "situation": 0,
+              "bodyIndex": 2,
+              "crewCount": 2,
+              "crewCapacity": 3,
+              "commsConnected": true,
+              "commsControlSource": 1
+            },
+            {
+              "vesselId": "v-orbiter-eve",
+              "name": "Eve Orbiter Charlie",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 3,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsConnected": false,
+              "commsControlSource": 0
+            },
+            {
+              "vesselId": "v-debris-1",
+              "name": "Stage 2 Debris",
+              "vesselType": 9,
+              "situation": 3,
+              "bodyIndex": 0
+            }
+          ]
+        }
+      }
+    ]
+  }
 }

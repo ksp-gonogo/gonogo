@@ -298,6 +298,7 @@ public static class RtConfig
                 typeof(GameMode),
                 typeof(PhysicsMode),
                 typeof(FlightEndReason),
+                typeof(RosterCommsControlSource),
             });
 
         // --- Topic -> payload map (single source of truth for the SDK registry) ---

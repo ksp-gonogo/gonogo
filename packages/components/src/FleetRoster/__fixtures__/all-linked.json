@@ -1,0 +1,61 @@
+{
+  "_meta": {
+    "scenario": "all-linked",
+    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape. A healthy 3-vessel fleet, every vessel with a direct or relay link (the quiet-day baseline) - renamed from the old all-nominal.json, which named this scenario after a fabricated per-vessel reliability status this widget never actually had data for."
+  },
+  "_stream": {
+    "carriedChannels": ["system.vessels", "system.bodies"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            { "index": 0, "name": "Kerbin" },
+            { "index": 1, "name": "Sun" }
+          ]
+        }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-station-1",
+              "name": "Kerbin Station Alpha",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 6,
+              "crewCapacity": 6,
+              "commsConnected": true,
+              "commsControlSource": 2
+            },
+            {
+              "vesselId": "v-comsat-1",
+              "name": "ComSat Keostationary 1",
+              "vesselType": 3,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 2
+            },
+            {
+              "vesselId": "v-transfer-1",
+              "name": "Jool Transfer Vehicle",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 3,
+              "crewCapacity": 4,
+              "commsConnected": true,
+              "commsControlSource": 1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

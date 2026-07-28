@@ -1033,6 +1033,11 @@ export interface SystemVessels
 {
 	vessels: VesselRosterEntry[];
 }
+export enum RosterCommsControlSource {
+	None = 0,
+	Partial = 1,
+	Full = 2
+}
 export interface VesselRosterEntry
 {
 	vesselId: string;
@@ -1040,6 +1045,10 @@ export interface VesselRosterEntry
 	vesselType: VesselType;
 	situation: Situation;
 	bodyIndex?: number;
+	crewCount?: number;
+	crewCapacity?: number;
+	commsConnected?: boolean;
+	commsControlSource?: RosterCommsControlSource;
 }
 export interface TargetListEntry
 {

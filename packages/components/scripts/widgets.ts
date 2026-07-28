@@ -1100,17 +1100,20 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // FleetRoster — fleet-wide status TABLE (one row per vessel). Fixtures
-    // synthesised (only one real vessel captured on the Deck): a mixed fleet
-    // spanning nominal/warn/critical + comms-blackout, an all-nominal baseline,
-    // and an empty roster for the empty state. SystemView owns the spatial view.
+    // FleetRoster — fleet-wide roster TABLE (one row per known vessel),
+    // reading the real `system.vessels`/`system.bodies` Topics (stream
+    // fixtures). Mixed-fleet exercises direct/relay/no-link/unknown comms
+    // plus known/unknown crew; all-linked is the quiet-day baseline; empty
+    // exercises the confirmed-zero-vessels state. There is no per-vessel
+    // reliability/health signal here — SystemView owns the spatial view.
     widgetId: "fleet-roster",
     fixturesPath: "FleetRoster/__fixtures__",
     outPath: "renders/fleet-roster-widget",
     modes: [
-      // Registered default — full table incl. Body column + update lines.
+      // Registered default — full table incl. Body column + the
+      // fleet-roster.updates augment slot (empty until an uplink binds).
       { name: "default-8x10", w: 8, h: 10 },
-      // Wide — generous room for long vessel names + the readiness footer.
+      // Wide — generous room for long vessel names + the coverage footer.
       { name: "wide-11x10", w: 11, h: 10 },
       // Compact — sheds the Body column + per-vessel update lines.
       { name: "compact-5x7", w: 5, h: 7 },

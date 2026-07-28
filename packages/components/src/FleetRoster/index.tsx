@@ -3,10 +3,23 @@ import {
   AugmentSlot,
   getAugmentsForSlot,
   registerComponent,
-  useDataSourceSubscription,
+  useTelemetry,
 } from "@ksp-gonogo/core";
-import { Badge, EmptyState, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
-import { Fragment } from "react";
+import {
+  type StreamStatusValue,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "@ksp-gonogo/sitrep-client";
+import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge,
+  EmptyState,
+  Meter,
+  Panel,
+  PanelTitle,
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
+import { Fragment, useCallback, useMemo, useSyncExternalStore } from "react";
 import styled from "styled-components";
 
 type FleetRosterConfig = Record<string, never>;
@@ -14,96 +27,190 @@ type FleetRosterConfig = Record<string, never>;
 // ---------------------------------------------------------------------------
 // Data read
 //
-// `fleet.vessels` is ONE object key carrying the whole roster as a JSON array
-// (not flat per-field keys) — the fleet is variable-length, so a single array
-// value is the natural shape. For the offline render the probe emits it on the
-// "data" source; when the real KerbalismUplink Topic lands, swap `useFleet` to
-// read `useTelemetry("fleet")`. The table below never changes — this hook is the
-// data boundary.
+// The whole roster rides the single `system.vessels` Topic (every known
+// vessel, loaded or not — KspHost.BuildVesselRosterEntry's capture-add), NOT
+// a legacy `fleet.vessels` DataSource key. `system.bodies` resolves each
+// entry's `bodyIndex` to a display name, the same pattern SystemView already
+// uses for its own vessel-body lookups. Copy of TargetPicker/DistanceToTarget/
+// OrbitView/LandingStatus's own local `useStreamStatusOptional` — there is no
+// shared export of it yet.
 // ---------------------------------------------------------------------------
 
-function useRaw<T>(key: string): T | undefined {
-  return useDataSourceSubscription<T | undefined>(
-    "data",
-    (source, onStoreChange, snapshotRef) =>
-      source.subscribe(key, (v) => {
-        snapshotRef.current = v as T;
-        onStoreChange();
-      }),
-    undefined,
+function useStreamStatusOptional(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
   );
+  const getSnapshot = useCallback((): StreamStatusValue => {
+    if (!store) return "disconnected";
+    return store.sampleStatus(topic, store.currentFrame());
+  }, [store, topic]);
+  return useSyncExternalStore(subscribe, getSnapshot);
 }
 
-type VesselStatus = "nominal" | "warn" | "critical";
-type CommsLink = "connected" | "relay" | "none";
-type UpdateTone = "info" | "warn" | "nogo";
-
-interface FleetUpdate {
-  text: string;
-  tone?: UpdateTone;
-}
+/**
+ * `"unknown"` is a REAL, honestly-reported tier, not a client-side fallback —
+ * the producer itself emits a null `commsControlSource` whenever CommNet had
+ * nothing to read for that vessel this tick (see `VesselRosterEntry`'s own
+ * doc comment), and this is that null carried through to the row. It must
+ * never be presented the same as `"none"` (a confirmed no-link vessel is a
+ * real ops fact; an unread vessel is not).
+ */
+type CommsLink = "connected" | "relay" | "none" | "unknown";
 
 interface FleetVessel {
   /** Stable vessel id — the row key and the line-updates slot correlation key. */
   id: string;
   name: string;
-  /** Body the vessel is at (orbiting / landed / flying). */
-  body: string;
-  /** Crew aboard. 0 = uncrewed (probe). */
-  crew: number;
-  /** Crew capacity, when known — renders as `crew / capacity`. */
-  crewCapacity?: number;
+  /** Body the vessel orbits/sits on, resolved via `system.bodies`; null when unresolved. */
+  body: string | null;
+  /** Kerbals aboard; null when the producer could not read it this tick (never a fabricated 0). */
+  crewCount: number | null;
+  /** Seat capacity; null under the same condition as `crewCount`. */
+  crewCapacity: number | null;
   comms: CommsLink;
-  status: VesselStatus;
-  /** Inline reliability / alarm one-liners. The `fleet-roster.updates` augment
-   *  slot composes ALONGSIDE these (see the row) — an uplink contributes more. */
-  updates?: FleetUpdate[];
 }
 
-function useFleet(): FleetVessel[] {
-  return useRaw<FleetVessel[]>("fleet.vessels") ?? [];
+function rosterCommsLink(
+  source: RosterCommsControlSource | null | undefined,
+): CommsLink {
+  switch (source) {
+    case RosterCommsControlSource.Full:
+      return "connected";
+    case RosterCommsControlSource.Partial:
+      return "relay";
+    case RosterCommsControlSource.None:
+      return "none";
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * `system.vessels` -> the widget's row shape. `known` distinguishes "the
+ * topic has never delivered a sample" from "it delivered one, and the fleet
+ * is genuinely empty" — the same distinction the FleetRoster stub fix
+ * established, now against the real Topic instead of the retired
+ * `fleet.vessels` key.
+ */
+function useFleet(): { known: boolean; vessels: FleetVessel[] } {
+  const system = useTelemetry("system.vessels");
+  const bodies = useTelemetry("system.bodies");
+
+  const nameByIndex = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const b of bodies?.bodies ?? []) {
+      if (b.name != null) m.set(b.index, b.name);
+    }
+    return m;
+  }, [bodies]);
+
+  const vessels = useMemo<FleetVessel[]>(
+    () =>
+      (system?.vessels ?? []).map((v) => ({
+        id: v.vesselId,
+        name: v.name,
+        body:
+          v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null,
+        crewCount: v.crewCount ?? null,
+        crewCapacity: v.crewCapacity ?? null,
+        comms: rosterCommsLink(v.commsControlSource),
+      })),
+    [system, nameByIndex],
+  );
+
+  return { known: system !== undefined, vessels };
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-type Tone = "go" | "info" | "warn" | "nogo";
+type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
 const TONE_HEX: Record<Tone, string> = {
   go: "var(--color-status-go-bg)",
   info: "var(--color-status-info-bg)",
   warn: "var(--color-status-warning-bg)",
   nogo: "var(--color-status-nogo-bg)",
+  neutral: "var(--color-text-muted)",
 };
 
-const STATUS_TONE: Record<VesselStatus, Tone> = {
-  nominal: "go",
-  warn: "warn",
-  critical: "nogo",
+/** Comms tier -> tone. This is the ONLY per-row signal the roster has a real
+ *  read for — there is no vessel-health/reliability tone here (see the
+ *  widget registration's own note on why `status` was dropped). */
+const COMMS_TONE: Record<CommsLink, Tone> = {
+  connected: "go",
+  relay: "info",
+  none: "nogo",
+  unknown: "neutral",
 };
 
 /** Compact comms label + tone + a full accessible name. */
-const COMMS: Record<CommsLink, { label: string; tone: Tone; aria: string }> = {
-  connected: { label: "DIRECT", tone: "go", aria: "Direct link" },
-  relay: { label: "RELAY", tone: "info", aria: "Relay link" },
-  none: { label: "NONE", tone: "nogo", aria: "No link" },
+const COMMS: Record<CommsLink, { label: string; aria: string }> = {
+  connected: { label: "DIRECT", aria: "Direct link" },
+  relay: { label: "RELAY", aria: "Relay link" },
+  none: { label: "NONE", aria: "No link" },
+  unknown: { label: "—", aria: "Link state unknown" },
 };
 
-function fleetStatus(vessels: FleetVessel[]): { label: string; tone: Tone } {
-  if (vessels.some((v) => v.status === "critical"))
-    return { label: "Critical", tone: "nogo" };
-  if (vessels.some((v) => v.status === "warn"))
-    return { label: "Degraded", tone: "warn" };
-  return { label: "Nominal", tone: "go" };
-}
-
 function crewLabel(v: FleetVessel): string {
-  if (v.crew <= 0 && !v.crewCapacity) return "—";
-  return v.crewCapacity ? `${v.crew}/${v.crewCapacity}` : String(v.crew);
+  if (v.crewCount == null) return "—";
+  if (v.crewCount === 0 && v.crewCapacity == null) return "0";
+  return v.crewCapacity != null
+    ? `${v.crewCount}/${v.crewCapacity}`
+    : String(v.crewCount);
 }
 
-const updateTone = (t: UpdateTone | undefined): Tone => t ?? "info";
+/**
+ * Fleet-wide comms rollup — the header badge + footer meter both read off
+ * this. Deliberately worded around LINK, never "nominal"/"critical": those
+ * words would read as a reliability/health verdict this widget has no data
+ * to back (see the module doc comment on why `status` isn't a thing here).
+ */
+function commsRollup(vessels: FleetVessel[]): {
+  linked: number;
+  none: number;
+  unknown: number;
+  badgeLabel: string;
+  tone: Tone;
+} {
+  const linked = vessels.filter(
+    (v) => v.comms === "connected" || v.comms === "relay",
+  ).length;
+  const none = vessels.filter((v) => v.comms === "none").length;
+  const unknown = vessels.filter((v) => v.comms === "unknown").length;
+
+  let badgeLabel: string;
+  let tone: Tone;
+  if (vessels.length === 0) {
+    badgeLabel = "No Vessels";
+    tone = "neutral";
+  } else if (none === 0 && unknown === 0) {
+    badgeLabel = "All Linked";
+    tone = "go";
+  } else if (linked === 0) {
+    badgeLabel = "No Link";
+    tone = "nogo";
+  } else {
+    badgeLabel = `${none + unknown} Not Linked`;
+    tone = "warn";
+  }
+  return { linked, none, unknown, badgeLabel, tone };
+}
 
 // ---------------------------------------------------------------------------
 // Widget
@@ -114,8 +221,9 @@ const ROW_HEIGHT = 25;
 function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
-  const vessels = useFleet();
-  const status = fleetStatus(vessels);
+  const { known, vessels } = useFleet();
+  const streamStatus = useStreamStatusOptional("system.vessels");
+  const rollup = commsRollup(vessels);
   const cols = w ?? 8;
   // Below the width threshold the Body column and the per-vessel update lines
   // are shed — the identity + crew + link (the at-a-glance fleet state) always
@@ -127,20 +235,21 @@ function FleetRosterComponent({
     getAugmentsForSlot("fleet-roster.updates").length > 0;
 
   const total = vessels.length;
-  const nominal = vessels.filter((v) => v.status === "nominal").length;
-  const warn = vessels.filter((v) => v.status === "warn").length;
-  const critical = vessels.filter((v) => v.status === "critical").length;
-  const readiness = total > 0 ? nominal / total : 0;
 
   return (
     <Panel>
       <HeaderRow>
         <PanelTitle>Fleet</PanelTitle>
-        <Badge tone={status.tone}>{status.label}</Badge>
+        <TitleRight>
+          <Badge tone={rollup.tone}>{rollup.badgeLabel}</Badge>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRight>
       </HeaderRow>
 
       {total === 0 ? (
-        <EmptyState>No vessels tracked.</EmptyState>
+        <EmptyState>
+          {known ? "No vessels tracked." : "Fleet data not available yet."}
+        </EmptyState>
       ) : (
         <TableScroll>
           <ColumnHead $compact={compact}>
@@ -152,53 +261,48 @@ function FleetRosterComponent({
 
           {vessels.map((v) => {
             const comms = COMMS[v.comms];
-            const rowUpdates = compact ? [] : (v.updates ?? []);
-            // The updates block carries inline one-liners AND the
-            // `fleet-roster.updates` augment slot. Only render it when there's
-            // something to show — inline updates, or a registered augment — so
-            // vessels with a clean bill don't leave an empty gap.
-            const showUpdates =
-              !compact && (rowUpdates.length > 0 || updatesAugmentPresent);
+            // The per-vessel line-updates block is PURELY the
+            // `fleet-roster.updates` augment slot now — the seam for a
+            // future Reliability/TestFlight uplink to compose real
+            // alarm/health one-liners here. It carries no data of its own
+            // (there is no reliability signal behind this widget; see the
+            // module doc comment), so it renders nothing until an uplink
+            // actually registers.
+            const showUpdates = !compact && updatesAugmentPresent;
             return (
               <Fragment key={v.id}>
                 <Row $compact={compact}>
                   <NameCell title={v.name}>
-                    <StatusDot
-                      $tone={STATUS_TONE[v.status]}
+                    <LinkDot
+                      $tone={COMMS_TONE[v.comms]}
                       role="img"
-                      aria-label={`${v.status} status`}
+                      aria-label={comms.aria}
                     />
                     <Name>{v.name}</Name>
                   </NameCell>
-                  {!compact && <BodyCell title={v.body}>{v.body}</BodyCell>}
+                  {!compact && (
+                    <BodyCell title={v.body ?? undefined}>
+                      {v.body ?? "—"}
+                    </BodyCell>
+                  )}
                   <CrewCell>{crewLabel(v)}</CrewCell>
                   <LinkCell>
-                    <CommsTag $tone={comms.tone} aria-label={comms.aria}>
+                    <CommsTag
+                      $tone={COMMS_TONE[v.comms]}
+                      aria-label={comms.aria}
+                    >
                       {comms.label}
                     </CommsTag>
                   </LinkCell>
                 </Row>
                 {showUpdates && (
                   <UpdatesBlock>
-                    {rowUpdates.map((u, i) => (
-                      <UpdateLine
-                        // biome-ignore lint/suspicious/noArrayIndexKey: updates are order-stable one-liners with no id
-                        key={i}
-                      >
-                        <UpdateDot $tone={updateTone(u.tone)} />
-                        <UpdateText $tone={updateTone(u.tone)}>
-                          {u.text}
-                        </UpdateText>
-                      </UpdateLine>
-                    ))}
-                    {/* Reliability / alarm one-liners from other uplinks compose
-                        here per vessel — empty until one registers. */}
                     <AugmentSlot
                       name="fleet-roster.updates"
                       props={{
                         vesselId: v.id,
                         vesselName: v.name,
-                        body: v.body,
+                        body: v.body ?? "",
                       }}
                     />
                   </UpdatesBlock>
@@ -211,10 +315,12 @@ function FleetRosterComponent({
 
       <FooterRow>
         <Meter
-          label="Fleet readiness"
-          value={readiness}
-          tone={status.tone}
-          valueLabel={`${nominal} nominal · ${warn} warn · ${critical} critical`}
+          label="Comms coverage"
+          value={total > 0 ? rollup.linked / total : 0}
+          tone={rollup.tone}
+          valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
+            rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""
+          }`}
           size={compact ? "sm" : "md"}
         />
       </FooterRow>
@@ -241,6 +347,12 @@ const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+`;
+
+const TitleRight = styled.div`
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
 `;
 
@@ -287,7 +399,7 @@ const NameCell = styled.div`
   padding: 0 6px;
 `;
 
-const StatusDot = styled.span<{ $tone: Tone }>`
+const LinkDot = styled.span<{ $tone: Tone }>`
   flex: 0 0 auto;
   width: 8px;
   height: 8px;
@@ -345,29 +457,6 @@ const UpdatesBlock = styled.div`
   padding: 0 6px 5px 21px;
 `;
 
-const UpdateLine = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-`;
-
-const UpdateDot = styled.span<{ $tone: Tone }>`
-  flex: 0 0 auto;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: ${({ $tone }) => TONE_HEX[$tone]};
-`;
-
-const UpdateText = styled.span<{ $tone: Tone }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $tone }) => TONE_HEX[$tone]};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
 const FooterRow = styled.div`
   display: flex;
   flex-direction: column;
@@ -381,16 +470,16 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide status table: one row per vessel with name, body, crew, comms link state, and a nominal/warn/critical status, plus per-vessel reliability/alarm line-updates and a fleet-readiness summary. The spatial fleet view lives in SystemView.",
+    "Fleet-wide roster table: one row per known vessel with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) — the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. The spatial fleet view lives in SystemView.",
   tags: ["telemetry", "kerbalism"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
-  dataRequirements: ["fleet.vessels"],
+  dataRequirements: ["system.vessels", "system.bodies"],
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
 });
 
-export type { CommsLink, FleetUpdate, FleetVessel, VesselStatus };
+export type { CommsLink, FleetVessel };
 export { FleetRosterComponent };
