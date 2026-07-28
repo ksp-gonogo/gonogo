@@ -73,12 +73,15 @@ function unionGrow(
 
 /**
  * Schedule `cb` to run on the next animation frame, falling back to a
- * microtask when `requestAnimationFrame` isn't available (SSR, and jsdom —
- * verified `jsdom@29` has no `requestAnimationFrame` at all, so this is the
- * path every test in this package actually exercises; there is no real-timer
- * race to make a test flaky). The coalescing primitive behind
- * `TelemetryProvider`'s ingest -> `beginFrame()` scheduling below.
- * Returns a cancel function.
+ * microtask when `requestAnimationFrame` isn't available (SSR, or a bare
+ * jsdom constructed without `pretendToBeVisual`). Note that under vitest's
+ * jsdom environment `pretendToBeVisual` defaults to true, so tests DO get a
+ * real `requestAnimationFrame` and exercise the frame path, not the microtask
+ * fallback. An earlier version of this comment claimed the opposite, and that
+ * claim sent two separate investigations into the microtask path chasing
+ * act-warnings that turned out to originate in test teardown ordering
+ * instead. The coalescing primitive behind `TelemetryProvider`'s ingest ->
+ * `beginFrame()` scheduling below. Returns a cancel function.
  */
 function scheduleFrame(cb: () => void): () => void {
   if (typeof requestAnimationFrame === "function") {
