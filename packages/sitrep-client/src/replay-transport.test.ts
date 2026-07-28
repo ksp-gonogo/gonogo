@@ -8,7 +8,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * Minimal deterministic `Clock` test double — time only moves on
+ * Minimal deterministic `Clock` test double: time only moves on
  * `advanceTo`, mirroring `client.test.ts`'s own `FakeClock`/sitrep-server's
  * `ManualClock` semantics. `ReplayTransport` must never race real timers, so
  * every test below drives delivery entirely through this.
@@ -33,7 +33,7 @@ class FakeClock implements Clock {
     };
   }
 
-  /** Advances to `ut`, firing every due callback in ASCENDING `atUt` order (never insertion order) — proves delivery order is driven by schedule time, not array position. */
+  /** Advances to `ut`, firing every due callback in ASCENDING `atUt` order (never insertion order), proves delivery order is driven by schedule time, not array position. */
   advanceTo(ut: number): void {
     this.currentUt = ut;
     const due = this.pending
@@ -87,7 +87,7 @@ describe("ReplayTransport", () => {
     );
   });
 
-  it("delivers frames in ascending meta.deliveredAt order, anchored to the clock's now() at construction — even when the fixture array is out of order", () => {
+  it("delivers frames in ascending meta.deliveredAt order, anchored to the clock's now() at construction, even when the fixture array is out of order", () => {
     const fixture: ReplayFixture = {
       frames: [
         frame("vessel.orbit", { sma: 3 }, 20), // out of order on purpose
@@ -137,7 +137,7 @@ describe("ReplayTransport", () => {
     expect(delivered).toEqual([]);
   });
 
-  it("provider mounted with a ReplayTransport streams the fixture's topics and produces the recorded values — the no-KSP iteration engine end to end", () => {
+  it("provider mounted with a ReplayTransport streams the fixture's topics and produces the recorded values, the no-KSP iteration engine end to end", () => {
     const fixture: ReplayFixture = {
       subscribedTopics: ["vessel.orbit"],
       frames: [

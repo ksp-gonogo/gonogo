@@ -6,9 +6,9 @@ import { useEffect, useRef, useState } from "react";
  * Surfaces data sources that have been disconnected or erroring for longer
  * than the sustained-failure threshold. Hidden while everything's healthy or
  * while a transient blip clears within `THRESHOLD_MS`. Motivated by silent
- * indefinite reconnect loops — without this banner they happen with no UI.
+ * indefinite reconnect loops: without this banner they happen with no UI.
  *
- * Click-through is intentionally deferred — the visible banner is the
+ * Click-through is intentionally deferred, the visible banner is the
  * affordance; opening a panel from here would compete with the existing
  * Data Source Status widget which surfaces the same info in detail.
  */

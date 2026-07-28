@@ -5,11 +5,11 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Headless coverage for <see cref="ReferenceIdRegistry{T}"/> — the M3 R3
+    /// Headless coverage for <see cref="ReferenceIdRegistry{T}"/>: the M3 R3
     /// maneuver-node-id determinism the capture-add report calls out. Uses a
     /// plain reference-type stand-in (not the real KSP <c>ManeuverNode</c>,
     /// which only <c>Gonogo.KSP</c> can reference) since this class is
-    /// generic and genuinely KSP-free — see its own doc comment.
+    /// generic and genuinely KSP-free: see its own doc comment.
     /// </summary>
     public class ReferenceIdRegistryTests
     {

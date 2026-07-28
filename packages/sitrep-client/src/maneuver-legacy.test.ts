@@ -104,7 +104,7 @@ describe("deriveVesselManeuverLegacy", () => {
     expect(result).toBeNull();
   });
 
-  it("always an array — empty when there are no queued nodes", () => {
+  it("always an array: empty when there are no queued nodes", () => {
     const result = deriveVesselManeuverLegacy(() =>
       pt<VesselManeuverPayload>({ nodes: [] }),
     );
@@ -122,7 +122,7 @@ describe("deriveVesselManeuverLegacy", () => {
 });
 
 describe("vesselManeuverLegacyChannel", () => {
-  it("declares vessel.maneuver as its only input — scoped narrowly so it doesn't widen vessel.state's carried-channels requirement", () => {
+  it("declares vessel.maneuver as its only input: scoped narrowly so it doesn't widen vessel.state's carried-channels requirement", () => {
     expect(vesselManeuverLegacyChannel.topic).toBe("vessel.maneuver.legacy");
     expect(vesselManeuverLegacyChannel.inputs).toEqual(["vessel.maneuver"]);
     expect(vesselManeuverLegacyChannel.fields).toBe(true);

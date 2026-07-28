@@ -22,7 +22,7 @@ import { ManeuverPlannerComponent } from "./index";
 // Rendered trees, tracked so each describe's afterEach can unmount them BEFORE
 // disconnecting the legacy source or clearing the augment registry. RTL
 // auto-cleanup runs after this file's afterEach, so it can't be relied on to
-// unmount first — buffered.disconnect()/clearAugments() firing on a
+// unmount first: buffered.disconnect()/clearAugments() firing on a
 // still-mounted widget is a state update outside act(), the documented
 // anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -38,16 +38,16 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-// Captured at import — before any `clearRegistry` in a beforeEach wipes the
+// Captured at import: before any `clearRegistry` in a beforeEach wipes the
 // module-load `registerComponent`, so the augment-slot metadata is intact.
 const maneuverPlannerDef = getComponent("maneuver-planner");
 
 // currentUT now reads off `useViewUt()` (the `t.universalTime` client
-// migration) instead of the legacy `DataSource` — every test below still
+// migration) instead of the legacy `DataSource`: every test below still
 // emits `t.universalTime` (now a dead, harmless emit) so this constant
 // mirrors that same value via a minimal pinned `TelemetryProvider`. Nothing
 // is carried, so every other read/command stays on the legacy source
-// exactly as before — the two trigger-fire tests below mount their OWN
+// exactly as before: the two trigger-fire tests below mount their OWN
 // `<TelemetryProvider>` (same client/store, wider carriedChannels) instead
 // of `utFixture.Provider`, so widening the carry set for the trigger's
 // `vessel.maneuver.add` dispatch doesn't leak into every other test's
@@ -60,14 +60,14 @@ const utFixture = setupStreamFixture({
 });
 // `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
 // `vessel.maneuver.legacy` derived channel, reshaping the real
-// `vessel.maneuver` wire topic — not one of the two derived channels
+// `vessel.maneuver` wire topic: not one of the two derived channels
 // `setupStreamFixture` pre-registers (`vesselStateChannel`/
 // `spaceCenterStateChannel`), so register it here.
 utFixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
 
 /**
  * Reconstructs the legacy `o.addManeuverNode[...]` action string from a
- * dispatched `{command, args}` pair — lets the trigger-fire tests below keep
+ * dispatched `{command, args}` pair, lets the trigger-fire tests below keep
  * asserting the same `.toMatch(/^o\.addManeuverNode\[/)` shape even though
  * `LocalManeuverTriggerService.fire()` now dispatches through the stream
  * (`dispatchActiveCommand`) instead of the legacy `DataSource.execute`.
@@ -83,13 +83,13 @@ function formatManeuverAddCommand(args: unknown): string {
 }
 
 /**
- * Reuses `utFixture`'s client/store but with a WIDER carriedChannels set —
+ * Reuses `utFixture`'s client/store but with a WIDER carriedChannels set,
  * for the two trigger-fire tests below, which need `vessel.maneuver.add`
  * carried so `LocalManeuverTriggerService.fire()`'s `dispatchActiveCommand`
  * actually routes, without widening the SHARED module-level `utFixture`
  * every other test in this file also mounts (that would also route the
- * regular "Add Node" button's `execute("data", ...)` — the same carried-gated
- * `useCommand` shim — off its legacy `onExecute` capture).
+ * regular "Add Node" button's `execute("data", ...)`: the same carried-gated
+ * `useCommand` shim: off its legacy `onExecute` capture).
  */
 function TriggerCarriedProvider({ children }: { children: ReactNode }) {
   return (
@@ -103,14 +103,14 @@ function TriggerCarriedProvider({ children }: { children: ReactNode }) {
   );
 }
 // `StubTransport.emit` only delivers a topic once something has actually
-// subscribed (the realistic "proves ref-counted subscribe happened" gate —
+// subscribed (the realistic "proves ref-counted subscribe happened" gate,
 // see its own doc comment). No widget in THIS test reads `vessel.orbit`/
 // `vessel.identity`/`system.bodies` reactively (`LocalManeuverTriggerService`'s
 // non-hook accessors sample the store directly, with no subscription of
-// their own — see `sampleActiveTopic`'s doc comment in `sitrep-client`), so
+// their own: see `sampleActiveTopic`'s doc comment in `sitrep-client`), so
 // this stands in for "some other live widget already has it subscribed",
 // the same assumption production relies on. `system.bodies` feeds the
-// derived `vessel.state.apoapsisAlt`/`periapsisAlt` reference-body radius —
+// derived `vessel.state.apoapsisAlt`/`periapsisAlt` reference-body radius:
 // the trigger tests below arm on `o.ApA`, which only resolves once it's fed.
 utFixture.client.subscribe("vessel.orbit", () => {});
 utFixture.client.subscribe("vessel.identity", () => {});
@@ -119,7 +119,7 @@ utFixture.client.subscribe("system.bodies", () => {});
 /**
  * `useViewUt()`'s pinned value only lands once `ViewClock.onFrame`'s
  * per-frame tick has run at least once (the hook's synchronous initial seed
- * ignores `scrubTo` — see its own doc comment in `sitrep-client/src/context.tsx`),
+ * ignores `scrubTo`: see its own doc comment in `sitrep-client/src/context.tsx`),
  * so a synchronous `act()` around a telemetry emit isn't enough to reach the
  * "ready" state this widget gates on `currentUT`. Await this right after
  * emitting telemetry, before any assertion that needs the widget past
@@ -177,7 +177,7 @@ const KEYS: DataKey[] = [
  * since this test never supplies a `providedTriggerService`) now reads its
  * OWN orbit/target/vessel-identity fields off the stream
  * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()`) instead of the legacy `o.*`/`tar.o.*`/`v.name` keys —
+ * `getVesselState()`) instead of the legacy `o.*`/`tar.o.*`/`v.name` keys,
  * see that file's own doc comment. The widget's own DISPLAYED numbers still
  * come from the legacy `o.*` emits above (unmigrated `useDataValue` reads),
  * so the two don't need to match exactly; this just needs to be a
@@ -210,7 +210,7 @@ const VESSEL_IDENTITY_STREAM_FIXTURE = {
 /**
  * `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
  * `vessel.maneuver.legacy` derived channel off the real `vessel.maneuver`
- * wire topic — no legacy fallback of its own. `id` defaults to a plain
+ * wire topic: no legacy fallback of its own. `id` defaults to a plain
  * positional-index string (not a real guid) since most callers below only
  * care about the node's DELTA-V shape, not its id round-trip (that's
  * covered end-to-end, with a real guid, by `stream.test.tsx`).
@@ -258,9 +258,9 @@ function emitFullOrbit(source: MockDataSource): void {
   source.emit("o.orbitalSpeed", 2300);
   source.emit("o.radius", 700000);
   source.emit("t.universalTime", 1_000_000);
-  // Stream leg — see the doc comment above. Kerbin's radius (600_000m) is
+  // Stream leg: see the doc comment above. Kerbin's radius (600_000m) is
   // what turns the fixture's apoapsisRADIUS (707_000, sma·1.01) into the
-  // apoapsisALT (107_000) the legacy `o.ApA` emit above already carries —
+  // apoapsisALT (107_000) the legacy `o.ApA` emit above already carries,
   // `LocalManeuverTriggerService`'s trigger `dataKey` reads (`getValue`)
   // resolve `o.ApA` to the derived `vessel.state.apoapsisAlt`, which needs
   // `system.bodies` for that subtraction.
@@ -306,12 +306,12 @@ describe("ManeuverPlannerComponent", () => {
     // Per-field checklist rows appear with the underlying data-key labels.
     expect(screen.getByText("o.sma")).toBeInTheDocument();
     expect(screen.getByText("t.universalTime")).toBeInTheDocument();
-    // O5: the plain no-data case must NOT show the hyperbolic notice — only
+    // O5: the plain no-data case must NOT show the hyperbolic notice, only
     // a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
     expect(screen.queryByText(/Hyperbolic trajectory/i)).toBeNull();
   });
 
-  // O5: ManeuverPlanner conflated "hyperbolic orbit" with "no data" — both
+  // O5: ManeuverPlanner conflated "hyperbolic orbit" with "no data", both
   // used to fall into the same generic "Waiting for telemetry" empty state
   // because `buildCurrentOrbit` legitimately returns null on a hyperbolic
   // orbit (no apoapsis, so ApR/timeToAp come back NaN/null even once real
@@ -326,7 +326,7 @@ describe("ManeuverPlannerComponent", () => {
     );
     act(() => {
       // Hyperbolic: ecc >= 1, sma conventionally negative. Real telemetry
-      // has arrived (unlike the plain no-data case above) — it's just an
+      // has arrived (unlike the plain no-data case above), it's just an
       // orbit shape the planner can't offer circularize/rendezvous presets
       // for.
       utFixture.emit("vessel.orbit", {
@@ -370,7 +370,7 @@ describe("ManeuverPlannerComponent", () => {
       emitManeuverNode([{ ut: 1_000_120, dvRadial: 30 }]);
     });
     // The derived `vessel.maneuver.legacy` channel only recomputes once the
-    // provider's ingest->beginFrame() rAF tick has run — flush it (a bare
+    // provider's ingest->beginFrame() rAF tick has run, flush it (a bare
     // synchronous act() samples a stale frame, which on the shared
     // module-level utFixture store is whatever the prior test last left).
     await flushViewUt();
@@ -389,7 +389,7 @@ describe("ManeuverPlannerComponent", () => {
     act(() => {
       emitFullOrbit(source);
       // Highly eccentric orbit with non-trivial circularise cost, paired with
-      // a tiny vessel ΔV budget — the planner should refuse the commit.
+      // a tiny vessel ΔV budget: the planner should refuse the commit.
       // sma·(1±ecc) -> ApR ≈ 1_000_000 / PeR ≈ 700_000, same numbers the
       // pre-migration legacy `o.ApR`/`o.PeR` emits carried directly.
       utFixture.emit("vessel.orbit", {
@@ -455,7 +455,7 @@ describe("ManeuverPlannerComponent", () => {
     registerDataSource(buffered);
     await buffered.connect();
     // The trigger's fire dispatch now rides `dispatchActiveCommand`, not
-    // the legacy `onExecute` above — capture it off the shared stream
+    // the legacy `onExecute` above: capture it off the shared stream
     // fixture's transport instead (see `formatManeuverAddCommand`).
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
@@ -493,7 +493,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(screen.getByText(/o\.ApA >= 200000/)).toBeInTheDocument();
     expect(calls).toHaveLength(0);
 
-    // Apoapsis climbs past the threshold — trigger fires and the burn is
+    // Apoapsis climbs past the threshold: trigger fires and the burn is
     // dispatched with the frozen circularize-apo preset. The trigger's
     // `dataKey` read (`getValue`) resolves `o.ApA` off the STREAM's derived
     // `vessel.state.apoapsisAlt`, so the crossing has to come from a new
@@ -531,7 +531,7 @@ describe("ManeuverPlannerComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
-    // See the previous test's identical note — the trigger's fire dispatch
+    // See the previous test's identical note: the trigger's fire dispatch
     // rides `dispatchActiveCommand` now, captured off the stream fixture.
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
@@ -554,7 +554,7 @@ describe("ManeuverPlannerComponent", () => {
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
     await user.type(picker, "o.ApA{Enter}");
-    // Threshold below current ApA (107000) — should fire on arm.
+    // Threshold below current ApA (107000): should fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
     await user.clear(valueInput);
     await user.type(valueInput, "50000");
@@ -592,7 +592,7 @@ describe("ManeuverPlannerComponent", () => {
       });
       // The derived `vessel.maneuver.legacy` channel only recomputes once
       // `TelemetryProvider`'s ingest->beginFrame() requestAnimationFrame
-      // tick has run (`context.tsx`'s `scheduleFrame`) — fake timers (below)
+      // tick has run (`context.tsx`'s `scheduleFrame`), fake timers (below)
       // fake `requestAnimationFrame` too, so it needs an explicit advance,
       // not just a microtask flush.
       act(() => {
@@ -606,7 +606,7 @@ describe("ManeuverPlannerComponent", () => {
       expect(screen.getByText(/30 m\/s/)).toBeInTheDocument();
       expect(screen.queryByText(/Burn complete/i)).toBeNull();
 
-      // Burn completes — remaining ΔV drops below threshold.
+      // Burn completes: remaining ΔV drops below threshold.
       act(() => {
         emitManeuverNode([{ ut: 1_000_120, dvPrograde: 0.1 }]);
       });
@@ -618,7 +618,7 @@ describe("ManeuverPlannerComponent", () => {
       expect(screen.getByText(/Burn complete/i)).toBeInTheDocument();
       expect(calls).toHaveLength(0);
 
-      // Advance past the 10 s hold — auto-remove should fire.
+      // Advance past the 10 s hold, auto-remove should fire.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10_000);
       });
@@ -703,7 +703,7 @@ describe("ManeuverPlannerComponent", () => {
     const user = userEvent.setup();
     // Edit flow: click Edit on a planned-node row, change the prograde, Save.
     // Verifies the action string and arg order: `o.updateManeuverNode[id, ut,
-    // radial, normal, prograde]` — same vector convention as add.
+    // radial, normal, prograde]`: same vector convention as add.
     buffered.disconnect();
     clearRegistry();
     const calls: string[] = [];
@@ -770,11 +770,11 @@ describe("ManeuverPlannerComponent", () => {
 
   it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
     const user = userEvent.setup();
-    // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde) —
+    // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde),
     // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
     // straight to OnGizmoUpdated(Vector3d(x,y,z), ut), so the on-wire
     // order is [ut, radial, normal, prograde]. Mixing this up turns a
-    // pure-prograde Hohmann burn into a pure-radial one — vessel ends
+    // pure-prograde Hohmann burn into a pure-radial one, vessel ends
     // up pointing straight up instead of along velocity.
     buffered.disconnect();
     clearRegistry();
@@ -817,7 +817,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 });
 
-describe("ManeuverPlanner — augment slots (Uplink §4)", () => {
+describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
@@ -832,7 +832,7 @@ describe("ManeuverPlanner — augment slots (Uplink §4)", () => {
   afterEach(() => {
     unmountAll();
     // The widget module registers no augments of its own, but a test may have
-    // bound one into a slot — reset so it never leaks into a later test.
+    // bound one into a slot: reset so it never leaks into a later test.
     clearAugments();
     buffered.disconnect();
   });
@@ -853,7 +853,7 @@ describe("ManeuverPlanner — augment slots (Uplink §4)", () => {
     act(() => {
       emitFullOrbit(source);
     });
-    // The frame still renders normally — an unfilled slot contributes no DOM.
+    // The frame still renders normally, an unfilled slot contributes no DOM.
     expect(screen.getByText("MANEUVER PLANNER")).toBeInTheDocument();
     expect(screen.queryByText(/from-sections-augment/i)).toBeNull();
     expect(screen.queryByText(/from-badges-augment/i)).toBeNull();

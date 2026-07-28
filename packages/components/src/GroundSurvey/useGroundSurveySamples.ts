@@ -4,14 +4,14 @@ import { useEffect, useReducer, useRef } from "react";
 import { rateTerrainRoughness } from "../shared/roughnessGrade";
 
 export interface SurveySample {
-  /** Unix ms — wall-clock time this sample was received (`Date.now()` at
+  /** Unix ms: wall-clock time this sample was received (`Date.now()` at
    *  the moment the vessel.flight ingest that produced it landed). */
   t: number;
   /** Terrain elevation above sea level, m. Median-filtered hft. */
   terrain: number;
   /**
    * `real` while sampling above the freeze threshold; `frozen` once we drop
-   * below it — at which point we keep extending the time-axis using the
+   * below it: at which point we keep extending the time-axis using the
    * last real terrain elevation, so the strip's right edge tracks current
    * time and the visible window doesn't go stale during descent.
    */
@@ -21,9 +21,9 @@ export interface SurveySample {
 export interface SurveyResult {
   samples: readonly SurveySample[];
   /**
-   * - `idle` — no telemetry yet, OR vessel above the survey ceiling.
-   * - `active` — sampling between ceiling and freeze threshold.
-   * - `frozen` — below the freeze threshold; verdict locked.
+   * - `idle`: no telemetry yet, OR vessel above the survey ceiling.
+   * - `active`: sampling between ceiling and freeze threshold.
+   * - `frozen`: below the freeze threshold; verdict locked.
    */
   surveyState: "idle" | "active" | "frozen" | "above-ceiling";
   altitude: number | null;
@@ -40,10 +40,10 @@ export interface UseGroundSurveyOpts {
   /** Below this hft (m) the survey freezes. Default 1000. */
   freezeBelowM?: number;
   /**
-   * Above this hft (m) the survey is idle — terrain elevation samples taken
+   * Above this hft (m) the survey is idle, terrain elevation samples taken
    * from orbit smear over hundreds of km of ground and the resulting
    * smoothness verdict is meaningless for landing-site assessment. Default
-   * 10 000 (10 km AGL) — well below LKO, well above any useful
+   * 10 000 (10 km AGL): well below LKO, well above any useful
    * reconnaissance pass.
    */
   surveyCeilingM?: number;
@@ -56,7 +56,7 @@ interface InternalState {
   surfaceSpeed: number | null;
   body: string | null;
   splashed: boolean;
-  /** Last 3 raw heightFromTerrain values — median-filtered before terrain calc. */
+  /** Last 3 raw heightFromTerrain values: median-filtered before terrain calc. */
   hftWindow: number[];
   /** Most recent real terrain elevation; reused while frozen. */
   lastRealTerrain: number | null;
@@ -82,12 +82,12 @@ function freshState(): InternalState {
 }
 
 /**
- * Reads `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed — a single
+ * Reads `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed, a single
  * atomic per-tick capture, `KspHost.BuildFlight`) as a canonical Topic read
- * (no legacy fallback, matches `useTopology`'s posture — see that hook's
+ * (no legacy fallback, matches `useTopology`'s posture: see that hook's
  * own doc comment). Body/splashed/predicted-landing read the `vessel.state`
- * DERIVED channel directly via `useStream` — `parentBodyName`/`isSplashed`/
- * `landingPredictedLat`/`landingPredictedLon` — the same channel
+ * DERIVED channel directly via `useStream`: `parentBodyName`/`isSplashed`/
+ * `landingPredictedLat`/`landingPredictedLon`: the same channel
  * `DistanceToTarget`/`TargetPicker`/`ManeuverPlanner`/`CurrentOrbit` read for
  * their own `vessel.state.*` fields, off the legacy `useTelemetry(sourceId,
  * "v.body"/"v.splashed"/"land.predictedLat"/"land.predictedLon")` shim.
@@ -97,11 +97,11 @@ function freshState(): InternalState {
  * network packets with different latencies, which is why this hook used to
  * pair them by real per-sample arrival timestamp within a `pairWindowMs`
  * tolerance (a raw `.subscribeSamples` call on the looked-up legacy
- * source, bypassing `useDataValue` entirely — no shim exposes per-sample
+ * source, bypassing `useDataValue` entirely: no shim exposes per-sample
  * timestamps). The mod's
  * `vessel.flight` Topic is a SINGLE WRAPPER OBJECT capturing both fields in
  * the same tick (`KspHost.BuildFlight` reads `part.vessel.altitude`/
- * `heightFromTerrain` in one pass) — every stream update already IS a
+ * `heightFromTerrain` in one pass): every stream update already IS a
  * pair, so the reconciliation problem this hook was built to solve no
  * longer exists. `pairWindowMs` is gone from the options; nothing ever
  * passed it explicitly (confirmed by grep).
@@ -111,8 +111,8 @@ export function useGroundSurveySamples(
 ): SurveyResult {
   const cfg = { ...DEFAULT_OPTS, ...opts };
   const flight = useTelemetry("vessel.flight");
-  // Prefer the mod's lowest-point-to-ground reading (`vessel.surface`) — the
-  // number a landing/freeze decision actually cares about — over
+  // Prefer the mod's lowest-point-to-ground reading (`vessel.surface`): the
+  // number a landing/freeze decision actually cares about, over
   // `vessel.flight.altitudeTerrain` (KSP radarAltitude, from the CENTRE OF
   // MASS). Same datum preference LandingStatus uses; the CoM value is the
   // fallback when the capture nulls `vessel.surface` (orbiting/escaping, or no
@@ -135,7 +135,7 @@ export function useGroundSurveySamples(
   const stateRef = useRef<InternalState>(freshState());
   const [, bump] = useReducer((x: number) => x + 1, 0);
 
-  // Body change (SOI transition / scene reload) resets the buffer — declared
+  // Body change (SOI transition / scene reload) resets the buffer, declared
   // BEFORE the flight-driven effect below so a same-tick body change clears
   // stale samples before the new pair is pushed, matching the original
   // subscription-ordering guarantee.
@@ -174,7 +174,7 @@ export function useGroundSurveySamples(
       bump();
       return;
     }
-    // Above the ceiling — terrain readings sweep across hundreds of km of
+    // Above the ceiling: terrain readings sweep across hundreds of km of
     // ground per sample and the verdict goes haywire. Skip; the widget
     // shows an "above ceiling" idle state instead.
     if (hft > cfg.surveyCeilingM) {
@@ -182,7 +182,7 @@ export function useGroundSurveySamples(
       return;
     }
 
-    // Median filter the raw hft window — single-sample spikes (water,
+    // Median filter the raw hft window: single-sample spikes (water,
     // measurement glitches) shouldn't whip the terrain line around.
     s.hftWindow.push(hft);
     if (s.hftWindow.length > 3) s.hftWindow.shift();
@@ -237,14 +237,14 @@ export interface SmoothnessVerdict {
 }
 
 /**
- * Verdict bands match the spec — calibrated for typical KSP terrain:
+ * Verdict bands match the spec: calibrated for typical KSP terrain:
  * Mun maria run ~30 m σ, mid-rough Mun runs ~150 m, Bop / Eeloo / Mün
  * highlands push past 400 m and shouldn't be touched.
  */
 export function rateSmoothness(
   samples: readonly SurveySample[],
 ): SmoothnessVerdict | null {
-  // Need a non-trivial window; ignore frozen samples — they're a constant
+  // Need a non-trivial window; ignore frozen samples, they're a constant
   // and would artificially deflate σ once descent starts.
   const real = samples.filter((s) => s.kind === "real").map((s) => s.terrain);
   if (real.length < 3) return null;

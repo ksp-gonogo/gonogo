@@ -13,8 +13,8 @@ namespace GonogoKosUplink.Tests
     /// <see cref="UplinkDiscovery"/>'s assembly scan silently skips
     /// <see cref="KosExtension"/> and the whole uplink is inert dead code
     /// in a live game. These assertions touch only the attribute + ctor
-    /// metadata and the reflection scan — never <see cref="KosExtension.Register"/>
-    /// or the Unity GameObject path — so they run headlessly.
+    /// metadata and the reflection scan: never <see cref="KosExtension.Register"/>
+    /// or the Unity GameObject path: so they run headlessly.
     /// </summary>
     public class KosExtensionDiscoveryTests
     {
@@ -67,7 +67,7 @@ namespace GonogoKosUplink.Tests
             // stale width for a full light-time round-trip, so the client renders
             // those diffs at the wrong column and the terminal reads as garbled.
             // Resize is a local viewport concern, so it must reach the mod
-            // immediately — unlike a keystroke, which is genuine remote input.
+            // immediately: unlike a keystroke, which is genuine remote input.
             var manifest = UplinkDiscovery
                 .Discover(new[] { typeof(KosExtension).Assembly })
                 .Single(d => d.Uplink.Manifest.Id == "kos")

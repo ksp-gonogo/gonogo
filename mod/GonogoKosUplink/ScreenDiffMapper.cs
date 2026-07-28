@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using kOS.Safe.Screen;
@@ -12,19 +12,19 @@ namespace Gonogo.KosUplink
     /// KSP/Unity process, no live <c>kOSProcessor</c>) by the terminal-harness
     /// tests. It references only <c>kOS.Safe</c> (<see cref="ScreenSnapShot"/> /
     /// <see cref="IScreenSnapShot"/> / <see cref="IScreenBuffer"/>) and kOS's
-    /// own <c>kOS.UserIO.TerminalUnicodeMapper</c> — both of which load and run
+    /// own <c>kOS.UserIO.TerminalUnicodeMapper</c>: both of which load and run
     /// in a plain .NET process without UnityEngine (the mapper's body touches
     /// only mscorlib + kOS.Safe types, so its assembly's Unity references stay
     /// lazily unresolved). Nothing here resolves a processor, a window, or any
-    /// <c>kOS.Module</c>/<c>kOS.Screen</c>/UnityEngine type — that KSP shell
+    /// <c>kOS.Module</c>/<c>kOS.Screen</c>/UnityEngine type, that KSP shell
     /// stays in <see cref="KosProcessorScreen"/>.
     ///
     /// <para>The logic mirrors the diff+map half that used to live inline in
     /// <c>KosProcessorScreen.ReadChunk</c>: a reseed (forced, or a changed
     /// <see cref="IScreenBuffer"/> reference from a reboot/rebind, or the very
     /// first frame) produces a self-contained absolute-positioned full repaint
-    /// (diff from an empty-buffer baseline — a cleared
-    /// <see cref="ScreenSnapShot.EmptyScreen"/> — which forces every current row
+    /// (diff from an empty-buffer baseline: a cleared
+    /// <see cref="ScreenSnapShot.EmptyScreen"/>, which forces every current row
     /// to render regardless of its change tick; fresh mapper, prefixed with an
     /// explicit clear); otherwise a
     /// cursor-relative diff from the previous snapshot. The caller owns the "is

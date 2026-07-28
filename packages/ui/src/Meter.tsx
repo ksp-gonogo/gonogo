@@ -18,13 +18,13 @@ export interface MeterProps
 }
 
 /**
- * A labelled horizontal fill bar — the shared visual language for any 0..1
+ * A labelled horizontal fill bar: the shared visual language for any 0..1
  * quantity (dose, shielding, hunger, resource level, reliability). Pool several
  * into a uniform stack (see `MeterStack`) so a widget's readouts line up.
  *
  * Semantics: the track is `role="meter"` with `aria-valuenow/min/max` and
  * `aria-valuetext` (the human `valueLabel`), named by `label`. Colour never
- * carries meaning alone — the header always shows the value in text.
+ * carries meaning alone: the header always shows the value in text.
  */
 export function Meter({
   label,

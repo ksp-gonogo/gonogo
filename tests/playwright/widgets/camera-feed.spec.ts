@@ -12,12 +12,12 @@ import { bootstrapPair, expect, teardownPair } from "../helpers";
  * the sidecar protocol synchronously.
  */
 
-test.describe("CameraFeed — widget scaffold", () => {
+test.describe("CameraFeed: widget scaffold", () => {
   test("renders title and no-sidecar placeholder on host + station", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "camera-feed", {
-      // camera-feed IS the kerbcast Uplink's own widget — load kerbcast so it
+      // camera-feed IS the kerbcast Uplink's own widget, load kerbcast so it
       // registers (consent is pre-seeded by bootstrapPair).
       loadUplinkIds: ["kerbcast"],
       widget: {
@@ -38,7 +38,7 @@ test.describe("CameraFeed — widget scaffold", () => {
 
       // With no sidecar/cameras (always the case in CI) the widget shows
       // the "no cameras on this vessel" subtitle plus the empty-state body
-      // ("No camera feeds — start a vessel with Hullcam parts installed").
+      // ("No camera feeds: start a vessel with Hullcam parts installed").
       const noCamerasSubtitle = page
         .getByText(/no cameras on this vessel/i)
         .first();

@@ -3,19 +3,19 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free command-handling glue for the career-write commands — the
+    /// KSP-free command-handling glue for the career-write commands, the
     /// command-side twin of <see cref="CareerViewProvider"/>. Each
     /// <c>Handle*</c> method is the exact delegate
     /// <c>Gonogo.KSP.CareerUplink.Register</c> hands to
     /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: validate the
     /// already-typed args, call the one matching <see cref="ICareerActuator"/>
     /// method, hand back an already-typed result. No KSP/Unity type appears
-    /// anywhere in this file — the only checks done HERE are on the args
+    /// anywhere in this file: the only checks done HERE are on the args
     /// themselves (an empty/whitespace id can never resolve to a live entity, so
     /// it fails fast as <see cref="CommandErrorCode.NotFound"/> without ever
-    /// reaching the actuator). Every check that needs live game state — whether
+    /// reaching the actuator). Every check that needs live game state, whether
     /// the id resolves, whether the action is valid in the current state,
-    /// whether the player can afford the spend — is the actuator's job and comes
+    /// whether the player can afford the spend, is the actuator's job and comes
     /// back as a typed <see cref="CommandResult.ErrorCode"/>, mirroring
     /// <see cref="VesselCommandProvider"/>'s split exactly.
     /// </summary>

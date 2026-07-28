@@ -25,7 +25,7 @@ describe("setupMockDataSource", () => {
     expect(getDataSource("data")).toBe(fixture.buffered);
     // The buffered layer reflects the upstream source's status. The shared
     // pattern doesn't connect the upstream MockDataSource (existing widget
-    // tests follow the same convention), so status remains "disconnected" —
+    // tests follow the same convention), so status remains "disconnected",
     // emit() still flows because subscription is map-based.
     expect(fixture.buffered.status).toBe("disconnected");
   });

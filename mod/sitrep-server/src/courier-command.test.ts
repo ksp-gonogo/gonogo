@@ -17,7 +17,7 @@ describe("Courier command round-trip", () => {
     const onResponse = vi.fn();
     courier.dispatchCommand("vessel", "r1", "deploy", null, "KSC", onResponse);
 
-    // Nothing yet — command is still in flight uplink.
+    // Nothing yet: command is still in flight uplink.
     clock.advanceTo(1);
     expect(handler).not.toHaveBeenCalled();
     expect(onResponse).not.toHaveBeenCalled();

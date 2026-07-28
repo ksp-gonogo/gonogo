@@ -7,7 +7,7 @@
 /**
  * One entry of the `dv.stages` complex-object response. Note the JSON field
  * names differ from the per-key names Telemachus uses for the indexed
- * accessors (e.g. `dv.stageDVVac[n]` → `deltaVVac`) — the labels below match
+ * accessors (e.g. `dv.stageDVVac[n]` → `deltaVVac`): the labels below match
  * the JSON response, not the dv keys.
  *
  * `stage` is the stage number as KSP counts them (current stage counts down
@@ -40,7 +40,7 @@ export interface StageInfo {
  * `OrbitPatchJSONFormatter`. One of the array entries for `o.orbitPatches`
  * and for each `ManeuverNode.orbitPatches`.
  *
- * Caveat: the `eccentricAnomaly` field in the raw response is a known bug —
+ * Caveat: the `eccentricAnomaly` field in the raw response is a known bug,
  * it's actually `eccentricity` again. Intentionally omitted from this type so
  * callers don't accidentally treat it as anomaly data; compute E from e + M
  * if you need it.

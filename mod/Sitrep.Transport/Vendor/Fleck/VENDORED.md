@@ -12,7 +12,7 @@ Vendored files: `src/Fleck/**/*.cs` from the upstream repo, unmodified except fo
    and without this pragma the vendored tree alone emits ~40 CS86xx warnings that
    would drown out anything real from our own code).
 
-No other lines were touched — logic, formatting, and behavior are untouched.
+No other lines were touched, logic, formatting, and behavior are untouched.
 
 ## Why source, not a NuGet/DLL reference
 
@@ -20,7 +20,7 @@ KSP loads every DLL under `GameData/` into a single Mono AppDomain and resolves
 assembly names first-registered-wins. A bundled `Fleck.dll` would collide with any
 other installed mod that also bundles Fleck (or a different version of it),
 non-deterministically picking one binary for both. Compiling Fleck's source directly
-into `Sitrep.Transport.dll` under a private namespace avoids the collision entirely —
+into `Sitrep.Transport.dll` under a private namespace avoids the collision entirely,
 nothing outside this assembly can see or depend on a type named `Fleck.*`.
 
 ## Updating

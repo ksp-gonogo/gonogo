@@ -1,5 +1,5 @@
 /**
- * The PROMOTED-widgets manifest — the curated set of widgets whose release/docs
+ * The PROMOTED-widgets manifest: the curated set of widgets whose release/docs
  * assets (an animated GIF and/or static stills) are kept fresh by the
  * `render-promoted-assets` pipeline and committed to `docs/assets/` by CI
  * (`.github/workflows/refresh-promoted-assets.yml`), so README / release /
@@ -7,7 +7,7 @@
  *
  * Promoting a widget is a one-entry change here: add a `PromotedWidget` with a
  * `gif` (an animation driver) and/or `stills` (static renders). The render
- * script is scenario-agnostic — each entry plugs in its OWN frame source, so
+ * script is scenario-agnostic, each entry plugs in its OWN frame source, so
  * this file is the only place widget-specific knowledge lives.
  *
  * Landing is the first (and, for now, only) promoted widget: its ~15s Mun
@@ -31,7 +31,7 @@ export interface PromotedStill {
    * keeps the stills in lock-step with the ones the widget author maintains.
    */
   fixtureFile: string;
-  /** Tile size (grid units) — width is honoured; height grows to fit (fullContent). */
+  /** Tile size (grid units): width is honoured; height grows to fit (fullContent). */
   w: number;
   h: number;
 }
@@ -42,13 +42,13 @@ export interface PromotedGif {
   name: string;
   /** Target playback length; the per-frame delay is derived from the frame count. */
   targetSeconds: number;
-  /** Tile size (grid units) — width fixed, height grows per frame (fullContent). */
+  /** Tile size (grid units): width fixed, height grows per frame (fullContent). */
   w: number;
   h: number;
   /**
    * Ordered animation frames, each a `_stream` render-fixture object. Each
    * promoted widget supplies its own scenario driver; the render script only
-   * renders each frame full-height and stitches — it knows nothing widget- or
+   * renders each frame full-height and stitches, it knows nothing widget- or
    * scenario-specific.
    */
   frames: () => Array<Record<string, unknown>>;
@@ -117,14 +117,14 @@ export const PROMOTED_WIDGETS: readonly PromotedWidget[] = [
         ),
     },
     stills: [
-      // Suicide-burn ignition — committed, still fast (DIVERT), hot band lit.
+      // Suicide-burn ignition: committed, still fast (DIVERT), hot band lit.
       {
         name: "landing-ignition",
         fixtureFile: "LandingStatus/__render__/descent-ignition.json",
         w: 12,
         h: 20,
       },
-      // Final approach — soft descent, gear down, site reads SAFE.
+      // Final approach: soft descent, gear down, site reads SAFE.
       {
         name: "landing-final",
         fixtureFile: "LandingStatus/__render__/descent-final.json",

@@ -66,7 +66,7 @@ describe("ClientTimeline", () => {
     expect(timeline.at(1000)).toBeUndefined();
   });
 
-  it("is bounded to a retention window behind the latest ingested sample — old points are evicted", () => {
+  it("is bounded to a retention window behind the latest ingested sample, old points are evicted", () => {
     const timeline = new ClientTimeline<number | null>({
       retentionSeconds: 100,
     });
@@ -75,7 +75,7 @@ describe("ClientTimeline", () => {
     expect(timeline.at(50)?.payload).toBe(50);
     expect(timeline.range(0, 50).length).toBe(2);
 
-    // Pushes the retention floor to 150 (250 - 100) — the two old points
+    // Pushes the retention floor to 150 (250 - 100), the two old points
     // (validAt 0, 50) fall outside the window and are evicted.
     timeline.append(point(250, 250));
 

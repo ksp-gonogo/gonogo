@@ -19,12 +19,12 @@ import { SpaceCenterStatusComponent } from "./index";
  * (-> `spaceCenter.scene.launchSite`), `kc.padOccupied`/`kc.padVesselTitle`
  * (-> the `spaceCenter.state` derived channel) are mapped too but their input
  * channel (`spaceCenter.launchSites`) isn't carried in most of these
- * fixtures, so those reads stay on the legacy fallback — carried by a small
+ * fixtures, so those reads stay on the legacy fallback, carried by a small
  * `setupMockDataSource` AUX. The last test below is the exception: it carries
  * `spaceCenter.launchSites` and proves `kc.padVesselTitle` reads the streamed
  * pad-occupancy entry rather than the legacy AUX.
  */
-// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// Unmount each rendered tree BEFORE clearing the action-handler registry,
 // clearActionHandlers() firing on a still-mounted widget is a state update
 // outside act(). RTL auto-cleanup runs after this file's afterEach, too late
 // to unmount first.
@@ -36,7 +36,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("SpaceCenterStatus — genuinely runs off the stream", () => {
+describe("SpaceCenterStatus: genuinely runs off the stream", () => {
   it("renders the funds readout and parts-available count both off the stream", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -172,7 +172,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       });
     });
 
-    // "tier 2 of 3" — displayLevel/displayMax are currentTier/maxTier + 1
+    // "tier 2 of 3": displayLevel/displayMax are currentTier/maxTier + 1
     // (0-based tiers on the wire, 1-based "Lvl N of M" display).
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
@@ -194,7 +194,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
     // The legacy AUX carries a DIFFERENT vessel name than the streamed
-    // fixture — if the widget were still reading the legacy fallback instead
+    // fixture: if the widget were still reading the legacy fallback instead
     // of `spaceCenter.state.padVesselTitle`, this is what would render.
     const legacyAux = await setupMockDataSource({
       id: "data",

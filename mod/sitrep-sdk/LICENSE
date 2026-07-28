@@ -27,6 +27,6 @@ TypeScript counterpart, @ksp-gonogo/sitrep-sdk in mod/sitrep-sdk). It is a
 deliberate permissive carve-out from the rest of the gonogo/Sitrep codebase,
 which is licensed GPL-3.0-only (see the repository root LICENSE) because it
 directly links kOS. Sitrep.Contract ships no kOS code and exists specifically
-so that third-party Uplinks — under any license, including proprietary or
-GPLv2 — can reference the public telemetry contract without inheriting GPL
+so that third-party Uplinks (under any license, including proprietary or
+GPLv2) can reference the public telemetry contract without inheriting GPL
 obligations.

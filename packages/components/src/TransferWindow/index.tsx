@@ -15,6 +15,7 @@ import {
   Button,
   FieldLabel,
   FieldRow,
+  NULL_DISPLAY,
   Panel,
   PanelTitle,
   ScrollArea,
@@ -33,15 +34,15 @@ import {
 } from "./transferData";
 
 /**
- * Transfer Window — interplanetary/interlunar departure planning. Client-derived
+ * Transfer Window: interplanetary/interlunar departure planning. Client-derived
  * from the body Keplerian elements already on the wire (`system.bodies`), no mod
  * channel. Three linked instruments:
  *
- *  1. the DIAL — the live "right now" phase relationship (current vs ideal);
- *  2. the WINDOWS LIST — the next several departure windows to the target
+ *  1. the DIAL: the live "right now" phase relationship (current vs ideal);
+ *  2. the WINDOWS LIST: the next several departure windows to the target
  *     (countdown / Δv / transfer time); select a row to focus the chart on it
  *     and expand its detail + a set-alarm option;
- *  3. the PORKCHOP — the departure×arrival Δv surface for the selected window,
+ *  3. the PORKCHOP: the departure×arrival Δv surface for the selected window,
  *     with per-cell hover.
  *
  * The list ↔ chart link teaches the chart: pick a window, see its Δv surface.
@@ -74,7 +75,7 @@ const transferWindowActions = [
 
 export type TransferWindowActions = typeof transferWindowActions;
 
-// State-descriptive labels for the phase relationship — this is an instrument
+// State-descriptive labels for the phase relationship: this is an instrument
 // that SHOWS state, not one that issues commands. IDEAL: the phase is at the
 // Hohmann ideal; NEAR: approaching it; FAR: well off it.
 const STATUS_LABEL: Record<string, string> = {
@@ -265,8 +266,8 @@ function TransferWindowComponent({
       <Body>
         {solution ? (
           // Responsive on the body's own width (container query): stacked when
-          // narrow — dial + list, then the chart below; side-by-side when wide
-          // — dial + list on the left, the chart flowing to the right. The
+          // narrow: dial + list, then the chart below; side-by-side when wide,
+          // dial + list on the left, the chart flowing to the right. The
           // chart holds a minimum size and grows to fill whatever space is free.
           <ContentGrid>
             <LeftCol>
@@ -503,11 +504,11 @@ function Porkchop({
 
   return (
     <PorkchopWrap>
-      <PorkchopTitle>Transfer Δv — departure vs arrival</PorkchopTitle>
+      <PorkchopTitle>Transfer Δv: departure vs arrival</PorkchopTitle>
       <Inspector aria-live="polite">
         {hover && hover.deltaV != null
           ? `Departs +${dayOffset(hover.depUt)}d · Arrives +${dayOffset(hover.arrUt)}d · Transfer ${days(hover.tofSec)}d · Δv ${kms(hover.deltaV)} km/s`
-          : `Best ${best ? `${kms(best.deltaV)} km/s, depart +${dayOffset(best.depUt)}d` : "—"} · hover a cell for its numbers.`}
+          : `Best ${best ? `${kms(best.deltaV)} km/s, depart +${dayOffset(best.depUt)}d` : NULL_DISPLAY} · hover a cell for its numbers.`}
       </Inspector>
       <MapBox>
         <MapSvg
@@ -609,7 +610,7 @@ function Porkchop({
             textAnchor="middle"
             fill="var(--color-text-muted)"
           >
-            departure — days from now
+            departure: days from now
           </text>
 
           {/* y axis: arrival */}
@@ -633,10 +634,10 @@ function Porkchop({
             fill="var(--color-text-muted)"
             transform={`rotate(-90 12 ${M.top + PLOT_H / 2})`}
           >
-            arrival — days from now
+            arrival: days from now
           </text>
 
-          {/* Δv legend — a continuous gradient bar with a few value ticks */}
+          {/* Δv legend: a continuous gradient bar with a few value ticks */}
           <rect
             x={VB_W - M.right + 20}
             y={M.top}
@@ -705,10 +706,10 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// The scrolling body — fills the Panel below the fixed title row and scrolls
+// The scrolling body: fills the Panel below the fixed title row and scrolls
 // its content within the tile (with ui-kit's fade/glow affordance). The
 // scrolling children lay out via the inner element, per ScrollArea's contract.
-// Full-bleed body (standing rule): the widget body reaches the widget edge —
+// Full-bleed body (standing rule): the widget body reaches the widget edge,
 // the dashboard grid owns the outer gutter, and the ui-kit Panel no longer adds
 // its own padding. Text/readouts keep a local horizontal pad for readability;
 // the Δv map and the window rows bleed back out to the edges (negative margin =
@@ -783,7 +784,7 @@ const NowRow = styled.div`
 
 // The chart box grows to fill whatever space the tile/column gives it, down to
 // a sensible minimum height. The SVG scales to fit (preserveAspectRatio meet),
-// so the whole diagram — axes, legend and all — stays visible and undistorted.
+// so the whole diagram: axes, legend and all: stays visible and undistorted.
 const MapBox = styled.div`
   flex: 1 1 auto;
   min-height: 220px;

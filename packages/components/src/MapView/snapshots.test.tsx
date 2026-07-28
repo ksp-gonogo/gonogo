@@ -38,7 +38,7 @@ const FIXTURES = {
   "no-vessel-data": noVessel,
 };
 
-// All eight vessel.state inputs — the carried gate is parent-channel-scoped.
+// All eight vessel.state inputs: the carried gate is parent-channel-scoped.
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",
   "vessel.flight",

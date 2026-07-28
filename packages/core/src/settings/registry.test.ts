@@ -11,7 +11,7 @@ afterEach(() => {
   __clearSettingsForTests();
 });
 
-describe("settings registry — two backings", () => {
+describe("settings registry: two backings", () => {
   it("stores a client-pref setting (backing omitted defaults to client-pref)", () => {
     registerSetting({
       id: "feat.flag",
@@ -22,7 +22,7 @@ describe("settings registry — two backings", () => {
     });
     const def = getSettingDefinition("feat.flag");
     expect(def?.backing).toBeUndefined();
-    // narrows to ClientPrefSetting — defaultValue is present
+    // narrows to ClientPrefSetting: defaultValue is present
     expect(def && def.backing !== "source-backed" && def.defaultValue).toBe(
       true,
     );

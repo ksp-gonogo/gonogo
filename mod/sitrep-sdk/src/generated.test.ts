@@ -42,7 +42,7 @@ describe("generated contract.ts", () => {
     expect(src).toMatch(/export interface CommsConnectivity\b/);
     expect(src).toMatch(/export interface KosProcessorInfo\b/);
     expect(src).toMatch(/export interface Vec3\b/);
-    // shared value shapes carry data only — no static factory methods leaked
+    // shared value shapes carry data only: no static factory methods leaked
     expect(src).toMatch(/export interface CommandResult\b/);
     expect(src).not.toMatch(/Ok\s*\(/);
     expect(src).not.toMatch(/Fail\s*\(/);

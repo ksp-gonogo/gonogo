@@ -11,15 +11,15 @@ namespace GonogoTelemetry
     /// spend science on.
     ///
     /// Keys:
-    /// - `tech.unlockedIds` — array of node ids the player has researched.
-    /// - `tech.unlockedPartCount` — number of parts available in VAB/SPH
+    /// - `tech.unlockedIds`: array of node ids the player has researched.
+    /// - `tech.unlockedPartCount`: number of parts available in VAB/SPH
     ///   under the current tech tree.
-    /// - `tech.affordable` — array of `{ id, scienceCost }` for nodes the
+    /// - `tech.affordable`: array of `{ id, scienceCost }` for nodes the
     ///   player could buy: not-yet-unlocked AND scienceCost ≤ current
     ///   science. Prereq filtering is left to KSP's own check at unlock
     ///   time (ProtoTechNode doesn't expose predecessor info; widget
     ///   consumes the list and KSP refuses prereq-blocked unlocks).
-    /// - `tech.unlock[techId]` — write action.
+    /// - `tech.unlock[techId]`: write action.
     ///
     /// All keys are global (vessel parameter ignored). Same convention as
     /// Telemachus's own ScienceCareer handler.
@@ -64,7 +64,7 @@ namespace GonogoTelemetry
 
         // Sticky-cache for transient empty results. KSP clears
         // ResearchAndDevelopment.Instance.protoTechNodes during scene
-        // loads and rebuilds it from the save — there's a one-frame
+        // loads and rebuilds it from the save, there's a one-frame
         // window where every node reports Unavailable. If a query
         // would have returned a non-empty list last time but now
         // returns empty, surface the cached result instead. Sticks
@@ -96,7 +96,7 @@ namespace GonogoTelemetry
 
             var result = new List<string>();
             // ProtoTechNode.state on the AssetBase tree reflects the
-            // *static config-loaded* state — i.e. only `start` ever shows
+            // *static config-loaded* state: i.e. only `start` ever shows
             // as Available, regardless of player progression. The
             // player's actual unlocked set lives in
             // ResearchAndDevelopment.Instance.protoTechNodes (private),
@@ -140,7 +140,7 @@ namespace GonogoTelemetry
             if (rd == null) return result;
 
             // During a scene load, GetTechnologyState briefly says
-            // Unavailable for every node — that'd cause Affordable to
+            // Unavailable for every node: that'd cause Affordable to
             // *balloon* (every cheap-enough node looks "not yet
             // unlocked"). Detect via the same `start` check as
             // UnlockedIds and return the previous cache instead.
@@ -151,7 +151,7 @@ namespace GonogoTelemetry
             foreach (var node in GetTreeTechs())
             {
                 if (node == null) continue;
-                // Same lookup-via-static-API trick as UnlockedIds — the
+                // Same lookup-via-static-API trick as UnlockedIds: the
                 // node.state on the AssetBase tree is config-static and
                 // reads as Unavailable for everything except `start`.
                 if (ResearchAndDevelopment.GetTechnologyState(node.techID)
@@ -186,7 +186,7 @@ namespace GonogoTelemetry
                 }
             }
             if (target == null) return "tech not found";
-            // Real state via the static lookup — the in-tree node.state
+            // Real state via the static lookup: the in-tree node.state
             // is config-static (always Unavailable except for `start`).
             if (ResearchAndDevelopment.GetTechnologyState(target.techID)
                 == RDTech.State.Available) return 0; // idempotent
@@ -195,7 +195,7 @@ namespace GonogoTelemetry
             // ResearchAndDevelopment.UnlockProtoTechNode is the direct
             // path (per the decompiled RefreshTechTreeUI flow). The
             // automatic charge fires through the R&D scene UI, not the
-            // programmatic unlock — deduct funds explicitly with a
+            // programmatic unlock: deduct funds explicitly with a
             // matching transaction reason.
             //
             // Defer onto the main thread: UnlockProtoTechNode walks parts

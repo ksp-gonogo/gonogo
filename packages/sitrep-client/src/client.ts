@@ -11,12 +11,12 @@ type StoreListener = () => void;
  * Grace period (UT seconds) added on top of a transport's predicted
  * `etaConfirm` before silence is inferred as loss. Sized to absorb small
  * scheduling jitter around the predicted round trip, not to model any
- * additional delay itself — the prediction already IS the round trip.
+ * additional delay itself: the prediction already IS the round trip.
  */
 export const LOSS_MARGIN = 2;
 
 /**
- * One record per `subscribe()` call, not per callback identity — the same
+ * One record per `subscribe()` call, not per callback identity, the same
  * callback reference can be passed to `subscribe` multiple times and each
  * call must ref-count independently (see `off()` in `subscribe`).
  */
@@ -27,8 +27,8 @@ interface Subscription {
 /**
  * Bookkeeping for one dispatched command, in-flight or settled.
  *
- * `resolve`/`reject` are nulled once the command settles (confirmed/failed)
- * — the Promise they close over has already been settled by then, so
+ * `resolve`/`reject` are nulled once the command settles (confirmed/failed),
+ * the Promise they close over has already been settled by then, so
  * holding onto them serves no purpose beyond leaking closures and inviting a
  * duplicate late `command-response`/`error` to re-settle (and silently
  * overwrite) an already-terminal `status`. The entry itself is intentionally
@@ -71,13 +71,13 @@ export class TelemetryClient {
   private readonly unsubscribeFromTransport: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
-  /** Raw-frame tap listeners — see `onRawMessage`. */
+  /** Raw-frame tap listeners: see `onRawMessage`. */
   private readonly rawMessageListeners = new Set<
     (message: ServerMessage) => void
   >();
   /**
    * `TimelineStore`s fed from this client's wire. A `Set`, not a single
-   * slot — nothing stops more than one screen from
+   * slot: nothing stops more than one screen from
    * sharing a client, and each gets its own `TimelineStore`/`ViewClock`. In
    * practice `TelemetryProvider` attaches exactly one (the store it
    * auto-builds, or a caller-supplied one).
@@ -85,14 +85,14 @@ export class TelemetryClient {
   private readonly stores = new Set<TimelineStore>();
 
   /**
-   * `clock` defaults to `RealTimeClock` — every real transport uses it
+   * `clock` defaults to `RealTimeClock`: every real transport uses it
    * unmodified. Tests inject a deterministic `Clock` (or a structurally
    * compatible one, like sitrep-server's `ManualClock`) so loss-inference
    * timing is controllable instead of racing real timers.
    *
    * Whichever `Clock` is injected MUST share the same time domain as the
    * transport's `predictConfirmEta()` (the UT clock the server/courier
-   * advances) — see the domain note on the `Clock` interface in `./clock`.
+   * advances): see the domain note on the `Clock` interface in `./clock`.
    * A mismatched domain makes loss inference meaningless: the
    * `etaConfirm - now()` delta can clamp to zero (false near-instant "lost")
    * or never fire (loss never inferred).
@@ -108,7 +108,7 @@ export class TelemetryClient {
 
   /**
    * Tap every raw wire message this client's transport delivers, verbatim
-   * and in arrival order — BEFORE this class's own topic-routing/store-ingest
+   * and in arrival order: BEFORE this class's own topic-routing/store-ingest
    * handling runs on it (`handleMessage` drops `command-response`/`error`
    * after its own bookkeeping and silently ignores `event` frames entirely,
    * so a listener that only used `subscribe`/`getValue` could never observe
@@ -117,7 +117,7 @@ export class TelemetryClient {
    * `stream-data`/`event` frames a `ReplayFixture` replays later, not the
    * flattened last-value view every other consumer of this class sees.
    *
-   * Purely additive — does not affect `subscribe`/`getValue`/store-ingest
+   * Purely additive: does not affect `subscribe`/`getValue`/store-ingest
    * delivery, and costs nothing when no listener is registered (the common
    * case: mission history off, or no recorder attached).
    */
@@ -166,7 +166,7 @@ export class TelemetryClient {
 
   /**
    * The topics the underlying `Transport` declares it actually delivers
-   * (see the carried-channels allowlist gate, `./carried-channels.ts`) —
+   * (see the carried-channels allowlist gate, `./carried-channels.ts`):
    * `[]` when the transport doesn't declare (`Transport.carriedChannels`
    * omitted, e.g. `StubTransport`). `TelemetryProvider` reads this to seed its
    * carried-channels allowlist; nothing else on this class depends on it.
@@ -180,7 +180,7 @@ export class TelemetryClient {
    * this call on, every future `stream-data`
    * message is ALSO delivered to `store.ingest(topic, point)`, in addition
    * to the existing `lastValues`/per-topic-subscriber delivery this class
-   * already does — the two delivery paths are independent, neither replaces
+   * already does, the two delivery paths are independent, neither replaces
    * the other. `point.validAt`/`point.epoch` are read straight off the
    * message's own `meta` (`meta.validAt`/`meta.timelineEpoch`), which is what
    * makes this feed correct for a derived channel's epoch-guard/quality-pick
@@ -188,7 +188,7 @@ export class TelemetryClient {
    *
    * Does NOT replay history: a store attached after samples have already
    * arrived only sees samples from that point forward (this class keeps no
-   * raw-message log, only the flattened `lastValues` sticky cache) — matches
+   * raw-message log, only the flattened `lastValues` sticky cache), matches
    * `TelemetryProvider`'s own lifecycle, which attaches its store before
    * anything can possibly subscribe through it.
    *
@@ -218,7 +218,7 @@ export class TelemetryClient {
    * ordering is deterministic and testable) and a `result` Promise that
    * resolves/rejects once the correlated `command-response`/`error` arrives.
    *
-   * `transport.send` is called synchronously — the client always hands the
+   * `transport.send` is called synchronously, the client always hands the
    * request to the transport in the same tick as `dispatch()`. Modeling the
    * round trip (i.e. making sure `in-flight` is observable before the
    * response settles) is the transport's responsibility, not the client's:
@@ -229,7 +229,7 @@ export class TelemetryClient {
    * `etaConfirm` (never computes delay itself). When the transport can't
    * predict one (`predictConfirmEta` omitted or returning `undefined`, e.g.
    * `StubTransport`), `etaConfirm` falls back to "now" and no loss timer is
-   * started — the command just waits. When a prediction IS
+   * started: the command just waits. When a prediction IS
    * available, a loss timer is armed for `etaConfirm + LOSS_MARGIN`; if the
    * command is still `in-flight` when it fires, silence is inferred as
    * `lost` and the promise rejects. Any real settle (response or error)
@@ -238,12 +238,12 @@ export class TelemetryClient {
    *
    * `label` is an opaque, operator-facing description of the command
    * (e.g. the composed line text for a line-mode `kos.keystroke`) carried
-   * straight through on the envelope — it plays no role in dispatch,
+   * straight through on the envelope: it plays no role in dispatch,
    * correlation, or loss inference. Defaults to `""` when omitted, matching
    * every pre-existing caller.
    *
    * `topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>` for
-   * a terminal-scoped command) carried straight through on the envelope —
+   * a terminal-scoped command) carried straight through on the envelope,
    * same rollout shape as `label`, no role in dispatch, correlation, or loss
    * inference. Defaults to `""` (unscoped) when omitted.
    */
@@ -359,7 +359,7 @@ export class TelemetryClient {
   private handleCommandResponse(requestId: string, result: unknown): void {
     const pending = this.commands.get(requestId);
     // No entry (unknown requestId) or already settled (a duplicate/late
-    // response) — either way there's no live resolve() to call, and a
+    // response): either way there's no live resolve() to call, and a
     // duplicate must not clobber the terminal status already recorded.
     if (!pending?.resolve) return;
     pending.cancelLossTimer?.();
@@ -394,7 +394,7 @@ export class TelemetryClient {
   /**
    * Fires when a command's loss-inference timer reaches `etaConfirm +
    * LOSS_MARGIN` with no response yet. A no-op if the command has already
-   * settled (or is unknown) — the timer is always cancelled on settle, but
+   * settled (or is unknown), the timer is always cancelled on settle, but
    * this guard covers the case where cancellation and firing raced within
    * the same clock-driven callback batch.
    */

@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 // FakePeer / FakeDataConnection: one pair in a single module, wired up so
 // that a conn created by the "station" Peer and one created by the "host"
-// Peer can cross-send — simulates the peerjs data channel without PeerJS.
+// Peer can cross-send, simulates the peerjs data channel without PeerJS.
 const { FakeHub } = vi.hoisted(() => {
   class FakeDataConnection {
     static all: FakeDataConnection[] = [];
@@ -221,7 +221,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
   });
 
   it("errors if the host has no kos relay handle registered", async () => {
-    // No registerUplinkHandle call — host has nothing.
+    // No registerUplinkHandle call: host has nothing.
     const host = new PeerHostService();
     await host.start();
     await Promise.resolve();

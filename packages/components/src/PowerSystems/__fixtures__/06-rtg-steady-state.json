@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "rtg-steady-state",
-    "notes": "Deep-space probe — RTG as sole power source. Balanced net (RTG just keeps up with probe systems). No solar, no batteries other than small buffer. Net near-zero, neutral tone. Shows RTG efficiency at 100% (flow equals nominalFlow)."
+    "notes": "Deep-space probe: RTG as sole power source. Balanced net (RTG just keeps up with probe systems). No solar, no batteries other than small buffer. Net near-zero, neutral tone. Shows RTG efficiency at 100% (flow equals nominalFlow)."
   },
   "v.topologySeq": 6,
   "v.topology": {

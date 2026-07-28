@@ -5,7 +5,7 @@
  * and reload.
  *
  * Tag gating only affects `debug` and `info` on tagged logs. `warn` and
- * `error` always pass — a serious problem should surface even if you
+ * `error` always pass: a serious problem should surface even if you
  * forgot to enable the subsystem's tag beforehand.
  *
  * Legacy `DEBUG_PEER=1` / `DEBUG_FLIGHT=1` flags remain honoured so old
@@ -54,7 +54,7 @@ export class TagRegistry {
   private resolved: Set<string> | "all" | null | "none" = null;
 
   /**
-   * Runtime override — called by the diagnostics UI so operators can flip
+   * Runtime override: called by the diagnostics UI so operators can flip
    * tags without reloading the page. Also resets the resolver cache so
    * subsequent `isEnabled` checks reflect the override.
    */

@@ -12,8 +12,8 @@ interface SampleRow {
  * non-persistent fallback if IndexedDB is unavailable.
  *
  * Samples are kept in per-(flight, key) arrays sorted by timestamp.
- * Insertion is O(1) when timestamps arrive monotonically — which is the
- * expected case from a live stream — with a fallback linear-insert path
+ * Insertion is O(1) when timestamps arrive monotonically, which is the
+ * expected case from a live stream: with a fallback linear-insert path
  * for out-of-order samples (e.g. backfilled history).
  */
 export class MemoryStore implements Store {
@@ -102,7 +102,7 @@ export class MemoryStore implements Store {
   }
 
   async flush(): Promise<void> {
-    // No-op — all writes are synchronous.
+    // No-op: all writes are synchronous.
   }
 
   // --- Internal ----------------------------------------------------------

@@ -10,7 +10,7 @@ import {
 } from "react";
 
 /**
- * State shared across a cluster of floating action buttons — one primary,
+ * State shared across a cluster of floating action buttons, one primary,
  * several secondaries. Secondaries stay hidden until the cluster is
  * "active"; a short close delay keeps the cluster open while the cursor
  * travels between buttons.

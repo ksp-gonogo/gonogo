@@ -27,7 +27,7 @@ export interface SetupMockOptions {
    * widget test whose rendered output reads `.status`/`onStatusChange`
    * directly off the "data" source (e.g. via `useDataStreamStatus`) and
    * needs it to genuinely read `"connected"`, matching what a live
-   * production `DataSource` would report during normal data flow —
+   * production `DataSource` would report during normal data flow,
    * `emit()`-driven value delivery already works without this (subscription
    * is map-based, not status-gated), so most widget tests don't need it.
    */
@@ -35,16 +35,16 @@ export interface SetupMockOptions {
 }
 
 export interface MockDataSourceFixture {
-  /** The raw in-memory source — call `emit(key, value)` to push samples. */
+  /** The raw in-memory source: call `emit(key, value)` to push samples. */
   source: MockDataSource;
-  /** The registered buffered wrapper — what components see via `useDataValue`. */
+  /** The registered buffered wrapper: what components see via `useDataValue`. */
   buffered: BufferedDataSource;
   /**
    * Number of `queryRange` backfills still in flight. `useDataSeries`
    * (graphs, sparklines) fires an async `queryRange().then(notify)` on
    * mount; its `notify()` would otherwise land outside `act()`. Tests/
-   * harnesses await this settling the testing-library way —
-   * `await waitFor(() => expect(fixture.pendingQueries()).toBe(0))` — so the
+   * harnesses await this settling the testing-library way,
+   * `await waitFor(() => expect(fixture.pendingQueries()).toBe(0))`: so the
    * backfill update is flushed inside waitFor's act-wrapping (rather than a
    * manual `act()`). Returns 0 for widgets that never query a range.
    */
@@ -67,7 +67,7 @@ export interface MockDataSourceFixture {
  * await buffered.connect();
  * ```
  *
- * The buffered wrapper is registered (not the raw source) — components read
+ * The buffered wrapper is registered (not the raw source), components read
  * through the buffered layer in production, so tests must too.
  */
 export async function setupMockDataSource(
@@ -87,7 +87,7 @@ export async function setupMockDataSource(
 
   // Track in-flight `queryRange` backfills so tests can await them settling
   // (see MockDataSourceFixture.pendingQueries). Wrapping here keeps the
-  // production BufferedDataSource untouched — this is purely a test seam.
+  // production BufferedDataSource untouched: this is purely a test seam.
   let pending = 0;
   const realQueryRange = buffered.queryRange.bind(buffered);
   buffered.queryRange = (...args: Parameters<typeof realQueryRange>) => {
@@ -116,7 +116,7 @@ export async function setupMockDataSource(
  * clearActionHandlers();
  * ```
  *
- * Order matters — `cleanup()` unmounts before disconnect to avoid `act()`
+ * Order matters, `cleanup()` unmounts before disconnect to avoid `act()`
  * warnings from state updates triggered by a status change while a component
  * is still mounted (see CLAUDE.md → Testing Philosophy).
  */

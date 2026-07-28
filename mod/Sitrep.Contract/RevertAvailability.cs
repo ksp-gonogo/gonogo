@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>ksp.revertAvailability</c> Topic payload — whether the two stock
+/// The <c>ksp.revertAvailability</c> Topic payload: whether the two stock
 /// in-flight "revert" actions are currently available, so a widget
 /// (LaunchDirector) can gate its Revert-to-Launch / Revert-to-Editor
 /// controls exactly like KSP's own pause menu does. Produced by
@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// buttons.
 ///
 /// <para>The whole payload is <c>null</c> (no key emitted) outside the
-/// flight scene — the two flags are only meaningful in flight, and the
+/// flight scene: the two flags are only meaningful in flight, and the
 /// backing <c>FlightDriver</c> statics carry stale values from the previous
 /// flight otherwise. When present, both bools are concrete (never null): a
 /// <c>false</c> means "this revert is genuinely not available right now,"
@@ -28,13 +28,13 @@ namespace Sitrep.Contract;
 /// <c>FlightDriver.RevertToPrelaunch(...)</c>, returning to the editor) when
 /// <c>FlightDriver.CanRevertToPrelaunch</c> is set. So
 /// <see cref="CanRevertToLaunch"/> maps to <c>CanRevertToPostInit</c> and
-/// <see cref="CanRevertToEditor"/> maps to <c>CanRevertToPrelaunch</c> — the
+/// <see cref="CanRevertToEditor"/> maps to <c>CanRevertToPrelaunch</c>: the
 /// KSP field names read backwards to their button labels, so the mapping is
 /// deliberately the inverse of a naive name-match.</para>
 ///
 /// <para>Same <c>system</c>-uplink convention as <c>SystemBodies</c>: a
 /// scene-side fact carried on its own Topic with no per-payload <c>Meta</c>
-/// (it rides the envelope), classified <c>DelayRole.TrueNow</c> — a
+/// (it rides the envelope), classified <c>DelayRole.TrueNow</c>: a
 /// ground-side game-state fact, not comms-derived vessel telemetry.</para>
 /// </summary>
 [SitrepContract]

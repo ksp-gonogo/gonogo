@@ -8,7 +8,7 @@ import {
 // 200 km), used to turn the lat/lon error into a physical distance.
 const M_PER_DEG = 200_000 * (Math.PI / 180);
 
-describe("synthetic descent — predicted site converges on the actual touchdown", () => {
+describe("synthetic descent: predicted site converges on the actual touchdown", () => {
   const frames = integrate();
   const actualTouchdownLon = frames[frames.length - 1].lon;
 

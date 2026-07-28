@@ -36,7 +36,7 @@ import type {
 import { MapViewComponent, VanillaSuppressionProbe } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
-// All eight vessel.state inputs — the carried gate is parent-channel-scoped.
+// All eight vessel.state inputs: the carried gate is parent-channel-scoped.
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",
   "vessel.flight",
@@ -105,14 +105,14 @@ describe("MapViewComponent", () => {
   });
 
   /**
-   * Minimal stand-in for `ui`'s `ModalDialog` chrome — renders whatever
+   * Minimal stand-in for `ui`'s `ModalDialog` chrome: renders whatever
    * footer `useModalSaveBar` registers so a config component's Save button
    * is reachable in an isolated render (see `ModalSaveBar.test.tsx` for the
    * same pattern in `ui-kit`).
    */
   function ModalChromeHost({ children }: { children: ReactNode }) {
     const [footer, setFooter] = useState<ReactNode>(null);
-    // Memoized exactly like the real `ModalDialog` (`ui/src/Modal.tsx`) —
+    // Memoized exactly like the real `ModalDialog` (`ui/src/Modal.tsx`),
     // an unstable `chrome` object here would make every consumer re-render
     // on every footer update via context propagation, which (combined with
     // a config component's `onSave: () => onSave(candidate)` closure being
@@ -129,7 +129,7 @@ describe("MapViewComponent", () => {
     );
   }
 
-  /** MapView reads DashboardItemContext via useActionInput — wrap in the provider. */
+  /** MapView reads DashboardItemContext via useActionInput, wrap in the provider. */
   function Wrap({ children }: { children: ReactNode }) {
     return (
       <DashboardItemContext.Provider value={{ instanceId: "map-test" }}>
@@ -240,7 +240,7 @@ describe("MapViewComponent", () => {
   }, 20000);
 
   // axe traversal of the body picker (a select carrying every stock body) is
-  // slow enough to blow vitest's 5s default under CI load — give the a11y
+  // slow enough to blow vitest's 5s default under CI load, give the a11y
   // smoke a generous margin so it doesn't flake (it passes fast locally).
   it("a11y smoke: config component (body picker + toggles) has no violations", async () => {
     const { container } = render(
@@ -277,7 +277,7 @@ describe("MapViewComponent", () => {
   // that the empty slots are inert when nothing is registered.
   describe("augment slots", () => {
     // This inner afterEach runs BEFORE the outer one, so unmount the trees here
-    // first — otherwise clearAugments() notifies a still-mounted AugmentSlot's
+    // first: otherwise clearAugments() notifies a still-mounted AugmentSlot's
     // subscribers and it re-renders outside act() (CLAUDE.md → act() pattern).
     afterEach(() => {
       for (const unmount of trees) unmount();
@@ -422,7 +422,7 @@ describe("MapViewComponent", () => {
       });
     });
 
-    it("map-view.base: every registered augment mounts and can contribute a canvas — no single-pick gating", async () => {
+    it("map-view.base: every registered augment mounts and can contribute a canvas, no single-pick gating", async () => {
       const onLayerCalls: string[] = [];
       registerAugment({
         id: "fake-base-a",
@@ -565,18 +565,18 @@ describe("MapViewComponent", () => {
 
   // Regression guard (2026-07-20): vanilla-base suppression must respect the
   // SAME Domain-presence gate `<AugmentSlot>` itself applies before ever
-  // rendering an augment's component — NOT merely that the augment is
+  // rendering an augment's component: NOT merely that the augment is
   // registered. An earlier version of this fix suppressed off registry
   // presence alone, which (since a client bundle registers its augments
   // unconditionally at import time, whether or not the mod is running in
   // KSP) blacked out the map for every user without that Uplink installed.
-  // `VanillaSuppressionProbe` is the piece that must get this right — it
+  // `VanillaSuppressionProbe` is the piece that must get this right, it
   // reports a `suppressesVanillaBase` augment's live availability up to
   // MapView independently of whether that augment's own component ever
   // mounts (it CAN'T report anything itself while ungated, since it never
   // renders). Tested directly (white-box) rather than through MapView's own
   // canvas paint, which jsdom can't exercise (`installDomStubs` stubs
-  // `getContext` to null) — the pure combination of this signal with
+  // `getContext` to null): the pure combination of this signal with
   // `suppressesVanillaBase` is covered separately in
   // vanillaSuppression.test.ts.
   describe("VanillaSuppressionProbe (regression guard: suppression must respect Domain availability)", () => {
@@ -608,7 +608,7 @@ describe("MapViewComponent", () => {
       probeTrees.push(result.unmount);
 
       // The regression: registered + suppressesVanillaBase alone must NOT
-      // report available — the Domain was never announced.
+      // report available: the Domain was never announced.
       expect(calls).toEqual([["fake-suppressing-base", false]]);
     });
 
@@ -656,7 +656,7 @@ describe("MapViewComponent", () => {
   // reaches the config UI via `AugmentSettingsPanel`, a saved edit lands in
   // the widget's persisted config namespaced by augment id, and a subsequent
   // render of the widget itself surfaces that value back on
-  // `ctx.augmentSettings` — the same object `useCoverageGate` and any
+  // `ctx.augmentSettings`: the same object `useCoverageGate` and any
   // augment's own settings already know how to read.
   describe("augment settings read-back", () => {
     afterEach(() => {

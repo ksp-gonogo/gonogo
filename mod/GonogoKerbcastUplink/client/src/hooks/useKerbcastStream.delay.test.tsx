@@ -1,28 +1,28 @@
 /**
- * `useKerbcastStream`'s optional delayed-playout wiring (M2 design §5 —
+ * `useKerbcastStream`'s optional delayed-playout wiring (M2 design §5,
  * "media delay (kerbcast)"), post cross-browser kerbcast video-delay
  * (2026-07-16). `useDelayedPlayout` now returns a discriminated
  * `DelayedPlayoutResult` (`"raw" | "connecting" | "delayed" |
  * "unavailable"`) instead of `MediaStream | null`, and tries TWO backends
- * in order — Chrome's main-thread Breakout Box, then a worker-hosted one —
+ * in order (Chrome's main-thread Breakout Box, then a worker-hosted one)
  * before ever reporting `"unavailable"`. Per decision 5 of the design
  * (`docs/superpowers/specs/2026-07-16-kerbcast-video-delay-cross-browser-design.md`),
  * there is NO live-passthrough fallback anymore when delay was requested:
  * a browser that can build neither backend reports `"unavailable"`, full
- * stop — never the raw stream.
+ * stop: never the raw stream.
  *
  * jsdom can't produce a real WebRTC `MediaStream`/track, has no
  * `MediaStreamTrackProcessor`/`Generator` (Chrome's shape), and has no
- * `Worker` either — so EVERY test in the first `describe` block below
+ * `Worker` either: so EVERY test in the first `describe` block below
  * exercises the "neither backend can build here" path, which is exactly
  * what a real, fully-unsupported browser would see too. That's the direct
- * successor to this file's old "fallback-path" tests — same real,
+ * successor to this file's old "fallback-path" tests, same real,
  * un-stubbed jsdom behaviour, just asserting the new (correct) outcome:
  * `"unavailable"`, never a live token.
  *
  * The second `describe` block stubs the three WebCodecs/DOM globals
  * `createFrameDelayStream` touches so Backend 1 (main-thread) actually
- * builds — the real build → camera-switch dispose+rebuild →
+ * builds: the real build → camera-switch dispose+rebuild →
  * resetEpoch-flush → unmount-dispose wiring in `useDelayedPlayout` runs
  * end to end, same as before this rewrite.
  *
@@ -43,7 +43,7 @@ import {
   useKerbcastStream,
 } from "./useKerbcastStream";
 
-// Testing Library auto-cleans the DOM after every test — no manual cleanup()
+// Testing Library auto-cleans the DOM after every test, no manual cleanup()
 // needed here, only the registry teardown this file actually owns.
 afterEach(() => {
   clearRegistry();
@@ -103,7 +103,7 @@ function registerFakeKerbcastSource(cam: ReturnType<typeof fakeCameraHandle>) {
   registerUplinkHandle("kerbcast", fake);
 }
 
-/** A fake "video frame" — the minimal `FrameLike` contract `../frameDelay.ts`
+/** A fake "video frame": the minimal `FrameLike` contract `../frameDelay.ts`
  *  requires, plus a spy so tests can assert `.close()` was called. Mirrors
  *  `frameDelay.test.ts`'s `fakeFrame`. */
 function fakeFrame(label: string) {
@@ -119,7 +119,7 @@ type FakeFrame = ReturnType<typeof fakeFrame>;
 
 /** A controllable fake video track: `push()` delivers a frame to whichever
  *  `FakeProcessor` reader is currently reading it (immediately if a read is
- *  already pending, queued otherwise) — lets a test inject a frame into the
+ *  already pending, queued otherwise): lets a test inject a frame into the
  *  REAL pipeline built by the hook, without a real `MediaStreamTrack`. */
 function fakeControllableVideoTrack() {
   const queue: FakeFrame[] = [];
@@ -147,8 +147,8 @@ function fakeControllableVideoTrack() {
 }
 type FakeControllableVideoTrack = ReturnType<typeof fakeControllableVideoTrack>;
 
-/** A raw `MediaStream` stand-in that actually implements `getVideoTracks()`
- *  — unlike the opaque string tokens used elsewhere in this file, this one
+/** A raw `MediaStream` stand-in that actually implements `getVideoTracks()`,
+ *  unlike the opaque string tokens used elsewhere in this file, this one
  *  can drive the SUPPORTED path, where `createFrameDelayStream` looks for a
  *  real video track on `raw`. */
 function fakeVideoStream(track: FakeControllableVideoTrack): MediaStream {
@@ -252,8 +252,8 @@ function StreamProbe({
   return null;
 }
 
-describe("useKerbcastStream — delayed playout wiring", () => {
-  it("without a delay option, behaves as the unchanged strict passthrough — no pipeline attempted", () => {
+describe("useKerbcastStream: delayed playout wiring", () => {
+  it("without a delay option, behaves as the unchanged strict passthrough, no pipeline attempted", () => {
     const cam = fakeCameraHandle("live-token");
     registerFakeKerbcastSource(cam);
 
@@ -268,7 +268,7 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     expect(latest).toBe("live-token");
   });
 
-  it("with a delay option, on a browser with NEITHER backend (this test env: no WebCodecs, no snapshot()-capable clock, no Worker), reports unavailable — never a live token, never a throw", () => {
+  it("with a delay option, on a browser with NEITHER backend (this test env: no WebCodecs, no snapshot()-capable clock, no Worker), reports unavailable; never a live token, never a throw", () => {
     const cam = fakeCameraHandle(null);
     registerFakeKerbcastSource(cam);
     const clock = manualClock(0);
@@ -292,8 +292,8 @@ describe("useKerbcastStream — delayed playout wiring", () => {
       cam.emit("stream-token-A");
     });
     // Neither backend can be built here (no WebCodecs track-IO APIs, and the
-    // fake clock has no snapshot() for the worker backend to fall back on)
-    // — this is the "can't delay -> no video" case (decision 5). The
+    // fake clock has no snapshot() for the worker backend to fall back on),
+    // this is the "can't delay -> no video" case (decision 5). The
     // opaque token must NEVER surface.
     expect(latest).toMatchObject({ kind: "unavailable" });
     expect(
@@ -327,7 +327,7 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     act(() => {
       cam.emit(null); // camera disconnect
     });
-    // Nothing to attempt building against anymore — back to "connecting",
+    // Nothing to attempt building against anymore: back to "connecting",
     // not stuck reporting the previous unavailability.
     expect(latest).toEqual({ kind: "connecting" });
   });
@@ -397,7 +397,7 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     expect(latest).toMatchObject({ kind: "unavailable" });
   });
 
-  it("attempts the worker backend when the clock supports snapshot(), and still reports unavailable in this test env (jsdom has no Worker) — proving Backend 2 was reached, not skipped", async () => {
+  it("attempts the worker backend when the clock supports snapshot(), and still reports unavailable in this test env (jsdom has no Worker), proving Backend 2 was reached, not skipped", async () => {
     const cam = fakeCameraHandle(null);
     registerFakeKerbcastSource(cam);
     const clock = manualClock(0) as DelayClockLike & {
@@ -435,7 +435,7 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     });
     // The reason should reflect "no backend in this browser", not the
     // "clock doesn't support snapshot()" message the previous test's
-    // plain `manualClock()` produces — proving a DIFFERENT code path ran.
+    // plain `manualClock()` produces: proving a DIFFERENT code path ran.
     expect(
       (latest as unknown as DelayedPlayoutResult & { kind: "unavailable" })
         .reason,
@@ -443,12 +443,12 @@ describe("useKerbcastStream — delayed playout wiring", () => {
   });
 });
 
-describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed WebCodecs)", () => {
+describe("useKerbcastStream: delayed playout wiring (SUPPORTED path, stubbed WebCodecs)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("with a delay option and a supported browser, builds a real per-frame pipeline and returns its output stream — never the raw camera stream", () => {
+  it("with a delay option and a supported browser, builds a real per-frame pipeline and returns its output stream; never the raw camera stream", () => {
     const { FakeProcessor, FakeGenerator } = installFakeWebCodecs();
     const track = fakeControllableVideoTrack();
     const rawStream = fakeVideoStream(track);
@@ -477,7 +477,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     expect(FakeGenerator.instances).toHaveLength(1);
     expect(FakeProcessor.instances[0]?.init.track).toBe(track);
     // ...and the hook surfaces the PIPELINE's output stream (wrapping the
-    // generator), not the raw camera stream — this is the build-happy-path
+    // generator), not the raw camera stream: this is the build-happy-path
     // no jsdom-fallback test could previously reach.
     expect(latest).toMatchObject({ kind: "delayed" });
     const delayed = latest as unknown as DelayedPlayoutResult & {
@@ -492,7 +492,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     ).toBe(generator);
   });
 
-  it("switching cameras disposes the OLD pipeline (reader cancelled, writer closed) before building a fresh one for the new track — no leaked pipeline, no cross-camera bleed", () => {
+  it("switching cameras disposes the OLD pipeline (reader cancelled, writer closed) before building a fresh one for the new track, no leaked pipeline, no cross-camera bleed", () => {
     const { FakeProcessor, FakeGenerator } = installFakeWebCodecs();
     const trackA = fakeControllableVideoTrack();
     const trackB = fakeControllableVideoTrack();
@@ -546,7 +546,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     expect(pipelineBStream).not.toBe(streamB);
   });
 
-  it("a resetEpoch bump flushes the supported-path pipeline's buffer (drops+closes the stale queued frame) WITHOUT disposing the pipeline — the track keeps flowing", async () => {
+  it("a resetEpoch bump flushes the supported-path pipeline's buffer (drops+closes the stale queued frame) WITHOUT disposing the pipeline, the track keeps flowing", async () => {
     const { FakeProcessor, FakeGenerator } = installFakeWebCodecs();
     const track = fakeControllableVideoTrack();
     const rawStream = fakeVideoStream(track);
@@ -579,7 +579,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
     await waitFor(() => {
       expect(staleFrame.closeCount).toBe(0); // pulled off source, queued
     });
-    expect(gen?.written).toEqual([]); // not released — edge is -Infinity
+    expect(gen?.written).toEqual([]); // not released: edge is -Infinity
 
     rerender(
       <StreamProbe
@@ -604,7 +604,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
 
   // Delay is a property of the CAMERA, not the viewer. Two consumers of one
   // camera (e.g. a CameraFeed and the docking-HUD backdrop) must share ONE
-  // delayed pipeline — a MediaStreamTrack admits only one
+  // delayed pipeline: a MediaStreamTrack admits only one
   // MediaStreamTrackProcessor, and two viewers showing DIFFERENT delays of the
   // same lens would be incoherent anyway. Proven at the hook boundary here;
   // the cache mechanics live in `shared-delayed-streams.test.ts`.
@@ -643,7 +643,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
       cam.emit(rawStream); // the SAME MediaStream object reaches both consumers
     });
 
-    // ONE processor / generator for the shared track — not two colliding ones.
+    // ONE processor / generator for the shared track, not two colliding ones.
     expect(FakeProcessor.instances).toHaveLength(1);
     expect(FakeGenerator.instances).toHaveLength(1);
     // Both consumers see a delayed stream, and it is the SAME object.
@@ -699,7 +699,7 @@ describe("useKerbcastStream — delayed playout wiring (SUPPORTED path, stubbed 
       </>,
     );
 
-    // Two independent processors — the normal multi-camera case works, and the
+    // Two independent processors: the normal multi-camera case works, and the
     // per-camera keying doesn't collapse distinct cameras into one pipeline.
     expect(FakeProcessor.instances).toHaveLength(2);
     expect(resultA).toMatchObject({ kind: "delayed" });

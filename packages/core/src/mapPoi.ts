@@ -1,6 +1,6 @@
 // Mod-agnostic registry for map points of interest. A POI provider
 // contributes DATA (an array of points for the currently-mapped body),
-// not a renderable component — same reasoning as fogReveal.ts: MapView
+// not a renderable component: same reasoning as fogReveal.ts: MapView
 // owns the ONE shared hover/action/marker-styling surface so N providers
 // don't each invent their own hover UX. Consumed by MapView's
 // MapPoiLayer (packages/components/src/MapView/MapPoiLayer.tsx).
@@ -20,7 +20,7 @@ export interface MapPoi {
   bodyId: string;
   lat: number;
   lon: number;
-  /** Open string, not a closed union — third-party kinds fall back to a generic style. */
+  /** Open string, not a closed union: third-party kinds fall back to a generic style. */
   kind: string;
   label: string;
   detail?: string;

@@ -60,7 +60,7 @@ describe("classifyPart", () => {
   });
 
   it("treats edge-on parts as unrotated (no -0 atan2 flip)", () => {
-    // A docking port mounted laterally has up = [0, -0, ±1] — both X
+    // A docking port mounted laterally has up = [0, -0, ±1], both X
     // and Y components are zero. With useX=true the diagram projects
     // away Z, leaving (0, -0) as the 2D up vector. Math.atan2(0, -0)
     // returns π (because the sign of -0 matters), which would render
@@ -99,7 +99,7 @@ describe("classifyPart", () => {
   it("prefers engine over fin when both modules are present", () => {
     // Sanity check that the cargo-bay gate didn't reorder anything that
     // mattered. Real KSP engines don't usually have a lifting surface
-    // but the order-of-precedence chain is load-bearing — keep this.
+    // but the order-of-precedence chain is load-bearing; keep this.
     expect(
       classifyPart(
         part({

@@ -28,7 +28,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "landing-status",
     fixturesPath: "LandingStatus/__render__",
     outPath: "renders/landing-widget",
-    // Full-content capture at the real 12-col tile width — the whole tile,
+    // Full-content capture at the real 12-col tile width, the whole tile,
     // uncropped, so the composed instrument can actually be reviewed.
     modes: [{ name: "full-w12", w: 12, h: 16 }],
   },
@@ -46,7 +46,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   {
     // MapView paints to <canvas> (equirectangular body texture + fog
     // overlay + vessel trail). The playwright harness captures the
-    // canvas pixels directly — no parallel SVG renderer needed for
+    // canvas pixels directly: no parallel SVG renderer needed for
     // visual coverage, just the standard fixture/mode pattern. The DOM
     // snapshot test snaps the chrome around the canvas (which is the
     // useful structural-regression layer); canvas pixels live only in
@@ -55,13 +55,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "MapView/__fixtures__",
     outPath: "renders/map-view-widget",
     modes: [
-      // Minimum size — chrome thin, body fill dominates.
+      // Minimum size: chrome thin, body fill dominates.
       { name: "tiny-3x4", w: 3, h: 4 },
-      // Square small — confirms aspect-fit doesn't squish the map.
+      // Square small: confirms aspect-fit doesn't squish the map.
       { name: "square-6x6", w: 6, h: 6 },
       // Default registered size.
       { name: "default-12x18", w: 12, h: 18 },
-      // Wide landscape — equirectangular projection reads best here.
+      // Wide landscape: equirectangular projection reads best here.
       { name: "wide-18x10", w: 18, h: 10 },
       // Body picker pinned to a NON-active body (Mun). Vessel marker +
       // trail + prediction all vanish; the label reads "Mun (pinned)".
@@ -83,7 +83,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "medium-4x7", w: 4, h: 7 },
       { name: "wide-5x8", w: 5, h: 8 },
       // 7×12 is below the control-surface threshold (rows≥18, cols≥7) so
-      // controlMode degrades to dial-only — same display as a wide-mode
+      // controlMode degrades to dial-only: same display as a wide-mode
       // widget. Useful for catching regressions to the degrade path.
       { name: "degraded-7x12", w: 7, h: 12, config: { controlMode: true } },
       // Minimum sensible control-mode size; everything above lights up
@@ -98,15 +98,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "OrbitView/__fixtures__",
     outPath: "renders/orbit-view-widget",
     modes: [
-      // Pill fallback — both thresholds unmet; only status pill rendered.
+      // Pill fallback: both thresholds unmet; only status pill rendered.
       { name: "pill-3x3", w: 3, h: 3 },
-      // Landscape-relaxed diagram — cols≥8 && rows≥3 branch.
+      // Landscape-relaxed diagram: cols≥8 && rows≥3 branch.
       { name: "landscape-10x3", w: 10, h: 3 },
-      // Minimum square diagram — just above the 5×5 threshold.
+      // Minimum square diagram: just above the 5×5 threshold.
       { name: "square-5x5", w: 5, h: 5 },
       // Default registered size for the widget.
       { name: "default-9x18", w: 9, h: 18 },
-      // Generous size — body, orbit, and labels have plenty of room.
+      // Generous size: body, orbit, and labels have plenty of room.
       { name: "large-14x22", w: 14, h: 22 },
     ],
   },
@@ -119,11 +119,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tiny-3x4", w: 3, h: 4 },
       // 4×6: adds subtitle, inclination, t-Ap/t-Pe. Diagram still hidden.
       { name: "compact-4x6", w: 4, h: 6 },
-      // 5×8: all rows + diagram slot (rows=8, cols=5 — exactly on threshold).
+      // 5×8: all rows + diagram slot (rows=8, cols=5, exactly on threshold).
       { name: "medium-5x8", w: 5, h: 8 },
       // Default size: every row + generous diagram.
       { name: "default-9x18", w: 9, h: 18 },
-      // Landscape: wide and shallow — ResizeObserver flips flex-direction.
+      // Landscape: wide and shallow: ResizeObserver flips flex-direction.
       { name: "landscape-12x6", w: 12, h: 6 },
     ],
   },
@@ -132,11 +132,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // Tiny variant — numeric readout only.
+      // Tiny variant: numeric readout only.
       { name: "tiny-2x2", w: 2, h: 2 },
-      // Small — gauge only, no sparkline.
+      // Small: gauge only, no sparkline.
       { name: "small-3x3", w: 3, h: 3 },
-      // Default — gauge + sparkline + subtitle.
+      // Default: gauge + sparkline + subtitle.
       { name: "default-4x5", w: 4, h: 5 },
       // Wider room for the gauge to fill space.
       { name: "wide-6x8", w: 6, h: 8 },
@@ -147,15 +147,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "KeplerPeriod/__fixtures__",
     outPath: "renders/kepler-period-widget",
     modes: [
-      // Documented minimum — confirms the graph doesn't overflow.
+      // Documented minimum: confirms the graph doesn't overflow.
       { name: "min-5x4", w: 5, h: 4 },
-      // Default size — the most common operator view.
+      // Default size: the most common operator view.
       { name: "default-10x8", w: 10, h: 8 },
-      // Tall narrow — useful for a sidebar column.
+      // Tall narrow: useful for a sidebar column.
       { name: "tall-6x12", w: 6, h: 12 },
-      // Wide short — approximates a bottom-bar placement.
+      // Wide short: approximates a bottom-bar placement.
       { name: "wide-14x6", w: 14, h: 6 },
-      // Large — confirms the Kepler curve stays proportional.
+      // Large: confirms the Kepler curve stays proportional.
       { name: "xl-14x12", w: 14, h: 12 },
     ],
   },
@@ -164,15 +164,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SemiMajorAxis/__fixtures__",
     outPath: "renders/semi-major-axis-widget",
     modes: [
-      // No subtitle, no sparkline — value only.
+      // No subtitle, no sparkline: value only.
       { name: "tiny-3x3", w: 3, h: 3 },
       // Subtitle appears, sparkline still suppressed (cols<3).
       { name: "subtitle-2x4", w: 2, h: 4 },
-      // Default — subtitle + sparkline both visible.
+      // Default: subtitle + sparkline both visible.
       { name: "default-4x4", w: 4, h: 4 },
-      // Extra vertical room — sparkline has more breathing space.
+      // Extra vertical room: sparkline has more breathing space.
       { name: "medium-5x6", w: 5, h: 6 },
-      // Generous width — sparkline fully expanded.
+      // Generous width: sparkline fully expanded.
       { name: "wide-8x8", w: 8, h: 8 },
     ],
   },
@@ -181,13 +181,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "AtmosphereProfile/__fixtures__",
     outPath: "renders/atmosphere-profile-widget",
     modes: [
-      // Minimum widget size — tests that the chart area doesn't collapse.
+      // Minimum widget size: tests that the chart area doesn't collapse.
       { name: "min-5x4", w: 5, h: 4 },
       // Comfortable single-column size.
       { name: "medium-6x8", w: 6, h: 8 },
       // Default dashboard size.
       { name: "default-8x8", w: 8, h: 8 },
-      // Taller layout — good for reading the log Y axis clearly.
+      // Taller layout: good for reading the log Y axis clearly.
       { name: "tall-6x12", w: 6, h: 12 },
       // Wide layout with custom altitudeCeiling override.
       {
@@ -245,7 +245,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "LandingStatus/__fixtures__",
     outPath: "renders/landing-status-widget",
     modes: [
-      // Minimum size — suicide-burn row only.
+      // Minimum size: suicide-burn row only.
       { name: "compact-4x5", w: 4, h: 5 },
       // Subtitle appears + impact/speed rows begin.
       { name: "medium-6x7", w: 6, h: 7 },
@@ -262,7 +262,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "MechJeb/__fixtures__",
     outPath: "renders/mechjeb-widget",
     modes: [
-      // Minimum size — both sections tight.
+      // Minimum size: both sections tight.
       { name: "compact-3x5", w: 3, h: 5 },
       // Default registered size.
       { name: "default-5x7", w: 5, h: 7 },
@@ -273,16 +273,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "CommSignal/__fixtures__",
     outPath: "renders/comm-signal-widget",
     modes: [
-      // Minimum size — bars + headline only, no subtitle or detail grid
+      // Minimum size: bars + headline only, no subtitle or detail grid
       // (rows<4 suppresses both). Catches overflow at tight sizes.
       { name: "min-3x3", w: 3, h: 3 },
-      // Default registered size — bars, subtitle, and full detail grid.
+      // Default registered size: bars, subtitle, and full detail grid.
       { name: "default-6x5", w: 6, h: 5 },
-      // Tall narrow — detail grid wraps in a single column layout.
+      // Tall narrow: detail grid wraps in a single column layout.
       { name: "tall-4x7", w: 4, h: 7 },
-      // Wide short — subtitle visible, grid has generous horizontal room.
+      // Wide short: subtitle visible, grid has generous horizontal room.
       { name: "wide-9x4", w: 9, h: 4 },
-      // Generous size — full content, comfortable spacing.
+      // Generous size: full content, comfortable spacing.
       { name: "large-8x8", w: 8, h: 8 },
     ],
   },
@@ -293,13 +293,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Tiny mode (sizeBucket="tiny"): funds + PAD ACTIVE/CLEAR pill only.
       { name: "tiny-2x3", w: 2, h: 3 },
-      // Compact — facility grid in 2-col (cols<5), no full-text tier bodies.
+      // Compact: facility grid in 2-col (cols<5), no full-text tier bodies.
       { name: "compact-4x7", w: 4, h: 7 },
-      // Default registered size — 3-col facility grid, subtitle with funds.
+      // Default registered size: 3-col facility grid, subtitle with funds.
       { name: "default-6x7", w: 6, h: 7 },
-      // Wide — 3-col grid has room to breathe; tier text bodies appear.
+      // Wide: 3-col grid has room to breathe; tier text bodies appear.
       { name: "wide-9x10", w: 9, h: 10 },
-      // Tall — scroll area gets plenty of vertical room for tier descriptions.
+      // Tall: scroll area gets plenty of vertical room for tier descriptions.
       { name: "tall-6x14", w: 6, h: 14 },
     ],
   },
@@ -308,18 +308,18 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ThermalStatus/__fixtures__",
     outPath: "renders/thermal-status-widget",
     modes: [
-      // Minimum size (3×4) — pill only, no detail rows (rows<5 suppresses
+      // Minimum size (3×4): pill only, no detail rows (rows<5 suppresses
       // hottest-part row). Verifies the pill + EmptyState render cleanly.
       { name: "pill-only-3x4", w: 3, h: 4 },
-      // 4×5 — hottest-part row unlocks (rows>=5), engine still hidden.
+      // 4×5: hottest-part row unlocks (rows>=5), engine still hidden.
       { name: "hottest-only-4x5", w: 4, h: 5 },
-      // 5×6 — engine row added (rows>=6). Just below the cols>=6 threshold
+      // 5×6: engine row added (rows>=6). Just below the cols>=6 threshold
       // for the inline alert note (only 5 cols), so alert is pill-only.
       { name: "two-rows-5x6", w: 5, h: 6 },
-      // Default size — all rows when shield data present (rows>=7).
+      // Default size: all rows when shield data present (rows>=7).
       // cols>=6 so inline alert note renders in critical fixtures.
       { name: "default-8x7", w: 8, h: 7 },
-      // Larger — generous scroll area for all rows + breathing room.
+      // Larger: generous scroll area for all rows + breathing room.
       { name: "large-10x10", w: 10, h: 10 },
     ],
   },
@@ -328,16 +328,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ContractManager/__fixtures__",
     outPath: "renders/contract-manager-widget",
     modes: [
-      // Minimum size — title only, no subtitle (h<4 branch). Catches
+      // Minimum size: title only, no subtitle (h<4 branch). Catches
       // overflow on the tightest plausible placement.
       { name: "tiny-4x3", w: 4, h: 3 },
-      // Compact — title + subtitle; contract cards start rendering.
+      // Compact: title + subtitle; contract cards start rendering.
       { name: "compact-4x5", w: 4, h: 5 },
-      // Default registered size — subtitle + full card list + scroll.
+      // Default registered size: subtitle + full card list + scroll.
       { name: "default-6x8", w: 6, h: 8 },
-      // Wider layout — lets long contract titles + reward rows breathe.
+      // Wider layout: lets long contract titles + reward rows breathe.
       { name: "wide-8x10", w: 8, h: 10 },
-      // Tall layout — more contracts visible without scrolling.
+      // Tall layout: more contracts visible without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
     ],
   },
@@ -366,15 +366,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "LaunchDirector/__fixtures__",
     outPath: "renders/launch-director-widget",
     modes: [
-      // Minimum registered size — subtitle visible (h>=4), compact ship list.
+      // Minimum registered size: subtitle visible (h>=4), compact ship list.
       { name: "min-4x6", w: 4, h: 6 },
-      // Default registered size — comfortable ship list + crew grid.
+      // Default registered size: comfortable ship list + crew grid.
       { name: "default-7x10", w: 7, h: 10 },
-      // Tall narrow — long ship list, crew grid stacks tight.
+      // Tall narrow: long ship list, crew grid stacks tight.
       { name: "tall-5x14", w: 5, h: 14 },
-      // Wide landscape — buttons and rows have horizontal breathing room.
+      // Wide landscape: buttons and rows have horizontal breathing room.
       { name: "wide-10x7", w: 10, h: 7 },
-      // Click-driven modes — capture the arm-then-confirm sequences
+      // Click-driven modes: capture the arm-then-confirm sequences
       // that are otherwise invisible to the static probe. Scoped to
       // in-flight fixtures via `forFixtures` since arm-recover /
       // arm-revert buttons only render when a recoverable vessel is
@@ -394,7 +394,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[data-launch-action="arm-revert"]' }],
         forFixtures: ["in-flight-ascent", "pad-occupied"],
       },
-      // Launch-site picker — only renders after a ship is selected, so
+      // Launch-site picker: only renders after a ship is selected, so
       // click the first (affordable) ship row to reveal it. Scoped to the
       // pre-launch fixture that carries multi-site kc.launchSites.
       {
@@ -411,11 +411,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "DeployedScience/__fixtures__",
     outPath: "renders/deployed-science-widget",
     modes: [
-      // Minimum size — base header + first experiment, rest scrolls.
+      // Minimum size: base header + first experiment, rest scrolls.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — a base card with its experiments.
+      // Default registered size: a base card with its experiments.
       { name: "default-5x9", w: 5, h: 9 },
-      // Tall — multiple bases stacked.
+      // Tall: multiple bases stacked.
       { name: "tall-5x16", w: 5, h: 16 },
       // DLC-absent empty state.
       { name: "unavailable-5x9", w: 5, h: 9, forFixtures: ["unavailable"] },
@@ -426,11 +426,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "RoboticsConsole/__fixtures__",
     outPath: "renders/robotics-console-widget",
     modes: [
-      // Minimum size — readout + controls, list tight.
+      // Minimum size: readout + controls, list tight.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — readout + controls + joint list.
+      // Default registered size: readout + controls + joint list.
       { name: "default-5x8", w: 5, h: 8 },
-      // Wide — controls and list get horizontal room.
+      // Wide: controls and list get horizontal room.
       { name: "wide-9x6", w: 9, h: 6 },
       // DLC-absent empty state.
       { name: "unavailable-5x8", w: 5, h: 8, forFixtures: ["unavailable"] },
@@ -441,11 +441,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Objectives/__fixtures__",
     outPath: "renders/objectives-widget",
     modes: [
-      // Minimum registered width — tight list, source tags wrap.
+      // Minimum registered width: tight list, source tags wrap.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — unified contract-parameter list.
+      // Default registered size: unified contract-parameter list.
       { name: "default-5x8", w: 5, h: 8 },
-      // Tall — several active contracts.
+      // Tall: several active contracts.
       { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
@@ -454,11 +454,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "RotorTachometer/__fixtures__",
     outPath: "renders/rotor-tachometer-widget",
     modes: [
-      // Minimum registered size (h<6) — gauge suppressed, controls + list.
+      // Minimum registered size (h<6): gauge suppressed, controls + list.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — dial + controls + 2-rotor list.
+      // Default registered size: dial + controls + 2-rotor list.
       { name: "default-6x10", w: 6, h: 10 },
-      // Wide — controls and list get horizontal room.
+      // Wide: controls and list get horizontal room.
       { name: "wide-9x7", w: 9, h: 7 },
       // DLC-absent empty state.
       {
@@ -474,13 +474,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",
     modes: [
-      // Minimum size (3×3) — tiny bucket (w<5): label + the ON/OFF state pill
+      // Minimum size (3×3): tiny bucket (w<5): label + the ON/OFF state pill
       // (itself the toggle button); no UnavailableNotice, no bell.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // 3×4 — still tiny bucket (w<5) so OfficialName and bell are suppressed;
+      // 3×4: still tiny bucket (w<5) so OfficialName and bell are suppressed;
       // the state-pill toggle is present at every size.
       { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
-      // 6×4 — normal bucket: OfficialName visible (cols>=5), state-pill toggle
+      // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle
       // present. Gear group with custom label exercises the secondary line.
       {
         name: "normal-6x4",
@@ -488,14 +488,14 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 4,
         config: { actionGroupId: "Gear", label: "Landing Gear" },
       },
-      // Default registered size (6×6) — full UI with custom label.
+      // Default registered size (6×6): full UI with custom label.
       {
         name: "default-6x6",
         w: 6,
         h: 6,
         config: { actionGroupId: "AG1", label: "Chutes" },
       },
-      // Wide — label + OfficialName strip have generous horizontal room.
+      // Wide: label + OfficialName strip have generous horizontal room.
       { name: "wide-9x6", w: 9, h: 6, config: { actionGroupId: "SAS" } },
     ],
   },
@@ -505,7 +505,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/fuel-status-widget",
     modes: [
       // rows=3, cols=3: showTotals=false, showHeroDv=true if totalDv set.
-      // No subtitle, no resources, no stages — hero ΔV branch.
+      // No subtitle, no resources, no stages: hero ΔV branch.
       { name: "tiny-3x3", w: 3, h: 3 },
       // rows=4, cols=4: showTotals=true; showSubtitle still false (rows<5).
       // TotalsRow appears, resource list + stage stack still hidden.
@@ -524,15 +524,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "PowerSystems/__fixtures__",
     outPath: "renders/power-systems-widget",
     modes: [
-      // Compact path: cols<6 || rows<8 — shows resource name + net rate only.
+      // Compact path: cols<6 || rows<8: shows resource name + net rate only.
       { name: "tiny-3x3", w: 3, h: 3 },
       // Compact with header visible (rows>=4 → showHeader=true, still !showFullList).
       { name: "compact-4x5", w: 4, h: 5 },
-      // Exactly on the full-list threshold (cols=6, rows=8) — full layout.
+      // Exactly on the full-list threshold (cols=6, rows=8), full layout.
       { name: "threshold-6x8", w: 6, h: 8 },
-      // Default registered size — totals row, all three sections visible.
+      // Default registered size: totals row, all three sections visible.
       { name: "default-8x12", w: 8, h: 12 },
-      // Generous size — every section breathes; STORED cell visible when present.
+      // Generous size: every section breathes; STORED cell visible when present.
       { name: "wide-12x16", w: 12, h: 16 },
     ],
   },
@@ -547,7 +547,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // compact normal: full panel with tight vertical room; tests ScrollArea
       // overflow when Active + Available sections both have entries.
       { name: "compact-5x7", w: 5, h: 7 },
-      // default registered size — the most common operator view.
+      // default registered size: the most common operator view.
       { name: "default-5x9", w: 5, h: 9 },
       // tall: generous vertical room; long effect lists and all three sections
       // (Active / Available / Locked) can breathe without scrolling.
@@ -564,11 +564,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "CrewManifest/__fixtures__",
     outPath: "renders/crew-manifest-widget",
     modes: [
-      // minSize 3×3 — single-crew row, tightest placement.
+      // minSize 3×3: single-crew row, tightest placement.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // defaultSize 6×8 — the common operator view.
+      // defaultSize 6×8: the common operator view.
       { name: "default-6x8", w: 6, h: 8 },
-      // wide/tall — roomy crew list.
+      // wide/tall: roomy crew list.
       { name: "wide-9x10", w: 9, h: 10 },
     ],
   },
@@ -577,13 +577,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "StaffRoster/__fixtures__",
     outPath: "renders/staff-roster-widget",
     modes: [
-      // minSize 2×2 — compact tally.
+      // minSize 2×2: compact tally.
       { name: "tiny-2x3", w: 2, h: 3 },
-      // defaultSize 5×7 — roster list with traits/availability.
+      // defaultSize 5×7: roster list with traits/availability.
       { name: "default-5x7", w: 5, h: 7 },
-      // tall — full four-kerbal roster without scrolling.
+      // tall: full four-kerbal roster without scrolling.
       { name: "tall-6x14", w: 6, h: 14 },
-      // wide — trait/level/availability columns have room.
+      // wide: trait/level/availability columns have room.
       { name: "wide-9x10", w: 9, h: 10 },
     ],
   },
@@ -592,11 +592,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ScienceOfficer/__fixtures__",
     outPath: "renders/science-officer-widget",
     modes: [
-      // minSize 3×4 — instrument list, tight.
+      // minSize 3×4: instrument list, tight.
       { name: "min-3x4", w: 3, h: 4 },
-      // defaultSize 6×7 — the common view.
+      // defaultSize 6×7: the common view.
       { name: "default-6x7", w: 6, h: 7 },
-      // wide — instrument rows + status have room.
+      // wide: instrument rows + status have room.
       { name: "wide-9x10", w: 9, h: 10 },
     ],
   },
@@ -605,15 +605,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "TechTree/__fixtures__",
     outPath: "renders/tech-tree-widget",
     modes: [
-      // minSize 2×2 — tightest; tally / degraded.
+      // minSize 2×2: tightest; tally / degraded.
       { name: "tiny-3x4", w: 3, h: 4 },
-      // defaultSize 6×9 — the common operator view.
+      // defaultSize 6×9: the common operator view.
       { name: "default-6x9", w: 6, h: 9 },
-      // tall — more of the tree visible without scrolling.
+      // tall: more of the tree visible without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
-      // wide landscape — closest to an in-game tech-tree aspect.
+      // wide landscape: closest to an in-game tech-tree aspect.
       { name: "wide-16x10", w: 16, h: 10 },
-      // large — generous room for a node-graph layout.
+      // large: generous room for a node-graph layout.
       { name: "xl-18x16", w: 18, h: 16 },
     ],
   },
@@ -622,11 +622,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SystemView/__fixtures__",
     outPath: "renders/system-view-widget",
     modes: [
-      // minSize 3×4 — smallest diagram.
+      // minSize 3×4: smallest diagram.
       { name: "min-3x4", w: 3, h: 4 },
-      // square — confirms the system diagram doesn't squish.
+      // square: confirms the system diagram doesn't squish.
       { name: "square-6x6", w: 6, h: 6 },
-      // defaultSize 10×12 — the common operator view.
+      // defaultSize 10×12: the common operator view.
       { name: "default-10x12", w: 10, h: 12 },
       // wide landscape.
       { name: "wide-14x10", w: 14, h: 10 },
@@ -639,7 +639,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // Graph is config-driven: the per-mode `config` carries the series list +
     // render options; the fixture supplies the `_series` data those keys plot
     // against. This matrix exercises EVERY render type / variant the widget
-    // supports — line/step/scatter/band, chart/readout/auto, time-X vs
+    // supports: line/step/scatter/band, chart/readout/auto, time-X vs
     // phase-space X, thresholds, log scale, and aspect stress. All series get
     // explicit `id`s (used as React keys + ChartSeries ids) and explicit
     // `axis` so the "3+ units → AxisWarning" auto path doesn't fire unasked.
@@ -664,7 +664,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         // async `useDataSeries` queryRange backfill consistently fails to
         // land before the screenshot, so whatever sits in slot 1 plots an
         // empty frame (axes + legend, no trace). This is a shared
-        // probe-entry artifact (out of edit scope), NOT a Graph bug — every
+        // probe-entry artifact (out of edit scope), NOT a Graph bug, every
         // type below renders its data correctly. This throwaway dual-axis
         // warmup absorbs the empty slot so no real type is sacrificed.
         { name: "warmup-ignore-10x8", w: 10, h: 8, config: dualLine },
@@ -734,7 +734,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         // Short-window scatter so only the most-recent handful of samples
         // fall in-window and the discrete dots are visibly separated (the
         // 600s-window scatter above merges 154 dense samples into a near-
-        // continuous run — this proves the points actually draw discretely).
+        // continuous run, this proves the points actually draw discretely).
         {
           name: "scatter-sparse-10x8",
           w: 10,
@@ -821,7 +821,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             ],
           },
         },
-        // chart forced at the same tiny size — proves the chart still draws
+        // chart forced at the same tiny size, proves the chart still draws
         // when not allowed to downgrade.
         {
           name: "chart-tiny-6x6",
@@ -842,7 +842,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         },
 
         // ── xKey = data key (phase-space) ────────────────────────────────
-        // Altitude on X, vertical speed on Y — classic ascent profile.
+        // Altitude on X, vertical speed on Y, classic ascent profile.
         {
           name: "phase-space-10x8",
           w: 10,
@@ -935,13 +935,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "OrbitalAscent/__fixtures__",
     outPath: "renders/orbital-ascent-widget",
     modes: [
-      // minSize 5×4 — phase-space plot at its tightest.
+      // minSize 5×4: phase-space plot at its tightest.
       { name: "min-5x4", w: 5, h: 4 },
-      // defaultSize 10×8 — the common operator view.
+      // defaultSize 10×8: the common operator view.
       { name: "default-10x8", w: 10, h: 8 },
-      // tall — more vertical room for the velocity axis.
+      // tall: more vertical room for the velocity axis.
       { name: "tall-8x12", w: 8, h: 12 },
-      // wide-short — stresses the chart's bottom-vs-side reflow.
+      // wide-short: stresses the chart's bottom-vs-side reflow.
       { name: "wide-16x6", w: 16, h: 6 },
     ],
   },
@@ -950,9 +950,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ManeuverPlanner/__fixtures__",
     outPath: "renders/maneuver-planner-widget",
     modes: [
-      // minSize 6×9 — node editor at its tightest.
+      // minSize 6×9: node editor at its tightest.
       { name: "min-6x9", w: 6, h: 9 },
-      // defaultSize 10×18 — the common operator view.
+      // defaultSize 10×18: the common operator view.
       { name: "default-10x18", w: 10, h: 18 },
       // wide landscape.
       { name: "wide-14x12", w: 14, h: 12 },
@@ -963,10 +963,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ScienceBench/__fixtures__",
     outPath: "renders/science-bench-widget",
     modes: [
-      // minSize 4×4 — compact experiment list.
+      // minSize 4×4: compact experiment list.
       { name: "min-4x4", w: 4, h: 4 },
       { name: "compact-5x7", w: 5, h: 7 },
-      // defaultSize 8×10 — the common operator view.
+      // defaultSize 8×10: the common operator view.
       { name: "default-8x11", w: 8, h: 11 },
       { name: "wide-12x10", w: 12, h: 10 },
     ],
@@ -976,22 +976,22 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "GroundSurvey/__fixtures__",
     outPath: "renders/ground-survey-widget",
     modes: [
-      // minSize 3×3 — readout-only.
+      // minSize 3×3: readout-only.
       { name: "tiny-3x3", w: 3, h: 3 },
       { name: "compact-5x5", w: 5, h: 5 },
-      // defaultSize 8×7 — the common operator view.
+      // defaultSize 8×7: the common operator view.
       { name: "default-8x7", w: 8, h: 7 },
       { name: "wide-12x8", w: 12, h: 8 },
     ],
   },
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
-    // `"data"` source (tar.* / b.* / o.* keys) — no probe kos wiring needed.
+    // `"data"` source (tar.* / b.* / o.* keys), no probe kos wiring needed.
     // The Target API redesign (a00c4307) replaced the old TABBED layout with a
     // single scrolling view: the Suggested + categorised sections (Bodies /
     // Vessels / Parts / Other) plus the current-target summary all render AT
     // ONCE. There is no tablist to click any more, so every list appears in a
-    // static render — the former `role="tab"` reveal-clicks (which threw once
+    // static render, the former `role="tab"` reveal-clicks (which threw once
     // the tabs were gone) are dropped.
     widgetId: "target-picker",
     fixturesPath: "TargetPicker/__fixtures__",
@@ -1000,19 +1000,19 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Below the picker threshold (rows<6 || cols<4): compact current-target
       // readout (name + distance) or "No target set".
       { name: "compact-3x4", w: 3, h: 4 },
-      // defaultSize 6×11 — the full sectioned picker (Suggested + Bodies +
+      // defaultSize 6×11: the full sectioned picker (Suggested + Bodies +
       // Vessels + Parts + Other) with the current-target summary when set.
       { name: "default-6x11", w: 6, h: 11 },
-      // wide — the sections have horizontal room.
+      // wide: the sections have horizontal room.
       { name: "wide-9x12", w: 9, h: 12 },
     ],
   },
   {
-    // Transfer Window — client-derived interplanetary planner. Fixtures emit an
+    // Transfer Window: client-derived interplanetary planner. Fixtures emit an
     // RSS Sun/Earth/Mars/Venus system + a LEO vessel + Mars targeted. Two states:
     // GO (phase on the Hohmann ideal) and HOLD (phase far off). The two modes
-    // exercise the responsive reflow — default (stacked: dial + list, chart
-    // below) and wide (side-by-side: list left, chart flowing right) — and the
+    // exercise the responsive reflow: default (stacked: dial + list, chart
+    // below) and wide (side-by-side: list left, chart flowing right), and the
     // auto-appended portrait/landscape modes catch the aspect extremes.
     widgetId: "transfer-window",
     fixturesPath: "TransferWindow/__fixtures__",
@@ -1024,11 +1024,11 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     // kOS Terminal (mod/GonogoKosUplink/client/src/KosTerminal). A STREAM-DRIVEN
-    // widget — it reads `kos.processors` / `kos.terminal.<coreId>` straight
+    // widget: it reads `kos.processors` / `kos.terminal.<coreId>` straight
     // off a mounted TelemetryProvider via `useStream`/`useStreamEvent`, never
     // through the `"data"`/`"kos"` DataSource registry the rest of this file
     // assumes. Its fixture therefore carries a top-level `_stream` block
-    // (carriedChannels + pinnedUt + emits) instead of plain data keys — see
+    // (carriedChannels + pinnedUt + emits) instead of plain data keys; see
     // probe-entry.tsx's `_stream` fixture path. Fixture lives under
     // `packages/components/src/KosTerminal/__fixtures__` purely because
     // `fixturesPath` resolves against `packages/components/src/`, not
@@ -1037,15 +1037,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "KosTerminal/__fixtures__",
     outPath: "renders/kos-terminal-widget",
     modes: [
-      // minSize 8×6 — tightest placement the widget allows.
+      // minSize 8×6: tightest placement the widget allows.
       { name: "min-8x6", w: 8, h: 6 },
-      // defaultSize 18×15 — the common operator view.
+      // defaultSize 18×15: the common operator view.
       { name: "default-18x15", w: 18, h: 15 },
-      // wide — generous horizontal room; the terminal itself stays a fixed
+      // wide: generous horizontal room; the terminal itself stays a fixed
       // 80×24 grid (KOS_TERM_COLS/ROWS) regardless of container size.
       { name: "wide-24x15", w: 24, h: 15 },
       // Char-mode + comms.delay + no-path repro (`char-mode-badges` fixture
-      // only) — exercises the DelayBadge/NoPathBadge chrome the happy-path
+      // only): exercises the DelayBadge/NoPathBadge chrome the happy-path
       // `basic-session` fixture never triggers (no comms.* emits). Two sizes
       // catch the "badge renders outside the widget box" bug at both the
       // tightest placement and the common operator view.
@@ -1066,7 +1066,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // SpaceWeather — Kerbalism radiation/storm/belt board. Fixtures are the
+    // SpaceWeather: Kerbalism radiation/storm/belt board. Fixtures are the
     // four SpaceWeatherData showcase states (nominal from a real Deck capture;
     // storm/inner-belt synthesised to real config magnitudes). See
     // local_docs/spaceweather-widget-SPEC.md + local_docs/kerbalism-fixtures/.
@@ -1076,14 +1076,14 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Registered default.
       { name: "default-8x11", w: 8, h: 11 },
-      // Showcase — the rich-graphics board reads best with room.
+      // Showcase: the rich-graphics board reads best with room.
       { name: "showcase-11x11", w: 11, h: 11 },
-      // Compact — sheds the flux chart + env tags, essentials only.
+      // Compact: sheds the flux chart + env tags, essentials only.
       { name: "compact-5x6", w: 5, h: 6 },
     ],
   },
   {
-    // LifeSupportSystems — Kerbalism vessel-centric consumable ledger,
+    // LifeSupportSystems: Kerbalism vessel-centric consumable ledger,
     // habitat, and process board. Fixtures: nominal is a real Deck capture
     // (kerbalism-fixture-baseline-crp.json); depleting/critical are
     // synthesised by scaling it down. See local_docs/kerbalism-fixtures/.
@@ -1093,31 +1093,31 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Registered default.
       { name: "default-8x13", w: 8, h: 13 },
-      // Showcase — full habitat + process grids read best with room.
+      // Showcase: full habitat + process grids read best with room.
       { name: "showcase-10x14", w: 10, h: 14 },
-      // Compact — sheds the habitat/process detail grids to one-line summaries.
+      // Compact: sheds the habitat/process detail grids to one-line summaries.
       { name: "compact-5x7", w: 5, h: 7 },
     ],
   },
   {
-    // FleetRoster — fleet-wide roster TABLE (one row per known vessel),
+    // FleetRoster: fleet-wide roster TABLE (one row per known vessel),
     // reading the real `system.vessels`/`system.bodies` Topics (stream
     // fixtures). Mixed-fleet exercises direct/relay/no-link/unknown comms
     // plus known/unknown crew; all-linked is the quiet-day baseline; empty
     // exercises the confirmed-zero-vessels state. There is no per-vessel
-    // reliability/health signal here — SystemView owns the spatial view.
+    // reliability/health signal here: SystemView owns the spatial view.
     widgetId: "fleet-roster",
     fixturesPath: "FleetRoster/__fixtures__",
     outPath: "renders/fleet-roster-widget",
     modes: [
-      // Registered default — full table incl. Body column + the
+      // Registered default: full table incl. Body column + the
       // fleet-roster.updates augment slot (empty until an uplink binds).
       { name: "default-8x10", w: 8, h: 10 },
-      // Wide — generous room for long vessel names + the coverage footer.
+      // Wide: generous room for long vessel names + the coverage footer.
       { name: "wide-11x10", w: 11, h: 10 },
-      // Compact — sheds the Body column + per-vessel update lines.
+      // Compact: sheds the Body column + per-vessel update lines.
       { name: "compact-5x7", w: 5, h: 7 },
-      // Minimum size — tightest plausible placement.
+      // Minimum size: tightest plausible placement.
       { name: "tiny-4x4", w: 4, h: 4 },
     ],
   },
@@ -1126,7 +1126,7 @@ const WIDGETS: WidgetRenderConfig[] = [
 /**
  * Mobile portrait approximation in grid units. 9w × 8h converts to
  * roughly 352 × 256 px via the harness's COL_WIDTH=32 / ROW_HEIGHT=25
- * / GRID_MARGIN=8 constants — close to a typical phone width (375 px
+ * / GRID_MARGIN=8 constants: close to a typical phone width (375 px
  * minus chrome) and an aspect ratio that matches the
  * `mobileHeight: 240`-shaped widgets the MobileDashboard renders.
  *
@@ -1134,7 +1134,7 @@ const WIDGETS: WidgetRenderConfig[] = [
  * `withAutoMobileMode` below. New widgets get mobile DOM-snapshot +
  * PNG coverage without remembering to add an entry. Widgets with
  * mobile-specific layout quirks can opt out by declaring their own
- * `mobile-*` mode in WIDGETS — the helper skips appending when any
+ * `mobile-*` mode in WIDGETS: the helper skips appending when any
  * existing mode name starts with `mobile-`.
  *
  * Reported as needed in the 2026-05-18 self-test: the CameraFeed
@@ -1145,12 +1145,12 @@ const WIDGETS: WidgetRenderConfig[] = [
  * Auto-appended modes every widget gets unless it already defines a mode with
  * the same name-prefix. Beyond `mobile-`, two ASPECT-EXTREME modes force the
  * portrait-vs-landscape reflow decisions that ordinary near-square modes never
- * exercise — a widget that docks a detail panel, legend, or secondary readout
+ * exercise: a widget that docks a detail panel, legend, or secondary readout
  * has to flow it to the *bottom* in tall-narrow and to the *side* in
  * wide-short, and these catch when it doesn't.
  *
- * - `portrait-5x18`  — tall + narrow (aspect ≈ 0.28): single-column, panel below
- * - `landscape-18x5` — wide + short (aspect ≈ 3.6): row layout, panel beside
+ * - `portrait-5x18` : tall + narrow (aspect ≈ 0.28): single-column, panel below
+ * - `landscape-18x5`: wide + short (aspect ≈ 3.6): row layout, panel beside
  *
  * A widget with genuine aspect-specific layout can opt a given auto-mode out by
  * declaring its own mode with that name-prefix (`mobile-`/`portrait-`/`landscape-`).
@@ -1186,7 +1186,7 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
 }
 
 /**
- * Screen-level render entries — the screen analog of WIDGETS. Each renders a
+ * Screen-level render entries, the screen analog of WIDGETS. Each renders a
  * full-viewport view at several device breakpoints and visual states through
  * the shared `renderScreens` harness path (page-viewport resize + coarse
  * pointer emulation, so the screen's own `@media` rules engage). Driven from
@@ -1194,7 +1194,7 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
  *
  * Why screens live here and not in `@ksp-gonogo/app`: the harness tooling
  * (playwright / esbuild / tsx) and the probe entries all live in
- * `@ksp-gonogo/components`, and app→components is the existing dependency edge —
+ * `@ksp-gonogo/components`, and app→components is the existing dependency edge,
  * a screen driver in app would have no harness to call. The screen VIEW
  * (`StationConnectView`) is a pure presentational component exported from
  * `@ksp-gonogo/components` and imported back by app's StationScreen, so there is
@@ -1207,7 +1207,7 @@ const SCREENS: ScreenRenderConfig[] = [
     outPath: "renders/station-connect-screen",
     // 375×667 (iPhone SE / 8 class), 480×812 (the inclusive boundary of the
     // max-width:480px rule on a tallish phone), 810×1080 (an iPad-class TOUCH
-    // device above the 480 breakpoint — proves the coarse-pointer rules don't
+    // device above the 480 breakpoint: proves the coarse-pointer rules don't
     // break the still-horizontal Row), 768×1024 (the non-touch desktop
     // control proving the wide layout still reads).
     breakpoints: [
@@ -1215,14 +1215,14 @@ const SCREENS: ScreenRenderConfig[] = [
       { name: "phone-480x812", width: 480, height: 812 },
       // Coarse pointer + wide: max-width:480 is OFF (Row stays horizontal) but
       // pointer:coarse is ON. Guards against a full-width button overflowing
-      // the row beside the input — the case the 768 non-touch control misses.
+      // the row beside the input: the case the 768 non-touch control misses.
       { name: "tablet-touch-810x1080", width: 810, height: 1080, touch: true },
       // Above the 480px breakpoint and explicitly non-touch: the desktop
       // control. If the wide layout regresses this is where it shows.
       { name: "tablet-768x1024", width: 768, height: 1024, touch: false },
     ],
     states: [
-      // Fresh station, nothing typed — idle.
+      // Fresh station, nothing typed: idle.
       {
         name: "idle",
         props: {
@@ -1232,7 +1232,7 @@ const SCREENS: ScreenRenderConfig[] = [
           everConnected: false,
         },
       },
-      // Code typed, connecting — button shows "Connecting…" + disabled.
+      // Code typed, connecting: button shows "Connecting…" + disabled.
       {
         name: "connecting",
         props: {
@@ -1242,7 +1242,7 @@ const SCREENS: ScreenRenderConfig[] = [
           everConnected: false,
         },
       },
-      // Wrong / dead code, never connected — the hard nogo error.
+      // Wrong / dead code, never connected: the hard nogo error.
       {
         name: "not-found",
         props: {
@@ -1252,7 +1252,7 @@ const SCREENS: ScreenRenderConfig[] = [
           everConnected: false,
         },
       },
-      // Previously connected, host mid-reclaim — the softer reconnect notice.
+      // Previously connected, host mid-reclaim: the softer reconnect notice.
       {
         name: "reconnecting",
         props: {

@@ -1,6 +1,6 @@
 // Shared rAF-driven poller for the Gamepad API. `navigator.getGamepads()` is
-// a polled snapshot — nothing else in the platform polls today (both
-// web-serial and virtual are push-based) — so N gamepad-transport instances
+// a polled snapshot: nothing else in the platform polls today (both
+// web-serial and virtual are push-based), so N gamepad-transport instances
 // must not mean N animation-frame loops. This module is a module-level
 // singleton: one shared loop, a Set of per-instance frame listeners, started
 // on the first subscriber and stopped on the last.
@@ -58,7 +58,7 @@ export class GamepadPoller {
   /**
    * Read the current gamepad snapshot and notify every subscriber. Public
    * so tests (and `MockGamepadAPI.step()`) can advance the poller
-   * deterministically without waiting on a real animation frame — the
+   * deterministically without waiting on a real animation frame, the
    * production loop calls this same method, it just also reschedules
    * itself via `requestAnimationFrame`.
    */

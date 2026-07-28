@@ -10,7 +10,7 @@ import { applyAnalogShaping } from "./analogShaping";
  * declared `{ min, max }` range.
  *
  * Inputs that fail to parse (out-of-range slice, NaN, invalid kind) are
- * simply skipped — callers see no event for them this tick.
+ * simply skipped: callers see no event for them this tick.
  */
 export function parseCharPosition(
   line: string,

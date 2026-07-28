@@ -1,19 +1,19 @@
 // Encoded-transform capture-UT mapping spike (harness D).
 //
-// UNLIKE worker-a.js (which holds frames for a fixed arrival+delayMs — the
+// UNLIKE worker-a.js (which holds frames for a fixed arrival+delayMs, the
 // exact thing the production invariant FORBIDS), this worker:
 //   1. stamps each RTCEncodedVideoFrame with a capture-UT computed by
 //      wall-clock interpolation of an out-of-band, ~1Hz "capture clock"
-//      sample stream, evaluated at the transform's own read time — approach
+//      sample stream, evaluated at the transform's own read time, approach
 //      1 from the report (mirrors captureClock.ts's interpolateCaptureUt);
 //   2. gates release on a LOCALLY-EVALUATED confirmedEdgeUt(), fed by a
-//      periodic ClockFormulaSnapshot from the main thread — the exact same
+//      periodic ClockFormulaSnapshot from the main thread: the exact same
 //      pure formula already shipped in
 //      packages/sitrep-client/src/view-clock-formula.ts and mirrored by
 //      mod/GonogoKerbcastUplink/client/src/worker/workerDelayClock.ts, ported verbatim
 //      here (plain JS, no bundler in this throwaway harness).
 //
-// The RTP timestamp on the frame is never read for timing purposes — only
+// The RTP timestamp on the frame is never read for timing purposes, only
 // FIFO arrival order is relied on (frames are pushed/popped in read order),
 // exactly as the report's design-question section argues.
 
@@ -25,7 +25,7 @@ let peakQueueLength = 0;
 let snapshotsReceived = 0;
 let captureSamplesReceived = 0;
 let orderingViolations = 0;
-let invariantViolations = 0; // released.ut > edge at release time — should be impossible by construction
+let invariantViolations = 0; // released.ut > edge at release time, should be impossible by construction
 let lastReleasedUt = -Infinity;
 const releaseLog = []; // sampled {ut, edge, wallMs} for a handful of releases, for the report
 
@@ -46,7 +46,7 @@ function computeTimeOriginOffsetMs(mainTimeOriginMs, localTimeOriginMs) {
   return localTimeOriginMs - mainTimeOriginMs;
 }
 function nowWall() {
-  // (perfNowMs() + offsetMs) / 1000 — main-thread basis, seconds.
+  // (perfNowMs() + offsetMs) / 1000: main-thread basis, seconds.
   return (performance.now() + (offsetMs ?? 0)) / 1000;
 }
 
@@ -117,7 +117,7 @@ function attach(readable, writable) {
       const item = queue.shift();
       if (item.ut > edge) {
         // Structurally unreachable given the loop guard, but assert it
-        // explicitly — this IS the invariant under test.
+        // explicitly: this IS the invariant under test.
         invariantViolations++;
       }
       if (item.ut < lastReleasedUt - 1e-6) orderingViolations++;
@@ -147,7 +147,7 @@ function attach(readable, writable) {
         const { value, done } = await reader.read();
         if (done) break;
         framesIn++;
-        // Stamp at READ time — the encoded domain's earliest available
+        // Stamp at READ time, the encoded domain's earliest available
         // point, pre-decode. This is approach 1: interpolate the SAME kind
         // of wall-clock-anchored external clock sample the decoded backend
         // already uses, just evaluated here instead of post-decode.
@@ -156,7 +156,7 @@ function attach(readable, writable) {
           queue.push({ frame: value, ut });
           if (queue.length > peakQueueLength) peakQueueLength = queue.length;
         } else {
-          // No capture sample yet — can't stamp, drop rather than release
+          // No capture sample yet: can't stamp, drop rather than release
           // ungated (mirrors "can't delay -> no video", not "reveal anyway").
         }
         scheduleNext();

@@ -32,7 +32,7 @@ function numField(entry: Record<string, unknown>, ...keys: string[]): number {
  * `DataSource` still ships the historical `StageInfo` camelCase names
  * (`deltaVVac`/`deltaVASL`), while the new mod streams a
  * `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
- * identical `dv.stages` topic key using `dvVac`/`dvAsl` instead — and
+ * identical `dv.stages` topic key using `dvVac`/`dvAsl` instead, and
  * never carries `stageMass`/`isp*`/`TWR*`/`thrust*` at all, none of which
  * this hook's totals need. Normalize each entry so summing works
  * regardless of which wire produced the row. Mirrors FuelStatus's
@@ -68,7 +68,7 @@ function normalizeStage(raw: unknown): StageInfo | null {
 
 /**
  * Whole-vessel ΔV summary derived from the `dv.stages` complex object.
- * One subscription, one re-render per broadcast — no per-stage fan-out.
+ * One subscription, one re-render per broadcast, no per-stage fan-out.
  *
  * Consumers wanting "ΔV available from stage N onwards" can slice the
  * `stages` array themselves; we only expose totals because those are

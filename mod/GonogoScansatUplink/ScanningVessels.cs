@@ -5,14 +5,14 @@ namespace Gonogo.ScansatUplink
 {
     /// <summary>
     /// Pure (SCANsat/KSP-type-free) builder for the
-    /// <c>scansat.scanningVessels</c> wire payload — one
+    /// <c>scansat.scanningVessels</c> wire payload: one
     /// <c>Dictionary&lt;string, object?&gt;</c> per tracked vessel, keyed with
     /// the EXACT camelCase field names the client decodes (JsonWriter emits a
     /// dict's keys verbatim; the client's <c>SCANScanningVessel</c> /
     /// <c>Sitrep.Contract.ScanningVesselEntry</c> mirror these). Kept SCANsat-
-    /// type-free — the uplink's <see cref="ScansatUplink.BuildScanningVessels"/>
+    /// type-free: the uplink's <see cref="ScansatUplink.BuildScanningVessels"/>
     /// reads the SCANsat <c>SCANvessel</c>/<c>SCANsensor</c> fields and passes
-    /// PLAIN scalars in here — so the whole shaping path (including the
+    /// PLAIN scalars in here: so the whole shaping path (including the
     /// per-side FoV widths via <see cref="GroundTrackFov"/>) is unit-testable
     /// headlessly with no SCANsat/KSP DLLs present, the same headless-test
     /// split as <see cref="GroundTrackFov"/> and <see cref="ScanGrids"/>.
@@ -55,7 +55,7 @@ namespace Gonogo.ScansatUplink
         /// feeds both the emitted <c>sensors</c> array and the
         /// <c>groundTrackWidthDeg</c> FoV replication. When no sensor is
         /// in-range the FoV is 0, and BOTH <c>groundTrackWidthDeg</c> and
-        /// <c>groundTrackLonHalfDeg</c> emit <c>null</c> (nothing to paint) —
+        /// <c>groundTrackLonHalfDeg</c> emit <c>null</c> (nothing to paint):
         /// matching the client contract.
         /// </summary>
         /// <param name="bodyRadius">b.Radius (public).</param>
@@ -125,7 +125,7 @@ namespace Gonogo.ScansatUplink
         /// <summary>
         /// Per-side LONGITUDE half-width in degrees:
         /// <c>widthDeg / cos(|subLat|)</c>, capped at
-        /// <see cref="LonHalfWidthCapDeg"/> — the 1/cos widening SCANsat
+        /// <see cref="LonHalfWidthCapDeg"/>: the 1/cos widening SCANsat
         /// applies inside its coverage-paint loop (near the poles cos → 0, so
         /// the cap is what keeps the band finite). Pure.
         /// </summary>

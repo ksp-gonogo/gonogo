@@ -50,7 +50,7 @@ export type PeerMessage =
   // pre-versioned bundle and the station should treat the host version as
   // unknown. `sessionToken` is fresh per host page-load so stations can
   // distinguish "transient broker hiccup, same host process" from "host
-  // restarted" — used to clear stale GO/NO-GO votes that would otherwise
+  // restarted": used to clear stale GO/NO-GO votes that would otherwise
   // re-broadcast from station memory on reconnect. Optional for
   // back-compat.
   | {
@@ -65,9 +65,9 @@ export type PeerMessage =
     }
   | { type: "status"; sourceId: string; status: DataSourceStatus }
   // `t` is the host's sample timestamp, optional so partial deploys stay
-  // wire-compatible — the client falls back to Date.now() when absent.
+  // wire-compatible: the client falls back to Date.now() when absent.
   | { type: "data"; sourceId: string; key: string; value: unknown; t?: number }
-  // Station → host: fire-and-forget action dispatch. No `requestId`/reply —
+  // Station → host: fire-and-forget action dispatch. No `requestId`/reply,
   // `execute-result` used to exist as a reply variant but was never
   // constructed or handled anywhere (dead code, removed).
   | { type: "execute"; sourceId: string; action: string }
@@ -94,7 +94,7 @@ export type PeerMessage =
   //
   // `iceServers` carries the relay's TURN credentials (the same payload
   // the host fetched from /ice-config). Stations need this for their
-  // station→relay peer connection — without it the station's Peer
+  // station→relay peer connection: without it the station's Peer
   // gathers only host-LAN candidates and the relay's container-bridge
   // candidates are unreachable from the LAN, causing every
   // negotiation-failed event in the 2026-05-17 evening session. Older
@@ -109,7 +109,7 @@ export type PeerMessage =
   // registered for `uplinkId` (see `@ksp-gonogo/core`'s
   // `registerUplinkHandle`/`getUplinkHandle`). Generic replacement for what
   // used to be one hardcoded request/response pair per Uplink (in-game
-  // script dispatch, camera WebRTC offer/answer signaling) — a station
+  // script dispatch, camera WebRTC offer/answer signaling): a station
   // never talks to the underlying system directly (see the app's "main
   // screen is the sole KSP data consumer" constraint), so any Uplink action
   // a station triggers has to relay through the host and come back.
@@ -139,21 +139,21 @@ export type PeerMessage =
   // Host → station: the operator's technical-analytics consent. Sent to
   // each station on connect (right after schema) and re-broadcast whenever
   // the host's consent changes. Stations apply it to their own browser
-  // Axiom transport — they never read a local consent value, they follow
+  // Axiom transport: they never read a local consent value, they follow
   // the host. Privacy-first: a station defaults to disabled until this
   // arrives.
   | { type: "analytics-consent"; enabled: boolean }
   // Host → station, fired once per connection right after schema. Carries
   // every fog mask the host has stored so a station's map starts populated
   // with whatever the operator has already explored. Stations keep their
-  // own copy and continue computing fresh tiles from telemetry afterwards —
+  // own copy and continue computing fresh tiles from telemetry afterwards,
   // there's no delta sync, so a station refresh is the way to pick up later
   // host-side discoveries.
   | {
       type: "fog-snapshot";
       masks: Array<{
         bodyId: string;
-        // Opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes" —
+        // Opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes":
         // matches an id a reveal source registers via
         // registerFogRevealSource. Each mask routes to its own slot on
         // the station so the display can apply HiRes-over-LoRes
@@ -163,7 +163,7 @@ export type PeerMessage =
         layerId: string;
         width: number;
         height: number;
-        // Raw alpha bytes (0 = fogged, 255 = imaged) — same shape as the
+        // Raw alpha bytes (0 = fogged, 255 = imaged), same shape as the
         // station's local FogMaskStore record. PeerJS BinaryPack passes
         // Uint8Array through without re-encoding.
         data: Uint8Array;
@@ -175,7 +175,7 @@ export type PeerMessage =
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
   // `version` + `buildTime` are optional so a pre-versioned station still
-  // wire-compatible — the host treats absence as "unknown".
+  // wire-compatible: the host treats absence as "unknown".
   | {
       type: "station-info";
       name: string;
@@ -194,7 +194,7 @@ export type PeerMessage =
   // station doesn't contribute a vote.
   | { type: "gonogo-vote"; status: "go" | "no-go" | null }
   // Host → stations when all connected stations have voted GO. `t0Ms` is a
-  // wall-clock (`Date.now()`) instant — pre-synchronise to the host so the
+  // wall-clock (`Date.now()`) instant: pre-synchronise to the host so the
   // countdown display matches across devices within a small skew.
   | { type: "gonogo-countdown-start"; t0Ms: number }
   // Host → stations when a vote flips to NO-GO during an active countdown
@@ -210,7 +210,7 @@ export type PeerMessage =
   // Push-to-main: a station mirrors one of its widgets onto the main
   // screen's modal dashboard. Config is passed through to the main's
   // registered component; input mappings stay station-local. `width` and
-  // `height` are the station's grid units on its `lg` layout — the main
+  // `height` are the station's grid units on its `lg` layout, the main
   // modal uses them as the ideal size and scales uniformly if it can't
   // fit everything without scrolling.
   // ──────────────────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ export type PeerMessage =
   // delete entries.
   // ──────────────────────────────────────────────────────────────────────
   // Host → stations: full snapshot on every change (alarms list, observed
-  // warp state, unscheduled-warp flag). Not incremental — the list is
+  // warp state, unscheduled-warp flag). Not incremental: the list is
   // small and the round-trips are rare.
   | {
       type: "alarm-snapshot";
@@ -290,7 +290,7 @@ export type PeerMessage =
     }
   | { type: "trigger-cancel"; id: string }
   // ──────────────────────────────────────────────────────────────────────
-  // Selective subscription — see local_docs/performance_review.md #1.
+  // Selective subscription: see local_docs/performance_review.md #1.
   //
   // Default mode is "broadcast-all" so a station on an old bundle still
   // receives every key. A v2 station immediately sends `peer-data-mode`
@@ -328,13 +328,13 @@ export type PeerMessage =
     }
   | { type: "flight-change"; flight: FlightRecord | null }
   // Host → stations whenever the persisted flight list could have changed
-  // shape (mutation by either side). Empty payload — recipients reload via
+  // shape (mutation by either side). Empty payload, recipients reload via
   // their own `listFlights()`. Stations get this on their own mutations
   // too so the modal stays consistent without the station having to
   // optimistically reload after every RPC.
   | { type: "flight-list-changed" }
   // ──────────────────────────────────────────────────────────────────────
-  // Mission notes — host owns the canonical list and broadcasts the full
+  // Mission notes: host owns the canonical list and broadcasts the full
   // snapshot on every change. Stations send mutations as `note-add`,
   // `note-update`, `note-delete`, `note-reorder`; the host applies them and
   // re-broadcasts. Templated `{{key.path}}` tags inside `body` are
@@ -350,16 +350,16 @@ export type PeerMessage =
   | { type: "note-reorder"; id: string; afterId: string | null }
   // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own
-  // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod —
+  // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod,
   // never a second connection) and relays every `stream-data`/`event`
   // frame it receives VERBATIM to connected stations, wrapped here. No
   // re-timestamping: `message.meta.validAt`/`deliveredAt` are the exact
   // values the mod computed for the HOST's own vantage, so a station's
   // TimelineStore/ViewClock fits the identical UT<->wall observations the
-  // host's own clock did — see the delay-correctness note in
+  // host's own clock did; see the delay-correctness note in
   // docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §5.
   // v1 is eager broadcast-all (mirrors this file's existing
-  // `peer-data-mode` broadcast-all default) — every carried topic is sent
+  // `peer-data-mode` broadcast-all default): every carried topic is sent
   // to every connected station unconditionally; there is no
   // sitrep-subscribe/unsubscribe pair yet (deferred, see the plan's §2 v2
   // note).
@@ -369,12 +369,12 @@ export type PeerMessage =
       message: import("@ksp-gonogo/sitrep-sdk").ServerMessage;
     }
   // Station -> host: fire a mapped Sitrep command (`useCommand`'s carried
-  // branch) through the host's own live TelemetryClient — the host is the
+  // branch) through the host's own live TelemetryClient, the host is the
   // only thing that ever talks to the mod server, so this is a one-way
   // pass-through, not a second dispatch origin. Correlated by the
   // STATION's own `TelemetryClient`-minted `requestId` (the `cN` counter
   // already embedded in the `command-request` the station's `PeerTransport`
-  // is asked to send) — reused as the PeerJS correlation key rather than
+  // is asked to send), reused as the PeerJS correlation key rather than
   // inventing a second id; safe because the host always replies
   // per-connection (`conn.send`), never `broadcast`, so two stations'
   // independently-counted `"c0"`s never cross paths.
@@ -401,7 +401,7 @@ export type PeerMessage =
   // ──────────────────────────────────────────────────────────────────────
   // D6: Uplink bundle-byte conduit. A station has no route to an Uplink's
   // author host (see the app's "main screen is the sole KSP/author-host
-  // consumer" constraint) — the loader's `fetchBytes(url)` seam
+  // consumer" constraint): the loader's `fetchBytes(url)` seam
   // (packages/app/src/uplinks/loader.ts) must go through the host instead
   // of a direct `fetch(bundleUrl)` on a station. The host downloads each
   // bundleUrl ONCE (`BundleFetchCache`, see
@@ -410,13 +410,13 @@ export type PeerMessage =
   // verified bytes to every station that asks for that url.
   // requestId-correlated like `query-range-*`/`uplink-relay-*`.
   //
-  // Wire shape: `bytes` travels as a raw `Uint8Array`, NOT base64 — PeerJS's
+  // Wire shape: `bytes` travels as a raw `Uint8Array`, NOT base64, PeerJS's
   // default "binary" serialization (BinaryPack) already passes a
   // `Uint8Array` through untouched (see the `fog-snapshot`'s `masks[].data`
-  // doc comment above — same precedent); base64 would only add ~33%
+  // doc comment above: same precedent); base64 would only add ~33%
   // overhead on a channel that already carries binary natively. A fetch or
   // hash-mismatch failure is a distinct `error` variant (no `bytes`) rather
-  // than a thrown exception on the wire — same convention as
+  // than a thrown exception on the wire, same convention as
   // `query-range-response`/`flight-rpc-response`.
   // ──────────────────────────────────────────────────────────────────────
   | {

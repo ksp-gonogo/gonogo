@@ -1,5 +1,5 @@
 // Uplink client identity (Uplink Client Contract design §3.1). One
-// declaration per client bundle — every widget/augment this package
+// declaration per client bundle: every widget/augment this package
 // registers stamps this handle as `owner`, so the widget picker's mod
 // search tags (effectiveSearchTags) derive "scansat" automatically instead
 // of relying on a per-widget field someone has to remember to set.

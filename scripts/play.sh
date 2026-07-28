@@ -3,7 +3,7 @@ set -e
 
 # `pnpm play` brings up the same relay container as `pnpm dev`
 # but serves the production-built SPA via `vite preview` instead of the
-# Vite dev server. No HMR, no source watchers — meant for actually
+# Vite dev server. No HMR, no source watchers, meant for actually
 # playing rather than coding. The browser hits `http://localhost:4173`
 # (Vite preview's default port).
 #
@@ -20,10 +20,10 @@ if [ -f .env ]; then
 fi
 
 # ──────────────────────────────────────────────────────────────────────
-# Fingerprint cache — same convention as scripts/dev.sh, plus an `app`
+# Fingerprint cache: same convention as scripts/dev.sh, plus an `app`
 # entry so a stale `packages/app/dist` doesn't get reused after a
 # code change. Vite embeds VITE_* env vars at build time, so the
-# fingerprint also folds in the AXIOM tokens — rotating the token (or
+# fingerprint also folds in the AXIOM tokens, rotating the token (or
 # clearing it from .env) triggers a fresh build even when no source
 # changed.
 # ──────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ compute_app_fingerprint() {
   {
     # Every workspace package the app bundle pulls in. We hash all
     # workspace src trees rather than try to enumerate the dependency
-    # graph — false-positive rebuilds are cheap; missed rebuilds
+    # graph: false-positive rebuilds are cheap; missed rebuilds
     # produce mystery-stale bundles.
     find packages -type f \
       -not -path '*/node_modules/*' \
@@ -92,20 +92,20 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 # ──────────────────────────────────────────────────────────────────────
-# Containers — same fingerprint logic as dev.sh
+# Containers: same fingerprint logic as dev.sh
 # ──────────────────────────────────────────────────────────────────────
 RELAY_FP=$(compute_fingerprint relay)
 
 REBUILD=""
 if [ "${BUILD:-0}" = "1" ]; then
-  echo "[play] BUILD=1 — forcing rebuild of relay"
+  echo "[play] BUILD=1: forcing rebuild of relay"
   REBUILD="relay"
 else
   needs_rebuild relay "$RELAY_FP" && REBUILD="$REBUILD relay"
 fi
 
 if [ -n "$REBUILD" ]; then
-  echo "[play] container inputs changed — rebuilding:$REBUILD"
+  echo "[play] container inputs changed: rebuilding:$REBUILD"
   # shellcheck disable=SC2086 # intentional word-split: $REBUILD is a space-list
   podman compose up -d --build $REBUILD
 fi
@@ -122,7 +122,7 @@ if [ "${BUILD:-0}" = "1" ] || needs_rebuild app "$APP_FP" || [ ! -d packages/app
   pnpm --filter @ksp-gonogo/app build
   printf "%s\n" "$APP_FP" > "$CACHE_DIR/app.hash"
 else
-  echo "[play] app bundle is up-to-date — serving existing dist/"
+  echo "[play] app bundle is up-to-date, serving existing dist/"
 fi
 
 # ──────────────────────────────────────────────────────────────────────

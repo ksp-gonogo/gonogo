@@ -55,12 +55,12 @@ import {
 import type { FrozenPlanInputs, ThresholdOp } from "./triggerTypes";
 import { usePlannerInputs } from "./usePlannerInputs";
 
-// Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
+// Actions are stubbed at [] for now, the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture §4 — locked in augment-slot-map.md)
+// Augment slots (Uplink architecture §4: locked in augment-slot-map.md)
 //
 // Two whole-widget append slots, both broad escape hatches: neither carries a
 // per-item datum, so their props are empty. `maneuver-planner.sections` sits
@@ -72,9 +72,9 @@ const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 // `Record<string, unknown>` fallback an unmerged slot id gets.
 // ---------------------------------------------------------------------------
 
-/** No slot props — whole-widget append escape hatch (no per-item datum). */
+/** No slot props: whole-widget append escape hatch (no per-item datum). */
 export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
-/** No slot props — header badge escape hatch (no per-item datum). */
+/** No slot props: header badge escape hatch (no per-item datum). */
 export type ManeuverPlannerBadgesSlotProps = Record<string, never>;
 
 declare module "@ksp-gonogo/core" {
@@ -110,7 +110,7 @@ function ManeuverPlannerComponent({
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Live orbit state — everything we need for the preset math + preview.
+  // Live orbit state: everything we need for the preset math + preview.
   const sma = useTelemetry("vessel.orbit")?.sma;
   const ecc = useTelemetry("vessel.orbit")?.ecc;
   const {
@@ -122,7 +122,7 @@ function ManeuverPlannerComponent({
   const argPe = useTelemetry("vessel.orbit")?.argPe;
   const trueAnomaly =
     useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
-  // t.universalTime is dropped as a data key — it was never a stream, it IS
+  // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const currentUT = useViewUt();
   const orbitalSpeed =
@@ -149,12 +149,12 @@ function ManeuverPlannerComponent({
 
   const nodes = useManeuverNodes();
   // dv.stages is mapped on the wire (see map-topic.ts's
-  // TELEMACHUS_CLEAN_HOMES — whole-topic identity read, same "dv.stages"
+  // TELEMACHUS_CLEAN_HOMES: whole-topic identity read, same "dv.stages"
   // key off either transport) and rides the stream once carried, with
   // zero call-site change here: `useVesselDeltaV` reads it via the same
   // `useTelemetry("dv.stages")` regardless of which transport
   // ultimately answers. The wire shapes disagree on field names though
-  // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`) — see
+  // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`): see
   // useVesselDeltaV.ts's `normalizeStage` reconciliation.
   const vesselDeltaV = useVesselDeltaV();
   const execute = useExecuteAction("data");
@@ -162,21 +162,21 @@ function ManeuverPlannerComponent({
   // The maneuver-node id round-trip. `o.maneuverNodes` itself (behind
   // `useManeuverNodes` above) now rides the stream (the `vessel.maneuver.
   // legacy` reshape) but its `id` field is always the legacy positional
-  // index, not the real stream guid — this SEPARATE,
+  // index, not the real stream guid: this SEPARATE,
   // narrower `o.maneuverNodeIds` read exists purely to recover each node's
-  // round-tripping stable `id` for the update/remove commands —
+  // round-tripping stable `id` for the update/remove commands,
   // it never touches the rendered node list (see ManeuverNodeList/NodeRow,
   // unchanged). `streamNodeIds`/`nodes` come from two independently-timed
   // reads of what is ultimately the same underlying KSP maneuver-node list,
   // correlated by ARRAY POSITION (both server-side lists reflect the same
-  // ordering) — `resolveNodeId` below is the correlation point.
+  // ordering): `resolveNodeId` below is the correlation point.
   const streamNodeIds = useTelemetry("vessel.maneuver")?.nodes;
   const nodeIdStreamStatus = useDataStreamStatus("data", "o.maneuverNodeIds");
 
   /**
    * Resolves the command-string id for the node at legacy array position
    * `index`: the real stream guid when the id-only read has delivered a
-   * node at that position, else the plain positional index (string) — the
+   * node at that position, else the plain positional index (string), the
    * same value `handleDelete`/`handleEdit` have always sent, so a widget
    * with no live stream (or one whose `vessel.maneuver.nodes[index].id`
    * hasn't arrived yet) behaves exactly as before. See map-command.ts's
@@ -191,7 +191,7 @@ function ManeuverPlannerComponent({
 
   const { completedNodes } = useBurnCompletionTracker(nodes, execute);
 
-  // Armed conditional triggers come from a service — host service on the
+  // Armed conditional triggers come from a service, host service on the
   // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
   // station screens. When the widget is rendered without a provider (legacy
   // tests, standalone embeds) we fall back to an in-process LocalService so
@@ -213,10 +213,10 @@ function ManeuverPlannerComponent({
   const triggerSnapshot = useTriggerSnapshot(triggerService);
   const armedTriggers = triggerSnapshot.triggers;
 
-  // Editor visibility — the picker's draft fields live inside `TriggerEditor`.
+  // Editor visibility: the picker's draft fields live inside `TriggerEditor`.
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
 
-  // Value-restricted keys — see `useValueKeys`'s doc comment. A trigger's
+  // Value-restricted keys: see `useValueKeys`'s doc comment. A trigger's
   // `dataKey` now reads off the stream (`LocalManeuverTriggerService`'s
   // `getValue`), so this also excludes any legacy key with no stream home.
   const numericKeys = useValueKeys("data");
@@ -345,10 +345,10 @@ function ManeuverPlannerComponent({
     try {
       // Telemachus passes `[ut,x,y,z]` straight to KSP's
       // `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`. KSP's
-      // node-local frame is `Vector3d(radialOut, normal, prograde)` —
+      // node-local frame is `Vector3d(radialOut, normal, prograde)`,
       // confirmed by kOS's Node.cs which constructs the same vector in
       // that exact order. So the on-wire order is RADIAL, NORMAL,
-      // PROGRADE — *not* prograde-first. Sending pure prograde in the
+      // PROGRADE: *not* prograde-first. Sending pure prograde in the
       // first slot turns it into pure radial-out and the burn points
       // straight up.
       await dispatchPlanBurns(plan);
@@ -401,7 +401,7 @@ function ManeuverPlannerComponent({
   async function handleEdit(id: number, patch: NodeEditPatch) {
     // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
     // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
-    // RADIAL, NORMAL, PROGRADE — *not* prograde-first.
+    // RADIAL, NORMAL, PROGRADE: *not* prograde-first.
     const action = `o.updateManeuverNode[${resolveNodeId(id)},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
     try {
       await execute(action);
@@ -413,7 +413,7 @@ function ManeuverPlannerComponent({
   }
 
   async function handleClearAll() {
-    // Remove from the highest index down — removing index 0 first would
+    // Remove from the highest index down: removing index 0 first would
     // shift every subsequent id and break the loop.
     for (let i = nodes.length - 1; i >= 0; i--) {
       await execute(`o.removeManeuverNode[${resolveNodeId(i)}]`);
@@ -421,7 +421,7 @@ function ManeuverPlannerComponent({
   }
 
   // Per-field "is this telemetry ready?" map. Feeds the diagnostic
-  // waiting panel — a generic "Waiting for telemetry..." with no detail
+  // waiting panel: a generic "Waiting for telemetry..." with no detail
   // left us blind the first time it triggered, and real Telemachus
   // data can land values as null / NaN mid-scene-load that wouldn't
   // look "missing" to a simple `=== undefined` check.
@@ -439,7 +439,7 @@ function ManeuverPlannerComponent({
   const waiting = telemetryStatus.some((s) => !s.ok);
 
   // O5: a hyperbolic/escape orbit (ecc >= 1) has no apoapsis, so
-  // `buildCurrentOrbit` legitimately returns null (ApR/timeToAp are NaN) —
+  // `buildCurrentOrbit` legitimately returns null (ApR/timeToAp are NaN),
   // that reads as `waiting` above, which is indistinguishable from genuinely
   // no telemetry at all. Read the raw `vessel.orbit.ecc` directly (always
   // present once the orbit topic lands, unlike the derived `currentOrbit`)
@@ -510,8 +510,8 @@ function ManeuverPlannerComponent({
       <WaitingPanel>
         <SectionTitle>Hyperbolic trajectory</SectionTitle>
         <HyperbolicNotice>
-          Escaping on a hyperbolic orbit (no apoapsis) — maneuver planning is
-          not available.
+          Escaping on a hyperbolic orbit (no apoapsis), maneuver planning is not
+          available.
         </HyperbolicNotice>
       </WaitingPanel>
     );
@@ -586,7 +586,7 @@ function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         )}
-        {/* Whole-widget append below the preview + feasibility check — an
+        {/* Whole-widget append below the preview + feasibility check, an
             alternate-transfer-strategy Uplink (porkchop / optimal transfer)
             binds here. Renders nothing until an augment registers. */}
         <AugmentSlot
@@ -617,7 +617,7 @@ registerComponent<ManeuverPlannerConfig>({
   augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
   // `dv.stages` and `o.maneuverNodes` are mapped on the wire and ride the
   // stream transparently (see the `useVesselDeltaV` / `useManeuverNodes`
-  // read call sites above) — no change needed to this list, it already
+  // read call sites above), no change needed to this list, it already
   // carries the resolved key names. The `o.maneuverNodes` ->
   // `previewManeuver` post-burn preview derivation is explicitly
   // optional/lower-priority and deferred, not attempted here.

@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.ActionGroups
 {
     /// <summary>
-    /// The action-groups capability seam — the exact shape
+    /// The action-groups capability seam: the exact shape
     /// <see cref="Sitrep.Host.Comms.ICommsBackend"/> established for comms, and
     /// for the same reason: ONE client interface, SWAPPABLE authority.
     ///
@@ -14,7 +14,7 @@ namespace Sitrep.Host.ActionGroups
     /// capability; a mod-specific uplink registers a higher-priority provider
     /// that is elected only when that mod is actually loaded; the read path
     /// resolves the winner at CAPTURE time. Critically, <b>the topics never
-    /// change and the mod-specific uplink ships no client at all</b> — the
+    /// change and the mod-specific uplink ships no client at all</b>, the
     /// RealAntennas uplink adds zero client code, because <c>comms.*</c> looks
     /// identical whoever sources it.</para>
     ///
@@ -26,10 +26,10 @@ namespace Sitrep.Host.ActionGroups
     /// <c>StockActionGroupsBackend</c> needs <b>zero client change</b>: the
     /// widget already renders whatever names/indices arrive. That is the whole
     /// point of the seam, and it is why the contract had to stop being
-    /// positional first. The AGX backend itself is a LATER phase — this phase
+    /// positional first. The AGX backend itself is a LATER phase, this phase
     /// only proves the seam by registering the stock backend through it.</para>
     ///
-    /// <para><b>Threading — read this before adding a backend.</b> Unlike a
+    /// <para><b>Threading: read this before adding a backend.</b> Unlike a
     /// <c>Sitrep.Host</c> view-provider (which maps an ALREADY-captured
     /// <see cref="KspSnapshot"/> and may run on the Courier thread), an
     /// implementation of this interface reads LIVE KSP. It is therefore only
@@ -45,7 +45,7 @@ namespace Sitrep.Host.ActionGroups
         /// carrying its own 1-based index, ordered by index ascending. Stock
         /// yields ten (<c>AG1..AG10</c>); an AGX backend may yield up to 250
         /// with the player's own names. Returns null when there is nothing to
-        /// report this tick (no active vessel / no action-group data) — a null
+        /// report this tick (no active vessel / no action-group data), a null
         /// is the contract's documented "not available this tick", NOT an
         /// empty list, which would wrongly assert "this vessel has no groups".
         /// </summary>
@@ -53,7 +53,7 @@ namespace Sitrep.Host.ActionGroups
 
         /// <summary>
         /// Sets one group by its 1-based <see cref="ActionGroupState.Index"/>.
-        /// Returns false when the index is not one this backend knows — which
+        /// Returns false when the index is not one this backend knows, which
         /// is what lets <c>VesselCommandProvider.HandleSetActionGroup</c> keep
         /// failing cleanly on an unknown group WITHOUT hardcoding the 1..10
         /// stock bound it can no longer assume (AGX legitimately goes to 250).

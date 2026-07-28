@@ -1,5 +1,5 @@
 /**
- * Station identity — a user-editable name for this station screen, kept in
+ * Station identity: a user-editable name for this station screen, kept in
  * localStorage so it survives reload.
  *
  * The station's PeerJS peer id already exists (assigned by the broker), but
@@ -8,9 +8,9 @@
  *
  * Storage key: `gonogo.station.name`. Two one-shot migrations on first
  * construction:
- *   1. From `gonogo.station.name.<active save-profile id>` — the previous
+ *   1. From `gonogo.station.name.<active save-profile id>`: the previous
  *      shape, retired when save-profiles were removed.
- *   2. From the original unscoped `gonogo.station.name` legacy key — kept
+ *   2. From the original unscoped `gonogo.station.name` legacy key, kept
  *      from before profile-scoping existed (now the same key it migrates
  *      *to*, so this branch is a no-op once both keys collapse).
  */

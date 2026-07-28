@@ -1,5 +1,5 @@
 // Components self-register on import. Themes live in @ksp-gonogo/ui (design
-// system primitives) — see packages/ui/src/themes/.
+// system primitives): see packages/ui/src/themes/.
 // Add new component imports here as they are built.
 
 export * from "./ActionGroup";

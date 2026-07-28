@@ -109,7 +109,7 @@ describe("HeartbeatTracker", () => {
     });
   });
 
-  describe("adaptive per-channel keyframe cadence (M2 §4.3, finding B item 2 — T4's deferred fixed-default issue)", () => {
+  describe("adaptive per-channel keyframe cadence (M2 §4.3, finding B item 2, T4's deferred fixed-default issue)", () => {
     it("a fast-cadence topic (~5 UT) and a slow-cadence topic (~30 UT) each learn their own interval from observed arrivals, not a shared fixed default", () => {
       const tracker = new HeartbeatTracker({
         marginMultiplier: 1,
@@ -130,7 +130,7 @@ describe("HeartbeatTracker", () => {
       });
 
       // Both topics' last arrival lands on UT 100, so "silence since" is
-      // directly comparable — only their learned cadence differs.
+      // directly comparable: only their learned cadence differs.
       for (const t of [85, 90, 95, 100]) tracker.noteArrival("fast.topic", t);
       for (const t of [40, 70, 100]) tracker.noteArrival("slow.topic", t);
 
@@ -153,7 +153,7 @@ describe("HeartbeatTracker", () => {
       expect(tracker.intervalFor("vessel.target")).toBe(30);
 
       tracker.noteArrival("vessel.target", 0);
-      // A single arrival has zero observed gaps — still the default.
+      // A single arrival has zero observed gaps, still the default.
       expect(tracker.intervalFor("vessel.target")).toBe(30);
 
       tracker.noteArrival("vessel.target", 5);
@@ -186,7 +186,7 @@ describe("HeartbeatTracker", () => {
       tracker.noteArrival("vessel.target", 80);
       tracker.noteArrival("vessel.target", 85);
 
-      // The median-based estimator resists the single 60 UT outlier — the
+      // The median-based estimator resists the single 60 UT outlier, the
       // learned interval stays anchored near the healthy 5 UT cadence.
       expect(tracker.intervalFor("vessel.target")).toBe(5);
     });

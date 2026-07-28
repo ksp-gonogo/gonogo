@@ -1,5 +1,5 @@
 /**
- * Multi-screen integration test — boots the real app in two browser
+ * Multi-screen integration test: boots the real app in two browser
  * contexts (main + station), waits for the PeerJS handshake against the
  * local broker, asserts the station picks up the main's schema.
  *
@@ -7,7 +7,7 @@
  * override works, both screens boot, and they can find each other. The
  * fixture-driven telemetry assertions (recorded-flight replay, station
  * mirrors widget values) layer on top of this once we have a way to
- * inject a test data source per page — TODO in a follow-up.
+ * inject a test data source per page, TODO in a follow-up.
  */
 import { expect, type Page, test } from "@playwright/test";
 
@@ -23,7 +23,7 @@ const STATION_URL = "/station";
  * cold local broker; many seconds on the public broker).
  */
 async function getMainPeerId(page: Page): Promise<string> {
-  // Playwright's waitForFunction is `(fn, arg, options)` — passing the
+  // Playwright's waitForFunction is `(fn, arg, options)`, passing the
   // options object as the second arg makes it `arg` and silently
   // inherits the default 10s actionTimeout.
   return await page
@@ -44,7 +44,7 @@ async function getMainPeerId(page: Page): Promise<string> {
 }
 
 /**
- * Wait for the host peer to open, then return its stable share code — the
+ * Wait for the host peer to open, then return its stable share code, the
  * token the station uses to derive the host's id and connect directly.
  */
 async function getHostShareCode(page: Page): Promise<string> {
@@ -70,7 +70,7 @@ async function getHostShareCode(page: Page): Promise<string> {
 test.describe("station connects directly via the share code", () => {
   // Stable-host-id model: the station is handed ONLY the operator's 4-char
   // share code (not the host's broker peer id). It derives `gonogo-host-<code>`
-  // and connects to that on the broker directly — no resolve hop. The share
+  // and connects to that on the broker directly, no resolve hop. The share
   // code and the derived peer id are distinct (asserted below), so a passing
   // handshake proves the derive-and-connect path end to end.
   test("connects when handed only the share-code", async ({ browser }) => {
@@ -85,7 +85,7 @@ test.describe("station connects directly via the share code", () => {
 
     const peerId = await getMainPeerId(main);
     const shareCode = await getHostShareCode(main);
-    // The 4-char share code is NOT the host's broker peer id — the station
+    // The 4-char share code is NOT the host's broker peer id, the station
     // derives the id from the code, it isn't handed it.
     expect(shareCode).not.toBe(peerId);
 
@@ -115,7 +115,7 @@ test.describe("main + station co-resident", () => {
     const main = await mainContext.newPage();
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
 
-    // Main eventually opens its PeerJS connection — the dashboard renders
+    // Main eventually opens its PeerJS connection: the dashboard renders
     // first (so the assertion isn't gated on widgets that might take time
     // to mount), then the StationLink FAB is reachable.
     await expect(
@@ -127,7 +127,7 @@ test.describe("main + station co-resident", () => {
     const shareCode = await getHostShareCode(main);
 
     // Station opens with the main's share code in the URL. Skips the
-    // "Connect" form — the host param triggers auto-connect (the station
+    // "Connect" form: the host param triggers auto-connect (the station
     // derives `gonogo-host-<code>` and connects directly).
     const station = await stationContext.newPage();
     await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);

@@ -3,35 +3,35 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
 
 /**
  * Harness hardening: guards the structural assumption
- * `TimelineStore.resolveRawFieldSubtopic` (`timeline-store.ts`) bakes in —
+ * `TimelineStore.resolveRawFieldSubtopic` (`timeline-store.ts`) bakes in:
  * that any `mapTopic` target of the raw-field form `<domain>.<channel>.
  * <field...>` (3+ dot segments, NOT a derived-channel field subtopic) names
  * a REAL raw wire topic at its first two segments. `resolveRawFieldSubtopic`
  * mechanically splits a 3+-segment topic into `rawTopic = "<domain>.
- * <channel>"` + the rest as a field path to walk — it does NOT check that
+ * <channel>"` + the rest as a field path to walk, it does NOT check that
  * `rawTopic` is anything a transport actually publishes. A future
  * `TELEMACHUS_CLEAN_HOMES` entry that gets the root wrong (typo, or a
  * channel that doesn't exist yet) would subscribe to a topic nothing ever
- * emits and resolve to a silent, permanent `undefined` — exactly the failure
+ * emits and resolve to a silent, permanent `undefined`, exactly the failure
  * class `sampleRawFieldSubtopic`'s own doc comment flags as NOT caught by
  * `isUnresolvableField` (that guard only covers the derived-channel phantom-
  * field case, see the comment there). This test is the missing static check
  * for the raw-field half of that same risk. The exact bug this test would
  * have caught: the `vessel.resources` fix (see `map-topic.ts`'s
  * doc comment on the resource regex) was a field-PATH bug inside a correct
- * root, one layer deeper than what this test checks — this test guards the
+ * root, one layer deeper than what this test checks, this test guards the
  * ROOT only, which is the cheap, mechanically-checkable half of the
  * contract.
  *
  * No canonical TypeScript list of raw wire topic roots exists anywhere in
  * the repo (unlike the sibling coverage tests, which derive their truth by
- * calling real production code — `deriveVesselState` for
+ * calling real production code: `deriveVesselState` for
  * `vessel-state-mapping.coverage.test.ts`, a source scan for
  * `mapTopic.coverage.test.ts` in `@ksp-gonogo/core`). The only source of truth
  * for "what does the mod actually publish" is C#:
  * `mod/Sitrep.Host/VesselViewProvider.cs`'s `Topics` (15 `vessel.*`/
  * `time.warp` constants) and `mod/Sitrep.Host/SystemViewProvider.cs`'s
- * `Topic` (`"system.bodies"`). Mirrored here as a hardcoded set — update it
+ * `Topic` (`"system.bodies"`). Mirrored here as a hardcoded set, update it
  * if/when a new channel provider lands.
  */
 const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
@@ -82,24 +82,24 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Derived-channel topics — `TimelineStore.collectSubscriptionTopics` routes
+ * Derived-channel topics: `TimelineStore.collectSubscriptionTopics` routes
  * a topic through `resolveDerivedTopic` FIRST; only when that misses does a
  * 3+-segment topic ever reach `resolveRawFieldSubtopic`. A target under one
  * of these roots (`vessel.state.altitudeAsl`, etc.) is therefore out of this
- * convention's scope entirely — it's checked instead by
+ * convention's scope entirely: it's checked instead by
  * `vessel-state-mapping.coverage.test.ts`. Mirrors `context.tsx`'s
  * `PRODUCTION_DERIVED_CHANNELS` (not exported, so hardcoded here rather than
- * imported — `vesselStateChannel` (`"vessel.state"`), `systemStateChannel`
+ * imported: `vesselStateChannel` (`"vessel.state"`), `systemStateChannel`
  * (`"system.state"`), `spaceCenterStateChannel` (`"spaceCenter.state"`) and
  * `dvLegacyScalarsChannel` (`"dv.legacyScalars"`)).
  */
 const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set([
   "vessel.state",
   "system.state",
-  // spaceCenterStateChannel ("spaceCenter.state") — the kc.padOccupied/
+  // spaceCenterStateChannel ("spaceCenter.state"): the kc.padOccupied/
   // kc.padVesselTitle pair derived off spaceCenter.launchSites.
   "spaceCenter.state",
-  // dvLegacyScalarsChannel ("dv.legacyScalars") — the
+  // dvLegacyScalarsChannel ("dv.legacyScalars"): the
   // total/current/currentFuelMass/totalMass rollup off dv.stages +
   // vessel.structure.currentStage (dv-legacy-scalars.ts).
   "dv.legacyScalars",
@@ -107,20 +107,20 @@ const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set([
 
 /**
  * Raw topics whose OWN registered `[SitrepTopic(...)]` name is already 3
- * segments — the rare exception to every other raw topic's `domain.channel`
+ * segments: the rare exception to every other raw topic's `domain.channel`
  * convention (`VesselViewProvider.PhysicsModeTopic` is literally
  * `"vessel.physics.mode"`, not `"vessel.physics"` + a `mode` field). A
  * `TELEMACHUS_CLEAN_HOMES` target that is EXACTLY one of these strings (no
- * further field suffix) is a WHOLE-topic identity read — `sample()`'s literal
+ * further field suffix) is a WHOLE-topic identity read, `sample()`'s literal
  * `timelineFor(topic)` lookup (`timeline-store.ts`) matches it directly
  * before `resolveRawFieldSubtopic` is ever consulted, so `firstTwoSegments`'s
  * "first two segments are the real topic" assumption doesn't apply here.
- * Checked by EXACT match, not prefix — a genuine field suffix beyond one of
+ * Checked by EXACT match, not prefix: a genuine field suffix beyond one of
  * these (e.g. a hypothetical `"vessel.physics.mode.someField"`) is NOT
  * expressible through this convention at all and would still correctly fail
  * this test if attempted. No current `TELEMACHUS_CLEAN_HOMES` target maps to
  * `"vessel.physics.mode"` (the Principia mod-seam revert removed the one
- * that did — see `map-topic.ts`'s `a.physicsMode` comment) — this set stays
+ * that did; see `map-topic.ts`'s `a.physicsMode` comment): this set stays
  * as the general 3-segment-topic exception mechanism for whichever mapping
  * lands next.
  */
@@ -140,7 +140,7 @@ function isRawFieldForm(target: string): boolean {
   );
 }
 
-describe("mapTopic raw-field-subtopic convention — every CLEAN_HOMES raw-field target has a real raw wire-topic root", () => {
+describe("mapTopic raw-field-subtopic convention: every CLEAN_HOMES raw-field target has a real raw wire-topic root", () => {
   it("sanity: found a non-trivial number of raw-field-form targets (scan sanity check)", () => {
     const rawFieldTargets = Object.values(TELEMACHUS_CLEAN_HOMES).filter(
       isRawFieldForm,

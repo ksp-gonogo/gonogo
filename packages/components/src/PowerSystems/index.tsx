@@ -27,6 +27,7 @@ import {
   useModalSaveBar,
   VisuallyHidden,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -40,7 +41,7 @@ const SPARKLINE_WINDOW_SEC = 120;
 
 interface PowerSystemsConfig {
   /**
-   * Resource to focus on. Default ElectricCharge — the most common reason
+   * Resource to focus on. Default ElectricCharge: the most common reason
    * to consult this widget. Cycling via the action input rolls through
    * whichever resources have live flow contributions.
    */
@@ -66,23 +67,23 @@ interface Contribution {
 
 // ---------------------------------------------------------------------------
 // Augment slots (PowerSystems is THE worked
-// example — see augment-slot-map.md "Power / resources").
+// example: see augment-slot-map.md "Power / resources").
 //
-// `power-systems.sections` — a Table/section slot in the body, below the
+// `power-systems.sections`: a Table/section slot in the body, below the
 // net-rate/producer-consumer readout. The canonical first filler is
 // Kerbalism's EC-broker breakdown (Kerbalism re-derives EC production/
 // consumption via its own `ResourceBrokers`), contributed as an augment that
-// reads ONLY Kerbalism's own Topics. Core never references it — the host
+// reads ONLY Kerbalism's own Topics. Core never references it, the host
 // composes whatever is registered.
 //
-// `power-systems.badges` — a broad escape-hatch badge slot in the header, next
+// `power-systems.badges`: a broad escape-hatch badge slot in the header, next
 // to the title, for a small status/indicator an Uplink wants to surface (e.g. a
 // Kerbalism warning glyph).
 //
 // Both carry the widget's current resource focus as slot props so an augment
-// renders against the resource the operator is actually looking at —
+// renders against the resource the operator is actually looking at,
 // slot-parameterised augments; the parent's context passed down. No augment
-// ships here yet — the slots render nothing until one registers.
+// ships here yet: the slots render nothing until one registers.
 // ---------------------------------------------------------------------------
 
 /** Props both PowerSystems slots pass to their augments. */
@@ -123,7 +124,7 @@ function PowerSystemsComponent({
 
   // `parts.power` mixed-source enrichment. The
   // per-part Producers/Consumers/Idle breakdown above stays entirely on
-  // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design —
+  // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design,
   // both read `vessel.parts` directly, stream-native; `usePartsLive`'s
   // `resources` join rides the SAME payload's per-part `resources` map, no
   // separate subscription).
@@ -133,7 +134,7 @@ function PowerSystemsComponent({
   // This measurement used to WIN over the topology-summed
   // total whenever carried, so PROD/NET (which drives a charge/consume
   // read the operator relies on) could silently contradict the itemized
-  // Producers rows right below it — the widget's own tests enshrined a
+  // Producers rows right below it: the widget's own tests enshrined a
   // PROD of +42.00 over a single +5.00 row as "expected". Fixed: PROD/NET
   // now ALWAYS derive from the itemized total (`computedTotalProduced`
   // below), so they can never disagree with the rows. When the streamed
@@ -147,7 +148,7 @@ function PowerSystemsComponent({
   const [resource, setResource] = useState(defaultResource);
   // Tracks whether the operator has made an explicit in-widget pick this
   // session. Once they have, the pick is sticky even if that resource's flow
-  // transiently vanishes (e.g. an engine cuts off) — the auto-jump below only
+  // transiently vanishes (e.g. an engine cuts off), the auto-jump below only
   // fires for a never-picked default. A config-default change resets it (a
   // fresh starting point re-enables the auto-jump helper).
   const [userPicked, setUserPicked] = useState(false);
@@ -169,7 +170,7 @@ function PowerSystemsComponent({
     return Array.from(set).sort();
   }, [liveByFlightId]);
 
-  // Auto-pick a resource with data when the operator hasn't chosen one — if
+  // Auto-pick a resource with data when the operator hasn't chosen one, if
   // the (default) pick has no contributions but others do, jump to the first
   // that does. Skipped once the operator has explicitly picked, so a
   // deliberate choice survives a transient flow dropout (engine cutoff) rather
@@ -183,7 +184,7 @@ function PowerSystemsComponent({
   }, [resourcesWithFlow, resource, userPicked]);
 
   // Picker options: the resources with live flow, PLUS the current pick even if
-  // its flow has transiently vanished — so a deliberate pick stays visible and
+  // its flow has transiently vanished, so a deliberate pick stays visible and
   // selected in the dropdown instead of falling back to the browser's first
   // option.
   const pickerResources = useMemo(
@@ -215,7 +216,7 @@ function PowerSystemsComponent({
   );
 
   // Per-part flow contributions for the selected resource. Includes
-  // zero-flow rows when the part exposes a nominalFlow — those are
+  // zero-flow rows when the part exposes a nominalFlow, those are
   // "idle" deployables (stowed solar panel, shaded panel, etc.) that
   // would contribute power if the conditions were right. Storage-only
   // rows (no flow, no nominal) are still skipped.
@@ -250,7 +251,7 @@ function PowerSystemsComponent({
       contributions.filter((c) => c.flow < 0).sort((a, b) => a.flow - b.flow),
     [contributions],
   );
-  // Parts with a known nominal capacity but no current flow — stowed
+  // Parts with a known nominal capacity but no current flow, stowed
   // solar panels, panels in shadow, etc. Rendered at low opacity so the
   // operator can distinguish "no panels installed" from "panels installed
   // but currently idle".
@@ -268,14 +269,14 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
-  // Single source of truth for PROD/NET: the itemized rows below, always —
+  // Single source of truth for PROD/NET: the itemized rows below, always,
   // see the doc comment on `streamPower` above.
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
 
   // The streamed measurement, surfaced separately (never substituted into
-  // PROD/NET) only when it MEANINGFULLY disagrees with the itemized total —
+  // PROD/NET) only when it MEANINGFULLY disagrees with the itemized total,
   // agreement (the common/healthy case) shows nothing extra, keeping the
   // Totals row exactly as it always has been.
   const measuredTotalProduced =
@@ -287,7 +288,7 @@ function PowerSystemsComponent({
     measuredTotalProduced !== undefined &&
     Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
-  // Storage totals across every part that stores this resource — fuel
+  // Storage totals across every part that stores this resource, fuel
   // tanks + EC batteries + monoprop tanks. Independent of flow rows.
   const storage = useMemo(() => {
     let amt = 0;
@@ -329,7 +330,7 @@ function PowerSystemsComponent({
   const cols = w ?? 8;
   const rows = h ?? 10;
   // Wide-short boxes (landscape-18x5) have plenty of *width* but too few
-  // *rows* to clear the normal `rows >= 8` height gate — so they used to
+  // *rows* to clear the normal `rows >= 8` height gate, so they used to
   // drop into the near-empty compact path with ~80% of the width dead. When
   // the grid box is genuinely landscape we instead flow the three sections
   // side-by-side (see SectionsScroll/$landscape) so the full list fits in
@@ -415,7 +416,7 @@ function PowerSystemsComponent({
         </ResourceSelect>
       </Header>
 
-      {/* Discrete power-state announcement for assistive tech — the visible NET
+      {/* Discrete power-state announcement for assistive tech, the visible NET
           readout communicates surplus/deficit through colour + a ticking
           number; this narrates the state word and updates only when the state
           flips (kept out of the ticking value so it doesn't flood). */}
@@ -546,7 +547,7 @@ function PowerSystemsComponent({
             </IdleList>
           </Section>
         )}
-        {/* Augment sections — e.g. a Kerbalism EC-broker breakdown —
+        {/* Augment sections: e.g. a Kerbalism EC-broker breakdown:
             compose here, below the stock producer/consumer/idle readout. Empty
             (a bare fragment) until an Uplink registers into the slot. */}
         <AugmentSlot name="power-systems.sections" props={slotProps} />
@@ -557,7 +558,7 @@ function PowerSystemsComponent({
 
 function ContributionRow({ contribution }: { contribution: Contribution }) {
   const { partTitle, flow, nominalFlow } = contribution;
-  // Three-way sign — a shadowed solar panel produces nothing but is
+  // Three-way sign: a shadowed solar panel produces nothing but is
   // not consuming either; rendering its `+0.00` in green misreads as
   // "actively producing". Neutral colour communicates "idle" honestly.
   const sign: "pos" | "neg" | "zero" =
@@ -583,7 +584,7 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
 }
 
 /** Telemachus resource ids are camelCase (`ElectricCharge`,
- *  `LiquidFuel`) — the compact-mode CSS uppercases them to
+ *  `LiquidFuel`): the compact-mode CSS uppercases them to
  *  `ELECTRICCHARGE` with no visible word boundary. Inserting a space
  *  between a lowercase and the following uppercase preserves the
  *  word break under the uppercase transform. */
@@ -592,7 +593,7 @@ function splitCamel(s: string): string {
 }
 
 function formatUnits(v: number): string {
-  if (!Number.isFinite(v)) return "—";
+  if (!Number.isFinite(v)) return NULL_DISPLAY;
   if (Math.abs(v) >= 10_000) return `${(v / 1000).toFixed(1)}k`;
   if (Math.abs(v) >= 100) return v.toFixed(0);
   return v.toFixed(1);
@@ -699,7 +700,7 @@ const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
 
 /* A distinctly-bordered cell for the streamed
    `parts.power.totalProductionEc` reading, shown ONLY when it disagrees
-   with the itemized PROD total — a visible "these two numbers don't match"
+   with the itemized PROD total: a visible "these two numbers don't match"
    signal (dashed border, muted warning tint) rather than either silently
    overriding PROD/NET or silently vanishing. */
 const MeasuredCell = styled(TotalsCell)`
@@ -729,7 +730,7 @@ const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
 
 /* STORED can carry an "amount / max" pair (e.g. "2900 / 4050"). At the
    default 8×12 size all four Totals cells pack into one row, leaving each
-   cell too narrow for the nowrap value — it used to overflow the cell and
+   cell too narrow for the nowrap value, it used to overflow the cell and
    get clipped at the panel's right border. Allow it to wrap within its cell
    (there is vertical room) so the capacity stays fully legible at every
    width. The break only ever lands at the " / " separator. */
@@ -891,7 +892,7 @@ const CompactResource = styled.div`
 `;
 
 /* At the tiny (3×3) size the panel's inner width is ~80px, and a value
-   like "+49.50/s" has no natural break point — the browser's shrink-to-fit
+   like "+49.50/s" has no natural break point, the browser's shrink-to-fit
    sizing can't shrink an unbreakable run below its own rendered width, so it
    overflows the panel and the panel's overflow:hidden clips whatever spills
    past the edge. Chromium's metrics for this string happened to just fit;
@@ -922,17 +923,17 @@ registerComponent<PowerSystemsConfig>({
   id: "power-systems",
   name: "Power Systems",
   description:
-    "Producers vs consumers per resource. Aggregates live per-part resource flow across every part on the vessel — solar panels, RTGs, generators, ISRU, drills, engines. Default resource is ElectricCharge; the picker switches to any other resource with live flow contributions. Net rate, total produced, total consumed, plus per-part efficiency where the module exposes a nominal cap.",
+    "Producers vs consumers per resource. Aggregates live per-part resource flow across every part on the vessel, solar panels, RTGs, generators, ISRU, drills, engines. Default resource is ElectricCharge; the picker switches to any other resource with live flow contributions. Net rate, total produced, total consumed, plus per-part efficiency where the module exposes a nominal cap.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 3, h: 3 },
   component: PowerSystemsComponent,
   configComponent: PowerSystemsConfigComponent,
   openConfigOnAdd: false,
-  // Subscribes via useTopology + usePartsLive — same chain as ShipMap.
+  // Subscribes via useTopology + usePartsLive: same chain as ShipMap.
   // useTopology reads `vessel.parts` directly (stream-native, bypasses
   // mapTopic); usePartsLive derives per-part thermal, resources, and
-  // module state off that SAME payload — no per-flightId subscriptions.
+  // module state off that SAME payload: no per-flightId subscriptions.
   // The sparkline reads r.resource[<defaultResource>]
   // from the base-Telemachus vessel-wide reservoir.
   dataRequirements: [
@@ -942,8 +943,8 @@ registerComponent<PowerSystemsConfig>({
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
-  // Augment slots. `sections` — body table/section below the stock
-  // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges` —
+  // Augment slots. `sections`: body table/section below the stock
+  // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges`,
   // broad header escape-hatch. Both render nothing until an Uplink registers.
   augmentSlots: ["power-systems.sections", "power-systems.badges"],
   pushable: true,

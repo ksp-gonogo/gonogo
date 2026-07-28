@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -23,7 +24,7 @@ function MissionPanel() {
   const { send, status } = useCommand("stage");
   return (
     <div>
-      <span>altitude:{altitude ?? "—"}</span>
+      <span>altitude:{altitude ?? NULL_DISPLAY}</span>
       <button type="button" onClick={() => send()}>
         stage
       </button>
@@ -47,7 +48,7 @@ describe("sitrep-client end-to-end spine", () => {
     // Stream: renders, then updates on new inbound data. `TelemetryProvider`
     // coalesces `beginFrame()` to the next animation frame, so each update
     // lands one frame after its emit, not synchronously.
-    expect(screen.getByText("altitude:—")).toBeTruthy();
+    expect(screen.getByText(`altitude:${NULL_DISPLAY}`)).toBeTruthy();
     act(() => {
       transport.emit("v.alt", 1200);
     });

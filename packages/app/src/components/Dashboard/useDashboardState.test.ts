@@ -11,7 +11,7 @@ const stored = (key: string) =>
     items?: DashboardItem[];
   };
 
-describe("useDashboardState — per-scene keys", () => {
+describe("useDashboardState: per-scene keys", () => {
   beforeEach(() => {
     localStorage.clear();
   });

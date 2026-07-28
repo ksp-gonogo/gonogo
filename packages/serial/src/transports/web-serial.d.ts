@@ -1,4 +1,4 @@
-// Minimal Web Serial ambient types — kept alongside the WebSerialTransport
+// Minimal Web Serial ambient types: kept alongside the WebSerialTransport
 // so the transport package ships the type surface it needs.
 
 interface SerialPortFilter {
@@ -29,7 +29,7 @@ interface SerialPortInfo {
 
 /**
  * Per the Web Serial spec, `connect` and `disconnect` are plain Events
- * whose `target` is the SerialPort — there is NO `port` field on the
+ * whose `target` is the SerialPort, there is NO `port` field on the
  * event itself. Earlier code in this repo read `evt.port`, which silently
  * worked in tests (the mock matched) but produced `undefined` from a real
  * browser, breaking hot-plug and crashing on disconnect.

@@ -13,7 +13,7 @@ describe("parseKosData", () => {
   });
 
   it("returns null when the closing tag is missing", () => {
-    // Partial chunk before [/KOSDATA] arrives — data source should wait.
+    // Partial chunk before [/KOSDATA] arrives: data source should wait.
     expect(parseKosData("[KOSDATA] x=1")).toBeNull();
   });
 
@@ -88,7 +88,7 @@ describe("parseKosData", () => {
   });
 
   it("handles a block whose body spans multiple lines", () => {
-    // kOS output can carry CR/LF — BLOCK_RE uses [\s\S] to span lines.
+    // kOS output can carry CR/LF, BLOCK_RE uses [\s\S] to span lines.
     const chunk = "[KOSDATA] a=1;\nb=2 [/KOSDATA]";
     expect(parseKosData(chunk)).toEqual({ a: 1, b: 2 });
   });

@@ -28,9 +28,9 @@ describe("HostRegistry", () => {
   it("expires an entry once its TTL passes", () => {
     const reg = new HostRegistry(1_000);
     reg.register("AB3K", "peer-123", 0);
-    // Just before expiry — still resolvable.
+    // Just before expiry: still resolvable.
     expect(reg.resolve("AB3K", 999)).toBe("peer-123");
-    // At/after expiry — gone.
+    // At/after expiry: gone.
     expect(reg.resolve("AB3K", 1_000)).toBeNull();
   });
 
@@ -75,7 +75,7 @@ describe("host-discovery route (fastify.inject)", () => {
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
     expect(post.statusCode).toBe(200);
-    // Diagnostics-only registry — assert the POST landed.
+    // Diagnostics-only registry: assert the POST landed.
     expect(registry.resolve("AB3K")).toBe("peer-123");
     await app.close();
   });
@@ -114,14 +114,14 @@ describe("host-discovery route (fastify.inject)", () => {
   });
 
   it("uses a supplied registry when one is passed in options", async () => {
-    const registry = new HostRegistry(0); // 0ms TTL — entries expire instantly
+    const registry = new HostRegistry(0); // 0ms TTL, entries expire instantly
     const { app } = await buildApp({ registry });
     await app.inject({
       method: "POST",
       url: "/host",
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
-    // Entry is already expired on resolve (TTL 0) — proves our registry
+    // Entry is already expired on resolve (TTL 0), proves our registry
     // instance, not a fresh internal one, is the backing store.
     expect(registry.resolve("AB3K")).toBeNull();
     await app.close();

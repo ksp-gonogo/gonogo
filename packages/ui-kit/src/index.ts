@@ -1,4 +1,4 @@
-// Types-only, emits no runtime code — but NOT removable. It pulls the
+// Types-only, emits no runtime code: but NOT removable. It pulls the
 // `DefaultTheme` augmentation into the declaration build's program, which is
 // built from this entry graph rather than tsconfig's `include`. Drop it and
 // `pnpm build` fails on `theme.space` in Box/Stack. See the file's own header.
@@ -6,7 +6,7 @@ import "./styledComponentsTheme";
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 // Re-exported wholesale from `@ksp-gonogo/theme`, an internal `private: true`
-// package that is never published — the build inlines it into `dist` (JS and
+// package that is never published, the build inlines it into `dist` (JS and
 // `.d.ts` alike), so this is the theme's only public surface. The split exists
 // so packages needing only a theme (`@ksp-gonogo/test-utils`) don't pull in the
 // whole kit; it must stay a devDependency so it can't leak into the published
@@ -148,6 +148,10 @@ export {
   useModalChrome,
   useModalSaveBar,
 } from "./ModalSaveBar";
+// ── Null-display token ──────────────────────────────────────────────────────
+// The one sanctioned em dash in the codebase; see NullValue.tsx's own header
+// comment for the full rationale and the ratchet that enforces it.
+export { NULL_DISPLAY, NullValue } from "./NullValue";
 // ── Panel family ─────────────────────────────────────────────────────────────
 export {
   Panel,

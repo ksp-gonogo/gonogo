@@ -11,7 +11,7 @@ import { renderWidgetMode } from "./widgetDomSnapshot";
 /**
  * Data-driven a11y smoke across every fixture-backed widget. Mirrors the
  * Playwright PNG harness and the DOM-snapshot layer: same widget list
- * (`listWidgets()`), same fixtures, same mount path — but asserts
+ * (`listWidgets()`), same fixtures, same mount path: but asserts
  * `toHaveNoViolations()` instead of capturing pixels/HTML.
  *
  * Each widget is rendered at every declared grid mode × applicable
@@ -44,7 +44,7 @@ describe("widget a11y smoke", () => {
   for (const widget of listWidgets()) {
     const def = getComponent(widget.widgetId);
     const fixtures = fixturesFor(widget.fixturesPath);
-    // NOTE: a widget with no fixtures is silently skipped — it gets ZERO
+    // NOTE: a widget with no fixtures is silently skipped, it gets ZERO
     // a11y coverage here and nothing fails. Fixtureless widgets (e.g. the
     // Kos* widgets) must add a per-file axe smoke instead (see e.g.
     // KosFiles/index.test.tsx). Don't rely on this sweep for them.
@@ -72,7 +72,7 @@ describe("widget a11y smoke", () => {
               // A fixture carrying `t.universalTime` mounts a pinned
               // `TelemetryProvider` (`widgetDomSnapshot.tsx`'s `ViewUtWrap`)
               // whose `ViewClock` keeps ticking every frame for as long as
-              // the widget stays mounted — same live behavior a real
+              // the widget stays mounted: same live behavior a real
               // `TelemetryProvider` has in production. `axe()` is slow enough
               // that a tick can land mid-call; wrapping it in `act()` keeps
               // that (otherwise value-identical, harmless) tick from

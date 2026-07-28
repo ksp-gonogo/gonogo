@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "kerbin-reentry-atmospheric",
-    "notes": "Kerbin reentry — atmospheric body so suicide-burn row is demoted/muted and shows the aerobraking note. Ambient section visible (air density, air temp, skin temp). Parachutes pending, no suicide burn urgency."
+    "notes": "Kerbin reentry: atmospheric body so suicide-burn row is demoted/muted and shows the aerobraking note. Ambient section visible (air density, air temp, skin temp). Parachutes pending, no suicide burn urgency."
   },
   "v.body": "Kerbin",
   "v.heightFromTerrain": 28000,

@@ -6,28 +6,28 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// Small mapping helpers genuinely shared by more than one
-    /// <c>*ViewProvider</c> — extracted (M3 R3 capture-adds) when
+    /// <c>*ViewProvider</c>: extracted (M3 R3 capture-adds) when
     /// <c>SystemViewProvider</c>'s new <c>system.vessels</c> roster mapper
     /// needed the EXACT SAME body-name -&gt; <c>system.bodies</c> index
     /// resolution and <see cref="VesselType"/>/<see cref="Situation"/>
     /// string parsing <see cref="VesselViewProvider"/> already had, private,
     /// for <c>vessel.identity</c>. Rather than duplicate this logic a second
-    /// time (a roster entry needs identical semantics — same "no sentinel,
+    /// time (a roster entry needs identical semantics, same "no sentinel,
     /// null when unresolved" rule, same enum fallback-to-Unknown rule), both
     /// providers call through this shared, internal-only class.
     /// <see cref="VesselViewProvider"/>'s own private
     /// <c>ResolveBodyIndex</c>/<c>ParseVesselType</c>/<c>ParseSituation</c>
     /// now delegate here too, so every existing caller/test keeps working
-    /// unchanged — this is a pure extraction, not a behavior change.
+    /// unchanged: this is a pure extraction, not a behavior change.
     /// </summary>
     internal static class SharedMappers
     {
         /// <summary>
         /// Resolves a body NAME to its stable <c>system.bodies</c> index by
-        /// scanning <c>snapshot.Values["bodies"]</c> — see
+        /// scanning <c>snapshot.Values["bodies"]</c>: see
         /// <see cref="VesselViewProvider"/>'s original doc comment on this
         /// method (moved here verbatim). Returns null if the bodies list is
-        /// absent or the name doesn't match any entry — never a sentinel
+        /// absent or the name doesn't match any entry; never a sentinel
         /// index like -1.
         /// </summary>
         public static int? ResolveBodyIndex(KspSnapshot snapshot, string bodyName)
@@ -53,7 +53,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// KSP's <c>VesselType.ToString()</c> already yields PascalCase matching
-        /// <see cref="Sitrep.Contract.VesselType"/>'s members — case-insensitive
+        /// <see cref="Sitrep.Contract.VesselType"/>'s members: case-insensitive
         /// match, <c>Unknown</c> fallback. Hand-rolled (not <c>Enum.TryParse</c>):
         /// the Contract enums carry compile-time-only Reinforced.Typings
         /// attributes whose assembly isn't in <c>bin</c> at runtime, and the
@@ -85,7 +85,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// True when <paramref name="raw"/> names a <see cref="Sitrep.Contract.VesselType"/>
-        /// member (case-insensitive), excluding the <c>Unknown</c> fallback —
+        /// member (case-insensitive), excluding the <c>Unknown</c> fallback:
         /// i.e. the raw string really is a known vessel-type token.
         /// Attribute-resolution-free (see <see cref="ParseVesselType"/>).
         /// </summary>
@@ -113,7 +113,7 @@ namespace Sitrep.Host
         /// <c>KspHost.MapRosterControlSource</c>'s raw "None"/"Partial"/"Full"
         /// string mapped onto <see cref="RosterCommsControlSource"/>. Null
         /// input (the producer's own "nothing to read this tick" case) maps
-        /// to null, not a fabricated <c>None</c> — see
+        /// to null, not a fabricated <c>None</c>: see
         /// <see cref="VesselRosterEntry.CommsControlSource"/>. Hand-rolled,
         /// same reason as <see cref="ParseVesselType"/>.
         /// </summary>

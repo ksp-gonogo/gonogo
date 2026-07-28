@@ -21,7 +21,7 @@ import styled from "styled-components";
 import { GhostButton, PrimaryButton } from "./Button";
 import { CloseIcon } from "./Icons";
 
-// Re-exported for backward compatibility — `useModalChrome` and
+// Re-exported for backward compatibility: `useModalChrome` and
 // `useModalSaveBar` now live in `@ksp-gonogo/ui-kit` (the chrome context they
 // share with `ModalDialog` below moved with them) so third-party Uplink
 // clients that only depend on `@ksp-gonogo/ui-kit` can register a sticky
@@ -167,7 +167,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
 
   // Trap focus inside dialog. Re-runs when the visible region swaps between the
   // form view and the confirmation view so the trap covers whatever is shown.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `confirming` and `footer` are intentional triggers — they change the set of focusable elements.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `confirming` and `footer` are intentional triggers, they change the set of focusable elements.
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
@@ -202,7 +202,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
     <>
       {createPortal(
         // Backdrop is interactive (click-to-close) so it can't also declare
-        // role="presentation" — the two contradict. Keyboard users close via
+        // role="presentation": the two contradict. Keyboard users close via
         // the dialog's Escape handler instead of clicking the backdrop.
         <Backdrop
           onMouseDown={(e) => {

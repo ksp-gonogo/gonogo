@@ -10,7 +10,7 @@ import { ViewClock } from "./view-clock";
 
 /**
  * Local, self-contained stream fixture (sitrep-client can't depend on
- * `@ksp-gonogo/components`' `setupStreamFixture` — this package sits
+ * `@ksp-gonogo/components`' `setupStreamFixture`: this package sits
  * BELOW it in the dependency graph). Same `FixedViewClock` + `StubTransport`
  * pattern that fixture wraps, built directly from this package's own
  * exports (`createFakeWallClock`, `ViewClock`, `TimelineStore`,
@@ -71,7 +71,7 @@ describe("useRouteCommands", () => {
     // Emitting the pending queue with validAt/deliveredAt = 102 both
     // delivers the queue AND anchors the view clock's utNowEstimate() to
     // 102 (client.attachStore feeds every stream-data message's
-    // validAt/deliveredAt into ViewClock.observeSample) — no wall-time
+    // validAt/deliveredAt into ViewClock.observeSample): no wall-time
     // advance happens between this and the assertion below, so
     // utNowEstimate() reads back as exactly 102 once the coalesced
     // ingest -> beginFrame() microtask (see context.tsx's scheduleFrame)
@@ -104,8 +104,8 @@ describe("useRouteCommands", () => {
         { validAt: 102, deliveredAt: 102 },
       );
       // Every ingested frame re-anchors the shared view clock (`ViewClock.
-      // observeSample` is fed on EVERY topic's arrival, not just this one —
-      // see `TimelineStore.ingest`'s doc) — so this emit must carry the same
+      // observeSample` is fed on EVERY topic's arrival, not just this one,
+      // see `TimelineStore.ingest`'s doc): so this emit must carry the same
       // validAt/deliveredAt as the pending-queue emit above, or it would
       // silently reset nowUt back to the wire default (0).
       fixture.transport.emit(

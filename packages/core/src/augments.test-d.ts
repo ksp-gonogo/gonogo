@@ -1,7 +1,7 @@
 // Type-level tests for the augment slot-id typing seam (spec §4.6).
 //
 // Enforced by `tsc` (the package `typecheck` script runs them via
-// `tsconfig.test-d.json`), NOT by the vitest runner — matching the SDK's
+// `tsconfig.test-d.json`), NOT by the vitest runner: matching the SDK's
 // `topics.test-d.ts` / `defineTopicManifest.test-d.ts` decision. Runtime
 // behaviour is covered in `augments.test.tsx`.
 //
@@ -60,7 +60,7 @@ registerAugment({
 });
 
 // An unmerged slot id still compiles (loose fallback), accepting any props-shaped
-// component — the out-of-repo path is not a hard error.
+// component: the out-of-repo path is not a hard error.
 const LooseAugment: ComponentType<Record<string, unknown>> = () => null;
 registerAugment({
   id: "loose",

@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "flat-plains",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Flat plains — near-zero slope, smooth => SAFE"
+    "notes": "SYNTHETIC (model-generated, NOT captured). Flat plains, near-zero slope, smooth => SAFE"
   },
   "_stream": {
     "carriedChannels": [

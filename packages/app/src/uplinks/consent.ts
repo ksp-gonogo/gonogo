@@ -3,7 +3,7 @@
 // consents via a modal that names the Uplink and states the mod-hash limit; the
 // grant persists so a remembered id@version never re-asks. Decline quarantines
 // the Uplink with a legible reason. First-party ids are deliberately NOT
-// pre-trusted — the whole point is to exercise the real consent seam before the
+// pre-trusted: the whole point is to exercise the real consent seam before the
 // Hub opens third-party loading.
 //
 // Generic on purpose (no mod token) so the uplink-boundary ratchet stays clean.

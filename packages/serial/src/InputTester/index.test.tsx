@@ -32,7 +32,7 @@ async function makeService(): Promise<SerialDeviceService> {
   return svc;
 }
 
-describe("InputTesterComponent — gamepad glyph rendering", () => {
+describe("InputTesterComponent: gamepad glyph rendering", () => {
   it("renders the pack's name + glyph for a gamepad input with a role", async () => {
     const svc = await makeService();
     svc.upsertDeviceType({

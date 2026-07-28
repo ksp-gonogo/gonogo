@@ -14,7 +14,7 @@ cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$BIN/"   # rtcli needs to reso
 
 mkdir -p "$(dirname "$OUT")"
 # SITREP_TOPICMAP_OUT triggers RtConfig.Configure to also emit the Topic->payload
-# map (topic-map.ts) by reflecting over the [SitrepTopic]-tagged contract types —
+# map (topic-map.ts) by reflecting over the [SitrepTopic]-tagged contract types,
 # see RtConfig.EmitTopicMap. Both artifacts come out of this one rtcli run.
 DOTNET_ROLL_FORWARD=LatestMajor SITREP_TOPICMAP_OUT="$TOPIC_MAP_OUT" dotnet "$RTCLI" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \

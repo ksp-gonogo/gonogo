@@ -1,5 +1,5 @@
 /**
- * KerbcastAvatarAugment — the crew-manifest.avatar filler.
+ * KerbcastAvatarAugment: the crew-manifest.avatar filler.
  *
  * Exercises the real component against a real `KerbcastDataSource`, with
  * only the WebRTC transport faked by the SDK's canonical `MockSidecar` (per
@@ -76,8 +76,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("KerbcastAvatarAugment — embedded-facecam kill-switch gate", () => {
-  it("renders nothing when the switch is OFF — the subscribing child never mounts", () => {
+describe("KerbcastAvatarAugment: embedded-facecam kill-switch gate", () => {
+  it("renders nothing when the switch is OFF, the subscribing child never mounts", () => {
     const { container } = render(
       <Wrapper embedded={false}>
         <KerbcastAvatarAugment crewName="Jebediah Kerman" crewIndex={0} />
@@ -96,7 +96,7 @@ describe("KerbcastAvatarAugment — embedded-facecam kill-switch gate", () => {
   });
 });
 
-describe("KerbcastAvatarAugment — kerbal correlation", () => {
+describe("KerbcastAvatarAugment: kerbal correlation", () => {
   it("renders nothing when the kerbal has no matching camera (not seated)", async () => {
     const { sidecar } = await connectedDataSource();
     sidecar.setCameras([
@@ -178,7 +178,7 @@ describe("KerbcastAvatarAugment — kerbal correlation", () => {
   });
 });
 
-describe("KerbcastAvatarAugment — a11y smoke", () => {
+describe("KerbcastAvatarAugment: a11y smoke", () => {
   it("has no axe violations for a live seated-camera avatar", async () => {
     const { sidecar } = await connectedDataSource();
     sidecar.setCameras([
@@ -232,7 +232,7 @@ describe("KerbcastAvatarAugment — a11y smoke", () => {
   });
 });
 
-describe("KerbcastAvatarAugment — click-to-spotlight", () => {
+describe("KerbcastAvatarAugment: click-to-spotlight", () => {
   it("opens a modal with a larger face feed on click", async () => {
     const { sidecar } = await connectedDataSource();
     sidecar.setCameras([

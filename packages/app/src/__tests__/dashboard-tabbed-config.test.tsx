@@ -199,7 +199,7 @@ describe("Dashboard tabbed config modal", () => {
       toggle: { deviceId: "panel-1", inputId: "btnA" },
     });
 
-    // Reload — new Dashboard instance sees the persisted mapping.
+    // Reload: new Dashboard instance sees the persisted mapping.
     unmount();
     renderWithProviders(
       service,

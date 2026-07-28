@@ -2,7 +2,7 @@ services:
   # The relay bundles the `/ice-config` endpoint (read by the main screen on
   # boot) and the coturn TURN/STUN server (spawned as a child process).
   # Bundling means one container with one rotated-per-restart secret, no init
-  # scripts, no shared volumes — just `podman compose up` and you have a
+  # scripts, no shared volumes: just `podman compose up` and you have a
   # working relay. See packages/relay/src/coturnManager.ts.
   relay:
     build:
@@ -17,7 +17,7 @@ services:
       # TURN relay port range. Every active relay session takes one port
       # in this window, so the whole range must be mappable to the host.
       # Matches min-port / max-port in coturnManager.ts. Sized at 11
-      # ports — covers ≤10 simultaneous TURN-relayed clients, and
+      # ports: covers ≤10 simultaneous TURN-relayed clients, and
       # consumer routers (Google Wi-Fi etc.) require one port-forward
       # entry per port, so a small range keeps the click cost down.
       - "49160-49170:49160-49170/udp"

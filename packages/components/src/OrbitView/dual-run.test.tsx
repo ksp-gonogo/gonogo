@@ -4,7 +4,7 @@ import { renderOrbitViewStream } from "./streamHarness";
 
 /**
  * OrbitView stream render check. This was previously a
- * behaviour-preservation golden DUAL-run — the same orbit state rendered once
+ * behaviour-preservation golden DUAL-run, the same orbit state rendered once
  * off the legacy `DataSource` and once off the stream, asserted byte-identical.
  * With the fork gone the legacy leg is moot, so it collapses to a single
  * stream-only render that still exercises the same low-Kerbin-orbit state.
@@ -16,7 +16,7 @@ import { renderOrbitViewStream } from "./streamHarness";
  * of the SVG diagram, giving a concrete DOM string to assert on.
  */
 
-describe("OrbitView — stream render (LKO, delay=0)", () => {
+describe("OrbitView: stream render (LKO, delay=0)", () => {
   it("renders the 'Stable orbit' pill off the stream for a stable low-Kerbin orbit", async () => {
     const { container } = renderOrbitViewStream(
       { w: 4, h: 18 },

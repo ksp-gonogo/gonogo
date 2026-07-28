@@ -4,7 +4,7 @@ import {
   scienceAggregate,
 } from "./scienceAggregates";
 
-describe("scienceAggregate — sci.count / sci.dataAmount off science.experiments", () => {
+describe("scienceAggregate: sci.count / sci.dataAmount off science.experiments", () => {
   it("sums count and total data amount", () => {
     const raw = [
       { subjectId: "a", dataAmount: 5 },
@@ -33,7 +33,7 @@ describe("scienceAggregate — sci.count / sci.dataAmount off science.experiment
   });
 });
 
-describe("deriveExperimentBreakdown — sci.experimentBreakdown DROP, derived from the array", () => {
+describe("deriveExperimentBreakdown: sci.experimentBreakdown DROP, derived from the array", () => {
   it("maps location→biome, situation, title, dataAmount→dataMits, scienceValueRatio→remainingPotential", () => {
     const raw = [
       {

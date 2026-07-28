@@ -16,7 +16,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
 // Unmount tracked trees BEFORE clearActionHandlers() (same rationale as
-// stream.test.tsx — clearing the registry on a mounted widget is a state
+// stream.test.tsx: clearing the registry on a mounted widget is a state
 // update outside act()).
 const renderedTrees: Array<() => void> = [];
 function render(ui: ReactElement) {
@@ -60,7 +60,7 @@ function part(id: string, title: string, resources: PartResources) {
 
 // Two resources with live flow: EC (from a panel) + LiquidFuel (from a tank
 // draining into an engine). resourcesWithFlow => ["ElectricCharge","LiquidFuel"].
-// NOTE: part `id` must be numeric — the topology adapter does `Number(p.id)`
+// NOTE: part `id` must be numeric, the topology adapter does `Number(p.id)`
 // for the flightId key (vesselPartsAdapter.ts), so non-numeric ids collide.
 const TWO_RESOURCE_WIRE = {
   parts: [
@@ -109,7 +109,7 @@ function renderWidget(instanceId: string) {
   return { fixture, ...view };
 }
 
-describe("PowerSystems — states + resource pick", () => {
+describe("PowerSystems: states + resource pick", () => {
   it("shows a hint while vessel topology is unavailable", () => {
     renderWidget("ps-no-topo");
     expect(screen.getByText("Waiting for vessel topology...")).toBeTruthy();
@@ -162,7 +162,7 @@ describe("PowerSystems — states + resource pick", () => {
       ).toBe("LiquidFuel"),
     );
 
-    // Engine cuts off — LiquidFuel stops flowing (only EC flows now).
+    // Engine cuts off: LiquidFuel stops flowing (only EC flows now).
     act(() => fixture.emit("vessel.parts", EC_ONLY_WIRE));
 
     // The pick MUST survive: it stays LiquidFuel (with a no-flow note), rather

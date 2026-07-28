@@ -154,7 +154,7 @@ describe("FogMaskCache", () => {
     cache.onChange("Kerbin", HI, spy);
     expect(mask.data[0]).toBe(0);
 
-    // External write — bypasses the cache entirely (this models a fog
+    // External write: bypasses the cache entirely (this models a fog
     // snapshot landing on a station).
     await store.save(
       "profile-1",
@@ -181,7 +181,7 @@ describe("FogMaskCache", () => {
     cache.markDirty("Kerbin", HI);
     await cache.flush();
     // After flush, the cache's own save fired the change listener with
-    // the cache's origin tag — the listener must short-circuit, leaving
+    // the cache's origin tag: the listener must short-circuit, leaving
     // any local mutation that happened *between* flush starting and
     // resolving in place.
     mask.data[1] = 99;

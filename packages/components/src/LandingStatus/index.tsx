@@ -20,6 +20,7 @@ import {
   EmptyState,
   formatDuration,
   Grid,
+  NULL_DISPLAY,
   Panel,
   PanelBody,
   PanelSubtitle,
@@ -44,11 +45,11 @@ import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 import { TouchdownReticle } from "./TouchdownReticle";
 
-// Empty config — kept for forward-compat with the old widget's config slot.
+// Empty config: kept for forward-compat with the old widget's config slot.
 type LandingStatusConfig = Record<string, never>;
 
 /**
- * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot,
+ * Props for `landing-status.badges`: the widget's BROAD escape-hatch slot,
  * rendered in the header row next to the title. Preserved verbatim from the
  * predecessor so existing augment bindings keep working across the reboot.
  */
@@ -68,21 +69,21 @@ declare module "@ksp-gonogo/core" {
 // ── Formatting ───────────────────────────────────────────────────────────────
 
 function formatMps(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
   if (Math.abs(v) < 10) return `${v.toFixed(2)} m/s`;
   if (Math.abs(v) < 100) return `${v.toFixed(1)} m/s`;
   return `${v.toFixed(0)} m/s`;
 }
 
 function formatMeters(m: number | null | undefined): string {
-  if (m === null || m === undefined || !Number.isFinite(m)) return "—";
+  if (m === null || m === undefined || !Number.isFinite(m)) return NULL_DISPLAY;
   if (Math.abs(m) >= 10_000) return `${(m / 1000).toFixed(1)} km`;
   if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(2)} km`;
   return `${m.toFixed(0)} m`;
 }
 
 function formatDv(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
   return `${v.toFixed(0)} m/s`;
 }
 
@@ -141,8 +142,8 @@ function StackedField({
   );
 }
 
-/** Native per-topic stream status (same helper OrbitView/DistanceToTarget use)
- * — `"disconnected"` when no `TelemetryProvider` is mounted. Bound to
+/** Native per-topic stream status (same helper OrbitView/DistanceToTarget use),
+ * `"disconnected"` when no `TelemetryProvider` is mounted. Bound to
  * `vessel.surface`, the lowest-point burn datum the widget actually shows. */
 function useStreamStatusOptional(topic: string): StreamStatusValue {
   const client = useTelemetryClientOptional();
@@ -257,7 +258,7 @@ function LandingStatusComponent({
   const streamStatus = useStreamStatusOptional("vessel.surface");
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
-  // when the vessel.landing channel carries a terminal velocity — only in an
+  // when the vessel.landing channel carries a terminal velocity, only in an
   // atmosphere while the relevance gate is open.
   const atmosphereAware = landing?.terminalVelocity != null;
   const board = deriveBoard({
@@ -266,7 +267,7 @@ function LandingStatusComponent({
     atmosphereAware,
   });
 
-  // Descent-rate trend — a bounded history of vertical speed, so a developing
+  // Descent-rate trend: a bounded history of vertical speed, so a developing
   // over-speed reads as a trend not a single tick. Appended after render.
   const [descentHistory, setDescentHistory] = useState<number[]>([]);
   const currentVs = flight?.verticalSpeed;
@@ -291,7 +292,7 @@ function LandingStatusComponent({
   // rail come in together at a comfortable width; below that, plain readouts.
   const showScope = width >= 6;
   const showRail = showScope;
-  // The reticle is the centerpiece — shown once terrain was sampled (predicted
+  // The reticle is the centerpiece, shown once terrain was sampled (predicted
   // point or the sub-vessel fallback) and there's width to make it prominent.
   const showReticle = width >= 10 && landing?.sampleSource != null;
   const hazardVerdict = deriveHazardVerdict({
@@ -305,7 +306,7 @@ function LandingStatusComponent({
   // solved descent at a wide size; elsewhere fall back to the plain, always-
   // valid velocity/height readouts. Once landed we KEEP the spatial scope (the
   // plots showing the vessel now AT the site) even though the burn solution has
-  // gone idle — a "touchdown confirmed" view, not a blank panel.
+  // gone idle: a "touchdown confirmed" view, not a blank panel.
   const scopeShown = (board === "vacuum-solved" || landed) && showScope;
 
   // ── Section fragments (composed into the layout below) ─────────────────────
@@ -354,7 +355,7 @@ function LandingStatusComponent({
         { from: 1, to: 1.5, color: "var(--color-status-warning-fg)" },
         { from: 1.5, to: 3, color: "var(--color-status-go-fg)" },
       ]}
-      valueLabel={twr == null ? "—" : twr.toFixed(2)}
+      valueLabel={twr == null ? NULL_DISPLAY : twr.toFixed(2)}
       unitLabel="TWR"
       ariaLabel={`TWR ${twr == null ? "unknown" : twr.toFixed(2)}`}
     />
@@ -386,7 +387,7 @@ function LandingStatusComponent({
       <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
       <StackedField label="Burn duration">
         {solution.burnDuration == null
-          ? "—"
+          ? NULL_DISPLAY
           : formatDuration(solution.burnDuration, { ms: true })}
       </StackedField>
       <StackedField label="Available dV">{formatDv(availableDv)}</StackedField>
@@ -399,7 +400,7 @@ function LandingStatusComponent({
       >
         <ReadoutCaption>Affordable</ReadoutCaption>
         {affordable == null ? (
-          <Value tone="muted">—</Value>
+          <Value tone="muted">{NULL_DISPLAY}</Value>
         ) : (
           <Badge tone={affordable ? "go" : "nogo"} size="sm">
             {affordable ? "yes" : "insufficient dV"}
@@ -411,12 +412,12 @@ function LandingStatusComponent({
       </StackedField>
       <StackedField label="Touchdown (burn now)">
         {solution.bestSpeedAtImpact == null
-          ? "—"
+          ? NULL_DISPLAY
           : formatMps(solution.bestSpeedAtImpact)}
       </StackedField>
       <StackedField label="Impact in">
         {landed || solution.timeToImpact == null
-          ? "—"
+          ? NULL_DISPLAY
           : formatDuration(solution.timeToImpact, { ms: true })}
       </StackedField>
       {vs?.targetDistance != null && (
@@ -446,7 +447,7 @@ function LandingStatusComponent({
           </Field>
           <Field label="Impact in">
             {landing?.atmosphericTimeToImpact == null
-              ? "—"
+              ? NULL_DISPLAY
               : formatDuration(landing.atmosphericTimeToImpact, { ms: true })}
           </Field>
           {landing?.descentRegime && (
@@ -593,7 +594,7 @@ function LandingStatusComponent({
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
       {landing?.predictedSlopeAngle != null
         ? `${landing.predictedSlopeAngle.toFixed(1)}° slope`
-        : "—"}
+        : NULL_DISPLAY}
       {reliefRange != null && reliefRange >= 1
         ? ` · Δ ${Math.round(reliefRange)} m relief`
         : ""}
@@ -661,8 +662,8 @@ function LandingStatusComponent({
                     {twrGaugeEl}
                   </div>
                 </div>
-                {/* Two equal, ALIGNED altimetry squares in a shared row — same
-                    top, size, baseline — bleeding to the right edge. */}
+                {/* Two equal, ALIGNED altimetry squares in a shared row, same
+                    top, size, baseline: bleeding to the right edge. */}
                 <div style={{ display: "flex", gap: "6px", padding: "8px 0" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SectionTitle>Touchdown site</SectionTitle>

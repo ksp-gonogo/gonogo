@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- GPL-3.0-only, permanently (operator decision, 2026-07-18) — see
+  <!-- GPL-3.0-only, permanently (operator decision, 2026-07-18): see
        NOTICE-SCANSAT.txt for the full statement. gonogo overall is MIT (see
        LICENSING.md); this uplink is a deliberate exception because it
        compile-time links SCANsat.dll, a third-party mod. It is a leaf, so

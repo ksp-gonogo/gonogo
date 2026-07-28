@@ -5,7 +5,7 @@ import { deriveState } from "./SignalLossIndicator";
 // A healthy strength for the cases not exercising the 0%-signal path.
 const OK = 0.87;
 
-describe("SignalLossIndicator — deriveState", () => {
+describe("SignalLossIndicator: deriveState", () => {
   it("treats absent telemetry as connected (warmup hides the banner)", () => {
     expect(deriveState(undefined, undefined, undefined, false)).toBe(
       "connected",
@@ -59,7 +59,7 @@ describe("SignalLossIndicator — deriveState", () => {
   });
 
   it("does NOT report lost on a weak-but-present link", () => {
-    // 1% is weak but present — not SIGNAL LOSS.
+    // 1% is weak but present, not SIGNAL LOSS.
     expect(deriveState(true, 0.01, 2, true)).toBe("connected");
   });
 

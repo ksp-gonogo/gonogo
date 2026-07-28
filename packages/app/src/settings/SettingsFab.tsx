@@ -12,8 +12,8 @@ import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
 
 /**
- * Settings FAB — the modal portal renders outside this provider tree, so we
- * capture the services here at the call site and re-wrap inside the modal —
+ * Settings FAB: the modal portal renders outside this provider tree, so we
+ * capture the services here at the call site and re-wrap inside the modal,
  * including `ModalTelemetryBridge`, which re-provides the live Sitrep
  * telemetry context the Data Sources tab's `UplinkHealthList` and the
  * Uplink Hub tab both need (see that component's own doc comment for why

@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>spaceCenter.*</c> stream topics —
+    /// KSP-free mapping logic for the <c>spaceCenter.*</c> stream topics,
     /// <c>spaceCenter.launchSites</c> (the keyed launch-site roster: stock KSC
     /// pad + runway, plus any Making History / Kerbal Konstructs sites, all of
     /// which land in the one <c>PSystemSetup.Instance.LaunchSites</c> union),
@@ -20,64 +20,64 @@ namespace Sitrep.Host
     /// untyped-dict convention (NOT <c>VesselViewProvider</c>'s typed-POCO +
     /// ToWire): the <see cref="LaunchSiteEntry"/> / <see cref="SpaceCenterScene"/> /
     /// <see cref="SpaceCenterPoiEntry"/> contract types are TS-shape-only
-    /// mirrors, never serialized — the live dict/list tree this produces is
+    /// mirrors, never serialized: the live dict/list tree this produces is
     /// what <c>JsonWriter</c> walks.
     ///
     /// <para><b>Raw snapshot encoding (KspHost must populate exactly this):</b>
     /// <code>
-    /// snapshot.Values["scene"] = string   — RAW GameScenes enum name
+    /// snapshot.Values["scene"] = string  : RAW GameScenes enum name
     ///                                        (e.g. "FLIGHT"/"TRACKSTATION"); this
     ///                                        provider owns the fold to the six
     ///                                        output strings, same capture→provider
     ///                                        split as gameMode→CareerViewProvider.
-    /// snapshot.Values["activeLaunchSite"] = string? — EditorLogic.launchSiteName,
+    /// snapshot.Values["activeLaunchSite"] = string?: EditorLogic.launchSiteName,
     ///                                        the editor-selected launch site (null
     ///                                        outside the editor); passed straight
     ///                                        onto spaceCenter.scene.launchSite.
     /// snapshot.Values["spaceCenter"] = Dictionary {
     ///   "launchSites": List&lt;object?&gt;   // one entry per launch site
     ///     each entry = Dictionary {
-    ///       "name":           string   — LaunchSite.name (internal id)
-    ///       "displayName":    string   — resolved display name
-    ///       "editorFacility": string   — EditorFacility enum name ("None"/"VAB"/"SPH")
-    ///       "body":           string   — the site's body NAME (provider resolves to index)
-    ///       "isStock":        bool     — PSystemSetup.IsStockLaunchSite
-    ///       "padOccupied":    bool?    — stock-pad occupancy (null off the stock pad)
-    ///       "padVesselTitle": string?  — occupying vessel name (null when none)
-    ///       "latitude":       double?  — first spawn point with latlonaltSet, null if none
-    ///       "longitude":      double?  — paired with latitude
+    ///       "name":           string  : LaunchSite.name (internal id)
+    ///       "displayName":    string  : resolved display name
+    ///       "editorFacility": string  : EditorFacility enum name ("None"/"VAB"/"SPH")
+    ///       "body":           string  : the site's body NAME (provider resolves to index)
+    ///       "isStock":        bool    : PSystemSetup.IsStockLaunchSite
+    ///       "padOccupied":    bool?   : stock-pad occupancy (null off the stock pad)
+    ///       "padVesselTitle": string? : occupying vessel name (null when none)
+    ///       "latitude":       double? : first spawn point with latlonaltSet, null if none
+    ///       "longitude":      double? : paired with latitude
     ///     }
     ///   "contractTargets": List&lt;object?&gt;   // one entry per WaypointManager waypoint with a contractReference
     ///     each entry = Dictionary {
-    ///       "navigationId":            string   — Waypoint.navigationId.ToString()
-    ///       "celestialName":           string   — Waypoint.celestialName
-    ///       "latitude":                double   — Waypoint.latitude
-    ///       "longitude":               double   — Waypoint.longitude
-    ///       "isOnSurface":             bool     — Waypoint.isOnSurface (provider filters non-surface out)
-    ///       "contractState":           string   — RAW Contract.State enum name (provider filters to Active/Offered)
-    ///       "contractTitle":           string   — Contract.Title
-    ///       "contractAgent":           string?  — Contract.Agent?.Name
-    ///       "contractFundsAdvance":    double   — Contract.FundsAdvance
-    ///       "contractFundsCompletion": double   — Contract.FundsCompletion
-    ///       "contractDateDeadline":    double   — Contract.DateDeadline
+    ///       "navigationId":            string  : Waypoint.navigationId.ToString()
+    ///       "celestialName":           string  : Waypoint.celestialName
+    ///       "latitude":                double  : Waypoint.latitude
+    ///       "longitude":               double  : Waypoint.longitude
+    ///       "isOnSurface":             bool    : Waypoint.isOnSurface (provider filters non-surface out)
+    ///       "contractState":           string  : RAW Contract.State enum name (provider filters to Active/Offered)
+    ///       "contractTitle":           string  : Contract.Title
+    ///       "contractAgent":           string? : Contract.Agent?.Name
+    ///       "contractFundsAdvance":    double  : Contract.FundsAdvance
+    ///       "contractFundsCompletion": double  : Contract.FundsCompletion
+    ///       "contractDateDeadline":    double  : Contract.DateDeadline
     ///     }
     ///   "crewRoster": List&lt;object?&gt;   // one entry per hired kerbal
     ///     each entry = Dictionary {
-    ///       "name":            string   — ProtoCrewMember.name
-    ///       "trait":           string   — ProtoCrewMember.trait
-    ///       "experienceLevel": int      — ProtoCrewMember.experienceLevel
-    ///       "rosterStatus":    string   — RAW RosterStatus enum name (provider folds to available/reason)
+    ///       "name":            string  : ProtoCrewMember.name
+    ///       "trait":           string  : ProtoCrewMember.trait
+    ///       "experienceLevel": int     : ProtoCrewMember.experienceLevel
+    ///       "rosterStatus":    string  : RAW RosterStatus enum name (provider folds to available/reason)
     ///     }
     ///   "savedShips": List&lt;object?&gt;   // one entry per .craft file
     ///     each entry = Dictionary {
-    ///       "name":          string   — CraftProfileInfo.shipName
-    ///       "partCount":     int      — CraftProfileInfo.partCount
-    ///       "totalMass":     double   — CraftProfileInfo.totalMass
-    ///       "facility":      string   — EditorFacility enum name ("VAB"/"SPH")
-    ///       "requiresFunds": double   — CraftProfileInfo.totalCost
-    ///       "missingParts":  List&lt;object?&gt; of string — UnavailableShipParts
+    ///       "name":          string  : CraftProfileInfo.shipName
+    ///       "partCount":     int     : CraftProfileInfo.partCount
+    ///       "totalMass":     double  : CraftProfileInfo.totalMass
+    ///       "facility":      string  : EditorFacility enum name ("VAB"/"SPH")
+    ///       "requiresFunds": double  : CraftProfileInfo.totalCost
+    ///       "missingParts":  List&lt;object?&gt; of string: UnavailableShipParts
     ///     }
-    ///   "partsAvailable": int          — count of buildable parts (provider wraps to { count })
+    ///   "partsAvailable": int         : count of buildable parts (provider wraps to { count })
     /// }
     /// </code></para>
     /// </summary>
@@ -104,14 +104,14 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["launchSites"]</c> list to the
-        /// <c>spaceCenter.launchSites</c> payload — a BARE
+        /// <c>spaceCenter.launchSites</c> payload: a BARE
         /// <c>List&lt;object?&gt;</c> (matching <c>isArray: true</c>), one dict per
         /// site mirroring <see cref="LaunchSiteEntry"/> field-for-field.
         /// <c>body</c> (a captured body NAME) resolves to a
         /// <see cref="SystemBodies"/> index via
-        /// <see cref="SharedMappers.ResolveBodyIndex"/> — the SAME pattern
-        /// <see cref="SystemViewProvider.BuildSystemVessels"/> uses — never a
-        /// fabricated sentinel index. Returns <c>null</c> — not an empty list —
+        /// <see cref="SharedMappers.ResolveBodyIndex"/>: the SAME pattern
+        /// <see cref="SystemViewProvider.BuildSystemVessels"/> uses; never a
+        /// fabricated sentinel index. Returns <c>null</c> (not an empty list)
         /// when the snapshot carries no <c>spaceCenter</c>/<c>launchSites</c> key
         /// at all (no sample landed / <c>PSystemSetup</c> not ready yet), so a
         /// caller distinguishes "no data yet" from "zero sites."
@@ -160,8 +160,8 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Maps <paramref name="snapshot"/>'s raw <c>Values["scene"]</c> string —
-        /// the RAW <c>GameScenes</c> enum name KspHost captured — to the
+        /// Maps <paramref name="snapshot"/>'s raw <c>Values["scene"]</c> string:
+        /// the RAW <c>GameScenes</c> enum name KspHost captured, to the
         /// <c>spaceCenter.scene</c> payload <c>{ "scene": string }</c>, folding
         /// the enum onto the six migration-target strings the legacy
         /// <c>kc.scene</c> key used (<c>FLIGHT</c>→<c>"Flight"</c>,
@@ -198,14 +198,14 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["crewRoster"]</c> list to the
-        /// <c>spaceCenter.crewRoster</c> payload — a BARE <c>List&lt;object?&gt;</c>
+        /// <c>spaceCenter.crewRoster</c> payload: a BARE <c>List&lt;object?&gt;</c>
         /// (matching <c>isArray: true</c>), one dict per kerbal mirroring
         /// <see cref="CrewRosterEntry"/>. The raw <c>rosterStatus</c> string
         /// (the RAW <c>ProtoCrewMember.RosterStatus</c> enum name KspHost
-        /// captured) folds here — the same capture→provider split
-        /// <see cref="BuildScene"/> uses — into the <c>available</c> bool and the
-        /// <c>unavailableReason</c> string the widgets read. Returns <c>null</c> —
-        /// not an empty list — when the snapshot carries no <c>crewRoster</c> key
+        /// captured) folds here: the same capture→provider split
+        /// <see cref="BuildScene"/> uses, into the <c>available</c> bool and the
+        /// <c>unavailableReason</c> string the widgets read. Returns <c>null</c>,
+        /// not an empty list: when the snapshot carries no <c>crewRoster</c> key
         /// (no sample landed yet), distinct from a genuinely empty roster.
         /// </summary>
         public static object? BuildCrewRoster(KspSnapshot? snapshot)
@@ -261,12 +261,12 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["savedShips"]</c> list to the
-        /// <c>spaceCenter.savedShips</c> payload — a BARE <c>List&lt;object?&gt;</c>
+        /// <c>spaceCenter.savedShips</c> payload: a BARE <c>List&lt;object?&gt;</c>
         /// (matching <c>isArray: true</c>), one dict per craft file mirroring
         /// <see cref="SavedShipEntry"/> field-for-field. Every value is already a
         /// primitive KspHost read off <c>CraftProfileInfo</c>, so this is a
         /// straight re-map (no enum fold), with <c>missingParts</c> copied to a
-        /// fresh string list. Returns <c>null</c> — not an empty list — when the
+        /// fresh string list. Returns <c>null</c> (not an empty list) when the
         /// snapshot carries no <c>savedShips</c> key (no sample yet).
         /// </summary>
         public static object? BuildSavedShips(KspSnapshot? snapshot)
@@ -360,7 +360,7 @@ namespace Sitrep.Host
         ///
         /// <para><c>contractDateDeadline</c> folds the raw <c>0.0</c> stock
         /// KSP uses as <c>Contract.DateDeadline</c>'s "no deadline set"
-        /// sentinel (confirmed via decompile) onto <c>null</c> —
+        /// sentinel (confirmed via decompile) onto <c>null</c>:
         /// <see cref="SnapshotDict.GetDouble"/> only nulls
         /// <c>NaN</c>/<c>Infinity</c>/absent, so an un-folded <c>0</c> would
         /// otherwise read as "overdue since epoch" for every no-deadline
@@ -499,7 +499,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Pulls the raw <c>Values["spaceCenter"][<paramref name="key"/>]</c>
         /// sub-list, or <c>null</c> when the snapshot has no <c>spaceCenter</c>
-        /// group or the sub-key is absent — the "no sample yet" signal shared by
+        /// group or the sub-key is absent, the "no sample yet" signal shared by
         /// the array builders.
         /// </summary>
         private static IEnumerable<object?>? GetSpaceCenterList(KspSnapshot? snapshot, string key)
@@ -520,7 +520,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Copies a raw string-list field to a fresh <c>List&lt;object?&gt;</c> of
         /// strings, dropping any non-string element. Returns an empty list (never
-        /// <c>null</c>) when the field is absent — a craft with no missing parts
+        /// <c>null</c>) when the field is absent, a craft with no missing parts
         /// is buildable-as-is, which the widget renders as an empty array.
         /// </summary>
         private static List<object?> GetStringList(IDictionary<string, object?> raw, string key)
@@ -545,7 +545,7 @@ namespace Sitrep.Host
         /// strings. Kept internal-static so the provider test can assert the
         /// mapping for every enum value (incl. the <c>"Other"</c> fallback)
         /// without a KSP reference. NOTE the real enum member is
-        /// <c>TRACKSTATION</c> (verified via decompile) — not the
+        /// <c>TRACKSTATION</c> (verified via decompile): not the
         /// <c>TRACKINGSTATION</c> the earlier scoping guessed.
         /// </summary>
         internal static string MapScene(string? raw)

@@ -16,7 +16,7 @@ const toneColor = (tone: ReadoutTone | undefined) => {
 };
 
 /**
- * Big centred readout — typical "tiny mode" hero element. Fills the remaining
+ * Big centred readout: typical "tiny mode" hero element. Fills the remaining
  * panel space and centres a single dominant value (e.g. ΔV, time-to-impact,
  * warp rate). Use `$tone` to colour-code the readout for state-driven widgets.
  *
@@ -39,8 +39,8 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
 `;
 
 /**
- * Smaller-scale variant for "small" responsive modes — same hero treatment
- * but at a compact size. Doesn't fill — sits alongside other content.
+ * Smaller-scale variant for "small" responsive modes: same hero treatment
+ * but at a compact size. Doesn't fill, sits alongside other content.
  */
 export const Readout = styled.div<{ $tone?: ReadoutTone }>`
   display: inline-flex;
@@ -62,7 +62,7 @@ export const ReadoutCaption = styled.span`
 `;
 
 /**
- * Status pill — single-token badge ("NOMINAL", "GO", "ABORT"). Designed for
+ * Status pill: single-token badge ("NOMINAL", "GO", "ABORT"). Designed for
  * tiny-mode widgets that boil their state down to one indicator (thermal
  * band, ground-survey grade, gonogo state).
  */

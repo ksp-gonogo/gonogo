@@ -31,7 +31,7 @@ const DEFAULTS = {
 /**
  * Screen-space pan + zoom + pinch gesture state for SVG/HTML diagrams whose
  * transform is applied as `translate(panX, panY) scale(zoom)`. The (panX,
- * panY) values are in screen pixels — they translate the rendered content,
+ * panY) values are in screen pixels, they translate the rendered content,
  * they are not a world offset. zoomAbout keeps the screen point under the
  * cursor pinned through scale changes.
  */
@@ -53,7 +53,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
   const activePointers = useRef<Map<number, PointerPos>>(new Map());
   const lastPanPos = useRef<PointerPos | null>(null);
   const lastPinchDist = useRef<number | null>(null);
-  // Read from JSX for cursor styling — kept as a ref intentionally.
+  // Read from JSX for cursor styling, kept as a ref intentionally.
   const panMoved = useRef(false);
 
   const reset = useCallback(() => setCam({ zoom: 1, panX: 0, panY: 0 }), []);

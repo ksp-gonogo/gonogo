@@ -12,7 +12,7 @@ interface Props {
  * disconnect via its `describeConnStatus` copy, but once we're past it
  * (the dashboard renders only when connStatus has been "connected" at
  * least once) there was no affordance to tell the operator the host
- * went away — they'd just see telemetry freeze.
+ * went away: they'd just see telemetry freeze.
  *
  * Renders nothing while connected. On "reconnecting" shows a warning
  * pill; on "disconnected" escalates to a nogo pill. The banner clears

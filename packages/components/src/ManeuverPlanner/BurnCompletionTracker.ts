@@ -7,12 +7,12 @@ export interface CompletedEntry {
 }
 
 /** A maneuver counts as "complete" once its remaining ΔV crosses below this
- *  threshold *after* having been observed above it — guards against tiny
+ *  threshold *after* having been observed above it, guards against tiny
  *  freshly-planned correction burns being mistaken for completed ones. */
 export const COMPLETED_THRESHOLD_DV = 0.5;
 
 /** Wall-clock hold so the operator gets visual confirmation. Real time, not
- *  game time — timewarp would otherwise expire it instantly post-burn. */
+ *  game time: timewarp would otherwise expire it instantly post-burn. */
 export const COMPLETED_HOLD_MS = 10_000;
 
 /**
@@ -51,7 +51,7 @@ export function computeCompletionUpdate(
 }
 
 interface UseBurnCompletionTrackerResult {
-  /** Map keyed by UT — entries here render with the green-flash banner. */
+  /** Map keyed by UT: entries here render with the green-flash banner. */
   completedNodes: ReadonlyMap<number, CompletedEntry>;
 }
 
@@ -70,7 +70,7 @@ export function useBurnCompletionTracker(
     ReadonlyMap<number, CompletedEntry>
   >(() => new Map());
   const maxDvByUt = useRef<Map<number, number>>(new Map());
-  // Latest `nodes` for use inside the auto-removal timeout — without this
+  // Latest `nodes` for use inside the auto-removal timeout, without this
   // ref the timeout would close over a stale list and look up the wrong id.
   const nodesRef = useRef(nodes);
   useEffect(() => {
@@ -96,7 +96,7 @@ export function useBurnCompletionTracker(
           const live = nodesRef.current.find((n) => n.UT === ut);
           if (live) {
             void execute(`o.removeManeuverNode[${live.id}]`).catch(() => {
-              // Swallow — if KSP can't find the node it's already gone.
+              // Swallow: if KSP can't find the node it's already gone.
             });
           }
           setCompletedNodes((current) => {

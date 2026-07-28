@@ -12,7 +12,7 @@
  * travels downlink and is delivered back to the vantage at
  * `t0 + up + down` (up === down === network.delayTo(vantage, node)). If the
  * node is unreachable at dispatch time, the command is dropped with honest
- * silence — no execute, no response.
+ * silence: no execute, no response.
  */
 import {
   type CommandResponse,
@@ -75,7 +75,7 @@ export class Courier {
    * (up === down === network.delayTo(vantage, node)).
    *
    * Honest silence on loss: if `node` is unreachable from `vantage` at
-   * dispatch time, the command is dropped entirely — the handler never
+   * dispatch time, the command is dropped entirely, the handler never
    * runs and `onResponse` never fires. The client is expected to infer
    * loss via ETA timeout rather than an explicit error response.
    */
@@ -180,7 +180,7 @@ export class Courier {
     // this, a subscriber joining mid-transit gets neither the catch-up
     // (which only returns already-arrived samples) nor a record-time
     // schedule (record() only schedules for subscribers present at the
-    // time it ran) — a permanent miss. "Arrived" (<= now, handled by the
+    // time it ran): a permanent miss. "Arrived" (<= now, handled by the
     // catch-up above) and "in flight" (> now, handled here) are disjoint,
     // so this never double-delivers.
     for (const sample of this.archiveFor(node).samples(topic)) {
@@ -202,7 +202,7 @@ export class Courier {
   }
 
   /**
-   * Deliver to `subscriber` as of `fireUt` — the UT this delivery was
+   * Deliver to `subscriber` as of `fireUt`: the UT this delivery was
    * scheduled to fire at (or `clock.now()` for a synchronous catch-up).
    * Callers MUST pass the delivery's own scheduled fire-UT rather than
    * re-reading `clock.now()`: ManualClock.advanceTo() sets `now` to the
@@ -218,7 +218,7 @@ export class Courier {
     fireUt: number,
   ): void {
     // Recomputed here rather than reusing the delay captured at record()/
-    // subscribe() time — this assumes the delay is unchanged between when
+    // subscribe() time: this assumes the delay is unchanged between when
     // the delivery was scheduled and when it fires (true for M3's static
     // point-to-point model). A dynamic/mid-flight delay change is M3b,
     // where the archive's freeze clamp (see readAtVantage) would engage.

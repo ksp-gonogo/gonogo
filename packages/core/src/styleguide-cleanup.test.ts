@@ -7,18 +7,18 @@ import { describe, expect, it } from "vitest";
 /**
  * Test-hygiene guard: no test imports `cleanup` from @testing-library/react.
  * Testing Library unmounts every rendered tree in an automatic afterEach, so
- * a manual cleanup import (and the cleanup() call it enables) is dead weight —
+ * a manual cleanup import (and the cleanup() call it enables) is dead weight,
  * and worse, a manual cleanup() in a test's own afterEach routinely masks a
  * real teardown bug by unmounting before the buggy async work can warn.
  *
  * Ratchet-style: every test that drops its cleanup import lowers the baseline;
  * any commit that adds one back fails the build with a pointer at the offender.
- * The route off cleanup is simply deleting the import and its cleanup() call —
+ * The route off cleanup is simply deleting the import and its cleanup() call,
  * automatic cleanup already covers it.
  */
 
 // Every test across the workspace. cleanup is a test-only symbol, so there is
-// no source dir to exempt — the ban is repo-wide.
+// no source dir to exempt: the ban is repo-wide.
 const SCAN_ROOTS = ["packages", "mod"];
 
 // Current baseline. Zero: every manual cleanup import has been removed from
@@ -41,7 +41,7 @@ function findRepoRoot(start: string): string {
 }
 
 // Enumerate git-TRACKED .ts/.tsx files under the scan roots. Deterministic
-// under concurrent `turbo test` load — a live filesystem walk races with the
+// under concurrent `turbo test` load: a live filesystem walk races with the
 // dist/ output and temp fixtures other packages write mid-run, so the count
 // flickers; the git index does not move during a test run.
 function collectOffenders(): string[] {
@@ -78,7 +78,7 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
       throw new Error(
         `cleanup import count (${offenders.length}) exceeds baseline ` +
           `(${CLEANUP_IMPORT_BASELINE}) by ${newCount}.\n` +
-          `Testing Library auto-cleans after every test — delete the cleanup ` +
+          `Testing Library auto-cleans after every test: delete the cleanup ` +
           `import and its cleanup() call. Recent offenders:\n${sample}`,
       );
     }

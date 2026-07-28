@@ -4,7 +4,7 @@ type MetaEntry = Omit<DataKeyMeta, "key">;
 
 /**
  * Human-facing metadata for every static key in TelemaachusSchema.
- * Dynamic indexed keys (`b.name[N]` etc.) are not listed here — they get the
+ * Dynamic indexed keys (`b.name[N]` etc.) are not listed here, they get the
  * "Other" group fallback in `enrichKey`.
  */
 export const TELEMACHUS_META: Record<string, MetaEntry> = {
@@ -31,7 +31,7 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     unit: "m/s",
     group: "Velocity",
   },
-  // v.obtSpeed intentionally absent — KSP's stock `Vessel.obt_speed` is
+  // v.obtSpeed intentionally absent: KSP's stock `Vessel.obt_speed` is
   // cached/stale and often reads 0 mid-flight. v.orbitalVelocity reads the
   // velocity-vector magnitude which is always correct.
   "v.orbitalVelocity": {
@@ -263,7 +263,7 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
   "b.number": { label: "Body count", unit: "raw", group: "Bodies" },
 
   // --- Resources ---
-  // Units: stock KSP resources are "units" (not litres / kg) — labelled "raw"
+  // Units: stock KSP resources are "units" (not litres / kg), labelled "raw"
   // here since no domain-specific unit applies.
   "r.resource[LiquidFuel]": {
     label: "Liquid Fuel",
@@ -394,7 +394,7 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
   // --- Stage delta-V / mass ---
   "dv.stageCount": { label: "Stage count", unit: "raw", group: "Stages" },
   // `dv.stages` is the whole-vessel stage array (complex object). Labelled
-  // "raw" so graphs / pickers filter it out — consumers read it with
+  // "raw" so graphs / pickers filter it out, consumers read it with
   // `useTelemetry("dv.stages")` and project the field they need.
   "dv.stages": { label: "Stages (all)", unit: "raw", group: "Stages" },
 

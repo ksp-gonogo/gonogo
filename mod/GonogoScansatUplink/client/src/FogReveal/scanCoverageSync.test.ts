@@ -45,7 +45,7 @@ describe("applyScanCoverageToMask", () => {
   it("writes the prime-meridian / equator tile to the centre of a 2048×1024 mask", () => {
     // SCANsat tile (ilon=180, ilat=90) covers lon ∈ [0, 1), lat ∈ [0, 1).
     // With no axis offsets, that maps to texture pixel block centred on
-    // (x=1024, y=512) — the centre of the texture.
+    // (x=1024, y=512): the centre of the texture.
     const mask = emptyMask();
     const changed = applyScanCoverageToMask(
       bitmapWithTile(180, 90),
@@ -53,9 +53,9 @@ describe("applyScanCoverageToMask", () => {
       NO_OFFSET,
     );
     expect(changed).toBe(true);
-    // Pixel at (1024, 511) — just above the equator — should be lit.
+    // Pixel at (1024, 511) (just above the equator) should be lit.
     expect(mask.data[511 * mask.width + 1024]).toBe(255);
-    // Pixel at (0, 0) — opposite corner — should be untouched.
+    // Pixel at (0, 0) (opposite corner) should be untouched.
     expect(mask.data[0]).toBe(0);
   });
 
@@ -76,7 +76,7 @@ describe("applyScanCoverageToMask", () => {
     expect(mask.data[1023 * mask.width + 1024]).toBe(0);
   });
 
-  it("uses max-lighten — never overwrites a higher existing value", () => {
+  it("uses max-lighten; never overwrites a higher existing value", () => {
     const mask = emptyMask();
     // Paint a single pixel at (1024, 511) full alpha by hand.
     mask.data[511 * mask.width + 1024] = 255;
@@ -86,7 +86,7 @@ describe("applyScanCoverageToMask", () => {
       mask,
       NO_OFFSET,
     );
-    // The byte was already at 255 — applyScanCoverageToMask still raises
+    // The byte was already at 255, applyScanCoverageToMask still raises
     // *other* bytes in the same tile, so `changed` is true; the
     // specific pixel we pre-set is unchanged.
     expect(changed).toBe(true);

@@ -1,11 +1,11 @@
 // The first-load consent modal (design §3.5 / D-consent option A). Because the
-// loader runs pre-render — before the app's React tree and its ModalProvider
-// exist — this mounts a one-off modal into its own `createRoot`, resolves on the
+// loader runs pre-render, before the app's React tree and its ModalProvider
+// exist, this mounts a one-off modal into its own `createRoot`, resolves on the
 // operator's click, then unmounts. `main.tsx` wires it via `setConsentPrompt`.
 //
 // It names the Uplink / author / version and states the §3.5 limit: the mod
 // vouches for this client, but a compromised mod could vouch for a compromised
-// client — mod trust comes from CKAN, not from us.
+// client: mod trust comes from CKAN, not from us.
 
 import { GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
 import { useEffect, useId, useRef } from "react";
@@ -103,7 +103,7 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
         </p>
         <p className="UplinkConsent__limit">
           The running mod vouches for this client, but a compromised mod could
-          vouch for a compromised client — mod trust comes from CKAN, not from
+          vouch for a compromised client: mod trust comes from CKAN, not from
           us. Load only Uplinks you installed on purpose.
         </p>
         <div className="UplinkConsent__actions">
@@ -139,17 +139,17 @@ export function promptForConsent(
     const root = createRoot(container);
 
     // Nested-modal guard: this can now fire while another modal (e.g. the
-    // Settings > Uplink Hub wizard's Load button) is already open behind it
-    // — both portal as siblings under document.body (this one via its own
+    // Settings > Uplink Hub wizard's Load button) is already open behind it,
+    // both portal as siblings under document.body (this one via its own
     // createRoot, per the doc comment above; the Settings modal via
     // `@ksp-gonogo/ui`'s Modal.tsx), so without this, two role="dialog"
     // elements sit in the accessibility tree at once. Only one modal should
     // ever be reachable at a time (WCAG dialog pattern), so mark every other
     // document.body child both `inert` (real focus/pointer-event exclusion)
-    // and `aria-hidden` (belt-and-braces — some engines' accessible-name
+    // and `aria-hidden` (belt-and-braces: some engines' accessible-name
     // computation keys off aria-hidden rather than inert) for as long as
     // this one is open; both restored on close. Harmless when this is the
-    // boot-time, nothing-else-open call — there are simply no siblings to
+    // boot-time, nothing-else-open call: there are simply no siblings to
     // mark.
     const siblings = Array.from(document.body.children).filter(
       (el) => el !== container,

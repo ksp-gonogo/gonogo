@@ -2,17 +2,17 @@
  * Host-owned technical-analytics consent.
  *
  * A single global, tri-state value persisted in its OWN localStorage slot
- * (`gonogo.analytics.consent`) — deliberately separate from the
+ * (`gonogo.analytics.consent`): deliberately separate from the
  * `gonogo.settings` store so the privacy-critical bit can't be tangled up
  * with unrelated preference writes. Values:
  *
- *   - `"enabled"`  — operator opted in; ship technical logs to Axiom.
- *   - `"disabled"` — operator declined.
- *   - `undefined`  — not yet answered (boot modal should ask).
+ *   - `"enabled"` : operator opted in; ship technical logs to Axiom.
+ *   - `"disabled"`: operator declined.
+ *   - `undefined` : not yet answered (boot modal should ask).
  *
  * Privacy-first: nothing reaches Axiom until this reads `"enabled"`. The
  * main screen owns this value; stations never read it (they follow the
- * host over PeerJS — see StationScreen).
+ * host over PeerJS: see StationScreen).
  */
 
 export const ANALYTICS_CONSENT_KEY = "gonogo.analytics.consent";
@@ -57,13 +57,13 @@ export class AnalyticsConsentService {
     try {
       this.storage?.setItem(ANALYTICS_CONSENT_KEY, value);
     } catch {
-      // localStorage unavailable (private mode / SSR) — keep the in-memory
+      // localStorage unavailable (private mode / SSR): keep the in-memory
       // notification working so the session still reflects the choice.
     }
     for (const l of this.listeners) l(value);
   }
 
-  /** Subscribe to consent changes. Does NOT fire on subscribe — callers
+  /** Subscribe to consent changes. Does NOT fire on subscribe, callers
    *  read `get()` for the current value. Returns an unsubscribe. */
   subscribe(cb: Listener): () => void {
     this.listeners.add(cb);
@@ -71,5 +71,5 @@ export class AnalyticsConsentService {
   }
 }
 
-/** Shared singleton — the host's one source of truth for consent. */
+/** Shared singleton: the host's one source of truth for consent. */
 export const analyticsConsentService = new AnalyticsConsentService();

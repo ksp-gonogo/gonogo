@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "pre-launch-mixed",
-    "notes": "Pad is empty. 3 ships listed: one affordable/launchable, one funds-blocked, one parts-locked. Funds readout visible in subtitle. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync. The __pad_occupancy__ entry is appended AFTER the real launch sites so the site picker still sees the 3 real sites and the pad-occupancy derivation still finds a padOccupied flag."
+    "notes": "Pad is empty. 3 ships listed: one affordable/launchable, one funds-blocked, one parts-locked. Funds readout visible in subtitle. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness, same translation, keep in sync. The __pad_occupancy__ entry is appended AFTER the real launch sites so the site picker still sees the 3 real sites and the pad-occupancy derivation still finds a padOccupied flag."
   },
   "kc.savedShips": [
     {

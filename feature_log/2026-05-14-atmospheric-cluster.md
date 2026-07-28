@@ -1,7 +1,7 @@
-# Atmospheric cluster — LandingStatus / AtmosphereProfile / ScienceBench / ShipMap
+# Atmospheric cluster: LandingStatus / AtmosphereProfile / ScienceBench / ShipMap
 
 **Date:** 2026-05-14
-**Validation:** ⏳ pending — landed and tested in CI (full suite green,
+**Validation:** ⏳ pending: landed and tested in CI (full suite green,
 lint + typecheck clean). Not yet exercised against a live atmospheric
 flight.
 
@@ -38,12 +38,12 @@ threshold are unchanged.
 Subscribes to `v.biome`. The "where am I doing science" header now
 prefers the live biome string over `v.landedAt`, with landedAt as
 fallback. Same `ScienceUtil.GetExperimentBiome` source the game uses
-to attribute new experiments — so an in-flight "FlyingHigh" /
+to attribute new experiments: so an in-flight "FlyingHigh" /
 "Splashed - OceanWater" reads correctly now, where it used to show
 just the situation.
 
 The experiment-record rows in the breakdown still use their own
-per-record biome (the biome the experiment was *taken in* — different
+per-record biome (the biome the experiment was *taken in*, different
 concept from where the operator is now).
 
 ### ShipMap
@@ -57,43 +57,43 @@ Background tint behind the diagram driven by `v.externalTemperature`:
 
 CSS transition smooths the band so it ramps cleanly during a reentry
 rather than flickering on tick boundaries. Per-part `therm.part[fid]`
-tints render on top — they're more precise on the part-by-part heat
+tints render on top, they're more precise on the part-by-part heat
 map.
 
 ## Wire shape recap (from fork)
 
 `Telemachus/src/VesselDataHandlers.cs:149-230`:
 
-- `v.atmosphericDensity` — kg/m³, `ds.vessel.atmDensity`.
-- `v.atmosphericTemperature` — kelvin, ambient air temp.
-- `v.externalTemperature` — kelvin, skin temperature including ram-air
+- `v.atmosphericDensity`: kg/m³, `ds.vessel.atmDensity`.
+- `v.atmosphericTemperature`: kelvin, ambient air temp.
+- `v.externalTemperature`: kelvin, skin temperature including ram-air
   heating (diverges from atmospheric once the craft is moving).
-- `v.indicatedAirSpeed` — m/s, IAS as seen by stock instruments.
-- `v.solarFlux` — W/m², `ds.vessel.solarFlux`.
-- `v.directSunlight` — bool, `Vessel.directSunlight`.
-- `v.distanceToSun` — metres.
-- `v.biome` — string, `ScienceUtil.GetExperimentBiome(mainBody, lat, lon)`.
+- `v.indicatedAirSpeed`: m/s, IAS as seen by stock instruments.
+- `v.solarFlux`: W/m², `ds.vessel.solarFlux`.
+- `v.directSunlight`: bool, `Vessel.directSunlight`.
+- `v.distanceToSun`: metres.
+- `v.biome`: string, `ScienceUtil.GetExperimentBiome(mainBody, lat, lon)`.
 
 Solar keys are wired into the schema and meta but not yet consumed by
-a widget — they'll feed the future PowerSystems widget once the
+a widget: they'll feed the future PowerSystems widget once the
 `flow`/`nominalFlow` fork extension lands.
 
 ## Files
 
-- `packages/core/src/schemas/telemachus.ts` — eight new keys
+- `packages/core/src/schemas/telemachus.ts`: eight new keys
   (`v.atmosphericDensity / atmosphericTemperature / externalTemperature
   / indicatedAirSpeed / solarFlux / directSunlight / distanceToSun /
   biome`).
-- `packages/data/src/types.ts` — `Unit` enum gains `kg/m³`, `K`, `W/m²`.
-- `packages/data/src/schema/telemachusMeta.ts` — eight new meta
+- `packages/data/src/types.ts`: `Unit` enum gains `kg/m³`, `K`, `W/m²`.
+- `packages/data/src/schema/telemachusMeta.ts`: eight new meta
   entries with the new unit literals.
-- `packages/components/src/LandingStatus/index.tsx` — Ambient section
+- `packages/components/src/LandingStatus/index.tsx`: Ambient section
   + formatters.
-- `packages/components/src/AtmosphereProfile/index.tsx` — live readout
+- `packages/components/src/AtmosphereProfile/index.tsx`: live readout
   chip.
-- `packages/components/src/ScienceBench/index.tsx` — `v.biome` wired
+- `packages/components/src/ScienceBench/index.tsx`: `v.biome` wired
   into the situation header.
-- `packages/components/src/ShipMap/index.tsx` — `externalTempTint`
+- `packages/components/src/ShipMap/index.tsx`: `externalTempTint`
   mapping + DiagramWrap `::before` overlay.
 
 ## Validation checklist (next live session)
@@ -106,10 +106,10 @@ a widget — they'll feed the future PowerSystems widget once the
   → g/m³ → exponential as altitude drops.
 - AtmosphereProfile chip: appears mid-descent on Kerbin, disappears
   once above the atmosphere ceiling.
-- ScienceBench: header reads "FLYING HIGH — Mountains" (or similar)
+- ScienceBench: header reads "FLYING HIGH, Mountains" (or similar)
   during atmospheric flight, falls back to landedAt when on the
   surface.
-- **Open question from the doc** — does `v.externalTemperature`
+- **Open question from the doc**: does `v.externalTemperature`
   diverge meaningfully from `therm.hottestPartTemp`? If they track too
   closely the ShipMap tint adds less than expected. Watch them
   side-by-side during a hot reentry.
@@ -120,5 +120,5 @@ Solar keys (`v.solarFlux / directSunlight / distanceToSun`) are wired
 into the schema + meta but await the PowerSystems widget, which is
 gated on the `flow`/`nominalFlow` `r.resourceFor` fork extension.
 
-Next item from the followups doc: body data — rotation animation,
+Next item from the followups doc: body data, rotation animation,
 atmosphere gradient, description.

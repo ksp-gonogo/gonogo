@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Hand-authored (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx) and stream test (stream.test.tsx). career.status.contracts entries (CareerViewProvider.BuildContractList) never carry `optional`/`parameterType`/altitude-bound fields on their parameters — decompile-confirmed exact `{title, state}` shape, career-capture-extend-report.md — so a byte-identical dual-run needs a legacy fixture whose parameters never set `optional: true` or `parameterType` either (every other ContractManager fixture has at least one optional/typed parameter, which the new wire can never reproduce).",
+    "notes": "Hand-authored (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx) and stream test (stream.test.tsx). career.status.contracts entries (CareerViewProvider.BuildContractList) never carry `optional`/`parameterType`/altitude-bound fields on their parameters, decompile-confirmed exact `{title, state}` shape, career-capture-extend-report.md: so a byte-identical dual-run needs a legacy fixture whose parameters never set `optional: true` or `parameterType` either (every other ContractManager fixture has at least one optional/typed parameter, which the new wire can never reproduce).",
     "scenario": "small-career-detail"
   },
   "contracts.active": [

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "warp-only",
-    "notes": "Warp != 1x, no alarms — banner shows just the warp rate."
+    "notes": "Warp != 1x, no alarms: banner shows just the warp rate."
   },
   "alarms": [],
   "ut": 1000,

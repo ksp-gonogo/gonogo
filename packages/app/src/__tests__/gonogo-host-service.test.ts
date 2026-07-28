@@ -12,7 +12,7 @@ import {
 import { installFakeAudio, makeSoundService } from "../test/fakeAudio";
 
 // ---------------------------------------------------------------------------
-// Fakes — small stand-ins so we can drive events deterministically
+// Fakes: small stand-ins so we can drive events deterministically
 // ---------------------------------------------------------------------------
 
 class FakeHost {
@@ -300,7 +300,7 @@ describe("GoNoGoHostService", () => {
     const afterFirst = oscillators.length;
     expect(afterFirst).toBeGreaterThan(0);
     // A re-notification (station reconnect after host refresh) must not chime
-    // again — mirrors the f.abort no-double-fire guarantee.
+    // again: mirrors the f.abort no-double-fire guarantee.
     host.fireAbort("peer-1");
     expect(oscillators.length).toBe(afterFirst);
   });

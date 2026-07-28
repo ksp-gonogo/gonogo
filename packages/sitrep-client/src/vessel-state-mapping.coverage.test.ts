@@ -12,20 +12,20 @@ import {
 
 /**
  * Guards against the exact class of bug the red-team
- * found — a `mapTopic` entry pointing at `vessel.state.<field>` for a
+ * found: a `mapTopic` entry pointing at `vessel.state.<field>` for a
  * `<field>` the shipped `deriveVesselState` never actually produces. Such an
  * entry LOOKS mapped (passes `mapTopic.coverage.test.ts` in `@ksp-gonogo/core`,
  * which only checks "mapped or gapped"), but is structurally a dead
- * `undefined` forever once a `TelemetryProvider` is mounted —
+ * `undefined` forever once a `TelemetryProvider` is mounted,
  * `TimelineStore.sampleDerived`'s field lookup silently returns `undefined`
- * for an unknown field name (see its own doc comment: "unknown field name —
+ * for an unknown field name (see its own doc comment: "unknown field name,
  * nothing to serve"), which is indistinguishable from ordinary "not whole
  * yet" loading at that layer.
  *
  * Rather than hardcoding the field list here (which would silently drift the
  * moment `VesselState` gains/loses a field), this computes the REAL produced
  * field set by actually invoking `deriveVesselState` for both quality bases
- * (OnRails ∪ Loaded — a field populated in only one basis, e.g.
+ * (OnRails ∪ Loaded: a field populated in only one basis, e.g.
  * `altitudeAsl`, must still count as real) and checks every
  * `vessel.state.<field>` target in the migration table against that set.
  */

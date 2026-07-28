@@ -33,20 +33,20 @@ describe("PerfBudget", () => {
       windowMs: 1000,
     });
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-    // Burst — 6 events at the same instant. First exceedance fires once.
+    // Burst: 6 events at the same instant. First exceedance fires once.
     for (let i = 0; i < 6; i++) b.record(1, 1000);
     expect(warn).toHaveBeenCalledTimes(1);
     // More overruns within the same window: throttled, no extra warn.
     for (let i = 0; i < 10; i++) b.record(1, 1100 + i);
     expect(warn).toHaveBeenCalledTimes(1);
-    // Past the window — events have aged out, but a fresh burst should
+    // Past the window: events have aged out, but a fresh burst should
     // re-trigger the warn.
     for (let i = 0; i < 6; i++) b.record(1, 3000 + i);
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
 
-  it("supports volume tracking — record(amount) sums in the window", () => {
+  it("supports volume tracking: record(amount) sums in the window", () => {
     const b = new PerfBudget({
       name: "bytes",
       threshold: 1000,
@@ -89,7 +89,7 @@ describe("PerfBudget", () => {
     for (let i = 0; i < 10_000; i++) {
       b.record(1, i * 1);
     }
-    // After the run, internal events array should not be 10k long —
+    // After the run, internal events array should not be 10k long,
     // compaction kicks in once the head crosses 256 + half of length.
     // Hard to assert exact size, but the rate at the end should be small.
     expect(b.rate(10_000)).toBeLessThan(200);

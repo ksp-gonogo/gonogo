@@ -5,7 +5,7 @@ interface Props {
   children: ReactNode;
   /**
    * Custom fallback rendered when a child throws. `reset` clears the error
-   * state and retries the children — useful for isolated, recoverable
+   * state and retries the children: useful for isolated, recoverable
    * surfaces like dashboard widgets. When omitted, a plain message is shown.
    */
   fallback?: (error: Error, reset: () => void) => ReactNode;

@@ -15,7 +15,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RotorTachometerComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry — clearActionHandlers() firing on a still-mounted
+// action-handler registry: clearActionHandlers() firing on a still-mounted
 // widget is a state update outside act(). RTL auto-cleanup runs after this
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -28,11 +28,11 @@ function render(ui: ReactElement) {
 
 /**
  * RotorTachometer runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` —
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` (filtered to `type === "rotor"`) is its whole identity
  * list, not a merge onto a separate legacy read. Command dispatch
  * (`robotics.rotor.*`) still routes through the legacy `DataSource`'s
- * `execute()` — no mod command handler exists for it yet — so a plain
+ * `execute()`: no mod command handler exists for it yet, so a plain
  * `setupMockDataSource` registered under `"data"` captures those calls; it
  * carries no keys of its own and is never emitted to.
  */
@@ -42,7 +42,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("RotorTachometer — genuinely runs off the stream", () => {
+describe("RotorTachometer: genuinely runs off the stream", () => {
   it("builds the rotor list from parts.robotics and drives commands with its string partId", async () => {
     const onExecute = vi.fn();
     const fixture = setupStreamFixture({

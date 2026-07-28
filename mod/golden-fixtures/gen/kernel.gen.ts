@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Golden-fixture generator for `mod/sitrep-kernel/src/{capability,registry,broker,errors}.ts`
- * (the `Kernel` class — Task 6 of the M5a C# port).
+ * (the `Kernel` class, Task 6 of the M5a C# port).
  *
  * `Kernel` is far too stateful/behavioral for a `{args, expected}` vector
  * fixture, and its provider `factory` functions can't be serialized to JSON
@@ -10,7 +10,7 @@
  * `courier.gen.ts`:
  *
  *  - `ops` is a sequence of `registerCapability` / `registerProvider` calls
- *    (registration only — `Kernel.resolve()` itself is invoked once, after
+ *    (registration only; `Kernel.resolve()` itself is invoked once, after
  *    all ops, via the top-level `resolve` field).
  *  - A provider's un-serializable `factory` is replaced by a marker: it
  *    returns its own `id` string as its "instance", and (for capabilities
@@ -19,11 +19,11 @@
  *    capability, `"vanilla"` never collides with a real provider id.
  *  - Every invoked factory (provider or vanilla) also appends its owning
  *    capability's id to a shared `activationOrder` log, purely for
- *    observing the dependency broker's topo-sort — this is what lets the
+ *    observing the dependency broker's topo-sort; this is what lets the
  *    fixture assert "a provider's deps are active before its factory runs"
  *    without needing real closures.
  *  - A provider op may set `queryDeps: true` to have its factory actually
- *    call `ctx.query(dep)` for each of its `deps` (ignoring the result) —
+ *    call `ctx.query(dep)` for each of its `deps` (ignoring the result);
  *    this exercises the real dependency-satisfaction path (a dep that
  *    resolves to zero or >1 active instances makes `ctx.query` throw),
  *    mirroring the TS reference's own dependency-broker tests. Scenarios
@@ -35,12 +35,12 @@
  * `resolve()` exactly once inside a try/catch:
  *  - success -> `expected` carries `activationOrder`, `activePerCapability`
  *    (every registered capability's `kernel.active(id)`, coerced to
- *    strings), and `notices` (`{capability, kind}` only — `detail` is a
+ *    strings), and `notices` (`{capability, kind}` only; `detail` is a
  *    human message, not part of the cross-language contract).
  *  - throw -> `expectedError` carries the thrown error's `name` (one of the
  *    three fail-loud kernel errors for every scenario below), and
  *    `activeAfterThrow` snapshots `kernel.active(id)` for every registered
- *    capability post-throw — this is the atomicity assertion: a resolve()
+ *    capability post-throw; this is the atomicity assertion: a resolve()
  *    that throws must not have activated anything, anywhere, not just for
  *    the capability that caused the throw.
  *
@@ -529,7 +529,7 @@ const scenarios: Scenario[] = [
   {
     name: "atomic-resolve-activates-nothing-on-throw",
     description:
-      "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when a different capability's resolve() throws — resolve() is all-or-nothing.",
+      "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when a different capability's resolve() throws: resolve() is all-or-nothing.",
     ops: [
       { op: "registerCapability", id: "comms", exclusive: true },
       { op: "registerProvider", capability: "comms", id: "real-provider" },

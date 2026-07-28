@@ -22,7 +22,7 @@ describe("ViewClock", () => {
     });
 
     clock.observeSample(/* validAt */ 10, /* deliveredAt */ 10);
-    // Only one sample has ever been buffered (UT 10) — but wall time races
+    // Only one sample has ever been buffered (UT 10), but wall time races
     // forward, so the raw estimate would run far past it.
     wall.advanceBy(5); // estimate would be 10 + 5*100 = 510
 
@@ -61,7 +61,7 @@ describe("ViewClock", () => {
     expect(clock.viewUt()).toBe(100);
 
     // A later, smaller-validAt sample would otherwise pull the estimate
-    // backwards (e.g. a correction inside the same epoch) — viewUt must not
+    // backwards (e.g. a correction inside the same epoch), viewUt must not
     // recede.
     clock.observeSample(50, 50);
     expect(clock.viewUt()).toBe(100);
@@ -149,7 +149,7 @@ describe("ViewClock", () => {
       expect(clock.mode).toBe("confirmed");
     });
 
-    it("viewUt() tracks utNowEstimate() directly in predicted mode — never re-subtracting or re-adding delaySeconds (no double-counting the delay under warp)", () => {
+    it("viewUt() tracks utNowEstimate() directly in predicted mode; never re-subtracting or re-adding delaySeconds (no double-counting the delay under warp)", () => {
       const wall = fakeWall();
       const clock = new ViewClock({
         nowWall: wall.now,
@@ -166,7 +166,7 @@ describe("ViewClock", () => {
       expect(clock.certaintyHorizonUt()).toBe(1000);
 
       clock.setMode("predicted");
-      // Exactly utNowEstimate() — not 1100-30=1070 (re-subtracting delay,
+      // Exactly utNowEstimate(): not 1100-30=1070 (re-subtracting delay,
       // under-predicting) and not 1100+30=1130 (double-adding it).
       expect(clock.viewUt()).toBe(1100);
       expect(clock.utNowEstimate()).toBe(1100);
@@ -187,7 +187,7 @@ describe("ViewClock", () => {
       expect(clock.viewUt()).toBe(510);
 
       clock.setMode("confirmed");
-      // confirmedEdgeUt is still sample-clamped at 10 — the 510 predicted
+      // confirmedEdgeUt is still sample-clamped at 10, the 510 predicted
       // peak must not have pinned the confirmed cursor ahead of it.
       expect(clock.viewUt()).toBe(10);
     });

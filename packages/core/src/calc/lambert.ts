@@ -1,5 +1,5 @@
 /**
- * Lambert's problem — the two-point boundary-value solve at the heart of a
+ * Lambert's problem: the two-point boundary-value solve at the heart of a
  * porkchop plot: given a departure position `r1`, an arrival position `r2`,
  * a time of flight `tof`, and the central body's `mu`, find the transfer
  * orbit's departure and arrival velocity vectors.
@@ -7,7 +7,7 @@
  * Universal-variable (Stumpff) formulation, Curtis "Orbital Mechanics for
  * Engineering Students" Algorithm 5.2 (equivalently Bate/Mueller/White,
  * Vallado). Single-revolution, prograde by default. Works in any consistent
- * unit system (SI metres/seconds, or km — μ must match); the porkchop feeds it
+ * unit system (SI metres/seconds, or km: μ must match); the porkchop feeds it
  * SI state vectors from `kepler.ts`'s `solve`.
  *
  * Inclination-aware by construction: it operates on full 3D position vectors,
@@ -16,7 +16,7 @@
  *
  * Pure and deterministic. Returns `null` for a non-convergent or degenerate
  * geometry (notably an exactly-180° transfer, where the transfer plane is
- * undefined) rather than throwing — a porkchop grid simply skips those cells.
+ * undefined) rather than throwing: a porkchop grid simply skips those cells.
  */
 
 export type Vec3Tuple = readonly [x: number, y: number, z: number];
@@ -68,7 +68,7 @@ const TOL = 1e-8;
  * `shortWay` forces the ≤180° arc regardless of the bodies' angular separation.
  * The default (`false`) picks the swept angle from the prograde/retrograde
  * direction, which for a target more than 180° ahead takes the "long way"
- * (Δθ>180°, a Type-II transfer) — a valid but high-energy arc whose
+ * (Δθ>180°, a Type-II transfer): a valid but high-energy arc whose
  * universal-variable solve is ill-conditioned for large reflex angles. A
  * porkchop planner wants a single coherent lobe of the sensible short transfers,
  * so it forces short-way: the field stays continuous (A≥0, well-conditioned)

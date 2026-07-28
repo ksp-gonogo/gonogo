@@ -123,7 +123,7 @@ describe("CommitLayer", () => {
     expect(screen.queryByText(/UNCOMMANDABLE/i)).toBeNull();
   });
 
-  it("holds no command controls — Landing is an instrument, not a command surface", () => {
+  it("holds no command controls, Landing is an instrument, not a command surface", () => {
     render(<CommitLayer {...live} />);
     // Gear/brakes are fired from the operator's own action-group widgets; the
     // commit layer must expose no toggle buttons of its own.

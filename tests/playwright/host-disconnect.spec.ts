@@ -3,7 +3,7 @@
  * Pairs with HostDisconnectBanner in packages/app/src/peer/.
  *
  * Before the banner landed, closing the host page mid-mission left the
- * station UI completely unchanged — telemetry just stopped updating
+ * station UI completely unchanged: telemetry just stopped updating
  * and the operator had no on-screen signal that anything had broken.
  * This test guards that the banner now fires within a few seconds of
  * losing the host.
@@ -17,7 +17,7 @@ import { bootstrapPair, expect, teardownPair } from "./helpers";
 
 const BANNER_PATTERN = /RECONNECTING TO HOST\.\.\.|HOST DISCONNECTED/;
 
-test.describe("host disconnect — station banner", () => {
+test.describe("host disconnect: station banner", () => {
   test("station shows a host-lost banner after the main page closes", async ({
     browser,
   }) => {
@@ -62,8 +62,8 @@ test.describe("host disconnect — station banner", () => {
     // Force the host to close every active data connection without
     // tearing down the Peer itself. The station's PeerClientService
     // sees the connection close, transitions to "reconnecting", then
-    // automatically retries `peer.connect(hostId)` every retryIntervalMs
-    // — and since the host's Peer is still alive on the broker under
+    // automatically retries `peer.connect(hostId)` every retryIntervalMs,
+    // and since the host's Peer is still alive on the broker under
     // the same id, the retry succeeds and the station flips back to
     // "connected".
     await pair.main.evaluate(() => {

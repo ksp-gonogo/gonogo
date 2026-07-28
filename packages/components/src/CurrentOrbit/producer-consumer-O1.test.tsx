@@ -1,6 +1,7 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
@@ -11,14 +12,14 @@ import { CurrentOrbitComponent } from "./index";
  *
  * On a hyperbolic orbit (`ecc >= 1`) the mod's derived `vessel.state.timeToPe`
  * degrades to `null` (the elliptical kepler solver can't propagate an open
- * trajectory — `vessel-state.ts`), and the legacy Telemachus path emitted a
+ * trajectory: `vessel-state.ts`), and the legacy Telemachus path emitted a
  * `0` sentinel. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
- * `hyperbolic ? "—"` guard so the operator doesn't read a hyperbolic flyby as
+ * `hyperbolic ? NULL_DISPLAY` guard so the operator doesn't read a hyperbolic flyby as
  * an imminent event; the `t-Pe` row lacked it and its `=== undefined` check
  * missed `null`.
  *
  * FIXED (2026-07-24): `t-Pe` now carries the same guard + handles `null`. This
- * regression test pins the guarantee — a hyperbolic orbit renders the `t-Pe`
+ * regression test pins the guarantee: a hyperbolic orbit renders the `t-Pe`
  * value as an em-dash, never a `0s`/duration countdown.
  */
 const VESSEL_STATE_INPUTS = [
@@ -28,8 +29,8 @@ const VESSEL_STATE_INPUTS = [
   "system.bodies",
 ];
 
-describe("CurrentOrbit — O1: t-Pe shows an em-dash on a hyperbolic orbit", () => {
-  it("renders t-Pe as '—' (never a countdown) when ecc >= 1", async () => {
+describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbolic orbit", () => {
+  it("renders t-Pe as NULL_DISPLAY (never a countdown) when ecc >= 1", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -82,6 +83,6 @@ describe("CurrentOrbit — O1: t-Pe shows an em-dash on a hyperbolic orbit", () 
 
     // The Value cell directly follows its "t-Pe" Label in the grid.
     const tPeValue = getByText("t-Pe").nextElementSibling;
-    expect(tPeValue?.textContent).toBe("—");
+    expect(tPeValue?.textContent).toBe(NULL_DISPLAY);
   });
 });

@@ -49,7 +49,7 @@ function Probe({
 
 /**
  * `useManeuverFeasibility` composes `useManeuverNodes` (`vessel.maneuver.legacy`)
- * and `useVesselDeltaV` (`dv.stages`) — both now real stream reads, so these
+ * and `useVesselDeltaV` (`dv.stages`): both now real stream reads, so these
  * tests emit the raw `vessel.maneuver`/`dv.stages` wire topics through a real
  * `TelemetryProvider`/`TelemetryClient` instead of a `MockDataSource` under id
  * `"data"` (which never backed either read in production).
@@ -112,7 +112,7 @@ describe("useManeuverFeasibility", () => {
     const { transport, renders } = renderProbe();
     act(() => {
       transport.emit("dv.stages", [stage(800)]);
-      // Emit out of UT order — the hook should sort.
+      // Emit out of UT order: the hook should sort.
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("b", 200, 500), wireNode("a", 100, 500)],
       });
@@ -128,7 +128,7 @@ describe("useManeuverFeasibility", () => {
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("a", 100, 500)],
       });
-      // Never emit dv.stages — useVesselDeltaV returns totalVac=0.
+      // Never emit dv.stages: useVesselDeltaV returns totalVac=0.
     });
     await waitFor(() => expect(renders.at(-1)?.nodes).toHaveLength(1));
     const last = renders.at(-1);

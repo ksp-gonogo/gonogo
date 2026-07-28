@@ -30,7 +30,7 @@ import styled from "styled-components";
 import type { DashboardItem } from "./Dashboard";
 
 // ---------------------------------------------------------------------------
-// Context — lets the overlay call addItem without prop-drilling
+// Context: lets the overlay call addItem without prop-drilling
 // ---------------------------------------------------------------------------
 
 interface OverlayContextValue {
@@ -101,7 +101,7 @@ export function ComponentOverlay({
   // subtree, so we capture the service screen-side and re-provide it inside
   // the modal content. Same pattern as the dashboard's GearButton.
   // SerialDeviceProvider is the one remaining hand-wired case (out of scope
-  // for the generic chrome-provider registry — see chromeProviders.ts's
+  // for the generic chrome-provider registry: see chromeProviders.ts's
   // design note). Any OTHER context a widget's config UI reaches for
   // (KosCpuPicker → CpuRegistryContext, etc.) is supplied generically via
   // registerChromeProvider/useChromeWrap instead of a hand-added re-wrap.
@@ -112,7 +112,7 @@ export function ComponentOverlay({
 
   // Tag → count, descending. Drives the chip row below the search box so the
   // most-used tags appear first. Singleton tags (only one widget carries
-  // them) are hidden — user feedback (2026-05-12): the chip row was dense
+  // them) are hidden, user feedback (2026-05-12): the chip row was dense
   // with chips that filtered to a single result, and they pushed the
   // useful filters off the screen.
   const tagCounts = useMemo(() => {
@@ -148,7 +148,7 @@ export function ComponentOverlay({
     });
   }, [allComponents, query, selectedTags]);
 
-  // Clamp the roving cursor whenever the filtered list shrinks below it —
+  // Clamp the roving cursor whenever the filtered list shrinks below it,
   // otherwise Enter would activate the wrong widget (or read undefined when
   // the index points past the end of the array). Resets to the top when the
   // list grows from empty, so a fresh query starts highlighting the first hit.
@@ -157,7 +157,7 @@ export function ComponentOverlay({
   }, [filtered.length]);
 
   // Keep the highlighted option scrolled into view as arrows move past the
-  // visible edge of the scrolling List. Optional-call the method — jsdom (and
+  // visible edge of the scrolling List. Optional-call the method, jsdom (and
   // any non-DOM host) doesn't implement scrollIntoView. activeIdx is the
   // intentional trigger: the effect reads activeOptionRef and re-runs on each
   // cursor move; dropping it from the deps would stop scroll-on-navigation.
@@ -218,7 +218,7 @@ export function ComponentOverlay({
                 onSave={(newConfig: Record<string, unknown>) => {
                   // Persist the user's freshly-entered config to the item
                   // that addItem just placed. Without this, the on-add modal
-                  // was cosmetic — the widget reverted to defaultConfig.
+                  // was cosmetic, the widget reverted to defaultConfig.
                   updateItemConfig(item.i, newConfig);
                   closeModal(modalId);
                 }}
@@ -243,7 +243,7 @@ export function ComponentOverlay({
 
   // Combobox keyboard nav: arrows move the roving selection through the
   // filtered results, Enter activates the highlighted widget. Clamps at the
-  // ends (APG-consistent for a search-filtered listbox — wrapping is jarring
+  // ends (APG-consistent for a search-filtered listbox: wrapping is jarring
   // when you're scanning a list you filtered yourself). Escape still closes.
   const handleSearchKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {

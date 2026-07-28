@@ -48,7 +48,7 @@ import { useKosScriptListing } from "./useKosScriptListing";
 import "@xterm/xterm/css/xterm.css";
 
 interface KosTerminalConfig {
-  /** When true, keystrokes are not forwarded — a passive downlink viewer only. */
+  /** When true, keystrokes are not forwarded, a passive downlink viewer only. */
   readOnly?: boolean;
   /**
    * Tagname of the CPU to attach to. Resolved to a `coreId` against the live
@@ -67,14 +67,14 @@ interface KosTerminalConfig {
   /**
    * Script paths offered by the `/`-script picker (kos-terminal-script-picker,
    * hub-wizard-kos Phase 1, increment (a)). A placeholder data source for
-   * now — increment (b) replaces this with a live drive listing dispatched
+   * now: increment (b) replaces this with a live drive listing dispatched
    * over the kos Uplink's `executeScript` RPC, so this field is not exposed
    * in the config UI below and is expected to go away once that lands.
    */
   scriptPaths?: string[];
 }
 
-// The kOS terminal is a FIXED-size grid — mirroring the telnet solution that
+// The kOS terminal is a FIXED-size grid, mirroring the telnet solution that
 // worked well. The widget never fits-to-pixels (which line-wraps kOS's output
 // in a narrow panel) and imposes this one size on the shared CPU screen once.
 // 80 cols is wider than any kOS screen line, so kOS output never wraps.
@@ -85,8 +85,8 @@ const KOS_TERM_ROWS = 24;
 
 /**
  * Resolve the target CPU's `coreId` from the live processor list. An explicit
- * in-widget pick wins; then the configured tagname; then — only when a single
- * CPU exists — that sole CPU. Returns null when the choice is still ambiguous
+ * in-widget pick wins; then the configured tagname; then, only when a single
+ * CPU exists, that sole CPU. Returns null when the choice is still ambiguous
  * or the named CPU has not appeared yet (the widget renders a picker / waiting
  * state accordingly).
  */
@@ -124,7 +124,7 @@ interface LineComposition {
 const EMPTY_COMPOSITION: LineComposition = { text: "", cursor: 0 };
 
 /**
- * Reduces one input character into the in-progress line-mode composition —
+ * Reduces one input character into the in-progress line-mode composition,
  * a PURE transform that never touches the terminal. The composition is
  * rendered in a dedicated input bar (see `CompositionBar` in the component),
  * NOT echoed into the shared xterm screen: the terminal shows only the
@@ -140,13 +140,13 @@ const EMPTY_COMPOSITION: LineComposition = { text: "", cursor: 0 };
  * multi-char input is processed char-by-char. Cursor movement itself
  * (Left/Right/Home/End/Delete) is handled by the component's `onData`
  * handler directly via `moveCursor`/`cursorToStart`/`cursorToEnd`/
- * `deleteForward` below — those arrive as whole escape sequences the handler
+ * `deleteForward` below: those arrive as whole escape sequences the handler
  * matches before ever calling this reducer, same as Up/Down history recall.
  *
  * `canSend` gates Enter specifically (kos-nopath-block-input fix): with no
  * comms path, `sendChars` would no-op at the dispatch layer anyway (the
  * `sendKeystrokeRef` guard), but by then the line had already been cleared
- * and pushed to history — the command visibly "vanished" even though it was
+ * and pushed to history: the command visibly "vanished" even though it was
  * never sent. Refusing Enter HERE, at input-acceptance, before either of
  * those side effects, is what actually keeps the typed command in the box.
  * Regular typing/backspace still edits the composition while blocked, so the
@@ -229,7 +229,7 @@ function deleteForward(comp: LineComposition): LineComposition {
 // ── Line-mode history recall ─────────────────────────────────────────────────
 
 // Shell-style recall over lines THIS terminal session has sent via line-mode
-// Enter — kept in a plain ref (not persisted, not shared across terminals).
+// Enter: kept in a plain ref (not persisted, not shared across terminals).
 // Capped well beyond any realistic single-session line count.
 const LINE_HISTORY_CAP = 100;
 
@@ -286,17 +286,17 @@ function recallNewer(
  * The `/`-triggered script-run composer's state machine (kos-terminal-
  * script-picker, hub-wizard-kos Phase 1). Idle (`null`, held outside this
  * union) until `/` is typed at the very start of an empty line-mode
- * composition — see the `term.onData` callsite for the trigger. "picking"
+ * composition: see the `term.onData` callsite for the trigger. "picking"
  * filters `scriptPaths` against `query` and tracks the arrow/mouse-
  * highlighted option; confirming one (Enter or click) moves to "args",
  * where further typed characters compose optional whitespace-separated
  * trailing arguments appended to the eventual RUNPATH call. `copyLocal`
  * (increment (b), Ctrl+L to toggle, or the composer's own affordance)
  * routes the eventual send through a COPYPATH-then-RUNPATH pair against a
- * local (`1:`) copy instead of running the script where it lives — for
+ * local (`1:`) copy instead of running the script where it lives, for
  * scripts run REPEATEDLY, so the archive round-trip is only paid once. A
  * second Enter in "args" builds and sends the whole command through the
- * SAME `sendKeystrokeRef`/line-history path an ordinary typed line uses —
+ * SAME `sendKeystrokeRef`/line-history path an ordinary typed line uses,
  * see `buildRunCommand` and the `term.onData` callsite.
  */
 export type ScriptComposerState =
@@ -318,7 +318,7 @@ function scriptPathOption(path: string): ComboboxOption {
 
 /**
  * Filters + groups `scriptPaths` against `query` and flattens back to
- * render/navigation order, in ONE place — both the pure `onData` reducer
+ * render/navigation order, in ONE place, both the pure `onData` reducer
  * below (for activeIndex bounds + Enter's selection) and the render site's
  * `ComboboxListbox` props call this, so the highlighted option always
  * matches what Enter would actually pick.
@@ -333,7 +333,7 @@ function scriptOptionsFor(
 }
 
 /**
- * Basename of a kOS volume-qualified path — `"0:/widget_scripts/foo.ks"` →
+ * Basename of a kOS volume-qualified path: `"0:/widget_scripts/foo.ks"` →
  * `"foo.ks"`. Used to name the local (`1:`) copy `copyLocal` lands.
  */
 function scriptBasename(path: string): string {
@@ -344,13 +344,13 @@ function scriptBasename(path: string): string {
 /**
  * Builds the command line kOS will execute, from a confirmed script path
  * and raw whitespace-separated argument tokens. Each token is inserted
- * VERBATIM as a kerboscript literal (e.g. `5`, `true`, `"abc"`) — the
+ * VERBATIM as a kerboscript literal (e.g. `5`, `true`, `"abc"`), the
  * composer does no quoting or type inference, matching the goal spec's
  * `RUNPATH("<path>"[, arg1, arg2])` shape.
  *
  * `copyLocal` (increment (b)'s "copy local & run" toggle) prefixes a
  * `COPYPATH("<path>", "<local>").` statement ahead of the RUNPATH, targeting
- * the script's basename on the CPU's local (`1:`) drive — both statements
+ * the script's basename on the CPU's local (`1:`) drive, both statements
  * on ONE line, still a single `kos.keystroke` round trip under light-time
  * delay, so a script run repeatedly only pays the archive round-trip once
  * (subsequent runs execute the already-local copy). Trailing `.` terminates
@@ -378,7 +378,7 @@ type ScriptComposerAction =
 
 /**
  * Reduces one raw `onData` payload into the `/`-script composer's next
- * action — a PURE state machine mirroring `reduceLineModeChar`'s shape:
+ * action: a PURE state machine mirroring `reduceLineModeChar`'s shape:
  * whole-token escape sequences (arrows/Enter/Escape/backspace) are matched
  * before any per-character fallthrough, exactly like the ordinary line-mode
  * handling this composer intercepts ahead of (see the `term.onData`
@@ -438,7 +438,7 @@ function handleScriptComposerInput(
       };
     }
     if (data === "\x7f" || data === "\b") {
-      // Backspace on an empty query cancels the picker — same "typed a
+      // Backspace on an empty query cancels the picker, same "typed a
       // trigger, changed my mind" affordance Escape gives, reachable
       // without leaving the home row.
       if (state.query.length === 0) return { kind: "cancel" };
@@ -462,7 +462,7 @@ function handleScriptComposerInput(
   }
 
   // phase === "args": free-form trailing arguments, appended/backspaced at
-  // the tail only — no cursor movement in this increment. Arrow keys are
+  // the tail only: no cursor movement in this increment. Arrow keys are
   // swallowed here rather than falling through to the ordinary line-mode
   // history/cursor handling below, which would silently corrupt a composer
   // that owns the bar.
@@ -474,7 +474,7 @@ function handleScriptComposerInput(
     );
     return { kind: "send", chars, label };
   }
-  // Ctrl+L: toggle "copy local & run" (increment (b)) — otherwise inert in
+  // Ctrl+L: toggle "copy local & run" (increment (b)); otherwise inert in
   // this phase (it's not forwarded to the CPU either way; see the C0
   // control-char filter below), so repurposing it here doesn't shadow any
   // existing behavior.
@@ -534,7 +534,7 @@ function KosTerminalLive({
     () => resolveCoreId(processors, cpuName, pickedCoreId),
     [processors, cpuName, pickedCoreId],
   );
-  // The resolved CPU's tagname — `executeScript` (the `/`-picker's live
+  // The resolved CPU's tagname: `executeScript` (the `/`-picker's live
   // drive-listing RPC, increment (b)) dispatches by TAGNAME, not coreId, so
   // this is looked up here (where `processors` already lives) rather than
   // re-subscribing to kos.processors a second time inside the screen.
@@ -586,7 +586,7 @@ function KosTerminalLive({
 
 interface KosTerminalScreenProps {
   coreId: number;
-  /** The resolved CPU's tagname, if it has one — see the `/`-picker's live listing hook. */
+  /** The resolved CPU's tagname, if it has one; see the `/`-picker's live listing hook. */
   cpuTag: string | undefined;
   readOnly: boolean;
   lineMode: boolean;
@@ -600,7 +600,7 @@ function KosTerminalScreen({
   lineMode,
   scriptPaths,
 }: Readonly<KosTerminalScreenProps>) {
-  // One opaque write-lease token per attach — the mod uses it to arbitrate the
+  // One opaque write-lease token per attach: the mod uses it to arbitrate the
   // single-owner shared screen. Keyed by coreId (via the parent), so a CPU
   // switch mints a fresh token with a clean open/close.
   const leaseTokenRef = useRef<string>("");
@@ -609,13 +609,13 @@ function KosTerminalScreen({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
-  // Scopes this terminal's uplinks to its own CPU — used both to tag
+  // Scopes this terminal's uplinks to its own CPU, used both to tag
   // outgoing line-mode sends and to scope the in-transit strip below, so
   // the two never drift apart.
   const terminalTopic = `kos/${coreId}`;
   // The in-progress, not-yet-committed line-mode composition (typed since the
   // last Enter), text plus cursor position. It lives in a dedicated input
-  // bar, NEVER echoed into the xterm screen — so a server frame can't merge
+  // bar, NEVER echoed into the xterm screen, so a server frame can't merge
   // into or wipe it. The ref is the synchronous source of truth the onData
   // handler mutates; `composition` state mirrors it for the bar's render.
   const lineBufferRef = useRef<LineComposition>(EMPTY_COMPOSITION);
@@ -633,11 +633,11 @@ function KosTerminalScreen({
   // idle, otherwise it OWNS input ahead of the ordinary history/cursor/typing
   // handling below (kos-terminal-script-picker). Same ref-is-truth /
   // state-mirrors-for-render split as `lineBufferRef`/`composition` above,
-  // for the same reason — the onData handler is set up once and reads refs.
+  // for the same reason: the onData handler is set up once and reads refs.
   const scriptComposerRef = useRef<ScriptComposerState | null>(null);
   const [scriptComposer, setScriptComposer] =
     useState<ScriptComposerState | null>(null);
-  // Live drive listing (increment (b)) — only dispatched once the composer
+  // Live drive listing (increment (b)): only dispatched once the composer
   // is actually open AND no static `scriptPaths` config already supplies a
   // list, so every test/usage that configures a static list (increment
   // (a)'s fixtures) never touches the real executeScript RPC. A config
@@ -651,13 +651,13 @@ function KosTerminalScreen({
   const effectiveScriptPaths =
     scriptPaths.length > 0 ? scriptPaths : liveListing.paths;
   const scriptListHint = scriptPaths.length > 0 ? null : liveListing.hint;
-  // scriptPaths can change at runtime (increment (b)'s live drive listing) —
+  // scriptPaths can change at runtime (increment (b)'s live drive listing),
   // read via ref for the same mount-only-closure reason as `lineModeRef`.
   const scriptPathsRef = useRef<string[]>(effectiveScriptPaths);
   scriptPathsRef.current = effectiveScriptPaths;
   const scriptListboxId = useId();
   // lineMode can flip at runtime (a config edit) and must NOT tear down the
-  // live xterm — the onData handler reads this ref per keystroke instead of
+  // live xterm: the onData handler reads this ref per keystroke instead of
   // capturing lineMode in its setup effect, so the running terminal (and its
   // on-screen content) survives the switch. Clear any in-progress composition
   // (and history-browse position) on a mode change so a stale line doesn't
@@ -667,7 +667,7 @@ function KosTerminalScreen({
   // Mirrors `noPath` (computed further down, once `connectivity` is read) for
   // the same reason as `lineModeRef`: the Enter handler lives inside the
   // mount-only xterm setup effect below, so it can't close over a fresh
-  // `noPath` each render — it reads this ref instead. Declared here (ahead of
+  // `noPath` each render, it reads this ref instead. Declared here (ahead of
   // `noPath`) so the assignment site next to `noPath` itself reads as the
   // natural "keep this ref current" companion, matching `sendKeystrokeRef`'s
   // own reassign-every-render pattern just below (kos-nopath-block-input fix).
@@ -683,7 +683,7 @@ function KosTerminalScreen({
     scriptComposerRef.current = null;
     setScriptComposer(null);
   }, [lineMode]);
-  // Keep xterm's own cursor blink in sync with which surface owns input —
+  // Keep xterm's own cursor blink in sync with which surface owns input,
   // see the matching comment on the `cursorBlink` constructor option above.
   // Separate from the composition-clearing effect above (different deps:
   // this one legitimately reacts to `readOnly` too) and gated on
@@ -696,10 +696,10 @@ function KosTerminalScreen({
   }, [lineMode, readOnly]);
 
   // `comms.delay`/`comms.link` are read through `useLatestValue`, NOT the
-  // certainty-gated `useStream`/`useViewUt` path — comms.delay is TrueNow
+  // certainty-gated `useStream`/`useViewUt` path: comms.delay is TrueNow
   // command-centre bookkeeping; comms.link is Delayed but freeze-EXEMPT, so
   // useLatestValue reads its most-recent arrived frame (the link edge at the
-  // light-time horizon) directly. `oneWaySeconds` is nullable — null when
+  // light-time horizon) directly. `oneWaySeconds` is nullable, null when
   // there is no measurable ControlPath, as opposed to 0 for the delay-
   // feature-disabled-but-connected case (comms-delay-nullable-when-no-path
   // fix). Both read as "nothing to show" below, same as the pre-fix 0
@@ -709,7 +709,7 @@ function KosTerminalScreen({
   );
 
   // The in-transit strip's PURE prediction fuel, scoped to this terminal's
-  // own CPU (`terminalTopic`) — the shared delayed-command-ux primitive
+  // own CPU (`terminalTopic`): the shared delayed-command-ux primitive
   // (`@ksp-gonogo/sitrep-sdk`'s `useRouteCommands`), which reads
   // `system.uplink.pending`/the real-time view clock the same
   // delay-consistent way this terminal always has, plus the judder-latch
@@ -721,11 +721,11 @@ function KosTerminalScreen({
   const { items: routeItems, mode: routeMode } =
     useRouteCommands(terminalTopic);
 
-  // Whether the ground station has a path to the craft — read off the
+  // Whether the ground station has a path to the craft; read off the
   // client-facing `comms.link` connectivity MetaTopic (the de-publicised
   // TrueNow `comms.connectivity` successor; comms-delay-model-consistency
   // spec). comms.link is Delayed + freeze-EXEMPT, so its disconnect edge
-  // reveals at the light-time horizon — delay-consistent with this terminal's
+  // reveals at the light-time horizon: delay-consistent with this terminal's
   // own (delayed) screen rather than a real-time TrueNow read. `undefined` (no
   // link data yet) is treated as connected: only a CONFIRMED `connected ===
   // false` blocks a send / shows the warning below.
@@ -733,7 +733,7 @@ function KosTerminalScreen({
   const noPath = connectivity?.connected === false;
   noPathRef.current = noPath;
 
-  // Uplink commands. Each `send` is a stable useCallback (keyed by command) —
+  // Uplink commands. Each `send` is a stable useCallback (keyed by command),
   // destructured so effects can depend on it without the surrounding
   // per-render `{send,status}` object re-triggering them. The imperative xterm
   // handlers call the latest sender via refs.
@@ -744,17 +744,17 @@ function KosTerminalScreen({
 
   // `label` is only ever non-empty for a line-mode Enter (the composed line
   // IS the label, see `reduceLineModeInput`'s callsite below); char-mode
-  // keystrokes stay label-less. Purely cosmetic on the wire — it plays no
+  // keystrokes stay label-less. Purely cosmetic on the wire, it plays no
   // role in dispatch/correlation and never feeds the prediction-only strip
   // beyond what the server already echoed back onto the pending-queue entry.
   //
   // Blocks the dispatch outright when `noPath` (a confirmed
-  // `comms.connectivity.connected === false`) — the server used to silently
+  // `comms.connectivity.connected === false`): the server used to silently
   // drop a command sent with no line of sight; blocking client-side instead
   // means the operator sees why nothing happened (the "No path" warning
   // below) rather than a command vanishing into a queue that will never
   // move. Char-mode keystrokes are blocked the same way as a line-mode
-  // Enter — the CPU is equally unreachable either way.
+  // Enter: the CPU is equally unreachable either way.
   const sendKeystrokeRef = useRef<(chars: string, label?: string) => void>(
     () => {},
   );
@@ -784,7 +784,7 @@ function KosTerminalScreen({
       () => {},
     );
     // Impose the widget's FIXED terminal size on the CPU screen once (the
-    // telnet NAWS-once pattern) — no dynamic fit-to-pixels. See KOS_TERM_*.
+    // telnet NAWS-once pattern): no dynamic fit-to-pixels. See KOS_TERM_*.
     void sendResize({
       coreId,
       leaseToken,
@@ -799,7 +799,7 @@ function KosTerminalScreen({
     };
   }, [coreId, readOnly, leaseToken, sendOpen, sendClose, sendResize]);
 
-  // xterm setup — deferred until the container has real layout so the first
+  // xterm setup: deferred until the container has real layout so the first
   // render lands at a sensible size.
   useEffect(() => {
     const container = containerRef.current;
@@ -831,7 +831,7 @@ function KosTerminalScreen({
         // Line mode hands the active caret to `CompositionBar` (its own
         // blinking cursor sits on the composed line); leaving xterm's native
         // cursor ALSO blinking at the last-painted `kOS>` position reads as
-        // two disagreeing cursors. Suppress it whenever the bar owns input —
+        // two disagreeing cursors. Suppress it whenever the bar owns input,
         // char mode has no bar, so the terminal cursor stays the sole one.
         // Read via the ref (not the `lineMode` prop) so this initial value
         // doesn't become an exhaustive-deps dependency of the mount-only
@@ -884,7 +884,7 @@ function KosTerminalScreen({
             } else if (action.kind === "send") {
               // Refuses the send with no comms path, same as
               // `reduceLineModeChar`'s `canSend` guard for an ordinary
-              // line — leaves the composer exactly as-is so the operator
+              // line: leaves the composer exactly as-is so the operator
               // can finish once the path returns, instead of losing the
               // pending RUNPATH (kos-nopath-block-input parity).
               if (!noPathRef.current) {
@@ -900,7 +900,7 @@ function KosTerminalScreen({
             return;
           }
           // "/" at the very start of an empty line opens the script
-          // composer instead of typing a literal slash — never mid-line, so
+          // composer instead of typing a literal slash; never mid-line, so
           // a "/" inside a path argument elsewhere in a command still types
           // normally.
           if (
@@ -928,7 +928,7 @@ function KosTerminalScreen({
             );
             if (nav) {
               historyIndexRef.current = nav.index;
-              // History recall replaces the whole line — the cursor lands at
+              // History recall replaces the whole line, the cursor lands at
               // its end, matching shell recall conventions.
               const recalled: LineComposition = {
                 text: nav.value,
@@ -958,7 +958,7 @@ function KosTerminalScreen({
             return;
           }
           // Left/Right-arrow: move the composition cursor without touching
-          // the text — clamped at both ends by `moveCursor`.
+          // the text: clamped at both ends by `moveCursor`.
           if (data === "\x1b[D" || data === "\x1b[C") {
             const moved = moveCursor(
               lineBufferRef.current,
@@ -986,7 +986,7 @@ function KosTerminalScreen({
             return;
           }
           // Ctrl+C: clear the in-progress line locally AND forward the
-          // interrupt itself so a running kOS program actually breaks — this
+          // interrupt itself so a running kOS program actually breaks, this
           // is a control signal, not a composed line, so it never joins line
           // history.
           if (data === "\x03") {
@@ -996,7 +996,7 @@ function KosTerminalScreen({
             sendKeystrokeRef.current("\x03", "^C");
             return;
           }
-          // Any regular edit leaves history-browse mode — recalling a line
+          // Any regular edit leaves history-browse mode: recalling a line
           // then typing continues editing it as the new live draft.
           historyIndexRef.current = null;
           const next = reduceLineModeInput(
@@ -1005,7 +1005,7 @@ function KosTerminalScreen({
             // `chars` carries the trailing `\r` `reduceLineModeChar` appends
             // for the wire (kOS needs the Enter byte); the label is the
             // operator-facing composed line, so it's trimmed of that
-            // control character — the queue strip renders the label
+            // control character: the queue strip renders the label
             // verbatim and must not show a raw CR.
             (chars) => {
               const label = chars.replace(/[\r\n]+$/, "");
@@ -1016,7 +1016,7 @@ function KosTerminalScreen({
               sendKeystrokeRef.current(chars, label);
             },
             // Refuses Enter at the point the line would otherwise be
-            // committed — the fix for kos-nopath-block-input: with no comms
+            // committed, the fix for kos-nopath-block-input: with no comms
             // path, this keeps the buffer untouched (no clear, no history
             // push) instead of relying on the dispatch-layer guard below,
             // which by then is too late to save the typed line. Read via the
@@ -1066,22 +1066,22 @@ function KosTerminalScreen({
   // Threshold split (spec §4): char-mode always gets the badge; line-mode
   // gets the badge ONLY when the delay is too short for a strip to be worth
   // it (<=1s one-way), otherwise the full in-transit strip. The two are
-  // mutually exclusive — never both. A read-only viewer in line mode with a
+  // mutually exclusive: never both. A read-only viewer in line mode with a
   // long delay gets neither (it dispatches no commands, so nothing to queue).
   const showBadge =
     commsDelay !== undefined &&
     (commsDelay.oneWaySeconds ?? 0) > 0 &&
     (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
   // `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
-  // threshold `currentMode` applies — equivalent to the old raw check, minus
+  // threshold `currentMode` applies, equivalent to the old raw check, minus
   // the redundant `commsDelay !== undefined` (folded into "staged" itself).
   const showStrip = lineMode && !readOnly && routeMode === "staged";
-  // Narrowed, non-optional local for the JSX below — `showBadge` is a plain
+  // Narrowed, non-optional local for the JSX below, `showBadge` is a plain
   // boolean, so TS can't carry its truthiness back onto `commsDelay` at the
   // read site; only-render-when-defined instead.
   const badgeDelay = showBadge ? commsDelay : undefined;
   // The in-transit strip's display shape: reach-leg items count down to
-  // reaching the craft (↑), everything else counts down to the reply (↓) —
+  // reaching the craft (↑), everything else counts down to the reply (↓),
   // `InFlightList` picks the arrow from `phase` itself.
   const stripItems: InFlightListItem[] = routeItems.map((item) => ({
     id: item.id,
@@ -1114,7 +1114,7 @@ function KosTerminalScreen({
           </DelayBadge>
         )}
         {/* Pinned inside `TerminalFrame`'s own bordered box, same as
-            `DelayBadge` above — a flex sibling below the frame (its previous
+            `DelayBadge` above: a flex sibling below the frame (its previous
             spot) added its own row height on top of everything else in
             `TerminalShell`, which could push later siblings (the composition
             bar) past the widget's visible bounds on a short widget. See
@@ -1122,7 +1122,7 @@ function KosTerminalScreen({
             `DelayBadge` originally. */}
         {!readOnly && noPath && (
           <NoPathBadge role="status">
-            No path — commands are not being sent
+            No path: commands are not being sent
           </NoPathBadge>
         )}
       </TerminalFrame>
@@ -1209,7 +1209,7 @@ function KosTerminalScreen({
             />
           )}
           {/* A second, compact "NO PATH" flag pinned right on the bar the
-              operator is actually looking at while typing — the existing
+              operator is actually looking at while typing, the existing
               `NoPathBadge` above sits in the terminal pane's corner, which is
               easy to miss when attention is on the input line, and the
               error-tone outline alone (`CompositionBar`'s `$noPath` border)
@@ -1271,7 +1271,7 @@ function KosTerminalConfigComponent({
       <Field>
         <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
         <FieldHint>
-          When on, keystrokes are not forwarded — the terminal is a passive
+          When on, keystrokes are not forwarded, the terminal is a passive
           viewer.
         </FieldHint>
       </Field>
@@ -1317,7 +1317,7 @@ const TerminalShell = styled.div`
 
 // Wraps the terminal pane so the delay badge can be pinned INSIDE its
 // bordered box (an absolutely-positioned corner overlay) instead of floating
-// below it as a separate flex sibling — a badge floating past the pane's own
+// below it as a separate flex sibling, a badge floating past the pane's own
 // border reads as rendering outside the widget's visual bounds. Carries the
 // flex-sizing props `Container` used to own directly; `Container` itself is
 // now a plain 100%-of-frame box so xterm's own mount target is unaffected.
@@ -1337,7 +1337,7 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   overflow: hidden;
   box-sizing: border-box;
 
-  /* xterm.js mounts a child div — make it fill the container */
+  /* xterm.js mounts a child div: make it fill the container */
   .xterm {
     height: 100%;
     padding: 8px;
@@ -1348,7 +1348,7 @@ const Container = styled.div<{ $readOnly?: boolean }>`
 `;
 
 // Positioning context for `CompositionBar__NoPathFlag` below, pinned to the
-// bar itself rather than floating as its own flex row — takes over the
+// bar itself rather than floating as its own flex row, takes over the
 // `flex: 0 0 auto` sizing `CompositionBar` used to own directly as a
 // `TerminalShell` child, so the bar's own height/width is unaffected by the
 // wrap (a plain block box hugs its sole child's size).
@@ -1358,7 +1358,7 @@ const CompositionBarWrap = styled.div`
 `;
 
 // The "copy local & run" toggle (increment (b)), shown only while the
-// `/`-composer is in "args" phase — a compact row under the bar rather than
+// `/`-composer is in "args" phase, a compact row under the bar rather than
 // crowding it, matching the composition bar's own font sizing.
 const ScriptComposerOptions = styled.div`
   display: flex;
@@ -1370,12 +1370,12 @@ const ScriptComposerOptions = styled.div`
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
 // server-authoritative terminal screen so absolutely-positioned frames can
 // never collide with it. Cleared on Enter (the line is sent; kOS's own echo
-// lands in the terminal above a round-trip later) — or, with no comms path,
+// lands in the terminal above a round-trip later), or, with no comms path,
 // left untouched and Enter refused (`reduceLineModeChar`'s `canSend` guard).
 // The outline itself carries that state: the same error/danger tone as
 // `NoPathBadge` (`--color-status-nogo-fg`) replaces the normal accent border
-// whenever `noPath`, so the box reads as blocked on sight — not just after a
-// refused Enter — instead of staying green (kos-nopath-block-input fix).
+// whenever `noPath`, so the box reads as blocked on sight, not just after a
+// refused Enter: instead of staying green (kos-nopath-block-input fix).
 const CompositionBar = styled.div<{ $noPath: boolean }>`
   display: flex;
   align-items: center;
@@ -1392,7 +1392,7 @@ const CompositionBar = styled.div<{ $noPath: boolean }>`
 `;
 
 // Compact "NO PATH" flag pinned to the top edge of the composition bar
-// itself — see the render-site comment for why this exists alongside the
+// itself: see the render-site comment for why this exists alongside the
 // pre-existing `NoPathBadge` in the terminal pane's corner. Absolutely
 // positioned against `CompositionBarWrap`, so it never affects the bar's own
 // layout/height (and therefore never shifts anything below it in
@@ -1413,7 +1413,7 @@ const CompositionBar__NoPathFlag = styled.div`
   border-radius: 4px;
 `;
 
-// No gap here — the cursor block must sit flush against the trailing
+// No gap here: the cursor block must sit flush against the trailing
 // character of `CompositionBar__Text`, not offset by a flex gap (that read
 // as the cursor sitting one character off the actual trailing character).
 // The prompt keeps its own breathing room via `margin-right` instead of a
@@ -1448,13 +1448,13 @@ const CompositionBar__Cursor = styled.span`
   }
 `;
 
-// Steady-state warning while `comms.link.connected === false` — a
+// Steady-state warning while `comms.link.connected === false`: a
 // confirmed line-of-sight loss, not merely "no link data yet" (see
 // `noPath`'s own doc comment). Error/danger tone (the same
 // `--color-status-nogo-*` pair `CommSignal` uses for its "lost" state) so it
 // reads unambiguously as a blocking condition, not an informational badge
 // like `DelayBadge` below it. Pinned as an absolutely-positioned corner
-// overlay INSIDE `TerminalFrame` — same fix, same reasoning as `DelayBadge`
+// overlay INSIDE `TerminalFrame`: same fix, same reasoning as `DelayBadge`
 // (see its own doc comment): as a flex sibling in `TerminalShell` this added
 // its own row height on top of the composition bar beneath it, which could
 // push that bar past the widget's visible bounds on a short widget instead
@@ -1477,9 +1477,9 @@ const NoPathBadge = styled.div`
 `;
 
 // Compact delay readout: char-mode always, line-mode only when the delay is
-// too short (<=1s one-way) for a strip to be worth it — see `showBadge`.
+// too short (<=1s one-way) for a strip to be worth it; see `showBadge`.
 // Pinned as an absolutely-positioned corner overlay INSIDE `TerminalFrame`
-// (a sibling of `Container`, not a descendant — `Container`'s own
+// (a sibling of `Container`, not a descendant, `Container`'s own
 // `overflow: hidden` is reserved for xterm's content) rather than a flex
 // item below the terminal pane, so it always renders within the terminal's
 // own bordered box instead of floating past it.

@@ -18,7 +18,7 @@ const KEYS: DataKey[] = [
   { key: "v.body" },
   { key: "v.lat" },
   { key: "v.long" },
-  // Coverage bars — DISPLAY_SCAN_TYPES: AltimetryHiRes=2, AltimetryLoRes=1, Biome=8, Anomaly=16, ResourceHiRes=256
+  // Coverage bars, DISPLAY_SCAN_TYPES: AltimetryHiRes=2, AltimetryLoRes=1, Biome=8, Anomaly=16, ResourceHiRes=256
   { key: "scansat.coverage.Kerbin.2" },
   { key: "scansat.coverage.Kerbin.1" },
   { key: "scansat.coverage.Kerbin.8" },
@@ -34,7 +34,7 @@ describe("ScanningComponent", () => {
 
   // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
   // the buffered source. RTL auto-cleanup runs after this file's afterEach, so
-  // it can't be relied on to unmount first — disconnecting a live source while
+  // it can't be relied on to unmount first, disconnecting a live source while
   // the widget is still mounted fires a status change into it, a state update
   // outside act() (the documented anti-pattern in CLAUDE.md).
   const renderedTrees: Array<() => void> = [];
@@ -75,7 +75,7 @@ describe("ScanningComponent", () => {
       source.emit("v.body", "Kerbin");
       source.emit("scansat.scanningVessels", []);
     });
-    expect(screen.getByText(/Coverage — Kerbin/)).toBeInTheDocument();
+    expect(screen.getByText(/Coverage: Kerbin/)).toBeInTheDocument();
     expect(screen.getByText(/Scanning vessels/)).toBeInTheDocument();
     expect(
       screen.getByText(/No vessels tracked by SCANsat yet/),

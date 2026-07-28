@@ -10,11 +10,11 @@ namespace Sitrep.Host.Tests
     /// Headless test for <see cref="SpaceCenterViewProvider"/>: fake
     /// <see cref="KspSnapshot"/>s carrying the raw <c>"spaceCenter"</c>/
     /// <c>"scene"</c> encodings are mapped and asserted against the class doc's
-    /// rules — the launch-site roster keyed and distinguishable (stock pad +
+    /// rules: the launch-site roster keyed and distinguishable (stock pad +
     /// runway + a synthetic MH/KK site), <c>isStock</c> honored, body NAME
     /// resolved to a <c>system.bodies</c> index, the scene enum folded to the
     /// six output strings (incl. the <c>"Other"</c> fallback), and null-not-
-    /// empty when the snapshot has no data yet — plus a clean round-trip
+    /// empty when the snapshot has no data yet, plus a clean round-trip
     /// through the REAL production wire path
     /// (<see cref="EnvelopeCodec.WriteStreamData"/>/<c>ParseStreamData</c>).
     /// </summary>
@@ -219,7 +219,7 @@ namespace Sitrep.Host.Tests
         [InlineData("EDITOR", "Editor")]
         [InlineData("TRACKSTATION", "TrackingStation")]
         [InlineData("MAINMENU", "MainMenu")]
-        // Everything outside the five named scenes folds to "Other" — the real
+        // Everything outside the five named scenes folds to "Other", the real
         // GameScenes enum also has LOADING/LOADINGBUFFER/SETTINGS/CREDITS/
         // PSYSTEM/MISSIONBUILDER (decompile-verified), all of which map here.
         [InlineData("LOADING", "Other")]
@@ -576,7 +576,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Regression for the review fix: stock KSP uses <c>0.0</c> as
         /// <c>Contract.DateDeadline</c>'s "no deadline set" sentinel
-        /// (confirmed via decompile — <c>Contract</c>'s own UI code gates on
+        /// (confirmed via decompile: <c>Contract</c>'s own UI code gates on
         /// <c>DateDeadline != 0.0</c> before showing a deadline). Before this
         /// fix, a no-deadline contract's raw <c>0</c> rode straight onto the
         /// wire and read as "overdue since epoch"; this asserts it now folds

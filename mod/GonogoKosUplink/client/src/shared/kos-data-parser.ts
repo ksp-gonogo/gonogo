@@ -2,7 +2,7 @@
  * Parser for the `[KOSDATA] k=v;k=v [/KOSDATA]` wire format that kOS widget
  * scripts MUST emit on stdout. Pure function, no I/O.
  *
- * The input is any chunk of kOS terminal output — the parser locates the
+ * The input is any chunk of kOS terminal output, the parser locates the
  * marker pair, parses the key/value body, and returns an object. Text
  * outside the markers (REPL prompt, RUN echo, stray PRINTs) is ignored.
  *
@@ -53,7 +53,7 @@ export const DEFAULT_KOS_TOPIC = "default";
 /**
  * Strip ANSI control sequences. kOS's GUI repaint emits screen contents
  * with a cursor-position escape (`ESC [ row ; col H`) injected at every
- * terminal line wrap, which can split our `[KOSDATA]` marker — observed
+ * terminal line wrap, which can split our `[KOSDATA]` marker, observed
  * in the wild as `[/KOSDA<ESC[22;1H>TA]`. Stripping these BEFORE the
  * marker scan makes the parser robust to wrapping across PTY rows.
  *
@@ -83,7 +83,7 @@ export function parseKosData(text: string): KosData | null {
   KOS_PARSE_BUDGET.record();
   const clean = stripAnsi(text);
   let lastBody: string | null = null;
-  // Reset lastIndex each call — BLOCK_RE is module-scoped.
+  // Reset lastIndex each call: BLOCK_RE is module-scoped.
   BLOCK_RE.lastIndex = 0;
   let match = BLOCK_RE.exec(clean);
   while (match !== null) {
@@ -99,7 +99,7 @@ export function parseKosData(text: string): KosData | null {
  * keyed by topic. Bare `[KOSDATA]` blocks are keyed under `DEFAULT_KOS_TOPIC`.
  *
  * Returns `null` if no complete block is present at all (parity with
- * `parseKosData`). When two blocks share a topic id, the later one wins —
+ * `parseKosData`). When two blocks share a topic id, the later one wins,
  * same "newer block beats older" rule as the single-block parser.
  */
 export function parseKosDataTopics(text: string): Map<string, KosData> | null {
@@ -133,7 +133,7 @@ function parseBody(body: string): KosData {
 function coerce(value: string): KosDataValue {
   if (value === "true") return true;
   if (value === "false") return false;
-  // Must accept things like "-1.5", "3e-2", "0". Rejects "NaN" (ambiguous —
+  // Must accept things like "-1.5", "3e-2", "0". Rejects "NaN" (ambiguous,
   // we'd rather surface it as a string so the widget can decide).
   if (value !== "" && /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(value)) {
     return Number(value);

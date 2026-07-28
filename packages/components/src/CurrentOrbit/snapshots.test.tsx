@@ -1,15 +1,15 @@
 /**
  * DOM-snapshot regression tests for the CurrentOrbit widget.
  *
- * CurrentOrbit reads exclusively off the SDK stream now — raw `vessel.orbit`
+ * CurrentOrbit reads exclusively off the SDK stream now, raw `vessel.orbit`
  * elements (sma/ecc/inc/argPe) plus the `vessel.state`-derived apsis altitudes,
- * period, time-to-apsis, true anomaly and reference-body name — so these render
+ * period, time-to-apsis, true anomaly and reference-body name, so these render
  * through a real `TelemetryProvider` via `setupStreamFixture` rather than the
  * legacy `MockDataSource` `snapshotWidgetMode` harness. Scenarios are authored
  * as raw `vessel.orbit` element sets; the derived rows come off
  * `deriveVesselState` at the pinned view UT (never hand-picked). Each vessel is
  * emitted at periapsis (meanAnomalyAtEpoch 0, epoch == pinned UT) so trueAnomaly
- * is a clean 0° and time-to-periapsis 0s — fully deterministic snapshots.
+ * is a clean 0° and time-to-periapsis 0s, fully deterministic snapshots.
  *
  * If the widget output intentionally changes, regenerate with
  * `pnpm --filter @ksp-gonogo/components exec vitest run src/CurrentOrbit/snapshots -u`.
@@ -36,12 +36,13 @@ interface OrbitScenario {
 const SCENARIOS: Record<string, OrbitScenario> = {
   "circular-lko": { sma: 682_500, ecc: 0.00367, inc: 0.3, argPe: 12.5 },
   "eccentric-capture": { sma: 1_890_000, ecc: 0.6402, inc: 5.2, argPe: 270 },
-  // Hyperbolic escape trajectory — ecc > 1, negative sma. The widget renders
-  // "—" for the apoapsis/period rows; this exercises that path off the stream.
+  // Hyperbolic escape trajectory: ecc > 1, negative sma. The widget renders
+  // the null-display placeholder for the apoapsis/period rows; this
+  // exercises that path off the stream.
   "escape-trajectory": { sma: -2_400_000, ecc: 1.283, inc: 4.7, argPe: 20 },
   "polar-orbit": { sma: 700_000, ecc: 0.00286, inc: 90, argPe: 45 },
   "retrograde-orbit": { sma: 690_000, ecc: 0.0029, inc: 178, argPe: 0 },
-  // Sub-orbital — periapsis below the surface (negative altitude); isOrbiting
+  // Sub-orbital: periapsis below the surface (negative altitude); isOrbiting
   // is false but hasOrbit is satisfied so the diagram still renders.
   "sub-orbital": { sma: 633_500, ecc: 0.0612, inc: 2.1, argPe: 5 },
 };
@@ -120,7 +121,7 @@ describe("CurrentOrbit DOM snapshots", () => {
     for (const mode of config.modes) {
       it(`${name} @ ${mode.name}`, async () => {
         const container = renderOrbitSnapshot(scenario, mode);
-        // Wait for the stream-derived orbit to land before capturing — every
+        // Wait for the stream-derived orbit to land before capturing, every
         // scenario's periapsis altitude formats to a km+/Mm distance, so its
         // presence proves the emit propagated through the store's next frame.
         await waitFor(() => {

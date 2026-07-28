@@ -1,7 +1,7 @@
 /**
  * `runFrameDelayPipeline`'s optional `pacing` wiring (cross-browser
  * video-delay design, 2026-07-16). `PresentationPacer` itself is
- * unit-tested in isolation (`worker/presentationPacer.test.ts`) — this file
+ * unit-tested in isolation (`worker/presentationPacer.test.ts`): this file
  * only proves `runFrameDelayPipeline` wires it correctly: releases route
  * through the pacer instead of writing immediately, `tickPacing()` drains
  * it, and `dispose()` tears the pacer down too. Kept separate from
@@ -73,7 +73,7 @@ function recordingSink(): FrameSink<ColourFrame> & { written: string[] } {
   };
 }
 
-describe("runFrameDelayPipeline — pacing wiring", () => {
+describe("runFrameDelayPipeline: pacing wiring", () => {
   it("without `pacing`, a burst release still writes everything synchronously (unchanged default)", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const frames = [
@@ -94,7 +94,7 @@ describe("runFrameDelayPipeline — pacing wiring", () => {
     });
 
     await vi.waitFor(() => expect(i).toBe(3));
-    clock.setEdge(200); // releases all three at once — no pacer to space them
+    clock.setEdge(200); // releases all three at once, no pacer to space them
     expect(sink.written).toEqual(["red", "green", "blue"]);
   });
 
@@ -121,7 +121,7 @@ describe("runFrameDelayPipeline — pacing wiring", () => {
     await vi.waitFor(() => expect(i).toBe(3));
     clock.setEdge(200); // buffer releases all three into the pacer at once...
 
-    // ...but nothing has been WRITTEN yet — tickPacing hasn't drained it.
+    // ...but nothing has been WRITTEN yet, tickPacing hasn't drained it.
     expect(sink.written).toEqual([]);
 
     pipeline.tickPacing(0);
@@ -142,7 +142,7 @@ describe("runFrameDelayPipeline — pacing wiring", () => {
     });
   });
 
-  it("dispose() tears the pacer down too — anything still queued in it is closed, never written", async () => {
+  it("dispose() tears the pacer down too: anything still queued in it is closed, never written", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const frames = [colourFrame("red"), colourFrame("green")];
     const uts = [100, 100.5];

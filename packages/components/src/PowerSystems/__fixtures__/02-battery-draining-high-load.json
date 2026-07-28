@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "battery-draining-high-load",
-    "notes": "High load scenario — engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers."
+    "notes": "High load scenario: engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers."
   },
   "v.topologySeq": 2,
   "v.topology": {

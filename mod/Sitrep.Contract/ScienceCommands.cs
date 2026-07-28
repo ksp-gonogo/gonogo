@@ -6,7 +6,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// Args shared by every science-experiment actuation command
-/// (<c>science.experiment.deploy</c>/<c>science.experiment.transmit</c>) — the
+/// (<c>science.experiment.deploy</c>/<c>science.experiment.transmit</c>): the
 /// experiment is addressed by <see cref="PartId"/>, the part's
 /// <c>flightID.ToString()</c>, the SAME opaque id the read side emits in
 /// <c>science.instruments</c> (one entry per <c>ModuleScienceExperiment</c>,

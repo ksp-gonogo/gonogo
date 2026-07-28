@@ -59,7 +59,7 @@ describe("ConsoleLogger tag gating", () => {
   });
 
   it("buffers tag-gated debug even when the console suppresses it", () => {
-    // The export is deliberately richer than the console stream — an
+    // The export is deliberately richer than the console stream, an
     // operator who downloads logs should see every entry the logger ever
     // emitted, not just the ones that passed the current tag/level filter.
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
@@ -125,7 +125,7 @@ describe("ConsoleLogger transports and identity", () => {
   });
 
   it("transports receive tag-gated entries the console suppresses", () => {
-    // Remote sinks see the firehose — that's the value of having one.
+    // Remote sinks see the firehose: that's the value of having one.
     const logger = new ConsoleLogger({
       enabled: true,
       level: "debug",

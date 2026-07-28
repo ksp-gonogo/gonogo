@@ -32,7 +32,7 @@ import type { VesselTopology } from "./vessel-parts";
 type IndexedKey<K extends string> = `${K}[${number}]`;
 
 export interface TelemaachusSchema {
-  // --- v.* — Vessel ---
+  // --- v.*: Vessel ---
 
   // Position & altitude
   "v.altitude": number;
@@ -63,7 +63,7 @@ export interface TelemaachusSchema {
   // Ambient atmospheric conditions. `v.atmosphericTemperature` is the local
   // air temperature in kelvin; `v.externalTemperature` is the per-vessel
   // skin-temperature value KSP uses for re-entry heating. They diverge once
-  // the craft is moving — `external` includes ram-air heating.
+  // the craft is moving, `external` includes ram-air heating.
   "v.atmosphericDensity": number;
   "v.atmosphericTemperature": number;
   "v.externalTemperature": number;
@@ -120,7 +120,7 @@ export interface TelemaachusSchema {
   "v.ag9Value": boolean;
   "v.ag10Value": boolean;
 
-  // --- n.* — Navigation ---
+  // --- n.*: Navigation ---
   "n.heading": number;
   "n.pitch": number;
   "n.roll": number;
@@ -131,10 +131,10 @@ export interface TelemaachusSchema {
   "n.pitch2": number;
   "n.roll2": number;
 
-  // --- f.* — Flight control (read values) ---
+  // --- f.*: Flight control (read values) ---
   "f.throttle": number;
 
-  // --- o.* — Orbit ---
+  // --- o.*: Orbit ---
 
   // Apsides
   "o.ApA": number;
@@ -144,8 +144,8 @@ export interface TelemaachusSchema {
   "o.timeToAp": number;
   "o.timeToPe": number;
 
-  // --- b.* — Celestial bodies ---
-  // `b.number` is the authoritative count — always 1 for stock Kerbol-only
+  // --- b.*: Celestial bodies ---
+  // `b.number` is the authoritative count; always 1 for stock Kerbol-only
   // installs, but can grow with mods that add bodies. Widgets that render
   // the whole system subscribe to b.number first, then to indexed keys
   // for each integer in [0, b.number).
@@ -160,8 +160,8 @@ export interface TelemaachusSchema {
   [key: IndexedKey<"b.hillSphere">]: number;
   [key: IndexedKey<"b.mass">]: number;
   [key: IndexedKey<"b.geeASL">]: number;
-  // `b.rotationAngle` is the only b.* indexed key that ticks every WS frame
-  // — it's used to drive the rotation marker on OrbitView. Subscribe per
+  // `b.rotationAngle` is the only b.* indexed key that ticks every WS frame,
+  // it's used to drive the rotation marker on OrbitView. Subscribe per
   // body, not via the system-wide useCelestialBodies fan-out, to avoid
   // forcing every SystemView/TargetPicker re-render on every tick.
   [key: IndexedKey<"b.rotationPeriod">]: number;
@@ -207,7 +207,7 @@ export interface TelemaachusSchema {
   // SOI encounter / escape detection (off the active orbit's `patchEndTransition`).
   // `o.encounterExists`: -1 = escape (leaving current SOI), 0 = none, 1 = encounter
   //                     (entering another body's SOI). `o.encounterBody` is the
-  //                     name of that body — for ENCOUNTER it's the next patch's
+  //                     name of that body: for ENCOUNTER it's the next patch's
   //                     reference body, for ESCAPE it's the *grandparent* (e.g.
   //                     escaping Mun → "Kerbin"). Empty string when no transition.
   // `o.encounterTime`: seconds until the SOI transition. -1 sentinel when none.
@@ -224,17 +224,17 @@ export interface TelemaachusSchema {
   "o.timeToNextApsis": number;
 
   // Full patch list + maneuver nodes for the trajectory predictor. Subscribing
-  // once gets all patches (including post-maneuver) — no per-UT queries needed.
+  // once gets all patches (including post-maneuver), no per-UT queries needed.
   "o.orbitPatches": OrbitPatch[];
   "o.maneuverNodes": ManeuverNode[];
 
-  // --- a.* — Application / physics ---
+  // --- a.*: Application / physics ---
   // "patched_conics" (stock) | "n_body" (Principia). Can transiently report
-  // "patched_conics" during scene loads on Principia installs — debounce
+  // "patched_conics" during scene loads on Principia installs, debounce
   // before acting on a transition.
   "a.physicsMode": string;
 
-  // --- land.* — Landing prediction (WIP in Telemachus) ---
+  // --- land.*: Landing prediction (WIP in Telemachus) ---
   // Gotcha: unpopulated fields return literal 0.0, not null/undefined.
   // Guard `predictedLat === 0 && predictedLon === 0` as "no prediction".
   // `timeToImpact` returns NaN when vessel isn't SUB_ORBITAL or FLYING.
@@ -247,12 +247,12 @@ export interface TelemaachusSchema {
   "land.predictedAlt": number;
   "land.slopeAngle": number;
 
-  // --- t.* — Time ---
+  // --- t.*: Time ---
   "t.universalTime": number;
   "t.currentRate": number;
   "t.isPaused": boolean;
 
-  // --- r.* — Resources ---
+  // --- r.*: Resources ---
   // Resource amounts are indexed by resource name (LiquidFuel, Oxidizer,
   // MonoPropellant, XenonGas, ElectricCharge, ...). Both vessel-wide totals
   // (`r.resource[NAME]`, `r.resourceMax[NAME]`) and current-stage figures
@@ -263,9 +263,9 @@ export interface TelemaachusSchema {
   [key: `r.resourceCurrent[${string}]`]: number;
   [key: `r.resourceCurrentMax[${string}]`]: number;
 
-  // --- dv.* — Stage delta-V & mass ---
+  // --- dv.*: Stage delta-V & mass ---
   // Prefer `dv.stages` (the whole-vessel complex object) over the indexed
-  // accessors — one subscription, one broadcast per tick, length matches the
+  // accessors: one subscription, one broadcast per tick, length matches the
   // actual stage count rather than an arbitrary cap.
   "dv.stageCount": number;
   "dv.stages": StageInfo[];
@@ -275,7 +275,7 @@ export interface TelemaachusSchema {
   "dv.totalBurnTime": number;
   [key: IndexedKey<"dv.stageFuelMass">]: number;
 
-  // --- therm.* — Thermal monitoring (WIP upstream) ---
+  // --- therm.*: Thermal monitoring (WIP upstream) ---
   // Aggregate "hottest of" readouts. Telemachus picks the single hottest
   // part / engine each tick; we don't get per-part coverage here.
   "therm.hottestPartTemp": number;
@@ -291,12 +291,12 @@ export interface TelemaachusSchema {
   "therm.heatShieldTempCelsius": number;
   "therm.heatShieldFlux": number;
 
-  // --- comm.* — CommNet signal state ---
+  // --- comm.*: CommNet signal state ---
   // Telemachus Reborn reads these straight from stock `Vessel.Connection`
   // (CommNet). RemoteTech is not supported. `signalDelay` is always 0 on
   // vanilla; becomes meaningful only with third-party signal-delay mods.
   // `comm.signalDelay` maps (raw-field walk) onto gonogo's own
-  // `comms.delay.oneWaySeconds`, which is nullable — null when there is no
+  // `comms.delay.oneWaySeconds`, which is nullable, null when there is no
   // measurable ControlPath, as opposed to 0 for the delay-feature-disabled
   // case (comms-delay-nullable-when-no-path fix). Every reader already
   // treats "not a number" (null included) as "nothing to show".
@@ -306,14 +306,14 @@ export interface TelemaachusSchema {
   "comm.controlStateName": string;
   "comm.signalDelay": number | null;
 
-  // --- tar.* — Target ---
+  // --- tar.*: Target ---
   "tar.name": string;
   "tar.type": string;
   "tar.distance": number;
 
   /**
    * Vessels eligible for `tar.setTargetVessel`. The `index` field is the
-   * argument to pass back to the action — `FlightGlobals.Vessels` indices.
+   * argument to pass back to the action, `FlightGlobals.Vessels` indices.
    * Position is in the active vessel's local frame (Unity
    * `transform.InverseTransformPoint`); the client derives distance and
    * bearing from the vector. Server-side filtered to exclude Flag / EVA /
@@ -337,7 +337,7 @@ export interface TelemaachusSchema {
   "tar.o.timeToPe": number;
   "tar.o.timeToAp": number;
 
-  // --- dock.* — Docking alignment (meaningful when the target is a vessel
+  // --- dock.*: Docking alignment (meaningful when the target is a vessel
   // or docking port; near-zero noise when the vessel isn't oriented for a
   // docking approach).
   "dock.ax": number;
@@ -346,8 +346,8 @@ export interface TelemaachusSchema {
   "dock.x": number;
   "dock.y": number;
 
-  // --- scan.* — SCANsat integration (gonogo Telemachus fork) ---
-  // `scan.available` gates the whole section — false means SCANsat is not
+  // --- scan.*: SCANsat integration (gonogo Telemachus fork) ---
+  // `scan.available` gates the whole section: false means SCANsat is not
   // installed. All other keys are only meaningful when this is true.
   "scan.available": boolean;
 
@@ -360,7 +360,7 @@ export interface TelemaachusSchema {
 
   /**
    * Percentage of a body scanned for a given scan type.
-   * `scan.coverage[bodyName, scanType]` — `scanType` is one of the
+   * `scan.coverage[bodyName, scanType]`: `scanType` is one of the
    * `SCAN_TYPE` integer bit values. Returns a number in [0, 100].
    */
   [key: `scan.coverage[${string},${number}]`]: number;

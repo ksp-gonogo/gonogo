@@ -5,8 +5,8 @@
 //
 // Reads a built client bundle, computes its sha256 as `sha256-<hex>`, and writes an
 // `ExpectedClientHash.g.cs` const that the Uplink's UplinkManifest references. Run at
-// RELEASE build time only — after the client bundle is built and before `dotnet build`
-// of the DLL — so the value the running mod vouches for is frozen into the shipped
+// RELEASE build time only: after the client bundle is built and before `dotnet build`
+// of the DLL: so the value the running mod vouches for is frozen into the shipped
 // artifact and the Uplink author never types a hash by hand. Dev/CI-unit builds leave
 // the committed empty-`Value` const in place (hash null → the loader's two-way fallback).
 import { createHash } from "node:crypto";

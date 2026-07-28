@@ -5,7 +5,7 @@
  * singleton object under an uplink's id and have it looked up elsewhere,
  * without coupling the lookup site to the uplink's own module. Deliberately
  * has no opinion on what a "handle" looks like (a relay-capable object, a
- * WebRTC client, a future health reporter, whatever) — callers own the
+ * WebRTC client, a future health reporter, whatever), callers own the
  * shape and narrow it themselves.
  *
  * Not tied to the `DataSource` interface or any specific mod. This file
@@ -17,7 +17,7 @@ const handles = new Map<string, unknown>();
 
 /**
  * Register a singleton handle for an uplink, keyed by its id. Last write
- * wins — a second `registerUplinkHandle` call for the same id replaces the
+ * wins: a second `registerUplinkHandle` call for the same id replaces the
  * first.
  */
 export function registerUplinkHandle<T>(uplinkId: string, handle: T): void {

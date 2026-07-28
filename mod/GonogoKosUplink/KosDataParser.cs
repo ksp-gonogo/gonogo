@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System;
@@ -10,12 +10,12 @@ namespace Gonogo.KosUplink
 {
     /// <summary>
     /// Pure, KSP/kOS-free parser for the <c>[KOSDATA:&lt;id&gt;]k=v;k=v[/KOSDATA]</c>
-    /// wire format kOS compute scripts emit via <c>PRINT</c> — the C# port of
+    /// wire format kOS compute scripts emit via <c>PRINT</c>, the C# port of
     /// the app-side <c>packages/data/src/kos/kos-data-parser.ts</c>, moved
     /// mod-side per <c>kos-migration-spec.md</c> §4(b): in-process we capture
     /// the clean, un-wrapped source text at <c>ScreenBuffer.Print</c> (the
     /// Harmony postfix), so grid-reassembly and ANSI-splitting largely go
-    /// away — but the marker/body grammar and the value coercion rules stay
+    /// away: but the marker/body grammar and the value coercion rules stay
     /// byte-identical to the TS so the client sees exactly the same values.
     ///
     /// <para>ANSI stripping is retained defensively (the snapshot-scrape
@@ -24,7 +24,7 @@ namespace Gonogo.KosUplink
     /// </summary>
     public static class KosDataParser
     {
-        /// <summary>Topic id used when a block omits the <c>:topic</c> suffix — mirrors the TS <c>DEFAULT_KOS_TOPIC</c>.</summary>
+        /// <summary>Topic id used when a block omits the <c>:topic</c> suffix, mirrors the TS <c>DEFAULT_KOS_TOPIC</c>.</summary>
         public const string DefaultTopic = "default";
 
         private const char Esc = '\u001b';
@@ -36,7 +36,7 @@ namespace Gonogo.KosUplink
             @"\[KOSDATA(?::([\w-]+))?\]([\s\S]*?)\[/KOSDATA\]",
             RegexOptions.Compiled);
 
-        // CSI / OSC / bare 2-byte escapes — mirrors the TS ANSI_RE verbatim
+        // CSI / OSC / bare 2-byte escapes, mirrors the TS ANSI_RE verbatim
         // ( = ESC,  = BEL).
         private static readonly Regex AnsiRe = new Regex(
             "\u001b\\[[0-?]*[ -/]*[@-~]|\u001b\\][^\u0007\u001b]*(?:\u0007|\u001b\\\\)|\u001b[@-Z\\\\-_?]",
@@ -60,7 +60,7 @@ namespace Gonogo.KosUplink
         /// blocks key under <see cref="DefaultTopic"/>. When two blocks share
         /// a topic the later one wins (newer beats older). Returns an empty
         /// dictionary when no complete block is present (the C# analogue of
-        /// the TS returning <c>null</c> — an empty result reads the same at
+        /// the TS returning <c>null</c>: an empty result reads the same at
         /// every call site without a null-check).
         /// </summary>
         public static Dictionary<string, Dictionary<string, object>> ParseTopics(string text)
@@ -96,7 +96,7 @@ namespace Gonogo.KosUplink
             return outMap;
         }
 
-        // Must accept "-1.5", "3e-2", "0"; rejects "NaN" (ambiguous — surfaced
+        // Must accept "-1.5", "3e-2", "0"; rejects "NaN" (ambiguous, surfaced
         // as a string so the widget decides). Mirrors the TS coerce() and its
         // number regex exactly. A JSON value (parts=<json>) fails the numeric
         // test and passes through as a string, which the client JSON.parses.
@@ -105,7 +105,7 @@ namespace Gonogo.KosUplink
 
         /// <summary>
         /// Coerces one raw value string to <see cref="bool"/> / <see cref="double"/>
-        /// / <see cref="string"/> — the exact rules of the TS <c>coerce</c>.
+        /// / <see cref="string"/>: the exact rules of the TS <c>coerce</c>.
         /// </summary>
         public static object Coerce(string value)
         {

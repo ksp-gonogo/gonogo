@@ -82,7 +82,7 @@ describe("ObjectivesComponent", () => {
   });
 });
 
-describe("Objectives — augment slot composition (spec §4.9)", () => {
+describe("Objectives: augment slot composition (spec §4.9)", () => {
   it("binds the built-in contracts source to the slot", () => {
     const ids = getAugmentsForSlot("objectives.sections").map((a) => a.id);
     expect(ids).toEqual(["objectives-contracts"]);

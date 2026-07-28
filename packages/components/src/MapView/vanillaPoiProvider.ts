@@ -8,13 +8,13 @@ import type { SpaceCenterPoiEntry } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 
 /**
- * Vanilla (stock KSP) map POI provider — registers into the generic
+ * Vanilla (stock KSP) map POI provider: registers into the generic
  * `registerMapPoiProvider` registry (`@ksp-gonogo/core`'s `mapPoi.ts`) off
  * the mod's `spaceCenter.pois` stream Topic: every launch site (`ksc`/
- * `launchSite` kinds — stock pad+runway both map to `"ksc"`, see
+ * `launchSite` kinds: stock pad+runway both map to `"ksc"`, see
  * `SpaceCenterViewProvider.BuildPois`) plus every surface contract waypoint
  * currently Active or Offered (`contractTarget` kind). This is core vanilla
- * behaviour (KSC + stock contracts), not a mod — it lives alongside MapView
+ * behaviour (KSC + stock contracts), not a mod, it lives alongside MapView
  * rather than in an Uplink package.
  */
 
@@ -39,7 +39,7 @@ function useBodyNameByIndex(): Map<number, string> {
 
 /**
  * Maps one wire entry to a `MapPoi`, or `null` when a required field is
- * absent (defensive — the wire POCO's fields are all nullable C#-side, even
+ * absent (defensive: the wire POCO's fields are all nullable C#-side, even
  * though a real populated entry always carries them). `bodyId` is the
  * caller's already-resolved body NAME, not re-derived here.
  */
@@ -96,7 +96,7 @@ function toMapPoi(
 
 registerMapPoiProvider({
   id: "vanilla:spaceCenter",
-  // no `requires` — core Sitrep data, always potentially present.
+  // no `requires`, core Sitrep data, always potentially present.
   usePois: (ctx) => {
     const raw = useTelemetry("spaceCenter.pois");
     const execute = useExecuteAction("data");

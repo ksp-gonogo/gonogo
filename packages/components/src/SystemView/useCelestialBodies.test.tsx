@@ -181,7 +181,7 @@ describe("useCelestialBodies", () => {
     expect(mun.rotates).toBeNull();
   });
 
-  it("rebuilds cleanly when a smaller tree arrives — no stale bodies linger", async () => {
+  it("rebuilds cleanly when a smaller tree arrives, no stale bodies linger", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
       fixture.emit("system.bodies", {

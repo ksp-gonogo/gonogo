@@ -10,7 +10,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// The arm's-length REFLECTION surface onto Action Groups Extended (AGX)
     /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §3/§5.2). NO
     /// compile-time reference to AGExt's assembly exists anywhere in this
-    /// project — every AGExt member is reached by runtime reflection against
+    /// project: every AGExt member is reached by runtime reflection against
     /// the loaded <c>AGExt</c> assembly, so the GPL3 boundary is never
     /// crossed: we USE the running mod's public API, we don't INCORPORATE
     /// its code.
@@ -18,7 +18,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// <para>Surface (source-verified against <c>linuxgurugamer/AGExt</c>
     /// <c>AGExt/External.cs</c>, namespace <c>ActionGroupsExtended</c>, class
     /// <c>AGExtExternal</c>, all members <c>public static</c>): the
-    /// active-vessel variants only — <c>AGXListOfAssignedGroups()</c>,
+    /// active-vessel variants only: <c>AGXListOfAssignedGroups()</c>,
     /// <c>AGXGroupState(int)</c>, <c>AGXActivateGroup(int, bool)</c>, plus
     /// the optional <c>AGXInstalled()</c> capability check. Deliberately NOT
     /// the <c>*DelayCheck</c> variants (gonogo owns its own delay authority)
@@ -30,7 +30,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// whose surface moved) degrades to <c>null</c>/typed-false rather than
     /// throwing.</para>
     ///
-    /// <para><b>Runtime binding is UNVERIFIED pending live validation</b> —
+    /// <para><b>Runtime binding is UNVERIFIED pending live validation</b>,
     /// no <c>AGExt.dll</c> is on the reference path in CI/dev today, so this
     /// surface is verified from AGExt's GPL3 source but the actual shipped
     /// assembly's name/method binding is ASSUMED until the Deck
@@ -60,8 +60,8 @@ namespace Gonogo.ActionGroupsExtendedUplink
         }
 
         /// <summary>
-        /// Whether AGExt's assembly is loaded and its full surface resolved
-        /// — the election gate. A NOT-available instance (this is null-safe
+        /// Whether AGExt's assembly is loaded and its full surface resolved,
+        /// the election gate. A NOT-available instance (this is null-safe
         /// on every read/write member below) rather than a null
         /// <see cref="AgxReflection"/> reference: <see cref="Probe"/> always
         /// returns an instance, never null.
@@ -71,7 +71,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
 
         /// <summary>
         /// Probe for the loaded AGExt assembly and resolve its external
-        /// static surface. ALWAYS returns a non-null instance — when AGExt
+        /// static surface. ALWAYS returns a non-null instance, when AGExt
         /// is not installed/loaded (or any part of the probe throws), the
         /// returned instance simply reports <see cref="IsAvailable"/> false
         /// and every read/write member fail-softs to null/false, so the
@@ -106,9 +106,9 @@ namespace Gonogo.ActionGroupsExtendedUplink
 
         /// <summary>
         /// Index -&gt; (name, state) for every group AGExt reports assigned
-        /// on the active vessel (the active-vessel form scopes internally —
+        /// on the active vessel (the active-vessel form scopes internally,
         /// we never touch FlightGlobals ourselves). Null on "no data this
-        /// tick" / read failure — never a fabricated empty list.
+        /// tick" / read failure; never a fabricated empty list.
         /// </summary>
         public IReadOnlyList<AgxGroup>? AssignedGroups()
         {

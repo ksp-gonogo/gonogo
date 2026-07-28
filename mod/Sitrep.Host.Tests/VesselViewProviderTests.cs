@@ -684,7 +684,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildAttitudeReturnsNullWhenRootFrameFieldsAreMissing()
         {
-            // The primary (CoM) frame present but the root-frame trio absent —
+            // The primary (CoM) frame present but the root-frame trio absent,
             // "two named frames or nothing" (kills V-9), never a
             // partial/undefined-frame record.
             var snapshot = SnapshotWith(
@@ -918,7 +918,7 @@ namespace Sitrep.Host.Tests
             Assert.NotNull(vesselControl.ActionGroups);
             Assert.Equal(10, vesselControl.ActionGroups!.Length);
             // Identity now travels WITH each entry rather than being implied by
-            // array position — that's the whole point of the retype.
+            // array position: that's the whole point of the retype.
             Assert.Equal(1, vesselControl.ActionGroups[0].Index);
             Assert.Equal("AG1", vesselControl.ActionGroups[0].Name);
             Assert.False(vesselControl.ActionGroups[0].State);
@@ -960,7 +960,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// R1(a): absent action-group data is NULL, never an empty list — an
+        /// R1(a): absent action-group data is NULL, never an empty list, an
         /// empty list would wrongly assert "this vessel has zero groups". Also
         /// covers a recording predating the named list, which simply has no
         /// "actionGroups" key.
@@ -980,7 +980,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// A malformed entry (no index, or no state) is skipped rather than
-        /// defaulted — same discipline as BuildManeuver's missing-Ut rule. A
+        /// defaulted: same discipline as BuildManeuver's missing-Ut rule. A
         /// group with an index but no name still renders, falling back to the
         /// stock-style label.
         /// </summary>

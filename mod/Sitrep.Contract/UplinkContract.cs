@@ -10,7 +10,7 @@ namespace Sitrep.Contract
     /// the outbox coalesces to the freshest sample per topic (the shape
     /// <c>GonogoBodiesServer</c>'s <c>GonogoOutbox._latestByTopic</c> already
     /// implemented). <see cref="ReliableOrdered"/> rides the outbox's FIFO
-    /// reliable lane instead — every sample is delivered, in order, never
+    /// reliable lane instead: every sample is delivered, in order, never
     /// coalesced away (kOS terminal output is the load-bearing example the
     /// design doc names: a dropped keystroke is wrong in a way a dropped
     /// telemetry tick isn't).
@@ -22,15 +22,15 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A channel's delay disposition — Minor-bump addition backing/replacing
+    /// A channel's delay disposition: Minor-bump addition backing/replacing
     /// the hardcoded topic-name-keyed delay routing that used to live only
     /// client-side (<c>packages/sitrep-client/src/</c>). See
     /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3
     /// for the settled rule this enum encodes per-channel instead of by
     /// convention: everything is <see cref="Delayed"/> (rides the Courier's
     /// light-time delay clock) unless it's a ground-side fact with no
-    /// analogue in flight (e.g. <c>scansat.available</c> — is the SCANsat
-    /// assembly even present — which is <see cref="TrueNow"/>, delivered
+    /// analogue in flight (e.g. <c>scansat.available</c>: is the SCANsat
+    /// assembly even present, which is <see cref="TrueNow"/>, delivered
     /// immediately, bypassing the delay clock entirely).
     /// </summary>
     public enum DelayRole
@@ -40,8 +40,8 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One channel an uplink declares in its <see cref="UplinkManifest"/>
-    /// — the wire-visible metadata <see cref="Sitrep.Host.ChannelEngine.AddChannelSource"/>
+    /// One channel an uplink declares in its <see cref="UplinkManifest"/>,
+    /// the wire-visible metadata <see cref="Sitrep.Host.ChannelEngine.AddChannelSource"/>
     /// looks up by <see cref="Topic"/> when an uplink calls it during
     /// <see cref="ISitrepUplink.Register"/>. Declaring a channel here
     /// BEFORE registering its mapper is the manifest-first rule the design
@@ -55,13 +55,13 @@ namespace Sitrep.Contract
         public EmissionPolicy Emission { get; set; } = null!;
 
         /// <summary>
-        /// Defaults to <see cref="DelayRole.Delayed"/> — mirrors
+        /// Defaults to <see cref="DelayRole.Delayed"/>: mirrors
         /// <see cref="CommandDeclaration.Delayed"/>'s own default-true
         /// precedent, and is the contract-conservative choice: nothing in
         /// <see cref="Sitrep.Host.ChannelEngine"/> branches on this value
         /// today (it is purely declarative, feeding the SDK/client's future
         /// delay routing), so EVERY existing bundled channel's host-observable
-        /// behavior is unchanged regardless of what this defaults to — see
+        /// behavior is unchanged regardless of what this defaults to; see
         /// the ContractDelayDispositionTests round-trip test and the
         /// contract-dynamic-delay-report.md for the "no behavior change"
         /// proof. Every bundled channel (vessel/system/career/science/parts)
@@ -75,7 +75,7 @@ namespace Sitrep.Contract
         /// Opt-in for a channel that is LEGITIMATELY empty from its very
         /// first tick (e.g. <c>vessel.target</c> with no target selected,
         /// <c>vessel.dock</c> with no docking port aligned, <c>vessel.crew</c>
-        /// with no crew aboard) — a real, present subject whose value can
+        /// with no crew aboard): a real, present subject whose value can
         /// simply be null, as opposed to "no subject yet" (main menu, before
         /// <c>FlightGlobals</c> is ready). Defaults to <c>false</c>, which
         /// preserves the pre-existing behavior: <see cref="Sitrep.Host.ChannelEngine.ProcessTick"/>'s
@@ -95,16 +95,16 @@ namespace Sitrep.Contract
         /// kOS terminal's full-repaint-or-incremental-diff frames) rather
         /// than a sequence of independently-meaningful discrete events (e.g.
         /// <c>crash.lastCrash</c>). When set, <see cref="Sitrep.Host.ChannelEngine"/>
-        /// tracks the last REVEALED (i.e. already past the reveal gate — see
+        /// tracks the last REVEALED (i.e. already past the reveal gate; see
         /// <c>ChannelEngine.FlushReveal</c>) sample for which this predicate
         /// returns <c>true</c> as a per-topic sticky catch-up baseline (see
         /// <see cref="Sitrep.Core.Courier"/>'s sticky-keyframe cache). A
         /// late or returning subscriber's synchronous catch-up then always
         /// resolves to that self-contained keyframe instead of Courier's
-        /// plain "whatever's latest in the archive" read — which, for a diff
+        /// plain "whatever's latest in the archive" read, which, for a diff
         /// stream, can otherwise resolve to a bare positional diff with no
         /// baseline to apply it to (screen corruption / the terminal
-        /// "black screen" bug — see
+        /// "black screen" bug: see
         /// local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
         /// connection" section). Null (default) leaves every existing
         /// channel's catch-up behavior byte-for-byte unchanged.
@@ -117,7 +117,7 @@ namespace Sitrep.Contract
     /// <c>true</c> (a normal vessel command rides the Courier's light-time
     /// delay); ground-infrastructure commands (negotiation, archive file
     /// ops) set it <c>false</c> so <see cref="Sitrep.Host.ChannelEngine.DispatchCommand"/>
-    /// bypasses the Courier entirely — see the design doc §4.3's kerbcast
+    /// bypasses the Courier entirely: see the design doc §4.3's kerbcast
     /// negotiate discussion for why this flag exists.
     /// </summary>
     public sealed class CommandDeclaration
@@ -128,12 +128,12 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// Where an Uplink's CLIENT bundle lives, so a third-party Uplink is
-    /// self-describing — the app learns the client URL from the running mod, no
+    /// self-describing: the app learns the client URL from the running mod, no
     /// central index (design §3.2, D5). A manifest declares this only when it
     /// HAS a client half; a mod-only Uplink leaves
     /// <see cref="UplinkManifest.ClientSource"/> null.
     ///
-    /// <para>The integrity hash for this bundle is NOT repeated here — it stays
+    /// <para>The integrity hash for this bundle is NOT repeated here, it stays
     /// on <see cref="UplinkManifest.ExpectedClientHash"/> (H_mod), carried
     /// alongside on the same manifest/roster, because the loader's three-way
     /// agreement reads it there.</para>
@@ -141,14 +141,14 @@ namespace Sitrep.Contract
     public sealed class UplinkClientSource
     {
         /// <summary>
-        /// The distributable client bundle URL — REQUIRED for a production
+        /// The distributable client bundle URL: REQUIRED for a production
         /// Uplink (this is what the app fetches the client half from when the
         /// Uplink ships). Never null on a declared client source.
         /// </summary>
         public string Url { get; set; } = "";
 
         /// <summary>
-        /// Optional local/dev override — a localhost dev-server URL or a local
+        /// Optional local/dev override: a localhost dev-server URL or a local
         /// build directory a third-party dev points at while iterating, so they
         /// get a dev loop without publishing to <see cref="Url"/> each change.
         /// <c>null</c> for a released Uplink (which serves from <see cref="Url"/>).
@@ -157,7 +157,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The manifest an <see cref="ISitrepUplink"/> exposes — one
+    /// The manifest an <see cref="ISitrepUplink"/> exposes: one
     /// registry-unique <see cref="Id"/>, one shared semver <see cref="Version"/>,
     /// and every channel/command it owns. See the design doc §1.1: this is
     /// generated from the C# side in the full contract; here it's simply the
@@ -169,7 +169,7 @@ namespace Sitrep.Contract
         public string Id { get; set; } = "";
         public string Version { get; set; } = "";
         /// <summary>
-        /// H_mod — the sha256 of the client bundle this DLL was released with, as
+        /// H_mod: the sha256 of the client bundle this DLL was released with, as
         /// <c>sha256-&lt;hex&gt;</c> (design §3.1). Baked at release build by the two-pass
         /// client-hash generator (see the Uplink build script); <c>null</c> for a mod-only
         /// Uplink with no client half, or an unbuilt/dev DLL. Emitted on
@@ -178,7 +178,7 @@ namespace Sitrep.Contract
         /// </summary>
         public string? ExpectedClientHash { get; set; }
         /// <summary>
-        /// Where this Uplink's client bundle lives (D5) — its distributable URL
+        /// Where this Uplink's client bundle lives (D5), its distributable URL
         /// plus an optional local/dev path. <c>null</c> for a mod-only Uplink
         /// with no client half. Emitted on <c>system.uplinks.clientSource</c>.
         /// </summary>
@@ -188,7 +188,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Fail-soft status for one registered uplink — see the design doc
+    /// Fail-soft status for one registered uplink; see the design doc
     /// §1.4 handshake shape. An uplink that throws (or explicitly calls
     /// <see cref="IUplinkHost.SetAvailability"/>) during
     /// <see cref="ISitrepUplink.Register"/> is marked unavailable rather
@@ -213,10 +213,10 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// Contributes raw fragments into a <see cref="KspSnapshot"/> each sample
-    /// tick — the C# port of the design doc's <c>ISnapshotSampler</c> (§1.2).
+    /// tick: the C# port of the design doc's <c>ISnapshotSampler</c> (§1.2).
     /// Registered via <see cref="IUplinkHost.AddSampler"/>. Not needed by
     /// <c>system.bodies</c> today (<c>KspHost.Sample</c> already populates
-    /// the "bodies" key unconditionally) — this exists so a FUTURE uplink
+    /// the "bodies" key unconditionally): this exists so a FUTURE uplink
     /// whose data isn't already on the snapshot has somewhere to hook in
     /// without the engine knowing anything KSP-specific.
     /// </summary>
@@ -227,7 +227,7 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// Push-style publisher for event-driven / in-process channel sources
-    /// (kOS callbacks, GameEvents) — the counterpart to the pull-style
+    /// (kOS callbacks, GameEvents): the counterpart to the pull-style
     /// <see cref="IUplinkHost.AddChannelSource"/> mapper. Obtained via
     /// <see cref="IUplinkHost.Publisher"/>; <see cref="Publish"/> is safe
     /// to call from the main thread only (it hands off to the engine's own
@@ -239,24 +239,24 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A registered dynamic namespace's emitter factory — returned by
+    /// A registered dynamic namespace's emitter factory: returned by
     /// <see cref="IUplinkHost.RegisterDynamicNamespace"/>. Generalizes the
     /// fixed single-topic <see cref="IUplinkHost.Publisher"/> to a
     /// runtime-computed sub-topic under a declared prefix (e.g.
     /// <c>scansat.coverage.</c> + <c>"Kerbin.AltimetryLoRes"</c> =
-    /// <c>scansat.coverage.Kerbin.AltimetryLoRes</c>) — the mechanism U1's
+    /// <c>scansat.coverage.Kerbin.AltimetryLoRes</c>): the mechanism U1's
     /// GonogoScansatUplink report flagged as missing (see
     /// <c>.superpowers/sdd/u1-scansat-uplink-report.md</c>'s "Known,
     /// disclosed gap"). Each concrete <c>prefix + subTopic</c> gets its own
     /// independent <see cref="Sitrep.Host.ChannelEmitter"/>
     /// keyframe-on-change/lossy-latest-value state, exactly as though it had
-    /// been declared as an ordinary fixed <see cref="ChannelDeclaration"/> —
+    /// been declared as an ordinary fixed <see cref="ChannelDeclaration"/>,
     /// the ENGINE materializes that declaration (cloned from the
     /// <see cref="ChannelDeclaration"/> template passed to
     /// <see cref="IUplinkHost.RegisterDynamicNamespace"/>) the first time a
     /// concrete sub-topic is published or subscribed, so subscribers can
     /// target a concrete dynamic topic string exactly as they would a fixed
-    /// one — no protocol change on the wire.
+    /// one: no protocol change on the wire.
     /// </summary>
     public interface IDynamicChannelSource
     {
@@ -266,20 +266,20 @@ namespace Sitrep.Contract
         /// <summary>
         /// Registers <paramref name="callback"/> to run on the COURIER
         /// thread every time ANY concrete sub-topic under this namespace's
-        /// prefix sees an individual, PER-SESSION subscribe transition —
+        /// prefix sees an individual, PER-SESSION subscribe transition,
         /// one call per <c>ProcessSubscribe</c>, regardless of whether the
         /// topic's aggregate subscriber count actually changed (a second
         /// viewer joining an already-subscribed topic, or a resubscribe
         /// faster than a polling consumer's own cadence, both still fire
         /// it). This is the thread-safe seam a consumer that needs to react
-        /// to "a specific viewer just subscribed" — e.g. seeding a full
-        /// repaint baseline for a fresh terminal viewer — should use
+        /// to "a specific viewer just subscribed": e.g. seeding a full
+        /// repaint baseline for a fresh terminal viewer, should use
         /// INSTEAD of polling a subscriber count from another thread; it
         /// deliberately does not expose (and its caller must never read)
         /// the engine's Courier-thread-only <c>_subscriptions</c> registry.
         ///
         /// <para>Call only during the owning uplink's
-        /// <see cref="ISitrepUplink.Register"/>, before the engine starts —
+        /// <see cref="ISitrepUplink.Register"/>, before the engine starts:
         /// same registration-time-only discipline as
         /// <see cref="IUplinkHost.AddSampler"/> /
         /// <see cref="IUplinkHost.AddChannelSource"/>. The callback itself
@@ -294,9 +294,9 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// What <see cref="Sitrep.Host.ChannelEngine"/> hands an <see cref="ISitrepUplink"/>
-    /// during <see cref="ISitrepUplink.Register"/> — see the design doc
+    /// during <see cref="ISitrepUplink.Register"/>: see the design doc
     /// §1.2. Uplinks register PURE pieces here; they never touch the
-    /// transport, the Courier, or threading directly — the engine runs
+    /// transport, the Courier, or threading directly: the engine runs
     /// everything registered through this interface.
     /// </summary>
     public interface IUplinkHost
@@ -310,35 +310,35 @@ namespace Sitrep.Contract
         /// Pull-style channel source: a KSP-free mapper, snapshot -&gt; typed
         /// payload, for a topic the calling uplink already declared in
         /// its <see cref="UplinkManifest.Channels"/>. Exactly
-        /// <c>SystemViewProvider.BuildSystemBodies</c>'s shape — the engine
+        /// <c>SystemViewProvider.BuildSystemBodies</c>'s shape: the engine
         /// change-gates the result and records it into the Courier.
         /// </summary>
         void AddChannelSource(string topic, Func<KspSnapshot?, object?> map);
 
-        /// <summary>Push-style channel source — see <see cref="IChannelPublisher"/>.</summary>
+        /// <summary>Push-style channel source: see <see cref="IChannelPublisher"/>.</summary>
         IChannelPublisher Publisher(string topic);
 
         /// <summary>
-        /// A <b>capture-on-main / handle-on-Courier</b> source — the
+        /// A <b>capture-on-main / handle-on-Courier</b> source: the
         /// threading-safe seam for an Uplink that must read live KSP/Unity
         /// (or another mod's) APIs that are NOT already on the shared
         /// <see cref="KspSnapshot"/>. Unity APIs are main-thread-only; every
         /// other registration point on this interface either runs off the
         /// main thread (<see cref="AddChannelSource"/>'s mapper and
         /// <see cref="ISnapshotSampler.Sample"/> both run on the engine's
-        /// Courier thread) or is fed pre-built snapshot data — so before this
+        /// Courier thread) or is fed pre-built snapshot data, so before this
         /// existed a third-party Uplink had no way to read a live API safely,
         /// and doing it from a Courier-thread mapper/sampler is a crash /
         /// garbage-data risk.
         ///
         /// <para><paramref name="captureOnMainThread"/> runs on the SAME
         /// thread and at the SAME cadence the <see cref="KspSnapshot"/> is
-        /// built — the Unity main thread, inside <c>GonogoAddon.FixedUpdate</c>
+        /// built: the Unity main thread, inside <c>GonogoAddon.FixedUpdate</c>
         /// in production (a test driver calls it on whatever thread invokes
         /// <c>ChannelEngine.Tick</c>). It is handed that tick's snapshot (for
         /// <see cref="KspSnapshot.Ut"/> and any already-sampled data) and
-        /// returns an OPAQUE payload — plain, self-contained data, NO live
-        /// KSP/Unity object references — which the engine carries across to
+        /// returns an OPAQUE payload: plain, self-contained data, NO live
+        /// KSP/Unity object references, which the engine carries across to
         /// the Courier thread.</para>
         ///
         /// <para><paramref name="handleOnCourier"/> then runs on the Courier
@@ -346,26 +346,26 @@ namespace Sitrep.Contract
         /// off-thread work: change-gating, packing, and publishing to
         /// channels obtained via <see cref="Publisher"/> /
         /// <see cref="RegisterDynamicNamespace"/>. It MUST NOT touch any
-        /// KSP/Unity API — that is the whole reason this seam exists; read
+        /// KSP/Unity API, that is the whole reason this seam exists; read
         /// everything KSP-facing in <paramref name="captureOnMainThread"/>
         /// and pass it forward as data.</para>
         ///
         /// <para>Fail-soft, mirroring <see cref="AddSampler"/> /
         /// <see cref="AddChannelSource"/>: a capture OR handle that throws
         /// takes only its own registration's owning Uplink inert (from the
-        /// next tick onward) — every other source, and the rest of THIS tick,
+        /// next tick onward): every other source, and the rest of THIS tick,
         /// continues.</para>
         /// </summary>
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier);
 
         /// <summary>
-        /// Subscription-gated overload of <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>
-        /// — identical capture-on-main / handle-on-Courier semantics, plus
+        /// Subscription-gated overload of <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>,
+        /// identical capture-on-main / handle-on-Courier semantics, plus
         /// <paramref name="subscriptionTopicPrefixes"/>: the set of channel-topic
         /// prefixes this source PRODUCES (e.g. <c>"scansat.coverage."</c>). When
         /// given, the engine SKIPS <paramref name="captureOnMainThread"/> entirely
         /// on any tick where NO currently-subscribed topic starts with any of these
-        /// prefixes — so a source that does expensive main-thread work (grid copies,
+        /// prefixes: so a source that does expensive main-thread work (grid copies,
         /// stock-API reads) burns nothing while no client is looking. Pass the
         /// prefix(es) an <see cref="RegisterDynamicNamespace"/> owns, and/or the exact
         /// topics a <see cref="Publisher"/> targets (an exact topic is its own prefix).
@@ -385,7 +385,7 @@ namespace Sitrep.Contract
         /// gated <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>
         /// overload applies internally, exposed for an Uplink whose expensive
         /// capture is NOT driven by the engine's sampled-source loop but by an
-        /// external callback it cannot gate declaratively — e.g. the kOS
+        /// external callback it cannot gate declaratively: e.g. the kOS
         /// Uplink's <c>ScreenBuffer.Print</c> Harmony postfix, which fires on
         /// EVERY kerboscript <c>PRINT</c> and must short-circuit to nothing
         /// while no <c>kos.compute.*</c> subscriber exists.
@@ -403,13 +403,13 @@ namespace Sitrep.Contract
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the
         /// calling uplink owns, plus a <paramref name="template"/>
         /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>
-        /// is ignored — every materialized sub-topic gets its own) whose
+        /// is ignored, every materialized sub-topic gets its own) whose
         /// <see cref="ChannelDeclaration.Delivery"/>/<see cref="ChannelDeclaration.Emission"/>/
         /// <see cref="ChannelDeclaration.Delay"/> apply to every concrete
         /// <c>prefix + subTopic</c> the returned <see cref="IDynamicChannelSource"/>
         /// is asked to publish. Unlike a fixed <see cref="ChannelDeclaration"/>,
         /// nothing under this prefix needs to be individually pre-declared
-        /// in <see cref="UplinkManifest.Channels"/> — see
+        /// in <see cref="UplinkManifest.Channels"/>: see
         /// <see cref="IDynamicChannelSource"/>'s doc comment for the
         /// per-concrete-topic keyframe/lossy semantics this preserves.
         /// </summary>
@@ -425,14 +425,14 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Advertise the AUTHORITATIVE <c>comms.delay</c> one-way signal delay to
-        /// the engine's server-side reveal gate — the choke point that makes
+        /// the engine's server-side reveal gate: the choke point that makes
         /// <see cref="DelayRole.Delayed"/> channels actually withheld on the host
         /// (spec-streaming-delay-model §4 / §7.3 Step 2). <paramref name="computeOnMainThread"/>
         /// is evaluated on the SAME thread and cadence as
         /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>'s
         /// capture (the Unity main thread in production), so it may safely read
         /// the live elected comms backend, and it runs EVERY tick regardless of
-        /// what any client has subscribed — that subscription-independence is the
+        /// what any client has subscribed, that subscription-independence is the
         /// whole point.
         ///
         /// <para><b>Why this exists as a first-class seam:</b> the bundled
@@ -441,7 +441,7 @@ namespace Sitrep.Contract
         /// handle-on-Courier <see cref="AddSampledSource"/> (live KSP reads must
         /// stay on the main thread). That is NOT the pull-style
         /// <see cref="AddChannelSource"/> shape the engine's per-tick delay
-        /// refresh could read, and the publish path is subscription-gated — so
+        /// refresh could read, and the publish path is subscription-gated, so
         /// with the production registration the reveal gate never learned the
         /// delay and delivered Delayed channels live. This seam hands the gate
         /// the delay directly, computed server-side, subscription-independent.</para>
@@ -459,7 +459,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Advertise the AUTHORITATIVE CONNECTED/DISCONNECTED control-link state
-        /// to the engine's server-side reveal gate — the freeze-on-disconnect
+        /// to the engine's server-side reveal gate: the freeze-on-disconnect
         /// half of the enforcement <see cref="SetSignalDelaySource"/> started
         /// (spec-streaming-delay-model). <paramref name="computeOnMainThread"/>
         /// is evaluated on the SAME thread and cadence as
@@ -483,7 +483,7 @@ namespace Sitrep.Contract
         /// throwing source takes only its owning uplink inert and reverts the
         /// gate to CONNECTED; a <c>null</c> result leaves the last-known state
         /// untouched; registering no source at all keeps today's behaviour (the
-        /// gate treats the link as always CONNECTED — never worse than the
+        /// gate treats the link as always CONNECTED; never worse than the
         /// pre-freeze LAN path).</para>
         /// </summary>
         void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread);
@@ -496,7 +496,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Force an unconditional keyframe on <paramref name="topic"/>'s
-        /// NEXT <c>ChannelEmitter.Decide</c> call — the same mechanism a
+        /// NEXT <c>ChannelEmitter.Decide</c> call: the same mechanism a
         /// genuine 0→1 subscribe transition already uses (see
         /// <c>ChannelEmitter.NotifySubscribed</c>). The load-bearing use
         /// case is a subject-provenance epoch (see
@@ -505,7 +505,7 @@ namespace Sitrep.Contract
         /// an unconditional keyframe, not something a deadband/cadence gate
         /// can suppress or delay. MUST be called only from within a
         /// registered <see cref="ISnapshotSampler.Sample"/> or a command
-        /// handler — both of which the engine already runs exclusively on
+        /// handler: both of which the engine already runs exclusively on
         /// its Courier thread; calling this from arbitrary main-thread code
         /// would race the emitter's per-channel state with no
         /// synchronization.
@@ -521,23 +521,23 @@ namespace Sitrep.Contract
         /// ALONGSIDE, not instead of). The M2 subject-scoped-birth seam: a
         /// subject switch (see <see cref="Sitrep.Host.VesselEpochSampler"/>) calls this
         /// for every topic it owns so a channel the NEW subject has never
-        /// populated goes back to "not yet a subject" — rather than
+        /// populated goes back to "not yet a subject", rather than
         /// inheriting the PREVIOUS subject's birth state and emitting a
         /// spurious tombstone for data the new subject simply never had.
         /// MUST be called only from within a registered
-        /// <see cref="ISnapshotSampler.Sample"/> or a command handler — same
+        /// <see cref="ISnapshotSampler.Sample"/> or a command handler: same
         /// Courier-thread-only rule as <see cref="ForceKeyframe"/>.
         /// </summary>
         void ResetChannelBirth(IEnumerable<string> topics);
     }
 
     /// <summary>
-    /// One self-contained uplink — the C# half of the design doc's
+    /// One self-contained uplink: the C# half of the design doc's
     /// two-half contract (§1.1). Ships in GameData; registers PURE pieces
     /// (channel sources, command handlers, capability providers) against an
     /// <see cref="IUplinkHost"/> and never touches transport/threading
     /// itself. <c>system.bodies</c>'s retrofit
-    /// (<c>Gonogo.KSP.SystemUplink</c>) is the reference implementation —
+    /// (<c>Gonogo.KSP.SystemUplink</c>) is the reference implementation,
     /// see the design doc §6.1.
     ///
     /// <para><b>Lives in <c>Sitrep.Contract</c>, not <c>Sitrep.Host</c>
@@ -550,12 +550,12 @@ namespace Sitrep.Contract
     /// <see cref="Sitrep.Contract.KspSnapshot"/>, <see cref="Kernel"/>, and
     /// <see cref="EmissionPolicy"/>) are the COMPLETE set a third-party
     /// Uplink needs to implement this interface and compile against
-    /// <c>Sitrep.Contract</c> ALONE — no reference to <c>Sitrep.Host</c>
+    /// <c>Sitrep.Contract</c> ALONE: no reference to <c>Sitrep.Host</c>
     /// (the engine: <c>ChannelEngine</c>, discovery, transport) is ever
     /// required. That's the whole point of the split: <c>Sitrep.Contract</c>
     /// is the planned MIT/BSD carve-out, and an Uplink author's compile-time
     /// surface must not leak engine internals. <c>Sitrep.Host</c> keeps
-    /// everything ELSE — the engine that CONSUMES this interface
+    /// everything ELSE: the engine that CONSUMES this interface
     /// (<c>ChannelEngine.RegisterUplink</c>/<c>RegisterDiscoveredUplink</c>)
     /// and the assembly-scan discovery that finds implementations of it
     /// (<c>UplinkDiscovery</c>) both still live there; only the SHAPE an
@@ -568,31 +568,31 @@ namespace Sitrep.Contract
         /// <summary>
         /// Called once, on the main thread, by <see cref="Sitrep.Host.ChannelEngine.RegisterUplink"/>.
         /// Throwing here (or calling <see cref="IUplinkHost.SetAvailability"/>
-        /// with an unavailable status) fail-softs THIS uplink only — every
+        /// with an unavailable status) fail-softs THIS uplink only, every
         /// other registered uplink is unaffected.
         /// </summary>
         void Register(IUplinkHost host);
 
         /// <summary>
-        /// This uplink's current health — a MANDATORY self-report (2026-07-21,
+        /// This uplink's current health: a MANDATORY self-report (2026-07-21,
         /// <c>local_docs/holiday_week/HIGH-PRIORITY-mandatory-healthchecks.md</c>).
         /// Every uplink MUST report health: it is a required member of the base
         /// contract (NOT a default), so an uplink that does not consciously report
-        /// does not compile — only the uplink itself knows what "ready" means for
+        /// does not compile, only the uplink itself knows what "ready" means for
         /// it (kOS needs a CPU on the vessel, comms needs a backend elected, a
         /// plain channel uplink just means "registered without error"). The FLOOR
-        /// is one line — <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>
-        /// via <see cref="UplinkHealth.Healthy"/> — so the mandate is cheap;
+        /// is one line, <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>
+        /// via <see cref="UplinkHealth.Healthy"/>: so the mandate is cheap;
         /// RICHNESS (a denser <see cref="UplinkHealth.Detail"/> string) stays the
         /// author's choice.
         ///
         /// <para>Called on the tick/Courier thread while building
-        /// <c>system.uplinks</c> — polled on EVERY sample — so it must be cheap
+        /// <c>system.uplinks</c> (polled on EVERY sample) so it must be cheap
         /// (a simple state check, no blocking I/O) and fail-soft. The engine wraps
         /// the call in a try/catch regardless: a throw here is reported as
         /// <see cref="UplinkHealthState.Degraded"/> with the exception message as
         /// <see cref="UplinkHealth.Detail"/>, and does NOT disable the uplink's
-        /// other channels/commands — this is a read, not a registration step.</para>
+        /// other channels/commands: this is a read, not a registration step.</para>
         /// </summary>
         UplinkHealth Health();
     }
@@ -600,7 +600,7 @@ namespace Sitrep.Contract
     /// <summary>
     /// OPTIONAL companion to <see cref="ISitrepUplink"/> that lets an uplink
     /// declare its capability descriptors in a discovery pass that runs BEFORE
-    /// any uplink's <see cref="ISitrepUplink.Register"/> — the two-pass fix for
+    /// any uplink's <see cref="ISitrepUplink.Register"/>: the two-pass fix for
     /// the capability-vs-provider registration-order hazard.
     ///
     /// <para><b>The problem this closes:</b> <see cref="Kernel.RegisterProvider"/>
@@ -608,7 +608,7 @@ namespace Sitrep.Contract
     /// assembly-scan discovery (<c>AppDomain.GetAssemblies()</c> /
     /// <c>GetTypes()</c>) fixes NO order between uplinks. So an uplink that
     /// registers a <c>"comms"</c> PROVIDER (e.g. RealAntennas) could run before
-    /// the uplink that owns the <c>"comms"</c> CAPABILITY — the provider
+    /// the uplink that owns the <c>"comms"</c> CAPABILITY, the provider
     /// registration would throw, be swallowed, and the provider would silently
     /// never take part in the election even though it loaded.</para>
     ///
@@ -619,7 +619,7 @@ namespace Sitrep.Contract
     /// by the time any <see cref="ISitrepUplink.Register"/> runs its
     /// <see cref="Kernel.RegisterProvider"/> call, the target capability is
     /// guaranteed present regardless of discovery order. PROVIDERS still
-    /// register in <see cref="ISitrepUplink.Register"/> as before — only
+    /// register in <see cref="ISitrepUplink.Register"/> as before: only
     /// capability DECLARATIONS move to this earlier pass. Implementing this
     /// interface is optional: an uplink that registers no capability of its own
     /// (every provider-only or channel-only uplink) does not need it.</para>
@@ -641,7 +641,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Coarse self-reported health for one <see cref="ISitrepUplink"/> — see
+    /// Coarse self-reported health for one <see cref="ISitrepUplink"/>; see
     /// <see cref="IUplinkHealthReporter"/>.
     /// </summary>
     public enum UplinkHealthState
@@ -652,11 +652,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One <see cref="IUplinkHealthReporter.Health"/> result — a coarse
+    /// One <see cref="IUplinkHealthReporter.Health"/> result: a coarse
     /// <see cref="State"/> plus an OPTIONAL uplink-authored <see cref="Detail"/>
     /// string explaining what "ready" means for THIS uplink (e.g. "no active
     /// CPU selected" for kOS, "no comms backend elected" for comms). The
-    /// engine never fabricates or parses <see cref="Detail"/> — it is opaque,
+    /// engine never fabricates or parses <see cref="Detail"/>, it is opaque,
     /// display-only text the uplink itself writes.
     /// </summary>
     public readonly struct UplinkHealth
@@ -671,7 +671,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The trivial "all good, nothing to say" result — a shared instance so
+        /// The trivial "all good, nothing to say" result, a shared instance so
         /// the mandatory floor for a plain uplink is one line:
         /// <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>. State
         /// <see cref="UplinkHealthState.Healthy"/>, no <see cref="Detail"/>.
@@ -682,7 +682,7 @@ namespace Sitrep.Contract
     // NOTE (2026-07-21): the former OPTIONAL companion `IUplinkHealthReporter`
     // was RETIRED when health became mandatory. Its single member `Health()`
     // moved onto the base `ISitrepUplink` (see that interface's doc), so health
-    // is no longer opt-in — every uplink reports it or does not compile. The
+    // is no longer opt-in, every uplink reports it or does not compile. The
     // three uplinks that used to implement the companion (Kerbcast, kOS, Comms)
     // now override the base method with the same body.
 }

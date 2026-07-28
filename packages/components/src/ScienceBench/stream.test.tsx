@@ -6,7 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ScienceBenchComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry — clearActionHandlers() firing on a still-mounted
+// action-handler registry: clearActionHandlers() firing on a still-mounted
 // widget is a state update outside act(). RTL auto-cleanup runs after this
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -23,7 +23,7 @@ function render(ui: ReactElement) {
  * `StubTransport`. ScienceBench now reads its whole state off canonical
  * Topics (`science.experiments`/`science.sensors`/`science.experimentBreakdown`
  * + the derived `vessel.state`/`vessel.surface`/`career.status` channels), so
- * there is no legacy `DataSource` registered anywhere in this file —
+ * there is no legacy `DataSource` registered anywhere in this file,
  * `science.experiments` is a raw array read wholesale, same shape as
  * `TargetPicker`'s `system.vessels` migration.
  */
@@ -33,7 +33,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ScienceBench — genuinely runs off the stream (M3 science/parts batch)", () => {
+describe("ScienceBench: genuinely runs off the stream (M3 science/parts batch)", () => {
   it("renders experiment titles/dataAmount from science.experiments' partName-keyed shape", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["science.experiments"],

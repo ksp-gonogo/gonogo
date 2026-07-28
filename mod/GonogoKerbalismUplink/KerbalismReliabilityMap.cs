@@ -13,7 +13,7 @@ namespace Gonogo.KerbalismUplink
     /// </summary>
     public static class KerbalismReliabilityMap
     {
-        /// <param name="modeled">Features.Reliability — false under RO makes this an unmodeled fallback.</param>
+        /// <param name="modeled">Features.Reliability: false under RO makes this an unmodeled fallback.</param>
         public static ReliabilitySummary Summary(ReliabilityRaw raw, bool modeled) => new()
         {
             Unmodeled = !modeled,

@@ -3,7 +3,7 @@ using System;
 namespace Gonogo.KerbcastUplink
 {
     /// <summary>
-    /// Answers "is this camera a DOCKING camera?" — the operator-facing
+    /// Answers "is this camera a DOCKING camera?", the operator-facing
     /// question kerbcast itself cannot answer.
     ///
     /// <para><b>Why this lives here and not in kerbcast.</b> kerbcast has no
@@ -12,7 +12,7 @@ namespace Gonogo.KerbcastUplink
     /// docking is a Hullcam *visual filter mode* called "DockingCam", which is
     /// a reticle overlay, not a fact about the craft. So today the ONLY way a
     /// client can guess is to sniff <c>partTitle</c> for the word "Docking" or
-    /// match <c>cameraName == "NavCam"</c> — which is exactly what kerbcast's
+    /// match <c>cameraName == "NavCam"</c>, which is exactly what kerbcast's
     /// own client-side labeller resorts to.</para>
     ///
     /// <para>That sniffing is wrong in both directions: it false-POSITIVES on
@@ -22,15 +22,15 @@ namespace Gonogo.KerbcastUplink
     ///
     /// <para><b>The Uplink can do better for free.</b> kerbcast's control facade
     /// already hands out the owning stock KSP <c>Part</c> on every camera view.
-    /// A <c>Part</c> is stock KSP — gonogo references <c>Assembly-CSharp</c>
-    /// freely, no licence entanglement — so this uplink simply reads the part's
+    /// A <c>Part</c> is stock KSP, gonogo references <c>Assembly-CSharp</c>
+    /// freely, no licence entanglement: so this uplink simply reads the part's
     /// own <c>ModuleDockingNode</c> and answers from the craft's actual module
     /// list. Ground truth, not a string guess, and it needs ZERO changes to
     /// kerbcast.</para>
     ///
     /// <para><b>The definition, stated precisely:</b> a docking camera is a
     /// camera whose OWN part carries a <c>ModuleDockingNode</c>. A camera
-    /// merely mounted *near* a port is NOT reported as a docking camera —
+    /// merely mounted *near* a port is NOT reported as a docking camera,
     /// proximity would be a heuristic with a made-up radius, and this contract
     /// does not fabricate confidence it doesn't have. In practice the stock
     /// docking-port cameras (Hullcam's docking-port patch) all satisfy the
@@ -78,7 +78,7 @@ namespace Gonogo.KerbcastUplink
                 }
 
                 // Read the part's modules successfully and found no docking
-                // node — a definite "no", not an "unknown".
+                // node: a definite "no", not an "unknown".
                 return new DockingCameraFacts { IsDockingCamera = false };
             }
             catch (Exception)
@@ -87,7 +87,7 @@ namespace Gonogo.KerbcastUplink
             }
         }
 
-        // R7: an empty string is not a real nodeType/state — report absence.
+        // R7: an empty string is not a real nodeType/state, report absence.
         private static bool Blank(string? value) => string.IsNullOrEmpty(value);
     }
 }

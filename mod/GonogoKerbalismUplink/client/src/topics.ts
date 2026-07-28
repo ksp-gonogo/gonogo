@@ -1,7 +1,7 @@
 // KerbalismUplink client-owned bare-primitive Topic registration.
 //
 // `kerbalism.available` is a bare JSON boolean the KerbalismUplink emits
-// (DelayRole.TrueNow) as the Domain presence gate — like the other Uplinks'
+// (DelayRole.TrueNow) as the Domain presence gate: like the other Uplinks'
 // bare `<domain>.available`, it has no [SitrepTopic] payload POCO, so it never
 // flows through codegen.
 // The Uplink client declares it here (type half) + registers it at module load

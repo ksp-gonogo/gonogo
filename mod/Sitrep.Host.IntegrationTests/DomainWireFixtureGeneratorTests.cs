@@ -18,7 +18,7 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Sibling to <see cref="WireFixtureGeneratorTests"/> — same
+    /// Sibling to <see cref="WireFixtureGeneratorTests"/>: same
     /// <see cref="ReplayKspHost"/> -&gt; <see cref="ChannelEngine"/> ->
     /// real <c>ClientWebSocket</c> pipeline, same raw-wire-frame capture
     /// idiom, but replaying FOUR newly captured recordings that each carry
@@ -27,10 +27,10 @@ namespace Sitrep.Host.IntegrationTests
     /// state, and a real comms connected/disconnected/reconnected
     /// transition) into their OWN per-domain fixtures. Deliberately a
     /// SEPARATE file/class from <see cref="WireFixtureGeneratorTests"/> so
-    /// that class — and the existing
+    /// that class: and the existing
     /// <c>local_docs/telemetry-mod/recordings/reference-wire-fixture.json</c>
     /// it produces, which a parallel migration batch's TS tests already
-    /// depend on — is never touched by this addition.
+    /// depend on: is never touched by this addition.
     ///
     /// <para>All four recordings and generated fixtures are gitignored/
     /// local-only (<c>local_docs/</c> is blanket-ignored), same posture as
@@ -64,7 +64,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -107,7 +107,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -137,7 +137,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -179,7 +179,7 @@ namespace Sitrep.Host.IntegrationTests
         /// batch (ContractManager/Objectives/TechTree/SpaceCenterStatus/
         /// Strategies). <see cref="GeneratesCareerWireFixtureFromCareerRecording"/>
         /// above replays the REAL <c>reference-career-2026-07-08.json</c>
-        /// capture — but that recording predates the 3069438 capture-extend
+        /// capture: but that recording predates the 3069438 capture-extend
         /// session (facilities integer tiers, contract id/parameters,
         /// strategy list, tech nodes): every facility's <c>currentTier</c>/
         /// <c>maxTier</c>/<c>upgradeCost</c> is null on that wire, and
@@ -189,12 +189,12 @@ namespace Sitrep.Host.IntegrationTests
         /// Space Center capture would stall momentum, so this test instead
         /// hand-authors a synthetic "career" RAW snapshot dict carrying the
         /// EXTENDED shape (matching <c>Gonogo.KSP.KspHost.BuildCareer</c>'s
-        /// documented output — see <see cref="CareerViewProvider"/>'s own doc
+        /// documented output: see <see cref="CareerViewProvider"/>'s own doc
         /// comment for the exact raw encoding) and replays it through the
         /// REAL <see cref="CareerViewProvider.BuildCareer"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
         /// fixture in this file uses. The resulting WIRE SHAPE is therefore
-        /// the provider's genuine mapping output, not a hand-guessed shape —
+        /// the provider's genuine mapping output, not a hand-guessed shape,
         /// only the underlying VALUES are synthetic/invented. Real-recording
         /// validation is deferred to the user's next Space Center capture;
         /// see <c>.superpowers/sdd/m3-career-detail-report.md</c>.
@@ -219,7 +219,7 @@ namespace Sitrep.Host.IntegrationTests
                 funds is double fundsD && fundsD > 0);
 
             // Extended facilities: real integer currentTier/maxTier + a
-            // positive upgradeCost — the exact fields
+            // positive upgradeCost: the exact fields
             // GeneratesCareerWireFixtureFromCareerRecording's real (pre-extend)
             // recording carries as null for every facility.
             Assert.Contains(careerFrames, c =>
@@ -231,7 +231,7 @@ namespace Sitrep.Host.IntegrationTests
                 lp.TryGetValue("maxTier", out var maxTier) && maxTier is double maxTierD && maxTierD == 2 &&
                 lp.TryGetValue("upgradeCost", out var cost) && cost is double costD && costD > 0);
 
-            // Extended contracts: stable `id` + non-empty `parameters` — the
+            // Extended contracts: stable `id` + non-empty `parameters`, the
             // exact fields map-topic.ts's (pre-migration) gap comment says
             // the old wire lacked entirely.
             Assert.Contains(careerFrames, c =>
@@ -271,9 +271,9 @@ namespace Sitrep.Host.IntegrationTests
 
             _output.WriteLine(
                 $"synthetic career-detail fixture: {careerFrames.Count} career.status frames; " +
-                "extended facilities/contracts/strategies/tech fields asserted present (real-shape synthetic — " +
+                "extended facilities/contracts/strategies/tech fields asserted present (real-shape synthetic, " +
                 "values hand-authored, wire shape produced by the real CareerViewProvider mapper).");
-            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot — no source recording file)", session.Entries.Count, topics, capture);
+            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot: no source recording file)", session.Entries.Count, topics, capture);
         }
 
         /// <summary>
@@ -286,7 +286,7 @@ namespace Sitrep.Host.IntegrationTests
         /// The raw "career" dict mirrors EXACTLY the shape
         /// <see cref="CareerViewProvider"/>'s own doc comment documents
         /// <c>Gonogo.KSP.KspHost.BuildCareer</c> must populate at
-        /// <c>Values["career"]</c> — see that class's doc comment for the
+        /// <c>Values["career"]</c>: see that class's doc comment for the
         /// authoritative field list this method is built against.
         /// </summary>
         private static RecordedSession BuildSyntheticCareerSession()
@@ -305,7 +305,7 @@ namespace Sitrep.Host.IntegrationTests
                     Snapshot = new RecordedSnapshotPayload
                     {
                         // BuildCareer rebuilds fresh Dictionary trees per
-                        // Sample() call in the real host — a NEW raw dict per
+                        // Sample() call in the real host: a NEW raw dict per
                         // entry (rather than the same reference twice) keeps
                         // that same "no shared mutable state across ticks"
                         // shape, even though the content is identical.
@@ -346,7 +346,7 @@ namespace Sitrep.Host.IntegrationTests
         private static Dictionary<string, object?> BuildSyntheticFacilities()
         {
             // Mirrors the exact 9 SpaceCenterFacility enum-name keys observed
-            // in the real (pre-extend) reference-wire-fixture-career.json —
+            // in the real (pre-extend) reference-wire-fixture-career.json:
             // see this class's own doc comment on the generator above.
             return new Dictionary<string, object?>
             {
@@ -581,7 +581,7 @@ namespace Sitrep.Host.IntegrationTests
                         ["title"] = "Stability",
                         ["scienceCost"] = 45.0,
                         ["unlocked"] = false,
-                        // Multi-parent edge — a real tech-tree shape (a node
+                        // Multi-parent edge: a real tech-tree shape (a node
                         // gated on two prerequisite nodes at once).
                         ["parents"] = new List<object?> { "engineering101", "survivability" },
                     },
@@ -605,7 +605,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -670,7 +670,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -681,11 +681,11 @@ namespace Sitrep.Host.IntegrationTests
             // Subscribing to them proves out ChannelEngine's own "born"
             // semantics (see its doc comment around _born): a channel whose
             // mapper NEVER returns a non-null value is never "born" and
-            // therefore emits ZERO wire frames — not a tombstone, not a
+            // therefore emits ZERO wire frames: not a tombstone, not a
             // null-payload keyframe, nothing at all. So a widget backed by
             // science.lab/deployed against THIS fixture will see silence
             // indistinguishable from "not subscribed", not an explicit
-            // null/absent signal — asserted below rather than assumed.
+            // null/absent signal: asserted below rather than assumed.
             var topics = new[]
             {
                 ScienceViewProvider.ExperimentsTopic,
@@ -698,8 +698,8 @@ namespace Sitrep.Host.IntegrationTests
 
             // ScienceViewProvider.BuildExperiments's payload IS the entry
             // list itself (see its doc comment / BuildList), not a wrapping
-            // dict keyed "experiments" — same shape as parts.robotics below
-            // — so parse the raw StreamData payloads rather than
+            // dict keyed "experiments": same shape as parts.robotics below,
+            // so parse the raw StreamData payloads rather than
             // ParsePayloads' IDictionary-only filter.
             var experimentsStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.ExperimentsTopic);
             Assert.True(experimentsStream.Count > 0, "expected at least one science.experiments frame");
@@ -721,13 +721,13 @@ namespace Sitrep.Host.IntegrationTests
 
             var labStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.LabTopic);
             var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
-            Assert.True(labStream.Count == 0, "expected ZERO science.lab frames — this recording never carries a lab, so the channel is never 'born' (see ChannelEngine's _born doc comment) and should stay silent, not tombstone");
-            Assert.True(deployedStream.Count == 0, "expected ZERO science.deployed frames — this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
+            Assert.True(labStream.Count == 0, "expected ZERO science.lab frames, this recording never carries a lab, so the channel is never 'born' (see ChannelEngine's _born doc comment) and should stay silent, not tombstone");
+            Assert.True(deployedStream.Count == 0, "expected ZERO science.deployed frames, this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
 
             _output.WriteLine(
                 $"science fixture: {experimentsStream.Count} science.experiments frames, {experimentEntries.Count} experiment entries, " +
                 $"situations {{{string.Join(",", situations)}}}; science.lab {labStream.Count} frames; " +
-                $"science.deployed {deployedStream.Count} frames — both zero (never captured this session, channel never born) as expected.");
+                $"science.deployed {deployedStream.Count} frames: both zero (never captured this session, channel never born) as expected.");
 
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
@@ -740,16 +740,16 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             // Sibling to GeneratesScienceWireFixtureFromScienceRecording above,
             // but replaying a session where a Mobile Processing Lab IS
-            // onboard — OPERATIONAL and crewed (2 scientists) but IDLE (no
+            // onboard: OPERATIONAL and crewed (2 scientists) but IDLE (no
             // data loaded, dataStored/scienceRate both 0). Subscribes
-            // science.lab + science.experiments (not deployed — this
+            // science.lab + science.experiments (not deployed: this
             // recording carries no Breaking Ground ground experiment).
             var topics = new[]
             {
@@ -761,7 +761,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildLab's payload IS the entry list itself
-            // (see BuildList), not a wrapping dict — parse the raw
+            // (see BuildList), not a wrapping dict: parse the raw
             // StreamData payloads rather than ParsePayloads' IDictionary-only
             // filter, same as the science.experiments/parts.robotics channels
             // above.
@@ -773,7 +773,7 @@ namespace Sitrep.Host.IntegrationTests
                 .OfType<IDictionary<string, object?>>()
                 .ToList();
             // JsonReader (see its own doc comment) always parses numbers to
-            // double regardless of the writer-side C# type — scientistCount
+            // double regardless of the writer-side C# type, scientistCount
             // (int on the wire-build side) and dataStorage both come back as
             // double after the real wire round-trip, same as every other
             // numeric assertion in this file (career funds, dock forwardDot).
@@ -795,7 +795,7 @@ namespace Sitrep.Host.IntegrationTests
         /// REAL-SHAPE SYNTHETIC fixture for the M3 science-domain finale
         /// (DeployedScience). Sibling to
         /// <see cref="GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot"/>
-        /// above — same rationale, different domain: the deployed-science
+        /// above, same rationale, different domain: the deployed-science
         /// global-capture fix (<c>.superpowers/sdd/deployed-science-fix-report.md</c>,
         /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c>) landed and
         /// redeployed, but no recording carries deployed-science data yet
@@ -810,7 +810,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="ScienceViewProvider.BuildDeployed"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
         /// fixture in this file uses. The resulting WIRE SHAPE is therefore
-        /// the provider's genuine mapping output, not a hand-guessed shape —
+        /// the provider's genuine mapping output, not a hand-guessed shape,
         /// only the underlying VALUES are synthetic/invented. Real-recording
         /// validation is deferred to the user's next Space Center capture
         /// with a deployed Breaking Ground cluster in physics range; see
@@ -827,7 +827,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildDeployed's payload IS the entry list
-            // itself (see BuildList), not a wrapping dict — parse the raw
+            // itself (see BuildList), not a wrapping dict, parse the raw
             // StreamData payloads, same as every other science.* channel in
             // this file.
             var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
@@ -840,13 +840,13 @@ namespace Sitrep.Host.IntegrationTests
             // Two identical-content snapshot entries (T=0/T=15, see
             // BuildSyntheticDeployedScienceSession) each independently
             // re-emit the 3-entry list as its own keyframe (EmissionQuantum.
-            // Absolute(0) — same behavior every other synthetic fixture in
+            // Absolute(0): same behavior every other synthetic fixture in
             // this file exhibits), so 3 authored entries land as 6 captured
             // entries across the two frames.
             Assert.Equal(6, deployedEntries.Count);
 
             // Two distinct deployed-cluster vessels, neither the active
-            // vessel — the exact regression shape ScienceViewProviderTests'
+            // vessel: the exact regression shape ScienceViewProviderTests'
             // BuildDeployedMapsGroundExperimentsFromSeparateNonActiveVessels
             // guards at the C# unit level, now proven over the real wire.
             var vesselNames = deployedEntries
@@ -866,7 +866,7 @@ namespace Sitrep.Host.IntegrationTests
                 e.TryGetValue("scienceCompletedPercentage", out var comp) && comp is double compD && compD == 100 &&
                 e.TryGetValue("scienceTransmittedPercentage", out var trans) && trans is double transD && transD == 100);
 
-            // Varied power/connection states — at least one fully powered +
+            // Varied power/connection states: at least one fully powered +
             // connected, at least one unpowered + disconnected.
             Assert.Contains(deployedEntries, e =>
                 (e.TryGetValue("powerState", out var ps) ? ps as string : null) == "Powered" &&
@@ -892,8 +892,8 @@ namespace Sitrep.Host.IntegrationTests
             _output.WriteLine(
                 $"synthetic deployed-science fixture: {deployedStream.Count} science.deployed frames, " +
                 $"{deployedEntries.Count} deployed entries across {vesselNames.Count} distinct vessels " +
-                "(real-shape synthetic — values hand-authored, wire shape produced by the real ScienceViewProvider mapper).");
-            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot — no source recording file)", session.Entries.Count, topics, capture);
+                "(real-shape synthetic: values hand-authored, wire shape produced by the real ScienceViewProvider mapper).");
+            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot: no source recording file)", session.Entries.Count, topics, capture);
         }
 
         /// <summary>
@@ -902,7 +902,7 @@ namespace Sitrep.Host.IntegrationTests
         /// Two identical-content snapshot entries (T=0 and T=15) so the
         /// fixture carries more than one captured frame, same shape every
         /// other generator in this file produces. Three deployed
-        /// experiments across TWO non-active ground-cluster vessels — the
+        /// experiments across TWO non-active ground-cluster vessels: the
         /// raw "science"/"deployed" list mirrors EXACTLY the shape
         /// <see cref="ScienceViewProvider"/>'s own doc comment documents
         /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c> must populate.
@@ -921,7 +921,7 @@ namespace Sitrep.Host.IntegrationTests
                     Snapshot = new RecordedSnapshotPayload
                     {
                         // BuildScience rebuilds fresh Dictionary trees per
-                        // Sample() call in the real host — a NEW raw dict
+                        // Sample() call in the real host: a NEW raw dict
                         // per entry keeps that same "no shared mutable state
                         // across ticks" shape, even though content is
                         // identical.
@@ -948,7 +948,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             return new List<object?>
             {
-                // Mun cluster, experiment 1 — still transmitting (completed
+                // Mun cluster, experiment 1: still transmitting (completed
                 // past halfway, transmitted percentage lags completion, the
                 // normal in-progress relay state).
                 new Dictionary<string, object?>
@@ -967,7 +967,7 @@ namespace Sitrep.Host.IntegrationTests
                     ["connectionState"] = "Connected",
                     ["deployedOnGround"] = true,
                 },
-                // Mun cluster, experiment 2 — fully complete and fully
+                // Mun cluster, experiment 2: fully complete and fully
                 // transmitted (the "done" state).
                 new Dictionary<string, object?>
                 {
@@ -985,7 +985,7 @@ namespace Sitrep.Host.IntegrationTests
                     ["connectionState"] = "Connected",
                     ["deployedOnGround"] = true,
                 },
-                // Minmus cluster — a separate vessel entirely, unpowered and
+                // Minmus cluster: a separate vessel entirely, unpowered and
                 // disconnected (a brownout/no-relay-in-view state).
                 new Dictionary<string, object?>
                 {
@@ -1014,7 +1014,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
             if (!File.Exists(recordingPath))
             {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
                 return;
             }
 
@@ -1036,8 +1036,8 @@ namespace Sitrep.Host.IntegrationTests
                 raw is IEnumerable<object?> panels &&
                 panels.OfType<IDictionary<string, object?>>().Any(sp => !string.IsNullOrEmpty(sp.TryGetValue("partName", out var pn) ? pn as string : null)));
 
-            // parts.robotics's own payload IS the list (see PartsViewProvider.BuildRobotics
-            // — it returns List<object?> directly, not a wrapping dict), so
+            // parts.robotics's own payload IS the list (see PartsViewProvider.BuildRobotics,
+            // it returns List<object?> directly, not a wrapping dict), so
             // ParsePayloads' IDictionary-only filter would yield nothing
             // useful for this channel; parse the raw StreamData payloads
             // instead.
@@ -1188,7 +1188,7 @@ namespace Sitrep.Host.IntegrationTests
             return new CaptureResult(frames, epochsSeen, rewindCount);
         }
 
-        /// <summary>Parses every captured frame for <paramref name="topic"/>, returning only the non-null <c>StreamData</c> payload dictionaries — the common case for "does this domain's data actually look right" assertions.</summary>
+        /// <summary>Parses every captured frame for <paramref name="topic"/>, returning only the non-null <c>StreamData</c> payload dictionaries, the common case for "does this domain's data actually look right" assertions.</summary>
         private static List<IDictionary<string, object?>> ParsePayloads(IEnumerable<string> frames, string topic)
         {
             var result = new List<IDictionary<string, object?>>();
@@ -1202,7 +1202,7 @@ namespace Sitrep.Host.IntegrationTests
             return result;
         }
 
-        /// <summary>Parses every captured frame for <paramref name="topic"/> into its raw <c>StreamData</c>, INCLUDING null-payload (tombstone) frames — needed for the comms present/absent transition assertion, where a null payload is itself meaningful.</summary>
+        /// <summary>Parses every captured frame for <paramref name="topic"/> into its raw <c>StreamData</c>, INCLUDING null-payload (tombstone) frames, needed for the comms present/absent transition assertion, where a null payload is itself meaningful.</summary>
         private static List<StreamData> ParseStreamFrames(IEnumerable<string> frames, string topic)
         {
             var result = new List<StreamData>();
@@ -1216,7 +1216,7 @@ namespace Sitrep.Host.IntegrationTests
             return result;
         }
 
-        /// <summary>Serialization shape mirrors <see cref="WireFixtureGeneratorTests"/>'s private <c>WireFixture</c> — duplicated (not shared) so this file never needs to touch that class.</summary>
+        /// <summary>Serialization shape mirrors <see cref="WireFixtureGeneratorTests"/>'s private <c>WireFixture</c>, duplicated (not shared) so this file never needs to touch that class.</summary>
         private sealed class WireFixture
         {
             public string GeneratedAtUtc { get; set; } = "";

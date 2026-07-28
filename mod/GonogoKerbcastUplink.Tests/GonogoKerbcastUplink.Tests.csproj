@@ -23,7 +23,7 @@
        KerbcastHealth is the mandatory-healthcheck state machine;
        KerbcastCameraEntryBuilder is the clean-name wire mapping;
        KerbcastReflection is the arm's-length kerbcast surface (System.Reflection
-       only — it names no KSP or kerbcast type at compile time, which is exactly
+       only: it names no KSP or kerbcast type at compile time, which is exactly
        the licence boundary that makes it testable here at all).
 
        DockingCameraDetector and KerbcastUplink are deliberately ABSENT: both

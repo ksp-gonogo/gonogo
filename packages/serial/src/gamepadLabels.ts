@@ -1,10 +1,10 @@
-// Label packs — vendor button naming for the gamepad transport. Keyed on
+// Label packs: vendor button naming for the gamepad transport. Keyed on
 // `role`, never on `inputId` or raw index, so a pack can be swapped on an
 // existing device without touching its bindings.
 //
 // Tables lifted (names only, re-keyed onto our `role` union) from
-// LizardByte/gamepad-helper (MIT) — https://github.com/LizardByte/gamepad-helper
-// `controllerMappings` tables. Vendored, not imported — see the module doc
+// LizardByte/gamepad-helper (MIT): https://github.com/LizardByte/gamepad-helper
+// `controllerMappings` tables. Vendored, not imported: see the module doc
 // on GamepadTransport.ts for why gamepad-helper isn't taken as a dependency.
 import type { GamepadRole } from "./gamepadRoles";
 import { positionalName } from "./gamepadRoles";
@@ -61,10 +61,10 @@ const PLAYSTATION_LABELS: LabelTable = {
   "stick-right-y": "Right Stick Y",
 };
 
-// Nintendo swaps the face buttons relative to Xbox — `face-south` (the
+// Nintendo swaps the face buttons relative to Xbox, `face-south` (the
 // bottom button in the right cluster, physically) is `A` on Xbox but `B` on
 // a Switch pad; `face-west`/`face-north` swap the same way. This is
-// intentional, matching the real hardware layout — not a typo.
+// intentional, matching the real hardware layout: not a typo.
 const NINTENDO_LABELS: LabelTable = {
   "face-south": "B",
   "face-east": "A",
@@ -92,7 +92,7 @@ const NINTENDO_LABELS: LabelTable = {
 /**
  * Resolve the display name for a role under a label pack. `positional`
  * (the default, and the fallback for detection-unsure cases) uses the same
- * wording the auto-generated `DeviceInput.name` already carries — it means
+ * wording the auto-generated `DeviceInput.name` already carries: it means
  * "no vendor labelling", not "unlabelled".
  */
 export function resolveGamepadLabel(

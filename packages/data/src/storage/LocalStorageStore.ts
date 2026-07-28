@@ -26,7 +26,7 @@ export interface LocalStorageStoreOptions<T> {
  * For object T, `get()` returns `{ ...defaults, ...parsed }` so adding new
  * fields to T defaults to `defaults[newField]` rather than `undefined`.
  * Non-object stored values (string, number, boolean, array, null) are
- * returned as-is — TypeScript can't enforce that at runtime, so the caller's
+ * returned as-is, TypeScript can't enforce that at runtime, so the caller's
  * type parameter is trusted.
  */
 export class LocalStorageStore<T> {
@@ -46,7 +46,7 @@ export class LocalStorageStore<T> {
   /**
    * Whether a value has ever been persisted under this key (even a corrupt
    * one). Lets callers distinguish "user saved something" from "running on
-   * defaults" — e.g. first-run seeding only applies when nothing is stored.
+   * defaults": e.g. first-run seeding only applies when nothing is stored.
    */
   isStored(): boolean {
     try {
@@ -149,7 +149,7 @@ function defaultCorruptionLogger(
   key: string,
 ): (raw: string, error: unknown) => void {
   return (raw, error) => {
-    logger.tag("storage").warn(`Corrupt JSON for ${key} — using defaults`, {
+    logger.tag("storage").warn(`Corrupt JSON for ${key}: using defaults`, {
       raw: raw.length > 200 ? `${raw.slice(0, 200)}...` : raw,
       error,
     });

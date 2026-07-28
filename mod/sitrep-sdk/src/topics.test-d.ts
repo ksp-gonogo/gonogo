@@ -1,7 +1,7 @@
 // Type-level tests for the typed Topic registry.
 //
 // These are enforced by `tsc` (the package `typecheck` script runs them via
-// `tsconfig.test-d.json`), NOT by the vitest runner — vitest 4's `expectTypeOf`
+// `tsconfig.test-d.json`), NOT by the vitest runner: vitest 4's `expectTypeOf`
 // surfacing is unreliable in this workspace (it reports "no errors" even for a
 // blatant type mismatch), so the type guarantees are gated by a direct compiler pass
 // instead. The runtime behaviour + C#-sync guarantees live in `topics.test.ts`.
@@ -53,7 +53,7 @@ export type _ResolvesKosProcessors = Expect<
 >;
 
 // ── career.* / parts.* / system.* / science.* now resolve to their REAL contract
-//    payload type (formerly `unknown` — P0.5 typed them, codegen wired them in) ──────
+//    payload type (formerly `unknown`: P0.5 typed them, codegen wired them in) ──────
 export type _ResolvesCareer = Expect<
   Equal<TopicPayload<"career.status">, CareerStatus>
 >;
@@ -85,7 +85,7 @@ export type _ResolvesSystemVessels = Expect<
 
 // ── scansat: `scansat.scanningVessels` carries the wire-typed `ScanningVesselEntry[]`
 //    element contract. (`scansat.available` is a bare JSON boolean owned by the SCANsat
-//    Uplink's own client package — its TopicPayloadMap augmentation is NOT reachable from
+//    Uplink's own client package: its TopicPayloadMap augmentation is NOT reachable from
 //    this leaf package's program, so its "resolves to boolean" proof lives in
 //    mod/GonogoScansatUplink/client/src/topics.test-d.ts, not here.) ─────────────────
 export type _ResolvesScansatScanningVessels = Expect<
@@ -103,8 +103,8 @@ export type _NoTopicIsUnknown = Expect<
 >;
 
 // ── An unknown Topic string is a compile error ──────────────────────────────────────
-// @ts-expect-error — "vessel.nope" is not a member of the TopicId union
+// @ts-expect-error: "vessel.nope" is not a member of the TopicId union
 export type _RejectsUnknownTopic = TopicPayload<"vessel.nope">;
 
-// @ts-expect-error — an arbitrary string is not assignable to TopicId
+// @ts-expect-error: an arbitrary string is not assignable to TopicId
 export const _rejectsUnknownId: TopicId = "not.a.real.topic";

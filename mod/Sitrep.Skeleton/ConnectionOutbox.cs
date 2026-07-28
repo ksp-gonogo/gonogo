@@ -16,7 +16,7 @@ namespace Sitrep.Skeleton
     ///
     /// Telemetry is LOSSY-LATEST: <see cref="_latestByTopic"/> holds at most
     /// one not-yet-sent payload per topic. A publish for a topic that already
-    /// has an unsent payload OVERWRITES it — the older value is dropped, never
+    /// has an unsent payload OVERWRITES it, the older value is dropped, never
     /// queued. This bounds memory regardless of producer/consumer speed
     /// mismatch and means a slow-draining connection coalesces to whatever is
     /// freshest by the time its dedicated <see cref="_pumpThread"/> gets back
@@ -24,7 +24,7 @@ namespace Sitrep.Skeleton
     /// (ack/echo) traffic goes through the separate <see cref="_reliable"/>
     /// FIFO queue instead, which is never coalesced or dropped.
     ///
-    /// Each connection owns its OWN dedicated pump thread — a slow connection
+    /// Each connection owns its OWN dedicated pump thread, a slow connection
     /// only ever stalls its own thread (see
     /// <see cref="SetArtificialTelemetrySendDelay"/>, used by the back-pressure
     /// test to simulate a non-draining client deterministically), never the
@@ -42,7 +42,7 @@ namespace Sitrep.Skeleton
         private volatile bool _stopping;
         private volatile int _artificialDelayMs;
 
-        /// <summary>Count of telemetry frames actually handed to <see cref="ITransportConnection.TrySend"/> (post-coalescing) — used by tests to prove lossy-latest coalescing quantitatively.</summary>
+        /// <summary>Count of telemetry frames actually handed to <see cref="ITransportConnection.TrySend"/> (post-coalescing), used by tests to prove lossy-latest coalescing quantitatively.</summary>
         public long TelemetrySentCount;
 
         public ConnectionOutbox(ITransportConnection connection)
@@ -54,7 +54,7 @@ namespace Sitrep.Skeleton
 
         /// <summary>
         /// Courier-thread-only call: publish the latest serialized telemetry
-        /// frame for <paramref name="topic"/>. Never blocks — a dictionary
+        /// frame for <paramref name="topic"/>. Never blocks: a dictionary
         /// write plus a semaphore release, regardless of how backed up this
         /// connection's own pump thread is.
         /// </summary>
@@ -64,7 +64,7 @@ namespace Sitrep.Skeleton
             _signal.Release();
         }
 
-        /// <summary>Courier-thread-only call: enqueue a reliable (never-dropped, never-coalesced) frame — acks, echoes, command responses.</summary>
+        /// <summary>Courier-thread-only call: enqueue a reliable (never-dropped, never-coalesced) frame, acks, echoes, command responses.</summary>
         public void PublishReliable(byte[] payload)
         {
             _reliable.Enqueue(payload);
@@ -75,7 +75,7 @@ namespace Sitrep.Skeleton
         /// Test-only knob: makes this connection's pump thread sleep for
         /// <paramref name="delay"/> before each telemetry send, simulating a
         /// slow/non-draining client at the outbound-send seam. This only ever
-        /// stalls THIS connection's own dedicated thread — see the class doc
+        /// stalls THIS connection's own dedicated thread: see the class doc
         /// comment and the M5a Task 9 report for why an artificial delay was
         /// chosen over trying to force genuine OS-level TCP-window
         /// backpressure (which is real but not deterministically reproducible
@@ -126,11 +126,11 @@ namespace Sitrep.Skeleton
         }
 
         /// <summary>
-        /// Signals the pump thread to drain whatever's queued and exit — non-blocking,
+        /// Signals the pump thread to drain whatever's queued and exit, non-blocking,
         /// safe to call from any thread. This deliberately does NOT join the pump
         /// thread: <see cref="SkeletonServer.OnConnectionClosed"/> calls this from
         /// whatever thread Fleck raises its <c>Closed</c> callback on, which may be a
-        /// shared/pooled socket thread rather than one dedicated to this connection —
+        /// shared/pooled socket thread rather than one dedicated to this connection,
         /// a synchronous multi-second join there risked starving that pool under
         /// concurrent disconnects. <see cref="_pumpThread"/> is a background thread,
         /// so it never blocks process exit even if no caller ever observes it finish.

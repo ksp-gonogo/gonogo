@@ -8,7 +8,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The comms backend election (comms-uplink-design.md §2) — the sharpest
+    /// The comms backend election (comms-uplink-design.md §2): the sharpest
     /// correctness risk the U2 brief flagged. Drives the REAL <see cref="Kernel"/>
     /// (byte-for-byte the TS reference port, golden-fixture-conformed) through
     /// the three cases: RA absent ⇒ CommNet vanilla; RA present ⇒ RA wins;
@@ -42,7 +42,7 @@ namespace Sitrep.Host.Tests
 
         // An uplink that OWNS the "comms" capability, declaring it in the
         // two-pass capability pass (IUplinkCapabilityDeclarer) rather than in
-        // Register — the shape CommsCoreUplink now uses.
+        // Register: the shape CommsCoreUplink now uses.
         private sealed class CapabilityOwningUplink : ISitrepUplink, IUplinkCapabilityDeclarer
         {
             // Mandatory health floor (test double).
@@ -76,7 +76,7 @@ namespace Sitrep.Host.Tests
         /// The adversarial ordering the happy-path tests above miss: the
         /// PROVIDER uplink is discovered BEFORE the capability-owning uplink.
         /// Single-pass registration would run the provider's Register (its
-        /// Kernel.RegisterProvider) before the "comms" capability existed —
+        /// Kernel.RegisterProvider) before the "comms" capability existed:
         /// RegisterProvider would throw, RA would be dropped, and CommNet would
         /// wrongly win even though RA is present. The two-pass
         /// RegisterDiscoveredUplinks declares every capability first, so RA still
@@ -143,7 +143,7 @@ namespace Sitrep.Host.Tests
             var kernel = ResolvedKernel(raPresent: true);
 
             // Query throws unless the exclusive capability resolves to exactly
-            // one active instance — the "at most one backend" invariant.
+            // one active instance: the "at most one backend" invariant.
             var active = kernel.Active(CommsElection.CapabilityId);
             Assert.Single(active);
         }

@@ -5,10 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.structure</c> channel payload — the other half of KspHost's
+/// The <c>vessel.structure</c> channel payload: the other half of KspHost's
 /// <c>misc</c> junk-drawer split (see <see cref="VesselCrew"/>'s doc
 /// comment). <see cref="CurrentStage"/> uses KSP's own (P-4-flagged
-/// "inverted vs. visible staging") numbering UNCHANGED — documented here,
+/// "inverted vs. visible staging") numbering UNCHANGED: documented here,
 /// not silently renumbered, so this contract doesn't invent a second
 /// numbering scheme to reconcile. <see cref="StageCount"/> is already
 /// <c>maxInverseStage + 1</c> (KspHost's own normalization). A future
@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.structure")]
 public class VesselStructure
 {
-    /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule/high stages have LOW numbers) — see the class doc comment.</summary>
+    /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule/high stages have LOW numbers); see the class doc comment.</summary>
     public int CurrentStage { get; set; }
 
     /// <summary>Null when the vessel has no parts this tick.</summary>

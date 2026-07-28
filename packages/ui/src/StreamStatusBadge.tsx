@@ -8,11 +8,11 @@ export interface StreamStatusBadgeProps {
 
 /**
  * `StreamStatusValue` -> a short badge caption, or `null` for `"live"` (the
- * default/common case — no badge at all, matching the widget's rendered
+ * default/common case: no badge at all, matching the widget's rendered
  * output for every unmigrated/still-legacy render).
  *
  * Extracted from the four widgets that grew an identical copy during the M3
- * migration pilot (`WarpControl`, `Navball`, `ThermalStatus`, `FuelStatus`) —
+ * migration pilot (`WarpControl`, `Navball`, `ThermalStatus`, `FuelStatus`):
  * each adopted the same `useDataStreamStatus` -> badge pattern independently
  * and left a "follow-up to extract" comment. This is that follow-up.
  */
@@ -35,7 +35,7 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 
 /**
  * Small connectivity badge for a widget's title row. Renders nothing when
- * `status` is `"live"` — callers don't need to gate on `formatStreamStatus`
+ * `status` is `"live"`, callers don't need to gate on `formatStreamStatus`
  * themselves, just render `<StreamStatusBadge status={streamStatus} />`
  * unconditionally next to the panel title.
  */

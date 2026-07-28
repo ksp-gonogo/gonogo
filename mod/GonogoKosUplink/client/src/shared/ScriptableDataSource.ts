@@ -1,7 +1,7 @@
 /**
  * Bundled-script payload forwarded to `executeScript` so the kOS data
  * source can keep the on-volume copy of `script` in sync with the bundled
- * body — see `dataSource/kosWrapper.ts`'s `buildKosWrapper`.
+ * body: see `dataSource/kosWrapper.ts`'s `buildKosWrapper`.
  */
 export interface KosManagedScript {
   /** Full bundled script body. */

@@ -12,7 +12,7 @@ import {
 
 const NO_OFFSETS = {};
 
-// Fake CanvasRenderingContext2D — a getter/setter pair backs `fillStyle` so
+// Fake CanvasRenderingContext2D: a getter/setter pair backs `fillStyle` so
 // `fillRect` can capture whatever colour was set immediately before it, the
 // same way a real canvas context works.
 function makeFakeCtx() {
@@ -114,8 +114,8 @@ describe("withAlpha", () => {
   });
 });
 
-describe("effectiveAlpha — restores the layerOpacity * coverageAlpha split", () => {
-  // spec: local_docs/spec-mapview-stackable-layers.md §1 — a layer's own
+describe("effectiveAlpha: restores the layerOpacity * coverageAlpha split", () => {
+  // spec: local_docs/spec-mapview-stackable-layers.md §1, a layer's own
   // translucency (e.g. a layer drawn on top of another, more opaque one)
   // and its surveyed-ness (coverageAlpha, unchanged) are separate channels
   // that must MULTIPLY, not collapse into one.
@@ -131,7 +131,7 @@ describe("effectiveAlpha — restores the layerOpacity * coverageAlpha split", (
   });
 });
 
-describe("paintTile — fixed paint-resolution semantics", () => {
+describe("paintTile: fixed paint-resolution semantics", () => {
   // Pins the resolution choice this task had to settle explicitly (see the
   // module header comment in paintTile.ts and preflight-T6-T9.md's T8c
   // section): the canvas MUST be a fixed internal resolution, independent
@@ -147,7 +147,7 @@ describe("paintTile — fixed paint-resolution semantics", () => {
 
   it("does not vary its paint resolution when a caller simulates a different viewport size", () => {
     // A regression here would mean MapBaseLayerContext.width/height (the
-    // live viewport size) leaked into canvas sizing — exactly the perf
+    // live viewport size) leaked into canvas sizing, exactly the perf
     // trap this task exists to avoid. paintTile takes no viewport
     // parameter at all in its production call signature; this test
     // exercises the override parameter (test-only) to prove the DEFAULT
@@ -162,7 +162,7 @@ describe("paintTile — fixed paint-resolution semantics", () => {
   });
 });
 
-describe("paintTile — coverage modulation", () => {
+describe("paintTile: coverage modulation", () => {
   it("paints nothing for a fully-uncovered tile", () => {
     const { ctx, calls } = makeFakeCtx();
     const width = 4;
@@ -228,8 +228,8 @@ describe("paintTile — coverage modulation", () => {
   });
 });
 
-describe("paintTile — layerOpacity (restores the two-channel alpha split)", () => {
-  it("defaults layerOpacity to 1 — fully covered tiles still paint at full opacity", () => {
+describe("paintTile: layerOpacity (restores the two-channel alpha split)", () => {
+  it("defaults layerOpacity to 1: fully covered tiles still paint at full opacity", () => {
     const { ctx, fillStyles } = makeFakeCtx();
     const width = 4;
     const height = 4;

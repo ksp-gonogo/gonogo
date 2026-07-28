@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The typed, machine-readable failure code every command result carries —
+/// The typed, machine-readable failure code every command result carries,
 /// R7 Fix 1's replacement for the bare <c>string</c> error codes
 /// (<c>"E_RANGE"</c>/<c>"E_NOT_FOUND"</c>/<c>"E_MODE_UNAVAILABLE"</c>/
 /// <c>"E_NO_VESSEL"</c>) the three hand-rolled result records used to return.
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// <para><see cref="None"/> is the success sentinel (paired with
 /// <see cref="CommandResult.Success"/> = true); <see cref="Unknown"/> is the
 /// forward-compatible fallback for any code a newer producer emits that an
-/// older consumer doesn't recognise — the same <c>Unknown</c>-style
+/// older consumer doesn't recognise: the same <c>Unknown</c>-style
 /// read-fallback convention every other enum in this contract uses.</para>
 /// </summary>
 #if NETSTANDARD2_0
@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum CommandErrorCode
 {
-    /// <summary>No error — the success sentinel, paired with <see cref="CommandResult.Success"/> = true.</summary>
+    /// <summary>No error: the success sentinel, paired with <see cref="CommandResult.Success"/> = true.</summary>
     None = 0,
 
     /// <summary>Forward-compat fallback: a code a newer producer emitted that this consumer doesn't recognise.</summary>
@@ -47,7 +47,7 @@ public enum CommandErrorCode
     /// F2-fix backstop: the command was marshaled onto the host's main-thread
     /// pump but that pump did not drain it within the bounded wait (a
     /// scene-load / loading-screen stall). A synthetic failure returned by the
-    /// host so the Courier thread can never park indefinitely — not emitted by
+    /// host so the Courier thread can never park indefinitely, not emitted by
     /// any uplink handler. Additive (Major 2, Minor 0 -&gt; 1).
     /// </summary>
     Timeout = 6,
@@ -58,12 +58,12 @@ public enum CommandErrorCode
 /// hand-rolled records (<c>Ack</c>/<c>StageResult</c>/<c>AddManeuverNodeResult</c>)
 /// that each re-declared <c>Success</c> + <c>ErrorCode</c>. <see cref="Success"/>
 /// false pairs with a typed <see cref="ErrorCode"/> (never a free-text message a
-/// client has to string-match) — the design doc §3's <c>Result&lt;T, CommandError&gt;</c>
+/// client has to string-match), the design doc §3's <c>Result&lt;T, CommandError&gt;</c>
 /// ruling: results are always delivered (never a fire-and-forget void), and
 /// failure is structured data, not a thrown exception.
 ///
 /// <para>This non-generic base is the "no payload" case (every plain
-/// actuation command — the former <c>Ack</c>). Commands that return a real
+/// actuation command: the former <c>Ack</c>). Commands that return a real
 /// value use <see cref="CommandResult{T}"/>, whose <c>Payload</c> carries it
 /// (<c>vessel.control.stage</c>'s new stage index, <c>vessel.maneuver.add</c>'s
 /// created node id).</para>
@@ -71,7 +71,7 @@ public enum CommandErrorCode
 [SitrepContract]
 #if NETSTANDARD2_0
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
-// not wire shape — without this rtcli emits them as bogus interface members.
+// not wire shape: without this rtcli emits them as bogus interface members.
 [TsInterface(AutoExportMethods = false)]
 #endif
 public class CommandResult
@@ -87,7 +87,7 @@ public class CommandResult
 }
 
 /// <summary>
-/// R7 Fix 1: the payload-carrying result — <see cref="CommandResult"/> plus a
+/// R7 Fix 1: the payload-carrying result, <see cref="CommandResult"/> plus a
 /// typed <see cref="Payload"/>. <c>vessel.control.stage</c> returns
 /// <c>CommandResult&lt;int&gt;</c> (the new current stage index, unlike
 /// Telemachus's <c>f.stage</c> void fire-and-forget); <c>vessel.maneuver.add</c>
@@ -98,7 +98,7 @@ public class CommandResult
 [SitrepContract]
 #if NETSTANDARD2_0
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
-// not wire shape — without this rtcli emits them as bogus interface members.
+// not wire shape: without this rtcli emits them as bogus interface members.
 [TsInterface(AutoExportMethods = false)]
 #endif
 public class CommandResult<T> : CommandResult

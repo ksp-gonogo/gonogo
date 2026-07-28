@@ -4,7 +4,7 @@ import type { TimelineStore } from "./timeline-store";
 
 /**
  * The staleness/absence surface for a topic (raw or derived), read at
- * whatever `FrameToken` the store's last `beginFrame()` minted — the SAME
+ * whatever `FrameToken` the store's last `beginFrame()` minted, the SAME
  * frame `useTimelineStream(store, topic)` reads the topic's value at.
  * Status rides its own channel, never the value channel (the
  * `useKosScriptStatus` pattern this repo already uses elsewhere): pair the

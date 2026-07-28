@@ -39,7 +39,7 @@ export function useSettingsService(): SettingsService {
  * `[value, setValue]` tuple; mutations persist through the underlying
  * `SettingsService` and broadcast to other subscribers.
  *
- * This is the CLIENT-PREF path only — source-backed settings never route
+ * This is the CLIENT-PREF path only, source-backed settings never route
  * through here (their value lives on a `DataSource`, not `SettingsService`);
  * `SettingsModal` renders those with a dedicated source-bound row so this hook
  * stays a simple, single-purpose localStorage reader.

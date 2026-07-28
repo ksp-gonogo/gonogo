@@ -3,14 +3,14 @@ name: Refresh promoted assets
 # Re-render the PROMOTED widgets' release/docs assets (GIFs + static stills) on
 # the CI runner (Linux) and commit them back to the triggering branch, so
 # README / release / marketing assets never go stale. Like the visual
-# baselines, these MUST be produced on Linux — OS font rasterisation differs, so
+# baselines, these MUST be produced on Linux, OS font rasterisation differs, so
 # rendering on a dev's macOS and committing would drift the fonts.
 #
 # This is an ASSETS job, NOT a gate: it lives in its own workflow (never in
 # ci.yml), so a failure here can never block a merge.
 #
 # Promote a widget by adding an entry to
-# `packages/components/scripts/promoted-widgets.ts` — then this runs it.
+# `packages/components/scripts/promoted-widgets.ts`: then this runs it.
 #
 #   gh workflow run refresh-promoted-assets.yml --ref <branch>                    # all promoted
 #   gh workflow run refresh-promoted-assets.yml --ref <branch> -f widget=landing-status

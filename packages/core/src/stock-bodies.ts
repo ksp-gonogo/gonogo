@@ -141,7 +141,7 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     texture: tex("Duna"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
-    // ~0.067 atm at sea level — too thin for jet engines, just enough for chutes.
+    // ~0.067 atm at sea level: too thin for jet engines, just enough for chutes.
     atmosphere: { surfacePressure: 6_755, scaleHeight: 2_700 },
     rotationPeriod: 65517.859,
   });
@@ -182,7 +182,7 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     parent: "Sun",
     hasAtmosphere: true,
     maxAtmosphere: 200000,
-    // ~15 atm at "sea level" (datum), gas giant — there's no surface to land on.
+    // ~15 atm at "sea level" (datum), gas giant, there's no surface to land on.
     atmosphere: { surfacePressure: 1_519_875, scaleHeight: 20_000 },
     rotationPeriod: 36000,
   });
@@ -197,7 +197,7 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     texture: tex("Laythe"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
-    // ~0.6 atm at sea level — breathable-ish on Jool's tropical moon.
+    // ~0.6 atm at sea level: breathable-ish on Jool's tropical moon.
     atmosphere: { surfacePressure: 60_795, scaleHeight: 4_000 },
     rotationPeriod: 52980.879,
   });

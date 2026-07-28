@@ -12,7 +12,7 @@ import { DeployedScienceComponent } from "./index";
  * `science.deployed` + `game.dlc` Topics (no legacy `DataSource` fallback),
  * so these scenarios are streamed through a genuine `TelemetryProvider` in the
  * NEW flat `science.deployed` wire shape (one entry per deployed experiment,
- * grouped client-side by `vesselName` — `groupFlatDeployedEntries`, index.tsx)
+ * grouped client-side by `vesselName`: `groupFlatDeployedEntries`, index.tsx)
  * rather than the retired grouped-base `deployed.bases` shape. Two fields
  * degrade off the new wire and so read differently than the old fixtures did:
  * `powerAvailable`/`powerRequired` -> `0`/`0` (no EC numbers, only the coarse
@@ -47,7 +47,7 @@ const flatEntry = (
 
 const SCENARIOS: Record<string, Scenario> = {
   // A powered Mun base climbing on two experiments, and an unpowered Minmus
-  // base at night — same qualitative story as the old `bases` fixture.
+  // base at night: same qualitative story as the old `bases` fixture.
   bases: {
     breakingGround: true,
     entries: [
@@ -83,7 +83,7 @@ const SCENARIOS: Record<string, Scenario> = {
       }),
     ],
   },
-  // Breaking Ground not installed — empty state.
+  // Breaking Ground not installed: empty state.
   unavailable: {
     breakingGround: false,
     entries: [],

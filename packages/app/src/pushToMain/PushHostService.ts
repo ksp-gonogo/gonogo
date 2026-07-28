@@ -103,7 +103,7 @@ export class PushHostService {
   }
 
   /**
-   * Main-side dismiss. Doesn't notify the station — used when the operator
+   * Main-side dismiss. Doesn't notify the station: used when the operator
    * closes a pushed widget from the modal. Station-side toggle state can
    * drift, which we accept: the station sending widget-recall later is a
    * no-op; the station sending widget-push again re-inserts it.

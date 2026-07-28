@@ -26,7 +26,7 @@ import {
   StreamStatusBadge,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { formatDuration } from "@ksp-gonogo/ui-kit";
+import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -113,7 +113,7 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
   // Vessel-total amounts come off `vessel.resources` (the wire topic, a
   // resource-name-keyed `{ current, max }` map). Stage-scoped amounts come off
   // the derived `dv.currentStageResource`/`dv.currentStageResourceMax` channels
-  // (`dv-stage-resources.ts`) — the active stage's slice of `dv.stages`, keyed
+  // (`dv-stage-resources.ts`): the active stage's slice of `dv.stages`, keyed
   // by resource name. All three reads happen unconditionally (Rules of Hooks)
   // regardless of which scope this resource ultimately uses.
   const vesselResources = useTelemetry("vessel.resources")?.resources;
@@ -158,11 +158,11 @@ function pickTWR(s: StageInfo, mode: DeltaVMode): number {
  * Telemachus occasionally hands us a stage row where TWR / ΔV is missing
  * (engine-less stage, decoupler-only, post-staging frame where the engine
  * has been ejected). The fix at 21:08 BST on 2026-05-17 was the absence
- * of this guard — `twr.toFixed` crashed the whole widget when twr was
+ * of this guard: `twr.toFixed` crashed the whole widget when twr was
  * undefined for one row.
  */
 function fmtFixed(value: unknown, digits: number): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  if (typeof value !== "number" || !Number.isFinite(value)) return NULL_DISPLAY;
   return value.toFixed(digits);
 }
 
@@ -172,7 +172,7 @@ function fmtFixed(value: unknown, digits: number): string {
  * legacy Telemachus `DataSource` still ships the historical `StageInfo`
  * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/...), while the new mod
  * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
- * same `dv.stages` topic — `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
+ * same `dv.stages` topic: `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
  * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
  * Normalize every entry to the `StageInfo` shape the renderer already reads
  * so `pickDeltaV`/`pickTWR` don't need to know which wire produced the row.
@@ -244,7 +244,7 @@ function FuelStatusComponent({
   const totalDVActual = summary?.totalDvActual;
   const totalBurnTime = summary?.totalBurnTime;
 
-  // Hooks unrolled explicitly — Rules of Hooks forbids hook calls inside any
+  // Hooks unrolled explicitly: Rules of Hooks forbids hook calls inside any
   // loop or `.map` callback (even ones that happen to iterate a constant
   // tuple). The RESOURCES catalogue has a fixed order so these reads are 1:1.
   const lf = useResourceReading(RESOURCES[0]);
@@ -262,13 +262,13 @@ function FuelStatusComponent({
 
   // `dv.stages` is the whole-vessel stage array. One subscription, all the
   // per-stage data Telemachus (or the mod's StageDeltaVEntry[] topic, same
-  // key) knows about — length matches the real stage count, no hardcoded
+  // key) knows about: length matches the real stage count, no hardcoded
   // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
   // stage 0 last) matching the stack-top-down render order. `parseStages`
   // reconciles either wire's field names into the `StageInfo` shape below.
   const stagesRaw = useTelemetry("dv.stages");
   const stages = parseStages(stagesRaw);
-  // Filter to finite values before Math.max — a single NaN/undefined entry
+  // Filter to finite values before Math.max: a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of
   // invisible bars.
   const finiteDvs = stages
@@ -280,14 +280,14 @@ function FuelStatusComponent({
   const totalDv =
     mode === "vac" ? totalDVVac : mode === "asl" ? totalDVASL : totalDVActual;
 
-  // Selective rendering — total ΔV is the headline. Resource bars and the
+  // Selective rendering: total ΔV is the headline. Resource bars and the
   // per-stage stack drop bottom-up as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 14;
   // Wide-short: width compensates for the height-gates, so show the resource
   // list + stage stack side-by-side beneath the totals row instead of leaving
-  // the box sparse. The boost still needs vertical room beneath the totals row
-  // — below ~6 rows even a single section overflows (landscape-18x5), so don't
+  // the box sparse. The boost still needs vertical room beneath the totals row,
+  // below ~6 rows even a single section overflows (landscape-18x5), so don't
   // let the landscape override force the columns on at those heights.
   const isLandscape = getWidgetShape(w, h).shape === "landscape" && rows >= 6;
   const showSubtitle = rows >= 5;
@@ -297,7 +297,7 @@ function FuelStatusComponent({
   const showHeroDv = !showTotals && totalDv !== undefined;
   // At the narrowest width the stage stack ever renders at (cols === 5,
   // portrait-5x18), "<burn> · TWR <n>" doesn't fit next to the ΔV bar even
-  // with the bar's 28px floor honoured — the row overflows past the panel
+  // with the bar's 28px floor honoured: the row overflows past the panel
   // edge and gets clipped. Splitting burn time and TWR onto their own lines
   // shortens the longest line enough to fit; there's always vertical room
   // to spare here since the stage stack only shows once rows >= 10.
@@ -332,7 +332,7 @@ function FuelStatusComponent({
           branch the panel shows only the title and a black void below
           (the no-engine-data fixture at tiny-3x3 hit this state). */}
       {!showHeroDv && !showTotals && totalDv === undefined && (
-        <BigReadout>—</BigReadout>
+        <BigReadout>{NULL_DISPLAY}</BigReadout>
       )}
 
       {showTotals && (totalDv !== undefined || totalBurnTime !== undefined) && (
@@ -340,7 +340,9 @@ function FuelStatusComponent({
           <TotalsBlock>
             <TotalsLabel>Total ΔV</TotalsLabel>
             <TotalsValue>
-              {totalDv !== undefined ? `${fmtFixed(totalDv, 0)} m/s` : "—"}
+              {totalDv !== undefined
+                ? `${fmtFixed(totalDv, 0)} m/s`
+                : NULL_DISPLAY}
               <TotalsModeTag>{DELTA_V_MODE_SHORT[mode]}</TotalsModeTag>
             </TotalsValue>
           </TotalsBlock>
@@ -349,7 +351,7 @@ function FuelStatusComponent({
             <TotalsValue>
               {totalBurnTime !== undefined
                 ? formatDuration(totalBurnTime)
-                : "—"}
+                : NULL_DISPLAY}
             </TotalsValue>
           </TotalsBlock>
         </TotalsRow>
@@ -394,7 +396,7 @@ function FuelStatusComponent({
               const active = s.stage === currentStage;
               // parseStages yields NaN burnTime for a stage with no burn data;
               // show "0s" for that (and for a non-positive value) rather than
-              // the helper's "—", matching the pre-refactor local formatter.
+              // the helper's NULL_DISPLAY, matching the pre-refactor local formatter.
               const burn =
                 Number.isFinite(s.burnTime) && s.burnTime > 0
                   ? formatDuration(s.burnTime)
@@ -476,7 +478,7 @@ function FuelStatusConfigComponent({
           <option value="asl">{DELTA_V_MODE_LABELS.asl}</option>
         </Select>
         <FieldHint>
-          "Current atmosphere" matches live conditions — what you'll actually
+          "Current atmosphere" matches live conditions: what you'll actually
           burn. Switch to vacuum for planning headroom.
         </FieldHint>
       </Field>
@@ -488,7 +490,7 @@ function FuelStatusConfigComponent({
 
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
-/** Units of stock KSP resources aren't kg — Telemachus returns the raw unit count. */
+/** Units of stock KSP resources aren't kg, Telemachus returns the raw unit count. */
 function formatAmount(value: number): string {
   if (value >= 10_000) return value.toFixed(0);
   if (value >= 100) return value.toFixed(1);
@@ -508,7 +510,7 @@ const TitleRow = styled.div`
 
 /**
  * `BigReadout`'s font-size clamps up to 38px regardless of the widget's own
- * grid size — it reads from viewport width, not container width — which is
+ * grid size: it reads from viewport width, not container width, which is
  * fine for a lone short value (see other consumers) but overflows badly for
  * "<n> m/s": at the 3x3 minSize the string wraps at the space and the
  * wrapped "m/s" line gets clipped by `Panel`'s `overflow: hidden`. We can't
@@ -520,7 +522,7 @@ const HeroReadout = styled(BigReadout)`
 `;
 
 /**
- * Keeps the value and its unit glued to one line — a number must never wrap
+ * Keeps the value and its unit glued to one line, a number must never wrap
  * away from (or get clipped apart from) its unit. Paired with `HeroReadout`'s
  * smaller font so the whole string actually fits at tiny widget sizes
  * instead of merely refusing to wrap while still overflowing.
@@ -656,7 +658,7 @@ const StageHeader = styled.div`
 const StageRow = styled.div<{ $active?: boolean }>`
   display: grid;
   /* Bar column needs a real floor (28px, matching Bar's own min-width and
-     ResourceRow's identical column below) — not minmax(0, ...). With a 0
+     ResourceRow's identical column below): not minmax(0, ...). With a 0
      base, a narrow row (e.g. portrait-5x18) collapses this track to 0 and
      the Bar div's min-width then overflows the 0-width cell to the right,
      landing directly under the StageReadout column. StageReadout paints
@@ -695,7 +697,7 @@ const StageMeta = styled.span`
 // Declaration-merge this widget's slot ids → their props types into core's
 // `SlotRegistry` (Uplink architecture §4.6). Both slots are plain
 // section/badge slots (not overlays), so they pass no coordinate/projection
-// context — an empty props object. Kept co-located here, not in a shared
+// context: an empty props object. Kept co-located here, not in a shared
 // central registry file, so parallel per-widget slot work never collides.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -717,7 +719,7 @@ registerComponent<FuelStatusConfig>({
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
   // dv.stageCount/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
-  // dv.totalBurnTime/dv.stages are all UN-GAPPED —
+  // dv.totalBurnTime/dv.stages are all UN-GAPPED,
   // same declared keys, routed through the stream by `mapTopic`
   // (map-topic.ts's TELEMACHUS_CLEAN_HOMES) with a zero call-site rename;
   // `dv.stages`'s wire shape changed underneath it though, see

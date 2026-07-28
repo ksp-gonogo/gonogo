@@ -4,9 +4,9 @@
  * sample subscribers, etc.). Owning this in one place removes a fistful of
  * near-identical boilerplate from each call site.
  *
- * Standalone (not tied to DataSourceWrapper) so PeerClientDataSource — which
+ * Standalone (not tied to DataSourceWrapper) so PeerClientDataSource, which
  * doesn't wrap an upstream `real` source and so doesn't extend the wrapper
- * base — can use it too.
+ * base: can use it too.
  */
 export class ListenerSet<TArgs extends readonly unknown[] = []> {
   private readonly listeners = new Set<(...args: TArgs) => void>();
@@ -34,7 +34,7 @@ export class ListenerSet<TArgs extends readonly unknown[] = []> {
 }
 
 /**
- * Keyed variant — a Map<key, Set<cb>> with the same add/fire ergonomics. Used
+ * Keyed variant: a Map<key, Set<cb>> with the same add/fire ergonomics. Used
  * for the per-key subscriber bookkeeping inside BufferedDataSource and
  * PeerClientDataSource. The bucket Set is created lazily and removed when its
  * last subscriber leaves so an empty Map entry never lingers.

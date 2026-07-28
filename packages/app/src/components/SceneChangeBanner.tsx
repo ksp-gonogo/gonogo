@@ -8,7 +8,7 @@ import styled from "styled-components";
  * etc). Reads `kc.scene` from the GonogoTelemetry plugin; stays for
  * `VISIBLE_MS` then fades out.
  *
- * Useful because most dashboards run during long flights — when the
+ * Useful because most dashboards run during long flights, when the
  * operator is mid-conversation and KSP transitions (e.g. a launch
  * loaded, a vessel was recovered), an unobtrusive banner gives them a
  * heads-up without taking the dashboard away.
@@ -72,7 +72,7 @@ export function SceneChangeBanner() {
     const prev = prevSceneRef.current;
     if (prev === scene) return;
     if (prev === null) {
-      // First sample of the lifetime of this device — initial bootstrap,
+      // First sample of the lifetime of this device, initial bootstrap,
       // not a transition. Persist + skip the banner so a brand-new tab
       // doesn't pop on every page load.
       prevSceneRef.current = scene;
@@ -88,7 +88,7 @@ export function SceneChangeBanner() {
     });
   }, [scene]);
 
-  // Tear-down timer — re-render once when the announcement should hide.
+  // Tear-down timer: re-render once when the announcement should hide.
   useEffect(() => {
     if (announcement === null) return;
     const remaining = announcement.expiresAt - Date.now();

@@ -28,7 +28,7 @@ describe("seedKspHostDefaults", () => {
     server.use(bootstrapHandler("192.168.1.50"));
     await seedKspHostDefaults();
     expect(getGameHost()).toBe("192.168.1.50");
-    // in-memory seed only — nothing persisted
+    // in-memory seed only: nothing persisted
     expect(localStorage.getItem("gonogo.settings")).toBeNull();
   });
 

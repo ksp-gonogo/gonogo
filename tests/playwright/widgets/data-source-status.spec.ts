@@ -6,12 +6,12 @@
  * over PeerJS) have no data-source panel of their own.
  *
  * This boots the main screen, opens Settings → Data Sources, and asserts the
- * `sitrep` row (`SitrepStreamDataSource`, named "Telemetry stream" — a thin
+ * `sitrep` row (`SitrepStreamDataSource`, named "Telemetry stream": a thin
  * status/config front over the live `WebSocketTransport`
  * `SitrepTelemetryProvider` owns, see `packages/app/src/dataSources/sitrep.ts`)
- * reports "connected" — exercising the host's Sitrep stream path end to end
+ * reports "connected": exercising the host's Sitrep stream path end to end
  * against the replay server. The old `data`/"Buffered Telemachus Reborn" row
- * this test used to check no longer exists — that `DataSource` was deleted in
+ * this test used to check no longer exists, that `DataSource` was deleted in
  * `806e7fe2` once the Sitrep stream became the app's only telemetry source.
  */
 import { expect, test } from "@playwright/test";
@@ -24,7 +24,7 @@ const SITREP_CONFIG = JSON.stringify({
   port: PORTS.sitrepReplay,
 });
 
-test.describe("Settings — Data Sources tab — main screen", () => {
+test.describe("Settings: Data Sources tab: main screen", () => {
   test("data source row shows connected in the Data Sources tab", async ({
     browser,
   }) => {
@@ -38,11 +38,11 @@ test.describe("Settings — Data Sources tab — main screen", () => {
         // The first-run Uplink Hub wizard auto-opens the Settings modal on a
         // fresh browser (own unit/component coverage in
         // UplinkHubWizardHost.test.tsx; e2e coverage in
-        // uplink-hub-wizard.spec.ts) — mark it already-seen so it doesn't
+        // uplink-hub-wizard.spec.ts): mark it already-seen so it doesn't
         // race the manual Settings-FAB open this spec drives below.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
-        /* private mode / quota — ignore; the seed just won't apply */
+        /* private mode / quota: ignore; the seed just won't apply */
       }
     }, SITREP_CONFIG);
 
@@ -68,12 +68,12 @@ test.describe("Settings — Data Sources tab — main screen", () => {
 
     // The panel (`DataSourcesPanel` in SettingsModal.tsx) leads with the
     // single Gonogo/Sitrep connection row (`SitrepConnection`, a styled
-    // `<div>` — not an `<li>`; the per-Uplink health list below it is the
+    // `<div>`: not an `<li>`; the per-Uplink health list below it is the
     // only `<li>`-based list now) followed by per-Uplink health rows. Scope
     // to the tabpanel so a visible "Telemetry stream" name is proof the tab
     // opened and the row rendered. "connected" (exact) only ever labels the
-    // Sitrep row here — Uplink rows report health states (healthy/degraded/
-    // unavailable), never "connected" — so asserting it within the panel is
+    // Sitrep row here (Uplink rows report health states, healthy/degraded/
+    // unavailable, never "connected"), so asserting it within the panel is
     // an unambiguous stand-in for "that row's status".
     const dataSourcesPanel = page.getByRole("tabpanel");
     await expect(

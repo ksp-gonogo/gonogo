@@ -48,7 +48,7 @@ describe("useCertainty", () => {
       store.beginFrame();
     });
     // Confirmed mode (default): viewUt tracks confirmedEdgeUt(), which is
-    // sample-clamped to the point just ingested — at-or-before the horizon.
+    // sample-clamped to the point just ingested: at-or-before the horizon.
     expect(screen.getByText("certainty:confirmed")).toBeTruthy();
 
     act(() => {

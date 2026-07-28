@@ -12,7 +12,7 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// U5 "Layer A" synthetic end-to-end coverage for the FOUNDATION channels —
+    /// U5 "Layer A" synthetic end-to-end coverage for the FOUNDATION channels,
     /// the vessel/system/career/science/parts core surface that needs no
     /// KSP-facing uplink. Each test subscribes a real
     /// <see cref="System.Net.WebSockets.ClientWebSocket"/> to a channel,
@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para><b>Meta on the wire</b> (<c>Sitrep.Core.Courier.MakeMeta</c>):
     /// <see cref="Meta.Source"/> is the Courier node id
-    /// (<see cref="ChannelEngine.NodeId"/> = <c>"system"</c>) — NOT the topic
+    /// (<see cref="ChannelEngine.NodeId"/> = <c>"system"</c>): NOT the topic
     /// and NOT the payload's own <c>PayloadMeta.Source</c>; <see cref="Meta.ValidAt"/>
     /// is the UT the sample was recorded at (the tick UT); <see cref="Meta.Seq"/>
     /// is a strictly-increasing per-Courier sequence counter (&gt; 0 on the
@@ -36,8 +36,8 @@ namespace Sitrep.Host.IntegrationTests
     /// (mapper → ChannelEngine → Fleck WS → real ClientWebSocket) carries a
     /// synthetic snapshot to the wire with correct payload + Meta for every
     /// foundation domain. Per-uplink live validation for the KSP-FACING
-    /// channels (SCANsat / kOS / RealAntennas-specific) waits on the Deck DLLs
-    /// — see <c>RevealGateTests</c> / this suite's report for the deferred
+    /// channels (SCANsat / kOS / RealAntennas-specific) waits on the Deck DLLs;
+    /// see <c>RevealGateTests</c> / this suite's report for the deferred
     /// list.</para>
     /// </summary>
     public class FoundationChannelsEndToEndTests
@@ -53,7 +53,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(ut, delivered.Meta.ValidAt);
             // networkDelaySeconds:0 ⇒ revealed live, delivered at its own UT.
             Assert.Equal(ut, delivered.Meta.DeliveredAt);
-            // Seq is a real, monotonic per-Courier counter — never the
+            // Seq is a real, monotonic per-Courier counter; never the
             // fabricated 0 a payload's own PayloadMeta used to carry.
             Assert.True(delivered.Meta.Seq > 0, $"expected a positive envelope Seq, saw {delivered.Meta.Seq}");
         }
@@ -139,7 +139,7 @@ namespace Sitrep.Host.IntegrationTests
             var idPayload = Assert.IsType<Dictionary<string, object?>>(identity.Payload);
             Assert.Equal(guid, idPayload["vesselId"]);
             Assert.Equal("Jebediah's Junker", idPayload["name"]);
-            // The payload's OWN PayloadMeta.Source is the vessel provenance —
+            // The payload's OWN PayloadMeta.Source is the vessel provenance,
             // distinct from the envelope Source asserted above.
             var idMeta = Assert.IsType<Dictionary<string, object?>>(idPayload["meta"]);
             Assert.Equal("vessel:" + guid, idMeta["source"]);
@@ -305,7 +305,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The envelope <see cref="Meta.Seq"/> strictly increases across
-        /// successive deliveries on the SAME Courier — proving the sequence
+        /// successive deliveries on the SAME Courier: proving the sequence
         /// counter on the wire is real and monotonic, not a per-payload
         /// fabrication. Two ticks, two frames, ascending Seq.
         /// </summary>

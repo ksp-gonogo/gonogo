@@ -23,7 +23,7 @@ export function parseSemver(
 
 /**
  * Categorise a (local, remote) version pair. Pre-release suffixes are
- * ignored — only the M.m.p triple drives the result. A `null`/`undefined`
+ * ignored: only the M.m.p triple drives the result. A `null`/`undefined`
  * remote, or one that doesn't parse, is `"unknown"` (treat-as-mismatch).
  */
 export function compareVersions(

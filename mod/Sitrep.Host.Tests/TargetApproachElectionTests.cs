@@ -6,13 +6,13 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The closest-approach backend election — a mirror of
+    /// The closest-approach backend election: a mirror of
     /// <see cref="CommsElectionTests"/>/the AGX election, driving the REAL
     /// <see cref="Kernel"/> through the two cases that matter for this phase:
     /// Principia absent ⇒ stock Kepler vanilla wins; Principia present ⇒ the
     /// registered provider wins; and the elected instance is queryable as an
     /// <see cref="ITargetApproachSolver"/>. The Principia backend itself is
-    /// out of scope — a fake stands in for it, exactly as
+    /// out of scope: a fake stands in for it, exactly as
     /// <see cref="CommsElectionTests"/> fakes its mod provider.
     /// </summary>
     public class TargetApproachElectionTests

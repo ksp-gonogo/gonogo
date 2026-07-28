@@ -28,7 +28,7 @@ export function compareThreshold(
   }
 }
 
-/** User-input fields captured at arm time. Live orbit data is *not* frozen —
+/** User-input fields captured at arm time. Live orbit data is *not* frozen,
  *  the trigger fires "compute the burn against current orbit when the
  *  condition holds", which requires fresh `currentOrbit` / `mu` / etc. */
 export interface FrozenPlanInputs {
@@ -52,7 +52,7 @@ export interface ArmedTrigger {
   value: number;
   inputs: FrozenPlanInputs;
   /** Vessel name at arm time. Triggers auto-clear when the active vessel
-   *  changes — a circularize armed for vessel A shouldn't fire on vessel B. */
+   *  changes, a circularize armed for vessel A shouldn't fire on vessel B. */
   vesselName: string | null;
   /** Wall-clock ms when armed. */
   createdAt: number;

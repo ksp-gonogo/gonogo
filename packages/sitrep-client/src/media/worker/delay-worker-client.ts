@@ -1,26 +1,26 @@
 /**
  * Main-thread client for the shared delay worker (cross-browser
  * video-delay design, 2026-07-16). This is the Safari-today /
- * Firefox-once-it-lands backend — see `frame-delay.ts`'s module doc for the
+ * Firefox-once-it-lands backend: see `frame-delay.ts`'s module doc for the
  * full backend picture and `local_docs/reports/video-worker-report.md` for
  * the empirical per-engine verification this design rests on.
  *
  * One worker, lazily spun up on first use, shared across every camera feed
- * on the page (design doc, locked decision 2) — a camera switch posts a new
+ * on the page (design doc, locked decision 2), a camera switch posts a new
  * `createPipeline`/`dispose` pair, never a fresh `new Worker()`.
  *
  * `createWorkerFrameDelayStream` mirrors `createFrameDelayStream`'s
  * contract as closely as an inherently-async operation allows: it resolves
  * `null` (never throws, never rejects) whenever the pipeline can't be
- * built here — no `Worker` support, no video track, the worker rejected
+ * built here: no `Worker` support, no video track, the worker rejected
  * construction, OR (the common case on Chrome/Firefox as of the
  * verification above) `postMessage(..., [track])` throws SYNCHRONOUSLY
  * because this engine doesn't support transferring a `MediaStreamTrack`
  * at all. The caller (`useDelayedPlayout`) treats a `null` resolution
- * exactly like the main-thread backend's `null` return — "can't delay ⇒
+ * exactly like the main-thread backend's `null` return, "can't delay ⇒
  * no video" (decision 5), never a live fallback.
  *
- * NOT unit-tested (see `delay-worker.ts`'s doc for why) — thin
+ * NOT unit-tested (see `delay-worker.ts`'s doc for why), thin
  * message-passing glue over already-tested pieces, validated by the manual
  * cross-browser check.
  */
@@ -37,7 +37,7 @@ import type {
 } from "./delay-worker";
 
 /** The wider clock capability the worker backend needs beyond
- *  `DelayClockLike` — a serializable snapshot of the formula inputs to
+ *  `DelayClockLike`: a serializable snapshot of the formula inputs to
  *  forward at ~60Hz. `ViewClock` (the app's real clock) satisfies this
  *  structurally; a camera Uplink never imports `ViewClock` directly (same
  *  decoupling `delayed-playout-buffer.ts` already follows). */
@@ -48,7 +48,7 @@ export interface SnapshottableDelayClock extends DelayClockLike {
 export interface CreateWorkerFrameDelayStreamOptions {
   view: SnapshottableDelayClock;
   /** Read fresh on every ~60Hz tick; forwarded to the worker only when it
-   *  actually changed (reference inequality) — the low-rate capture clock
+   *  actually changed (reference inequality): the low-rate capture clock
    *  updates ~1Hz, no need to resend an unchanged sample 60x/sec. */
   getCaptureSample(): CaptureClockSample;
   maxBufferedFrames?: number;
@@ -115,10 +115,10 @@ function post(
 }
 
 /** Starts the ~60Hz loop posting `clockSnapshot` (worker-global, so every
- *  pipeline on the shared worker reads the same clock — matches the app's
+ *  pipeline on the shared worker reads the same clock, matches the app's
  *  ONE real `ViewClock`) and `captureSample` (per-pipeline, only when the
  *  sample reference actually changed) for one pipeline. Returns a stop
- *  function. Shared by both backends this file exposes — narrowed to just
+ *  function. Shared by both backends this file exposes, narrowed to just
  *  the two members either needs, so `AttachEncodedFrameDelayOptions`
  *  satisfies it structurally without a nominal relationship to
  *  `CreateWorkerFrameDelayStreamOptions`. */
@@ -149,7 +149,7 @@ export async function createWorkerFrameDelayStream(
   raw: MediaStream,
   opts: CreateWorkerFrameDelayStreamOptions,
 ): Promise<FrameDelayStream | null> {
-  // Check worker support BEFORE touching `raw` — cheap, synchronous, and
+  // Check worker support BEFORE touching `raw`: cheap, synchronous, and
   // means a caller in a Worker-less environment never needs `raw` to be a
   // real MediaStream-shaped object at all (matters for tests exercising
   // this path with opaque stream tokens, same convention
@@ -177,7 +177,7 @@ export async function createWorkerFrameDelayStream(
   };
 
   try {
-    // The transfer list is what actually moves the track — a browser that
+    // The transfer list is what actually moves the track, a browser that
     // doesn't support transferring a MediaStreamTrack (Chrome/Firefox, per
     // this task's 2026-07-16 verification) throws HERE, synchronously,
     // before the worker ever sees the message.
@@ -219,16 +219,16 @@ export async function createWorkerFrameDelayStream(
 // Empirically validated cross-browser (Chromium/Firefox/WebKit) in Phase 1
 // of that report, gated on a real confirmedEdgeUt() computation. Reachable
 // from the main-screen and station/broker camera path via
-// the camera data source's `getReceiverForStream` — see that method's doc for the
+// the camera data source's `getReceiverForStream`: see that method's doc for the
 // reconciliation of why this is wireable gonogo-side, no SDK change needed.
 // ---------------------------------------------------------------------------
 
 export interface AttachEncodedFrameDelayOptions {
   view: SnapshottableDelayClock;
-  /** Read fresh on every ~60Hz tick — same contract as
+  /** Read fresh on every ~60Hz tick, same contract as
    *  `CreateWorkerFrameDelayStreamOptions.getCaptureSample`. */
   getCaptureSample(): CaptureClockSample;
-  /** Real byte cap — see `encoded-frame-delay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
+  /** Real byte cap: see `encoded-frame-delay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
   maxBufferedBytes?: number;
   maxPacingBacklogSeconds?: number;
   onError?(error: unknown): void;
@@ -237,7 +237,7 @@ export interface AttachEncodedFrameDelayOptions {
 export interface EncodedFrameDelayHandle {
   /** Detach the transform (`receiver.transform = null`) and tear down this
    *  pipeline's worker-side state. Idempotent from the caller's
-   *  perspective — safe to call once, matching every other backend's
+   *  perspective: safe to call once, matching every other backend's
    *  `dispose()` contract in this package. */
   dispose(): void;
   flush(): void;
@@ -249,23 +249,23 @@ export interface EncodedFrameDelayHandle {
  * produces no new stream: `receiver.transform = new
  * RTCRtpScriptTransform(worker, options)` either succeeds immediately
  * (this function returns a handle) or throws (caught here, reported via
- * `onError`, returns `null`) — there's no async "pipelineReady" handshake
+ * `onError`, returns `null`): there's no async "pipelineReady" handshake
  * to await, because attaching a script transform doesn't move any track;
  * `self.onrtctransform` on the worker side has no message to reply with
  * (see `delay-worker.ts`'s `handleRtcTransform` doc). The delay
  * happens transparently, upstream of decode, on the SAME track the caller
- * already has — the caller should keep using its existing `MediaStream`
+ * already has, the caller should keep using its existing `MediaStream`
  * reference (e.g. `raw`, unchanged) once this resolves non-null, not swap
  * to a new one.
  *
  * Resolves `null` (never throws) whenever the pipeline can't be attached
- * here — no `Worker` support, or the platform's `RTCRtpScriptTransform`
+ * here: no `Worker` support, or the platform's `RTCRtpScriptTransform`
  * constructor itself threw (e.g. the receiver already has a transform, or
- * the engine's `RTCRtpScriptTransform` is absent — check
+ * the engine's `RTCRtpScriptTransform` is absent; check
  * `typeof RTCRtpScriptTransform !== "undefined"` before calling if the
  * caller wants to skip the attempt instead of taking the throw+report
  * round trip). The caller treats a `null` resolution exactly like every
- * other backend's `null`/`unavailable` case (decision 5 — never a silent
+ * other backend's `null`/`unavailable` case (decision 5: never a silent
  * live fallback).
  */
 export function attachEncodedWorkerFrameDelay(

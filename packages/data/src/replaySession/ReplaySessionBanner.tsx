@@ -9,10 +9,10 @@ import {
 /**
  * Sticky banner shown across the top of the screen while a mission replay
  * is active. Renders nothing when idle, so callers can mount it
- * unconditionally at the app shell level — the `ReplayBanner` replacement,
+ * unconditionally at the app shell level: the `ReplayBanner` replacement,
  * driven by `ReplaySessionController` instead of the retired
  * `ReplayController`. MUST be mounted as a descendant of
- * `ReplaySessionProvider` (same as the dashboard it controls) — `useViewUt`
+ * `ReplaySessionProvider` (same as the dashboard it controls), `useViewUt`
  * only reflects the replay session's own clock once that provider has
  * shadowed the live one.
  */
@@ -87,7 +87,7 @@ export function ReplaySessionBanner() {
   );
 }
 
-/** Formats an elapsed UT (seconds) as `h:mm:ss`/`mm:ss` — the seconds-domain twin of the old ms-based `formatElapsed`. */
+/** Formats an elapsed UT (seconds) as `h:mm:ss`/`mm:ss`, the seconds-domain twin of the old ms-based `formatElapsed`. */
 function formatElapsed(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
   const s = Math.floor(seconds);

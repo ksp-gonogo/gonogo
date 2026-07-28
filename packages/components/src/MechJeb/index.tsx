@@ -89,7 +89,7 @@ function commandChip(
 /**
  * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
  * safe): the reach leg counts down to reaching the craft, everything else
- * counts down to the reply — same mapping the kOS terminal's own
+ * counts down to the reply: same mapping the kOS terminal's own
  * `useRouteCommands` -> `InFlightList` wiring uses.
  */
 function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
@@ -220,7 +220,7 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
         />
         <InFlightList
           items={toInFlightListItems(executeNode.inFlight)}
-          ariaLabel="Execute next node — in flight"
+          ariaLabel="Execute next node: in flight"
         />
         <CommandRow
           label="Land at target"

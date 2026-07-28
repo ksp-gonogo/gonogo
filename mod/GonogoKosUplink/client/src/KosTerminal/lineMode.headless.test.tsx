@@ -7,8 +7,8 @@ import { KosTerminalComponent } from "./index";
 
 // Faithful terminal reconstruction: back the component's @xterm/xterm import
 // with @xterm/headless (the IDENTICAL VT engine, same 6.0.0), so these tests
-// assert the ACTUAL rendered screen the operator sees — real cursor moves,
-// real erase-in-line, real full-clears — not a single-line stand-in emulator.
+// assert the ACTUAL rendered screen the operator sees, real cursor moves,
+// real erase-in-line, real full-clears: not a single-line stand-in emulator.
 // The only additions are a no-op open() (no DOM headless) and capturing the
 // live instance + its onData handler.
 const hoisted = vi.hoisted(() => ({ instances: [] as unknown[] }));
@@ -20,7 +20,7 @@ vi.mock("@xterm/xterm", async () => {
     dataHandler?: (data: string) => void;
     // biome-ignore lint/suspicious/noExplicitAny: mirroring xterm's option bag
     constructor(options?: any) {
-      // Respect the component's chosen cols/rows (its fixed size) — only
+      // Respect the component's chosen cols/rows (its fixed size), only
       // default to a NARROW grid when it doesn't specify one, so a pre-fix
       // build (no fixed size) wraps and a fixed-size build doesn't.
       // allowProposedApi: read .buffer to assert the actual rendered screen.
@@ -88,11 +88,11 @@ function screenText(term: any): string {
   const buf = term.buffer.active;
   const rows: string[] = [];
   // `getLine` indexes the WHOLE buffer (scrollback + viewport), not the
-  // visible screen — `baseY` is the scrollback depth, i.e. the offset of
+  // visible screen: `baseY` is the scrollback depth, i.e. the offset of
   // the current viewport's row 0 within that buffer. Every existing test
   // in this file stays within the terminal's fixed row count (never
   // triggers a scroll), so `baseY` has always been 0 and this offset was a
-  // no-op — but omitting it means a genuinely scrolled screen would
+  // no-op: but omitting it means a genuinely scrolled screen would
   // silently read back the STALE pre-scroll rows instead of what's
   // actually visible, masking exactly the class of row-misalignment bug
   // kOS's own screen-diff pipeline could produce (see the error-frame
@@ -118,7 +118,7 @@ async function readScreen(t: any): Promise<string> {
   return screenText(t);
 }
 
-describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
+describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.instances.length = 0;
@@ -154,12 +154,12 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   const compositionBar = () =>
     screen.getByLabelText("Line-mode input").textContent ?? "";
   // The bar always renders a leading prompt glyph ("❯") ahead of the actual
-  // composition text — strip it so history-recall assertions can compare the
+  // composition text: strip it so history-recall assertions can compare the
   // composed line itself.
   const compositionText = () => compositionBar().replace("❯", "");
   // Reads the visible caret's split point directly off the DOM: the bar
   // renders `[before-text, <caret span>, after-text]` as the three children
-  // of its text span (`CompositionBar__Text`) — see the component's render.
+  // of its text span (`CompositionBar__Text`): see the component's render.
   // Asserting on this (rather than only on the flattened `compositionText`)
   // proves the caret itself is positioned correctly, not just that the text
   // round-trips.
@@ -200,14 +200,14 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
         fullRepaint: true,
       }),
     );
-    // Operator composes a line — it lands in the bar, never the screen.
+    // Operator composes a line: it lands in the bar, never the screen.
     act(() => term().dataHandler("run."));
     const s1 = await readScreen(term());
     expect(s1).toContain("kOS>");
     expect(s1).not.toContain("run");
     expect(compositionBar()).toContain("run.");
 
-    // A periodic keyframe (unchanged screen) arrives WHILE composing — the
+    // A periodic keyframe (unchanged screen) arrives WHILE composing, the
     // screen resyncs and the composition is untouched.
     act(() =>
       f.emit("kos.terminal.7", {
@@ -224,7 +224,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
 
   it("a full-width kOS line does not wrap (fixed-size terminal)", async () => {
     // The widget is a fixed-size grid wider than any kOS screen line, so
-    // kOS output never wraps — the telnet-era learning. A pre-fix build fits
+    // kOS output never wraps: the telnet-era learning. A pre-fix build fits
     // to a narrow container and wraps a long line onto a second buffer row.
     const f = await mountAttached({});
     const line = "STATUS: ALL SYSTEMS NOMINAL - ALT 000075420 M"; // 45 chars
@@ -243,18 +243,18 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   });
 
   // Bug 1 investigation (operator report: "Error prints corrupt subsequent
-  // prints — lines appear INSIDE error text; likely subsequent lines print
+  // prints: lines appear INSIDE error text; likely subsequent lines print
   // one line too high"). This widget's ENTIRE downlink path is
   // `useStreamEvent("kos.terminal.<coreId>", (frame) => termRef.current
-  // ?.write(frame.chunk))` — no client-side cursor/row math, no
+  // ?.write(frame.chunk))`: no client-side cursor/row math, no
   // reordering (`useStreamEvent` fires once per `ReliableOrdered` event,
-  // in delivery order, never coalesced — see
+  // in delivery order, never coalesced: see
   // `packages/sitrep-client/src/use-stream-event.test.tsx`), no
   // transformation of `frame.chunk` whatsoever. Every row/cursor position
   // in the wire chunk is computed upstream, in `ScreenDiffMapper.cs`'s
   // call into kOS.Safe's own `ScreenSnapShot`/`IScreenBuffer` (a
   // full-snapshot diff against the previous frame, re-emitted via
-  // absolute `\x1b[row;colH` positioning per changed row — see that
+  // absolute `\x1b[row;colH` positioning per changed row: see that
   // file's doc comment, and the pre-existing "cursor-positioned status
   // diff" test below for the wire shape this component already assumes).
   //
@@ -262,21 +262,21 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
   // error frame (red SGR text, one absolute position per row, matching
   // the wire shape above) immediately followed by a normal print at
   // another absolute position, the terminal renders BOTH with complete
-  // fidelity — no interleaving, no row bleed, nothing "one line too
+  // fidelity: no interleaving, no row bleed, nothing "one line too
   // high". Genuinely reproducing the operator's corruption would require
   // feeding this component a chunk whose absolute row indices are
   // ALREADY WRONG (i.e. a scroll/tick-accounting defect baked into the
-  // bytes before they ever reach `term.write`) — that defect, if it
+  // bytes before they ever reach `term.write`), that defect, if it
   // exists, is upstream of this component's boundary (kOS.Safe's own
   // screen/scroll bookkeeping is a compiled third-party dependency with
   // no source in this repo) and is not reproducible, let alone fixable,
   // within `KosTerminal`. Confirmed experimentally: deliberately
   // constructing a chunk with a STALE (pre-scroll) absolute row index
   // does make xterm render the next print on top of the error's last
-  // line — exactly the reported symptom — which is consistent with the
+  // line (exactly the reported symptom) which is consistent with the
   // defect being a row-index computation bug upstream, not a rendering
   // bug here.
-  it("a multi-line error frame followed by a normal print renders both without corruption (Bug 1 investigation — see doc comment)", async () => {
+  it("a multi-line error frame followed by a normal print renders both without corruption (Bug 1 investigation; see doc comment)", async () => {
     const f = await mountAttached({});
     const baseline = Array.from({ length: 23 }, (_, i) => `LINE ${i}`).join(
       "\r\n",
@@ -291,7 +291,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     await flush(term());
 
     // A 3-line kOS error, absolute-positioned per row (rows 20-22,
-    // 0-indexed) with red SGR — the same "one `\x1b[row;colH` per changed
+    // 0-indexed) with red SGR: the same "one `\x1b[row;colH` per changed
     // row" shape as the pre-existing status-diff test, just multi-line.
     // `\x1b[K` (erase to end of line) after each position mirrors a real
     // row-diff overwriting a longer baseline row with shorter content.
@@ -308,7 +308,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     await flush(term());
 
     // A subsequent normal print, correctly absolute-positioned at the
-    // NEXT free row (row 24, 1-indexed = index 23) — kOS's own screen
+    // NEXT free row (row 24, 1-indexed = index 23), kOS's own screen
     // model has already accounted for the error internally.
     act(() =>
       f.emit("kos.terminal.7", {
@@ -324,7 +324,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     expect(text).toContain("stack trace...");
     expect(text).toContain("fatal.");
     expect(text).toContain("STATUS: NOMINAL");
-    // Nothing merged onto another line — each string is on its OWN row,
+    // Nothing merged onto another line: each string is on its OWN row,
     // never sharing a row with another (the shape "lines appear INSIDE
     // error text" would take).
     const rows = text.split("\n");
@@ -347,7 +347,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     act(() => term().dataHandler("run."));
 
     // kOS updates a status line elsewhere on the screen (cursor-positioned
-    // incremental diff — exactly what ScreenDiffMapper emits when one row
+    // incremental diff: exactly what ScreenDiffMapper emits when one row
     // changes), NOT a full repaint. Previously this merged the composition
     // into "MET 00:12run." and wiped the prompt line.
     act(() =>
@@ -443,7 +443,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     });
     expect(compositionText()).toBe("run.");
 
-    // Two Lefts put the cursor between "ru" and "n." — a typed char there
+    // Two Lefts put the cursor between "ru" and "n.", a typed char there
     // should insert, not land at the tail as the pre-fix end-only buffer did.
     act(() => {
       term().dataHandler("\x1b[D");
@@ -463,7 +463,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     act(() => {
       for (const ch of "run.") term().dataHandler(ch);
     });
-    // Cursor after "run." (index 4) — one Left puts it before the ".".
+    // Cursor after "run." (index 4), one Left puts it before the ".".
     act(() => term().dataHandler("\x1b[D"));
     act(() => term().dataHandler("\x7f"));
 
@@ -497,7 +497,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     act(() => {
       for (const ch of "ab") term().dataHandler(ch);
     });
-    // Three Lefts on a 2-char line — the third is a no-op past the start.
+    // Three Lefts on a 2-char line: the third is a no-op past the start.
     act(() => {
       term().dataHandler("\x1b[D");
       term().dataHandler("\x1b[D");
@@ -561,7 +561,7 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
     act(() => {
       for (const ch of "run.") term().dataHandler(ch);
     });
-    // Move the cursor mid-line before committing — Enter must not truncate
+    // Move the cursor mid-line before committing: Enter must not truncate
     // at the cursor, it sends everything.
     act(() => {
       term().dataHandler("\x1b[D");
@@ -583,11 +583,11 @@ describe("KosTerminal line mode — faithful VT (real @xterm/headless)", () => {
 
 // kos-nopath-block-input fix: with no comms path, Enter used to clear the
 // buffer and push it to history BEFORE the dispatch-layer guard
-// (`sendKeystrokeRef`) blocked the send — the command visibly vanished even
+// (`sendKeystrokeRef`) blocked the send: the command visibly vanished even
 // though nothing was ever sent. These tests exercise the real VT engine
 // (same as the suite above) so a regression that only shows up through
 // xterm's actual `onData` batching wouldn't be masked by a simplified mock.
-describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)", () => {
+describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.instances.length = 0;
@@ -629,7 +629,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => f.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeVisible(),
     );
 
@@ -638,7 +638,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
       term().dataHandler("\r");
     });
 
-    // The line is still sitting in the composition bar, un-cleared — this is
+    // The line is still sitting in the composition bar, un-cleared, this is
     // the actual bug: pre-fix, Enter cleared it here regardless of dispatch.
     expect(compositionText()).toBe("run.");
 
@@ -661,7 +661,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => f.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeVisible(),
     );
 
@@ -682,7 +682,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => f.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeVisible(),
     );
 
@@ -697,7 +697,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => term().dataHandler("X"));
     expect(compositionText()).toBe("ruXn.");
 
-    // Enter is still refused — the line stays put, nothing is sent.
+    // Enter is still refused, the line stays put, nothing is sent.
     act(() => term().dataHandler("\r"));
     expect(compositionText()).toBe("ruXn.");
     await Promise.resolve();
@@ -711,7 +711,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => f.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeVisible(),
     );
 
@@ -724,7 +724,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     act(() => f.emit("comms.link", { connected: true }));
     await waitFor(() =>
       expect(
-        screen.queryByText(/No path — commands are not being sent/),
+        screen.queryByText(/No path: commands are not being sent/),
       ).toBeNull(),
     );
 
@@ -765,13 +765,13 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
   });
 
   // jsdom's CSS engine doesn't resolve (or even preserve) `var(...)` inside a
-  // shorthand `border` declaration through `getComputedStyle` — it silently
+  // shorthand `border` declaration through `getComputedStyle`: it silently
   // falls back to the initial value, so `toHaveStyle` can't see which token
   // is active. Read the actual rule styled-components injected instead: its
   // dynamic (non-"sc-*") class name is a direct function of the `$noPath`
   // prop, so finding that class's declaration block in the injected
   // stylesheet and checking which colour token it names is the faithful
-  // check — same information a browser's computed style would give, without
+  // check: same information a browser's computed style would give, without
   // depending on jsdom's incomplete CSS custom-property support.
   function compositionBorderRule(): string {
     const dynamicClass = Array.from(compositionBarEl().classList).find(
@@ -790,7 +790,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
   it("the composition bar's outline switches to the error/danger tone while there is no path, and back on reconnect", async () => {
     const f = await mountAttached({ lineMode: true });
 
-    // Connected (or unreported) — the normal accent tone, never the danger
+    // Connected (or unreported): the normal accent tone, never the danger
     // one: a green/accent outline is what let this bug through unnoticed.
     expect(compositionBorderRule()).toContain("--color-accent-fg");
     expect(compositionBorderRule()).not.toContain("--color-status-nogo-fg");
@@ -808,7 +808,7 @@ describe("KosTerminal line mode — no comms path (kos-nopath-block-input fix)",
     expect(compositionBorderRule()).not.toContain("--color-status-nogo-fg");
   });
 
-  // Bug 2: the outline alone doesn't say WHY the box turned red — operators
+  // Bug 2: the outline alone doesn't say WHY the box turned red, operators
   // asked for an explicit, visible badge near the input itself (the existing
   // `NoPathBadge` sits in the terminal pane's corner, easy to miss while
   // looking at the composition bar). Distinct short text ("NO PATH") from

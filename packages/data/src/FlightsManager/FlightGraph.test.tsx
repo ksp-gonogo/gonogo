@@ -89,8 +89,8 @@ describe("FlightGraph", () => {
       />,
     );
 
-    // v.name is enum — should never appear among the picker's rendered options.
-    // v.altitude carries the "m" unit — should appear.
+    // v.name is enum, should never appear among the picker's rendered options.
+    // v.altitude carries the "m" unit: should appear.
     await waitFor(() => {
       expect(screen.queryByText("Vessel name")).toBeNull();
       expect(screen.getByText("Altitude")).toBeTruthy();
@@ -120,7 +120,7 @@ describe("FlightGraph", () => {
     unmount();
 
     // Regression coverage: evictFullHistoryStore existed and was unit
-    // tested but had no call site outside its own test — historyCache grew
+    // tested but had no call site outside its own test, historyCache grew
     // unboundedly on the shared, module-level MissionHistorySource. The
     // graph panel's unmount must actually free its mission's cache entry.
     expect(evictSpy).toHaveBeenCalledWith(missionId);

@@ -29,7 +29,7 @@ describe("PowerSystems DOM snapshots", () => {
           Widget: PowerSystemsComponent,
           fixture,
           mode,
-          // PowerSystems uses useDataStreamStatus — connect the raw
+          // PowerSystems uses useDataStreamStatus, connect the raw
           // MockDataSource so the rendered status
           // badge reflects "connected, streaming" rather than the shared
           // harness's opt-out-by-default "disconnected" convention (see

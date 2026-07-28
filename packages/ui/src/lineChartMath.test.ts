@@ -81,7 +81,7 @@ describe("buildBandPath", () => {
 
   it("clamps to the shortest of the three arrays", () => {
     const path = buildBandPath([0, 1, 2], [0, 1], [10, 11, 12], id, id);
-    // n = 2 — final third sample is ignored
+    // n = 2: final third sample is ignored
     expect(path).not.toContain("2.00,12.00");
   });
 });

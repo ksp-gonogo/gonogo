@@ -31,7 +31,7 @@ describe("computeCompletionUpdate", () => {
       max,
       1000,
     );
-    // Same reference back — no transitions.
+    // Same reference back: no transitions.
     expect(result).toBe(current);
     expect(max.get(100)).toBe(30);
   });
@@ -39,14 +39,14 @@ describe("computeCompletionUpdate", () => {
   it("marks a node complete the first time its ΔV crosses below threshold", () => {
     const current = new Map<number, CompletedEntry>();
     const max = new Map<number, number>();
-    // Tick 1: 30 m/s — establishes max above threshold.
+    // Tick 1: 30 m/s: establishes max above threshold.
     computeCompletionUpdate(
       current,
       [node({ UT: 100, deltaVMagnitude: 30 })],
       max,
       1000,
     );
-    // Tick 2: drops to 0.1 — should mark complete.
+    // Tick 2: drops to 0.1: should mark complete.
     const completed = node({ UT: 100, deltaVMagnitude: 0.1 });
     const result = computeCompletionUpdate(current, [completed], max, 2000);
     expect(result).not.toBe(current);
@@ -57,7 +57,7 @@ describe("computeCompletionUpdate", () => {
   });
 
   it("does not mark a freshly-planned tiny correction burn as complete", () => {
-    // Node arrives below the threshold from the start — never observed above.
+    // Node arrives below the threshold from the start; never observed above.
     // Should not be treated as a completion.
     const current = new Map<number, CompletedEntry>();
     const max = new Map<number, number>();

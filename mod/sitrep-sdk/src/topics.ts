@@ -1,15 +1,15 @@
-// Typed Topic registry — Uplink architecture spec §3.1.
+// Typed Topic registry: Uplink architecture spec §3.1.
 //
 // Exports a `TopicId` string-literal union of every Topic the mod declares, plus a
 // `TopicPayload<T extends TopicId>` mapped type resolving each Topic to its wire
 // payload interface (e.g. `TopicPayload<'vessel.orbit'>` = `VesselOrbit`). Every place
-// that names a Topic — widget `channels`/`optionalChannels` declarations and the
-// `useTelemetry` read hook — is constrained to this union and shares the same token,
+// that names a Topic: widget `channels`/`optionalChannels` declarations and the
+// `useTelemetry` read hook, is constrained to this union and shares the same token,
 // so there are no open string keys and no drift.
 //
 // ── Single source of truth (CODEGEN) ────────────────────────────────────────────────
-// The bulk of this registry — `GeneratedTopicPayloadMap` and `GENERATED_TOPIC_IDS` in
-// `./__generated__/topic-map.ts` — is GENERATED from `Sitrep.Contract`: every wire
+// The bulk of this registry (`GeneratedTopicPayloadMap` and `GENERATED_TOPIC_IDS` in
+// `./__generated__/topic-map.ts`) is GENERATED from `Sitrep.Contract`: every wire
 // payload type is tagged `[SitrepTopic("<topic>")]`, and `mod/codegen.sh` (via
 // `RtConfig.EmitTopicMap`) reflects over those tags to emit both the payload interfaces
 // (`contract.ts`) and the Topic→payload map (`topic-map.ts`). A Topic added or removed
@@ -19,7 +19,7 @@
 //
 // ── The hand-declared tail (NOT codegen-derived) ────────────────────────────────────
 // Two ENGINE-OWNED Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are
-// declared by hand below rather than generated — deliberately, because a fabricated
+// declared by hand below rather than generated, deliberately, because a fabricated
 // contract type would misrepresent the wire (the CRITICAL "mirror the exact serialized
 // shape" rule):
 //   • `system.uplinks` is the engine-aggregated Uplink roster/health channel, declared
@@ -32,12 +32,12 @@
 // (A formerly-untyped array Topic that once sat in this tail as `unknown[]` while its
 // element shape was deferred now carries its wire-typed element contract and is
 // codegen-derived like every other array Topic.)
-// It does not resolve to `unknown` — the registry has no `unknown` Topics (proven at
+// It does not resolve to `unknown`, the registry has no `unknown` Topics (proven at
 // compile time by `_AssertNoTopicResolvesToUnknown` below).
 //
 // ── Bare-primitive Uplink Topics (NOT in the shared SDK) ─────────────────────────────
 // A few Topics carry a bare JSON primitive (`true`/`false`), so they have no named C#
-// payload type to reflect AND — unlike the engine tail above — they are OWNED BY A SINGLE
+// payload type to reflect AND (unlike the engine tail above) they are OWNED BY A SINGLE
 // UPLINK, not the engine. Naming that Uplink's mod token in this shared, mod-agnostic file
 // is the exact "mod-specific line in a generic file" leak the Uplink decoupling exists to
 // kill, so such Topics do NOT live here. Instead each owning Uplink's own client package
@@ -54,7 +54,7 @@ import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 
 /**
- * `system.uplinks` — the engine-aggregated Uplink roster/health channel. `ChannelEngine`
+ * `system.uplinks`: the engine-aggregated Uplink roster/health channel. `ChannelEngine`
  * declares it directly (not any one Uplink's contract) and builds it as a dictionary in
  * `BuildSystemUplinksPayload`, so it carries no `[SitrepTopic]` payload TYPE to reflect and
  * is hand-declared here, mirroring the exact serialized wire shape. `health.state` is the
@@ -69,18 +69,18 @@ export interface SystemUplinksTopicPayloadMap {
       available: boolean;
       reason: string | null;
       /**
-       * H_mod — the client-bundle sha256 the running mod vouches for (design §3.2/§3.3).
+       * H_mod: the client-bundle sha256 the running mod vouches for (design §3.2/§3.3).
        * `null` for a mod-only Uplink (no client half) or an older mod that predates the
        * two-pass hash bake. Hand-declared here (not codegen) because `system.uplinks` is
        * engine-built, not a `[SitrepTopic]` reflected payload.
        */
       expectedClientHash: string | null;
       /**
-       * Where the Uplink's CLIENT bundle lives (D5) — its distributable `url`
+       * Where the Uplink's CLIENT bundle lives (D5), its distributable `url`
        * plus an optional `devPath` (a localhost dev-server URL or local build
        * dir for a third-party dev loop). `null` for a mod-only Uplink with no
        * client half. Hand-declared here (not codegen) for the same reason as
-       * the rest of this shape — `system.uplinks` is engine-built, not a
+       * the rest of this shape: `system.uplinks` is engine-built, not a
        * `[SitrepTopic]` reflected payload. The bundle's integrity hash is NOT
        * repeated here; it stays on `expectedClientHash` (the loader's three-way
        * check reads it there).
@@ -92,7 +92,7 @@ export interface SystemUplinksTopicPayloadMap {
 }
 
 /**
- * `system.uplink.pending` — the in-transit command queue (prediction-only bookkeeping).
+ * `system.uplink.pending`: the in-transit command queue (prediction-only bookkeeping).
  * `ChannelEngine` declares it directly (not any one Uplink's contract), so like
  * `system.uplinks` it carries no `[SitrepTopic]` payload TYPE to reflect and is
  * hand-declared here. Its payload IS a real reflected contract type (`PendingUplinkQueue`),
@@ -103,14 +103,14 @@ export interface SystemUplinkPendingTopicPayloadMap {
 }
 
 /**
- * The SDK's OWN Topic map — the generated entries plus the engine-owned tail
+ * The SDK's OWN Topic map: the generated entries plus the engine-owned tail
  * (`system.uplinks`, `system.uplink.pending`). DELIBERATELY distinct from the public,
  * augmentable `TopicPayloadMap` below: bare-primitive Uplink Topics augment
  * `TopicPayloadMap` (not this), so this interface stays fixed to exactly what the SDK owns
- * in EVERY program — augmented or not. The compile-time invariants below bind `TOPIC_IDS`
- * to THIS map (not the augmentable one), so a downstream Uplink augmentation — which adds a
+ * in EVERY program: augmented or not. The compile-time invariants below bind `TOPIC_IDS`
+ * to THIS map (not the augmentable one), so a downstream Uplink augmentation, which adds a
  * key to `TopicPayloadMap` and an id to the runtime registry, never to the static
- * `TOPIC_IDS` array — cannot turn the SDK's own array↔map assertions into false failures.
+ * `TOPIC_IDS` array: cannot turn the SDK's own array↔map assertions into false failures.
  */
 interface SdkOwnedTopicPayloadMap
   extends GeneratedTopicPayloadMap,
@@ -122,7 +122,7 @@ interface SdkOwnedTopicPayloadMap
  * a `stream-data` message on that Topic carries. The generated entries come from
  * `Sitrep.Contract`'s `[SitrepTopic]` tags; the `system.uplinks`/`system.uplink.pending`
  * entries are the engine-owned hand-declared tail (see the file header). Bare-primitive
- * Uplink Topics are NOT here — each owning Uplink's client package augments this interface
+ * Uplink Topics are NOT here, each owning Uplink's client package augments this interface
  * via `declare module "@ksp-gonogo/sitrep-sdk"` (see the file header). `TopicId` and
  * `TopicPayload` are both derived from this map, so a
  * client that statically imports its Uplink's augmenting module sees the augmented Topic
@@ -138,14 +138,14 @@ export type TopicId = keyof TopicPayloadMap;
 export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
 
 /**
- * Runtime list of the SDK's OWN `TopicId`s — the generated ids plus the engine-owned
+ * Runtime list of the SDK's OWN `TopicId`s, the generated ids plus the engine-owned
  * hand-declared tail (`system.uplinks`, `system.uplink.pending`). Kept in lock-step with
  * `TopicPayloadMap`'s SDK-owned keys by the compile-time assertions below (within this
  * package's program the Uplink augmentations are not reachable, so `keyof TopicPayloadMap`
  * is exactly this set). Bare-primitive Uplink Topics register at load into
- * `barePrimitiveTopicIds` and are NOT in this array — use `getAllKnownTopicIds()` /
+ * `barePrimitiveTopicIds` and are NOT in this array; use `getAllKnownTopicIds()` /
  * `isTopicId` for the live full set. Dynamic namespaces (e.g. the per-CPU `kos.compute.*`
- * prefix) are intentionally NOT enumerated here — a runtime-computed sub-topic has no
+ * prefix) are intentionally NOT enumerated here, a runtime-computed sub-topic has no
  * fixed member in the union.
  */
 export const TOPIC_IDS = [
@@ -157,7 +157,7 @@ export const TOPIC_IDS = [
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
 
 /**
- * Runtime registry of bare-primitive Uplink Topic ids — the ids that carry a naked JSON
+ * Runtime registry of bare-primitive Uplink Topic ids, the ids that carry a naked JSON
  * boolean, so they have no named C# payload type and are owned by a single Uplink rather
  * than the shared SDK. Each owning Uplink's client package calls
  * `registerBarePrimitiveTopic` at module load (mirrors the `registerComponent`
@@ -176,7 +176,7 @@ export function registerBarePrimitiveTopic(id: string): void {
 }
 
 /**
- * Every Topic id currently known at runtime — the SDK's own `TOPIC_IDS` plus every
+ * Every Topic id currently known at runtime, the SDK's own `TOPIC_IDS` plus every
  * bare-primitive Uplink Topic registered so far. The completeness-oriented counterpart to
  * `TOPIC_IDS`: consumers that want "subscribe to / iterate over EVERYTHING" (e.g. the
  * replay recorder's full-archive mode) read this, since the two bare topics are no longer
@@ -196,12 +196,12 @@ export function isTopicId(value: string): value is TopicId {
 
 // ── Compile-time invariants (checked by `pnpm typecheck`) ───────────────────────────
 // These bind the runtime `TOPIC_IDS` array to the SDK-OWNED `SdkOwnedTopicPayloadMap` in
-// both directions and prove that no SDK-owned Topic resolves to `unknown` — so a drift
+// both directions and prove that no SDK-owned Topic resolves to `unknown`, so a drift
 // between the array and the map, or an SDK-owned Topic slipping back to `unknown`, is a
 // build error rather than a silent runtime bug. They intentionally use the fixed
 // SDK-owned map, NOT the augmentable `TopicPayloadMap`: a bare-primitive Uplink Topic that
 // augments `TopicPayloadMap` is present in the type union but absent from `TOPIC_IDS` (it
-// registers into the runtime set instead) — that is BY DESIGN, so binding these asserts to
+// registers into the runtime set instead), that is BY DESIGN, so binding these asserts to
 // the augmentable map would make them fail in any program that loads an Uplink client. Each
 // augmented Topic proves its own resolution in its owning client package's `topics.ts`.
 
@@ -212,7 +212,7 @@ type Equal<A, B> =
 type AssertTrue<T extends true> = T;
 type AssertNever<T extends never> = T;
 
-// `TOPIC_IDS` must list exactly the SDK-owned keys (generated + engine tail) — no missing,
+// `TOPIC_IDS` must list exactly the SDK-owned keys (generated + engine tail), no missing,
 // no extra.
 type SdkOwnedTopicId = keyof SdkOwnedTopicPayloadMap;
 type _MissingFromRuntime = Exclude<SdkOwnedTopicId, (typeof TOPIC_IDS)[number]>;
@@ -223,7 +223,7 @@ export type _AssertNoExtraTopics = AssertNever<_ExtraInRuntime>;
 // No SDK-owned Topic resolves to `unknown`. `IsUnknown<T>` is true ONLY for exactly
 // `unknown` (excluding `any`, for which `unknown extends T` is also true); mapping it over
 // every SDK-owned Topic and collapsing to a union yields `false` iff every payload is a
-// real type — a single `unknown` payload would widen the union to `boolean` and fail the
+// real type: a single `unknown` payload would widen the union to `boolean` and fail the
 // assert.
 type IsAny<T> = 0 extends 1 & T ? true : false;
 type IsUnknown<T> =

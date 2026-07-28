@@ -1,17 +1,17 @@
 /**
  * The vessel's future-orbit patch chain (`vessel.orbit.patches` / each
- * `vessel.maneuver.nodes[].patches`, `mod/Sitrep.Contract/OrbitPatch.cs`) —
+ * `vessel.maneuver.nodes[].patches`, `mod/Sitrep.Contract/OrbitPatch.cs`):
  * reshaped into the legacy Telemachus `OrbitPatch` shape MapView/
  * `packages/core/src/calc/trajectory.ts` already consume (`o.orbitPatches`,
  * `ManeuverNode.orbitPatches`), plus a narrow vacuum-ballistic impact-point
- * walk over that same chain (`land.predictedLat`/`Lon`'s source — see
+ * walk over that same chain (`land.predictedLat`/`Lon`'s source; see
  * `vessel-state.ts`'s `deriveLanding`).
  */
 
 /**
  * Wire shape of one `OrbitPatch` entry (mirrors `mod/Sitrep.Contract/
  * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
- * in `vessel-state.ts` — not (yet) generated into this package.
+ * in `vessel-state.ts`: not (yet) generated into this package.
  */
 export interface OrbitPatchWirePayload {
   sma: number;
@@ -24,7 +24,7 @@ export interface OrbitPatchWirePayload {
   period: number;
   startUt: number;
   endUt: number;
-  /** Raw `Sitrep.Contract.TransitionType` ordinal — see `transitionName`. */
+  /** Raw `Sitrep.Contract.TransitionType` ordinal: see `transitionName`. */
   patchStartTransition: number;
   patchEndTransition: number;
   peA: number;
@@ -38,9 +38,9 @@ export interface OrbitPatchWirePayload {
 /**
  * The legacy `o.orbitPatches`/`ManeuverNode.orbitPatches` shape
  * (`@ksp-gonogo/core`'s `OrbitPatch`, `packages/core/src/schemas/
- * orbit.ts`) — re-declared HERE, structurally identical but not
+ * orbit.ts`): re-declared HERE, structurally identical but not
  * imported, because `sitrep-client` cannot depend on `@ksp-gonogo/core`
- * (the dependency points the other way: core depends on sitrep-client — see
+ * (the dependency points the other way: core depends on sitrep-client; see
  * `core`'s `package.json`). TypeScript's structural typing makes the two
  * interchangeable at every call site that matters (`@ksp-gonogo/core`'s
  * `predictGroundTrack` accepts this shape with no cast needed).
@@ -72,7 +72,7 @@ export interface LegacyOrbitPatch {
  * schemas/orbit.ts`'s `OrbitPatch.patchStartTransition` doc comment).
  * Declaration order matches `mod/Sitrep.Contract/VesselEnums.cs`'s
  * `TransitionType` (Initial/Final/Encounter/Escape/Maneuver/Collision/
- * Unknown) — same ordinal-table pattern as `vessel-state.ts`'s
+ * Unknown): same ordinal-table pattern as `vessel-state.ts`'s
  * `SITUATION_NAMES`/`SAS_MODE_NAMES`. KSP's OWN enum spells the impact case
  * "IMPACT"; `Gonogo.KSP.KspHost.BuildOrbitPatchChain` already translates
  * that to "COLLISION" before it reaches the wire, so this table only ever
@@ -94,7 +94,7 @@ function transitionName(ordinal: number): string {
 
 /**
  * Reshapes one wire `OrbitPatch` into the legacy shape `predictGroundTrack`
- * (and MapView's overlay) already consume unchanged — a pure field rename/
+ * (and MapView's overlay) already consume unchanged: a pure field rename/
  * passthrough, no lookup needed: `referenceBody`/`closestEncounterBody` are
  * already body NAME strings on the wire (see `OrbitPatch.cs`'s doc comment
  * for why), unlike most of this codebase's index-based body references.
@@ -123,18 +123,18 @@ export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
 }
 
 // ---------------------------------------------------------------------------
-// Impact-point propagation — a narrow, LOCAL copy of the vacuum-ballistic
+// Impact-point propagation: a narrow, LOCAL copy of the vacuum-ballistic
 // patch-walk `@ksp-gonogo/core`'s `packages/core/src/calc/trajectory.ts`
 // (`predictGroundTrack`) already implements for MapView's rendered ground
 // track. Duplicated rather than imported because `sitrep-client` cannot
-// depend on `@ksp-gonogo/core` (see `LegacyOrbitPatch`'s doc comment above)
-// — a real cost, flagged here rather than hidden; a future refactor could
+// depend on `@ksp-gonogo/core` (see `LegacyOrbitPatch`'s doc comment above),
+// a real cost, flagged here rather than hidden; a future refactor could
 // relocate the shared math to a layer both packages can reach without a
 // circular dependency. This copy is intentionally NARROWER than
 // `predictGroundTrack`: it returns only the LAST pre-surface sample (the
 // impact point), not a renderable polyline, so it skips the longitude-wrap
 // segmentation and the per-call `PerfBudget` `predictGroundTrack` needs for
-// its render-loop call pattern — this function is only ever invoked from a
+// its render-loop call pattern, this function is only ever invoked from a
 // horizon-bounded `deriveLanding` evaluation (see that function's doc
 // comment for the bound), never per-frame unbounded.
 // ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ interface InertialState {
   radius: number;
 }
 
-/** Vessel's inertial state at an arbitrary UT within `patch` — same math as `trajectory.ts`'s `patchStateAt`. */
+/** Vessel's inertial state at an arbitrary UT within `patch`, same math as `trajectory.ts`'s `patchStateAt`. */
 function patchStateAt(patch: LegacyOrbitPatch, ut: number): InertialState {
   const dt = ut - patch.epoch;
   const n = (2 * Math.PI) / patch.period;
@@ -247,7 +247,7 @@ export interface PredictionRef {
   lon: number;
 }
 
-/** Body-fixed-longitude converter calibrated against the vessel's current ground position — same construction as `trajectory.ts`'s `buildBodyRotation`. */
+/** Body-fixed-longitude converter calibrated against the vessel's current ground position, same construction as `trajectory.ts`'s `buildBodyRotation`. */
 function buildBodyRotation(
   referencePatch: LegacyOrbitPatch,
   ref: PredictionRef,
@@ -261,14 +261,14 @@ function buildBodyRotation(
     wrap180(inertialLon - rotationOffsetAtRef - omega * (ut - ref.ut));
 }
 
-/** A patch is propagable with the elliptical solver above — hyperbolic/parabolic trajectories aren't. */
+/** A patch is propagable with the elliptical solver above, hyperbolic/parabolic trajectories aren't. */
 function isPatchElliptical(patch: LegacyOrbitPatch): boolean {
   return (
     patch.eccentricity < 1 && Number.isFinite(patch.period) && patch.period > 0
   );
 }
 
-/** Altitude below which a sample counts as "at/below the surface" — same threshold `predictGroundTrack` uses. */
+/** Altitude below which a sample counts as "at/below the surface", same threshold `predictGroundTrack` uses. */
 const MIN_IMPACT_ALT_M = -100;
 
 export interface ImpactPoint {
@@ -278,12 +278,12 @@ export interface ImpactPoint {
 
 /**
  * Walks the patch chain forward from `ref.ut` and returns the LAST sample
- * before altitude drops below `MIN_IMPACT_ALT_M` — the predicted surface
+ * before altitude drops below `MIN_IMPACT_ALT_M`: the predicted surface
  * impact point. `null` when the walk never dips below the surface within
- * `horizonSec` (no prediction — never a fabricated `(0,0)`, unlike
+ * `horizonSec` (no prediction: never a fabricated `(0,0)`, unlike
  * Telemachus's own sentinel convention; see `LandingStatus`'s `isSentinel`
  * for the widget-side null handling). Bound `horizonSec`/`stepSec` tightly
- * at the call site — this is an O(horizonSec / stepSec) loop with no
+ * at the call site: this is an O(horizonSec / stepSec) loop with no
  * internal sample cap.
  */
 export function findImpactPoint(
@@ -310,7 +310,7 @@ export function findImpactPoint(
 
   let last: ImpactPoint | null = null;
   for (const patch of patches) {
-    if (patch.referenceBody !== bodyId) break; // SOI change — stop.
+    if (patch.referenceBody !== bodyId) break; // SOI change, stop.
     if (!isPatchElliptical(patch)) break;
     if (patch.endUT < ref.ut) continue; // Already finished.
     if (patch.startUT > endUT) break; // Past horizon.
@@ -332,13 +332,13 @@ export function findImpactPoint(
 /**
  * Sidereal rotation period (seconds) for the stock KSP bodies, hand-mirrored
  * from `@ksp-gonogo/core`'s static body registry
- * (`packages/core/src/stock-bodies.ts`) — `sitrep-client` cannot import
+ * (`packages/core/src/stock-bodies.ts`): `sitrep-client` cannot import
  * `@ksp-gonogo/core` (see `LegacyOrbitPatch`'s doc comment), and this is the
  * only physical constant `findImpactPoint` needs that isn't already on the
  * wire (body mean radius comes live off `system.bodies`, same lookup
  * `deriveApsides`/`deriveLanding` already use). Same accepted stock-only
  * limitation MapView's own trajectory prediction already carries via
- * `getBody()` — not a new gap. Keep in sync if `stock-bodies.ts`'s rotation
+ * `getBody()`: not a new gap. Keep in sync if `stock-bodies.ts`'s rotation
  * periods change; a body missing from this table simply gets no landing
  * prediction (see `deriveLanding`'s `null` fallback), same honest-absence
  * discipline as everywhere else in this file.

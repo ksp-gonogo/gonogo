@@ -1,19 +1,20 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * CurrentOrbit integration test — the widget runs entirely off the SDK stream.
+ * CurrentOrbit integration test: the widget runs entirely off the SDK stream.
  * `sma`/`eccentricity`/`inclination`/`argPe` are raw `vessel.orbit` elements;
  * `trueAnomaly`/`period`/`referenceBodyName`/`parentBodyName` plus the
  * Ap/Pe/ApR/PeR/timeToAp/timeToPe read through `useOrbitElements` and the
  * `useIsOrbiting` apsis altitudes are SDK-derived `vessel.state.*` fields.
  * `useOrbitElements`/`useIsOrbiting` still ride the `useDataValue` shim, whose
  * carried gate routes to the stream only once ALL EIGHT `vessel.state` inputs
- * are carried — hence the full input list below. No legacy `MockDataSource` is
+ * are carried, hence the full input list below. No legacy `MockDataSource` is
  * registered anywhere in this file.
  *
  * The apsis ALTITUDES are derived (`sma·(1±ecc) − bodyRadius`), so the orbit
@@ -94,10 +95,11 @@ describe("CurrentOrbitComponent", () => {
     });
   }
 
-  it("shows em-dashes for every field before any telemetry arrives", () => {
+  it("shows the null-display placeholder for every field before any telemetry arrives", () => {
     const { container } = renderOrbit();
-    // Seven "—" slots (Ap, Pe, Ecc, Inc, T, t-Ap, t-Pe)
-    const dashes = container.textContent?.match(/—/g) ?? [];
+    // Seven null-display slots (Ap, Pe, Ecc, Inc, T, t-Ap, t-Pe)
+    const dashes =
+      container.textContent?.match(new RegExp(NULL_DISPLAY, "g")) ?? [];
     expect(dashes.length).toBeGreaterThanOrEqual(7);
   });
 

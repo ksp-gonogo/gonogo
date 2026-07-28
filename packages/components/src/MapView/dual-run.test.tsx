@@ -14,10 +14,10 @@ import { MapViewComponent } from "./index";
  * remains proves the compact (`!showMap`) Lat/Lon/Alt readout renders the same
  * pre-launch state off the real stream pipeline.
  *
- * Mode `4x5` selects the compact branch — the one MapView render path whose
+ * Mode `4x5` selects the compact branch: the one MapView render path whose
  * Lat/Lon/Alt readout is plain DOM text rather than canvas drawing.
  */
-describe("MapView — stream render golden (delay=0)", () => {
+describe("MapView: stream render golden (delay=0)", () => {
   it("renders the compact Lat/Lon/Alt readout off the stream for the launchpad state", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: [
@@ -54,7 +54,7 @@ describe("MapView — stream render golden (delay=0)", () => {
       });
     });
 
-    // altSea lands off the derived vessel.state channel (measured basis) —
+    // altSea lands off the derived vessel.state channel (measured basis),
     // waiting on the mapped altitude readout proves the stream leg rendered.
     await waitFor(() => {
       if (!container.textContent?.includes("0.1 km")) {

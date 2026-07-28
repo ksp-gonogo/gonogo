@@ -1,12 +1,12 @@
 /**
- * AltitudeRail — the altimeter as a full-height rail down one edge of the
+ * AltitudeRail: the altimeter as a full-height rail down one edge of the
  * landing widget, rather than a strip crammed into the middle of the flight
  * picture. It is the spatial spine of the instrument: AGL falling toward the
  * ground line at the bottom, the suicide-burn ignition band shaded as a hot
  * zone the pointer descends into, and the ignition cue pinned beneath it.
  *
  * Presentational: `aglMeters` / `ignitionAltitude` / `suicideBurnCountdown`
- * are derived upstream by `solveSuicideBurn` and passed in. All nullable — the
+ * are derived upstream by `solveSuicideBurn` and passed in. All nullable, the
  * rail renders a safe empty scale before data arrives.
  */
 
@@ -40,7 +40,7 @@ export function AltitudeRail({
     ignitionAltitude != null && ignitionAltitude > 0 ? ignitionAltitude : null;
   const maxScale = niceCeil(Math.max(agl, ignition ?? 0, 1) * 1.1);
 
-  // The hot band: from the ground up to the ignition altitude — the region in
+  // The hot band: from the ground up to the ignition altitude, the region in
   // which the burn must already have started.
   const zones =
     ignition != null
@@ -81,7 +81,7 @@ export function AltitudeRail({
           ariaLabel="Altitude above terrain"
         />
       </div>
-      {/* The Tape (visual) bleeds to the panel edge, but this label is TEXT —
+      {/* The Tape (visual) bleeds to the panel edge, but this label is TEXT,
           give it a readable local left inset (matches the commit text) so it
           isn't jammed against the edge. */}
       <div style={{ alignSelf: "stretch", paddingLeft: "12px" }}>

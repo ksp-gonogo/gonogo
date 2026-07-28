@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "crater-field",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Crater — deep central dip + raised rim => MARGINAL on roughness"
+    "notes": "SYNTHETIC (model-generated, NOT captured). Crater: deep central dip + raised rim => MARGINAL on roughness"
   },
   "_stream": {
     "carriedChannels": [

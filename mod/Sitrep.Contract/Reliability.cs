@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reliability — a Domain-NEUTRAL capability namespace (reliability.*), exactly
+// Reliability: a Domain-NEUTRAL capability namespace (reliability.*), exactly
 // like comms.* (Comms.cs). It is NOT owned by one uplink Domain: multiple mods
 // can model reliability (Kerbalism-Reliability, TestFlight), so it rides the
 // Kernel capability election, modelled on the "comms" capability (Kernel.cs,
@@ -25,12 +25,12 @@ namespace Sitrep.Contract;
 //     live; both-registered resolves by Priority in the Kernel, never in the client.
 //
 // ReliabilitySummary / ReliabilityPartEntry are wire POCOs (typing + codegen).
-// IReliabilityBackend is the capability's active-instance interface — NOT a wire
-// type — parameterless and KSP-free (backends read the active vessel internally,
+// IReliabilityBackend is the capability's active-instance interface, NOT a wire
+// type: parameterless and KSP-free (backends read the active vessel internally,
 // exactly like ICommsBackend), so Sitrep.Contract stays KSP-free / MIT.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// <summary>Vessel-level reliability summary. Source-agnostic — the elected backend fills it.</summary>
+/// <summary>Vessel-level reliability summary. Source-agnostic: the elected backend fills it.</summary>
 [SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
@@ -44,7 +44,7 @@ public class ReliabilitySummary
     public bool? Critical { get; set; }
     /// <summary>Which backend produced this: "kerbalism" | "testflight" | "none".</summary>
     public string? Source { get; set; }
-    /// <summary>Worst engine reliability probability on the vessel (0..1) — the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
+    /// <summary>Worst engine reliability probability on the vessel (0..1), the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
     public double? WorstReliabilityFraction { get; set; }
 }
 
@@ -68,7 +68,7 @@ public class ReliabilityPartEntry
     public bool? Broken { get; set; }
     public bool? Critical { get; set; }
     public double? MtbfHours { get; set; }
-    /// <summary>Live/interpolated reliability probability (0..1) — TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
+    /// <summary>Live/interpolated reliability probability (0..1): TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
     public double? ReliabilityFraction { get; set; }
     /// <summary>Seconds of rated burn left (TestFlight). Distinct from the Kerbalism-only DurationConsumed fraction. Null for Kerbalism.</summary>
     public double? RemainingRatedBurn { get; set; }

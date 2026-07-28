@@ -36,7 +36,7 @@
           "options": {
             "paths": {
               "@testing-library/react": {
-                "message": "Import from @ksp-gonogo/test-utils instead — its render/renderHook supply the theme every kit primitive needs (pass `wrapper` to add providers on top), and it re-exports the rest of Testing Library unchanged. Testing Library also auto-cleans after every test, so a manual cleanup import/call is redundant and masks real teardown bugs."
+                "message": "Import from @ksp-gonogo/test-utils instead: its render/renderHook supply the theme every kit primitive needs (pass `wrapper` to add providers on top), and it re-exports the rest of Testing Library unchanged. Testing Library also auto-cleans after every test, so a manual cleanup import/call is redundant and masks real teardown bugs."
               }
             }
           }
@@ -83,10 +83,10 @@
               "options": {
                 "paths": {
                   "styled-components": {
-                    "message": "Migrated widgets carry zero bespoke CSS — compose @ksp-gonogo/ui-kit primitives + layout + tokens instead. See local_docs/telemetry-mod/ui-kit-design.md."
+                    "message": "Migrated widgets carry zero bespoke CSS, compose @ksp-gonogo/ui-kit primitives + layout + tokens instead. See local_docs/telemetry-mod/ui-kit-design.md."
                   },
                   "@testing-library/react": {
-                    "message": "Import from @ksp-gonogo/test-utils instead — its render/renderHook supply the theme every kit primitive needs (pass `wrapper` to add providers on top), and it re-exports the rest of Testing Library unchanged. Testing Library also auto-cleans after every test, so a manual cleanup import/call is redundant and masks real teardown bugs."
+                    "message": "Import from @ksp-gonogo/test-utils instead: its render/renderHook supply the theme every kit primitive needs (pass `wrapper` to add providers on top), and it re-exports the rest of Testing Library unchanged. Testing Library also auto-cleans after every test, so a manual cleanup import/call is redundant and masks real teardown bugs."
                   }
                 }
               }

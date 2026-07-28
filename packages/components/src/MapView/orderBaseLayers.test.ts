@@ -39,7 +39,7 @@ describe("groupBaseLayersByUplink", () => {
     const noDomain2 = { id: "solo-2" };
     const input = [noDomain1, grouped, noDomain2];
 
-    // No two ungated augments share an id, so each stays its own group —
+    // No two ungated augments share an id, so each stays its own group,
     // net effect on this input is a no-op, but proves the fallback key path.
     expect(groupBaseLayersByUplink(input)).toEqual(input);
   });

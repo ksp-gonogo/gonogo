@@ -3,8 +3,8 @@
     "capturedAt": "2026-07-24",
     "vessel": "Ares (LEO parking orbit)",
     "body": "Earth (RSS)",
-    "situation": "700 km LEO around Earth, Mars targeted, phase FAR from the ideal (HOLD) — Mars at +250deg, ~half a synodic period from the next window",
-    "notes": "Stream fixture for the Transfer Window widget — RSS Sun/Earth/Mars/Venus, coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each body's true longitude equals its meanAnomalyAtEpoch. Earth at lon 0; Mars parked at +250deg (well off the +44.3deg ideal) so the dial reads HOLD and the next-window countdown shows the synodic wait. Venus is a second selectable destination. Mars is the current target (target.available) so the widget seeds the destination to it. The porkchop spans a full synodic period so its Δv surface + best-cell ring render regardless of the instantaneous phase."
+    "situation": "700 km LEO around Earth, Mars targeted, phase FAR from the ideal (HOLD), Mars at +250deg, ~half a synodic period from the next window",
+    "notes": "Stream fixture for the Transfer Window widget, RSS Sun/Earth/Mars/Venus, coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each body's true longitude equals its meanAnomalyAtEpoch. Earth at lon 0; Mars parked at +250deg (well off the +44.3deg ideal) so the dial reads HOLD and the next-window countdown shows the synodic wait. Venus is a second selectable destination. Mars is the current target (target.available) so the widget seeds the destination to it. The porkchop spans a full synodic period so its Δv surface + best-cell ring render regardless of the instantaneous phase."
   },
   "_stream": {
     "carriedChannels": ["vessel.orbit", "system.bodies", "target.available"],

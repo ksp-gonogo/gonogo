@@ -57,10 +57,10 @@ const unitFor = (type: ServoType) => (type === "piston" ? "%" : "°");
  * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
  * down to the hinge/piston entries this widget drives (`type ∈ {"hinge",
  * "piston"}`; rotors are Rotor Tachometer's domain). `partId` is
- * `Part.flightID` stringified — stable per-part for the life of the flight
+ * `Part.flightID` stringified: stable per-part for the life of the flight
  * and, unlike `partName`, unique even among symmetric same-named parts (e.g.
  * a multirotor's N identical arms). Entries with no string `partId` are
- * dropped — they can't be selected or targeted safely. A hinge's position
+ * dropped: they can't be selected or targeted safely. A hinge's position
  * comes off `currentAngle`/`targetAngle`; a piston's off `currentExtension`/
  * `targetExtension`. `atTarget` is derived (no such field on the wire):
  * current and target within half a unit of each other.

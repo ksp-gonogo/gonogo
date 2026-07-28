@@ -1,24 +1,24 @@
 name: Build and publish one Uplink mod
 
 # Reusable workflow_call: builds a single mod's GameData zip and, on the
-# release channel, publishes it straight to SpaceDock. One job — build and
+# release channel, publishes it straight to SpaceDock. One job, build and
 # SpaceDock share the freshly-built zip, no artifact round-trip needed.
 #
 # This is the shared per-mod pipeline behind publish-mods.yml's matrix
 # (first-party monorepo). It's written so a future third-party Uplink repo
 # (P7 marketplace) can call it too: `uses: ksp-gonogo/gonogo/.github/workflows/_build-uplink-mod.yml@main`
 # with its own csproj/dll/gamedata inputs and `secrets: inherit` (or its own
-# KSP_MANAGED_TOKEN / SPACEDOCK_* secrets) — no changes needed here.
+# KSP_MANAGED_TOKEN / SPACEDOCK_* secrets): no changes needed here.
 #
 # version/ref/channel are computed by the CALLER, not derived here, so this
-# workflow stays a pure "build+publish what I'm told" step — see
+# workflow stays a pure "build+publish what I'm told" step; see
 # docs/superpowers/plans/2026-07-11-mod-release-pipeline-design.md §4c.
 
 on:
   workflow_call:
     inputs:
       id:
-        description: "Mod id — used for artifact name, zip filename, log messages"
+        description: "Mod id: used for artifact name, zip filename, log messages"
         required: true
         type: string
       csproj:
@@ -73,12 +73,12 @@ jobs:
           ref: ${{ inputs.ref }}
           # fetch-depth 20 (not the default shallow 1) so the SpaceDock
           # changelog step below has real history to summarize on the
-          # release channel — matches the old publish-spacedock job's
+          # release channel: matches the old publish-spacedock job's
           # checkout.
           fetch-depth: 20
 
       # ksp-managed is a private repo of non-redistributable KSP/Unity
-      # (and here, third-party mod) reference assemblies — see the
+      # (and here, third-party mod) reference assemblies: see the
       # OUTSTANDING PREREQS block at the top of publish-mods.yml. Token
       # carries its own cross-repo Contents:read, hence `permissions:
       # contents: read` at the workflow level rather than anything broader.
@@ -99,7 +99,7 @@ jobs:
             /p:KspManaged="${{ github.workspace }}/ksp-managed/KSP_Data/Managed" \
             /p:KspGameData="${{ github.workspace }}/ksp-managed/GameData"
 
-      # Per-mod GameData/<folder>/Plugins/ tree — see
+      # Per-mod GameData/<folder>/Plugins/ tree: see
       # docs/superpowers/plans/2026-07-11-mod-release-pipeline-design.md §2.
       # `AppendTargetFrameworkToOutputPath=false` on every KSP-facing
       # csproj means the built DLL always lands directly in bin/Release/,
@@ -157,10 +157,10 @@ jobs:
       # Mirrors kerbcam release.yml's "Publish to SpaceDock" step: cookie-based
       # login (SpaceDock has no API tokens), multipart upload to
       # /api/mod/<id>/update. Per-mod listing id is passed in as
-      # spacedock_mod_id — see OUTSTANDING PREREQS §2 in publish-mods.yml.
+      # spacedock_mod_id: see OUTSTANDING PREREQS §2 in publish-mods.yml.
       # No KSP-AVC `.version` manifest exists for any gonogo mod yet (design
       # doc §2/§6 gap), so game-version is a hardcoded placeholder pending
-      # that follow-up. Uses the zip just built above — no artifact download.
+      # that follow-up. Uses the zip just built above, no artifact download.
       - name: Publish ${{ inputs.id }} to SpaceDock
         if: ${{ inputs.channel == 'release' }}
         env:
@@ -177,7 +177,7 @@ jobs:
           ZIP="${{ env.ZIP_NAME }}"
           VERSION="${{ inputs.version }}"
           # Placeholder until a Gonogo.version / KSP-AVC manifest exists
-          # (design doc §2 gap) — the mod targets KSP 1.12.3 per
+          # (design doc §2 gap): the mod targets KSP 1.12.3 per
           # docs/superpowers/plans/2026-07-06-m5b-first-run.md.
           GAME_VERSION="1.12.3"
           git log --oneline -20 > sd-changelog.md

@@ -5,7 +5,7 @@
  *
  * - `GroundSurvey` grades σ over the flown-over track (a multi-km baseline)
  * - the Landing hazard verdict grades σ over the touchdown patch (sampled on a
- *   comparably wide footprint so the same cutoffs transfer — see the mod-side
+ *   comparably wide footprint so the same cutoffs transfer; see the mod-side
  *   sampler)
  *
  * Calibrated for KSP terrain: Mun maria run ~30 m σ, mid-rough ~150 m, highlands

@@ -4,7 +4,7 @@ import { getSharedAudioContext, pulse } from "./audio";
 
 /**
  * Main-screen sound effects: the alarm chime, the per-second GO/NO-GO
- * countdown tone, and the abort alert. All of these are MAIN-ONLY — they
+ * countdown tone, and the abort alert. All of these are MAIN-ONLY, they
  * pair with on-screen visual cues (alarm banner, countdown banner, abort
  * banner) so audio is never the sole signal (a11y). Stations stay silent
  * to avoid a multi-tab cacophony.
@@ -41,7 +41,7 @@ export function isSoundEnabled(): boolean {
 /**
  * Prime the module flag from the persisted setting and keep it in sync.
  * Call once from MainScreen; the returned unsubscribe detaches the
- * subscription (StrictMode cleanup). MAIN-ONLY by where it's wired — never
+ * subscription (StrictMode cleanup). MAIN-ONLY by where it's wired; never
  * call this from StationScreen.
  */
 export function initSoundSettings(service: SettingsService): () => void {
@@ -67,10 +67,10 @@ export function playCountdownTone(final = false): void {
   if (!ctx) return;
   const now = ctx.currentTime;
   if (final) {
-    // T-0 — a brighter, marginally longer commit tone.
+    // T-0: a brighter, marginally longer commit tone.
     pulse(ctx, 1320, now, 0.32, 0.2);
   } else {
-    // Each second — a short, low blip.
+    // Each second: a short, low blip.
     pulse(ctx, 660, now, 0.1, 0.14);
   }
 }

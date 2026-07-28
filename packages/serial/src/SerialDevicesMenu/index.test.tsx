@@ -62,7 +62,7 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     render(
       // SerialDevicesMenu is always opened inside a Modal in production (see
       // SerialFab.tsx), and a gamepad DeviceRow now offers its own nested
-      // "Learn roles..." modal — so it needs a real ModalProvider ancestor
+      // "Learn roles..." modal: so it needs a real ModalProvider ancestor
       // here too, not just SerialDeviceProvider.
       <ModalProvider>
         <SerialDeviceProvider service={svc}>
@@ -105,7 +105,7 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("still offers a gamepad device Connect button when web-serial is unsupported — the Gamepad API is cross-browser", async () => {
+  it("still offers a gamepad device Connect button when web-serial is unsupported, the Gamepad API is cross-browser", async () => {
     Object.defineProperty(navigator, "serial", {
       configurable: true,
       value: undefined,

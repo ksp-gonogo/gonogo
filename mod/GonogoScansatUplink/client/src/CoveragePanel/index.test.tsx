@@ -20,7 +20,7 @@ import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module (not a throwaway test double) runs its
-// module-load `registerAugment(...)` exactly once — same convention as
+// module-load `registerAugment(...)` exactly once: same convention as
 // FootprintOverlay/index.test.tsx and AnomalyOverlay/slot.test.tsx.
 import "./index";
 import type { SCANScanningVessel } from "../schema";
@@ -72,7 +72,7 @@ function sectionsProps(
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
 // the buffered source. RTL auto-cleanup runs after this file's afterEach, so it
-// can't be relied on to unmount first — disconnecting a live source while the
+// can't be relied on to unmount first, disconnecting a live source while the
 // widget is still mounted fires a status change into it, a state update outside
 // act() (the documented anti-pattern in CLAUDE.md).
 const renderedTrees: Array<() => void> = [];
@@ -83,7 +83,7 @@ function renderSlot(ui: ReactElement) {
   return result;
 }
 
-describe("CoveragePanel — map-view.sections slot", () => {
+describe("CoveragePanel: map-view.sections slot", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
@@ -128,7 +128,7 @@ describe("CoveragePanel — map-view.sections slot", () => {
   });
 
   it("stays absent when the scansat domain is unavailable but no provider is mounted", () => {
-    // No TelemetryProvider at all — the app-realistic case of a KSP install
+    // No TelemetryProvider at all: the app-realistic case of a KSP install
     // with no SCANsat mod present: scansat.available never arrives.
     renderSlot(
       <AugmentSlot name="map-view.sections" props={sectionsProps()} />,

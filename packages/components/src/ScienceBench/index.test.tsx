@@ -12,7 +12,7 @@ import {
   ScienceBenchComponent,
 } from "./index";
 
-// vessel.state's declared derived inputs — body/situation route off the
+// vessel.state's declared derived inputs: body/situation route off the
 // derived vessel.state channel (parentBodyName from vessel.identity +
 // system.bodies; situationName from vessel.identity.situation). The
 // carried-channels gate is parent-channel-scoped, so all eight inputs are
@@ -107,9 +107,7 @@ describe("ScienceBenchComponent", () => {
       fixture.emit("vessel.surface", { landedAt: "Northwest Crater" });
     });
     await waitFor(() =>
-      expect(
-        screen.getByText(/Landed — Northwest Crater/i),
-      ).toBeInTheDocument(),
+      expect(screen.getByText(/Landed: Northwest Crater/i)).toBeInTheDocument(),
     );
   });
 
@@ -283,7 +281,7 @@ describe("ScienceBenchComponent", () => {
         },
       ]);
     });
-    // Sorted by remainingPotential desc — Mystery Goo (7.5) above Crew Report (1.5)
+    // Sorted by remainingPotential desc: Mystery Goo (7.5) above Crew Report (1.5)
     const subjects = await waitFor(() => {
       const found = screen.getAllByText(
         /Mystery Goo over Grasslands|Crew Report from KSC/,

@@ -8,7 +8,7 @@ import { AtmosphereProfileComponent } from "./index";
 /**
  * The stream test-adapter proof for AtmosphereProfile: genuinely running off
  * the real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` — no legacy `DataSource` is registered anywhere in this
+ * `StubTransport`: no legacy `DataSource` is registered anywhere in this
  * file, and (unlike the pre-migration version of this test) no read is
  * GAPPED any more:
  *
@@ -19,17 +19,17 @@ import { AtmosphereProfileComponent } from "./index";
  *   -> raw fields on the `vessel.flight` Topic.
  *
  * `deriveVesselState`'s `altitudeAsl` is populated ONLY on the "measured"
- * (Loaded) basis — the default `Quality.OnRails` leaves it permanently
+ * (Loaded) basis: the default `Quality.OnRails` leaves it permanently
  * `null`. The `vessel.orbit` emission below carries `metaOverrides:
  * { quality: Quality.Loaded }` so the derivation actually reads
  * `vessel.flight.altitudeAsl`.
  */
-describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () => {
+describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => {
   it("reads body/altitude/density/temperatures off the real stream pipeline, not legacy", async () => {
     registerStockBodies();
     const fixture = setupStreamFixture({
       // vessel.state's carried-channels gate is parent-channel-scoped
-      // (vesselStateChannel.inputs) — listed in full even though this test's
+      // (vesselStateChannel.inputs): listed in full even though this test's
       // own reads (useStream/canonical useTelemetry) don't consult the gate,
       // to keep the widget's legacy useDataStreamStatus badge reading "live".
       carriedChannels: [
@@ -53,10 +53,10 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — the widget shows its "waiting for body" empty state.
+    // Nothing arrived yet: the widget shows its "waiting for body" empty state.
     expect(container.textContent).toContain("Waiting for body telemetry...");
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
@@ -65,7 +65,7 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
 
     act(() => {
       // Loaded quality drives deriveVesselState onto the "measured" basis,
-      // which reads altitudeAsl off vessel.flight at viewUt — the OnRails
+      // which reads altitudeAsl off vessel.flight at viewUt, the OnRails
       // default would leave it permanently null (see doc comment above).
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
@@ -89,7 +89,7 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
     });
 
     // The body now resolves off the stream, so the pressure curve/live chip
-    // render for real — proving every one of the five migrated reads
+    // render for real, proving every one of the five migrated reads
     // genuinely flows through the real TimelineStore.
     await waitFor(() => {
       expect(container.textContent).toContain("1.217 kg/m³");

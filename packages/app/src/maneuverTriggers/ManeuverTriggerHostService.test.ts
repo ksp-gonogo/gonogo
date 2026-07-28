@@ -30,14 +30,14 @@ function memoryStorage(): Storage {
 }
 
 /**
- * `readLiveOrbit()`/`readVesselName()`'s stream leg — real `TimelineStore`
+ * `readLiveOrbit()`/`readVesselName()`'s stream leg: real `TimelineStore`
  * (with `vesselStateChannel` registered, matching `TelemetryProvider`'s own
  * default) fed directly via `TimelineStore.ingest`/`StubTransport.emit`,
  * registered as the accessors' source via `setActiveTimelineStoreForTests`.
- * No React/`TelemetryProvider` needed — this is a plain-class unit test.
+ * No React/`TelemetryProvider` needed: this is a plain-class unit test.
  *
  * ALSO the trigger `dataKey` read's stream leg now (`getValue`) and the
- * maneuver-node fire's command-dispatch leg (`dispatchActiveCommand`) —
+ * maneuver-node fire's command-dispatch leg (`dispatchActiveCommand`):
  * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
  * register the same client/carried-channels a mounted `TelemetryProvider`
  * would, so `dispatchActiveCommand("data", "o.addManeuverNode[...]")` routes
@@ -46,7 +46,7 @@ function memoryStorage(): Storage {
  * `transport.setCommandHandler`, replacing the old `execute()`-call log.
  *
  * `client.subscribe(...)` is required up front so `StubTransport.emit`
- * actually delivers (its subscription-gating — see its own doc comment);
+ * actually delivers (its subscription-gating: see its own doc comment);
  * `store.beginFrame()` after each emit both advances `currentFrame()` (what
  * `sample()` reads relative to) and fires `subscribeFrame` listeners (what
  * `bindVesselWatcher`'s `onActiveTimelineFrame` re-evaluates on).
@@ -94,7 +94,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
  * Self-consistent Kerbin-like orbit. `meanAnomalyAtEpoch: 0` + `epoch:
  * pinnedUt` puts the vessel at periapsis exactly at the pinned view-UT.
  * `sma`/`ecc` also drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
- * body-radius-independent — see `vessel-state.ts`), which is what this
+ * body-radius-independent: see `vessel-state.ts`), which is what this
  * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
  * 707_000 at the defaults below.
  */
@@ -163,7 +163,7 @@ describe("ManeuverTriggerHostService", () => {
   it("adds an armed trigger and surfaces it in the snapshot", () => {
     seedKerbinOrbit();
     const svc = makeService();
-    // 707_000 (baseline apoapsisRadius) stays below 800_000 — pending, not fired.
+    // 707_000 (baseline apoapsisRadius) stays below 800_000: pending, not fired.
     svc.arm({ dataKey: "o.ApR", op: ">=", value: 800_000, inputs: FROZEN });
     const snap = svc.snapshot();
     expect(snap.triggers).toHaveLength(1);
@@ -182,13 +182,13 @@ describe("ManeuverTriggerHostService", () => {
   it("fires when the watched value crosses the threshold after arming", async () => {
     const storeFixture = seedKerbinOrbit();
     const svc = makeService();
-    // 707_000 stays below 750_000 — pending until the orbit changes.
+    // 707_000 stays below 750_000: pending until the orbit changes.
     svc.arm({ dataKey: "o.ApR", op: ">=", value: 750_000, inputs: FROZEN });
     expect(storeFixture.calls).toEqual([]);
     // Bump sma so apoapsisRadius (sma·1.01) clears 750_000.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
     // The command dispatch settles on a microtask (StubTransport answers
-    // `command-request` via `queueMicrotask`) — drain it before asserting.
+    // `command-request` via `queueMicrotask`): drain it before asserting.
     await Promise.resolve();
     await Promise.resolve();
     expect(storeFixture.calls.length).toBe(1);
@@ -216,7 +216,7 @@ describe("ManeuverTriggerHostService", () => {
     svc1.arm({ dataKey: "o.ApR", op: ">=", value: 999_999, inputs: FROZEN });
     expect(svc1.snapshot().triggers).toHaveLength(1);
     svc1.dispose();
-    // New service over the same storage — same vessel name (still seeded)
+    // New service over the same storage: same vessel name (still seeded)
     // so the persisted trigger isn't auto-cleared on load.
     const svc2 = makeService();
     expect(svc2.snapshot().triggers).toHaveLength(1);

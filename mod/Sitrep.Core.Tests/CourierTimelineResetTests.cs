@@ -93,14 +93,14 @@ namespace Sitrep.Core.Tests
         /// <see cref="ResetTimelineDropsAbandonedStreamDeliveryButKeepsSubscriptionAlive"/>
         /// above passes even pre-fix because its rewind happens BEFORE the
         /// vantage's cursor is ever pushed past the rewind target (its
-        /// delivery only ever reached scene 0) — see that test's own
+        /// delivery only ever reached scene 0): see that test's own
         /// wording. This test ticks PAST a HIGH peak first (delay=0, the
         /// production shape), so <see cref="Archive.ReadAtVantage"/>'s
         /// monotonic "never rewinds" cursor clamp is genuinely engaged
         /// before the rewind, reproducing the real defect: a live
         /// quickload's timeline-reset used to clear ONLY
         /// <see cref="Courier"/>'s own pending-command/clock state, never
-        /// the per-node <see cref="Archive"/> — so the archive's samples
+        /// the per-node <see cref="Archive"/>: so the archive's samples
         /// above the new UT, and every (topic, vantage) cursor's clamped
         /// high-watermark, survived the reset intact. Two distinct
         /// observable failures result, both asserted here:
@@ -115,7 +115,7 @@ namespace Sitrep.Core.Tests
         /// ("MissionControl") gets the abandoned pre-rewind timeline
         /// REPLAYED to it later, because <see cref="Courier.SubscribeStream"/>'s
         /// "still in flight" reschedule loop walks whatever the archive
-        /// happens to contain at subscribe time — which, unpruned, still
+        /// happens to contain at subscribe time, which, unpruned, still
         /// includes samples from a timeline that no longer exists.</description></item>
         /// </list>
         /// </summary>

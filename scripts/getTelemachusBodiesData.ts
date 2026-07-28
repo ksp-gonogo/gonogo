@@ -48,7 +48,7 @@ async function main() {
     console.log(`✓ ${name}`);
   }
 
-  const output = `// AUTO-GENERATED FILE — DO NOT EDIT
+  const output = `// AUTO-GENERATED FILE: DO NOT EDIT
 // Generated from Telemachus
 
 export const STOCK_BODIES = ${JSON.stringify(bodies, null, 2)} as const;

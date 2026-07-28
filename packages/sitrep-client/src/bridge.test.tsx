@@ -1,5 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -14,12 +15,12 @@ import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
  * test): before this, NOTHING fed a `TimelineStore` in
  * production, so `vessel.state.*` (derived) topics were permanently
  * unreachable through `useStream`/`useDataValue` even with a
- * `TelemetryProvider` mounted — the derivation machinery in
+ * `TelemetryProvider` mounted: the derivation machinery in
  * `vessel-state.ts`/`timeline-store.ts` existed but was wired to nothing.
  *
  * `TelemetryProvider` now auto-builds a `TimelineStore`, registers the
  * production derived channels (`vesselStateChannel`), and feeds it from the
- * client's wire — so `useStream("vessel.state.<field>")` resolves through
+ * client's wire: so `useStream("vessel.state.<field>")` resolves through
  * the SAME provider a raw-topic `useStream` call already worked through.
  */
 
@@ -51,7 +52,7 @@ const FLIGHT: VesselFlightPayload = {
 
 function Altitude() {
   const alt = useStream<number | null>("vessel.state.altitudeAsl");
-  return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
+  return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
 }
 
 describe("TelemetryProvider bridges client -> TimelineStore -> useStream for derived vessel.state.* topics", () => {
@@ -65,7 +66,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText("alt:—")).toBeTruthy();
+    expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
 
     // Ref-counting: subscribing the derived topic must have
     // subscribed its declared INPUTS on the wire, never the (server-unknown)
@@ -102,7 +103,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
 
     function Raw() {
       const v = useStream<number>("v.raw");
-      return <div>raw:{v ?? "—"}</div>;
+      return <div>raw:{v ?? NULL_DISPLAY}</div>;
     }
 
     render(
@@ -111,7 +112,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText("raw:—")).toBeTruthy();
+    expect(screen.getByText(`raw:${NULL_DISPLAY}`)).toBeTruthy();
     act(() => transport.emit("v.raw", 42));
     await waitFor(() => expect(screen.getByText("raw:42")).toBeTruthy());
   });

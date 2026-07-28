@@ -212,7 +212,7 @@ describe("checkUplinkCompat: minAppVersion", () => {
 describe("checkUplinkCompat: verdict precedence", () => {
   it("refuse wins over warn-load when a manifest trips both", () => {
     // apiVersion major mismatch (refuse) AND minAppVersion above the running
-    // app (would otherwise warn-load) — refuse must win.
+    // app (would otherwise warn-load), refuse must win.
     const result = checkUplinkCompat(
       manifest({ apiVersion: "9.0.0", minAppVersion: "5.0.0" }),
       app({ apiVersion: "1.0.0", appVersion: "2.0.0" }),

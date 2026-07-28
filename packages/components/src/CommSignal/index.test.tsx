@@ -9,11 +9,11 @@ import { CommSignalComponent } from "./index";
  *  - `comm.signalStrength` -> `vessel.comms.signalStrength`
  *  - `comm.controlState` / `comm.controlStateName` -> the derived
  *    `vessel.state.commsControlStateOrdinal` / `commsControlStateName` fields
- *    (collapsed from `vessel.comms.controlState`'s `ControlState` enum — see
+ *    (collapsed from `vessel.comms.controlState`'s `ControlState` enum: see
  *    `vessel-state.ts`), read via `useStream`
  *  - `comm.signalDelay`    -> `comms.delay.oneWaySeconds`
  *
- * No legacy `MockDataSource` is registered — a real
+ * No legacy `MockDataSource` is registered, a real
  * `TelemetryProvider`/`TimelineStore` pipeline feeds the widget via
  * `fixture.emit`.
  */

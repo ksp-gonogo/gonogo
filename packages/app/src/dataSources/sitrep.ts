@@ -18,10 +18,10 @@ import {
  * shows up in the existing "Data Sources" settings panel
  * (`@ksp-gonogo/components`'s `DataSourceStatusComponent`) with the same
  * connected/disconnected pill, Reconnect button and host/port config form
- * every other source gets — no bespoke settings UI needed.
+ * every other source gets, no bespoke settings UI needed.
  *
  * IMPORTANT: this is a status/config front, not a data path. Sitrep topics
- * never route through this source's `subscribe()` — `useDataValue`'s
+ * never route through this source's `subscribe()`: `useDataValue`'s
  * carried-channels gate reads straight from the `TelemetryClient` context
  * `SitrepTelemetryProvider` mounts on the main screen. That provider owns
  * and builds the actual live `WebSocketTransport`; this class only mirrors
@@ -37,7 +37,7 @@ class SitrepStreamDataSource implements DataSource {
   }
 
   async connect(): Promise<void> {
-    // The stream is always mounted by `SitrepTelemetryProvider` — "connect"
+    // The stream is always mounted by `SitrepTelemetryProvider`, "connect"
     // here means "force the live transport to rebuild", which only makes
     // sense once it's actually given up (`WebSocketTransport` already
     // retries drops on its own). Bumping unconditionally would tear down and
@@ -52,7 +52,7 @@ class SitrepStreamDataSource implements DataSource {
   disconnect(): void {
     // No-op. The stream's real lifecycle is owned by `SitrepTelemetryProvider`,
     // which wraps the whole main screen and tears itself down on its own
-    // unmount — always in lockstep with whatever unmounts this source too.
+    // unmount: always in lockstep with whatever unmounts this source too.
     // There's nothing else here to release.
   }
 
@@ -61,7 +61,7 @@ class SitrepStreamDataSource implements DataSource {
   }
 
   subscribe(): () => void {
-    // No topics are ever read through this id — see the class doc comment.
+    // No topics are ever read through this id; see the class doc comment.
     return () => {};
   }
 
@@ -104,7 +104,7 @@ class SitrepStreamDataSource implements DataSource {
   }
 
   setupInstructions(): string {
-    return "The Gonogo mod's telemetry stream starts automatically once KSP is running — no scene-gating, the main menu is enough. Point Host/Port at the KSP computer if it isn't this one.";
+    return "The Gonogo mod's telemetry stream starts automatically once KSP is running, no scene-gating, the main menu is enough. Point Host/Port at the KSP computer if it isn't this one.";
   }
 }
 

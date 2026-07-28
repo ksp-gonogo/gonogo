@@ -40,10 +40,10 @@ export interface AxiomTransportOptions {
  * this wrapper is intentionally thin: convert {@link LogEntry} to JSON,
  * push to the client, and best-effort drain on tab close.
  *
- * Failures are swallowed — log delivery never crashes the app.
+ * Failures are swallowed, log delivery never crashes the app.
  */
 export class AxiomTransport implements LogTransport {
-  /** Max entries per `ingest` call — bounds a one-shot backfill so a full
+  /** Max entries per `ingest` call: bounds a one-shot backfill so a full
    *  ring-buffer flush is split across several requests. */
   private static readonly MAX_BATCH = 500;
   private readonly client: AxiomIngestClient;
@@ -101,7 +101,7 @@ export class AxiomTransport implements LogTransport {
         this.client.ingest(this.dataset, chunk as unknown as object[]);
       }
     } catch {
-      // ignore — never let a logging path throw
+      // ignore: never let a logging path throw
     }
   }
 

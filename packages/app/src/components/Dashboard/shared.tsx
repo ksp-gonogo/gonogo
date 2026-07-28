@@ -6,7 +6,7 @@ import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 
 // ---------------------------------------------------------------------------
-// Remove button — two-click confirm pattern so a stray click in the drag
+// Remove button: two-click confirm pattern so a stray click in the drag
 // header doesn't vaporise the widget.
 // ---------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
 }
 
 // ---------------------------------------------------------------------------
-// Push-to-main toggle — only shown on stations (usePushClient() returns
+// Push-to-main toggle: only shown on stations (usePushClient() returns
 // non-null when the PushClientProvider is mounted) and only for components
 // that declared pushable: true at registration time.
 // ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ export function PushButton({
 }
 
 // ---------------------------------------------------------------------------
-// Widget error fallback — rendered in place of a crashed widget so the rest
+// Widget error fallback: rendered in place of a crashed widget so the rest
 // of the dashboard keeps working and the failure is visible instead of silent.
 // ---------------------------------------------------------------------------
 
@@ -125,7 +125,7 @@ export function WidgetError({
 }
 
 // ---------------------------------------------------------------------------
-// Shared styles — used across Grid and Mobile branches.
+// Shared styles: used across Grid and Mobile branches.
 // ---------------------------------------------------------------------------
 
 const highlightPulse = keyframes`

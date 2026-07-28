@@ -17,6 +17,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -30,9 +31,9 @@ import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
 // ---------------------------------------------------------------------------
 
 interface GoNoGoWidgetConfig {
-  /** Main-screen only — countdown length in seconds. Default 10. */
+  /** Main-screen only: countdown length in seconds. Default 10. */
   countdownSeconds?: number;
-  /** Main-screen only — trigger f.stage at T-0. Default true. */
+  /** Main-screen only: trigger f.stage at T-0. Default true. */
   triggerStageAtZero?: boolean;
 }
 
@@ -54,7 +55,7 @@ const actions = [
 type GoNoGoActions = typeof actions;
 
 // ---------------------------------------------------------------------------
-// Component entry — branches on screen context
+// Component entry: branches on screen context
 // ---------------------------------------------------------------------------
 
 function GoNoGoComponent({
@@ -95,7 +96,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
   // the host on reconnect (e.g. after a main-screen refresh mid-flight).
   const iAbortedRef = useRef(false);
 
-  // A launched station has effectively "left the poll" — null = not voting
+  // A launched station has effectively "left the poll", null = not voting
   // rather than stale no-go, which would render a confusing red cell on main.
   const effectiveVote = launched ? null : vote;
 
@@ -116,7 +117,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
     effectiveVoteRef.current = effectiveVote;
   }, [effectiveVote]);
 
-  // Revert clears local "I aborted" memory — revert means we're back on
+  // Revert clears local "I aborted" memory: revert means we're back on
   // the pad and the abort button is a fresh slate.
   useEffect(() => {
     if (!launched) iAbortedRef.current = false;
@@ -141,7 +142,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
     // Resend our current vote after every hello (initial connect AND
     // reconnect). Doing this on `hello` rather than `connected` means we
     // run AFTER the restart-detection above has had a chance to flip the
-    // local state — so a station that should reset doesn't briefly flash
+    // local state: so a station that should reset doesn't briefly flash
     // its old vote on the host's grid before the restart fires.
     const unsubHello = client.onHostHello(() => {
       client.sendGonogoVote(effectiveVoteRef.current);
@@ -287,7 +288,7 @@ export function CountdownAnnouncer({
  * "Sound effects" setting via playCountdownTone. Pairs with the on-screen
  * CountdownBanner so audio is never the only cue.
  *
- * Renders nothing — it's a side-effect-only companion. Tracks the last
+ * Renders nothing, it's a side-effect-only companion. Tracks the last
  * whole second in a ref so the 10 Hz parent tick doesn't double-fire.
  */
 export function CountdownTone({
@@ -303,7 +304,7 @@ export function CountdownTone({
     const isFirst = lastWholeRef.current === null;
     lastWholeRef.current = whole;
     if (isFirst) return;
-    // T-0 is emitted by GoNoGoHostService.onCountdownReached — the component
+    // T-0 is emitted by GoNoGoHostService.onCountdownReached, the component
     // unmounts the instant the countdown clears, so we can't reliably observe
     // secondsLeft === 0 here. Only emit the per-second blips (9...1).
     if (whole === 0) return;
@@ -327,13 +328,13 @@ function MainView({
 }>) {
   const host = useGoNoGoHost();
   const snapshot = useGoNoGoSnapshot();
-  // Bumped from the countdown ticker below — useReducer so Sonar's
+  // Bumped from the countdown ticker below: useReducer so Sonar's
   // "unused tuple element" rule (S6754) doesn't flag this.
   const [, setNow] = useReducer((n: number, _action: unknown) => n + 1, 0);
 
   // Push the widget's config into the host service. Main-level settings
   // masquerade as per-widget config for user discoverability; if two widgets
-  // exist with different configs, whichever renders last wins — fine for v1.
+  // exist with different configs, whichever renders last wins, fine for v1.
   useEffect(() => {
     if (!host) return;
     host.setConfig({
@@ -361,7 +362,7 @@ function MainView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
-  // Selective rendering — chrome (auto-stage warning, per-cell version chip)
+  // Selective rendering: chrome (auto-stage warning, per-cell version chip)
   // drops at small widths so the GO/NO-GO grid stays the focus.
   const cols = w ?? 4;
   const showWarnChip = cols >= 6;
@@ -392,7 +393,7 @@ function MainView({
       )}
       {abort && (
         <AbortBanner role="alert">
-          ABORT — triggered by {abort.stationName}
+          ABORT: triggered by {abort.stationName}
         </AbortBanner>
       )}
       <Grid>
@@ -462,7 +463,7 @@ function cellLabel(state: CellState): string {
     case "neutral":
       return "ACTIVE";
     default:
-      return "—";
+      return NULL_DISPLAY;
   }
 }
 
@@ -574,7 +575,7 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
    * Establish a CSS containment context so ButtonLabel can size its text
    * relative to the button itself (cqmin), not the viewport. The old
    * 10vw rule made giant buttons keep tiny text on small viewports and
-   * vice versa — reported as a session-2026-05-17 bug.
+   * vice versa: reported as a session-2026-05-17 bug.
    */
   container-type: size;
 
@@ -784,7 +785,7 @@ registerComponent<GoNoGoWidgetConfig>({
   id: "gonogo",
   name: "GO / NO-GO",
   description:
-    "Mission readiness poll — button on station screens, grid of lights on main. Morphs into ABORT after launch.",
+    "Mission readiness poll: button on station screens, grid of lights on main. Morphs into ABORT after launch.",
   tags: ["mission-control"],
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },

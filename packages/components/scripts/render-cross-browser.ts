@@ -4,7 +4,7 @@
  * stitch a 3-up composite per fixture/mode, and print each composite path
  * plus its cross-engine diff ratios. This is the artifact a human reviews
  * before per-engine baselines are committed. It does NOT write baselines,
- * and it does NOT gate on diff ratio — a large ratio is expected for some
+ * and it does NOT gate on diff ratio, a large ratio is expected for some
  * widgets and is reported, not treated as failure.
  *
  * Robustness: rendering every widget across three engines is the real
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   // Render each engine into its normal outPath with a uniform engine
   // suffix (including chromium) so the three engines' PNGs coexist in one
   // dir and share a `<fixture>--<mode>` grouping stem. A thrown error from
-  // one widget aborts only THIS engine's remaining batch — PNGs already
+  // one widget aborts only THIS engine's remaining batch, PNGs already
   // written for earlier widgets are untouched, and the other two engines
   // still run in full.
   for (const engine of ENGINES) {

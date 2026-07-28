@@ -16,14 +16,14 @@ import {
 } from "./index";
 
 /**
- * ScienceOfficer augment-slot exposure. The slots (`science-officer.sections`
- * — the per-instrument row slot, and `science-officer.badges` — the header
+ * ScienceOfficer augment-slot exposure. The slots (`science-officer.sections`,
+ * the per-instrument row slot, and `science-officer.badges`: the header
  * escape-hatch) are exposed but ship no filler here (that's an Uplink
  * augment): an empty slot must render cleanly, and a test augment registered
  * into it must appear, receiving the widget's focus as typed slot props.
  *
  * Runs off the real stream pipeline (`science.instruments`/`science.experiments`
- * carried through a `TelemetryProvider`) — the widget reads its whole state
+ * carried through a `TelemetryProvider`): the widget reads its whole state
  * off canonical Topics now, no legacy `DataSource`.
  */
 
@@ -38,7 +38,7 @@ const INSTRUMENT: Instrument = {
 };
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler / augment registries — clearActionHandlers()/clearAugments()
+// action-handler / augment registries: clearActionHandlers()/clearAugments()
 // firing on a still-mounted widget is a state update outside act(). RTL
 // auto-cleanup runs after this file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -77,7 +77,7 @@ async function renderFullList(): Promise<void> {
   await waitFor(() => expect(screen.getByText("Mystery Goo")).toBeTruthy());
 }
 
-describe("ScienceOfficer — augment slots (spec §4)", () => {
+describe("ScienceOfficer: augment slots (spec §4)", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -93,7 +93,7 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
 
   it("renders the full list with no augments bound (empty slots are inert)", async () => {
     await renderFullList();
-    // Empty slots add nothing — the stock readout renders exactly as before.
+    // Empty slots add nothing: the stock readout renders exactly as before.
     expect(screen.getByText("Mystery Goo")).toBeTruthy();
     expect(screen.queryByTestId("sci-section-augment")).toBeNull();
     expect(screen.queryByTestId("sci-badge-augment")).toBeNull();

@@ -13,7 +13,7 @@ export interface BodyBox {
 
 export interface ProjectedPart extends ShipMapPart {
   body: BodyBox;
-  /** Distance from the spine — used for back-to-front draw ordering. */
+  /** Distance from the spine: used for back-to-front draw ordering. */
   spineDist: number;
 }
 
@@ -44,7 +44,7 @@ export interface ShipDiagramSvgProps {
    *  both `name` and `title`. */
   highlight?: string | null;
   highlightColor?: string;
-  /** Defaults to identity (zoom=1, pan=0,0) — that's what the harness uses. */
+  /** Defaults to identity (zoom=1, pan=0,0): that's what the harness uses. */
   cam?: Camera;
   /** When provided, each part `<g>` becomes interactive (tabIndex/role/aria
    *  + pointer + focus handlers). Omit for a static / harness render. */
@@ -105,7 +105,7 @@ export interface ShipBaseLayout {
  * given part set and viewport. Mirrors exactly what `ShipDiagramSvg` computes
  * internally; exposed so the host widget can hand the same projection to the
  * `ship-map.overlay` slot. The base frame is the identity-camera
- * projection — the diagram's live zoom/pan is layered on top of it at render
+ * projection: the diagram's live zoom/pan is layered on top of it at render
  * time and is not reflected here.
  */
 export function computeShipLayout(
@@ -153,7 +153,7 @@ export function ShipDiagramSvg({
           fill="var(--color-text-dim)"
           fontSize={11}
         >
-          No vessel topology yet — waiting for Telemachus.
+          No vessel topology yet, waiting for Telemachus.
         </text>
       </svg>
     );
@@ -172,8 +172,8 @@ export function ShipDiagramSvg({
   // Painter's algorithm: draw back-to-front by depth (the collapsed axis)
   // so a front-facing radial part paints over the fuselage and a rear one
   // stays behind it. Depth is quantised to the mm so float noise doesn't
-  // disturb the tiebreak: parts at the same depth — the axial stack and any
-  // in-plane radial parts all sit at depth ~0 — fall back to drawing the
+  // disturb the tiebreak: parts at the same depth, the axial stack and any
+  // in-plane radial parts all sit at depth ~0, fall back to drawing the
   // outermost first, so the central column still overlaps cleanly on top.
   // Fuel-line parts come out of the main pass and render as source→target
   // arrows in a separate layer on top.
@@ -289,13 +289,13 @@ export function ShipDiagramSvg({
           // around the part's centre. Zero rotation (the legacy / fixture-
           // fallback case) renders as today.
           //
-          // Solar panels skew instead of rotate — up to 45°. A flat panel
+          // Solar panels skew instead of rotate: up to 45°. A flat panel
           // viewed at a modest angle projects to a parallelogram, not a
           // tilted rectangle: its width axis (tangential) stays horizontal
           // while its length axis (up) tilts. A rigid rotate would slant the
           // horizontal edges too, which reads wrong. A horizontal shear
-          // keeps the top/bottom edges level and slants only the sides — the
-          // projected up vector — so a skewX of -rotationRad matches the 2D
+          // keeps the top/bottom edges level and slants only the sides, the
+          // projected up vector: so a skewX of -rotationRad matches the 2D
           // perspective. Past 45° the shear degenerates (skewX shears by
           // tan, which blows up toward ±90°, smearing the panel across the
           // canvas) and a strongly tilted panel is really one mounted
@@ -492,7 +492,7 @@ interface ScreenBox {
  * extended, a deploy chevron on solar panels / radiators / antennas
  * mid-animation, a deployed-gear stand when landing gear is down.
  *
- * Returns null when the part has no live state yet — pre-push parts
+ * Returns null when the part has no live state yet, pre-push parts
  * look identical to inactive ones, which is the right default (operator
  * sees "nothing happening" rather than a misleading "deployed" state
  * stale from a previous flight).
@@ -525,7 +525,7 @@ function overlayFor(
   switch (m.type) {
     case "engine":
       // PartStateModule.state==="active" means the engine is staged
-      // and *ready* to fire — not that it's currently thrusting. A
+      // and *ready* to fire: not that it's currently thrusting. A
       // staged engine at throttle=0 is idle, not firing. Gate the
       // flame on actual thrust (throttle > 0). Reported as "engines
       // permanently firing regardless of throttle" in the
@@ -579,7 +579,7 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
 function renderParachuteCanopy(box: ScreenBox, state: string): React.ReactNode {
   // Canopy sits above the parachute canister body (in part-local +up).
   // Width and height grow with deploy progression so the operator sees
-  // the chute open out — armed = small marker, deploying = mid canopy,
+  // the chute open out: armed = small marker, deploying = mid canopy,
   // extended = full mushroom.
   const { x, y, w } = box;
   const cx = x + w / 2;
@@ -654,7 +654,7 @@ function renderAnimatingChevron(
 
 function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
   // Short stand under the wheel/gear indicating "down". For now a tiny
-  // tick below the body box — clear enough that the gear is extended
+  // tick below the body box: clear enough that the gear is extended
   // without redrawing the wheel itself.
   const { x, y, w, h } = box;
   const standH = Math.max(3 / zoom, h * 0.18);
@@ -717,7 +717,7 @@ function renderPartShape(
 
   switch (type) {
     case "engine": {
-      // Bell height is derived from width, not body height — so a
+      // Bell height is derived from width, not body height, so a
       // stretched-tall engine grows its mounting block, not a giant
       // trapezoid. Cap at half the body so very short engines still
       // get a recognisable bell.
@@ -777,8 +777,8 @@ function renderPartShape(
         />
       );
     case "decoupler": {
-      // Stack decouplers (wide w, short h) keep the thin-band rendering
-      // — KSP stack decouplers really are flat discs and the geometric
+      // Stack decouplers (wide w, short h) keep the thin-band rendering,
+      // KSP stack decouplers really are flat discs and the geometric
       // thinness is part of their identity. Radial decouplers (tall
       // narrow box) take the full body extent: their mesh genuinely
       // does span the gap between the parent stack and the side stack,
@@ -815,7 +815,7 @@ function renderPartShape(
       );
     }
     case "wheel": {
-      // Side-profile of a rolling wheel — circle (or ellipse for slightly
+      // Side-profile of a rolling wheel: circle (or ellipse for slightly
       // asymmetric bounds). Radius takes the smaller half-extent so the
       // wheel never overflows a side-mounted-on-rover body box.
       const r = Math.min(w, h) / 2;
@@ -866,7 +866,7 @@ function renderPartShape(
         />
       );
     case "capsule": {
-      // Truncated cone (frustum) — Mk1 pod and probe cores both share the
+      // Truncated cone (frustum): Mk1 pod and probe cores both share the
       // wider-at-base silhouette. Apex flat (not pointed) and stretches
       // to the bounds top so parts attached above the pod (e.g. the
       // parachute) visually touch instead of floating with a gap.
@@ -884,7 +884,7 @@ function renderPartShape(
     case "nose-cone": {
       // Rounded dome whose apex reaches the bounds top. Cubic Bezier with
       // both control points pulled to y so the curve is tangent to the
-      // top edge at its peak — gives a smoother nose than a Q curve.
+      // top edge at its peak: gives a smoother nose than a Q curve.
       return (
         <path
           d={`M ${x} ${y + h} L ${x} ${y + h * 0.4} C ${x} ${y} ${x + w} ${y} ${x + w} ${y + h * 0.4} L ${x + w} ${y + h} Z`}
@@ -918,7 +918,7 @@ function renderPartShape(
       );
     }
     case "parachute": {
-      // Stowed parachute canister — squat dome that sits on its mount.
+      // Stowed parachute canister: squat dome that sits on its mount.
       // Flat bottom matching the base width, semicircular top reaching
       // the bounds apex via cubic-Bezier control points pulled to y.
       // Inset narrower than the bounds box because the canister itself
@@ -952,7 +952,7 @@ function renderPartShape(
 }
 
 /** Resources we're willing to draw as a fuel-fill bar. ElectricCharge,
- *  Ablator, etc. are deliberately excluded — they'd add bars to most
+ *  Ablator, etc. are deliberately excluded, they'd add bars to most
  *  parts without being meaningful at a glance. */
 const DRAINABLE = new Set([
   "LiquidFuel",
@@ -1080,7 +1080,7 @@ export function partAriaLabel(p: ShipMapPart): string {
  * paint over the part's body, or null when the part is comfortably cold.
  *
  * Ramp:
- * - < 50% of maxTemp: nothing — most parts hover near ambient.
+ * - < 50% of maxTemp: nothing: most parts hover near ambient.
  * - 50–80%: amber overlay growing from 0 to ~0.5 opacity.
  * - 80–100%: red overlay at 0.55–0.85 opacity, signalling imminent
  *   structural failure.

@@ -19,7 +19,7 @@ import { ActionGroupComponent } from "./index";
 
 // Rendered trees, tracked so teardown can unmount them BEFORE clearing the
 // action-handler registry or disconnecting a legacy source. RTL auto-cleanup
-// runs after this file's afterEach, so it can't be relied on to unmount first —
+// runs after this file's afterEach, so it can't be relied on to unmount first,
 // clearActionHandlers()/buffered.disconnect() firing on a still-mounted widget
 // is a state update outside act(), the documented anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -35,7 +35,7 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/** Stock's ten customs, all disengaged — the named-list shape the mod now sends. */
+/** Stock's ten customs, all disengaged: the named-list shape the mod now sends. */
 const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
   index: i + 1,
   name: `AG${i + 1}`,
@@ -50,8 +50,8 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  * allowlist, and falls back to the unchanged legacy `execute()` when it isn't.
  *
  * SAS (not an AG-index like `f.ag1`) is the vehicle here on purpose:
- * `map-command.ts`'s `toggleHome`/`actionGroupHome` doc comments explain why
- * — SAS/RCS/Gear/Brakes/Lights each have a clean per-field read home
+ * `map-command.ts`'s `toggleHome`/`actionGroupHome` doc comments explain why,
+ * SAS/RCS/Gear/Brakes/Lights each have a clean per-field read home
  * (`vessel.control.sas` etc.), and THIS SAME WIDGET INSTANCE already
  * subscribes to that exact topic for its own state pill (it reads
  * `vessel.control` canonically), so the toggle -> absolute bridge's
@@ -66,7 +66,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () => {
+describe("ActionGroup (SAS): the toggle -> absolute command bridge (M3)", () => {
   it("clicking the SAS toggle dispatches vessel.control.setSas when promoted, never the legacy execute()", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "vessel.control.setSas"],
@@ -110,7 +110,7 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
     });
 
     // The widget fires `void execute(...)` (fire-and-forget, per
-    // useExecuteAction's own contract) — the underlying command-request/
+    // useExecuteAction's own contract): the underlying command-request/
     // response round trip resolves on a queued microtask (StubTransport),
     // so the handler call must be awaited, not asserted synchronously right
     // after the click (mirrors WarpControl/stream.test.tsx's own dispatch
@@ -193,7 +193,7 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
   });
 });
 
-describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort command", () => {
+describe("ActionGroup (Abort): P4a un-gap: v.abortValue read + f.abort command", () => {
   it("shows the live Abort state and dispatches vessel.control.setAbort when the topic is carried", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "vessel.control.setAbort"],
@@ -317,7 +317,7 @@ describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort comman
   });
 });
 
-describe("ActionGroup (Precision Control) — P4a un-gap: v.precisionControlValue read", () => {
+describe("ActionGroup (Precision Control): P4a un-gap: v.precisionControlValue read", () => {
   it("shows the live Precision Control state off the stream (no toggle key, read-only)", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],

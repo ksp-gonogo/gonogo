@@ -12,8 +12,8 @@ interface Props {
  * drag and snaps back to centre on release, so analog inputs auto-zero
  * when unheld.
  *
- * The thumb position has no external authority — it only exists while
- * the user is dragging — so the component owns it in local state. An
+ * The thumb position has no external authority, it only exists while
+ * the user is dragging, so the component owns it in local state. An
  * earlier version took a `value` prop that was hardcoded by the parent
  * and never updated, which left the thumb visually pinned at centre
  * while the drag events quietly fired underneath.

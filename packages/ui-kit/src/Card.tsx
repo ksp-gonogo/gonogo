@@ -6,7 +6,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Sunken inset card — a nested surface for a single record inside a list
+ * Sunken inset card: a nested surface for a single record inside a list
  * (a tracked vessel, a fleet entry). Extracted from the Scanning widget's
  * `VesselCard`.
  */

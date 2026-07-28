@@ -9,7 +9,7 @@
  * Run standalone for local debug:
  *   node tests/playwright/broker.mjs
  *
- * Or via Playwright's `webServer` config — auto-started/torn-down per
+ * Or via Playwright's `webServer` config: auto-started/torn-down per
  * test run.
  *
  * `key: "gonogo"` matches what PeerHostService + PeerClientService send,
@@ -26,7 +26,7 @@ const server = PeerServer({
   port: PORT,
   path: PATH,
   key: KEY,
-  // Allow same-tab and cross-tab connections without auth — this is a
+  // Allow same-tab and cross-tab connections without auth, this is a
   // throwaway test broker bound to localhost.
   allow_discovery: true,
 });

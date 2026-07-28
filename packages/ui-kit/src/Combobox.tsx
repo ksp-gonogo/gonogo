@@ -19,7 +19,7 @@ export interface ComboboxOption {
 
 /**
  * Case-insensitive substring match against an option's label (falling back
- * to its key) — the default filter every combobox consumer starts from.
+ * to its key): the default filter every combobox consumer starts from.
  */
 export function comboboxOptionMatches(
   option: ComboboxOption,
@@ -44,7 +44,7 @@ export function filterComboboxOptions<T extends ComboboxOption>(
 
 /**
  * Buckets `options` by `.group` (default bucket `otherLabel`), sorted by
- * group name — the grouped-listbox shape combobox consumers render from.
+ * group name: the grouped-listbox shape combobox consumers render from.
  * Ungrouped callers (every option has no `group`) collapse to a single
  * `otherLabel` bucket, which renders as one flat list.
  */
@@ -65,7 +65,7 @@ export function groupComboboxOptions<T extends ComboboxOption>(
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-/** Flattens grouped options back into render/navigation order — the order ArrowUp/ArrowDown walk and Enter indexes into. */
+/** Flattens grouped options back into render/navigation order, the order ArrowUp/ArrowDown walk and Enter indexes into. */
 export function flattenComboboxGroups<T extends ComboboxOption>(
   groups: ReadonlyArray<[string, T[]]>,
 ): T[] {
@@ -74,7 +74,7 @@ export function flattenComboboxGroups<T extends ComboboxOption>(
 
 /**
  * Steps the active (highlighted) index by `delta` for one ArrowUp/ArrowDown
- * keypress, clamped to `[0, length - 1]` — never wraps, never goes negative.
+ * keypress, clamped to `[0, length - 1]`; never wraps, never goes negative.
  * Returns `-1` when there is nothing to select (`length === 0`).
  */
 export function moveComboboxActiveIndex(
@@ -87,7 +87,7 @@ export function moveComboboxActiveIndex(
 }
 
 export interface ComboboxListboxProps<T extends ComboboxOption> {
-  /** DOM id for the listbox element — pair with the owning input's `aria-controls`. */
+  /** DOM id for the listbox element: pair with the owning input's `aria-controls`. */
   id: string;
   groups: ReadonlyArray<[string, T[]]>;
   flatOptions: readonly T[];

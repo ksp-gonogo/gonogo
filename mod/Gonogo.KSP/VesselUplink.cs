@@ -8,10 +8,10 @@ using Sitrep.Host.Targeting;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// M1 Task 1/2/3 — the vessel telemetry uplink foundation. Registers
+    /// M1 Task 1/2/3: the vessel telemetry uplink foundation. Registers
     /// the M1 vessel/time.warp READ channels with
     /// <see cref="VesselViewProvider"/>'s typed mappers (via its wire-adapter
-    /// <c>*Wire</c> overloads — see that class's doc comment), wires the
+    /// <c>*Wire</c> overloads: see that class's doc comment), wires the
     /// subject-provenance + epoch mechanism
     /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1/§8.1 call
     /// "must-ship, unretrofittable": every <c>vessel.*</c> sample already
@@ -22,7 +22,7 @@ namespace Gonogo.KSP
     /// <see cref="IUplinkHost.ForceKeyframe"/>. Task 3 adds the typed
     /// vessel/action COMMANDS (<see cref="VesselCommandProvider"/>'s
     /// <c>Handle*</c> glue against the <see cref="IVesselActuator"/> this
-    /// uplink is constructed with — <see cref="KspVesselActuator"/> in
+    /// uplink is constructed with, <see cref="KspVesselActuator"/> in
     /// production, <c>Sitrep.Host.Tests.FakeVesselActuator</c> in tests).
     ///
     /// Mirrors <see cref="SystemUplink"/>'s retrofit shape exactly: this
@@ -44,7 +44,7 @@ namespace Gonogo.KSP
         /// KSP one, null when it's the KSP-free fake the unit tests inject.
         /// Held separately because installing the elected-backend resolver is a
         /// REAL-KSP concern that <see cref="IVesselActuator"/> (a KSP-free
-        /// interface the fake also implements) has no business carrying — the
+        /// interface the fake also implements) has no business carrying, the
         /// fake has no backend and needs none.
         /// </summary>
         private readonly KspVesselActuator? _kspActuator;
@@ -63,8 +63,8 @@ namespace Gonogo.KSP
         /// Uplink resolves any real dependency itself rather than taking it
         /// as a discovery-time argument). Builds its own
         /// <see cref="KspVesselActuator"/> against the mod-wide SHARED
-        /// maneuver-node id registry (<see cref="GonogoAddon.SharedManeuverNodeIdRegistry"/>)
-        /// — the same single instance <see cref="KspHost"/> stamps node ids
+        /// maneuver-node id registry (<see cref="GonogoAddon.SharedManeuverNodeIdRegistry"/>),
+        /// the same single instance <see cref="KspHost"/> stamps node ids
         /// from, per that registry's own doc comment on why sharing it is
         /// what makes a node id usable in a command at all.
         /// </summary>
@@ -111,9 +111,9 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.CommsTopic),
                 Channel(VesselViewProvider.PropulsionTopic),
                 Channel(VesselViewProvider.ManeuverTopic),
-                // vessel.target/crew — legitimately null with a present,
+                // vessel.target/crew: legitimately null with a present,
                 // active vessel (no target selected / no crew aboard), not
-                // just "no subject yet" — opt into AbsenceIsData so the
+                // just "no subject yet": opt into AbsenceIsData so the
                 // client sees a confirmed "NO DATA" tombstone instead of
                 // hanging on "SYNCING" forever. vessel.maneuver stays OFF:
                 // "no node" is already signalled via an empty Nodes = []
@@ -127,24 +127,24 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.WarpTopic),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
-                // vessel.dock — legitimately null when a present, active
+                // vessel.dock: legitimately null when a present, active
                 // vessel isn't currently docking (same AbsenceIsData
                 // reasoning as vessel.target/crew above).
                 Channel(VesselViewProvider.DockTopic, absenceIsData: true),
                 Channel(VesselViewProvider.SurfaceTopic),
-                // vessel.landing — terrain-informed landing data + an
+                // vessel.landing: terrain-informed landing data + an
                 // atmosphere-aware descent estimate. Whole-record absence is
                 // meaningful ("not descending toward a solid surface"), so
                 // absenceIsData: true (same as vessel.dock/target/crew).
                 Channel(VesselViewProvider.LandingTopic, absenceIsData: true),
-                // vessel.parts (P1b slice 2) — the full part-tree topology
+                // vessel.parts (P1b slice 2): the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; per-
                 // part temps ride here (thermal folds in). Its raw list can be
                 // large but only changes on a staging/dock event, so the 30s
                 // keyframe + change-gate posture fits.
                 Channel(VesselPartsViewProvider.PartsTopic),
-                // dv.stages / dv.summary (P1b slice 2) — KSP's STOCK
+                // dv.stages / dv.summary (P1b slice 2): KSP's STOCK
                 // VesselDeltaV stage simulation (StageDeltaVViewProvider),
                 // captured off the active vessel like vessel.parts. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; the
@@ -154,10 +154,10 @@ namespace Gonogo.KSP
                 Channel(StageDeltaVViewProvider.SummaryTopic),
             },
             // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
-            // truth — the ONE table to edit) ====================================
+            // truth: the ONE table to edit) ====================================
             // Rule (F2 Part 2 / delay-architecture-resolution.md §3): a command
             // that is a genuine UPLINK TO THE CRAFT rides the same light-time
-            // delay the telemetry model applies (delayed: true) — it takes
+            // delay the telemetry model applies (delayed: true), it takes
             // effect at t0 + uplink light-time when signal delay is enabled,
             // and instantly when it is disabled (delay == 0). A LOCAL/PLAYER or
             // GAME-LEVEL/META action is not a signal to the vessel and executes
@@ -166,12 +166,12 @@ namespace Gonogo.KSP
             //   DELAYED  (uplink to the craft):
             //     - vessel.control.*   (actuation: stage/sas/rcs/gear/brakes/
             //                            lights/abort/throttle/actionGroup)
-            //     - vessel.maneuver.*  (add/update/remove — the node lives on
+            //     - vessel.maneuver.*  (add/update/remove: the node lives on
             //                            the craft's flight computer, so placing/
             //                            editing/clearing it is an uplink)
-            //   INSTANT  (local/player or game-level/meta — NOT an uplink):
+            //   INSTANT  (local/player or game-level/meta: NOT an uplink):
             //     - vessel.target.*    (nav aid on the ground station)
-            //     - time.*             (warp/pause — sim-meta, never a light-time
+            //     - time.*             (warp/pause: sim-meta, never a light-time
             //                            fiction)
             //     - any future game-level command (launch/revert/recover/scene/
             //                            facility/contracts/tech/strategies):
@@ -179,8 +179,8 @@ namespace Gonogo.KSP
             //
             // Additive by construction: a NEW/unknown command that never reaches
             // this table falls back to CommandDeclaration.Delayed's own default
-            // (true) at dispatch time (see ChannelEngine.ProcessDispatchCommand)
-            // — the safe "treat an unclassified command as an uplink" bucket.
+            // (true) at dispatch time (see ChannelEngine.ProcessDispatchCommand),
+            // the safe "treat an unclassified command as an uplink" bucket.
             // Terminal/kOS uplink delay is a SEPARATE stream, not this table.
             Commands = new List<CommandDeclaration>
             {
@@ -194,7 +194,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
                 Command(VesselCommandProvider.StageCommand, delayed: true),
                 Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
-                // fly-by-wire — a craft uplink like every other vessel.control.*,
+                // fly-by-wire: a craft uplink like every other vessel.control.*,
                 // so it rides light-time (delayed:true). Each axis update takes
                 // effect at t0 + one-way delay and the operator sees it at
                 // +2×one-way; continuous FBW under multi-second delay is barely
@@ -202,7 +202,7 @@ namespace Gonogo.KSP
                 // to flag (correct per the delay model, not a bug).
                 Command(VesselCommandProvider.SetFlyByWireCommand, delayed: true),
                 Command(VesselCommandProvider.SetControlAxesCommand, delayed: true),
-                // vessel.maneuver.* — F2 reclassified to delayed:true: a
+                // vessel.maneuver.*: F2 reclassified to delayed:true because a
                 // maneuver node is craft-side state, so placing/editing/removing
                 // it is an uplink that rides light-time like every other
                 // actuation (was delayed:false pre-F2).
@@ -219,7 +219,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Declares the exclusive <c>"actionGroups"</c> capability with
         /// <see cref="StockActionGroupsBackend"/> as its always-present vanilla
-        /// factory — the same two-pass discipline (and for the same reason) as
+        /// factory: the same two-pass discipline (and for the same reason) as
         /// <see cref="CommsCoreUplink.DeclareCapabilities"/>: declaring HERE,
         /// in the pre-Register pass, guarantees the capability exists before
         /// ANY uplink's <c>Register</c> runs, so a future AGX uplink's provider
@@ -242,7 +242,7 @@ namespace Gonogo.KSP
 
             // Install the WRITE-side elected-backend resolver. Resolved lazily
             // per command (not captured now) because the election hasn't run
-            // yet at Register time — ResolveCapabilities() happens after every
+            // yet at Register time: ResolveCapabilities() happens after every
             // uplink has registered its providers.
             _kspActuator?.SetActionGroupsBackendSource(
                 () => _kernel != null ? ActionGroupsElection.Elected(_kernel) : null);
@@ -298,12 +298,12 @@ namespace Gonogo.KSP
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-            // Explicit retrofit, matching the DelayRole.Delayed default —
+            // Explicit retrofit, matching the DelayRole.Delayed default:
             // every vessel.* channel describes the vessel itself, so ground
             // learns about it at UT+delay like everything else vessel-sourced
             // (delay-architecture-resolution.md §3). Stated explicitly here
             // rather than relying on the default so this is provable, not
-            // inferred from silence — see ChannelDeclaration.Delay's doc comment.
+            // inferred from silence: see ChannelDeclaration.Delay's doc comment.
             Delay = DelayRole.Delayed,
             AbsenceIsData = absenceIsData,
         };

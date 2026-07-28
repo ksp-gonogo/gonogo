@@ -15,14 +15,14 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Locks the P0.5 typing change for <c>career.status</c>: proves the named
-    /// <see cref="CareerStatus"/> contract tree (and every nested type) mirrors
-    /// — field name for field name, camelCase wire key for camelCase wire key,
-    /// type for type — the EXACT serialized shape
+    /// <see cref="CareerStatus"/> contract tree (and every nested type) mirrors,
+    /// field name for field name, camelCase wire key for camelCase wire key,
+    /// type for type: the EXACT serialized shape
     /// <see cref="CareerViewProvider"/> already emits. This is a typing change
     /// only: the wire is written by <c>JsonWriter</c> walking the provider's
     /// dictionary, NOT by serializing these POCOs, so if the two shapes ever
     /// drift (a field renamed, removed, added, re-cased, or retyped on either
-    /// side) this test fails — the guarantee that the contract type a widget
+    /// side) this test fails, the guarantee that the contract type a widget
     /// codes against is byte-identical to the wire.
     ///
     /// <para>Unlike the flat <c>science.*</c> array channels, <c>career.status</c>
@@ -36,7 +36,7 @@ namespace Sitrep.Host.Tests
     /// compile-time-only <c>[TsInterface]</c> attribute, whose declaring
     /// assembly (<c>Reinforced.Typings</c>) is never deployed at runtime. Any
     /// <c>GetCustomAttribute*</c> call on such a type eagerly resolves ALL its
-    /// attribute records and throws <c>FileNotFoundException</c> — the same
+    /// attribute records and throws <c>FileNotFoundException</c>: the same
     /// trap <see cref="ContractShapeGateTests"/> documents. So this test never
     /// reflects attributes on a contract type: nested-object detection uses
     /// assembly identity (property enumeration is safe), and the
@@ -131,7 +131,7 @@ namespace Sitrep.Host.Tests
                 }
             }
 
-            // A nested contract object — detected by assembly identity, NOT by
+            // A nested contract object: detected by assembly identity, NOT by
             // reflecting [SitrepContract] (that would resolve [TsInterface] and
             // throw; see the class doc). Contract types are the classes defined
             // in Sitrep.Contract; primitives/strings live in corelib.
@@ -142,7 +142,7 @@ namespace Sitrep.Host.Tests
             }
 
             // Scalar: the emitted runtime value must be an instance of the
-            // property's (Nullable-unwrapped) type — catches a retype (e.g.
+            // property's (Nullable-unwrapped) type: catches a retype (e.g.
             // double declared where the provider emits int, or vice versa).
             Assert.True(
                 underlying.IsInstanceOfType(value),
@@ -157,7 +157,7 @@ namespace Sitrep.Host.Tests
         // --- [SitrepTopic] read via raw metadata ---------------------------
         // GetCustomAttribute would resolve Reinforced.Typings (never deployed)
         // and throw; the metadata reader inspects the blob without loading any
-        // attribute's declaring assembly — the exact technique
+        // attribute's declaring assembly: the exact technique
         // ContractShapeGateTests uses for the [SitrepContract] marker.
 
         private static (string TopicId, bool IsArray)? ReadTopicTag(string typeSimpleName)
@@ -218,7 +218,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Minimal <see cref="ICustomAttributeTypeProvider{T}"/> for decoding
-        /// the <c>[SitrepTopic(string, bool)]</c> blob — only primitive
+        /// the <c>[SitrepTopic(string, bool)]</c> blob: only primitive
         /// (string / bool) fixed arguments occur, so the type-shaped members
         /// need only be well-formed, never meaningful.
         /// </summary>
@@ -247,7 +247,7 @@ namespace Sitrep.Host.Tests
 
         // --- fully-populated fixture ---------------------------------------
         // Every field of every nested type is present and non-null so the
-        // recursion reaches — and type-checks — every branch. Absence / null /
+        // recursion reaches (and type-checks) every branch. Absence / null /
         // sandbox behaviour is covered by CareerViewProviderTests.
 
         private static KspSnapshot FullSyntheticSnapshot() => new KspSnapshot

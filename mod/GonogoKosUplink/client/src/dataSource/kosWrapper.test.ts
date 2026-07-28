@@ -28,7 +28,7 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(`LOG gonogoWrapperBody TO gonogoWrapperTarget.`);
     expect(out).toContain(`LOG gonogoWrapperVersion TO gonogoWrapperVerPath.`);
     expect(out).toContain(`RUNPATH("0:/widget_scripts/x.ks").`);
-    // No FUNCTION wrapping — the previous attempt got bitten by REPL
+    // No FUNCTION wrapping: the previous attempt got bitten by REPL
     // function caching when the parameter list changed.
     expect(out).not.toContain(`FUNCTION gonogoWrapperEnsure`);
   });
@@ -109,7 +109,7 @@ describe("buildKosWrapper", () => {
       args: [],
     });
     // The wrapper text must not contain a contiguous parser sentinel
-    // anywhere — `[KOSDATA]` and `[/KOSDATA]` would lock the data-source
+    // anywhere: `[KOSDATA]` and `[/KOSDATA]` would lock the data-source
     // parser onto the wrapper's REPL echo before the script runs.
     expect(out).not.toContain("[KOSDATA]");
     expect(out).not.toContain("[/KOSDATA]");
@@ -119,7 +119,7 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(`"[" + "/KOSDATA]"`);
   });
 
-  it("fragments topic-tagged [KOSDATA:topic] sentinels — the parser regex matches both forms", () => {
+  it("fragments topic-tagged [KOSDATA:topic] sentinels: the parser regex matches both forms", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: `PRINT "[KOSDATA:my-topic]value=" + value + "[/KOSDATA]".`,
@@ -127,7 +127,7 @@ describe("buildKosWrapper", () => {
       args: [],
     });
     // The wrapper text must not contain a contiguous `[KOSDATA:my-topic]`
-    // anywhere — leaving the open marker intact pairs with a later
+    // anywhere: leaving the open marker intact pairs with a later
     // `[/KOSDATA]` from the real script's PRINT and the lazy regex
     // captures the wrapper source as the payload.
     expect(out).not.toContain("[KOSDATA:my-topic]");
@@ -146,7 +146,7 @@ describe("buildKosWrapper", () => {
     expect(out).not.toContain("[/KOSERROR]");
   });
 
-  it("fragments sentinels in path/version too — they get echoed as much as the body", () => {
+  it("fragments sentinels in path/version too: they get echoed as much as the body", () => {
     const out = buildKosWrapper({
       path: "0:/[KOSDATA]/x.ks",
       body: "PRINT 1.",
@@ -169,7 +169,7 @@ describe("buildKosWrapper", () => {
 });
 
 describe("buildKosRunCommand", () => {
-  it("builds a bare RUNPATH when managed is null — same text as before extraction", () => {
+  it("builds a bare RUNPATH when managed is null, same text as before extraction", () => {
     const cmd = buildKosRunCommand("0:/foo.ks", [1.5, true, "hi"], null);
     expect(cmd).toBe('RUNPATH("0:/foo.ks", 1.5, true, "hi").\n');
   });

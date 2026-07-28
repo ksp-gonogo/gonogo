@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Playwright tests covering the browser-level surface — multi-screen
+ * Playwright tests covering the browser-level surface: multi-screen
  * peer handshake, replay-driven telemetry mirror, widget-DOM mirrors,
  * notes round-trip. Boots peerjs-server + a fake Sitrep stream replay
  * server + the Vite dev server automatically via webServer.
@@ -13,16 +13,16 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const BROKER_PORT = 9999;
 // Offset the app port from the production-default 5173 so a running
-// `pnpm dev` doesn't satisfy Playwright's `reuseExistingServer` — the
+// `pnpm dev` doesn't satisfy Playwright's `reuseExistingServer`: the
 // reused vite would have stale env (no VITE_RELAY_URL override, no
 // VITE_PEER_HOST override) and the test would silently target the
 // developer's actual host stack instead of the test-launched one.
 const APP_PORT = 15173;
-// Deliberately NOT the production default 8090 — same "don't collide with a
+// Deliberately NOT the production default 8090: same "don't collide with a
 // developer's own dev stack" rationale as APP_PORT/RELAY_PORT above.
 const SITREP_REPLAY_PORT = 18090;
 // A SEPARATE fake Sitrep server/port carrying `vessel.parts`/`dv.*`/
-// `vessel.structure` on top of the same base snapshot — see
+// `vessel.structure` on top of the same base snapshot; see
 // sitrep-stream-server-topology.mjs's doc comment for why this can't just be
 // added to the shared SITREP_REPLAY_PORT server. Used only by
 // power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
@@ -38,7 +38,7 @@ const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
 const RELAY_PORT = 13002;
 // The Uplink loader is a BUILD-time mechanism (external-entry chunks + a baked
 // import map exist only in `vite build`, not in the dev server), so its e2e spec
-// runs against a production `vite preview` on this dedicated port — separate from
+// runs against a production `vite preview` on this dedicated port, separate from
 // the dev server on APP_PORT that every other spec uses. See uplink-loader.spec.ts.
 const PREVIEW_PORT = 15273;
 
@@ -117,7 +117,7 @@ export default defineConfig({
       env: {
         PORT: String(RELAY_PORT),
         SKIP_COTURN: "1",
-        // Same broker as the app — without this the relay would
+        // Same broker as the app: without this the relay would
         // register on peerjs.com and the host running on
         // localhost:9999 couldn't find it.
         PEER_HOST: "localhost",
@@ -127,12 +127,12 @@ export default defineConfig({
       },
     },
     {
-      // --strictPort forces vite to bind exactly APP_PORT or fail —
+      // --strictPort forces vite to bind exactly APP_PORT or fail,
       // without it vite happily falls back to the next free port when
       // a dev server is already on 5173, and Playwright then waits on
       // APP_PORT until timeout. --port pins the binding.
       // `pnpm exec vite` (instead of `pnpm dev -- …`) skips pnpm's
-      // arg-forwarding rules — the latter delivered `--` to vite as a
+      // arg-forwarding rules: the latter delivered `--` to vite as a
       // literal positional, which made vite treat --port as a no-op.
       command: `pnpm --filter @ksp-gonogo/app exec vite --port ${APP_PORT} --strictPort`,
       port: APP_PORT,
@@ -145,14 +145,14 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
-        // Point the app's relay client (iceServers.ts — /ice-config +
+        // Point the app's relay client (iceServers.ts: /ice-config +
         // the host-discovery registry) at the test relay rather than the
         // dev default (localhost:3002).
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
     {
-      // A PRODUCTION build served by `vite preview` — the only way to exercise
+      // A PRODUCTION build served by `vite preview`, the only way to exercise
       // the Uplink loader (the external-entry chunks + baked import map exist
       // only in a real build). Builds once, then serves dist/ on PREVIEW_PORT;
       // uplink-loader.spec.ts targets this URL explicitly (not baseURL). Peer

@@ -6,10 +6,10 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="VesselCommandProvider"/>'s <c>Handle*</c>
-    /// glue against a <see cref="FakeVesselActuator"/> — proves typed args
+    /// glue against a <see cref="FakeVesselActuator"/>: proves typed args
     /// reach the correct actuator method with the correct values (never
     /// scrambled), that every boolean command is an ABSOLUTE set (not a
-    /// toggle — see <see cref="SetEnabledArgs"/>'s doc comment), that
+    /// toggle: see <see cref="SetEnabledArgs"/>'s doc comment), that
     /// args-level range validation happens before the actuator is ever
     /// called, and that the maneuver-node radial/normal/prograde frame is
     /// threaded through in the correct order end to end. The engine-level
@@ -170,7 +170,7 @@ namespace Sitrep.Host.Tests
         /// NOT any more: the elected action-groups backend owns the upper bound
         /// (stock stops at 10, but Action Groups Extended legitimately goes to
         /// 250), and this KSP-free provider cannot see which backend won. So
-        /// group 11 is DELEGATED, not pre-rejected — under stock the actuator's
+        /// group 11 is DELEGATED, not pre-rejected, under stock the actuator's
         /// backend still fails it cleanly with Range (see
         /// <c>StockActionGroupsBackend.SetGroup</c>), but that verdict is the
         /// backend's to give, not this file's to assume.
@@ -195,7 +195,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The load-bearing arg-order test: named radial/normal/prograde
         /// fields must reach the actuator's matching NAMED parameters
-        /// unscrambled — O-4's whole point. Using three distinct values (not
+        /// unscrambled: O-4's whole point. Using three distinct values (not
         /// e.g. all 1.0) means any accidental swap between prograde/normal/
         /// radialOut would fail this assertion.
         /// </summary>
@@ -389,7 +389,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Mirrors <see cref="HandleSetActionGroupRejectsOutOfRangeGroupsBeforeEverCallingTheActuator"/> —
+        /// Mirrors <see cref="HandleSetActionGroupRejectsOutOfRangeGroupsBeforeEverCallingTheActuator"/>:
         /// the design table's <c>time.setWarpIndex</c> row (§3) specifies
         /// <c>CommandResult | CommandErrorCode.Range</c>, but nothing was admission-checking a
         /// negative index before this fix. The real upper bound
@@ -415,7 +415,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// <c>vessel.control.setAbort</c> follows the exact same pattern as
         /// <see cref="HandleSetGearPassesEnabledThroughAsAbsoluteState"/>/
-        /// setBrakes/setLights — absolute-set <see cref="SetEnabledArgs"/>,
+        /// setBrakes/setLights: absolute-set <see cref="SetEnabledArgs"/>,
         /// no range validation needed (it's boolean).
         /// </summary>
         [Fact]
@@ -464,7 +464,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Distinct values on every axis prove each named field reaches the
-        /// actuator unscrambled — the fly-by-wire analog of the maneuver-node
+        /// actuator unscrambled: the fly-by-wire analog of the maneuver-node
         /// arg-order test.
         /// </summary>
         [Fact]
@@ -500,7 +500,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// A single-axis command leaves every other field null, so the actuator
-        /// only overwrites the one axis it was given — the partial-update
+        /// only overwrites the one axis it was given, the partial-update
         /// contract that lets the client drive one axis without clobbering the
         /// rest.
         /// </summary>
@@ -525,7 +525,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Out-of-range axis readings are CLAMPED to −1..1 (not rejected) — an
+        /// Out-of-range axis readings are CLAMPED to −1..1 (not rejected), an
         /// over-range hardware stick is a routine quirk, not an error, unlike
         /// throttle which rejects out-of-range with
         /// <see cref="CommandErrorCode.Range"/>.

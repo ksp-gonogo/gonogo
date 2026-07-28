@@ -47,7 +47,7 @@ const CARRIED = [
 
 /**
  * These fixtures were authored against the pre-migration legacy `DataSource`
- * keys — every one of those keys now has a real wire home (see
+ * keys: every one of those keys now has a real wire home (see
  * `stream.test.tsx`'s doc comment for the full read list), so this maps each
  * legacy key onto the real topic(s) it now resolves through and emits it on
  * a genuine `TelemetryProvider` pipeline, rather than a `setupMockDataSource`
@@ -55,14 +55,15 @@ const CARRIED = [
  *
  * One deliberate, documented drop from a literal 1:1 replay:
  * - `v.missionTime`/`v.altitude` can't BOTH resolve simultaneously off the
- *   real `vessel.state` derivation — `met` only derives in the OnRails
+ *   real `vessel.state` derivation: `met` only derives in the OnRails
  *   basis, `altitudeAsl` only in the Loaded basis (`vessel-state.ts`'s own
  *   doc; see `stream.test.tsx`). This always emits the Loaded basis (real
- *   `altitudeAsl`, `met` stays null/"—") since the in-flight fixtures were
+ *   `altitudeAsl`, `met` stays null and renders the null-display placeholder)
+ *   since the in-flight fixtures were
  *   authored to show the altitude readout.
  *
  * These legacy fixtures have no `target.available` equivalent, so the
- * vessel-switcher renders its real, current empty state here — see
+ * vessel-switcher renders its real, current empty state here; see
  * `index.test.tsx`'s dedicated switcher test for coverage of a populated
  * roster.
  */
@@ -75,7 +76,7 @@ function emitLegacyFixture(
     launchSite: fixture["kc.launchSite"],
   });
   // A synthetic occupancy-only entry (no `unlocked`/`ready`) so it never
-  // shows up in the site picker itself — `deriveSpaceCenterState` just scans
+  // shows up in the site picker itself, `deriveSpaceCenterState` just scans
   // for ANY entry with a boolean `padOccupied`, same trick
   // `SpaceCenterStatus/stream.test.tsx` documents.
   stream.emit("spaceCenter.launchSites", [

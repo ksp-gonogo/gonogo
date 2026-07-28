@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System.Collections.Generic;
@@ -6,13 +6,13 @@ using System.Collections.Generic;
 namespace Gonogo.KosUplink
 {
     /// <summary>
-    /// Builds the <c>kos.terminal.&lt;coreId&gt;</c> wire shape — one
+    /// Builds the <c>kos.terminal.&lt;coreId&gt;</c> wire shape: one
     /// <see cref="Sitrep.Contract.KosTerminalFrame"/>-shaped dictionary per
     /// downlink frame.
     ///
     /// <para>Mirrors <c>KosProcessorInfoBuilder</c>'s same self-flattening
     /// producer pattern: the contract POCO is the TYPING mirror;
-    /// <c>JsonWriter</c> walks this dictionary directly — no hand-written
+    /// <c>JsonWriter</c> walks this dictionary directly: no hand-written
     /// <c>AppendKosTerminalFrame</c> case needed any more. Also lets
     /// <c>ChannelDeclaration.IsKeyframe</c> (wired in <c>KosExtension.Ksp.cs</c>)
     /// key off the <c>fullRepaint</c> dictionary entry instead of the POCO

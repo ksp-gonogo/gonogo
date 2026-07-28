@@ -12,6 +12,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { defineTopicManifest } from "./defineTopicManifest";
 
@@ -54,7 +55,7 @@ describe("defineTopicManifest", () => {
     function Orbit() {
       const orbit = useTelemetry("vessel.orbit");
       const sma: number | undefined = orbit?.sma;
-      return <div>sma:{sma === undefined ? "—" : String(sma)}</div>;
+      return <div>sma:{sma === undefined ? NULL_DISPLAY : String(sma)}</div>;
     }
 
     render(
@@ -63,7 +64,7 @@ describe("defineTopicManifest", () => {
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText("sma:—")).toBeTruthy();
+    expect(screen.getByText(`sma:${NULL_DISPLAY}`)).toBeTruthy();
 
     act(() => {
       transport.emit("vessel.orbit", ORBIT, {

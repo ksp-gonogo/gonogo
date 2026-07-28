@@ -9,15 +9,15 @@ namespace GonogoTelemetry
     /// `sci.experiments` aggregate. Drives the Science Officer widget
     /// and the upgraded ScienceBench breakdown.
     ///
-    /// Keys (all per-vessel — `Vessel` argument is read):
+    /// Keys (all per-vessel: `Vessel` argument is read):
     ///
-    /// - `sci.instruments` — `[{ partId, partTitle, expId, deployed,
+    /// - `sci.instruments`: `[{ partId, partTitle, expId, deployed,
     ///   hasData, rerunnable, inoperable }]`. One entry per
     ///   ModuleScienceExperiment on the active vessel. `partId` is the
     ///   `Part.flightID` (stable for the lifetime of the part); `expId`
     ///   is the experiment id (`crewReport`, `temperatureScan`, …).
     ///
-    /// - `sci.experimentBreakdown` — `[{ subjectId, biome, situation,
+    /// - `sci.experimentBreakdown`: `[{ subjectId, biome, situation,
     ///   expTitle, dataMits, baseTransmitValue, transmitBonus,
     ///   subjectScience, subjectScienceCap, remainingPotential }]`.
     ///   One entry per stored ScienceData. `subjectScience` /
@@ -25,17 +25,17 @@ namespace GonogoTelemetry
     ///   `ResearchAndDevelopment.GetSubjectByID(subjectId)`;
     ///   `remainingPotential = subjectScienceCap - subjectScience`.
     ///   Phase 2 emits the raw KSP fields rather than computed
-    ///   "transmitMits / recoverMits" — the actual formula involves
+    ///   "transmitMits / recoverMits": the actual formula involves
     ///   scienceValueRatio + transmissibility and is fiddly enough to
     ///   defer until we have a live save to verify against. The widget
     ///   sorts by `remainingPotential` desc.
     ///
-    /// - `sci.canTransmitTotal` — sum of `dataAmount` across all stored
+    /// - `sci.canTransmitTotal`: sum of `dataAmount` across all stored
     ///   data (a coarse "how much is sitting in the antenna queue"
     ///   number; useful as a banner stat without the per-subject walk).
     ///
-    /// - `sci.canRecoverTotal` — same sum. We keep a separate key in
-    ///   case Phase 4's transmit/recover formulas diverge — for now
+    /// - `sci.canRecoverTotal`: same sum. We keep a separate key in
+    ///   case Phase 4's transmit/recover formulas diverge: for now
     ///   they're aliases.
     /// </summary>
     public class ScienceApi : IMinimalTelemachusPlugin
@@ -101,21 +101,21 @@ namespace GonogoTelemetry
             var exp = FindExperimentByPartId(vessel, args);
             if (exp == null) return "instrument not found";
             if (exp.Inoperable) return "instrument inoperable";
-            if (exp.Deployed) return 0; // already deployed — idempotent
+            if (exp.Deployed) return 0; // already deployed, idempotent
 
             // KSP's public DeployExperiment() calls the private coroutine
-            // gatherData(showDialog: true) — the dialog is a player-at-
+            // gatherData(showDialog: true): the dialog is a player-at-
             // keyboard affordance and adds friction for headless / station
             // automation. The same code path also exists with
             // showDialog: false (used internally by EVA "deploy" + by the
             // module's own no-dialog branch); we reach it via reflection
             // because gatherData itself is private. Capture goes straight
-            // into the experiment's container — `Deployed` and `hasData`
+            // into the experiment's container: `Deployed` and `hasData`
             // flip true the same way as the dialog path, just without
             // the UI step.
             //
             // Fallback to DeployExperiment() if reflection fails (e.g. KSP
-            // renames gatherData on a future version) — better a dialog
+            // renames gatherData on a future version): better a dialog
             // than no data capture.
             var captured = exp;
             GonogoTelemetryAddon.Defer(() =>
@@ -163,7 +163,7 @@ namespace GonogoTelemetry
             // DumpData removes a specific ScienceData entry without
             // transmitting (no science gain). Equivalent to the
             // "Discard" button in KSP's result dialog. Defer onto the
-            // main thread — the experiment's container fires events on
+            // main thread: the experiment's container fires events on
             // remove that some mods listen for, and the SR animation
             // tear-down is Unity-coupled.
             var capturedExp = exp;
@@ -186,7 +186,7 @@ namespace GonogoTelemetry
             // ResetExperiment clears Deployed + drops all stored data,
             // making rerunnable instruments ready to run again. For
             // non-rerunnable ones, this typically doesn't clear the
-            // Inoperable flag — only an Engineer's repair / recovery
+            // Inoperable flag: only an Engineer's repair / recovery
             // back to KSC can do that.
             var captured = exp;
             GonogoTelemetryAddon.Defer(() => captured.ResetExperiment());
@@ -209,7 +209,7 @@ namespace GonogoTelemetry
             //
             // The transmitter resolution can read on this thread, but
             // TransmitData spawns transmit visuals (antenna animations,
-            // scaled-particle FX) and DumpData mutates module state — all
+            // scaled-particle FX) and DumpData mutates module state, all
             // Unity-coupled. Defer the whole side-effecting block.
             var transmitter = ScienceUtil.GetBestTransmitter(vessel);
             if (transmitter == null) return "no transmitter available";
@@ -344,7 +344,7 @@ namespace GonogoTelemetry
 
         // SubjectIDs are conventionally `<expId>@<body><situation><biome>`,
         // e.g. `crewReport@KerbinSrfLandedKSC`. There's no guarantee mods
-        // honour the format — fall back to empty strings when we can't
+        // honour the format: fall back to empty strings when we can't
         // segment cleanly. The biome+situation split is heuristic
         // (capital-letter boundaries), and the situation set is the
         // ExperimentSituations enum names; unknown segments stay in the

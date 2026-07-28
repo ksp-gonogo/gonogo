@@ -5,7 +5,7 @@ namespace Sitrep.Transport
 {
     /// <summary>
     /// <see cref="ITransportListener"/> backed by the vendored Fleck WebSocket
-    /// server (see <c>Vendor/Fleck/VENDORED.md</c>). <c>ws://</c> only — no TLS.
+    /// server (see <c>Vendor/Fleck/VENDORED.md</c>). <c>ws://</c> only: no TLS.
     /// </summary>
     public sealed class FleckTransportListener : ITransportListener
     {
@@ -25,7 +25,7 @@ namespace Sitrep.Transport
 
         public event Action<ITransportConnection>? ClientConnected;
 
-        /// <summary>The actual port bound after <see cref="Start"/> — useful when
+        /// <summary>The actual port bound after <see cref="Start"/>, useful when
         /// <c>location</c> requested an ephemeral port (":0").</summary>
         public int BoundPort => _server?.Port ?? 0;
 

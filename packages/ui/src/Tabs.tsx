@@ -7,7 +7,7 @@ export interface TabDescriptor {
   label: string;
   content: ReactNode;
   /**
-   * When true, an attention dot is shown beside the tab label — used to
+   * When true, an attention dot is shown beside the tab label, used to
    * point the operator at a tab whose subsystem needs attention (e.g. an
    * offline data source). Aggregating these across tabs is the caller's job.
    */

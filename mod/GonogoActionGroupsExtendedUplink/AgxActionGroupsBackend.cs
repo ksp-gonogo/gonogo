@@ -6,12 +6,12 @@ using Sitrep.Host.ActionGroups;
 namespace Gonogo.ActionGroupsExtendedUplink
 {
     /// <summary>
-    /// The AGX <see cref="IActionGroupsBackend"/> — the higher-priority
+    /// The AGX <see cref="IActionGroupsBackend"/>: the higher-priority
     /// backend elected for the exclusive <c>"actionGroups"</c> capability
     /// when AGExt is loaded
     /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §5.3).
     /// Produces the SAME <see cref="ActionGroupState"/> the stock backend
-    /// produces — no new wire type, no contract change — just a longer,
+    /// produces (no new wire type, no contract change) just a longer,
     /// player-named list sourced from AGX instead of stock's ten anonymous
     /// customs.
     ///
@@ -31,7 +31,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
             var assigned = _agx.AssignedGroups();
             if (assigned == null)
             {
-                // Null, NOT empty — same "no data this tick" contract as
+                // Null, NOT empty: same "no data this tick" contract as
                 // StockActionGroupsBackend.Groups().
                 return null;
             }
@@ -53,7 +53,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
         }
 
         public bool SetGroup(int index, bool state) =>
-            // AGExt's own success bool IS the range check — an index AGExt
+            // AGExt's own success bool IS the range check, an index AGExt
             // rejects becomes false here, which VesselCommandProvider turns
             // into CommandErrorCode.Range, exactly the seam's design. The
             // backend owns the range because only the backend knows it.

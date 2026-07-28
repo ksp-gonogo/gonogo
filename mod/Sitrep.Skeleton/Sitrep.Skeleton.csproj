@@ -10,7 +10,7 @@
        Sitrep.Core.Serialization envelope codec into one headless, KSP-free server,
        proving the three-domain threading model (main-loop / courier / socket) end
        to end over a real WebSocket. Zero external PackageReferences, matching
-       Sitrep.Core/Sitrep.Transport — see their README/csproj comments for why
+       Sitrep.Core/Sitrep.Transport: see their README/csproj comments for why
        (KSP's Unity-2019 Mono + AppDomain first-assembly-name-wins collision risk).
        Do not add one without revisiting that invariant deliberately and in the
        open. -->

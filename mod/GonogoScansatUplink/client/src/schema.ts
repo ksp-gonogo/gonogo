@@ -1,20 +1,20 @@
 /**
  * SCANsat integration shapes (`scan.*` keys). Canonical home for this
- * Uplink's wire-shape types — consumed by this package's own
+ * Uplink's wire-shape types: consumed by this package's own
  * `FogReveal/scanDecode.ts` / `FogReveal/useScanLayers.ts` / decode+sync
  * hooks, and by `Scanning`/`AnomalyOverlay`/`Minimap` here.
  *
  * `packages/core/src/schemas/scansat.ts` still holds a duplicate copy for
  * `packages/components`'s MapView (not yet migrated off it) and
  * `packages/core/src/schemas/telemachus.ts` (still-shipped legacy
- * Telemachus `scan.*` keys) — see T9 in
+ * Telemachus `scan.*` keys): see T9 in
  * `docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md`
  * for the deletion of that copy once MapView's augment migration lands.
  */
 
 /**
  * SCANsat scan-type bit values. The fork's `scan.*` keys take an integer
- * matching one of these — bit positions are the same as SCANsat's own
+ * matching one of these: bit positions are the same as SCANsat's own
  * `SCANtype` enum so the wire shape mirrors the source mod.
  */
 export const SCAN_TYPE = {
@@ -57,7 +57,7 @@ export interface SCANCoverageBitmap {
  * extents without a full scan of the decoded array.
  *
  * PQS-backed on the fork side, so this resolves even without SCANsat
- * installed — operators should still gate display behind
+ * installed: operators should still gate display behind
  * `scan.maskBitmap` coverage if fog-of-war semantics are desired.
  */
 export interface SCANHeightGrid {
@@ -86,7 +86,7 @@ export interface SCANBiomeEntry {
  * (or 0xFF for a null biome / a body without a BiomeMap). Same cell
  * order as scan.heightGrid + scan.maskBitmap.
  *
- * Stock BiomeMap-backed — works without SCANsat. Indices saturate at
+ * Stock BiomeMap-backed: works without SCANsat. Indices saturate at
  * 254; bodies with >254 biomes (unrealistic in stock) collapse the
  * tail.
  */
@@ -119,7 +119,7 @@ export interface SCANSensorEntry {
 
 /**
  * One entry from `scan.scanningVessels`. SCANsat tracks unloaded vessels
- * too, so this list is *cross-vessel by design* — a satellite mapping
+ * too, so this list is *cross-vessel by design*, a satellite mapping
  * Kerbin and a probe orbiting Mun both appear here at the same time.
  * `subLatitude` / `subLongitude` are the sub-satellite ground point;
  * the scanning footprint is a circle centred there with radius derived
@@ -135,7 +135,7 @@ export interface SCANScanningVessel {
   sensors: SCANSensorEntry[];
   /**
    * SCANsat's actual current ground-track FoV for this vessel in
-   * degrees — reflected from the private `SCANcontroller.getFOV`
+   * degrees: reflected from the private `SCANcontroller.getFOV`
    * (the same number used to paint the in-flight overlay via
    * `drawGroundTrackTris`). This is the per-side latitude half-width.
    * Null when SCANsat is not installed or the vessel currently has
@@ -162,7 +162,7 @@ export interface SCANScanningVessel {
  * One anomaly from `scan.anomalies[bodyName]`. `known` is true once the
  * player has discovered the anomaly's position (SCANsat Anomaly scan);
  * `detail` is true once they have the name (AnomalyDetail scan). Pre-
- * discovery, the entry can still appear but with `known: false` — useful
+ * discovery, the entry can still appear but with `known: false`, useful
  * for "this body has N anomalies, M discovered" readouts but not for
  * marker rendering.
  */

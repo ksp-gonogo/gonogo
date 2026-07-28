@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kerbcast baseline harness — current OCISLY+gonogo performance measurement,
+# kerbcast baseline harness: current OCISLY+gonogo performance measurement,
 # plus the kerbcast comparison condition.
 #
 # See local_docs/kerbcast/baseline_harness_plan.md for the full design.
@@ -14,7 +14,7 @@
 #   D. kerbcast-streaming  Kerbcast DLL loaded, sidecar reachable, operator has
 #                         subscribed all cameras (typically via the sidecar test
 #                         page at http://<sidecar-host>:8088/). OCISLY may be
-#                         loaded or not — not checked by this condition.
+#                         loaded or not: not checked by this condition.
 #
 # No relay, no OCISLY server, no gonogo browser needed. The expensive KSP-side
 # work (ReadPixels + EncodeToJPG) runs every frame when StreamingEnabled = true
@@ -55,7 +55,7 @@ KERBCAST_SIDECAR_HOST="${KERBCAST_SIDECAR_HOST:-http://192.168.86.33:8088}"
 KOS_LOG="${KOS_LOG:-$ROOT/local_docs/syncthing/kspdata/Ships/Script/baseline.log}"
 BASELINES_DIR="$ROOT/local_docs/kerbcast/perf_baselines"
 TELE_POLL_MS=250
-KOS_TIMEOUT_S=420  # generous default — heavy laggy runs (game-time slipping
+KOS_TIMEOUT_S=420  # generous default: heavy laggy runs (game-time slipping
                    # at <25 fps) take longer in wall-clock than the script's
                    # 120 s of game-time. Override with KOS_TIMEOUT_S env var.
 
@@ -109,7 +109,7 @@ cmd_toggle_ocisly() {
         log "OCISLY DLL was at legacy .disabled location; moved to $holding_dll"
         log "RESTART KSP before running 'no-mods' condition."
       elif [ -f "$holding_dll" ]; then
-        log "OCISLY already disabled (held at $holding_dll) — nothing to do."
+        log "OCISLY already disabled (held at $holding_dll), nothing to do."
       else
         err "no OfCourseIStillLoveYou.dll found in Plugins or holding dir"
         return 4
@@ -123,7 +123,7 @@ cmd_toggle_ocisly() {
         mv "$legacy_disabled" "$OCISLY_DLL"
         log "OCISLY DLL restored from legacy .disabled name"
       elif [ -f "$OCISLY_DLL" ]; then
-        log "OCISLY already enabled — nothing to do."
+        log "OCISLY already enabled: nothing to do."
       else
         err "no OCISLY DLL found in holding or legacy locations"
         return 4
@@ -151,18 +151,18 @@ cmd_setup() {
   local val
   val="$(tele_get "t.unscaledDeltaTime" | jq -r '.["t.unscaledDeltaTime"] // empty')"
   if [ -z "$val" ]; then
-    err "t.unscaledDeltaTime not registered — rebuild Telemachus with the kerbcast patch"
+    err "t.unscaledDeltaTime not registered: rebuild Telemachus with the kerbcast patch"
     return 4
   fi
   log "Telemachus key OK ($val s/frame)"
 
   log "checking kOS boot script has armed (looking for [BASELINE-READY] in $KOS_LOG)"
   if [ ! -f "$KOS_LOG" ]; then
-    err "kOS log not found at $KOS_LOG — confirm boot_baseline.ks is installed and the scene loaded"
+    err "kOS log not found at $KOS_LOG, confirm boot_baseline.ks is installed and the scene loaded"
     return 4
   fi
   if ! grep -q '\[BASELINE-READY\]' "$KOS_LOG"; then
-    err "[BASELINE-READY] not in kOS log — script may not have armed yet, or wrong vessel"
+    err "[BASELINE-READY] not in kOS log: script may not have armed yet, or wrong vessel"
     return 4
   fi
   log "kOS script armed"
@@ -170,23 +170,23 @@ cmd_setup() {
   case "$condition" in
     no-mods)
       if [ -f "$OCISLY_DLL" ]; then
-        err "no-mods condition requires OCISLY DLL disabled — run 'toggle-ocisly off' and restart KSP"
+        err "no-mods condition requires OCISLY DLL disabled; run 'toggle-ocisly off' and restart KSP"
         return 4
       fi
-      log "OCISLY disabled — OK for no-mods"
+      log "OCISLY disabled: OK for no-mods"
       ;;
     mods-attached|mods-streaming)
       if [ ! -f "$OCISLY_DLL" ]; then
-        err "$condition requires OCISLY DLL enabled — run 'toggle-ocisly on' and restart KSP"
+        err "$condition requires OCISLY DLL enabled; run 'toggle-ocisly on' and restart KSP"
         return 4
       fi
-      log "OCISLY enabled — OK for $condition"
+      log "OCISLY enabled: OK for $condition"
       if [ "$condition" = "mods-streaming" ]; then
         # The OCISLY baseline.csv only gets written while StreamingEnabled is true.
         # We check it exists; if it's missing or hasn't grown recently, Enable
         # Streaming probably isn't toggled on the cameras.
         if [ ! -f "$OCISLY_CSV" ]; then
-          err "mods-streaming requires OCISLY CSV at $OCISLY_CSV — confirm AutoStream=true or click Enable Streaming on each camera, then restart KSP"
+          err "mods-streaming requires OCISLY CSV at $OCISLY_CSV, confirm AutoStream=true or click Enable Streaming on each camera, then restart KSP"
           return 4
         fi
         local last_modified
@@ -194,7 +194,7 @@ cmd_setup() {
         local now
         now="$(date +%s)"
         if [ "$((now - last_modified))" -gt 30 ]; then
-          err "mods-streaming: OCISLY CSV hasn't been written in $((now - last_modified))s — confirm cameras are actively streaming"
+          err "mods-streaming: OCISLY CSV hasn't been written in $((now - last_modified))s, confirm cameras are actively streaming"
           return 4
         fi
         log "OCISLY CSV is being written (cameras streaming)"
@@ -202,10 +202,10 @@ cmd_setup() {
       ;;
     kerbcast-streaming)
       if [ ! -f "$KERBCAST_DLL" ]; then
-        err "kerbcast-streaming requires Kerbcast DLL at $KERBCAST_DLL — confirm the plugin is deployed and KSP restarted"
+        err "kerbcast-streaming requires Kerbcast DLL at $KERBCAST_DLL, confirm the plugin is deployed and KSP restarted"
         return 4
       fi
-      log "Kerbcast DLL present — OK"
+      log "Kerbcast DLL present: OK"
       local cams_json
       cams_json="$(curl -sf "$KERBCAST_SIDECAR_HOST/cameras" || echo '')"
       if [ -z "$cams_json" ]; then
@@ -301,7 +301,7 @@ cmd_run() {
   fi
 
   log "firing AG1 to start kOS script"
-  # Explicit True (not bare f.ag1 which is a toggle) — idempotent
+  # Explicit True (not bare f.ag1 which is a toggle), idempotent
   # regardless of whether a prior run left ag1 latched. The kOS
   # script only WAITS UNTIL AG1, so re-firing True when it's already
   # True is a no-op anyway.
@@ -415,7 +415,7 @@ cmd_run() {
       ocisly_per_camera: $ocisly
     }' > "$report_file"
 
-  # Preserve raw slices alongside the report — the next run's boot script
+  # Preserve raw slices alongside the report: the next run's boot script
   # truncates baseline.log, and OCISLY's CSV just keeps appending across runs;
   # without snapshots we can't re-aggregate or correlate later.
   local report_base="${report_file%.json}"
@@ -448,7 +448,7 @@ cmd_diff() {
 
 print_help() {
   cat <<EOF
-kerbcast_baseline.sh — current OCISLY+gonogo baseline harness
+kerbcast_baseline.sh: current OCISLY+gonogo baseline harness
 
   setup <condition>          Verify prereqs for one of: no-mods, mods-attached,
                              mods-streaming, kerbcast-streaming.
@@ -480,7 +480,7 @@ Prereqs:
     every camera subscribed (Connect button) before firing. The setup
     subcommand verifies the sidecar is reachable and reports the camera
     count but cannot tell whether the test page is actually consuming
-    the streams — that's on the operator to confirm visually.
+    the streams: that's on the operator to confirm visually.
   * No relay, no OCISLY server needed.
 EOF
 }

@@ -5,13 +5,13 @@ export interface ProgressBarProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Current value, 0–100. Clamped into range before rendering. */
   value: number;
-  /** Accessible label for screen readers (e.g. "Biome coverage — Kerbin"). */
+  /** Accessible label for screen readers (e.g. "Biome coverage, Kerbin"). */
   ariaLabel?: string;
 }
 
 /**
  * Thin track+fill progress indicator. Extracted from the Scanning widget's
- * coverage bar (`CoverageBar`/`CoverageFill`) — the same shape covers the
+ * coverage bar (`CoverageBar`/`CoverageFill`): the same shape covers the
  * ContractManager altitude-envelope bar. Renders as a native
  * `role="progressbar"` so screen readers announce the percentage.
  */

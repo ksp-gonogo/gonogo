@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// <see cref="CareerViewProvider"/>: a fake <see cref="KspSnapshot"/>
     /// carrying the raw <c>"career"</c> encoding <c>Gonogo.KSP.KspHost.
     /// BuildCareer</c> produces is mapped to the <c>career.status</c>
-    /// payload and asserted against the class doc's rules — the Sandbox
+    /// payload and asserted against the class doc's rules, the Sandbox
     /// (no "career" key at all) -&gt; null guard, primitives-only shape,
     /// missing fields -&gt; null never a sentinel, and the payload
     /// serializing cleanly through the REAL production path.

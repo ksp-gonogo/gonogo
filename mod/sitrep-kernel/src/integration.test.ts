@@ -12,7 +12,7 @@
  * It then covers the fail-loud paths, each as its own `resolve()` that
  * throws: a dependency cycle, an ambiguous exclusive tie, a spine-critical
  * capability with no compatible provider and no vanilla, and (filling a T4
- * coverage gap) two `isDefault` providers with unequal priority — still
+ * coverage gap) two `isDefault` providers with unequal priority, still
  * ambiguous, because multiple defaults is checked before priority.
  */
 import { describe, expect, it } from "vitest";
@@ -67,7 +67,7 @@ function buildScenario(): Kernel {
     factory: () => ({ name: "sensor-b" }),
   });
 
-  // 3. A capability whose winning provider depends on "comms" — proves
+  // 3. A capability whose winning provider depends on "comms", proves
   // dependency-first activation: the factory's ctx.query("comms") must
   // succeed, which only works if "comms" activated before "telemetry".
   kernel.registerCapability<TelemetryInstance>({

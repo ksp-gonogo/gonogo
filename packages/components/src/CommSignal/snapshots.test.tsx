@@ -46,7 +46,7 @@ const FIXTURES: Record<string, CommFixture> = {
 };
 
 // Minimal orbit so `deriveVesselState` produces a record (it early-returns
-// `undefined` until `vessel.orbit` is whole) — the derived commsControlState
+// `undefined` until `vessel.orbit` is whole), the derived commsControlState
 // fields hang off that record.
 const ORBIT = {
   sma: 682500,

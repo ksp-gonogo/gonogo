@@ -43,7 +43,7 @@ export function useScanCoverage(
 
 /**
  * Live snapshot of the per-tile elevation grid (PQS-backed, doesn't
- * actually need SCANsat installed — the fork resolves it from stock).
+ * actually need SCANsat installed, the fork resolves it from stock).
  */
 export function useScanHeightGrid(
   bodyName: string | undefined,
@@ -100,7 +100,7 @@ export function useScanAnomalies(
 
 /**
  * Live list of vessels SCANsat is tracking (loaded or unloaded). Used
- * by the Scanning widget — MapView consumes a flat anomaly list and a
+ * by the Scanning widget: MapView consumes a flat anomaly list and a
  * single-body fog mask, but the Scanning widget surfaces the per-
  * vessel scanner + footprint detail.
  */

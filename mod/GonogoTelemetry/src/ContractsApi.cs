@@ -10,22 +10,22 @@ namespace GonogoTelemetry
     /// Director view: active objectives, offers waiting in Mission
     /// Control, and the recent completion feed.
     ///
-    /// Keys (all global — `Vessel` argument ignored, same convention as
+    /// Keys (all global: `Vessel` argument ignored, same convention as
     /// `ScienceCareerDataLinkHandler`):
     ///
-    /// - `contracts.active` — array of `[{ id, title, agency, state,
+    /// - `contracts.active`: array of `[{ id, title, agency, state,
     ///   fundsAdvance, fundsCompletion, fundsFailure,
     ///   scienceCompletion, repCompletion, deadlineUt, parameters: [{
     ///   title, state, optional }] }]`. One entry per `Contract` whose
     ///   `ContractState == Active`.
-    /// - `contracts.offered` — same shape, contracts in `Offered`
+    /// - `contracts.offered`: same shape, contracts in `Offered`
     ///   state (i.e. waiting in Mission Control).
-    /// - `contracts.completedRecent` — same shape, the last
+    /// - `contracts.completedRecent`: same shape, the last
     ///   `RECENT_LIMIT` contracts whose state is `Completed` or
     ///   `Failed`. Sorted newest-first by date-finished where the
     ///   field is present; otherwise insertion-order.
     ///
-    /// Wire shape mirrors `Contract` directly — no client-side
+    /// Wire shape mirrors `Contract` directly: no client-side
     /// derivation in the plugin (e.g. don't compute "time until
     /// deadline" server-side; the widget combines `deadlineUt` with
     /// `t.universalTime` itself, same way `ScienceCareerDataLinkHandler`
@@ -118,7 +118,7 @@ namespace GonogoTelemetry
 
             // Accept moves an Offered contract into Active; Decline removes
             // an Offered contract from the list. Both require the caller
-            // matches the right state — Accept on an already-Active
+            // matches the right state: Accept on an already-Active
             // contract is a no-op rather than an error so a duplicate
             // double-click doesn't surface as a failure to the operator.
             //
@@ -137,7 +137,7 @@ namespace GonogoTelemetry
             }
 
             // Decline only meaningful for Offered contracts. Cancelling an
-            // Active contract is a different verb (Contract.Cancel) — keep
+            // Active contract is a different verb (Contract.Cancel); keep
             // them separate so the UI doesn't silently abandon active work
             // when the operator hits "decline" on an active card.
             if (found.ContractState != Contract.State.Offered)
@@ -169,7 +169,7 @@ namespace GonogoTelemetry
 
             // ContractSystem stores finished contracts in `ContractsFinished`
             // (most KSP versions). Fall back to filtering Contracts when
-            // that's not available — defensive against API drift.
+            // that's not available: defensive against API drift.
             var finished = system.ContractsFinished;
             if (finished == null && system.Contracts != null)
             {

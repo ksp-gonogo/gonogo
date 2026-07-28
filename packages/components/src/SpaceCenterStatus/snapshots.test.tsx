@@ -35,19 +35,19 @@ const CARRIED = [
 
 /**
  * These fixtures were authored against the pre-migration legacy `DataSource`
- * keys — every read this widget makes now has a real wire home (see
+ * keys: every read this widget makes now has a real wire home (see
  * `stream.test.tsx`'s doc comment), so this maps each legacy key onto the
  * topic it now resolves through and emits it on a genuine `TelemetryProvider`
  * pipeline rather than a `setupMockDataSource` fixture the widget no longer
  * reads. `kc.facilityLevels` is emitted VERBATIM under
- * `career.status.facilities` — `parseFacilityLevels` accepts the legacy
+ * `career.status.facilities`: `parseFacilityLevels` accepts the legacy
  * short-code `level`/`max`/`upgradeFunds` (+ optional tier text) shape
  * alongside the enum-keyed `currentTier`/`maxTier` wire shape, so these
  * fixtures keep exercising the same render (including `mid-career-mixed`'s
  * tier text) they did off the legacy `DataSource`. `kc.padOccupied`/
  * `kc.padVesselTitle` feed a synthetic occupancy-only `spaceCenter.launchSites`
  * entry (no `unlocked`/`ready`, so it never shows in a site picker) that the
- * `spaceCenter.state` derived channel reads — same trick
+ * `spaceCenter.state` derived channel reads, same trick
  * `LaunchDirector/snapshots.test.tsx` documents.
  */
 function emitLegacyFixture(
@@ -111,8 +111,8 @@ async function snapshotSpaceCenterFixture(
   });
 
   // The stream frame lands one microtask late (TelemetryProvider's
-  // scheduleFrame, no rAF in jsdom); wait for career.status to go live —
-  // the OFFLINE/SYNCING stream-status badge disappears once it does — so
+  // scheduleFrame, no rAF in jsdom); wait for career.status to go live,
+  // the OFFLINE/SYNCING stream-status badge disappears once it does, so
   // every facility cell + the funds readout mount once before snapshotting.
   await waitFor(() => {
     if (/OFFLINE|SYNCING/.test(container.textContent ?? "")) {

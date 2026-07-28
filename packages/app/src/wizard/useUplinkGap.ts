@@ -25,37 +25,37 @@ import {
 } from "../uplinks/rosterGap";
 
 // Re-exported so existing consumers (`ResultsStep.tsx` et al.) keep importing
-// these types from this module — the join itself now lives in
+// these types from this module: the join itself now lives in
 // `../uplinks/rosterGap.ts`, shared with the loader's enabled-set derivation
 // (`../uplinks/loader.ts`). See that module's header for why it was
 // extracted rather than called directly with a fabricated `SystemUplinkHealth`.
 export type { UplinkGapEntry, UplinkGapState };
 
 /**
- * Pure join (design §2.2) — thin adapter over the shared
+ * Pure join (design §2.2): thin adapter over the shared
  * `computeUplinkGapEntries` join (`../uplinks/rosterGap.ts`), which the
  * loader's enabled-set derivation also calls. This wrapper's only job is
  * unwrapping the wizard's `SystemUplinkHealth` shape down to the join's
- * minimal `GapRosterEntry[]` input — see `rosterGap.ts`'s header for why
+ * minimal `GapRosterEntry[]` input: see `rosterGap.ts`'s header for why
  * that adaptation lives at each call site instead of forcing one shape to
  * impersonate the other.
  *
  * `roster`:
- *   - `undefined` — `system.uplinkHealth` hasn't resolved yet (still
+ *   - `undefined`: `system.uplinkHealth` hasn't resolved yet (still
  *     waiting on the mod). NOT an error: contributes zero roster ids to the
- *     join, same as `null` — the two are indistinguishable at this pure
+ *     join, same as `null`: the two are indistinguishable at this pure
  *     layer; only `useUplinkGap`'s `loading` flag tells them apart.
- *   - `null` — a confirmed tombstone ("no mod talking"). Also contributes
+ *   - `null`: a confirmed tombstone ("no mod talking"). Also contributes
  *     zero roster ids.
- *   - `SystemUplinkHealth` — the decoded roster array.
+ *   - `SystemUplinkHealth`: the decoded roster array.
  *
  * `hubIndex`:
- *   - `null` — the Hub registry fetch failed, or hasn't completed yet.
+ *   - `null`: the Hub registry fetch failed, or hasn't completed yet.
  *     Every entry's `hubDescriptor` stays `null`, and any entry that would
  *     otherwise resolve `installed-no-client` resolves `hub-unknown`
- *     instead (design §7's anti-conflation rule — see `UplinkGapState`).
- *   - `RegistryIndex` — a successfully fetched index, however many (or how
- *     few — including zero) descriptors it carries.
+ *     instead (design §7's anti-conflation rule: see `UplinkGapState`).
+ *   - `RegistryIndex`: a successfully fetched index, however many (or how
+ *     few: including zero) descriptors it carries.
  */
 export function computeUplinkGap(
   roster: SystemUplinkHealth | null | undefined,
@@ -80,10 +80,10 @@ export interface UseUplinkGapResult {
  *     `SettingsModal.tsx`'s `UplinkHealthList` already proves works
  *     post-render;
  *   - the loaded-outcome ids, via `getUplinkOutcomes()` +
- *     `subscribeUplinkOutcomes` through `useSyncExternalStore` — the same
+ *     `subscribeUplinkOutcomes` through `useSyncExternalStore`: the same
  *     pattern `SettingsModal.tsx`'s `UplinkLoaderSection` already uses;
  *   - the Hub registry index, fetched via `fetchRegistry(hubRegistrySource())`
- *     through `@tanstack/react-query`'s `useQuery` — the app's existing
+ *     through `@tanstack/react-query`'s `useQuery`: the app's existing
  *     async data-fetch primitive (`QueryClientProvider` is already mounted
  *     at `main.tsx`'s root; nothing else in the app has used `useQuery` yet,
  *     so this is the first call site, not a new dependency).
@@ -91,7 +91,7 @@ export interface UseUplinkGapResult {
  * `loading` is true while the roster is still `undefined` (design §3 step 4:
  * "waits for a defined value") OR the registry query hasn't settled yet.
  * `error` surfaces the registry query's failure message verbatim (design
- * §7's "Hub unavailable" case) — a `null` roster ("no mod talking") is NOT
+ * §7's "Hub unavailable" case): a `null` roster ("no mod talking") is NOT
  * an error and never populates `error`.
  */
 export function useUplinkGap(): UseUplinkGapResult {

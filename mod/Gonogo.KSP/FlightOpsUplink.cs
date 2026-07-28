@@ -5,20 +5,20 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>ksp</c> uplink's COMMAND half — the game-level flight-ops
+    /// The <c>ksp</c> uplink's COMMAND half: the game-level flight-ops
     /// actions (<c>ksp.revertToLaunch</c>/<c>ksp.revertToEditor</c>/
     /// <c>ksp.toTrackingStation</c>/<c>ksp.switchVessel</c>/<c>ksp.recover</c>).
     /// These are player/scene/game-level operations, NOT actuation uplinked to
     /// a craft, so they live on their own uplink rather than on
     /// <see cref="VesselUplink"/> (whose commands are all craft actuation) and
-    /// are declared <c>delayed: false</c> — a scene load or a revert is a local
+    /// are declared <c>delayed: false</c>, a scene load or a revert is a local
     /// game action, never a signal that rides light-time (see
     /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3 and
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
     /// <para>Read topics for the same domain (<c>ksp.revertAvailability</c>,
     /// <c>ksp.scene</c>, …) are produced elsewhere; this uplink declares NO
-    /// channels — it exists purely to carry the flight-ops command handlers.
+    /// channels: it exists purely to carry the flight-ops command handlers.
     /// Mirrors <see cref="VesselUplink"/>'s KSP-free-provider / real-actuator
     /// split exactly: all the arg-parsing lives in the headlessly-testable
     /// <see cref="FlightOpsCommandProvider"/> (<c>Sitrep.Host</c>); only
@@ -48,7 +48,7 @@ namespace Gonogo.KSP
         {
             Id = "ksp",
             Version = "1.0.0",
-            // No channels — this uplink is command-only (see the class doc
+            // No channels: this uplink is command-only (see the class doc
             // comment). Every command is delayed:false: a game-level/player/
             // scene action is not a signal to the craft, so it executes
             // immediately rather than riding the Courier's light-time delay.

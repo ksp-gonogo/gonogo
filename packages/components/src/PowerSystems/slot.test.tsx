@@ -22,7 +22,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent, type PowerSystemsSlotContext } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler / augment registries — clearActionHandlers()/clearAugments()
+// action-handler / augment registries: clearActionHandlers()/clearAugments()
 // firing on a still-mounted widget is a state update outside act(). RTL
 // auto-cleanup runs after this file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -101,7 +101,7 @@ async function renderFullList() {
   return legacyAux;
 }
 
-describe("PowerSystems — augment slots (spec §4)", () => {
+describe("PowerSystems: augment slots (spec §4)", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -120,7 +120,7 @@ describe("PowerSystems — augment slots (spec §4)", () => {
 
   it("renders the full list with no augments bound (empty slots are inert)", async () => {
     const fixture = await renderFullList();
-    // Empty slots add nothing — the stock readout renders exactly as before.
+    // Empty slots add nothing: the stock readout renders exactly as before.
     expect(screen.getByText("Producers")).toBeTruthy();
     expect(screen.getByText("Consumers")).toBeTruthy();
     expect(screen.queryByTestId("ps-section-augment")).toBeNull();

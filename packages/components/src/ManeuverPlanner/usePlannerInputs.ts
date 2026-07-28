@@ -32,7 +32,7 @@ export interface PlannerInputsApi {
 /**
  * Consolidates the 10 setter pairs that drive the per-preset form. The
  * `setPreset` returned here also resets prograde/normal/radial to 0 when
- * switching to a preset that doesn't take custom Δv inputs — preserves the
+ * switching to a preset that doesn't take custom Δv inputs, preserves the
  * pre-extraction behaviour from `renderNewManeuverSection`.
  */
 export function usePlannerInputs(

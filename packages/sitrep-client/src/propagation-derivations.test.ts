@@ -68,7 +68,7 @@ describe("rvToElements round-trips solve", () => {
       const state = solve(els, ut);
       const back = rvToElements(state.position, state.velocity, els.mu, ut);
       expect(back.bound).toBe(true);
-      // Re-propagate the recovered elements at the same UT — the position must
+      // Re-propagate the recovered elements at the same UT, the position must
       // match, which is the property that actually matters downstream.
       const reState = solve(back, ut);
       for (let i = 0; i < 3; i++) {

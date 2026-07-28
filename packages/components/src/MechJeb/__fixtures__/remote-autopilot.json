@@ -1,6 +1,6 @@
 {
   "_meta": {
     "scenario": "remote-autopilot",
-    "notes": "MechJeb command surface at rest — no command in flight, no comms.delay in the fixture, so the subtitle reads 'Remote autopilot' and every command row is idle (no status chip). Exercises the default chrome + the three command buttons + the ascent-altitude input."
+    "notes": "MechJeb command surface at rest: no command in flight, no comms.delay in the fixture, so the subtitle reads 'Remote autopilot' and every command row is idle (no status chip). Exercises the default chrome + the three command buttons + the ascent-altitude input."
   }
 }

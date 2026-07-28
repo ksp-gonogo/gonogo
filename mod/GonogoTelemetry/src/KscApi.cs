@@ -8,34 +8,34 @@ using Telemachus;
 namespace GonogoTelemetry
 {
     /// <summary>
-    /// Surfaces Space Center / launch-site state — building levels, the
+    /// Surfaces Space Center / launch-site state: building levels, the
     /// parts catalogue under current tech, and the rosters the
     /// launch-director widget will consume in Phase 4.
     ///
     /// Keys (all global, vessel param ignored):
     ///
-    /// - `kc.facilityLevels` — dict keyed by facility short-name
+    /// - `kc.facilityLevels`: dict keyed by facility short-name
     ///   (`launchPad`, `vab`, …) of `{ level, max }`. `upgradeFunds` is
     ///   intentionally omitted: pulling next-upgrade cost reliably needs
     ///   `UpgradeableObject` instances that only exist in the Space
     ///   Center scene. Exposed via a follow-up once we've validated the
     ///   read path in-game.
-    /// - `kc.partsAvailable` — int. Same source as `tech.unlockedPartCount`
+    /// - `kc.partsAvailable`: int. Same source as `tech.unlockedPartCount`
     ///   but namespaced under kc for the Space Center widget; alias
     ///   rather than duplicate logic.
-    /// - `kc.launchSite` — string, the active flight's launch site name.
+    /// - `kc.launchSite`: string, the active flight's launch site name.
     ///   Empty when not in flight.
-    /// - `kc.padOccupied` — bool. True iff there's an active vessel and
+    /// - `kc.padOccupied`: bool. True iff there's an active vessel and
     ///   it's still on the pad / runway (situation == PRELAUNCH).
-    /// - `kc.padVesselTitle` — string, vessel name when padOccupied; empty
+    /// - `kc.padVesselTitle`: string, vessel name when padOccupied; empty
     ///   otherwise.
-    /// - `kc.savedShips` — array of `{ name, partCount, totalMass, facility }`
+    /// - `kc.savedShips`: array of `{ name, partCount, totalMass, facility }`
     ///   for every craft file under VAB + SPH. partCount / totalMass
     ///   come from the .craft ConfigNode; `requiresFunds` and
-    ///   `missingParts` (career filtering) are stubbed empty for now —
+    ///   `missingParts` (career filtering) are stubbed empty for now,
     ///   they need a deeper part-walk that we can layer on once the
     ///   basic listing is verified.
-    /// - `kc.crewRoster` — array of `{ name, trait, type, gender,
+    /// - `kc.crewRoster`: array of `{ name, trait, type, gender,
     ///   experience, experienceLevel, courage, stupidity, isBadass,
     ///   veteran, careerFlights, careerEntries, currentVesselId,
     ///   currentVesselName, available, unavailableReason }`.
@@ -149,7 +149,7 @@ namespace GonogoTelemetry
                         // SetLevel walks every ref in the proto and
                         // routes through OnUpgradeableObjLevelChange so
                         // KSP's persistence + scene state stay in sync.
-                        // Funds deduction is separate — KSP only auto-
+                        // Funds deduction is separate, KSP only auto-
                         // charges through the SC UI.
                         foreach (var refFac in proto.facilityRefs)
                         {
@@ -225,7 +225,7 @@ namespace GonogoTelemetry
                 {
                     // Sandbox saves have no upgrade scenario module; the
                     // call throws. Surface tier 0 / max 0 so the widget
-                    // can render a "—" cell rather than crashing.
+                    // can render its null-display placeholder rather than crashing.
                     result[pair.Key] = new Dictionary<string, object>
                     {
                         ["level"] = 0,
@@ -241,7 +241,7 @@ namespace GonogoTelemetry
         // proto-upgradeables dictionary. The dictionary keys are the
         // full facility ids ("SpaceCenter/LaunchPad" etc.); each value
         // holds a list of UpgradeableFacility refs (the actual scene
-        // instances in SC) — we read UpgradeLevels[fac.FacilityLevel + 1]
+        // instances in SC): we read UpgradeLevels[fac.FacilityLevel + 1]
         // .levelCost from the first ref. Returns 0 when not at SC scene
         // (refs list empty), the facility is at max, or the dictionary
         // hasn't initialised yet.
@@ -345,7 +345,7 @@ namespace GonogoTelemetry
             }
             catch (Exception)
             {
-                // Corrupt or in-progress .craft — surface the file with
+                // Corrupt or in-progress .craft: surface the file with
                 // whatever we managed to read rather than dropping it.
             }
 
@@ -377,7 +377,7 @@ namespace GonogoTelemetry
             if (string.IsNullOrEmpty(raw)) return null;
             var underscore = raw.LastIndexOf('_');
             if (underscore <= 0) return raw;
-            // Only strip if the suffix is all digits — preserves part names
+            // Only strip if the suffix is all digits, preserves part names
             // that legitimately contain underscores (e.g. mod parts).
             for (var i = underscore + 1; i < raw.Length; i++)
             {
@@ -391,7 +391,7 @@ namespace GonogoTelemetry
             HashSet<string> missing)
         {
             var partName = ExtractPartName(partNode);
-            // Always count the dry mass declared on the PART node — even
+            // Always count the dry mass declared on the PART node, even
             // if we can't resolve the prefab, the mass field is reliable.
             if (partNode.HasValue("mass") &&
                 double.TryParse(partNode.GetValue("mass"), out var dryMass))

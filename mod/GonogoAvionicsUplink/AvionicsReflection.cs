@@ -1,5 +1,5 @@
 // Reflection-only bridge to RP-1 avionics. No compile-time reference to the
-// RP-0 plugin (RP0.dll, CC-BY-NC-SA-4.0) — every member is reached by runtime
+// RP-0 plugin (RP0.dll, CC-BY-NC-SA-4.0): every member is reached by runtime
 // reflection, the same arm's-length pattern as RaReflection.
 //
 // Member names are RESOLVED (not guessed): they were locked against an ilspycmd
@@ -10,7 +10,7 @@
 //   - the controllable-mass value is the PUBLIC float property CurrentMassLimit,
 //     which already returns 0 when the unit is dead / powered-off / tech-locked /
 //     interplanetary-locked. GetInternalMassLimit() is PROTECTED (unreadable via
-//     public reflection) and raw massLimit ignores those locks — CurrentMassLimit
+//     public reflection) and raw massLimit ignores those locks, CurrentMassLimit
 //     is exactly what RP0.ControlLockerUtils.ShouldLock sums, so we read it.
 //   - ShouldLock sums CurrentMassLimit per PART, then takes the MAX across parts
 //     (a second smaller unit elsewhere does not add to the best part's rating).

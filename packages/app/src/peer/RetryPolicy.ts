@@ -8,7 +8,7 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
  */
 const UNAVAILABLE_ID_RETRY_MS = 8_000;
 
-/** PeerJS error shape — `.type` is the one load-bearing field we read. */
+/** PeerJS error shape: `.type` is the one load-bearing field we read. */
 interface PeerJsError extends Error {
   type?: string;
 }
@@ -23,17 +23,17 @@ export interface RetryPolicyDeps {
   /** Total wall-clock window after which the policy gives up. */
   retryTimeoutMs: number;
 
-  /** Tear down the current Peer + DataConnection — called before a retry. */
+  /** Tear down the current Peer + DataConnection, called before a retry. */
   tearDown(): void;
   /** Reject any pending request/response promises with `reason`. */
   rejectPending(reason: string): void;
   /** Push a connection-status update upstream. */
   emitStatus(status: "reconnecting" | "disconnected"): void;
-  /** Open a fresh Peer (and DataConnection) — called when the retry timer fires. */
+  /** Open a fresh Peer (and DataConnection): called when the retry timer fires. */
   reopen(): void;
 
   /** Identifier used in the "id still held by broker" warning log.
-   *  Function so callers can hand in a current value — `PeerClientService`
+   *  Function so callers can hand in a current value, `PeerClientService`
    *  re-rolls the id every retry, and a captured snapshot would log
    *  whichever id we started with. */
   stationPeerId: () => string;
@@ -51,7 +51,7 @@ export class RetryPolicy {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryStart: number | null = null;
   private intentionalDisconnect = false;
-  /** Last observed PeerJS error-type string — suppresses duplicate noisy
+  /** Last observed PeerJS error-type string: suppresses duplicate noisy
    *  logs when the same condition (e.g. `unavailable-id`) persists across
    *  retries. */
   private lastErrorType: string | null = null;
@@ -86,12 +86,12 @@ export class RetryPolicy {
     if (!repeat) {
       if (type === "unavailable-id") {
         logger.warn(
-          `[PeerClient] station peer id is still held by the broker — retrying slowly until it releases`,
+          `[PeerClient] station peer id is still held by the broker, retrying slowly until it releases`,
           { stationPeerId: this.deps.stationPeerId() },
         );
       } else if (type === "peer-unavailable") {
         logger.info(
-          `[PeerClient] host ${this.deps.hostPeerId()} unavailable — will retry`,
+          `[PeerClient] host ${this.deps.hostPeerId()} unavailable: will retry`,
         );
       } else {
         logger.error(
@@ -115,7 +115,7 @@ export class RetryPolicy {
 
   /**
    * Schedule the next retry attempt unless we've intentionally disconnected
-   * or already given up. Idempotent — a second call while a retry is
+   * or already given up. Idempotent: a second call while a retry is
    * already pending is a no-op.
    */
   handleUnexpectedClose(): void {

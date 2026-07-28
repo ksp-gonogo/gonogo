@@ -7,7 +7,7 @@ namespace Sitrep.Core
 {
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/clock.ts</c>. Semantics MUST stay
-    /// byte-for-byte identical to the TS reference — conformance is asserted by
+    /// byte-for-byte identical to the TS reference: conformance is asserted by
     /// <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/clock.json</c>, not by re-deriving semantics here.
     /// If you touch this file, regenerate the fixture from the TS side
@@ -47,7 +47,7 @@ namespace Sitrep.Core
 
     /// <summary>
     /// Pure virtual clock. Time only moves when <see cref="AdvanceTo"/> is
-    /// called, and it never reads a wall clock — that's the whole point: tests
+    /// called, and it never reads a wall clock, that's the whole point: tests
     /// (and the real engine under time-warp) drive it explicitly.
     /// </summary>
     public sealed class ManualClock : IClock
@@ -81,7 +81,7 @@ namespace Sitrep.Core
         /// non-cancelled pending callbacks with <c>AtUt &lt;= ut</c>, in
         /// ascending AtUt order (ties broken by insertion order). Advancing to
         /// a UT strictly before the current UT is a no-op (time never
-        /// rewinds, nothing fires) — advancing to the SAME UT is allowed and
+        /// rewinds, nothing fires): advancing to the SAME UT is allowed and
         /// still processes any callbacks due at that UT.
         ///
         /// This drains rather than snapshotting the due batch up front: a
@@ -91,7 +91,7 @@ namespace Sitrep.Core
         /// newly-scheduled, already-due callbacks are picked up and fired
         /// within the same <see cref="AdvanceTo"/> call, instead of getting
         /// stranded until a later advance. A callback that perpetually
-        /// reschedules itself at <c>AtUt &lt;= ut</c> will loop forever here —
+        /// reschedules itself at <c>AtUt &lt;= ut</c> will loop forever here,
         /// that's an author-side bug (equivalent to recursive
         /// <c>setTimeout(0)</c>), not something this clock should paper over.
         /// </summary>
@@ -148,7 +148,7 @@ namespace Sitrep.Core
     }
 
     /// <summary>
-    /// Wall-clock-backed Clock. Kept minimal — the delay-engine model and its
+    /// Wall-clock-backed Clock. Kept minimal: the delay-engine model and its
     /// tests run entirely on <see cref="ManualClock"/>; this exists so
     /// production code has a real implementation to construct. Not exercised
     /// by the golden fixtures (there is nothing deterministic to assert about

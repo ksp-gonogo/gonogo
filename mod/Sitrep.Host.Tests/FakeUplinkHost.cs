@@ -9,10 +9,10 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// A minimal <see cref="IUplinkHost"/> test double that only records
     /// <see cref="ForceKeyframe"/> (and, optionally, <see cref="ResetChannelBirth"/>)
-    /// calls — used to unit-test <see cref="VesselEpochSampler"/> (and any
+    /// calls: used to unit-test <see cref="VesselEpochSampler"/> (and any
     /// future sampler/handler that only needs those two) in isolation,
     /// without spinning up a real <see cref="ChannelEngine"/>. Every other
-    /// member either no-ops or throws <see cref="NotSupportedException"/> —
+    /// member either no-ops or throws <see cref="NotSupportedException"/>,
     /// a test that starts needing one of them should extend this double
     /// deliberately, not silently rely on a guessed default.
     /// </summary>

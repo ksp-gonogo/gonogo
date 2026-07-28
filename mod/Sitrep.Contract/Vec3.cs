@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One canonical 3-vector shape for the whole wire contract — kills
+/// One canonical 3-vector shape for the whole wire contract, kills
 /// Telemachus's V-8 (bare <c>[x,y,z]</c> arrays in some places, <c>{x,y,z}</c>
 /// objects in others, no consistent units). Every vector-valued field in
 /// Sitrep.Contract uses this type; units are documented on the FIELD that

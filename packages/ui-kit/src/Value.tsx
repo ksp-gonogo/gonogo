@@ -11,7 +11,7 @@ export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
   spaced?: boolean;
   /**
    * Font size, snapped to the type scale. Omit to inherit the ambient
-   * font-size from wherever the value is mounted (the original behaviour) —
+   * font-size from wherever the value is mounted (the original behaviour),
    * set it explicitly for dense list/grid rows (coverage %, sensor state,
    * vessel meta) that need to stay off the 14px body-text size.
    */

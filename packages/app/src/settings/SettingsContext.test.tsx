@@ -92,7 +92,7 @@ describe("useSetting", () => {
   });
 
   it("throws when used outside a SettingsProvider", () => {
-    // Silence React's error boundary noise — the throw is the test assertion.
+    // Silence React's error boundary noise: the throw is the test assertion.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const swallowError = (e: ErrorEvent) => e.preventDefault();
     window.addEventListener("error", swallowError);

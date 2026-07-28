@@ -7,7 +7,7 @@ namespace Gonogo.KerbalismUplink
     /// <summary>
     /// The KerbalismUplink (Domain "kerbalism"): emits space weather, life
     /// support, per-kerbal survival state and the Kerbalism feature flags for the
-    /// active vessel, all by reflection over Kerbalism (KerbalismReflection — zero
+    /// active vessel, all by reflection over Kerbalism (KerbalismReflection, zero
     /// compile-time link, presence-safe). It ALSO registers Kerbalism as the
     /// low-specificity (Priority 1) provider of the Domain-neutral "reliability"
     /// Kernel capability (owned by ReliabilityCoreUplink); TestFlight registers
@@ -67,7 +67,7 @@ namespace Gonogo.KerbalismUplink
 
         public void Register(IUplinkHost host)
         {
-            // Ground-side facts (presence + feature flags) — pull-style, Courier-thread,
+            // Ground-side facts (presence + feature flags): pull-style, Courier-thread,
             // no live-KSP read beyond the cheap reflection cache.
             host.AddChannelSource(AvailableTopic, _ => _k.IsAvailable);
             host.AddChannelSource(FeaturesTopic, _ =>
@@ -77,7 +77,7 @@ namespace Gonogo.KerbalismUplink
             _lifeSupport = host.Publisher(LifeSupportTopic);
             _crew = host.Publisher(CrewTopic);
 
-            // Vessel telemetry — capture live Kerbalism on the main thread, publish off it.
+            // Vessel telemetry: capture live Kerbalism on the main thread, publish off it.
             host.AddSampledSource(
                 CaptureOnMain,
                 HandleOnCourier,
@@ -170,7 +170,7 @@ namespace Gonogo.KerbalismUplink
                 ? UplinkHealth.Healthy
                 : new UplinkHealth(UplinkHealthState.Unavailable, "Kerbalism assembly not loaded");
 
-        /// <summary>Plain cross-thread bundle — no live KSP references.</summary>
+        /// <summary>Plain cross-thread bundle: no live KSP references.</summary>
         private sealed class KerbalismCaptured
         {
             public double Ut;

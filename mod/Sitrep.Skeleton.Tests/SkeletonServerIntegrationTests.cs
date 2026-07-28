@@ -19,14 +19,14 @@ namespace Sitrep.Skeleton.Tests
     /// M5a Task 9: the walking-skeleton integration suite. Every test here
     /// drives a real <see cref="ClientWebSocket"/> against a real
     /// <see cref="SkeletonServer"/> (Courier + Fleck transport + envelope
-    /// codec, wired over the three-domain threading model) — headlessly, no
+    /// codec, wired over the three-domain threading model), headlessly, no
     /// KSP. See <see cref="SkeletonServer"/>'s doc comment for the
     /// architecture these tests are proving.
     /// </summary>
     public class SkeletonServerIntegrationTests
     {
         // Real-WebSocket round-trips (connect, subscribe, drain, disconnect);
-        // completes in ms on an idle box. Kept at 10s (fast fail) — the CI mod
+        // completes in ms on an idle box. Kept at 10s (fast fail), the CI mod
         // job retries this project, since bumping the timeout doesn't fix the
         // underlying CPU-starvation flake (a podman --cpus=2 repro still hung at
         // 60s). See ci.yml's mod-job retry note.
@@ -159,7 +159,7 @@ namespace Sitrep.Skeleton.Tests
                     slowSent < tickCount,
                     $"expected lossy-latest coalescing (< {tickCount} sends) but the slow client got {slowSent}");
                 // NB: a `fastSent > slowSent` raw-send-count comparison was
-                // removed here — it was racy. The burst loop above fires all 30
+                // removed here: it was racy. The burst loop above fires all 30
                 // ticks synchronously with no await, so on a loaded runner NEITHER
                 // client's async pump interleaves and BOTH coalesce to ~1 send
                 // (CI saw fast=1, slow=2). The fast client's health is already
@@ -183,7 +183,7 @@ namespace Sitrep.Skeleton.Tests
 
         // DEFERRED (tracked): green locally (macOS) on every run, but on the
         // Linux CI runner a FRESH client's subscribe-ack never arrives (line
-        // ~208) AFTER a prior client disconnected — a 30s timeout, i.e. a hang,
+        // ~208) AFTER a prior client disconnected: a 30s timeout, i.e. a hang,
         // not slowness. This is a potential Linux-specific server-health issue in
         // the skeleton transport (session cleanup / outbox after a WS close
         // racing a new connection). It cannot be reproduced on the dev machine,

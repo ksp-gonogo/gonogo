@@ -1,5 +1,5 @@
 /**
- * Tape — a vertical linear scale with a moving pointer, the altimeter/airspeed
+ * Tape: a vertical linear scale with a moving pointer, the altimeter/airspeed
  * "strip" instrument. A ruler of values with a fixed pointer at the current
  * `value`, marked `zones` (e.g. a suicide-burn ignition band), point `markers`
  * (e.g. a gear-deploy altitude or a projected-touchdown tick), and an optional
@@ -41,7 +41,7 @@ export interface TapeMarker {
 }
 
 export interface TapeProps {
-  /** Current value — the pointer position. */
+  /** Current value: the pointer position. */
   value: number;
   /** Bottom of the scale. */
   min: number;
@@ -107,7 +107,7 @@ export function Tape({
 }: Readonly<TapeProps>) {
   // Full-height rail: measure the (stretched) wrapper and draw the scale at
   // that pixel height. The wrapper is `height:100%`, so its measured height is
-  // parent-driven, not content-driven — no feedback loop with the SVG we size
+  // parent-driven, not content-driven: no feedback loop with the SVG we size
   // from it. `height` is the fallback until the first measurement lands.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [measured, setMeasured] = useState(height);
@@ -165,7 +165,7 @@ export function Tape({
       aria-valuetext={fmt(safe)}
       style={fillHeight ? { height: "100%" } : undefined}
     >
-      {/* The scale is decorative for a screen reader — the meter value above
+      {/* The scale is decorative for a screen reader, the meter value above
           carries the reading; zone/marker labels are visual aids. */}
       <svg
         width={width}

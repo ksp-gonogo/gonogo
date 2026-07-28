@@ -17,8 +17,8 @@ namespace Sitrep.Host.Tests
     /// <c>Sitrep.Contract</c> payload types (<see cref="PartsPower"/> and its
     /// nested <see cref="SolarPanelEntry"/>/<see cref="BatteryEntry"/>/
     /// <see cref="FuelCellEntry"/>/<see cref="AlternatorEntry"/>, plus
-    /// <see cref="ServoEntry"/>) mirror — field name for field name, camelCase
-    /// wire key for camelCase wire key, type for type — the EXACT serialized
+    /// <see cref="ServoEntry"/>) mirror: field name for field name, camelCase
+    /// wire key for camelCase wire key, type for type, the EXACT serialized
     /// shape <see cref="PartsViewProvider"/> already emits. This is a typing
     /// change only: the wire is written by <c>JsonWriter</c> walking the
     /// provider's dictionary, not by serializing these POCOs, so if the two
@@ -163,7 +163,7 @@ namespace Sitrep.Host.Tests
             // compile-time-only [TsInterface] attribute, and any managed
             // GetCustomAttribute*/CustomAttributeData call eagerly resolves
             // EVERY attribute on the type (throwing FileNotFoundException for
-            // Reinforced.Typings, which is never a runtime dependency) — the
+            // Reinforced.Typings, which is never a runtime dependency), the
             // exact hazard ContractShapeGateTests documents and works around
             // the same way. Reading the PE metadata only ever needs the
             // attribute constructor's simple name and its blob bytes; it never
@@ -201,7 +201,7 @@ namespace Sitrep.Host.Tests
 
                     // Blob layout for [SitrepTopic(string topicId, bool isArray = false)]:
                     // a 2-byte prolog (0x0001), then the two fixed constructor
-                    // arguments in declared order — a SerString and a 1-byte
+                    // arguments in declared order: a SerString and a 1-byte
                     // bool. The C# compiler bakes the defaulted optional arg
                     // into the blob as a fixed argument, so both usages
                     // ([SitrepTopic("x")] and [SitrepTopic("x", isArray: true)])

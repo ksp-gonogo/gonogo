@@ -2,13 +2,13 @@ import { createContext, type ReactNode, useContext } from "react";
 
 /**
  * Lightweight contract for "open the alarms modal pre-populated to fire
- * this Telemachus action" — used by component widgets (e.g. ActionGroup)
+ * this Telemachus action": used by component widgets (e.g. ActionGroup)
  * to avoid the round trip of opening alarms manually and re-typing the
  * action key.
  *
  * The provider lives in `@ksp-gonogo/app` (it's the only layer that has the
  * AlarmHostService / AlarmClientService and the ModalProvider it needs to
- * portal the modal). Components stay framework-agnostic — they call the
+ * portal the modal). Components stay framework-agnostic: they call the
  * launcher when present and hide the affordance otherwise. Defining the
  * contract here (rather than in app) keeps `@ksp-gonogo/components` from
  * having a circular import on `@ksp-gonogo/app`.
@@ -26,7 +26,7 @@ const Context = createContext<AlarmsLauncher | null>(null);
 
 /**
  * Direct-create contract for "alarm me when X" affordances that don't
- * need the modal's free-form trigger editor — the trigger is fully
+ * need the modal's free-form trigger editor, the trigger is fully
  * determined by where the operator clicked (e.g. Mission Director's
  * bell next to a contract parameter creates a contract-parameter
  * alarm with the contract id + parameter title baked in). Bypasses
@@ -34,7 +34,7 @@ const Context = createContext<AlarmsLauncher | null>(null);
  * callback.
  *
  * Generic over the trigger type so this stays in
- * `@ksp-gonogo/components/shared` (no `@ksp-gonogo/app` import) — the caller
+ * `@ksp-gonogo/components/shared` (no `@ksp-gonogo/app` import): the caller
  * supplies a trigger of whatever shape; the host bridge unwraps it.
  */
 export interface AlarmCreateRequest<TTrigger> {
@@ -74,7 +74,7 @@ export function AlarmsLauncherProvider({
   /**
    * Optional direct-create handler. When omitted, widgets that depend on
    * direct-create (e.g. Mission Director's parameter bell) hide their
-   * affordance — same fallback as `useAlarmsLauncher` returning null.
+   * affordance: same fallback as `useAlarmsLauncher` returning null.
    */
   creator?: AlarmCreator<unknown>;
   /**

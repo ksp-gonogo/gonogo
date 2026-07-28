@@ -17,7 +17,7 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// M1 Task 4a — the MILESTONE-level end-to-end replay validation: the
+    /// M1 Task 4a, the MILESTONE-level end-to-end replay validation: the
     /// WHOLE M1 pipeline (<see cref="ReplayKspHost"/> -&gt;
     /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemUplink"/>
     /// (the KSP-free replica of <c>Gonogo.KSP.SystemUplink</c>) AND
@@ -75,7 +75,7 @@ namespace Sitrep.Host.IntegrationTests
             if (!File.Exists(path))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -320,7 +320,7 @@ namespace Sitrep.Host.IntegrationTests
                             {
                                 result.GhostViolations.Add(
                                     $"topic \"{streamData.Topic}\": first post-reset validAt {streamData.Meta.ValidAt} " +
-                                    $">= pre-reset watermark {watermark} — a stale/ghost sample from the abandoned timeline.");
+                                    $">= pre-reset watermark {watermark}: a stale/ghost sample from the abandoned timeline.");
                             }
                             awaitingGhostCheck[streamData.Topic] = false;
                         }

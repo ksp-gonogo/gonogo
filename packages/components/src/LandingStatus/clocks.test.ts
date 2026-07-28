@@ -30,7 +30,7 @@ describe("classifyRegime", () => {
 });
 
 describe("deriveDelayClocks", () => {
-  it("collapses every clock when LANDED — no stale future countdown", () => {
+  it("collapses every clock when LANDED: no stale future countdown", () => {
     // Reproduces the bug: a landed vessel can still report a non-zero
     // time-to-impact (residual CoM altitude, zero descent rate), which used to
     // surface as "Blind in ~46s" long after touchdown.

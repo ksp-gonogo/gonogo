@@ -15,7 +15,7 @@ import type { DeviceInput, DeviceType } from "../types";
 import { GamepadLearnWizard } from "./GamepadLearnWizard";
 
 // The modal's Tab focus trap and the wizard's own status readouts are both
-// exercised via a real Modal, per the InputMappingTab.test.tsx precedent —
+// exercised via a real Modal, per the InputMappingTab.test.tsx precedent,
 // render inside a <ModalProvider>, open on mount.
 function AutoOpen({ content }: Readonly<{ content: ReactNode }>) {
   const { open } = useModal();
@@ -35,7 +35,7 @@ function renderInModal(content: ReactNode) {
 }
 
 // Non-standard mapping (`mapping: ""`) is the whole reason this wizard
-// exists — a standard-mapping pad already gets roles for free (Phase 3 of
+// exists, a standard-mapping pad already gets roles for free (Phase 3 of
 // the gamepad-transport spec).
 const NON_STANDARD_SPEC: MockGamepadSpec = {
   id: "Test Pad",
@@ -136,7 +136,7 @@ describe("GamepadLearnWizard", () => {
     await svc.destroy();
   });
 
-  it("never changes an input's id — only role — on the applied inputs list", async () => {
+  it("never changes an input's id, only role: on the applied inputs list", async () => {
     const { svc, device, type } = await setup();
     const originalIds = type.inputs.map((i) => i.id).sort();
     const onApply = vi.fn();
@@ -286,7 +286,7 @@ describe("GamepadLearnWizard", () => {
     );
 
     // A diagonal push: axis-1 fires first (smaller excursion), axis-0
-    // fires second with a bigger excursion. The wizard must pick axis-0 —
+    // fires second with a bigger excursion. The wizard must pick axis-0,
     // the largest excursion seen, not the first thing that moved.
     act(() => {
       mock.setAxis(0, 1, 0.55);
@@ -377,7 +377,7 @@ describe("GamepadLearnWizard", () => {
 
     // The Modal's focus trap only intercepts the Tab key (see Modal.tsx);
     // Gamepad input is polled, never a keyboard event, so it can never be
-    // caught by it — this asserts the press still lands while the dialog
+    // caught by it: this asserts the press still lands while the dialog
     // (and its trap) are up.
     expect(screen.getByRole("dialog")).not.toBeNull();
 

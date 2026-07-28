@@ -10,7 +10,7 @@ import {
   KerbcastEventProducer,
 } from "./KerbcastEventProducer";
 
-/** In-memory stand-in for the kerbcast SDK client — no WebRTC. */
+/** In-memory stand-in for the kerbcast SDK client, no WebRTC. */
 class FakeClient implements KerbcastEdgeSource {
   clock: { captureUt: number | null; epoch: number } = {
     captureUt: 100,

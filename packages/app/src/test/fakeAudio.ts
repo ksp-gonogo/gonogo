@@ -5,7 +5,7 @@ import { SOUND_ENABLED_SETTING } from "../sound/soundSettings";
 /**
  * Test helper: a fake Web Audio context for the sound tests. jsdom ships no
  * `AudioContext`, so `getSharedAudioContext` would return null and every tone
- * would be a silent no-op — a "no tone fired" assertion would then pass
+ * would be a silent no-op, a "no tone fired" assertion would then pass
  * vacuously. Installing this fake makes oscillator creation observable, which
  * is what discriminates the gating / station-silent cases.
  *
@@ -34,7 +34,7 @@ export function installFakeAudio(): FakeOscillator[] {
     oscillators.push(osc);
     return osc;
   };
-  // Must be a real constructor — getSharedAudioContext does `new Ctor()`,
+  // Must be a real constructor, getSharedAudioContext does `new Ctor()`,
   // and an arrow / vi.fn() factory is not newable.
   class FakeAudioContext {
     state = "running" as const;

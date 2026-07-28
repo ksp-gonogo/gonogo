@@ -88,7 +88,7 @@ describe("useActionInput", () => {
     expect(onB).not.toHaveBeenCalled();
   });
 
-  it("does NOT re-register handlers on parent re-render — even when the handlers object identity changes every render", () => {
+  it("does NOT re-register handlers on parent re-render, even when the handlers object identity changes every render", () => {
     // Reset the budget so the assertion is sensitive to this test's calls.
     const budget = PerfBudget.getAll().find((b) =>
       b.name.startsWith("useActionInput register"),
@@ -104,7 +104,7 @@ describe("useActionInput", () => {
     function Renderer() {
       const [tick, setTick] = useState(0);
       triggerRender = () => setTick((n) => n + 1);
-      // Inline object literal — fresh identity every render. Pre-fix
+      // Inline object literal: fresh identity every render. Pre-fix
       // this used to re-run the effect each tick.
       useActionInput<typeof toggleActions>({
         toggle: () => {
@@ -131,7 +131,7 @@ describe("useActionInput", () => {
         triggerRender?.();
       });
     }
-    // No additional registrations — the proxy stays put.
+    // No additional registrations: the proxy stays put.
     expect(budget.rate()).toBe(1);
 
     // The proxy still routes to the latest closure: dispatch fires the

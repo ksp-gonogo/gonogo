@@ -10,14 +10,14 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
 
 /**
  * Runtime host/port + live status for the Sitrep telemetry stream. The HOST
- * is now the shared core `gameHost` (every Uplink reads the same one — see
+ * is now the shared core `gameHost` (every Uplink reads the same one; see
  * core `settings/`); this module owns only the telemetry PORT (:8090), which
  * is a property of the service, not the machine.
  *
  * Shared between `SitrepTelemetryProvider` (which owns and builds the actual
  * `WebSocketTransport`) and the "Sitrep Stream" entry in the Data Sources
  * settings panel (`../dataSources/sitrep.ts`, a thin `DataSource` front with
- * no data path of its own — see that file's doc comment).
+ * no data path of its own: see that file's doc comment).
  */
 
 // --- Host + port config ------------------------------------------------
@@ -45,7 +45,7 @@ function computeEffectiveHostConfig(): SitrepHostConfig {
 }
 
 // `LocalStorageStore.get()` returns a FRESH object on every call (no
-// in-memory cache — see its own doc comment), which breaks
+// in-memory cache: see its own doc comment), which breaks
 // `useSyncExternalStore`'s snapshot-identity contract: React re-invokes
 // `getSnapshot` on every render to check for change, and a snapshot that's
 // never `===` its previous value looks like a perpetual update, which is an
@@ -59,7 +59,7 @@ function refreshCache(): void {
   notifyHostConfigChange();
 }
 
-// Host lives in core now — mirror its changes into this module's cache +
+// Host lives in core now: mirror its changes into this module's cache +
 // listeners so the provider's useSyncExternalStore re-reads.
 subscribeSetting(GAME_HOST_KEY, refreshCache);
 
@@ -88,7 +88,7 @@ export function subscribeSitrepHostConfig(cb: () => void): () => void {
 }
 
 /**
- * First-run KSP_HOST seed — delegates to the shared core seed layer. Kept
+ * First-run KSP_HOST seed, delegates to the shared core seed layer. Kept
  * for back-compat; still called by nothing after Task 5, but harmless.
  */
 export function seedSitrepHost(host: string): void {
@@ -125,7 +125,7 @@ const nonceListeners = new Set<() => void>();
 
 /**
  * Bumped by the "Sitrep Stream" panel row's Reconnect action once the live
- * transport has given up (status === "disconnected") — included in
+ * transport has given up (status === "disconnected"), included in
  * `SitrepTelemetryProvider`'s transport-build effect deps so a bump forces a
  * fresh `WebSocketTransport` even when host/port haven't changed.
  */
@@ -151,7 +151,7 @@ export function subscribeSitrepReconnectNonce(cb: () => void): () => void {
  * pattern in `dataSources/kos.ts`), so tests that touch it must reset
  * between runs to avoid leaking state across `it()`s in the same file.
  *
- * Does NOT clear the core `gameHost` setting — tests that need a clean host
+ * Does NOT clear the core `gameHost` setting, tests that need a clean host
  * also call `resetSettingsForTests()` from `@ksp-gonogo/core`.
  */
 export function resetSitrepRuntimeForTests(): void {

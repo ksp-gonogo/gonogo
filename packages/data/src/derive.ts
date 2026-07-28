@@ -4,7 +4,7 @@ export interface DerivedKeyDef {
   /** Key that will be emitted, e.g. `"v.altitudeRate"`. Must not collide with raw keys. */
   id: string;
   /**
-   * Raw keys this derivation depends on. Only raw source keys are supported —
+   * Raw keys this derivation depends on. Only raw source keys are supported,
    * derived-of-derived is not allowed in v1.
    */
   inputs: readonly string[];
@@ -12,8 +12,8 @@ export interface DerivedKeyDef {
   meta: Omit<DataKeyMeta, "key">;
   /**
    * Compute the derived value.
-   * `inputs` — latest Sample (t + v) for each entry in `def.inputs`, same order.
-   * `previous` — inputs from the last invocation, or `null` on the first call.
+   * `inputs`: latest Sample (t + v) for each entry in `def.inputs`, same order.
+   * `previous`: inputs from the last invocation, or `null` on the first call.
    * Return `undefined` to skip emission this tick (e.g. first sample of a
    * rate-of-change key where no previous sample exists yet).
    */

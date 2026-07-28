@@ -68,7 +68,7 @@ describe("KerbcastDataSource", () => {
   });
 });
 
-describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () => {
+describe("KerbcastDataSource: relay TURN / ice-config (TURN-on-demand)", () => {
   const STUN_DEFAULT: RTCIceServer = {
     urls: "stun:stun.l.google.com:19302",
   };
@@ -85,7 +85,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
     vi.useRealTimers();
   });
 
-  it("starts STUN-only on the main screen — no /ice-config fetch up front", async () => {
+  it("starts STUN-only on the main screen: no /ice-config fetch up front", async () => {
     // The main→sidecar leg is LAN, so the first attempt must NOT fetch the
     // relay's TURN creds; gathering a relay candidate it never uses is exactly
     // the per-feed coturn port burn TURN-on-demand removes.
@@ -129,7 +129,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
 
   it("does not swap the client instance when escalating to TURN", async () => {
     // The camera hooks capture getClient() once and bind to its events, so the
-    // escalation must mutate the existing client in place — a swap would leave
+    // escalation must mutate the existing client in place, a swap would leave
     // them bound to a dead instance (black camera on exactly the TURN path).
     vi.spyOn(globalThis, "fetch").mockImplementation(
       kerbcastFetchImpl({ iceServers: [TURN] }),
@@ -152,7 +152,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
   });
 
   it("stays on the SDK STUN default when the relay has no TURN, even after a failure", async () => {
-    // Empty iceServers stands in for a 503 / unreachable relay — escalation must
+    // Empty iceServers stands in for a 503 / unreachable relay, escalation must
     // not break the reconnect, leaving the client on its STUN default.
     vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
 
@@ -172,7 +172,7 @@ describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () =
   });
 });
 
-describe("KerbcastDataSource — keepalive + reconnect", () => {
+describe("KerbcastDataSource: keepalive + reconnect", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -204,7 +204,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
     const fetchSpy = vi.mocked(globalThis.fetch);
     const callsBefore = fetchSpy.mock.calls.length;
 
-    // Advance 14s — no ping yet, watchdog hasn't fired
+    // Advance 14s: no ping yet, watchdog hasn't fired
     await act(async () => {
       await vi.advanceTimersByTimeAsync(14_000);
     });
@@ -233,7 +233,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
     const fetchSpy = vi.mocked(globalThis.fetch);
     const callsBefore = fetchSpy.mock.calls.length;
 
-    // No ping — advance past the 15s watchdog
+    // No ping: advance past the 15s watchdog
     await act(async () => {
       await vi.advanceTimersByTimeAsync(15_001);
     });
@@ -274,7 +274,7 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
     const fetchSpy = vi.mocked(globalThis.fetch);
     const callsBefore = fetchSpy.mock.calls.length;
 
-    // Fire a failed state — should schedule a reconnect at 2s
+    // Fire a failed state: should schedule a reconnect at 2s
     session.setState("failed");
 
     await act(async () => {
@@ -288,12 +288,12 @@ describe("KerbcastDataSource — keepalive + reconnect", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Dynamic slot subscription — exercised against the SDK's canonical protocol
+// Dynamic slot subscription: exercised against the SDK's canonical protocol
 // fake (MockSidecar) rather than the local transport fake, so these tests cover
 // the real subscribe → slot-map round-trip the sidecar speaks.
 // ---------------------------------------------------------------------------
 
-describe("KerbcastDataSource — dynamic slot subscription", () => {
+describe("KerbcastDataSource: dynamic slot subscription", () => {
   function mockFetch(): void {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) =>
       Promise.resolve(
@@ -336,7 +336,7 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
     ds.disconnect();
   });
 
-  it("refcounts subscribers — one slot shared, freed only on the last release", async () => {
+  it("refcounts subscribers: one slot shared, freed only on the last release", async () => {
     const { ds, sidecar } = await connectedSidecar();
 
     ds.subscribeCamera(42);
@@ -344,11 +344,11 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
 
     expect(subscribeCount(sidecar, 42)).toBe(1); // one slot, not two
 
-    ds.unsubscribeCamera(42); // first widget gone — still shown elsewhere
+    ds.unsubscribeCamera(42); // first widget gone: still shown elsewhere
     expect(sidecar.lastCommand("unsubscribe", 42)).toBeUndefined();
     expect(sidecar.slotMidFor(42)).toBeDefined();
 
-    ds.unsubscribeCamera(42); // last widget gone — slot frees
+    ds.unsubscribeCamera(42); // last widget gone: slot frees
     expect(sidecar.lastCommand("unsubscribe", 42)).toBeTruthy();
     expect(sidecar.slotMidFor(42)).toBeUndefined();
 
@@ -380,7 +380,7 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
 
     // A widget mounts before the sidecar is reachable.
     ds.subscribeCamera(42);
-    // Nothing can be sent over a closed channel — no live subscribe yet.
+    // Nothing can be sent over a closed channel, no live subscribe yet.
     expect(sidecar.commands.some((c) => c.type === "subscribe")).toBe(false);
 
     // The fetch spy accumulates calls across tests in this file; drop the
@@ -405,11 +405,11 @@ describe("KerbcastDataSource — dynamic slot subscription", () => {
 });
 
 // ---------------------------------------------------------------------------
-// relayOffer — the main screen's half of the station broker. Forwards a
+// relayOffer: the main screen's half of the station broker. Forwards a
 // station's offer to the local sidecar's /offer and returns the answer.
 // ---------------------------------------------------------------------------
 
-describe("KerbcastDataSource — relayOffer (station broker)", () => {
+describe("KerbcastDataSource: relayOffer (station broker)", () => {
   it("POSTs the offer to the sidecar /offer and returns the answer", async () => {
     setSetting(GAME_HOST_KEY, "sidehost");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -450,13 +450,13 @@ describe("KerbcastDataSource — relayOffer (station broker)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// registerUplinkHandle("kerbcast", ...) — the host-side relay handle a
+// registerUplinkHandle("kerbcast", ...): the host-side relay handle a
 // station's peer-relayed negotiate() call dispatches through (see
 // PeerHostService.handleUplinkRelay). Delegates to the module singleton's
 // relayOffer(), unchanged.
 // ---------------------------------------------------------------------------
 
-describe("KerbcastDataSource module — registerUplinkHandle('kerbcast', ...) registration", () => {
+describe("KerbcastDataSource module: registerUplinkHandle('kerbcast', ...) registration", () => {
   it("delegates the 'negotiate' relay method to the kerbcastSource singleton's relayOffer", async () => {
     setSetting(GAME_HOST_KEY, "sidehost");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -500,11 +500,11 @@ describe("KerbcastDataSource module — registerUplinkHandle('kerbcast', ...) re
 });
 
 // ---------------------------------------------------------------------------
-// Brokered (station) mode — the station relays the handshake through the host
+// Brokered (station) mode: the station relays the handshake through the host
 // and takes TURN creds from the broadcast, never touching localhost.
 // ---------------------------------------------------------------------------
 
-describe("KerbcastDataSource — brokered (station) mode", () => {
+describe("KerbcastDataSource: brokered (station) mode", () => {
   const TURN: RTCIceServer = {
     urls: ["turn:relay.example:3478"],
     username: "u",
@@ -520,7 +520,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
   it("routes the handshake through the broker and skips the localhost fetch", async () => {
     const sidecar = new MockSidecar();
     sidecar.addCamera({ flightId: 42 });
-    // A station has no relay on localhost — any fetch here is a bug.
+    // A station has no relay on localhost, any fetch here is a bug.
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockRejectedValue(new Error("no localhost relay on a station"));
@@ -538,7 +538,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
 
     await ds.connect();
 
-    // Neither /ice-config nor /offer was fetched — the broker handled signaling.
+    // Neither /ice-config nor /offer was fetched, the broker handled signaling.
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(negotiate).toHaveBeenCalledTimes(1);
     // The client was built with the broker-supplied TURN creds.
@@ -576,7 +576,7 @@ describe("KerbcastDataSource — brokered (station) mode", () => {
   it("stays idle until a camera is wanted, then lazily connects via the broker", async () => {
     const sidecar = new MockSidecar();
     sidecar.addCamera({ flightId: 42 });
-    // A station has no localhost relay — any fetch would be the wrong path.
+    // A station has no localhost relay, any fetch would be the wrong path.
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no localhost"));
     const negotiate = vi.fn((offer: { sdp: string; cameras: number[] }) =>
       sidecar.negotiate(offer),

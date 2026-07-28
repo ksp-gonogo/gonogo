@@ -7,7 +7,7 @@
  *
  * The tracker is generic over the resolved value `T` so each kind of
  * request keeps its own typed map (different responses carry different
- * payload shapes — e.g. `{t, v}` vs an opaque relay result).
+ * payload shapes: e.g. `{t, v}` vs an opaque relay result).
  */
 export class RequestTracker<T> {
   private readonly pending = new Map<
@@ -58,7 +58,7 @@ export class RequestTracker<T> {
     entry.reject(err);
   }
 
-  /** Reject *all* pending entries — used when the underlying connection drops. */
+  /** Reject *all* pending entries: used when the underlying connection drops. */
   rejectAll(reason: string): void {
     for (const [id, entry] of this.pending) {
       clearTimeout(entry.timer);

@@ -1,3 +1,4 @@
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { formatAge, formatAgeLong, formatCompactNumber } from "./format";
 
@@ -93,8 +94,8 @@ describe("formatCompactNumber", () => {
   });
 
   it("returns em-dash for non-finite values", () => {
-    expect(formatCompactNumber(Number.NaN)).toBe("—");
-    expect(formatCompactNumber(Number.POSITIVE_INFINITY)).toBe("—");
-    expect(formatCompactNumber(Number.NEGATIVE_INFINITY)).toBe("—");
+    expect(formatCompactNumber(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(formatCompactNumber(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
+    expect(formatCompactNumber(Number.NEGATIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 });

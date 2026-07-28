@@ -75,7 +75,7 @@ describe("applyMinSizes", () => {
     const items: DashboardItem[] = [{ i: "a", componentId: "with-min" }];
     const entry = { i: "a", x: 0, y: 0, w: 4, h: 4, minW: 4, minH: 4 };
     const out = applyMinSizes({ lg: [entry] }, items);
-    // Same reference — RGL relies on this for reconciliation.
+    // Same reference: RGL relies on this for reconciliation.
     expect(out.lg[0]).toBe(entry);
   });
 

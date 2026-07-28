@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Render the CameraFeed widget through a real Chromium page with a mocked
- * kerbcast sidecar + a canvas.captureStream() video — the camera-widget
+ * kerbcast sidecar + a canvas.captureStream() video: the camera-widget
  * equivalent of the components `render-widget` harness. CameraFeed can't
  * go through that harness (it needs a live MediaStream and the kerbcast
  * session context), so this is its dedicated renderer.
@@ -79,7 +79,7 @@ const PAN_PITCH_ZOOM = {
   panPitch: -10,
 };
 
-// Each scene is rendered TWICE: resting (chrome hidden — the feed fills the
+// Each scene is rendered TWICE: resting (chrome hidden, the feed fills the
 // widget) and hover (chrome revealed). Sizes span a desktop-ish cell, a wide
 // cell, and a narrow mobile-width cell so the overlay layout can be reviewed
 // responsively.
@@ -199,7 +199,7 @@ async function main(): Promise<void> {
       const root = await page.$("#root");
       if (!root) throw new Error("#root missing after render");
 
-      // 1) Resting — move the pointer away so nothing is hovered (the feed
+      // 1) Resting: move the pointer away so nothing is hovered (the feed
       // should fill the widget with no chrome).
       await page.mouse.move(0, 0);
       await page.waitForTimeout(250);
@@ -207,7 +207,7 @@ async function main(): Promise<void> {
       await root.screenshot({ path: resting });
       console.log(`  ✓ ${scene.name}-resting → ${resting}`);
 
-      // 2) Hover — reveal the chrome (top overlay + zoom/pan controls).
+      // 2) Hover: reveal the chrome (top overlay + zoom/pan controls).
       await page.hover("video").catch(() => {});
       await page.waitForTimeout(250);
       const hover = join(OUT_DIR, `${scene.name}-hover.png`);

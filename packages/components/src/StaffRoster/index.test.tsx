@@ -54,7 +54,7 @@ describe("StaffRosterComponent", () => {
     );
     act(() => {
       fixture.emit("spaceCenter.crewRoster", [
-        // Unavailable Pilot — should sort below all available kerbals.
+        // Unavailable Pilot: should sort below all available kerbals.
         {
           name: "Bill Kerman",
           trait: "Engineer",
@@ -183,7 +183,7 @@ describe("StaffRosterComponent", () => {
       ]);
     });
 
-    // Sorted order: Jeb (Pilot) then Bob (Scientist) — one badge per row.
+    // Sorted order: Jeb (Pilot) then Bob (Scientist), one badge per row.
     const badges = await screen.findAllByTestId("staff-badge");
     expect(badges).toHaveLength(2);
     expect(badges.map((b) => b.textContent)).toEqual([

@@ -10,13 +10,13 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// Action Groups Extended is loaded (the <see cref="AgxReflection"/>
     /// probe), it registers a higher-priority <c>"actionGroups"</c> provider
     /// on the engine Kernel so <see cref="AgxActionGroupsBackend"/> WINS the
-    /// exclusive action-groups election — mirroring the exact election shape
+    /// exclusive action-groups election: mirroring the exact election shape
     /// <c>GonogoRealAntennasUplink</c> uses for comms. Registering the
     /// provider IS the gate: absent AGX, no provider is registered and the
     /// stock backend stays elected.
     ///
     /// <para>Ships ZERO client code and declares NO channels/commands of its
-    /// own — the vessel uplink owns <c>vessel.control</c> and resolves the
+    /// own: the vessel uplink owns <c>vessel.control</c> and resolves the
     /// elected backend at capture time via
     /// <c>ActionGroupsElection.Elected(...)</c>. AGX changes only which
     /// backend answers; the topic and everything downstream of it are
@@ -24,7 +24,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// / <c>WirePayloadCoverageTests</c> must stay green untouched).</para>
     ///
     /// <para>NO compile-time reference to AGExt's GPL3 assembly anywhere in
-    /// this project — every AGExt member is reached by reflection
+    /// this project: every AGExt member is reached by reflection
     /// (<see cref="AgxReflection"/>). Compile surface is
     /// <c>Sitrep.Contract</c> ONLY.</para>
     /// </summary>
@@ -55,7 +55,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
             var agx = AgxReflection.Probe();
             if (agx == null || !agx.IsAvailable)
             {
-                // AGX not installed — go inert. The exclusive actionGroups
+                // AGX not installed: go inert. The exclusive actionGroups
                 // capability keeps the stock backend elected.
                 _unavailableReason = "Action Groups Extended assembly not loaded";
                 host.SetAvailability(Availability.Unavailable("Action Groups Extended assembly not loaded"));
@@ -67,7 +67,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
             // descriptor and declares it in the two-pass discovery's
             // capability pass (ActionGroupsElection.RegisterCapability,
             // called from VesselUplink.DeclareCapabilities), which runs
-            // before ANY uplink's Register — so by the time this line
+            // before ANY uplink's Register: so by the time this line
             // executes the capability is guaranteed present regardless of
             // assembly-scan discovery order. The try/catch is pure
             // defence-in-depth (a genuinely absent capability cannot happen

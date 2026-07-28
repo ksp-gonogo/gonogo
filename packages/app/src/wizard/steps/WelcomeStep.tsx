@@ -2,7 +2,7 @@ import { Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /**
- * Welcome step (design §1 step 1 — "first-run only"). Task C scoped its
+ * Welcome step (design §1 step 1: "first-run only"). Task C scoped its
  * two-step build to setup-assist + results only; this bookend step is added
  * by the first-run auto-open host, never by the persistent Settings-tab
  * entry point (see `UplinkHubWizard`'s `firstRun` prop).

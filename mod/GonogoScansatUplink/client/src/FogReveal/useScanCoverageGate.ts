@@ -2,7 +2,7 @@
 // packages/components/src/MapView/useCoverageGate.ts's hook, ported here so
 // widgets that live outside MapView's `map-view.base` slot tree (currently
 // only Minimap.tsx) can compute the same per-tile reveal composite without
-// importing @ksp-gonogo/components — that package's scan-canvas internals
+// importing @ksp-gonogo/components, that package's scan-canvas internals
 // are slated for deletion once every consumer has its own copy (T9,
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md).
 // Kept behaviourally identical to the original; a future task could hoist a
@@ -37,7 +37,7 @@ export interface ScanCoverageGate {
 
 const DEFAULT_WEIGHT = 255;
 
-/** Exported for direct unit testing without a canvas — pure per-pixel math. */
+/** Exported for direct unit testing without a canvas, pure per-pixel math. */
 export function compositeScanCoverage(
   sources: readonly FogRevealSourceDefinition[],
   masksByLayer: ReadonlyMap<string, BodyMask>,
@@ -56,7 +56,7 @@ export function compositeScanCoverage(
   return reveal;
 }
 
-// Stable-reference snapshot cache — getFogRevealSources() allocates fresh
+// Stable-reference snapshot cache: getFogRevealSources() allocates fresh
 // every call, which would infinite-loop useSyncExternalStore directly.
 // Refreshed via an unconditional module-load subscription (mirrors the
 // MapView original) so a reveal source registering before any hook instance

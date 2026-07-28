@@ -37,7 +37,7 @@ function fakeGet(
   }) as DerivedGet;
 }
 
-// Mirrors the real `Sitrep.Contract.StageDeltaVEntry` wire shape — camelCase
+// Mirrors the real `Sitrep.Contract.StageDeltaVEntry` wire shape: camelCase
 // dvActual (never deltaVActual), no stageMass field at all.
 const STAGES: StageDeltaVWireEntry[] = [
   { stage: 2, dvActual: 300, dryMass: 100, fuelMass: 400 },
@@ -45,7 +45,7 @@ const STAGES: StageDeltaVWireEntry[] = [
   { stage: 0, dvActual: 200, dryMass: 300, fuelMass: 0 },
 ];
 
-describe("deriveDvLegacyScalars — dv.total/current/currentFuelMass/totalMass off dv.stages + vessel.structure.currentStage", () => {
+describe("deriveDvLegacyScalars: dv.total/current/currentFuelMass/totalMass off dv.stages + vessel.structure.currentStage", () => {
   it("undefined while dv.stages hasn't arrived", () => {
     expect(
       deriveDvLegacyScalars(fakeGet(undefined, point({ currentStage: 1 }))),
@@ -92,7 +92,7 @@ describe("deriveDvLegacyScalars — dv.total/current/currentFuelMass/totalMass o
     expect(result?.currentFuelMass).toBe(800);
   });
 
-  it("tracks staging — a different currentStage reads a different stage", () => {
+  it("tracks staging: a different currentStage reads a different stage", () => {
     const result = deriveDvLegacyScalars(
       fakeGet(point(STAGES), point({ currentStage: 2 })),
     );
@@ -106,7 +106,7 @@ describe("deriveDvLegacyScalars — dv.total/current/currentFuelMass/totalMass o
     );
     expect(result?.current).toBeNull();
     expect(result?.currentFuelMass).toBeNull();
-    // total/totalMass are unaffected — they sum every stage regardless.
+    // total/totalMass are unaffected, they sum every stage regardless.
     expect(result?.total).toBe(1000);
   });
 

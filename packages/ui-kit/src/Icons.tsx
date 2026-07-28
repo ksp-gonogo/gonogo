@@ -53,7 +53,7 @@ function makeIcon(
   return Wrapped;
 }
 
-// Existing exports — kept stable so call sites don't change.
+// Existing exports: kept stable so call sites don't change.
 export const JoystickIcon = makeIcon(Joystick);
 export const HistoryIcon = makeIcon(History);
 export const BroadcastIcon = makeIcon(Radio);
@@ -67,7 +67,7 @@ export const DatabaseIcon = makeIcon(Database);
 export const DiagnosticsIcon = makeIcon(FileText);
 export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 
-// New exports — replacements for inline unicode glyphs.
+// New exports: replacements for inline unicode glyphs.
 export const CloseIcon = makeIcon(X);
 export const PencilIcon = makeIcon(Pencil);
 export const CheckIcon = makeIcon(Check);

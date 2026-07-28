@@ -48,12 +48,12 @@ const CarriedChannelsContext = createContext<ReadonlySet<string> | undefined>(
 
 /**
  * Union `additions` into `previous`, returning `previous` UNCHANGED
- * (referentially) when nothing new was added — the monotonic-growth seam
+ * (referentially) when nothing new was added, the monotonic-growth seam
  * behind `TelemetryProvider`'s carried-channels allowlist: adding a topic
  * can only move it from legacy->stream, never blank a widget. Never used
  * to shrink: a caller whose next render passes a SMALLER explicit
  * `carriedChannels` prop (or
- * whose transport's own `declaredChannels` shrinks — not expected in
+ * whose transport's own `declaredChannels` shrinks: not expected in
  * practice, but not relied upon either) does not lose previously-carried
  * topics. This is what makes "promoting a topic" a one-way ratchet for the
  * lifetime of one mounted provider, never a mid-session reversal.
@@ -102,37 +102,37 @@ export interface TelemetryProviderProps {
   children: ReactNode;
   /**
    * Advanced override: supply a pre-built `TimelineStore` (e.g. one with
-   * extra derived channels registered, or non-default `ViewClock` options —
+   * extra derived channels registered, or non-default `ViewClock` options,
    * a scrub UI, a fixed replay delay) instead of the default one this
-   * provider builds. When omitted, `TelemetryProvider` builds one itself —
+   * provider builds. When omitted, `TelemetryProvider` builds one itself,
    * see this component's own doc comment.
    */
   store?: TimelineStore;
-  /** Only consulted when `store` is omitted — options for the default `ViewClock` this provider builds. */
+  /** Only consulted when `store` is omitted, options for the default `ViewClock` this provider builds. */
   viewClockOptions?: ViewClockOptions;
   /**
    * Explicit per-topic promotion list (the carried-channels allowlist gate,
-   * `./carried-channels.ts`) — the "dev-first per-topic opt-in" half of the
+   * `./carried-channels.ts`): the "dev-first per-topic opt-in" half of the
    * allowlist, alongside `client.declaredChannels` (the transport's own
    * served-channel declaration). Union of the two is what `useDataValue`'s shim
    * (`@ksp-gonogo/core`) consults before ever routing a MAPPED topic to the
    * stream instead of legacy. Monotonic: a topic named here (or ever
    * declared by the transport) stays carried for the life of this mounted
-   * provider even if a later render omits it — see `unionGrow`. Omit
+   * provider even if a later render omits it; see `unionGrow`. Omit
    * entirely to carry only whatever the transport itself declares.
    */
   carriedChannels?: Iterable<string>;
 }
 
 /**
- * Supplies a `TelemetryClient` — and a `TimelineStore` fed from that
- * client's wire — to the component tree via context.
+ * Supplies a `TelemetryClient`: and a `TimelineStore` fed from that
+ * client's wire: to the component tree via context.
  *
  * **The bridge:** without this provider, nothing in production ever
  * constructed a `TimelineStore` or registered a derived channel on one, so
  * `vessel.state.*` (and any future derived channel) was permanently
  * unreachable through `useStream`/`useDataValue` even once a provider was
- * mounted — the derivation machinery in `vessel-state.ts`/
+ * mounted: the derivation machinery in `vessel-state.ts`/
  * `timeline-store.ts` existed but was wired to nothing. This provider is
  * what closes that gap:
  *
@@ -143,13 +143,13 @@ export interface TelemetryProviderProps {
  * - `client.attachStore(store)` feeds every incoming `stream-data` wire
  *   frame into the store's per-topic timelines.
  * - `client.subscribeStore(...)` schedules a `store.beginFrame()` via
- *   `scheduleFrame` — a `requestAnimationFrame`
+ *   `scheduleFrame`: a `requestAnimationFrame`
  *   (falling back to a microtask off the main thread when rAF isn't
  *   available). Multiple ingests landing before that scheduled callback
  *   fires are coalesced into the ONE `beginFrame()` call it makes, honoring
  *   `TimelineStore.beginFrame`'s own doc ("call once per animation frame /
  *   read cycle... never once per read") instead of re-minting a fresh
- *   `FrameToken` — and re-running `deriveVesselState`'s Kepler solve — on
+ *   `FrameToken` and re-running `deriveVesselState`'s Kepler solve, on
  *   every single message in a burst. This is what makes
  *   `useStream`/`useStreamStatus`/`useCertainty`'s `useSyncExternalStore`
  *   subscriptions (keyed off `store.subscribeFrame`) actually re-render.
@@ -157,7 +157,7 @@ export interface TelemetryProviderProps {
  * `useStream`/the `@ksp-gonogo/core` `useDataValue` shim both read through
  * `store.sample(topic, store.currentFrame())` now (never `client.getValue`
  * directly) so raw AND derived topics resolve through the exact same
- * surface — see `use-stream.ts`.
+ * surface: see `use-stream.ts`.
  */
 export function TelemetryProvider({
   client,
@@ -166,17 +166,17 @@ export function TelemetryProvider({
   viewClockOptions,
   carriedChannels: carriedChannelsProp,
 }: TelemetryProviderProps) {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns, a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below; see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const { store, delayAuthority } = useMemo(() => {
     if (providedStore) return { store: providedStore, delayAuthority: null };
     // Auto-built store must rebuild on `client` identity change: `client`
     // was previously omitted from this memo's deps (on the theory that the
-    // store "isn't tied to a specific client instance") — but an
+    // store "isn't tied to a specific client instance"), but an
     // AUTO-BUILT store has no owner other than this provider, so a
     // reconnect/client-swap that hands in a fresh `TelemetryClient` would
     // leave the old store (with its topics/timelines still keyed off the
     // old client's wire) permanently attached instead of resetting. A
-    // caller-`providedStore` is still exempt — that store is the caller's
+    // caller-`providedStore` is still exempt, that store is the caller's
     // own, its lifetime is deliberately independent of `client` (see the
     // `attachStore`/ `subscribeStore` effects below, which still re-wire IT
     // to a new `client` without rebuilding it).
@@ -187,7 +187,7 @@ export function TelemetryProvider({
     // one-way light-time. This is legibility over the already-server-delayed
     // wire, NOT enforcement (the mod's reveal gate already withheld the
     // samples). A caller who passes an explicit `viewClockOptions.delaySeconds`
-    // (e.g. a fixed replay delay) still wins — the authority is only the
+    // (e.g. a fixed replay delay) still wins, the authority is only the
     // default. Media (kerbcast) reads this same clock, so it aligns for free.
     const authority = new DelayAuthority();
     const built = new TimelineStore(
@@ -196,7 +196,7 @@ export function TelemetryProvider({
         delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
       }),
       // Resolve the injected per-(body,type) dynamic namespaces as WHOLE raw
-      // topics, not `<domain.channel>.<field>` splits — the same list the carried
+      // topics, not `<domain.channel>.<field>` splits: the same list the carried
       // set below folds in, so subscribe + carry agree on the topic.
       { dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES },
     );
@@ -210,12 +210,12 @@ export function TelemetryProvider({
   // from `client.declaredChannels` (the transport's own served-topic
   // declaration) unioned with the explicit `carriedChannels` promotion-list
   // prop. Persists and only ever GROWS across renders of this same provider
-  // INSTANCE (`unionGrow` — the one-way ratchet: "monotonic... adding a
+  // INSTANCE (`unionGrow`, the one-way ratchet: "monotonic... adding a
   // topic can only move it from legacy->stream, never blank a widget"),
   // even if a later render's `carriedChannelsProp` shrinks. Only resets on
   // a genuine `client` identity change (`carriedClientRef` tracks which
   // client the current set belongs
-  // to) — a fresh session, matching the auto-built store's own
+  // to): a fresh session, matching the auto-built store's own
   // client-identity reset above; a client swap starts a new allowlist rather
   // than carrying stale entries from a transport that's no longer attached.
   const carriedClientRef = useRef<TelemetryClient | null>(null);
@@ -224,7 +224,7 @@ export function TelemetryProvider({
       carriedClientRef.current = client;
       return unionGrow(new Set(client.declaredChannels), [
         ...(carriedChannelsProp ?? []),
-        // The dynamic-namespace prefixes (trailing `.`) — `isTopicCarried`
+        // The dynamic-namespace prefixes (trailing `.`): `isTopicCarried`
         // matches them by `startsWith`, carrying the per-(body,type) topics the
         // literal allowlist can't enumerate. Folded in here (not left to the app's
         // prop) so any TelemetryProvider carries them, matching the store's
@@ -250,9 +250,9 @@ export function TelemetryProvider({
 
   useEffect(() => client.attachStore(store), [client, store]);
   // Registers this provider's clock as the non-React `getViewUt()` accessor's
-  // source — see `activeViewClock`'s doc comment above. Also registers the
+  // source: see `activeViewClock`'s doc comment above. Also registers the
   // store itself as `getVesselOrbit()`/`getVesselTarget()`/
-  // `getVesselIdentity()`/`getVesselState()`'s source — see
+  // `getVesselIdentity()`/`getVesselState()`'s source: see
   // `activeTimelineStore`'s doc comment.
   useEffect(() => {
     activeViewClock = store.clock;
@@ -262,7 +262,7 @@ export function TelemetryProvider({
       if (activeTimelineStore === store) activeTimelineStore = undefined;
     };
   }, [store]);
-  // Registers the client itself as `getActiveTelemetryClient()`'s source —
+  // Registers the client itself as `getActiveTelemetryClient()`'s source,
   // the plain-class (non-hook) command-dispatch equivalent of
   // `useTelemetryClientOptional()`, same rationale as `activeViewClock`/
   // `activeTimelineStore` above. Notifies `activeTelemetryClientListeners`
@@ -280,7 +280,7 @@ export function TelemetryProvider({
     };
   }, [client]);
   // Registers the carried-channels allowlist as `getActiveCarriedChannels()`'s
-  // source — the plain-class equivalent of `useCarriedChannelsOptional()`.
+  // source: the plain-class equivalent of `useCarriedChannelsOptional()`.
   // Re-runs on every allowlist growth (not just client identity change) so a
   // plain-class caller's routing decision sees the same monotonically-growing
   // set a hook-based reader would.
@@ -301,7 +301,7 @@ export function TelemetryProvider({
   }, [client, delayAuthority]);
   useEffect(() => {
     // Coalesce to (at most) one `beginFrame()` per animation-frame tick,
-    // instead of one per `stream-data` message — see
+    // instead of one per `stream-data` message: see
     // `scheduleFrame` and this component's own doc comment above.
     let scheduled = false;
     let cancelScheduled: (() => void) | null = null;
@@ -366,12 +366,12 @@ export function useTelemetryClient(): TelemetryClient {
 }
 
 /**
- * Non-throwing variant of `useTelemetryClient` — `undefined` when no
+ * Non-throwing variant of `useTelemetryClient`: `undefined` when no
  * `TelemetryProvider` is mounted, instead of throwing.
  *
  * Exists for compatibility shims (`@ksp-gonogo/core`'s `useDataValue` →
- * `useStream` migration) that must keep working — falling back to
- * a legacy code path — during the migration window before every screen
+ * `useStream` migration) that must keep working, falling back to
+ * a legacy code path: during the migration window before every screen
  * mounts a `TelemetryProvider`. Ordinary SDK-native call sites should keep
  * using `useTelemetryClient` so a missing provider fails loudly.
  */
@@ -380,7 +380,7 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 }
 
 /**
- * Sibling hook to `TelemetryProvider` — the mission-recording tap point
+ * Sibling hook to `TelemetryProvider`: the mission-recording tap point
  * (`StreamRecorder`, `./replay-recorder.ts`). Builds (and memoizes) a
  * `StreamRecorder` bound to the nearest `TelemetryProvider`'s client;
  * `undefined` when no provider is mounted, matching every other
@@ -389,10 +389,10 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
  * Zero overhead when unused: a `StreamRecorder` registers no listener on the
  * client until its own `start()` is called, so a caller that never presses
  * "record" (or has mission history disabled) pays nothing beyond the one
- * object allocation — no wire subscription, no message tap.
+ * object allocation: no wire subscription, no message tap.
  *
  * `recordAllTopics` is read once at construction (like
- * `viewClockOptions` on `TelemetryProvider` itself) — flip it by
+ * `viewClockOptions` on `TelemetryProvider` itself): flip it by
  * `stop()`ping any in-progress recording and letting this hook rebuild a
  * fresh recorder on the next render with the new option.
  */
@@ -411,7 +411,7 @@ export function useStreamRecorder(
 /**
  * Reads the `TimelineStore` supplied by the nearest `TelemetryProvider`.
  * Always mounted alongside the client by `TelemetryProvider` (auto-built
- * if the `store` prop was omitted) — throws if no provider is in
+ * if the `store` prop was omitted), throws if no provider is in
  * the tree, matching `useTelemetryClient`'s contract.
  */
 export function useTelemetryStore(): TimelineStore {
@@ -425,7 +425,7 @@ export function useTelemetryStore(): TimelineStore {
 }
 
 /**
- * Non-throwing variant of `useTelemetryStore` — `undefined` when no
+ * Non-throwing variant of `useTelemetryStore`: `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
  * `useTelemetryClientOptional`: the `@ksp-gonogo/core` `useDataValue`
  * compatibility shim needs both the client AND the store, without throwing,
@@ -436,17 +436,17 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
 }
 
 /**
- * The nearest `TelemetryProvider`'s **one** `ViewClock` — THE single delay
+ * The nearest `TelemetryProvider`'s **one** `ViewClock`: THE single delay
  * authority. Every surface that must stay delay-consistent with telemetry
  * (staleness, predicted-view, and crucially the kerbcast media
  * `DelayedPlayoutBuffer`) reads its release/certainty edge off
  * THIS clock instance, never a second one it constructs itself. A media frame
  * and a telemetry sample stamped the same UT therefore surface at the same
- * `confirmedEdgeUt()` crossing — a shared common-mode property.
+ * `confirmedEdgeUt()` crossing: a shared common-mode property.
  *
  * The returned `ViewClock` is structurally the `DelayClockLike` surface
  * (`confirmedEdgeUt` + `onFrame`) the media buffer depends on, so it can be
- * handed straight to `DelayedPlayoutBuffer`/`useKerbcastStream` — kerbcast
+ * handed straight to `DelayedPlayoutBuffer`/`useKerbcastStream`: kerbcast
  * stays decoupled (it imports no sitrep-client type; the app passes this in).
  *
  * Throws if no `TelemetryProvider` is mounted, matching `useTelemetryStore`.
@@ -456,11 +456,11 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  * need: the `viewUt` view time, the `confirmedEdgeUt` release/certainty edge,
  * and the `onFrame` subscription. Narrowing the hook return to this `Pick`
  * keeps consumers (the kerbcast `DelayedPlayoutBuffer` seam, camera widgets)
- * from reaching for the clock's mutating surface — they observe, they never
+ * from reaching for the clock's mutating surface, they observe, they never
  * drive it.
  *
  * `viewUt` is an observation, not a driver (the scrub/mode setters are what
- * "drive" the clock, and those stay out of this Pick) — it belongs here for the
+ * "drive" the clock, and those stay out of this Pick), it belongs here for the
  * same reason `activeViewClock` below is deliberately typed on it: it is the
  * quantity `onFrame` hands its callback, and the ONLY one that honours a scrub
  * target, so anything mirroring `useViewUt`'s contract has to read it rather
@@ -473,7 +473,7 @@ export type ViewClockView = Pick<
 
 /**
  * The most recently mounted `TelemetryProvider`'s clock, tracked outside
- * React for non-hook callers (plain classes — trigger/alarm services — that
+ * React for non-hook callers (plain classes: trigger/alarm services, that
  * can't call `useViewUt`). Set/cleared by the registration effect in
  * `TelemetryProvider` below. In practice only one provider is mounted at a
  * time (the main screen's single stream); a guard on unmount stops a stale
@@ -483,8 +483,8 @@ export type ViewClockView = Pick<
  * `ViewClockView` (`confirmedEdgeUt` + `onFrame`) `useViewClockOptional`
  * returns: `useViewUt`'s reactive value tracks `onFrame`'s per-frame
  * `viewUt()` callback argument, not `confirmedEdgeUt()` directly (the two
- * diverge whenever a scrub target is set — `viewUt()` honours it outright,
- * `confirmedEdgeUt()` never does, per that method's own doc comment) — so
+ * diverge whenever a scrub target is set, `viewUt()` honours it outright,
+ * `confirmedEdgeUt()` never does, per that method's own doc comment), so
  * `getViewUt()` below must read the exact same method to match `useViewUt`'s
  * contract, including under a pinned/scrubbed test clock.
  */
@@ -495,7 +495,7 @@ export function useViewClock(): ViewClockView {
 }
 
 /**
- * Non-throwing variant of `useViewClock` — `undefined` when no
+ * Non-throwing variant of `useViewClock`: `undefined` when no
  * `TelemetryProvider` is mounted. The natural call shape for an optional
  * consumer like a camera widget: it wires delayed playout onto the shared
  * clock when streaming is live and falls back to strict passthrough (the
@@ -507,13 +507,13 @@ export function useViewClockOptional(): ViewClockView | undefined {
 }
 
 /**
- * The current view time (UT seconds) as a reactive value — the ergonomic
+ * The current view time (UT seconds) as a reactive value, the ergonomic
  * "read view-UT directly" surface widgets need after the `t.universalTime`
  * DROP (it was never a stream; it IS the SDK view time the propagation already
  * evaluates at). Subscribes to the shared `ViewClock`'s per-frame `onFrame`
  * tick and returns the frozen `viewUt` for the current frame (respecting
  * scrub/predicted mode). `undefined` when no `TelemetryProvider` is mounted or
- * before the first confirmed sample (the view time isn't finite yet) — the
+ * before the first confirmed sample (the view time isn't finite yet), the
  * natural "no stream / not synced" signal a widget can `??`-fall-back on.
  *
  * Per-frame reactive by design (the same rAF cadence the media buffer runs
@@ -523,13 +523,13 @@ export function useViewClockOptional(): ViewClockView | undefined {
  */
 export function useViewUt(): number | undefined {
   const clock = useViewClockOptional();
-  // Seed from `viewUt()` — the SAME quantity `onFrame` hands the tick below,
+  // Seed from `viewUt()`: the SAME quantity `onFrame` hands the tick below,
   // not `confirmedEdgeUt()`. The two only agree on a free-running clock:
   // `viewUt()` returns `scrubTo`'s target outright when one is set (see its
   // own doc), whereas `confirmedEdgeUt()` ignores the scrub and keeps
   // tracking live. Seeding off the latter made a scrubbed clock render its
   // first frame at the live confirmed edge and snap to the scrub target only
-  // one frame later — a flash of the wrong view time in a scrub UI, and a
+  // one frame later: a flash of the wrong view time in a scrub UI, and a
   // guaranteed state transition on every mount.
   const [viewUt, setViewUt] = useState<number | undefined>(() => {
     const seed = clock?.viewUt();
@@ -538,7 +538,7 @@ export function useViewUt(): number | undefined {
   // `onFrame` notifies unconditionally at ~60Hz whether or not the view time
   // actually moved (a paused, scrubbed or between-samples clock reports the
   // same UT every frame). Dispatching `setViewUt` regardless leaned on
-  // React's *eager bailout* to swallow the no-op — an optimisation React only
+  // React's *eager bailout* to swallow the no-op, an optimisation React only
   // applies while the fiber has no other pending work, so an unlucky frame
   // still schedules a full render pass for an unchanged value. Comparing here
   // means an unchanged frame costs no dispatch at all.
@@ -560,28 +560,28 @@ export function useViewUt(): number | undefined {
 }
 
 /**
- * The current REAL-time "vessel now" (UT seconds) as a reactive value —
+ * The current REAL-time "vessel now" (UT seconds) as a reactive value,
  * `ViewClock.utNowEstimate()`, NOT the delay-gated `confirmedEdgeUt()`
  * `useViewUt` tracks. Every other live countdown in the app is rightly
  * delay-consistent (it's timing DELAYED craft telemetry, so it must lag by
- * the one-way light-time same as the data it's counting against) — but a
+ * the one-way light-time same as the data it's counting against), but a
  * few channels are command-centre real-time bookkeeping instead of delayed
  * craft telemetry (e.g. `system.uplink.pending`'s dispatch/prediction
  * timestamps, stamped in real UT the instant a command leaves the ground
  * station). Timing THOSE against `useViewUt` makes them appear, and clear,
- * one whole one-way-delay late — this hook is the fix: it reads the same
+ * one whole one-way-delay late; this hook is the fix: it reads the same
  * `ViewClock` instance's `utNowEstimate()` (the undelayed UT(wall) fit)
  * instead, so a real-time bookkeeping value renders in step with the real
  * event, not the delayed view.
  *
- * Modeled directly on `useViewUt` — same `onFrame` subscription, same
- * seed-then-subscribe shape — except the per-frame callback recomputes
+ * Modeled directly on `useViewUt`: same `onFrame` subscription, same
+ * seed-then-subscribe shape: except the per-frame callback recomputes
  * `clock.utNowEstimate()` itself rather than using the `viewUt` argument
  * `onFrame` hands it (that argument IS `clock.viewUt()`, the delayed/
- * scrubbable value `useViewUt` wants — not what this hook needs).
+ * scrubbable value `useViewUt` wants: not what this hook needs).
  *
  * `undefined` when no `TelemetryProvider` is mounted. Unlike `useViewUt`,
- * this is NOT gated on "before the first confirmed sample" — `utNowEstimate()`
+ * this is NOT gated on "before the first confirmed sample", `utNowEstimate()`
  * has a well-defined value (0, or the last observed sample UT) from the
  * moment a clock exists, since real-time bookkeeping has no "confirmed vs.
  * predicted" distinction to wait out.
@@ -593,7 +593,7 @@ export function useUtNow(): number | undefined {
     const seed = clock?.utNowEstimate();
     return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
   });
-  // Same unchanged-frame guard as `useViewUt` — see its comment.
+  // Same unchanged-frame guard as `useViewUt`: see its comment.
   const lastDelivered = useRef(utNow);
   useEffect(() => {
     if (!clock) {
@@ -613,14 +613,14 @@ export function useUtNow(): number | undefined {
 }
 
 /**
- * Non-React `useViewUt()` equivalent — for callers that can't use hooks
+ * Non-React `useViewUt()` equivalent: for callers that can't use hooks
  * (plain classes like `LocalManeuverTriggerService`, the maneuver-trigger and
  * alarm host services). Reads `viewUt()` off whichever `TelemetryProvider`
  * most recently mounted (`activeViewClock`), the same method `onFrame`
- * hands `useViewUt`'s per-frame callback — so it follows the exact same
+ * hands `useViewUt`'s per-frame callback: so it follows the exact same
  * delay-consistent, scrub-respecting clock, just polled on demand instead of
  * per-frame. `undefined` when no provider has ever mounted, or before any
- * live/scrubbed value is available — the same "no stream / not synced"
+ * live/scrubbed value is available, the same "no stream / not synced"
  * contract `useViewUt` returns before its first frame.
  */
 export function getViewUt(): number | undefined {
@@ -630,7 +630,7 @@ export function getViewUt(): number | undefined {
 
 /**
  * Test-only escape hatch: registers `clock` as `getViewUt()`'s source
- * directly, without mounting a `TelemetryProvider` — for a host-service unit
+ * directly, without mounting a `TelemetryProvider`: for a host-service unit
  * test (`AlarmHostService`, `ManeuverTriggerHostService`) that drives its own
  * fake telemetry reader and has no React tree to render at all. Pass
  * `undefined` to clear; a test's `afterEach` should always do this so a
@@ -645,7 +645,7 @@ export function setActiveViewClockForTests(
 
 /**
  * The most recently mounted `TelemetryProvider`'s `TimelineStore`, tracked
- * outside React for the same non-hook callers `activeViewClock` serves —
+ * outside React for the same non-hook callers `activeViewClock` serves,
  * plain classes (`LocalManeuverTriggerService`, the maneuver-trigger and
  * alarm host services) that need a point-in-time read of a fixed Topic
  * (`vessel.orbit`, `vessel.target`, `vessel.identity`, the derived
@@ -661,7 +661,7 @@ let activeTimelineStore:
 /**
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, tracked
  * outside React for the same non-hook callers `activeViewClock`/
- * `activeTimelineStore` serve — the plain-class equivalent of
+ * `activeTimelineStore` serve: the plain-class equivalent of
  * `useTelemetryClientOptional()`. Paired with `activeCarriedChannels` below,
  * this is what lets a plain class (`GoNoGoHostService`) dispatch a command
  * through the new stream (`dispatchActiveCommand`) with the exact same
@@ -673,7 +673,7 @@ let activeTelemetryClient: TelemetryClient | undefined;
 /**
  * Listeners notified whenever `activeTelemetryClient` changes (a
  * `TelemetryProvider` mounts, unmounts, or swaps its `client` prop). Backs
- * `subscribeActiveTelemetryClient`/`useActiveTelemetryClient` — the reactive
+ * `subscribeActiveTelemetryClient`/`useActiveTelemetryClient`: the reactive
  * counterpart to the plain `getActiveTelemetryClient()` read, for a call
  * site that renders before any provider is mounted (e.g. a modal opened
  * during the app's connect-in-progress window) and needs to pick up the
@@ -688,7 +688,7 @@ function notifyActiveTelemetryClientListeners(): void {
 
 /**
  * The most recently mounted `TelemetryProvider`'s carried-channels allowlist,
- * tracked outside React — the plain-class equivalent of
+ * tracked outside React: the plain-class equivalent of
  * `useCarriedChannelsOptional()`. See `activeTelemetryClient`'s doc comment.
  */
 let activeCarriedChannels: ReadonlySet<string> | undefined;
@@ -696,14 +696,14 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
 /**
  * Reads `topic` off whichever `TelemetryProvider` most recently mounted
  * (`activeTimelineStore`), the same `store.sample(topic, store.currentFrame())`
- * call `useStream`/`useTelemetry`'s canonical overload make — so a non-hook
+ * call `useStream`/`useTelemetry`'s canonical overload make: so a non-hook
  * caller sees the exact same value a widget's `useTelemetry(topic)` would on
  * the same frame, just polled on demand instead of reactively. Returns
  * `undefined` when no provider has ever mounted, or before any point has
- * landed for `topic` — the same "not synced yet" contract `useStream`
+ * landed for `topic`: the same "not synced yet" contract `useStream`
  * returns before its first frame. Does NOT itself ensure `topic` is
  * subscribed on the wire (unlike `useStream`'s `subscribe`, which ref-counts
- * a `client.subscribe` for the resolved raw inputs) — a plain-class caller
+ * a `client.subscribe` for the resolved raw inputs), a plain-class caller
  * relies on some OTHER live subscriber (typically a mounted widget reading
  * the same topic) already keeping the data flowing, exactly like
  * `getViewUt()` relies on the provider's own `ViewClock` ticking regardless
@@ -712,7 +712,7 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
  * Exported (beyond the fixed `getVesselOrbit`/`getVesselTarget`/
  * `getVesselIdentity`/`getVesselState` wrappers below, each just this
  * function bound to one Topic) for plain-class callers that need an
- * ARBITRARY topic decided at call time — `GoNoGoHostService`'s
+ * ARBITRARY topic decided at call time: `GoNoGoHostService`'s
  * `vessel.state.met` read, the same "dynamic topic" shape `useTelemetry`'s
  * own doc comment already documents for the hook case.
  */
@@ -726,7 +726,7 @@ export function sampleActiveTopic<T>(topic: string): T | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.orbit")` — the vessel's own
+ * Non-React equivalent of `useTelemetry("vessel.orbit")`: the vessel's own
  * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/...). For
  * plain-class callers (`LocalManeuverTriggerService`, the maneuver-trigger
  * host service) that used to read the equivalent `o.*` legacy keys off
@@ -737,7 +737,7 @@ export function getVesselOrbit(): VesselOrbit | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.target")` — the current
+ * Non-React equivalent of `useTelemetry("vessel.target")`: the current
  * target's identity, relative kinematics, and (when it has one) orbit. The
  * replacement for the legacy `tar.o.*` keys' per-field reads.
  */
@@ -746,7 +746,7 @@ export function getVesselTarget(): VesselTarget | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.identity")` — vessel name,
+ * Non-React equivalent of `useTelemetry("vessel.identity")`: vessel name,
  * type, situation, parent body index. The replacement for the legacy
  * `v.name` read.
  */
@@ -755,7 +755,7 @@ export function getVesselIdentity(): VesselIdentity | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.state")` — the derived
+ * Non-React equivalent of `useTelemetry("vessel.state")`: the derived
  * apoapsis/periapsis/time-to-apsis/true-anomaly/orbital-speed/radius/period/
  * body-name fields `vessel-state.ts` computes from `vessel.orbit` +
  * `vessel.target` + `vessel.identity` + `system.bodies`. The replacement for
@@ -769,20 +769,20 @@ export function getVesselState(): VesselState | undefined {
 
 /**
  * Non-hook, Value-restricted equivalent of `useTelemetry(dataSourceId, key)`'s
- * legacy overload — for a plain-class caller (alarm/maneuver-trigger threshold
+ * legacy overload: for a plain-class caller (alarm/maneuver-trigger threshold
  * evaluation) that needs to read an OPERATOR-PICKED legacy key, not one of a
  * fixed set decided at call time. `key` is resolved via `mapTopic` (same
  * migration table `useTelemetry` itself consults) and the resulting Topic is
  * sampled off the active `TimelineStore` via `sampleActiveTopic`. Narrowed to
- * `number` — the one type every threshold comparison
- * (`AlarmTrigger`/`ArmedTrigger`) needs — so a non-numeric or not-yet-arrived
+ * `number`: the one type every threshold comparison
+ * (`AlarmTrigger`/`ArmedTrigger`) needs, so a non-numeric or not-yet-arrived
  * read is a plain `undefined`, matching the legacy `getLatestValue` +
  * `typeof v === "number"` guard this replaces.
  *
  * Deliberately restricted to keys `mapTopic` actually resolves: the alarm/
  * trigger `DataKeyPicker` (see `@ksp-gonogo/data`'s `useValueKeys`) only ever
  * offers keys in that resolvable set, so an unmapped key here means a stale
- * persisted `dataKey` from before that restriction landed — `undefined` is
+ * persisted `dataKey` from before that restriction landed, `undefined` is
  * the correct, safe answer (the trigger simply never matches), not a crash.
  */
 export function getValue(
@@ -798,7 +798,7 @@ export function getValue(
 }
 
 /**
- * Non-React equivalent of `useTelemetry("time.warp")` — the whole `WarpState`
+ * Non-React equivalent of `useTelemetry("time.warp")`: the whole `WarpState`
  * record (`warpRate`/`warpRateIndex`/`warpMode`/`paused`). Replaces the
  * legacy `t.timeWarp`/`t.currentRateIndex`/`t.currentRate`/`t.warpMode`
  * per-field reads `WarpObserver` used to make against the `"data"`
@@ -809,7 +809,7 @@ export function getWarpState(): WarpState | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("career.status.contracts.active")` — the
+ * Non-React equivalent of `useTelemetry("career.status.contracts.active")`: the
  * career mode's currently-active contract list, off `career.status`'s
  * `contracts.active` raw-field subtopic. Replaces the legacy
  * `getLatestValue("contracts.active")` read `AlarmStateMachine`'s
@@ -820,7 +820,7 @@ export function getContractsActive(): CareerContract[] | undefined {
 }
 
 /**
- * Non-hook equivalent of `useTelemetryClientOptional()` — the currently
+ * Non-hook equivalent of `useTelemetryClientOptional()`: the currently
  * mounted `TelemetryProvider`'s `TelemetryClient`, or `undefined` when none
  * is mounted. See `activeTelemetryClient`'s doc comment.
  */
@@ -844,11 +844,11 @@ export function subscribeActiveTelemetryClient(
 }
 
 /**
- * Reactive equivalent of `getActiveTelemetryClient()` — re-renders the
+ * Reactive equivalent of `getActiveTelemetryClient()`: re-renders the
  * calling component whenever the active `TelemetryProvider` mounts,
  * unmounts, or swaps its `client`. Use this (instead of the plain getter)
- * from any component that might render BEFORE a `TelemetryProvider` mounts
- * — the plain getter reads once and never updates, so a component like
+ * from any component that might render BEFORE a `TelemetryProvider` mounts,
+ * the plain getter reads once and never updates, so a component like
  * `ModalTelemetryBridge` that opens during the app's connect-in-progress
  * window would otherwise be stuck rendering its children with no telemetry
  * context for its entire lifetime, even after the real client connects.
@@ -868,13 +868,13 @@ export function getActiveCarriedChannels(): ReadonlySet<string> | undefined {
   return activeCarriedChannels;
 }
 
-/** Outcome of `dispatchActiveCommand` — see that function's doc comment. */
+/** Outcome of `dispatchActiveCommand`: see that function's doc comment. */
 export type DispatchActiveCommandResult =
   | { routed: true; settled: Promise<void> }
   | { routed: false };
 
 /**
- * Non-hook equivalent of `@ksp-gonogo/core`'s `useCommand` shim — for a plain
+ * Non-hook equivalent of `@ksp-gonogo/core`'s `useCommand` shim: for a plain
  * class (`GoNoGoHostService`) that needs the exact same "mapped + carried ->
  * dispatch through the stream, else fall back to legacy" routing decision a
  * hook-based widget gets, without a render tree to call `useCallback` from.
@@ -885,12 +885,12 @@ export type DispatchActiveCommandResult =
  * `getCurrentValue` reader; dispatches via `TelemetryClient.dispatch` only
  * when a provider is mounted AND the mapped command topic is carried.
  *
- * **Deliberately SYNCHRONOUS in its routing decision** (not `async`) — a
+ * **Deliberately SYNCHRONOUS in its routing decision** (not `async`), a
  * caller must be able to check `routed` in the SAME tick as the call, so a
  * `!routed` fallback to legacy `DataSource.execute(action)` fires exactly
  * when `useCommand`'s own synchronous fallback branch would, not one
  * microtask later. Only the ROUTED case is genuinely asynchronous (the real
- * dispatch round trip) — its `settled` promise never rejects, matching
+ * dispatch round trip): its `settled` promise never rejects, matching
  * `execute()`'s fire-and-forget contract, but resolving it is the caller's
  * business, not something worth blocking the routing decision on.
  */
@@ -920,7 +920,7 @@ export function dispatchActiveCommand(
  * Test-only escape hatch: registers `store` as
  * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
  * `getVesselState()`'s source directly, without mounting a
- * `TelemetryProvider` — mirrors `setActiveViewClockForTests`. Pass
+ * `TelemetryProvider`: mirrors `setActiveViewClockForTests`. Pass
  * `undefined` to clear; a test's `afterEach` should always do this so a
  * later, unrelated suite can't see a stale store left over from this one.
  */
@@ -934,7 +934,7 @@ export function setActiveTimelineStoreForTests(
 
 /**
  * Test-only escape hatch: registers `client` as `dispatchActiveCommand`'s
- * source directly, without mounting a `TelemetryProvider` — for a
+ * source directly, without mounting a `TelemetryProvider`: for a
  * host-service unit test that needs to exercise the ROUTED (stream) branch
  * of a command dispatch (`WarpControl`, `AlarmHostService`'s onFire
  * action-group dispatch, the maneuver-trigger fire path) without a React
@@ -962,15 +962,15 @@ export function setActiveCarriedChannelsForTests(
 }
 
 /**
- * Non-React equivalent of subscribing to `store.subscribeFrame` — for a
+ * Non-React equivalent of subscribing to `store.subscribeFrame`: for a
  * plain-class caller that needs to re-run its own on-demand reads
  * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
  * `getVesselState()`) whenever the active `TelemetryProvider` ingests a new
  * frame, the same "vessel/orbit data changed" signal a widget's
  * `useTelemetry` re-render would ride. Unlike `getViewUt()`/the sample
  * accessors above (pure point-in-time reads), this one DOES need a live
- * subscription — a plain class has no render loop to poll on. No-op
- * (returns a no-op unsubscribe) when no provider is mounted at call time —
+ * subscription: a plain class has no render loop to poll on. No-op
+ * (returns a no-op unsubscribe) when no provider is mounted at call time,
  * same "read at construction, no retroactive mount" limitation `getViewUt()`
  * already has; a caller constructed before any provider mounts stays on its
  * fallback behaviour for its whole lifetime.
@@ -982,7 +982,7 @@ export function onActiveTimelineFrame(cb: () => void): () => void {
 
 /**
  * Reads the carried-channels allowlist supplied by the nearest
- * `TelemetryProvider` (see `./carried-channels.ts`) — throws if no
+ * `TelemetryProvider` (see `./carried-channels.ts`): throws if no
  * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary
  * SDK-native call sites needing to know "is this topic actually live right
  * now" should combine this with `isTopicCarried` rather than reading the raw
@@ -999,7 +999,7 @@ export function useCarriedChannels(): ReadonlySet<string> {
 }
 
 /**
- * Non-throwing variant of `useCarriedChannels` — `undefined` when no
+ * Non-throwing variant of `useCarriedChannels`: `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
  * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: the
  * `@ksp-gonogo/core` `useDataValue` compatibility shim needs this without

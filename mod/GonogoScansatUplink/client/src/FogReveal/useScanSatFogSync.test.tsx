@@ -58,7 +58,7 @@ function Harness({
   return null;
 }
 
-describe("useScanSatFogSync — real TelemetryClient subscribe path (no getDataSource)", () => {
+describe("useScanSatFogSync: real TelemetryClient subscribe path (no getDataSource)", () => {
   let legacySource: MockDataSource;
   let client: TelemetryClient;
   let transport: StubTransport;
@@ -69,7 +69,7 @@ describe("useScanSatFogSync — real TelemetryClient subscribe path (no getDataS
   beforeEach(() => {
     clearRegistry();
     // `scansat.available` still reads through the legacy `useTelemetry("data", ...)`
-    // gate at the top of the hook (untouched by this migration) — a MockDataSource
+    // gate at the top of the hook (untouched by this migration), a MockDataSource
     // registered under the default "data" id lets the test flip it on.
     legacySource = new MockDataSource({
       id: "data",

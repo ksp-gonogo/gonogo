@@ -155,7 +155,7 @@ describe("transferData bridge", () => {
   });
 
   // Correctness oracle (main's brief): a correct Earth→Mars window is a fully
-  // solved SMOOTH BOWL with a single central minimum — that, and only that,
+  // solved SMOOTH BOWL with a single central minimum, that, and only that,
   // contours to the canonical nested-bullseye porkchop. Holes, edge minima or
   // corners that beat the centre would mean the grid (not the visuals) is wrong.
   // `nowUt` sits well before the window so the departure axis isn't clamped and

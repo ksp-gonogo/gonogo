@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "no-signal-occluded",
-    "notes": "Vessel behind Kerbin — zero bars, no control, full signal loss. comm.signalStrength is 0 and controlState is None."
+    "notes": "Vessel behind Kerbin: zero bars, no control, full signal loss. comm.signalStrength is 0 and controlState is None."
   },
   "comm.connected": false,
   "comm.signalStrength": 0,

@@ -2,11 +2,11 @@
  * GOLDEN end-to-end test: a byte on the serial port triggers the ActionGroup's
  * toggle action, which fires `useExecuteAction("data")` and then reflects
  * back through the (fake) data source. No internal mocks for the serial
- * half — real WebSerialTransport (via MockWebSerial), real
+ * half: real WebSerialTransport (via MockWebSerial), real
  * SerialDeviceService, real InputDispatcher, real dispatchAction, real
  * useActionInput, real useExecuteAction. The Telemachus half is a
  * `MockDataSource`-backed fixture (see `fixtures/fakeTelemachus.ts`) instead
- * of a real WS/HTTP round trip — the legacy `TelemachusDataSource` this test
+ * of a real WS/HTTP round trip: the legacy `TelemachusDataSource` this test
  * used to drive against was deleted alongside `dataSources/telemachus.ts`.
  */
 
@@ -107,9 +107,9 @@ describe("serial → action → telemachus end-to-end", () => {
 
     // ActionGroup's READ path is the canonical `vessel.control` stream now (its
     // legacy shim read is gone), so AG1's state is fed through a real
-    // TelemetryProvider. The WRITE path under test here — serial byte →
+    // TelemetryProvider. The WRITE path under test here, serial byte →
     // parser → InputDispatcher → dispatchAction → useExecuteAction → the fake
-    // source — is untouched by that, which is exactly what this test exists to
+    // source: is untouched by that, which is exactly what this test exists to
     // prove end-to-end.
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);

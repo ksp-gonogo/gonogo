@@ -22,13 +22,13 @@ import { useDataSeries } from "./useDataSeries";
 
 /**
  * The M3 `useDataSeries` shim (the last M3 read-side unlock): mirrors
- * `@ksp-gonogo/core`'s `useDataValue.shim.test.tsx` pattern one level up — a
+ * `@ksp-gonogo/core`'s `useDataValue.shim.test.tsx` pattern one level up: a
  * MAPPED + CARRIED key builds its `SeriesRange` from the `TimelineStore`'s
  * `ClientTimeline`, either straight off `TimelineStore.sampleRange` (a raw
- * topic — `timeline-store-sample-range.test.ts`) or, for a DERIVED topic,
+ * topic: `timeline-store-sample-range.test.ts`) or, for a DERIVED topic,
  * off `TimelineStore.sampleDerivedRange` (a replay of the channel's own
- * `derive()` across its raw inputs' buffered ranges — see that method's own
- * doc comment) — instead of the legacy `BufferedDataSource`'s buffered
+ * `derive()` across its raw inputs' buffered ranges; see that method's own
+ * doc comment): instead of the legacy `BufferedDataSource`'s buffered
  * series, with the exact same `{ t, v }` return shape so no consumer
  * changes. Everything else (unmapped, uncarried, no provider) falls back to
  * the legacy `subscribeSamples`/`queryRange` path unchanged.
@@ -49,7 +49,7 @@ function readProbe(): string {
 
 /**
  * Same pinned-clock fixture pattern as `setupStreamFixture`
- * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`) — inlined here so
+ * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`): inlined here so
  * `@ksp-gonogo/data`'s tests don't reach across to `@ksp-gonogo/components`.
  */
 function buildStreamFixture(opts: {
@@ -66,7 +66,7 @@ function buildStreamFixture(opts: {
   });
   const store = new TimelineStore(clock);
   // A caller-provided `store` (as opposed to `TelemetryProvider`'s
-  // auto-built default) registers NO derived channels on its own — register
+  // auto-built default) registers NO derived channels on its own, register
   // `vessel.state` here so the DERIVED-topic test below resolves for real
   // instead of silently falling through `resolveRawFieldSubtopic`.
   store.registerDerivedChannel(vesselStateChannel);
@@ -89,7 +89,7 @@ function buildStreamFixture(opts: {
 
 /**
  * The legacy `"data"` registry slot `useDataSeries`'s un-shimmed half always
- * subscribes to (stable hook order — see `useDataSeries.ts`'s own doc),
+ * subscribes to (stable hook order: see `useDataSeries.ts`'s own doc),
  * regardless of whether the stream side ends up winning. Every test in this
  * file registers one so a mapped+carried case can prove the legacy source
  * genuinely has zero effect, not merely that nothing happened to register.
@@ -101,7 +101,7 @@ async function buildLegacySource(key: string) {
   const buffered = new BufferedDataSource({ source, store: new MemoryStore() });
   registerDataSource(buffered);
   await buffered.connect();
-  // Establish a flight — BufferedDataSource only fans a sample out to
+  // Establish a flight: BufferedDataSource only fans a sample out to
   // `subscribeSamples` once `FlightDetector` has a current flight (see
   // `useDataSeries.test.tsx`'s identical beforeEach seeding).
   source.emit("v.name", "KX");
@@ -111,8 +111,8 @@ async function buildLegacySource(key: string) {
 
 beforeEach(() => clearRegistry());
 
-describe("useDataSeries shim — mapped + carried key streams from the ClientTimeline", () => {
-  it("builds the series from the real TimelineStore, not the legacy DataSource — RED before the shim, GREEN after", async () => {
+describe("useDataSeries shim: mapped + carried key streams from the ClientTimeline", () => {
+  it("builds the series from the real TimelineStore, not the legacy DataSource, RED before the shim, GREEN after", async () => {
     const fixture = buildStreamFixture({
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 100,
@@ -125,15 +125,15 @@ describe("useDataSeries shim — mapped + carried key streams from the ClientTim
       </fixture.Provider>,
     );
 
-    // Nothing arrived on the stream yet — empty, matching the legacy hook's
+    // Nothing arrived on the stream yet: empty, matching the legacy hook's
     // pre-backfill empty state.
     expect(readProbe()).toBe("t:|v:");
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
-    // Feeding the legacy source must have NO effect — the mapped+carried key
+    // Feeding the legacy source must have NO effect, the mapped+carried key
     // bypasses it entirely.
     act(() => legacySource.emit("o.sma", 999_999));
     expect(readProbe()).toBe("t:|v:");
@@ -179,23 +179,23 @@ describe("useDataSeries shim — mapped + carried key streams from the ClientTim
   });
 });
 
-describe("useDataSeries shim — a DERIVED mapped topic streams a REAL series computed from raw stream inputs", () => {
+describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series computed from raw stream inputs", () => {
   /**
    * `v.altitude` maps to the DERIVED `vessel.state.altitudeAsl`.
    * `TimelineStore.sampleRange` still returns `undefined` for a derived
-   * topic (by design — nothing is ever stored for one), but
+   * topic (by design: nothing is ever stored for one), but
    * `sampleDerivedRange` replays `deriveVesselState` at every UT its raw
    * inputs (`vessel.orbit`/`vessel.flight`/...) changed within the window, off
    * `sampleRange` reads of THOSE raw topics' own buffered ranges. No legacy
-   * `DataSource` is registered anywhere in this test — a value only reaches
+   * `DataSource` is registered anywhere in this test, a value only reaches
    * the probe if it genuinely streamed.
    *
    * `vessel.orbit` is emitted at `Quality.Loaded` so `deriveVesselState`
    * takes the measured basis (reads `altitudeAsl` straight off
-   * `vessel.flight`) rather than the OnRails Kepler-solve branch — no
+   * `vessel.flight`) rather than the OnRails Kepler-solve branch, no
    * orbital-elements fixture needed to prove the replay mechanism itself.
    */
-  it("'v.altitude' — sampleDerivedRange replays deriveVesselState off vessel.orbit + vessel.flight's own buffered ranges", async () => {
+  it("'v.altitude': sampleDerivedRange replays deriveVesselState off vessel.orbit + vessel.flight's own buffered ranges", async () => {
     const fixture = buildStreamFixture({
       carriedChannels: [
         "vessel.orbit",
@@ -264,8 +264,8 @@ describe("useDataSeries shim — a DERIVED mapped topic streams a REAL series co
   });
 });
 
-describe("useDataSeries shim — unmapped/uncarried keys and no-provider behave exactly like the pre-shim hook", () => {
-  it("an unmapped key ('career.funds' — not in the migration table) ignores the stream and reads legacy", async () => {
+describe("useDataSeries shim: unmapped/uncarried keys and no-provider behave exactly like the pre-shim hook", () => {
+  it("an unmapped key ('career.funds': not in the migration table) ignores the stream and reads legacy", async () => {
     const fixture = buildStreamFixture({ carriedChannels: [] });
     const legacySource = await buildLegacySource("career.funds");
 
@@ -293,7 +293,7 @@ describe("useDataSeries shim — unmapped/uncarried keys and no-provider behave 
     await waitFor(() => expect(readProbe()).toContain("680000"));
   });
 
-  it("no TelemetryProvider in the tree at all — a mapped key still reads legacy (every unmigrated screen today)", async () => {
+  it("no TelemetryProvider in the tree at all, a mapped key still reads legacy (every unmigrated screen today)", async () => {
     const legacySource = await buildLegacySource("o.sma");
 
     render(<Probe dataKey="o.sma" windowSec={60} />);

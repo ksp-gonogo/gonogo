@@ -10,7 +10,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Headless tests for <see cref="KosExtension.RunOnMainThread"/> — the
+    /// Headless tests for <see cref="KosExtension.RunOnMainThread"/>: the
     /// adversarial-review M1 fix (timed-out RUNPATH must be DROPPED, not run
     /// late, and the wait handle must never be <c>Set()</c> after disposal).
     /// Uses the real <see cref="MainThreadDispatcher"/> and controls exactly
@@ -44,8 +44,8 @@ namespace GonogoKosUplink.Tests
 
             // The dispatcher only now drains the deferred action (production: the
             // Unity main thread catches up after a scene-load stall). The job was
-            // abandoned, so the kOS mutation must NOT run — a client retry would
-            // otherwise double-fire RUNPATH — and no Set()-after-dispose fault.
+            // abandoned, so the kOS mutation must NOT run, a client retry would
+            // otherwise double-fire RUNPATH: and no Set()-after-dispose fault.
             dispatcher.Drain();
 
             Assert.Equal(0, ran);
@@ -95,11 +95,11 @@ namespace GonogoKosUplink.Tests
         /// (drained by <c>GonogoAddon.Update -&gt; ChannelEngine.RunPendingCommands</c>).
         /// <see cref="MainThreadDispatcher.Drain"/> runs on that SAME Unity main
         /// thread (<c>KosMainThreadDispatcherAddon.Update</c>). So by the time a
-        /// kos handler body runs it is ALREADY on the dispatcher's drain thread —
+        /// kos handler body runs it is ALREADY on the dispatcher's drain thread,
         /// and every frame since startup has drained the dispatcher, establishing
         /// that thread. The buggy <see cref="KosExtension.RunOnMainThread"/> then
         /// <c>Dispatch</c>es to that same thread and blocks on <c>Done.Wait</c>,
-        /// where the <c>Drain</c> that would run <c>work</c> can never run — the
+        /// where the <c>Drain</c> that would run <c>work</c> can never run, the
         /// whole main thread wedges until the wait expires and the work is
         /// dropped.</para>
         ///
@@ -123,7 +123,7 @@ namespace GonogoKosUplink.Tests
                 CommandMainThreadTimeout = TimeSpan.FromMilliseconds(500),
             };
 
-            // Establish THIS thread as the dispatcher's drain (main) thread —
+            // Establish THIS thread as the dispatcher's drain (main) thread,
             // exactly as KosMainThreadDispatcherAddon.Update's per-frame Drain
             // does, every frame since startup, before any command arrives.
             dispatcher.Drain();
@@ -150,7 +150,7 @@ namespace GonogoKosUplink.Tests
         /// AND the kOS <see cref="MainThreadDispatcher"/>
         /// (== <c>KosMainThreadDispatcherAddon.Update</c>). A background "Courier"
         /// thread dispatches the command by marshalling the handler onto that
-        /// mailbox and blocking on the result — the shape of
+        /// mailbox and blocking on the result: the shape of
         /// <c>ChannelEngine.RunOnMainThread</c>. The handler body itself
         /// double-marshals via <see cref="KosExtension.RunOnMainThread"/>.
         ///
@@ -207,7 +207,7 @@ namespace GonogoKosUplink.Tests
                 CommandResult? handlerResult = null;
                 engineMailbox.Enqueue(() =>
                 {
-                    // Runs ON the main thread — this IS the kos command handler
+                    // Runs ON the main thread, this IS the kos command handler
                     // body, which double-marshals via KosExtension.RunOnMainThread.
                     handlerResult = ext.RunOnMainThread(() =>
                     {

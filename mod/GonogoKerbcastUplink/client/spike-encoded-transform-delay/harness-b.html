@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>harness B — decoded VideoFrame pool exhaustion</title>
+<title>harness B: decoded VideoFrame pool exhaustion</title>
 </head>
 <body>
 <h1>Decoded VideoFrame pool-exhaustion spike</h1>
@@ -60,7 +60,7 @@ async function run() {
   let frameCounter = 0;
   function draw() {
     // Deliberately noisy/high-entropy content so the encoder/pipeline
-    // can't shortcut on a static frame — closer to real camera content.
+    // can't shortcut on a static frame, closer to real camera content.
     ctx.fillStyle = `hsl(${(frameCounter * 7) % 360}, 80%, 50%)`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < 40; i++) {
@@ -98,7 +98,7 @@ async function run() {
       const waitMs = readEnd - readStart;
       readLog.push({ i, waitMs, tSinceStart: readEnd - overallStart, held: held.length });
 
-      // NEVER close() — this is the exact "hold without releasing" pattern
+      // NEVER close(): this is the exact "hold without releasing" pattern
       // under test.
       held.push(value);
 

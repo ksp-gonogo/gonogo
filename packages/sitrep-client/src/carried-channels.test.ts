@@ -69,7 +69,7 @@ describe("isTopicCarried", () => {
   describe("carried namespace prefixes (trailing-dot entries)", () => {
     // These isolate the GATE's prefix logic: they feed it already-resolved raw
     // inputs via an identity store. In production the REAL store must ALSO
-    // resolve a dynamic topic to that whole identity first — see
+    // resolve a dynamic topic to that whole identity first; see
     // `resolveRawFieldSubtopic`'s 2-segment mis-parse and its
     // `dynamicWholeTopicPrefixes` exemption. A synthetic namespace keeps this
     // mechanism test free of any mod token.
@@ -87,7 +87,7 @@ describe("isTopicCarried", () => {
 
     it("a prefix entry does NOT match a lookalike outside its namespace", () => {
       const carried = new Set(["ns.dynamic."]);
-      // no dot boundary — must not be swallowed by the prefix
+      // no dot boundary: must not be swallowed by the prefix
       expect(isTopicCarried(idStore, carried, "ns.dynamicX")).toBe(false);
       // the bare prefix stem (no trailing segment) is not a real wire topic
       expect(isTopicCarried(idStore, carried, "ns.dynamic")).toBe(false);

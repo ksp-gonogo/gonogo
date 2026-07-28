@@ -97,7 +97,7 @@ function DataSourceStatusComponent({
     setConfiguringId(null);
   };
 
-  // Selective rendering — at small sizes the per-source rows lose their
+  // Selective rendering: at small sizes the per-source rows lose their
   // config buttons and retry chrome; tinier collapses to a healthy/total
   // count badge.
   const cols = w ?? 12;

@@ -36,7 +36,7 @@ describe("useStreamEvent", () => {
       transport.emit("crash.lastCrash", { vesselName: "Kerbal Y", ut: 200 });
     });
 
-    // The ReliableOrdered lane delivers every crash — both fire, in order, and
+    // The ReliableOrdered lane delivers every crash: both fire, in order, and
     // the second is not coalesced away by the store's per-frame batching.
     expect(onCrash).toHaveBeenCalledTimes(2);
     expect(onCrash).toHaveBeenNthCalledWith(1, {
@@ -67,7 +67,7 @@ describe("useStreamEvent", () => {
     expect(first).toHaveBeenCalledTimes(1);
 
     // A second widget mounts after a crash already sits in the sticky cache.
-    // Its handler must NOT fire for that replayed value — the crash already
+    // Its handler must NOT fire for that replayed value, the crash already
     // happened; only a NEW crash is an event for it.
     render(
       <TelemetryProvider client={client}>

@@ -18,10 +18,10 @@
 
   <!-- Compile the uplink's own files directly (same selective-Compile
        pattern GonogoRealAntennasUplink.Tests / GonogoKerbcastUplink.Tests /
-       GonogoScansatUplink.Tests / GonogoKosUplink.Tests all use — none of
+       GonogoScansatUplink.Tests / GonogoKosUplink.Tests all use, none of
        them ProjectReference their net48 main csproj from a net10.0 test
        project, to avoid the cross-TFM NU1702 resolution warning). The whole
-       uplink is KSP-free (no KSP/Unity reference at all — see the main
+       uplink is KSP-free (no KSP/Unity reference at all; see the main
        csproj's header), so unlike RA/kerbcast there is no split: every file
        in the main project compiles headlessly. -->
   <ItemGroup>
@@ -35,7 +35,7 @@
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
     <!-- ChannelEngine/UplinkDiscovery (the election-adversarial-ordering
          tests) and the ActionGroups seam (Sitrep.Host.ActionGroups) both
-         live in Sitrep.Host, which is itself KSP-free — same reference
+         live in Sitrep.Host, which is itself KSP-free, same reference
          Sitrep.Host.Tests takes on itself. -->
     <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
   </ItemGroup>

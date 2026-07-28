@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Targeting
 {
     /// <summary>
-    /// The closest-approach backend election — a deliberate, line-for-line
+    /// The closest-approach backend election: a deliberate, line-for-line
     /// mirror of <see cref="Sitrep.Host.ActionGroups.ActionGroupsElection"/>
     /// (itself a mirror of <see cref="Sitrep.Host.Comms.CommsElection"/>),
     /// expressed entirely in terms of the existing <see cref="Kernel"/> with no
@@ -12,9 +12,9 @@ namespace Sitrep.Host.Targeting
     ///
     /// <list type="bullet">
     /// <item><b>The stock Kepler backend is the capability's <c>Vanilla</c>
-    /// factory</b> — always present, so closest approach is never
+    /// factory</b>: always present, so closest approach is never
     /// unsatisfiable on a stock install.</item>
-    /// <item><b>A future Principia uplink registers a provider</b> — but ONLY
+    /// <item><b>A future Principia uplink registers a provider</b>, but ONLY
     /// when the Principia assembly is actually loaded (the same reflection-probe
     /// gate the reflection-isolated comms provider uplink uses). Registering the
     /// provider IS the gate: an exclusive capability with one registered
@@ -46,12 +46,12 @@ namespace Sitrep.Host.Targeting
         /// <see cref="CapabilityDescriptor.Vanilla"/> factory. Called from the
         /// vessel uplink's <c>DeclareCapabilities</c> (the pre-Register
         /// discovery pass), so the capability exists before ANY uplink's
-        /// <c>Register</c> runs — a future Principia uplink's provider
+        /// <c>Register</c> runs, a future Principia uplink's provider
         /// registration can then never race ahead of this declaration
         /// regardless of assembly-scan order.
         ///
         /// <para>Not <see cref="CapabilityDescriptor.SpineCritical"/>: a
-        /// closest-approach-less install must not halt the spine — the rest of
+        /// closest-approach-less install must not halt the spine, the rest of
         /// <c>vessel.target</c> (name/distance/orbit/...) is still good
         /// telemetry without it.</para>
         /// </summary>
@@ -74,11 +74,11 @@ namespace Sitrep.Host.Targeting
         /// <summary>
         /// Registers a Principia n-body backend as a higher-priority provider.
         /// Call this ONLY when a Principia reflection probe confirms Principia
-        /// is loaded — registering it is itself the election gate. Must be
+        /// is loaded, registering it is itself the election gate. Must be
         /// called after <see cref="RegisterCapability"/> and before
         /// <see cref="Kernel.Resolve"/>.
         ///
-        /// <para>Nothing calls this yet — the Principia backend is a later,
+        /// <para>Nothing calls this yet: the Principia backend is a later,
         /// out-of-scope phase (a separate reflection-isolated uplink assembly,
         /// like the reflection-isolated comms provider uplink). It exists now so that phase is
         /// a pure ADD (one uplink, one probe, one factory) with no change to
@@ -104,7 +104,7 @@ namespace Sitrep.Host.Targeting
         /// <summary>
         /// Resolve the elected solver after resolution has run. Returns null if
         /// the capability was never registered or resolved to no instance
-        /// (defensive — a correctly bootstrapped engine always has at least the
+        /// (defensive: a correctly bootstrapped engine always has at least the
         /// stock Kepler backend).
         /// </summary>
         public static ITargetApproachSolver? Elected(Kernel kernel)

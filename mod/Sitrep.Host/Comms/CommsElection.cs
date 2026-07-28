@@ -5,26 +5,26 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// The comms backend election (comms-uplink-design.md §2), expressed
-    /// entirely in terms of the existing <see cref="Kernel"/> — no new
+    /// entirely in terms of the existing <see cref="Kernel"/>, no new
     /// contract mechanism (§2.3, §5). One EXCLUSIVE capability <c>"comms"</c>
     /// whose active instance is an <see cref="ICommsBackend"/>:
     ///
     /// <list type="bullet">
-    /// <item><b>CommNet is the capability's <c>Vanilla</c> factory</b> — the
+    /// <item><b>CommNet is the capability's <c>Vanilla</c> factory</b>, the
     /// structural "comms is never unsatisfiable" guarantee (§2.2 recommends
     /// exactly this). It activates whenever no higher provider is registered.</item>
-    /// <item><b>RealAntennas registers as a provider</b> — but ONLY when the RA
+    /// <item><b>RealAntennas registers as a provider</b>: but ONLY when the RA
     /// assembly is actually loaded (the reflection probe, §4.2). Registering the
     /// provider IS the gate: an exclusive capability with one registered
     /// provider selects that provider (Kernel.SelectExclusive: candidates.Count
     /// == 1 ⇒ that provider); with zero registered providers it falls back to
-    /// Vanilla. So RA present ⇒ RA wins; RA absent ⇒ CommNet vanilla — no
+    /// Vanilla. So RA present ⇒ RA wins; RA absent ⇒ CommNet vanilla, no
     /// version-string gymnastics needed.</item>
     /// </list>
     ///
     /// <para>Shared <c>comms.*</c> channels are declared and sourced ONCE by
     /// the core comms registration, which resolves the elected backend via
-    /// <c>Kernel.Query&lt;ICommsBackend&gt;("comms")</c> at map time — neither
+    /// <c>Kernel.Query&lt;ICommsBackend&gt;("comms")</c> at map time: neither
     /// CommNet nor RA declares those channels itself (§2.2, the
     /// shared-namespace-multi-provider rule §5). RA-only channels
     /// (linkQuality/dataRate/linkMargin) are declared in the RA uplink's own
@@ -68,7 +68,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Registers RealAntennas as a higher-priority <c>"comms"</c> provider.
         /// Call this ONLY when the RA reflection probe confirmed RA is loaded
-        /// (§4.2) — registering it is itself the election gate. Must be called
+        /// (§4.2): registering it is itself the election gate. Must be called
         /// after <see cref="RegisterCapability"/> and before
         /// <see cref="Kernel.Resolve"/>.
         /// </summary>
@@ -92,7 +92,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Resolve the elected backend after resolution has run. Returns null
         /// if the capability was never registered or resolved to no instance
-        /// (defensive — a correctly bootstrapped engine always has at least the
+        /// (defensive: a correctly bootstrapped engine always has at least the
         /// vanilla CommNet backend).
         /// </summary>
         public static ICommsBackend? Elected(Kernel kernel)

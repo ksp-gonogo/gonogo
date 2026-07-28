@@ -1,14 +1,14 @@
 // ---------------------------------------------------------------------------
-// The curated author-facing barrel — PROPOSAL (design D-B/D-D).
+// The curated author-facing barrel: PROPOSAL (design D-B/D-D).
 //
 // This is the one framework/data/hook surface a third-party Uplink author
 // imports. It carries:
-//   • the author-facing TYPES (self-contained here — see ./types on why the leaf
+//   • the author-facing TYPES (self-contained here: see ./types on why the leaf
 //     cannot re-export them from core), and
 //   • fail-loud SHIMS for the stateful members (every registerX, the hooks),
 //     which delegate to the app-injected host and throw a named error when it is
 //     absent (design §4.3 / D-A). No stateful member imports core, so the packed
-//     sdk never bundles a second registry — the whole point of the design.
+//     sdk never bundles a second registry: the whole point of the design.
 //
 // The EXPORT LIST below is what the operator reviews for D-D before the first
 // external Uplink is published. It is NOT frozen. The api-shape gate
@@ -25,7 +25,7 @@ import type { TopicId, TopicPayload } from "../topics";
 import { getHost } from "./host";
 // Side-effect only: carries the `SlotRegistry` declaration-merge for every
 // first-party slot into any program that imports this barrel (facade-sealing
-// plan §2.3, corrected 2026-07-19 — see ./slots.ts's own header for why the
+// plan §2.3, corrected 2026-07-19: see ./slots.ts's own header for why the
 // merge lives here rather than in packages/components). No named export
 // added to the barrel by this import.
 import "./slots";
@@ -105,7 +105,7 @@ export type {
 /**
  * The shared settings key for the host every Uplink dials (design:
  * `@ksp-gonogo/core`'s `settings/gameHost.ts`). A stable string literal, not a
- * value that ever changes at runtime — mirrored directly rather than imported
+ * value that ever changes at runtime, mirrored directly rather than imported
  * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource
  * type-mirror comment for the full constraint) and kept honest by
  * `packages/core/src/sdk-facade.conformance.test-d.ts`.
@@ -147,7 +147,7 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);
 
 /**
- * Declare a setting the app renders in its Settings surface — the PREFERRED
+ * Declare a setting the app renders in its Settings surface, the PREFERRED
  * path over a custom tab (`registerSettingsTab`). A client-pref setting
  * persists to localStorage; a source-backed one binds to the Uplink's own
  * `DataSource`. See `SettingDefinition`.
@@ -167,19 +167,19 @@ export function useExecuteAction(
 export function useTelemetry<T extends TopicId>(
   topic: T,
 ): TopicPayload<T> | undefined;
-// Legacy two-arg overload — the retired useDataValue shim's shape, carried
+// Legacy two-arg overload: the retired useDataValue shim's shape, carried
 // over onto useTelemetry itself. See GonogoHost.useTelemetry's doc.
 export function useTelemetry<T = unknown>(
   dataSourceId: string,
   key: string,
 ): T | undefined;
 export function useTelemetry(dataSourceIdOrTopic: string, key?: string) {
-  // A single, unconditional call — branching here on `key` would call
+  // A single, unconditional call: branching here on `key` would call
   // `getHost().useTelemetry` conditionally, which the rules-of-hooks lint
   // (rightly) flags as unsafe even though a given call site's arity never
   // changes across renders. The injected host's real implementation
   // (`@ksp-gonogo/core`'s `useTelemetry`) already branches internally on
-  // whether `key` is present while keeping every hook call unconditional —
+  // whether `key` is present while keeping every hook call unconditional,
   // this just forwards both args through to that single call, same as the
   // core implementation's own `(dataSourceId, key?)` signature.
   const hostUseTelemetry = getHost().useTelemetry as (
@@ -195,7 +195,7 @@ export function useCommand(command: string) {
 
 /**
  * Cross-origin route reader: every currently-pending command addressed to
- * `topic`, regardless of which command centre dispatched it — the
+ * `topic`, regardless of which command centre dispatched it, the
  * companion to `useCommand`'s own-dispatch `inFlight`. See
  * `@ksp-gonogo/sitrep-client`'s `useRouteCommands` for the full contract.
  */
@@ -222,7 +222,7 @@ export function useDataSources(): unknown {
 }
 
 /**
- * Reactive read of a client-pref setting by key — `[value, setValue]`, the
+ * Reactive read of a client-pref setting by key, `[value, setValue]`, the
  * value persisted through the app's `SettingsService`. Use it to gate on a
  * declared kill-switch etc. Source-backed settings are not read here.
  */
@@ -237,7 +237,7 @@ export function useSetting<T>(
 
 /**
  * Real-time (non-delayed) read of `topic`, bypassing the certainty-gated
- * `TimelineStore` frame `useStream` samples through — for command-centre
+ * `TimelineStore` frame `useStream` samples through: for command-centre
  * bookkeeping topics (dispatch timestamps, link facts), never delayed craft
  * telemetry. See `GonogoHost.useLatestValue`'s doc for the raw-vs-derived
  * distinction.
@@ -248,7 +248,7 @@ export function useLatestValue<T = unknown>(topic: string): T | undefined {
 
 /**
  * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
- * channel topic — the event-consumption counterpart to `useStream`'s
+ * channel topic: the event-consumption counterpart to `useStream`'s
  * sticky-latest-value read.
  */
 export function useStreamEvent<T = unknown>(
@@ -274,21 +274,21 @@ export function useUtNow(): number | undefined {
 
 /**
  * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with none
- * mounted. Opaque (`unknown`) — same reasoning as `useViewClock` — narrow/cast
+ * mounted. Opaque (`unknown`), same reasoning as `useViewClock`, narrow/cast
  * at the call site if the concrete shape is needed.
  */
 export function useTelemetryStoreOptional(): unknown {
   return getHost().useTelemetryStoreOptional();
 }
 
-/** Non-throwing variant of `useViewClock` — `undefined` with no provider mounted. */
+/** Non-throwing variant of `useViewClock`: `undefined` with no provider mounted. */
 export function useViewClockOptional(): unknown {
   return getHost().useViewClockOptional();
 }
 
 /**
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
- * `undefined` when none is mounted — for imperative use outside a hook
+ * `undefined` when none is mounted, for imperative use outside a hook
  * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
  */
 export function getActiveTelemetryClient(): TelemetryClient | undefined {
@@ -297,7 +297,7 @@ export function getActiveTelemetryClient(): TelemetryClient | undefined {
 
 /**
  * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
- * `TelemetryClient` — `undefined` with no provider mounted.
+ * `TelemetryClient`: `undefined` with no provider mounted.
  */
 export function useTelemetryClientOptional(): TelemetryClient | undefined {
   return getHost().useTelemetryClientOptional();
@@ -331,7 +331,7 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
 
 /**
  * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Resolves to the
- * app's own registry, not a bundled copy — see `GonogoHost.getBody`'s doc.
+ * app's own registry, not a bundled copy; see `GonogoHost.getBody`'s doc.
  */
 export function getBody(id: string): BodyDefinition | undefined {
   return getHost().getBody(id);
@@ -361,11 +361,11 @@ export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
 
 /**
  * The app's single logger instance (design: `@ksp-gonogo/logger`'s `logger`
- * export is a stateful singleton — its ring buffer, session id, and
+ * export is a stateful singleton, its ring buffer, session id, and
  * transports are installed on the app's instance at boot. A bundled second
  * copy would be a dead logger, console-only, never reaching Axiom or the
- * shared `exportLogs()` buffer). A `Proxy` delegates every access — including
- * `.tag(...)` — to `getHost().logger`, so the returned `TaggedLogger` is the
+ * shared `exportLogs()` buffer). A `Proxy` delegates every access, including
+ * `.tag(...)`: to `getHost().logger`, so the returned `TaggedLogger` is the
  * injected instance's own, and every method fails loud via `getHost()` when
  * no host is installed.
  *
@@ -373,7 +373,7 @@ export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
  * just read off it: `getHost().logger.setEnabled` (etc.) returns the
  * function unbound, so an unbound call would run with `this` = the proxy's
  * dead `{}` target. Reads happen to forward through the get trap (`this.x`
- * on the real object is itself a proxied get), but there is no `set` trap —
+ * on the real object is itself a proxied get), but there is no `set` trap,
  * an unbound method that *assigns* to `this` (`setEnabled`, `setLevel`,
  * `setIdentity`) would silently write to the dead target and never reach
  * the real logger. Binding closes that hole and would keep working even if
@@ -395,13 +395,13 @@ export const logger: Logger = new Proxy({} as Logger, {
  * Resolves to the host's real `AugmentSlot` so it reads the app's single augment
  * registry; `createElement` (not a direct call) keeps React's hook rules intact.
  *
- * Generic over the slot id `S` (2026-07-19, facade-sealing gap 2) — matches
+ * Generic over the slot id `S` (2026-07-19, facade-sealing gap 2), matches
  * `@ksp-gonogo/core`'s real `AugmentSlot<S extends string>` signature so a
  * SLOT-OWNING sealed client (one that renders its own `<AugmentSlot>`, not
  * just fills someone else's) gets `props` typed precisely against
  * `SlotProps<S>` rather than the loose `Record<string, unknown>` the
  * previous non-generic signature forced. `getHost().AugmentSlot` itself
- * stays non-generic (the `GonogoHost` interface member) — the cast below is
+ * stays non-generic (the `GonogoHost` interface member): the cast below is
  * the same "structurally fine at runtime, precise at the call site" shape
  * `registerAugment`'s own generic shim already relies on.
  */
@@ -428,13 +428,13 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
 
 /**
  * A small typed wrapper around `localStorage`. Stateless (no module-global
- * registry) — a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
+ * registry): a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
  * not a re-export. See `./localStorageStore.ts`'s module header for why.
  */
 export { LocalStorageStore } from "./localStorageStore";
 
 /**
- * Like `crypto.randomUUID()` but works on insecure-context pages — most
+ * Like `crypto.randomUUID()` but works on insecure-context pages, most
  * notably the LAN-IP dev URL station devices use to reach the dev box, where
  * the Web Crypto spec's secure-context gate makes `randomUUID` hard-throw.
  * Falls back to `crypto.getRandomValues` (available regardless of context)
@@ -444,7 +444,7 @@ export { LocalStorageStore } from "./localStorageStore";
  * (`safeRandomUuid.ts`), not a re-export: it is a pure function with no
  * state and no dependency beyond the `crypto` global, so duplicating it here
  * carries none of the "second copy of a registry" risk that rules out
- * bundling core's stateful members — see the module header — and the sdk
+ * bundling core's stateful members (see the module header) and the sdk
  * leaf cannot name core as a workspace dependency regardless (would form a
  * turbo `^build` cycle, same constraint as the mirrored types in `./types.ts`).
  */

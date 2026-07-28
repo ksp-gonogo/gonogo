@@ -13,7 +13,7 @@ import { logger } from "@ksp-gonogo/logger";
  * one-side TURN to bridge any difficult network. We deliberately
  * construct station Peers with no `iceServers` config so a stale or
  * absent local default can't sabotage that path (we used to default to
- * `turn:localhost:3478`, which from a phone meant the phone itself —
+ * `turn:localhost:3478`, which from a phone meant the phone itself,
  * four useless STUN/TURN timeouts per attempt).
  */
 
@@ -26,7 +26,7 @@ const FETCH_TIMEOUT_MS = 4_000;
 
 /**
  * Fetch the host's ICE config from the relay's `/ice-config` endpoint.
- * Returns `[]` if the fetch fails — the host falls back to direct +
+ * Returns `[]` if the fetch fails, the host falls back to direct +
  * STUN-only behaviour, and the readiness UI surfaces the failure.
  */
 export async function fetchHostIceServers(): Promise<RTCIceServer[]> {
@@ -47,7 +47,7 @@ export async function fetchHostIceServers(): Promise<RTCIceServer[]> {
     return body.iceServers;
   } catch (err) {
     logger.warn(
-      `[ice] relay /ice-config fetch failed — host will run without TURN (${
+      `[ice] relay /ice-config fetch failed: host will run without TURN (${
         err instanceof Error ? err.message : String(err)
       })`,
     );

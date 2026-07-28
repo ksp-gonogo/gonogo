@@ -6,7 +6,7 @@ We ship logs to Axiom (`gonogo` dataset) and have a Diagnostics & Logs modal
 with "Copy report"/Download buttons that bundle a snapshot for me to inspect,
 but the user has no self-service way to send a report back. Today the path is
 "user pings me, I ask them to copy and paste". This adds an in-app form so a
-report — description + recent logs + optional screenshot — lands directly in
+report: description + recent logs + optional screenshot, lands directly in
 Axiom under a `bug-report` tag I can query on a regular basis.
 
 ## Shipped
@@ -47,23 +47,23 @@ Axiom under a `bug-report` tag I can query on a regular basis.
 
 ## Tests
 
-- `recentLogsWindow.test.ts` — boundary, empty buffer, null=full, unparseable
+- `recentLogsWindow.test.ts`: boundary, empty buffer, null=full, unparseable
   timestamp, all-outside.
-- `LogsManager.test.tsx` — submit emits the right entry shape; submit
+- `LogsManager.test.tsx`: submit emits the right entry shape; submit
   disabled when description empty; window-change re-renders the count hint;
   success notice + auto-collapse after 5s; Cancel doesn't emit.
-- `pnpm --filter @gonogo/app test` — 393 passed (51 files). `pnpm lint`,
-  `pnpm --filter @gonogo/app typecheck` — clean.
+- `pnpm --filter @gonogo/app test`: 393 passed (51 files). `pnpm lint`,
+  `pnpm --filter @gonogo/app typecheck`: clean.
 
 ## Validation
 
-✅ confirmed 2026-05-13 — submitted a live `Hello, Claude!` test report from
+✅ confirmed 2026-05-13: submitted a live `Hello, Claude!` test report from
 the deployed build. Axiom entry landed with full `context.bug_report` shape;
 recent-logs slice carried 6 entries from a real OCISLY peer-failure
 sequence; the resized 600×440 / ~10 KB JPEG decoded cleanly and was readable
 end-to-end. Bug-report → Axiom round-trip works.
 
-## ⚠️ Operational caveat — don't try to read screenshots in-band
+## ⚠️ Operational caveat: don't try to read screenshots in-band
 
 The `screenshot.base64` field is ~10–15 KB per entry. Pulling it into a
 Claude Code conversation context (via `mcp__axiom__queryDataset` or by
@@ -74,7 +74,7 @@ base64 as the `content` parameter. This was reproduced on Opus 4.7 and Haiku
 
 **Workflow when investigating a bug-report entry:**
 
-1. Read the metadata, message, and `recentLogs` slice freely — those are
+1. Read the metadata, message, and `recentLogs` slice freely, those are
    small.
 2. Decode the screenshot **outside** Claude Code:
    ```
@@ -83,10 +83,10 @@ base64 as the `content` parameter. This was reproduced on Opus 4.7 and Haiku
    Writes `screenshot.jpg`, `recent-logs.json`, and `summary.txt` to the
    output dir. Accepts both bare-entry and `{ data: ... }` shapes that
    Axiom returns from different export paths.
-3. Hand Claude the **file path** — `Read` renders images natively, no
+3. Hand Claude the **file path**: `Read` renders images natively, no
    base64 in text context.
 
-Don't ask Claude to "save the base64 to a file" or "decode it for me" —
+Don't ask Claude to "save the base64 to a file" or "decode it for me",
 that's the freeze trigger. Don't paste the full JSON entry into chat.
 
 ## Plan

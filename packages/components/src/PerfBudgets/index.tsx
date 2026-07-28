@@ -44,7 +44,7 @@ function PerfBudgetsComponent({
     return () => clearInterval(id);
   }, []);
 
-  // Selective rendering — at small sizes the bars are unreadable; collapse
+  // Selective rendering: at small sizes the bars are unreadable; collapse
   // to a healthy-vs-over count.
   const cols = w ?? 6;
   const rows = h ?? 6;
@@ -56,7 +56,7 @@ function PerfBudgetsComponent({
       <Panel>
         <PanelTitle>PERF BUDGETS</PanelTitle>
         <EmptyState>
-          No budgets registered yet. Budgets self-register at module load — make
+          No budgets registered yet. Budgets self-register at module load; make
           sure the relevant services are imported.
         </EmptyState>
       </Panel>
@@ -263,7 +263,7 @@ registerComponent<PerfBudgetsConfig>({
   id: "perf-budgets",
   name: "Perf Budgets",
   description:
-    "Live view of every registered PerfBudget — current rate vs soft cap, with exceedance counts. Updates 1 Hz. Useful for spotting performance regressions at a glance during development or real flights.",
+    "Live view of every registered PerfBudget: current rate vs soft cap, with exceedance counts. Updates 1 Hz. Useful for spotting performance regressions at a glance during development or real flights.",
   tags: ["debug", "perf"],
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 3, h: 3 },

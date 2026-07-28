@@ -28,7 +28,7 @@ import {
  * cached camera registry under the `kerbcast.cameras` data key.
  *
  * Video frames bind via {@link useKerbcastStream} (returns a
- * `MediaStream` directly — not a value channel) and the camera list
+ * `MediaStream` directly: not a value channel) and the camera list
  * via {@link useKerbcastCameras}, both of which reach into the
  * underlying client via {@link getClient}.
  */
@@ -42,7 +42,7 @@ export interface KerbcastConfig extends Record<string, unknown> {
  * of the default localhost handshake the data source relays the WebRTC
  * offer→answer through the main screen and sources its TURN creds from the
  * host's relay broadcast (NOT a localhost `/ice-config` fetch). Media still
- * flows station↔sidecar directly off the answer's ICE candidates — nothing
+ * flows station↔sidecar directly off the answer's ICE candidates, nothing
  * about the video crosses PeerJS. The app builds this from `PeerClientService`.
  */
 export interface KerbcastBroker {
@@ -89,8 +89,8 @@ function relayBaseUrl(): string {
 }
 
 /**
- * Fetch the relay's TURN credentials. Returns `[]` on any failure — a 503
- * (coturn down), a timeout, or no relay at all — so the caller leaves the SDK
+ * Fetch the relay's TURN credentials. Returns `[]` on any failure, a 503
+ * (coturn down), a timeout, or no relay at all, so the caller leaves the SDK
  * on its `stun:stun.l.google.com` default rather than breaking connect.
  */
 async function fetchRelayIceServers(): Promise<RTCIceServer[]> {
@@ -136,12 +136,12 @@ function persistConfig(cfg: KerbcastConfig): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   } catch {
-    /* localStorage full / disabled — config still applies in-memory */
+    /* localStorage full / disabled: config still applies in-memory */
   }
 }
 
 // ---------------------------------------------------------------------------
-// BrowserRTCTransport — mirrors the SDK's private BrowserKerbcastTransport.
+// BrowserRTCTransport: mirrors the SDK's private BrowserKerbcastTransport.
 // Copied from @ksp-gonogo/kerbcast/dist/client.js so KeepaliveTransport can
 // wrap it without depending on the SDK's unexported class.
 // ---------------------------------------------------------------------------
@@ -189,12 +189,12 @@ function wrapRTCDataChannel(dc: RTCDataChannel): KerbcastDataChannel {
 export class BrowserRTCTransport implements KerbcastTransport {
   /**
    * `RTCRtpReceiver` for every track this transport has ever delivered via
-   * `ontrack`, keyed by the exact `MediaStreamTrack` object reference —
+   * `ontrack`, keyed by the exact `MediaStreamTrack` object reference,
    * encoded-transform video-delay work, 2026-07-16 (see
    * `local_docs/reports/encoded-video-delay-report.md`'s reconciliation:
    * the SDK's own `KerbcastClient` wraps this SAME track reference into
-   * `cam.mediaStream` via `new MediaStream([track])`, never cloning it —
-   * confirmed against the installed `@ksp-gonogo/kerbcast` dist — so a
+   * `cam.mediaStream` via `new MediaStream([track])`, never cloning it,
+   * confirmed against the installed `@ksp-gonogo/kerbcast` dist: so a
    * `WeakMap` keyed by that reference is an exact, leak-free correlation
    * from a `MediaStream` handed to a widget back to the `RTCRtpReceiver`
    * needed to attach `receiver.transform = new RTCRtpScriptTransform(...)`.
@@ -272,11 +272,11 @@ export class BrowserRTCTransport implements KerbcastTransport {
 }
 
 // ---------------------------------------------------------------------------
-// KeepaliveTransport — wraps any inner KerbcastTransport and intercepts
+// KeepaliveTransport: wraps any inner KerbcastTransport and intercepts
 // ping messages on the data channel, responding with pong automatically.
 // Non-ping messages pass through to the SDK handler unchanged.
 //
-// TODO: ping→pong handling belongs in @ksp-gonogo/kerbcast itself — move here
+// TODO: ping→pong handling belongs in @ksp-gonogo/kerbcast itself, move here
 // once the SDK supports a reconnect policy hook.
 // ---------------------------------------------------------------------------
 
@@ -347,7 +347,7 @@ export class KerbcastDataSource {
   name = "Kerbcast";
   status: DataSourceStatus = "disconnected";
   /**
-   * Kerbcast streams are independent of CommNet — losing the in-game
+   * Kerbcast streams are independent of CommNet, losing the in-game
    * antenna doesn't affect the WebRTC connection to the sidecar.
    * Camera widgets visualise signal loss via `set-degrade` instead.
    */
@@ -356,9 +356,9 @@ export class KerbcastDataSource {
   private cfg: KerbcastConfig;
   private baseTransport: KerbcastTransport | undefined;
   /** The concrete `BrowserRTCTransport` `buildClient()` actually wired up
-   *  (main-screen AND station/broker mode both use it — see that method).
+   *  (main-screen AND station/broker mode both use it; see that method).
    *  `undefined` when a test supplied a `baseTransport` that isn't one
-   *  (e.g. a mock) — `getReceiverForStream` degrades to `undefined` then,
+   *  (e.g. a mock): `getReceiverForStream` degrades to `undefined` then,
    *  matching "can't attach the encoded transform here" rather than
    *  throwing. Encoded-transform video-delay work, 2026-07-16. */
   private rtcTransport: BrowserRTCTransport | undefined;
@@ -378,7 +378,7 @@ export class KerbcastDataSource {
   private iceServers: RTCIceServer[] = [];
   // TURN-on-demand, main-screen path only. The main→sidecar leg is LAN (Steam
   // Deck ↔ MacBook, same WiFi), so it connects on host/STUN candidates and
-  // never needs a relay — yet fetching /ice-config up front made every camera
+  // never needs a relay, yet fetching /ice-config up front made every camera
   // connection *gather* a TURN relay candidate it then discarded, burning a
   // coturn relay port per feed. So we stay STUN-only until a connection attempt
   // has actually failed, then pull the relay's TURN creds and let the reconnect
@@ -425,7 +425,7 @@ export class KerbcastDataSource {
     this.baseTransport = transport;
     this.client = this.buildClient();
     this.unsubGameHost = subscribeSetting(GAME_HOST_KEY, () => {
-      // Host moved — same effect as a reconfigure: rebuild the client against
+      // Host moved, same effect as a reconfigure: rebuild the client against
       // the new host, preserving the connected/disconnected state.
       this.applyConfig({ ...this.cfg });
     });
@@ -449,7 +449,7 @@ export class KerbcastDataSource {
   }
 
   /**
-   * The `RTCRtpReceiver` behind a camera's `MediaStream` — the encoded
+   * The `RTCRtpReceiver` behind a camera's `MediaStream`: the encoded
    * transform's attach point (`receiver.transform = new
    * RTCRtpScriptTransform(...)`, `encodedFrameDelay.ts`). Correlates via
    * the stream's first video track's object identity against the registry
@@ -457,7 +457,7 @@ export class KerbcastDataSource {
    * why this is exact, not fuzzy matching). Returns `undefined` when there
    * is no video track, the current transport isn't a `BrowserRTCTransport`
    * (a test-injected mock), or the track wasn't delivered by THIS
-   * transport instance (a stale reference from a torn-down connection) —
+   * transport instance (a stale reference from a torn-down connection),
    * every case degrades to "encoded backend unavailable here", never a
    * throw, matching every other backend-selection guard in this pipeline.
    */
@@ -486,7 +486,7 @@ export class KerbcastDataSource {
   /**
    * Dev diagnostic: a JSON-serialisable snapshot of the stream-routing state,
    * for chasing black-feed / no-track issues. Reaches into the SDK client's
-   * internals (private — read-only, best-effort).
+   * internals (private: read-only, best-effort).
    */
   debugDump(): unknown {
     const c = this.client as unknown as {
@@ -545,7 +545,7 @@ export class KerbcastDataSource {
   }
 
   /**
-   * Open the connection if nothing has yet — the lazy entry point for a mounted
+   * Open the connection if nothing has yet, the lazy entry point for a mounted
    * camera widget that needs the camera list + slot pool *before* it can pick a
    * specific camera to display. Without this a brokered (station) source
    * deadlocks: the widget only subscribes once it has a flightId, but the
@@ -562,7 +562,7 @@ export class KerbcastDataSource {
   /**
    * Bind a camera to a slot for display (dynamic-mode subscription).
    * Refcounted: the first widget to show `flightId` sends `subscribe` to the
-   * sidecar — allocating a slot and starting render/encode for that camera —
+   * sidecar (allocating a slot and starting render/encode for that camera)
    * and the last one to stop showing it frees the slot. Called by
    * {@link useKerbcastStream} on mount/unmount.
    *
@@ -570,7 +570,7 @@ export class KerbcastDataSource {
    * initial set on the next connect, so a widget that mounts before the sidecar
    * is up still gets its feed once the connection lands.
    *
-   * On a brokered (station) source this also drives the **lazy connect** — the
+   * On a brokered (station) source this also drives the **lazy connect**, the
    * source stays disconnected until the first camera widget asks for a stream,
    * so a station with no camera widget never opens a sidecar peer.
    */
@@ -580,7 +580,7 @@ export class KerbcastDataSource {
     if (this.status === "connected") {
       if (count === 0) {
         void this.client.subscribe(flightId).catch(() => {
-          /* channel raced closed — re-bound on next connect via initial set */
+          /* channel raced closed: re-bound on next connect via initial set */
         });
       }
       return;
@@ -613,7 +613,7 @@ export class KerbcastDataSource {
   /**
    * Main-screen half of the station broker: forward a station's WebRTC offer to
    * the sidecar's HTTP `/offer` (only the main screen can reach the sidecar's
-   * address) and return the answer. Signaling only — the answer's ICE
+   * address) and return the answer. Signaling only, the answer's ICE
    * candidates let the station's PeerConnection reach the sidecar directly for
    * media, so video frames never cross PeerJS. Mirrors the SDK's internal
    * `httpNegotiate`; kept here (not on the client) because the host relays on
@@ -658,7 +658,7 @@ export class KerbcastDataSource {
    * was already live it reconnects through the broker.
    *
    * (Named `attachBroker`, not `useBroker`, to avoid the React-hook naming
-   * heuristic — it's a plain method, safe to call outside render.)
+   * heuristic: it's a plain method, safe to call outside render.)
    */
   attachBroker(broker: KerbcastBroker): void {
     this.broker = broker;
@@ -677,7 +677,7 @@ export class KerbcastDataSource {
     this.teardownClient();
     this.client = this.buildClient();
     // Connect through the broker if a connection was already live, OR if a
-    // camera widget already wants a stream — it may have mounted and subscribed
+    // camera widget already wants a stream: it may have mounted and subscribed
     // before this ran (React runs child effects before the parent's). Swallow
     // the initial rejection (the reconnect loop retries); without this an
     // immediate WebRTC failure would surface as an unhandled rejection.
@@ -715,7 +715,7 @@ export class KerbcastDataSource {
     const wasEnabled = this.reconnectEnabled;
     this.cfg = next;
     this.reconnectEnabled = false;
-    // A host/port change is a fresh start — re-probe STUN-only against the new
+    // A host/port change is a fresh start, re-probe STUN-only against the new
     // sidecar rather than carrying a stale escalation across the reconfigure.
     this.turnEscalated = false;
     this.teardownClient();
@@ -726,7 +726,7 @@ export class KerbcastDataSource {
   // -- private --
 
   private buildClient(): KerbcastClient {
-    // Same transport instance for main-screen AND station/broker mode —
+    // Same transport instance for main-screen AND station/broker mode,
     // only `negotiate` below differs by mode; the RTCPeerConnection/ontrack
     // wiring (and therefore the receiver registry) is identical either way.
     const innerTransport = this.baseTransport ?? new BrowserRTCTransport();
@@ -775,7 +775,7 @@ export class KerbcastDataSource {
           }
           this.startWatchdog();
         } else if (s === "failed" && this.reconnectEnabled) {
-          // A STUN-only attempt that reached ICE "failed" couldn't traverse —
+          // A STUN-only attempt that reached ICE "failed" couldn't traverse,
           // escalate so the reconnect fetches the relay's TURN creds.
           this.turnEscalated = true;
           this.scheduleReconnect();
@@ -822,7 +822,7 @@ export class KerbcastDataSource {
    * reconnect, picks the mutation up), and swapping the instance instead would
    * orphan the camera hooks. `useKerbcastStream` / `useKerbcastCameras` capture
    * `getClient()` once and bind to its events; a rebuilt client would fire
-   * onto a dead instance — a black camera on exactly the TURN path this
+   * onto a dead instance: a black camera on exactly the TURN path this
    * targets. `cfg` is private in the SDK, but we own kerbcast and the
    * "threads TURN servers" test drives the real client, so a field rename
    * reddens CI rather than silently regressing.

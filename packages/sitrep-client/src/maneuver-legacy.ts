@@ -1,5 +1,5 @@
 /**
- * `vessel.maneuver.legacy` — a narrow derived channel reshaping
+ * `vessel.maneuver.legacy`: a narrow derived channel reshaping
  * `vessel.maneuver.nodes` (`mod/Sitrep.Contract/VesselManeuver.cs`) into the
  * legacy Telemachus `o.maneuverNodes` shape ManeuverPlanner/MapView already
  * consume (`packages/core/src/schemas/orbit.ts`'s `ManeuverNode`).
@@ -7,7 +7,7 @@
  * Deliberately a SEPARATE channel from `vessel.state`, not a new field on
  * it: `vessel.state`'s `DerivedChannelDefinition.inputs` list is
  * carried-channels-gated at the PARENT level (`vessel-state.ts`'s own doc
- * comment on `vesselStateChannel`) — adding `vessel.maneuver` there would
+ * comment on `vesselStateChannel`): adding `vessel.maneuver` there would
  * make EVERY `vessel.state.*` consumer (including the ones that never touch
  * maneuver data) require `vessel.maneuver` in its `carriedChannels`
  * allowlist too, a wide, unrelated blast radius across every existing
@@ -43,7 +43,7 @@ export interface VesselManeuverPayload {
 
 /**
  * The legacy `o.maneuverNodes` entry shape (`@ksp-gonogo/core`'s
- * `ManeuverNode`, `packages/core/src/schemas/orbit.ts`) — re-declared
+ * `ManeuverNode`, `packages/core/src/schemas/orbit.ts`): re-declared
  * here for the same reason `orbit-patches.ts`'s `LegacyOrbitPatch` is
  * (`sitrep-client` cannot depend on `@ksp-gonogo/core`).
  */
@@ -69,13 +69,13 @@ export interface LegacyManeuverNode {
  * Reshapes one wire maneuver node into the legacy shape. `deltaV` is the
  * `[radialOut, normal, prograde]` tuple Telemachus's own
  * `addManeuverNode[ut,x,y,z]` arg order used (see the project's "Telemachus
- * maneuver-node arg order" finding) — `dvRadial`/`dvNormal`/`dvPrograde` are
+ * maneuver-node arg order" finding): `dvRadial`/`dvNormal`/`dvPrograde` are
  * already that same frame, just named instead of positional (kills the
  * arg-order footgun `mod/Sitrep.Contract/VesselManeuver.cs`'s own doc
  * comment describes). The node-level PeA/ApA/inclination/... fields mirror
- * `orbitPatches[0]` exactly — that is how Telemachus's own
+ * `orbitPatches[0]` exactly, that is how Telemachus's own
  * `o.maneuverNodes` always behaved (the node's headline numbers ARE its
- * post-burn patch's numbers) — defaulting to 0/""/null when the solver
+ * post-burn patch's numbers): defaulting to 0/""/null when the solver
  * hasn't produced a post-burn patch yet (a just-added node, still mid-tick).
  */
 export function mapManeuverNode(
@@ -108,7 +108,7 @@ export interface VesselManeuverLegacyState {
 
 /**
  * `undefined` while `vessel.maneuver` hasn't arrived yet (not whole); `null`
- * on a confirmed tombstone; otherwise ALWAYS a `nodes` array (R2 — empty
+ * on a confirmed tombstone; otherwise ALWAYS a `nodes` array (R2, empty
  * when the vessel has no maneuvers queued, the common case), same discipline
  * as `VesselManeuver.Nodes` itself.
  */
@@ -122,8 +122,8 @@ export function deriveVesselManeuverLegacy(
 }
 
 /**
- * Ready-to-register definition — `store.registerDerivedChannel(vesselManeuverLegacyChannel)`.
- * `fields: true` exposes `vessel.maneuver.legacy.nodes` — the target of
+ * Ready-to-register definition: `store.registerDerivedChannel(vesselManeuverLegacyChannel)`.
+ * `fields: true` exposes `vessel.maneuver.legacy.nodes`: the target of
  * `map-topic.ts`'s `"o.maneuverNodes"` mapping.
  */
 export const vesselManeuverLegacyChannel: DerivedChannelDefinition<VesselManeuverLegacyState> =

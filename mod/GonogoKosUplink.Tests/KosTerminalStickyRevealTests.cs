@@ -11,26 +11,26 @@ namespace GonogoKosUplink.Tests
     /// after a CPU button press" bug
     /// (local_docs/kos-terminal-feedback-2026-07-15.md, "Loading /
     /// connection" section). Wires a REAL <see cref="Courier"/> as the
-    /// <see cref="KosTerminalManager"/>'s publish sink — same pattern as
-    /// <see cref="KosTerminalCourierBurstTests"/> — so the real
+    /// <see cref="KosTerminalManager"/>'s publish sink (same pattern as
+    /// <see cref="KosTerminalCourierBurstTests"/>) so the real
     /// <see cref="KosTerminalFrame.FullRepaint"/> flag produced by
     /// <c>KosTerminalManager.Poll</c>'s own forced-reseed logic drives the
     /// engine's sticky-keyframe cache (<c>Courier.Record</c>'s
-    /// <c>isKeyframe</c> parameter — see <c>KosExtension.Ksp.cs</c>'s
+    /// <c>isKeyframe</c> parameter: see <c>KosExtension.Ksp.cs</c>'s
     /// <c>IsKeyframe</c> wiring, which does exactly the
     /// <c>frame.FullRepaint</c> check this test performs inline since the
     /// KSP-bound half of <c>Gonogo.KosUplink</c> cannot be compiled in this
-    /// project — see this project's own header comment on why
+    /// project: see this project's own header comment on why
     /// <c>KosExtension.Ksp.cs</c> isn't in its Compile list).
     ///
     /// <para>The scenario: an operator watches a CPU's terminal (a
-    /// full-repaint reseed followed by incremental diffs — ordinary kOS
+    /// full-repaint reseed followed by incremental diffs: ordinary kOS
     /// output), then looks away. A SECOND viewer (a station watching the
     /// same CPU, or the same operator switching back after looking at a
     /// different CPU tab) subscribes AFTER that history already exists. The
     /// synchronous catch-up they receive must be the sticky FULL REPAINT,
     /// never the bare trailing diff that happens to be the "latest recorded
-    /// sample" — a diff has no baseline for a brand-new subscriber to apply
+    /// sample": a diff has no baseline for a brand-new subscriber to apply
     /// it to.</para>
     /// </summary>
     public class KosTerminalStickyRevealTests
@@ -83,7 +83,7 @@ namespace GonogoKosUplink.Tests
                 nowUt: () => clock.Now());
 
             // Three ~20Hz polls, clock deliberately unadvanced between them
-            // (matches KosTerminalCourierBurstTests's rationale — the poll
+            // (matches KosTerminalCourierBurstTests's rationale: the poll
             // cadence outruns the Courier clock's own cadence). Poll #1
             // creates the session -> forced reseed ("BOOT>", FullRepaint
             // true). Polls #2/#3 are ordinary diffs (FullRepaint false) --

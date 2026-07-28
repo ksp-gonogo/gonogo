@@ -7,7 +7,7 @@ namespace GonogoKosUplink.Tests
     /// <summary>
     /// The <c>kos.run.&lt;coreId&gt;</c> wire mapping. R7 typed-absence:
     /// exactly one of <c>fields</c>/<c>error</c> is non-null on any real
-    /// result — the Builder doesn't enforce that itself (the caller,
+    /// result: the Builder doesn't enforce that itself (the caller,
     /// <c>KosRunManager.Complete</c>, already guarantees it), so these tests
     /// just pin that both directions travel as JSON <c>null</c> when absent.
     /// </summary>

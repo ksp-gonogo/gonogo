@@ -19,7 +19,7 @@ describe("resolveGamepadLabel", () => {
     expect(resolveGamepadLabel("face-east", "playstation")).toBe("Circle");
   });
 
-  it("nintendo swaps the face buttons relative to xbox — not a typo", () => {
+  it("nintendo swaps the face buttons relative to xbox, not a typo", () => {
     // Same physical position (bottom of the right cluster) is A on Xbox,
     // B on Nintendo.
     expect(resolveGamepadLabel("face-south", "nintendo")).toBe("B");
@@ -28,7 +28,7 @@ describe("resolveGamepadLabel", () => {
     expect(resolveGamepadLabel("face-north", "nintendo")).toBe("X");
   });
 
-  it("every role resolves in every pack — no gaps", () => {
+  it("every role resolves in every pack: no gaps", () => {
     const packs = ["positional", "xbox", "playstation", "nintendo"] as const;
     const roles = [
       "face-south",

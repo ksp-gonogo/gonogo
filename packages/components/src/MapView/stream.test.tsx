@@ -1,12 +1,13 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * The stream test-adapter proof for MapView —
+ * The stream test-adapter proof for MapView:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`; no legacy `DataSource` is
  * registered anywhere in this file.
@@ -21,22 +22,22 @@ import { MapViewComponent } from "./index";
  *   `vessel.maneuver.legacy.nodes` channel (see
  *   `maneuver-legacy.ts`; this file doesn't exercise its render path, only
  *   the lat/lon/altitude readout below, so `vessel.maneuver` isn't added to
- *   `carriedChannels` — see `orbit-patches.test.ts`/`maneuver-legacy.test.ts`
+ *   `carriedChannels`: see `orbit-patches.test.ts`/`maneuver-legacy.test.ts`
  *   for the reshape's own coverage).
  * - GAPPED: `v.body`, `t.universalTime`, `land.slopeAngle`,
  *   `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
  *   `o.encounterTime`, a separate shared-component read site).
  *
- * Uses the compact (`!showMap`) mode — a narrow/short widget renders a
+ * Uses the compact (`!showMap`) mode, a narrow/short widget renders a
  * plain Lat/Lon/Alt text readout instead of the canvas map, so the mapped
  * values are directly DOM-visible without needing a white-box `store.
  * sample()` proof.
  */
-describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)", () => {
+describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", () => {
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (vesselStateChannel.inputs grew to four) —
+      // is parent-channel-scoped (vesselStateChannel.inputs grew to four),
       // altitudeAsl needs all four carried even though it doesn't itself
       // read the two new ones.
       carriedChannels: [
@@ -60,19 +61,19 @@ describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)",
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — the compact readout shows the em-dash placeholder.
+    // Nothing arrived yet: the compact readout shows the em-dash placeholder.
     expect(container.textContent).toContain("Lat");
-    expect(container.textContent).toContain("—");
+    expect(container.textContent).toContain(NULL_DISPLAY);
     expect(container.textContent).not.toContain("°");
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
       // Loaded quality drives deriveVesselState onto the "measured" basis,
-      // which reads altitudeAsl off vessel.flight at viewUt — the OnRails
+      // which reads altitudeAsl off vessel.flight at viewUt, the OnRails
       // default would leave it permanently null.
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
@@ -92,7 +93,7 @@ describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)",
       expect(container.textContent).toContain("0.1 km");
     });
 
-    // v.body stays gapped/undefined (no legacy source here) — the mapped
+    // v.body stays gapped/undefined (no legacy source here), the mapped
     // position/altitude landing doesn't fabricate a body label.
     expect(container.textContent).not.toContain("Kerbin");
   });

@@ -10,7 +10,7 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-side test for <see cref="Courier.SnapshotCommands"/> /
-    /// <see cref="Courier.RestoreCommands"/> — a capability with NO TS
+    /// <see cref="Courier.RestoreCommands"/>: a capability with NO TS
     /// reference (added for M5b quicksave, scoped to the IN-FLIGHT COMMAND
     /// QUEUE only; see the doc comments on those methods for why the
     /// archive and telemetry subscriptions are deliberately out of scope
@@ -21,7 +21,7 @@ namespace Sitrep.Core.Tests
     /// then builds a FRESH <c>Courier</c> on a FRESH <c>ManualClock</c>
     /// started at the snapshot UT, restores the command queue onto it, and
     /// proves the command still executes and confirms at its ORIGINAL
-    /// execute/confirm UTs with the same requestId and result — exactly as
+    /// execute/confirm UTs with the same requestId and result, exactly as
     /// if the save/load round trip never happened.
     /// </summary>
     public class CourierCommandQueueSnapshotRestoreTests
@@ -55,7 +55,7 @@ namespace Sitrep.Core.Tests
             Assert.Equal(10.0, snapshotted.ConfirmUt);
 
             // Fresh Courier on a fresh Clock, as if the game had just been
-            // quickloaded at UT 2 — no memory of the original dispatch's
+            // quickloaded at UT 2: no memory of the original dispatch's
             // closures or handler.
             var restoredClock = new ManualClock(2);
             var restoredNetwork = new StubNetwork();

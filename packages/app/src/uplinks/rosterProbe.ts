@@ -1,4 +1,4 @@
-// Boot-time roster probe (design §5 step 2) — the input that turns the loader's
+// Boot-time roster probe (design §5 step 2), the input that turns the loader's
 // already-built three-way mod-hash check from stubbed to live.
 //
 // The loader runs pre-render, before `SitrepTelemetryProvider` mounts, so this
@@ -6,7 +6,7 @@
 // `system.uplinks` sample with a timeout, decodes it to `RosterEntry[]`, and
 // disposes. It NEVER throws: no host, no sample in time, or a socket error all
 // resolve `undefined`, and the loader degrades to the two-way index==bytes check
-// with the mod-hash arm recorded as pending — the legitimate "no mod talking yet"
+// with the mod-hash arm recorded as pending, the legitimate "no mod talking yet"
 // state (a client half loading with no KSP connected is a valid shape).
 
 import { logger } from "@ksp-gonogo/logger";
@@ -40,10 +40,10 @@ export interface RosterProbeOptions {
  * Decode a raw `system.uplinks` sample value into `RosterEntry[]`, or
  * `undefined` when the value isn't a valid roster payload (a tombstone/null,
  * a not-yet-arrived sticky read, or a malformed shape). Pure and side-effect
- * free so both boot-time consumers of the topic — `probeUplinkRoster` (the
+ * free so both boot-time consumers of the topic, `probeUplinkRoster` (the
  * main screen's own short-lived transport) and `readRosterFromTelemetryClient`
  * (the station's read off its already-connected peer client, D6/#6
- * follow-on) — decode identically without duplicating the shape-guard logic.
+ * follow-on): decode identically without duplicating the shape-guard logic.
  */
 export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
   if (value == null || typeof value !== "object") return undefined; // tombstone / not-yet
@@ -55,7 +55,7 @@ export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
     available: e.available,
     reason: e.reason ?? null,
     expectedClientHash: e.expectedClientHash ?? null,
-    // D5 — carry the mod's client-source declaration through so it's
+    // D5: carry the mod's client-source declaration through so it's
     // readable on RosterEntry. The loader/RegistrySource does not
     // consume it yet (separate follow-on); this only surfaces it.
     clientSource: e.clientSource ?? null,
@@ -64,15 +64,15 @@ export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
 
 /**
  * Boot-time bounded read of the `system.uplinks` roster so the loader can enforce
- * the three-way mod-hash check. Never throws: any failure — no host, no sample in
- * time, socket error — resolves `undefined`.
+ * the three-way mod-hash check. Never throws: any failure, no host, no sample in
+ * time, socket error: resolves `undefined`.
  */
 export async function probeUplinkRoster(
   opts: RosterProbeOptions = {},
 ): Promise<RosterEntry[] | undefined> {
   const timeoutMs = opts.timeoutMs ?? 3000;
   const { host, port } = getSitrepHostConfig();
-  // Own (and dispose) only the transport we built — an injected one is the
+  // Own (and dispose) only the transport we built, an injected one is the
   // caller's, matching SitrepTelemetryProvider's ownership convention.
   let ownedTransport: WebSocketTransport | undefined;
   let client: TelemetryClient | undefined;
@@ -117,7 +117,7 @@ export async function probeUplinkRoster(
 /**
  * Station-side counterpart of `probeUplinkRoster` (#6, station boot
  * re-sequence): reads `system.uplinks` off an ALREADY-CONNECTED
- * `TelemetryClient` the caller borrows — never builds or disposes a
+ * `TelemetryClient` the caller borrows: never builds or disposes a
  * transport/client of its own. The main-screen probe above opens its own
  * short-lived `WebSocketTransport` straight to the mod, which is exactly the
  * direct-to-KSP connection a station is forbidden from making; a station
@@ -127,12 +127,12 @@ export async function probeUplinkRoster(
  *
  * `SitrepPeerRelay` backfills the most recent frame to a newly-connecting
  * station, so the sticky value is often already cached on `client` by the
- * time this subscribes — `TelemetryClient.subscribe` invokes the callback
+ * time this subscribes: `TelemetryClient.subscribe` invokes the callback
  * SYNCHRONOUSLY in that case, BEFORE `subscribe()` itself returns, which
  * means the `unsub` closure `subscribe()` is about to return isn't assigned
  * to anything yet at the moment that synchronous callback runs. A first cut
  * of this function declared `unsub` with `let` and a no-op default to dodge
- * the temporal-dead-zone crash that would otherwise cause — but that made
+ * the temporal-dead-zone crash that would otherwise cause, but that made
  * the synchronous-callback path call the STALE no-op instead of the real
  * unsubscribe closure, silently leaking the subscription (caught by this
  * file's own test suite: "leaves another subscriber's subscription intact"
@@ -140,7 +140,7 @@ export async function probeUplinkRoster(
  * did). The `subscribeReturned` flag below fixes that properly: a callback
  * firing before `subscribe()` has returned stashes its result instead of
  * touching `unsub`; the couple of lines immediately after the `subscribe()`
- * call — where `unsub` IS safely assigned — pick that stash up and finish
+ * call: where `unsub` IS safely assigned; pick that stash up and finish
  * there instead. A callback firing later (the ordinary case, no backfill
  * yet cached) always sees `subscribeReturned === true` and finishes
  * directly. The `probeUplinkRoster` case above never hits any of this
@@ -148,8 +148,8 @@ export async function probeUplinkRoster(
  *
  * Never throws: no sample before `timeoutMs` resolves `undefined` (the
  * loader then falls back to the two-way index==bytes check, same as the
- * main screen's degraded-boot path). Always unsubscribes before resolving —
- * this is a one-shot borrow, not a standing subscription — and never calls
+ * main screen's degraded-boot path). Always unsubscribes before resolving,
+ * this is a one-shot borrow, not a standing subscription, and never calls
  * `client.dispose()`: the client is owned by `SitrepTelemetryProvider`, not
  * by this function.
  */
@@ -175,7 +175,7 @@ export async function readRosterFromTelemetryClient(
       const decoded = decodeRosterPayload(value);
       if (decoded === undefined) return;
       if (!subscribeReturned) {
-        // See the doc comment above: `unsub` isn't assigned yet — stash the
+        // See the doc comment above: `unsub` isn't assigned yet, stash the
         // result for the code right after `subscribe()` returns to finish.
         gotPendingSync = true;
         pendingSyncResult = decoded;

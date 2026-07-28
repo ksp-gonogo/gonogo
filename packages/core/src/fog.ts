@@ -1,10 +1,10 @@
 /**
- * Fog-of-war painter — projects an imaging footprint onto an equirectangular
+ * Fog-of-war painter: projects an imaging footprint onto an equirectangular
  * mask based on ship position, attitude, and altitude.
  *
  * All math is in the body's physical frame (i.e. Telemachus lat/lon). Body
  * `longitudeOffset` / `latitudeOffset` only come in when translating between
- * physical lat/lon and the texture's pixel index — they don't affect the
+ * physical lat/lon and the texture's pixel index, they don't affect the
  * geometry of visibility.
  *
  * Cheap for realistic inputs: O(visible-cap pixels), with per-row cos/sin
@@ -34,7 +34,7 @@ export interface FogPaintParams {
   shipLon: number;
   /** Ship altitude above sea level, metres. */
   altitude: number;
-  /** Camera direction (unit-length not required — we normalise). Body-fixed physical frame. */
+  /** Camera direction (unit-length not required: we normalise). Body-fixed physical frame. */
   nose: Vec3;
   /** Body mean radius (metres). */
   radius: number;
@@ -56,7 +56,7 @@ export interface DirtyRect {
 }
 
 /**
- * Unit vector pointing from the ship directly at the body centre — the
+ * Unit vector pointing from the ship directly at the body centre, the
  * "nadir" direction in the body-fixed physical frame. Useful as a default
  * camera direction before real attitude is wired in.
  */
@@ -166,7 +166,7 @@ function scanMaskCap(
   const wrapLonAll = dxPx >= W / 2;
 
   // Precompute per-column cos/sin(physicalLon). 2 × W trig, ~0.3 ms at
-  // 2048 — cheaper than doing it per (x, y) pair.
+  // 2048: cheaper than doing it per (x, y) pair.
   const lonCos = new Float64Array(W);
   const lonSin = new Float64Array(W);
   for (let x = 0; x < W; x++) {
@@ -217,7 +217,7 @@ function scanMaskCap(
 
 /**
  * Paint the imaging footprint onto a mask. Qualified pixels rise to
- * `qualityAlpha` (never down — revisits at worse altitude can't erase
+ * `qualityAlpha` (never down: revisits at worse altitude can't erase
  * earlier coverage). Returns the bounding rect of touched pixels, or null.
  */
 export function paintFogFootprint(
@@ -250,7 +250,7 @@ export function paintFogFootprint(
   const shipY = (R + h) * usY;
   const shipZ = (R + h) * usZ;
 
-  // Horizon-cap angular radius — bounds the set of surface points we could
+  // Horizon-cap angular radius: bounds the set of surface points we could
   // possibly see. The FOV test further narrows within this.
   const horizonDeg = radToDeg(Math.acos(rOverRplusH));
 
@@ -264,13 +264,13 @@ export function paintFogFootprint(
     params.qualityAlpha,
     (upX, upY, upZ) => {
       const dotUsUp = usX * upX + usY * upY + usZ * upZ;
-      // Horizon test — simplified:
+      // Horizon test: simplified:
       //   dot(shipPos - p, u_p) > 0
       //   <=> (R+h) * dotUsUp - R > 0
       //   <=> dotUsUp > R / (R + h)
       if (dotUsUp <= rOverRplusH) return false;
 
-      // Cone test — dot(normalise(p - shipPos), nose) > cos(fov)
+      // Cone test: dot(normalise(p - shipPos), nose) > cos(fov)
       const vX = R * upX - shipX;
       const vY = R * upY - shipY;
       const vZ = R * upZ - shipZ;
@@ -285,7 +285,7 @@ export function paintFogFootprint(
 }
 
 /**
- * Convenience — apply imaging quality & body config from a BodyDefinition to
+ * Convenience: apply imaging quality & body config from a BodyDefinition to
  * a paint call. Returns null if the altitude is outside the usable window
  * (quality = 0).
  */

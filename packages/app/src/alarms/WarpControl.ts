@@ -12,7 +12,7 @@ const WARP_COMMAND_COOLDOWN_MS = 1_500;
 export interface WarpControlContext {
   /** Current observed warp index, used to skip redundant commands. */
   getObservedIndex(): number;
-  /** Stamp called whenever WarpControl issues a warp command — lets the
+  /** Stamp called whenever WarpControl issues a warp command, lets the
    *  observer suppress the unscheduled-warp detector for this change. */
   registerOwnWarpIntent(): void;
 }
@@ -149,7 +149,7 @@ export class WarpControl {
 
   /**
    * Dispatches through the stream via the non-hook `dispatchActiveCommand`
-   * (`@ksp-gonogo/sitrep-client`) — `t.timeWarp[<i>]` is mapped to
+   * (`@ksp-gonogo/sitrep-client`): `t.timeWarp[<i>]` is mapped to
    * `time.setWarpIndex` (`map-command.ts`), a command every production
    * `TelemetryProvider` mount carries.
    */

@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /**
  * Golden-fixture generator for `mod/sitrep-server/src/courier.ts`'s
- * `Courier` — the reference delay engine for both TELEMETRY (streams) and
+ * `Courier`, the reference delay engine for both TELEMETRY (streams) and
  * COMMANDS (round-trip request/response).
  *
  * Like `StubNetwork`/`Archive`, `Courier` is stateful with no single global
- * observable value — but unlike those, its observations are ASYNCHRONOUS:
+ * observable value, but unlike those, its observations are ASYNCHRONOUS:
  * a stream subscriber or command response callback can fire either
  * synchronously (subscribe-time catch-up) or later, when a scheduled Clock
  * callback drains during `advanceTo`. So a scenario's `ops` list (`record`,
@@ -13,13 +13,13 @@
  * `dispatchCommand`, `advanceTo`) is run against one real `Courier` wired to
  * a real `ManualClock` + `StubNetwork`, and EVERY callback invocation
  * (stream delivery or command response) is appended, in the exact order it
- * actually fired, to a single `expected.events` log — this is what lets a
+ * actually fired, to a single `expected.events` log; this is what lets a
  * single big `advanceTo` that drains several deliveries in one batch be
  * checked for both order and for each delivery reporting its own captured
  * fire-UT (not a shared re-read of `clock.now()`).
  *
  * `setCommandHandler` always installs the SAME fixed handler
- * (`defaultCommandHandler` below) — deterministic and JSON-fixture-free,
+ * (`defaultCommandHandler` below), deterministic and JSON-fixture-free,
  * mirroring `command => ({ ok: command, args, node })` from
  * `courier-command.test.ts`.
  *
@@ -307,7 +307,7 @@ const scenarios: Scenario[] = [
   {
     name: "subscribe-during-transit-schedules-in-flight",
     description:
-      "A subscriber joining while a recorded sample is still in flight (validAt + delay > now) gets neither a catch-up (nothing has arrived yet) nor a miss — it is scheduled and delivered once the sample arrives.",
+      "A subscriber joining while a recorded sample is still in flight (validAt + delay > now) gets neither a catch-up (nothing has arrived yet) nor a miss: it is scheduled and delivered once the sample arrives.",
     network: { setDelay: [{ vantage: "KSC", node: "vessel", seconds: 2 }] },
     ops: [
       { op: "record", node: "vessel", topic: "alt", value: 100, validAtUt: 0 },
@@ -342,7 +342,7 @@ const scenarios: Scenario[] = [
   {
     name: "unsubscribe-before-delivery-drops-it",
     description:
-      "Unsubscribing before a scheduled delivery fires removes the subscriber entirely — no event for it, even once the delivery's UT is reached.",
+      "Unsubscribing before a scheduled delivery fires removes the subscriber entirely, no event for it, even once the delivery's UT is reached.",
     network: { setDelay: [{ vantage: "KSC", node: "vessel", seconds: 2 }] },
     ops: [
       {
@@ -417,7 +417,7 @@ const scenarios: Scenario[] = [
   {
     name: "loss-unreachable-drops-command-with-honest-silence",
     description:
-      "A command dispatched to an unreachable node is dropped entirely at dispatch time — the handler never runs and no response event ever fires, even after a huge advance.",
+      "A command dispatched to an unreachable node is dropped entirely at dispatch time: the handler never runs and no response event ever fires, even after a huge advance.",
     network: {
       setDelay: [{ vantage: "KSC", node: "vessel", seconds: 2 }],
       setReachable: [{ vantage: "KSC", node: "vessel", ok: false }],

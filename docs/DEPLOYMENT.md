@@ -38,7 +38,7 @@ podman run -d --name gonogo-relay \
 
 Stations on the same WiFi as the main screen don't touch the relay: both ends are browsers, they meet at the host's derived broker id and connect directly over the LAN. The relay's TURN server only matters for stations out on the internet, which can't reach the host's local addresses and need TURN to bridge the connection.
 
-For an always-on setup, run the relay on a public Linux box where the TURN ports are directly reachable: it auto-discovers its public IP, needs no home port-forwarding, and stays up. A containerized relay on a macOS host also relays cross-internet traffic — verified end-to-end with a station on cellular — as long as you forward the TURN ports and pin the public IP (below); it's simply a less convenient always-on option than a public host.
+For an always-on setup, run the relay on a public Linux box where the TURN ports are directly reachable: it auto-discovers its public IP, needs no home port-forwarding, and stays up. A containerized relay on a macOS host also relays cross-internet traffic, verified end-to-end with a station on cellular, as long as you forward the TURN ports and pin the public IP (below); it's simply a less convenient always-on option than a public host.
 
 Either way, coturn has to be reachable from outside your network. Forward these ports on your router to the machine running the relay. The ranges match `docker-compose.yml`:
 
@@ -52,13 +52,13 @@ The relay range is 11 ports (`49160–49170`), sized for up to ~10 simultaneous 
 
 The relay auto-discovers its public IP at startup and advertises it to clients. If your ISP gives you a stable IP, that's all you need; if it rotates, restart the relay when it changes or pin it explicitly with `TURN_EXTERNAL_IP=<your public IP>` in the environment.
 
-**Local dev with remote stations.** `scripts/dev.sh` auto-detects the host's LAN IP and passes it to coturn — correct for same-WiFi stations but unreachable from the internet. To support a remote/off-LAN station from a local dev setup, set your public IP in the repo-root `.env`:
+**Local dev with remote stations.** `scripts/dev.sh` auto-detects the host's LAN IP and passes it to coturn, correct for same-WiFi stations but unreachable from the internet. To support a remote/off-LAN station from a local dev setup, set your public IP in the repo-root `.env`:
 
 ```
 TURN_EXTERNAL_IP=<your public IP>
 ```
 
-`curl ifconfig.me` gives your current public IP. An explicit `TURN_EXTERNAL_IP` always overrides auto-detection. With the public IP pinned and the TURN ports forwarded, a containerized relay on macOS relays cross-internet stations fine — verified end-to-end.
+`curl ifconfig.me` gives your current public IP. An explicit `TURN_EXTERNAL_IP` always overrides auto-detection. With the public IP pinned and the TURN ports forwarded, a containerized relay on macOS relays cross-internet stations fine, verified end-to-end.
 
 `GET http://localhost:3002/health` reports the relay status, the most recently registered host peer id (diagnostics only; stations don't read this to find the host), and the public IP coturn is advertising. `GET http://localhost:3002/ice-config` returns the iceServers config the main screen fetches on boot. The TURN shared secret rotates on every relay restart and only ever lives in the relay process's memory; never commit a TURN credential to source.
 
@@ -85,7 +85,7 @@ Everything user-facing moves only when a release is cut; pushes to `main` move a
 gh workflow run prepare-release.yml --ref main
 ```
 
-(or Actions → prepare-release → Run workflow; the `bump` input defaults to `auto`, which analyses conventional commits since the last tag — `feat:` → minor, `BREAKING CHANGE`/`!` → major, anything else → patch.)
+(or Actions → prepare-release → Run workflow; the `bump` input defaults to `auto`, which analyses conventional commits since the last tag, `feat:` → minor, `BREAKING CHANGE`/`!` → major, anything else → patch.)
 
 `prepare-release.yml` bumps `packages/app/package.json`, commits `release: vX.Y.Z`, tags, pushes, and dispatches `release.yml`, which runs the full test suite at the tag, builds the production site, uploads it as the GitHub Release asset `gonogo-site.tar.gz`, publishes the `:<version>`/`:latest` images, and redeploys Pages. The version in `package.json` should only ever change through this flow.
 
@@ -99,6 +99,6 @@ gh workflow run prepare-release.yml --ref main
 | minor | new features, still interoperates | advisory mismatch banner |
 | major | peer protocol broke | mismatch banner; expect breakage |
 
-Dev builds compare by their base `X.Y.Z` (the `-dev.…` suffix is ignored), so a dev station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal — the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
+Dev builds compare by their base `X.Y.Z` (the `-dev.…` suffix is ignored), so a dev station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal, the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
 
-**One caveat for dev testing:** `/gonogo/` and `/gonogo/dev/` share an origin, so a dev station and a release station on the same device share localStorage — layout, station identity, share-code. Convenient (your station keeps its identity across channels) but a dev-channel layout experiment edits the same saved layout the release station uses.
+**One caveat for dev testing:** `/gonogo/` and `/gonogo/dev/` share an origin, so a dev station and a release station on the same device share localStorage, layout, station identity, share-code. Convenient (your station keeps its identity across channels) but a dev-channel layout experiment edits the same saved layout the release station uses.

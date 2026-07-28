@@ -15,8 +15,8 @@ namespace Sitrep.Host.IntegrationTests
     /// End-to-end coverage for the crash event stream over the REAL
     /// <see cref="ChannelEngine"/> reliable lane and a REAL ClientWebSocket.
     /// The KSP-facing <c>Gonogo.KSP.CrashUplink</c> can't build headless (it
-    /// reads live KSP), so — exactly as <see cref="CommsCoreEndToEndTests"/>
-    /// does for comms — a tiny KSP-independent uplink publishes the same
+    /// reads live KSP), so, exactly as <see cref="CommsCoreEndToEndTests"/>
+    /// does for comms, a tiny KSP-independent uplink publishes the same
     /// <see cref="CrashPayload.Build"/> dictionary the producer publishes,
     /// proving the spine carries the crash record shape and that the
     /// <see cref="Delivery.ReliableOrdered"/> lane never coalesces two crashes.
@@ -119,7 +119,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 // Two distinct crashes, each published then ticked (mirroring
                 // two deaths at different flight times). The ReliableOrdered
-                // lane must deliver BOTH, in order — never coalescing the first
+                // lane must deliver BOTH, in order; never coalescing the first
                 // away the way a LossyLatest channel would if a later value
                 // overtook it.
                 uplink.LastCrash!.Publish(SampleCrash("vessel-a", "Crash", 100.0), 100.0);
@@ -145,7 +145,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The KSP-independent stand-in for <c>Gonogo.KSP.CrashUplink</c> — the
+        /// The KSP-independent stand-in for <c>Gonogo.KSP.CrashUplink</c>: the
         /// same two ReliableOrdered channels, exposed as publishers a test
         /// drives directly (the real uplink drives them from GameEvents).
         /// </summary>

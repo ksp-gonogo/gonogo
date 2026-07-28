@@ -17,7 +17,7 @@ import {
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
- * Objectives — a read-only, in-flight-friendly view of everything you're
+ * Objectives: a read-only, in-flight-friendly view of everything you're
  * currently trying to achieve. It is the **augment-model dogfood**: the
  * widget itself is a pure *frame* (Panel +
  * `OBJECTIVES` title + one `objectives.sections` slot), and its content arrives
@@ -26,7 +26,7 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
  * source" contract the frame publishes as the slot's props.
  *
  * Making History mission objectives (`mh.*`) were a second source here, but
- * the `mh` keyword carries no channel on the new SDK wire — contracts are the
+ * the `mh` keyword carries no channel on the new SDK wire, contracts are the
  * sole objective source going forward. The frame + slot stay in place so a
  * future Uplink source (or a revived mission channel) can bind in the same
  * way; that's the point of exercising typed slot props and settings-merge
@@ -45,10 +45,10 @@ export interface ObjectiveItem {
   title: string;
   description?: string;
   state: ObjectiveState;
-  /** Parent label — the mission or contract this objective belongs to. */
+  /** Parent label: the mission or contract this objective belongs to. */
   source: string;
   optional?: boolean;
-  /** Set for contract parameters — enables the "alarm on completion" toggle. */
+  /** Set for contract parameters: enables the "alarm on completion" toggle. */
   contractId?: string;
 }
 
@@ -59,14 +59,14 @@ export interface ObjectiveItem {
 // as the slot's props, the interface an objective-source augment must satisfy:
 // a presentational `Section` component that renders a source's contributed
 // `ObjectiveItem[]` plus an optional per-item alarm affordance. An augment
-// "satisfies the contract" by feeding the frame's `Section` structured data —
+// "satisfies the contract" by feeding the frame's `Section` structured data,
 // the frame owns all presentation so every source renders identically, and
 // the slot generic enforces the shape.
 // ---------------------------------------------------------------------------
 
 /** One source's contribution, rendered by the frame's {@link ObjectivesSection}. */
 export interface ObjectiveSection {
-  /** The source's objectives — each an {@link ObjectiveItem}. */
+  /** The source's objectives: each an {@link ObjectiveItem}. */
   items: ObjectiveItem[];
   /**
    * Optional per-item alarm affordance a source may offer. Returns
@@ -77,7 +77,7 @@ export interface ObjectiveSection {
 }
 
 /**
- * The slot's props — the "objective source" contract itself. An augment bound to
+ * The slot's props: the "objective source" contract itself. An augment bound to
  * `objectives.sections` receives this and contributes by rendering `<Section ...>`.
  */
 export interface ObjectiveSourceContext {
@@ -144,14 +144,14 @@ export function contractObjectives(
 }
 
 // ---------------------------------------------------------------------------
-// Frame-owned presentation — the `Section` component the slot hands to augments
+// Frame-owned presentation: the `Section` component the slot hands to augments
 // ---------------------------------------------------------------------------
 
 /**
  * Renders one objective source's contribution: its items, or nothing when
  * empty (letting the frame's empty state show if every source is empty). The
- * frame owns this so every source — the built-in ones and any future Uplink
- * source — renders identically.
+ * frame owns this so every source: the built-in ones and any future Uplink
+ * source: renders identically.
  */
 function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
   if (items.length === 0) return null;
@@ -179,13 +179,13 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
 }
 
 // ---------------------------------------------------------------------------
-// The built-in objective source — bound to the slot as an augment (§4.9)
+// The built-in objective source: bound to the slot as an augment (§4.9)
 // ---------------------------------------------------------------------------
 
 /**
  * Active-contracts source. Reads `contracts.active`, maps each parameter to an
  * item, and offers the one write affordance this widget carries: a per-item
- * "warp-stop when this contract parameter completes" alarm — the same feature
+ * "warp-stop when this contract parameter completes" alarm, the same feature
  * the Contract Manager exposes. Renders nothing when no contracts are active.
  */
 function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
@@ -221,7 +221,7 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
         aria-pressed={isSet}
         title={
           isSet
-            ? `Alarm set for "${o.title}" — click to clear`
+            ? `Alarm set for "${o.title}": click to clear`
             : `Alarm me when "${o.title}" completes`
         }
         aria-label={
@@ -254,7 +254,7 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   return <Section items={items} renderAlarm={renderAlarm} />;
 }
 
-// The slot's props — stable reference so a re-render doesn't needlessly churn
+// The slot's props: stable reference so a re-render doesn't needlessly churn
 // the mounted augments. `Section` is the frame's presentational renderer.
 const OBJECTIVES_SLOT: ObjectiveSourceContext = { Section: ObjectivesSection };
 
@@ -267,7 +267,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
       </Sections>
       {/* Frame-level fallback: shown only while no bound source yields content
           (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
-          agnostic of which sources exist — see the sibling rule on `Sections`. */}
+          agnostic of which sources exist; see the sibling rule on `Sections`. */}
       <EmptyFallback role="status">No active objectives</EmptyFallback>
     </Panel>
   );

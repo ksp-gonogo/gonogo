@@ -89,10 +89,10 @@ function memoryStorage(): Storage {
 
 /**
  * `SettingsModal` now calls `useUplinkGap()` unconditionally (the "Uplink
- * Hub" tab's attention-dot indicator, added alongside `initialTabId` —
+ * Hub" tab's attention-dot indicator, added alongside `initialTabId`,
  * see the dedicated describe block below), which fires a `useQuery` for the
  * Hub registry. None of the fixtures in this file exercise that badge, so an
- * inert client (the query never actually runs — `enabled: false`) keeps
+ * inert client (the query never actually runs, `enabled: false`) keeps
  * every other test's `render()` free of an async network round-trip that
  * could resolve after a synchronous test's assertions/unmount and trip an
  * act() warning (CLAUDE.md: "act() warnings are always our bug").
@@ -104,7 +104,7 @@ function makeInertQueryClient(): QueryClient {
 }
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
-// notifies the DataSource-registry subscribers — every useTelemetry call
+// notifies the DataSource-registry subscribers: every useTelemetry call
 // keeps its legacy useDataSourceSubscription wired unconditionally, so
 // clearRegistry() firing on a still-mounted SettingsModal tree is a state
 // update outside act() (CLAUDE.md -> Testing Philosophy). RTL auto-cleanup
@@ -128,7 +128,7 @@ function renderModal(screen_: "main" | "station" = "main") {
 
 /**
  * A fixture shaped like `packages/app/src/dataSources/sitrep.ts`'s
- * `sitrepStreamSource` singleton — same id/name production uses, so the
+ * `sitrepStreamSource` singleton: same id/name production uses, so the
  * Data Sources tab's "just this one connection" behaviour is exercised
  * against the real production id, not an arbitrary test id.
  */
@@ -160,7 +160,7 @@ function makeSitrepStub(
 }
 
 /**
- * An arbitrary OTHER registered `DataSource` — used to prove the reworked
+ * An arbitrary OTHER registered `DataSource`: used to prove the reworked
  * Data Sources tab does NOT fall back to an "Other Connections" list the
  * way the old `DataSourceStatusComponent` did (it rendered every registered
  * source).
@@ -185,7 +185,7 @@ function makeOtherSourceStub(id: string, name: string): DataSource {
 /**
  * Mounts a real `TelemetryProvider` (a `TimelineStore` with
  * `systemUplinkHealthChannel` registered, over a `StubTransport`) around
- * `SettingsModal` — mirrors `telemetry-components.test.tsx`'s
+ * `SettingsModal`: mirrors `telemetry-components.test.tsx`'s
  * `setupTelemetryStream` helper. `emit` pushes a raw `system.uplinks`
  * stream-data frame once the mounted `UplinkHealthList` has subscribed.
  */
@@ -251,7 +251,7 @@ afterEach(() => {
   __clearSettingsTabsForTests();
 });
 
-describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", () => {
+describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () => {
   it("shows the Sitrep Stream connection row when registered", async () => {
     registerDataSource(makeSitrepStub());
     renderModal("main");
@@ -275,7 +275,7 @@ describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", (
     expect(screen.queryByText(/sitrep/i)).not.toBeInTheDocument();
   });
 
-  it("does NOT render an unrelated registered data source — no 'Other Connections' list", async () => {
+  it("does NOT render an unrelated registered data source, no 'Other Connections' list", async () => {
     registerDataSource(makeSitrepStub());
     registerDataSource(makeOtherSourceStub("kos", "kOS"));
     renderModal("main");
@@ -309,7 +309,7 @@ describe("SettingsModal Data Sources tab — single Gonogo/Sitrep connection", (
   });
 });
 
-describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHealth)", () => {
+describe("SettingsModal Data Sources tab: per-Uplink health (system.uplinkHealth)", () => {
   it("shows a waiting placeholder before any report has arrived", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
@@ -350,7 +350,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
     expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
 
     // "system" is healthy with no detail, so it collapses into the N/M
-    // healthy chip by default (Task 6) — expand it to assert its fields too.
+    // healthy chip by default (Task 6): expand it to assert its fields too.
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show/i }));
 
@@ -437,7 +437,7 @@ describe("SettingsModal Data Sources tab — per-Uplink health (system.uplinkHea
   });
 });
 
-describe("SettingsModal Data Sources tab — healthy-uplinks collapse chip", () => {
+describe("SettingsModal Data Sources tab: healthy-uplinks collapse chip", () => {
   it("folds plain healthy/no-detail uplinks into an N/M healthy chip, collapsed by default", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
@@ -536,7 +536,7 @@ describe("SettingsModal Data Sources tab — healthy-uplinks collapse chip", () 
 
     await waitFor(() => expect(screen.getByText("comms")).toBeInTheDocument());
     expect(screen.getByText("backend: CommNet elected")).toBeInTheDocument();
-    // No collapse chip renders — distinct from the row's own inline health
+    // No collapse chip renders, distinct from the row's own inline health
     // state label (also literally "healthy"), which is why this checks the
     // chip's specific "N/M healthy" wording rather than a bare /healthy$/.
     expect(screen.queryByText(/\d+\/\d+ healthy/)).not.toBeInTheDocument();
@@ -574,7 +574,7 @@ describe("SettingsModal Data Sources tab — healthy-uplinks collapse chip", () 
   });
 });
 
-describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)", () => {
+describe("SettingsModal: Uplink Hub tab (initialTabId + attention indicator)", () => {
   const registryServer = setupServer();
 
   beforeAll(() => registryServer.listen({ onUnhandledRequest: "bypass" }));
@@ -654,7 +654,7 @@ describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)"
 
     await waitFor(() => {
       const tab = screen.getByRole("tab", { name: "Uplink Hub" });
-      // The dot is deliberately `aria-hidden` (decorative) — a plain <span>
+      // The dot is deliberately `aria-hidden` (decorative), a plain <span>
       // structural check is the only way to see it, same escape hatch the
       // Tabs component itself offers no accessible query for.
       expect(tab.querySelector("span")).not.toBeNull();
@@ -678,7 +678,7 @@ describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)"
     stream.emit({ uplinks: [] });
 
     // Confirm the roster + registry have both settled by observing the Data
-    // Sources tab's own placeholder — tab buttons stay queryable regardless
+    // Sources tab's own placeholder: tab buttons stay queryable regardless
     // of which panel is active, so this is a reliable settlement signal
     // before asserting the Uplink Hub tab's dot is absent.
     await openDataSourcesTab();
@@ -726,7 +726,7 @@ describe("SettingsModal registered-tab gating", () => {
 
 /**
  * A source-backed setting reads/writes through a registered `DataSource`'s own
- * getter/setter/subscribe rather than localStorage — the migration path for a
+ * getter/setter/subscribe rather than localStorage: the migration path for a
  * live mod-round-trip config (e.g. an Uplink's render throttle). This fake
  * exposes the throttle-shaped trio the setting's binding closures dial.
  */
@@ -796,7 +796,7 @@ function registerThrottleSetting() {
   });
 }
 
-describe("SettingsModal — source-backed setting row", () => {
+describe("SettingsModal: source-backed setting row", () => {
   it("reflects the DataSource's current value in the Switch", () => {
     registerDataSource(makeThrottleSourceStub(true));
     registerThrottleSetting();
@@ -839,7 +839,7 @@ describe("SettingsModal — source-backed setting row", () => {
 
   it("resolves the source via the uplink-handle registry (an Uplink singleton's path)", () => {
     // An Uplink can register its source with registerUplinkHandle rather than
-    // registerDataSource — the row must resolve there too.
+    // registerDataSource: the row must resolve there too.
     registerUplinkHandle("throttle-src", makeThrottleSourceStub(true));
     registerThrottleSetting();
     renderModal("main");
@@ -849,7 +849,7 @@ describe("SettingsModal — source-backed setting row", () => {
   });
 });
 
-describe("SettingsModal — dependsOn (nested/inert sub-toggle)", () => {
+describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
   const PARENT_ID = "test.parentToggle";
   const CHILD_ID = "test.childToggle";
 

@@ -5,18 +5,18 @@ using Sitrep.Contract;
 namespace Gonogo.RealAntennasUplink
 {
     /// <summary>
-    /// The RealAntennas <see cref="ICommsBackend"/> — the higher-priority
+    /// The RealAntennas <see cref="ICommsBackend"/>: the higher-priority
     /// backend elected for the exclusive <c>"comms"</c> capability when RA is
     /// loaded (comms-uplink-design.md §2.2). Connectivity/strength/control-state
     /// and hop GEOMETRY come from the SAME stock CommNet graph CommNet uses
     /// (§4.3: <c>RACommLink : CommNet.CommLink</c>, <c>RACommNode : CommNet.CommNode</c>,
     /// so <c>precisePosition</c>/<c>ControlPath</c> are stock reads under either
-    /// backend) — NO RA reflection is needed for those. The one RA-specific
+    /// backend): NO RA reflection is needed for those. The one RA-specific
     /// enrichment here is per-hop <c>BandRateBitsPerSec</c>, read via
     /// <see cref="RaReflection"/> off the live RACommLink (typed absence when
     /// unreadable, never 0).
     ///
-    /// <para>Main-thread only (live KSP reads) — called from the RA uplink's
+    /// <para>Main-thread only (live KSP reads), called from the RA uplink's
     /// capture-on-main sampler.</para>
     /// </summary>
     public sealed class RaCommsBackend : ICommsBackend

@@ -11,7 +11,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-// Importing the real module runs its module-load `registerAugment(...)` once —
+// Importing the real module runs its module-load `registerAugment(...)` once,
 // the same way the app picks this augment up via the package's bare
 // `import "./DockingCameraAugment"`. So this suite exercises the ACTUAL
 // production registration and deliberately never calls `clearAugments()`:
@@ -40,7 +40,7 @@ function renderSlot(transport: StubTransport) {
   );
 }
 
-describe("kerbcast docking-camera augment — distance-to-target.camera slot", () => {
+describe("kerbcast docking-camera augment: distance-to-target.camera slot", () => {
   beforeEach(() => {
     clearRegistry();
     clearUplinkHandles();
@@ -72,7 +72,7 @@ describe("kerbcast docking-camera augment — distance-to-target.camera slot", (
     );
   });
 
-  it("renders no video layer when the inventory is empty — the HUD composes without it", async () => {
+  it("renders no video layer when the inventory is empty, the HUD composes without it", async () => {
     const transport = new StubTransport();
     const { container } = renderSlot(transport);
 
@@ -103,7 +103,7 @@ describe("kerbcast docking-camera augment — distance-to-target.camera slot", (
   });
 
   // The two planes are separate, so naming a camera on the CONTROL channel must
-  // also kick the MEDIA connection — nothing else will. `subscribeCamera` only
+  // also kick the MEDIA connection: nothing else will. `subscribeCamera` only
   // binds a slot on an already-connected source, so without this a brokered
   // station is named a camera it never opens a session for. Regression guard:
   // the built-in HudCamera got its connect free via `useKerbcastCameras`.
@@ -118,7 +118,7 @@ describe("kerbcast docking-camera augment — distance-to-target.camera slot", (
       subscribeCamera: () => {},
       unsubscribeCamera: () => {},
       // Once a camera is named the augment mounts its own KerbcastProvider (to
-      // read the capture clock for delayed playout, like CameraFeed) — so the
+      // read the capture clock for delayed playout, like CameraFeed), so the
       // client must satisfy `useKerbcastClock`: a `clock` snapshot and a
       // `settings-change` subscription. `captureUt: null` keeps it a live
       // passthrough (no clock yet), which is all this connect-path test needs.

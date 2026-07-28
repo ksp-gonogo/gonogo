@@ -17,19 +17,19 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// The multi-topic generalization of <c>Gonogo.KSP.GonogoBodiesServer</c> /
-    /// <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer</c> (both retired —
+    /// <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer</c> (both retired:
     /// see <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c>
     /// §1.2/§6.1). Owns EVERYTHING those two paired, hand-copied classes
-    /// owned — the <see cref="SubscriptionRegistry"/> outer gate, the
+    /// owned: the <see cref="SubscriptionRegistry"/> outer gate, the
     /// per-topic <see cref="ChannelEmitter"/> inner gate, the <see cref="Courier"/>
     /// + delay, the timeline-reset broadcast, and the three-domain threading
-    /// model (main-loop / Courier / socket) — but drives a SET of channels
+    /// model (main-loop / Courier / socket): but drives a SET of channels
     /// and commands registered by <see cref="ISitrepUplink"/>s, not one
     /// hardwired <c>system.bodies</c> topic. This is the design doc's central
     /// rule made concrete: "providers are registered mappers; the engine owns
     /// the pipeline."
     ///
-    /// KSP is never touched here — same discipline <c>GonogoBodiesServer</c>
+    /// KSP is never touched here, same discipline <c>GonogoBodiesServer</c>
     /// followed: the caller (<c>GonogoAddon.FixedUpdate</c> in production, a
     /// test driver headlessly) samples <see cref="IKspHost"/> and hands the
     /// already-built <see cref="KspSnapshot"/> to <see cref="Tick"/>, which
@@ -46,9 +46,9 @@ namespace Sitrep.Host
         /// C1-pub tolerance: <see cref="ProcessPublish"/> clamps a
         /// caller-stamped <c>ut</c> that lands meaningfully ahead of the
         /// clock's current position at processing time (a ghost publish from
-        /// before a quickload rewind — see ProcessPublish's own comment). A
+        /// before a quickload rewind: see ProcessPublish's own comment). A
         /// tiny epsilon (rather than an exact `&gt;`) absorbs floating-point
-        /// noise only — it is NOT meant to tolerate genuine slack between when
+        /// noise only: it is NOT meant to tolerate genuine slack between when
         /// an uplink reads "now" and when its Publish call is processed.
         /// </summary>
         private const double PublishUtToleranceSeconds = 1e-6;
@@ -67,13 +67,13 @@ namespace Sitrep.Host
         // handler is NOT run inline on the Courier thread but marshaled onto
         // this queue, drained by RunPendingCommands on the Unity main thread
         // (GonogoAddon.FixedUpdate). The Courier thread blocks on the queued
-        // job's completion signal and returns its typed result — the symmetric
+        // job's completion signal and returns its typed result, the symmetric
         // WRITE-side twin of F1's capture-on-main / handle-on-Courier read
         // seam (AddSampledSource). KSP/Unity actuation (KspVesselActuator)
         // MUST run on the main thread; calling it from the Courier thread is
         // the crash class this closes. When false (the default, and every
         // headless test that doesn't stand up a main-thread pump), handlers
-        // run inline on the Courier thread exactly as before — same behavior
+        // run inline on the Courier thread exactly as before, same behavior
         // the pre-F2 engine had.
         private readonly bool _executeCommandsOnMainThread;
         private readonly ConcurrentQueue<MainThreadCommand> _mainThreadCommands = new ConcurrentQueue<MainThreadCommand>();
@@ -88,12 +88,12 @@ namespace Sitrep.Host
         // F2-fix shutdown gate: set true in Stop() BEFORE the pending-command
         // flush so any command the Courier dequeues AFTER the flush fails fast
         // in RunOnMainThread instead of enqueuing+blocking on a pump that has
-        // already stopped — closing the single-pass-flush race. Engine-level;
+        // already stopped: closing the single-pass-flush race. Engine-level;
         // distinct from ChannelOutbox._stopping (a per-connection field).
         private volatile bool _engineStopping;
 
         // The OUTER (SubscriptionRegistry) / INNER (ChannelEmitter) gate pair,
-        // Courier-thread-only, shared across every registered topic — both
+        // Courier-thread-only, shared across every registered topic: both
         // classes are already keyed by channelId/topic internally, so no
         // per-topic instance is needed (see their own doc comments).
         private readonly SubscriptionRegistry _subscriptions = new SubscriptionRegistry();
@@ -102,18 +102,18 @@ namespace Sitrep.Host
         // ---- Server-side reveal gate (spec-streaming-delay-model §4 / §7.3
         // Steps 1–3): the choke point that makes DelayRole LIVE on the host.
         // A Delayed channel's change-gated (UT,value) decisions are held here
-        // and only Record()ed to the Courier — i.e. put on the wire for EVERY
-        // client (SDK, curl, third-party, station relay) — once the per-channel
+        // and only Record()ed to the Courier: i.e. put on the wire for EVERY
+        // client (SDK, curl, third-party, station relay): once the per-channel
         // reveal horizon (now − delay) reaches them. TrueNow channels (and
         // comms.delay itself, which DEFINES the delay) bypass entirely and are
         // recorded live. Courier-thread-only, same discipline as _emitter/_born.
         //
-        // The literal MUST match Gonogo.KSP.CommsCoreUplink.DelayTopic — that
+        // The literal MUST match Gonogo.KSP.CommsCoreUplink.DelayTopic, that
         // uplink is KSP-facing (this project builds without the KSP DLLs), so
         // the topic is duplicated here rather than referenced.
         internal const string CommsDelayTopic = "comms.delay";
 
-        // The connectivity MetaTopic (comms.link) — a Delayed channel that is
+        // The connectivity MetaTopic (comms.link): a Delayed channel that is
         // EXEMPT from the freeze-on-disconnect gate, exactly as CommsDelayTopic
         // is exempt from its own delay. It REPORTS the freeze (link up/down), so
         // it must escape it: it reveals the disconnect edge at now-delay and
@@ -128,12 +128,12 @@ namespace Sitrep.Host
         // The built-in uplink-health-self-report channel (see
         // BuildSystemUplinksPayload's doc comment). Unlike every other
         // channel on this class, it is NOT owned by any ISitrepUplink's
-        // Manifest — the engine declares and sources it directly in the
+        // Manifest: the engine declares and sources it directly in the
         // constructor, because it is the only component that ever sees
         // EVERY registered uplink at once. No _channelOwner entry is ever
         // recorded for it, so IsChannelAvailable treats it as always
         // available (untracked topic == available, per that method's doc
-        // comment) — appropriate here since the channel reports on OTHER
+        // comment): appropriate here since the channel reports on OTHER
         // uplinks' availability rather than having any of its own.
         internal const string UplinksTopic = "system.uplinks";
 
@@ -143,14 +143,14 @@ namespace Sitrep.Host
         // treatment as UplinksTopic above, for the same reason: no single
         // ISitrepUplink owns the whole in-flight-dispatch roster across every
         // uplink. THIS TASK declares the channel with an EMPTY-queue source
-        // only — a declared channel must have a source or sampling
-        // KeyNotFounds — the real pending list is wired up in a follow-on
+        // only: a declared channel must have a source or sampling
+        // KeyNotFounds: the real pending list is wired up in a follow-on
         // task once dispatch bookkeeping exists to populate it.
         internal const string UplinkPendingTopic = "system.uplink.pending";
 
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
-        // — CommsDelaySource.None / signal-delay-disabled / pre-first-emit —
+        // (CommsDelaySource.None / signal-delay-disabled / pre-first-emit),
         // which reveals everything live, byte-identical to the pre-gate LAN
         // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
         private double _signalDelaySeconds;
@@ -158,8 +158,8 @@ namespace Sitrep.Host
         // The last _signalDelaySeconds observed while CONNECTED (see
         // CaptureSignalDelay's snapshot). A genuine disconnect collapses the
         // LIVE _signalDelaySeconds to 0 (no path ⇒ SignalDelay.Compute returns
-        // None ⇒ 0 — see RevealDelayFor's doc comment), so a freeze-EXEMPT
-        // topic (ChannelDeclaration.FreezeExempt — the connectivity MetaTopic)
+        // None ⇒ 0: see RevealDelayFor's doc comment), so a freeze-EXEMPT
+        // topic (ChannelDeclaration.FreezeExempt: the connectivity MetaTopic)
         // reads THIS field instead while disconnected: it must still reveal
         // its disconnect edge at the REAL last-known light-time horizon, not
         // instantly at delay=0, which would defeat the whole point of the
@@ -174,7 +174,7 @@ namespace Sitrep.Host
         // reading the live elected backend the way its AddSampledSource capture
         // does. Invoked in RunCaptures (main-loop thread), its CommsDelay result
         // carried on the TickJob and applied to _signalDelaySeconds in
-        // ProcessTick BEFORE the channel loop — so the gate learns the delay
+        // ProcessTick BEFORE the channel loop: so the gate learns the delay
         // regardless of how comms.delay is otherwise registered (Publisher /
         // AddSampledSource, never AddChannelSource in production) and regardless
         // of whether any client subscribed comms.delay. Set once at registration
@@ -196,9 +196,9 @@ namespace Sitrep.Host
         //
         // When the link is DOWN, a Delayed channel is withheld as if the reveal
         // horizon were infinitely far off (RevealDelayFor returns +Inf → Emit
-        // buffers rather than records live) AND FlushReveal releases nothing —
+        // buffers rather than records live) AND FlushReveal releases nothing,
         // even a pre-outage in-flight entry whose finite horizon the clock would
-        // otherwise overtake — so telemetry FREEZES at last-known. TrueNow
+        // otherwise overtake: so telemetry FREEZES at last-known. TrueNow
         // channels (comms.delay / comms.connectivity / time.* / system.bodies)
         // still flow, so the operator sees the outage live. This is DISTINCT
         // from delay==0: a genuine connected, in-LOS zero-distance link still
@@ -218,8 +218,8 @@ namespace Sitrep.Host
         // TRANSITION the live source reported, stamped with the tick UT it took
         // effect. FlushReveal's per-entry gate consults ConnectivityAt(entry.Ut)
         // to decide whether a buffered Delayed sample was captured while the
-        // link was up (reveal — the pre-outage tail) or during the blackout
-        // (withhold — frozen). Bounded to a small window behind the current
+        // link was up (reveal, the pre-outage tail) or during the blackout
+        // (withhold: frozen). Bounded to a small window behind the current
         // horizon (PruneConnectivityHistory): once every buffered sample older
         // than a transition has revealed or been dropped, that transition can
         // never be queried again. Courier-thread-only, same discipline as
@@ -231,8 +231,8 @@ namespace Sitrep.Host
         // Per-topic buffer of change-gated (UT,value) decisions for Delayed
         // channels not yet past their reveal horizon. Flushed to the Courier in
         // insertion (UT-ascending) order once the horizon reaches each entry
-        // (see FlushReveal). Bounded by the delay window — entries leave as the
-        // horizon advances — never by session length (§5.1). Courier-thread-only.
+        // (see FlushReveal). Bounded by the delay window, entries leave as the
+        // horizon advances: never by session length (§5.1). Courier-thread-only.
         private readonly Dictionary<string, List<BufferedReveal>> _revealBuffer =
             new Dictionary<string, List<BufferedReveal>>();
 
@@ -255,17 +255,17 @@ namespace Sitrep.Host
         // prefix -> (template declaration, owning uplink id). A concrete
         // "prefix + subTopic" topic is lazily materialized into
         // _channelDeclarations/_channelOwner (cloned from the template) the
-        // first time it is published or subscribed — see
+        // first time it is published or subscribed; see
         // EnsureDynamicTopicDeclared/FindDynamicNamespaceForTopic. Ordered
         // by insertion is irrelevant; prefixes are matched by simple
         // StartsWith, so two prefixes where one is a prefix of the other
-        // would be ambiguous — not a real concern for the small, hand-owned
+        // would be ambiguous, not a real concern for the small, hand-owned
         // set of dynamic namespaces this exists for today.
         private readonly Dictionary<string, ChannelDeclaration> _dynamicNamespaces = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, string> _dynamicNamespaceOwner = new Dictionary<string, string>();
 
         // Per-prefix listeners registered via IDynamicChannelSource.OnSubscribed
-        // (Gap A of the terminal-integrity adversarial review) — invoked from
+        // (Gap A of the terminal-integrity adversarial review), invoked from
         // ProcessSubscribe, on the COURIER thread, once per individual session
         // subscribe under the owning prefix. Populated only during Register()
         // (before Start()), same single-writer-before-start discipline as
@@ -287,32 +287,32 @@ namespace Sitrep.Host
         // Capture-on-main / handle-on-Courier sources (see
         // IUplinkHost.AddSampledSource). Populated in AddSampledSource before
         // Start(), then only ENUMERATED afterward (RunCaptures on the
-        // main-loop thread, ProcessTick's capture loop on the Courier thread)
-        // — never mutated post-Start, same single-writer-before-start rule
+        // main-loop thread, ProcessTick's capture loop on the Courier thread);
+        // never mutated post-Start, same single-writer-before-start rule
         // the other registration collections rely on. Each entry's Disabled
         // flag IS mutated post-start (fail-soft), but it is a volatile bool
         // whose read/write is atomic across the main-loop / Courier threads
-        // (see SampledSource) — the ONLY mutable-after-start cross-thread
+        // (see SampledSource): the ONLY mutable-after-start cross-thread
         // state here, deliberately kept to a single atomic flag.
         private readonly List<SampledSource> _sampledSources = new List<SampledSource>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
-        // Retained uplink instances, keyed by Manifest.Id — populated in
+        // Retained uplink instances, keyed by Manifest.Id: populated in
         // RegisterUplink alongside _availability/_channelOwner/_commandOwner.
         // Unlike those maps (which only track ownership/status BY id), this
         // one keeps the actual ISitrepUplink reference, because the built-in
         // system.uplinks channel source (see BuildSystemUplinksPayload) needs
-        // to poll each uplink's own ISitrepUplink.Health.Health() — the
+        // to poll each uplink's own ISitrepUplink.Health.Health(): the
         // engine is the only component that ever sees every registered
         // uplink at once, so this is the sole place that self-report can be
         // aggregated. Single-writer-before-start, same discipline as every
         // other registration collection on this class (see the NOTE above
-        // Start()) — read-only after Start(), safe for the Courier thread to
+        // Start()): read-only after Start(), safe for the Courier thread to
         // enumerate without locking.
         private readonly Dictionary<string, ISitrepUplink> _registeredUplinks = new Dictionary<string, ISitrepUplink>();
 
         // Thread-safe MIRROR of "which topics currently have >=1 subscriber",
-        // maintained on the Courier thread (the only writer — Process
+        // maintained on the Courier thread (the only writer, Process
         // Subscribe/Unsubscribe/Disconnect + the C2-3 subscribe rollback, in
         // lock-step with _subscriptions) and READ on the main-loop thread by
         // RunCaptures to subscription-gate a SampledSource's capture (see
@@ -328,7 +328,7 @@ namespace Sitrep.Host
         // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
         // channel loop and ProcessDispatchCommand consult _availability
         // per-channel/per-command (see IsChannelAvailable/IsCommandAvailable)
-        // instead of only tracking availability without ever acting on it —
+        // instead of only tracking availability without ever acting on it,
         // the fail-soft half of the contract that used to be missing: a
         // throwing Register(), or a channel mapper/command handler that
         // throws at RUNTIME (see FailSoftChannel/FailSoftCommand), now takes
@@ -385,9 +385,9 @@ namespace Sitrep.Host
 
         public int BoundPort => _listener.BoundPort;
 
-        /// <param name="bindUri">A <c>ws://host:port</c> URI — see <see cref="FleckTransportListener"/>.</param>
+        /// <param name="bindUri">A <c>ws://host:port</c> URI: see <see cref="FleckTransportListener"/>.</param>
         /// <param name="networkDelaySeconds">
-        /// One-way delay the Courier applies between record and delivery — see
+        /// One-way delay the Courier applies between record and delivery; see
         /// <c>GonogoBodiesServer</c>'s identical constructor parameter for the
         /// same-machine/LAN rationale.
         /// </param>
@@ -395,7 +395,7 @@ namespace Sitrep.Host
         /// F2 Part 1: when <c>true</c>, command handlers are marshaled onto the
         /// main-thread queue (drained by <see cref="RunPendingCommands"/> from
         /// <c>GonogoAddon.FixedUpdate</c>) instead of running inline on the
-        /// Courier thread — required in production so live KSP/Unity actuation
+        /// Courier thread: required in production so live KSP/Unity actuation
         /// runs on the main thread. Defaults to <c>false</c> (inline on the
         /// Courier thread) for headless callers/tests that don't stand up a
         /// main-thread pump.
@@ -406,7 +406,7 @@ namespace Sitrep.Host
         /// before returning a synthetic <see cref="CommandErrorCode.Timeout"/>
         /// failure. Generous enough to ride a slow frame / brief load, finite
         /// so the Courier can never park indefinitely (the pause self-wedge the
-        /// F2 review found), and — F4 — kept BELOW <see cref="Stop"/>'s 5s Join
+        /// F2 review found), and (F4) kept BELOW <see cref="Stop"/>'s 5s Join
         /// so the timeout backstop can never dead-heat the Join even if the
         /// shutdown re-check in <see cref="RunOnMainThread"/> is somehow missed.
         /// Only consulted when
@@ -420,9 +420,9 @@ namespace Sitrep.Host
             _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
             _courier = new Courier(_clock, _network);
             // Routed through InvokeCommandHandler (not a raw dictionary
-            // lookup + call) so a handler that throws on THIS delayed path —
+            // lookup + call) so a handler that throws on THIS delayed path,
             // fired from the Courier thread's own clock callback, see
-            // Courier.ScheduleCommand — fail-softs its owning uplink
+            // Courier.ScheduleCommand: fail-softs its owning uplink
             // instead of unwinding out of the Courier's scheduled callback
             // and killing the thread. See InvokeCommandHandler's doc comment.
             _courier.SetCommandHandler((command, args, node) => InvokeCommandHandler(command, args));
@@ -431,7 +431,7 @@ namespace Sitrep.Host
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
             _emitter = new ChannelEmitter(topic => _channelDeclarations[topic].Emission);
 
-            // Built-in system.uplinks declaration + source — see
+            // Built-in system.uplinks declaration + source: see
             // UplinksTopic's doc comment for why this is registered directly
             // here rather than through an ISitrepUplink.Manifest. Declared
             // (and its mapper wired) BEFORE Start(), same single-writer-
@@ -442,7 +442,7 @@ namespace Sitrep.Host
                 Topic = UplinksTopic,
                 Delivery = Delivery.LossyLatest,
                 // A registered-uplink roster with mostly-static health barely
-                // changes tick to tick — same cadence class as system.bodies.
+                // changes tick to tick, same cadence class as system.bodies.
                 // BuildSystemUplinksPayload hands back a fresh
                 // Dictionary/List every call, so every considered sample
                 // reads as "changed" against the emitter's reference/Equals
@@ -450,13 +450,13 @@ namespace Sitrep.Host
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 // Uplink health/availability is a ground-side fact about the
                 // MOD itself (is this uplink even working), not something
-                // that flows through a vessel's comms link — same class as
+                // that flows through a vessel's comms link, same class as
                 // system.bodies/scansat.available, so TrueNow.
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
 
-            // Built-in system.uplink.pending declaration + source — see
+            // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
             // wired) BEFORE Start(), same single-writer-before-start rule as
             // UplinksTopic above.
@@ -465,8 +465,8 @@ namespace Sitrep.Host
                 Topic = UplinkPendingTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                // Ground-side bookkeeping — what the CENTRE dispatched and
-                // when — not vessel telemetry, so it does not ride gonogo's
+                // Ground-side bookkeeping: what the CENTRE dispatched and
+                // when: not vessel telemetry, so it does not ride gonogo's
                 // reveal clock. Same class as UplinksTopic/comms.connectivity/
                 // system.bodies: TrueNow.
                 Delay = DelayRole.TrueNow,
@@ -487,7 +487,7 @@ namespace Sitrep.Host
         // Registration mutates plain (non-concurrent) Dictionary/List fields
         // (_channelDeclarations, _channelSources, _commandDeclarations,
         // _commandHandlers, _samplers, _channelOwner, _commandOwner) that the
-        // Courier thread — started by Start() — later only ever ENUMERATES,
+        // Courier thread (started by Start()) later only ever ENUMERATES,
         // never mutates itself. That single-writer-before-start / read-only-
         // after-start split is what makes those plain collections safe
         // without locks; registering an uplink AFTER Start() would race
@@ -535,12 +535,12 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Registers one <see cref="ISitrepUplink"/>: records every
-        /// channel/command it declares (manifest-first — see
+        /// channel/command it declares (manifest-first: see
         /// <see cref="ChannelDeclaration"/>'s doc comment), then calls its
         /// <see cref="ISitrepUplink.Register"/> so it can wire mappers/
         /// handlers against this engine (passed as <see cref="IUplinkHost"/>).
         /// A throwing <see cref="ISitrepUplink.Register"/> fail-softs ONLY
-        /// this uplink (see <see cref="Availability"/>) — every other
+        /// this uplink (see <see cref="Availability"/>): every other
         /// registered uplink is unaffected.
         /// </summary>
         public void RegisterUplink(ISitrepUplink uplink)
@@ -578,7 +578,7 @@ namespace Sitrep.Host
             {
                 // Fix #4: route through MarkUplinkUnavailable (NOT a direct
                 // _availability write) so a Register() that added a SampledSource
-                // and THEN threw has that source's Disabled flag set too —
+                // and THEN threw has that source's Disabled flag set too,
                 // otherwise RunCaptures (which gates only on source.Disabled)
                 // would keep invoking the half-initialised capture every tick
                 // forever. Safe here: registration is pre-Start, single-threaded.
@@ -598,7 +598,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// <see cref="UplinksTopic"/>'s mapper — the mod-side half of the
+        /// <see cref="UplinksTopic"/>'s mapper: the mod-side half of the
         /// Uplink health self-reporting feature. Walks every currently
         /// <see cref="_registeredUplinks"/> entry and produces one wire entry
         /// per uplink: <c>{ id, version, available, reason, health: { state,
@@ -606,19 +606,19 @@ namespace Sitrep.Host
         /// <see cref="AvailabilityOf"/> (the registration-time fail-soft
         /// status this engine already tracked before this feature existed).
         /// <c>health</c> comes from <see cref="ISitrepUplink.Health"/>
-        /// when the uplink implements it — wrapped in try/catch, same
+        /// when the uplink implements it: wrapped in try/catch, same
         /// fail-soft shape <see cref="RegisterUplink"/>'s own Register() call
         /// uses, so a throwing Health() reports as
         /// <see cref="UplinkHealthState.Degraded"/> rather than taking down
         /// this whole channel (or the uplink's OWN availability/other
-        /// channels — this is a read, not a registration step). An uplink
+        /// channels: this is a read, not a registration step). An uplink
         /// that does NOT implement <see cref="ISitrepUplink.Health"/>
         /// derives its health straight from availability: Available →
         /// <see cref="UplinkHealthState.Healthy"/>, Unavailable →
         /// <see cref="UplinkHealthState.Unavailable"/> carrying the same
-        /// reason — so every uplink shows SOME health, even the 14 built-ins
+        /// reason: so every uplink shows SOME health, even the 14 built-ins
         /// that predate this interface and need no change to appear here.
-        /// Ignores <paramref name="snapshot"/> entirely — this reads engine
+        /// Ignores <paramref name="snapshot"/> entirely: this reads engine
         /// registration state, not KSP telemetry.
         /// </summary>
         private object? BuildSystemUplinksPayload(KspSnapshot? snapshot)
@@ -635,7 +635,7 @@ namespace Sitrep.Host
                     ["id"] = id,
                     ["version"] = uplink.Manifest.Version,
                     ["expectedClientHash"] = uplink.Manifest.ExpectedClientHash,   // H_mod (null for mod-only / older / dev DLL)
-                    // D5 — where the client bundle lives, so a third-party Uplink
+                    // D5: where the client bundle lives, so a third-party Uplink
                     // is self-describing. null for a mod-only Uplink (no client half).
                     ["clientSource"] = clientSource == null
                         ? null
@@ -658,7 +658,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Every topic/prefix this uplink OWNS — the Phase-1 half of the
+        /// Every topic/prefix this uplink OWNS: the Phase-1 half of the
         /// uplink-health render-gating design
         /// (local_docs/uplink-health-render-gating-design.md): the client resolves
         /// a widget's declared channels to an owning uplink via longest-prefix
@@ -666,17 +666,17 @@ namespace Sitrep.Host
         /// TOPIC_OWNER map. Two sources, concatenated:
         /// <list type="bullet">
         /// <item><description>every statically-declared channel topic this uplink
-        /// owns (<see cref="_channelOwner"/> — each entry there is already a
+        /// owns (<see cref="_channelOwner"/>: each entry there is already a
         /// maximal-length "prefix", since an exact match always wins longest-prefix
         /// resolution).</description></item>
         /// <item><description>every dynamic-namespace prefix this uplink registered
-        /// (<see cref="_dynamicNamespaceOwner"/> — e.g. "kos.terminal.", covering
+        /// (<see cref="_dynamicNamespaceOwner"/>: e.g. "kos.terminal.", covering
         /// every kos.terminal.&lt;coreId&gt; sub-topic before any one of them is
         /// ever materialized).</description></item>
         /// </list>
         /// NOTE: once a dynamic sub-topic materializes (see
         /// <see cref="EnsureDynamicTopicDeclared"/>), it ALSO gets its own
-        /// <see cref="_channelOwner"/> entry — so this list can end up containing
+        /// <see cref="_channelOwner"/> entry: so this list can end up containing
         /// both the registered prefix ("kos.terminal.") and one of its already-
         /// materialized full topics ("kos.terminal.1"). Harmless redundancy: a
         /// longest-prefix match against either entry resolves to the same owner.
@@ -702,9 +702,9 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Resolves one uplink's <see cref="UplinkHealth"/> — self-reported
+        /// Resolves one uplink's <see cref="UplinkHealth"/>: self-reported
         /// via <see cref="ISitrepUplink.Health"/> when implemented (fail-soft
-        /// wrapped), else derived from <paramref name="availability"/> — and
+        /// wrapped), else derived from <paramref name="availability"/>: and
         /// packs it into the wire shape <see cref="BuildSystemUplinksPayload"/>
         /// uses. <see cref="UplinkHealthState"/> is serialized as its integer
         /// ordinal, matching every other enum in this codec (see
@@ -718,7 +718,7 @@ namespace Sitrep.Host
             // to a single self-report call. But availability stays the presence
             // AUTHORITY: an uplink whose Register threw (fail-soft-caught by the
             // engine → marked Unavailable) never completed its health setup, so its
-            // Health() cannot be trusted — report Unavailable with the registration
+            // Health() cannot be trusted: report Unavailable with the registration
             // reason instead. An intentionally-inert uplink (RA/AGX/SCANsat) reports
             // the same Unavailable from its own Health() anyway, so this only changes
             // the register-threw case. When the uplink IS available, its Health() is
@@ -750,21 +750,21 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The version-checked entry point <see cref="UplinkDiscovery.Discover"/>'s
-        /// caller uses instead of the raw <see cref="RegisterUplink(ISitrepUplink)"/>
-        /// — see <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>'s
+        /// caller uses instead of the raw <see cref="RegisterUplink(ISitrepUplink)"/>;
+        /// see <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>'s
         /// handshake design. A MAJOR mismatch between
         /// <paramref name="contractMajor"/> (what the Uplink was built
-        /// against — see <see cref="Sitrep.Contract.SitrepUplinkAttribute"/>'s
+        /// against: see <see cref="Sitrep.Contract.SitrepUplinkAttribute"/>'s
         /// doc comment for why that's reliable even for a stale binary) and
         /// <see cref="Sitrep.Contract.ContractVersion.Major"/> (what THIS
         /// core actually is) fail-softs the Uplink WITHOUT ever calling its
-        /// <see cref="ISitrepUplink.Register"/> — an Uplink built against a
+        /// <see cref="ISitrepUplink.Register"/>: an Uplink built against a
         /// different major is not just "maybe buggy", it may not even
         /// deserialize/type-check against this core's contract shapes at
         /// all, so skipping Register entirely (rather than letting it run
         /// and rely on ordinary fail-soft) avoids handing it live wire types
         /// it was never compiled to expect. A MINOR mismatch (either
-        /// direction) is fine — Minor bumps are additive-only, so an older-
+        /// direction) is fine, Minor bumps are additive-only, so an older-
         /// or newer-Minor Uplink and this core can always talk on their
         /// shared subset.
         /// </summary>
@@ -779,7 +779,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Two-pass discovery registration — the order-independent fix for the
+        /// Two-pass discovery registration: the order-independent fix for the
         /// capability-vs-provider registration hazard. Assembly-scan discovery
         /// (<see cref="UplinkDiscovery.Discover()"/>) fixes NO order between
         /// uplinks, and <see cref="Kernel.RegisterProvider"/> throws if its
@@ -787,19 +787,19 @@ namespace Sitrep.Host
         /// one-at-a-time (each declaring its capability AND registering its
         /// providers inside a single <see cref="ISitrepUplink.Register"/>) could
         /// run a PROVIDER uplink (e.g. RealAntennas' <c>"comms"</c> provider)
-        /// before the CAPABILITY-owning uplink — the provider registration would
+        /// before the CAPABILITY-owning uplink: the provider registration would
         /// throw and be lost, silently dropping that provider from the election.
         ///
         /// <para>This method closes that by splitting registration into two
         /// passes over the SAME discovered set:</para>
         /// <list type="number">
-        /// <item><b>Pass A — capabilities:</b> every uplink that implements
+        /// <item><b>Pass A: capabilities:</b> every uplink that implements
         /// <see cref="IUplinkCapabilityDeclarer"/> declares its capability
         /// descriptor(s) on the <see cref="Kernel"/>.</item>
-        /// <item><b>Pass B — providers/sources:</b> every uplink's
+        /// <item><b>Pass B: providers/sources:</b> every uplink's
         /// <see cref="ISitrepUplink.Register"/> runs (via
         /// <see cref="RegisterUplink"/>), by which point EVERY capability is
-        /// already declared — so a provider registration can never miss its
+        /// already declared: so a provider registration can never miss its
         /// capability, whatever order discovery returned the uplinks in.</item>
         /// </list>
         /// Major-version-mismatched uplinks are filtered out up front (same
@@ -818,13 +818,13 @@ namespace Sitrep.Host
                 }
             }
 
-            // Pass A — declare every capability before any provider registers.
+            // Pass A: declare every capability before any provider registers.
             foreach (var uplink in accepted)
             {
                 DeclareUplinkCapabilities(uplink);
             }
 
-            // Pass B — run Register (providers/channels/samplers). Skip any
+            // Pass B: run Register (providers/channels/samplers). Skip any
             // uplink whose Pass-A declaration already failed it.
             foreach (var uplink in accepted)
             {
@@ -869,7 +869,7 @@ namespace Sitrep.Host
         /// Shared MAJOR-version gate for both the single
         /// (<see cref="RegisterDiscoveredUplink"/>) and batch
         /// (<see cref="RegisterDiscoveredUplinks"/>) discovery paths. A MAJOR
-        /// mismatch fail-softs the uplink to Unavailable WITHOUT registering it —
+        /// mismatch fail-softs the uplink to Unavailable WITHOUT registering it,
         /// see <see cref="RegisterDiscoveredUplink"/>'s original doc comment for
         /// the full handshake rationale. Returns true iff the uplink may proceed.
         /// </summary>
@@ -879,7 +879,7 @@ namespace Sitrep.Host
             {
                 var id = uplink.Manifest.Id;
                 _availability[id] = Availability.Unavailable(
-                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor} — major mismatch");
+                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}: major mismatch");
                 return false;
             }
             return true;
@@ -891,17 +891,17 @@ namespace Sitrep.Host
 
         // NOTE: called from the main thread (a registered uplink calling
         // this via its IUplinkHost during e.g. a command handler that
-        // wants "now") while _clock itself is Courier-thread-owned — a
+        // wants "now") while _clock itself is Courier-thread-owned, a
         // cross-thread READ of ManualClock's private double _currentUt with
         // no lock. This is fine on any 64-bit target (this mod's only
-        // target — see the .csproj): a naturally-aligned double field read/
+        // target, see the .csproj): a naturally-aligned double field read/
         // write is atomic on x86-64/ARM64, so this can observe a slightly
         // stale value but never a torn (half-written) one.
         double IUplinkHost.NowUt() => _clock.Now();
 
         // Recorded against the CURRENTLY-registering uplink id, same
         // mechanism AddChannelSource/AddCommandHandler rely on implicitly via
-        // _channelOwner/_commandOwner — see the sampler loop in ProcessTick
+        // _channelOwner/_commandOwner: see the sampler loop in ProcessTick
         // for how this is consulted (skip-if-Unavailable) and acted on
         // (attribute-and-disable on a throw).
         public void AddSampler(ISnapshotSampler sampler) => _samplers.Add((_currentRegisteringUplinkId ?? "", sampler));
@@ -909,7 +909,7 @@ namespace Sitrep.Host
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
         // as AddSampler above. The capture runs on the main-loop thread (see
         // RunCaptures, called from Tick), the handle on the Courier thread
-        // (see ProcessTick's capture loop) — see IUplinkHost.AddSampledSource
+        // (see ProcessTick's capture loop): see IUplinkHost.AddSampledSource
         // for the full threading contract.
         public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
         {
@@ -920,7 +920,7 @@ namespace Sitrep.Host
         // prefix overload): the declared topic prefixes let RunCaptures
         // early-out the capture on the main-loop thread when nothing this
         // source produces is subscribed. An empty prefix set means "never
-        // gate" — the original always-capture behaviour.
+        // gate": the original always-capture behaviour.
         public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
         {
             _sampledSources.Add(new SampledSource(
@@ -937,10 +937,10 @@ namespace Sitrep.Host
         }
 
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
-        // as AddSampledSource above — its owner is what MarkUplinkUnavailable /
+        // as AddSampledSource above: its owner is what MarkUplinkUnavailable /
         // FailSoftSignalDelaySource disable. See _signalDelaySource's field
         // doc comment and IUplinkHost.SetSignalDelaySource. Last registration
-        // wins (a single delay authority is expected — the exclusive "comms"
+        // wins (a single delay authority is expected, the exclusive "comms"
         // uplink); a second registration simply replaces it.
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
         {
@@ -950,7 +950,7 @@ namespace Sitrep.Host
         }
 
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
-        // and lifecycle discipline as SetSignalDelaySource above — the
+        // and lifecycle discipline as SetSignalDelaySource above: the
         // subscription-independent CONNECTED/DISCONNECTED authority the reveal
         // gate freezes on (see _commsConnected / CaptureConnectivityOnMain /
         // RefreshConnectivityFromCapability). Last registration wins.
@@ -976,7 +976,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// <see cref="IDynamicChannelSource.OnSubscribed"/>'s engine-side
-        /// bookkeeping — see <see cref="_dynamicNamespaceSubscribeListeners"/>'s
+        /// bookkeeping: see <see cref="_dynamicNamespaceSubscribeListeners"/>'s
         /// field doc comment and <see cref="NotifyDynamicNamespaceSubscribed"/>.
         /// </summary>
         private void AddDynamicNamespaceSubscribeListener(string prefix, Action<string> callback)
@@ -995,7 +995,7 @@ namespace Sitrep.Host
         /// namespace <paramref name="topic"/> falls under (a no-op if it
         /// falls under none, or none registered a listener). Called from
         /// <see cref="ProcessSubscribe"/> for EVERY individual session
-        /// subscribe — see that call site's comment for why this must not
+        /// subscribe: see that call site's comment for why this must not
         /// be gated on <c>_subscriptions.Subscribe</c>'s aggregate 0-&gt;1
         /// return. A throwing listener is caught and logged here (not left
         /// to the CourierLoop's outer backstop) so it can never skip the
@@ -1025,7 +1025,7 @@ namespace Sitrep.Host
         /// Materializes <paramref name="fullTopic"/> (<c>prefix + subTopic</c>)
         /// into an ordinary declared channel, cloned from
         /// <paramref name="prefix"/>'s registered template, if it hasn't
-        /// been already — idempotent, safe to call on every publish/subscribe.
+        /// been already: idempotent, safe to call on every publish/subscribe.
         /// After this call, <paramref name="fullTopic"/> behaves exactly
         /// like any statically-declared <see cref="ChannelDeclaration"/>:
         /// its own independent <see cref="ChannelEmitter"/> state (via
@@ -1069,20 +1069,20 @@ namespace Sitrep.Host
             if (!_commandDeclarations.ContainsKey(command))
             {
                 throw new InvalidOperationException(
-                    $"AddCommandHandler(\"{command}\") has no matching CommandDeclaration — " +
+                    $"AddCommandHandler(\"{command}\") has no matching CommandDeclaration, " +
                     "declare it in the registering uplink's Manifest.Commands first.");
             }
             // EnvelopeCodec deserializes wire command args to a GENERIC shape
             // (Dictionary<string, object?> for objects, double for numbers,
-            // bool, string, List<object?> for arrays — never a typed TArgs;
+            // bool, string, List<object?> for arrays: never a typed TArgs;
             // see EnvelopeCodec's doc comment). A raw (TArgs)args! cast on
             // that generic shape throws InvalidCastException for every command
-            // that takes a typed args record — which is exactly why the whole
+            // that takes a typed args record, which is exactly why the whole
             // command/write path was dead over the real socket. BindCommandArgs
             // converts the generic shape into the declared TArgs by reflection
             // (case-insensitive property match + primitive/enum conversion),
             // and passes already-typed args (in-process callers/tests) straight
-            // through. A genuinely unconvertible value still throws — caught one
+            // through. A genuinely unconvertible value still throws, caught one
             // layer up in InvokeCommandHandler (the SOLE call site for every
             // registered command handler), which fail-softs just this command's
             // owning uplink instead of crashing the Courier thread.
@@ -1119,7 +1119,7 @@ namespace Sitrep.Host
             {
                 // Reference type / Nullable<T> / object? => null is a legal
                 // value. A non-nullable value type can't hold null; let the
-                // downstream cast surface that (fail-softed one layer up) —
+                // downstream cast surface that (fail-softed one layer up),
                 // no real command declares a non-nullable-value TArgs.
                 return null;
             }
@@ -1150,7 +1150,7 @@ namespace Sitrep.Host
 
             if (targetType == typeof(string))
             {
-                // A string property only accepts a string — never a coerced
+                // A string property only accepts a string; never a coerced
                 // number/bool (that would mask a genuine client/type mismatch).
                 if (value is string s)
                 {
@@ -1174,7 +1174,7 @@ namespace Sitrep.Host
             {
                 // Numbers arrive as double off the wire; widen/narrow to the
                 // declared numeric type. A bool/string/object bag is NOT a
-                // number — reject it (Convert.ChangeType would either coerce
+                // number: reject it (Convert.ChangeType would either coerce
                 // surprisingly or throw; be explicit for the object-bag case).
                 if (value is bool || value is string || value is IDictionary<string, object?> || value is System.Collections.IEnumerable)
                 {
@@ -1193,7 +1193,7 @@ namespace Sitrep.Host
             // each element to the declared element type of a List<T>/IList<T>/
             // IReadOnlyList<T>/IEnumerable<T>/T[] target. Placed AFTER the
             // string/numeric/dictionary branches so those (all also IEnumerable)
-            // keep their own handling — the element-type probe returns null for
+            // keep their own handling, the element-type probe returns null for
             // anything that isn't a recognised sequence target, so a genuine
             // mismatch still falls through to the throw below. Without this a
             // populated command-arg list (e.g. LaunchArgs.Crew) would throw here
@@ -1260,13 +1260,13 @@ namespace Sitrep.Host
         /// attribute in the netstandard2.0 (KSP) build; <see cref="Enum.Parse(Type,string,bool)"/>
         /// constructs the enum type's custom attributes, which throws
         /// <see cref="System.IO.FileNotFoundException"/> whenever
-        /// <c>Reinforced.Typings.dll</c> isn't on the runtime probing path — that
+        /// <c>Reinforced.Typings.dll</c> isn't on the runtime probing path, that
         /// is BOTH the net10.0 test host AND the live KSP <c>GameData</c> deploy,
         /// where the codegen tool ships build-time-only. So a string-form enum arg
         /// (e.g. <c>setTarget {kind:"Vessel"}</c>) would have dead-softed the whole
         /// command in-game, not just here. Reading FieldInfo names / raw constant
-        /// values touches metadata only — the same "don't construct the sibling
-        /// attributes" boundary <c>WirePayloadCoverageTests</c> relies on — and
+        /// values touches metadata only: the same "don't construct the sibling
+        /// attributes" boundary <c>WirePayloadCoverageTests</c> relies on: and
         /// <see cref="Enum.ToObject"/> just boxes the value (no name/attribute work).
         /// </summary>
         private static object ParseEnumByNameMetadataOnly(Type enumType, string name)
@@ -1285,7 +1285,7 @@ namespace Sitrep.Host
         /// Reflects over <paramref name="targetType"/>'s writable public
         /// properties and binds each from the matching (case-insensitive) key
         /// in <paramref name="dict"/>. A missing key leaves the property at its
-        /// default — so absent optional/nullable fields stay null rather than
+        /// default: so absent optional/nullable fields stay null rather than
         /// being forced to a value. Recurses through <see cref="BindCommandArgs"/>
         /// so nested records/enums convert the same way.
         /// </summary>
@@ -1319,7 +1319,7 @@ namespace Sitrep.Host
                 if (!found)
                 {
                     // Leave at default (null for reference/Nullable, 0/false for
-                    // value types) — an absent key is not an error.
+                    // value types): an absent key is not an error.
                     continue;
                 }
 
@@ -1334,7 +1334,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Drives the capability <see cref="Kernel"/> once every uplink has
         /// registered (its capabilities/providers wired during
-        /// <see cref="RegisterUplink"/>) and BEFORE <see cref="Start"/> — so a
+        /// <see cref="RegisterUplink"/>) and BEFORE <see cref="Start"/>: so a
         /// channel-source closure that resolves an elected provider via
         /// <c>Kernel.Query</c> at Tick time (the comms backend election, see
         /// <c>Sitrep.Host.Comms.CommsElection</c>) sees a resolved kernel by
@@ -1344,7 +1344,7 @@ namespace Sitrep.Host
         ///
         /// <para>Fail-soft: a throwing <see cref="Kernel.Resolve"/> (an
         /// ambiguous/cyclic capability graph) is caught and logged rather than
-        /// aborting engine startup — a mis-declared capability must not take
+        /// aborting engine startup: a mis-declared capability must not take
         /// down the whole telemetry spine. The bundled comms wiring cannot
         /// produce such a graph, but a future third-party capability provider
         /// might.</para>
@@ -1410,7 +1410,7 @@ namespace Sitrep.Host
         /// sample ahead of the new timeline, so <see cref="Courier.HasAnyArchiveTail"/>
         /// reflects what actually SURVIVED the rewind, not the abandoned
         /// timeline's peak. Born iff ANY sample (value or tombstone)
-        /// survived — see <see cref="Archive.HasAnyTail"/>'s doc comment for
+        /// survived: see <see cref="Archive.HasAnyTail"/>'s doc comment for
         /// why a tombstone tail must count too.
         /// </summary>
         private void RecomputeChannelBirthFromArchive()
@@ -1430,17 +1430,17 @@ namespace Sitrep.Host
             if (!_channelDeclarations.ContainsKey(topic))
             {
                 throw new InvalidOperationException(
-                    $"{caller}(\"{topic}\") has no matching ChannelDeclaration — " +
+                    $"{caller}(\"{topic}\") has no matching ChannelDeclaration, " +
                     "declare it in the registering uplink's Manifest.Channels first.");
             }
         }
 
         // ----------------------------------------------------------------
         // Availability-gated dispatch (IMPORTANT-A) + Courier-thread
-        // exception fail-soft (CRITICAL-2) — Courier-thread-only.
+        // exception fail-soft (CRITICAL-2), Courier-thread-only.
         // ----------------------------------------------------------------
 
-        /// <summary>Whether <paramref name="topic"/>'s owning uplink (if tracked) is currently available — an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
+        /// <summary>Whether <paramref name="topic"/>'s owning uplink (if tracked) is currently available, an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
         private bool IsChannelAvailable(string topic)
         {
             return !_channelOwner.TryGetValue(topic, out var ownerId) || IsUplinkAvailable(ownerId);
@@ -1459,7 +1459,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The SOLE call site that actually invokes a registered command
-        /// handler — shared by <see cref="ProcessDispatchCommand"/>'s
+        /// handler: shared by <see cref="ProcessDispatchCommand"/>'s
         /// non-delayed (ground-infrastructure) branch and the delayed path's
         /// Courier clock-callback (wired via <see cref="Courier.SetCommandHandler"/>
         /// in the constructor). A command whose owning uplink has gone
@@ -1469,7 +1469,7 @@ namespace Sitrep.Host
         /// behavior. Otherwise the handler runs inside a try/catch: a
         /// mismatched-type wire arg (<see cref="AddCommandHandler{TArgs,TResult}"/>'s
         /// <c>(TArgs)args!</c> cast) or any other handler-author bug throws
-        /// HERE rather than unwinding onto the Courier thread — caught,
+        /// HERE rather than unwinding onto the Courier thread, caught,
         /// fail-softs just this command's owning uplink (every other
         /// registered channel/command is unaffected), and returns
         /// <c>null</c> as a graceful failure result instead of propagating
@@ -1488,7 +1488,7 @@ namespace Sitrep.Host
                 // thread when configured (production), else run it inline on
                 // the Courier thread (headless default). Either way the same
                 // try/catch fail-softs a throwing handler to its owning
-                // uplink — a marshaled throw is captured on the main thread,
+                // uplink: a marshaled throw is captured on the main thread,
                 // re-surfaced here on the Courier thread (see RunOnMainThread),
                 // and handled identically to an inline throw, so a bad command
                 // never tears down the loop or any other command/uplink (F1
@@ -1524,7 +1524,7 @@ namespace Sitrep.Host
             // pump is gone, so enqueuing+waiting would only ever hit the
             // timeout. Fail immediately with the SAME exception
             // FailPendingMainThreadCommands surfaces, so InvokeCommandHandler's
-            // fail-soft catch attributes it identically — and, crucially, a
+            // fail-soft catch attributes it identically, and, crucially, a
             // command the Courier dequeues AFTER the single-pass flush can no
             // longer re-enqueue and block the Courier past Stop()'s Join.
             if (_engineStopping)
@@ -1538,12 +1538,12 @@ namespace Sitrep.Host
             // F4 (F2-fix residual): close the enqueue/flush race. The check
             // above can pass, then Stop() raise _engineStopping AND run its
             // single-pass FailPendingMainThreadCommands flush, and only THEN
-            // this Enqueue land — leaving the job to sit until the timeout
+            // this Enqueue land: leaving the job to sit until the timeout
             // (default a dead heat with Stop()'s 5s Join). Re-check AFTER
             // enqueuing: if shutdown has begun, mark the job abandoned so the
             // pump (should it ever resume) drops it, and fail fast with the SAME
             // exception the flush surfaces rather than blocking. We do not
-            // dispose Done here — FailPendingMainThreadCommands may still dequeue
+            // dispose Done here: FailPendingMainThreadCommands may still dequeue
             // and Set() it; the abandoned flag routes disposal to whichever of
             // the pump/flush drains it.
             if (_engineStopping)
@@ -1557,7 +1557,7 @@ namespace Sitrep.Host
             // game no longer wedges this; the timeout is the last-resort guard
             // for a scene-load / loading-screen stall where even Update stops
             // pumping. On expiry we abandon the job (the pump may still run it
-            // later — MainThreadCommand.Done is intentionally NOT disposed on
+            // later: MainThreadCommand.Done is intentionally NOT disposed on
             // this path so that late Set() can't throw ObjectDisposedException)
             // and return a synthetic Timeout failure so the Courier resumes.
             if (!job.Done.Wait(_mainThreadCommandTimeout))
@@ -1574,7 +1574,7 @@ namespace Sitrep.Host
             finally
             {
                 // F2-fix (Fix #3): dispose the per-command wait handle on the
-                // completed path. Safe here — the pump's Set() (in
+                // completed path. Safe here: the pump's Set() (in
                 // RunPendingCommands / FailPendingMainThreadCommands) has
                 // already returned by the time Wait() unblocks, and the job is
                 // off the queue, so nothing else will touch Done again.
@@ -1585,7 +1585,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Drains every command execution marshaled by <see cref="RunOnMainThread"/>,
         /// running each handler on the CURRENT thread. MUST be called from the
-        /// Unity main thread — in production, once per <c>GonogoAddon.FixedUpdate</c>,
+        /// Unity main thread: in production, once per <c>GonogoAddon.FixedUpdate</c>,
         /// alongside the snapshot build / <see cref="Tick"/>. Each handler's
         /// result (or its thrown exception, captured to re-surface on the
         /// Courier thread) is stored back on the job and its completion signal
@@ -1602,7 +1602,7 @@ namespace Sitrep.Host
                 // Timeout to the caller, and abandoned this job. Running the
                 // handler now would apply its side effect (staging, a maneuver
                 // node) seconds AFTER the caller was told it failed. So DROP the
-                // job — do not run the handler — and dispose the handle (the
+                // job (do not run the handler) and dispose the handle (the
                 // waiter deliberately left it for the pump to own on this path).
                 if (job.Abandoned)
                 {
@@ -1624,7 +1624,7 @@ namespace Sitrep.Host
                     // If the waiter abandoned this job WHILE the handler was
                     // running (the flag flipped after the top-of-loop check),
                     // no one will observe the result or dispose the handle, so
-                    // the pump disposes it here — the waiter never disposes on
+                    // the pump disposes it here: the waiter never disposes on
                     // its timeout path, so this is the sole owner.
                     if (job.Abandoned)
                     {
@@ -1637,7 +1637,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Fails every command execution still blocked on the main-thread queue
         /// so the Courier thread can unblock and observe the <see cref="StopJob"/>
-        /// instead of wedging until <see cref="Stop"/>'s Join times out — the
+        /// instead of wedging until <see cref="Stop"/>'s Join times out, the
         /// main-thread pump (<c>GonogoAddon.FixedUpdate</c>) has stopped by the
         /// time <see cref="Stop"/> runs, so a command marshaled but not yet
         /// drained would otherwise never complete. Best-effort: a command
@@ -1662,7 +1662,7 @@ namespace Sitrep.Host
         {
             // Attribution must not depend on reading the offending
             // exception's Message: `ex.Message` is an ordinary virtual
-            // getter — legal (if perverse) third-party code can override it
+            // getter: legal (if perverse) third-party code can override it
             // to throw. The pre-fix `$"...{ex.Message}"` interpolation ran
             // BEFORE the _commandOwner lookup/MarkUplinkUnavailable call,
             // so a throwing getter aborted this method early, escaping to
@@ -1680,7 +1680,7 @@ namespace Sitrep.Host
 
         private void FailSoftChannel(string topic, Exception ex)
         {
-            // Same rationale as FailSoftCommand above — see its doc comment.
+            // Same rationale as FailSoftCommand above: see its doc comment.
             if (_channelOwner.TryGetValue(topic, out var ownerId))
             {
                 MarkUplinkUnavailable(ownerId, $"channel \"{topic}\" mapper threw: {SafeExceptionMessage(ex)}");
@@ -1689,8 +1689,8 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>
-        /// — the coverage-sweep fix for the sampler loop's missing owner
+        /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>,
+        /// the coverage-sweep fix for the sampler loop's missing owner
         /// attribution (see <see cref="ProcessTick"/>'s sampler loop). Marks
         /// the sampler's owning uplink Unavailable so it (and every other
         /// sampler/channel/command it owns) is skipped from the next tick
@@ -1703,7 +1703,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Sampled-source counterpart of <see cref="FailSoftSampler"/> — marks
+        /// Sampled-source counterpart of <see cref="FailSoftSampler"/>: marks
         /// the source's own <see cref="SampledSource.Disabled"/> flag AND its
         /// owning uplink Unavailable (the latter via <see cref="MarkUplinkUnavailable"/>,
         /// which also disables every OTHER sampled source of the same owner),
@@ -1721,7 +1721,7 @@ namespace Sitrep.Host
         /// <summary>
         /// A CAPTURE-time throw (main-loop read that failed, e.g. a KSP/Planetarium
         /// read before the game is ready) is treated as TRANSIENT: the source is
-        /// NOT disabled and NOT marked Unavailable — it retries on the next tick,
+        /// NOT disabled and NOT marked Unavailable: it retries on the next tick,
         /// and a later successful capture resets the streak. This is the fix for
         /// the SCANsat "coverage never surfaces" root cause, where an early
         /// Planetarium-not-ready throw permanently disabled the sampler for the
@@ -1741,7 +1741,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Optional Deck-visible diagnostic sink (e.g. <c>UnityEngine.Debug.LogWarning</c>,
         /// wired from <c>GonogoAddon</c>). <see cref="Sitrep.Host"/> otherwise logs
-        /// only to <c>Console.Error</c>, which KSP does not capture — so fail-softs
+        /// only to <c>Console.Error</c>, which KSP does not capture, so fail-softs
         /// were invisible in the live log (that invisibility hid the SCANsat root
         /// cause for the whole investigation). Set once at startup; read on the
         /// Courier thread.
@@ -1809,7 +1809,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Reads <see cref="Exception.Message"/> defensively — it is an
+        /// Reads <see cref="Exception.Message"/> defensively, it is an
         /// ordinary virtual getter, so a hostile/buggy custom exception type
         /// can legally override it to throw. Every fail-soft guard in this
         /// class reads a caught exception's Message only through here, so
@@ -1837,10 +1837,10 @@ namespace Sitrep.Host
         /// registered <see cref="ISnapshotSampler"/> against
         /// <paramref name="snapshot"/> (if given), then, for every registered
         /// pull-style channel whose topic has at least one subscriber, maps
-        /// and change-gates a value and records it into the Courier — exactly
+        /// and change-gates a value and records it into the Courier, exactly
         /// <c>GonogoBodiesServer.Tick</c>'s single-topic behavior, generalized
         /// over every topic <see cref="AddChannelSource"/> registered.
-        /// Callable from any thread — only touches primitives/the snapshot/
+        /// Callable from any thread: only touches primitives/the snapshot/
         /// mapper delegates and the explicit job queue, never the Courier/
         /// clock directly (those are Courier-thread-only).
         /// </summary>
@@ -1848,7 +1848,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
-        /// CURRENT (main-loop) thread — this is called from <see cref="Tick"/>/
+        /// CURRENT (main-loop) thread: this is called from <see cref="Tick"/>/
         /// <see cref="TickAndWait"/>, which in production run on the Unity main
         /// thread inside <c>GonogoAddon.FixedUpdate</c>, so the KSP/Unity reads
         /// a capture performs happen exactly where <see cref="KspSnapshot"/>
@@ -1856,7 +1856,7 @@ namespace Sitrep.Host
         /// bundled into the <see cref="TickJob"/> and carried to the Courier
         /// thread, where <see cref="ProcessTick"/> hands each to its handle.
         /// A capture that throws is recorded (not rethrown) so the tick still
-        /// proceeds and the fail-soft attribution happens Courier-side — see
+        /// proceeds and the fail-soft attribution happens Courier-side; see
         /// <see cref="ProcessTick"/>'s capture loop and <see cref="FailSoftSampledSource"/>.
         /// A source already <see cref="SampledSource.Disabled"/> (its owner
         /// went unavailable) is skipped entirely so a broken capture stops
@@ -1884,7 +1884,7 @@ namespace Sitrep.Host
                 // main-thread work at all) on any tick where nothing under those
                 // prefixes is currently subscribed. A source with no declared
                 // prefixes is never gated (original always-capture behaviour).
-                // Reads the Courier-maintained _subscribedTopics mirror — never
+                // Reads the Courier-maintained _subscribedTopics mirror; never
                 // _subscriptions, which is Courier-thread-only.
                 if (!AnyTopicPrefixSubscribed(source.TopicPrefixes))
                 {
@@ -1907,7 +1907,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Runs the registered server-side signal-delay source (see
         /// <see cref="IUplinkHost.SetSignalDelaySource"/>) on the CURRENT
-        /// (main-loop) thread — exactly where <see cref="RunCaptures"/> runs the
+        /// (main-loop) thread: exactly where <see cref="RunCaptures"/> runs the
         /// sampled-source captures, so it may read the live elected comms backend
         /// safely. Called unconditionally every tick, NOT subscription-gated:
         /// the reveal gate must know the delay even when no client subscribed
@@ -1918,7 +1918,7 @@ namespace Sitrep.Host
         /// <see cref="_signalDelaySourceDisabled"/> volatile flag is set) is
         /// skipped, same as a Disabled <see cref="SampledSource"/>. A throw is
         /// recorded (not rethrown) so the fail-soft attribution happens
-        /// Courier-side — see <see cref="FailSoftSignalDelaySource"/>.
+        /// Courier-side: see <see cref="FailSoftSignalDelaySource"/>.
         /// </summary>
         private SignalDelayCapture CaptureSignalDelayOnMain(KspSnapshot? snapshot)
         {
@@ -1971,7 +1971,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Main-loop-thread subscription check for a <see cref="SampledSource"/>'s
         /// declared topic prefixes (Fix #3). An EMPTY prefix set means the source
-        /// opted out of gating — always "subscribed" (original always-capture
+        /// opted out of gating: always "subscribed" (original always-capture
         /// behaviour). Otherwise returns true iff at least one currently-subscribed
         /// topic starts with one of the prefixes. Reads only the thread-safe
         /// <see cref="_subscribedTopics"/> mirror, never the Courier-owned
@@ -1998,7 +1998,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// <see cref="IUplinkHost.IsAnyTopicSubscribed"/> — the public,
+        /// <see cref="IUplinkHost.IsAnyTopicSubscribed"/>: the public,
         /// single-prefix form of <see cref="AnyTopicPrefixSubscribed"/>. Reads
         /// only the thread-safe <see cref="_subscribedTopics"/> mirror, so it is
         /// callable from any thread (the kOS Uplink calls it from the KSP main
@@ -2023,13 +2023,13 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Push a payload directly to <paramref name="topic"/> (obtained via
-        /// <see cref="Publisher"/>) — the event-driven counterpart to
+        /// <see cref="Publisher"/>): the event-driven counterpart to
         /// <see cref="Tick"/>'s pull-style mapping. Goes through the SAME
         /// per-channel Decide/Record processing as a Tick-driven channel.
         /// </summary>
         internal void Publish(string topic, object? payload, double ut) => EnqueueJob(new PublishJob(topic, payload, ut));
 
-        /// <summary>Test-only deterministic variant of <see cref="Tick"/> — blocks until the Courier thread finishes processing this tick.</summary>
+        /// <summary>Test-only deterministic variant of <see cref="Tick"/>: blocks until the Courier thread finishes processing this tick.</summary>
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
@@ -2041,7 +2041,7 @@ namespace Sitrep.Host
         /// Dispatch a command by name. If its declaration's
         /// <see cref="CommandDeclaration.Delayed"/> is <c>false</c> (ground
         /// infrastructure), the handler runs and <paramref name="onResult"/>
-        /// fires on the SAME job-processing step — no Courier delay at all.
+        /// fires on the SAME job-processing step: no Courier delay at all.
         /// Otherwise it rides <see cref="Courier.DispatchCommand"/>'s normal
         /// uplink/downlink delay, resolving only once <see cref="Tick"/>
         /// advances the clock far enough.
@@ -2057,24 +2057,24 @@ namespace Sitrep.Host
             barrier.Wait(timeout);
         }
 
-        /// <summary>Test-only visibility into one topic's emission counters — see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
+        /// <summary>Test-only visibility into one topic's emission counters; see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
         /// <summary>
         /// Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>)
-        /// gate's current subscriber count for a topic — used to prove a
+        /// gate's current subscriber count for a topic, used to prove a
         /// subscribe/unsubscribe/disconnect sequence never leaves an
         /// orphaned count behind (see the C2-3 fix). Deliberately NOT part
         /// of <see cref="IUplinkHost"/>: it wraps <c>_subscriptions</c>,
-        /// which — per that field's own doc comment — must never be read
+        /// which (per that field's own doc comment) must never be read
         /// off the Courier thread. It was briefly promoted to a public
         /// <c>IUplinkHost</c> member so <c>KosTerminalManager.Poll</c>
         /// (main thread) could read it directly; that was itself the Gap A
         /// bug (a main-thread read of Courier-owned state, plus a reseed
         /// signal that only sampled the aggregate once per poll). The fix
-        /// is <see cref="IDynamicChannelSource.OnSubscribed"/> — a genuinely
+        /// is <see cref="IDynamicChannelSource.OnSubscribed"/>, a genuinely
         /// thread-safe, per-subscription-transition push instead of a
-        /// cross-thread pull — so this reverts to its original test-only
+        /// cross-thread pull: so this reverts to its original test-only
         /// shape.
         /// </summary>
         internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
@@ -2098,7 +2098,7 @@ namespace Sitrep.Host
                     // them to the right uplink. This try/catch is the
                     // backstop for anything else that still manages to
                     // throw here (a bug in subscribe/unsubscribe/disconnect
-                    // bookkeeping, say) — the Courier thread must NEVER die:
+                    // bookkeeping, say): the Courier thread must NEVER die:
                     // a dead Courier thread wedges the WHOLE engine (every
                     // subscriber, every channel, every command), permanently,
                     // which is strictly worse than dropping one bad job.
@@ -2137,16 +2137,16 @@ namespace Sitrep.Host
         }
 
         // ----------------------------------------------------------------
-        // Server-side reveal gate (spec §4 / §7.3 Steps 1–3) — Courier-thread-only
+        // Server-side reveal gate (spec §4 / §7.3 Steps 1–3), Courier-thread-only
         // ----------------------------------------------------------------
 
         /// <summary>
-        /// Route one emit decision through the reveal gate — the single funnel
+        /// Route one emit decision through the reveal gate, the single funnel
         /// every <see cref="Courier.Record"/> now goes through, replacing the
         /// bare Record calls in <see cref="ProcessTick"/>/<see cref="ProcessPublish"/>.
         /// Snoops <c>comms.delay</c> to keep the gate's delay value current
         /// (§7.3 Step 2). A TrueNow / zero-delay channel is recorded LIVE,
-        /// inline, exactly as before the gate existed — so with signal delay
+        /// inline, exactly as before the gate existed, so with signal delay
         /// disabled (delay 0) every channel takes this path and the wire is
         /// byte-identical to the pre-gate LAN behaviour. A Delayed channel with
         /// a positive delay is buffered until <see cref="FlushReveal"/>'s
@@ -2157,7 +2157,7 @@ namespace Sitrep.Host
             if (topic == CommsDelayTopic)
             {
                 // Redundant with RefreshSignalDelayFromCapability (which is the
-                // authoritative, subscription-independent source — see its doc
+                // authoritative, subscription-independent source: see its doc
                 // comment): kept as a cheap belt-and-braces snoop for a
                 // comms.delay value pushed through Emit outside the pull-channel
                 // path. Harmless duplicate; never the sole source anymore.
@@ -2182,11 +2182,11 @@ namespace Sitrep.Host
         /// <summary>
         /// Whether <paramref name="value"/> is a self-contained "keyframe"
         /// baseline for <paramref name="topic"/>'s cursor-relative diff
-        /// stream — see <see cref="ChannelDeclaration.IsKeyframe"/> and
+        /// stream: see <see cref="ChannelDeclaration.IsKeyframe"/> and
         /// <see cref="Sitrep.Core.Courier"/>'s sticky-keyframe cache. Fail-soft:
         /// an undeclared topic or a throwing predicate (uplink-authored code,
         /// same discipline as every other Decide/map call in this class) is
-        /// treated as "not a keyframe" — never worse than before this hook
+        /// treated as "not a keyframe": never worse than before this hook
         /// existed, and never a reason to fail the Record call it gates.
         /// </summary>
         private bool IsKeyframeFor(string topic, object? value)
@@ -2210,9 +2210,9 @@ namespace Sitrep.Host
         /// The reveal-horizon delay (seconds) for <paramref name="topic"/>: 0
         /// for a <see cref="DelayRole.TrueNow"/> channel and for
         /// <c>comms.delay</c> itself (the value that DEFINES the delay must
-        /// never be gated by it — defended here regardless of how it was
+        /// never be gated by it: defended here regardless of how it was
         /// declared, §4.0), otherwise the current signal delay. Fail-soft: a
-        /// non-finite or negative delay collapses to 0 (reveal live — never
+        /// non-finite or negative delay collapses to 0 (reveal live; never
         /// worse than today).
         /// </summary>
         /// <summary>
@@ -2222,7 +2222,7 @@ namespace Sitrep.Host
         /// ordered-diff stream) forwards every recorded sample in order instead
         /// of the state-topic re-read that coalesces same-<c>ValidAt</c> frames.
         /// Fail-soft to <see cref="Delivery.LossyLatest"/> (the historical
-        /// behaviour) for any topic with no declaration — every real Record
+        /// behaviour) for any topic with no declaration, every real Record
         /// call site has one (it went through <see cref="ProcessPublish"/>/a
         /// declared source), but the default keeps state topics on the exact
         /// path they used before this gate existed.
@@ -2246,7 +2246,7 @@ namespace Sitrep.Host
             }
 
             // Connectivity MetaTopic (comms.link): Delayed but FREEZE-EXEMPT. It
-            // must NOT take the !_commsConnected → +Inf branch below — a link
+            // must NOT take the !_commsConnected → +Inf branch below, a link
             // sample emitted DURING a blackout (connected:false) would otherwise
             // buffer with an infinite horizon and never mature, so the disconnect
             // edge could never reach the client and "NO SIGNAL" would never fire.
@@ -2258,7 +2258,7 @@ namespace Sitrep.Host
             //
             // Reads _lastConnectedDelaySeconds, NOT the live _signalDelaySeconds:
             // a genuine disconnect collapses the live delay to 0 in the SAME tick
-            // (no path ⇒ SignalDelay.Compute returns None ⇒ 0 — the backend that
+            // (no path ⇒ SignalDelay.Compute returns None ⇒ 0, the backend that
             // stops reporting connectivity is the same one that stops reporting
             // hop geometry), so using the live value here would reveal the
             // disconnect edge almost instantly instead of at the real last-known
@@ -2278,12 +2278,12 @@ namespace Sitrep.Host
 
             // Freeze-on-disconnect: a down control link means nothing new can
             // reach KSC, so a Delayed channel is withheld as if the reveal
-            // horizon were infinitely far off — Emit buffers it (Inf is not
+            // horizon were infinitely far off, Emit buffers it (Inf is not
             // ≤ 0) and FlushReveal never matures it (Ut ≤ now − Inf is always
             // false), so it stays frozen at last-known until the link returns
             // (on reconnect the backlog is DROPPED, see SetCommsConnected).
             // Critically this fires even when _signalDelaySeconds is 0 (the
-            // disconnect case — no path ⇒ SignalDelay None ⇒ 0), which is
+            // disconnect case: no path ⇒ SignalDelay None ⇒ 0), which is
             // exactly where the old delay-magnitude-only gate revealed live.
             if (!_commsConnected)
             {
@@ -2302,15 +2302,15 @@ namespace Sitrep.Host
         /// Update <see cref="_signalDelaySeconds"/> from a just-emitted
         /// <c>comms.delay</c> payload. <see cref="CommsDelaySource.None"/>
         /// now covers two DIFFERENT values (comms-delay-nullable-when-no-path
-        /// fix — see <see cref="CommsDelay.OneWaySeconds"/>'s own doc
+        /// fix: see <see cref="CommsDelay.OneWaySeconds"/>'s own doc
         /// comment): 0 for delay-disabled-but-connected, null for no
-        /// measurable path. This gate is UNCHANGED by that split — it only
+        /// measurable path. This gate is UNCHANGED by that split, it only
         /// ever cared about "is there a positive delay to enforce", and both
         /// None cases collapse to "no" the same way 0 always did, so null
         /// coalesces to 0 here (<see cref="RevealDelayFor"/>'s ≤0 branch
         /// handles the rest via <see cref="_commsConnected"/>, not this
         /// magnitude). An unrecognized payload leaves the previous delay
-        /// untouched (fail-soft — never reveals a Delayed channel earlier than
+        /// untouched (fail-soft; never reveals a Delayed channel earlier than
         /// the last known-good horizon by accident).
         /// </summary>
         private void CaptureSignalDelay(object? value)
@@ -2335,7 +2335,7 @@ namespace Sitrep.Host
         /// AUTHORITATIVE, subscription-independent refresh of the reveal-gate
         /// delay (§7.3 Step 2, hardened). Runs once per tick BEFORE the channel
         /// loop and <see cref="FlushReveal"/>, evaluating the registered
-        /// <c>comms.delay</c> channel source DIRECTLY — the same closure that in
+        /// <c>comms.delay</c> channel source DIRECTLY: the same closure that in
         /// production resolves the elected comms backend
         /// (<c>Kernel.Query&lt;ICommsBackend&gt;</c> via
         /// <see cref="Sitrep.Host.Comms.CommsElection"/>) and computes the
@@ -2354,17 +2354,17 @@ namespace Sitrep.Host
         /// uplink, a null mapper result, or a non-CommsDelay payload all leave
         /// the last-known delay untouched, and a throwing mapper is attributed
         /// to its owning uplink (<see cref="FailSoftChannel"/>) exactly as the
-        /// channel loop would — never rethrown onto the Courier thread. Config-
+        /// channel loop would; never rethrown onto the Courier thread. Config-
         /// gating / no-geometry / None / ≤0 all flow through
         /// <see cref="CommsDelay.OneWaySeconds"/> == 0 and
         /// <see cref="RevealDelayFor"/>'s ≤0 collapse to "reveal live".</para>
         /// </summary>
         private void RefreshSignalDelayFromCapability(TickJob tick)
         {
-            // Path 1 — the AUTHORITATIVE server-side delay source (production:
+            // Path 1: the AUTHORITATIVE server-side delay source (production:
             // CommsCoreUplink.SetSignalDelaySource). Computed on the main thread
             // in CaptureSignalDelayOnMain regardless of subscription or of how
-            // comms.delay is otherwise registered — this is what closes the bug
+            // comms.delay is otherwise registered, this is what closes the bug
             // where a Publisher/AddSampledSource-registered comms.delay never
             // reached the gate. A main-thread throw is fail-softed here, on the
             // Courier thread (the correct thread for _availability writes).
@@ -2377,12 +2377,12 @@ namespace Sitrep.Host
                 CaptureSignalDelay(tick.SignalDelay.Value);
             }
 
-            // Path 2 — a comms.delay registered as a pull-style channel source
+            // Path 2: a comms.delay registered as a pull-style channel source
             // (AddChannelSource). Production does NOT use this for comms.delay,
             // but some tests / a future uplink might; kept so the refresh reads
             // the delay whatever registration mechanism comms.delay lives in.
             // Mapper runs on the Courier thread (safe only for a KSP-free
-            // mapper — the reason production uses the main-thread source above).
+            // mapper: the reason production uses the main-thread source above).
             if (_channelSources.TryGetValue(CommsDelayTopic, out var map) && IsChannelAvailable(CommsDelayTopic))
             {
                 object? value;
@@ -2407,12 +2407,12 @@ namespace Sitrep.Host
         /// over live KSP state, which legitimately hits transient nulls (scene
         /// settle, a momentarily-unloaded vessel with no CommNet control path). A
         /// throw on one tick must NOT permanently kill delay enforcement for the
-        /// rest of the session — so this does NOT set
+        /// rest of the session: so this does NOT set
         /// <see cref="_signalDelaySourceDisabled"/> and does NOT mark the owning
         /// comms uplink Unavailable (which would take the whole comms uplink
-        /// down). The throwing tick simply yields no update — the last-known delay
+        /// down). The throwing tick simply yields no update, the last-known delay
         /// is left untouched, never revealing a Delayed channel earlier than the
-        /// known horizon — and the source is RETRIED next tick. Contrast a genuine
+        /// known horizon: and the source is RETRIED next tick. Contrast a genuine
         /// registration/Register throw, which staying-Unavailable is still correct
         /// for (see <see cref="RegisterUplink"/> / <see cref="MarkUplinkUnavailable"/>).
         /// </summary>
@@ -2453,7 +2453,7 @@ namespace Sitrep.Host
         /// moment (current − normal delay), latest-value channels jump forward
         /// on their next change/keyframe, cumulative channels reflect accumulated
         /// state via their current value, and reconstructing the gap is the
-        /// client's job — never the API's. Courier-thread-only.
+        /// client's job: never the API's. Courier-thread-only.
         /// </summary>
         private void SetCommsConnected(bool connected, double ut)
         {
@@ -2463,7 +2463,7 @@ namespace Sitrep.Host
             // Record the transition edge into the connectivity history so
             // FlushReveal's per-entry gate can tell a pre-outage sample (reveal)
             // from an in-blackout one (withhold) by the UT it was captured at.
-            // Only genuine transitions are recorded — a steady state adds no new
+            // Only genuine transitions are recorded, a steady state adds no new
             // information and would grow the list without bound.
             if (connected != wasConnected)
             {
@@ -2472,7 +2472,7 @@ namespace Sitrep.Host
 
             if (!wasConnected && connected)
             {
-                // Reconnect: drop only the genuinely-in-blackout backlog — the
+                // Reconnect: drop only the genuinely-in-blackout backlog, the
                 // pre-outage tail already flushed through the outage via the
                 // per-entry gate, so what remains is the +Inf-horizon entries
                 // emitted while the link was down (RevealDelayFor's !_commsConnected
@@ -2485,7 +2485,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The link CONNECTED state as of <paramref name="ut"/> — the connected
+        /// The link CONNECTED state as of <paramref name="ut"/>, the connected
         /// flag of the latest transition at or before that UT. Fail-soft to
         /// CONNECTED when the lookup precedes all recorded history (the seed
         /// entry at -Inf guarantees this can't miss). Courier-thread-only.
@@ -2509,7 +2509,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Drop every buffered entry that was emitted with an infinite horizon
-        /// (RevealDelayFor's <c>!_commsConnected</c> branch) — the genuine
+        /// (RevealDelayFor's <c>!_commsConnected</c> branch): the genuine
         /// in-blackout backlog that can never mature and must never surface
         /// post-reconnect. Freeze-exempt MetaTopic entries (finite horizon) are
         /// retained. This is the bounded, reconnect-time GC (fix #3): without it
@@ -2534,7 +2534,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Prune connectivity transitions that no buffered sample can ever query
-        /// again — every entry strictly older than the oldest still-buffered
+        /// again: every entry strictly older than the oldest still-buffered
         /// sample's UT is unreachable by ConnectivityAt. Keeps the LAST such
         /// entry (the state in force at the oldest buffered UT) so a lookup at
         /// that boundary still resolves. Called each tick after FlushReveal.
@@ -2559,7 +2559,7 @@ namespace Sitrep.Host
                 }
             }
 
-            // Find the last transition at or before the oldest buffered UT —
+            // Find the last transition at or before the oldest buffered UT,
             // everything strictly before it is unreachable. If nothing is
             // buffered, collapse to the current state alone.
             var keepFrom = 0;
@@ -2581,7 +2581,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Fail-soft for a throwing connectivity source — twin of
+        /// Fail-soft for a throwing connectivity source, twin of
         /// <see cref="FailSoftSignalDelaySource"/>, and RECOVERABLE for the same
         /// reason: a per-tick main-thread read of live KSP that hits a transient
         /// null must not permanently freeze/disable comms for the session. Does
@@ -2602,7 +2602,7 @@ namespace Sitrep.Host
         /// the clock advance, so the Courier schedules the freed deliveries and
         /// the same <see cref="ManualClock.AdvanceTo"/> fires them. Runs
         /// independently of the channel loop, so a value that was buffered on an
-        /// earlier tick — and whose change-gated channel emitted nothing since —
+        /// earlier tick (and whose change-gated channel emitted nothing since)
         /// still surfaces the moment the horizon overtakes it. The post-horizon
         /// tail stays buffered. This is the server-side twin of the SDK
         /// <c>ViewClock.confirmedEdgeUt()</c> clamp (§4.0).
@@ -2616,8 +2616,8 @@ namespace Sitrep.Host
 
             // Freeze-on-disconnect is now PER-ENTRY, not a global early-return.
             // The pre-outage in-flight tail (finite horizon, captured while the
-            // link was up) MUST still reveal as the advancing clock overtakes it
-            // — that is the "last delaySeconds of pre-outage telemetry arrives,
+            // link was up) MUST still reveal as the advancing clock overtakes it,
+            // that is the "last delaySeconds of pre-outage telemetry arrives,
             // THEN freezes" behaviour. Only samples captured DURING the blackout
             // are withheld: non-MetaTopic ones carry an infinite horizon
             // (RevealDelayFor's !_commsConnected branch) so they never mature,
@@ -2643,7 +2643,7 @@ namespace Sitrep.Host
                     // other topic reveals only samples captured while the link
                     // was up at their UT. A finite-horizon non-MetaTopic entry
                     // is only ever buffered while connected, so ConnectivityAt is
-                    // true for it — this gate's real work is letting the MetaTopic
+                    // true for it: this gate's real work is letting the MetaTopic
                     // through (whose blackout samples carry connected:false).
                     if (horizonReached && (isMetaTopic || ConnectivityAt(entry.Ut)))
                     {
@@ -2670,12 +2670,12 @@ namespace Sitrep.Host
         {
             // Quickload / timeline-rewind detection: paired 1:1 with the
             // identical check GonogoBodiesServer/ReplayBodiesServer both used
-            // to carry separately — now there is exactly one copy. Live KSP's
+            // to carry separately: now there is exactly one copy. Live KSP's
             // UT jumps BACKWARD on an F9 quickload; without this,
             // ManualClock.AdvanceTo's forward-only no-op leaves the courier
             // wedged on the abandoned pre-quickload timeline. The emitter is
             // reset alongside the courier (for EVERY registered channel at
-            // once — ChannelEmitter.Reset already iterates every channel it
+            // once: ChannelEmitter.Reset already iterates every channel it
             // knows about) so the next Decide per topic is an unconditional
             // keyframe on the new timeline too.
             if (tick.Ut < _clock.Now())
@@ -2685,10 +2685,10 @@ namespace Sitrep.Host
                 // Drop every un-revealed buffered sample: they belong to the
                 // abandoned pre-rewind timeline and must never surface on the
                 // new one (the reveal-gate analogue of ResetTimeline dropping
-                // in-flight Courier deliveries — §7.3 Step 3, on-reset flush).
+                // in-flight Courier deliveries: §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
                 // The connectivity history's UTs belong to the abandoned
-                // timeline too — collapse it to the current link state seeded at
+                // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
                 // state rather than querying pre-rewind transitions.
                 _connectivityHistory.Clear();
@@ -2708,12 +2708,12 @@ namespace Sitrep.Host
                 foreach (var (ownerId, sampler) in _samplers)
                 {
                     // Coverage-sweep fix: a sampler is third-party
-                    // (uplink) code running on the Courier thread — an
+                    // (uplink) code running on the Courier thread, an
                     // unguarded throw here used to kill the thread, so this
                     // catch is CRITICAL-2's original guard. But it used to
                     // stop there: no owner attribution meant a Sample() that
                     // throws every tick just logged forever and was
-                    // re-invoked next tick regardless — unlike a channel
+                    // re-invoked next tick regardless: unlike a channel
                     // mapper or command handler (see IsChannelAvailable/
                     // IsCommandAvailable), the uplink never actually went
                     // Unavailable. Now mirrors that same pattern: skip a
@@ -2742,7 +2742,7 @@ namespace Sitrep.Host
             // IUplinkHost.AddSampledSource): the captures already ran on the
             // main-loop thread inside RunCaptures; here, on the Courier
             // thread, each captured payload is handed to its handle. Same
-            // fail-soft discipline as the sampler loop above — skip a source
+            // fail-soft discipline as the sampler loop above, skip a source
             // whose owner already went Unavailable, surface a capture-time
             // throw (recorded main-side) via FailSoftSampledSource, and guard
             // the handle itself so an off-thread handle throw takes only its
@@ -2760,13 +2760,13 @@ namespace Sitrep.Host
                     if (captured.Exception != null)
                     {
                         // TRANSIENT: retry next tick instead of permanent disable
-                        // (see RetrySampledSourceAfterCaptureThrow — the SCANsat
+                        // (see RetrySampledSourceAfterCaptureThrow: the SCANsat
                         // early-Planetarium-not-ready root cause).
                         RetrySampledSourceAfterCaptureThrow(source, captured.Exception);
                         continue;
                     }
 
-                    // Successful capture — clear any transient-throw streak so a
+                    // Successful capture: clear any transient-throw streak so a
                     // source that recovered (e.g. Planetarium now ready) is back to
                     // a clean state and its next throw is logged as a fresh attempt.
                     source.ConsecutiveCaptureThrows = 0;
@@ -2778,7 +2778,7 @@ namespace Sitrep.Host
                     catch (Exception ex)
                     {
                         // A HANDLE throw is off-thread processing of already-captured
-                        // data — far more likely a genuine fault than a not-ready
+                        // data: far more likely a genuine fault than a not-ready
                         // transient, so it keeps the permanent fail-soft (now logged).
                         FailSoftSampledSource(source, ex);
                     }
@@ -2787,7 +2787,7 @@ namespace Sitrep.Host
 
             // AUTHORITATIVE delay refresh (§7.3 Step 2): source the reveal-gate
             // delay from the server-side SignalDelay capability every tick,
-            // independent of any client subscription — BEFORE the channel loop
+            // independent of any client subscription: BEFORE the channel loop
             // (so this tick's buffering decisions use the current delay) and
             // hence before FlushReveal. See RefreshSignalDelayFromCapability.
             RefreshSignalDelayFromCapability(tick);
@@ -2801,7 +2801,7 @@ namespace Sitrep.Host
 
             // Prune the pending-uplink roster BEFORE the channel loop below so
             // the UplinkPendingTopic mapper (run inside that loop) always
-            // observes the current, already-pruned list — see PendingUplink's
+            // observes the current, already-pruned list: see PendingUplink's
             // prediction-only doc comment: entries age out on the PREDICTED
             // round trip (DispatchedAt + 2*OneWaySeconds), independent of
             // whether anything is subscribed.
@@ -2814,7 +2814,7 @@ namespace Sitrep.Host
                 {
                     // IMPORTANT-A: the owning uplink went Unavailable
                     // (registration threw, or a PRIOR tick's mapper threw
-                    // below) — every channel it owns goes inert together,
+                    // below): every channel it owns goes inert together,
                     // not just the one that originally failed.
                     continue;
                 }
@@ -2837,7 +2837,7 @@ namespace Sitrep.Host
                     // used to kill the Courier thread. Caught here instead:
                     // fail-softs ONLY this channel's owning uplink (see
                     // FailSoftChannel) and skips to the NEXT channel this
-                    // same tick — every other registered channel keeps
+                    // same tick: every other registered channel keeps
                     // ticking normally.
                     FailSoftChannel(topic, ex);
                     continue;
@@ -2851,7 +2851,7 @@ namespace Sitrep.Host
                     {
                         // No data yet for this topic this tick, AND it has
                         // never had a real value (e.g. main menu, before
-                        // FlightGlobals is ready) — not yet a subject, so
+                        // FlightGlobals is ready), not yet a subject, so
                         // there is nothing to tombstone. Skip this topic
                         // entirely, same as before this fix; other topics/
                         // the clock advance below are unaffected.
@@ -2860,7 +2860,7 @@ namespace Sitrep.Host
                         // AbsenceIsData (see ChannelDeclaration.AbsenceIsData)
                         // is a genuinely-sometimes-empty subject (e.g.
                         // vessel.target/dock/crew) rather than "no subject
-                        // yet" — for those, fall through to Decide even
+                        // yet": for those, fall through to Decide even
                         // from birth so the client learns "NO DATA" instead
                         // of hanging on "SYNCING" forever.
                         continue;
@@ -2871,7 +2871,7 @@ namespace Sitrep.Host
                     // into Decide with the null value: it is change-gated
                     // exactly like any other value (Equals(last, null) ->
                     // change, once; null -> null -> no change, suppressed by
-                    // the deadband — see ChannelEmitter.HasChangedBeyondQuantum),
+                    // the deadband: see ChannelEmitter.HasChangedBeyondQuantum),
                     // keyframed, delayed, and archived through the SAME path
                     // as a real sample, so late subscribers/scrubs/replays
                     // learn the absence rather than seeing a frozen ghost of
@@ -2954,11 +2954,11 @@ namespace Sitrep.Host
             {
                 // Event-driven publish rides the SAME reveal gate as a
                 // Tick-driven channel. comms.delay (the production delay
-                // authority — CommsCoreUplink publishes it via a Publisher) is
+                // authority: CommsCoreUplink publishes it via a Publisher) is
                 // TrueNow, so it records live and updates the gate's delay here;
                 // a Delayed publish is buffered and released by a subsequent
                 // Tick's FlushReveal (ProcessPublish carries no clock advance
-                // of its own — the horizon only moves on Tick).
+                // of its own: the horizon only moves on Tick).
                 Emit(publish.Topic, decision.Value, ut);
             }
         }
@@ -2966,8 +2966,8 @@ namespace Sitrep.Host
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // IMPORTANT-A: an unknown command AND a command whose owning
-            // uplink has gone Unavailable are treated identically —
-            // "unknown/unavailable command" — a future wire-level
+            // uplink has gone Unavailable are treated identically,
+            // "unknown/unavailable command": a future wire-level
             // E_UNAVAILABLE response is the natural uplink of this, not
             // built here.
             if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
@@ -2981,25 +2981,25 @@ namespace Sitrep.Host
             if (!delayed)
             {
                 // Ground infrastructure (e.g. kerbcast negotiate): bypasses
-                // the Courier's light-time delay model entirely — see the
+                // the Courier's light-time delay model entirely: see the
                 // design doc §4.3. Routed through InvokeCommandHandler (the
                 // SAME funnel the delayed path uses via
                 // Courier.SetCommandHandler) so a throwing handler
                 // fail-softs its own uplink instead of killing the
-                // Courier thread — the CRITICAL-2 fix.
+                // Courier thread: the CRITICAL-2 fix.
                 var result = InvokeCommandHandler(job.Command, job.Args);
                 job.OnResult(result);
                 job.Done?.Set();
                 return;
             }
 
-            // Comms-loss uplink gate — honest silence. A DELAYED command (a kOS
+            // Comms-loss uplink gate: honest silence. A DELAYED command (a kOS
             // keystroke, a vessel actuation) dispatched while the link is DOWN
             // must be DROPPED (no execute, no response), symmetric with the
             // reveal gate freezing the DOWNLINK on disconnect (see
             // RevealDelayFor's !_commsConnected freeze). Without this the command
             // would ride the Courier's light-time delay and reach the vessel
-            // after the blackout as if it never happened — the live-observed bug
+            // after the blackout as if it never happened, the live-observed bug
             // where keystrokes still reached the CPU during signal loss.
             // _commsConnected is Courier-thread state (set by the tick job in
             // ApplyConnectivity), read here on that same thread.
@@ -3015,7 +3015,7 @@ namespace Sitrep.Host
             // fixed network hop (0 in production), so keystrokes and vessel
             // actuation reached the craft near-instantly while the downlink
             // respected the full delay. When there is no live signal delay
-            // (source absent, or magnitude NaN/Inf/≤0 — same cases RevealDelayFor
+            // (source absent, or magnitude NaN/Inf/≤0: same cases RevealDelayFor
             // collapses to "reveal live"), pass null so the Courier keeps its
             // historical network-hop delay.
             double? uplinkDelay = null;
@@ -3067,11 +3067,11 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Ages out every <see cref="PendingUplink"/> whose PREDICTED round
-        /// trip (<c>DispatchedAt + 2*OneWaySeconds</c>) is now in the past —
+        /// trip (<c>DispatchedAt + 2*OneWaySeconds</c>) is now in the past,
         /// called every <see cref="ProcessTick"/>, BEFORE the channel loop, so
         /// <see cref="_pending"/> stays bounded even with zero subscribers and
         /// a subscriber always sees the current pruned list. Deliberately NOT
-        /// tied to the real command completing/executing — see
+        /// tied to the real command completing/executing: see
         /// <see cref="PendingUplink"/>'s prediction-only doc comment.
         /// </summary>
         private void PrunePendingUplinks(double ut)
@@ -3086,7 +3086,7 @@ namespace Sitrep.Host
         private void ProcessSubscribe(ClientSession session, string topic)
         {
             // MEDIUM-3: gate on any DECLARED channel (_channelDeclarations),
-            // not just source-backed ones (_channelSources) — a
+            // not just source-backed ones (_channelSources): a
             // Publisher(topic)-only channel (event-driven, no
             // AddChannelSource mapper) is a legitimate channel too, and used
             // to be permanently unsubscribable because this check only ever
@@ -3095,7 +3095,7 @@ namespace Sitrep.Host
             //
             // A topic that isn't declared yet but falls under a registered
             // dynamic namespace (see RegisterDynamicNamespace) is ALSO a
-            // legitimate subscribe target — materialize its declaration now
+            // legitimate subscribe target: materialize its declaration now
             // so a subscriber that connects before the uplink's first
             // publish to this exact sub-topic still succeeds, instead of
             // being permanently rejected for a topic that simply hasn't
@@ -3158,7 +3158,7 @@ namespace Sitrep.Host
                     if (delivery == Delivery.ReliableOrdered)
                     {
                         // Reliable-ordered: rides the outbox's FIFO lane, never
-                        // coalesced away — see Delivery's doc comment.
+                        // coalesced away: see Delivery's doc comment.
                         session.Outbox.PublishReliable(bytes);
                     }
                     else
@@ -3171,7 +3171,7 @@ namespace Sitrep.Host
             {
                 // C2-3: SubscribeStream's own synchronous catch-up delivery
                 // (of an already-archived sample) runs INSIDE this call,
-                // before it returns — a throw here (from anywhere in that
+                // before it returns: a throw here (from anywhere in that
                 // window, not just the onData closure above, which now
                 // guards itself) would otherwise unwind AFTER
                 // _subscriptions.Subscribe/the Courier's own subscriber-set
@@ -3180,8 +3180,8 @@ namespace Sitrep.Host
                 // ack and no bookkeeping for ProcessDisconnect to clean up
                 // later. Roll back the registry-level subscribe so no
                 // orphaned count survives, fail-soft the owning uplink,
-                // and bail out WITHOUT setting Unsubscribers/sending an ack
-                // — the client's subscribe simply never completes, matching
+                // and bail out WITHOUT setting Unsubscribers/sending an ack,
+                // the client's subscribe simply never completes, matching
                 // "unavailable channel" behavior elsewhere in this class.
                 if (_subscriptions.Unsubscribe(topic))
                 {
@@ -3229,7 +3229,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Courier-thread-only: notify every currently connected session,
         /// once per topic it is subscribed to, that the timeline was reset
-        /// (quickload UT-rewind) — the same <see cref="EventMsg"/> shape
+        /// (quickload UT-rewind): the same <see cref="EventMsg"/> shape
         /// (<c>name: "timeline-reset"</c>) <c>GonogoBodiesServer</c>/
         /// <c>ReplayBodiesServer</c> both broadcast for their single topic,
         /// generalized to fire once per (session, subscribed topic) pair so
@@ -3244,10 +3244,10 @@ namespace Sitrep.Host
                 {
                     // LOW-4 (cross-lane ordering): a lossy-latest sample
                     // recorded on the OLD (now-abandoned) timeline can
-                    // already be sitting in this session's outbox — written
+                    // already be sitting in this session's outbox, written
                     // by a delivery that fired moments before this reset was
                     // detected, still waiting for the independent pump
-                    // thread to drain it — and would otherwise reach the
+                    // thread to drain it: and would otherwise reach the
                     // wire AFTER the timeline-reset event below, showing
                     // stale data. Clearing it here (before the reset event
                     // is queued) guarantees no pre-reset frame for this
@@ -3463,7 +3463,7 @@ namespace Sitrep.Host
             // main-loop thread by CaptureConnectivityOnMain (see
             // _connectivitySource) and applied to the reveal gate in ProcessTick
             // before the channel loop. Default (Value null, Error null) when no
-            // connectivity source is registered — the gate stays CONNECTED.
+            // connectivity source is registered, the gate stays CONNECTED.
             public readonly ConnectivityCapture Connectivity;
             public readonly ManualResetEventSlim? Done;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, ManualResetEventSlim? done)
@@ -3543,7 +3543,7 @@ namespace Sitrep.Host
         /// <summary>
         /// A registered capture-on-main / handle-on-Courier source (see
         /// <see cref="IUplinkHost.AddSampledSource"/>). <see cref="Disabled"/>
-        /// is the single mutable-after-start field — a volatile bool so the
+        /// is the single mutable-after-start field, a volatile bool so the
         /// main-loop thread (RunCaptures) and Courier thread (ProcessTick /
         /// fail-soft) can read/write it without a lock; everything else is set
         /// once at registration (before Start) and only read afterward.
@@ -3565,7 +3565,7 @@ namespace Sitrep.Host
             // Consecutive capture-throw streak, Courier-thread-owned (touched only
             // in ProcessTick's capture loop). A capture throw is treated as
             // TRANSIENT (retry next tick) rather than permanently disabling the
-            // source — the SCANsat "coverage never surfaces" root cause was an
+            // source: the SCANsat "coverage never surfaces" root cause was an
             // early Planetarium-not-ready capture throw permanently disabling the
             // sampler. Reset to 0 on the next successful capture.
             public int ConsecutiveCaptureThrows;
@@ -3582,7 +3582,7 @@ namespace Sitrep.Host
         /// <summary>
         /// One change-gated (UT, value) decision held in the reveal gate's
         /// <see cref="_revealBuffer"/> until its channel's horizon reaches
-        /// <see cref="Ut"/> — see <see cref="Emit"/>/<see cref="FlushReveal"/>.
+        /// <see cref="Ut"/>: see <see cref="Emit"/>/<see cref="FlushReveal"/>.
         /// </summary>
         private readonly struct BufferedReveal
         {
@@ -3594,7 +3594,7 @@ namespace Sitrep.Host
             // entry's horizon as (now − Delay), so a subsequent flap of the
             // delay authority down to 0 (e.g. comms.delay momentarily dropping
             // to CommsDelaySource.None mid-buffer) can no longer prematurely
-            // reveal a still-future buffered sample — each entry matures on the
+            // reveal a still-future buffered sample: each entry matures on the
             // horizon that was in force when it was buffered. Always > 0: a
             // sample whose delay was ≤ 0 is recorded live in Emit and never
             // reaches the buffer.
@@ -3680,7 +3680,7 @@ namespace Sitrep.Host
         /// F2 Part 1: one command handler invocation marshaled from the
         /// Courier thread onto the main-thread queue. Exactly one of
         /// <see cref="Result"/> / <see cref="Captured"/> is meaningful once
-        /// <see cref="Done"/> is set — a non-null <see cref="Captured"/> means
+        /// <see cref="Done"/> is set, a non-null <see cref="Captured"/> means
         /// the handler threw on the main thread and the Courier thread
         /// re-throws it (preserving the original stack) so the existing
         /// fail-soft attribution runs. Not an <see cref="IEngineJob"/>: it
@@ -3765,11 +3765,11 @@ namespace Sitrep.Host
     }
 
     /// <summary>
-    /// The Courier -&gt; socket queue crossing for one connection — the
+    /// The Courier -&gt; socket queue crossing for one connection, the
     /// engine's copy of <c>Gonogo.KSP.GonogoOutbox</c> /
     /// <c>Sitrep.Host.IntegrationTests.ReplayOutbox</c> /
     /// <c>Sitrep.Skeleton.ConnectionOutbox</c> (all <c>internal</c> to their
-    /// own assemblies and so not reusable here — see those classes' doc
+    /// own assemblies and so not reusable here; see those classes' doc
     /// comments for the full lossy-latest-telemetry / reliable-FIFO-response
     /// rationale, unchanged here).
     /// </summary>
@@ -3791,14 +3791,14 @@ namespace Sitrep.Host
             _pumpThread.Start();
         }
 
-        /// <summary>Courier-thread-only: publish the latest serialized telemetry frame for a topic. Never blocks. Coalesces — a later call before the pump drains replaces the earlier one.</summary>
+        /// <summary>Courier-thread-only: publish the latest serialized telemetry frame for a topic. Never blocks. Coalesces, a later call before the pump drains replaces the earlier one.</summary>
         public void PublishTelemetry(string topic, byte[] payload)
         {
             _latestByTopic[topic] = payload;
             _signal.Release();
         }
 
-        /// <summary>Courier-thread-only: enqueue a reliable (never-dropped, never-coalesced) frame — acks, echoes, command responses, and reliable-ordered channel samples.</summary>
+        /// <summary>Courier-thread-only: enqueue a reliable (never-dropped, never-coalesced) frame, acks, echoes, command responses, and reliable-ordered channel samples.</summary>
         public void PublishReliable(byte[] payload)
         {
             _reliable.Enqueue(payload);
@@ -3807,7 +3807,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Courier-thread-only: drop any currently-queued (not yet pumped)
-        /// lossy-latest frame for <paramref name="topic"/> — the LOW-4
+        /// lossy-latest frame for <paramref name="topic"/>: the LOW-4
         /// timeline-reset fix. Called from <c>ChannelEngine.BroadcastTimelineReset</c>
         /// for every topic a session is subscribed to, right before the
         /// reset event itself is queued, so an abandoned pre-reset frame can
@@ -3846,7 +3846,7 @@ namespace Sitrep.Host
             }
         }
 
-        /// <summary>Signals the pump thread to drain and exit — non-blocking, safe from any thread.</summary>
+        /// <summary>Signals the pump thread to drain and exit, non-blocking, safe from any thread.</summary>
         public void Stop()
         {
             _stopping = true;

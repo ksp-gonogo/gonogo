@@ -78,7 +78,7 @@ describe("bodyDerivations", () => {
   });
 
   describe("derivePeriod", () => {
-    it("computes 2π√(a³/μ_parent) — Kerbin's year ≈ 9.2 Ms", () => {
+    it("computes 2π√(a³/μ_parent): Kerbin's year ≈ 9.2 Ms", () => {
       const expected = 2 * Math.PI * Math.sqrt(KERBIN_SMA ** 3 / KERBOL_MU);
       expect(derivePeriod(KERBIN_SMA, KERBOL_MU)).toBeCloseTo(expected, 0);
       // Kerbin's stock orbital period is ~9,203,545 s.

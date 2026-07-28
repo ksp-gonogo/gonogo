@@ -5,7 +5,7 @@ import { effectiveSearchTags } from "./searchTags";
 import type { ComponentDefinition } from "./types";
 import { defineUplinkClient } from "./uplinkClients";
 
-// Fictional owner tokens ("mod-alpha"/"mod-beta") throughout — a real
+// Fictional owner tokens ("mod-alpha"/"mod-beta") throughout: a real
 // first-party Uplink token only lives inside its own Uplink client dir
 // (uplink-boundary ratchet); using one here would trip that ratchet for no
 // reason, same choice the mod-search-tags reference branch made.
@@ -110,9 +110,9 @@ describe("effectiveSearchTags", () => {
 describe("registerComponent collision handling is owner-agnostic (task override of spec §3.2)", () => {
   // The operator's task message overrides the design spec's proposed
   // owner-based collision rule: `owner` is for tags/provenance only, never
-  // for dedup/collision logic. The registry's PRE-EXISTING behaviour —
+  // for dedup/collision logic. The registry's PRE-EXISTING behaviour,
   // throw on a DIFFERENT def under the same id, no matter who (if anyone)
-  // owns either side — stays exactly as-is. These tests just confirm that
+  // owns either side: stays exactly as-is. These tests just confirm that
   // still holds once `owner` exists on the def shape.
 
   it("still throws when two DIFFERENT owners register the same component id", () => {

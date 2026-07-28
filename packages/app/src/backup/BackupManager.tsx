@@ -23,7 +23,7 @@ type ImportPhase = "idle" | "confirming" | "applying";
  * Export writes a versioned JSON file of all gonogo localStorage keys (device
  * identity excluded unless the operator opts in). Import is REPLACE-only: it
  * overwrites each key in the file, then reloads the page so every service
- * re-reads the restored state — without the reload the imported config would
+ * re-reads the restored state, without the reload the imported config would
  * sit inert until the next page load.
  */
 export function BackupManager() {
@@ -89,7 +89,7 @@ export function BackupManager() {
             />
             <FieldHint>
               Carries this station's identity (its key &amp; peer id) into the
-              backup. Leave off unless you're cloning this exact station —
+              backup. Leave off unless you're cloning this exact station,
               restoring identity onto another device makes two stations claim
               the same id.
             </FieldHint>
@@ -106,7 +106,7 @@ export function BackupManager() {
         <SectionTitle>Restore</SectionTitle>
         <Foot>
           Restoring <strong>replaces</strong> your current layouts and settings
-          with those in the file, then reloads the app. This can't be undone —
+          with those in the file, then reloads the app. This can't be undone,
           export a backup first if you want to keep the current state.
         </Foot>
         <Field>

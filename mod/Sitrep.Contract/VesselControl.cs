@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Mirrors KSP's own <c>VesselAutopilot.AutopilotMode</c> enum (confirmed via
 /// decompile: <c>StabilityAssist, Prograde, Retrograde, Normal, Antinormal,
-/// RadialIn, RadialOut, Target, AntiTarget, Maneuver</c> — no
+/// RadialIn, RadialOut, Target, AntiTarget, Maneuver</c>: no
 /// <c>Navigation</c> member exists on this KSP version). <see cref="Unknown"/>
 /// is the graceful fallback for a raw value this contract doesn't recognize
 /// yet, same convention as <see cref="VesselType"/>/<see cref="TransitionType"/>.
@@ -34,14 +34,14 @@ public enum SasMode
 /// <summary>
 /// One custom action group's IDENTITY plus its live state. Replaces the old
 /// positional <c>bool[]</c> (<c>[ag1..ag10]</c> by array position), which
-/// could carry state but never a NAME — and a name is the whole point:
+/// could carry state but never a NAME, and a name is the whole point:
 /// stock KSP's ten customs are anonymous, but Action Groups Extended (AGX)
 /// gives the player up to 250 groups they name themselves ("Solar Panels",
 /// "Science Bay"). A positional array cannot express that, so the client was
 /// forced to hardcode "AG1".."AG10" labels.
 ///
 /// <para>Scope: this list carries the CUSTOM (extensible) groups only. The
-/// stock singletons — SAS/RCS/Gear/Brakes/Lights/Abort — keep their own
+/// stock singletons (SAS/RCS/Gear/Brakes/Lights/Abort) keep their own
 /// dedicated <see cref="VesselControl"/> fields and their own dedicated
 /// commands (<c>vessel.control.setGear</c> etc.), because they are fixed
 /// stock concepts that no mod extends: AGX adds custom groups, it does not
@@ -55,7 +55,7 @@ public enum SasMode
 public class ActionGroupState
 {
     /// <summary>
-    /// 1-based group number — the same number
+    /// 1-based group number: the same number
     /// <c>vessel.control.setActionGroup</c> takes. Stock KSP: 1..10
     /// (<c>KSPActionGroup.Custom01..Custom10</c>). An AGX backend may report
     /// indices up to 250. Consumers must NOT assume 10, nor assume the list
@@ -65,7 +65,7 @@ public class ActionGroupState
 
     /// <summary>
     /// Human display name. Stock KSP has no per-group naming, so the stock
-    /// backend reports <c>"AG1".."AG10"</c> — exactly what the UI already
+    /// backend reports <c>"AG1".."AG10"</c>: exactly what the UI already
     /// showed, now sourced from the mod rather than hardcoded client-side.
     /// An AGX backend reports the player's own names instead.
     /// </summary>
@@ -76,19 +76,19 @@ public class ActionGroupState
 }
 
 /// <summary>
-/// The <c>vessel.control</c> channel payload — the READ half of what
+/// The <c>vessel.control</c> channel payload: the READ half of what
 /// Telemachus split across <c>f.</c> (toggle/action) and <c>v.</c>
 /// (value-read) prefixes for the same concept (N-1's read half; the WRITE
 /// half is a future typed-command task). Every field is individually
-/// nullable — R1(a): a null field is a normal, meaningful "this input isn't
+/// nullable, R1(a): a null field is a normal, meaningful "this input isn't
 /// available this tick" (e.g. no <c>ctrlState</c>/no action-group data),
-/// never a sentinel default — while the record ITSELF is present whenever a
+/// never a sentinel default: while the record ITSELF is present whenever a
 /// vessel is (KspHost's <c>BuildControl</c> always returns a group, never a
 /// null one).
 ///
 /// <para><b>V-3 documented, not silently "fixed":</b> <see cref="Throttle"/>
 /// is 0..1 NOMINALLY, but KSP's own <c>FlightInputHandler.state.mainThrottle</c>
-/// isn't clamped upstream — a kOS/mod-driven throttle can genuinely read
+/// isn't clamped upstream: a kOS/mod-driven throttle can genuinely read
 /// &gt; 1 (the "200% throttle" phantom). Silently clamping it here would be a
 /// NEW wart (lying about upstream game truth); the range is documented,
 /// reader beware.</para>
@@ -122,7 +122,7 @@ public class VesselControl
     /// </summary>
     public bool? PrecisionControl { get; set; }
 
-    /// <summary>0..1 nominal range — NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
+    /// <summary>0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
     public double? Throttle { get; set; }
 
     /// <summary>
@@ -131,7 +131,7 @@ public class VesselControl
     /// <see cref="ActionGroupState"/>). Stock KSP yields ten entries
     /// (<c>AG1..AG10</c>); an AGX backend may yield up to 250 with the
     /// player's own names. Null when action-group data wasn't available this
-    /// tick — never a partial list. Order is by <see cref="ActionGroupState.Index"/>
+    /// tick: never a partial list. Order is by <see cref="ActionGroupState.Index"/>
     /// ascending, but read <see cref="ActionGroupState.Index"/> rather than
     /// relying on array position: position carried the identity in the old
     /// <c>bool[]</c> shape and no longer does.

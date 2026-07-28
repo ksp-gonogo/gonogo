@@ -26,7 +26,7 @@ import {
   packedColourToComponents,
 } from "./BiomeBase";
 // Importing the real module (not a throwaway test double) runs its
-// module-load `registerAugment(...)` exactly once — same convention as
+// module-load `registerAugment(...)` exactly once: same convention as
 // AltimetryBase.test.tsx / FootprintOverlay/index.test.tsx.
 import "./BiomeBase";
 import { BASE_LAYER_CANVAS_H, BASE_LAYER_CANVAS_W } from "./paintTile";
@@ -37,7 +37,7 @@ function encodeBytes(values: number[]): string {
 
 function biomeGridFixture(): SCANBiomeGrid {
   // 2x2 grid: three cells in "Grasslands" (index 0), one cell with no
-  // biome (0xFF — exercises paintTile's "skip this cell" path).
+  // biome (0xFF: exercises paintTile's "skip this cell" path).
   return {
     width: 2,
     height: 2,
@@ -104,11 +104,11 @@ describe("packedColourToComponents", () => {
   });
 });
 
-describe("BiomeBase — map-view.base slot", () => {
+describe("BiomeBase: map-view.base slot", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
-  // Shared across every getContext("2d") call in a test — see
+  // Shared across every getContext("2d") call in a test; see
   // AltimetryBase.test.tsx's identical setup for why a fresh object literal
   // per call (FootprintOverlay's original pattern) doesn't work here: the
   // component itself never re-fetches the context after painting, but a
@@ -285,8 +285,8 @@ describe("BiomeBase — map-view.base slot", () => {
     });
     await waitFor(() => expect(onLayer).toHaveBeenCalled());
     expect(paintCalls.some((c) => c.startsWith("fillRect"))).toBe(true);
-    // Full coverage (1) * this layer's own translucency (BIOME_LAYER_OPACITY)
-    // — biome draws translucent on top of altimetry, never fully opaque.
+    // Full coverage (1) * this layer's own translucency (BIOME_LAYER_OPACITY),
+    // biome draws translucent on top of altimetry, never fully opaque.
     expect(
       paintFillStyles.every((s) => s.endsWith(`, ${BIOME_LAYER_OPACITY})`)),
     ).toBe(true);

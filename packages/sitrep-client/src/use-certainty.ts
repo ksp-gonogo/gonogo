@@ -11,7 +11,7 @@ import type { Certainty } from "./view-clock";
  * channels a widget composes, never nested inside one another).
  *
  * Certainty is a property of the FRAME's `viewUt`, not of any one topic (the
- * single-view-time invariant) — every topic read in the same
+ * single-view-time invariant): every topic read in the same
  * frame shares the same certainty. `topic` is accepted anyway (rather than a
  * topic-less `useCertainty(store)`) purely so the hook's call shape matches
  * its siblings and a future per-channel certainty override (were one ever

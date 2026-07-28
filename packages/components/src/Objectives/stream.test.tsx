@@ -9,14 +9,14 @@ import { ObjectivesComponent } from "./index";
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `contracts.active` (->
  * `career.status.contracts.active`) is the widget's sole read, shared with
- * ContractManager (`parseContracts`/`contractObjectives`) — the `mh.*`
+ * ContractManager (`parseContracts`/`contractObjectives`): the `mh.*`
  * mission source was removed (`mh` carries no channel on the new wire).
  */
 afterEach(() => {
   clearActionHandlers();
 });
 
-describe("Objectives — genuinely runs off the stream (M3b career-detail batch)", () => {
+describe("Objectives: genuinely runs off the stream (M3b career-detail batch)", () => {
   it("renders contract-parameter objectives derived from career.status.contracts.active", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],

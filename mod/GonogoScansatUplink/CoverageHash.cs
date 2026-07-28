@@ -4,12 +4,12 @@ namespace Gonogo.ScansatUplink
 {
     /// <summary>
     /// Coarse poll-hash of a snapshotted <c>SCANdata.Coverage</c>
-    /// (<c>Int16[360,180]</c>) plane — the R7 change-detection signal
+    /// (<c>Int16[360,180]</c>) plane: the R7 change-detection signal
     /// (scansat-migration-spec.md §0A/§2.1). This is a pure function over a
     /// caller-supplied snapshot; it does not touch SCANsat or KSP types, so
     /// it is unit-testable headlessly (net10.0, no SCANsat.dll needed).
     ///
-    /// FNV-1a over the raw Int16 bytes (little-endian) — fast, non-crypto,
+    /// FNV-1a over the raw Int16 bytes (little-endian), fast, non-crypto,
     /// good-enough avalanche for a change signal (we only ever compare
     /// equality, never trust it as a security hash).
     /// </summary>
@@ -41,7 +41,7 @@ namespace Gonogo.ScansatUplink
 
         /// <summary>
         /// True when <paramref name="snapshot"/>'s hash differs from
-        /// <paramref name="lastHash"/> (or there was no previous hash) —
+        /// <paramref name="lastHash"/> (or there was no previous hash),
         /// the body-level "did anything change" gate before per-type plane
         /// extraction (spec §2.3 step 2).
         /// </summary>

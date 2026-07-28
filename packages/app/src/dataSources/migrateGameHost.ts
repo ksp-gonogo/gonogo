@@ -18,6 +18,6 @@ export function migrateGameHost(): void {
       setSetting("gameHost", parsed.host.trim());
     }
   } catch {
-    /* malformed legacy blob — nothing to migrate */
+    /* malformed legacy blob: nothing to migrate */
   }
 }

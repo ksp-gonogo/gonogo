@@ -6,7 +6,7 @@ using Xunit;
 namespace GonogoScansatUplink.Tests
 {
     /// <summary>
-    /// Pure grid-math + wire-payload shaping for height/biome/mask — the
+    /// Pure grid-math + wire-payload shaping for height/biome/mask, the
     /// SCANsat/KSP reads are injected as samplers, so the cell order, the
     /// base64 packing, and the exact wire dict keys the client decoder reads
     /// (<c>packages/data/src/scansat/scanDecode.ts</c>) are all exercised
@@ -54,7 +54,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void BuildBiomeIndicesAtNonStandardGridSamplesFractionalDegrees()
         {
-            int w = 720, h = 360; // the V1 target size — 0.5 deg/cell.
+            int w = 720, h = 360; // the V1 target size, 0.5 deg/cell.
             var seen = new List<(double, double)>();
             ScanGrids.BuildBiomeIndices(w, h, (lon, lat) => { seen.Add((lon, lat)); return -1; });
 
@@ -67,7 +67,7 @@ namespace GonogoScansatUplink.Tests
         public void BuildHeightsTracksMinAndMax()
         {
             // width=4 -> 90 deg/cell, so lon walks -180,-90,0,90 (NOT
-            // integer-degree-contiguous — updated for the width-driven
+            // integer-degree-contiguous: updated for the width-driven
             // degPerCell formula, see BuildHeightsWalksCellsAtDegPerCell...).
             var grid = ScanGrids.BuildHeights(4, 2, (lon, lat) => lon);
             Assert.Equal((short)-180, grid.MinMetres);
@@ -85,7 +85,7 @@ namespace GonogoScansatUplink.Tests
         public void BuildBiomeIndicesMapsNegativeToFFAndSaturatesAt254()
         {
             // width=3 -> 120 deg/cell, so lon walks -180,-60,60 (NOT
-            // integer-degree-contiguous — updated for the width-driven
+            // integer-degree-contiguous: updated for the width-driven
             // degPerCell formula, see BuildHeightsWalksCellsAtDegPerCell...).
             var indices = ScanGrids.BuildBiomeIndices(3, 1, (lon, lat) =>
                 lon == -180 ? -1 : lon == -60 ? 5 : 999);

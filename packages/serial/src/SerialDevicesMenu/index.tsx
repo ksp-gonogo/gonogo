@@ -22,7 +22,7 @@ import { DeviceTypeEditor } from "./DeviceTypeEditor";
 import { GamepadLearnWizard } from "./GamepadLearnWizard";
 import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
 
-// The capability registry is the source of truth for "what's Chromium-only" —
+// The capability registry is the source of truth for "what's Chromium-only",
 // pull the feature label shown in the unsupported-browser banner from there
 // instead of hardcoding it a second time in this component.
 const foundWebSerialFeature = CHROMIUM_ONLY_SURFACES.find(
@@ -33,7 +33,7 @@ if (!foundWebSerialFeature) {
     "capabilities registry is missing the web-serial entry SerialDevicesMenu depends on",
   );
 }
-// Re-bind with the narrowed (non-undefined) type — the guard above narrows
+// Re-bind with the narrowed (non-undefined) type: the guard above narrows
 // `foundWebSerialFeature` only within this scope, not for the closures below
 // that reference it, so assign it once to a const whose inferred type
 // already excludes `undefined`.
@@ -58,10 +58,10 @@ export function SerialDevicesMenu() {
 }
 
 /**
- * CC BY 3.0 attribution for the vendored gamepad button glyphs — required
+ * CC BY 3.0 attribution for the vendored gamepad button glyphs, required
  * by the licence, not a nicety (it's also prescriptive about the wording;
  * see gamepadAttribution.ts). Always visible, not gated on having a
- * gamepad device configured — cheap, and avoids the credit disappearing
+ * gamepad device configured: cheap, and avoids the credit disappearing
  * the moment a device is removed.
  */
 function GamepadArtCredit() {
@@ -162,22 +162,22 @@ function WebSerialBanner({
       typeof window !== "undefined" ? window.location.origin : "this page";
     return (
       <WebSerialUnavailableBanner role="status">
-        <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable —</BannerLabel> Web
+        <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable: </BannerLabel> Web
         Serial is blocked because <code>{origin}</code> isn't a secure context.
         Chrome only exposes USB serial over HTTPS or{" "}
         <code>http://localhost</code>. Either open the app via{" "}
         <code>localhost</code>/HTTPS, or whitelist this origin at{" "}
         <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>{" "}
-        and relaunch. Virtual and gamepad devices work regardless — this only
+        and relaunch. Virtual and gamepad devices work regardless, this only
         affects USB serial hardware.
       </WebSerialUnavailableBanner>
     );
   }
   return (
     <WebSerialUnavailableBanner role="status">
-      <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable —</BannerLabel> Web
+      <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable: </BannerLabel> Web
       Serial is not available in this browser. Virtual and gamepad devices still
-      work here — the Gamepad API is cross-browser; only USB serial hardware
+      work here, the Gamepad API is cross-browser; only USB serial hardware
       needs a Chromium-based browser on desktop or Android.
     </WebSerialUnavailableBanner>
   );
@@ -199,10 +199,10 @@ function DeviceRow({
   const { open, close } = useModal();
 
   // Offered whenever the device's type has at least one input with no
-  // assigned role — the shipped end state for a non-standard
+  // assigned role: the shipped end state for a non-standard
   // (`mapping === ""`) pad, and re-runnable any time (a pad may keep a
   // permanently role-less extra button, e.g. a DualSense's touchpad click
-  // past index 16 — that's expected, not a reason to hide the offer).
+  // past index 16: that's expected, not a reason to hide the offer).
   const hasRoleLessInput =
     device.transport === "gamepad" &&
     !!type &&
@@ -221,7 +221,7 @@ function DeviceRow({
           onClose={() => close(modalId)}
         />
       </SerialDeviceProvider>,
-      { title: `Learn roles — ${device.name}` },
+      { title: `Learn roles: ${device.name}` },
     );
   };
 
@@ -237,7 +237,7 @@ function DeviceRow({
       {pendingChoices && pendingChoices.length > 1 && (
         <PendingPicker role="status" aria-live="polite">
           <PendingHint>
-            {pendingChoices.length} ports match this device. Pick one — the
+            {pendingChoices.length} ports match this device. Pick one, the
             others can stay disconnected, or be assigned to a separate saved
             device.
           </PendingHint>
@@ -283,7 +283,7 @@ function DeviceRow({
           <GhostButton
             type="button"
             onClick={openLearnWizard}
-            title="Walk each role in turn and record which raw button/axis it lands on — restores real labels on a non-standard-mapping pad"
+            title="Walk each role in turn and record which raw button/axis it lands on, restores real labels on a non-standard-mapping pad"
           >
             Learn roles...
           </GhostButton>
@@ -299,7 +299,7 @@ function DeviceRow({
                 window.location.reload();
               }
             }}
-            title="Refreshes the page — only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it"
+            title="Refreshes the page: only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it"
           >
             Reset connection
           </GhostButton>
@@ -340,7 +340,7 @@ function TypesTab() {
     );
   }
 
-  // Hide device-authored types — they're created and torn down with their
+  // Hide device-authored types: they're created and torn down with their
   // owning self-describing device, so showing them in the editor would
   // invite the user to "remove" something that's just going to come back
   // (or worse, leave the device dangling).

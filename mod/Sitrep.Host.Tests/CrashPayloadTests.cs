@@ -31,7 +31,7 @@ namespace Sitrep.Host.Tests
         public void ShouldPublish_TreatsNullAsPublishable()
         {
             // A null type is not one of the three excluded names, so it is not
-            // filtered here — the producer only ever passes a real enum name.
+            // filtered here: the producer only ever passes a real enum name.
             Assert.True(CrashPayload.ShouldPublish(null));
         }
 

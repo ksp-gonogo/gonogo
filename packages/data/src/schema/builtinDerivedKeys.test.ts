@@ -39,7 +39,7 @@ function findDef(id: string) {
   return def;
 }
 
-describe("builtin derived keys — delta-V / mass", () => {
+describe("builtin derived keys: delta-V / mass", () => {
   beforeEach(() => {
     clearDerivedKeys();
     registerBuiltinDerivedKeys();

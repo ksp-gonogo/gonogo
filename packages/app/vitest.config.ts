@@ -43,7 +43,7 @@ export default defineConfig({
         import.meta.dirname,
         "../sitrep-client/src/index.ts",
       ),
-      // Kerbalism Uplink client — topics-only (registers kerbalism.available).
+      // Kerbalism Uplink client: topics-only (registers kerbalism.available).
       // Aliased to src so the topic-cs-sync test resolves it without a prior
       // build, same as the workspace deps above (scansat/kos/kerbcast-feed
       // resolve via their built dist).

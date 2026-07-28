@@ -1,7 +1,7 @@
 // Install the injected SDK host at app boot (design §2.2c / sdk-one-import §4.3).
 //
 // The published `@ksp-gonogo/sitrep-sdk` exposes its stateful author-facing
-// surface — every `registerX`, every hook, `AugmentSlot`, `createPerfBudget` — as
+// surface, every `registerX`, every hook, `AugmentSlot`, `createPerfBudget`, as
 // SHIMS that look up `globalThis.__GONOGO_SDK__` and throw a NAMED error when it
 // is absent (mod/sitrep-sdk/src/api/host.ts). This module builds the real host
 // from the app's OWN singletons and installs it, so an Uplink that imports the sdk
@@ -68,7 +68,7 @@ export function buildGonogoHost(): GonogoHost {
   // The GonogoHost interface (in @ksp-gonogo/sitrep-sdk) intentionally uses the
   // sdk's SELF-CONTAINED author-facing types (design: the sdk leaf must not import
   // core), which are structurally aligned with core's internal types but nominally
-  // distinct. This builder is the adapter between the two worlds — the members ARE
+  // distinct. This builder is the adapter between the two worlds, the members ARE
   // the app's real singleton functions, so the casts at the boundary are honest
   // (same runtime, mirrored type surface), not a papered-over shape mismatch.
   type Loose = {
@@ -93,11 +93,11 @@ export function buildGonogoHost(): GonogoHost {
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // Overloaded on the sdk side (canonical one-arg Topic read, and the
     // retired useDataValue's legacy two-arg DataSourceRegistry read carried
-    // over onto this same name — see GonogoHost.useTelemetry's doc). Real
+    // over onto this same name: see GonogoHost.useTelemetry's doc). Real
     // core `useTelemetry` already branches internally on whether `key` is
     // present while keeping every hook call unconditional (its own
     // `(dataSourceId, key?)` implementation signature), so this is a single,
-    // unconditional forward of both args — never a conditional call to two
+    // unconditional forward of both args: never a conditional call to two
     // different hook invocations, which the rules-of-hooks lint (rightly)
     // flags even though a given call site's arity never changes across
     // renders. The loose cast mirrors core's own internal implementation
@@ -172,7 +172,7 @@ export function buildGonogoHost(): GonogoHost {
 
 /**
  * Install the host on `globalThis.__GONOGO_SDK__` once, before any Uplink bundle
- * is `import()`ed. Idempotent — a second call is a no-op so a StrictMode double
+ * is `import()`ed. Idempotent, a second call is a no-op so a StrictMode double
  * boot doesn't churn the global.
  */
 export function installGonogoHost(): void {

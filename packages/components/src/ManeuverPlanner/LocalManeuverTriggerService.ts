@@ -29,20 +29,20 @@ import { compareThreshold } from "./triggerTypes";
  * fixed-field read (vessel/target orbit elements, apo/peri/time-to-apsis,
  * true anomaly, vessel name/body) rides the non-hook `getVesselOrbit()`/
  * `getVesselTarget()`/`getVesselIdentity()`/`getVesselState()`/`getViewUt()`
- * accessors (`@ksp-gonogo/sitrep-client`) — the same `TimelineStore` a
+ * accessors (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a
  * mounted widget's `useTelemetry` would read, sampled on demand and
  * re-evaluated on `onActiveTimelineFrame` instead of a per-key subscription.
  *
  * The ARMED TRIGGER's own `dataKey` is an operator-picked key too, but no
  * longer an ARBITRARY one: the widget's `DataKeyPicker` only offers keys
- * `@ksp-gonogo/data`'s `useValueKeys` resolves — the Value-restricted,
+ * `@ksp-gonogo/data`'s `useValueKeys` resolves: the Value-restricted,
  * stream-mapped set (per the Uplink Domain/Topic/Value/Stream/Asset vocab).
  * That bounds `dataKey` to what `getValue` (the generic non-hook Value
  * accessor, `@ksp-gonogo/sitrep-client`) can actually read, so the threshold
  * read and the maneuver-node fire (`dispatchActiveCommand`) both ride the
- * stream now — no `getDataSource(this.sourceId)` dependency left.
+ * stream now: no `getDataSource(this.sourceId)` dependency left.
  *
- * No persistence, no peer broadcast — see the host/client services in
+ * No persistence, no peer broadcast: see the host/client services in
  * @ksp-gonogo/app for the cross-station-aware version.
  */
 export class LocalManeuverTriggerService implements ManeuverTriggerService {
@@ -58,13 +58,13 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     this.nowMs = opts.nowMs ?? (() => Date.now());
     // Deliberately NOT subscribing here: `onActiveTimelineFrame` reads
     // whichever `TelemetryProvider` is ALREADY mounted at call time and
-    // never retroactively attaches (see its own doc comment) — but this
+    // never retroactively attaches (see its own doc comment), but this
     // service is built via `useState(() => new LocalManeuverTriggerService())`,
     // whose lazy initializer runs during the FIRST render, before ANY
     // `useEffect` (including the enclosing `TelemetryProvider`'s own
     // store-registration effect) has fired. Subscribing here would silently
     // no-op for the service's entire lifetime. `arm()` establishes the
-    // subscription instead — arming always happens well after mount
+    // subscription instead: arming always happens well after mount
     // (a later user action or peer message), by which point the provider
     // (if any) has settled.
   }
@@ -88,7 +88,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   arm(input: ArmTriggerInput): void {
-    // Lazily established (not in the constructor — see its doc comment):
+    // Lazily established (not in the constructor: see its doc comment):
     // re-evaluates every armed trigger's dataKey threshold, plus the
     // vessel-swap auto-clear check, on every subsequent stream frame.
     this.vesselUnsub ??= onActiveTimelineFrame(() => this.evaluate());
@@ -170,7 +170,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         timeToAp: state?.timeToAp ?? undefined,
         timeToPe: state?.timeToPe ?? undefined,
       }),
-      // Not a data-source key: `t.universalTime` was DROPPED — this is the
+      // Not a data-source key: `t.universalTime` was DROPPED, this is the
       // SDK's own view time (`getViewUt`, the non-hook `useViewUt`
       // equivalent plain classes need), never a legacy `"data"` read.
       currentUT: getViewUt(),

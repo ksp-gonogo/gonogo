@@ -13,7 +13,7 @@ import { RoboticsConsoleComponent } from "./index";
  * DOM-snapshot regression tests for RoboticsConsole.
  *
  * `index.tsx` reads `parts.robotics`/`robotics.available` canonically off the
- * stream (`useTelemetry`), with NO legacy fallback — so the shared
+ * stream (`useTelemetry`), with NO legacy fallback: so the shared
  * `snapshotWidgetMode` helper (which feeds a legacy `MockDataSource`) can't
  * reach it. This file builds its own per-fixture stream render instead,
  * emitting the fixture's `parts.robotics` array verbatim and its bare

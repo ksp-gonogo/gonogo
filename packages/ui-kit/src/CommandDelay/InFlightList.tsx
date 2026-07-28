@@ -3,12 +3,12 @@ import styled, { css } from "styled-components";
 import { formatCountdown } from "../formatDuration";
 
 /**
- * Vanilla-safe display shape for one delayed command — a deliberate LOCAL
+ * Vanilla-safe display shape for one delayed command, a deliberate LOCAL
  * redeclaration, not an import of `@ksp-gonogo/sitrep-client`'s
  * `InFlightCommand`: this package carries no data hooks and no gonogo-type
  * imports (design: "InFlightList"/"CommandGroup" stay props-driven only).
  * `etaSeconds` is the caller's choice of which clock to show (reach vs.
- * reply) — `null` renders as "no ETA" (e.g. an already-`overdue`/`lost`
+ * reply): `null` renders as "no ETA" (e.g. an already-`overdue`/`lost`
  * entry, or a `no-path` mode with nothing to count toward).
  */
 export interface InFlightListItem {
@@ -37,7 +37,7 @@ const PHASE_ARROW: Record<InFlightListItem["phase"], string> = {
 
 const ERROR_PHASES = new Set<InFlightListItem["phase"]>(["overdue", "lost"]);
 
-/** Re-seed the local countdown only on a jump this large (seconds) — the
+/** Re-seed the local countdown only on a jump this large (seconds), the
  * caller's own `etaSeconds` reads (e.g. `useCommand`'s synchronous
  * `nowUt`) drift by fractions of a second on every unrelated re-render;
  * resyncing on every one of those would fight the local tick below and
@@ -47,10 +47,10 @@ const RESYNC_THRESHOLD_SECONDS = 1;
 /**
  * A pure, local-ticking countdown value: seeds from `etaSeconds`, resyncs
  * only on a real jump (a fresh dispatch, a phase transition), and otherwise
- * decrements once per second on its OWN mount-once interval — so the
+ * decrements once per second on its OWN mount-once interval, so the
  * displayed number stays smooth even when the caller only recomputes
  * `etaSeconds` on a slower (or noisier) cadence. Pure in the sense the
- * design calls for — it operates ONLY on the value passed in, no data
+ * design calls for: it operates ONLY on the value passed in, no data
  * source, no clock import.
  */
 export function useCountdown(etaSeconds: number | null): number | null {
@@ -70,7 +70,7 @@ export function useCountdown(etaSeconds: number | null): number | null {
     }
   }, [etaSeconds]);
 
-  // Mount-once local tick — deliberately NOT keyed on `etaSeconds` (see
+  // Mount-once local tick: deliberately NOT keyed on `etaSeconds` (see
   // `RESYNC_THRESHOLD_SECONDS`'s doc): tying this interval's lifetime to a
   // value that drifts on every render would tear it down and recreate it
   // constantly instead of ever letting a full second elapse.
@@ -87,7 +87,7 @@ export function useCountdown(etaSeconds: number | null): number | null {
 /**
  * Presentational set-renderer for `InFlightCommand`-shaped items (0/1/N):
  * a stack of in-flight rows with per-entry countdowns and phase-appropriate
- * styling. Renders nothing for an empty set. No data hooks — a widget feeds
+ * styling. Renders nothing for an empty set. No data hooks, a widget feeds
  * it `useCommand().inFlight` or `useRouteCommands(topic).items` directly.
  */
 export function InFlightList({

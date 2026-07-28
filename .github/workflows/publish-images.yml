@@ -42,7 +42,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # workflow_run events have no inputs — they're always the dev channel.
+  # workflow_run events have no inputs, they're always the dev channel.
   CHANNEL: ${{ inputs.channel || 'dev' }}
 
 jobs:

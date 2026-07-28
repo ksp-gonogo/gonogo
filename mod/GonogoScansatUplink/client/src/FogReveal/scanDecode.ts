@@ -12,7 +12,7 @@ import type {
  * and `ilat = (int)(lat+270)%180`, so a single utility can walk all
  * three datasets in lockstep.
  *
- * The fork emits these with `Plotable=false` — clients fetch on body
+ * The fork emits these with `Plotable=false`: clients fetch on body
  * change, decode once, then render from the typed arrays.
  */
 
@@ -53,7 +53,7 @@ export function decodeHeightGrid(grid: SCANHeightGrid): DecodedHeights | null {
   const expected = grid.width * grid.height * 2;
   if (bytes.length < expected) return null;
   // The fork packs little-endian. Use the byte buffer as the backing
-  // store for an Int16Array — but a slice can be ArrayBuffer-aligned in
+  // store for an Int16Array: but a slice can be ArrayBuffer-aligned in
   // theory, so copy through a fresh ArrayBuffer to be safe.
   const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + expected);
   return {

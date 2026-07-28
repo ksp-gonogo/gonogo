@@ -8,7 +8,7 @@ namespace Gonogo.KerbcastUplink
 {
     /// <summary>
     /// The arm's-length REFLECTION surface onto kerbcast. NO compile-time
-    /// reference to kerbcast's assembly exists anywhere in this project — every
+    /// reference to kerbcast's assembly exists anywhere in this project, every
     /// kerbcast member is reached by runtime reflection against the loaded
     /// <c>Kerbcast</c> assembly, so the CC-BY-NC-SA-4.0 NonCommercial/ShareAlike
     /// boundary is never crossed: we USE the running mod's public API, we don't
@@ -17,8 +17,8 @@ namespace Gonogo.KerbcastUplink
     /// assembly for the same reason; see the .csproj header and
     /// NOTICE-KERBCAST.txt for the full licence rationale.
     ///
-    /// <para>Target surface: kerbcast's <c>Kerbcast.KerbcastControl</c> — a
-    /// public STATIC facade the mod already maintains as its in-process
+    /// <para>Target surface: kerbcast's <c>Kerbcast.KerbcastControl</c>,
+    /// a public STATIC facade the mod already maintains as its in-process
     /// integration seam (it is what kerbcast's own scripting add-on calls, so it is
     /// an intentional public API, not an internal we're prying open). It
     /// exposes <c>IsActive</c>, <c>CamerasFor(Vessel)</c>, <c>ViewOf(uint)</c>,
@@ -27,7 +27,7 @@ namespace Gonogo.KerbcastUplink
     /// KSP <c>Part</c>.</para>
     ///
     /// <para><c>KerbcastCameraView</c> exposes public FIELDS (not properties),
-    /// hence <c>GetField</c> throughout — a detail worth stating because the
+    /// hence <c>GetField</c> throughout: a detail worth stating because the
     /// RA precedent this copies uses <c>GetProperty</c> and silently reading
     /// null here would look identical to "kerbcast changed".</para>
     ///
@@ -77,7 +77,7 @@ namespace Gonogo.KerbcastUplink
         /// <see cref="Probe"/> finds the real kerbcast by name, while the tests
         /// point this at a stand-in carrying the same
         /// <c>Kerbcast.KerbcastControl</c>/<c>Kerbcast.KerbcastCameraView</c>
-        /// shape — which is how the licence-boundary code gets exercised at all
+        /// shape, which is how the licence-boundary code gets exercised at all
         /// without a KSP install (and without linking kerbcast, which is the
         /// whole point).
         /// </summary>
@@ -88,7 +88,7 @@ namespace Gonogo.KerbcastUplink
             var control = SafeGetType(kerbcastAssembly, ControlTypeName);
             if (control == null)
             {
-                Reason = $"kerbcast assembly loaded but {ControlTypeName} not found — unsupported kerbcast version";
+                Reason = $"kerbcast assembly loaded but {ControlTypeName} not found: unsupported kerbcast version";
                 return;
             }
 
@@ -100,7 +100,7 @@ namespace Gonogo.KerbcastUplink
             var view = SafeGetType(kerbcastAssembly, "Kerbcast.KerbcastCameraView");
             if (view == null)
             {
-                Reason = "kerbcast assembly loaded but Kerbcast.KerbcastCameraView not found — unsupported kerbcast version";
+                Reason = "kerbcast assembly loaded but Kerbcast.KerbcastCameraView not found: unsupported kerbcast version";
                 return;
             }
 
@@ -127,13 +127,13 @@ namespace Gonogo.KerbcastUplink
             // camera list at all", which is a reason worth surfacing.
             if (_isActive == null || _camerasFor == null || _flightId == null)
             {
-                Reason = "kerbcast's KerbcastControl surface has moved (IsActive/CamerasFor/FlightId unreadable) — unsupported kerbcast version";
+                Reason = "kerbcast's KerbcastControl surface has moved (IsActive/CamerasFor/FlightId unreadable): unsupported kerbcast version";
             }
         }
 
         /// <summary>
         /// Probe for the loaded kerbcast assembly. Returns null when kerbcast is
-        /// not installed/loaded — the caller then reports the uplink unavailable
+        /// not installed/loaded: the caller then reports the uplink unavailable
         /// with that as the reason.
         /// </summary>
         public static KerbcastReflection? Probe()
@@ -155,7 +155,7 @@ namespace Gonogo.KerbcastUplink
         /// <summary>
         /// Whether kerbcast's core is live (a flight scene with the plugin
         /// running). False in the space centre, the editor, or before kerbcast
-        /// spins up — the "why isn't my camera list populated" answer.
+        /// spins up: the "why isn't my camera list populated" answer.
         /// </summary>
         public bool IsActive()
         {
@@ -250,7 +250,7 @@ namespace Gonogo.KerbcastUplink
             }
         }
 
-        // GetMethod(name) would throw AmbiguousMatchException on an overload —
+        // GetMethod(name) would throw AmbiguousMatchException on an overload,
         // the same trap a sibling Uplink's version guard documents. Match on
         // name + arity instead.
         private static MethodInfo? FindMethod(Type type, string name, int parameterCount)
@@ -335,7 +335,7 @@ namespace Gonogo.KerbcastUplink
     /// value IS a stock KSP <c>Part</c>, but keeping it untyped here means this
     /// struct's metadata references nothing from kerbcast's assembly.
     ///
-    /// <para>Every field is nullable — an unreadable member is typed absence,
+    /// <para>Every field is nullable, an unreadable member is typed absence,
     /// never a 0 the wire would misreport as a real reading.</para>
     /// </summary>
     public struct KerbcastView

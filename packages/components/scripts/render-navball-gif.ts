@@ -3,7 +3,7 @@
  * Render the Navball widget across a realistic ascent attitude sweep and
  * assemble the frames into a looping GIF for the README.
  *
- * Pipeline (reuses the existing playwright widget-render harness — no new
+ * Pipeline (reuses the existing playwright widget-render harness, no new
  * probe code):
  *   1. Generate N interpolated synthetic fixtures (one per attitude frame)
  *      into a temp dir under `src/` so the harness's `fixturesPath` (relative

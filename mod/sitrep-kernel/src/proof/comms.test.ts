@@ -1,7 +1,7 @@
 /**
  * The milestone's headline proof: the M3 delay engine is just one swappable
  * `comms` provider behind the capability kernel. Same capability id
- * ("comms"), same `CommsCapability` interface — whichever provider the
+ * ("comms"), same `CommsCapability` interface: whichever provider the
  * kernel resolves to is the only thing that decides "delayed" vs
  * "immediate" delivery.
  */
@@ -35,7 +35,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     // Not delivered at record time.
     expect(received).toHaveLength(0);
 
-    // Not delivered even on a same-instant flush — this isn't a "needs a
+    // Not delivered even on a same-instant flush, this isn't a "needs a
     // tick" quirk, the courier genuinely schedules delivery in the future.
     comms.clock.advanceTo(recordedAt);
     expect(received).toHaveLength(0);
@@ -57,7 +57,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
   it("fallback to vanilla: with the courier provider absent, delivery is immediate (delay 0)", () => {
     const kernel = new Kernel();
     kernel.registerCapability(commsCapability);
-    // Deliberately no registerProvider() call — the courier provider is
+    // Deliberately no registerProvider() call: the courier provider is
     // absent, so resolve() must fall back to the vanilla zero-delay comms.
 
     const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
@@ -75,7 +75,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     const recordedAt = comms.clock.now();
     comms.record("vessel.altitude", 100, recordedAt);
 
-    // Delivered on a same-instant flush — zero elapsed time required.
+    // Delivered on a same-instant flush: zero elapsed time required.
     comms.clock.advanceTo(recordedAt);
     expect(received).toHaveLength(1);
     expect(received[0]).toMatchObject({
@@ -110,7 +110,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     vanillaComms.record("vessel.altitude", 42, vanillaComms.clock.now());
 
     // Same instant, same topic, same value, no time elapsed on either
-    // clock — yet only the vanilla side has delivered.
+    // clock: yet only the vanilla side has delivered.
     realComms.clock.advanceTo(realComms.clock.now());
     vanillaComms.clock.advanceTo(vanillaComms.clock.now());
 

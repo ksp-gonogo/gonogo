@@ -10,11 +10,11 @@ namespace Gonogo.RealAntennasUplink
     /// <para>These are PUBLISHED (not withheld) when the vessel's comms link is
     /// not connected. The RA-only channels are <c>LossyLatest</c>, so leaving
     /// them unpublished on a down link would strand the last-good GEOMETRIC value
-    /// on the wire — the bug where <c>comms.linkMargin</c> reported
+    /// on the wire: the bug where <c>comms.linkMargin</c> reported
     /// <c>closesLink:true</c> with a healthy positive margin while
     /// <c>comms.connectivity</c> correctly reported <c>connected:false</c>. A
     /// geometry-only budget ignores occlusion / out-of-cone relays, so it must
-    /// never be the authority on whether the link closes — CommNet connectivity
+    /// never be the authority on whether the link closes, CommNet connectivity
     /// is. When the link is down these report the honest state: the link does
     /// NOT close, quality is nil, throughput is a genuine zero.</para>
     /// </summary>

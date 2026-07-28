@@ -83,7 +83,7 @@ describe("eccentricToTrueAnomaly", () => {
 
   it("is past E past periapsis in an elliptical orbit (vessel moves faster near periapsis)", () => {
     // At E = π/2 (quarter into eccentric anomaly), ν should be larger than E
-    // for e > 0 — the vessel has swept past more true angle.
+    // for e > 0: the vessel has swept past more true angle.
     const e = 0.5;
     const nu = eccentricToTrueAnomaly(Math.PI / 2, e);
     expect(nu).toBeGreaterThan(Math.PI / 2);
@@ -327,7 +327,7 @@ describe("predictGroundTrack", () => {
       1000,
       10,
     );
-    // We expect early termination — not the full 1000s of samples.
+    // We expect early termination: not the full 1000s of samples.
     expect(out.length).toBeGreaterThan(0);
     expect(out.length).toBeLessThan(100);
     // Every emitted sample must be above the -100 m threshold.
@@ -401,7 +401,7 @@ describe("splitOnLongitudeWrap", () => {
       { lon: -170 },
       { lon: -160 },
       { lon: 170 },
-      { lon: 175 }, // wrap back? no — jump of 330 > 180
+      { lon: 175 }, // wrap back? no, jump of 330 > 180
     ];
     const out = splitOnLongitudeWrap(samples);
     expect(out.length).toBeGreaterThanOrEqual(2);

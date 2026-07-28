@@ -11,7 +11,7 @@ import { ViewClock } from "./view-clock";
  * Minimal deterministic `Clock` test double. Mirrors sitrep-server's
  * `ManualClock` semantics (time only moves on `advanceTo`, never reads
  * wall-clock time) without sitrep-client taking a dependency on that
- * package — the two stay structurally compatible by design, not by import.
+ * package: the two stay structurally compatible by design, not by import.
  */
 class FakeClock implements Clock {
   private currentUt: number;
@@ -43,7 +43,7 @@ class FakeClock implements Clock {
 
 /**
  * Minimal `Transport` test double that predicts a fixed `etaConfirm` and
- * lets the test deliver responses on demand — `StubTransport` deliberately
+ * lets the test deliver responses on demand, `StubTransport` deliberately
  * doesn't implement `predictConfirmEta` (that shape is covered under test
  * elsewhere), and its microtask-based auto-response can't be held open long
  * enough to exercise the loss-inference window.
@@ -151,7 +151,7 @@ describe("TelemetryClient subscriptions", () => {
   });
 });
 
-describe("TelemetryClient.attachStore — feeds the wire into a TimelineStore (M2 bridge task, Fix 1 item 1)", () => {
+describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 bridge task, Fix 1 item 1)", () => {
   function makeStore(): TimelineStore {
     return new TimelineStore(
       new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
@@ -232,7 +232,7 @@ describe("TelemetryClient commands", () => {
     const client = new TelemetryClient(t);
     const { requestId, result } = client.dispatch("deploy", 7);
     // StubTransport doesn't implement predictConfirmEta, so etaConfirm falls
-    // back to "now" (real wall-clock time from the default RealTimeClock) —
+    // back to "now" (real wall-clock time from the default RealTimeClock),
     // not asserted precisely here, just that the rest of the shape holds.
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "in-flight",
@@ -274,7 +274,7 @@ describe("TelemetryClient commands", () => {
       result: { ok: "deploy" },
     });
     // Reading again must return the same terminal status, not a fresh
-    // `{ phase: "idle" }` — that reversion is exactly what breaks
+    // `{ phase: "idle" }`, that reversion is exactly what breaks
     // useSyncExternalStore's getSnapshot stability.
     expect(client.getCommand(requestId)).toEqual(first);
   });
@@ -310,7 +310,7 @@ describe("TelemetryClient commands", () => {
     client.subscribe("v.alt", () => {});
     client.subscribe("v.speed", () => {});
     // No command handler installed, so dispatch's transport-side response
-    // never arrives synchronously — dispose() runs before it ever would.
+    // never arrives synchronously: dispose() runs before it ever would.
     const { requestId, result } = client.dispatch("deploy");
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "in-flight",
@@ -431,7 +431,7 @@ describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
     });
 
     // No loss timer was ever scheduled (predictConfirmEta is undefined), so
-    // advancing time — even far past any plausible deadline — must not
+    // advancing time, even far past any plausible deadline, must not
     // flip this to lost before the stub's microtask response arrives.
     clock.advanceTo(1000);
     await expect(result).resolves.toEqual({ ok: "deploy" });

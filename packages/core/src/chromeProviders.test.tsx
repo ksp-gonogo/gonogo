@@ -40,7 +40,7 @@ function Consumer() {
 }
 
 // Simulates ModalProvider: rendered as a SIBLING of FixtureProvider's
-// subtree (not a descendant) so ambient context genuinely can't reach it —
+// subtree (not a descendant) so ambient context genuinely can't reach it,
 // this is the real shape of ComponentOverlay's openModal() escape, not a
 // same-tree portal (React portals via createPortal still preserve
 // context; ComponentOverlay's modal content is hoisted to a different
@@ -86,7 +86,7 @@ describe("chromeProviders", () => {
   it("useChromeWrap is identity when nothing is registered", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "open" }));
-    // No provider registered — the modal host never gets the value back.
+    // No provider registered: the modal host never gets the value back.
     expect(screen.getByText("consumer-saw:MISSING")).toBeTruthy();
   });
 

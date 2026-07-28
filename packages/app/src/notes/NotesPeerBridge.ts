@@ -11,7 +11,7 @@ export interface NotesPeerBridgeHandlers {
 /**
  * Wires station-originated note mutations into the host service and
  * exposes `broadcastSnapshot` for the host to call when state changes.
- * No notes state lives here — it's pure event plumbing in the same
+ * No notes state lives here: it's pure event plumbing in the same
  * style as AlarmPeerBridge.
  */
 export class NotesPeerBridge {

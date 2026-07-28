@@ -1,8 +1,8 @@
 /**
- * Generic coverage for PeerHostService's `handleUplinkRelay` — the single
+ * Generic coverage for PeerHostService's `handleUplinkRelay`: the single
  * handler every Uplink's peer-relayed calls route through (see
  * `uplink-relay-request`/`-response` in protocol.ts). Deliberately uses a
- * fixture uplinkId ("test-uplink") rather than a real Uplink's — this
+ * fixture uplinkId ("test-uplink") rather than a real Uplink's, this
  * mechanism is mod-agnostic and should be provable without naming one.
  */
 
@@ -186,8 +186,8 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
 
   it("is unaffected by DataSource-registry wrapping (PeerBroadcastingDataSource)", async () => {
     // Regression guard: the uplink-handle registry is a separate map,
-    // keyed and populated independently of registerDataSource/getDataSource
-    // — wrapping a DataSource with PeerBroadcastingDataSource (what
+    // keyed and populated independently of registerDataSource/getDataSource,
+    // wrapping a DataSource with PeerBroadcastingDataSource (what
     // PeerHostProvider's wrap loop does on the main screen) must not affect
     // a relay handle registered under the same id.
     const handle = { relay: async () => "unwrapped" };

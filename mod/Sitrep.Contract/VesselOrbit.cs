@@ -6,11 +6,11 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.orbit</c> channel payload — elements are the CAUSE; every
+/// The <c>vessel.orbit</c> channel payload: elements are the CAUSE; every
 /// kinematic quantity (position/velocity/apsides/anomalies/period) is a
 /// consumer-side derivation at view-UT via the propagation capability, never
-/// streamed here ("elements-not-position" — m1-provider-taxonomy-design.md
-/// §2.2/§4). Kills O-1 (there is no <c>eccentricAnomaly</c> field at all —
+/// streamed here ("elements-not-position": m1-provider-taxonomy-design.md
+/// §2.2/§4). Kills O-1 (there is no <c>eccentricAnomaly</c> field at all,
 /// the copy-paste-bug class can't exist on a wire that never carries one),
 /// O-8 (spelled-out, unit-annotated fields, UT always <c>double</c>), O-9
 /// (<see cref="Encounter"/> is a typed nullable record, never the
@@ -19,7 +19,7 @@ namespace Sitrep.Contract;
 ///
 /// Units: <see cref="Sma"/> in metres; <see cref="Inc"/>/<see cref="Lan"/>/
 /// <see cref="ArgPe"/> in DEGREES (KSP-native); <see cref="MeanAnomalyAtEpoch"/>
-/// in RADIANS (also KSP-native) — this degrees/radians split is an inherited
+/// in RADIANS (also KSP-native): this degrees/radians split is an inherited
 /// KSP inconsistency deliberately KEPT, not "fixed," per
 /// m1-provider-taxonomy-design.md §6.7 (converting would desync from every
 /// KSP reference and the recorder's own raw values).
@@ -50,18 +50,18 @@ public class VesselOrbit
     /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
     public double Epoch { get; set; }
 
-    /// <summary>Parent body's standard gravitational parameter (GM) — self-sufficient propagation, no separate body lookup required.</summary>
+    /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>
     public double Mu { get; set; }
 
-    /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case) — NEVER a sentinel (kills O-9).</summary>
+    /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case); NEVER a sentinel (kills O-9).</summary>
     public OrbitEncounter? Encounter { get; set; }
 
     /// <summary>
-    /// The vessel's future-orbit patch chain — element 0 is THIS patch (the
+    /// The vessel's future-orbit patch chain: element 0 is THIS patch (the
     /// current orbit, same elements as the fields above, restated in
     /// <see cref="OrbitPatch"/>'s shape for a uniform client-side walk),
     /// followed by any subsequent SOI-transition patches KSP's own
-    /// patched-conic solver has already resolved. ALWAYS an array (R2) —
+    /// patched-conic solver has already resolved. ALWAYS an array (R2),
     /// empty (not null) when there is no upcoming SOI transition, the
     /// overwhelmingly common case for a stable orbit. See
     /// <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c> for the walk.
@@ -71,7 +71,7 @@ public class VesselOrbit
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>One upcoming SOI patch transition — see <see cref="VesselOrbit.Encounter"/>.</summary>
+/// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>
 [SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]

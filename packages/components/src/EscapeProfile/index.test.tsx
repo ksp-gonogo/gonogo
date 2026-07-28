@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
-// vessel.state's carried-channels gate is parent-channel-scoped — every
+// vessel.state's carried-channels gate is parent-channel-scoped, every
 // vessel.state.* field needs ALL of vesselStateChannel.inputs carried.
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",

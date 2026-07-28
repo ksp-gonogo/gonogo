@@ -22,7 +22,7 @@ export function PeerHostProvider({ children }: { children: ReactNode }) {
 
   // Wrapping must happen synchronously during render, before React's commit
   // phase sets up useSyncExternalStore subscriptions in child components.
-  // A useState initializer runs once on mount during the render phase —
+  // A useState initializer runs once on mount during the render phase,
   // earlier than useEffect, which is too late.
   //
   // TODO (post-Phase-8): every source is wrapped, so `telemachus` and `data`

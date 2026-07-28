@@ -2,7 +2,7 @@ import { getWarpState } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import type { Alarm, AlarmSnapshot, AlarmWarpState } from "./types";
 
-/** Grace window around a station-initiated warp intent — any observed
+/** Grace window around a station-initiated warp intent, any observed
  *  warp change within this window is attributed to the station. */
 const WARP_INTENT_WINDOW_MS = 2_000;
 

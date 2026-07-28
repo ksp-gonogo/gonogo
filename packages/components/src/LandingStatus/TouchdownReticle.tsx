@@ -1,15 +1,15 @@
 /**
- * TouchdownReticle — the spatial "you are here, you'll touch down there" view,
+ * TouchdownReticle: the spatial "you are here, you'll touch down there" view,
  * anchored on the PREDICTED landing site at centre (target ring + X). The
  * CURRENT sub-vessel position sits off-centre by the drift, and a prominent line
  * runs from it to the centred site, so you read how far and which way you are
  * from where you'll land. Behind it, the sampled terrain renders as DIRECT
- * altimetry — a hypsometric colour ramp (colour = altitude) with contour
+ * altimetry: a hypsometric colour ramp (colour = altitude) with contour
  * iso-lines at the band edges, so slope/shape read precisely (close contours =
  * steep, a bullseye = a crater/peak). This is a bare square SVG: the widget
  * composes the SAFE / MARGINAL / DIVERT banner + the biome/slope readout below
  * it (so the two altimetry plots align), and the verdict rides that banner (the
- * reticle box itself is borderless — the tint read as noise).
+ * reticle box itself is borderless, the tint read as noise).
  *
  * This is telemetry alerting, never GO/NO-GO. The relief is painted to a small
  * canvas + up-scaled by the browser; where canvas is unavailable (jsdom
@@ -20,6 +20,7 @@
  * come off `vessel.landing`.
  */
 
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { greatCircle } from "./geo";
 import { SiteMarker } from "./SiteMarker";
@@ -31,7 +32,7 @@ export interface TouchdownReticleProps {
   /** Current sub-vessel point, degrees (the reticle centre). */
   vesselLat: number | null;
   vesselLon: number | null;
-  /** Body mean radius, metres — for the current→site distance. */
+  /** Body mean radius, metres, for the current→site distance. */
   bodyRadius: number | null;
   /** Terrain slope at the site, degrees (labelled). */
   slopeDeg: number | null;
@@ -48,7 +49,7 @@ export interface TouchdownReticleProps {
 /**
  * Normalise the height grid to 0..1 (and report the raw metre range for the
  * relief-scale cue). Returns null when the patch is missing or degenerate (the
- * reticle then shows the flat neutral panel). This is the altimetry input — no
+ * reticle then shows the flat neutral panel). This is the altimetry input, no
  * lighting model; colour encodes height directly downstream.
  */
 function normHeights(
@@ -76,7 +77,7 @@ function normHeights(
 // the boundaries between bands are the iso-height contour lines (close together
 // = steep, a bullseye = a crater/peak). No simulated light anywhere.
 const HYPSO_BANDS = 6;
-// Dimmed, desaturated low→high ramp — a low-key "tech" elevation palette. The
+// Dimmed, desaturated low→high ramp: a low-key "tech" elevation palette. The
 // high band is a muted grey, not a harsh cream/white.
 const HYPSO: Array<[number, [number, number, number]]> = [
   [0.0, [26, 32, 40]],
@@ -144,7 +145,7 @@ function reliefDataUri(
 ): string | null {
   if (!norm || !size) return null;
   if (typeof document === "undefined") return null;
-  // Under test (jsdom) canvas isn't implemented — skip to the rect fallback so
+  // Under test (jsdom) canvas isn't implemented: skip to the rect fallback so
   // the DOM snapshot stays small/stable and jsdom emits no "getContext" noise.
   if (process.env.NODE_ENV === "test") return null;
   const F = 72;
@@ -233,9 +234,10 @@ export function TouchdownReticle({
       ? "predicted"
       : sampleSource === "sub-vessel"
         ? "sub-vessel (est.)"
-        : "—";
+        : NULL_DISPLAY;
 
-  const slopeText = slopeDeg == null ? "—" : `${slopeDeg.toFixed(1)}° slope`;
+  const slopeText =
+    slopeDeg == null ? NULL_DISPLAY : `${slopeDeg.toFixed(1)}° slope`;
   const driftText =
     drift == null ? "" : `, ${Math.round(drift.distanceMeters)} m downrange`;
   const reticleLabel = `Touchdown site: ${slopeText}${driftText}${
@@ -323,7 +325,7 @@ export function TouchdownReticle({
         })()
       )}
 
-      {/* Vertex dots — one per height-grid point, radius (and brightness)
+      {/* Vertex dots: one per height-grid point, radius (and brightness)
             scaled by altitude, over the dimmed contour base. The dot field IS
             the terrain read; higher points read as larger, brighter dots. */}
       {heights &&
@@ -351,7 +353,7 @@ export function TouchdownReticle({
           return <g>{dots}</g>;
         })()}
 
-      {/* Current → site: the primary spatial readout. A plain line (no head —
+      {/* Current → site: the primary spatial readout. A plain line (no head,
             the off-centre current crosshair and the centred site marker
             terminate it) from where you are to where you'll land. */}
       {currentTip && (
@@ -365,11 +367,11 @@ export function TouchdownReticle({
         />
       )}
 
-      {/* Predicted landing site — the ANCHOR: the shared target marker (same as
+      {/* Predicted landing site (the ANCHOR): the shared target marker (same as
           the side-on plot) so it clearly reads as "you'll land HERE". */}
       <SiteMarker cx={C} cy={C} />
 
-      {/* Current position — off-centre by the drift (a small, distinct white
+      {/* Current position: off-centre by the drift (a small, distinct white
             dot). Omitted when you're right over the site. */}
       {currentTip && (
         <circle

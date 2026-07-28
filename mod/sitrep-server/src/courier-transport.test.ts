@@ -6,7 +6,7 @@ import { StubNetwork } from "./stub-network";
 
 // The cases that drive a real M2 `TelemetryClient` (from `@ksp-gonogo/sitrep-client`)
 // over this transport live in
-// `packages/sitrep-client/src/courier-transport.integration.test.ts` instead —
+// `packages/sitrep-client/src/courier-transport.integration.test.ts` instead:
 // sitrep-server must not depend on sitrep-client (see package.json). Only the
 // pure, client-agnostic cases stay here.
 

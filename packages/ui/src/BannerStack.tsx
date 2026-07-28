@@ -17,7 +17,7 @@ export interface BannerStackProps {
  *   the same baseline as the FAB itself.
  * - `flex-direction: row-reverse` puts the first DOM child closest to the
  *   FAB (the right edge); additional banners stack to the left.
- * - Overflow scrolls horizontally — when too many banners are active the
+ * - Overflow scrolls horizontally: when too many banners are active the
  *   leftward overflow becomes scrollable rather than pushing offscreen.
  *
  * The primary "+" FAB is 48×48 at `bottom: 24px; right: 24px`. The stack
@@ -59,7 +59,7 @@ const Stack = styled.div`
     align-items: center;
   }
 
-  /* Subtle scrollbar styling for the overflow case — only visible on hover
+  /* Subtle scrollbar styling for the overflow case, only visible on hover
      so the strip stays clean when not interacted with. */
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;

@@ -4,7 +4,7 @@ using Sitrep.Host.Targeting;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The stock two-body closest-approach backend — the always-present vanilla
+    /// The stock two-body closest-approach backend: the always-present vanilla
     /// for the <c>targetApproach</c> capability (see
     /// <see cref="TargetApproachElection"/>). Reads the live active vessel + its
     /// current target and uses KSP's OWN Kepler solver
@@ -13,7 +13,7 @@ namespace Gonogo.KSP
     /// Principia is loaded, replaces the Kepler solve with an n-body one; this
     /// backend is what runs on every stock install.
     ///
-    /// <para>Main-thread only (reads live KSP) — see
+    /// <para>Main-thread only (reads live KSP); see
     /// <see cref="ITargetApproachSolver"/>'s threading note.</para>
     /// </summary>
     public sealed class StockKeplerApproachSolver : ITargetApproachSolver

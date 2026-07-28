@@ -3,7 +3,7 @@
 declare const __GONOGO_VERSION__: string;
 declare const __GONOGO_BUILD_TIME__: string;
 // The C# contract's half of the app's Uplink-compat identity (design §5 step
-// 3 / §6.3) — single-sourced in vite.config.ts, gated against a runtime-
+// 3 / §6.3): single-sourced in vite.config.ts, gated against a runtime-
 // loaded Uplink descriptor's declared versions before import. apiVersion and
 // uiKitVersion no longer need a define: hostCompat.ts imports
 // EXTENSION_API_VERSION/UI_KIT_VERSION directly (see that file).
@@ -25,7 +25,7 @@ interface ImportMetaEnv {
   /**
    * Override PeerJS broker host. Production defaults to PeerJS's public
    * broker (0.peerjs.com); tests + self-hosted deploys can point at a
-   * private broker instead. Set together with VITE_PEER_PORT — both
+   * private broker instead. Set together with VITE_PEER_PORT, both
    * unset means "use the public broker" (PeerJS's library default).
    */
   readonly VITE_PEER_HOST?: string;
@@ -43,9 +43,9 @@ interface ImportMetaEnv {
   readonly VITE_PEER_SECURE?: string;
   /**
    * Build-time fallback host for the Sitrep mod WebSocket (default
-   * `localhost`). `SitrepTelemetryProvider` mounts unconditionally — the mod
+   * `localhost`). `SitrepTelemetryProvider` mounts unconditionally: the mod
    * is the app's only telemetry source since the legacy Telemachus
-   * `DataSource` was deleted at the R6 cutover (806e7fe2) — and this value
+   * `DataSource` was deleted at the R6 cutover (806e7fe2), and this value
    * is only the FLOOR of `sitrepRuntime.ts`'s resolution order: a
    * KSP_HOST bundle seed or a saved Data Sources panel config both
    * override it at runtime, no rebuild required.

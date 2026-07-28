@@ -5,7 +5,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests;
 
 /// <summary>
-/// <see cref="KosHealth"/> — the kOS uplink's <see cref="ISitrepUplink.Health"/>
+/// <see cref="KosHealth"/>: the kOS uplink's <see cref="ISitrepUplink.Health"/>
 /// state machine (mirrors <c>GonogoKerbcastUplink.Tests.KerbcastHealthTests</c>).
 /// </summary>
 public class KosHealthTests
@@ -37,8 +37,8 @@ public class KosHealthTests
     {
         var health = KosHealth.Evaluate(null, sampledOnce: false, cpuCount: -1);
 
-        // Not Healthy — we would be claiming a CPU count we have not
-        // observed. Not Unavailable — kOS registered fine.
+        // Not Healthy: we would be claiming a CPU count we have not
+        // observed. Not Unavailable: kOS registered fine.
         Assert.Equal(UplinkHealthState.Degraded, health.State);
         Assert.Contains("waiting for the first processor sample", health.Detail);
     }

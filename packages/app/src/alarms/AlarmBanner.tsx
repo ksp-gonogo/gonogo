@@ -1,4 +1,5 @@
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -10,7 +11,7 @@ import {
   MIN_WARP_SAFETY_MARGIN_SECONDS,
 } from "./types";
 
-/** KSP HIGH-warp ladder — index → rate. Mirrors AlarmHostService. */
+/** KSP HIGH-warp ladder: index → rate. Mirrors AlarmHostService. */
 const HIGH_WARP_RATES: readonly number[] = [
   1, 5, 10, 50, 100, 1000, 10000, 100000,
 ];
@@ -67,7 +68,7 @@ export function AlarmBanner() {
   useFireBeep(snap.alarms);
 
   // User feedback (2026-05-12): the warp/alarm banner used to be persistent
-  // at the top of the viewport and clobbered top-row widgets. New rule —
+  // at the top of the viewport and clobbered top-row widgets. New rule,
   // only render when there's something to surface: warp ≠ 1×, an alarm is
   // pending/firing, or a warpTo plan is queued.
   const isQuiet =
@@ -103,7 +104,7 @@ export function AlarmBanner() {
             <AlarmName>{nextAlarm.name}</AlarmName>
             {/* Only render the countdown text when it adds information
                 beyond the alarm name. Threshold alarms used to render
-                the trigger condition next to the name — but the user's
+                the trigger condition next to the name, but the user's
                 name typically already encodes it ("latlong v.lat >= 80"),
                 so we'd produce visible duplicates like "latlong v.lat
                 >= 80  v.lat >= 80". Time alarms still get a T-minus,
@@ -158,7 +159,7 @@ export function AlarmBanner() {
 /**
  * Sibling pill that surfaces the warp-to safety margin as its own
  * single-row banner. Rendered only when a warp-to session is active
- * (or a candidate exists) — the operator only cares about the margin
+ * (or a candidate exists), the operator only cares about the margin
  * when it's actively shaping behaviour. The hint moves to a `title`
  * tooltip so the pill stays one row tall like every other banner.
  */
@@ -186,7 +187,7 @@ export function SafetyMarginPill() {
             if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
           }}
           aria-label="Warp-to safety margin in real seconds"
-          title="Real seconds before arming — higher = step down earlier"
+          title="Real seconds before arming: higher = step down earlier"
         />
         <Label>s</Label>
       </Row>
@@ -198,7 +199,7 @@ export function SafetyMarginPill() {
  * One sibling pill per fired alarm not already represented in the
  * headline AlarmBanner. Contract-parameter fires collapse to a single
  * "N contract objectives completed" pill so a pile of them doesn't
- * crowd the stack. Each pill has its own Ack button — clicking
+ * crowd the stack. Each pill has its own Ack button, clicking
  * removes only that pill, leaving the others.
  */
 export function FiredAlarmPills() {
@@ -258,7 +259,7 @@ export function FiredAlarmPills() {
 }
 
 /**
- * Sibling pill that surfaces an unscheduled warp change — KSP-side
+ * Sibling pill that surfaces an unscheduled warp change, KSP-side
  * warp wasn't triggered by an alarm or by the operator clicking the
  * banner's warp-to button. Stays distinct from the alarm pills so the
  * operator can ack it without affecting alarm state.
@@ -303,7 +304,7 @@ function CollapsedCPInline({
 
 function isWarpToCandidate(alarm: Alarm): boolean {
   if (alarm.trigger.kind === "time") return true;
-  // Contract-parameter and event triggers are discrete transitions — no
+  // Contract-parameter and event triggers are discrete transitions, no
   // monotonic axis to warp toward.
   if (alarm.trigger.kind === "contract-parameter") return false;
   if (alarm.trigger.kind === "event") return false;
@@ -322,7 +323,7 @@ function bannerTone(alarm: Alarm | null): Tone {
 
 function pickNext(snap: AlarmSnapshot): Alarm | null {
   // Prefer firing > fired > arming > pending. Fired alarms now stay in
-  // the list until the user acks, so they need to outrank pending — a
+  // the list until the user acks, so they need to outrank pending, a
   // pending time alarm in the future shouldn't hide a just-fired
   // telemetry alarm waiting for acknowledgement.
   const priority: Record<Alarm["state"], number> = {
@@ -338,7 +339,7 @@ function pickNext(snap: AlarmSnapshot): Alarm | null {
     if (p !== 0) return p;
     // Time alarms sort by UT (earliest first); threshold alarms have no
     // single firing UT, so they fall to the end of the same-priority
-    // group — surfaced only when there's nothing else competing.
+    // group: surfaced only when there's nothing else competing.
     return sortKey(a) - sortKey(b);
   });
   return sorted[0] ?? null;
@@ -362,13 +363,13 @@ function headlineLabel(state: Alarm["state"]): string {
 }
 
 /** Secondary text after the alarm name. Returns null when there's
- *  nothing useful to add — keeps the banner pill single-row and
+ *  nothing useful to add: keeps the banner pill single-row and
  *  avoids redundant condition echoes.
  *
  *  Time alarms get a T-minus countdown (essential live info).
  *  Contract-parameter alarms get the parameter-title → target-state
  *  short form (the user's name is usually generic like "contract").
- *  Threshold alarms get nothing — the user's name almost always
+ *  Threshold alarms get nothing, the user's name almost always
  *  encodes the condition already ("latlong v.lat >= 80", "Pe < 70km"
  *  etc.) and rendering `dataKey op value` next to it just produces
  *  visible duplicates. Full condition stays one click away in the
@@ -384,11 +385,11 @@ function formatNextLine(alarm: Alarm, utNow: number | null): string | null {
 }
 
 function formatWarp(index: number, rate: number): string {
-  // `rate` is the source of truth — Telemachus delivers it on every WS
+  // `rate` is the source of truth, Telemachus delivers it on every WS
   // frame. `index` may be unavailable in some KSP / Telemachus builds, so
   // never gate on `index === 0` (that would silently mask manual warp).
   if (!Number.isFinite(rate) || rate <= 0) {
-    return Number.isFinite(index) ? `${index}×` : "—";
+    return Number.isFinite(index) ? `${index}×` : NULL_DISPLAY;
   }
   return formatRate(rate);
 }
@@ -421,7 +422,7 @@ function formatSeconds(s: number): string {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-// Solid backgrounds — the previous 0.85-0.95 alphas let widgets behind
+// Solid backgrounds: the previous 0.85-0.95 alphas let widgets behind
 // the BannerStack bleed through as ghost text. Operator readability
 // trumps the "see-through pill" aesthetic; the surface app colour
 // matches the dashboard's app background so the pill still feels

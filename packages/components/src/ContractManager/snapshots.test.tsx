@@ -8,8 +8,8 @@
  * `TelemetryProvider`) can never feed them. This file builds its own per-fixture
  * stream render instead: each fixture's flat `contracts.*` arrays are emitted
  * verbatim under `career.status.contracts` (parseContracts reads the same
- * shape), the view clock is pinned at the fixture's `t.universalTime`, and — when
- * the fixture carries `v.altitude` — a Loaded-basis `vessel.flight` supplies the
+ * shape), the view clock is pinned at the fixture's `t.universalTime`, and, when
+ * the fixture carries `v.altitude`: a Loaded-basis `vessel.flight` supplies the
  * measured altitude the altitude bands read.
  *
  * If the widget output intentionally changes, regenerate with

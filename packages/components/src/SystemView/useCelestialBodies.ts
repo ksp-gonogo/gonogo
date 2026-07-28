@@ -14,17 +14,17 @@ import {
 /**
  * The celestial-body tree, read off the mod's `system.bodies` stream Topic and
  * enriched with the almanac values the wire deliberately drops (see
- * `bodyDerivations.ts` — mass, surface gravity, escape velocity, orbital
+ * `bodyDerivations.ts`: mass, surface gravity, escape velocity, orbital
  * period, hill sphere and the live true anomaly are all reconstructed here from
  * `gravParameter` + `radius` + the orbit).
  *
  * This replaced the old Telemachus `b.*[i]` indexed-bucket fan-out (which read
- * `getDataSource("data")` directly — a source deleted in the Telemachus
+ * `getDataSource("data")` directly: a source deleted in the Telemachus
  * removal, which is why the body list went empty everywhere: SystemView,
  * TargetPicker's Bodies tab, OrbitView's body overlay).
  *
  * The derived `trueAnomaly` tracks the SDK view-UT, so bodies advance along
- * their orbits on the widget's telemetry-driven re-renders — the same cadence
+ * their orbits on the widget's telemetry-driven re-renders, the same cadence
  * the old live `b.o.trueAnomaly[i]` read ticked at.
  */
 
@@ -44,7 +44,7 @@ export interface CelestialBody {
   radius: number | null;
   /** Sphere-of-influence radius, metres. */
   soi: number | null;
-  /** Standard gravitational parameter μ = G·M, m³/s² — the compute primitive. */
+  /** Standard gravitational parameter μ = G·M, m³/s², the compute primitive. */
   gravParameter: number | null;
   // ── Orbit (null for the root star) ──────────────────────────────────────
   semiMajorAxis: number | null;
@@ -55,23 +55,23 @@ export interface CelestialBody {
   meanAnomalyAtEpoch: number | null;
   epoch: number | null;
   // ── Derived orbit values (from the elements + view-UT) ──────────────────
-  /** Orbital period, seconds — derived `2π√(a³/μ_parent)`. */
+  /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. */
   period: number | null;
-  /** True anomaly, degrees in [0, 360), at the current view-UT — derived. */
+  /** True anomaly, degrees in [0, 360), at the current view-UT, derived. */
   trueAnomaly: number | null;
   // ── Derived body properties (from μ + radius) ───────────────────────────
-  /** Mass, kg — derived `μ/G`. */
+  /** Mass, kg: derived `μ/G`. */
   mass: number | null;
-  /** Surface gravity in g — derived `μ/r²/g₀`. */
+  /** Surface gravity in g: derived `μ/r²/g₀`. */
   geeASL: number | null;
-  /** Escape velocity, m/s — derived `√(2μ/r)`. */
+  /** Escape velocity, m/s: derived `√(2μ/r)`. */
   escapeVelocity: number | null;
-  /** Hill-sphere radius, metres — derived from the orbit + masses. */
+  /** Hill-sphere radius, metres: derived from the orbit + masses. */
   hillSphere: number | null;
   // ── Almanac (on the wire) ───────────────────────────────────────────────
   rotationPeriod: number | null;
   tidallyLocked: boolean | null;
-  /** Whether the body rotates — derived (rotationPeriod finite and non-zero). */
+  /** Whether the body rotates: derived (rotationPeriod finite and non-zero). */
   rotates: boolean | null;
   hasOcean: boolean | null;
   description: string | null;

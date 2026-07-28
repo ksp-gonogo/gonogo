@@ -5,7 +5,7 @@ import { quantiseUt } from "./predictionThrottle";
 
 describe("MapView prediction throttle", () => {
   it("quantiseUt buckets the time so 4 Hz ticks collapse to 1 Hz invalidations", () => {
-    // Arbitrary float UT values 250 ms apart — Telemachus rate.
+    // Arbitrary float UT values 250 ms apart, Telemachus rate.
     const ticks = [
       1000.123,
       1000.373,
@@ -49,7 +49,7 @@ describe("MapView prediction throttle", () => {
     expect(budget.rate(tStart * 1000 + 4750)).toBeLessThanOrEqual(5);
   });
 
-  it("baseline (no throttle) would record one call per tick — the regression we're avoiding", () => {
+  it("baseline (no throttle) would record one call per tick, the regression we're avoiding", () => {
     // Sanity check: confirms the budget IS instrumented and would catch
     // a regression. Recording once per tick at 4 Hz over 5 sec = 20
     // events in a 1-sec rolling window the threshold is 30 → still

@@ -11,6 +11,7 @@ import {
   Cluster,
   EmptyState,
   Grid,
+  NULL_DISPLAY,
   Panel,
   PanelTitle,
   ProgressBar,
@@ -34,22 +35,22 @@ import { MinimapForActiveVessel } from "./Minimap";
 // Augment slots.
 //
 // Scanning is a SCANsat-OWNED widget that nonetheless exposes slots OTHER
-// Uplinks fill — a cross-Uplink example — even before the package
+// Uplinks fill (a cross-Uplink example) even before the package
 // itself moves to `@ksp-gonogo/gonogo-scansat-uplink`. Two slots:
 //
-// `scanning.sections` — a body/section slot appended to the per-scan-type
+// `scanning.sections`: a body/section slot appended to the per-scan-type
 // coverage list. The flagship future filler is another scanning mod
 // contributing its OWN scan-type coverage row alongside SCANsat's altimetry/
 // biome/anomaly rows. NOTE: SCANsat's own
-// custom map LAYERS route to `map-view.overlay`, NOT here — this slot is for
+// custom map LAYERS route to `map-view.overlay`, NOT here, this slot is for
 // extra COVERAGE ROWS only.
 //
-// `scanning.badges` — a broad escape-hatch badge slot in the header, next to
+// `scanning.badges`: a broad escape-hatch badge slot in the header, next to
 // the title, for a small status/indicator an Uplink wants to surface.
 //
 // Both carry the widget's current body focus as slot props so an augment scopes
 // its coverage rows / badge to the body the operator is actually looking at.
-// No augment ships here yet — the slots render nothing until one
+// No augment ships here yet: the slots render nothing until one
 // registers.
 // ---------------------------------------------------------------------------
 
@@ -57,7 +58,7 @@ import { MinimapForActiveVessel } from "./Minimap";
 export interface ScanningSlotContext {
   /**
    * The body the widget's body-scoped sections (coverage, anomalies) are
-   * currently following — the config override when set, else the active
+   * currently following: the config override when set, else the active
    * vessel's body. `undefined` before any active body is known. Lets an
    * augment scope its coverage row / badge to the same body.
    */
@@ -67,7 +68,7 @@ export interface ScanningSlotContext {
 // Declaration-merge the slot ids → props types into the sdk facade's
 // `SlotRegistry`. Co-located here (not centralised in
 // `mod/sitrep-sdk/src/api/slots.ts`, unlike packages/components-owned
-// slots) because Scanning is this Uplink's OWN widget — this file is
+// slots) because Scanning is this Uplink's OWN widget, this file is
 // always part of scansat's own compiled program, so there is no
 // cross-package reachability problem for the slot's OWNER (only for a
 // FOREIGN filler in a different package, which isn't the case here today;
@@ -166,7 +167,7 @@ function ScanningComponent({
           ) : null}
 
           <Section>
-            <SectionTitle>Coverage — {bodyName ?? "?"}</SectionTitle>
+            <SectionTitle>Coverage: {bodyName ?? "?"}</SectionTitle>
             {bodyName ? (
               <Stack gap="xs">
                 {DISPLAY_SCAN_TYPES.map((type) => (
@@ -176,7 +177,7 @@ function ScanningComponent({
             ) : (
               <EmptyState>No active body.</EmptyState>
             )}
-            {/* Augment coverage rows — e.g. a resource-scanning Uplink
+            {/* Augment coverage rows: e.g. a resource-scanning Uplink
                 contributing its own scan-type coverage alongside SCANsat's.
                 Appended to the coverage list; empty until an Uplink registers. */}
             <AugmentSlot name="scanning.sections" props={slotProps} />
@@ -251,7 +252,7 @@ function ScanningComponent({
           </Section>
 
           <Section>
-            <SectionTitle>Anomalies — {bodyName ?? "?"}</SectionTitle>
+            <SectionTitle>Anomalies: {bodyName ?? "?"}</SectionTitle>
             {anomalies && anomalies.length > 0 ? (
               <Stack gap="xs">
                 {anomalies.map((a) => (
@@ -266,7 +267,7 @@ function ScanningComponent({
                     <Value size="xs" tone="muted">
                       {a.known
                         ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
-                        : "—"}
+                        : NULL_DISPLAY}
                     </Value>
                   </Grid>
                 ))}
@@ -297,7 +298,7 @@ function CoverageRow({
       </Value>
       <ProgressBar
         value={value}
-        ariaLabel={`${SCAN_TYPE_LABELS[scanType]} coverage — ${bodyName}`}
+        ariaLabel={`${SCAN_TYPE_LABELS[scanType]} coverage: ${bodyName}`}
       />
       <Value size="xs" tone="muted">
         {value.toFixed(1)}%
@@ -312,7 +313,7 @@ registerComponent<ScanningConfig>({
   id: "scanning",
   name: "Scanning",
   description:
-    "SCANsat status — per-scan-type coverage of the current body, the " +
+    "SCANsat status: per-scan-type coverage of the current body, the " +
     "list of vessels SCANsat is tracking with their on-board scanners " +
     "and live in-range state, and the body's known anomalies with " +
     "discovery state.",
@@ -329,9 +330,9 @@ registerComponent<ScanningConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  // Augment slots. `sections` — extra coverage rows appended to the
+  // Augment slots. `sections`: extra coverage rows appended to the
   // per-scan-type coverage list (a resource-scanning Uplink's own coverage is
-  // the canonical filler); `badges` — broad header escape-hatch. Both render
+  // the canonical filler); `badges`: broad header escape-hatch. Both render
   // nothing until an Uplink registers. Custom map LAYERS go to map-view.overlay.
   augmentSlots: ["scanning.sections", "scanning.badges"],
   pushable: true,

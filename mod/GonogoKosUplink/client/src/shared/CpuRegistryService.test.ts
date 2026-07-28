@@ -120,7 +120,7 @@ describe("CpuRegistryService", () => {
       expect(svc.get(t)?.online).toBe(true);
       expect(svc.get(t)?.lastSeenAt).toBe(5000);
     }
-    // Vessel switch — only "b" is on the new vessel.
+    // Vessel switch: only "b" is on the new vessel.
     svc.reportOnline(["b"], 6000);
     expect(svc.get("a")?.online).toBe(false);
     expect(svc.get("b")?.online).toBe(true);
@@ -139,7 +139,7 @@ describe("CpuRegistryService", () => {
     expect(svc.get("a")?.online).toBe(false);
   });
 
-  it("online state is in-memory only — fresh service after a reload starts offline", () => {
+  it("online state is in-memory only, fresh service after a reload starts offline", () => {
     const svc = new CpuRegistryService("main", storage);
     svc.reportOnline(["a"], 1000);
     expect(svc.get("a")?.online).toBe(true);

@@ -16,7 +16,7 @@ import {
 } from "./index";
 
 // One flat entry off the new `science.deployed` wire (see index.tsx's
-// `parseBases`/`groupFlatDeployedEntries`) — grouped by `vesselName` into the
+// `parseBases`/`groupFlatDeployedEntries`): grouped by `vesselName` into the
 // widget's `DeployedBase[]` display shape client-side.
 const flatEntry = (
   over: Record<string, unknown> = {},
@@ -104,7 +104,7 @@ describe("DeployedScienceComponent", () => {
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    // No EC numbers on the new wire — powerAvailable/powerRequired degrade to 0/0.
+    // No EC numbers on the new wire, powerAvailable/powerRequired degrade to 0/0.
     expect(screen.getByText(/EC 0\/0/)).toBeInTheDocument();
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
@@ -208,7 +208,7 @@ describe("DeployedScienceComponent", () => {
     });
 
     // One augment per experiment card, each carrying its own card's datum
-    // (name + progress + body) in DOM order — proves the per-card props
+    // (name + progress + body) in DOM order, proves the per-card props
     // identity is correct.
     const sections = await waitFor(() => {
       const found = screen.getAllByTestId("deployed-section");

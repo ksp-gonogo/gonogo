@@ -30,7 +30,7 @@ export function useStationIdentityService(): StationIdentityService {
   return svc;
 }
 
-/** Reactive station name — re-renders on rename. */
+/** Reactive station name: re-renders on rename. */
 export function useStationName(): string {
   const svc = useStationIdentityService();
   const [name, setName] = useState(() => svc.getName());

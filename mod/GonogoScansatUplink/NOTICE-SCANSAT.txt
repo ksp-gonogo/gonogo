@@ -1,4 +1,4 @@
-LICENSING STATUS — GonogoScansatUplink is GPL-3.0-only, permanently (operator
+LICENSING STATUS: GonogoScansatUplink is GPL-3.0-only, permanently (operator
 decision, 2026-07-18).
 
 gonogo as a whole is MIT-licensed (repository root LICENSE). This uplink is
@@ -7,7 +7,7 @@ links SCANsat.dll / SCANsat.Unity.dll, a third-party mod whose repository
 LICENSE.txt (3-clause BSD, reproduced in full below) and published CKAN
 metadata ("restricted") disagree with each other. Rather than resolve that
 contradiction with the SCANsat stewards, this uplink simply stays
-GPL-3.0-only — the conservative option, and free: like GonogoKosUplink it is
+GPL-3.0-only, the conservative option, and free: like GonogoKosUplink it is
 a leaf, so nothing else in the repository inherits anything from it. Its
 co-located TypeScript client (@ksp-gonogo/gonogo-scansat-uplink) is GPL-3.0-only for the
 same reason.

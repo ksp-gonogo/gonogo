@@ -7,7 +7,7 @@
       // core#test carries the cross-package design-system guard
       // (src/styleguide.test.ts scans EVERY package's src for raw hex). That
       // scan reads sibling files off disk, which turbo's per-package cache
-      // can't see — so a hex added in another package used to replay a stale
+      // can't see, so a hex added in another package used to replay a stale
       // core#test pass, the reason the pre-push hook needed --force. Keying
       // core#test's cache on the workspace src trees makes a normal cached
       // `turbo run test` re-run it on any src change, so --force is gone.

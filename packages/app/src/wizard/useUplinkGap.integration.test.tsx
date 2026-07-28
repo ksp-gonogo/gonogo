@@ -21,11 +21,11 @@ import {
 import { useUplinkGap } from "./useUplinkGap";
 
 /**
- * Proves `useUplinkGap` actually wires its three live inputs — the real
+ * Proves `useUplinkGap` actually wires its three live inputs, the real
  * `useStream<SystemUplinkHealth>("system.uplinkHealth")` over a live
  * WebSocketTransport (same MSW `ws` boundary `sitrep-stream-wire.test.tsx`
  * uses), the real `loaderState` subscription, and a real `fetchRegistry`
- * HTTP call intercepted by MSW — rather than re-testing `computeUplinkGap`'s
+ * HTTP call intercepted by MSW: rather than re-testing `computeUplinkGap`'s
  * join logic, which `useUplinkGap.test.ts` already covers exhaustively.
  */
 
@@ -73,7 +73,7 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-describe("useUplinkGap — hook wiring", () => {
+describe("useUplinkGap: hook wiring", () => {
   it("stays loading until the roster and the hub registry both resolve, then joins them", async () => {
     server.use(
       http.get("*/uplinks/registry.local.json", () =>

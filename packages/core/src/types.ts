@@ -1,4 +1,4 @@
-// Core shared types — expand as features are built
+// Core shared types: expand as features are built
 
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
@@ -13,7 +13,7 @@ export type DataSourceStatus =
   | "error";
 
 // ---------------------------------------------------------------------------
-// Data source schema registry — extensible via declaration merging
+// Data source schema registry: extensible via declaration merging
 // ---------------------------------------------------------------------------
 
 /**
@@ -29,7 +29,7 @@ export type DataSourceStatus =
  *   }
  *
  * Once registered, `useTelemetry("my-source", key)` infers the return type
- * from the schema automatically — no manual type parameter needed.
+ * from the schema automatically: no manual type parameter needed.
  */
 export interface DataSourceRegistry {
   telemachus: TelemaachusSchema;
@@ -52,7 +52,7 @@ export interface ConfigField {
  *
  * Note there is no longer a `value:` Telemachus read key. That field
  * (`"v.sasValue"`, `"v.ag1Value"`, …) was the last thing forcing `ActionGroup`
- * to resolve its read dynamically off this registry — which made it the
+ * to resolve its read dynamically off this registry, which made it the
  * mapTopic coverage scan's own blind spot AND kept a legacy
  * `useTelemetry("data", …)` shim read alive in the widget. The widget now reads
  * the canonical `vessel.control` / `vessel.structure` topics directly and
@@ -66,7 +66,7 @@ export interface ActionGroup {
   toggle: string | null;
   description: string;
   /**
-   * CUSTOM groups only: the backend's own 1-based group index — the same number
+   * CUSTOM groups only: the backend's own 1-based group index, the same number
    * `vessel.control.setActionGroup` takes, and the key by which the widget
    * finds this group in `vessel.control.actionGroups`. Absent for the stock
    * singletons, which are read from their own typed `vessel.control` fields.
@@ -103,7 +103,7 @@ export interface DataSource<
   setupInstructions?(): string | null;
   /**
    * When true, samples from this source are gated by the vessel's CommNet
-   * link — during blackout (`comm.connected === false`) the buffering layer
+   * link: during blackout (`comm.connected === false`) the buffering layer
    * drops non-`comm.*` samples rather than persisting or fanning them out.
    * Sources that handle signal loss internally (e.g. kOS, which runs
    * autonomously on the vessel) should leave this false.
@@ -114,7 +114,7 @@ export interface DataSource<
 export type ComponentBehavior = "gonogo-participant";
 
 // ---------------------------------------------------------------------------
-// Action inputs — wiring for physical/virtual controls to trigger component
+// Action inputs: wiring for physical/virtual controls to trigger component
 // functionality. Components declare their available actions at registration;
 // users later map device inputs to them via the input mapping UI.
 // ---------------------------------------------------------------------------
@@ -157,9 +157,9 @@ export type ActionHandlers<TActions extends readonly ActionDefinition[]> = {
  * The default (`Record<string, unknown>`) is kept for backward compat and for
  * the registry, which erases the type parameter when storing components.
  *
- * - `id`             — the DashboardItem instance ID (stable per placement)
- * - `w` / `h`        — current grid-unit size (column/row spans); use to adapt layout
- * - `onConfigChange` — call to persist inline config edits (e.g. label rename)
+ * - `id`            : the DashboardItem instance ID (stable per placement)
+ * - `w` / `h`       : current grid-unit size (column/row spans); use to adapt layout
+ * - `onConfigChange`: call to persist inline config edits (e.g. label rename)
  */
 export interface ComponentProps<TConfig = Record<string, unknown>> {
   config?: TConfig;
@@ -187,7 +187,7 @@ export interface ConfigComponentProps<TConfig = Record<string, unknown>> {
  *
  *   registerComponent<ActionGroupConfig>({
  *     component: ActionGroupComponent,       // ComponentType<ComponentProps<ActionGroupConfig>>
- *     defaultConfig: { actionGroupId: 'AG1' }, // Partial<ActionGroupConfig> — checked ✓
+ *     defaultConfig: { actionGroupId: 'AG1' }, // Partial<ActionGroupConfig>, checked ✓
  *   });
  *
  * The registry stores ComponentDefinition<any> so the orchestrator can render
@@ -207,7 +207,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /** Default grid size when placed from the overlay. Falls back to { w: 3, h: 3 }. */
   defaultSize?: { w: number; h: number };
   /**
-   * Minimum grid size — RGL prevents the user dragging below these dimensions
+   * Minimum grid size: RGL prevents the user dragging below these dimensions
    * and saved layouts smaller than this are clamped on load. Use to gate sizes
    * where the widget becomes unreadable. Falls back to { w: 1, h: 1 } (no
    * floor) when omitted, but most widgets should set this.
@@ -217,13 +217,13 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * Width hint for the mobile / touch dashboard layout, which is a flex-wrap
    * column rather than a grid. `'half'` items take ~50% of the row and pair
    * up when consecutive; `'full'` (default) takes the full row. Use `'half'`
-   * for compact controls (e.g. ActionGroup) — most widgets should stay full.
+   * for compact controls (e.g. ActionGroup): most widgets should stay full.
    */
   mobileWidth?: "full" | "half";
   /**
    * Height in px for the mobile layout. Defaults to `defaultSize.h * ROW_HEIGHT`
    * (the same vertical space the widget gets on desktop). Override only when
-   * the desktop default looks cramped at full mobile width — typically graphs
+   * the desktop default looks cramped at full mobile width, typically graphs
    * and maps that benefit from extra vertical room in portrait.
    */
   mobileHeight?: number;
@@ -232,7 +232,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * Topics this widget REQUIRES (Uplink architecture spec §3.2). The widget
    * only mounts once every one of these Topics is live, so a required Topic's
    * payload is read non-null through the manifest hook (§3.3). Typed as
-   * `readonly TopicId[]` — the same typed token the read hook is keyed by, so
+   * `readonly TopicId[]`: the same typed token the read hook is keyed by, so
    * there is no drift between declaration and read. Authored via
    * {@link defineTopicManifest} (`channels`), which also yields the bound
    * `useTelemetry` hook. Coexists with the legacy `dataRequirements` during
@@ -242,7 +242,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /**
    * Topics this widget OPTIONALLY consumes (Uplink architecture spec §3.2).
    * May be absent at runtime, so every Value read from one is `| undefined`
-   * through the manifest hook (§3.3) — a widget therefore cannot hard-depend
+   * through the manifest hook (§3.3): a widget therefore cannot hard-depend
    * on an optional Topic, statically. Typed as `readonly TopicId[]`. Authored
    * via {@link defineTopicManifest} (`optionalChannels`).
    */
@@ -266,8 +266,8 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /**
    * Game-state preconditions for this widget to be "live". The dashboard
    * orchestrator dims the widget with an explanatory overlay when any
-   * requirement is unmet (vessel not flying, career save not active, ...)
-   * — the widget still renders its current values underneath the dim
+   * requirement is unmet (vessel not flying, career save not active, ...),
+   * the widget still renders its current values underneath the dim
    * layer so the operator sees layout + last-good data, just visually
    * de-emphasised. Empty / omitted = always live.
    *
@@ -282,12 +282,12 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * `<AugmentSlot name="..." />`; any Uplink may contribute into it with
    * `registerAugment`. Slot names are authored up front (`augment-slot-map.md`)
    * and are discoverable/version-able like any contract surface. Not a
-   * core-widget privilege — an Uplink-owned widget can expose slots too (§4.6).
+   * core-widget privilege: an Uplink-owned widget can expose slots too (§4.6).
    */
   augmentSlots?: string[];
   /**
    * Replacement escape hatch (Uplink architecture spec §4.5): declares that this
-   * widget REPLACES the widget with the given id — the registry suppresses the
+   * widget REPLACES the widget with the given id, the registry suppresses the
    * original and renders this one instead. This is the "throw the whole widget
    * away and render mine" case, distinct from (composable) augments. One active
    * replacement wins; TWO widgets replacing the same target is a surfaced
@@ -296,7 +296,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   replaces?: string;
   /**
    * The Uplink client that registered this widget (Uplink Client Contract
-   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle —
+   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle,
    * never set by hand. Purely for provenance / mod search tags
    * (`effectiveSearchTags`) and future health/version surfaces; it plays no
    * part in registration collision handling (that stays the existing
@@ -313,8 +313,8 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
  * each one up against `useGameContext()` and dims the widget if any is
  * unmet.
  *
- * - `flight` — `kc.scene === "Flight"`. Most vessel-data widgets.
- * - `career` — `career.mode` ∈ {CAREER, SCIENCE}. Funds / contracts /
+ * - `flight`: `kc.scene === "Flight"`. Most vessel-data widgets.
+ * - `career`: `career.mode` ∈ {CAREER, SCIENCE}. Funds / contracts /
  *   tech-tree widgets where sandbox mode has nothing meaningful to show.
  *
  * Add new requirement names here when a widget needs a different gate;

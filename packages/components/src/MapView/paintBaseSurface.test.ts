@@ -4,10 +4,10 @@ import { baseSurfacePainted, paintBaseSurface } from "./paintBaseSurface";
 // The map is a BACKGROUND with everything else drawn on top. `map-view.base`
 // is a STACKABLE slot (local_docs/spec-mapview-stackable-layers.md): many
 // augments may draw, in order, and the stock texture is skipped only when
-// `suppressVanilla` is true — a declarative decision independent of
+// `suppressVanilla` is true, a declarative decision independent of
 // whether any layer currently has something to paint. "All layers off"
 // while suppression is active must NOT fall back to the stock texture
-// (spec §5) — it falls through to the dark panel fill already on the
+// (spec §5): it falls through to the dark panel fill already on the
 // canvas, same as an individual layer's own un-painted tiles always have.
 
 function fakeCtx() {
@@ -153,7 +153,7 @@ describe("baseSurfacePainted", () => {
     ).toBe(true);
   });
 
-  it("FALSE when vanilla is suppressed and no layer contributes — even with a stock texture loaded", () => {
+  it("FALSE when vanilla is suppressed and no layer contributes, even with a stock texture loaded", () => {
     expect(
       baseSurfacePainted({
         textureImage: STOCK,
@@ -175,7 +175,7 @@ describe("baseSurfacePainted", () => {
     ).toBe(true);
   });
 
-  it("false on a bare canvas — no texture, no colour, no layers, no suppression", () => {
+  it("false on a bare canvas: no texture, no colour, no layers, no suppression", () => {
     expect(
       baseSurfacePainted({
         textureImage: null,

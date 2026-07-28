@@ -13,15 +13,15 @@ namespace Sitrep.Core.Tests
     /// <c>mod/golden-fixtures/stub-network.json</c>. The fixture is generated
     /// by running the REAL TS <c>StubNetwork</c> in
     /// <c>mod/sitrep-server/src/stub-network.ts</c> over a set of scripted
-    /// scenarios (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`)
-    /// — this test never hand-authors expected values, it only replays each
+    /// scenarios (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`),
+    /// this test never hand-authors expected values, it only replays each
     /// scenario's ops against the C# port and asserts every query op
     /// reproduces the recorded expected result.
     ///
     /// A scenario constructs one <c>StubNetwork</c> (optional <c>defaults</c>
     /// + <c>scale</c> constructor args) then runs an ops list that interleaves
     /// mutations (<c>setDelay</c> / <c>setReachable</c> / <c>setScale</c>)
-    /// with queries (<c>queryDelay</c> / <c>queryReachable</c>) — each query
+    /// with queries (<c>queryDelay</c> / <c>queryReachable</c>): each query
     /// op carries the <c>expected</c> value the TS instance actually returned
     /// at that point in the sequence, so ordering (e.g. a query before and
     /// after a <c>setScale</c>) is preserved exactly.

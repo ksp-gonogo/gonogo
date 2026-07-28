@@ -15,7 +15,7 @@ namespace Sitrep.Host.Tests
     /// (<c>Gonogo.KSP.KspHost.BuildRevertAvailability</c>'s two bools, read
     /// from <c>FlightDriver.CanRevertToPrelaunch</c>/<c>CanRevertToPostInit</c>)
     /// is mapped to the <c>ksp.revertAvailability</c> payload and asserted
-    /// against the class doc's rules — the "not in flight" (no <c>"revert"</c>
+    /// against the class doc's rules: the "not in flight" (no <c>"revert"</c>
     /// key at all) → null guard, the two-plain-bools shape, missing bool →
     /// <c>false</c> (never offer a revert we can't confirm), and the payload
     /// serializing cleanly through the REAL production path.

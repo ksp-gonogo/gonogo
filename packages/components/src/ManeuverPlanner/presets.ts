@@ -92,7 +92,7 @@ export const PRESETS: Array<{
     id: "match-target-plane",
     label: "Match target plane",
     description:
-      "Full plane match — both inclination and LAN — at the relative-plane intersection. Needs a target.",
+      "Full plane match (both inclination and LAN) at the relative-plane intersection. Needs a target.",
     needsCustomInput: false,
   },
 ];

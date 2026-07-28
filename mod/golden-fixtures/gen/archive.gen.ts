@@ -1,16 +1,16 @@
 #!/usr/bin/env tsx
 /**
- * Golden-fixture generator for `mod/sitrep-server/src/archive.ts`'s `Archive`
- * — specifically its READ behavior (`record` / `readAtVantage`). The C#-only
+ * Golden-fixture generator for `mod/sitrep-server/src/archive.ts`'s `Archive`,
+ * specifically its READ behavior (`record` / `readAtVantage`). The C#-only
  * snapshot/restore addition (for M5b quicksave) has no TS reference and is
- * NOT covered here — it's tested C#-side against a fresh `Archive` instance
+ * NOT covered here; it's tested C#-side against a fresh `Archive` instance
  * (see `Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs`).
  *
  * Like `StubNetwork`, `Archive` is stateful with no single global observable
  * output: a scenario's `ops` list interleaves mutations (`record`) with
  * queries (`readAtVantage`), and each `readAtVantage` op carries the
- * `expected` result — `{ value, validAt }` or `null` (JSON has no
- * `undefined`) — the real TS instance actually returned when it was reached.
+ * `expected` result, `{ value, validAt }` or `null` (JSON has no
+ * `undefined`), the real TS instance actually returned when it was reached.
  * This preserves the exact call order the freeze-on-recession and
  * two-vantage-independence semantics depend on.
  *
@@ -44,7 +44,7 @@ interface ReadAtVantageOp {
   vantage: string;
   delaySeconds: number;
   nowUt: number;
-  /** Filled in by `runScenario` from the real TS instance — never hand-authored. */
+  /** Filled in by `runScenario` from the real TS instance, never hand-authored. */
   expected?: { value: unknown; validAt: number } | null;
 }
 

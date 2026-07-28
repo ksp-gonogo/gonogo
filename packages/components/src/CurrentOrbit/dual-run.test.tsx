@@ -14,7 +14,7 @@ import { CurrentOrbitComponent } from "./index";
  * asserting the SAME orbit state rendered byte-identical off the legacy
  * `DataSource` and off the stream. That legacy `"data"` `MockDataSource` leg is
  * moot now that every field the widget reads is a clean-home stream Topic and
- * the widget no longer touches the legacy source at all, so it's dropped — what
+ * the widget no longer touches the legacy source at all, so it's dropped, what
  * remains is the full stream render on its own: the complete grid (raw
  * `vessel.orbit` elements + `vessel.state`-derived apsis altitudes / period /
  * time-to-apsis), the reference-body subtitle (derived
@@ -47,7 +47,7 @@ const MU = 3.5316e12; // Kerbin's GM
 const BODY_RADIUS = 600_000;
 const PERIOD = 2 * Math.PI * Math.sqrt(SMA ** 3 / MU);
 
-describe("CurrentOrbit — full render off the stream (R6 Wave 1)", () => {
+describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
   it("renders the complete grid, subtitle, and diagram purely off the stream", async () => {
     registerStockBodies();
     const mode = { name: "default-9x18", w: 9, h: 18 };
@@ -101,7 +101,7 @@ describe("CurrentOrbit — full render off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // Inclination is raw off vessel.orbit; period is derived off vessel.state —
+    // Inclination is raw off vessel.orbit; period is derived off vessel.state,
     // waiting on both proves the whole mixed raw+derived surface has landed.
     await waitFor(() => {
       if (!container.textContent?.includes("0.3°")) {
@@ -122,7 +122,7 @@ describe("CurrentOrbit — full render off the stream (R6 Wave 1)", () => {
     expect(container.textContent).toContain("Kerbin");
     // Default mini orbit diagram renders (hasOrbit satisfied off derived ApR/PeR).
     expect(container.querySelector("svg")).not.toBeNull();
-    // Period sanity — matches the vessel-state derivation used above.
+    // Period sanity: matches the vessel-state derivation used above.
     expect(PERIOD).toBeGreaterThan(1800);
   });
 });

@@ -1,26 +1,26 @@
 /**
- * Widget DOM mirror — AtmosphereProfile. Asserts the panel chrome renders
+ * Widget DOM mirror: AtmosphereProfile. Asserts the panel chrome renders
  * on host and station, and the full happy-path state (including the
  * "waiting for body telemetry" empty state staying absent) on the host.
  *
  * The fixture (`sitrep-stream-server.mjs`) has:
  *   vessel.state.parentBodyName = "Kerbin"  (derived; needs all 8
- *                                  vessel.state inputs — see that
+ *                                  vessel.state inputs: see that
  *                                  channel's own doc comment)
- *   vessel.state.altitudeAsl    = null      (OnRails basis — altitude is a
+ *   vessel.state.altitudeAsl    = null      (OnRails basis: altitude is a
  *                                  measured-basis-only field, see
  *                                  vessel-state.ts)
  *
  * Kerbin is a known body with an atmospheric model, so on the HOST:
- *   - The reference pressure curve renders (no GraphView empty-state —
+ *   - The reference pressure curve renders (no GraphView empty-state,
  *     the "Waiting for body telemetry…" fallback only fires when `body`
  *     is `undefined`).
  *   - Neither "No atmospheric model registered" nor "Unknown body"
  *     notices fire (Kerbin resolves cleanly with `body.atmosphere` set).
  *
- * On the STATION, `bodyName` never resolves — only the MAIN screen mounts
+ * On the STATION, `bodyName` never resolves: only the MAIN screen mounts
  * `SitrepTelemetryProvider` today (station stream forwarding over PeerJS
- * is a documented pending gap, see that provider's own doc comment) — so
+ * is a documented pending gap, see that provider's own doc comment), so
  * `body` stays `undefined` there and GraphView's "Waiting for body
  * telemetry…" empty state DOES fire. The "Unknown body"/"No atmospheric
  * model registered" notices still correctly stay absent on the station
@@ -30,7 +30,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — AtmosphereProfile", () => {
+test.describe("widget DOM mirror: AtmosphereProfile", () => {
   test("panel title renders on host and station; happy-path state on host", async ({
     browser,
   }) => {

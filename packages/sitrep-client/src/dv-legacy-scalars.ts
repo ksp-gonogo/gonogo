@@ -18,13 +18,13 @@ interface VesselStructureWirePayload {
  * The four vessel-wide/current-stage ΔV & mass scalars the old
  * `@ksp-gonogo/data` `registerBuiltinDerivedKeys()` projected out of
  * `dv.stages` for the generic Graph widget's key picker (old keys
- * `dv.total`/`dv.current`/`dv.currentFuelMass`/`dv.totalMass` — see that
+ * `dv.total`/`dv.current`/`dv.currentFuelMass`/`dv.totalMass`: see that
  * file's own doc comment). Those legacy derived keys never got a stream
- * home in `map-topic.ts` at all — this channel is that home, computed the
+ * home in `map-topic.ts` at all: this channel is that home, computed the
  * same way, off the same two already-carried raw topics.
  */
 export interface DvLegacyScalars {
-  /** Sum of every stage's `deltaVActual` — vessel-total ΔV at the current situation (m/s). */
+  /** Sum of every stage's `deltaVActual`: vessel-total ΔV at the current situation (m/s). */
   total: number;
   /** The active stage's own `deltaVActual` (m/s), or `null` when no stage matches `vessel.structure.currentStage`. */
   current: number | null;
@@ -33,7 +33,7 @@ export interface DvLegacyScalars {
   /**
    * Sum of every stage's `dryMass + fuelMass`. `StageDeltaVEntry` never
    * carries a `stageMass` field at all (`useVesselDeltaV.ts`'s own doc
-   * comment) — dry + fuel per stage is the same total the old
+   * comment): dry + fuel per stage is the same total the old
    * Telemachus `stageMass` sum represented, reconstructed from the two
    * fields the wire actually carries.
    */
@@ -56,9 +56,9 @@ function asStageArray(value: unknown): StageDeltaVWireEntry[] {
 }
 
 /**
- * `dv.legacyScalars` derivation — see {@link DvLegacyScalars} for what each
+ * `dv.legacyScalars` derivation: see {@link DvLegacyScalars} for what each
  * field means. `undefined` while either input hasn't arrived yet; `null` on
- * a confirmed tombstone of either — same two-input join shape as
+ * a confirmed tombstone of either: same two-input join shape as
  * `dv-stage-resources.ts`'s `currentStageResources`.
  */
 export function deriveDvLegacyScalars(
@@ -105,13 +105,13 @@ export function deriveDvLegacyScalars(
 }
 
 /**
- * Ready-to-register definition — `store.registerDerivedChannel(dvLegacyScalarsChannel)`.
+ * Ready-to-register definition: `store.registerDerivedChannel(dvLegacyScalarsChannel)`.
  * `fields: true` exposes `dv.legacyScalars.total` / `.current` /
- * `.currentFuelMass` / `.totalMass` — the targets `map-topic.ts`'s
+ * `.currentFuelMass` / `.totalMass`: the targets `map-topic.ts`'s
  * `TELEMACHUS_CLEAN_HOMES` entries for `dv.total`/`dv.current`/
  * `dv.currentFuelMass`/`dv.totalMass` point at. `deriveStatus` omitted: the
  * default (worst status across `dv.stages` + `vessel.structure`, both
- * genuinely consulted every call) is exactly right — same as
+ * genuinely consulted every call) is exactly right, same as
  * `dv-stage-resources.ts`'s channels.
  */
 export const dvLegacyScalarsChannel: DerivedChannelDefinition<DvLegacyScalars> =

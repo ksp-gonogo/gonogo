@@ -15,7 +15,7 @@ import {
  *
  * Each fixture is a raw `v.topology` payload captured from a live KSP
  * session 2026-05-15. The tests below assert the *invariants* the
- * fixtures encode — they don't yet do full DOM snapshots; that work is
+ * fixtures encode: they don't yet do full DOM snapshots; that work is
  * still pending. For now they at least pin the wire-shape
  * contract so future fixture captures can be validated.
  *
@@ -34,7 +34,7 @@ function loadParts(fixture: Fixture): ShipMapPart[] {
 }
 
 describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
-  it("rover-b-alone — 28 parts, vertical Y stack, classifyable", () => {
+  it("rover-b-alone: 28 parts, vertical Y stack, classifyable", () => {
     const parts = loadParts(roverBAlone as Fixture);
     expect(parts).toHaveLength(28);
     // KSP convention: Y is vessel stack axis. Parts span a non-zero
@@ -46,7 +46,7 @@ describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
     expect(parts.every((p) => typeof p.type === "string")).toBe(true);
   });
 
-  it("rover-merged — 56 parts, both docking ports present, T-shape", () => {
+  it("rover-merged: 56 parts, both docking ports present, T-shape", () => {
     const parts = loadParts(roverMerged as Fixture);
     expect(parts).toHaveLength(56);
     const dockingPorts = parts.filter((p) =>
@@ -61,7 +61,7 @@ describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
     expect(latSpan).toBeGreaterThan(0);
   });
 
-  it("fuelline-tester-prelaunch — 22 parts, 2 fuel lines via CModuleFuelLine", () => {
+  it("fuelline-tester-prelaunch: 22 parts, 2 fuel lines via CModuleFuelLine", () => {
     const fixture = fuellinePrelaunch as Fixture;
     const topo = fixture["v.topology"];
     const fuelLines = topo.parts.filter((p) =>
@@ -69,16 +69,16 @@ describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
     );
     expect(fuelLines).toHaveLength(2);
     // Each fuel line's parentFlightId points at its
-    // "from" tank. The "to" tank isn't in the topology yet — fork
+    // "from" tank. The "to" tank isn't in the topology yet, fork
     // extension needed. Lock the current contract.
     for (const line of fuelLines) {
       expect(line.parentFlightId).not.toBeNull();
     }
   });
 
-  it("fuelline-tester-poststage2 — minimum-survival craft renders", () => {
+  it("fuelline-tester-poststage2: minimum-survival craft renders", () => {
     const parts = loadParts(fuellinePostStage2 as Fixture);
-    // Pod + parachute + 2 antennas — edge-case for tiny vessels.
+    // Pod + parachute + 2 antennas: edge-case for tiny vessels.
     expect(parts).toHaveLength(4);
     expect(parts.some((p) => p.name === "mk1pod.v2")).toBe(true);
     expect(parts.some((p) => p.name === "parachuteSingle")).toBe(true);
@@ -97,7 +97,7 @@ describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
     ]) {
       const topo = (fixture as Fixture)["v.topology"];
       const { useX } = pickLateralAxis(topo.parts);
-      // useX is the lateral choice (X or Z) — never Y. If the bug
+      // useX is the lateral choice (X or Z); never Y. If the bug
       // returns, the picker would have to be modified directly.
       expect(typeof useX).toBe("boolean");
       // Every part's axial should be orgPos[1] (Y) per the fix.

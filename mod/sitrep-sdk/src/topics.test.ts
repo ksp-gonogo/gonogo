@@ -14,7 +14,7 @@ import {
 
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
- * contract type) — the two ENGINE-AGGREGATED system channels. See the topics.ts header.
+ * contract type): the two ENGINE-AGGREGATED system channels. See the topics.ts header.
  * Everything else in `TOPIC_IDS` MUST come from the generated map. The bare-primitive
  * Uplink Topics are NO LONGER here: they moved out to their owning Uplink client packages
  * (each registers its id at load via `registerBarePrimitiveTopic`), so they are not part of
@@ -49,7 +49,7 @@ function collectContractSources(dir: string, out: string[] = []): string[] {
 
 /**
  * Extract every declared channel Topic from the C# sources: `const string
- * <Name>Topic = "<value>"`. Dotted values only — this drops the kOS parser's
+ * <Name>Topic = "<value>"`. Dotted values only: this drops the kOS parser's
  * dot-less "default" fallback bucket (and never matches the `kos.compute.` dynamic
  * *prefix*, whose constant is `ComputePrefix`, not `...Topic`).
  */
@@ -69,18 +69,18 @@ function extractDeclaredTopics(): Set<string> {
 describe("typed Topic registry", () => {
   it("every SDK-owned Topic is declared in C# (forward self-check)", () => {
     // NARROWED (2026-07-20): this SDK package cannot see the Uplink client
-    // packages that own the bare-primitive Topics — importing them here would be
-    // the very `^build` cycle the leaf architecture forbids — so the SDK's own
+    // packages that own the bare-primitive Topics: importing them here would be
+    // the very `^build` cycle the leaf architecture forbids, so the SDK's own
     // registry (`TOPIC_IDS`) legitimately does NOT contain them. The FULL
     // bidirectional C#↔registry sync check (which needs the union of every
     // registered bare-primitive Topic) therefore lives in `packages/app`,
     // downstream of all Uplink clients: `topic-cs-sync.test.ts`. Here we keep only
-    // the forward half — every Topic the SDK itself owns must be declared in C#.
+    // the forward half: every Topic the SDK itself owns must be declared in C#.
     const declared = extractDeclaredTopics();
     const staleInSdk = [...TOPIC_IDS].filter((t) => !declared.has(t)).sort();
 
     // If this fails: an SDK-owned Topic (generated or the engine tail) is no
-    // longer declared in C# — regenerate the codegen map / fix the engine tail.
+    // longer declared in C#: regenerate the codegen map / fix the engine tail.
     expect(staleInSdk, "SDK-owned Topics no longer declared in C#").toEqual([]);
   });
 
@@ -93,7 +93,7 @@ describe("typed Topic registry", () => {
   });
 
   it("is driven by the generated (codegen) map, not a hand-authored one", () => {
-    // The registry must be exactly the generated ids plus the documented hand tail —
+    // The registry must be exactly the generated ids plus the documented hand tail,
     // proving the map really comes from codegen (a stale/hand-maintained map would
     // drift from GENERATED_TOPIC_IDS). Paired with the compile-time
     // `_AssertNoTopicResolvesToUnknown` in topics.ts + the `_NoTopicIsUnknown` proof
@@ -137,7 +137,7 @@ describe("typed Topic registry", () => {
 
   describe("registerBarePrimitiveTopic", () => {
     // A synthetic id (not a real Uplink Topic) keeps the module-global registry
-    // uncontaminated for the rest of the suite — the real bare topics are
+    // uncontaminated for the rest of the suite, the real bare topics are
     // registered by their own Uplink client packages, never by the SDK.
     const SYNTHETIC = "test.synthetic.bare";
 
@@ -151,7 +151,7 @@ describe("typed Topic registry", () => {
       expect(getAllKnownTopicIds()).toContain(SYNTHETIC);
     });
 
-    it("is idempotent — a double register adds no duplicate", () => {
+    it("is idempotent, a double register adds no duplicate", () => {
       registerBarePrimitiveTopic(SYNTHETIC);
       registerBarePrimitiveTopic(SYNTHETIC);
       const all = getAllKnownTopicIds();

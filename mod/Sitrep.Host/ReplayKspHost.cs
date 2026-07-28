@@ -8,11 +8,11 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// An <see cref="IKspHost"/> that replays a previously-captured
-    /// <see cref="RecordedSession"/> instead of talking to a live game —
+    /// <see cref="RecordedSession"/> instead of talking to a live game,
     /// the headless counterpart to <c>Gonogo.KSP</c>'s in-game <c>KspHost</c>
     /// (Task 4). A real capture can contain a UT rewind (an F9 quickload
     /// fires a <c>game-state-load</c> event, then resumes recording from the
-    /// loaded save's earlier UT) — <see cref="Step"/> is the driver safe for
+    /// loaded save's earlier UT): <see cref="Step"/> is the driver safe for
     /// that: it consumes the recording in capture order regardless of
     /// whether <c>T</c> goes forward or backward. <see cref="AdvanceTo"/>
     /// remains for curated/test-fixture use where the caller already knows
@@ -63,8 +63,8 @@ namespace Sitrep.Host
         /// <summary>
         /// Advances replay time to <paramref name="ut"/>, firing every
         /// not-yet-fired <see cref="Lifecycle"/> event whose recorded
-        /// <c>T &lt;= ut</c> — in recorded (timeline) order, each exactly
-        /// once — and updating what <see cref="Sample"/> returns to the
+        /// <c>T &lt;= ut</c>: in recorded (timeline) order, each exactly
+        /// once: and updating what <see cref="Sample"/> returns to the
         /// latest snapshot entry with <c>T &lt;= ut</c>.
         ///
         /// <para>
@@ -76,7 +76,7 @@ namespace Sitrep.Host
         /// every post-rewind entry in one gulp instead of pacing through
         /// them. Only call this with UTs the caller controls exactly (e.g.
         /// a curated test fixture that never rewinds). For driving replay of
-        /// an arbitrary/real recording, use <see cref="Step"/> instead — it
+        /// an arbitrary/real recording, use <see cref="Step"/> instead, it
         /// never compares two entries' <c>T</c> against each other or a
         /// target and is correct-by-construction for any ordering.
         /// </para>
@@ -108,12 +108,12 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Consumes exactly the next entry in capture order, whatever its
-        /// <c>T</c> — including a <c>T</c> that rewinds backward relative to
+        /// <c>T</c>: including a <c>T</c> that rewinds backward relative to
         /// everything replayed so far, as a real recording's
         /// post-quickload entries do. Sets <see cref="NowUt"/> to the
         /// consumed entry's own <c>T</c>, updates the current snapshot or
         /// fires <see cref="Lifecycle"/> as appropriate, and never compares
-        /// the entry's <c>T</c> against anything — so it is
+        /// the entry's <c>T</c> against anything: so it is
         /// correct-by-construction for any ordering the recording contains.
         /// This is the driver to use for a live replay of a real capture;
         /// see <see cref="AdvanceTo"/> for why it is not.

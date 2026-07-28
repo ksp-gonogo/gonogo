@@ -45,7 +45,7 @@ describe("Tabs", () => {
     expect(screen.getByText("panel-one")).toBeInTheDocument();
   });
 
-  it("uses a roving tabindex — only the active tab is Tab-reachable", () => {
+  it("uses a roving tabindex, only the active tab is Tab-reachable", () => {
     render(<Tabs tabs={TABS} activeId="one" onChange={() => undefined} />);
     expect(screen.getByRole("tab", { name: "One" })).toHaveAttribute(
       "tabindex",

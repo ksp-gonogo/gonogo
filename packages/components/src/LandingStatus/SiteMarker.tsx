@@ -1,5 +1,5 @@
 /**
- * SiteMarker — the shared "you'll land HERE" target glyph: a ring + crosshair
+ * SiteMarker: the shared "you'll land HERE" target glyph: a ring + crosshair
  * ticks + centre dot. The SAME marker style is used on BOTH altimetry plots (the
  * top-down reticle's site and the side-on cross-section's landing point on the
  * terrain profile), so the predicted landing site reads consistently as a target

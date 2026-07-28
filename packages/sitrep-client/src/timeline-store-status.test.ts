@@ -39,7 +39,7 @@ function point(
   };
 }
 
-describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () => {
+describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => {
   it("a fresh point is 'live'", () => {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
@@ -117,7 +117,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
       store.beginFrame();
       expect(store.sampleStatus("slow.b")).toBe("live");
 
-      // Quickload rewind confirmed on fast.a only — slow.b never re-samples.
+      // Quickload rewind confirmed on fast.a only: slow.b never re-samples.
       store.ingest("fast.a", point(50, 999, { epoch: 1 }));
       store.beginFrame();
 
@@ -125,7 +125,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
     });
   });
 
-  describe("the trap — heartbeat-inferred HeldStale, never validAt age", () => {
+  describe("the trap: heartbeat-inferred HeldStale, never validAt age", () => {
     it("a change-gated topic whose value never changes (frozen validAt) stays 'live' as long as keyframe heartbeats (deliveredAt) keep arriving on cadence", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock, {
@@ -140,14 +140,14 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
       const UNCHANGED_VALUE = 42;
 
       for (const deliveredAt of [0, 30, 60, 90, 120]) {
-        // A companion topic whose OWN validAt keeps advancing — feeds the
+        // A companion topic whose OWN validAt keeps advancing, feeds the
         // shared ViewClock's sample clamp so the view UT genuinely advances
         // (a realistic stand-in for the many other channels reporting on a
         // real client), independent of vessel.target's frozen validAt.
         store.ingest("pacer.tick", point(deliveredAt, 1, { deliveredAt }));
 
         // vessel.target: the payload and validAt NEVER change (change-gated,
-        // no state transition) — only meta.deliveredAt advances, one
+        // no state transition): only meta.deliveredAt advances, one
         // keyframe re-announcement per cadence tick.
         store.ingest(
           "vessel.target",
@@ -157,8 +157,8 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
         const token = store.beginFrame();
 
         // The naive, WRONG check this design forbids: age = viewUt - validAt.
-        // By the last iteration this is 120 — far past one keyframe interval
-        // + margin (60) — a naive age-based implementation WOULD flag this
+        // By the last iteration this is 120, far past one keyframe interval
+        // + margin (60): a naive age-based implementation WOULD flag this
         // stale. Ours must not.
         const naiveAge = token.viewUt - FROZEN_VALID_AT;
         if (deliveredAt >= 90) {
@@ -252,7 +252,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
     });
   });
 
-  describe("transport-down short-circuit (M2 §4.3, finding B item 1 — T4's deferred 'no Transport reference' gap)", () => {
+  describe("transport-down short-circuit (M2 §4.3, finding B item 1, T4's deferred 'no Transport reference' gap)", () => {
     it("transport connected (the default), a fresh topic reads 'live'", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
@@ -263,7 +263,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
       expect(store.sampleStatus("vessel.target")).toBe("live");
     });
 
-    it("transport DOWN marks every topic 'disconnected' immediately — not waiting for each topic's own heartbeat margin to elapse", () => {
+    it("transport DOWN marks every topic 'disconnected' immediately, not waiting for each topic's own heartbeat margin to elapse", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock, {
         heartbeatOptions: {
@@ -281,7 +281,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
 
       store.setTransportConnected(false);
       // No time has passed and no heartbeat margin (30 + 30 = 60 UT) has
-      // elapsed — a per-topic-only implementation would still say "live".
+      // elapsed: a per-topic-only implementation would still say "live".
       store.beginFrame();
 
       expect(store.sampleStatus("vessel.target")).toBe("disconnected");
@@ -304,7 +304,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
       expect(store.sampleStatus("vessel.target")).toBe("live");
     });
 
-    it("a genuine tombstone still reads 'absent' even while the transport is down — subject-absence is orthogonal to link-down, and isn't masked by it", () => {
+    it("a genuine tombstone still reads 'absent' even while the transport is down, subject-absence is orthogonal to link-down, and isn't masked by it", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
 
@@ -329,7 +329,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
       expect(store.sampleStatus("vessel.target")).toBe("last-before-blackout");
     });
 
-    it("a topic never ingested at all stays 'resyncing' under transport-down, not 'disconnected' — no confirmed subject to report on yet", () => {
+    it("a topic never ingested at all stays 'resyncing' under transport-down, not 'disconnected', no confirmed subject to report on yet", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
 
@@ -340,7 +340,7 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
     });
   });
 
-  describe("vessel.state — worst-of-inputs wired end to end through a real store", () => {
+  describe("vessel.state: worst-of-inputs wired end to end through a real store", () => {
     const CIRCULAR_ORBIT: VesselOrbitPayload = {
       referenceBodyIndex: 1,
       sma: 700_000,

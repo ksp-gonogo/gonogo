@@ -631,7 +631,7 @@ describe("Kernel", () => {
           return { name: "dependent" };
         },
       });
-      // No provider registered for "base" — it resolves to vanilla, and that
+      // No provider registered for "base": it resolves to vanilla, and that
       // vanilla instance is what a dep on "base" should see.
 
       kernel.resolve({ kernelVersion: "1.0.0" });
@@ -699,7 +699,7 @@ describe("Kernel", () => {
       const kernel = new Kernel();
       kernel.registerCapability<Comms>({ id: "dependent", exclusive: true });
       kernel.registerCapability<Comms>({ id: "absent", exclusive: true });
-      // "absent" has no provider and no vanilla — it resolves to zero active
+      // "absent" has no provider and no vanilla, it resolves to zero active
       // instances, but that alone shouldn't block "dependent" from
       // activating (no cycle, no spine halt).
       kernel.registerProvider<Comms>({

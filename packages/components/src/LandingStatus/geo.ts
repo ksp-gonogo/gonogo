@@ -26,7 +26,7 @@ export function greatCircle(
   const dPhi = (lat2 - lat1) * DEG;
   const dLambda = (lon2 - lon1) * DEG;
 
-  // Haversine — numerically stable for small distances (acos loses precision
+  // Haversine: numerically stable for small distances (acos loses precision
   // near 1, which matters when the site is nearly directly below the vessel).
   const a =
     Math.sin(dPhi / 2) ** 2 +

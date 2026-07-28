@@ -8,7 +8,7 @@ namespace Gonogo.ScansatUplink
     /// <summary>
     /// Result of the mandatory version-guard probe (scansat-migration-
     /// spec.md §3): assembly presence, member-existence, and SCANtype
-    /// value assertion. Never throws — every failure mode degrades to
+    /// value assertion. Never throws: every failure mode degrades to
     /// <see cref="IsAvailable"/> = false with a <see cref="Reason"/>, per
     /// the fail-soft contract (<c>IUplinkHost.SetAvailability</c>).
     /// </summary>
@@ -32,7 +32,7 @@ namespace Gonogo.ScansatUplink
     /// depends on (§3): <c>SCANUtil.GetCoverage</c>, <c>SCANUtil.isCovered</c>,
     /// <c>SCANcontroller.controller</c>, <c>SCANcontroller.getData</c>,
     /// <c>SCANcontroller.Known_Vessels</c>, <c>SCANdata.Coverage</c>,
-    /// <c>SCANdata.Anomalies</c> — plus a <c>SCANtype</c> enum value
+    /// <c>SCANdata.Anomalies</c>: plus a <c>SCANtype</c> enum value
     /// assertion (a silently renumbered bit is the one drift a member-
     /// existence check misses). Takes an <see cref="Assembly"/> rather than
     /// loading one itself so it's unit-testable against a fake/absent
@@ -143,7 +143,7 @@ namespace Gonogo.ScansatUplink
             // one public overload. Real SCANsat 21.1 has TWO overloads each of
             // SCANUtil.isCovered and SCANcontroller.getData, so the old
             // `GetMethod(name) == null && ...` form threw before the fallback
-            // could run — the exception bubbled up through Probe and was caught in
+            // could run, the exception bubbled up through Probe and was caught in
             // ScansatUplink.Register as "version-guard probe threw", flipping the
             // whole uplink Unavailable (no scansat.* stream-data ever). The
             // GetMethods().Any(...) name scan handles any overload count and

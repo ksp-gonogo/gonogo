@@ -12,7 +12,7 @@ namespace Gonogo.KSP
     /// filter, and publishes it on the <c>crash.lastCrash</c> /
     /// <c>crash.hasRecent</c> <see cref="Delivery.ReliableOrdered"/> channels.
     /// Rides the existing spine (publisher → change-gate → reveal gate →
-    /// Courier → reliable outbox lane → WS), adding no new engine plumbing —
+    /// Courier → reliable outbox lane → WS), adding no new engine plumbing,
     /// the ReliableOrdered event lane replays the last crash to a re-connecting
     /// station via keyframe-on-subscribe, which is exactly the "last crash"
     /// semantics.
@@ -49,7 +49,7 @@ namespace Gonogo.KSP
         {
             Topic = topic,
             // A crash is a flight event at the vessel, so it is Delayed (rides
-            // the light-time reveal clock) — behaviourally moot at delay 0, and
+            // the light-time reveal clock): behaviourally moot at delay 0, and
             // correct once a comms uplink is elected.
             Delay = DelayRole.Delayed,
             Delivery = delivery,
@@ -85,7 +85,7 @@ namespace Gonogo.KSP
             // whole flight regardless of whether any client is watching, so a
             // station that connects after launch still receives a complete
             // crash record. The capture publishes nothing itself (returns
-            // null) — the crash publish happens from the GameEvents callbacks.
+            // null): the crash publish happens from the GameEvents callbacks.
             host.AddSampledSource(CaptureFlightSample, _ => { });
 
             HookGameEvents();
@@ -120,7 +120,7 @@ namespace Gonogo.KSP
             catch (Exception)
             {
                 // A torn/unloaded vessel read this tick simply contributes no
-                // sample — last-known stats stand, retried next tick.
+                // sample: last-known stats stand, retried next tick.
             }
             return null;
         }
@@ -325,7 +325,7 @@ namespace Gonogo.KSP
             }
             catch (Exception)
             {
-                // Crew read on a torn vessel — leave the list as-is.
+                // Crew read on a torn vessel, leave the list as-is.
             }
             return names;
         }
@@ -344,7 +344,7 @@ namespace Gonogo.KSP
                 else if (vessel.parts != null)
                 {
                     // A non-collision death (burn-up): whatever remains of the
-                    // vessel at destruction (often already empty — every part
+                    // vessel at destruction (often already empty: every part
                     // cooked off before the vessel-destroy fired).
                     foreach (var part in vessel.parts)
                     {
@@ -357,7 +357,7 @@ namespace Gonogo.KSP
             }
             catch (Exception)
             {
-                // A torn part read — publish whatever was gathered.
+                // A torn part read, publish whatever was gathered.
             }
             return lost;
         }

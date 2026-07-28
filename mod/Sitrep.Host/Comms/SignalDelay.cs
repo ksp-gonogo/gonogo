@@ -24,13 +24,13 @@ namespace Sitrep.Host.Comms
     /// (comms-uplink-design.md §3.1). Composes identically over CommNet or
     /// RealAntennas: it reads only <see cref="CommsHop.DistanceMeters"/> from
     /// the elected backend's <see cref="CommsPath"/>, never any backend's own
-    /// delay accessor. Pure and headlessly tested — the KSP-facing core
+    /// delay accessor. Pure and headlessly tested: the KSP-facing core
     /// registration calls <see cref="Compute"/> from a channel-source closure
     /// after resolving the backend via the Kernel.
     ///
     /// <para>R7 typed absence: <see cref="CommsDelaySource.None"/> covers TWO
     /// distinct cases, told apart by <c>OneWaySeconds</c>'s value (see
-    /// <see cref="CommsDelay.OneWaySeconds"/>'s own doc comment) — the flag
+    /// <see cref="CommsDelay.OneWaySeconds"/>'s own doc comment): the flag
     /// being off is a genuine "zero delay applied" while connected
     /// (<c>OneWaySeconds = 0</c>); no measurable path (no path home, a
     /// non-positive light-speed scale, or any hop missing geometry) has
@@ -67,7 +67,7 @@ namespace Sitrep.Host.Comms
                 return Disabled(meta);
             }
 
-            // A non-positive scale would divide by zero / go negative — treat
+            // A non-positive scale would divide by zero / go negative; treat
             // as "cannot compute" rather than emitting a garbage delay. This
             // is a no-measurable-path case (null), not the delay-disabled
             // case (0): the flag IS on, there's just nothing honest to report.
@@ -109,7 +109,7 @@ namespace Sitrep.Host.Comms
             };
         }
 
-        /// <summary>Delay feature is off but the vessel IS connected — a real "zero applied", so <c>OneWaySeconds = 0</c> (never null).</summary>
+        /// <summary>Delay feature is off but the vessel IS connected, a real "zero applied", so <c>OneWaySeconds = 0</c> (never null).</summary>
         private static CommsDelay Disabled(PayloadMeta meta) => new CommsDelay
         {
             OneWaySeconds = 0.0,
@@ -117,7 +117,7 @@ namespace Sitrep.Host.Comms
             Meta = meta,
         };
 
-        /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale) — nothing to report, so <c>OneWaySeconds = null</c> (never 0).</summary>
+        /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale), nothing to report, so <c>OneWaySeconds = null</c> (never 0).</summary>
         private static CommsDelay NoPath(PayloadMeta meta) => new CommsDelay
         {
             OneWaySeconds = null,

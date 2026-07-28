@@ -14,7 +14,7 @@ import { useFlight } from "./useFlight";
  * spec (`docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`),
  * `useFlight()` derives the current flight from the mod's own
  * `flight.started` events instead of the retired client-side
- * `FlightDetector` heuristic — the mod mints the flight id and does the
+ * `FlightDetector` heuristic: the mod mints the flight id and does the
  * revert/switch detection server-side, so this hook just mirrors whatever
  * `flight.started` says.
  */
@@ -30,7 +30,7 @@ function buildRig(): Rig {
   return { transport, client };
 }
 
-/** Emits a `flight.started` event — one flight-boundary transition. */
+/** Emits a `flight.started` event: one flight-boundary transition. */
 function emitStarted(
   rig: Rig,
   ut: number,
@@ -56,8 +56,8 @@ beforeEach(() => {
   latest = "unset";
 });
 
-describe("useFlight() — default, stream-native path", () => {
-  it("returns null (never throws) when no TelemetryProvider is mounted — every station screen today", () => {
+describe("useFlight(): default, stream-native path", () => {
+  it("returns null (never throws) when no TelemetryProvider is mounted, every station screen today", () => {
     expect(() => render(<Probe />)).not.toThrow();
     expect(latest).toBeNull();
   });
@@ -127,7 +127,7 @@ describe("useFlight() — default, stream-native path", () => {
     const preRevertId = latest && latest !== "unset" ? latest.id : null;
 
     // Revert to launch: FlightLifecycleSampler treats every rewind as a
-    // hard timeline reset — a fresh flight.started fires even for the SAME
+    // hard timeline reset: a fresh flight.started fires even for the SAME
     // vessel id resuming.
     emitStarted(rig, 0.1, {
       flightId: "vA",
@@ -138,7 +138,7 @@ describe("useFlight() — default, stream-native path", () => {
   });
 });
 
-describe("useFlight(sourceId) — explicit DataSource-based lookup, unchanged", () => {
+describe("useFlight(sourceId): explicit DataSource-based lookup, unchanged", () => {
   it("reads getCurrentFlight()/onFlightChange() off a registered FlightAware source", () => {
     const flight: FlightRecord = {
       id: "f1",

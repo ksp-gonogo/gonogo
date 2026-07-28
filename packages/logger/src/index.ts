@@ -70,7 +70,7 @@ function defaultLevel(): LogLevel {
     const fromLs = ls?.getItem("LOG_LEVEL");
     if (fromLs && isLogLevel(fromLs)) return fromLs;
   } catch {
-    // ignore — localStorage may be unavailable in SSR / node
+    // ignore: localStorage may be unavailable in SSR / node
   }
   try {
     const env = (globalThis as { process?: { env?: Record<string, string> } })
@@ -110,7 +110,7 @@ export class ConsoleLogger implements Logger {
 
   /**
    * Register an additional sink (e.g. Axiom). Every emitted entry is fanned
-   * out to every registered transport — the same set the ring buffer sees,
+   * out to every registered transport: the same set the ring buffer sees,
    * before tag-gate / level-floor filtering. Console output is unchanged.
    */
   addTransport(transport: LogTransport): void {
@@ -120,7 +120,7 @@ export class ConsoleLogger implements Logger {
   /**
    * Remove a previously-registered transport. Best-effort flush of any
    * buffered entries first so the removed sink (e.g. Axiom) doesn't drop
-   * what it already holds. Idempotent — removing a transport that isn't
+   * what it already holds. Idempotent, removing a transport that isn't
    * registered is a no-op. Used by the analytics-consent gate to detach
    * the Axiom sink the moment consent is revoked.
    */
@@ -131,7 +131,7 @@ export class ConsoleLogger implements Logger {
     this.transports.splice(idx, 1);
   }
 
-  /** Number of currently-registered transports — used by the consent
+  /** Number of currently-registered transports: used by the consent
    *  controller's tests to assert install/remove without reaching into
    *  the private array. */
   transportCount(): number {
@@ -162,7 +162,7 @@ export class ConsoleLogger implements Logger {
         try {
           await t.flush?.();
         } catch {
-          // ignore — log delivery failures are never fatal
+          // ignore: log delivery failures are never fatal
         }
       }),
     );
@@ -191,7 +191,7 @@ export class ConsoleLogger implements Logger {
 
   /**
    * Snapshot of the in-memory ring buffer (oldest first). Alias of
-   * {@link getBuffer} — used by {@link AxiomConsentController} to backfill
+   * {@link getBuffer}: used by {@link AxiomConsentController} to backfill
    * the pre-consent history to a freshly-installed transport.
    */
   snapshot(): readonly LogEntry[] {
@@ -258,12 +258,12 @@ export class ConsoleLogger implements Logger {
       sessionId: this.sessionId,
     };
 
-    // Buffer first — the export is intentionally richer than the console
+    // Buffer first: the export is intentionally richer than the console
     // stream so an operator can download the full trail after-the-fact
     // and inspect tag-gated / level-floored entries they didn't pre-enable.
     this.buffer.push(entry);
 
-    // Transports get the same firehose as the buffer — pre-tag-gate,
+    // Transports get the same firehose as the buffer, pre-tag-gate,
     // pre-level-floor. Remote sinks are most useful when they catch the
     // long tail nobody pre-enabled locally; with 3–4 users the volume
     // is trivial.
@@ -271,7 +271,7 @@ export class ConsoleLogger implements Logger {
       try {
         transport.send([entry]);
       } catch {
-        // ignore — log delivery failures are never fatal
+        // ignore: log delivery failures are never fatal
       }
     }
 
@@ -280,7 +280,7 @@ export class ConsoleLogger implements Logger {
     // (tags are opt-in verbose tracing, not a way to hide ops messages).
     if (tag && level === "debug" && !tagRegistry.isEnabled(tag)) return;
 
-    // Level floor — same idea, console-only. Buffer keeps everything.
+    // Level floor: same idea, console-only. Buffer keeps everything.
     if (LEVEL_ORDER[level] < LEVEL_ORDER[this.level]) return;
 
     const output = JSON.stringify(entry);

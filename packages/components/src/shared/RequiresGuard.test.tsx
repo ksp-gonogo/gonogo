@@ -31,12 +31,12 @@ function makeSitrepFixture(status: DataSourceStatus): DataSource {
   };
 }
 
-// Default every test to a CONNECTED host — Task 4's tests exercise the
+// Default every test to a CONNECTED host, Task 4's tests exercise the
 // uplink-health/game-context branches and don't care about host status;
 // the two host-down-specific tests below override this explicitly.
 beforeEach(() => registerDataSource(makeSitrepFixture("connected")));
 
-// Unmount each rendered tree BEFORE clearRegistry() — clearing the DataSource
+// Unmount each rendered tree BEFORE clearRegistry(): clearing the DataSource
 // registry re-renders a still-mounted RequiresGuard (host → gone), a state
 // update outside act(). RTL auto-cleanup runs after this file's afterEach, too
 // late to unmount first.
@@ -90,7 +90,7 @@ function renderGuard(
   return { transport, ...view };
 }
 
-describe("RequiresGuard — uplink-health render-gate on REQUIRED channels", () => {
+describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => {
   it("renders children through when no channels are declared", () => {
     renderGuard(<div>widget content</div>);
     expect(screen.getByText("widget content")).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe("RequiresGuard — uplink-health render-gate on REQUIRED channels", () 
   });
 });
 
-describe("RequiresGuard — merged with the existing game-context requires gate", () => {
+describe("RequiresGuard: merged with the existing game-context requires gate", () => {
   it("still dims with the flight-required message when requires=['flight'] and scene isn't Flight", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
       requires: ["flight"],
@@ -199,7 +199,7 @@ describe("RequiresGuard — merged with the existing game-context requires gate"
   });
 });
 
-describe("RequiresGuard — 'No telemetry host' takes priority when channels are declared", () => {
+describe("RequiresGuard: 'No telemetry host' takes priority when channels are declared", () => {
   it("shows 'No telemetry host' when the sitrep DataSource is disconnected", () => {
     clearRegistry();
     registerDataSource(makeSitrepFixture("disconnected"));

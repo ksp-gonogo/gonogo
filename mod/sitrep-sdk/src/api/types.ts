@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// Author-facing type surface — PROPOSAL, pending operator sign-off (design D-D)
+// Author-facing type surface: PROPOSAL, pending operator sign-off (design D-D)
 // before the first external Uplink is published. Nothing here is a frozen
 // contract yet; the api-shape gate records the CURRENT proposed surface so any
 // change is a conscious one.
 //
 // Why these types live HERE and are not re-exported from `@ksp-gonogo/core`:
 // sitrep-sdk is the dependency-graph LEAF (core → sitrep-client → sitrep-sdk).
-// Importing core — even `import type` via a package dependency — would form a
+// Importing core (even `import type` via a package dependency) would form a
 // turbo `^build` cycle, so the leaf cannot name a workspace package. The
 // author-facing shapes are therefore mirrored here, self-contained, and kept
 // honest by a conformance gate that lives in `core` (which already devDepends
@@ -87,9 +87,9 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   mobileHeight?: number;
   dataRequirements?: DataRequirement[];
-  /** Topics this widget REQUIRES — read non-null through the manifest hook. */
+  /** Topics this widget REQUIRES; read non-null through the manifest hook. */
   channels?: readonly TopicId[];
-  /** Topics this widget OPTIONALLY consumes — each read is `| undefined`. */
+  /** Topics this widget OPTIONALLY consumes: each read is `| undefined`. */
   optionalChannels?: readonly TopicId[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
@@ -104,7 +104,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   replaces?: string;
   /**
    * The Uplink client that registered this widget, stamped via
-   * `defineUplinkClient`'s returned handle — see `UplinkClientHandle`'s own
+   * `defineUplinkClient`'s returned handle: see `UplinkClientHandle`'s own
    * doc below. Provenance / mod search tags only; never hand-set.
    */
   owner?: UplinkClientHandle;
@@ -156,7 +156,7 @@ export interface AugmentDefinition<S extends string = string> {
   priority?: number;
   settings?: readonly AugmentSettingField[];
   /** Declares that, while this augment is registered, the host's own
-   *  default/replaceable surface for its slot is suppressed outright — see
+   *  default/replaceable surface for its slot is suppressed outright; see
    *  the real `AugmentDefinition` (packages/core/src/augments.ts) for the
    *  full rationale. */
   suppressesVanillaBase?: boolean;
@@ -170,7 +170,7 @@ export interface AugmentDefinition<S extends string = string> {
 // --- Uplink client identity (Uplink Client Contract design §3.1) -----------
 
 /**
- * Mirrors `packages/core/src/uplinkClients.ts`'s `UplinkClientHandle` — same
+ * Mirrors `packages/core/src/uplinkClients.ts`'s `UplinkClientHandle`: same
  * leaf constraint as every other type in this file. One declaration per
  * client bundle (`defineUplinkClient`); widgets/augments stamp it as `owner`.
  */
@@ -186,7 +186,7 @@ export interface UplinkClientHandle {
 // --- Fog reveal sources ------------------------------------------------------
 
 /**
- * Registration descriptor for a fog-of-war reveal source — a data
+ * Registration descriptor for a fog-of-war reveal source, a data
  * contributor (coverage bytes for a body under some layerId), not a
  * renderable component. See packages/core/src/fogReveal.ts's own header
  * for why this isn't another AugmentSlot kind.
@@ -202,7 +202,7 @@ export interface FogRevealSourceDefinition {
 
 /**
  * One point-of-interest record a `MapPoiProviderDefinition` contributes.
- * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi` — same leaf constraint as
+ * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi`: same leaf constraint as
  * every other type in this file (see module header). The action-button
  * shape (`MapPoiAction` in core) is inlined here rather than named
  * separately: nothing in the author-facing surface needs to reference it by
@@ -215,7 +215,7 @@ export interface MapPoi {
   bodyId: string;
   lat: number;
   lon: number;
-  /** Open string, not a closed union — third-party kinds fall back to a generic style. */
+  /** Open string, not a closed union: third-party kinds fall back to a generic style. */
   kind: string;
   label: string;
   detail?: string;
@@ -231,7 +231,7 @@ export interface MapPoi {
 }
 
 /**
- * Registration descriptor for a map point-of-interest provider — a data
+ * Registration descriptor for a map point-of-interest provider, a data
  * contributor (points for the currently-mapped body), not a renderable
  * component. See packages/core/src/mapPoi.ts's own header for why MapView
  * owns the one shared hover/action/marker-styling surface instead of this
@@ -248,7 +248,7 @@ export interface MapPoiProviderDefinition {
 // --- Celestial bodies ---------------------------------------------------------
 
 /**
- * Mirrors `packages/core/src/bodies.ts`'s `BodyDefinition` — same leaf
+ * Mirrors `packages/core/src/bodies.ts`'s `BodyDefinition`: same leaf
  * constraint as every other type in this file. Note the body REGISTRY
  * itself (`getBody`, below) is still a host shim, not a bundled copy: it is
  * a module-global map populated at runtime via `registerBody()`, so a
@@ -256,7 +256,7 @@ export interface MapPoiProviderDefinition {
  * permanently-empty copy of that map rather than the app's real one.
  */
 export interface BodyDefinition {
-  /** Unique identifier — must match Telemachus v.body / o.referenceBody strings. */
+  /** Unique identifier: must match Telemachus v.body / o.referenceBody strings. */
   id: string;
   /** Human-readable display name. */
   name: string;
@@ -303,7 +303,7 @@ export interface BodyDefinition {
   imagingIdealAlt?: number;
   /** Maximum imaging altitude (metres ASL). Above this, quality is zero. */
   imagingMaxAlt?: number;
-  /** Camera half-angle (degrees) — the cone half-angle used when projecting the imaging footprint. */
+  /** Camera half-angle (degrees): the cone half-angle used when projecting the imaging footprint. */
   cameraFovDeg?: number;
   /** Optional circular region revealed from the start. */
   initialReveal?: {
@@ -318,7 +318,7 @@ export interface BodyDefinition {
 //
 // Same leaf constraint again: `BodyMask` is owned by `@ksp-gonogo/data`
 // (packages/data/src/fog/FogMaskCache.ts), which the sdk cannot depend on
-// either (data itself depends on core, which depends on the sdk — naming
+// either (data itself depends on core, which depends on the sdk, naming
 // data here would form the same turbo `^build` cycle). Mirrored here.
 
 export interface BodyMask {
@@ -326,14 +326,14 @@ export interface BodyMask {
   readonly layerId: string;
   readonly width: number;
   readonly height: number;
-  /** Alpha bytes, row-major. Mutable — caller writes directly. */
+  /** Alpha bytes, row-major. Mutable: caller writes directly. */
   data: Uint8Array;
 }
 
 /**
  * The subset of `FogMaskCache`'s (`@ksp-gonogo/data`) public surface an
  * author drives from `useFogMaskCache()`. Not itself part of the barrel's
- * named export list — every call site so far only ever holds this through
+ * named export list: every call site so far only ever holds this through
  * the hook's inferred return type (`const cache = useFogMaskCache();`),
  * never by importing the type name directly, so there is nothing to add to
  * the export list for it.
@@ -366,7 +366,7 @@ export interface FogMaskCacheHandle {
 // facade-sealed Uplink clients turned out to still need it, and this final
 // removal once both were migrated onto their own non-SPI substitutes
 // (a singleton-handle registration; a lifecycle-managed telemetry
-// subscribe). The type mirror itself stays — an Uplink that carries its
+// subscribe). The type mirror itself stays: an Uplink that carries its
 // own connection-status field can still type it against
 // `DataSourceStatus` without registering through the facade at all.
 
@@ -389,7 +389,7 @@ export interface ConfigField {
 }
 
 /**
- * Base interface for all data sources — mirrors core's real `DataSource`
+ * Base interface for all data sources: mirrors core's real `DataSource`
  * shape (see the module-level comment above) for typing an Uplink's own
  * `status: DataSourceStatus` connection field.
  */
@@ -414,7 +414,7 @@ export interface DataSource<
 
 // --- Screen identity -----------------------------------------------------------
 //
-// Mirrors `@ksp-gonogo/core`'s `contexts/ScreenContext.tsx` — same leaf
+// Mirrors `@ksp-gonogo/core`'s `contexts/ScreenContext.tsx`: same leaf
 // constraint as the rest of this file.
 
 /**
@@ -427,12 +427,12 @@ export type Screen = "main" | "station";
 // --- Settings tabs ---------------------------------------------------------
 
 /**
- * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition` —
+ * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition`:
  * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
  * registration with the code that owns it.
  */
 export interface SettingsTabDefinition {
-  /** Stable id — React key and tab id. */
+  /** Stable id: React key and tab id. */
   id: string;
   /** Tab label shown in the Settings modal's tab strip. */
   label: string;
@@ -445,7 +445,7 @@ export interface SettingsTabDefinition {
 // --- Declarative settings ---------------------------------------------------
 
 /**
- * Mirrors `packages/core/src/settings/registry.ts`'s `SettingDefinition` — same
+ * Mirrors `packages/core/src/settings/registry.ts`'s `SettingDefinition`: same
  * leaf constraint (the sdk cannot import core). `registerSetting` is the
  * PREFERRED way an Uplink surfaces a setting: a declarative row the app renders
  * and (for client-pref) persists, without a bespoke tab. Reach for
@@ -464,7 +464,7 @@ export interface SettingDefinitionBase {
   dependsOn?: string;
 }
 
-/** localStorage-backed preference — pure gonogo-side, no mod round-trip. */
+/** localStorage-backed preference: pure gonogo-side, no mod round-trip. */
 export interface ClientPrefSetting extends SettingDefinitionBase {
   backing?: "client-pref";
   type: "boolean";
@@ -472,7 +472,7 @@ export interface ClientPrefSetting extends SettingDefinitionBase {
 }
 
 /**
- * Source-backed setting — value lives on the Uplink's `DataSource` (by
+ * Source-backed setting: value lives on the Uplink's `DataSource` (by
  * `sourceId`), read/written through the client-supplied binding closures, never
  * localStorage. The registry stores them type-erased (`source: unknown`); the
  * client casts to the concrete source type it owns.
@@ -493,7 +493,7 @@ export type SettingDefinition = ClientPrefSetting | SourceBackedSetting;
 // Same leaf constraint as `StreamStatusValue` below: `TelemetryClient` is
 // owned by `@ksp-gonogo/sitrep-client`, which the sdk cannot depend on
 // either. Mirrors only the surface an Uplink author drives directly
-// (subscribe/dispatch/getValue/dispose) — NOT the full class
+// (subscribe/dispatch/getValue/dispose): NOT the full class
 // (`onRawMessage`'s raw-frame tap, `attachStore`/`subscribeStore`'s
 // `TimelineStore` plumbing, `getCommand`'s `CommandStatus`), which stay
 // opaque for the same "large, evolving class" reasoning that keeps
@@ -519,21 +519,21 @@ export interface TelemetryClient {
 // delayed-playout-buffer.ts), which the sdk cannot depend on either. Mirrors
 // the minimal two-method structural contract a camera Uplink's delayed-media
 // pipeline needs off the one delay authority (`ViewClock` satisfies this
-// structurally) — kept honest by
+// structurally): kept honest by
 // `packages/core/src/sdk-facade.conformance.test-d.ts`.
 
 /**
- * The minimal delay-clock surface a media delay pipeline depends on — a
+ * The minimal delay-clock surface a media delay pipeline depends on, a
  * subset of `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`).
  * Kept structural (not `ViewClock` itself) so a camera Uplink never needs to
  * import sitrep-client just to type the clock it's handed.
  */
 export interface DelayClockLike {
   /** The certainty horizon: a frame stamped at-or-before this UT is
-   *  releasable. THE one delay authority — never delay-subtracted here. */
+   *  releasable. THE one delay authority: never delay-subtracted here. */
   confirmedEdgeUt(): number;
   /** Best-effort per-frame notification (real-time driven). Not required
-   *  for correctness — a deterministic caller can drive releases some other
+   *  for correctness: a deterministic caller can drive releases some other
    *  way instead. */
   onFrame(cb: (viewUt: number) => void): () => void;
 }
@@ -561,7 +561,7 @@ export interface PerfBudgetHandle {
 
 /**
  * Lifecycle state for a single dispatched command, keyed by `requestId`.
- * Mirrors `packages/sitrep-client/src/lifecycle.ts`'s `CommandStatus` —
+ * Mirrors `packages/sitrep-client/src/lifecycle.ts`'s `CommandStatus`:
  * same leaf constraint as every other type in this file.
  */
 export type CommandStatus =
@@ -576,7 +576,7 @@ export type CommandStatus =
   | { phase: "lost"; requestId: string; reason: string };
 
 /**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `PredictedPhase` —
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `PredictedPhase`:
  * same leaf constraint as every other type in this file.
  */
 export type PredictedPhase =
@@ -587,14 +587,14 @@ export type PredictedPhase =
   | "lost";
 
 /**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `DelayMode` — same
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `DelayMode`: same
  * leaf constraint as every other type in this file.
  */
 export type DelayMode = "live" | "staged" | "no-path";
 
 /**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `InFlightCommand`
- * — the shared display shape both `useCommand`'s `inFlight` and
+ * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `InFlightCommand`,
+ * the shared display shape both `useCommand`'s `inFlight` and
  * `useRouteCommands`'s `items` return. Same leaf constraint as every other
  * type in this file.
  */
@@ -620,7 +620,7 @@ export interface UseCommandResult {
 
 /**
  * Mirrors `packages/sitrep-client/src/use-route-commands.ts`'s
- * `UseRouteCommandsResult` — same leaf constraint as every other type in
+ * `UseRouteCommandsResult`: same leaf constraint as every other type in
  * this file.
  */
 export interface UseRouteCommandsResult {
@@ -633,7 +633,7 @@ export interface UseRouteCommandsResult {
 // Same leaf constraint again: `StreamStatusValue` is owned by
 // `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/stream-status.ts),
 // which the sdk cannot name as a workspace dependency either (sitrep-client
-// itself depends on the sdk for the wire contract — naming it back would form
+// itself depends on the sdk for the wire contract, naming it back would form
 // the same turbo `^build` cycle). Mirrored here; kept honest by the same
 // conformance file in core, which already carries a real dependency on
 // sitrep-client.

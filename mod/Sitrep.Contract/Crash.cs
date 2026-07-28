@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The payload for the <c>crash.lastCrash</c> channel — a single "last
+/// The payload for the <c>crash.lastCrash</c> channel: a single "last
 /// notable crash" record for the current save, delivered on the
 /// <see cref="Delivery.ReliableOrdered"/> event lane. Mirrors the wire shape
 /// the consumers already parse (<c>FlightOutcomeBanner.parseCrash</c>,
@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// hand-flattens the live-KSP crash into a <c>Dictionary&lt;string, object?&gt;</c>
 /// via <c>Sitrep.Host.Crash.CrashPayload.Build</c> before publishing, so
 /// <see cref="Sitrep.Core.Serialization.JsonWriter"/> only ever sees the
-/// dictionary — this POCO exists solely so the TS SDK has a concrete payload
+/// dictionary: this POCO exists solely so the TS SDK has a concrete payload
 /// type to name (it is on <c>WirePayloadCoverageTests</c>'s producer-flatten
 /// allowlist for exactly that reason).</para>
 /// </summary>
@@ -35,13 +35,13 @@ public class CrashReport
     /// <summary>Which detector fired: <c>CrashSplashdown</c> / <c>Destroyed</c> / <c>Crash</c>.</summary>
     public string EventKind { get; set; } = "";
 
-    /// <summary>The colliding object's name (<c>EventReport.other</c>) — empty for a non-collision death.</summary>
+    /// <summary>The colliding object's name (<c>EventReport.other</c>): empty for a non-collision death.</summary>
     public string What { get; set; } = "";
 
     /// <summary>The crashed vessel's <c>VesselType</c> name (e.g. <c>"Ship"</c>).</summary>
     public string VesselType { get; set; } = "";
 
-    /// <summary>The detector's message (<c>EventReport.msg</c>) — often empty.</summary>
+    /// <summary>The detector's message (<c>EventReport.msg</c>): often empty.</summary>
     public string Msg { get; set; } = "";
 
     public double Latitude { get; set; }
@@ -78,7 +78,7 @@ public class CrashReport
 }
 
 /// <summary>
-/// One part lost in a crash — an entry of <see cref="CrashReport.PartsLost"/>.
+/// One part lost in a crash: an entry of <see cref="CrashReport.PartsLost"/>.
 /// See <c>crash-payloads.ts</c> for the wire shape.
 /// </summary>
 [SitrepContract]
@@ -96,13 +96,13 @@ public class CrashPartLost
     /// <summary>The part's <c>partInfo.title</c> (e.g. <c>"Mk1 Command Pod"</c>).</summary>
     public string PartTitle { get; set; } = "";
 
-    /// <summary>Destruction message for this part — often empty.</summary>
+    /// <summary>Destruction message for this part: often empty.</summary>
     public string Msg { get; set; } = "";
 }
 
 /// <summary>
-/// Per-flight statistics accumulated across the whole flight up to the crash
-/// — <see cref="CrashReport.FlightStats"/>. See <c>crash-payloads.ts</c> for
+/// Per-flight statistics accumulated across the whole flight up to the crash,
+/// <see cref="CrashReport.FlightStats"/>. See <c>crash-payloads.ts</c> for
 /// the wire shape.
 /// </summary>
 [SitrepContract]

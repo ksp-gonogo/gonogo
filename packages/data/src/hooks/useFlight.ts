@@ -49,16 +49,16 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
 
 /**
  * Default (no-`sourceId`) variant: derives the current flight straight off
- * the mod-native flight-lifecycle stream (`flight.started` —
+ * the mod-native flight-lifecycle stream (`flight.started`:
  * `docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`) instead of
  * the retired client-side `FlightDetector` heuristic. The mod mints the
  * flight id (`Vessel.id`, the same currency `VesselIdentity.VesselId`
- * already uses) and does the revert/switch detection server-side — see
- * `Sitrep.Host.Flight.FlightLifecycleSampler` — so this hook is a thin,
+ * already uses) and does the revert/switch detection server-side; see
+ * `Sitrep.Host.Flight.FlightLifecycleSampler`: so this hook is a thin,
  * event-driven mirror: every `flight.started` becomes the new current
  * flight, full stop.
  *
- * Degrades to `null` — never throws — whenever no `TelemetryProvider` is
+ * Degrades to `null`, never throws, whenever no `TelemetryProvider` is
  * mounted (every station screen today; see `useOptionalStreamEvent`) or
  * before the stream has produced a first `flight.started` event.
  */
@@ -88,7 +88,7 @@ function useStreamFlight(): FlightRecord | null {
  * Reactive view of the current flight. Re-renders on every transition
  * (new, resume, revert). Returns `null` during warmup, when the registered
  * source doesn't support flight history (e.g. a bare data source mocked
- * into tests), or — for the default no-argument form — before the stream
+ * into tests), or, for the default no-argument form, before the stream
  * has synced.
  *
  * Two call shapes:
@@ -97,13 +97,13 @@ function useStreamFlight(): FlightRecord | null {
  *    wherever a `TelemetryProvider` is mounted (the main screen); degrades
  *    to `null` on a station screen, which has none.
  *  - `useFlight(sourceId)`: explicit `DataSource`-based lookup, unchanged
- *    from the original implementation — for any registered source that
+ *    from the original implementation: for any registered source that
  *    still implements `getCurrentFlight`/`onFlightChange` directly
  *    (`BufferedDataSource`, `PeerClientDataSource`).
  */
 export function useFlight(sourceId?: string): FlightRecord | null {
   // Both branches are hooks and must run unconditionally on every render
-  // (Rules of Hooks) — only one result is actually returned. Each is cheap
+  // (Rules of Hooks): only one result is actually returned. Each is cheap
   // (a `useSyncExternalStore`/`useState` pair) so computing both costs
   // nothing observable. `sourceId ?? ""` never resolves to a registered
   // `DataSource`, so `sourceFlight` is harmlessly `null` whenever the

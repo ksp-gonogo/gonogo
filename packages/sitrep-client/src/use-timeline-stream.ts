@@ -5,10 +5,10 @@ import type { TimelineStore } from "./timeline-store";
  * The `useStream(topic)` shape built on the timeline foundation
  * (`TimelineStore`/`ViewClock`) rather than `TelemetryClient`'s raw
  * `lastValues` map (see `use-stream.ts` for that still-current production
- * hook — this is additive, not a replacement; the full `mapTopic` collapse
+ * hook: this is additive, not a replacement; the full `mapTopic` collapse
  * is later work).
  *
- * Reads `store.sample(topic, store.currentFrame())` — i.e. at whatever
+ * Reads `store.sample(topic, store.currentFrame())`, i.e. at whatever
  * `FrameToken` the store's last `beginFrame()` minted, never a token this
  * hook computes itself. That's what gives every `useTimelineStream` call
  * across the whole tree the same frozen `viewUt` for a given frame, even

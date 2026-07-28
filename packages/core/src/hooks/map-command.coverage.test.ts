@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { STOCK_ACTION_GROUPS } from "../actionGroups";
 
 /**
- * Coverage gate for the M3 `mapCommand` command table — the write-half twin
+ * Coverage gate for the M3 `mapCommand` command table, the write-half twin
  * of `mapTopic.coverage.test.ts`. Every legacy Telemachus action key a real
  * widget's `useExecuteAction("data")`-bound `execute(...)` call actually
  * fires must be either mapped to a new command (`mapCommand("data", key)`
@@ -48,10 +48,10 @@ function listSourceFiles(dir: string): string[] {
 
 /**
  * Reduces a raw action-string literal (the content between the quotes/
- * backticks immediately after `execute(`) to its base key — everything
+ * backticks immediately after `execute(`) to its base key, everything
  * before the first `[` (a legacy bracketed-args suffix, e.g.
  * `"f.setSASMode[StabilityAssist]"`) or `${` (a template-literal
- * interpolation, e.g. `` `f.setThrottle[${v}]` `` — the `[` already wins
+ * interpolation, e.g. `` `f.setThrottle[${v}]` ``: the `[` already wins
  * here, but a key can in principle interpolate before any bracket at all).
  */
 function extractActionKey(raw: string): string {
@@ -67,12 +67,12 @@ function extractActionKey(raw: string): string {
  * Every literal `execute("...")` / `` execute(`...`) `` call site across
  * `packages/components/src`, reduced to base action keys. Deliberately
  * matches ANY `execute(` call (not just ones on a variable literally named
- * `execute`) — every real call site in the widget set today happens to use
+ * `execute`): every real call site in the widget set today happens to use
  * that name (`const execute = useExecuteAction("data")`), and scanning the
  * call shape rather than requiring a specific binding name is both simpler
  * and more future-proof. `KosProcessors`' `executeKos(...)` calls are NOT
  * matched (`execute\(` requires "execute" immediately followed by "(", which
- * "executeKos(" never satisfies) — correctly excluded, since that hook is
+ * "executeKos(" never satisfies): correctly excluded, since that hook is
  * bound to `dataSourceId: "kos"`, which `mapCommand` never routes.
  */
 function collectWidgetCommandActions(): Set<string> {
@@ -98,12 +98,12 @@ function collectWidgetCommandActions(): Set<string> {
  * - `ActionGroup` (`packages/components/src/ActionGroup/index.tsx`) fires
  *   `execute(group.toggle)`, resolved at runtime from the action-group
  *   registry. Note the READ half of this blind spot is gone (the widget now
- *   reads canonical Topics — see `mapTopic.coverage.test.ts`); only the WRITE
+ *   reads canonical Topics; see `mapTopic.coverage.test.ts`); only the WRITE
  *   half survives, because a toggle is still registry-resolved.
  * - `ManeuverPlanner` (`packages/components/src/ManeuverPlanner/index.tsx`)
  *   builds `o.addManeuverNode[...]`/`o.updateManeuverNode[...]` into a local
  *   `const action` before calling `execute(action)` (`dispatchPlanBurns`/
- *   `handleEdit`) — a variable reference the regex scan can't follow.
+ *   `handleEdit`): a variable reference the regex scan can't follow.
  *   `o.removeManeuverNode[...]` is called directly as a template literal at
  *   every one of its call sites (`ManeuverPlanner/index.tsx`,
  *   `BurnCompletionTracker.ts`) and IS caught by the scan above.
@@ -111,7 +111,7 @@ function collectWidgetCommandActions(): Set<string> {
  * The registry is no longer a static literal this can iterate: its CUSTOM half
  * derives from live telemetry (`useActionGroups`), so the toggles a running app
  * can produce depend on which backend the mod elected. This enumerates what
- * STOCK can emit — the stock singletons, plus `f.ag1`..`f.ag10` for stock's ten
+ * STOCK can emit, the stock singletons, plus `f.ag1`..`f.ag10` for stock's ten
  * customs (`useActionGroups` builds each custom toggle as `f.ag{index}`).
  *
  * An AGX backend would extend that to `f.ag250`. Those are deliberately NOT
@@ -135,7 +135,7 @@ function collectDynamicCommandActions(): Set<string> {
   return keys;
 }
 
-describe("mapCommand coverage — every widget action key is mapped or a declared gap", () => {
+describe("mapCommand coverage: every widget action key is mapped or a declared gap", () => {
   const widgetActions = new Set([
     ...collectWidgetCommandActions(),
     ...collectDynamicCommandActions(),
@@ -145,9 +145,9 @@ describe("mapCommand coverage — every widget action key is mapped or a declare
     expect(widgetActions.size).toBeGreaterThan(20);
   });
 
-  it("maps or explicitly gaps every widget action key — no silent misses", () => {
+  it("maps or explicitly gaps every widget action key, no silent misses", () => {
     // `hasCommandHome` is a plain key-existence check (was this action ever
-    // audited and given a home), not a full `mapCommand` resolution — several
+    // audited and given a home), not a full `mapCommand` resolution, several
     // homes need real positional args or a live current-value reader to
     // actually build a command (see map-command.ts's `hasCommandHome` doc
     // comment), which a bare base-key probe here can't supply.

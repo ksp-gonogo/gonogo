@@ -1,18 +1,18 @@
 // SCANsat science augment for ScienceOfficer.
 //
 // Fills ScienceOfficer's `science-officer.badges` header slot with the
-// vessel's SCANsat map-scanner experiments — parts SCANsat manages via
+// vessel's SCANsat map-scanner experiments: parts SCANsat manages via
 // `SCANexperiment`/`IScienceDataContainer`, which never appear in
 // `sci.instruments` (the stock-experiment topic ScienceOfficer itself
 // reads), so there is no per-instrument row to hang off. `badges` is the
 // widget's broad, once-per-widget escape-hatch slot (its own doc comment:
-// "badges-as-broad-escape-hatch") — the right shape for a whole extra
+// "badges-as-broad-escape-hatch"): the right shape for a whole extra
 // section, unlike `science-officer.sections` (per-instrument, wrong shape
 // here).
 //
 // Presence-gated on `requires: "scansat"`: `AugmentSlot` renders this only
 // while `scansat.available` is live, so an install without the SCANsat mod
-// never mounts it — zero impact on ScienceOfficer for non-SCANsat users.
+// never mounts it: zero impact on ScienceOfficer for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
@@ -28,16 +28,16 @@ import { SCANSAT } from "../uplink";
 /**
  * Parses `scansat.science` (`Sitrep.Contract.ScanScienceEntry[]`, built by
  * `mod/GonogoScansatUplink/ScanScience.cs`). Field names already match the
- * ui-kit row's `ScienceInstrument` shape 1:1 — the mod-side builder
- * deliberately names them to match — so this is a straight
+ * ui-kit row's `ScienceInstrument` shape 1:1 (the mod-side builder
+ * deliberately names them to match), so this is a straight
  * nullable-wire -> plain-boolean normalisation, same pattern as
  * ScienceOfficer's own `parseInstruments`: `bool?` -> `=== true`, missing
  * `partTitle`/`expId` -> a safe fallback, entries with no `partId` skipped.
  *
  * `deployed` and `inoperable` are always `false` on the wire and
  * `rerunnable` is always `true` (SCANsat map experiments have no deploy or
- * inoperable lifecycle, and SCANsat hard-codes `IsRerunnable()` —
- * `ScanScience.cs`'s own doc comment) — so a SCANsat row's
+ * inoperable lifecycle, and SCANsat hard-codes `IsRerunnable()`, see
+ * `ScanScience.cs`'s own doc comment), so a SCANsat row's
  * DEPLOYED/INOPERABLE/ONE-SHOT badges never show; only DATA does.
  */
 export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
@@ -65,17 +65,17 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
 /**
  * Read-only first cut: `onDeploy`/`onTransmit` are omitted, so
  * each row's action cluster renders inert buttons gated purely on
- * `deployed`/`hasData` state. Wiring Deploy/Transmit is a follow-up —
+ * `deployed`/`hasData` state. Wiring Deploy/Transmit is a follow-up,
  * Transmit in particular is blocked mod-side (a private SCANsat method)
  * until that lands.
  *
  * Layout tension flagged, not solved: `science-officer.badges`
  * renders inline in the header's flex `Cluster` next to the panel title, so
- * a full row list can't just sit there — it would crush the title. This
+ * a full row list can't just sit there, it would crush the title. This
  * ships a collapsed count badge that expands a floating row list on click,
  * leaving the header's stock layout untouched either way (collapsed or
  * expanded). The clean long-term fix is a dedicated body-level
- * `science-officer.sections-append` slot on ScienceOfficer —
+ * `science-officer.sections-append` slot on ScienceOfficer:
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
@@ -143,7 +143,7 @@ const Dropdown = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 `;
 
-// `ScienceExperimentRow` renders a `<li>` (ui-kit's `Row` default) — needs a
+// `ScienceExperimentRow` renders a `<li>` (ui-kit's `Row` default); needs a
 // real `<ul>` ancestor for a11y, same as ScienceOfficer's own
 // `InstrumentList`.
 const RowList = styled.ul`

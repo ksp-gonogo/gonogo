@@ -1,7 +1,7 @@
 namespace Sitrep.Host.Flight
 {
     /// <summary>
-    /// Channel topic ids for the flight-lifecycle domain — mirrors
+    /// Channel topic ids for the flight-lifecycle domain, mirrors
     /// <c>Sitrep.Host.Crash.CrashTopics</c>'s naming convention exactly.
     /// </summary>
     public static class FlightTopics

@@ -9,7 +9,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Unit tests for <see cref="ChannelEngine.BindCommandArgs"/> — the generic
+    /// Unit tests for <see cref="ChannelEngine.BindCommandArgs"/>: the generic
     /// wire-args → typed-<c>TArgs</c> binder that closes the confirmed live bug
     /// where the ENTIRE command/write path was dead over the real WebSocket:
     /// <c>EnvelopeCodec</c> deserializes a command's args to a GENERIC shape
@@ -18,7 +18,7 @@ namespace Sitrep.Host.Tests
     /// <c>InvalidCastException</c> ("Specified cast is not valid") for every
     /// command taking a typed args record. The existing
     /// <c>VesselCommandProviderTests</c> never caught this because they invoke
-    /// handlers with an ALREADY-typed <c>TArgs</c> in-process — they never
+    /// handlers with an ALREADY-typed <c>TArgs</c> in-process: they never
     /// exercise the wire-deserialize → dispatch path. These tests feed the exact
     /// generic shape the wire produces and assert the handler would receive the
     /// correctly-typed args.
@@ -51,7 +51,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BindsIntAndBoolPropertiesFromWireDictionary()
         {
-            // Wire numbers arrive as double — the int Group must narrow.
+            // Wire numbers arrive as double: the int Group must narrow.
             var args = Bind<SetActionGroupArgs>(new Dictionary<string, object?>
             {
                 ["group"] = 3.0,
@@ -87,7 +87,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BindsStringListFromWireArray()
         {
-            // Wire arrays arrive as List<object?> of boxed strings — the binder
+            // Wire arrays arrive as List<object?> of boxed strings, the binder
             // must materialise the declared List<string>. LaunchArgs.Crew is the
             // first command-arg list; without list support a populated crew
             // array would throw at bind time and dead-soft the whole launch.
@@ -171,7 +171,7 @@ namespace Sitrep.Host.Tests
         public void NullWireArgsBindsToNullForObjectHandler()
         {
             // vessel.control.stage / vessel.target.clear register as object? and
-            // receive null args — must tolerate null, not throw.
+            // receive null args: must tolerate null, not throw.
             Assert.Null(ChannelEngine.BindCommandArgs(null, typeof(object)));
         }
 
@@ -197,7 +197,7 @@ namespace Sitrep.Host.Tests
         {
             // A number against a string handler (the CrashyCommandTestUplink
             // shape) and an object bag against a scalar (the
-            // ScalarArgCommandTestUplink shape) must still throw — the engine's
+            // ScalarArgCommandTestUplink shape) must still throw, the engine's
             // fail-soft depends on that.
             Assert.ThrowsAny<Exception>(() => ChannelEngine.BindCommandArgs(5.0, typeof(string)));
             Assert.ThrowsAny<Exception>(() =>
@@ -273,7 +273,7 @@ namespace Sitrep.Host.Tests
                 {
                     dict[prop.Name] = 1.0; // wire numbers (incl. enum ordinals) are double
                 }
-                // Any other property type is left absent — if the binder can't
+                // Any other property type is left absent, if the binder can't
                 // handle it from a missing key that's fine (stays default);
                 // a new required non-primitive would surface via a live gap,
                 // but no command arg type has one today.

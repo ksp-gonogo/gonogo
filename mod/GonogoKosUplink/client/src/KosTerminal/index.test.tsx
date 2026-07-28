@@ -19,7 +19,7 @@ import { KosTerminalComponent } from "./index";
 
 // xterm.js needs a canvas-capable DOM jsdom doesn't provide. Mock it at the
 // library boundary: the real component logic, stream hooks, and command
-// dispatch all run — only the renderer is stubbed.
+// dispatch all run, only the renderer is stubbed.
 const termSpies = vi.hoisted(() => ({
   loadAddon: vi.fn(),
   open: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock("@xterm/xterm", () => ({
     Object.assign(this, termSpies);
     // Real xterm exposes a live, settable `.options` bag (see the widget's
     // cursor-blink sync effect, which writes `term.options.cursorBlink`
-    // whenever line mode toggles) — mirror that shape here rather than
+    // whenever line mode toggles): mirror that shape here rather than
     // defensively guarding the component for a test-only gap.
     this.options = {};
   }),
@@ -133,12 +133,12 @@ function getOnData(): (data: string) => void {
 
 /**
  * Minimal single-active-line terminal emulator over the sequence of
- * `write()` calls xterm would have received — just enough to distinguish
+ * `write()` calls xterm would have received, just enough to distinguish
  * "the typed line was committed to the terminal buffer once" from "twice",
  * without reimplementing VT100. Interprets `\r` (return to column 0), `\n`
  * (commit the current line and start a fresh one), `\b` (destructive
  * backspace, as emitted by handleLineModeChar's `"\b \b"`), and `\x1b[K`
- * (erase from the cursor to end of line — the escape a fix for the
+ * (erase from the cursor to end of line, the escape a fix for the
  * double-echo bug retracts a local composition with).
  */
 function replayCommittedLines(writes: string[]): string[] {
@@ -179,7 +179,7 @@ function replayCommittedLines(writes: string[]): string[] {
   return committed;
 }
 
-describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
+describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRegistry();
@@ -329,7 +329,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     // comms-delay-nullable-when-no-path fix: `oneWaySeconds` is null when
     // there is no measurable ControlPath (as opposed to 0 for the
     // delay-disabled-but-connected case). The badge must treat null the same
-    // as the old 0 sentinel — hidden, never a runtime crash on `null * 2`.
+    // as the old 0 sentinel: hidden, never a runtime crash on `null * 2`.
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
@@ -445,7 +445,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     });
 
     // Under nonzero signal delay, kOS's OWN echo of the same line arrives
-    // later over the downlink — well after the instant local echo above.
+    // later over the downlink: well after the instant local echo above.
     act(() =>
       fixture.emit("kos.terminal.7", {
         coreId: 7,
@@ -458,7 +458,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
       const committed = replayCommittedLines(writes);
       // The server's echo must be the ONLY copy that ends up committed to
-      // the terminal buffer — the local composition echo is transient
+      // the terminal buffer: the local composition echo is transient
       // (visible while typing) and gets retracted on Enter rather than
       // scrolled into history, so it must never itself count as a second
       // committed "list." line.
@@ -471,7 +471,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     // SAME-line double-render case. This reproduces the deeper bug: the
     // server's delayed, authoritative echo for a line ALREADY committed
     // (typed + Enter) can still land in the middle of the NEXT line's
-    // in-progress, not-yet-committed composition — retract-on-Enter moves
+    // in-progress, not-yet-committed composition: retract-on-Enter moves
     // the cursor back to column 0 for the retracted line, but never
     // accounts for whatever the operator has typed for the line AFTER
     // that by the time the delayed echo actually arrives.
@@ -518,7 +518,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
   it("toggling line mode does NOT tear down and wipe the running terminal", async () => {
     // Bug: the xterm setup effect lists `lineMode` in its dependency array, so
     // flipping the Line-mode config switch disposes and recreates the whole
-    // Terminal — but the downlink subscription persists, so nothing reseeds the
+    // Terminal: but the downlink subscription persists, so nothing reseeds the
     // fresh xterm and the widget goes blank (while the real in-game CPU keeps
     // its screen). The terminal instance must survive a line-mode toggle.
     const fixture = terminalFixture();
@@ -541,7 +541,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
       </fixture.Provider>,
     );
 
-    // The live xterm must NOT have been disposed/recreated — same instance,
+    // The live xterm must NOT have been disposed/recreated, same instance,
     // no wipe.
     expect(termSpies.dispose).not.toHaveBeenCalled();
     expect(vi.mocked(Terminal)).toHaveBeenCalledTimes(1);
@@ -549,7 +549,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
 
   it("uses a fixed 80x24 terminal and imposes it on the CPU once (no dynamic fit)", async () => {
     // The widget must be a fixed-size grid (like the telnet solution): never
-    // fit-to-pixels — which line-wraps kOS's output in a narrow panel — and
+    // fit-to-pixels (which line-wraps kOS's output in a narrow panel) and
     // impose that one size on the shared CPU screen exactly once, rather than
     // streaming a resize on every container change.
     const fixture = terminalFixture();
@@ -569,7 +569,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
     expect(opts.cols).toBe(80);
     expect(opts.rows).toBe(24);
 
-    // Exactly one resize command, carrying that fixed size — the CPU is set
+    // Exactly one resize command, carrying that fixed size, the CPU is set
     // once, never streamed a per-fit resize.
     await waitFor(() => {
       const resizes = fixture.commands.filter(
@@ -646,7 +646,7 @@ describe("KosTerminal — streamed over the Uplink (no proxy)", () => {
   });
 });
 
-describe("KosTerminal — in-transit uplink queue strip (prediction-only, never execution-shaped)", () => {
+describe("KosTerminal: in-transit uplink queue strip (prediction-only, never execution-shaped)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRegistry();
@@ -672,7 +672,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
   it("renders a predicted up-arrow row in transit, then flips to a down-arrow row once real UT passes dispatchedAt + oneWaySeconds", async () => {
     const fixture = await mountLineMode();
 
-    // Stamp both the delay fact and the queue entry at real UT 100 — the
+    // Stamp both the delay fact and the queue entry at real UT 100, the
     // fixture's wall clock hasn't advanced, so this establishes "now" as
     // UT 100 for the strip's real-time clock (`useUtNow`).
     act(() =>
@@ -712,11 +712,11 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent(
       "reaching craft",
     );
-    // The char-mode-only badge must NOT also be showing — the two are
+    // The char-mode-only badge must NOT also be showing, the two are
     // mutually exclusive above the 1s threshold.
     expect(screen.queryByLabelText("Signal delay")).toBeNull();
 
-    // Advance REAL time (the fixture's wall clock — NOT a view-clock scrub)
+    // Advance REAL time (the fixture's wall clock, NOT a view-clock scrub)
     // past dispatchedAt (100) + oneWaySeconds (3.8) = 103.8, the predicted
     // arrival at the craft. Nothing about the engine's actual delivery is
     // consulted; this is purely the client's own real-time clock crossing
@@ -732,7 +732,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
   });
 
-  it("the arrow latches ↓ once past the craft — a later sample's earlier deliveredAt re-anchoring useUtNow backward must not judder it back to ↑ (kos-terminal-arrow-judder fix)", async () => {
+  it("the arrow latches ↓ once past the craft, a later sample's earlier deliveredAt re-anchoring useUtNow backward must not judder it back to ↑ (kos-terminal-arrow-judder fix)", async () => {
     const fixture = await mountLineMode();
 
     act(() =>
@@ -765,7 +765,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑"),
     );
 
-    // Real time crosses dispatchedAt(100) + oneWaySeconds(3.8) = 103.8 — the
+    // Real time crosses dispatchedAt(100) + oneWaySeconds(3.8) = 103.8, the
     // arrow flips to ↓ (reply leg), same crossing the up→down test above
     // exercises.
     act(() => fixture.wall.advanceBy(4));
@@ -774,14 +774,14 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
 
     // A LATER-arriving sample on an UNRELATED carried channel (ordinary
-    // network jitter — nothing to do with this terminal's own CPU) reports
+    // network jitter: nothing to do with this terminal's own CPU) reports
     // an EARLIER `deliveredAt` than the fit already anchored to.
     // `ViewClock.observeSample` re-anchors `utNowEstimate()` to THAT
     // sample's `deliveredAt` regardless of which topic it arrived on (see
-    // `ViewClock.observeSample`'s own doc comment) — wall time hasn't moved
+    // `ViewClock.observeSample`'s own doc comment): wall time hasn't moved
     // since the advance above, so this snaps `useUtNow()` back below 103.8
     // for exactly this frame. Pre-fix, the raw `stripUtNow < reachUt`
-    // compare flipped the arrow straight back to ↑ — the operator-reported
+    // compare flipped the arrow straight back to ↑, the operator-reported
     // judder.
     act(() =>
       fixture.emit(
@@ -792,16 +792,16 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
 
     // `useUtNow` only updates via `ViewClock.onFrame`'s own real-wall-clock
-    // tick (unrelated to `fixture.wall`, the fake UT clock) — the reanchor
+    // tick (unrelated to `fixture.wall`, the fake UT clock), the reanchor
     // above is invisible until at least one of those ticks lands. A bare
     // `waitFor(() => toHaveTextContent("↓"))` here would pass trivially on
-    // its very first (immediate) check, off the STALE pre-reanchor render —
+    // its very first (immediate) check, off the STALE pre-reanchor render,
     // never actually observing what the reanchored estimate does. Settle
     // past several real ticks first, then assert the settled state
     // directly.
     await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
-    // The arrow must stay latched at ↓ — this item already reached the
+    // The arrow must stay latched at ↓, this item already reached the
     // craft once in real time and can never legitimately un-reach it, no
     // matter what the clock estimate does next.
     expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓");
@@ -920,11 +920,11 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
   });
 
-  it("(Issue A regression) renders and clears the strip in REAL time — never one delay-period late behind the delayed view clock", async () => {
+  it("(Issue A regression) renders and clears the strip in REAL time; never one delay-period late behind the delayed view clock", async () => {
     // A non-zero view delay: `useViewUt`'s confirmed edge lags real UT by
     // 20s. If the strip (queue read or countdown) were still riding that
     // delayed clock, a command dispatched (and pruned) in real time would
-    // not appear — or clear — until the view clock's confirmed edge caught
+    // not appear (or clear) until the view clock's confirmed edge caught
     // up 20s of WALL time later. Deliberately no `pinnedUt` (per
     // `setupStreamFixture`'s own doc: a non-zero `delaySeconds` requires a
     // live, unscrubbed clock).
@@ -940,7 +940,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
     // `kos.processors` is genuine delayed CRAFT telemetry (read via
-    // `useStream`, correctly certainty-gated) — it only becomes visible once
+    // `useStream`, correctly certainty-gated): it only becomes visible once
     // the confirmed edge reaches its own `validAt` (0), which needs at least
     // `delaySeconds` (20s) of real time to elapse. Advance the fixture's
     // wall clock past that and force a frame refresh (`setupStreamFixture`'s
@@ -954,12 +954,12 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
       expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
     );
 
-    // Real UT is 25 right now (wall hasn't moved since the advance above) —
+    // Real UT is 25 right now (wall hasn't moved since the advance above),
     // stamp the delay fact and the queue entry at that same real "now" via
     // explicit `validAt`/`deliveredAt` overrides (the default `emit()`
     // stamps 0, which would wrongly rewind the clock's UT<->wall anchor).
     // The delayed view's confirmed edge sits at 25 - 20s = 5. A command
-    // dispatched at real UT 25 must show up NOW, off the real-time read —
+    // dispatched at real UT 25 must show up NOW, off the real-time read,
     // not once the confirmed edge reaches 25 (20s of wall time later).
     act(() =>
       fixture.emit(
@@ -988,7 +988,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
       ),
     );
 
-    // No wall-time advance is needed here — proving this doesn't depend on
+    // No wall-time advance is needed here, proving this doesn't depend on
     // 20s of (fake) wall time elapsing the way the pre-fix delayed-clock
     // read would have.
     await waitFor(() =>
@@ -998,15 +998,15 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
 
     // Sanity check on the bug this guards against: the delayed view clock
     // genuinely IS still stuck at 5 right now (confirming the fixture models
-    // the lag the bug depended on, not that delaySeconds is a no-op) — well
+    // the lag the bug depended on, not that delaySeconds is a no-op), well
     // short of the queue entry's own `validAt` (25), so the OLD
     // `useStream("system.uplink.pending")` read would have returned
     // `undefined` (nothing confirmed yet) at this exact point, showing no
     // strip at all.
     expect(fixture.store.clock.confirmedEdgeUt()).toBeCloseTo(5, 5);
 
-    // The engine prunes the entry once it predicts the round trip complete
-    // — modelled here as a later real-time snapshot with an empty queue.
+    // The engine prunes the entry once it predicts the round trip complete,
+    // modelled here as a later real-time snapshot with an empty queue.
     // The strip must clear immediately off that real-time read too, not
     // wait for the delayed view to catch up.
     act(() =>
@@ -1023,7 +1023,7 @@ describe("KosTerminal — in-transit uplink queue strip (prediction-only, never 
   });
 });
 
-describe("KosTerminal — blocks a send with no comms path", () => {
+describe("KosTerminal: blocks a send with no comms path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRegistry();
@@ -1060,7 +1060,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeInTheDocument(),
     );
     // Bug 2: a second, compact badge right next to the composition bar the
@@ -1116,7 +1116,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
       expect((keys[0].args as { chars: string }).chars).toBe("run.\r");
     });
     expect(
-      screen.queryByText(/No path — commands are not being sent/),
+      screen.queryByText(/No path: commands are not being sent/),
     ).toBeNull();
   });
 
@@ -1131,7 +1131,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
 
     expect(
-      screen.queryByText(/No path — commands are not being sent/),
+      screen.queryByText(/No path: commands are not being sent/),
     ).toBeNull();
 
     const onData = getOnData();
@@ -1161,7 +1161,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
     act(() => fixture.emit("comms.link", { connected: false }));
     await waitFor(() =>
       expect(
-        screen.getByText(/No path — commands are not being sent/),
+        screen.getByText(/No path: commands are not being sent/),
       ).toBeInTheDocument(),
     );
 
@@ -1174,7 +1174,7 @@ describe("KosTerminal — blocks a send with no comms path", () => {
   });
 });
 
-describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
+describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRegistry();
@@ -1292,7 +1292,7 @@ describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
         'RUNPATH("0:/widget_scripts/gravityturn.ks", 5, 10).\r',
       );
     });
-    // Same label convention as an ordinary composed line — trimmed of the
+    // Same label convention as an ordinary composed line, trimmed of the
     // trailing wire CR, carried on the terminal's own topic.
     const key = fixture.transport.sentCommands.find(
       (c) => c.command === "kos.keystroke",
@@ -1329,7 +1329,7 @@ describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
     ).toBeInTheDocument();
 
     act(() => onData("\r")); // confirm the sole filtered match
-    act(() => onData("\r")); // no args — send immediately
+    act(() => onData("\r")); // no args: send immediately
 
     await waitFor(() => {
       const keys = fixture.commands.filter(
@@ -1461,7 +1461,7 @@ describe("kOS terminal — `/` script-run composer (RUNPATH injection)", () => {
   });
 });
 
-describe("kOS terminal — live drive listing + copy-local (RUNPATH injection increment (b))", () => {
+describe("kOS terminal: live drive listing + copy-local (RUNPATH injection increment (b))", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRegistry();
@@ -1502,11 +1502,11 @@ describe("kOS terminal — live drive listing + copy-local (RUNPATH injection in
       </fixture.Provider>,
     );
     // Warm the kos Uplink executor's OWN kos.processors subscription BEFORE
-    // the picker ever dispatches — mirrors KosCpuDiscovery's eager adopt at
+    // the picker ever dispatches: mirrors KosCpuDiscovery's eager adopt at
     // app-mount (not present in this narrow fixture). Without this, the
     // executor's tagname → coreId map is cold on its first call and
     // rejects immediately (kos-execute-uplink.test.ts documents the same
-    // race — "prime it, then publish the CPU list").
+    // race: "prime it, then publish the CPU list").
     act(() => {
       kosSource.attachTelemetryClient(fixture.client);
       fixture.emit("kos.processors", ONE_CPU);
@@ -1516,7 +1516,7 @@ describe("kOS terminal — live drive listing + copy-local (RUNPATH injection in
     act(() => getOnData()("/"));
 
     // The two LISTED_VOLUMES dispatches are serialised through the SAME
-    // per-CPU FIFO queue (KosUplinkCpuQueue) — only one is in flight at a
+    // per-CPU FIFO queue (KosUplinkCpuQueue): only one is in flight at a
     // time, so the second doesn't appear until the first is answered.
     await waitFor(() => {
       expect(
@@ -1590,7 +1590,7 @@ describe("kOS terminal — live drive listing + copy-local (RUNPATH injection in
     ).toHaveLength(0);
   });
 
-  it("a configured scriptPaths list wins over the live listing — no executeScript dispatch happens at all", async () => {
+  it("a configured scriptPaths list wins over the live listing, no executeScript dispatch happens at all", async () => {
     const fixture = scriptListingFixture();
     render(
       <fixture.Provider>

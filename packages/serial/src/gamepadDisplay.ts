@@ -9,7 +9,7 @@ import type { DeviceInput, DeviceInstance } from "./types";
 export interface GamepadInputDisplay {
   name: string;
   /** Vendored glyph markup, or undefined when the pack/role has none (the
-   *  `positional` pack, or a role with no art) — render name-only. */
+   *  `positional` pack, or a role with no art), render name-only. */
   glyph?: string;
 }
 

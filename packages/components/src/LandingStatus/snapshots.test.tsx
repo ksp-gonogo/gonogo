@@ -11,14 +11,14 @@ import { LandingStatusComponent } from "./index";
  * `bodyName` comes off the real, client-derived `vessel.state` channel now (see
  * `stream.test.tsx`), and the rebooted widget runs its own full-vector
  * suicide-burn solve off streamed `vessel.flight`/`vessel.propulsion`/
- * `vessel.orbit` plus the STATIC stock-body radius (`getBody`) — no legacy
- * fallback at all — so these fixtures' keys are replayed as REAL physics inputs
+ * `vessel.orbit` plus the STATIC stock-body radius (`getBody`), no legacy
+ * fallback at all: so these fixtures' keys are replayed as REAL physics inputs
  * (descent rate, thrust, mu) through a genuine `TelemetryProvider`, rather than
  * declared directly.
  *
  * Note: the widget resolves body radius from the static `getBody` registry, not
  * from the emitted `system.bodies` payload. The old `radius: null` "force a
- * no-solution" trick therefore no longer suppresses the board — a real stock
+ * no-solution" trick therefore no longer suppresses the board, a real stock
  * body (Mun/Kerbin) always solves. These snapshots are plain DOM goldens, so a
  * now-solved board for those scenarios is fine; they still exercise the descent
  * paths. A couple of scenarios additionally stream `comms.delay`/`dv.summary` to
@@ -87,14 +87,14 @@ const SCENARIOS: Record<string, Scenario> = {
     totalDvActual: 1200,
   },
   // Mun, h=180m/vDown=8.1 m/s/aMax=1.9 -> timeToImpact≈10.7s,
-  // suicideBurnCountdown≈4.9s — inside the urgent (0,5] window (role=alert).
+  // suicideBurnCountdown≈4.9s: inside the urgent (0,5] window (role=alert).
   "final-approach-mun": {
     body: MUN,
     descent: { heightFromTerrain: 180, verticalSpeed: 8.1, surfaceSpeed: 80 },
     availableThrust: 1.9,
   },
   // Touched down (situation = Landed): verticalSpeed=0, on the surface. Exercises
-  // the landed-state gate — the commit layer shows LANDED, not a stale countdown.
+  // the landed-state gate: the commit layer shows LANDED, not a stale countdown.
   "landed-mun": {
     body: MUN,
     descent: { heightFromTerrain: 0.3, verticalSpeed: 0, surfaceSpeed: 0 },
@@ -115,7 +115,7 @@ const SCENARIOS: Record<string, Scenario> = {
     },
   },
   // Same "radius doesn't resolve" trick as pre-burn-cruise, at a much
-  // higher descent rate — "no landing prediction" while still descending.
+  // higher descent rate: "no landing prediction" while still descending.
   "high-speed-no-solution": {
     body: { ...MUN, radius: null },
     descent: {
@@ -190,12 +190,12 @@ async function snapshotLandingStatusFixture(
         externalTemperature: scenario.descent.externalTemperature ?? 0,
       });
       // The lowest-point burn datum the widget PREFERS (over the CoM radar
-      // altitude on vessel.flight) — present in these near-surface descent
+      // altitude on vessel.flight): present in these near-surface descent
       // scenarios, so the health badge reads live and the AGL is the
       // surface datum rather than the CoM fallback.
       stream.emit("vessel.surface", {
         heightFromTerrain: scenario.descent.heightFromTerrain,
-        // A landed vessel carries the touchdown UT — the widget's landed gate.
+        // A landed vessel carries the touchdown UT, the widget's landed gate.
         landedAt: scenario.situation === 0 ? "10" : undefined,
       });
     }
@@ -221,7 +221,7 @@ async function snapshotLandingStatusFixture(
 
   // vessel.state (and its derived landing scalars) only resolve once the
   // provider's ingest->beginFrame() rAF tick has run (the pinned view-clock's
-  // first frame). Flush two rAF ticks — deterministic and mode-independent,
+  // first frame). Flush two rAF ticks: deterministic and mode-independent,
   // unlike a text-based gate: the body name lives in the subtitle, which is
   // size-gated off (`rows >= 6`) in the compact/landscape h=5 modes, so a
   // `waitFor(body.name)` would time out there even though the widget rendered

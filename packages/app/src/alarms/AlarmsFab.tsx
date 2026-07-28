@@ -13,7 +13,7 @@ import type {
  * AlarmHostService) and station (backed by AlarmClientService).
  *
  * `useSnapshot` is a hook function (not a snapshot object) so the modal
- * can subscribe to live updates — capturing a snapshot at click time
+ * can subscribe to live updates, capturing a snapshot at click time
  * caused a bug where the second alarm in a session anchored to a stale UT.
  */
 

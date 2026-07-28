@@ -2,7 +2,7 @@ import { useId, useMemo } from "react";
 import { buildPath, makeScale } from "./lineChartMath";
 
 /**
- * Tiny inline trendline. No axes, no margins, no labels — just the path.
+ * Tiny inline trendline. No axes, no margins, no labels, just the path.
  * Designed to embed next to a numeric readout (e.g. TWR, SMA, altitude) so
  * the reader can glance at the recent trend without taking up much space.
  *
@@ -17,7 +17,7 @@ export interface SparklineProps {
   height: number;
   /** Stroke colour. Defaults to `var(--color-text-primary)`. */
   color?: string;
-  /** Stroke width in pixels. Defaults to 1.5 — thin enough to feel inline,
+  /** Stroke width in pixels. Defaults to 1.5, thin enough to feel inline,
    *  thick enough not to read as a misdraw on standard-DPI screens. */
   strokeWidth?: number;
   /** Pin the Y range; otherwise auto-scaled. Useful for "0..max-throttle" gauges. */
@@ -46,7 +46,7 @@ export function Sparkline({
   background = true,
   ariaLabel = "Trend sparkline",
 }: Readonly<SparklineProps>) {
-  // Filter out non-finite values defensively — a stray NaN in the source
+  // Filter out non-finite values defensively: a stray NaN in the source
   // collapses the auto-domain and drags the path off-screen.
   const finite = useMemo(
     () => values.filter((v) => Number.isFinite(v)) as number[],
@@ -56,7 +56,7 @@ export function Sparkline({
   // Stable instance-scoped ID for the gradient `<defs>`. React 18's useId
   // emits ":r0:"-style strings that aren't valid in SVG `url(#id)`
   // references; strip the colons. Has to be called unconditionally
-  // (rules-of-hooks) — gradient consumption is gated by `background` later.
+  // (rules-of-hooks): gradient consumption is gated by `background` later.
   const fillId = `sparkline-fill-${useId().replace(/:/g, "")}`;
 
   const domain = useMemo<[number, number]>(() => {

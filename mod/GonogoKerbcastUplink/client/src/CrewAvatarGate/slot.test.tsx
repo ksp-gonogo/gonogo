@@ -1,7 +1,7 @@
 /**
  * Presence-gate wiring for the `crew-manifest.avatar` slot: proves the
  * augment is bound to the real slot id, behind the real `requires:
- * "kerbcast"` gate `<AugmentSlot>` enforces — not just callable directly with
+ * "kerbcast"` gate `<AugmentSlot>` enforces: not just callable directly with
  * hand-picked props (that's index.test.tsx's job).
  */
 
@@ -20,8 +20,8 @@ import { AugmentSlot, Quality, type SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { beforeEach, describe, expect, it } from "vitest";
-// Importing the real module runs its module-load `registerAugment(...)` once
-// — the same way the app picks this augment up via the package's bare
+// Importing the real module runs its module-load `registerAugment(...)` once,
+// the same way the app picks this augment up via the package's bare
 // `import "./CrewAvatarGate"`. Deliberately never call `clearAugments()`
 // here for the same reason DockingCameraAugment's slot test doesn't: it
 // would wipe the one real registration this file exists to check.
@@ -58,7 +58,7 @@ function renderSlot(transport: StubTransport) {
   );
 }
 
-describe("kerbcast crew-avatar augment — crew-manifest.avatar slot", () => {
+describe("kerbcast crew-avatar augment: crew-manifest.avatar slot", () => {
   beforeEach(() => {
     clearRegistry();
     clearUplinkHandles();
@@ -92,7 +92,7 @@ describe("kerbcast crew-avatar augment — crew-manifest.avatar slot", () => {
     });
 
     // No kerbcast handle registered in this test, so even once the Domain
-    // gate opens there is nothing to correlate against — composes to nothing,
+    // gate opens there is nothing to correlate against, composes to nothing,
     // never a throw.
     await Promise.resolve();
     expect(container.querySelector("button")).toBeNull();

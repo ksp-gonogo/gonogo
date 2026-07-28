@@ -7,7 +7,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The CORE SignalDelay light-time math (comms-uplink-design.md §3).
-    /// Pure — exercises gonogo's own computation over backend-supplied hop
+    /// Pure: exercises gonogo's own computation over backend-supplied hop
     /// geometry with no KSP in the loop.
     /// </summary>
     public class CommsSignalDelayTests
@@ -82,7 +82,7 @@ namespace Sitrep.Host.Tests
 
             var result = SignalDelay.Compute(cfg, new CommsPath { Hops = new List<CommsHop>() }, "s", Quality.OnRails);
 
-            // No measurable path ⇒ null, NOT 0 — 0 is reserved for the
+            // No measurable path ⇒ null, NOT 0, 0 is reserved for the
             // delay-feature-disabled-but-connected case (see FlagOff test
             // above), so the two "None" cases stay distinguishable by value.
             Assert.Equal(CommsDelaySource.None, result.Source);

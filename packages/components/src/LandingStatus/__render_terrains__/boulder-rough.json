@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "boulder-rough",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Boulder-rough — low slope, high residual roughness => MARGINAL on roughness"
+    "notes": "SYNTHETIC (model-generated, NOT captured). Boulder-rough: low slope, high residual roughness => MARGINAL on roughness"
   },
   "_stream": {
     "carriedChannels": [

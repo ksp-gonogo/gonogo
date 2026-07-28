@@ -3,7 +3,7 @@ import { createGlobalStyle } from "styled-components";
 /**
  * Design-token custom properties as a styled-components global sheet.
  *
- * Mirrors `tokens.css` exactly — the same `:root` variable block and the
+ * Mirrors `tokens.css` exactly: the same `:root` variable block and the
  * coarse-pointer font-size override. Hosts that build their global styles
  * through styled-components (rather than importing `@ksp-gonogo/theme/tokens.css`)
  * render `<GonogoTokens />` once near the tree root.
@@ -12,7 +12,7 @@ import { createGlobalStyle } from "styled-components";
  * stays side-effect-free so it tree-shakes cleanly. The host opts in
  * explicitly.
  *
- * Keep this block and `tokens.css` in sync — they are two hand-maintained
+ * Keep this block and `tokens.css` in sync, they are two hand-maintained
  * copies of the same source of truth.
  */
 export const GonogoTokens = createGlobalStyle`

@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { VesselDeltaV } from "@ksp-gonogo/data";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { isSequence, type PlanResult } from "./planning";
@@ -139,7 +140,7 @@ function PreviewBody({
       <Value>
         <ValueNum>
           {vesselDeltaV.totalVac === 0
-            ? "—"
+            ? NULL_DISPLAY
             : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
         </ValueNum>
         {feasible !== null && (
@@ -181,7 +182,7 @@ function SequencePreview({
         <Value>
           <ValueNum>
             {vesselDeltaV.totalVac === 0
-              ? "—"
+              ? NULL_DISPLAY
               : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
           </ValueNum>
           {feasible !== null && (
@@ -355,7 +356,7 @@ function ShortfallBanner({
   return (
     <FeasibilityBanner role="status" aria-live="polite">
       <FeasibilityBannerTitle>
-        ΔV shortfall — can't add node
+        ΔV shortfall: can't add node
       </FeasibilityBannerTitle>
       <FeasibilityBannerBody>
         Required {requiredDeltaV.toFixed(0)} m/s · available{" "}

@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The real <see cref="ICareerActuator"/> — the career-write actuation seam,
+    /// The real <see cref="ICareerActuator"/>: the career-write actuation seam,
     /// wired to <c>StrategySystem</c>/<c>ResearchAndDevelopment</c>/
     /// <c>ContractSystem</c>/<c>ScenarioUpgradeableFacilities</c>/<c>Funding</c>,
     /// each call confirmed against this KSP version's actual API shapes via
@@ -18,32 +18,32 @@ namespace Gonogo.KSP
     /// on exactly what it read.
     ///
     /// <para>Like <see cref="KspVesselActuator"/>, this touches KSP/Unity APIs
-    /// directly and runs on the Unity main thread — <see cref="ChannelEngine"/>
+    /// directly and runs on the Unity main thread, <see cref="ChannelEngine"/>
     /// is constructed with <c>executeCommandsOnMainThread: true</c>
     /// (<c>GonogoAddon.Awake</c>), so every command handler is marshaled onto the
     /// main-thread pump before it reaches here; no KSP/Unity API below is ever
     /// touched from the Courier thread.</para>
     ///
     /// <para>These are SPEND actions. The two paid paths that KSP does NOT bundle
-    /// into a single self-deducting call — tech unlock and facility upgrade —
+    /// into a single self-deducting call (tech unlock and facility upgrade)
     /// reproduce the stock spend sequence explicitly (check affordability, deduct
     /// the currency, then apply), returning before any spend on an unaffordable
-    /// request. The paths KSP DOES bundle — <c>Strategy.Activate</c>/
-    /// <c>Deactivate</c> and <c>Contract.Accept</c>/<c>Decline</c>/<c>Cancel</c>
-    /// — are self-gating and self-deducting, so a <c>false</c> return from them
+    /// request. The paths KSP DOES bundle, <c>Strategy.Activate</c>/
+    /// <c>Deactivate</c> and <c>Contract.Accept</c>/<c>Decline</c>/<c>Cancel</c>,
+    /// are self-gating and self-deducting, so a <c>false</c> return from them
     /// means "not valid in the current state" with no partial spend, surfaced as
     /// <see cref="CommandErrorCode.ModeUnavailable"/>.</para>
     /// </summary>
     public sealed class KspCareerActuator : ICareerActuator
     {
         /// <summary>
-        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c> —
+        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>,
         /// administration-level cap, conflicting-strategy groups, funds on hand)
         /// and self-deducting (its up-front funds/science/reputation cost, each
         /// scaled by <c>Factor</c>), so a <c>false</c> return is a clean
         /// "not eligible" with no partial spend. <c>Factor</c> is set BEFORE
         /// activation because the cost scales with it, and only for strategies
-        /// that actually expose a slider (<c>HasFactorSlider</c>) — best-effort,
+        /// that actually expose a slider (<c>HasFactorSlider</c>): best-effort,
         /// per the command's contract; others activate at their fixed factor.
         /// </summary>
         public CommandResult ActivateStrategy(string strategyId, double factor)
@@ -74,7 +74,7 @@ namespace Gonogo.KSP
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
         }
 
-        /// <summary><c>Strategy.Deactivate()</c> is self-gating (<c>CanBeDeactivated</c>) — a <c>false</c> return means it wasn't deactivatable right now.</summary>
+        /// <summary><c>Strategy.Deactivate()</c> is self-gating (<c>CanBeDeactivated</c>), a <c>false</c> return means it wasn't deactivatable right now.</summary>
         public CommandResult DeactivateStrategy(string strategyId)
         {
             var system = StrategySystem.Instance;
@@ -100,14 +100,14 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Reproduces the stock research spend. The node's science cost lives on
-        /// the STATIC tech tree — <c>ResearchAndDevelopment.GetTechState</c> only
+        /// the STATIC tech tree: <c>ResearchAndDevelopment.GetTechState</c> only
         /// returns a node once it's already been researched/started, so it can't
         /// price a not-yet-unlocked tech; the cost is read off
         /// <c>AssetBase.RnDTechTree.GetTreeTechs()</c>'s <c>ProtoTechNode[]</c>
         /// (the same proto shape <c>UnlockProtoTechNode</c> consumes). Science is
-        /// deducted here because <c>UnlockProtoTechNode</c> itself does not — the
+        /// deducted here because <c>UnlockProtoTechNode</c> itself does not, the
         /// free progress-reward path in stock KSP calls it directly with no
-        /// deduction — so on an unaffordable request this returns before any
+        /// deduction: so on an unaffordable request this returns before any
         /// spend. Already-unlocked techs are rejected up front.
         /// </summary>
         public CommandResult UnlockTech(string techId)
@@ -153,19 +153,19 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         }
 
-        /// <summary><c>Contract.Accept()</c> is self-gating on state (valid only when Offered) and applies its own funds advance — a <c>false</c> return means the contract wasn't in an acceptable state.</summary>
+        /// <summary><c>Contract.Accept()</c> is self-gating on state (valid only when Offered) and applies its own funds advance, a <c>false</c> return means the contract wasn't in an acceptable state.</summary>
         public CommandResult AcceptContract(string contractId) =>
             WithContract(contractId, contract => contract.Accept()
                 ? CommandResult.Ok()
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable));
 
-        /// <summary><c>Contract.Decline()</c> is self-gating on state (valid only when Offered) and applies its own reputation penalty — a <c>false</c> return means it wasn't declinable.</summary>
+        /// <summary><c>Contract.Decline()</c> is self-gating on state (valid only when Offered) and applies its own reputation penalty, a <c>false</c> return means it wasn't declinable.</summary>
         public CommandResult DeclineContract(string contractId) =>
             WithContract(contractId, contract => contract.Decline()
                 ? CommandResult.Ok()
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable));
 
-        /// <summary><c>Contract.Cancel()</c> is self-gating on state (valid only when Active) and applies its own penalty — a <c>false</c> return means it wasn't cancellable.</summary>
+        /// <summary><c>Contract.Cancel()</c> is self-gating on state (valid only when Active) and applies its own penalty, a <c>false</c> return means it wasn't cancellable.</summary>
         public CommandResult CancelContract(string contractId) =>
             WithContract(contractId, contract => contract.Cancel()
                 ? CommandResult.Ok()
@@ -178,8 +178,8 @@ namespace Gonogo.KSP
         /// → <c>facilityRefs[0]</c>), guard against already-max, read
         /// <c>GetUpgradeCost()</c> (the cost to the next tier), check funds,
         /// deduct, then raise the level. <c>SetLevel</c> fires the upgrade
-        /// GameEvents but does NOT deduct — the level increment and the fund
-        /// deduction are separate steps — so an unaffordable request returns
+        /// GameEvents but does NOT deduct, the level increment and the fund
+        /// deduction are separate steps, so an unaffordable request returns
         /// before any spend.
         /// </summary>
         public CommandResult UpgradeFacility(string facilityId)
@@ -234,7 +234,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Resolve a contract by its stringified <c>ContractID</c> (the read-side
-        /// id — <c>ContractID</c>, not <c>ContractGuid</c>) against the live
+        /// id: <c>ContractID</c>, not <c>ContractGuid</c>) against the live
         /// not-yet-finished list (<c>ContractSystem.Instance.Contracts</c>, which
         /// holds both Offered and Active), then run <paramref name="action"/> on
         /// it. Fails <see cref="CommandErrorCode.NotFound"/> when nothing carries

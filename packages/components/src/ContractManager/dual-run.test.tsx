@@ -15,7 +15,7 @@ import { ContractManagerComponent } from "./index";
  * The original version of this test rendered the same contract state once off a
  * legacy `DataSource` (`snapshotWidgetMode`, which mounts no
  * `TelemetryProvider`) and once off the stream and asserted byte-identical DOM;
- * that comparison is no longer possible — the legacy leg now renders nothing but
+ * that comparison is no longer possible, the legacy leg now renders nothing but
  * "Awaiting contract telemetry" since the reads are stream-only. Same cause
  * (full stream migration, not a test bug) as every other widget's
  * `dual-run.test.tsx` dropping its now-impossible legacy leg.
@@ -33,7 +33,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ContractManager — real recorded-fixture render off the stream (delay=0)", () => {
+describe("ContractManager: real recorded-fixture render off the stream (delay=0)", () => {
   it("renders the small-career-detail contracts off the stream", async () => {
     const mode = { name: "default-6x8", w: 6, h: 8 };
 

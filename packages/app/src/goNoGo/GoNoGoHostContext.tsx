@@ -28,7 +28,7 @@ export function useGoNoGoHost(): GoNoGoHostService | null {
   return useContext(GoNoGoHostContext);
 }
 
-/** Reactive snapshot — re-renders on any state change. */
+/** Reactive snapshot: re-renders on any state change. */
 export function useGoNoGoSnapshot(): GoNoGoSnapshot | null {
   const service = useGoNoGoHost();
   const [snapshot, setSnapshot] = useState<GoNoGoSnapshot | null>(() =>

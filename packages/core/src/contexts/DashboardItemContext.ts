@@ -10,7 +10,7 @@ export const DashboardItemContext =
 
 /**
  * Reads the current dashboard item's instance ID. Throws if called outside a
- * `<DashboardItemContext.Provider>` — catches cases where an action-using
+ * `<DashboardItemContext.Provider>`: catches cases where an action-using
  * component is rendered outside the Dashboard.
  */
 export function useDashboardItemId(): string {

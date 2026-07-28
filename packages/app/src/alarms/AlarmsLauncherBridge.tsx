@@ -13,7 +13,7 @@ import type { AlarmSnapshot, AlarmTrigger } from "./types";
  * Provides an `AlarmsLauncher` to the subtree that wraps `useModal().open`
  * so widgets (e.g. `ActionGroup`) can open the alarms modal pre-populated
  * with `onFire` set to a chosen Telemachus action key. Identical wiring
- * for main + station — only the backing snapshot/CRUD callbacks change,
+ * for main + station: only the backing snapshot/CRUD callbacks change,
  * which the screens already build for `AlarmsFab`.
  */
 export function AlarmsLauncherBridge({
@@ -49,7 +49,7 @@ export function AlarmsLauncherBridge({
     [open, useSnapshot, onAdd, onUpdate, onDelete],
   );
   // Direct-create path used by Mission Director's parameter bells. Skips
-  // the modal entirely — the click already encodes everything the alarm
+  // the modal entirely: the click already encodes everything the alarm
   // needs (contract id, parameter title, target state).
   const creator: AlarmCreator<AlarmTrigger> = useCallback(
     (req) => {

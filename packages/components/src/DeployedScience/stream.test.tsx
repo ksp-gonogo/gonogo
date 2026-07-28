@@ -8,11 +8,11 @@ import { DeployedScienceComponent } from "./index";
  * The stream test-adapter proof for DeployedScience: genuinely running off
  * the real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline
  * via `StubTransport`. `deployed.bases` is mapped onto `science.deployed`
- * (map-topic.ts) — a raw FLAT array read wholesale and grouped client-side
+ * (map-topic.ts): a raw FLAT array read wholesale and grouped client-side
  * by `vesselName` (`groupFlatDeployedEntries`, index.tsx), same "one widget
  * key, either wire shape" pattern `science.experiments`/`sci.experiments`
  * established for ScienceBench. `deployed.available` (->
- * `game.dlc.breakingGround`) is migrated too — no legacy `DataSource` AUX
+ * `game.dlc.breakingGround`) is migrated too, no legacy `DataSource` AUX
  * needed for this widget any more, it streams through the fixture's
  * `game.dlc` topic.
  */
@@ -20,7 +20,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("DeployedScience — genuinely runs off the stream (M3 science-domain finale)", () => {
+describe("DeployedScience: genuinely runs off the stream (M3 science-domain finale)", () => {
   it("renders a deployed cluster grouped by vessel from science.deployed's flat shape", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["science.deployed", "game.dlc"],

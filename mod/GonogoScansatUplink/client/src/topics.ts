@@ -1,18 +1,18 @@
-// SCANsat Uplink — bare-primitive Topic ownership.
+// SCANsat Uplink: bare-primitive Topic ownership.
 //
 // `scansat.available` is a bare JSON boolean (the Uplink's source publishes `true`/`false`
-// directly — see ../ScansatUplink.cs's `AvailableTopic`), so it has no named
+// directly: see ../ScansatUplink.cs's `AvailableTopic`), so it has no named
 // `Sitrep.Contract` payload type for codegen to reflect. It is ALSO owned solely by this
 // Uplink. Rather than hand-declare the mod token in the shared, mod-agnostic
 // `@ksp-gonogo/sitrep-sdk` facade (the exact "mod-specific line in a generic file" leak the
 // Uplink decoupling exists to kill), this Uplink's own client package owns it, in two
 // halves that mirror the `SlotRegistry` / `registerComponent` split:
 //
-//   • TYPE — a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds the Topic to
+//   • TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds the Topic to
 //     `TopicPayloadMap`, so `useTelemetry("scansat.available")` resolves to `boolean` in
 //     any program that statically imports this module (the accepted Option-A trade-off:
 //     a dynamically-loaded Uplink never statically imported types it `unknown` until load).
-//   • RUNTIME — `registerBarePrimitiveTopic(...)` at module load feeds the SDK's runtime
+//   • RUNTIME: `registerBarePrimitiveTopic(...)` at module load feeds the SDK's runtime
 //     registry, so `isTopicId` / `getAllKnownTopicIds` enumerate it without the SDK ever
 //     naming the string.
 //
@@ -24,7 +24,7 @@ import { registerBarePrimitiveTopic } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The bare-boolean presence-gate Topic this Uplink publishes. Its value MUST match
- * `ScansatUplink.AvailableTopic` in ../ScansatUplink.cs — `topics.test.ts` asserts that.
+ * `ScansatUplink.AvailableTopic` in ../ScansatUplink.cs: `topics.test.ts` asserts that.
  */
 export const SCANSAT_AVAILABLE_TOPIC = "scansat.available";
 
@@ -41,7 +41,7 @@ registerBarePrimitiveTopic(SCANSAT_AVAILABLE_TOPIC);
 // type rather than the `unknown` a missing augmentation would leave. This is the per-Uplink
 // half of the SDK's `_AssertNoTopicResolvesToUnknown`, devolved here because the SDK leaf
 // cannot see this augmenting module (2026-07-20). Kept inline (type-only, erased at
-// runtime) rather than in a `.test-d.ts` — the client's build tsconfig does not exclude
+// runtime) rather than in a `.test-d.ts`: the client's build tsconfig does not exclude
 // `*.test-d.ts`, so a separate file would be emitted into `dist`.
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2

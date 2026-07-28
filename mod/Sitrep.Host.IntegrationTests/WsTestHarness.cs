@@ -15,7 +15,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// The real-<see cref="ClientWebSocket"/> test harness shared by every
     /// integration test in this project that talks to a
-    /// <see cref="ChannelEngine"/> over the wire — extracted from
+    /// <see cref="ChannelEngine"/> over the wire: extracted from
     /// <c>ReplayToWebSocketEndToEndTests</c> (which used to keep its own
     /// private copy, same shape as <c>Sitrep.Skeleton.Tests</c>'s) so
     /// <c>ChannelEngineTests</c> doesn't need a second copy. Consumers add
@@ -77,13 +77,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Drains every message that arrives within <paramref name="quietWindow"/>
         /// of the last one seen, returning ALL <see cref="StreamData"/> frames
-        /// observed (any topic), in arrival order — the counterpart to
+        /// observed (any topic), in arrival order: the counterpart to
         /// <see cref="DrainToLatestStreamDataAsync"/> for asserting on the
         /// FULL sequence (used to prove a reliable-ordered channel never
         /// drops/coalesces a frame, where "just the last one" isn't a strong
         /// enough assertion). Callers subscribed to more than one topic
         /// should partition the result themselves (by <c>.Topic</c>) rather
-        /// than calling this once per topic — a second drain call would find
+        /// than calling this once per topic: a second drain call would find
         /// the channel already exhausted by the first.
         /// </summary>
         public static async Task<System.Collections.Generic.List<StreamData>> DrainAllStreamDataAsync(TestClient client, TimeSpan quietWindow)
@@ -138,7 +138,7 @@ namespace Sitrep.Host.IntegrationTests
             // off the thread pool. That is the fix for this suite's flake: the
             // failures were never a server/engine wedge (the engine's Courier
             // and Outbox run on dedicated threads and were always found idle at
-            // the stall) — they were the async CLIENT pipeline starving under
+            // the stall): they were the async CLIENT pipeline starving under
             // CPU contention, so a frame the server had already sent was not
             // picked up before the 10s per-op deadline.
             private readonly Channel<string> _incoming = Channel.CreateUnbounded<string>(
@@ -168,7 +168,7 @@ namespace Sitrep.Host.IntegrationTests
             // Runs on a DEDICATED thread and BLOCKS on each receive rather than
             // awaiting it. The socket engine signals this thread's blocked wait
             // directly on completion, so frame delivery no longer depends on a
-            // thread-pool worker being schedulable — the property that made the
+            // thread-pool worker being schedulable: the property that made the
             // suite robust to the CPU-starvation flake. Writes land via
             // TryWrite (the channel is unbounded, so it always succeeds and
             // never blocks the pump).
@@ -240,7 +240,7 @@ namespace Sitrep.Host.IntegrationTests
                 // and exits on its own; it holds no shared state past this
                 // point and dies with the process. Joining would stall teardown
                 // whenever ClientWebSocket.Abort doesn't interrupt the blocking
-                // receive promptly — which, across ~100 tests, added ~minutes.
+                // receive promptly, which, across ~100 tests, added ~minutes.
                 return ValueTask.CompletedTask;
             }
         }

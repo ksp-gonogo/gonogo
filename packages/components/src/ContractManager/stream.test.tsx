@@ -14,17 +14,17 @@ import { ContractManagerComponent } from "./index";
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
  * `contracts.active`/`contracts.offered`/`contracts.completedRecent` (->
  * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
- * mapped reads — `completedRecent` was
+ * mapped reads, `completedRecent` was
  * mapped onto the wire once `CareerContracts` started carrying it alongside
  * active/offered (map-topic.ts's `TELEMACHUS_CLEAN_HOMES`). `t.universalTime`/
- * `v.altitude` are unrelated-to-career keys — carried by a
+ * `v.altitude` are unrelated-to-career keys, carried by a
  * `setupMockDataSource` AUX, the same mixed-source pattern used elsewhere.
  */
 afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ContractManager — genuinely runs off the stream (M3b career-detail batch)", () => {
+describe("ContractManager: genuinely runs off the stream (M3b career-detail batch)", () => {
   it("renders active + offered contracts derived from career.status.contracts", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
@@ -114,7 +114,7 @@ describe("ContractManager — genuinely runs off the stream (M3b career-detail b
       screen.getByText("Test RT-10 solid fuel booster in flight"),
     ).toBeTruthy();
     // Proves `contracts.completedRecent` genuinely routed off the stream
-    // too (not just active/offered) — reflected in the subtitle's recent
+    // too (not just active/offered): reflected in the subtitle's recent
     // count, same "count changes" proof `index.test.tsx`'s legacy
     // equivalent test uses.
     expect(screen.getByText(/1 active · 1 offered · 1 recent/i)).toBeTruthy();

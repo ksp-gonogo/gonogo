@@ -12,7 +12,7 @@ namespace GonogoScansatUplink.Tests
     /// project (net10.0, NO SCANsat/KSP DLLs referenced), yet drives the ENTIRE
     /// Courier-side path from a hand-built <see cref="ScanCapture"/> payload.
     /// That is only possible because every KSP/SCANsat/stock read now happens
-    /// on the main thread in <c>ScansatUplink.CaptureOnMain</c> — the Courier
+    /// on the main thread in <c>ScansatUplink.CaptureOnMain</c>: the Courier
     /// path (<see cref="ScanPublications.Compute"/>) is provably KSP-free by
     /// construction (it wouldn't compile here otherwise), driven exclusively by
     /// the captured data.
@@ -98,7 +98,7 @@ namespace GonogoScansatUplink.Tests
             ScanPublications.Compute(
                 BuildCapture(coverage, includeHeightBiome: true), lastHashByBody, lastPackedByBodyType);
 
-            // Revisit: same coverage, height/biome already captured — nothing new.
+            // Revisit: same coverage, height/biome already captured, nothing new.
             var second = ScanPublications.Compute(
                 BuildCapture(coverage, includeHeightBiome: false), lastHashByBody, lastPackedByBodyType);
 

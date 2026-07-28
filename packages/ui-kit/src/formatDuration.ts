@@ -1,4 +1,7 @@
 /** KSP-time unit sizes, in seconds. A KSP day is 6h; a KSP year is 426 days. */
+
+import { NULL_DISPLAY } from "./NullValue";
+
 const SECOND = 1;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
@@ -37,15 +40,15 @@ export interface FormatDurationOptions {
  * hasn't happened yet. Truncating means the displayed value has always
  * actually been reached. `89.9` -> `1m 29s`, not `1m 30s`.
  *
- * `undefined`-shaped sentinels aren't handled here (unlike `formatNumber`)
- * — callers pass a definite `number`; only non-finite values (`NaN`,
+ * `undefined`-shaped sentinels aren't handled here (unlike `formatNumber`),
+ * callers pass a definite `number`; only non-finite values (`NaN`,
  * `Infinity`) render as an em dash.
  */
 export function formatDuration(
   seconds: number,
   opts: FormatDurationOptions = {},
 ): string {
-  if (!Number.isFinite(seconds)) return "—";
+  if (!Number.isFinite(seconds)) return NULL_DISPLAY;
 
   const { ms = false, sign = false } = opts;
   const signPrefix = sign ? (seconds < 0 ? "T+" : "T−") : "";
@@ -58,7 +61,7 @@ export function formatDuration(
     return `${signPrefix}0s`;
   }
 
-  // Never show a unit finer than seconds outside the opts.ms sub-1s path —
+  // Never show a unit finer than seconds outside the opts.ms sub-1s path,
   // truncate away any fractional second up front.
   const totalSeconds = Math.floor(abs);
 
@@ -67,7 +70,7 @@ export function formatDuration(
   const majorValue = Math.floor(totalSeconds / major.size);
 
   if (majorIndex === TIERS.length - 1) {
-    // Already at the finest tier (seconds) — nothing smaller to pair with.
+    // Already at the finest tier (seconds): nothing smaller to pair with.
     return `${signPrefix}${majorValue}${major.symbol}`;
   }
 

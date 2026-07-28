@@ -15,7 +15,7 @@ import { ViewClock } from "./view-clock";
 /**
  * DelayAuthority tests (SDK legibility layer). Enforcement is
  * server-side (the mod's reveal gate already withheld samples); these tests
- * cover only the client's job — read `comms.delay` and size the
+ * cover only the client's job: read `comms.delay` and size the
  * predicted-present horizon so the delay becomes LEGIBLE, never earlier.
  */
 describe("DelayAuthority", () => {
@@ -44,7 +44,7 @@ describe("DelayAuthority", () => {
     });
     expect(authority.delaySeconds()).toBe(7);
 
-    // Source flips to None (delay authority dropped) — must collapse to 0
+    // Source flips to None (delay authority dropped), must collapse to 0
     // even if a stale oneWaySeconds tags along.
     authority.observe({ oneWaySeconds: 7, source: CommsDelaySource.None });
     expect(authority.delaySeconds()).toBe(0);
@@ -99,7 +99,7 @@ describe("DelayAuthority", () => {
 describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
   /**
    * With a fixed delay, the predicted-present estimate leads the
-   * confirmed edge by exactly the delay — this is the PREDICT-FORWARD horizon
+   * confirmed edge by exactly the delay: this is the PREDICT-FORWARD horizon
    * a delayed vessel is dead-reckoned across.
    */
   it("utNowEstimate() leads confirmedEdgeUt() by the delay when the estimate is the binding constraint", () => {
@@ -117,7 +117,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     });
 
     // Observe a sample far ahead so the sample-clamp isn't the binding side of
-    // confirmedEdgeUt's min() — the delay is.
+    // confirmedEdgeUt's min(): the delay is.
     clock.observeSample(10_000, 100);
     wall.advanceBy(0); // utNowEstimate == anchorUt == 100
 
@@ -233,7 +233,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
   /**
    * A delayed vessel is propagated FORWARD from its
    * last confirmed elements to the predicted-present view UT, and any
-   * deterministic object (a body) resolves at that SAME view UT — never a
+   * deterministic object (a body) resolves at that SAME view UT; never a
    * different instant. Here the delay authority sets the lead, predicted mode
    * projects the vessel to `utNowEstimate()`, and an independent Kepler solve
    * standing in for a deterministic body uses the identical frame UT.
@@ -265,7 +265,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     expect(frame.certainty).toBe("predicted");
     // Horizon stayed at the confirmed sample (100); the 8s delay would clamp
     // it further back once the estimate is the binding side, but the sample
-    // clamp binds first here — the point is the estimate LEADS it.
+    // clamp binds first here: the point is the estimate LEADS it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
     const state = store.sample<{
@@ -280,7 +280,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     expect(state?.payload?.position).toEqual(vesselExpected.position);
 
     // ...and a deterministic body, solved at the SAME frame UT, uses the
-    // identical instant — no per-object time. Solving the body at any other
+    // identical instant: no per-object time. Solving the body at any other
     // UT would disagree, proving the shared frame UT is load-bearing.
     const bodyAtFrameUt = solve(CIRCULAR_ELEMENTS, frame.viewUt);
     const bodyAtConfirmedEdge = solve(

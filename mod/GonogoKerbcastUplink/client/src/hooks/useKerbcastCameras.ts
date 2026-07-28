@@ -20,7 +20,7 @@ export function useKerbcastCameras(): CameraState[] {
     const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
     if (!ds) return;
     // A mounted camera widget wants the source connected so the camera list can
-    // arrive — the lazy connect trigger (no-op once connected, e.g. on the main
+    // arrive: the lazy connect trigger (no-op once connected, e.g. on the main
     // screen). Without this a brokered station never connects: no list → no
     // selected camera → no per-camera subscribe → no connection.
     ds.ensureConnected();

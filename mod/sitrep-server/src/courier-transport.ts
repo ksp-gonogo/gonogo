@@ -6,7 +6,7 @@
  * a `Transport`, same as `StubTransport` in M2 tests.
  *
  * `Transport`/`TransportStatus` are re-declared structurally here rather
- * than imported from `@ksp-gonogo/sitrep-client` — `sitrep-server` must never
+ * than imported from `@ksp-gonogo/sitrep-client`: `sitrep-server` must never
  * take a runtime dependency on `sitrep-client`. TypeScript's structural
  * typing means a `CourierTransport` still satisfies the real `Transport`
  * interface at the client's constructor call site, because the message
@@ -48,8 +48,8 @@ export class CourierTransport implements Transport {
   private readonly courier: Courier;
   private readonly node: string;
   private readonly vantage: string;
-  // Used by `predictConfirmEta()` (Task 8) to anchor the prediction to "now"
-  // — the courier already owns its own Clock for internal scheduling, this
+  // Used by `predictConfirmEta()` (Task 8) to anchor the prediction to "now",
+  // the courier already owns its own Clock for internal scheduling, this
   // is the same clock instance, just read directly here too.
   private readonly clock: Clock;
 
@@ -125,7 +125,7 @@ export class CourierTransport implements Transport {
   /**
    * Predicted absolute UT a command dispatched right now would be confirmed
    * by: "now" plus the courier's round-trip model for this (node, vantage)
-   * pair. Consumed purely by the client's loss-inference timer — this
+   * pair. Consumed purely by the client's loss-inference timer, this
    * transport never itself decides what counts as "too late".
    */
   predictConfirmEta(): number {

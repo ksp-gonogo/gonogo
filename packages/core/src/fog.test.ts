@@ -28,7 +28,7 @@ const kerbin: BodyDefinition = {
   latitudeOffset: 0,
 };
 
-describe("paintFogFootprint — basic geometry", () => {
+describe("paintFogFootprint: basic geometry", () => {
   it("returns null when altitude is zero or negative", () => {
     const mask = makeMask(64, 32);
     expect(

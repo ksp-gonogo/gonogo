@@ -20,7 +20,7 @@ import {
  * interactive tests feed reads through a real stream pipeline
  * (`setupStreamFixture`). Commands are still COMMAND-blocked
  * (`strategies.activate`/`deactivate` are `KNOWN_COMMAND_GAPS`), so
- * `useExecuteAction("data")` still falls back to the legacy `DataSource` —
+ * `useExecuteAction("data")` still falls back to the legacy `DataSource`,
  * the `setupMockDataSource` leg stays purely to capture those fired actions.
  */
 function emitCareer(
@@ -153,7 +153,7 @@ describe("parseStrategies", () => {
 });
 
 describe("StrategiesComponent", () => {
-  // Command-capture leg only (reads come off the stream) — see emitCareer's
+  // Command-capture leg only (reads come off the stream); see emitCareer's
   // doc comment. The registered "data" source is what `useExecuteAction`
   // falls back to for the still-gapped activate/deactivate commands.
   let cmdFixture: MockDataSourceFixture;

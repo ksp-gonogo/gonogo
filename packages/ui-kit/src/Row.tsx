@@ -9,7 +9,7 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
 
 /**
  * A single spaced-between list row: name on the left, badges/actions on the
- * right. Extracted from ScienceOfficer's `Row` (`styled.li`) — the shape
+ * right. Extracted from ScienceOfficer's `Row` (`styled.li`): the shape
  * hand-rolled ten times across the built-in widgets.
  *
  * The truncating name child is exported alongside as `RowName` (also
@@ -32,7 +32,7 @@ const Row__Root = styled.li`
   padding: 2px 0;
 `;
 
-/** Truncating name/label child for a `Row` — flexes to fill, ellipsises overflow. */
+/** Truncating name/label child for a `Row`: flexes to fill, ellipsises overflow. */
 export const RowName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;

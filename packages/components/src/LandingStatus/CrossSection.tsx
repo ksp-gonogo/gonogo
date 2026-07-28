@@ -1,11 +1,11 @@
 /**
- * CrossSection — the SIDE-ON altimetry plot, paired with the top-down reticle.
+ * CrossSection: the SIDE-ON altimetry plot, paired with the top-down reticle.
  * It slices the terrain patch ALONG THE GROUND TRACK (the horizontal-velocity
  * bearing) through the site and draws that height profile as a vertical terrain
  * cross-section. Two SEPARATE things ride over it: the predicted landing site,
  * marked on the terrain profile (the shared target marker), and an ACCURATE
- * velocity vector from the vessel's current position (above the terrain) — true
- * descent angle, length ∝ speed — which is free to cut off in mid-air (it is
+ * velocity vector from the vessel's current position (above the terrain), true
+ * descent angle, length ∝ speed, which is free to cut off in mid-air (it is
  * current motion, not a line to the site). Speeds also ride the ↓/→ labels.
  *
  * Purely presentational. No arrowheads (standing rule); a clean side elevation.
@@ -13,6 +13,7 @@
  * carrier (and matches the reticle's descent/ground-speed wording).
  */
 
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import { SiteMarker } from "./SiteMarker";
 
@@ -29,15 +30,15 @@ export interface CrossSectionProps {
   verticalSpeed: number | null;
   /** Horizontal (ground) speed, m/s. */
   horizontalSpeed: number | null;
-  /** Height above terrain, metres — drives the vessel's descent down the plot. */
+  /** Height above terrain, metres: drives the vessel's descent down the plot. */
   aglMeters?: number | null;
-  /** Distance from the vessel to the predicted site, metres — drives the
+  /** Distance from the vessel to the predicted site, metres, drives the
    * vessel's horizontal convergence onto the site as the landing nears. */
   driftMeters?: number | null;
 }
 
 function fmtSpeed(v: number | null): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return NULL_DISPLAY;
   return `${Math.round(v)} m/s`;
 }
 
@@ -123,7 +124,7 @@ export function CrossSection({
 
   // Terrain rendered as JUST the top surface line (the skyline): an open polyline
   // of the profile points, over a soft closed fill that reads "ground below".
-  // No bottom/closure line and no ground baseline — only the top terrain line.
+  // No bottom/closure line and no ground baseline, only the top terrain line.
   // The fill closes at the SQUARE's bottom edge (not the terrain baseline) so the
   // ground reads solid all the way down, with no abrupt stop above the bottom.
   const fillBottom = SIZE - 4; // inner bottom edge of the panel rect
@@ -150,7 +151,7 @@ export function CrossSection({
   //  - VERTICAL: it descends down the plot as altitude drops (agl/(agl+K)), high
   //    in the sky when far up, easing onto the surface at touchdown.
   //  - HORIZONTAL: it CONVERGES on the site (plot centre) as the ground-track
-  //    drift shrinks — far downrange it sits well upwind (left), and by touchdown
+  //    drift shrinks: far downrange it sits well upwind (left), and by touchdown
   //    (drift ≈ 0) it coincides with the site marker, so the descent visibly
   //    arrives AT the predicted point rather than sailing past it.
   const SITE_FRAC = 0.5; // site sits at the slice centre
@@ -185,7 +186,7 @@ export function CrossSection({
     ),
   );
   // Accurate velocity vector: true descent angle + length ∝ speed (consistently
-  // scaled). Short — it represents current motion, not a line to the site.
+  // scaled). Short: it represents current motion, not a line to the site.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;
   const vHor =
     horizontalSpeed != null && horizontalSpeed > 0 ? horizontalSpeed : 0;
@@ -238,7 +239,7 @@ export function CrossSection({
           />
         )}
         {/* Accurate velocity vector from the vessel (green, no head): true
-            descent angle, length ∝ speed. It represents current motion — short,
+            descent angle, length ∝ speed. It represents current motion, short,
             and free to cut off in mid-air; it is NOT a line to the site. */}
         <line
           x1={vesselX}
@@ -255,7 +256,7 @@ export function CrossSection({
           r={3}
           fill="var(--color-text-primary)"
         />
-        {/* Predicted landing site — a SEPARATE marker on the terrain profile. */}
+        {/* Predicted landing site: a SEPARATE marker on the terrain profile. */}
         <SiteMarker cx={siteX} cy={siteY} />
       </g>
       {/* Magnitudes. */}

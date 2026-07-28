@@ -9,18 +9,18 @@ import { buildKosWrapper } from "./kosWrapper";
  * Unit tests for the `kos.run` Uplink executor that now backs
  * `KosDataSource.executeScript` end to end (see
  * `../__tests__/kos-execute-uplink.test.ts` for that KosDataSource-level
- * wiring). Uses a real `StubTransport` + `TelemetryClient` — no mocked
- * internals — so dispatch, subscribe, and correlation all run through the
+ * wiring). Uses a real `StubTransport` + `TelemetryClient`, no mocked
+ * internals: so dispatch, subscribe, and correlation all run through the
  * real client machinery; only the wire is stubbed.
  *
  * `kos.processors` is a plain push channel: nothing delivers it until
  * SOMETHING subscribes (there is no proactive auto-subscribe). The
- * executor's own `run()` is what subscribes, lazily, on first call — so a
+ * executor's own `run()` is what subscribes, lazily, on first call, so a
  * cold `run()` against a client that has never seen kos.processors data
  * always rejects with "no known CPU" (this is exactly the "reject
  * immediately" contract `run()` promises). Every test below therefore
  * primes the subscription with a throwaway first call before publishing
- * the CPU list and driving the call under test — the same two-step
+ * the CPU list and driving the call under test, the same two-step
  * sequence a real widget hits after a fresh reconnect.
  */
 
@@ -47,7 +47,7 @@ function captureDispatches(transport: StubTransport): DispatchedCommand[] {
 
 /**
  * Subscribes `executor` to `client`'s `kos.processors` via a throwaway
- * `run()` call (swallowed — it always rejects, nothing is known yet), then
+ * `run()` call (swallowed, it always rejects, nothing is known yet), then
  * publishes `processors`. After this, any `run()` against a tagname in
  * `processors` resolves its coreId synchronously.
  */
@@ -148,7 +148,7 @@ describe("KosUplinkExecutor", () => {
     ).rejects.toThrow(/no known CPU with tagname "no-such-cpu"/);
   });
 
-  it("serialises calls to the SAME coreId — the second call doesn't dispatch until the first resolves", async () => {
+  it("serialises calls to the SAME coreId: the second call doesn't dispatch until the first resolves", async () => {
     const { transport, client } = makeClient();
     const commands = captureDispatches(transport);
     const executor = new KosUplinkExecutor();
@@ -339,7 +339,7 @@ describe("KosUplinkExecutor", () => {
 
     const { transport: t2, client: c2 } = makeClient();
     const commands2 = captureDispatches(t2);
-    // First call against the new client switches adoption — it tears down
+    // First call against the new client switches adoption, it tears down
     // every c1 subscription/queue (rejecting `stale`) AND subscribes to
     // c2's kos.processors, but rejects itself: c2's processors haven't
     // reported "cpu-a" yet.
@@ -352,7 +352,7 @@ describe("KosUplinkExecutor", () => {
     expect(t1.isSubscribed("kos.run.1")).toBe(false);
 
     // Now that c2 is adopted and its kos.processors is subscribed, publish
-    // the CPU list and retry — this is the realistic case (a caller races
+    // the CPU list and retry: this is the realistic case (a caller races
     // the processors channel right after a reconnect, then succeeds).
     t2.emit("kos.processors", [
       { coreId: 9, tag: "cpu-a", hasBooted: true, processorMode: "READY" },

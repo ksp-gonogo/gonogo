@@ -9,17 +9,17 @@ import { EscapeProfileComponent } from "./index";
  *
  * Its one direct read, `v.body`, migrated onto the derived
  * `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`
- * resolved against `system.bodies`). This test runs the widget OFF THE STREAM
- * — a real `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"`
- * source — and proves the streamed body name actually reaches the widget:
+ * resolved against `system.bodies`). This test runs the widget OFF THE STREAM,
+ * a real `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"`
+ * source, and proves the streamed body name actually reaches the widget:
  * emitting `vessel.identity` + `system.bodies` for a body the stock registry
  * doesn't know surfaces the widget's "Unknown body" Notice with that exact
- * name. If the read had silently fallen back to a (nonexistent) legacy source
+ * name. If the read had silently fallen back to a (nonexistent) legacy source,
  * the body would stay `undefined` and no Notice would render.
  *
  * The plot's trace (`v.altitude`/`v.orbitalVelocity` via `GraphView`) can't
- * stream — both map to DERIVED `vessel.state.*` field-subtopics that
- * `TimelineStore.isDerivedTopic` gates out of `sampleRange` — and `GraphView`'s
+ * stream: both map to DERIVED `vessel.state.*` field-subtopics that
+ * `TimelineStore.isDerivedTopic` gates out of `sampleRange`: and `GraphView`'s
  * SVG renders nothing under jsdom regardless, so this asserts on the title +
  * body-driven Notice only.
  */
@@ -37,7 +37,7 @@ const VESSEL_STATE_INPUTS = [
   "vessel.propulsion",
 ] as const;
 
-describe("EscapeProfile — reads v.body off the stream (R6)", () => {
+describe("EscapeProfile: reads v.body off the stream (R6)", () => {
   it("surfaces the streamed body name in the Unknown-body notice, with no legacy source", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -53,7 +53,7 @@ describe("EscapeProfile — reads v.body off the stream (R6)", () => {
     );
 
     // "Proxima" is not a stock body, so a resolved streamed name drives the
-    // widget's Unknown-body Notice — an observable proof the value streamed.
+    // widget's Unknown-body Notice: an observable proof the value streamed.
     // vessel.orbit gates the whole derived vessel.state record (deriveVesselState),
     // so it must be present for parentBodyName to resolve at all.
     act(() => {

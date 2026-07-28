@@ -24,7 +24,8 @@
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/ui": "workspace:*"
+    "@ksp-gonogo/ui": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*"
   },
   "devDependencies": {
     "@ksp-gonogo/test-utils": "workspace:*",

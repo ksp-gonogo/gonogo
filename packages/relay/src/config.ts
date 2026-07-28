@@ -2,7 +2,7 @@ export interface RelayConfig {
   port: number;
   /**
    * Optional override for the public IP coturn advertises. Empty in
-   * the typical case — the relay auto-discovers it at startup. Set
+   * the typical case: the relay auto-discovers it at startup. Set
    * explicitly for unusual setups (multi-WAN, IPv6, pinned DDNS host).
    */
   turnExternalIp: string | null;
@@ -10,7 +10,7 @@ export interface RelayConfig {
    * When true, skip the public-IP discovery + coturn spawn entirely
    * and report `/ice-config` as 503. Used by the Playwright multi-
    * screen test, where the host + station run on `localhost` and
-   * direct ICE candidates suffice — coturn would otherwise need a
+   * direct ICE candidates suffice: coturn would otherwise need a
    * working `turnserver` binary on every dev machine.
    */
   skipCoturn: boolean;

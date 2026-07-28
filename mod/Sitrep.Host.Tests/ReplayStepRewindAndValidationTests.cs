@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// M5b review-fix regression tests.
     ///
     /// 1. <see cref="ReplayKspHost.Step"/> must correctly drive a recording
-    /// whose UT goes BACKWARD partway through — a real capture contains
+    /// whose UT goes BACKWARD partway through: a real capture contains
     /// exactly this shape after an F9 quickload (a <c>game-state-load</c>
     /// event, then entries resuming from the loaded save's earlier UT).
     /// <see cref="ReplayKspHost.AdvanceTo"/> cannot pace this: its
@@ -32,7 +32,7 @@ namespace Sitrep.Host.Tests
             // Capture order: two pre-quickload snapshots, the quickload
             // event itself (T=11, still "ahead" of everything before it),
             // then two POST-quickload snapshots whose T (5, 6) is LOWER
-            // than every entry already replayed — simulating a load back to
+            // than every entry already replayed: simulating a load back to
             // an earlier save.
             var session = new RecordedSession
             {
@@ -67,14 +67,14 @@ namespace Sitrep.Host.Tests
             Assert.False(replay.Step());
             Assert.False(replay.Step()); // idempotent once exhausted
 
-            // NowUt() reflects each entry's OWN T, in capture order —
+            // NowUt() reflects each entry's OWN T, in capture order,
             // including the backward jump from 11.0 down to 5.0.
             Assert.Equal(new[] { 10.0, 10.5, 11.0, 5.0, 6.0 }, visitedUts);
 
             // Sample() tracks the latest snapshot consumed so far; the
             // event step (index 2) doesn't change it, so it still reads
             // "pre-b" there. The post-rewind snapshots ("post-a", "post-b")
-            // ARE both served — not swallowed — proving Step() doesn't lose
+            // ARE both served (not swallowed) proving Step() doesn't lose
             // entries across the rewind.
             Assert.Equal(new[] { "pre-a", "pre-b", "pre-b", "post-a", "post-b" }, visitedNames);
 
@@ -120,7 +120,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ParseThrowsOnMismatchedKindAndPayload()
         {
-            // kind is "snapshot" but the payload present is "event" —
+            // kind is "snapshot" but the payload present is "event",
             // must be rejected, not silently parsed with a null Snapshot.
             const string json = "{\"schemaVersion\":1,\"startUt\":0,\"entries\":[{\"t\":0,\"kind\":\"snapshot\",\"event\":{\"eventKind\":\"x\",\"args\":{}}}]}";
 

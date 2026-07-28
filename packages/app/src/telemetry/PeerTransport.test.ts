@@ -7,7 +7,7 @@ import { PeerTransport } from "./PeerTransport";
 
 /**
  * Duck-typed fake of the `PeerClientService` surface `PeerTransport`
- * actually touches — mirrors `WebSocketTransport.test.ts`'s injected-socket
+ * actually touches: mirrors `WebSocketTransport.test.ts`'s injected-socket
  * pattern (a scriptable stand-in for the real transport-side dependency),
  * scoped to `PeerTransport`'s narrow needs rather than pulling in real
  * PeerJS.
@@ -60,7 +60,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       sentCommands.push({ requestId, command, args, label, topic });
     },
-    // Test-only helpers to drive the fake from outside — not part of the
+    // Test-only helpers to drive the fake from outside, not part of the
     // real PeerClientService surface PeerTransport reads.
     emitFrame(message: ServerMessage) {
       for (const cb of frameListeners) cb(message);
@@ -129,7 +129,7 @@ describe("PeerTransport", () => {
     transport.onStatusChange((s) => statuses.push(s));
 
     client.emitStatus("connected");
-    client.emitStatus("connected"); // no-op — same status, must not re-fire
+    client.emitStatus("connected"); // no-op: same status, must not re-fire
     client.emitStatus("disconnected");
 
     expect(statuses).toEqual(["connected", "disconnected"]);
@@ -381,7 +381,7 @@ describe("PeerTransport", () => {
     await expect(result).resolves.toEqual({ applied: true });
 
     // Must not throw / must not attempt to re-settle an already-resolved
-    // promise — TelemetryClient itself no-ops a settle on an unknown or
+    // promise: TelemetryClient itself no-ops a settle on an unknown or
     // already-terminal requestId, this just proves PeerTransport doesn't
     // keep re-delivering for it either.
     const received: ServerMessage[] = [];

@@ -4,7 +4,7 @@ import { logger } from "@ksp-gonogo/logger";
  * STUN/TURN reachability probe for the main screen.
  *
  * The user's most painful failure mode is "TURN looks configured but
- * isn't actually reachable from the public internet" — usually a
+ * isn't actually reachable from the public internet", usually a
  * missing port-forward on the home router. The proxy can't tell on its
  * own (it's *inside* the NAT). The browser is on the outside relative
  * to the relay's container, so it's the right place to check.
@@ -16,7 +16,7 @@ import { logger } from "@ksp-gonogo/logger";
  * either coturn isn't reachable, the credentials are wrong, or the
  * external-ip coturn is advertising isn't routable from us.
  *
- * Runs once on boot, then on a slow interval — picks up router or
+ * Runs once on boot, then on a slow interval; picks up router or
  * relay restarts without spam.
  */
 
@@ -51,7 +51,7 @@ export async function probeTurn(opts: ProbeOptions): Promise<TurnProbeResult> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const pc = new RTCPeerConnection({
     iceServers: opts.iceServers,
-    // Force gathering to happen — without a transceiver or data
+    // Force gathering to happen: without a transceiver or data
     // channel, ICE never starts.
     iceTransportPolicy: "all",
   });
@@ -67,7 +67,7 @@ export async function probeTurn(opts: ProbeOptions): Promise<TurnProbeResult> {
       try {
         pc.close();
       } catch {
-        // ignore — pc may already be closed
+        // ignore: pc may already be closed
       }
       resolve(result);
     };
@@ -95,7 +95,7 @@ export async function probeTurn(opts: ProbeOptions): Promise<TurnProbeResult> {
 
     pc.addEventListener("icecandidate", (ev) => {
       const c = ev.candidate;
-      if (!c) return; // end-of-candidates — let the timeout decide
+      if (!c) return; // end-of-candidates: let the timeout decide
       if (c.type === "relay") {
         relayCount += 1;
         clearTimeout(timer);

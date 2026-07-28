@@ -18,7 +18,7 @@ import { applyScanCoverageToMask } from "./scanCoverageSync";
  * HiRes-covered tile than a LoRes-only one.
  *
  * Visual (LoRes/HiRes) and Anomaly are deliberately excluded:
- *   - Visual* are deprecated in modern KSP / SCANsat — no stock parts emit
+ *   - Visual* are deprecated in modern KSP / SCANsat, no stock parts emit
  *     them.
  *   - Anomaly markers are surfaced via `scansat.anomalies.body` directly
  *     (point-based, not area-based fog).
@@ -51,7 +51,7 @@ const FOG_SCAN_TYPES: readonly {
   },
 ];
 
-// Register at module load — same lifecycle as registerComponent/
+// Register at module load: same lifecycle as registerComponent/
 // registerAugment elsewhere in this Uplink's client. Side-effected via the
 // bare `import "./FogReveal/useScanSatFogSync"` in this package's index.ts.
 for (const { layerId, weight } of FOG_SCAN_TYPES) {

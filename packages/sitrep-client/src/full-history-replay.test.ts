@@ -10,7 +10,7 @@ import { makeMeta } from "./stub-transport";
  * production `TimelineStore` caps at `DEFAULT_RETENTION_SECONDS` (300s), so a
  * naive replay into one of those stores would silently drop the tail of any
  * flight longer than 5 minutes. `buildFullHistoryStore` must return every
- * ingested point regardless of span, and must do so synchronously — no fake
+ * ingested point regardless of span, and must do so synchronously, no fake
  * timers, no real timers, no `await`.
  */
 
@@ -117,7 +117,7 @@ describe("buildFullHistoryStore", () => {
         frame("vessel.orbit", { sma: 681_000 }, 100, 0),
         frame("vessel.orbit", { sma: 100_000 }, 200, 1), // post-revert, epoch bumps
         frame("vessel.orbit", { sma: 101_000 }, 300, 1),
-        // vessel.flight: sampled ONLY pre-revert — never re-sampled after
+        // vessel.flight: sampled ONLY pre-revert, never re-sampled after
         // the revert, so it's the one that vanishes entirely under the
         // live-view epoch gate.
         frame("vessel.flight", { altitudeAsl: 100 }, 0, 0),

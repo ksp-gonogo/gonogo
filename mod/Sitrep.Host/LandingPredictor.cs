@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// Pure, KSP-free predicted-touchdown search — the algorithm half of the
+    /// Pure, KSP-free predicted-touchdown search: the algorithm half of the
     /// mod-side impact predictor (option 1). Walks a caller-supplied sampler
     /// forward in time and returns the last above-surface lat/lon before the
     /// altitude crosses below the surface, mirroring the client's proven
@@ -38,7 +38,7 @@ namespace Sitrep.Host
         /// below <paramref name="minImpactAltMeters"/> ends the walk, returning
         /// the PREVIOUS (last above-surface) point's lat/lon. Returns null when
         /// the parameters are degenerate, or the trajectory never reaches the
-        /// surface within the horizon (still airborne — no touchdown to assess).
+        /// surface within the horizon (still airborne: no touchdown to assess).
         /// </summary>
         public static (double lat, double lon)? FindImpact(
             Func<double, GeoPoint> sampler,

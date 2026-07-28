@@ -37,7 +37,7 @@ describe("selectKerbalCamera", () => {
     expect(selectKerbalCamera([bill], "Jebediah Kerman")).toBeNull();
   });
 
-  it("finds the EVA camera the same way as the seated one — name is stable across the transition", () => {
+  it("finds the EVA camera the same way as the seated one, name is stable across the transition", () => {
     const evaJeb = makeCameraState({
       flightId: 9,
       kind: CameraKind.Kerbal,

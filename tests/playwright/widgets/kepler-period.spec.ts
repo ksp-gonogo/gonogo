@@ -1,8 +1,8 @@
 /**
- * Widget DOM mirror — KeplerPeriod. Asserts the panel title renders on
+ * Widget DOM mirror: KeplerPeriod. Asserts the panel title renders on
  * both host and station, and that neither degraded-state notice fires.
  *
- * KeplerPeriod is a pure chart widget — its data outputs (current
+ * KeplerPeriod is a pure chart widget, its data outputs (current
  * orbital period vs SMA scatter, plus the analytic Period-vs-SMA
  * reference curve) are drawn into the LineChart SVG. There's no
  * formatted readout in normal DOM to assert on, so we lean on the
@@ -23,14 +23,14 @@
  * normal flight-scene telemetry the guard sniffs).
  *
  * We assert title visibility on each side and confirm the notice
- * `role="status"` elements are absent — the same invariant on both
+ * `role="status"` elements are absent, the same invariant on both
  * pages is what proves the host→station mirror is intact for this
  * widget's inputs.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — KeplerPeriod", () => {
+test.describe("widget DOM mirror: KeplerPeriod", () => {
   test("panel title mirrors across host and station with no degraded notice", async ({
     browser,
   }) => {

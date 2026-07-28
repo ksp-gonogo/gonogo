@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "multiple-active-contracts",
-    "notes": "Three active contracts simultaneously — tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range) to exercise the contractIdToSafeNumber null path. No offered contracts. Deadline formats: days+hours, hours, no-deadline."
+    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range) to exercise the contractIdToSafeNumber null path. No offered contracts. Deadline formats: days+hours, hours, no-deadline."
   },
   "contracts.active": [
     {

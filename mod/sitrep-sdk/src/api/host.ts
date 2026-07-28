@@ -1,14 +1,14 @@
 // ---------------------------------------------------------------------------
 // The injected-host lookup (design §4.3, decision D-A: fail-loud shim).
 //
-// The stateful author-facing surface — every `registerX`, every hook — cannot
+// The stateful author-facing surface (every `registerX`, every hook) cannot
 // be a bundled re-export of `@ksp-gonogo/core`: N copies of core's module-global
 // registries and React contexts fail SILENTLY (a widget registers into a Map the
 // app never reads). Instead the published sitrep-sdk exposes SHIMS that resolve
 // to the app's single instance at runtime, looked up on `globalThis`.
 //
 // The app installs the real implementation once at boot
-// (`globalThis.__GONOGO_SDK__ = <facade>`) — that wiring is the loader task and
+// (`globalThis.__GONOGO_SDK__ = <facade>`), that wiring is the loader task and
 // is deliberately NOT built here. Until it exists, calling a stateful shim throws
 // a NAMED error instead of failing silently: the project's single scariest
 // failure mode (a dead registry) becomes a thrown error with the fix in its
@@ -40,7 +40,7 @@ import type {
 } from "./types";
 
 /**
- * The surface the gonogo app injects at boot. Every member here is stateful —
+ * The surface the gonogo app injects at boot. Every member here is stateful,
  * it must resolve to the app's single registry / context instance, never a
  * bundled copy. Stateless helpers (wire types, `parseServerMessage`, `TOPIC_IDS`)
  * are NOT here: they are real, published bytes re-exported directly from the sdk.
@@ -56,12 +56,12 @@ export interface GonogoHost {
 
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
   /**
-   * Canonical Topic overload — reads a Topic's payload straight off the
+   * Canonical Topic overload: reads a Topic's payload straight off the
    * mounted TimelineStore (`@ksp-gonogo/core`'s `useTelemetry`, one-arg form).
    */
   useTelemetry<T extends TopicId>(topic: T): TopicPayload<T> | undefined;
   /**
-   * Legacy two-arg overload — the retired `useDataValue` shim's shape,
+   * Legacy two-arg overload: the retired `useDataValue` shim's shape,
    * carried over onto `useTelemetry` itself (real `useTelemetry` in
    * `@ksp-gonogo/core` has always answered both call shapes off the one
    * function; `useDataValue` was only ever a name for this same call). Still
@@ -73,9 +73,9 @@ export interface GonogoHost {
   useCommand(command: string): UseCommandResult;
   /**
    * Cross-origin route reader: every currently-pending command addressed to
-   * `topic`, regardless of which command centre dispatched it — the
+   * `topic`, regardless of which command centre dispatched it, the
    * companion to `useCommand`'s own-dispatch `inFlight`. Queue-only, no
-   * memory of its own — see `@ksp-gonogo/sitrep-client`'s
+   * memory of its own: see `@ksp-gonogo/sitrep-client`'s
    * `useRouteCommands` for the full contract.
    */
   useRouteCommands(topic: string): UseRouteCommandsResult;
@@ -87,16 +87,16 @@ export interface GonogoHost {
   useDataSources(): unknown;
 
   /**
-   * Real-time (non-delayed) read of `topic` straight off the `TelemetryClient`
-   * — bypasses the certainty-gated `TimelineStore` frame `useStream` samples
+   * Real-time (non-delayed) read of `topic` straight off the `TelemetryClient`,
+   * bypasses the certainty-gated `TimelineStore` frame `useStream` samples
    * through. For command-centre bookkeeping (dispatch timestamps, link facts),
-   * never delayed craft telemetry — see `useLatestValue`'s own doc in
+   * never delayed craft telemetry: see `useLatestValue`'s own doc in
    * `@ksp-gonogo/sitrep-client` for the raw-vs-derived distinction.
    */
   useLatestValue<T = unknown>(topic: string): T | undefined;
   /**
    * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
-   * channel topic (e.g. a crash alarm) — the consumption side of an event
+   * channel topic (e.g. a crash alarm): the consumption side of an event
    * lane, as opposed to `useStream`'s sticky-latest-value read.
    */
   useStreamEvent<T = unknown>(
@@ -118,13 +118,13 @@ export interface GonogoHost {
    * none mounted. Opaque here (same reasoning as `useViewClock`'s `unknown`
    * return): `TimelineStore` is a large, evolving class owned by
    * `@ksp-gonogo/sitrep-client`, which the sdk leaf cannot depend on to name
-   * its full shape — see `./types.ts`'s DataSource type-mirror comment for the same
+   * its full shape: see `./types.ts`'s DataSource type-mirror comment for the same
    * constraint applied to a small, mirrorable type. An author needing the
    * concrete type narrows/casts at the call site, same as `useViewClock`
    * callers already do today.
    */
   useTelemetryStoreOptional(): unknown;
-  /** Non-throwing variant of `useViewClock` — `undefined` with no provider mounted. Opaque for the same reason as `useViewClock`. */
+  /** Non-throwing variant of `useViewClock`: `undefined` with no provider mounted. Opaque for the same reason as `useViewClock`. */
   useViewClockOptional(): unknown;
 
   /** The enriched schema (key + label/unit/group) for a data source's keys. */
@@ -143,7 +143,7 @@ export interface GonogoHost {
   /**
    * The app's single logger instance (ring buffer, session id, Axiom
    * transport installed at boot). Never bundle @ksp-gonogo/logger's
-   * `logger` export directly — a second copy is console-only and never
+   * `logger` export directly: a second copy is console-only and never
    * reaches the shared buffer or Axiom.
    */
   logger: Logger;
@@ -151,7 +151,7 @@ export interface GonogoHost {
   /**
    * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Despite
    * looking like a static lookup, this MUST resolve to the app's own
-   * registry rather than a bundled copy — bodies are registered into it at
+   * registry rather than a bundled copy: bodies are registered into it at
    * runtime (module load), so a facade-sealed client bundling its own
    * `getBody` would read its own, permanently-empty copy of the map.
    */
@@ -164,7 +164,7 @@ export interface GonogoHost {
   useFogMaskCache(): FogMaskCacheHandle | null;
 
   /**
-   * Register a singleton handle for an Uplink, keyed by its id — the shared
+   * Register a singleton handle for an Uplink, keyed by its id, the shared
    * substrate for anything that needs to register a singleton object and
    * have it looked up elsewhere without coupling the lookup site to the
    * Uplink's own module (e.g. a relay-capable object, a WebRTC client).
@@ -175,7 +175,7 @@ export interface GonogoHost {
 
   /**
    * Declare an Uplink client's identity (Uplink Client Contract design
-   * §3.1) and record it in the app's client registry — the membership half
+   * §3.1) and record it in the app's client registry, the membership half
    * (which clients are actually present in this build). Returns a frozen
    * handle; the client stamps it as `owner` on every `registerComponent`/
    * `registerAugment` call it makes.
@@ -187,13 +187,13 @@ export interface GonogoHost {
 
   /**
    * Register (or replace) a declarative setting the app renders in its Settings
-   * surface — the PREFERRED path over a custom tab. A client-pref setting
+   * surface: the PREFERRED path over a custom tab. A client-pref setting
    * persists to localStorage; a source-backed one reads/writes the Uplink's
    * own `DataSource` (see `SettingDefinition`).
    */
   registerSetting(def: SettingDefinition): void;
   /**
-   * Reactive read of a client-pref setting by key — `[value, setValue]`, the
+   * Reactive read of a client-pref setting by key, `[value, setValue]`, the
    * value persisted via the app's `SettingsService`. This is the hook a
    * consumer uses to gate on a kill-switch etc. Source-backed settings are not
    * read through here (their value lives on a `DataSource`); the Settings UI
@@ -203,13 +203,13 @@ export interface GonogoHost {
 
   /**
    * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
-   * `undefined` when none is mounted — for imperative use outside a hook
+   * `undefined` when none is mounted, for imperative use outside a hook
    * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
    */
   getActiveTelemetryClient(): TelemetryClient | undefined;
   /**
    * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
-   * `TelemetryClient` — `undefined` with no provider mounted.
+   * `TelemetryClient`: `undefined` with no provider mounted.
    */
   useTelemetryClientOptional(): TelemetryClient | undefined;
 }
@@ -232,7 +232,7 @@ export function getHost(): GonogoHost {
     throw new Error(
       "@ksp-gonogo/sitrep-sdk: the gonogo host has not been installed. " +
         "This package's stateful surface (registerComponent, the hooks, …) is " +
-        "runtime-injected by the app — mark @ksp-gonogo/sitrep-sdk `external` in " +
+        "runtime-injected by the app: mark @ksp-gonogo/sitrep-sdk `external` in " +
         "your bundle so it resolves to the host, and do not bundle a second copy. " +
         "In tests, install a host with @ksp-gonogo/sitrep-sdk/testing.",
     );
@@ -247,7 +247,7 @@ export function hasHost(): boolean {
 
 /**
  * Internal: install / clear the host. Public installation is the app's job (at
- * boot) and tests' job (via the `/testing` subpath) — this is the shared plumbing
+ * boot) and tests' job (via the `/testing` subpath), this is the shared plumbing
  * both use. Not part of the author-facing barrel.
  */
 export function __setGonogoHost(host: GonogoHost | undefined): void {

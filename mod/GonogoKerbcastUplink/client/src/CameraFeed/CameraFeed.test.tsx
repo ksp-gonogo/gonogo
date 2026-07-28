@@ -10,7 +10,7 @@
  *
  * Everything drives the real `KerbcastDataSource` + real `useKerbcastCameras`
  * / `useKerbcastStream` hooks through the SDK's canonical `MockSidecar`
- * (`@ksp-gonogo/kerbcast/testing`) — the protocol-level fake that owns a camera
+ * (`@ksp-gonogo/kerbcast/testing`): the protocol-level fake that owns a camera
  * registry and speaks the full kerbcast wire protocol. The only thing faked is
  * the WebRTC transport, because jsdom can't produce a real `MediaStream`.
  * Multi-camera scenarios are expressed by populating the sidecar's registry
@@ -61,7 +61,7 @@ import {
 import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 // ---------------------------------------------------------------------------
-// Render helper — CameraFeed calls useActionInput, which reads its instance
+// Render helper, CameraFeed calls useActionInput, which reads its instance
 // ID from the enclosing DashboardItemContext. Rendering the component bare
 // throws ("must be used inside a DashboardItemContext.Provider"), so every
 // test goes through this wrapper. Mirrors CameraFeed/index.test.tsx's
@@ -74,13 +74,13 @@ const TEST_INSTANCE_ID = "camera-feed-test";
 // Sources created during a test are torn down in afterEach AFTER the widget is
 // unmounted, so the CameraFeed is already gone when disconnect() fires.
 // Disconnecting a live source while the widget is still mounted triggers
-// useKerbcastStream state updates outside act() — the documented anti-pattern in
+// useKerbcastStream state updates outside act(): the documented anti-pattern in
 // CLAUDE.md.
 const createdSources: Array<{ disconnect: () => void }> = [];
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
 // sources. RTL's auto-cleanup runs after this file's afterEach, so it can't be
-// relied on to unmount first — the render helpers below push their unmount here.
+// relied on to unmount first: the render helpers below push their unmount here.
 const renderedTrees: Array<() => void> = [];
 
 // Fill the config defaults so individual tests only spell out the fields they
@@ -108,9 +108,9 @@ function renderFeed(
 
 // A stateful wrapper that holds `config` in React state and feeds its own
 // setter back as `onConfigChange`. Lets selection tests assert the *real*
-// round-trip — pick a camera (picker, Next/Prev button, or a dispatched
+// round-trip: pick a camera (picker, Next/Prev button, or a dispatched
 // serial action) → onConfigChange persists flightId → the widget re-renders
-// against the new selection — rather than just spying on the callback.
+// against the new selection: rather than just spying on the callback.
 function renderStatefulFeed(
   initial: Partial<CameraFeedConfig>,
 ): ReturnType<typeof render> {
@@ -136,7 +136,7 @@ function renderStatefulFeed(
 // their own instance explicitly via registerDataSource() in each fixture.
 
 // ---------------------------------------------------------------------------
-// Camera-state fixture factory — the sidecar's CameraState has ~25 fields;
+// Camera-state fixture factory: the sidecar's CameraState has ~25 fields;
 // most tests only care about a handful, so this fills the rest with sane
 // "active, no-zoom, no-pan" defaults and lets callers override.
 // ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ function makeCamera(overrides: CameraStateLike): CameraStateLike {
 }
 
 // Translate a loose `CameraStateLike` (string enum values, ~25 fields) into the
-// SDK's `MockCameraInit`. Every field is mapped through — not a subset — so the
+// SDK's `MockCameraInit`. Every field is mapped through (not a subset) so the
 // resulting camera matches the old fixture exactly and `buildCamera`'s differing
 // defaults (e.g. `supportsZoom: true`, `fov: 60`, `layers: [Near]`) never leak
 // in. The enum-typed fields are cast (their runtime string values already match
@@ -230,7 +230,7 @@ function kerbcastFetch(
 }
 
 // ---------------------------------------------------------------------------
-// Global ResizeObserver stub — jsdom doesn't ship one. The resize-observer
+// Global ResizeObserver stub: jsdom doesn't ship one. The resize-observer
 // describe block installs a controllable version in its own beforeEach; all
 // other tests just need a no-op stub so the component mounts without error.
 // ---------------------------------------------------------------------------
@@ -259,8 +259,8 @@ afterEach(() => {
   // Disconnect tracked sources AFTER unmount so the widget is unmounted first.
   for (const ds of createdSources) ds.disconnect();
   createdSources.length = 0;
-  clearActionHandlers(); // tests share one instanceId — handlers would leak
-  clearRegistry(); // resets all registries — tests register their own instance
+  clearActionHandlers(); // tests share one instanceId: handlers would leak
+  clearRegistry(); // resets all registries: tests register their own instance
   clearUplinkHandles(); // resets the narrow uplink-handle registry too
   clearAugments(); // wipe any test augment so it never leaks into other suites
   vi.restoreAllMocks();
@@ -353,10 +353,10 @@ function makeDataSource(
 }
 
 // ---------------------------------------------------------------------------
-// Camera selection — picker, Next/Previous, serial actions, empty/status
+// Camera selection: picker, Next/Previous, serial actions, empty/status
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — camera selection", () => {
+describe("CameraFeed: camera selection", () => {
   const TWO_CAMERAS = [
     makeCamera({
       flightId: 42,
@@ -586,7 +586,7 @@ describe("CameraFeed — camera selection", () => {
         value: false,
       });
     });
-    // Still on the first camera — release events are ignored.
+    // Still on the first camera: release events are ignored.
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
   });
 
@@ -596,7 +596,7 @@ describe("CameraFeed — camera selection", () => {
     renderFeed({ flightId: 44 });
     expect(screen.getByRole("heading", { name: "Tail Cam" })).toBeTruthy();
 
-    // The vessel changes — only flightId 42 survives.
+    // The vessel changes, only flightId 42 survives.
     await act(async () => {
       sidecar.setCameras([
         toInit(makeCamera({ flightId: 42, cameraName: "Starboard Cam" })),
@@ -643,7 +643,7 @@ describe("CameraFeed — camera selection", () => {
 // Debug-info toggle (resolution + bitrate readouts gated behind the menu)
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — debug info toggle", () => {
+describe("CameraFeed: debug info toggle", () => {
   it("hides the resolution/bitrate readout by default", async () => {
     await buildConnectedSource([
       makeCamera({
@@ -699,7 +699,7 @@ describe("CameraFeed — debug info toggle", () => {
   });
 });
 
-describe("CameraFeed — empty state and status", () => {
+describe("CameraFeed: empty state and status", () => {
   it("shows the no-cameras empty state and hides the menu trigger when connected with no cameras", async () => {
     await buildConnectedSource([]);
 
@@ -709,7 +709,7 @@ describe("CameraFeed — empty state and status", () => {
     expect(screen.queryByRole("button", { name: /camera feed/i })).toBeNull();
     // No <video> element either.
     expect(document.querySelector("video")).toBeNull();
-    // Neutral empty-state copy — connection/transport detail is intentionally
+    // Neutral empty-state copy: connection/transport detail is intentionally
     // NOT shown here (it lives in the Data Sources widget).
     expect(screen.getByText(/start a vessel with hullcam parts/i)).toBeTruthy();
   });
@@ -726,7 +726,7 @@ describe("CameraFeed — empty state and status", () => {
     renderFeed({ flightId: null });
 
     expect(screen.getByText(/start a vessel with hullcam parts/i)).toBeTruthy();
-    // No in-widget sidecar status indicator (removed — lives in Data Sources).
+    // No in-widget sidecar status indicator (removed: lives in Data Sources).
     expect(
       screen.queryByRole("status", { name: /connected|disconnected/i }),
     ).toBeNull();
@@ -898,7 +898,7 @@ describe("CameraFeed -- serial-action dispatch (zoom/pan)", () => {
 // CommNet degrade
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — CommNet degrade", () => {
+describe("CameraFeed: CommNet degrade", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -1067,15 +1067,15 @@ describe("CameraFeed — CommNet degrade", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Signal delay + signal quality badges — always-on header chrome, distinct
+// Signal delay + signal quality badges: always-on header chrome, distinct
 // from the CommNet-degrade effect above (that drives the SDK's video
 // degradation; these are purely readouts). `comm.signalDelay` maps to
-// `comms.delay.oneWaySeconds` — the badge is ONE-WAY, never doubled for
+// `comms.delay.oneWaySeconds`: the badge is ONE-WAY, never doubled for
 // round-trip (that's only for interactive command paths like the kOS
 // terminal, which a camera downlink is not).
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — signal delay + signal quality badges", () => {
+describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows the one-way signal delay badge as a one-decimal readout (sub-minute)", async () => {
     await buildConnectedSource();
 
@@ -1188,14 +1188,14 @@ describe("CameraFeed — signal delay + signal quality badges", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Station (brokered) mode — the widget runs the SAME hooks, but the data source
+// Station (brokered) mode: the widget runs the SAME hooks, but the data source
 // is in brokered mode: the WebRTC handshake relays through the host (the
 // `negotiate` seam) and TURN comes from the relay broadcast. Driven by the
 // SDK's canonical `MockSidecar` (the protocol-level fake), proving the camera
 // UI works on a station, not just the main screen.
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — station (brokered) mode", () => {
+describe("CameraFeed: station (brokered) mode", () => {
   async function buildBrokeredSource(
     cams: Array<{ flightId: number; cameraName: string; vesselName: string }>,
   ): Promise<{ ds: KerbcastDataSource; sidecar: MockSidecar }> {
@@ -1253,7 +1253,7 @@ describe("CameraFeed — station (brokered) mode", () => {
     renderFeed({ flightId: 42 });
 
     // The mounted widget's useKerbcastStream subscribed flightId 42, which the
-    // sidecar answered with a slot binding — same dynamic path as the main
+    // sidecar answered with a slot binding: same dynamic path as the main
     // screen, but every message rode the brokered connection.
     await waitFor(() => {
       expect(sidecar.slotMidFor(42)).toBeDefined();
@@ -1270,7 +1270,7 @@ describe("CameraFeed — station (brokered) mode", () => {
 // appears, receiving the displayed camera's flightID as typed slot props (§4.4).
 // ---------------------------------------------------------------------------
 
-describe("CameraFeed — augment slots (spec §4)", () => {
+describe("CameraFeed: augment slots (spec §4)", () => {
   it("exposes both slots (empty until an augment registers)", () => {
     // No augment bound → the registry lists none for either slot.
     expect(getAugmentsForSlot("camera-feed.overlay")).toEqual([]);

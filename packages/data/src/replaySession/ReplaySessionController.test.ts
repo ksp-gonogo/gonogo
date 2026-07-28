@@ -101,7 +101,7 @@ describe("ReplaySessionController", () => {
 
     vi.advanceTimersByTime(20_000);
     controller.getSnapshot().store?.beginFrame();
-    // Still at the pre-pause value — nothing past the pause point arrived.
+    // Still at the pre-pause value: nothing past the pause point arrived.
     expect(
       controller.getSnapshot().store?.sample<{ sma: number }>("vessel.orbit")
         ?.payload.sma,

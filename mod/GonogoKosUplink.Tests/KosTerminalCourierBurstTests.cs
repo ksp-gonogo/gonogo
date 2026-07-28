@@ -11,8 +11,8 @@ namespace GonogoKosUplink.Tests
     /// <c>kos.terminal.&lt;coreId&gt;</c> downlink is a cursor-relative DIFF
     /// stream. It rides the shared Courier/Archive delay engine, whose STATE
     /// (<see cref="Delivery.LossyLatest"/>) lane models a topic as "latest
-    /// sample as of the light-lagged scene" (<see cref="Archive.ReadAtVantage"/>)
-    /// — correct for state topics, but fatal for a diff stream: a burst of
+    /// sample as of the light-lagged scene" (<see cref="Archive.ReadAtVantage"/>),
+    /// correct for state topics, but fatal for a diff stream: a burst of
     /// terminal frames published within a single Courier clock tick (several
     /// <see cref="KosTerminalManager.Poll"/> calls at ~20Hz on the main thread,
     /// all reading the SAME unadvanced UT source) stamps them with an identical
@@ -20,12 +20,12 @@ namespace GonogoKosUplink.Tests
     ///
     /// The terminal is therefore declared <see cref="Delivery.ReliableOrdered"/>
     /// (see <c>KosExtension.Ksp.cs</c>), whose lane FORWARDS each recorded
-    /// sample in order — so a same-<c>ValidAt</c> burst delivers every frame,
+    /// sample in order: so a same-<c>ValidAt</c> burst delivers every frame,
     /// no strictly-increasing stamp needed. This wires a REAL
     /// <see cref="Courier"/> + <see cref="Archive"/> (via
     /// <see cref="Courier.SubscribeStream"/>/<see cref="Courier.Record"/>) as
-    /// the <see cref="KosTerminalManager"/>'s publish sink — exactly the
-    /// terminal publish path production wires — so the proof exercises the real
+    /// the <see cref="KosTerminalManager"/>'s publish sink (exactly the
+    /// terminal publish path production wires) so the proof exercises the real
     /// mechanism, not a synthetic stand-in.
     /// </summary>
     public class KosTerminalCourierBurstTests
@@ -75,7 +75,7 @@ namespace GonogoKosUplink.Tests
             var outputs = new Queue<string>(new[] { "chunk-1", "chunk-2", "chunk-3" });
 
             // The Courier clock is deliberately never advanced between polls
-            // below — nowUt returns the SAME UT across the whole burst,
+            // below: nowUt returns the SAME UT across the whole burst,
             // exactly the "the terminal's ~20Hz poll outruns the Courier
             // clock's own ~50ms cadence" scenario. The frames all share a
             // ValidAt; the Delivery.ReliableOrdered lane forwards each in

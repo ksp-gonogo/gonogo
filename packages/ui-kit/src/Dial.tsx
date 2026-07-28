@@ -1,5 +1,5 @@
 /**
- * Dial — a full or near-full radial gauge with a needle, distinct from the
+ * Dial: a full or near-full radial gauge with a needle, distinct from the
  * half-circle `Gauge` in @ksp-gonogo/ui. A round instrument whose needle sweeps
  * a configurable arc (default a full 360° compass), so it can show a heading
  * that wraps (slope-fall direction, drift bearing) as well as a bounded value a
@@ -34,7 +34,7 @@ export interface DialTick {
 }
 
 export interface DialProps {
-  /** Current value — the needle position. */
+  /** Current value: the needle position. */
   value: number;
   min: number;
   max: number;

@@ -9,7 +9,7 @@ export interface AlmanacPanelProps {
   body: CelestialBody | null;
   /** Live phase angle to the active vessel, deg. Suppressed for the vessel's parent. */
   phaseAngleDeg?: number | null;
-  /** Whether this body is the vessel's current parent — phase angle is meaningless. */
+  /** Whether this body is the vessel's current parent, phase angle is meaningless. */
   isVesselParent?: boolean;
   /** Hohmann ideal departure phase angle (deg), if the vessel and body share a parent. */
   hohmannIdealDeg?: number | null;
@@ -30,7 +30,7 @@ export interface AlmanacPanelProps {
   nextApsisTimeSec?: number | null;
   /**
    * Where the panel is docked relative to the diagram. Drives which edge
-   * carries the divider border — left edge when beside the diagram, top edge
+   * carries the divider border: left edge when beside the diagram, top edge
    * when stacked below it (tall-narrow tiles). Defaults to "side".
    */
   placement?: "side" | "bottom";

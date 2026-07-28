@@ -17,7 +17,7 @@ describe("memoryStorage", () => {
 
   it("coerces non-string values to strings on setItem", () => {
     const s = memoryStorage();
-    // Storage.setItem accepts string, but the spec coerces — match that.
+    // Storage.setItem accepts string, but the spec coerces, match that.
     s.setItem("n", 42 as unknown as string);
     expect(s.getItem("n")).toBe("42");
   });
@@ -41,7 +41,7 @@ describe("memoryStorage", () => {
   it("reports length as 0 and key() as null (documented limitation)", () => {
     const s = memoryStorage();
     s.setItem("a", "1");
-    // The shim does not implement these — guard the behaviour so any future
+    // The shim does not implement these, guard the behaviour so any future
     // change is intentional.
     expect(s.length).toBe(0);
     expect(s.key(0)).toBeNull();

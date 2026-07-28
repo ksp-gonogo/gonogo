@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Golden-fixture generator for the envelope wire format
- * (`mod/sitrep-sdk/src/__generated__/contract.ts` + `envelope.ts`) — Task 7
+ * (`mod/sitrep-sdk/src/__generated__/contract.ts` + `envelope.ts`), Task 7
  * of the M5a C# port.
  *
  * Unlike the other fixtures, there's no stateful TS reference class to run
@@ -15,13 +15,13 @@
  *
  * `Sitrep.Core.Tests/EnvelopeSerializationGoldenFixtureTests.cs` parses each
  * vector's `json` with the C# `EnvelopeCodec`, re-serializes the result, and
- * asserts it comes back byte-for-byte identical — proving the C# writer
+ * asserts it comes back byte-for-byte identical, proving the C# writer
  * produces the exact same on-wire shape the real TS SDK does for the same
  * message, sentinel encoding included.
  *
  * NOTE: `safeStringify`'s NaN/Infinity handling is NOT yet part of the
  * shipped SDK (`@ksp-gonogo/sitrep-sdk` has no `serialize`/`write` helper at
- * all today — only `parseServerMessage` for reading). This generator
+ * all today, only `parseServerMessage` for reading). This generator
  * defines the policy so the C# side has a real contract to conform to; a
  * later task should fold the same replacer into a real
  * `serializeServerMessage`/`serializeClientMessage` pair in the SDK so
@@ -52,13 +52,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = join(__dirname, "..", "serialization.json");
 
 /**
- * THE NaN/Infinity wire-format sentinel policy (TS side) — see
+ * THE NaN/Infinity wire-format sentinel policy (TS side); see
  * `Sitrep.Core/Serialization/NanPolicy.cs` for the matching C# definition,
  * which both sides must agree on for this fixture to mean anything.
  *
  * A browser's `JSON.parse` rejects bare `NaN`/`Infinity` tokens (invalid
  * JSON), and plain `JSON.stringify` silently collapses non-finite numbers to
- * `null` — losing the distinction between "no value" and "the value is
+ * `null`, losing the distinction between "no value" and "the value is
  * NaN", which matters here since KSP orbit math (eccentric anomaly, landing
  * telemetry) genuinely produces NaN on real vessels. Instead, a non-finite
  * number is encoded as one of three fixed JSON string tokens matching JS's
@@ -66,7 +66,7 @@ const OUT_FILE = join(__dirname, "..", "serialization.json");
  *
  * Applied UNIFORMLY via `JSON.stringify`'s replacer function, which is
  * invoked for every value in the tree (top-level fields and every nested
- * payload/args/result value alike) — there's no separate code path for
+ * payload/args/result value alike); there's no separate code path for
  * "schema" numbers vs "free-form" numbers, exactly mirroring
  * `JsonWriter.AppendNumber` being the C# side's single call site.
  */
@@ -110,7 +110,7 @@ const metaNormal: Meta = {
   confidence: 0.87,
 };
 
-// `confidence` is optional — omitted here (not present as `undefined`) to
+// `confidence` is optional, omitted here (not present as `undefined`) to
 // exercise the "optional field entirely absent from the wire" case, which
 // `JSON.stringify` already handles for free (an absent property never
 // appears), and which `EnvelopeCodec`'s writer must replicate deliberately
@@ -157,7 +157,7 @@ const streamDataObject: StreamData<Record<string, unknown>> = {
 };
 
 // NaN/Infinity through the FREE-FORM payload path, not just Meta's
-// fixed-schema fields — proves the policy is applied uniformly, not just
+// fixed-schema fields, proves the policy is applied uniformly, not just
 // hard-coded for Meta.
 const streamDataNanPayload: StreamData<Record<string, unknown>> = {
   type: "stream-data",
@@ -198,7 +198,7 @@ const errorMsgFull: ErrorMsg = {
   message: "node unreachable from vantage",
 };
 
-// requestId/topic both optional — omitted here (a server-level error not
+// requestId/topic both optional, omitted here (a server-level error not
 // tied to a specific request or topic).
 const errorMsgMinimal: ErrorMsg = {
   type: "error",

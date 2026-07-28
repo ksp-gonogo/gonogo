@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "docking-aligned",
-    "notes": "Docking-port target at 62m in docking-HUD range (<100m) WITH vessel.dock present — a real docking scenario, so the HUD reticle renders. vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. HUD mode forced to 'hud' (no camera) so the render stays deterministic. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness — vessel.target then vessel.dock, so the mode effect steps tracking → approach → docking-hud. Keep the two in sync."
+    "notes": "Docking-port target at 62m in docking-HUD range (<100m) WITH vessel.dock present, a real docking scenario, so the HUD reticle renders. vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. HUD mode forced to 'hud' (no camera) so the render stays deterministic. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness, vessel.target then vessel.dock, so the mode effect steps tracking → approach → docking-hud. Keep the two in sync."
   },
   "tar.name": "Docking Port Mk2",
   "tar.type": "Vessel",

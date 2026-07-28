@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// Assigns and remembers a stable string id per live reference — the
+    /// Assigns and remembers a stable string id per live reference, the
     /// M3 R3 fix for the maneuver-node id gap flagged by
     /// <c>packages/sitrep-client/src/map-command.ts</c>'s
     /// <c>KNOWN_COMMAND_GAPS</c> comment: no read channel carried a per-node
@@ -14,14 +14,14 @@ namespace Sitrep.Host
     /// node the player placed by hand in the map view.
     ///
     /// <para>KSP's own <c>ManeuverNode</c> type has no id field at all
-    /// (confirmed via decompile — see <c>Gonogo.KSP.KspHost.BuildManeuverNodes</c>'s
+    /// (confirmed via decompile: see <c>Gonogo.KSP.KspHost.BuildManeuverNodes</c>'s
     /// doc comment). <c>Gonogo.KSP.GonogoAddon</c> constructs exactly ONE
     /// <c>ReferenceIdRegistry&lt;ManeuverNode&gt;</c> and hands the SAME
-    /// instance to both <c>KspHost</c> (read side — stamps an <c>id</c> onto
+    /// instance to both <c>KspHost</c> (read side, stamps an <c>id</c> onto
     /// every <c>vessel.maneuver</c> node) and <c>KspVesselActuator</c> (write
-    /// side — resolves <c>update</c>/<c>remove</c>'s <c>nodeId</c> argument
+    /// side: resolves <c>update</c>/<c>remove</c>'s <c>nodeId</c> argument
     /// back to a live node). Sharing one instance is what makes a node's id
-    /// the SAME whether it was player-placed or command-created — closing
+    /// the SAME whether it was player-placed or command-created, closing
     /// the round-trip gap, not just adding a cosmetic read-side id that
     /// still can't be sent back into a command.</para>
     ///
@@ -31,14 +31,14 @@ namespace Sitrep.Host
     /// (<c>vessel.maneuver.update</c> exists precisely to do that), and its
     /// ordinal position shifts whenever an EARLIER sibling is added or
     /// removed (the exact O-4 arg-order/index-shift footgun this whole
-    /// capture-add exists to avoid reproducing) — neither survives the edits
+    /// capture-add exists to avoid reproducing), neither survives the edits
     /// this id exists to survive. <see cref="ConditionalWeakTable{TKey, TValue}"/>
-    /// also means a removed/GC'd node's entry is reclaimed automatically —
+    /// also means a removed/GC'd node's entry is reclaimed automatically,
     /// no manual eviction needed on <c>RemoveManeuverNode</c>/vessel
     /// switch/scene change/quickload.</para>
     ///
     /// <para>Generic and KSP-free ON PURPOSE (BCL-only, this assembly's own
-    /// invariant — see this project's csproj comment): the type parameter is
+    /// invariant, see this project's csproj comment): the type parameter is
     /// only bound to the real KSP <c>ManeuverNode</c> type where
     /// <c>Gonogo.KSP</c> instantiates it, so this class itself is fully
     /// headless-testable with any reference type stand-in.</para>
@@ -59,11 +59,11 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Finds the live instance among <paramref name="candidates"/> whose
-        /// assigned id equals <paramref name="id"/> — the write-side half of
+        /// assigned id equals <paramref name="id"/>: the write-side half of
         /// the round-trip: an update/remove command carries only the opaque
         /// id, never a reference, so the actuator re-resolves it against
         /// whatever KSP's live <c>solver.maneuverNodes</c> currently holds.
-        /// A candidate this registry has never seen (no entry yet — e.g. a
+        /// A candidate this registry has never seen (no entry yet, e.g. a
         /// node created after the last read-side sample) never matches,
         /// same as one that's simply the wrong node -- both fail the same
         /// way, no exception.

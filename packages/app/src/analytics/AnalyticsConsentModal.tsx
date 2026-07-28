@@ -9,7 +9,7 @@ import type { AnalyticsConsentService } from "./AnalyticsConsentService";
  * while consent is unanswered. Deliberately NOT built on the shared
  * `useModal` dialog: that one dismisses on Escape and backdrop click,
  * which would hide the ask without recording a choice and leave analytics
- * in limbo. Here the only ways out are Enable or Decline — both persist.
+ * in limbo. Here the only ways out are Enable or Decline, both persist.
  *
  * Stations never render this; they follow the host's consent over PeerJS.
  */
@@ -39,7 +39,7 @@ export function AnalyticsConsentModal({
         <Title id={titleId}>Help improve gonogo?</Title>
         <Body id={descId}>
           Send anonymous technical logs and errors to the developer to help
-          debugging. No mission data, no personal information — just crash
+          debugging. No mission data, no personal information, just crash
           reports and diagnostic traces. You can change this any time in
           Settings.
         </Body>

@@ -12,14 +12,14 @@ using Xunit;
 // dumps at the stall: the engine's Courier and per-connection Outbox run on
 // DEDICATED threads and were always idle at the wedge; the SERVER had already
 // sent the frame the timing-out test was waiting for. The stall lived entirely
-// in the async CLIENT/harness pipeline — socket-receive and Channel
+// in the async CLIENT/harness pipeline: socket-receive and Channel
 // continuations scheduled on the .NET thread pool, which the pool cannot
 // service promptly when the box is CPU-saturated (by this suite's own threads
 // plus whatever else CI runs alongside), amplified by the pool's slow
 // thread-injection throttle.
 //
 // Two fixes address that, both in WsTestHarness / this file (the product engine
-// needed no change — it was already robust):
+// needed no change, it was already robust):
 //   1. TestClient now pumps its socket on a DEDICATED thread with a blocking
 //      receive and an AllowSynchronousContinuations channel, so server->client
 //      delivery never waits on a free pool worker.

@@ -5,7 +5,7 @@ export interface SlopeSample {
 
 export interface SlopeFitResult {
   slope: number;
-  /** Latest y value in the input — useful when projecting against a target. */
+  /** Latest y value in the input: useful when projecting against a target. */
   latestY: number;
 }
 

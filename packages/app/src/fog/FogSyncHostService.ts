@@ -14,7 +14,7 @@ interface Deps {
  *
  * No deltas: stations keep computing their own fog from telemetry after
  * the snapshot lands. A station refresh is the way to pick up later
- * host-side discoveries — that's an explicit design call, not an
+ * host-side discoveries: that's an explicit design call, not an
  * oversight (deltas would mean hooking every host-side mask write,
  * which is out of scope for the current pass).
  */
@@ -42,7 +42,7 @@ export class FogSyncHostService {
       if (masks.length === 0) return;
       // Storage key shape is `${profileId}:${bodyId}:${layerId}`. The
       // profile slot is always DEFAULT_PROFILE_ID now, so we slice it off
-      // and split on the FIRST `:` to peel off bodyId — body ids (KSP
+      // and split on the FIRST `:` to peel off bodyId, body ids (KSP
       // celestial body names) never contain a colon, matching
       // FogMaskStore's own prefix-range assumption elsewhere, but
       // layerId now can (the "<uplinkId>:<name>" convention, e.g.
@@ -67,7 +67,7 @@ export class FogSyncHostService {
         }),
       });
       logger.info(
-        `[fog-sync] snapshot sent — peer=${peerId} masks=${masks.length}`,
+        `[fog-sync] snapshot sent: peer=${peerId} masks=${masks.length}`,
       );
     } catch (err) {
       logger.error(

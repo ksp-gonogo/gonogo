@@ -1,11 +1,11 @@
 /**
- * A small, view-clock-frame-keyed connectivity history buffer — backs
+ * A small, view-clock-frame-keyed connectivity history buffer: backs
  * `useCommand`'s `pathConnectedDuring` predicate (Task 4a in the delayed-
  * command-ux plan: "if the client doesn't already retain `comms.link`
  * connectivity history, add a small buffer; keep it in sitrep-client, not
  * ui-kit"). Records `comms.link.connected` transitions stamped at the
  * caller's `nowUt` and answers "was the path continuously connected across
- * [fromUt, toUt]?" — the question `classifyRetained`'s `lost` branch needs.
+ * [fromUt, toUt]?": the question `classifyRetained`'s `lost` branch needs.
  *
  * Structural subset of the `CommsLink` wire payload this module reads.
  */
@@ -23,7 +23,7 @@ export class ConnectivityHistory {
 
   /**
    * Record an observed connectivity state at `atUt`. Only appends when the
-   * state actually changed (or this is the first-ever observation) — a
+   * state actually changed (or this is the first-ever observation), a
    * flat run of "still connected" samples doesn't grow the history.
    * Callers must record in non-decreasing `atUt` order (the real-time
    * `useUtNow` clock this is fed from is monotonic outside a rewind).
@@ -36,7 +36,7 @@ export class ConnectivityHistory {
 
   /**
    * Was the path continuously connected across `[fromUt, toUt]`? No
-   * observation before `fromUt` reads as connected — the same
+   * observation before `fromUt` reads as connected, the same
    * "undefined/unknown = connected" convention the kOS terminal's own
    * no-path gate uses (only a CONFIRMED disconnect blocks anything).
    */
@@ -56,7 +56,7 @@ export class ConnectivityHistory {
     return true;
   }
 
-  /** Drop transitions entirely before `beforeUt` — bounds memory growth over a long session. */
+  /** Drop transitions entirely before `beforeUt`: bounds memory growth over a long session. */
   prune(beforeUt: number): void {
     let cut = 0;
     for (let i = 0; i < this.transitions.length - 1; i++) {

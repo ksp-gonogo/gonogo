@@ -15,16 +15,16 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { parseFacilityLevels, SpaceCenterStatusComponent } from "./index";
 
 /**
- * Every value this widget reads is canonical now — `career.status`
+ * Every value this widget reads is canonical now, `career.status`
  * (`?.economy?.funds` + `?.facilities`), `spaceCenter.scene`
  * (`?.scene`/`?.launchSite`), `spaceCenter.partsAvailable` (`?.count`) and the
  * derived `spaceCenter.state` channel (pad occupancy off
- * `spaceCenter.launchSites`) — so every assertion drives real stream emits
+ * `spaceCenter.launchSites`): so every assertion drives real stream emits
  * through `setupStreamFixture`. The one thing still on the legacy path is the
  * `kc.upgradeFacility[...]` COMMAND (`mapCommand` has no home for it, so
  * `useExecuteAction("data")` takes the legacy branch), so a
- * `setupMockDataSource` command spy — registered under the default `"data"`
- * id `BufferedDataSource` uses — is kept purely for `onExecute`.
+ * `setupMockDataSource` command spy: registered under the default `"data"`
+ * id `BufferedDataSource` uses, is kept purely for `onExecute`.
  */
 const CARRIED = [
   "career.status",
@@ -210,7 +210,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // Augment slots (Uplink architecture §4) — the widget exposes
+  // Augment slots (Uplink architecture §4): the widget exposes
   // `space-center-status.badges` (header) and `space-center-status.sections`
   // (body, appended to the facility list). With no augment registered the
   // slots render nothing and the widget is unchanged; once an augment binds a

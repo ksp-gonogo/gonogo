@@ -9,7 +9,7 @@ import { relayBaseUrl } from "../peer/iceServers";
  * Pointing a fresh browser at the bundle should need ZERO Settings
  * spelunking: one env var on `docker run` seeds the shared `gameHost`
  * setting that every KSP-facing source reads (the telemetry stream and the
- * kerbcast sidecar). The seed is in-memory only — any host the user has
+ * kerbcast sidecar). The seed is in-memory only, any host the user has
  * saved in Settings wins, and because nothing is persisted here, changing
  * `KSP_HOST` and restarting the container takes effect on the next page load.
  *
@@ -20,7 +20,7 @@ import { relayBaseUrl } from "../peer/iceServers";
 /**
  * Container-internal aliases for "the machine the container runs on".
  * Sources the BROWSER dials (telemetry stream, kerbcast sidecar) can't
- * resolve these — the browser-side equivalent is `localhost`.
+ * resolve these: the browser-side equivalent is `localhost`.
  */
 const CONTAINER_INTERNAL_HOSTS = new Set([
   "host.docker.internal",
@@ -40,7 +40,7 @@ export async function seedKspHostDefaults(
         ? body.kspHost.trim()
         : null;
   } catch {
-    // No relay reachable — not a bundle deployment; defaults stand.
+    // No relay reachable: not a bundle deployment; defaults stand.
     return;
   }
   if (!kspHost) return;
@@ -50,7 +50,7 @@ export async function seedKspHostDefaults(
     : kspHost;
 
   // One shared host for every Uplink (telemetry :8090, kerbcast sidecar
-  // :8088). kOS rides the telemetry stream — no host of its own.
+  // :8088). kOS rides the telemetry stream: no host of its own.
   seedSetting("gameHost", browserHost);
 
   logger.tag("bootstrap").info("Seeded KSP host defaults from relay", {

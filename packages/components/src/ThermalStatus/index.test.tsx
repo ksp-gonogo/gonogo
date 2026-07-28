@@ -13,13 +13,13 @@ import { ThermalStatusComponent } from "./index";
 
 /**
  * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
- * in this directory) — every `therm.*` key `index.tsx` reads is a ONE-ARG
+ * in this directory): every `therm.*` key `index.tsx` reads is a ONE-ARG
  * canonical `useTelemetry("vessel.thermal")` read with no legacy fallback at
  * all, so every render here runs off a real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` instead of the
  * legacy `MockDataSource` registry.
  *
- * `clearAugments()` runs in `beforeEach` (nothing mounted yet — the prior
+ * `clearAugments()` runs in `beforeEach` (nothing mounted yet, the prior
  * test's tree was already torn down by RTL auto-cleanup) so the augment
  * registry is reset without a state mutation firing against a live component.
  */
@@ -75,7 +75,7 @@ describe("ThermalStatusComponent", () => {
     );
     expect(screen.getByText("Hottest part")).toBeInTheDocument();
     expect(screen.getByText("Hottest engine")).toBeInTheDocument();
-    // Nominal bands at 33% / 40% — no role=alert banner.
+    // Nominal bands at 33% / 40%: no role=alert banner.
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -131,16 +131,16 @@ describe("ThermalStatusComponent", () => {
     act(() => {
       // The mod emits ~2K for both temp and max when no thermometer is
       // fitted (e.g. early-career rocket). These should NOT light up the
-      // widget as CRITICAL — they should be treated as no data.
+      // widget as CRITICAL: they should be treated as no data.
       fixture.emit("vessel.thermal", {
         hottestPart: {
           name: "",
-          skinTemp: 2.05, // °C — close to 275 K, but...
-          skinMaxTemp: 2.05, // K — sentinel: max ≈ 0 K
+          skinTemp: 2.05, // °C: close to 275 K, but...
+          skinMaxTemp: 2.05, // K: sentinel: max ≈ 0 K
         },
         maxInternalTempRatio: 1.0, // bogus ratio
-        hottestEngineTemp: 2.05, // K — sentinel
-        hottestEngineMaxTemp: 2.05, // K — sentinel
+        hottestEngineTemp: 2.05, // K: sentinel
+        hottestEngineMaxTemp: 2.05, // K: sentinel
         hottestEngineTempRatio: 1.0,
         anyEnginesOverheating: false,
       });
@@ -162,7 +162,7 @@ describe("ThermalStatusComponent", () => {
     renderThermal(fixture, 9);
     act(() => {
       fixture.emit("vessel.thermal", {
-        // Real engine telemetry — engine row should still render.
+        // Real engine telemetry: engine row should still render.
         hottestEngineTemp: 913,
         hottestEngineMaxTemp: 2273,
         hottestEngineTempRatio: 0.4,

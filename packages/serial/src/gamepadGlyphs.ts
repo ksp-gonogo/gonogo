@@ -1,17 +1,17 @@
 // Vendored button/axis glyphs for the gamepad label packs.
 //
-// Source: LizardByte/gamepad-helper (MIT) —
-// https://github.com/LizardByte/gamepad-helper — specifically
+// Source: LizardByte/gamepad-helper (MIT):
+// https://github.com/LizardByte/gamepad-helper: specifically
 // assets/img/gamepads/{xbox,playstation,switch}/Buttons Outline/White/SVG.
 // The MIT licence covers gamepad-helper's *code*; the art is separately
 // licensed CC BY 3.0 by Zacksly (https://zacksly.itch.io) and requires
-// attribution — see gamepadAttribution.ts (surfaced in the Input Devices
+// attribution: see gamepadAttribution.ts (surfaced in the Input Devices
 // menu) for the on-screen credit, and this notice as the source-header
 // credit the licence also asks for:
 //
-//   Xbox Series Button Icons and Controls — Zacksly — https://zacksly.itch.io — CC BY 3.0
-//   PS5 Button Icons and Controls — Zacksly — https://zacksly.itch.io — CC BY 3.0
-//   Switch Button Icons and Controls — Zacksly — https://zacksly.itch.io — CC BY 3.0
+//   Xbox Series Button Icons and Controls: Zacksly: https://zacksly.itch.io: CC BY 3.0
+//   PS5 Button Icons and Controls: Zacksly: https://zacksly.itch.io: CC BY 3.0
+//   Switch Button Icons and Controls: Zacksly: https://zacksly.itch.io: CC BY 3.0
 //   Licensed under CC BY 3.0: http://creativecommons.org/licenses/by/3.0/
 //
 // Changes made from the originals (CC BY 3.0 requires disclosing edits):
@@ -19,13 +19,13 @@
 //     elements as `style="..."` attributes and the <defs> block dropped.
 //     Inline SVG <style> is NOT scoped in HTML, and the 63 source glyphs
 //     reuse class names (.cls-1, .cls-2, ...) for different rules across
-//     files — left as-is, a later-parsed glyph's rules would clobber an
+//     files: left as-is, a later-parsed glyph's rules would clobber an
 //     earlier one's fills/strokes the moment more than one glyph is on
 //     the page at once.
 //   - the white fill was replaced with `currentColor` so glyphs recolour with the
 //     active theme instead of always rendering white.
 //
-// Only the White/Outline set is vendored — `currentColor` covers both
+// Only the White/Outline set is vendored, `currentColor` covers both
 // light and dark themes, so the Black variant would just double the byte
 // count for nothing. `positional` (the no-glyph pack) has no entry here;
 // callers render the input's name only.
@@ -167,7 +167,7 @@ export const GAMEPAD_GLYPHS: Partial<
 };
 /** Look up the vendored glyph markup for a role under a label pack.
  *  Returns `undefined` when the pack has no glyph set (`positional`) or the
- *  role has no artwork in that pack — callers fall back to name-only. */
+ *  role has no artwork in that pack, callers fall back to name-only. */
 export function getGamepadGlyph(
   pack: LabelPack,
   role: GamepadRole,

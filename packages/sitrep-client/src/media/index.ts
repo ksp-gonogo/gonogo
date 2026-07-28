@@ -1,17 +1,17 @@
-// Generic delayed-media infrastructure — media + time, riding the same
+// Generic delayed-media infrastructure: media + time, riding the same
 // `ViewClock` delay authority telemetry reads. Moved here from a camera
 // Uplink client (2026-07-17) because none of it is mod-specific: a
 // `DelayedPlayoutBuffer` consumes the clock STRUCTURALLY via `DelayClockLike`
 // (zero imports), and every future camera Uplink needs the same buffer /
 // per-frame pipeline / per-camera sharing. It stays decoupled from any camera
-// SDK — the caller injects the clock, the raw `MediaStream`, and (for the
+// SDK: the caller injects the clock, the raw `MediaStream`, and (for the
 // shared cache) the build function.
 //
 // SANCTIONED CLIENT IMPORT (2026-07-19): `@ksp-gonogo/sitrep-client/media` is
 // a documented exception to the two-package facade rule (an Uplink client is
 // otherwise sealed onto `@ksp-gonogo/sitrep-sdk` + `@ksp-gonogo/ui-kit` only,
 // see `docs/superpowers/plans/2026-07-19-facade-sealing.md` §2.4). This
-// barrel is the third allowed import for camera Uplinks specifically —
+// barrel is the third allowed import for camera Uplinks specifically,
 // generic delayed-media infra decoupled via `DelayClockLike`, not a facade
 // gap. Import it as a dedicated subpath (`.../sitrep-client/media`), never
 // the package root.

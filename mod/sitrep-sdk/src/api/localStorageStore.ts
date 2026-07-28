@@ -1,21 +1,21 @@
 // ---------------------------------------------------------------------------
-// `LocalStorageStore` — bundled directly (not a host shim), same reasoning
+// `LocalStorageStore`: bundled directly (not a host shim), same reasoning
 // as `safeRandomUuid` in `./index.ts`: no module-global state, so
 // duplicating it here carries none of the "second copy of a registry" risk
 // that rules out bundling core's stateful members. A byte-for-byte port of
 // `@ksp-gonogo/data`'s implementation (`storage/LocalStorageStore.ts`), not
-// a re-export — the sdk leaf cannot name `@ksp-gonogo/data` as a workspace
-// dependency (data depends on core, which depends on the sdk — naming it
+// a re-export: the sdk leaf cannot name `@ksp-gonogo/data` as a workspace
+// dependency (data depends on core, which depends on the sdk, naming it
 // here would form the same turbo `^build` cycle the mirrored types in
 // `./types.ts` avoid).
 //
 // One behavioural difference from the original: the default corruption
 // logger routes through the injected host's `logger` (via `getHost()`)
-// instead of importing `@ksp-gonogo/logger`'s singleton directly — bundling
+// instead of importing `@ksp-gonogo/logger`'s singleton directly: bundling
 // that import here would be exactly the "second, console-only logger copy"
 // failure `./index.ts`'s own `logger` Proxy shim exists to prevent (see its
-// doc comment). This path is lazy — only reached on an actual corrupt-JSON
-// read — so a caller who never hits corruption, or who supplies their own
+// doc comment). This path is lazy, only reached on an actual corrupt-JSON
+// read, so a caller who never hits corruption, or who supplies their own
 // `onCorruption`, never touches the host at all.
 // ---------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ interface LocalStorageStoreOptions<T> {
  * For object T, `get()` returns `{ ...defaults, ...parsed }` so adding new
  * fields to T defaults to `defaults[newField]` rather than `undefined`.
  * Non-object stored values (string, number, boolean, array, null) are
- * returned as-is — TypeScript can't enforce that at runtime, so the caller's
+ * returned as-is, TypeScript can't enforce that at runtime, so the caller's
  * type parameter is trusted.
  */
 export class LocalStorageStore<T> {
@@ -67,7 +67,7 @@ export class LocalStorageStore<T> {
   /**
    * Whether a value has ever been persisted under this key (even a corrupt
    * one). Lets callers distinguish "user saved something" from "running on
-   * defaults" — e.g. first-run seeding only applies when nothing is stored.
+   * defaults": e.g. first-run seeding only applies when nothing is stored.
    */
   isStored(): boolean {
     try {
@@ -172,7 +172,7 @@ function defaultCorruptionLogger(
   return (raw, error) => {
     getHost()
       .logger.tag("storage")
-      .warn(`Corrupt JSON for ${key} — using defaults`, {
+      .warn(`Corrupt JSON for ${key}: using defaults`, {
         raw: raw.length > 200 ? `${raw.slice(0, 200)}...` : raw,
         error,
       });

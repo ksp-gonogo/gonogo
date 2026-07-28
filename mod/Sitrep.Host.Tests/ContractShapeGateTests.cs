@@ -13,11 +13,11 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The CI contract-shape gate — see
+    /// The CI contract-shape gate: see
     /// <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>. Reflects
     /// every <see cref="SitrepContractAttribute"/>-marked type in
     /// <c>Sitrep.Contract</c> (applied alongside every real
-    /// <c>[TsInterface]</c> usage — see <see cref="SitrepContractAttribute"/>'s
+    /// <c>[TsInterface]</c> usage: see <see cref="SitrepContractAttribute"/>'s
     /// own doc comment for why this gate uses its own same-assembly marker
     /// rather than reflecting <c>[TsInterface]</c> directly: that attribute's
     /// declaring assembly, <c>Reinforced.Typings</c>, is a compile-time-only
@@ -25,12 +25,12 @@ namespace Sitrep.Host.Tests
     /// and checks it against a checked-in LEDGER
     /// (<c>mod/Sitrep.Contract/contract-shape.baseline.json</c>, wired into
     /// this project the same way the other <c>golden-fixtures/</c> JSON
-    /// fixtures are — see this project's .csproj).
+    /// fixtures are; see this project's .csproj).
     ///
     /// <para><b>Why a ledger and not a single baseline.</b> This gate used to
     /// diff against one baseline blob that mirrored HEAD. That blob was
     /// regenerated in the SAME commit that bumped
-    /// <see cref="ContractVersion.Major"/> — which meant the gate compared the
+    /// <see cref="ContractVersion.Major"/>, which meant the gate compared the
     /// new code against a baseline derived from the new code, and passed
     /// vacuously. A Major bump was a blanket amnesty: <c>DiffNonAdditive</c>
     /// returned early on <c>baseline.Major != currentMajor</c> without ever
@@ -45,7 +45,7 @@ namespace Sitrep.Host.Tests
     /// this gate.</para>
     ///
     /// <para>(2) The follow-up collapse landed the action-group retype as
-    /// v4.<b>1</b> — an "additive Minor" — on top of a v4.<b>0</b> that had
+    /// v4.<b>1</b> (an "additive Minor") on top of a v4.<b>0</b> that had
     /// already published <c>ActionGroups</c> as <c>System.Boolean[]</c>. A
     /// retype is not additive. The gate passed silently because the baseline
     /// had been regenerated and no longer remembered v4.0.</para>
@@ -55,21 +55,21 @@ namespace Sitrep.Host.Tests
     /// <c>Shape</c>, written ONCE when that Major is created and never
     /// rewritten (see <see cref="FreezeCurrentMajor_ManualOnly"/>, which
     /// refuses to overwrite an existing entry). An additive change needs no
-    /// regeneration at all — the gate already passes it — so the only thing
+    /// regeneration at all (the gate already passes it) so the only thing
     /// that ever appends to the ledger is a Major bump, and that append has to
     /// declare what it broke.</para>
     ///
     /// <para><b>The invariant, stated honestly: a Major names exactly ONE
     /// shape.</b> Enforced by four rules, each its own test:</para>
     /// <list type="number">
-    /// <item><see cref="EachMajorAppearsExactlyOnceInTheLedger"/> — two entries
+    /// <item><see cref="EachMajorAppearsExactlyOnceInTheLedger"/>: two entries
     /// claiming the same Major is the parallel-branch collision itself.</item>
-    /// <item><see cref="CurrentMajorIsRecordedInTheLedger"/> — bumping Major
+    /// <item><see cref="CurrentMajorIsRecordedInTheLedger"/>: bumping Major
     /// without freezing a shape can no longer skip the diff.</item>
-    /// <item><see cref="CurrentShapeIsAdditiveOverTheFrozenMajorFloor"/> — the
+    /// <item><see cref="CurrentShapeIsAdditiveOverTheFrozenMajorFloor"/>: the
     /// old "lying minor" check, but against a floor the commit cannot
     /// rewrite.</item>
-    /// <item><see cref="EveryMajorBumpDeclaresExactlyWhatItBroke"/> — a Major
+    /// <item><see cref="EveryMajorBumpDeclaresExactlyWhatItBroke"/>: a Major
     /// must show its work: its declared <c>Breaks</c> must equal the computed
     /// diff from the previous Major's shape, and be non-empty. A Major that
     /// breaks nothing is not a Major, and a Major cannot claim a break it did
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// One Major's frozen record. <see cref="Shape"/> is written once, when
-        /// the Major is created, and never rewritten — that immutability is the
+        /// the Major is created, and never rewritten, that immutability is the
         /// entire point of the ledger (see the class doc comment).
         /// </summary>
         private sealed class MajorEntry
@@ -109,7 +109,7 @@ namespace Sitrep.Host.Tests
             /// <summary>
             /// The canonical removal strings (see <see cref="ComputeRemovals"/>)
             /// this Major inflicted relative to the previous recorded Major.
-            /// Verified — not trusted — by
+            /// Verified (not trusted) by
             /// <see cref="EveryMajorBumpDeclaresExactlyWhatItBroke"/>.
             /// </summary>
             public string[] Breaks { get; set; } = Array.Empty<string>();
@@ -138,13 +138,13 @@ namespace Sitrep.Host.Tests
         }
 
         // ---------------------------------------------------------------
-        // Rule 1 — a Major names exactly one shape, so it appears once.
+        // Rule 1: a Major names exactly one shape, so it appears once.
         // ---------------------------------------------------------------
 
         /// <summary>
         /// The parallel-branch collision, caught mechanically. Two branches
         /// each bumping 3 -&gt; 4 both append an entry for Major 4; whichever
-        /// way a human resolves the merge conflict, something fires — a
+        /// way a human resolves the merge conflict, something fires, a
         /// take-both resolve trips THIS rule, and a take-one resolve trips
         /// <see cref="CurrentShapeIsAdditiveOverTheFrozenMajorFloor"/> against
         /// the losing branch's code.
@@ -167,7 +167,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ---------------------------------------------------------------
-        // Rule 2 — bumping Major can no longer skip the diff.
+        // Rule 2: bumping Major can no longer skip the diff.
         // ---------------------------------------------------------------
 
         [Fact]
@@ -180,17 +180,17 @@ namespace Sitrep.Host.Tests
                 matching == 1,
                 $"ContractVersion.Major is {ContractVersion.Major} but the ledger has {matching} " +
                 $"entries for it (expected exactly 1). A Major bump must freeze its shape in the " +
-                $"same commit — run the FreezeCurrentMajor_ManualOnly utility (see its doc comment). " +
+                $"same commit: run the FreezeCurrentMajor_ManualOnly utility (see its doc comment). " +
                 $"Recorded Majors: [{string.Join(", ", ledger.Majors.Select(e => e.Major))}].");
         }
 
         // ---------------------------------------------------------------
-        // Rule 3 — the old "lying minor" gate, against a frozen floor.
+        // Rule 3: the old "lying minor" gate, against a frozen floor.
         // ---------------------------------------------------------------
 
         /// <summary>
         /// Every Minor on a Major line must be additive over that Major's
-        /// frozen floor. This is the check the old gate meant to perform — the
+        /// frozen floor. This is the check the old gate meant to perform, the
         /// difference is that the floor now predates the commit under test, so
         /// the commit cannot regenerate its way to green.
         /// </summary>
@@ -202,7 +202,7 @@ namespace Sitrep.Host.Tests
 
             // Rules 1 and 2 own the "no entry"/"duplicate entry" failures and
             // report them with actionable messages. Bailing here keeps one root
-            // cause to one red test — and deliberately avoids SingleOrDefault,
+            // cause to one red test: and deliberately avoids SingleOrDefault,
             // which would THROW on the duplicate case and bury the real
             // diagnosis under an InvalidOperationException.
             if (entries.Count != 1)
@@ -214,7 +214,7 @@ namespace Sitrep.Host.Tests
 
             Assert.True(
                 removals.Count == 0,
-                $"Non-additive change to the wire shape WITHOUT a Major bump — Major " +
+                $"Non-additive change to the wire shape WITHOUT a Major bump, Major " +
                 $"{ContractVersion.Major}'s shape was frozen and these are gone from it:\n  " +
                 string.Join("\n  ", removals) +
                 "\n\nA removed/renamed/retyped member is breaking by definition. Either make the " +
@@ -222,11 +222,11 @@ namespace Sitrep.Host.Tests
         }
 
         // ---------------------------------------------------------------
-        // Rule 4 — a Major must show its work.
+        // Rule 4: a Major must show its work.
         // ---------------------------------------------------------------
 
         /// <summary>
-        /// A Major bump is the sanctioned way to break the wire — but it is no
+        /// A Major bump is the sanctioned way to break the wire, but it is no
         /// longer a blanket amnesty. Each Major's declared <c>Breaks</c> must
         /// EXACTLY equal the diff computed from the previous recorded Major's
         /// shape: non-empty (a Major that breaks nothing is not a Major), with
@@ -243,7 +243,7 @@ namespace Sitrep.Host.Tests
             foreach (var entry in ordered)
             {
                 // The earliest recorded Major has no predecessor to diff
-                // against — its Breaks are unverifiable, so they are not
+                // against: its Breaks are unverifiable, so they are not
                 // asserted on. Every LATER Major is fully checked.
                 var previous = ordered.LastOrDefault(e => e.Major < entry.Major);
                 if (previous is null)
@@ -256,7 +256,7 @@ namespace Sitrep.Host.Tests
 
                 Assert.True(
                     actual.Count > 0,
-                    $"Major {entry.Major} breaks nothing relative to Major {previous.Major} — " +
+                    $"Major {entry.Major} breaks nothing relative to Major {previous.Major}, " +
                     "so it should not be a Major. An additive change is a Minor bump.");
 
                 var undeclared = actual.Except(declared, StringComparer.Ordinal).ToList();
@@ -266,7 +266,7 @@ namespace Sitrep.Host.Tests
                     undeclared.Count == 0,
                     $"Major {entry.Major} broke something it never declared:\n  " +
                     string.Join("\n  ", undeclared) +
-                    $"\n\nAdd these to the Major {entry.Major} entry's Breaks list — a Major must " +
+                    $"\n\nAdd these to the Major {entry.Major} entry's Breaks list, a Major must " +
                     "name every shape change it makes.");
 
                 Assert.True(
@@ -302,7 +302,7 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            // The shape v4.1 shipped — a RETYPE, dressed as an additive Minor.
+            // The shape v4.1 shipped: a RETYPE, dressed as an additive Minor.
             var v41Shape = new Shape
             {
                 Types = new Dictionary<string, string[]>
@@ -321,7 +321,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The other half of today's incident: two branches each bumping
         /// 3 -&gt; 4 with different shapes. Whichever way the merge is
-        /// resolved, a rule fires — take-both trips the duplicate check,
+        /// resolved, a rule fires: take-both trips the duplicate check,
         /// take-one leaves the loser's break undeclared.
         /// </summary>
         [Fact]
@@ -341,7 +341,7 @@ namespace Sitrep.Host.Tests
             Assert.NotEmpty(duplicates);
 
             // Take-one resolve: branch A's floor wins, but branch B's retype is
-            // still in the code — so it shows up as an in-Major removal.
+            // still in the code: so it shows up as an in-Major removal.
             var branchAFloor = new Shape
             {
                 Types = new Dictionary<string, string[]> { ["C"] = new[] { "D:System.Boolean[]" } },
@@ -354,8 +354,8 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Proves <see cref="ComputeRemovals"/> — the single function behind
-        /// every rule above — catches removed/retyped members and removed
+        /// Proves <see cref="ComputeRemovals"/> (the single function behind
+        /// every rule above) catches removed/retyped members and removed
         /// types, and stays silent for genuinely additive change. Supplies
         /// synthetic shapes so it never has to mutate-then-revert real
         /// <c>Sitrep.Contract</c> source (which would ripple into every
@@ -372,7 +372,7 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            // Non-additive: "Count" renamed to "Total" — a removal, from the
+            // Non-additive: "Count" renamed to "Total": a removal, from the
             // floor's point of view.
             var renamed = new Shape
             {
@@ -386,7 +386,7 @@ namespace Sitrep.Host.Tests
             // Non-additive: a whole type removed.
             Assert.Equal(new[] { "type-removed:Widget" }, ComputeRemovals(floor, new Shape()));
 
-            // Additive: a new member and a brand new type — must NOT be caught.
+            // Additive: a new member and a brand new type, must NOT be caught.
             var additive = new Shape
             {
                 Types = new Dictionary<string, string[]>
@@ -399,7 +399,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Enum analogue — the gate is not blind to enums. Covers a member
+        /// Enum analogue: the gate is not blind to enums. Covers a member
         /// RENAMED and a member RENUMBERED while keeping its name (both real
         /// wire breaks), a whole enum removed, and the additive escape hatch.
         /// </summary>
@@ -425,7 +425,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(new[] { "enum-member-removed:Staleness.Fresh:0" }, ComputeRemovals(floor, renamed));
 
             // Renumbered: "Fresh" keeps its name but swaps value with
-            // "HeldStale" — a wire break even though no name changed.
+            // "HeldStale": a wire break even though no name changed.
             var renumbered = new Shape
             {
                 Enums = new Dictionary<string, string[]>
@@ -458,7 +458,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Returns one canonical string per fact present in
-        /// <paramref name="from"/> and absent from <paramref name="to"/> —
+        /// <paramref name="from"/> and absent from <paramref name="to"/>,
         /// i.e. everything a consumer built against <paramref name="from"/>
         /// would find missing. Empty means <paramref name="to"/> is a
         /// superset: additive, non-breaking.
@@ -466,7 +466,7 @@ namespace Sitrep.Host.Tests
         /// <para>Deliberately ONE function serving all four rules, called with
         /// different arguments: (floor, current) asks "did this Minor break its
         /// Major?", and (previousMajorShape, thisMajorShape) asks "what did
-        /// this Major actually break?". Same question, different endpoints —
+        /// this Major actually break?". Same question, different endpoints,
         /// which is why the declared Breaks list can be verified against a
         /// computation rather than trusted.</para>
         /// </summary>
@@ -522,7 +522,7 @@ namespace Sitrep.Host.Tests
         // ---------------------------------------------------------------
 
         /// <summary>
-        /// Not part of the gate — a manual utility, always skipped in CI. Run
+        /// Not part of the gate: a manual utility, always skipped in CI. Run
         /// it ONLY when bumping <see cref="ContractVersion.Major"/>, in the
         /// same commit:
         /// <code>
@@ -536,8 +536,8 @@ namespace Sitrep.Host.Tests
         /// <para>(1) It <b>refuses to overwrite an existing Major's frozen
         /// Shape</b>. That refusal is the fix: rewriting the floor in the same
         /// commit as the change is precisely how a non-additive diff got
-        /// masked. An additive change needs no freeze at all — the gate
-        /// already passes it — so there is no legitimate reason to re-freeze a
+        /// masked. An additive change needs no freeze at all, the gate
+        /// already passes it: so there is no legitimate reason to re-freeze a
         /// Major that already exists.</para>
         ///
         /// <para>(2) It <b>writes the ledger to its source file</b> and prints
@@ -553,12 +553,12 @@ namespace Sitrep.Host.Tests
         /// <para>Gated behind <c>SITREP_FREEZE_MAJOR=1</c> as well as [Skip] so
         /// that a stray <c>--filter</c> can never silently rewrite the ledger.</para>
         /// </summary>
-        [Fact(Skip = "Manual Major-freeze utility — see doc comment. Never runs in CI.")]
+        [Fact(Skip = "Manual Major-freeze utility: see doc comment. Never runs in CI.")]
         public void FreezeCurrentMajor_ManualOnly()
         {
             Assert.True(
                 Environment.GetEnvironmentVariable("SITREP_FREEZE_MAJOR") == "1",
-                "Refusing to touch the ledger without SITREP_FREEZE_MAJOR=1 — see doc comment.");
+                "Refusing to touch the ledger without SITREP_FREEZE_MAJOR=1; see doc comment.");
 
             var destination = Environment.GetEnvironmentVariable("SITREP_BASELINE_OUT")
                 ?? ResolveLedgerSourcePath();
@@ -570,7 +570,7 @@ namespace Sitrep.Host.Tests
                 existing is null,
                 $"REFUSING to re-freeze Major {ContractVersion.Major}: it already has a frozen " +
                 "Shape in the ledger. Rewriting a floor in the same commit as the change is exactly " +
-                "how a breaking change gets masked — it is the bug this ledger exists to prevent.\n\n" +
+                "how a breaking change gets masked, it is the bug this ledger exists to prevent.\n\n" +
                 "If your change is ADDITIVE, you need no freeze: bump ContractVersion.Minor and the " +
                 "gate will pass on its own.\n" +
                 "If your change is BREAKING, bump ContractVersion.Major first, then re-run this.");
@@ -594,8 +594,8 @@ namespace Sitrep.Host.Tests
             Console.WriteLine($"Froze Major {ContractVersion.Major} into: {destination}");
             Console.WriteLine(
                 previous is null
-                    ? "No previous Major recorded — Breaks left empty (unverifiable)."
-                    : $"Breaks vs Major {previous.Major} ({breaks.Count}) — READ THESE:");
+                    ? "No previous Major recorded: Breaks left empty (unverifiable)."
+                    : $"Breaks vs Major {previous.Major} ({breaks.Count}); READ THESE:");
             foreach (var b in breaks)
             {
                 Console.WriteLine("  " + b);
@@ -610,7 +610,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Walks up from the test assembly to the repo's
-        /// <c>mod/Sitrep.Contract/</c> source copy — the .csproj links the
+        /// <c>mod/Sitrep.Contract/</c> source copy: the .csproj links the
         /// ledger into <c>golden-fixtures/</c> as a BUILD OUTPUT, so writing to
         /// <see cref="LedgerPath"/> would land in <c>bin/</c> and be silently
         /// discarded on the next build.
@@ -631,7 +631,7 @@ namespace Sitrep.Host.Tests
 
             throw new InvalidOperationException(
                 "Could not locate mod/Sitrep.Contract/contract-shape.baseline.json walking up from "
-                + AppContext.BaseDirectory + " — pass SITREP_BASELINE_OUT explicitly.");
+                + AppContext.BaseDirectory + ": pass SITREP_BASELINE_OUT explicitly.");
         }
 
         // ---------------------------------------------------------------
@@ -656,8 +656,8 @@ namespace Sitrep.Host.Tests
                 {
                     // Enums are handled entirely via raw metadata below
                     // (see ReadSitrepContractMarkedShapes's doc comment for
-                    // why: any CLR-level enum reflection — even
-                    // Enum.GetNames/Type.IsEnum's underlying machinery — was
+                    // why: any CLR-level enum reflection, even
+                    // Enum.GetNames/Type.IsEnum's underlying machinery: was
                     // observed to eagerly resolve custom attributes on this
                     // type and throw the same FileNotFoundException the
                     // marker check above is designed to avoid).
@@ -665,7 +665,7 @@ namespace Sitrep.Host.Tests
                 }
 
                 // Safe: property enumeration/PropertyType never resolves an
-                // attribute's declaring assembly — only GetCustomAttributes*/
+                // attribute's declaring assembly: only GetCustomAttributes*/
                 // enum-specific reflection does, which is why both the
                 // marker check and the enum-shape read go through raw
                 // metadata instead (see ReadSitrepContractMarkedShapes's
@@ -689,14 +689,14 @@ namespace Sitrep.Host.Tests
         /// Returns (1) the full names of every type carrying
         /// <c>[SitrepContractAttribute]</c>, PLUS (2) the member shape
         /// (<c>"Name:Value"</c>, sorted) of every one of those types that is
-        /// itself an ENUM — both read via raw ECMA-335 metadata
+        /// itself an ENUM: both read via raw ECMA-335 metadata
         /// (<see cref="System.Reflection.Metadata"/>/
         /// <see cref="System.Reflection.PortableExecutable"/>), NOT
         /// <c>System.Reflection</c>'s <c>Type.GetCustomAttributesData()</c>/
         /// <c>IsDefined</c>. Both of those eagerly resolve EVERY custom
         /// attribute applied to a type in one shot (verified experimentally
         /// while writing this gate: even wrapping the enumeration call itself
-        /// in try/catch wasn't enough — <c>GetCustomAttributesData()</c> throws
+        /// in try/catch wasn't enough: <c>GetCustomAttributesData()</c> throws
         /// building its full record list before a single record is ever
         /// inspected). Since every <c>[SitrepContract]</c> type ALSO carries
         /// <c>[TsInterface]</c>, and <c>[TsInterface]</c>'s declaring assembly
@@ -705,7 +705,7 @@ namespace Sitrep.Host.Tests
         /// <c>Sitrep.Contract.csproj</c>'s doc comment and
         /// <see cref="SitrepContractAttribute"/>'s), any CLR-level attribute
         /// enumeration on these types always throws
-        /// <see cref="System.IO.FileNotFoundException"/> here — regardless of
+        /// <see cref="System.IO.FileNotFoundException"/> here: regardless of
         /// which specific attribute is being searched for. Reading the PE
         /// metadata directly (a file-parsing operation, not a type-load)
         /// sidesteps that entirely: it only ever needs the attribute
@@ -759,7 +759,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Base-type check done at the metadata level (compares the base
         /// type reference's simple name against <c>"Enum"</c> in namespace
-        /// <c>"System"</c>) — deliberately NOT <c>Type.IsEnum</c>. Verified
+        /// <c>"System"</c>): deliberately NOT <c>Type.IsEnum</c>. Verified
         /// experimentally while extending this gate: on a
         /// <see cref="SitrepContractAttribute"/>-marked enum whose sibling
         /// types (never this type itself, since attribute enumeration is
@@ -769,7 +769,7 @@ namespace Sitrep.Host.Tests
         /// (<c>RuntimeType.GetEnumNames</c> → <c>Enum.EnumInfo.Create</c>)
         /// itself calls <c>CustomAttribute.IsCustomAttributeDefined</c> and
         /// throws the same <see cref="System.IO.FileNotFoundException"/> the
-        /// marker check works around — so enum SHAPE, not just the marker,
+        /// marker check works around, so enum SHAPE, not just the marker,
         /// must stay off every CLR reflection path for this assembly.
         /// </summary>
         private static bool IsEnumTypeDefinition(
@@ -797,7 +797,7 @@ namespace Sitrep.Host.Tests
         /// Reads an enum type's members straight from its field table: every
         /// non-<c>special-name "value__"</c> literal (const) field is one
         /// member, named by <see cref="System.Reflection.Metadata.FieldDefinition.Name"/>
-        /// and valued by its constant blob (decoded as <see cref="int"/> —
+        /// and valued by its constant blob (decoded as <see cref="int"/>,
         /// every wire enum in this contract is a plain <c>int</c>-backed
         /// enum with no explicit underlying-type override). Sorted so the
         /// result is stable regardless of declaration order.
@@ -846,7 +846,7 @@ namespace Sitrep.Host.Tests
             // The attribute's constructor token is either a MemberReference
             // (the common case: the attribute type lives outside this
             // module) or a MethodDefinition (attribute type defined in this
-            // same module) — SitrepContractAttribute, defined right in this
+            // same module): SitrepContractAttribute, defined right in this
             // assembly, is the latter.
             if (attribute.Constructor.Kind == System.Reflection.Metadata.HandleKind.MemberReference)
             {

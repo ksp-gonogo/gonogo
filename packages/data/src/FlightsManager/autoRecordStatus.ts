@@ -1,5 +1,5 @@
 /**
- * Cross-tree status broadcast for `AutoRecordController` — a plain
+ * Cross-tree status broadcast for `AutoRecordController`: a plain
  * publish/subscribe singleton (same shape as `sitrep-client`'s
  * `activeViewClock`/`activeTelemetryClient` non-hook accessors) rather than
  * React context, because the controller (mounted once, high in `MainScreen`,
@@ -45,7 +45,7 @@ export function subscribeAutoRecordStatus(cb: () => void): () => void {
   };
 }
 
-/** Test-only reset — mirrors `sitrep-client`'s `setActiveViewClockForTests` pattern. */
+/** Test-only reset: mirrors `sitrep-client`'s `setActiveViewClockForTests` pattern. */
 export function resetAutoRecordStatusForTests(): void {
   current = IDLE;
   listeners.clear();

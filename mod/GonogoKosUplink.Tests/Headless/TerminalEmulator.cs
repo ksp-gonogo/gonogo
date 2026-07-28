@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System.Globalization;
@@ -6,7 +6,7 @@ using System.Globalization;
 namespace GonogoKosUplink.Tests.Headless
 {
     /// <summary>
-    /// A deliberately minimal xterm/VT applier — the CLIENT side of the terminal
+    /// A deliberately minimal xterm/VT applier: the CLIENT side of the terminal
     /// downlink, standing in for the browser's xterm.js. It applies the exact
     /// same xterm-ready chunks the mod's <see cref="ScreenDiffMapper"/> emits
     /// (cursor-absolute <c>ESC[r;cH</c> moves, <c>ESC[2J</c> clear, <c>ESC[S</c>/
@@ -93,7 +93,7 @@ namespace GonogoKosUplink.Tests.Headless
             }
             if (j >= s.Length)
             {
-                return j; // malformed / truncated — consume the rest
+                return j; // malformed / truncated: consume the rest
             }
             var final = s[j];
             var paramText = s.Substring(paramStart, j - paramStart);
@@ -104,7 +104,7 @@ namespace GonogoKosUplink.Tests.Headless
                     ApplyCursorPosition(paramText);
                     break;
                 case 'J':
-                    // 2 = whole screen. 0/1/absent left as best-effort no-op —
+                    // 2 = whole screen. 0/1/absent left as best-effort no-op,
                     // kOS's plain-text repaint uses absolute moves, not partial
                     // erases, so only the whole-screen form actually appears.
                     if (paramText == "2")
@@ -116,7 +116,7 @@ namespace GonogoKosUplink.Tests.Headless
                     ClearToEndOfLine();
                     break;
                 case 'S':
-                    // Scroll Up (SU) — kOS.UserIO.TerminalVT100Mapper emits one
+                    // Scroll Up (SU): kOS.UserIO.TerminalVT100Mapper emits one
                     // of these per unit of a forward topRow move that
                     // ScreenSnapShot.DiffFrom detects. Per ECMA-48/xterm, SU
                     // shifts the scroll region's content up by n rows (default
@@ -125,7 +125,7 @@ namespace GonogoKosUplink.Tests.Headless
                     ScrollUp(ParseCount(paramText));
                     break;
                 case 'T':
-                    // Scroll Down (SD) — the reverse, for a backward topRow move.
+                    // Scroll Down (SD): the reverse, for a backward topRow move.
                     ScrollDown(ParseCount(paramText));
                     break;
                 // Any other final byte (SGR 'm', etc.) is a display attribute

@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror — ContractManager. Asserts the panel chrome matches
+ * Widget DOM mirror: ContractManager. Asserts the panel chrome matches
  * on host and station.
  *
  * The recorded fixture has no `contracts.active` key (or any other
@@ -15,13 +15,13 @@
  *         <PanelSubtitle>Awaiting contract telemetry</PanelSubtitle>
  *     (The subtitle shows because the seeded layout uses h = 6 ≥ 4.)
  *
- * Both pages should see the same chrome — PBDS mirrors the (absent)
+ * Both pages should see the same chrome, PBDS mirrors the (absent)
  * upstream values identically.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — ContractManager", () => {
+test.describe("widget DOM mirror: ContractManager", () => {
   test("panel chrome mirrors across host and station", async ({ browser }) => {
     const pair = await bootstrapPair(browser, "contract-manager", {
       waitForMain: async (page) => {

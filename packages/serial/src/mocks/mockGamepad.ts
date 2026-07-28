@@ -5,13 +5,13 @@ import { GamepadPoller } from "../transports/GamepadPoller";
  * double, modelled on `mockWebSerial.ts`: the consuming code
  * (GamepadTransport, GamepadPoller) calls exactly the real browser APIs;
  * tests install the mock once, connect/disconnect pads, and mutate their
- * live button/axis state directly — then call `step()` to advance the
+ * live button/axis state directly: then call `step()` to advance the
  * poller by one frame, deterministically, with no real `requestAnimationFrame`
  * involved at all (`GamepadPoller.tick()` is a plain synchronous method;
  * `step()` just calls it).
  *
  * Unlike `navigator.serial`, `navigator.getGamepads` is the only piece
- * patched — `gamepadconnected`/`gamepaddisconnected` are ordinary DOM
+ * patched: `gamepadconnected`/`gamepaddisconnected` are ordinary DOM
  * events, so they're dispatched via the real `window.dispatchEvent` rather
  * than a parallel listener registry.
  */
@@ -96,7 +96,7 @@ export class MockGamepadAPI {
   }
 
   /** Connect a mock pad at `index` and dispatch a real `gamepadconnected`
-   *  window event carrying it — mirrors the browser firing on first input,
+   *  window event carrying it: mirrors the browser firing on first input,
    *  not on physical plug-in. */
   connectPad(index: number, spec: MockGamepadSpec): Gamepad {
     const gp = buildGamepad(index, spec);
@@ -117,7 +117,7 @@ export class MockGamepadAPI {
     window.dispatchEvent(evt);
   }
 
-  /** Set a button's `.pressed`/`.value` on a live pad, in place — mutating
+  /** Set a button's `.pressed`/`.value` on a live pad, in place, mutating
    *  the same object `getGamepads()` returns, matching the real API's
    *  live-object semantics. No event fires; production code only learns of
    *  this on the next poller tick. */

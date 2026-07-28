@@ -61,14 +61,14 @@ export interface ShipMapPart {
    * 180°. Falls back to 0 when the fork didn't emit `up`.
    */
   rotationRad: number;
-  /** Prefab bounds in metres — `{x, y, z}` from `v.topology.parts[].bounds.size`. */
+  /** Prefab bounds in metres: `{x, y, z}` from `v.topology.parts[].bounds.size`. */
   size: { x: number; y: number; z: number };
   /** Half-extent along the picked lateral axis (matches whatever `useX`
    *  chose when building this part). Always in metres. */
   latHalfExtent: number;
   /** Half-extent along the vessel-local Y axis (the spine). In metres. */
   axialHalfExtent: number;
-  /** `Part.mass` from topology — dry mass, no resources. */
+  /** `Part.mass` from topology: dry mass, no resources. */
   dryMass: number;
   /** `Part.inverseStage` from topology. */
   stage: number;
@@ -84,14 +84,14 @@ export interface ShipMapPart {
    *  uses for fuel-fill bars. */
   resources?: { n: string; a: number; c: number }[];
   /**
-   * Net ElectricCharge flow sign on this part — drives a subtle producer /
+   * Net ElectricCharge flow sign on this part, drives a subtle producer /
    * consumer ring in the diagram. `null` when there's no live flow row
    * (the part doesn't contribute to EC). EC is the only resource tinted in
    * v1; other resources can be added behind a config later.
    */
   ecFlowSign?: "producer" | "consumer" | null;
   /**
-   * Pass-through from `TopologyPart.fuelLineTarget` — the destination
+   * Pass-through from `TopologyPart.fuelLineTarget`: the destination
    * tank's flightId for fuel-line parts. Used by the renderer to draw
    * source→target arrows.
    */
@@ -166,7 +166,7 @@ export function classifyPart(
   if (hasEngine) return "engine";
   if (hasWheel) return "wheel";
   // Fuel lines come back from KSP under PartCategories.FuelTank with
-  // bounds that wrap the whole conduit run (per the 2026-05-15 audit) —
+  // bounds that wrap the whole conduit run (per the 2026-05-15 audit),
   // neither the category nor the bounds are useful for rendering. Bail
   // out before the resource-based 'tank' fallback so they get the
   // dedicated source→target arrow treatment in the renderer.
@@ -263,7 +263,7 @@ export function normaliseResources(
  * the vessel's local Y axis is the stack/spine direction (parts run from
  * pod at y≈0 down to engines at y<<0); X and Z are the two horizontal
  * lateral axes that radial-mounted parts spread across. Parts on the
- * other lateral axis still project onto the spine and overlap — the
+ * other lateral axis still project onto the spine and overlap, the
  * known 2D-projection limitation of this widget.
  */
 export function pickLateralAxis(parts: readonly TopologyPart[]): {
@@ -315,7 +315,7 @@ export function buildShipMapPart(
   // default to axially-aligned (zero rotation).
   //
   // Edge-on guard: when both projected components are near zero the
-  // part's up points along the collapsed depth axis — atan2 in that
+  // part's up points along the collapsed depth axis, atan2 in that
   // case would flip 0 vs π depending on the sign of -0 (Unity routinely
   // emits -0.0 for components that are floating-point zero). Render
   // unrotated rather than picking a meaningless angle.
@@ -341,7 +341,7 @@ export function buildShipMapPart(
     (center ? (useX ? center.z : center.x) : 0);
   const meshAxial = orgPos[1] + (center?.y ?? 0);
   const type = classifyPart(part, resources);
-  // Lateral half-extent along the picked axis — normally just the picked-
+  // Lateral half-extent along the picked axis: normally just the picked-
   // axis half of the prefab bounds. Flat radial plates (solar panels and
   // fins) are the exception: a 2D side view reads better when each is
   // foreshortened by how face-on it is to the viewer. One on the collapsed
@@ -375,7 +375,7 @@ export function buildShipMapPart(
       // axial height, handled separately). A solar panel's broad face is
       // tangential and its thin (cell-normal) axis is radial; a fin's broad
       // dimension is its radial span and its thin (blade-normal) axis is
-      // tangential — so the two swap which extent rides the radial vs the
+      // tangential: so the two swap which extent rides the radial vs the
       // tangential direction.
       const broad = Math.max(size.x, size.z);
       const thin = Math.min(size.x, size.z);
@@ -383,7 +383,7 @@ export function buildShipMapPart(
       const rd = Math.abs(depthPos / radius);
       // A fin reads full when side-on (ru=1) and edge-on when it points at
       // the camera (ru=0). The true orthographic falloff is linear in `ru`,
-      // but that's subtle at a glance — a 45° fin still shows ~71% span. We
+      // but that's subtle at a glance: a 45° fin still shows ~71% span. We
       // square it so angled fins read clearly shorter, leaving the side-on
       // and camera-facing extremes untouched. (A panel's broad face is
       // tangential, so it foreshortens on `rd` instead and isn't exaggerated.)

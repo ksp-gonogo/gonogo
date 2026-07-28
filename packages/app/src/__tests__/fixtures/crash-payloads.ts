@@ -1,13 +1,13 @@
 // Real `crash.lastCrash` payloads captured from a live KSP + Telemachus-fork
 // session on 2026-06-02 (the diagnostic run that confirmed the source-side
 // debris filter). Use these in UI tests instead of hand-written objects so the
-// parser stays pinned to the real wire shape — nested `flightStats`, the
+// parser stays pinned to the real wire shape, nested `flightStats`, the
 // `partsLost` / `events` / crew arrays, `flightEndMode`, and the `vesselType`
 // field the rebuilt fork now emits.
 //
 // Provenance:
 //  - SHIP_CRASH_SPLASHDOWN: a real Ship splashdown (eventKind CrashSplashdown).
-//  - BURNUP_DESTROYED: a real re-entry burn-up (eventKind Destroyed) — the case
+//  - BURNUP_DESTROYED: a real re-entry burn-up (eventKind Destroyed), the case
 //    that recorded nothing before the onVesselWillDestroy detector.
 // Both should fire the banner. There's no debris fixture: the fork filters
 // debris at the source, so it never reaches the banner.

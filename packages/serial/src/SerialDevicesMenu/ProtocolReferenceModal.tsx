@@ -82,8 +82,8 @@ function CharPositionContent() {
           to <code>-1..1</code> using the input's min/max.
         </li>
         <li>
-          Malformed slices (out-of-range, <code>NaN</code>) are silently skipped
-          — other inputs on the same line still fire.
+          Malformed slices (out-of-range, <code>NaN</code>) are silently
+          skipped, other inputs on the same line still fire.
         </li>
       </ul>
       <p>Minimal Arduino-ish firmware:</p>
@@ -98,7 +98,7 @@ function CharPositionContent() {
       <ul>
         <li>Zero-pad analogs so their slice width stays constant.</li>
         <li>
-          Use plain <code>\n</code>, not <code>\r\n</code> — the trailing{" "}
+          Use plain <code>\n</code>, not <code>\r\n</code>, the trailing{" "}
           <code>\r</code> lands inside the last field's slice otherwise.
         </li>
         <li>Send every input every tick (no diffs).</li>
@@ -113,7 +113,7 @@ function JsonStateContent() {
     <>
       <p>
         Your device sends one line of JSON per tick. The parser discovers the
-        input list from the message itself — you don't declare inputs in the UI,
+        input list from the message itself: you don't declare inputs in the UI,
         they appear here as the device reports them.
       </p>
       <pre>{`{
@@ -132,7 +132,7 @@ function JsonStateContent() {
           <code>id → {"{val, min, max}"}</code>. Normalised to{" "}
           <code>-1..1</code>. After the first tick you can elide{" "}
           <code>min</code>/<code>max</code> and send just{" "}
-          <code>{`{"X": 102}`}</code> — the parser remembers the range.
+          <code>{`{"X": 102}`}</code>: the parser remembers the range.
         </li>
         <li>
           <strong>screen</strong> (optional):{" "}
@@ -141,8 +141,8 @@ function JsonStateContent() {
           types later as we add render styles for them.
         </li>
         <li>
-          All three top-level keys are optional per tick — send only what
-          changes if you want.
+          All three top-level keys are optional per tick, send only what changes
+          if you want.
         </li>
       </ul>
       <p>Minimal firmware sketch (ArduinoJson):</p>

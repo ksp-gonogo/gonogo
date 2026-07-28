@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Sitrep.Host.Recovery
 {
     /// <summary>
-    /// Channel topic ids for the recovery event stream — the single "last
+    /// Channel topic ids for the recovery event stream, the single "last
     /// notable recovery" record plus its boolean "have we ever recorded one"
     /// companion. Both ride <c>Delivery.ReliableOrdered</c> (the event lane:
     /// every value delivered, in order, replayed to a late subscriber via the
@@ -18,7 +18,7 @@ namespace Sitrep.Host.Recovery
     }
 
     /// <summary>
-    /// One science subject recovered — the plain, KSP-free counterpart to
+    /// One science subject recovered: the plain, KSP-free counterpart to
     /// <c>Sitrep.Contract.RecoveryScienceEntry</c>.
     /// </summary>
     public sealed class RecoveryScienceItem
@@ -30,7 +30,7 @@ namespace Sitrep.Host.Recovery
     }
 
     /// <summary>
-    /// One recovered-part group — the plain, KSP-free counterpart to
+    /// One recovered-part group: the plain, KSP-free counterpart to
     /// <c>Sitrep.Contract.RecoveryPartEntry</c>.
     /// </summary>
     public sealed class RecoveryPartItem
@@ -44,7 +44,7 @@ namespace Sitrep.Host.Recovery
     }
 
     /// <summary>
-    /// One recovered-resource group — the plain, KSP-free counterpart to
+    /// One recovered-resource group: the plain, KSP-free counterpart to
     /// <c>Sitrep.Contract.RecoveryResourceEntry</c>.
     /// </summary>
     public sealed class RecoveryResourceItem
@@ -56,7 +56,7 @@ namespace Sitrep.Host.Recovery
     }
 
     /// <summary>
-    /// One crew member aboard at recovery — the plain, KSP-free counterpart to
+    /// One crew member aboard at recovery: the plain, KSP-free counterpart to
     /// <c>Sitrep.Contract.RecoveryCrewEntry</c>.
     /// </summary>
     public sealed class RecoveryCrewItem
@@ -99,7 +99,7 @@ namespace Sitrep.Host.Recovery
     /// <summary>
     /// Pure recovery-record logic, factored out of the KSP-facing
     /// <c>Gonogo.KSP.RecoveryUplink</c> exactly as <c>Sitrep.Host.Crash.CrashPayload</c>
-    /// is factored out of <c>CrashUplink</c> — no KSP/Unity references, so it
+    /// is factored out of <c>CrashUplink</c>, no KSP/Unity references, so it
     /// is headless-testable. Owns the source-side relevance filter and the
     /// wire-dictionary assembly.
     /// </summary>

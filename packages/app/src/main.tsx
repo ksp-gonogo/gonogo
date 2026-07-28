@@ -18,8 +18,8 @@ import { ThemeProvider } from "styled-components";
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
 import "./dataSources"; // triggers all data source self-registration
-import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
-import "./notes/NotesComponent"; // app-level component — registers on import
+import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
+import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
 import { isStationRoute } from "./screens/isStationRoute";
 import { setConsentPrompt } from "./uplinks/consent";
@@ -33,7 +33,7 @@ import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
 
-// The Axiom transport is opt-in and consent-gated — it is NOT installed
+// The Axiom transport is opt-in and consent-gated, it is NOT installed
 // here. The main screen installs/removes it via AnalyticsConsentHost once
 // the operator answers the boot consent ask; stations install/remove it
 // when the host broadcasts its consent over PeerJS (see StationScreen).
@@ -74,7 +74,7 @@ function renderApp(): void {
 }
 
 // Uplink registration happens before first render so widgets are in the
-// registry when the dashboard mounts. Two paths, unconditional (D4 step 2 —
+// registry when the dashboard mounts. Two paths, unconditional (D4 step 2,
 // the loader is no longer flag-gated for the first-party 3):
 //
 //  - kerbalism + avionics have no runtime-loader bundle/registry entry yet
@@ -84,12 +84,12 @@ function renderApp(): void {
 //    runtime loader: it fetches + verifies + import()s each standalone
 //    bundle, its externals resolving through the baked import map to the
 //    app's singletons. With no live roster (dev / e2e / offline first boot)
-//    `loadEnabledUplinks` still loads this default set — see
+//    `loadEnabledUplinks` still loads this default set: see
 //    `deriveEnabledIds` in loader.ts. `?uplinkLoaderIds=` remains a dev-only
 //    override of which ids that boot call attempts (e.g. the Hub-wizard
 //    dogfood e2e, which deliberately boots with one id left out).
 //
-// Either way render proceeds — a quarantined Uplink degrades to "widget not
+// Either way render proceeds, a quarantined Uplink degrades to "widget not
 // loaded (reason)" in Settings, never a blank dashboard.
 //
 // The two halves run CONCURRENTLY, not sequentially: `probeUplinkRoster()`'s
@@ -97,15 +97,15 @@ function renderApp(): void {
 // from the moment it's called, and the roster-vs-fallback boot behaviour
 // (`deriveEnabledIds` in loader.ts) is timing-sensitive. Awaiting the
 // kerbalism/avionics imports first would needlessly delay the probe's start
-// by however long those chunks take to fetch, for no benefit — starting both
+// by however long those chunks take to fetch, for no benefit, starting both
 // in the same tick keeps the probe's timing independent of the static-import
 // half's duration.
 //
 // STATION BOOT (#6, station boot re-sequence, 2026-07-25): a station NEVER
-// talks to KSP or an Uplink author host directly — it gets everything from
+// talks to KSP or an Uplink author host directly, it gets everything from
 // the main screen over PeerJS. `probeUplinkRoster()` opens its own direct
 // `WebSocketTransport` to KSP and `loadEnabledUplinks`'s default `fetchBytes`
-// is a direct `fetch()` of the bundle bytes — both are exactly the
+// is a direct `fetch()` of the bundle bytes, both are exactly the
 // station→KSP / station→author-host paths the peer architecture forbids. So
 // on `/station` this function skips both calls entirely: the static
 // (kerbalism/avionics) imports are in-app self-registering imports with no
@@ -116,7 +116,7 @@ function renderApp(): void {
 // `TelemetryClient` to read `system.uplinks` off and its own
 // `PeerClientService` to route bundle-byte fetches through
 // (`createPeerBundleFetcher`, D6). `renderApp()` still runs unconditionally
-// here — it mounts `<App>`, which is what renders `StationScreen` at all.
+// here: it mounts `<App>`, which is what renders `StationScreen` at all.
 async function registerScansatAndRender(): Promise<void> {
   const staticImports = Promise.all([
     import("@ksp-gonogo/gonogo-kerbalism-uplink"),
@@ -131,7 +131,7 @@ async function registerScansatAndRender(): Promise<void> {
   setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
 
   if (isStationRoute()) {
-    // No roster probe, no fetch-based loader here — see the doc comment
+    // No roster probe, no fetch-based loader here; see the doc comment
     // above. `StationUplinkLoader` runs the equivalent sequence later,
     // post-connect, through the peer conduit.
     await staticImports;
@@ -150,7 +150,7 @@ async function registerScansatAndRender(): Promise<void> {
         registrySource: localRegistrySource(),
         enabledIds: [...LOADER_UPLINK_IDS],
         // Explicit `?uplinkLoaderIds=` override wins over the roster + the
-        // default above (see LoaderContext.override) — undefined when unset.
+        // default above (see LoaderContext.override): undefined when unset.
         override: loaderBootIdsOverride(),
         hostCompat,
         appVersion: VERSION,

@@ -5,7 +5,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * `TimelineStore.sampleDerivedRange` — the derived-topic counterpart to
+ * `TimelineStore.sampleDerivedRange`: the derived-topic counterpart to
  * `sampleRange` (`timeline-store-sample-range.test.ts`), behind
  * `@ksp-gonogo/data`'s `useDataSeries` shim
  * (`useDataSeries.shim.test.tsx`'s own DERIVED-topic test exercises the
@@ -56,7 +56,7 @@ const JOINED_SUM: DerivedChannelDefinition<{ sum: number; count: number }> = {
   fields: true,
 };
 
-describe("TimelineStore.sampleDerivedRange — single-input replay", () => {
+describe("TimelineStore.sampleDerivedRange: single-input replay", () => {
   it("returns undefined for a topic that isn't a registered derived channel", () => {
     const store = newStore();
     expect(store.sampleDerivedRange("raw.x", 0, 100)).toBeUndefined();
@@ -95,10 +95,10 @@ describe("TimelineStore.sampleDerivedRange — single-input replay", () => {
     const store = newStore();
     store.registerDerivedChannel(DOUBLER);
     ingestPoint(store, "raw.x", 5, 100); // before the window entirely
-    ingestPoint(store, "raw.x", 60, 1); // inside the window — the only change point
+    ingestPoint(store, "raw.x", 60, 1); // inside the window, the only change point
 
     const points = store.sampleDerivedRange<number>("derived.double", 50, 100);
-    // The only in-window CHANGE instant is validAt 60 — the hold-last value
+    // The only in-window CHANGE instant is validAt 60, the hold-last value
     // from validAt 5 is what `derive()` reads there, not a fabricated point
     // at validAt 5 itself (which is outside the window).
     expect(points?.map((p) => p.validAt)).toEqual([60]);
@@ -108,7 +108,7 @@ describe("TimelineStore.sampleDerivedRange — single-input replay", () => {
   it("omits an instant where derive() returns undefined (input not whole yet at that UT)", () => {
     const store = newStore();
     store.registerDerivedChannel(DOUBLER);
-    // No raw.x point at all before validAt 20 — derive() can't resolve
+    // No raw.x point at all before validAt 20, derive() can't resolve
     // anything before its first point lands.
     ingestPoint(store, "raw.x", 20, 3);
 
@@ -137,7 +137,7 @@ describe("TimelineStore.sampleDerivedRange — single-input replay", () => {
   });
 });
 
-describe("TimelineStore.sampleDerivedRange — multi-input join + field subtopics", () => {
+describe("TimelineStore.sampleDerivedRange: multi-input join + field subtopics", () => {
   it("replays at the union of BOTH inputs' change instants", () => {
     const store = newStore();
     store.registerDerivedChannel(JOINED_SUM);

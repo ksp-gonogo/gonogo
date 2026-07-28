@@ -33,7 +33,7 @@ function coerceDim(raw: unknown, fallback: number): number {
 
 /**
  * Fixed-width ASCII grid, joined by `\n` (no trailing newline). Dimensions
- * are read from `config.w` / `config.h` — defaults 21×8 for the canonical
+ * are read from `config.w` / `config.h`, defaults 21×8 for the canonical
  * small LCD. Each entry in `merged` becomes one line formatted as
  * `KEY VALUE`; entries are sorted by key for deterministic output. Extra
  * entries beyond `h` are dropped, empty rows are all-space.
@@ -65,7 +65,7 @@ export const textBuffer: DeviceRenderStyle = {
 };
 
 /**
- * Backward-compat alias for the original 21×8 style id — any DeviceType
+ * Backward-compat alias for the original 21×8 style id, any DeviceType
  * saved with `renderStyleId: "text-buffer-168"` continues to render at
  * 21×8 without needing a migration. New code should reference "text-buffer"
  * with a `{ w, h }` config instead.
@@ -74,7 +74,7 @@ export const textBuffer168: DeviceRenderStyle = {
   id: "text-buffer-168",
   name: "Text Buffer (21×8)",
   description:
-    "Eight 21-character lines — the canonical small LCD panel. Alias for the generalised text-buffer style.",
+    "Eight 21-character lines: the canonical small LCD panel. Alias for the generalised text-buffer style.",
   render: (merged) =>
     textBuffer.render(merged, { w: DEFAULT_WIDTH, h: DEFAULT_HEIGHT }),
 };

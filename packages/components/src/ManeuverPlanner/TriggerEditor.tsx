@@ -7,7 +7,7 @@ import { THRESHOLD_OPS, type ThresholdOp } from "./triggerTypes";
 interface TriggerEditorProps {
   open: boolean;
   numericKeys: DataKey[];
-  /** True when arming would no-op for reasons external to the editor — kept
+  /** True when arming would no-op for reasons external to the editor, kept
    *  on the prop so the editor doesn't need to know which (no plan / etc.).
    *  The "no key" / "non-finite value" cases are handled internally. */
   externallyDisabled: boolean;

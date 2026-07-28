@@ -1,10 +1,10 @@
 /**
  * `KosDataSource.executeScript`'s Uplink cutover, exercised at the
- * `KosDataSource` boundary (not just the underlying `KosUplinkExecutor` —
+ * `KosDataSource` boundary (not just the underlying `KosUplinkExecutor`,
  * see `dataSources/kosUplinkExecutor.test.ts` for that unit-level coverage).
  * Proves the wiring: `getActiveTelemetryClient()` availability is the
  * ONLY thing that gates dispatch, and there is no telnet fallback when a
- * client is present but the CPU can't be resolved or times out — those
+ * client is present but the CPU can't be resolved or times out, those
  * still surface as Uplink errors, never a silent drop to telnet.
  */
 
@@ -35,12 +35,12 @@ async function waitFor(
   }
 }
 
-describe("KosDataSource.executeScript — Uplink cutover", () => {
+describe("KosDataSource.executeScript: Uplink cutover", () => {
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);
   });
 
-  it("rejects with a clear 'kOS Uplink not connected' error when no TelemetryClient is active — no telnet fallback", async () => {
+  it("rejects with a clear 'kOS Uplink not connected' error when no TelemetryClient is active, no telnet fallback", async () => {
     const source = makeSource();
     await expect(
       source.executeScript("datastream", "0:/foo.ks", []),
@@ -66,9 +66,9 @@ describe("KosDataSource.executeScript — Uplink cutover", () => {
     const source = makeSource();
     // kos.processors delivers nothing until something subscribes, and
     // executeScript() is what lazily subscribes (via the shared
-    // KosUplinkExecutor) — so a cold first call always rejects with "no
+    // KosUplinkExecutor): so a cold first call always rejects with "no
     // known CPU". Prime it (swallowed), then publish the CPU list, then
-    // issue the real call under test — the same two-step sequence a
+    // issue the real call under test: the same two-step sequence a
     // widget hits right after a fresh reconnect.
     source.executeScript("datastream", "0:/priming.ks", []).catch(() => {});
     transport.emit("kos.processors", [
@@ -107,7 +107,7 @@ describe("KosDataSource.executeScript — Uplink cutover", () => {
   });
 });
 
-describe("kos.ts module — registerUplinkHandle('kos', ...) registration", () => {
+describe("kos.ts module: registerUplinkHandle('kos', ...) registration", () => {
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);
   });

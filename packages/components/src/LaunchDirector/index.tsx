@@ -26,6 +26,7 @@ import {
   Spinner,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -35,7 +36,7 @@ type LaunchDirectorConfig = Record<string, never>;
  * The context both LaunchDirector slots pass to their augments. A
  * life-support / logistics Uplink reads the pre-launch selection (which craft,
  * crew and site the operator is about to commit) to append a checklist item or
- * a header badge — e.g. Kerbalism supplies-for-duration, USI-LS habitation.
+ * a header badge: e.g. Kerbalism supplies-for-duration, USI-LS habitation.
  */
 export interface LaunchDirectorSlotContext {
   /** Current KSP scene ("Flight", "Editor", ...); undefined until telemetry arrives. */
@@ -92,13 +93,13 @@ export interface LaunchSiteEntry {
 
 const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
 
-/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
+/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs): the
  * ordinal -> display-label bridge for the `target.available` roster. Same
  * array TargetPicker's `normalizeRoster` uses. Index-alignment with the
  * generated SDK `VesselType` enum is locked by the drift-guard test in
  * `../TargetPicker/enumLabelDrift.test.ts` (imported there under the
  * `LAUNCH_DIRECTOR_VESSEL_TYPE_LABELS` alias exported at the bottom of this
- * file — TargetPicker declares an identically-named const of its own, and
+ * file: TargetPicker declares an identically-named const of its own, and
  * both can't be bare-named at the package's `export *` barrel). */
 const VESSEL_TYPE_LABELS: readonly string[] = [
   "Ship",
@@ -127,11 +128,11 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
  * - Legacy GonogoTelemetry: `{ name, displayName, facility, body, ready,
  *   unlocked }`.
  * - New SDK `spaceCenter.launchSites` (mapped onto this key via map-topic.ts):
- *   the mod's `LaunchSiteEntry` — `editorFacility` in place of `facility`,
+ *   the mod's `LaunchSiteEntry`: `editorFacility` in place of `facility`,
  *   `bodyIndex` in place of the body name, and `isStock` instead of a
  *   `ready`/`unlocked` pair. The mod enumerates `PSystemSetup.LaunchSites`
  *   (the sites actually available to launch from), so a new-shape entry is
- *   treated as selectable (`unlocked: true`) — the alternative (no `unlocked`
+ *   treated as selectable (`unlocked: true`): the alternative (no `unlocked`
  *   field → every site non-selectable → the picker vanishes) would silently
  *   drop the feature.
  */
@@ -240,13 +241,13 @@ function LaunchDirectorComponent({
   // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
   // dedicated topics too (map-topic.ts); crash.hasRecent/crash.lastCrash now
   // read their topics directly (useStream/useTelemetry), off the shim.
-  // The rest of the kc.*/ksp.* reads below stay legacy — kc.* has no
+  // The rest of the kc.*/ksp.* reads below stay legacy, kc.* has no
   // career.status equivalent shape (see map-topic.ts's doc comment on the
   // facilities gap), the others are separate provider families or
   // vessel-provider gaps with no wire home yet. The vessel-switcher below
   // reads `target.available` directly (a canonical topic, no shim).
   const streamStatus = useDataStreamStatus("data", "career.funds");
-  // In-flight context — populated when scene === "Flight".
+  // In-flight context: populated when scene === "Flight".
   const vesselName = useTelemetry("vessel.identity")?.name;
   const missionTime = useStream<VesselState>("vessel.state")?.met;
   const altitudeMeters = useStream<VesselState>("vessel.state")?.altitudeAsl;
@@ -254,23 +255,23 @@ function LaunchDirectorComponent({
   const canRevertToLaunch = revertAvailability?.canRevertToLaunch;
   const canRevertToEditor = revertAvailability?.canRevertToEditor;
   // crash.hasRecent is a real wire boolean (CrashUplink, ReliableOrdered)
-  // but still missing from the SDK's hand-declared Topic tail — the backing
+  // but still missing from the SDK's hand-declared Topic tail, the backing
   // C# const lacks the "...Topic" suffix topics.test.ts's crosscheck scans
   // for, so `useTelemetry("crash.hasRecent")` won't typecheck. `useStream`
   // is the sanctioned read for an untyped tail topic: same route off the
   // mounted store, no legacy shim. FlightOutcomeBanner reads it identically.
   const crashHasRecent = useStream<boolean>("crash.hasRecent");
-  // crash.hasRecent is session-wide — a debris crash from a previous flight
+  // crash.hasRecent is session-wide, a debris crash from a previous flight
   // would block recovery of a successfully landed craft. Pull the most
   // recent crash snapshot too so we can scope the gate to the active
   // vessel only. User reported this twice on 2026-05-17 (21:15, 23:12 BST).
   const lastCrash = useTelemetry("crash.lastCrash");
-  // For the revert-staleness guard below — a revert rewinds universal time
+  // For the revert-staleness guard below: a revert rewinds universal time
   // below the crash snapshot's capture ut. t.universalTime is dropped as a
   // data key (it was never a stream; it IS the SDK view-UT), so read that
   // directly.
   const universalTime = useViewUt();
-  // `target.available` ships the switcher's real roster — the producer
+  // `target.available` ships the switcher's real roster: the producer
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
   // parts aren't "switch active vessel" targets.
@@ -368,13 +369,13 @@ function LaunchDirectorComponent({
   const inFlight = scene === "Flight";
   const activeName = vesselName ?? padVesselTitle ?? "(unnamed)";
   // Only treat recovery as "crash-blocked" when the most recent crash is
-  // for the active vessel — otherwise a debris crash from earlier in the
+  // for the active vessel: otherwise a debris crash from earlier in the
   // session would stop the operator recovering a successful landing.
   // Falls back to the session-wide flag if the snapshot hasn't arrived
   // yet (rare; the host emits both keys in the same WS tick) so the gate
   // is fail-safe rather than fail-open.
   // A crash snapshot dated AFTER the current universal time belongs to a
-  // reverted (undone) timeline — reverting rewinds UT below the capture ut.
+  // reverted (undone) timeline: reverting rewinds UT below the capture ut.
   // Telemachus clears the snapshot server-side on the same rule; this
   // mirror keeps the gate correct against older deployed builds. User hit
   // this on 2026-06-12: post-revert, the chip blocked recovery forever
@@ -397,7 +398,7 @@ function LaunchDirectorComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
-        {/* Inline header badges — an Uplink (e.g. a life-support summary) can
+        {/* Inline header badges: an Uplink (e.g. a life-support summary) can
             surface an indicator beside the title without a bespoke slot (spec
             §4.8). Renders nothing until an augment binds. */}
         <AugmentSlot name="launch-director.badges" props={slotContext} />
@@ -562,7 +563,7 @@ function LaunchDirectorComponent({
                     >
                       <CrewName>{k.name}</CrewName>
                       <CrewTrait>
-                        {k.trait || "—"}
+                        {k.trait || NULL_DISPLAY}
                         {k.available ? ` L${k.experienceLevel}` : ""}
                       </CrewTrait>
                     </CrewChip>
@@ -622,7 +623,7 @@ function LaunchDirectorComponent({
                 </LaunchControls>
               </>
             )}
-            {/* Pre-launch checklist augments — a life-support / logistics Uplink
+            {/* Pre-launch checklist augments: a life-support / logistics Uplink
                 appends a checklist item here. Empty until bound; the
                 funds readout and existing controls above are untouched. */}
             <AugmentSlot name="launch-director.sections" props={slotContext} />
@@ -682,7 +683,7 @@ function InFlightPanel({
   );
   const switchableVessels = useMemo(() => {
     const entries = availableVessels ?? [];
-    // Filter SpaceObjects (asteroids / comets) by default — same UX call as
+    // Filter SpaceObjects (asteroids / comets) by default, same UX call as
     // the TargetPicker. The toggle below reveals them for the long tail
     // where the operator actually wants to switch to one.
     const list = showSpaceObjects
@@ -698,7 +699,7 @@ function InFlightPanel({
     <InFlightWrap>
       {crashBlocked && (
         <CrashChip role="status">
-          Crash in progress — return to Space Center to recover
+          Crash in progress: return to Space Center to recover
         </CrashChip>
       )}
       <FlightStats>
@@ -750,13 +751,13 @@ function InFlightPanel({
             }}
             title="KSP may revert this flight to its last save if it can't save here (Telemachus has no equivalent of the in-game warning dialog)."
           >
-            Confirm — flight may revert
+            Confirm: flight may revert
           </TrackingStationConfirm>
         ) : (
           <TrackingStationButton
             type="button"
             onClick={() => onArm("tracking-station")}
-            title="Tracking Station — KSP may revert this flight if it can't save here"
+            title="Tracking Station: KSP may revert this flight if it can't save here"
           >
             Tracking Station
           </TrackingStationButton>
@@ -817,7 +818,7 @@ function InFlightPanel({
                   {typeof entry.distance === "number" &&
                   Number.isFinite(entry.distance)
                     ? formatDistance(entry.distance)
-                    : "—"}
+                    : NULL_DISPLAY}
                 </VesselSwitchDistance>
               </VesselSwitchRow>
             ))
@@ -829,7 +830,7 @@ function InFlightPanel({
 }
 
 function formatMissionTime(s: number | null): string {
-  if (s === null || !Number.isFinite(s)) return "—";
+  if (s === null || !Number.isFinite(s)) return NULL_DISPLAY;
   const total = Math.max(0, Math.floor(s));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
@@ -841,7 +842,7 @@ function formatMissionTime(s: number | null): string {
 }
 
 function formatAltitude(m: number | null): string {
-  if (m === null || !Number.isFinite(m)) return "—";
+  if (m === null || !Number.isFinite(m)) return NULL_DISPLAY;
   if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(1)} km`;
   return `${m.toFixed(0)} m`;
 }
@@ -932,7 +933,7 @@ const SectionLabel = styled.div`
 
 /* Was `styled.ul` but `<button>` is not a valid child of `<ul>` (only
    `<li>` is). The list-of-buttons UI doesn't benefit from list
-   semantics here — screen readers don't typically need a length count
+   semantics here: screen readers don't typically need a length count
    for a craft picker. Use `div` and keep the same flex layout. */
 const ShipList = styled.div`
   display: flex;
@@ -1281,7 +1282,7 @@ const VesselSwitchHint = styled.div`
   line-height: 1.4;
 `;
 
-/** Same asteroid/comet visibility toggle as the TargetPicker's Vessels tab —
+/** Same asteroid/comet visibility toggle as the TargetPicker's Vessels tab,
  * hidden by default, the count-carrying label doubles as the reveal button. */
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
@@ -1322,7 +1323,7 @@ const ConfirmButton = styled.button<{
       : "var(--color-status-nogo-fg)"};
   border-color: transparent;
   /* The animation property lives inside the same media guard as the
-     keyframes — wrapping only the keyframes leaves the animation
+     keyframes: wrapping only the keyframes leaves the animation
      active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
     animation: armedPulse 1s ease-in-out infinite;
@@ -1351,7 +1352,7 @@ registerComponent<LaunchDirectorConfig>({
   component: LaunchDirectorComponent,
   // Header badges + a pre-launch checklist section (augment-slot-map:
   // launch-director.badges / .sections). Unfilled until a life-support /
-  // logistics Uplink binds — the launch flow renders exactly as before.
+  // logistics Uplink binds: the launch flow renders exactly as before.
   augmentSlots: ["launch-director.badges", "launch-director.sections"],
   dataRequirements: [
     "kc.savedShips",
@@ -1376,8 +1377,8 @@ registerComponent<LaunchDirectorConfig>({
   pushable: true,
 });
 
-// Test-only surface for the T3 drift-guard (`../TargetPicker/enumLabelDrift.test.ts`)
-// — aliased rather than exported bare, since TargetPicker declares an
+// Test-only surface for the T3 drift-guard (`../TargetPicker/enumLabelDrift.test.ts`),
+// aliased rather than exported bare, since TargetPicker declares an
 // identically-named `VESSEL_TYPE_LABELS` const of its own and the package
 // barrel (`src/index.ts`) re-exports every widget's `*`, which would
 // otherwise collide.

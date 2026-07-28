@@ -16,7 +16,7 @@ const EMPTY_TYPE: DeviceType = {
 describe("GamepadTransport", () => {
   const mock = new MockGamepadAPI();
   // Every transport created in a test is tracked here so afterEach can
-  // disconnect it — a transport left "waiting for a press" keeps a real
+  // disconnect it: a transport left "waiting for a press" keeps a real
   // `window.addEventListener("gamepadconnected", ...)` registered, which
   // would otherwise survive into the next test and race its listener for
   // the next mock.connectPad() (claiming the pad first, or claiming an
@@ -71,7 +71,7 @@ describe("GamepadTransport", () => {
 
   it("prefers a standard-mapped entry over a non-standard duplicate of the same pad id", async () => {
     mock.install();
-    // Two simultaneous live entries sharing an id — rare, but some
+    // Two simultaneous live entries sharing an id, rare, but some
     // platforms can expose the same physical pad this way.
     mock.connectPad(0, {
       id: "Pad A",
@@ -162,7 +162,7 @@ describe("GamepadTransport", () => {
 
   // Regression for the rAF-leak defect: adopt() used to discard the
   // unsubscribe returned by GamepadPoller.subscribe(), so disconnect()
-  // never removed the frame listener — the poller's subscriber count (and
+  // never removed the frame listener: the poller's subscriber count (and
   // therefore its shared rAF loop) never returned to zero, even though the
   // *poller* unit tests passed (they call unsub() by hand, never drive it
   // through a real transport connect/disconnect).
@@ -293,7 +293,7 @@ describe("GamepadTransport", () => {
       await t.connect();
       mock.connectPad(0, { id: "Pad A", buttonCount: 18, axisCount: 4 });
 
-      // A released trigger reports button.value === 0 from the browser —
+      // A released trigger reports button.value === 0 from the browser,
       // pull it slightly, then all the way back to rest, and confirm rest
       // reads 0 (not -1, which is what the bipolar rescale would give a
       // released input without the unipolar branch).

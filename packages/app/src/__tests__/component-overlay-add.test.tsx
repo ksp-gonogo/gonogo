@@ -1,7 +1,7 @@
 /**
  * Regression: adding a widget whose ComponentDefinition has
  * `openConfigOnAdd: true` opens the config modal immediately. Previously
- * the modal's Save was discarded — the item stuck with `defaultConfig`
+ * the modal's Save was discarded, the item stuck with `defaultConfig`
  * forever. This test covers the config-persists-on-initial-add path.
  */
 
@@ -78,13 +78,13 @@ function registerTrivial() {
   } as unknown as ComponentDefinition);
 }
 
-describe("ComponentOverlay — add → configure → persist", () => {
+describe("ComponentOverlay: add → configure → persist", () => {
   afterEach(() => {
     clearRegistry();
   });
 
   it("persists the config entered in the on-add modal via updateItemConfig", async () => {
-    // registerComponent before render — ComponentOverlay reads the registry
+    // registerComponent before render, ComponentOverlay reads the registry
     // on every render via getComponents().
     registerTrivial();
     const user = userEvent.setup();
@@ -125,7 +125,7 @@ describe("ComponentOverlay — add → configure → persist", () => {
     await user.type(input, "custom-name");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    // This is the regression — without the fix, no call at all was made.
+    // This is the regression, without the fix, no call at all was made.
     expect(updateItemConfig).toHaveBeenCalledWith(newItem.i, {
       label: "custom-name",
     });
@@ -154,7 +154,7 @@ describe("ComponentOverlay — add → configure → persist", () => {
       </ModalProvider>,
     );
 
-    // Open the panel — the search box autofocuses (combobox pattern), so the
+    // Open the panel: the search box autofocuses (combobox pattern), so the
     // whole add flow is reachable from the keyboard with no pointer.
     await user.click(screen.getByRole("button", { name: "Add component" }));
     // Filter to Trivial, nudge the active option, then commit with Enter.

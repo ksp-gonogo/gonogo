@@ -21,11 +21,11 @@ import {
 /**
  * Fixtures authored before the `t.universalTime` client migration
  * (`useTelemetry("data", "t.universalTime")` → `useViewUt()`) still carry a
- * `"t.universalTime"` key — it's harmless to leave (widgets that don't read
+ * `"t.universalTime"` key: it's harmless to leave (widgets that don't read
  * it just ignore the emit), but a migrated widget's `useViewUt()` needs a
  * mounted `TelemetryProvider` to resolve to anything at all. Pin one from
  * the fixture's own value so these fixtures keep rendering exactly as they
- * did when the read came straight off the legacy `DataSource` — no
+ * did when the read came straight off the legacy `DataSource`, no
  * per-fixture/per-test opt-in needed. Fixtures with no such key are
  * unaffected (`pinnedUt` stays `undefined`, no `TelemetryProvider` mounted).
  */
@@ -39,13 +39,13 @@ function resolvePinnedUt(fixture: Fixture): number | undefined {
  * retirement: `useTopology` (ShipMap/PowerSystems) now reads `vessel.parts`
  * canonically with NO legacy fallback at all, so a ShipMap/PowerSystems
  * fixture that still carries a `v.topology` payload (every existing fixture
- * does — captured before this migration) needs it reshaped onto the wire
+ * does, captured before this migration) needs it reshaped onto the wire
  * shape and streamed through the SAME mounted `TelemetryProvider`, or the
  * "legacy" snapshot leg would render nothing but the "Waiting for vessel
  * topology..." empty state. Fixtures with no `v.topology` key are unaffected.
  *
  * Also overlays any `r.resourceFor[fid]`/`v.partState[fid]` legacy keys the
- * fixture carries — `usePartsLive`'s per-part `resources`/`partState` join
+ * fixture carries: `usePartsLive`'s per-part `resources`/`partState` join
  * rides this SAME `vessel.parts` payload now (no more legacy `DataSource`
  * subscription), so a PowerSystems fixture with those keys (e.g.
  * `03-solar-charging-sunlight`) needs them folded in here or the "legacy"
@@ -67,7 +67,8 @@ function resolveVesselPartsWire(fixture: Fixture): unknown {
  * `useTelemetry("data", group.value)` shim entirely and now reads
  * `vessel.control` / `vessel.structure` one-arg, so a fixture carrying the old
  * `v.sasValue`/`v.ag1Value`/… keys needs them reshaped onto the wire or the
- * widget would render "—" for every group instead of the fixture's real state.
+ * widget would render the null-display placeholder for every group instead
+ * of the fixture's real state.
  *
  * Reshapes only the keys a fixture actually carries: an absent key stays absent
  * (`undefined`), which is the contract's own "not available this tick" and
@@ -105,14 +106,14 @@ function resolveVesselControlWire(fixture: Fixture): unknown {
     : undefined;
 }
 
-/** `v.currentStage` -> `vessel.structure.currentStage` — ActionGroup's "Stage" group. */
+/** `v.currentStage` -> `vessel.structure.currentStage`: ActionGroup's "Stage" group. */
 function resolveVesselStructureWire(fixture: Fixture): unknown {
   const raw = fixture["v.currentStage"];
   return typeof raw === "number" ? { currentStage: raw } : undefined;
 }
 
 /**
- * `t.isPaused` -> `time.warp.paused` — the same story as
+ * `t.isPaused` -> `time.warp.paused`: the same story as
  * {@link resolveVesselControlWire}, for the OTHER canonical-read migration that
  * landed on these widgets: the pause/no-signal unavailability notices read
  * `time.warp` / `comms.link` one-arg now, with no legacy fallback, so a fixture
@@ -124,7 +125,7 @@ function resolveTimeWarpWire(fixture: Fixture): unknown {
   return typeof raw === "boolean" ? { paused: raw } : undefined;
 }
 
-/** `comm.connected` -> `comms.link.connected` — see {@link resolveTimeWarpWire}. */
+/** `comm.connected` -> `comms.link.connected`: see {@link resolveTimeWarpWire}. */
 function resolveCommsLinkWire(fixture: Fixture): unknown {
   const raw = fixture["comm.connected"];
   return typeof raw === "boolean" ? { connected: raw } : undefined;
@@ -136,12 +137,12 @@ const fbool = (fixture: Fixture, key: string): boolean =>
   (fnum(fixture, key) ?? 0) > 0.5;
 
 /**
- * `sw.*` -> `kerbalism.spaceweather` — SpaceWeather dropped its legacy
+ * `sw.*` -> `kerbalism.spaceweather`: SpaceWeather dropped its legacy
  * `useDataSourceSubscription("data", "sw.*")` reads for the canonical
  * `useTelemetry("kerbalism.spaceweather")` Topic, so a fixture carrying the old
  * `sw.*` keys must reshape them onto the Topic wire or the board renders empty.
  * Radiation is stored rad/h in the fixture but the Topic (and real mod) is
- * rad/s, so it is divided by 3600 here — the widget multiplies it back for the
+ * rad/s, so it is divided by 3600 here, the widget multiplies it back for the
  * identical readout. Storm state 0/1/2 -> the incoming/inProgress bools.
  */
 function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
@@ -164,7 +165,7 @@ function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
   };
 }
 
-/** `sw.altitudeM` -> `vessel.flight.altitudeAsl` — SpaceWeather's belt-ring vessel-dot placement. */
+/** `sw.altitudeM` -> `vessel.flight.altitudeAsl`: SpaceWeather's belt-ring vessel-dot placement. */
 function resolveSpaceWeatherFlightWire(fixture: Fixture): unknown {
   const alt = fnum(fixture, "sw.altitudeM");
   return alt !== undefined
@@ -173,7 +174,7 @@ function resolveSpaceWeatherFlightWire(fixture: Fixture): unknown {
 }
 
 /**
- * `ls.*` -> `kerbalism.lifesupport` — LifeSupportSystems dropped its legacy
+ * `ls.*` -> `kerbalism.lifesupport`: LifeSupportSystems dropped its legacy
  * `useDataSourceSubscription("data", "ls.*")` reads for the canonical
  * `useTelemetry("kerbalism.lifesupport")` Topic. Reshapes the flat consumable
  * (`ls.<res>.amount/capacity/rate`), habitat (`ls.pressure`/`ls.co2Poisoning`/…)
@@ -248,7 +249,7 @@ interface SnapshotOpts<Cfg> {
     h?: number;
     onConfigChange?: (next: Cfg) => void;
   }>;
-  /** Fixture object — every non-`_`-prefixed key is emitted to the data source. */
+  /** Fixture object: every non-`_`-prefixed key is emitted to the data source. */
   fixture: Fixture;
   /** Grid mode (drives `w`/`h` props and optional per-mode config overlay). */
   mode: WidgetSnapshotMode;
@@ -256,15 +257,15 @@ interface SnapshotOpts<Cfg> {
   instanceId?: string;
   /** Override the default config baseline (config overlay merges on top). */
   defaultConfig?: Cfg;
-  /** Forwarded to `setupMockDataSource` — see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
+  /** Forwarded to `setupMockDataSource`: see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
   connectSource?: boolean;
 }
 
-/** Built once per snapshot render — see {@link buildStreamWrap}. */
+/** Built once per snapshot render; see {@link buildStreamWrap}. */
 interface StreamWrap {
   /** Wraps `children` in the `TelemetryProvider` this fixture built, or renders them untouched when neither `pinnedUt` nor a `vessel.parts` payload is needed. */
   Wrap: (props: { children: React.ReactNode }) => React.ReactElement;
-  /** `true` when a `TelemetryProvider` was actually mounted — drives {@link flushProviderFrame}. */
+  /** `true` when a `TelemetryProvider` was actually mounted, drives {@link flushProviderFrame}. */
   providerMounted: boolean;
   /** Emits the fixture's `v.topology` (reshaped) onto `vessel.parts`, or a no-op when the fixture carries no `v.topology`. Call inside the same `act()` block as the other fixture-key emits. */
   emitVesselParts: () => void;
@@ -279,7 +280,7 @@ interface StreamWrap {
  * the two migrations that dropped their legacy fallback entirely:
  * `useViewUt()` (pinned at `pinnedUt`, see {@link resolvePinnedUt}) and
  * `useTopology()` (fed `vessel.parts`, see {@link resolveVesselPartsWire}).
- * Nothing else is carried — every other read stays on the legacy
+ * Nothing else is carried, every other read stays on the legacy
  * `DataSource`. Returns a pass-through `Wrap` (no provider at all) when
  * neither is needed, matching every widget that touches neither key.
  */
@@ -357,14 +358,14 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
 /**
  * `useViewUt()`'s scrubbed value only lands via `ViewClock.onFrame`'s
  * `requestAnimationFrame` loop (its synchronous initial seed reads
- * `confirmedEdgeUt()`, which ignores `scrubTo` entirely — see that hook's
+ * `confirmedEdgeUt()`, which ignores `scrubTo` entirely: see that hook's
  * own doc comment in `sitrep-client/src/context.tsx`), and `useTopology`'s
  * canonical stream read similarly only lands via the `TelemetryProvider`'s
  * `beginFrame()` scheduling (a `requestAnimationFrame`, falling back to a
  * microtask under jsdom). Either way a plain `render()` + `act()` can commit
  * BEFORE the value has actually reached React state. Flush two rAF ticks
  * (wrapped in `act` so the resulting re-render doesn't warn) before reading
- * the DOM whenever a `TelemetryProvider` was mounted for this render — a
+ * the DOM whenever a `TelemetryProvider` was mounted for this render, a
  * no-op when {@link StreamWrap.providerMounted} is `false`.
  */
 async function flushProviderFrame(providerMounted: boolean): Promise<void> {
@@ -379,14 +380,14 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
 /**
  * Mount a widget, emit every fixture key onto its data source, and return
  * the stripped innerHTML for snapshotting. Mirrors the playwright probe
- * (`scripts/probe/probe-entry.tsx`) at the DOM level — same mount path,
- * same fixture seeding, same modes — so vitest catches structural
+ * (`scripts/probe/probe-entry.tsx`) at the DOM level: same mount path,
+ * same fixture seeding, same modes: so vitest catches structural
  * regressions while the PNG harness covers the visual layer.
  *
  * The returned HTML has styled-components hashes and testing-library
  * auto-ids stripped so the snapshot is deterministic across runs. Canvas
  * content, ResizeObserver-driven layout, and CSS-paint visuals don't
- * appear — those live in the playwright PNGs.
+ * appear: those live in the playwright PNGs.
  */
 export async function snapshotWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
@@ -432,7 +433,7 @@ export async function snapshotWidgetMode<
     );
 
     // Seed every fixture key after mount so useDataValue subscriptions
-    // exist before the emits — matches the probe's "mount, then emit"
+    // exist before the emits, matches the probe's "mount, then emit"
     // ordering. Without the act() wrapper React batches updates and the
     // snapshot races the commit.
     act(() => {
@@ -447,7 +448,7 @@ export async function snapshotWidgetMode<
 
     // Drain the async `useDataSeries` backfill (graphs/sparklines) before
     // snapshotting. waitFor wraps act, so the backfill's notify() flushes
-    // inside it — no manual act(). Waits on the real pending work, not a
+    // inside it: no manual act(). Waits on the real pending work, not a
     // bare tick. No-op for widgets that never query a range.
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
@@ -462,7 +463,7 @@ export async function snapshotWidgetMode<
 
 /** Live render handle from {@link renderWidgetMode}. */
 export interface RenderedWidget {
-  /** The mounted, still-live container — valid until `teardown()`. */
+  /** The mounted, still-live container: valid until `teardown()`. */
   container: HTMLElement;
   /**
    * Unmount and disconnect. Must be called by the test (typically right
@@ -473,8 +474,8 @@ export interface RenderedWidget {
 }
 
 /**
- * Mount a widget exactly like {@link snapshotWidgetMode} — same registry,
- * same fixture seeding, same context — but leave it mounted and return the
+ * Mount a widget exactly like {@link snapshotWidgetMode}, same registry,
+ * same fixture seeding, same context: but leave it mounted and return the
  * live `container` plus a `teardown()`, for callers that need to assert on
  * the rendered DOM (e.g. running `axe()` for an a11y smoke). Unlike
  * `snapshotWidgetMode`, teardown is the caller's responsibility: run your
@@ -539,7 +540,7 @@ export async function renderWidgetMode<
  */
 /**
  * Exported (beyond this file's own two internal callers) for the
- * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`) —
+ * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`),
  * comparing a legacy render against a stream render needs the exact same
  * styled-components-hash/testid stripping this file already does, so a
  * genuine markup difference isn't masked by two builds' differing

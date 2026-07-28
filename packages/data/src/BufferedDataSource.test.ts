@@ -63,7 +63,7 @@ describe("BufferedDataSource", () => {
 
   describe("demand subscriptions for indexed/dynamic keys", () => {
     it("forwards subscriptions for keys outside the static schema upstream", () => {
-      // `b.name[1]` isn't in MOCK_KEYS — the wrapper must still subscribe
+      // `b.name[1]` isn't in MOCK_KEYS: the wrapper must still subscribe
       // upstream when a widget asks for it, otherwise the upstream WS never
       // carries the key and values never arrive.
       const spy = vi.fn();
@@ -106,7 +106,7 @@ describe("BufferedDataSource", () => {
       source.emit("v.altitude", 100);
       source.emit("v.surfaceSpeed", 42);
 
-      // Two emits — one per raw sample. Order matches the keys array.
+      // Two emits: one per raw sample. Order matches the keys array.
       expect(spy).toHaveBeenCalledTimes(2);
       expect(spy).toHaveBeenNthCalledWith(1, [100, undefined]);
       expect(spy).toHaveBeenNthCalledWith(2, [100, 42]);
@@ -176,7 +176,7 @@ describe("BufferedDataSource", () => {
     source.emit("v.missionTime", 0);
     expect(spy).toHaveBeenCalledTimes(1);
 
-    // Another sample in the same flight — no transition.
+    // Another sample in the same flight: no transition.
     source.emit("v.missionTime", 1);
     expect(spy).toHaveBeenCalledTimes(1);
 
@@ -273,7 +273,7 @@ describe("BufferedDataSource", () => {
 
     const deleted = await buffered.pruneFlightsKeepLatest({ keepCount: 2 });
 
-    // f-4 and f-3 are the two newest unstarred flights — keep them.
+    // f-4 and f-3 are the two newest unstarred flights; keep them.
     expect(deleted.sort()).toEqual(["f-0", "f-1", "f-2"]);
     const remaining = (await buffered.listFlights()).map((f) => f.id).sort();
     expect(remaining).toEqual(["f-3", "f-4"]);
@@ -447,7 +447,7 @@ describe("BufferedDataSource", () => {
       store: new MemoryStore(),
       now: () => clock,
     });
-    // connect() is not needed — schema() is synchronous
+    // connect() is not needed, schema() is synchronous
     const schema = buf.schema();
     const unknown = schema.find((k) => k.key === "totally.unknown.key");
     expect(unknown?.label).toBe("totally.unknown.key");
@@ -455,7 +455,7 @@ describe("BufferedDataSource", () => {
   });
 });
 
-describe("BufferedDataSource — derived keys", () => {
+describe("BufferedDataSource: derived keys", () => {
   let source: MockDataSource;
   let store: MemoryStore;
   let buffered: BufferedDataSource;
@@ -533,7 +533,7 @@ describe("BufferedDataSource — derived keys", () => {
 
     // missionTime arrived in beforeEach, but altitude has not yet
     source.emit("v.altitude", 100);
-    expect(spy).toHaveBeenCalledTimes(1); // fires now — both inputs seen
+    expect(spy).toHaveBeenCalledTimes(1); // fires now: both inputs seen
   });
 
   it("does not emit derived value when fn returns undefined", () => {
@@ -547,10 +547,10 @@ describe("BufferedDataSource — derived keys", () => {
     const spy = vi.fn();
     buffered.subscribe("test.noFirst", spy);
 
-    source.emit("v.altitude", 100); // first — fn returns undefined
+    source.emit("v.altitude", 100); // first: fn returns undefined
     expect(spy).not.toHaveBeenCalled();
 
-    source.emit("v.altitude", 200); // second — fn returns 42
+    source.emit("v.altitude", 200); // second: fn returns 42
     expect(spy).toHaveBeenCalledWith(42);
   });
 
@@ -600,7 +600,7 @@ describe("BufferedDataSource — derived keys", () => {
     buffered.subscribe("test.rate", spy);
 
     clock = 1000;
-    source.emit("v.altitude", 100); // first — no previous, no emit
+    source.emit("v.altitude", 100); // first: no previous, no emit
     clock = 2000;
     source.emit("v.altitude", 200); // 100 m/s
     expect(spy).toHaveBeenCalledWith(100);
@@ -609,7 +609,7 @@ describe("BufferedDataSource — derived keys", () => {
 
     // Trigger a new flight via missionTime revert
     source.emit("v.missionTime", -10);
-    // First altitude after flight change — previous is cleared, so no rate
+    // First altitude after flight change, previous is cleared, so no rate
     clock = 3000;
     source.emit("v.altitude", 50);
     expect(spy).not.toHaveBeenCalled();
@@ -632,7 +632,7 @@ describe("BufferedDataSource — derived keys", () => {
 
     const spy = vi.fn();
     buffered.subscribe("test.rate", spy);
-    source.emit("v.altitude", 50); // after clear — previous is null, no emit
+    source.emit("v.altitude", 50); // after clear: previous is null, no emit
     expect(spy).not.toHaveBeenCalled();
   });
 });
@@ -648,7 +648,7 @@ const GATED_KEYS: DataKey[] = [
   // `f.throttle` is on the blocklist (`isAntennaOnlyKey` in
   // BufferedDataSource); we use it to exercise the gate's drop path.
   // `v.altitude` / `v.surfaceSpeed` / most other keys flow honestly
-  // even with the Telemachus antenna down — verified live 2026-05-18.
+  // even with the Telemachus antenna down: verified live 2026-05-18.
   { key: "f.throttle" },
   { key: "comm.connected" },
   { key: "p.paused" },
@@ -666,7 +666,7 @@ const GATED_KEYS: DataKey[] = [
   { key: "tar.availableVessels" },
 ];
 
-describe("BufferedDataSource — affectedBySignalLoss gate", () => {
+describe("BufferedDataSource: affectedBySignalLoss gate", () => {
   let source: MockDataSource;
   let store: MemoryStore;
   let buffered: BufferedDataSource;
@@ -683,7 +683,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     await buffered.connect();
 
     // Prime a flight so persistence path is active. Also confirm comm link
-    // so subsequent `false` actually activates the gate — a cold-start
+    // so subsequent `false` actually activates the gate, a cold-start
     // `false` is intentionally NOT trusted (see the dedicated test).
     source.emit("v.name", "Kerbal X");
     source.emit("v.missionTime", 0);
@@ -699,13 +699,13 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     buffered.subscribe("f.throttle", spy);
 
     clock = 2000;
-    source.emit("f.throttle", 0.5); // before blackout — stored + emitted
+    source.emit("f.throttle", 0.5); // before blackout: stored + emitted
     expect(spy).toHaveBeenLastCalledWith(0.5);
 
     source.emit("comm.connected", false); // signal loss
 
     clock = 3000;
-    source.emit("f.throttle", 2); // during blackout — dropped (sentinel)
+    source.emit("f.throttle", 2); // during blackout: dropped (sentinel)
     expect(spy).toHaveBeenLastCalledWith(0.5); // subscriber still sees pre-blackout value
 
     const range = await buffered.queryRange("f.throttle", 0, 10_000);
@@ -739,7 +739,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
 
   it("always lets career.* keys through during blackout (KSC-global state)", () => {
     // career.science / career.funds / career.reputation come from KSC, not
-    // the active vessel — they must update while the player is at R&D
+    // the active vessel: they must update while the player is at R&D
     // (signal-loss gate active, no vessel selected) so the ScienceBench
     // reflects spent science.
     const spy = vi.fn();
@@ -756,7 +756,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
   // 2026-05-18 12:28 BST regression: switching from Flight to SpaceCenter
   // dropped comm.connected to false (no active vessel), and the host
   // stopped broadcasting any `kc.*` / `ksp.*` / `crash.*` / `recovery.*`
-  // / `flight.*` / `tech.*` / `strategies.*` keys — so stations'
+  // / `flight.*` / `tech.*` / `strategies.*` keys: so stations'
   // SceneSwitchPrompt never fired and various scene-aware widgets stayed
   // on stale Flight-scene values. None of those prefixes describe vessel
   // telemetry; they're scene / career / outcome state.
@@ -779,7 +779,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
   });
 
   it("does NOT gate on a cold-start comm.connected=false (no confirmed link yet)", async () => {
-    // Tear down and rebuild without the priming `comm.connected: true` — this
+    // Tear down and rebuild without the priming `comm.connected: true`, this
     // replicates the real-world scenario where Telemachus reports false
     // because there's no vessel / CommNet is disabled / similar. Previous
     // versions spuriously gated here and widgets went dark on every load.
@@ -789,7 +789,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
 
     source.emit("v.name", "Kerbal X");
     source.emit("v.missionTime", 0);
-    source.emit("comm.connected", false); // cold-start false — ignored
+    source.emit("comm.connected", false); // cold-start false: ignored
 
     clock = 5000;
     source.emit("v.altitude", 42);
@@ -810,12 +810,12 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     source.emit("f.throttle", 0.5);
     expect(spy).toHaveBeenLastCalledWith(0.5);
 
-    source.emit("p.paused", 2); // "no power" — fork-bug collapse for any antenna-bad state
+    source.emit("p.paused", 2); // "no power": fork-bug collapse for any antenna-bad state
     source.emit("f.throttle", 2); // sentinel, dropped
     expect(spy).toHaveBeenLastCalledWith(0.5);
   });
 
-  it("treats p.paused=1 (game paused) as trusted — values still flow", () => {
+  it("treats p.paused=1 (game paused) as trusted: values still flow", () => {
     source.emit("p.paused", 0);
     source.emit("p.paused", 1); // game paused, values frozen but real
 
@@ -826,13 +826,13 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
   });
 
   it("requires confirmed-good p.paused before a non-zero activates the gate", () => {
-    // Fresh wrapper without any p.paused=0 — only comm.connected was
+    // Fresh wrapper without any p.paused=0: only comm.connected was
     // confirmed in beforeEach. A non-zero p.paused arriving cold should
     // NOT activate the p.paused half of the gate (the comm half still
     // gates independently if comm.connected goes false).
     const spy = vi.fn();
     buffered.subscribe("f.throttle", spy);
-    source.emit("p.paused", 4); // cold-start non-zero — ignored by p.paused gate
+    source.emit("p.paused", 4); // cold-start non-zero: ignored by p.paused gate
     source.emit("f.throttle", 0.7);
     expect(spy).toHaveBeenLastCalledWith(0.7);
   });
@@ -901,7 +901,7 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
 
 // ── External-source ingestion (kOS) ────────────────────────────────────────
 
-describe("BufferedDataSource — external-source ingestion (appendExternalSample)", () => {
+describe("BufferedDataSource: external-source ingestion (appendExternalSample)", () => {
   let source: MockDataSource;
   let store: MemoryStore;
   let buffered: BufferedDataSource;
@@ -984,7 +984,7 @@ describe("BufferedDataSource — external-source ingestion (appendExternalSample
   });
 });
 
-describe("BufferedDataSource — registerExternalKeys", () => {
+describe("BufferedDataSource: registerExternalKeys", () => {
   let source: MockDataSource;
   let store: MemoryStore;
   let buffered: BufferedDataSource;

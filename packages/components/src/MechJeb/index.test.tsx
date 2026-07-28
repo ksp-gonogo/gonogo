@@ -135,7 +135,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
     // From here on, once a row is showing, `InFlightList`'s `useCountdown`
     // keeps a real 1 Hz interval ticking for as long as it's mounted. Under
     // real timers that tick is a live background race against this test's
-    // own remaining async steps — on a loaded machine (e.g. the full
+    // own remaining async steps: on a loaded machine (e.g. the full
     // monorepo test run) the interval can fire between renders with no
     // `act()` in scope, which is a real "not wrapped in act" bug in the
     // TEST, not the component (see ManeuverPlanner's own
@@ -169,7 +169,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      const list = screen.getByLabelText("Execute next node — in flight");
+      const list = screen.getByLabelText("Execute next node: in flight");
       expect(list).toHaveTextContent("Execute next node");
       expect(list).toHaveTextContent("4s");
 
@@ -199,7 +199,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
       });
 
       expect(
-        screen.queryByLabelText("Execute next node — in flight"),
+        screen.queryByLabelText("Execute next node: in flight"),
       ).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();

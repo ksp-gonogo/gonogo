@@ -13,13 +13,13 @@ import { LaunchDirectorComponent } from "./index";
  * pre-launch state off canonical Topics (`spaceCenter.savedShips`/
  * `spaceCenter.crewRoster`/`career.status`/`spaceCenter.scene`/
  * `spaceCenter.launchSites`), there is no legacy read path left to compare
- * against — same "the legacy leg is gone" story as
+ * against: same "the legacy leg is gone" story as
  * `WarpControl/dual-run.test.tsx`'s own doc comment. What remains proves the
  * widget renders the full pre-launch state correctly off the real stream
  * pipeline (`TelemetryProvider` + `TelemetryClient`/`TimelineStore`), using
  * the SAME `pre-launch-mixed` fixture the DOM-snapshot suite covers.
  */
-describe("LaunchDirector — stream render golden (delay=0)", () => {
+describe("LaunchDirector: stream render golden (delay=0)", () => {
   it("renders the full pre-launch state off the stream pipeline", async () => {
     const mode = { name: "default-7x10", w: 7, h: 10 };
 

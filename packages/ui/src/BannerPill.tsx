@@ -11,7 +11,7 @@ export interface BannerPillProps {
    * banners out as a vertical column in the bottom-right corner of
    * the viewport, just left of the FAB).
    *
-   * Default: "inline" — every new caller should use the stack.
+   * Default: "inline": every new caller should use the stack.
    */
   anchor?: "top" | "inline";
   /** Top offset in px when anchor === "top". Default: 12. */
@@ -33,7 +33,7 @@ export interface BannerPillProps {
 
 /**
  * Fixed-position pill anchored to the top-center of the viewport. The shared
- * chrome for status banners — coloured dot + caller-supplied text — with a
+ * chrome for status banners, coloured dot + caller-supplied text, with a
  * severity colour driving border/text. Callers control top offset and z-index
  * so multiple pills can stack.
  */

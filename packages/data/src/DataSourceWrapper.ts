@@ -6,12 +6,12 @@ import type {
 } from "@ksp-gonogo/core";
 
 /**
- * Base class for DataSource wrappers — sources that delegate the bulk of the
+ * Base class for DataSource wrappers: sources that delegate the bulk of the
  * `DataSource` surface to an upstream `real` source while layering extra
  * behaviour on top (buffering, peer broadcast, etc.).
  *
  * Every method here is a plain forward to `this.real`. Subclasses override
- * what they care about. The base does not own any listener state — wrappers
+ * what they care about. The base does not own any listener state, wrappers
  * that need their own subscriber sets compose `ListenerSet` / `KeyedListenerSet`
  * directly.
  *

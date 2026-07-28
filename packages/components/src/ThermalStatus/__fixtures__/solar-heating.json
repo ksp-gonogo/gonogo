@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "solar-heating",
-    "notes": "Near Kerbol — solar radiation heating structural parts to warm band (85%). No engine thermal stress (station keeping only). No heat shield."
+    "notes": "Near Kerbol: solar radiation heating structural parts to warm band (85%). No engine thermal stress (station keeping only). No heat shield."
   },
   "therm.hottestPartName": "Solar Panel (OX-STAT)",
   "therm.hottestPartTemp": 720.0,

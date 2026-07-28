@@ -11,7 +11,7 @@ import { Spinner } from "../Spinner";
  * booleans, not optionals) so a widget's own parsed-instrument shape maps in
  * directly. This is the widget-facing projection of the SDK's
  * `InstrumentEntry` (`science.instruments` topic), *not* `ExperimentEntry`
- * (`science.experiments`) — the row needs `partId`/`hasData`/`rerunnable`,
+ * (`science.experiments`): the row needs `partId`/`hasData`/`rerunnable`,
  * fields `ExperimentEntry` doesn't carry.
  */
 export interface ScienceInstrument {
@@ -37,7 +37,7 @@ export interface ScienceExperimentRowProps {
   /** Called with `instrument.partId` when the operator confirms Deploy. */
   onDeploy?: (partId: string) => void;
   /**
-   * Called with `instrument.partId` after the arm→confirm handshake — never
+   * Called with `instrument.partId` after the arm→confirm handshake; never
    * fired directly off a bare click.
    */
   onTransmit?: (partId: string) => void;
@@ -48,7 +48,7 @@ const ARM_TIMEOUT_MS = 4000;
 /**
  * A single science-instrument row: name, state badges, and the
  * Deploy/Transmit action cluster. Extracted verbatim from ScienceOfficer's
- * per-instrument `<Row>` + `InstrumentActions` — same arm→confirm→pending
+ * per-instrument `<Row>` + `InstrumentActions`: same arm→confirm→pending
  * behaviour, same badge tones, now composed entirely from kit primitives.
  *
  * Data/framework-free by design (§1 export-safety boundary): this component
@@ -70,8 +70,8 @@ export function ScienceExperimentRow({
     return () => clearTimeout(id);
   }, [armed]);
 
-  // Clear the pending state once telemetry reports the new instrument state
-  // — `deployed`/`hasData` transitions are the success signal. Fall back to
+  // Clear the pending state once telemetry reports the new instrument state,
+  // `deployed`/`hasData` transitions are the success signal. Fall back to
   // a 5s safety timeout so an action that never lands doesn't leave the
   // button forever-busy.
   useEffect(() => {
@@ -98,7 +98,7 @@ export function ScienceExperimentRow({
         {instrument.inoperable && <Badge tone="nogo">INOPERABLE</Badge>}
       </Inline>
       {/* Inoperable instruments can't deploy or transmit. Hide the controls
-          entirely rather than greying them out — the INOPERABLE badge
+          entirely rather than greying them out: the INOPERABLE badge
           already tells the operator why nothing's available. */}
       {!instrument.inoperable && (
         <Inline inset>

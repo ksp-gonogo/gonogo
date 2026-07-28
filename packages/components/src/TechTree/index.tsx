@@ -45,13 +45,13 @@ export interface TechNode {
 // `tech-tree.badges` is a per-node inline badge slot: an Uplink can drop a
 // small indicator next to a node (the canonical use is a "which mod added this
 // node" tag once third-party parts flow through `tech.nodes`). Every node
-// surface — list rows, graph cards, and the detail panel — exposes the slot and
+// surface: list rows, graph cards, and the detail panel, exposes the slot and
 // passes that node's identity as slot props, so the augment badges the right
 // node wherever it's rendered.
 
-/** Props passed to every `tech-tree.badges` augment — one per tech node. */
+/** Props passed to every `tech-tree.badges` augment: one per tech node. */
 export interface TechNodeBadgeContext {
-  /** The node this badge belongs to — its full identity for the augment. */
+  /** The node this badge belongs to: its full identity for the augment. */
   node: TechNode;
 }
 
@@ -71,16 +71,16 @@ declare module "@ksp-gonogo/core" {
  * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
  * "Researchable" | "Unavailable"` string) and the career-detail wire
  * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
- * `unlocked: boolean`, no `state` at all — the server deliberately doesn't
+ * `unlocked: boolean`, no `state` at all: the server deliberately doesn't
  * compute the 3-state "Researchable" distinction, career-capture-extend-
  * report.md). When `state` is absent, derive it from `unlocked`
- * (`true` -> "Available", `false` -> "Unavailable") — `computeResearchable`
+ * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
  * below already promotes some "Unavailable" nodes to researchable-now purely
  * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
  * the extend session's doc comment anticipated. `description`/`parts` stay
- * empty on the new wire (no equivalent field) — both already default
+ * empty on the new wire (no equivalent field), both already default
  * gracefully. Drops malformed entries; tolerates missing optional fields
- * (description, parts) so older Telemachus DLLs degrade gracefully — the
+ * (description, parts) so older Telemachus DLLs degrade gracefully, the
  * operator still sees title + scienceCost + state + parents even without
  * the 2026-05-13 fork additions.
  */
@@ -156,7 +156,7 @@ const GRAPH_MIN_COLS = 10;
  * already unlocked, and its science cost is affordable. The plugin only emits
  * `Available` / `Unavailable`, so this status is computed here rather than read
  * off `state` (the old default filter matched a `state === "Researchable"`
- * that real saves never produce — hence the empty first paint). Test fixtures
+ * that real saves never produce: hence the empty first paint). Test fixtures
  * that set an explicit `"Researchable"` state are also honoured.
  */
 function computeResearchable(
@@ -168,7 +168,7 @@ function computeResearchable(
   for (const n of nodes) {
     if (n.state === "Available") continue;
     if (n.state === "Researchable") {
-      // Explicit state from a fixture / older payload — trust it.
+      // Explicit state from a fixture / older payload, trust it.
       out.add(n.id);
       continue;
     }
@@ -184,7 +184,7 @@ function computeResearchable(
 
 /**
  * Longest-path depth from a root (a parentless node is tier 0). Variable-span
- * edges are fine — a tier-5 node may have a tier-0 parent. Cycle-guarded.
+ * edges are fine, a tier-5 node may have a tier-0 parent. Cycle-guarded.
  */
 function computeTiers(nodes: TechNode[]): Map<string, number> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -315,15 +315,15 @@ function layoutGraph(
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // Science reads canonically off `career.status.economy.science`; the tech
-  // nodes off `career.status.tech.nodes` — the wire carries
+  // nodes off `career.status.tech.nodes`: the wire carries
   // id/title/scienceCost/unlocked/parents per node
   // (career-capture-extend-report.md); parseTechNodes derives the
   // Available/Unavailable state from `unlocked` client-side (no
-  // server-computed Researchable 3rd state — this widget's own
+  // server-computed Researchable 3rd state: this widget's own
   // computeResearchable already does that derivation). The scene reads off
   // `spaceCenter.scene.scene` (already an enum-name string on the wire).
   // tech.unlock[...] (the spend command) still has no command home
-  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically — only the
+  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically, only the
   // reads migrate here.
   const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
@@ -402,7 +402,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const counts = { unlocked: 0, researchable: researchable.size };
   for (const n of allNodes) if (n.state === "Available") counts.unlocked++;
 
-  // ── Tiny mode — single-glance summary ─────────────────────────────────
+  // ── Tiny mode: single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
     return (
       <Panel>
@@ -460,7 +460,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     </PanelSubtitle>
   ) : null;
 
-  // ── Graph mode — tiered dependency view (wide enough only) ────────────
+  // ── Graph mode: tiered dependency view (wide enough only) ────────────
   const useGraph = w !== undefined && w >= GRAPH_MIN_COLS;
   if (useGraph) {
     const q = query.trim().toLowerCase();
@@ -777,7 +777,7 @@ function DetailPanel({
         <DetailTitle>
           {node.title}
           <NodeId>({node.id})</NodeId>
-          {/* Same per-node badges slot as the list rows — an augment bound to
+          {/* Same per-node badges slot as the list rows, an augment bound to
               `tech-tree.badges` renders here too, carrying the selected node. */}
           <AugmentSlot name="tech-tree.badges" props={{ node }} />
         </DetailTitle>
@@ -832,7 +832,7 @@ function DetailPanel({
             </PendingBtn>
           ) : armed ? (
             <ConfirmBtn type="button" onClick={unlock.onConfirm}>
-              Confirm unlock — {node.scienceCost} sci
+              Confirm unlock: {node.scienceCost} sci
             </ConfirmBtn>
           ) : (
             <ArmBtn
@@ -959,7 +959,7 @@ function NodeRow({
                 </PendingBtn>
               ) : armed ? (
                 <ConfirmBtn type="button" onClick={onConfirm}>
-                  Confirm unlock — {node.scienceCost} sci
+                  Confirm unlock: {node.scienceCost} sci
                 </ConfirmBtn>
               ) : (
                 <ArmBtn

@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>science.*</c> capture surface — added THIS session so a live
+    /// The <c>science.*</c> capture surface: added THIS session so a live
     /// recording carries onboard experiment/container data, science-lab
     /// processing state, and Breaking Ground deployed-experiment status
     /// alongside <c>career.*</c>. Mirrors <see cref="CareerUplink"/>'s
@@ -15,11 +15,11 @@ namespace Gonogo.KSP
     /// (<see cref="ScienceViewProvider"/>), headlessly testable there. No
     /// <see cref="ISnapshotSampler"/> is registered because <c>KspHost.Sample</c>
     /// already populates the raw <c>"science"</c> snapshot key (guarded to
-    /// "there's an active vessel" — see <c>KspHost.BuildScience</c>'s doc
+    /// "there's an active vessel": see <c>KspHost.BuildScience</c>'s doc
     /// comment).
     ///
     /// <para>One channel per science sub-group, rather than one combined
-    /// topic — experiments/lab/deployed genuinely change at different
+    /// topic: experiments/lab/deployed genuinely change at different
     /// cadences (an experiment's data changes on run/collect; a lab
     /// processes continuously; deployed science is placed once and then
     /// mostly idles), and ScienceOfficer/ScienceBench/DeployedScience each
@@ -28,7 +28,7 @@ namespace Gonogo.KSP
     /// <para>Experiment actuation rides here too: <c>science.experiment.deploy</c>
     /// and <c>science.experiment.transmit</c> (<see cref="ScienceCommandProvider"/>'s
     /// <c>Handle*</c> glue against the <see cref="IScienceActuator"/> this
-    /// uplink is constructed with — <see cref="KspScienceActuator"/> in
+    /// uplink is constructed with, <see cref="KspScienceActuator"/> in
     /// production). Both are genuine uplinks to the craft (they actuate an
     /// experiment ON the vessel), so both are declared <c>delayed: true</c>.
     /// Reset/collect remain a follow-up.</para>
@@ -68,7 +68,7 @@ namespace Gonogo.KSP
                     // as changed" cadence CareerUplink/SystemUplink
                     // already use for structured, not-every-tick data.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit — vessel/experiment-sourced, rides the delay clock.
+                    // Explicit retrofit: vessel/experiment-sourced, rides the delay clock.
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
@@ -76,7 +76,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.InstrumentsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit — active-vessel instrument inventory, rides the delay clock.
+                    // Explicit retrofit: active-vessel instrument inventory, rides the delay clock.
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
@@ -84,7 +84,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit — same as ExperimentsTopic above.
+                    // Explicit retrofit: same as ExperimentsTopic above.
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
@@ -92,7 +92,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit — same as ExperimentsTopic above.
+                    // Explicit retrofit: same as ExperimentsTopic above.
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
@@ -100,7 +100,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.SensorsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit — active-vessel environmental-sensor
+                    // Explicit retrofit: active-vessel environmental-sensor
                     // readouts, rides the delay clock like the rest of science.*.
                     Delay = DelayRole.Delayed,
                 },
@@ -109,7 +109,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.ExperimentBreakdownTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Per-subject rollup of the same onboard science data —
+                    // Per-subject rollup of the same onboard science data,
                     // rides the delay clock like the rest of science.*.
                     Delay = DelayRole.Delayed,
                 },
@@ -117,7 +117,7 @@ namespace Gonogo.KSP
             // Experiment actuation is a genuine uplink to the craft (deploy runs
             // an experiment ON the vessel; transmit drives its onboard
             // transmitter), so both ride the same light-time delay every other
-            // vessel actuation does — delayed: true. See VesselUplink's command
+            // vessel actuation does, delayed: true. See VesselUplink's command
             // table for the full delay-classification rule.
             Commands = new List<CommandDeclaration>
             {

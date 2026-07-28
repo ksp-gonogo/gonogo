@@ -74,26 +74,26 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// CRASH FIX: MainMenu is not done initialising the instant this
-        /// MonoBehaviour's <see cref="Start"/> fires — its own UI/dialog
+        /// MonoBehaviour's <see cref="Start"/> fires: its own UI/dialog
         /// setup continues over the following seconds. If the request cfg is
         /// ALREADY sitting on disk at that instant (staged over SSH before
         /// KSP was even launched, or left over from a prior run that never
         /// got cleaned up), the old code raced straight through
         /// <see cref="CfgPollIntervalSeconds"/>'s poll loop (it never waits
         /// when the file already exists) and called <see cref="LoadSave"/>
-        /// roughly one frame after <see cref="Start"/> — which crashed KSP
+        /// roughly one frame after <see cref="Start"/>, which crashed KSP
         /// outright (not a load failure, a hard crash), because it raced
         /// MainMenu's own not-yet-finished setup.
         ///
         /// This unconditional delay runs EVERY time, before anything else in
-        /// <see cref="AutoLoadRoutine"/> — including before the cfg-presence
-        /// poll — regardless of whether the request file is already present.
+        /// <see cref="AutoLoadRoutine"/>: including before the cfg-presence
+        /// poll: regardless of whether the request file is already present.
         /// It is what makes the addon safe against a pre-staged request AND
         /// is what the intended workflow relies on: launch KSP with NO
         /// request file present, wait for MainMenu to visibly come up, THEN
         /// write <c>dev-autoload.cfg</c> over SSH. This addon has already
         /// been polling since boot, so it picks the fresh file up within
-        /// <see cref="CfgPollIntervalSeconds"/> of the write — but even a
+        /// <see cref="CfgPollIntervalSeconds"/> of the write: but even a
         /// request staged before launch now always waits out this settle
         /// window first.
         /// </summary>

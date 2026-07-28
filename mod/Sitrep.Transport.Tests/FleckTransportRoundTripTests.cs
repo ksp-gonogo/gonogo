@@ -14,7 +14,7 @@ namespace Sitrep.Transport.Tests
     /// <summary>
     /// In-process integration test: a real <see cref="ClientWebSocket"/> talks RFC6455
     /// over loopback to a <see cref="FleckTransportListener"/>, proving the vendored
-    /// Fleck handshake + framing works against a real client — headlessly, no KSP.
+    /// Fleck handshake + framing works against a real client, headlessly, no KSP.
     /// The full KSP-Mono soak is a separate milestone (M5b); this only validates the
     /// transport seam in-process.
     /// </summary>
@@ -213,13 +213,13 @@ namespace Sitrep.Transport.Tests
         // fresh frame buffer *synchronously*, before FleckTransportConnection.TrySend
         // even returns to its caller. So a caller that mutates its buffer strictly
         // after TrySend returns can never observe wire corruption in-process,
-        // regardless of whether TrySend itself aliased the array — the bug is
+        // regardless of whether TrySend itself aliased the array, the bug is
         // real (a future Fleck version, or a different Send path, might not copy
         // eagerly) but isn't reachable through the wire in a deterministic test.
         // Instead, this exercises FleckTransportConnection.TrySend directly (via
         // reflection, since the class is internal) against a fake
         // IWebSocketConnection that captures exactly what byte[] instance it was
-        // handed — the same contract boundary the fix changed.
+        // handed: the same contract boundary the fix changed.
         [Fact]
         public void TrySend_CopiesPayload_SourceMutationAfterReturnDoesNotAffectSentBytes()
         {
@@ -234,7 +234,7 @@ namespace Sitrep.Transport.Tests
             Assert.True(sent);
             Assert.NotNull(fakeSocket.LastSentBytes);
 
-            // Mutate the source buffer right after TrySend returns — the expected
+            // Mutate the source buffer right after TrySend returns, the expected
             // reuse pattern on the telemetry hot path (pooled/reused buffers, lossy
             // latest sends). If TrySend aliased the caller's array instead of
             // copying it, the bytes handed to the socket change out from under it.
@@ -280,7 +280,7 @@ namespace Sitrep.Transport.Tests
 
             public Task Send(byte[] message)
             {
-                // Deliberately does NOT copy `message` — mirrors a downstream Send
+                // Deliberately does NOT copy `message`, mirrors a downstream Send
                 // path that has no defensive-copy behaviour of its own, so the test
                 // isolates the seam's own copy-or-alias decision in TrySend/ToArray.
                 LastSentBytes = message;
@@ -345,7 +345,7 @@ namespace Sitrep.Transport.Tests
         // IWebSocketConnection, rather than over a real socket. This is
         // deliberate: on this test runtime (.NET 10), NetworkStream.BeginWrite
         // does not actually throw for a concurrent second call the way the
-        // review that prompted this fix describes (verified empirically —
+        // review that prompted this fix describes (verified empirically,
         // that guard is legacy/.NET-Framework-and-Mono-era NetworkStream
         // behaviour, relevant to the eventual KSP-Mono target but not
         // reproducible headlessly here), so a real-socket test can't be made

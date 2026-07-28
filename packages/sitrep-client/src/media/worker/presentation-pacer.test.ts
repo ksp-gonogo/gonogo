@@ -26,7 +26,7 @@ describe("PresentationPacer", () => {
       maxBacklogSeconds: 1,
     });
 
-    // Three frames ~33ms apart (30fps), all confirmed in the same instant —
+    // Three frames ~33ms apart (30fps), all confirmed in the same instant,
     // exactly the burst DelayedPlayoutBuffer's pump() produces on a
     // sample-clamped edge step.
     pacer.submit(frame(100, "red"));
@@ -34,7 +34,7 @@ describe("PresentationPacer", () => {
     pacer.submit(frame(100.066, "blue"));
 
     pacer.tick(0);
-    expect(presented).toEqual(["red"]); // only the first — nothing else due yet
+    expect(presented).toEqual(["red"]); // only the first: nothing else due yet
 
     pacer.tick(0.02);
     expect(presented).toEqual(["red"]); // green not due until wall=0.033
@@ -60,7 +60,7 @@ describe("PresentationPacer", () => {
     pacer.submit(frame(0.1, "b"));
     pacer.submit(frame(0.2, "c"));
 
-    // First tick lands late (0.05 instead of 0) — "a" presents at wall=0.05,
+    // First tick lands late (0.05 instead of 0), "a" presents at wall=0.05,
     // but "b"'s due time is anchored at 0.05 + 0.1 = 0.15, not 0 + 0.1 = 0.1.
     pacer.tick(0.05);
     expect(presented).toEqual(["a"]);
@@ -68,7 +68,7 @@ describe("PresentationPacer", () => {
     pacer.tick(0.14);
     expect(presented).toEqual(["a"]); // b due at 0.15, not yet
 
-    pacer.tick(0.151); // just past due — avoids float-precision flakiness at the exact boundary
+    pacer.tick(0.151); // just past due: avoids float-precision flakiness at the exact boundary
     expect(presented).toEqual(["a", "b"]);
 
     // c's due time is anchored on b's SCHEDULED due (0.15), not the actual
@@ -119,7 +119,7 @@ describe("PresentationPacer", () => {
     pacer.submit(frame(0.2, "c"));
     pacer.submit(frame(0.3, "d"));
 
-    // ...but the caller doesn't get back around to ticking until wall=5 —
+    // ...but the caller doesn't get back around to ticking until wall=5,
     // the worker/main-thread stalled, or bursts kept arriving faster than
     // they drained. "b" was due at wall=0.1; backlog = 5 - 0.1 = 4.9,
     // way past maxBacklogSeconds (0.5).
@@ -144,7 +144,7 @@ describe("PresentationPacer", () => {
     expect(presented).toEqual(["a", "stale-c"]);
 
     // New frame arrives with a normal small delta from the just-presented
-    // "stale-c" (ut=10) — spacing resumes cleanly from there, not stuck
+    // "stale-c" (ut=10): spacing resumes cleanly from there, not stuck
     // waiting on the old pre-skip anchor.
     pacer.submit(frame(10.033, "fresh"));
     pacer.tick(20.02);
@@ -173,7 +173,7 @@ describe("PresentationPacer", () => {
     expect(skipped).toEqual(["b", "c"]);
 
     // Idempotent-ish: ticking after dispose does nothing further (queue is
-    // empty — nothing left to present or skip).
+    // empty: nothing left to present or skip).
     pacer.tick(100);
     expect(presented).toEqual(["a"]);
   });

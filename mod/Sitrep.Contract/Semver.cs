@@ -2,7 +2,7 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// C# port of <c>mod/sitrep-kernel/src/version.ts</c>. Semantics MUST stay
-    /// byte-for-byte identical to the TS reference — conformance is asserted
+    /// byte-for-byte identical to the TS reference: conformance is asserted
     /// by <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/version.json</c>, not by re-deriving semantics
     /// here. If you touch this file, regenerate the fixture from the TS side
@@ -45,7 +45,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Gate: does the running kernel satisfy a provider's declared minimum
-        /// kernel version? Inclusive — kernelVersion == minKernelVersion passes.
+        /// kernel version? Inclusive: kernelVersion == minKernelVersion passes.
         /// A null minimum is always satisfied.
         /// </summary>
         public static bool SatisfiesKernel(string kernelVersion, string? minKernelVersion)

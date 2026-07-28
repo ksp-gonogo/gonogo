@@ -10,13 +10,13 @@ import { GroundSurveyComponent } from "./index";
  * GroundSurvey's real-capture scenario, rendered off the stream.
  *
  * `v.body` reads through `vessel.state.parentBodyName` now (`vessel.identity`
- * + `system.bodies`), same as every other read in this widget — no legacy
+ * + `system.bodies`), same as every other read in this widget, no legacy
  * `DataSource` mounted at all. What's still worth keeping is the real
  * captured-flight fixture itself (`kerbin-descent-low-pass.json`, a genuine
  * low-pass descent snapshot) exercising the widget end-to-end via the
  * stream.
  */
-describe("GroundSurvey — real-capture kerbin-descent-low-pass scenario (via the stream)", () => {
+describe("GroundSurvey: real-capture kerbin-descent-low-pass scenario (via the stream)", () => {
   it("renders the captured low-pass descent state", () => {
     const fixture = setupStreamFixture({ carriedChannels: [] });
 
@@ -61,7 +61,7 @@ describe("GroundSurvey — real-capture kerbin-descent-low-pass scenario (via th
     });
 
     expect(screen.getByText("GROUND SURVEY")).toBeTruthy();
-    // 2011.386 m AGL — above the 1 km freeze threshold, below the 10 km
+    // 2011.386 m AGL: above the 1 km freeze threshold, below the 10 km
     // ceiling: actively surveying.
     expect(screen.getByText(/surveying/i)).toBeTruthy();
     expect(screen.getByText(/2\.01 km AGL/)).toBeTruthy();

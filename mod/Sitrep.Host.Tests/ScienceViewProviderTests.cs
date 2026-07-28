@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// carrying the raw <c>"science"</c> encoding <c>Gonogo.KSP.KspHost.
     /// BuildScience</c> produces are mapped to each of the three
     /// <c>science.*</c> payloads and asserted against the class doc's
-    /// rules — no-vessel/no-data -&gt; null, primitives-only shape, missing
+    /// rules: no-vessel/no-data -&gt; null, primitives-only shape, missing
     /// fields -&gt; null never a sentinel.
     /// </summary>
     public class ScienceViewProviderTests

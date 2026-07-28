@@ -7,9 +7,9 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
- * Telemachus key a real widget actually asks for — via a declared
- * `dataRequirements` entry or a literal `useTelemetry("data", "<key>")` call
- * — must be either mapped to a new stream topic (`mapTopic("data", key)`) or
+ * Telemachus key a real widget actually asks for, via a declared
+ * `dataRequirements` entry or a literal `useTelemetry("data", "<key>")` call,
+ * must be either mapped to a new stream topic (`mapTopic("data", key)`) or
  * explicitly listed as a known gap (`isKnownTelemachusGap`). Anything
  * neither mapped nor gap-listed is a silent miss: a widget that gets
  * migrated onto the shim later would quietly regress to `undefined` forever
@@ -52,7 +52,7 @@ function listSourceFiles(dir: string): string[] {
  *
  * A plain non-greedy regex (`\[(.*?)\]`) breaks here because several
  * `dataRequirements` entries are themselves bracketed, parametric Telemachus
- * keys (e.g. `"r.resource[LiquidFuel]"`) — the FIRST `]` a naive regex finds
+ * keys (e.g. `"r.resource[LiquidFuel]"`): the FIRST `]` a naive regex finds
  * is inside one of those string literals, not the end of the array. This
  * walks the array as a tiny state machine (string-literal aware) so an `]`
  * inside a quoted key doesn't end the scan early.
@@ -115,7 +115,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
 
 /**
  * ---------------------------------------------------------------------------
- * THE DYNAMIC-KEY BLIND SPOT IS CLOSED — this scan is now complete
+ * THE DYNAMIC-KEY BLIND SPOT IS CLOSED, this scan is now complete
  * ---------------------------------------------------------------------------
  * There used to be a `collectDynamicTelemachusKeys()` here, and a documented
  * hole it patched: `ActionGroup` resolved its read key dynamically
@@ -133,17 +133,17 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * impossible rather than merely patched.
  *
  * If a component ever again resolves a `useDataValue` key from a runtime
- * registry, this scan goes blind to it and the hole comes back — prefer a
+ * registry, this scan goes blind to it and the hole comes back; prefer a
  * canonical `useTelemetry(topicId)` read, and if that's genuinely impossible,
  * reinstate a collector here rather than letting the key go unpoliced.
  */
 
-describe("mapTopic coverage — every widget Telemachus key is mapped or a declared gap", () => {
+describe("mapTopic coverage: every widget Telemachus key is mapped or a declared gap", () => {
   // A `dataRequirements` entry can now ALSO be a native SDK topic id read
-  // canonically (`useTelemetry(topicId)`, bypassing `mapTopic` entirely —
+  // canonically (`useTelemetry(topicId)`, bypassing `mapTopic` entirely:
   // `ShipMap`/`PowerSystems`'s `"vessel.parts"`, the `useTopology` un-gap).
-  // Those aren't old Telemachus keys at all, so this scan — built to police
-  // the legacy-key migration table specifically — excludes them rather than
+  // Those aren't old Telemachus keys at all, so this scan, built to police
+  // the legacy-key migration table specifically: excludes them rather than
   // asking `mapTopic`/`isKnownTelemachusGap` to account for a key that was
   // never theirs to route.
   const widgetKeys = new Set(
@@ -157,7 +157,7 @@ describe("mapTopic coverage — every widget Telemachus key is mapped or a decla
     expect(widgetKeys.size).toBeGreaterThan(100);
   });
 
-  it("maps or explicitly gaps every widget-declared Telemachus key — no silent misses", () => {
+  it("maps or explicitly gaps every widget-declared Telemachus key, no silent misses", () => {
     const unaccounted = [...widgetKeys]
       .filter(
         (key) =>

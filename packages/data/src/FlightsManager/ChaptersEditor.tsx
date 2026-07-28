@@ -15,7 +15,7 @@ function getSource(): MissionHistorySource | undefined {
 
 /**
  * Format an elapsed-ms duration as mm:ss (or h:mm:ss above an hour). Mirrors
- * the FlightsManager `formatDuration` style — kept local so the editor
+ * the FlightsManager `formatDuration` style: kept local so the editor
  * doesn't reach across files.
  */
 function formatElapsed(ms: number): string {
@@ -55,7 +55,7 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
   const chapters = flight.chapters ?? [];
   const duration = Math.max(0, flight.lastSampleAt - flight.launchedAt);
 
-  // Add-form state — kept simple (controlled inputs, validated on submit).
+  // Add-form state: kept simple (controlled inputs, validated on submit).
   const [newLabel, setNewLabel] = useState("");
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");

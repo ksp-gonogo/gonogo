@@ -4,8 +4,8 @@ import { solveAnomalies } from "@ksp-gonogo/sitrep-client";
  * Pure client-side derivations for the celestial-body almanac values that the
  * `system.bodies` stream deliberately does NOT put on the wire (see the
  * contract's `BodyEntry` doc). Everything here is reconstructed from the two
- * primitives the stream DOES carry — the standard gravitational parameter
- * `μ = G·M` and the body's radius — plus its Keplerian orbit. Keeping these
+ * primitives the stream DOES carry, the standard gravitational parameter
+ * `μ = G·M` and the body's radius, plus its Keplerian orbit. Keeping these
  * off the wire is the whole point of the "gravParameter is the one primitive"
  * design; this module is where the client pays for that.
  *
@@ -15,10 +15,10 @@ import { solveAnomalies } from "@ksp-gonogo/sitrep-client";
  * state.
  */
 
-/** Newtonian gravitational constant, m³·kg⁻¹·s⁻² (CODATA — the value KSP uses). */
+/** Newtonian gravitational constant, m³·kg⁻¹·s⁻² (CODATA: the value KSP uses). */
 export const GRAVITATIONAL_CONSTANT = 6.6743e-11;
 
-/** Standard gravity g₀, m/s² — the reference KSP's surface-gravity "g" unit divides by. */
+/** Standard gravity g₀, m/s²: the reference KSP's surface-gravity "g" unit divides by. */
 export const STANDARD_GRAVITY = 9.80665;
 
 function finite(x: number): number | null {
@@ -79,7 +79,7 @@ export function derivePeriod(
 }
 
 /**
- * Hill-sphere radius, metres — the old Telemachus `hillSphere`, derivable from
+ * Hill-sphere radius, metres: the old Telemachus `hillSphere`, derivable from
  * the orbit and the two masses: `r ≈ a·(1 − e)·∛(m / 3M)`. `null` when any
  * input is missing.
  */
@@ -103,7 +103,7 @@ export function deriveHillSphere(
 }
 
 /**
- * True anomaly, DEGREES in `[0, 360)`, at universal time `ut` — reconstructed
+ * True anomaly, DEGREES in `[0, 360)`, at universal time `ut`, reconstructed
  * from the mean anomaly at epoch via the shared Kepler solver (never a second
  * reimplementation of Kepler's equation). Returns `null` for a
  * parabolic/hyperbolic orbit (the solver's `ecc ∈ [0, 1)` domain), a missing
@@ -139,7 +139,7 @@ export function deriveTrueAnomalyDeg(params: {
   ) {
     return null;
   }
-  // inc/lan/argPe don't affect the anomaly solve — pass zero for them.
+  // inc/lan/argPe don't affect the anomaly solve: pass zero for them.
   const { trueAnomaly } = solveAnomalies(
     {
       sma: semiMajorAxis,

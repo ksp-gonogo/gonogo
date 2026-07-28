@@ -3,7 +3,7 @@
 // Co-located with the GonogoKerbcastUplink C# mod (mod/GonogoKerbcastUplink):
 // one directory holds the mod and the client TS it ships (Uplink architecture
 // §1), the same layout every sibling Uplink client uses. It keeps the npm name
-// `@ksp-gonogo/gonogo-kerbcast-uplink` — `@ksp-gonogo/kerbcast` is NOT available to
+// `@ksp-gonogo/gonogo-kerbcast-uplink`: `@ksp-gonogo/kerbcast` is NOT available to
 // rename onto, being the external kerbcast protocol SDK this package consumes
 // from public npm (see .npmrc). So the package NAME deviates from the sibling
 // convention; the layout does not.
@@ -12,7 +12,7 @@
 // from a control-plane-only Uplink client:
 //   - the CONTROL plane rides the Uplink's Topics (`kerbcast.cameras`,
 //     `kerbcast.available`) like any other Uplink;
-//   - the MEDIA plane does not ride Topics at all — video stays on kerbcast's
+//   - the MEDIA plane does not ride Topics at all, video stays on kerbcast's
 //     own WebRTC path, because a keyframed telemetry channel is the wrong
 //     shape for encoded media (KerbcastUplink.cs's own header).
 // The two meet at `cameraId` === kerbcast's `flightId`, which
@@ -30,13 +30,13 @@
 //     ... }) filling @ksp-gonogo/components's DistanceToTarget widget's
 //     `distance-to-target.camera` slot with the close-range docking-camera
 //     backdrop. This REPLACED that widget's built-in `HudCamera`, which had
-//     kerbcast wired directly into the core client — the thing this package's
+//     kerbcast wired directly into the core client, the thing this package's
 //     move exists to end.
 //   - `KerbcastAvatarAugment` → registerAugment({ id: "kerbcast-crew-avatar",
 //     ... }) filling @ksp-gonogo/components's CrewManifest widget's
 //     `crew-manifest.avatar` slot with a live per-kerbal face (facecam-stage6
 //     consumption design). Correlates by kerbal NAME against kerbcast's
-//     `kind: Kerbal` cameras — see CrewAvatarGate/selectKerbalCamera.ts.
+//     `kind: Kerbal` cameras: see CrewAvatarGate/selectKerbalCamera.ts.
 //
 // To wire it into the app: `import "@ksp-gonogo/gonogo-kerbcast-uplink";` during app
 // bootstrap (alongside the other data-source/registration imports in
@@ -56,7 +56,7 @@ export type { LabelableCamera } from "./cameraLabels";
 export { buildCameraLabeler } from "./cameraLabels";
 // The generic delayed-media infrastructure (DelayedPlayoutBuffer, the
 // per-frame pipeline, `isFrameDelaySupported`, the capture-clock helpers) moved
-// to `@ksp-gonogo/sitrep-client`'s media layer (2026-07-17) — import it from
+// to `@ksp-gonogo/sitrep-client`'s media layer (2026-07-17): import it from
 // the sanctioned `@ksp-gonogo/sitrep-client/media` subpath (2026-07-19), not
 // from this kerbcast client and never from the sitrep-client package root.
 export { DockingCameraAugment } from "./DockingCameraAugment";

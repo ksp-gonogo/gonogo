@@ -117,7 +117,7 @@ describe("TelemetryProvider builds its carried-channels allowlist from the trans
       carriedWith("vessel.orbit", "vessel.flight"),
     );
 
-    // A later render's prop SHRINKS back to just the first topic — the
+    // A later render's prop SHRINKS back to just the first topic, the
     // already-carried "vessel.flight" must still read as carried (never a
     // reversal mid-session).
     rerender(

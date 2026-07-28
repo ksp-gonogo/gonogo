@@ -124,7 +124,7 @@ export {
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
 // Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
-// sharing) — media + time, riding the one `ViewClock` delay authority. See
+// sharing): media + time, riding the one `ViewClock` delay authority. See
 // `./media/index.ts` for why it lives beside the clock and not in a camera package.
 export * from "./media";
 export type {

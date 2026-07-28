@@ -14,7 +14,7 @@ export const X_ALIGN_TOL_MS = 1000;
  * `useDataSeries` guarantees).
  *
  * Exact timestamp match isn't viable here because `BufferedDataSource` stamps
- * each `handleSample` call independently — two keys on the same WS tick land
+ * each `handleSample` call independently: two keys on the same WS tick land
  * microseconds apart, and derived-of-raw pairs call `now()` twice.
  */
 export function alignXY(

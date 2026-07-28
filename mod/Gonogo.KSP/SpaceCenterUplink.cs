@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>spaceCenter.*</c> uplink — declares the launch-site / scene /
+    /// The <c>spaceCenter.*</c> uplink: declares the launch-site / scene /
     /// crew-roster / saved-ships / parts-available / points-of-interest
     /// channels (<c>spaceCenter.launchSites</c>, <c>spaceCenter.scene</c>,
     /// <c>spaceCenter.crewRoster</c>, <c>spaceCenter.savedShips</c>,
@@ -17,13 +17,13 @@ namespace Gonogo.KSP
     ///
     /// No <see cref="ISnapshotSampler"/> is registered: <c>KspHost.Sample</c>
     /// already populates the raw <c>"scene"</c> and <c>"spaceCenter"</c> snapshot
-    /// keys (see its own doc comments), so the providers have their data —
+    /// keys (see its own doc comments), so the providers have their data,
     /// <see cref="IUplinkHost.AddSampler"/> is for a future uplink whose data
     /// ISN'T already on the snapshot.
     ///
     /// <para>All channels are <see cref="DelayRole.TrueNow"/>: launch-site
     /// roster, current scene, crew roster, saved craft and part count are
-    /// ground-side game facts, known independent of any vessel's comms link —
+    /// ground-side game facts, known independent of any vessel's comms link,
     /// the same class as <c>system.bodies</c> / <c>game.dlc</c> /
     /// <c>ksp.revertAvailability</c>. Each hands back a fresh list/dict every
     /// call, so ChannelEmitter's change-gate reads every considered sample as

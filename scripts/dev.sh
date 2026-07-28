@@ -5,17 +5,17 @@ set -e
 # this run. The tokens live in the project's existing root `.env` (which
 # podman compose auto-reads anyway). When the toggle is on we source it
 # explicitly so Vite sees the VITE_* keys via process.env. When the
-# toggle is off we mask the tokens to empty strings — shell env beats
+# toggle is off we mask the tokens to empty strings, shell env beats
 # compose's `.env` auto-read, so AXIOM transports stay uninstalled even
 # when the file contains real tokens.
 if [ "${ENABLE_AXIOM:-0}" = "1" ]; then
   if [ -f .env ]; then
-    echo "[dev] ENABLE_AXIOM=1 — Axiom transports will install if tokens are set in .env"
+    echo "[dev] ENABLE_AXIOM=1: Axiom transports will install if tokens are set in .env"
     set -a
     . ./.env
     set +a
   else
-    echo "[dev] ENABLE_AXIOM=1 set but .env is missing — running without logs" >&2
+    echo "[dev] ENABLE_AXIOM=1 set but .env is missing, running without logs" >&2
   fi
 else
   export AXIOM_TOKEN=
@@ -30,14 +30,14 @@ fi
 # coturn (inside the relay container) advertises this address in its relay
 # ICE candidates. The relay can't pick it up itself: from inside the
 # container os.networkInterfaces() only sees the compose bridge IP, so it
-# auto-discovers the *public* IP — which a station on the SAME WiFi can't
+# auto-discovers the *public* IP, which a station on the SAME WiFi can't
 # reach without router hairpinning. We're on the host here, where the LAN
 # IP is actually visible, so detect it and pass it through. An explicit
 # TURN_EXTERNAL_IP (shell env or .env) always wins; a genuinely remote
 # setup wants the public IP + port-forwarding and should set it there.
 env_turn_ip=$(grep -E '^TURN_EXTERNAL_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
 if [ -n "${TURN_EXTERNAL_IP:-}" ] || [ -n "$env_turn_ip" ]; then
-  echo "[dev] TURN_EXTERNAL_IP override set — leaving coturn's external IP to it"
+  echo "[dev] TURN_EXTERNAL_IP override set: leaving coturn's external IP to it"
 else
   lan_ip=""
   # macOS: source IP of the default-route interface.
@@ -53,9 +53,9 @@ else
   fi
   if [ -n "$lan_ip" ]; then
     export TURN_EXTERNAL_IP="$lan_ip"
-    echo "[dev] TURN_EXTERNAL_IP auto-detected as $lan_ip (host LAN IP — same-WiFi stations relay through this). Set TURN_EXTERNAL_IP in .env to override for internet/remote stations."
+    echo "[dev] TURN_EXTERNAL_IP auto-detected as $lan_ip (host LAN IP, same-WiFi stations relay through this). Set TURN_EXTERNAL_IP in .env to override for internet/remote stations."
   else
-    echo "[dev] could not auto-detect a LAN IP — relay will fall back to public-IP discovery; set TURN_EXTERNAL_IP in .env if same-WiFi stations can't connect." >&2
+    echo "[dev] could not auto-detect a LAN IP, relay will fall back to public-IP discovery; set TURN_EXTERNAL_IP in .env if same-WiFi stations can't connect." >&2
   fi
 fi
 
@@ -114,7 +114,7 @@ watch_service() {
     current=$(find "$src_dir" -type f -exec cksum {} \; 2>/dev/null | sort)
     if [ "$current" != "$last" ]; then
       last="$current"
-      echo "[$service] source changed — rebuilding container…"
+      echo "[$service] source changed: rebuilding container…"
       podman compose up -d --build "$service"
       compute_fingerprint "$service" > "$CACHE_DIR/$service.hash"
     fi
@@ -141,14 +141,14 @@ RELAY_FP=$(compute_fingerprint relay)
 
 REBUILD=""
 if [ "${BUILD:-0}" = "1" ]; then
-  echo "[dev] BUILD=1 — forcing rebuild of relay"
+  echo "[dev] BUILD=1: forcing rebuild of relay"
   REBUILD="relay"
 else
   needs_rebuild relay "$RELAY_FP" && REBUILD="$REBUILD relay"
 fi
 
 if [ -n "$REBUILD" ]; then
-  echo "[dev] inputs changed since last build — rebuilding:$REBUILD"
+  echo "[dev] inputs changed since last build, rebuilding:$REBUILD"
   # shellcheck disable=SC2086 # intentional word-split: $REBUILD is a space-list
   podman compose up -d --build $REBUILD
 fi

@@ -6,7 +6,7 @@ namespace Gonogo.RealAntennasUplink.Tests
 {
     /// <summary>
     /// The re-derived RealAntennas link-budget math (comms-uplink-design.md
-    /// §4.3). Pure — every figure comes from RA's PUBLIC formulas/constants,
+    /// §4.3). Pure: every figure comes from RA's PUBLIC formulas/constants,
     /// reasoned not copied, and is checked against the closed-form values so a
     /// regression in the re-derivation is caught headlessly (RA itself never
     /// runs in these tests).

@@ -7,7 +7,7 @@ import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 /**
  * OrbitView DOM snapshots. The widget reads exclusively off
  * the SDK stream now, so these render through a real `TelemetryProvider` via
- * `renderOrbitViewStream` — the shared legacy `MockDataSource`
+ * `renderOrbitViewStream`: the shared legacy `MockDataSource`
  * `snapshotWidgetMode` harness no longer feeds a stream-only widget. Scenarios
  * mirror the former Telemachus fixtures as `vessel.orbit` element sets (the
  * apsis radii / true anomaly / body name are derived off the stream, not
@@ -27,7 +27,7 @@ const SCENARIOS: Record<string, OrbitScenario | null> = {
   // here. The shared `useIsOrbiting` hook reads `o.PeA`/`o.ApA`
   // (→ `vessel.state.periapsisAlt`/`apoapsisAlt`) through the still-unguarded
   // `useDataValue` shim, and `deriveVesselState`'s OnRails branch throws on
-  // the elliptical-only Kepler solver for ecc≥1 — crashing any widget that
+  // the elliptical-only Kepler solver for ecc≥1: crashing any widget that
   // reads a `vessel.state` field for a hyperbolic vessel. That's a SharedLib
   // gap (deriveVesselState should null-out rather than throw) that still
   // needs closing; OrbitView's OWN derived read is already guarded.

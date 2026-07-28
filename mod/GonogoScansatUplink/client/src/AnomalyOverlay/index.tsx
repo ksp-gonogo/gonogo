@@ -4,13 +4,13 @@
 // (`@ksp-gonogo/core`'s `mapPoi.ts`) so discovered anomalies render through
 // MapView's shared `MapPoiLayer` (packages/components/src/MapView/
 // MapPoiLayer.tsx) exactly like every other POI kind (KSC, launch sites,
-// contract targets) — one hover/action surface, no per-kind bolt-on UI.
+// contract targets): one hover/action surface, no per-kind bolt-on UI.
 //
 // Replaces the old `AnomalyOverlay` `map-view.overlay` augment (MapView
 // overlay-host foundation plan T-POI-8): that component owned its own
 // on-map markers AND a bespoke ranked-by-distance panel
 // (`rankAnomaliesByDistance`/`compassPoint`, `geometry.ts`). The panel has
-// no replacement here — dropped per the plan's default (POI design spec
+// no replacement here: dropped per the plan's default (POI design spec
 // §7.1, left open as a future "generalise a nearby-POI panel" follow-up,
 // not rebuilt in this task). What this provider gains over the old augment:
 // every anomaly now carries a "Set as Target" action for free.
@@ -29,7 +29,7 @@ import { useMemo } from "react";
 import { useScanAnomalies } from "../FogReveal/useScanLayers";
 
 /**
- * Resolve a body NAME to its `system.bodies` index — the inverse of
+ * Resolve a body NAME to its `system.bodies` index, the inverse of
  * `vanillaPoiProvider.ts`'s `useBodyNameByIndex`. Needed only here: an
  * anomaly's body is a name (`useScanAnomalies(bodyName)`), but
  * `SetTargetArgs.Position` (`tar.setTargetPosition[bodyIndex,lat,lon]`)
@@ -73,7 +73,7 @@ registerMapPoiProvider({
             label: a.detail ? a.name : "(unknown)",
             status: "info",
             meta: { known: a.known, detail: a.detail },
-            // Only dispatchable once the body index has resolved — never
+            // Only dispatchable once the body index has resolved; never
             // hand a malformed `tar.setTargetPosition[undefined,...]` command
             // to the queue while `system.bodies` is still loading.
             actions:

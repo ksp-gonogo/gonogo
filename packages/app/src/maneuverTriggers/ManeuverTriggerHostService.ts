@@ -32,13 +32,13 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * Responsibilities:
  *   - Maintain the canonical trigger list (persisted in localStorage so a
  *     reload doesn't lose armed conditions, including ones armed by a
- *     station — which is the whole point of moving them off the widget).
+ *     station, which is the whole point of moving them off the widget).
  *   - Tick at 1 Hz (alarm-style) plus on every stream frame, evaluating each
  *     trigger's condition and firing once when the comparison first holds.
  *   - On fire: recompute the plan from the trigger's frozen inputs against
  *     the *current* orbit, then dispatch each burn via the stream.
  *   - Auto-clear triggers whose observed vessel identity no longer matches
- *     the one it was armed against — a circularize armed for vessel A
+ *     the one it was armed against, a circularize armed for vessel A
  *     shouldn't fire on vessel B.
  *   - Broadcast snapshots to connected peers; accept arm / cancel from
  *     them via the host service.
@@ -46,12 +46,12 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * `readLiveOrbit()`/`readVesselName()` read the vessel's own orbit, the
  * current target's orbit, and vessel identity off the non-hook
  * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()` accessors (`@ksp-gonogo/sitrep-client`) — the same
+ * `getVesselState()` accessors (`@ksp-gonogo/sitrep-client`): the same
  * `TimelineStore` a mounted widget's `useTelemetry` would read. An armed
  * TRIGGER's own `dataKey` is an operator-picked key too, but no longer an
  * ARBITRARY one: the widget's `DataKeyPicker` only offers keys
- * `@ksp-gonogo/data`'s `useValueKeys` resolves — the Value-restricted,
- * stream-mapped set — so the threshold read (`getValue`) and the
+ * `@ksp-gonogo/data`'s `useValueKeys` resolves: the Value-restricted,
+ * stream-mapped set: so the threshold read (`getValue`) and the
  * maneuver-node fire (`dispatchActiveCommand`) both ride the stream now, the
  * same way `LocalManeuverTriggerService` does.
  */
@@ -165,13 +165,13 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
 
   private bindVesselWatcher(): void {
     // Vessel-identity/orbit reads ride the stream (`getVesselIdentity()` et
-    // al, sampled on demand — see `readLiveOrbit`/`readVesselName`), so this
+    // al, sampled on demand: see `readLiveOrbit`/`readVesselName`), so this
     // watches for a new stream FRAME rather than a legacy `v.name` value
     // emit. The same frame tick re-evaluates every armed trigger's
-    // `dataKey` threshold below (`evaluate()`) — no more per-key data-source
+    // `dataKey` threshold below (`evaluate()`): no more per-key data-source
     // subscription.
     this.vesselUnsub = onActiveTimelineFrame(() => {
-      // Vessel changed — drop triggers for the old one.
+      // Vessel changed: drop triggers for the old one.
       const live = this.readVesselName();
       const before = this.triggers.length;
       this.triggers = this.triggers.filter(
@@ -195,7 +195,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const live = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
-      // Vessel mismatch — drop.
+      // Vessel mismatch: drop.
       if (t.vesselName !== null && t.vesselName !== live) {
         this.triggers = this.triggers.filter((x) => x.id !== t.id);
         mutated = true;
@@ -247,7 +247,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         timeToAp: state?.timeToAp ?? undefined,
         timeToPe: state?.timeToPe ?? undefined,
       }),
-      // Not a data-source key: `t.universalTime` was DROPPED — this is the
+      // Not a data-source key: `t.universalTime` was DROPPED, this is the
       // SDK's own view time, read via the non-hook `getViewUt` accessor rather
       // than the legacy telemetry reader.
       currentUT: getViewUt(),

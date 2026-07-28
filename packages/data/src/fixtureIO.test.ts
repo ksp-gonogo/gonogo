@@ -7,7 +7,7 @@ import {
 } from "./fixtureIO";
 import { MemoryStore } from "./storage/MemoryStore";
 
-/** Minimal hand-built fixture — replaces the retired `synthesizeFlight` test helper for this file's own narrow needs. */
+/** Minimal hand-built fixture: replaces the retired `synthesizeFlight` test helper for this file's own narrow needs. */
 function testFixture(overrides: Partial<FlightFixture> = {}): FlightFixture {
   return {
     format: "gonogo-flight-fixture/v1",
@@ -32,7 +32,7 @@ function testFixture(overrides: Partial<FlightFixture> = {}): FlightFixture {
   };
 }
 
-describe("fixtureIO — round-trip through MemoryStore", () => {
+describe("fixtureIO: round-trip through MemoryStore", () => {
   it("import → export reproduces the same samples", async () => {
     const fixture = testFixture();
     const store = new MemoryStore();

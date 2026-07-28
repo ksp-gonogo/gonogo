@@ -39,7 +39,7 @@ describe("OrbitDiagram projected overlay", () => {
 
   it("expands the mini viewBox to contain an argPe-rotated orbit", () => {
     // At argPe=0 the orbit's wide axis is x; at argPe=90° it's y. The mini
-    // viewBox used to assume argPe=0 and would clip rotated orbits — we
+    // viewBox used to assume argPe=0 and would clip rotated orbits, we
     // now compute the rotated bbox so the orbit stays inside the frame.
     const { container } = render(
       <OrbitDiagram {...BASE} variant="mini" argPe={90} />,
@@ -86,7 +86,7 @@ describe("OrbitDiagram projected overlay", () => {
     const { container } = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} />,
     );
-    // Rotation marker is identifiable by the body-fill cross-line — a thin
+    // Rotation marker is identifiable by the body-fill cross-line, a thin
     // white-translucent line inside the body disc. No matching stroke on
     // the default render.
     const lines = Array.from(container.querySelectorAll("line"));

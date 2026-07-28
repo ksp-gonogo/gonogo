@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 
 // Sitrep.Core has no reason to carry the TS StreamData<T>/CommandResponse<TResult>
-// type parameter — Payload/Result are object?, matching how Archive already
+// type parameter: Payload/Result are object?, matching how Archive already
 // treats recorded values. These file-scoped aliases pin the closed generic
 // form so the rest of this file (and Sitrep.Core.Tests, which declares the
 // same aliases) can keep referring to the plain names StreamData /
@@ -17,10 +17,10 @@ namespace Sitrep.Core
     public delegate object? CommandHandler(string command, object? args, string node);
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-server/src/courier.ts</c>'s <c>Courier</c> —
+    /// C# port of <c>mod/sitrep-server/src/courier.ts</c>'s <c>Courier</c>:
     /// the reference delay engine for both TELEMETRY (streams) and COMMANDS
     /// (round-trip request/response). Semantics MUST stay byte-for-byte
-    /// identical to the TS reference — conformance is asserted by
+    /// identical to the TS reference: conformance is asserted by
     /// <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/courier.json</c>, not by re-deriving semantics
     /// here. If you touch this file, regenerate the fixture from the TS side
@@ -38,12 +38,12 @@ namespace Sitrep.Core
     /// then its confirmation travels downlink and is delivered back to the
     /// vantage at <c>t0 + up + down</c> (<c>up == down ==
     /// network.DelayTo(vantage, node)</c>). If the node is unreachable at
-    /// dispatch time, the command is dropped with honest silence — no
+    /// dispatch time, the command is dropped with honest silence, no
     /// execute, no response.
     ///
     /// <see cref="SnapshotCommands"/> / <see cref="RestoreCommands"/> are a
     /// C#-ONLY addition (no TS reference), scoped to the IN-FLIGHT COMMAND
-    /// QUEUE only, for M5b quicksave — see their doc comments.
+    /// QUEUE only, for M5b quicksave: see their doc comments.
     /// </summary>
     public sealed class Courier
     {
@@ -94,9 +94,9 @@ namespace Sitrep.Core
 
         // node -> topic -> the last REVEALED (i.e. already-Record()ed, so
         // already past whatever reveal gate the caller runs in front of this
-        // Courier — see Record's isKeyframe parameter) sample explicitly
+        // Courier: see Record's isKeyframe parameter) sample explicitly
         // flagged as a self-contained "keyframe" for a cursor-relative diff
-        // stream (Delivery.ReliableOrdered channels like the kOS terminal —
+        // stream (Delivery.ReliableOrdered channels like the kOS terminal,
         // see ChannelDeclaration.IsKeyframe). C#-ONLY addition, no TS
         // reference (same class as ResetTimeline / the ReliableOrdered lane
         // itself): mirrors, for an event/diff stream, what Archive's plain
@@ -156,7 +156,7 @@ namespace Sitrep.Core
         ///
         /// Honest silence on loss: if <paramref name="node"/> is unreachable
         /// from <paramref name="vantage"/> at dispatch time, the command is
-        /// dropped entirely — the handler never runs and
+        /// dropped entirely: the handler never runs and
         /// <paramref name="onResponse"/> never fires. The client is expected
         /// to infer loss via ETA timeout rather than an explicit error
         /// response.
@@ -177,8 +177,8 @@ namespace Sitrep.Core
 
             // uplinkDelaySeconds is a C#-ONLY extension (no TS reference, same
             // class as ResetTimeline / the ReliableOrdered lane): the caller
-            // can override the one-way delay with a LIVE value — the host's
-            // signal delay — so a delayed command reaches the craft at
+            // can override the one-way delay with a LIVE value, the host's
+            // signal delay: so a delayed command reaches the craft at
             // t0 + signalDelay, symmetric with the downlink reveal gate, rather
             // than the fixed network hop. Omitted (every golden-fixture call
             // site) ⇒ the historical _network.DelayTo, byte-for-byte unchanged.
@@ -258,7 +258,7 @@ namespace Sitrep.Core
         /// for every surviving subscriber.
         ///
         /// ALSO resets every node's <see cref="Archive"/> (see
-        /// <see cref="Archive.ResetTimeline"/>) — dropping this method's own
+        /// <see cref="Archive.ResetTimeline"/>): dropping this method's own
         /// pending callbacks is not enough on its own: the archive's
         /// per-(topic, vantage) cursor is a SEPARATE piece of state that
         /// survives a bare <see cref="IClock.Reset"/>, and its monotonic
@@ -272,7 +272,7 @@ namespace Sitrep.Core
         /// Also prunes <see cref="_stickyKeyframes"/> the same way (a sticky
         /// keyframe recorded on the abandoned timeline, at a UT ahead of the
         /// rewind target, must never leak to a late subscriber's catch-up
-        /// post-rewind — the same forever-erased guarantee
+        /// post-rewind: the same forever-erased guarantee
         /// <see cref="Archive.ResetTimeline"/> gives ordinary archived
         /// samples).
         /// </summary>
@@ -304,7 +304,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// C#-ONLY seam for a future M3 comms-capability provider (not yet
-        /// built — see <see cref="ResolveStaleness"/>'s doc comment): record
+        /// built: see <see cref="ResolveStaleness"/>'s doc comment): record
         /// that the link between <paramref name="vantage"/> and
         /// <paramref name="node"/> has been down since <paramref name="sinceUt"/>.
         /// Idempotent (a later call overwrites the recorded since-UT).
@@ -319,7 +319,7 @@ namespace Sitrep.Core
             byVantage[vantage] = sinceUt;
         }
 
-        /// <summary>Companion of <see cref="MarkLinkDown"/> — marks the link between <paramref name="vantage"/> and <paramref name="node"/> as currently up (a no-op if it wasn't marked down).</summary>
+        /// <summary>Companion of <see cref="MarkLinkDown"/>: marks the link between <paramref name="vantage"/> and <paramref name="node"/> as currently up (a no-op if it wasn't marked down).</summary>
         public void MarkLinkUp(string node, string vantage)
         {
             if (_linkDownSince.TryGetValue(node, out var byVantage))
@@ -333,25 +333,25 @@ namespace Sitrep.Core
         /// every current subscriber.
         ///
         /// <para><paramref name="delivery"/> selects the scheduled-delivery
-        /// LANE (a C#-ONLY addition, no TS reference — same class of
+        /// LANE (a C#-ONLY addition, no TS reference, same class of
         /// extension as <see cref="ResetTimeline"/>/<see cref="Archive.Snapshot"/>).
         /// <see cref="Delivery.LossyLatest"/> (the default, and every existing
         /// call site incl. the golden-fixture conformance tests) keeps the
         /// exact historical behaviour: each scheduled delivery RE-READS the
         /// archive at fire time via <see cref="Deliver"/>/<see cref="Archive.ReadAtVantage"/>,
-        /// resolving to the latest sample with <c>ValidAt &lt;= scene</c> —
+        /// resolving to the latest sample with <c>ValidAt &lt;= scene</c>,
         /// correct coalescing for a state topic. <see cref="Delivery.ReliableOrdered"/>
         /// instead FORWARDS the exact sample captured at schedule time,
-        /// exactly once, in record order — the right semantics for a
+        /// exactly once, in record order: the right semantics for a
         /// cursor-relative ORDERED DIFF stream (the kOS terminal), where two
         /// frames sharing a <c>ValidAt</c> must both be delivered rather than
         /// the earlier one being coalesced away by the state re-read. Delay,
         /// scheduling (<c>fireUt = validAt + delay</c>), and the rewind/
-        /// quickload drop semantics are identical across both lanes — only
+        /// quickload drop semantics are identical across both lanes, only
         /// WHAT the scheduled callback delivers differs.</para>
         ///
-        /// <para><paramref name="isKeyframe"/> — a C#-ONLY addition, no TS
-        /// reference (same class as <paramref name="delivery"/> above) —
+        /// <para><paramref name="isKeyframe"/>: a C#-ONLY addition, no TS
+        /// reference (same class as <paramref name="delivery"/> above),
         /// flags THIS sample as a self-contained sticky catch-up baseline for
         /// <paramref name="topic"/> (see <see cref="_stickyKeyframes"/> and
         /// <see cref="ChannelDeclaration.IsKeyframe"/>). Defaults to
@@ -380,7 +380,7 @@ namespace Sitrep.Core
             }
 
             // Capture the epoch this sample was recorded under, for the
-            // ReliableOrdered forward path (see below) — mirrors what
+            // ReliableOrdered forward path (see below): mirrors what
             // Archive.Record itself stamps.
             var epoch = _epoch;
 
@@ -398,7 +398,7 @@ namespace Sitrep.Core
                 if (delivery == Delivery.ReliableOrdered)
                 {
                     // Ordered-diff lane: forward THIS specific sample, once, in
-                    // record order — not a fire-time archive re-read (which
+                    // record order: not a fire-time archive re-read (which
                     // would coalesce same-ValidAt frames to the latest). The
                     // captured value/validAt/epoch are pinned in the closure so
                     // the delivery is independent of any later Record on the
@@ -458,22 +458,22 @@ namespace Sitrep.Core
 
             // Catch-up: deliver whatever has already "arrived" at this
             // vantage. isCatchUp:true is the ONLY delivery site that may
-            // stamp Staleness other than Fresh (see ResolveStaleness) — a
+            // stamp Staleness other than Fresh (see ResolveStaleness), a
             // late/reconnecting subscriber served an archived sample from
             // before a gap, per the M2 design's server-stampable half of
             // the staleness model.
             //
-            // Sticky-keyframe override (C#-ONLY, no TS reference — see
+            // Sticky-keyframe override (C#-ONLY, no TS reference: see
             // _stickyKeyframes' doc comment): if this topic has an opted-in
             // sticky keyframe, catch-up on THAT specifically rather than
             // Archive's plain "latest recorded sample" read. For a
-            // cursor-relative diff stream, the two can diverge — the latest
+            // cursor-relative diff stream, the two can diverge, the latest
             // recorded sample may be an ordinary incremental diff (recorded
             // after the last keyframe, while some earlier subscriber was
             // watching), which has no baseline for a brand-new subscriber to
             // apply it to. The sticky cache is only ever populated with
             // already-Record()ed (i.e. already past whatever reveal gate the
-            // caller runs) samples, so this is never a "reveal early" leak —
+            // caller runs) samples, so this is never a "reveal early" leak,
             // see Record's isKeyframe parameter.
             if (_stickyKeyframes.TryGetValue(node, out var stickyByTopic) && stickyByTopic.TryGetValue(topic, out var sticky))
             {
@@ -489,7 +489,7 @@ namespace Sitrep.Core
             // Without this, a subscriber joining mid-transit gets neither the
             // catch-up (which only returns already-arrived samples) nor a
             // record-time schedule (Record() only schedules for subscribers
-            // present at the time it ran) — a permanent miss. "Arrived"
+            // present at the time it ran): a permanent miss. "Arrived"
             // (<= now, handled by the catch-up above) and "in flight" (> now,
             // handled here) are disjoint, so this never double-delivers.
             foreach (var sample in ArchiveFor(node).Samples(topic))
@@ -514,7 +514,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Deliver to <paramref name="subscriber"/> as of
-        /// <paramref name="fireUt"/> — the UT this delivery was scheduled to
+        /// <paramref name="fireUt"/>: the UT this delivery was scheduled to
         /// fire at (or <c>clock.Now()</c> for a synchronous catch-up).
         /// Callers MUST pass the delivery's own scheduled fire-UT rather than
         /// re-reading <c>clock.Now()</c>: <see cref="ManualClock.AdvanceTo"/>
@@ -527,7 +527,7 @@ namespace Sitrep.Core
         private void Deliver(string node, string topic, Subscriber subscriber, double fireUt, bool isCatchUp = false)
         {
             // Recomputed here rather than reusing the delay captured at
-            // Record()/SubscribeStream() time — this assumes the delay is
+            // Record()/SubscribeStream() time: this assumes the delay is
             // unchanged between when the delivery was scheduled and when it
             // fires (true for M3's static point-to-point model).
             var delay = _network.DelayTo(subscriber.Vantage, node);
@@ -541,13 +541,13 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Deliver the SPECIFIC <paramref name="forwarded"/> sample captured
-        /// when this delivery was scheduled — the <see cref="Delivery.ReliableOrdered"/>
+        /// when this delivery was scheduled, the <see cref="Delivery.ReliableOrdered"/>
         /// lane (see <see cref="Record"/>). Unlike <see cref="Deliver"/> this
         /// does NOT re-read the archive at fire time, so a burst of frames
         /// sharing a <c>ValidAt</c> each forwards its own value in record order
         /// instead of every scheduled read resolving the coalesced latest.
         /// Never a catch-up (the synchronous catch-up + in-flight reschedule in
-        /// <see cref="SubscribeStream"/> deliberately stay on the re-read lane —
+        /// <see cref="SubscribeStream"/> deliberately stay on the re-read lane,
         /// a late joiner is reseeded, not replayed the whole diff history), so
         /// staleness is always <see cref="Staleness.Fresh"/>.
         /// </summary>
@@ -570,20 +570,20 @@ namespace Sitrep.Core
         /// <summary>
         /// Resolves the wire <see cref="Staleness"/> for a CATCH-UP delivery
         /// only (see <see cref="Deliver"/>'s <c>isCatchUp</c> parameter and
-        /// <see cref="SubscribeStream"/>'s doc comment) — every other
+        /// <see cref="SubscribeStream"/>'s doc comment): every other
         /// delivery stays <see cref="Staleness.Fresh"/> unconditionally.
         /// Consults <see cref="MarkLinkDown"/>/<see cref="MarkLinkUp"/>'s
         /// per-(node, vantage) state, the M2 seam a future M3 comms-capability
         /// provider drives: no link marked down -> Fresh (the served sample
         /// is, by construction of <see cref="Archive.ReadAtVantage"/>, always
-        /// the freshest available as of this vantage's scene — an old
+        /// the freshest available as of this vantage's scene, an old
         /// <c>validAt</c> on a change-gated channel is FRESH, never inferred
         /// stale from age alone, per the design doc §4.1). A link marked
         /// down -&gt; the served sample predates or coincides with the known
-        /// blackout start (<c>ValidAt &lt;= sinceUt</c>): <see cref="Staleness.LastBeforeBlackout"/>
-        /// — honestly "the last thing that got out before the blackout".
+        /// blackout start (<c>ValidAt &lt;= sinceUt</c>): <see cref="Staleness.LastBeforeBlackout"/>,
+        /// honestly "the last thing that got out before the blackout".
         /// The defensive fallback (link down but the served sample's
-        /// <c>ValidAt</c> is somehow AFTER the known blackout start — should
+        /// <c>ValidAt</c> is somehow AFTER the known blackout start, should
         /// not happen if the link genuinely dropped every delivery, but
         /// costs nothing to guard) is <see cref="Staleness.HeldStale"/>.
         /// </summary>
@@ -652,7 +652,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Whether <paramref name="node"/>'s archive currently has ANY
         /// surviving tail sample (value or tombstone) for
-        /// <paramref name="topic"/> — see <see cref="Archive.HasAnyTail"/>.
+        /// <paramref name="topic"/>: see <see cref="Archive.HasAnyTail"/>.
         /// Deliberately reads <see cref="_archives"/> directly (rather than
         /// through <see cref="ArchiveFor"/>) so querying a node/topic that
         /// has never recorded anything doesn't side-effect an empty
@@ -668,7 +668,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Capture every in-flight (dispatched, not-yet-confirmed) command as
-        /// a plain <see cref="CommandQueueState"/> POCO — requestId, node,
+        /// a plain <see cref="CommandQueueState"/> POCO: requestId, node,
         /// command, args, vantage, and its scheduled execute/confirm UTs.
         /// C#-ONLY (no TS reference), for M5b quicksave.
         ///
@@ -676,7 +676,7 @@ namespace Sitrep.Core
         /// <see cref="Archive"/> is persisted separately (Task 4's
         /// <see cref="Archive.Snapshot"/>/<see cref="Archive.Restore"/>), and
         /// telemetry subscriptions + their scheduled deliveries are
-        /// runtime/derivable state, NOT persisted here — a reconnecting
+        /// runtime/derivable state, NOT persisted here: a reconnecting
         /// client is expected to re-subscribe (which re-triggers the
         /// catch-up + in-flight scheduling in <see cref="SubscribeStream"/>
         /// against the restored archive), rather than the Courier trying to
@@ -691,7 +691,7 @@ namespace Sitrep.Core
         /// If a snapshot is taken AFTER a command's execute UT has already
         /// elapsed (but before its confirm), restoring on a clock whose
         /// current UT is at or past that execute UT will invoke the command
-        /// handler again on the very next <c>AdvanceTo</c> — full
+        /// handler again on the very next <c>AdvanceTo</c>, full
         /// exactly-once replay across an execute/confirm-straddling
         /// snapshot is an M5b integration concern, not solved here.
         /// </summary>
@@ -716,14 +716,14 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Re-establish every command captured by <see cref="SnapshotCommands"/>
-        /// against THIS Courier — re-scheduling each command's original
+        /// against THIS Courier: re-scheduling each command's original
         /// execute UT and confirm UT on this Courier's Clock so it matures
         /// and confirms at the same UTs it would have without the
         /// save/load round trip.
         ///
         /// <paramref name="onResponse"/> is a SINGLE handler shared by every
         /// restored command (rather than one closure per command, which is
-        /// exactly the state a save/load round trip cannot carry) — the
+        /// exactly the state a save/load round trip cannot carry), the
         /// realistic post-restore shape is a generic response router that
         /// dispatches to whoever is waiting on a given <c>requestId</c>, not
         /// a per-dispatch callback resurrected from before the save. Call
@@ -754,7 +754,7 @@ namespace Sitrep.Core
 
     /// <summary>
     /// Plain BCL-only POCO snapshot of a <see cref="Courier"/>'s IN-FLIGHT
-    /// COMMAND QUEUE (dispatched, not-yet-confirmed commands only) — see
+    /// COMMAND QUEUE (dispatched, not-yet-confirmed commands only): see
     /// <see cref="Courier.SnapshotCommands"/> / <see cref="Courier.RestoreCommands"/>.
     /// Deliberately NOT serialization-aware, matching <see cref="ArchiveState"/>:
     /// <c>Sitrep.Core</c> has ZERO external dependencies, so this type

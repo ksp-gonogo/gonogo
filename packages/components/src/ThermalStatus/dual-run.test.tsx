@@ -7,21 +7,21 @@ import { ThermalStatusComponent } from "./index";
 
 /**
  * ThermalStatus's reads (`index.tsx`: `useTelemetry("vessel.thermal")?.<field>`)
- * are ALL ONE-ARG canonical reads now — none of them has a legacy fallback at
+ * are ALL ONE-ARG canonical reads now, none of them has a legacy fallback at
  * all. The original version of this test rendered the SAME reentry-warning
  * state once off a legacy `DataSource` (`snapshotWidgetMode`, which mounts no
  * `TelemetryProvider`) and once off the stream, asserting byte-identical DOM;
- * that comparison is no longer possible — the legacy leg now renders nothing
+ * that comparison is no longer possible, the legacy leg now renders nothing
  * but "No thermal data", since every one of its reads is stream-only. Same
  * underlying cause (full canonical migration, not a test bug) as every other
  * widget's own `dual-run.test.tsx` dropping its now-impossible legacy leg.
  *
  * What remains, and is still worth its own file: the real recorded
- * `reentry-warning` fixture — hottest part in the "warm" band (81% ratio,
+ * `reentry-warning` fixture: hottest part in the "warm" band (81% ratio,
  * distinct yellow tone from "nominal"), hot heat shield under flux, cool
- * throttled-off engine — run genuinely through the stream pipeline.
+ * throttled-off engine: run genuinely through the stream pipeline.
  */
-describe("ThermalStatus — real reentry-warning fixture render off the stream (delay=0)", () => {
+describe("ThermalStatus: real reentry-warning fixture render off the stream (delay=0)", () => {
   it("renders the hottest-part warm band, heat shield flux, and cool engine off the stream, no legacy leg", async () => {
     const mode = { name: "default-8x7", w: 8, h: 7 };
 
@@ -62,7 +62,7 @@ describe("ThermalStatus — real reentry-warning fixture render off the stream (
     });
 
     expect(screen.getByText("Heat Shield (2.5m)")).toBeInTheDocument();
-    // "warm" appears twice — the compact pill and the hottest-part row's tag.
+    // "warm" appears twice: the compact pill and the hottest-part row's tag.
     expect(screen.getAllByText("warm").length).toBe(2);
     // skinMaxTemp (2400 K) -> kelvinToCelsius -> 2127°C.
     expect(screen.getByText("/ 2127°C max")).toBeInTheDocument();

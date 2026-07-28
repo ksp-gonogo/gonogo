@@ -8,7 +8,7 @@ on:
     # once it's green.
     #
     # `staging` is the long-lived integration branch where large multi-task
-    # work accumulates before a squash to main. It MUST get CI — without it a
+    # work accumulates before a squash to main. It MUST get CI, without it a
     # whole feature branch runs unvalidated (test/e2e/visual never fire), which
     # is exactly how a batch of e2e failures reached the branch unnoticed
     # (2026-07-17). Only main pushes trigger the deploy (deploy.yml gates on
@@ -18,7 +18,7 @@ on:
     branches: [main]
   # Manual trigger: run CI on any ref on demand. Needed because a baseline
   # regen (update-baselines.yml) commits with GITHUB_TOKEN, and a token push
-  # does NOT trigger a workflow run — so the regenerated-baseline tip would
+  # does NOT trigger a workflow run, so the regenerated-baseline tip would
   # otherwise never get a CI run to prove the visual gate is green.
   workflow_dispatch:
 
@@ -66,7 +66,7 @@ jobs:
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
   #
-  # SCOPING — only the KSP-INDEPENDENT projects are built/tested here.
+  # SCOPING: only the KSP-INDEPENDENT projects are built/tested here.
   # Gonogo.KSP, GonogoKosUplink, and GonogoScansatUplink reference KSP/Unity/
   # SCANsat/kOS assemblies via HintPaths into a gitignored local KSP install
   # (local_docs/…/references/*.dll, local_docs/reference/{kos,scansat}), so
@@ -75,7 +75,7 @@ jobs:
   # KSP-free projects explicitly rather than build the solution.
   # FOLLOW-UP: to gate the KSP-facing projects in CI we need vendored KSP/
   # SCANsat/kOS reference assemblies (a curated ref-DLL set committed or
-  # fetched at CI time) — tracked separately.
+  # fetched at CI time): tracked separately.
   #
   # dotnet test takes a single project, so we iterate the test-project list.
   # The shape-gate (ContractShapeGateTests) lives in Sitrep.Host.Tests and is
@@ -91,7 +91,7 @@ jobs:
 
       # The headless kOS terminal harness (GonogoKosUplink.Tests/Headless) needs
       # kOS.Safe.dll + kOS.dll, which live in the private ksp-managed
-      # reference-assembly repo (GameData/kOS/Plugins/) — the same repo the
+      # reference-assembly repo (GameData/kOS/Plugins/): the same repo the
       # release-build workflows already consume (see _build-uplink-mod.yml).
       # continue-on-error + the presence check below mean a missing token or
       # repo access simply SOFT-DEGRADES: GonogoKosUplink.Tests still builds and runs
@@ -117,9 +117,9 @@ jobs:
           kos_args=""
           if [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.Safe.dll" ] && [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.dll" ]; then
             kos_args="/p:KspGameData=$KSP_GAMEDATA"
-            echo "kOS reference assemblies present — headless terminal harness ENABLED"
+            echo "kOS reference assemblies present: headless terminal harness ENABLED"
           else
-            echo "::warning::kOS reference assemblies absent — headless kOS terminal harness SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
+            echo "::warning::kOS reference assemblies absent: headless kOS terminal harness SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
           fi
           projects=(
             Sitrep.Core.Tests
@@ -138,14 +138,14 @@ jobs:
           # The real-WebSocket integration suites are CPU-fragile on the shared
           # CI runner: the in-process test server's pump competes with client
           # work on the thread pool, so on a slow/loaded runner instance a
-          # ReceiveAsync never resumes and the op hangs — a DIFFERENT ~5-7 of the
+          # ReceiveAsync never resumes and the op hangs, a DIFFERENT ~5-7 of the
           # heaviest tests each run, never on a fast box. Exhaustively confirmed
           # via a podman --cpus=2 repro: it is NOT fixable by bigger timeouts
-          # (still hung 4-5/81 at 120s — genuine starvation, not slowness) nor by
+          # (still hung 4-5/81 at 120s: genuine starvation, not slowness) nor by
           # in-job retries (same slow runner instance). The suites pass 81/81 on
           # a fast runner. So:
           #   - Sitrep.Skeleton.Tests: retried, still BLOCKING (it recovers).
-          #   - Sitrep.Host.IntegrationTests: retried, NON-BLOCKING signal — a
+          #   - Sitrep.Host.IntegrationTests: retried, NON-BLOCKING signal, a
           #     slow-runner hang must not gate the deploy of an already-green app
           #     whose engine is separately validated live in KSP. Real failures
           #     still surface as warnings in the log.
@@ -173,7 +173,7 @@ jobs:
             echo "::endgroup::"
             if [ "$ok" != 1 ]; then
               if [[ "$nonblocking" == *" $p "* ]]; then
-                echo "::warning::$p failed after $attempts attempt(s) — NON-BLOCKING (CPU-fragile WS harness on this runner; see mod-job note). Not failing the job."
+                echo "::warning::$p failed after $attempts attempt(s): NON-BLOCKING (CPU-fragile WS harness on this runner; see mod-job note). Not failing the job."
               else
                 echo "::error::$p failed after $attempts attempt(s)"; exit 1
               fi
@@ -216,7 +216,7 @@ jobs:
 
       # turbo build so the Playwright webServers (relay via tsx, app via
       # vite) have all workspace dists. Cache is local-only, so each matrix
-      # job builds independently — costs CPU, not wall-time (jobs run in
+      # job builds independently: costs CPU, not wall-time (jobs run in
       # parallel).
       - name: Build workspace
         run: pnpm build
@@ -238,7 +238,7 @@ jobs:
   # Per-engine visual regression gate. Renders every widget through the probe
   # harness for one engine and diffs each against its committed baseline under
   # packages/components/visual-baselines/<engine>/. Its own matrix job with no
-  # `needs`, so all three legs run concurrently with `test` and `e2e` — wall
+  # `needs`, so all three legs run concurrently with `test` and `e2e`, wall
   # time stays ≈ one engine's run. Baselines are Linux-generated (see the
   # update-baselines workflow); on drift the baseline/actual/diff PNGs upload
   # as an artifact.
@@ -275,7 +275,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # The render harness esbuild-bundles component source, which imports the
-      # workspace packages from their built dists — so build components and its
+      # workspace packages from their built dists: so build components and its
       # dependency graph (lighter than a full `pnpm build`; no app/relay needed
       # since the harness doesn't use Playwright webServers).
       - name: Build render dependencies

@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using UnityEngine;
@@ -7,7 +7,7 @@ namespace Gonogo.KosUplink
 {
     /// <summary>
     /// Drains <see cref="Dispatcher"/> once per Unity frame, on the KSP
-    /// main thread — the ONLY place a kOS API call from this uplink may
+    /// main thread: the ONLY place a kOS API call from this uplink may
     /// happen (local_docs/telemetry-mod/kos-migration-spec.md §2). Owned
     /// by <see cref="KosExtension"/>, which instantiates exactly one of
     /// these on a dedicated, <c>DontDestroyOnLoad</c> GameObject during
@@ -18,11 +18,11 @@ namespace Gonogo.KosUplink
     /// and Gonogo.KosUplink is a separately-deployed, optional uplink with no
     /// compile-time hook into core Gonogo's addon to auto-instantiate
     /// alongside. Instead this component is added programmatically from
-    /// <see cref="KosExtension.Register"/> — a call the
+    /// <see cref="KosExtension.Register"/>: a call the
     /// <c>ISitrepUplink</c> contract already guarantees happens on the
-    /// main thread — so no separate KSPAddon entry point is needed for P0.
+    /// main thread: so no separate KSPAddon entry point is needed for P0.
     /// (Getting <see cref="KosExtension"/> registered into a live,
-    /// running <c>ChannelEngine</c> at all is itself deferred — see
+    /// running <c>ChannelEngine</c> at all is itself deferred; see
     /// <see cref="KosExtension"/>'s doc comment.)
     /// </summary>
     public sealed class KosMainThreadDispatcherAddon : MonoBehaviour

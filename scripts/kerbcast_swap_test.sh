@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# kerbcast_swap_test.sh — swap the deployed Kerbcast.dll (and TUFX profile)
+# kerbcast_swap_test.sh: swap the deployed Kerbcast.dll (and TUFX profile)
 # between pre-built test stages without rebuilding.
 #
 # Each stage corresponds to a kerbcast branch + a cached DLL in
 # /tmp/kerbcast-test-artifacts/. Swapping in a new DLL requires a KSP
-# restart — KSP loads plugin DLLs once at boot.
+# restart: KSP loads plugin DLLs once at boot.
 #
 # Stages:
 #   test1   main                            no TUFX, no Hullcam filters

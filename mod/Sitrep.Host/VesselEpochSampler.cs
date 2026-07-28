@@ -4,7 +4,7 @@ namespace Sitrep.Host
     /// <summary>
     /// Detects an active-vessel GUID change (docking/undocking/EVA/vessel
     /// switch) and forces an unconditional keyframe on every
-    /// <c>vessel.*</c> channel for that same tick — the "subject provenance +
+    /// <c>vessel.*</c> channel for that same tick: the "subject provenance +
     /// epoching" rule from local_docs/telemetry-mod/m1-provider-taxonomy-design.md
     /// §6.1: without this, a station's <c>vessel.*</c> timeline would
     /// silently interleave two different physical objects across the
@@ -14,8 +14,8 @@ namespace Sitrep.Host
     /// KSP-free (this is the reusable, headlessly-testable half of the
     /// mechanism); <c>Gonogo.KSP.VesselUplink</c> only constructs and
     /// registers one instance via <see cref="IUplinkHost.AddSampler"/>.
-    /// Registering it as an <see cref="ISnapshotSampler"/> — rather than
-    /// detecting the change inside one of the channel mappers themselves —
+    /// Registering it as an <see cref="ISnapshotSampler"/>: rather than
+    /// detecting the change inside one of the channel mappers themselves,
     /// guarantees the force happens BEFORE any of this tick's channel
     /// <c>Decide</c> calls, regardless of the engine's channel-source
     /// iteration order: <c>ChannelEngine.ProcessTick</c> runs every
@@ -24,12 +24,12 @@ namespace Sitrep.Host
     ///
     /// <see cref="IUplinkHost.ForceKeyframe"/> is the same mechanism a
     /// genuine 0→1 subscribe transition already uses internally
-    /// (<c>ChannelEmitter.NotifySubscribed</c>) — reused here rather than
+    /// (<c>ChannelEmitter.NotifySubscribed</c>): reused here rather than
     /// inventing a second "unconditional next emission" concept.
     ///
     /// Also calls <see cref="IUplinkHost.ResetChannelBirth"/> for the same
-    /// topic set, ALONGSIDE (not instead of) <see cref="IUplinkHost.ForceKeyframe"/>
-    /// — the M2 subject-scoped-birth fix. Without this, the engine's
+    /// topic set, ALONGSIDE (not instead of) <see cref="IUplinkHost.ForceKeyframe"/>,
+    /// the M2 subject-scoped-birth fix. Without this, the engine's
     /// per-topic "has this channel ever emitted a real value" birth-guard
     /// (see <c>ChannelEngine</c>'s <c>_born</c> field) is keyed purely by
     /// topic, not by (topic, subject): switching to a vessel that has never

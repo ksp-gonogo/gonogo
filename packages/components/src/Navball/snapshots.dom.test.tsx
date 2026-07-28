@@ -1,5 +1,5 @@
 /**
- * Widget-level DOM snapshots — complements the dial-only SVG snapshot
+ * Widget-level DOM snapshots: complements the dial-only SVG snapshot
  * in `snapshots.test.ts` by covering the full Navball widget (header,
  * mode badges, dial, throttle column, control surface) across every
  * registered mode. The matching PNG renders live in
@@ -7,7 +7,7 @@
  *
  * Every value read is off the stream now (vessel.attitude / vessel.control /
  * the derived vessel.state / comms.delay), so these render through a real
- * `TelemetryProvider` via `setupStreamFixture` — the shared legacy
+ * `TelemetryProvider` via `setupStreamFixture`: the shared legacy
  * `MockDataSource` `snapshotWidgetMode` harness no longer feeds a stream-only
  * widget. The legacy fixtures' keys are reshaped onto the wire topics before
  * emitting.

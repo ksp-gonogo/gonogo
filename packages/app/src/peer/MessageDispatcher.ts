@@ -7,7 +7,7 @@ import type { PeerMessage } from "./protocol";
  *
  * Iteration is synchronous: `dispatch(msg, ctx)` looks up the handler
  * for `msg.type` and calls it inline. That preserves listener-fire
- * ordering across handler boundaries — tests that observe the order
+ * ordering across handler boundaries: tests that observe the order
  * messages are processed (e.g. `peer-client-service.test.ts:123`) keep
  * working without change.
  */

@@ -10,14 +10,14 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-side tests for <see cref="Courier.Record"/>'s per-channel delivery
-    /// LANE — a C#-ONLY capability (no TS reference / golden fixture, same
+    /// LANE: a C#-ONLY capability (no TS reference / golden fixture, same
     /// rationale as <see cref="CourierTimelineResetTests"/>).
     ///
     /// <para><see cref="Delivery.ReliableOrdered"/> (the kOS terminal's
     /// cursor-relative ordered-diff stream) must forward every recorded sample
     /// exactly once, in record order, even when a burst shares a single
-    /// <c>ValidAt</c> — the shape the ~20Hz terminal poll produces within one
-    /// Courier tick. <see cref="Delivery.LossyLatest"/> (every state topic —
+    /// <c>ValidAt</c>: the shape the ~20Hz terminal poll produces within one
+    /// Courier tick. <see cref="Delivery.LossyLatest"/> (every state topic,
     /// orbit, resources, comms) must keep the exact historical re-read
     /// behaviour: each scheduled delivery resolves the LATEST sample as of its
     /// vantage scene, coalescing a same-<c>ValidAt</c> burst to the final
@@ -40,7 +40,7 @@ namespace Sitrep.Core.Tests
             var delivered = new List<object?>();
             courier.SubscribeStream(Node, "kos.terminal.7", Vantage, data => delivered.Add(data.Payload));
 
-            // Three ordered-diff frames stamped at the SAME ValidAt — the
+            // Three ordered-diff frames stamped at the SAME ValidAt, the
             // same-tick collision the terminal poll produces. A re-read lane
             // coalesces these to the latest ("chunk-3" x3); the ReliableOrdered
             // lane must forward all three, in order.
@@ -67,7 +67,7 @@ namespace Sitrep.Core.Tests
 
             // A same-ValidAt burst still rides the delay: every frame is
             // revealed at validAt + delay = 105, unchanged from the re-read
-            // lane's scheduling — only WHAT is forwarded differs.
+            // lane's scheduling: only WHAT is forwarded differs.
             courier.Record(Node, "kos.terminal.7", "a", 100, Delivery.ReliableOrdered);
             courier.Record(Node, "kos.terminal.7", "b", 100, Delivery.ReliableOrdered);
 
@@ -90,7 +90,7 @@ namespace Sitrep.Core.Tests
             var delivered = new List<object?>();
             courier.SubscribeStream(Node, "bodies", Vantage, data => delivered.Add(data.Payload));
 
-            // Default (LossyLatest) — the state-topic guardrail. Three samples
+            // Default (LossyLatest): the state-topic guardrail. Three samples
             // at one ValidAt schedule three re-read deliveries; each resolves
             // the latest ("s3"), so the burst coalesces exactly as before the
             // reclassify. Proves the shared Deliver change did NOT alter state
@@ -126,7 +126,7 @@ namespace Sitrep.Core.Tests
             clock.AdvanceTo(60);
 
             // "abandoned" belonged to the dropped timeline; its captured-sample
-            // closure must never fire — same drop the re-read lane gives.
+            // closure must never fire, same drop the re-read lane gives.
             Assert.Equal(new List<object?> { "pre", "resumed" }, delivered);
         }
     }

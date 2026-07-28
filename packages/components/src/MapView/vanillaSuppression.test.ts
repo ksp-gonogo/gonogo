@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
 // Regression guard (2026-07-20): a `map-view.base` augment's presence in the
-// REGISTRY is not the same as its Domain being LIVE — the client bundle that
+// REGISTRY is not the same as its Domain being LIVE, the client bundle that
 // registers an augment (e.g. via an unconditional `import "@ksp-gonogo/..."`
 // in the app's entry point) always registers it, whether or not the mod is
 // actually running in KSP. Suppressing the vanilla base purely off registry
@@ -10,7 +10,7 @@ import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 // nothing to draw on it. Suppression must therefore respect the SAME
 // availability signal `AugmentSlot` uses to decide whether to render an
 // augment's own component at all (see `useAugmentAvailable`,
-// packages/core/src/AugmentSlot.tsx) — "don't like it, don't have the
+// packages/core/src/AugmentSlot.tsx): "don't like it, don't have the
 // Uplink" means the Domain is live, not merely that the bundle exists.
 
 describe("shouldSuppressVanillaBase", () => {

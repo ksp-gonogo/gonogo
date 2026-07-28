@@ -3,11 +3,11 @@ using Sitrep.Contract;
 namespace Gonogo.KerbcastUplink
 {
     /// <summary>
-    /// The kerbcast MANDATORY HEALTHCHECK — as a pure function.
+    /// The kerbcast MANDATORY HEALTHCHECK: as a pure function.
     ///
     /// <para>This is the reason the kerbcast Uplink exists. Before it, the only
     /// "Kerbcast health" surface read the browser's own
-    /// <c>KerbcastDataSource.status</c> — a client-side view of a separate
+    /// <c>KerbcastDataSource.status</c>: a client-side view of a separate
     /// WebRTC connection, which bypassed the mod contract entirely and was
     /// deleted in <c>45111e44</c> ("the Uplinks list is contract-only"). An
     /// Uplink gets a healthcheck for free by implementing

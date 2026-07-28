@@ -2,8 +2,8 @@
 /**
  * Render one widget (`render-widget navball`) or every widget
  * (`render-widget --all`) through the shared playwright harness. Reads
- * configs from `widgets.ts`; new widgets are added by editing that file
- * — no package.json change, no new CLI script.
+ * configs from `widgets.ts`; new widgets are added by editing that file,
+ * no package.json change, no new CLI script.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-widget …`.
  * Pass `--engine chromium|firefox|webkit` to pick the browser (default
@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   const renderOpts = {
     engine,
     outSuffix: engine === "chromium" ? "" : `--${engine}`,
-    // Review renders show the WHOLE widget, uncropped — grow past the tile
+    // Review renders show the WHOLE widget, uncropped, grow past the tile
     // height so nothing is hidden below the fold. Harness-wide (every widget),
     // distinct from the visual gate which keeps its per-tile crops.
     fullContent: true,

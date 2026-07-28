@@ -1,8 +1,8 @@
 /**
- * Widget DOM mirror — ManeuverPlanner. Asserts the panel title and both
+ * Widget DOM mirror: ManeuverPlanner. Asserts the panel title and both
  * section titles render identically on host and station.
  *
- * The recorded fixture does NOT ship any maneuver node — it carries no
+ * The recorded fixture does NOT ship any maneuver node, it carries no
  * `vessel.maneuver` (nor the legacy `o.maneuverNodes`), so `useManeuverNodes`
  * returns an empty list and ManeuverNodeList shows its empty state, not a
  * NodeRow. This test does not exercise node data at all: the section titles
@@ -19,7 +19,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — ManeuverPlanner", () => {
+test.describe("widget DOM mirror: ManeuverPlanner", () => {
   test("section titles mirror across host and station", async ({ browser }) => {
     const pair = await bootstrapPair(browser, "maneuver-planner", {
       widget: { size: { w: 10, h: 18 } },

@@ -29,6 +29,7 @@ import {
   useModalSaveBar,
   WidgetHeader,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   type ReactNode,
   useCallback,
@@ -81,7 +82,7 @@ function computeXDomain(
 }
 
 function formatReadoutValue(value: number): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return NULL_DISPLAY;
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (abs >= 10_000) return `${(value / 1_000).toFixed(1)}k`;
@@ -110,7 +111,7 @@ function resolveAxes(
   // A missing axis field means "auto": the config form writes "auto"
   // explicitly, but programmatic / imported / older persisted configs omit
   // the field entirely. Passing the raw undefined through put the series on
-  // NEITHER axis — the domain computation saw no data (fell back to [0,1])
+  // NEITHER axis: the domain computation saw no data (fell back to [0,1])
   // while the path builder still plotted real values against that
   // degenerate scale, blasting the curves off-canvas.
   const axisOf = (c: GraphSeriesConfig) => c.axis ?? "auto";
@@ -132,7 +133,7 @@ function resolveAxes(
 // ── GraphView ────────────────────────────────────────────────────────────────
 //
 // The shared rendering engine. Takes a resolved GraphConfig and optional
-// reference curves (pre-computed by the caller — typically a domain-specific
+// reference curves (pre-computed by the caller: typically a domain-specific
 // preset widget like OrbitalAscent that wants to overlay an ideal curve on top
 // of live telemetry). Curves are injected as synthetic ChartSeries entries
 // alongside the live ones; the X domain expands to cover them.
@@ -141,7 +142,7 @@ function resolveAxes(
  * A pre-computed reference curve to overlay on the chart. The caller is
  * responsible for sampling whatever function it wants to display (e.g.
  * `circularOrbitVelocity` over an altitude range) and producing the parallel
- * `xs` / `ys` arrays. No data subscription happens for these — they are
+ * `xs` / `ys` arrays. No data subscription happens for these, they are
  * static for the lifetime of the prop.
  */
 export interface ReferenceCurve {
@@ -166,11 +167,11 @@ interface GraphViewProps {
   emptyState?: string;
   /**
    * Right-aligned slot in the header row, next to the title (e.g. a
-   * `StreamStatusBadge`). Renders nothing when omitted — every existing
+   * `StreamStatusBadge`). Renders nothing when omitted, every existing
    * `GraphView` consumer is unaffected.
    */
   headerActions?: ReactNode;
-  /** Current widget grid size — used to resolve the `"auto"` display variant. */
+  /** Current widget grid size: used to resolve the `"auto"` display variant. */
   w?: number;
   h?: number;
 }
@@ -204,13 +205,13 @@ export function GraphView({
   const xMeta = xIsTime ? null : (metaMap.get(xKey) ?? null);
 
   // Resolve variant up-front so the ResizeObserver below knows which element
-  // to observe — chart and readout render different children behind the same
+  // to observe: chart and readout render different children behind the same
   // ref, so we re-bind the observer when the variant flips.
   const requestedVariant: GraphVariant = config?.variant ?? "auto";
   const hasReferenceCurves = !!referenceCurves && referenceCurves.length > 0;
   const sizeBucket = getSizeBucket(w, h);
   const canReadout = series.length === 1 && !hasReferenceCurves;
-  // Auto downgrades to readout for both `tiny` and `small` — at "small" the
+  // Auto downgrades to readout for both `tiny` and `small`, at "small" the
   // chart axes/legend get squashed enough that a number + sparkline reads
   // better. Mobile half-width cells land in `tiny`, mobile full-width and
   // desktop-shrunk widgets land in `small`.
@@ -226,7 +227,7 @@ export function GraphView({
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind the observer when the variant flips — chart and readout share `containerRef` but render different elements, so the ref points to a fresh node.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind the observer when the variant flips, chart and readout share `containerRef` but render different elements, so the ref points to a fresh node.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -247,7 +248,7 @@ export function GraphView({
   >(new Map());
   const [xData, setXData] = useState<SeriesRange<number>>({ t: [], v: [] });
 
-  // Clear stale X buffer when the X key changes — otherwise the first frame
+  // Clear stale X buffer when the X key changes; otherwise the first frame
   // after reconfigure pairs new Y against the previous key's values.
   // biome-ignore lint/correctness/useExhaustiveDependencies: xKey is a trigger, not a read inside the body
   useEffect(() => {
@@ -288,7 +289,7 @@ export function GraphView({
       const highData = xIsTime
         ? { x: rawHigh.t, y: rawHigh.v as number[] }
         : alignXY(rawHigh as SeriesRange<number>, xData);
-      // Pair by index — both are clipped to the shared window already, and
+      // Pair by index, both are clipped to the shared window already, and
       // for time-X both fetchers share the same windowSec so lengths align.
       // Mismatched lengths fall through to LineChart's safe band builder
       // which clamps to the shortest array.
@@ -305,7 +306,7 @@ export function GraphView({
     };
   });
 
-  // Extra data keys that need their own fetchers — band upper bounds.
+  // Extra data keys that need their own fetchers, band upper bounds.
   // Series order is stable so duplicate keys (band low + line elsewhere)
   // are deduped at render-time by the seriesData map keying on data-key.
   const extraFetchKeys = series
@@ -360,7 +361,7 @@ export function GraphView({
         <PanelSubtitle>{seriesLabel}</PanelSubtitle>
         <ReadoutBody ref={containerRef}>
           <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
-            {latest !== undefined ? formatReadoutValue(latest) : "—"}
+            {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
             {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
           </BigReadout>
           <SparkSlot>
@@ -590,7 +591,7 @@ function GraphConfigComponent({
   const seriesCount = seriesList.filter((s) => s.key !== "").length;
   const variantHint =
     variant === "readout" && seriesCount !== 1
-      ? "Readout requires exactly one series — falls back to chart until configured."
+      ? "Readout requires exactly one series, falls back to chart until configured."
       : variant === "auto"
         ? "Shows the latest number + sparkline when the widget is tiny and a single series is configured. Otherwise renders the chart."
         : undefined;
@@ -893,7 +894,7 @@ registerComponent<GraphConfig>({
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },
-  // Plot area collapses below ~240px tall — give graphs extra room on mobile.
+  // Plot area collapses below ~240px tall: give graphs extra room on mobile.
   mobileHeight: 280,
   component: GraphComponent,
   configComponent: GraphConfigComponent,

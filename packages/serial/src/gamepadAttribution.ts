@@ -1,6 +1,6 @@
 // Attribution data for the vendored gamepad glyphs (see gamepadGlyphs.ts for
 // the assets themselves). CC BY 3.0 is prescriptive about *how* credit is
-// given — each pack's own LICENSE.txt (in the source repo) states a "must
+// given: each pack's own LICENSE.txt (in the source repo) states a "must
 // include" block naming the product title, author, source, and licence,
 // and requires disclosing that changes were made. This is surfaced in the
 // Input Devices menu (see SerialDevicesMenu/index.tsx) to satisfy that.

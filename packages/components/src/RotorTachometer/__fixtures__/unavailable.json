@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "unavailable",
-    "notes": "Breaking Ground not installed — muted empty state, no rotors."
+    "notes": "Breaking Ground not installed: muted empty state, no rotors."
   },
   "robotics.available": false,
   "parts.robotics": []

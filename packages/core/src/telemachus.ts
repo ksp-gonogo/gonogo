@@ -1,5 +1,5 @@
 /**
- * Telemachus value helpers — normalising the API's in-band sentinels into the
+ * Telemachus value helpers: normalising the API's in-band sentinels into the
  * absent/`undefined` values the widgets already handle, so a "no data" sentinel
  * doesn't masquerade as real data.
  */

@@ -11,17 +11,18 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 // This is the end-to-end proof: the SAME hooks/client/provider
 // from `integration.test.tsx`, now wired to the REAL delay-modelling
-// server stack instead of `StubTransport` — `ManualClock` + `StubNetwork` +
+// server stack instead of `StubTransport`: `ManualClock` + `StubNetwork` +
 // `Courier` + `CourierTransport`, imported from the `@ksp-gonogo/sitrep-server`
 // package. The dependency graph is the natural DAG
 // `sitrep-sdk <- sitrep-server <- sitrep-client`: sitrep-client has a
 // test-only devDependency on sitrep-server (see package.json), which drives
 // a real `TelemetryClient` against the courier for this integration proof.
 // Production code in this package still never imports sitrep-server (see
-// clock.ts's domain-seam note) — only this test file does.
+// clock.ts's domain-seam note): only this test file does.
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { useCommand } from "./use-command";
@@ -29,7 +30,7 @@ import { useStream } from "./use-stream";
 
 /**
  * One component exercising both hooks, same shape as the `MissionPanel` in
- * `integration.test.tsx` — the point is that NEITHER hook nor the
+ * `integration.test.tsx`: the point is that NEITHER hook nor the
  * component changes when the transport underneath starts modelling delay.
  */
 function MissionPanel() {
@@ -37,7 +38,7 @@ function MissionPanel() {
   const { send, status } = useCommand("deploy");
   return (
     <div>
-      <span>altitude:{altitude ?? "—"}</span>
+      <span>altitude:{altitude ?? NULL_DISPLAY}</span>
       <button
         type="button"
         onClick={() => {
@@ -78,18 +79,18 @@ describe("sitrep delayed comms end-to-end (M3)", () => {
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText("altitude:—")).toBeTruthy();
+    expect(screen.getByText(`altitude:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Recorded at UT 0. Not delivered before the delay elapses — no state
+    // Recorded at UT 0. Not delivered before the delay elapses, no state
     // change happens synchronously here (delivery is scheduled 2s out), so
     // no act() wrapper is needed for the record() call itself.
     courier.record("vessel", "alt", 100, 0);
-    expect(screen.getByText("altitude:—")).toBeTruthy();
+    expect(screen.getByText(`altitude:${NULL_DISPLAY}`)).toBeTruthy();
 
     act(() => {
       clock.advanceTo(1);
     });
-    expect(screen.getByText("altitude:—")).toBeTruthy();
+    expect(screen.getByText(`altitude:${NULL_DISPLAY}`)).toBeTruthy();
 
     // Delivery fires exactly at validAt + delay (0 + 2): a synchronous,
     // clock-driven state update outside any DOM event, so it needs an

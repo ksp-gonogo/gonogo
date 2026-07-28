@@ -145,7 +145,7 @@ export function makeLogScale(
   rangeMin: number,
   rangeMax: number,
 ): (v: number) => number {
-  // Collapse takes precedence over the log-floor clamp — equal bounds map
+  // Collapse takes precedence over the log-floor clamp, equal bounds map
   // every input to the midpoint regardless of sign, matching makeScale().
   if (domainMin === domainMax) {
     const mid = (rangeMin + rangeMax) / 2;

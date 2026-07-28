@@ -6,7 +6,7 @@
  *      launch is still ahead of the wall clock:
  *        pnpm replay "$PWD/local_docs/flight_recordings/<fixture>.json"
  *   2. App dev server: pnpm --filter @ksp-gonogo/app dev
- *   3. ImageMagick (`convert`) on PATH — same dependency as render-navball-gif.
+ *   3. ImageMagick (`convert`) on PATH: same dependency as render-navball-gif.
  *
  * Then: node scripts/capture-readme-hero.mjs
  *
@@ -16,7 +16,7 @@
  * The script keys everything off the replay server's clock (`/replay/info`),
  * so playback rate or a late start shift the captures, not break them. GIF
  * frames start as soon as the page is live (~T+10s, early ascent through the
- * gravity turn); the hero waits for T+105s — mid-burn, with the graphs
+ * gravity turn); the hero waits for T+105s, mid-burn, with the graphs
  * carrying a near-full window of curves.
  */
 import { execFile } from "node:child_process";
@@ -174,7 +174,7 @@ async function main() {
   const t0 = await missionTime();
   if (t0 > 60) {
     throw new Error(
-      `Replay is already at T+${t0.toFixed(0)}s — restart the replay server so the early ascent is still ahead.`,
+      `Replay is already at T+${t0.toFixed(0)}s, restart the replay server so the early ascent is still ahead.`,
     );
   }
   await mkdir(OUT_DIR, { recursive: true });
@@ -183,7 +183,7 @@ async function main() {
 
   const browser = await chromium.launch();
   try {
-    // GIF frames at 1x — the gif gets downscaled to 800px anyway. The frame
+    // GIF frames at 1x: the gif gets downscaled to 800px anyway. The frame
     // schedule starts wherever the replay clock is once the page is live
     // (server boot + page setup eat the first ~10s of the recording).
     const gifPage = await newDashboardPage(browser, 1);

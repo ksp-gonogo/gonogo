@@ -1,7 +1,7 @@
 # Cross-language golden fixtures
 
-M5 (the Sitrep C# mod) ports pure TS logic — semver gating today, then
-`Clock`/`StubNetwork`/`Archive`/`Courier` and the kernel resolver — into
+M5 (the Sitrep C# mod) ports pure TS logic (semver gating today, then
+`Clock`/`StubNetwork`/`Archive`/`Courier` and the kernel resolver) into
 `mod/Sitrep.Core`. Every ported piece is checked against the **same JSON
 fixture** from both sides, so drift between the reference and the port is
 caught by `dotnet test`, not discovered later in a live KSP session.
@@ -13,14 +13,14 @@ TS reference (mod/sitrep-kernel, mod/sitrep-server)
         │  gen script imports the REAL functions, runs them over a
         │  fixed set of input cases, writes the TS-computed results
         ▼
-mod/golden-fixtures/<name>.json          (committed — the shared contract)
+mod/golden-fixtures/<name>.json          (committed, the shared contract)
         │  Sitrep.Core.Tests loads the same file, calls the C# port
         │  with each vector's args, asserts the result equals `expected`
         ▼
 dotnet test                               (green ⇒ ports agree; red ⇒ drift)
 ```
 
-Expected values are **never hand-authored** — they come from actually
+Expected values are **never hand-authored**: they come from actually
 running the TS functions. That's the whole point: the fixture is generated,
 not written, so a future TS change that shifts behavior regenerates the
 fixture and the C# side's test will fail until the port catches up (or
@@ -29,8 +29,8 @@ committed alongside it).
 
 ## `version.json` (the first fixture)
 
-Generated from `mod/sitrep-kernel/src/version.ts`'s three pure functions —
-`compareVersions`, `satisfiesKernel`, `satisfiesModRange` — by
+Generated from `mod/sitrep-kernel/src/version.ts`'s three pure functions
+(`compareVersions`, `satisfiesKernel`, `satisfiesModRange`) by
 `mod/golden-fixtures/gen/version.gen.ts`. Regenerate with:
 
 ```
@@ -60,7 +60,7 @@ asserts `Sitrep.Core.Semver`'s equivalent method reproduces `expected`.
 2. Port the logic into `Sitrep.Core` under a matching C# type.
 3. Add a `dotnet test` in `Sitrep.Core.Tests` that loads `<name>.json` and
    asserts conformance, following `VersionGoldenFixtureTests.cs`'s shape.
-4. `dotnet test` green = the port is verified — no KSP session required.
+4. `dotnet test` green = the port is verified, no KSP session required.
 
 Only regenerate a fixture when the TS reference intentionally changes
 behavior. If `dotnet test` goes red after a fixture regen, that's real
@@ -69,7 +69,7 @@ drift in the C# port to fix, not the fixture to blindly re-copy.
 ## `clock.json` (scripted-scenario fixtures)
 
 `ManualClock` (`mod/sitrep-server/src/clock.ts`) is stateful, so its fixture
-isn't a `{args, expected}` vector like `version.json` — it's a **scripted
+isn't a `{args, expected}` vector like `version.json`: it's a **scripted
 scenario**: a sequence of ops against one clock instance, plus the OBSERVABLE
 OUTPUT that instance actually produced. Callbacks are represented by string
 ids (not real closures) so a scenario round-trips through JSON:
@@ -87,12 +87,12 @@ ids (not real closures) so a scenario round-trips through JSON:
 }
 ```
 
-Three op kinds: `schedule` (with an optional nested `onFire` list — further
+Three op kinds: `schedule` (with an optional nested `onFire` list: further
 schedules issued re-entrantly, against the same clock, when this callback
 fires; this is how the re-entrancy-safe-drain cases are expressed without a
 real JS closure), `advanceTo`, and `cancel` (by a previous `schedule` op's
 id). `expected.fired` is the actual order the TS `ManualClock` fired
-callbacks in; `expected.nowAfter` is its `now()` after all ops run — both
+callbacks in; `expected.nowAfter` is its `now()` after all ops run, both
 recorded by `mod/golden-fixtures/gen/clock.gen.ts` actually executing the
 scenario against the real class, never hand-typed.
 
@@ -114,7 +114,7 @@ and final `Now()` match.
 
 `StubNetwork` (`mod/sitrep-server/src/stub-network.ts`) is also stateful, but
 unlike `ManualClock` there's no global "observable output" to record at the
-end — every `delayTo` / `reachable` call is its own independent observation,
+end: every `delayTo` / `reachable` call is its own independent observation,
 and ordering relative to mutations (e.g. a query before and after a
 `setScale`) matters. So each scenario's `ops` list interleaves mutations
 (`setDelay` / `setReachable` / `setScale`) with **queries**
@@ -137,7 +137,7 @@ generator reached that op:
 
 A scenario may also carry top-level `defaults` (the constructor's
 `{ delay?, reachable? }` arg) and `scale` (the constructor's scale arg,
-default 1) — both omitted when the scenario relies on `StubNetwork`'s own
+default 1), both omitted when the scenario relies on `StubNetwork`'s own
 defaults.
 
 Scenarios cover: default delay-0/reachable-true for any unset pair,
@@ -162,11 +162,11 @@ port returns at that point.
 ## `archive.json` (inline-query scripted scenarios)
 
 `Archive` (`mod/sitrep-server/src/archive.ts`) covers its READ behavior only
-— `record` / `readAtVantage` — the same inline-query shape as
+(`record` / `readAtVantage`), the same inline-query shape as
 `stub-network.json`: each scenario's `ops` list interleaves mutations
 (`record`) with queries (`readAtVantage`), and every `readAtVantage` op
-carries an `expected` field — either `{ value, validAt }` or `null` (JSON has
-no `undefined`) — filled in with whatever the real TS instance returned when
+carries an `expected` field, either `{ value, validAt }` or `null` (JSON has
+no `undefined`), filled in with whatever the real TS instance returned when
 the generator reached that op, so ordering across successive reads (critical
 for freeze-on-recession) is preserved exactly:
 
@@ -201,7 +201,7 @@ C# side (`mod/Sitrep.Core.Tests/ArchiveGoldenFixtureTests.cs`) constructs a
 `readAtVantage` op's `expected` matches what the port returns at that point.
 
 **Not covered here:** `Archive.Snapshot()` / `Archive.Restore()` are a
-C#-only addition (no TS reference) for M5b quicksave — serializing full
+C#-only addition (no TS reference) for M5b quicksave, serializing full
 archive state, including per-(topic, vantage) cursor positions, so a delayed
 archive survives save/load. That round trip is tested directly against the
 C# port in `mod/Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs`, with no
@@ -217,8 +217,8 @@ stream subscriber or command-response callback can fire synchronously
 (subscribe-time catch-up) or later, when a scheduled Clock callback drains
 during `advanceTo`. So a scenario's `ops` list (`record`, `subscribeStream`,
 `unsubscribeStream`, `setCommandHandler`, `dispatchCommand`, `advanceTo`) is
-run against one real `Courier`, and EVERY callback invocation — in the exact
-order it actually fired — is appended to a single `expected.events` log:
+run against one real `Courier`, and EVERY callback invocation (in the exact
+order it actually fired) is appended to a single `expected.events` log:
 
 ```json
 {
@@ -253,9 +253,9 @@ receiving the same sample independently (no duplicate delivery to the
 nearer one), a subscriber joining mid-transit (in-flight scheduling, not a
 miss), a subscriber joining after arrival (synchronous catch-up),
 unsubscribe removing a subscriber before its scheduled delivery fires, a
-single large `advanceTo` draining several deliveries in one batch — each
-reporting its OWN captured fire-UT, not a shared re-read of `clock.now()`
-— a command's execute-at-uplink/confirm-at-uplink+downlink round trip
+single large `advanceTo` draining several deliveries in one batch (each
+reporting its OWN captured fire-UT, not a shared re-read of `clock.now()`),
+a command's execute-at-uplink/confirm-at-uplink+downlink round trip
 (including args flowing through to the result), and a command dispatched
 to an unreachable node dropped with honest silence (no execute, no
 response, ever).
@@ -265,12 +265,12 @@ Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 `archive.json`). The C# side
 (`mod/Sitrep.Core.Tests/CourierGoldenFixtureTests.cs`) constructs a
 `Sitrep.Core.Courier`, replays each op in order, and asserts the resulting
-event log — kind, topic/requestId, payload/result, and every `Meta` field
-— matches the recorded TS-observed log exactly, in order.
+event log (kind, topic/requestId, payload/result, and every `Meta` field)
+matches the recorded TS-observed log exactly, in order.
 
 **Not covered here:** `Courier.SnapshotCommands()` / `Courier.RestoreCommands()`
 are a C#-only addition (no TS reference) for M5b quicksave, scoped to the
-IN-FLIGHT COMMAND QUEUE only — the archive is persisted separately
+IN-FLIGHT COMMAND QUEUE only: the archive is persisted separately
 (`Archive.Snapshot`/`Restore` above), and telemetry subscriptions plus
 their scheduled deliveries are runtime/derivable state that a reconnecting
 client re-establishes by re-subscribing, not something the Courier

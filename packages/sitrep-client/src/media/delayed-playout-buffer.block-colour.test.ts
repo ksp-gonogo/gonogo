@@ -12,10 +12,10 @@
  * (edge set directly, no real timers) rather than mocking anything.
  *
  * Two required cases:
- *   1. delay D > 0 — each colour must surface at exactly `capturedUt + D`,
+ *   1. delay D > 0: each colour must surface at exactly `capturedUt + D`,
  *      never a moment before (boundary-tested at just-before / at /
  *      just-after each threshold).
- *   2. the control — same colour sequence with D = 0 flips the instant each
+ *   2. the control: same colour sequence with D = 0 flips the instant each
  *      frame is captured, proving it's the delay (not some other lag)
  *      responsible for case 1's hold-back.
  */
@@ -48,7 +48,7 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   };
 }
 
-describe("DelayedPlayoutBuffer — block-colour delay proof", () => {
+describe("DelayedPlayoutBuffer: block-colour delay proof", () => {
   const T0 = 100; // red captured
   const T1 = 101; // green captured
   const T2 = 102; // blue captured
@@ -66,7 +66,7 @@ describe("DelayedPlayoutBuffer — block-colour delay proof", () => {
     });
 
     // All three colours are already captured and queued, waiting on the
-    // delayed clock — mirrors a real stream where frames arrive well
+    // delayed clock: mirrors a real stream where frames arrive well
     // before the delayed edge catches up to them.
     buffer.push({ ut: T0, keyframe: true, data: "red" });
     buffer.push({ ut: T1, keyframe: true, data: "green" });
@@ -86,7 +86,7 @@ describe("DelayedPlayoutBuffer — block-colour delay proof", () => {
     expect(buffer.current()?.data).toBe("red");
     expect(released).toEqual(["red"]);
 
-    // Just after: still red — green isn't due yet.
+    // Just after, still red: green isn't due yet.
     clock.setEdge(edgeFor(T0 + D + 0.5));
     expect(buffer.current()?.data).toBe("red");
     expect(released).toEqual(["red"]);
@@ -111,13 +111,13 @@ describe("DelayedPlayoutBuffer — block-colour delay proof", () => {
     expect(buffer.current()?.data).toBe("blue");
     expect(released).toEqual(["red", "green", "blue"]);
 
-    // Long after: still blue — no phantom fourth colour, nothing early.
+    // Long after, still blue: no phantom fourth colour, nothing early.
     clock.setEdge(edgeFor(T2 + D + 100));
     expect(buffer.current()?.data).toBe("blue");
     expect(released).toEqual(["red", "green", "blue"]);
   });
 
-  it("control: with no delay (D = 0), the same colour sequence flips the instant each frame is captured — no lag", () => {
+  it("control: with no delay (D = 0), the same colour sequence flips the instant each frame is captured, no lag", () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const released: string[] = [];
     const buffer = new DelayedPlayoutBuffer<string>({
@@ -129,7 +129,7 @@ describe("DelayedPlayoutBuffer — block-colour delay proof", () => {
     });
 
     // Edge tracks capture time directly (D = 0): a frame pushed the instant
-    // it's captured releases synchronously on that same push — same buffer,
+    // it's captured releases synchronously on that same push, same buffer,
     // same path as the delayed case above, just with D = 0.
     clock.setEdge(T0);
     buffer.push({ ut: T0, keyframe: true, data: "red" });

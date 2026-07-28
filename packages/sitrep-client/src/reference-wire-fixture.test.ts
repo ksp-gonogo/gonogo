@@ -15,25 +15,25 @@ import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
- * End-to-end SDK validation, TS half — the counterpart to
+ * End-to-end SDK validation, TS half: the counterpart to
  * `mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests.cs`. That test
  * replays the REAL reference recording through
  * `ReplayKspHost -> ChannelEngine` (both extensions registered, zero network
  * delay) and captures every raw wire frame for six real channels
  * (`vessel.orbit`, `vessel.flight`, `system.bodies`, `time.warp`,
  * `vessel.control`, `vessel.comms`) to
- * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json` —
+ * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`:
  * gitignored/local-only, regenerated on demand (`dotnet test
  * --filter WireFixtureGeneratorTests` in `mod/`), never present in CI. This
  * file loads that fixture and replays it through a REAL `TelemetryClient` /
- * `TimelineStore`, proving the FULL SDK — derived channels, epoch/ghost
- * handling, staleness/certainty, the `ViewClock` estimator — against genuine
+ * `TimelineStore`, proving the FULL SDK: derived channels, epoch/ghost
+ * handling, staleness/certainty, the `ViewClock` estimator: against genuine
  * engine output rather than a hand-built fixture (`recording -> C# engine ->
  * wire -> TS SDK` end to end).
  *
  * Skip-cleanly contract, same as the C# side and `reference-*.test.ts`
  * elsewhere in this repo: if the fixture file isn't present, the whole suite
- * is skipped (not failed) — this is expected in CI, which never has the
+ * is skipped (not failed), this is expected in CI, which never has the
  * gitignored recording checked out.
  */
 
@@ -45,7 +45,7 @@ interface WireFixture {
   subscribedTopics: string[];
   frameCount: number;
   epochsSeen: number[];
-  /** Each element is the EXACT raw wire text of one captured frame — see the C# generator's own doc comment. */
+  /** Each element is the EXACT raw wire text of one captured frame; see the C# generator's own doc comment. */
   frames: string[];
 }
 
@@ -56,7 +56,7 @@ const fixturePath = path.join(
 );
 const fixtureExists = existsSync(fixturePath);
 
-/** Controllable wall clock — advanced explicitly by the driver loop instead of racing real time (same idiom as `timeline-store-status.test.ts`'s `fakeWall`). */
+/** Controllable wall clock: advanced explicitly by the driver loop instead of racing real time (same idiom as `timeline-store-status.test.ts`'s `fakeWall`). */
 function fakeWall(start = 0) {
   let now = start;
   return {
@@ -69,20 +69,20 @@ function fakeWall(start = 0) {
 
 /**
  * A `Transport` whose `send` is a no-op and whose messages are fed in
- * explicitly by the driver loop via `deliver` — a scriptable stand-in for a
+ * explicitly by the driver loop via `deliver`, a scriptable stand-in for a
  * live WebSocket carrying the captured wire fixture, in fixture (arrival)
  * order. Both `TelemetryClient` (constructor-registered) and this test's own
  * `onMessage` listener (registered separately) observe every delivered
  * message off the SAME transport, so the frames genuinely flow through
  * `TelemetryClient` on their way to the `TimelineStore` ingestion this test
- * drives — not a bypass of it.
+ * drives: not a bypass of it.
  */
 class FixtureTransport implements Transport {
   readonly status: TransportStatus = "connected";
   private readonly listeners = new Set<(message: ServerMessage) => void>();
 
   send(): void {
-    // no-op — the fixture already only carries frames for the topics the C#
+    // no-op: the fixture already only carries frames for the topics the C#
     // harness subscribed to; a real transport's subscribe/unsubscribe
     // bookkeeping isn't what this test exercises.
   }
@@ -120,7 +120,7 @@ function requirePosition(
   return position;
 }
 
-/** Mirrors `deriveVesselState`'s OnRails element-building exactly (see `vessel-state.ts`) — used to independently cross-check the derived channel's own output. */
+/** Mirrors `deriveVesselState`'s OnRails element-building exactly (see `vessel-state.ts`), used to independently cross-check the derived channel's own output. */
 function elementsFromOrbitPayload(orbit: VesselOrbitPayload): OrbitElements {
   return {
     sma: orbit.sma,
@@ -139,9 +139,9 @@ describe.skipIf(!fixtureExists)(
   () => {
     if (!fixtureExists) {
       // describe.skipIf still evaluates its body once to register (skipped)
-      // tests — guard the fixture read so that registration doesn't itself
+      // tests: guard the fixture read so that registration doesn't itself
       // throw when the gitignored fixture is absent (CI).
-      it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only — regenerate via `dotnet test --filter WireFixtureGeneratorTests`)", () => {});
+      it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only, regenerate via `dotnet test --filter WireFixtureGeneratorTests`)", () => {});
       return;
     }
 
@@ -197,7 +197,7 @@ describe.skipIf(!fixtureExists)(
         // rewind, since ViewClock's own maxSampleUt/lastConfirmedViewUt
         // reset then too). Despite the name (kept from the sample-clamp
         // check it's paired with in handleMessage), this sequence holds
-        // FrameToken.viewUt readings, not raw confirmedEdgeUt() — see
+        // FrameToken.viewUt readings, not raw confirmedEdgeUt(): see
         // handleMessage's own comment for why.
         let maxValidAtInEpoch = Number.NEGATIVE_INFINITY;
         let confirmedEdgeSequence: number[] = [];
@@ -230,8 +230,8 @@ describe.skipIf(!fixtureExists)(
           const topic = message.topic;
 
           // Ghost check: the first stream-data for a topic after its reset
-          // event must not carry a validAt at/after the pre-reset watermark
-          // — that would be a stale sample from the abandoned timeline.
+          // event must not carry a validAt at/after the pre-reset watermark,
+          // that would be a stale sample from the abandoned timeline.
           if (awaitingGhostCheck.get(topic)) {
             const watermark = watermarkBeforeReset.get(topic);
             if (watermark !== undefined && meta.validAt >= watermark) {
@@ -275,26 +275,26 @@ describe.skipIf(!fixtureExists)(
           // (confirmedEdgeUt(), before any monotonic clamp) must never
           // exceed the max validAt actually observed this epoch. This is
           // the one invariant confirmedEdgeUt() itself documents ("never
-          // ahead of the max sample UT actually observed") — it does NOT
+          // ahead of the max sample UT actually observed"), it does NOT
           // document monotonicity for itself; see the `token.viewUt`
           // tracking below for that.
           expect(clock.confirmedEdgeUt()).toBeLessThanOrEqual(
             maxValidAtInEpoch + 1e-6,
           );
 
-          // ONE beginFrame() per ingest — the frame token this whole
+          // ONE beginFrame() per ingest: the frame token this whole
           // handler reasons about, matching real usage (never re-mint per
           // read).
           const token = store.beginFrame();
 
           if (rewoundThisIngest) {
             // The store's cross-topic sweep (TimelineStore.ingest) just
-            // cleared EVERY registered raw timeline to the new (empty) epoch
-            // — including vessel.orbit's, UNLESS this very ingest was itself
+            // cleared EVERY registered raw timeline to the new (empty) epoch,
+            // including vessel.orbit's, UNLESS this very ingest was itself
             // vessel.orbit (in which case its own fresh point survives the
             // sweep, since it's appended before the sweep runs). So
             // vessel.state can only already resolve here if `topic` is
-            // "vessel.orbit" — anything else resolving would mean a
+            // "vessel.orbit": anything else resolving would mean a
             // pre-rewind (dead-epoch) record survived: a ghost.
             const state = store.sample("vessel.state", token);
             if (state !== undefined) {
@@ -307,18 +307,18 @@ describe.skipIf(!fixtureExists)(
           }
 
           // Monotonic viewUt ("confirmed mode tracks
-          // confirmedEdgeUt(), monotonic non-decreasing within an epoch" —
+          // confirmedEdgeUt(), monotonic non-decreasing within an epoch":
           // ViewClock.viewUt()'s OWN documented guarantee, delivered via its
           // internal lastConfirmedViewUt clamp). Deliberately NOT asserted
           // on raw clock.confirmedEdgeUt() directly: the real captured wire
           // order interleaves independently-cadenced channels (vessel.orbit
           // ~1s, time.warp/system.bodies on a much slower keyframe), and a
           // later-ARRIVING frame from a slower channel can carry an OLDER
-          // deliveredAt than one already observed from a faster channel —
+          // deliveredAt than one already observed from a faster channel,
           // confirmedEdgeUt() itself briefly dips when that happens (its own
           // doc only promises the sample clamp, never monotonicity). This
           // is exactly the raw estimator noise viewUt()'s clamp exists to
-          // absorb ("the design's mitigation for estimator weakness") — so
+          // absorb ("the design's mitigation for estimator weakness"), so
           // this is the assertion that actually matters to a real consumer.
           if (confirmedEdgeSequence.length > 0) {
             const prev =
@@ -342,10 +342,10 @@ describe.skipIf(!fixtureExists)(
           // Staleness/certainty sanity: this client subscribes to every
           // topic before any ticking starts (matching the C# generator), so
           // the server never has a catch-up reason to stamp anything but
-          // Fresh — a tombstone always reads "absent"; a live delivery of
+          // Fresh: a tombstone always reads "absent"; a live delivery of
           // this exact topic always reads "live" immediately after ingest
-          // (never "resyncing" — this topic just got a point; never
-          // "held-stale"/"disconnected" — nothing has gone quiet or dropped).
+          // (never "resyncing": this topic just got a point; never
+          // "held-stale"/"disconnected": nothing has gone quiet or dropped).
           const status = store.sampleStatus(topic, token);
           if (message.payload === null) {
             expect(status).toBe("absent");
@@ -362,7 +362,7 @@ describe.skipIf(!fixtureExists)(
           const meta = (message as { meta?: Meta }).meta;
 
           if (meta) {
-            // Mid-gap wall-clock advance BEFORE delivering this frame — the
+            // Mid-gap wall-clock advance BEFORE delivering this frame, the
             // estimator's "coasting" behavior between confirmed samples,
             // honoring the recording's own deliveredAt timing. Probed
             // halfway through the gap (a point where nothing NEW has
@@ -391,7 +391,7 @@ describe.skipIf(!fixtureExists)(
 
         // ================= 2. vessel.state derives from REAL orbit elements =================
         // Deliberately an ISOLATED store/clock (not the shared one the main
-        // drive loop just ran to epoch 3) — the shared store's
+        // drive loop just ran to epoch 3), the shared store's
         // "vessel.orbit" ClientTimeline has long since been swept by the
         // rewind sweeps and now only holds epoch-3 points, so a read at an
         // epoch-0 viewUt against it would just be a (correctly) empty
@@ -452,7 +452,7 @@ describe.skipIf(!fixtureExists)(
         expect(pos2[1]).toBeCloseTo(expected2.position[1], 3);
         expect(pos2[2]).toBeCloseTo(expected2.position[2], 3);
 
-        // Moves along the orbit as viewUt advances — not a frozen/repeated value.
+        // Moves along the orbit as viewUt advances, not a frozen/repeated value.
         expect(pos1).not.toEqual(pos2);
 
         // ================= 3. 3 rewinds -> epoch bumps -> NO client ghost =================
@@ -460,7 +460,7 @@ describe.skipIf(!fixtureExists)(
         expect(postBumpStateObservations.length).toBe(3);
         // Stable invariant (holds for ANY reference recording, not just this
         // one): vessel.state can resolve IMMEDIATELY post-bump only when the
-        // very sample that confirmed the rewind was itself vessel.orbit —
+        // very sample that confirmed the rewind was itself vessel.orbit,
         // any other topic bumping the epoch means the store's cross-topic
         // sweep just cleared vessel.orbit's own timeline too, so a genuine
         // resync is required. This is already enforced per-observation
@@ -470,16 +470,16 @@ describe.skipIf(!fixtureExists)(
         //
         // This block used to ALSO assert that BOTH
         // branches (immediate AND deferred resolution) were actually
-        // observed across the session's 3 rewinds — a claim about which
+        // observed across the session's 3 rewinds: a claim about which
         // topic happens to arrive first after each rewind, i.e. about THIS
         // capture session's specific frame-interleaving, not about the SDK.
         // vessel.orbit is comfortably the fastest-cadence channel in the
-        // reference recording, so it is plausible — and, empirically, now
-        // the case — for a regenerated recording to have vessel.orbit be the
+        // reference recording, so it is plausible, and, empirically, now
+        // the case: for a regenerated recording to have vessel.orbit be the
         // very first post-reset sample for every single rewind, hitting only
         // the "immediate" branch. That made the test flake across fixture
         // regenerations (a real recording-content dependency, not a
-        // correctness bug — verified deterministic given a FIXED fixture
+        // correctness bug: verified deterministic given a FIXED fixture
         // file: it failed 100% of repeated runs against the same JSON, never
         // intermittently within one). Dropped in favor of the stable
         // per-observation invariant below, which holds regardless of how the
@@ -510,7 +510,7 @@ describe.skipIf(!fixtureExists)(
         // ================= 5. ViewClock estimator: sample-clamped & monotonic =================
         // (The sample-clamp and within-epoch monotonic assertions already
         // ran inline for every ingest and every mid-gap probe across the
-        // whole 4800+ frame replay — see handleMessage and the driver loop
+        // whole 4800+ frame replay: see handleMessage and the driver loop
         // above. This final check just confirms the tracking itself
         // actually accumulated real data, i.e. the inline assertions above
         // were not vacuously skipped.)

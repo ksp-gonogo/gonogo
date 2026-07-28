@@ -10,7 +10,7 @@ import type { DataKeyMeta } from "../types";
 import { enrichKey, TELEMACHUS_META } from "./telemachusMeta";
 
 /**
- * The legacy `"data"` `DataSource` was deleted in `806e7fe2` (R6 cutover) —
+ * The legacy `"data"` `DataSource` was deleted in `806e7fe2` (R6 cutover),
  * every widget that used to call `getDataSource("data").schema()` (via
  * `useDataSchema`/`useValueKeys`) got `[]` back forever after, silently
  * breaking every config-UI key picker built on top of it (Graph series,
@@ -23,20 +23,20 @@ import { enrichKey, TELEMACHUS_META } from "./telemachusMeta";
  *     (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES` + the dynamic families it
  *     recognises); and
  *   - carried: that target is actually promoted to the live stream today
- *     (`isTopicCarried`, gated on `DEFAULT_SITREP_CARRIED_TOPICS` — the same
+ *     (`isTopicCarried`, gated on `DEFAULT_SITREP_CARRIED_TOPICS`: the same
  *     allowlist `SitrepTelemetryProvider` mounts by default). A
  *     mapped-but-uncarried key would let an operator pick it in a picker but
- *     never see a value — `SitrepTelemetryProvider.mappedAndCarried.test.ts`
+ *     never see a value: `SitrepTelemetryProvider.mappedAndCarried.test.ts`
  *     is the sibling test guarding that gap doesn't reopen.
  *
  * Reuses `mapTopic`/`isTopicCarried`/`DEFAULT_SITREP_CARRIED_TOPICS` straight
- * from `@ksp-gonogo/sitrep-client` — the exact same helpers `useValueKeys.ts`
- * and the carried test above already depend on — so there is exactly one
+ * from `@ksp-gonogo/sitrep-client`: the exact same helpers `useValueKeys.ts`
+ * and the carried test above already depend on, so there is exactly one
  * source of truth for "is this legacy key actually live", not a second
  * hand-rolled copy here.
  *
  * The store built below exists only to run `resolveSubscriptionTopics`
- * (via `isTopicCarried`) — it's never fed real samples, ingested into, or
+ * (via `isTopicCarried`): it's never fed real samples, ingested into, or
  * exposed outside this module.
  */
 function buildLegacyDataCatalog(): DataKeyMeta[] {
@@ -59,7 +59,7 @@ function buildLegacyDataCatalog(): DataKeyMeta[] {
 }
 
 /**
- * Computed once at module load — `TELEMACHUS_META`, `TELEMACHUS_CLEAN_HOMES`
+ * Computed once at module load: `TELEMACHUS_META`, `TELEMACHUS_CLEAN_HOMES`
  * and `DEFAULT_SITREP_CARRIED_TOPICS` are all static, so there's nothing to
  * recompute per render/session. `useDataSchema("data")` returns this array
  * directly (stable identity across renders, same contract the old

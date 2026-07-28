@@ -64,14 +64,14 @@ export function renderShipMapToSvg(
 
 function stripNonDeterministicClasses(html: string): string {
   // styled-components v6 emits `class="sc-XXXXXX hashYYYY"` on every styled
-  // element — both tokens vary per build. Strip any class attribute that
+  // element: both tokens vary per build. Strip any class attribute that
   // contains an `sc-` token. Deterministic classes (e.g. `focus-ring` on
   // the keyboard-focus rect) have no `sc-` prefix and are untouched.
   return html.replace(/\sclass="[^"]*\bsc-[^"]*"/g, "");
 }
 
 /**
- * Resolved CSS variables — must stay in sync with
+ * Resolved CSS variables: must stay in sync with
  * `packages/app/src/styles/global.css`. Inlined here so the SVG output
  * is standalone (no dependency on the app's stylesheet). Only the
  * variables the ship diagram actually references are duplicated; the

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "far-approach-vessel",
-    "notes": "Target vessel at 48 Mm — long-range tracking mode. dockable=true (Vessel) but distance >> 5500m threshold so mode stays 'tracking'. Distance + closing rate derive from vessel.target's Vec3 fields; relVel positive (opening gap) gives a sub-readout when rows>=5. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness. Keep the two in sync."
+    "notes": "Target vessel at 48 Mm: long-range tracking mode. dockable=true (Vessel) but distance >> 5500m threshold so mode stays 'tracking'. Distance + closing rate derive from vessel.target's Vec3 fields; relVel positive (opening gap) gives a sub-readout when rows>=5. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness. Keep the two in sync."
   },
   "tar.name": "Minmus Station Alpha",
   "tar.type": "Vessel",

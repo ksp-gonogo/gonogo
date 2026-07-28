@@ -28,7 +28,7 @@ import type { ActionDefinition, ActionHandlers } from "../types";
  *   - Closures inside handlers always see the latest state (the ref reads
  *     the current render's object).
  *   - `registerActionHandler` / `unregisterActionHandler` aren't called on
- *     every parent re-render — important for widgets that re-render at
+ *     every parent re-render, important for widgets that re-render at
  *     Telemachus rate (~4 Hz).
  *
  * Action ids are read from the *initial* `handlers` object on mount; if a
@@ -39,7 +39,7 @@ import type { ActionDefinition, ActionHandlers } from "../types";
 
 /**
  * Soft cap on action-handler register operations. Should be near-zero in
- * steady state — every widget mounts once and registers once. A spike
+ * steady state: every widget mounts once and registers once. A spike
  * means a widget is re-mounting (likely a key/identity bug) or
  * re-running its useActionInput effect on every parent render (the
  * regression this hook was rewritten to prevent).
@@ -57,14 +57,14 @@ export function useActionInput<TActions extends readonly ActionDefinition[]>(
   const instanceId = useDashboardItemId();
 
   // Keep the latest handlers in a ref so the proxy below always sees the
-  // current closure. Updating the ref every render is free — assignment,
+  // current closure. Updating the ref every render is free, assignment,
   // no re-render, no effect trigger.
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
   // Register stable proxy handlers ONCE on mount. The proxy reads
   // `handlersRef.current` at dispatch time so closure freshness is
-  // preserved. Action ids come from the first render — see the doc
+  // preserved. Action ids come from the first render; see the doc
   // comment for the static-action-set assumption.
   useEffect(() => {
     const actionIds = Object.keys(

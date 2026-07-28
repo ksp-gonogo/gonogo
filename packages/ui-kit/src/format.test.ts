@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { formatNumber } from "./format";
+import { NULL_DISPLAY } from "./NullValue";
 
 describe("formatNumber", () => {
   it("returns an em dash for undefined", () => {
-    expect(formatNumber(undefined)).toBe("—");
+    expect(formatNumber(undefined)).toBe(NULL_DISPLAY);
   });
 
   it("returns an em dash for NaN", () => {
-    expect(formatNumber(Number.NaN)).toBe("—");
+    expect(formatNumber(Number.NaN)).toBe(NULL_DISPLAY);
   });
 
   it("returns an em dash for Infinity", () => {
-    expect(formatNumber(Number.POSITIVE_INFINITY)).toBe("—");
-    expect(formatNumber(Number.NEGATIVE_INFINITY)).toBe("—");
+    expect(formatNumber(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
+    expect(formatNumber(Number.NEGATIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 
   it("fixes to the requested decimal count", () => {

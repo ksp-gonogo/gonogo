@@ -34,7 +34,7 @@ namespace GonogoScansatUplink.Tests
         {
             // Regression: SCANsat 21.1's isCovered/getData each have two
             // overloads. The pre-fix RequireMethod called Type.GetMethod(name),
-            // which throws AmbiguousMatchException on an overloaded method — the
+            // which throws AmbiguousMatchException on an overloaded method, the
             // throw bubbled up and flipped the whole uplink Unavailable against
             // the real 21.1 assembly. The guard must treat overloaded members as
             // present, not as a probe failure.

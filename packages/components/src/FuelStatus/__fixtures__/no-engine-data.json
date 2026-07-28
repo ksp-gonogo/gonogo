@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "no-engine-data",
-    "notes": "Empty state: dv.stages is an empty array, all totalDV* are omitted (undefined in the widget), all resource maxes are 0. The TotalsRow shows two dash readouts, the resource list renders nothing (all filtered), and the stage stack is hidden. Tests the widget's minimum viable empty state — title only, plus dashes in totals."
+    "notes": "Empty state: dv.stages is an empty array, all totalDV* are omitted (undefined in the widget), all resource maxes are 0. The TotalsRow shows two dash readouts, the resource list renders nothing (all filtered), and the stage stack is hidden. Tests the widget's minimum viable empty state, title only, plus dashes in totals."
   },
   "v.currentStage": 0,
   "dv.stageCount": 0,

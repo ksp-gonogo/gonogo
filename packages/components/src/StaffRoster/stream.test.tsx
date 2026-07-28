@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StaffRosterComponent } from "./index";
 
-// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// Unmount each rendered tree BEFORE clearing the action-handler registry,
 // clearActionHandlers() firing on a still-mounted widget is a state update
 // outside act(). RTL auto-cleanup runs after this file's afterEach, too late
 // to unmount first.
@@ -14,7 +14,7 @@ const renderedTrees: Array<() => void> = [];
  * StaffRoster stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`. `kc.crewRoster` is mapped onto `spaceCenter.crewRoster`
- * (map-topic.ts) — a whole-topic bare-array read, same "key == topic" shape
+ * (map-topic.ts): a whole-topic bare-array read, same "key == topic" shape
  * as `parts.robotics`/`science.lab`. `parseStaff`'s expanded fields
  * (veteran/isBadass/careerFlights/courage/stupidity/currentVesselName) have
  * no mod-side equivalent yet and default to their safe zero/false values,
@@ -27,7 +27,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("StaffRoster — genuinely runs off the stream", () => {
+describe("StaffRoster: genuinely runs off the stream", () => {
   it("renders the roster from spaceCenter.crewRoster's bare array", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["spaceCenter.crewRoster"],

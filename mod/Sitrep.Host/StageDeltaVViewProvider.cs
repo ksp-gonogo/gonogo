@@ -5,7 +5,7 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free mapping logic for the <c>dv.stages</c> (bare array) and
-    /// <c>dv.summary</c> (wrapper object) channels — the active vessel's
+    /// <c>dv.summary</c> (wrapper object) channels: the active vessel's
     /// stage-ΔV rollup, sourced from KSP's STOCK <c>VesselDeltaV</c> stage
     /// simulation (captured by <c>Gonogo.KSP.KspHost.BuildDeltaV</c>; see that
     /// method for why the stock sim, not a hand-rolled rocket equation).
@@ -18,12 +18,12 @@ namespace Sitrep.Host
     /// envelope), so both <see cref="BuildStages"/> and
     /// <see cref="BuildSummary"/> hand-build the <c>Dictionary</c>/<c>List</c>
     /// tree <c>JsonWriter</c> already walks and return it directly to
-    /// <c>AddChannelSource</c> — no <c>*Wire</c> adapter needed. The
+    /// <c>AddChannelSource</c>: no <c>*Wire</c> adapter needed. The
     /// <c>Sitrep.Contract.StageDeltaVEntry</c>/<c>StageDeltaVSummary</c> POCOs
     /// are TS-shape-only codegen markers, never serialized.</para>
     ///
     /// <para><b>Raw snapshot encoding</b> (<c>KspHost.BuildDeltaV</c> populates
-    /// exactly this shape at <c>Values["vessel"]["deltaV"]</c> — a dict with a
+    /// exactly this shape at <c>Values["vessel"]["deltaV"]</c>: a dict with a
     /// <c>stages</c> list and a <c>summary</c> dict, the whole group omitted
     /// when the stock sim isn't ready / there is no active vessel):</para>
     /// <code>
@@ -42,7 +42,7 @@ namespace Sitrep.Host
     /// non-finite → null), so a stage the sim reports as <c>NaN</c>/
     /// <c>Infinity</c> becomes <c>null</c>, never a sentinel on the wire. Both
     /// builders return <c>null</c> (not an empty list / object) when the raw
-    /// <c>deltaV</c> group is missing — "sim not ready" is distinct from
+    /// <c>deltaV</c> group is missing, "sim not ready" is distinct from
     /// "zero stages".
     /// </summary>
     public static class StageDeltaVViewProvider
@@ -55,7 +55,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps the raw <c>deltaV.stages</c> list to the <c>dv.stages</c>
-        /// payload — a bare <c>List</c> of per-stage dicts whose keys mirror
+        /// payload: a bare <c>List</c> of per-stage dicts whose keys mirror
         /// <c>Sitrep.Contract.StageDeltaVEntry</c>. Returns <c>null</c> when
         /// there is no <c>deltaV</c> group or no <c>stages</c> list at all
         /// (stock sim not ready / no vessel), distinct from an empty list.
@@ -87,7 +87,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps the raw <c>deltaV.summary</c> dict to the <c>dv.summary</c>
-        /// payload — a single dict whose keys mirror
+        /// payload: a single dict whose keys mirror
         /// <c>Sitrep.Contract.StageDeltaVSummary</c>. Returns <c>null</c> when
         /// there is no <c>deltaV</c> group or no <c>summary</c> dict at all.
         /// </summary>
@@ -136,10 +136,10 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps the raw <c>stages[i].resources</c> dict (KspHost's
-        /// <c>BuildStageResources</c> — a resource-name-keyed map of
+        /// <c>BuildStageResources</c>: a resource-name-keyed map of
         /// <c>{current, max}</c>) to the wire shape mirroring
         /// <c>Sitrep.Contract.ResourceAmount</c>. An entry missing either
-        /// scalar is skipped (R1(c) — same "absent, not fabricated"
+        /// scalar is skipped (R1(c), same "absent, not fabricated"
         /// discipline every other raw-dict reader in this class follows), and
         /// a stage carrying no <c>resources</c> key at all (an entry built
         /// before this field existed, or the sim's per-part resource lookup

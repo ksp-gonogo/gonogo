@@ -12,8 +12,8 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
 
 /**
  * Legacy `DataSource.status` -> the M2 staleness/absence surface
- * (`StreamStatusValue`). Not a perfect mapping — the legacy status has no
- * concept of per-TOPIC absence/held-stale, only whole-source connectivity —
+ * (`StreamStatusValue`). Not a perfect mapping: the legacy status has no
+ * concept of per-TOPIC absence/held-stale, only whole-source connectivity,
  * but it gives an unmigrated (or not-yet-carried) widget a real, sensibly
  * ranked status instead of a hardcoded placeholder: `"connected"` reads
  * `"live"` (the common case, so an unmigrated widget shows no badge at all,
@@ -35,7 +35,7 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
 }
 
 /**
- * The staleness/absence surface for a legacy `(dataSourceId, key)` pair —
+ * The staleness/absence surface for a legacy `(dataSourceId, key)` pair,
  * the M3 "adopt staleness/certainty" shim (`m3-migration-plan.md` §2 item 3,
  * §Build 1), sibling to `useDataValue` (read) and `useExecuteAction`
  * (write). Same allowlist-gated, legacy-fallback contract:
@@ -43,7 +43,7 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** -> the real `StreamStatusValue` off the `TimelineStore`
  *   (`store.sampleStatus`, mirroring `@ksp-gonogo/sitrep-client`'s own
- *   `useStreamStatus` — not called directly for the same "always-wired,
+ *   `useStreamStatus`: not called directly for the same "always-wired,
  *   stable hook order across a dynamic `dataSourceId`/`key`" reason
  *   `useDataValue`'s doc comment gives for mirroring `useStream`).
  * - **Everything else** (unmapped key, no provider, mapped-but-not-carried)
@@ -54,7 +54,7 @@ export function useDataStreamStatus(
   dataSourceId: string,
   key: string,
 ): StreamStatusValue {
-  // Memoized (matches `useDataValue.ts`'s `legacySetup`) — an inline
+  // Memoized (matches `useDataValue.ts`'s `legacySetup`): an inline
   // function here would give `useDataSourceSubscription`'s `subscribe` a new
   // identity every render, and `useSyncExternalStore` requires a stable
   // `subscribe` reference to correctly resolve the "already-connected before
@@ -105,7 +105,7 @@ export function useDataStreamStatus(
       // Mirrors `useDataValue`'s `subscribeStream` (and, underneath it,
       // `@ksp-gonogo/sitrep-client`'s `useStream`): a status read needs the same
       // real `client.subscribe` on the topic's resolved raw inputs as a
-      // value read — for a `StubTransport`/real transport, nothing is
+      // value read, for a `StubTransport`/real transport, nothing is
       // actually delivered on an unsubscribed topic (`StubTransport.emit`'s
       // own subscription-gating), so a status-only hook that skipped this
       // would never see a live topic ever leave `"resyncing"`.

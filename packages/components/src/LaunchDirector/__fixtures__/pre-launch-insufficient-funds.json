@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "pre-launch-insufficient-funds",
-    "notes": "All ships cost more than available funds. Subtitle reads '0/N ready'. Every ShipRow is rendered blocked. Funds readout shows the low balance. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync."
+    "notes": "All ships cost more than available funds. Subtitle reads '0/N ready'. Every ShipRow is rendered blocked. Funds readout shows the low balance. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness, same translation, keep in sync."
   },
   "kc.savedShips": [
     {

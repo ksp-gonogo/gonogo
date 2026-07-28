@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { lambertDeltaV, solveLambert, type Vec3Tuple } from "./lambert";
 
-// Curtis, "Orbital Mechanics for Engineering Students", Example 5.2 — the
+// Curtis, "Orbital Mechanics for Engineering Students", Example 5.2, the
 // canonical Lambert test case. Units: km, s, km/s; μ_earth = 398600 km³/s².
 const MU_EARTH_KM = 398600;
 
-describe("solveLambert — Curtis Example 5.2 (prograde, single-rev)", () => {
+describe("solveLambert: Curtis Example 5.2 (prograde, single-rev)", () => {
   const r1: Vec3Tuple = [5000, 10000, 2100];
   const r2: Vec3Tuple = [-14600, 2500, 7000];
   const tof = 3600;
@@ -24,7 +24,7 @@ describe("solveLambert — Curtis Example 5.2 (prograde, single-rev)", () => {
   });
 });
 
-describe("solveLambert — coplanar sanity", () => {
+describe("solveLambert: coplanar sanity", () => {
   // A near-quarter-turn coplanar transfer converges and returns finite vectors.
   it("returns finite velocity vectors for a well-conditioned coplanar case", () => {
     const sol = solveLambert([7000, 0, 0], [0, 9000, 0], 3000, MU_EARTH_KM);
@@ -57,7 +57,7 @@ describe("solveLambert — coplanar sanity", () => {
   });
 });
 
-describe("lambertDeltaV — porkchop cell cost", () => {
+describe("lambertDeltaV: porkchop cell cost", () => {
   it("sums |v1 − vDep| + |v2 − vArr| (the two hyperbolic-excess magnitudes)", () => {
     // Straight-line-ish: pick departure/arrival body velocities and confirm the
     // helper returns the two excess magnitudes summed.

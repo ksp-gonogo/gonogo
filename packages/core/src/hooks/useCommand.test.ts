@@ -26,7 +26,7 @@ function makeSource(id = "test-source") {
 
 beforeEach(() => clearRegistry());
 
-describe("useCommand — canonical command hook", () => {
+describe("useCommand: canonical command hook", () => {
   it("calls execute() on the registered source with the action key", async () => {
     const { source, executeSpy } = makeSource();
     registerDataSource(source);
@@ -54,7 +54,7 @@ describe("useCommand — canonical command hook", () => {
   });
 });
 
-describe("useExecuteAction — deprecated alias", () => {
+describe("useExecuteAction: deprecated alias", () => {
   it("is the exact same function reference as useCommand", () => {
     expect(useExecuteAction).toBe(useCommand);
   });

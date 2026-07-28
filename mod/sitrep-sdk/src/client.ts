@@ -1,7 +1,7 @@
 import type { ServerMessage } from "./envelope";
 
 // Guard: `satisfies Record<ServerMessage["type"], true>` forces this map to list
-// EVERY ServerMessage discriminant — adding a variant to the union without adding
+// EVERY ServerMessage discriminant: adding a variant to the union without adding
 // its tag here is a compile error. Keeps this hand-owned seam in sync with envelope.ts.
 const SERVER_TYPE_TAGS = {
   "stream-data": true,

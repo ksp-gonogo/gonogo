@@ -10,7 +10,7 @@ interface ManeuverNodeListProps {
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   currentUT: number | undefined;
   availableDv: number;
-  /** Resolves to a no-op the operator can ignore — we only surface the error
+  /** Resolves to a no-op the operator can ignore, we only surface the error
    *  via the orchestrator's `error` state. */
   onDelete: (id: number) => Promise<void> | void;
   onEdit: (id: number, patch: NodeEditPatch) => Promise<void> | void;
@@ -34,7 +34,7 @@ export function ManeuverNodeList({
 }: ManeuverNodeListProps) {
   // Live nodes + phantom entries for completed nodes that have already
   // disappeared from `o.maneuverNodes` (e.g. user manually deleted before the
-  // 10 s hold elapsed). The phantom is rendered inert — no Delete button
+  // 10 s hold elapsed). The phantom is rendered inert, no Delete button
   // wiring beyond letting the timer drop it on schedule.
   const displayedNodes = useMemo<DisplayedNode[]>(() => {
     const liveUts = new Set<number>();

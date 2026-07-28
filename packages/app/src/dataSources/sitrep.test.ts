@@ -64,7 +64,7 @@ describe("SitrepStreamDataSource", () => {
     expect(getSitrepReconnectNonce()).toBe(nonceAfterHealthyConnect + 1);
   });
 
-  it("schema() and subscribe() are inert — no topics route through this id", () => {
+  it("schema() and subscribe() are inert, no topics route through this id", () => {
     const source = getDataSource("sitrep");
     expect(source).toBeDefined();
     if (!source) return;
@@ -74,7 +74,7 @@ describe("SitrepStreamDataSource", () => {
     expect(() => unsub()).not.toThrow();
   });
 
-  it("execute() rejects — no actions exposed here", async () => {
+  it("execute() rejects: no actions exposed here", async () => {
     const source = getDataSource("sitrep");
     expect(source).toBeDefined();
     if (!source) return;

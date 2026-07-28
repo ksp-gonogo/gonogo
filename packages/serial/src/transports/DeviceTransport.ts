@@ -1,4 +1,4 @@
-// DeviceTransport — abstraction over the physical layer.
+// DeviceTransport: abstraction over the physical layer.
 //
 // Each DeviceInstance gets one transport. The SerialDeviceService owns
 // transports, routes parsed input events up to subscribers, and pipes
@@ -7,7 +7,7 @@
 // Transports handle their own parsing so the service stays transport-agnostic.
 // - WebSerialTransport runs the configured parser (currently `char-position`)
 //   against each line read from the port.
-// - VirtualTransport bypasses parsing — widgets and tests inject normalised
+// - VirtualTransport bypasses parsing: widgets and tests inject normalised
 //   events directly.
 
 import type { DeviceInput, DeviceType } from "../types";
@@ -23,7 +23,7 @@ export interface InputEvent {
 
 /**
  * Emitted by the json-state parser path when a device reports structural
- * information — new inputs, an updated min/max, or a screen declaration.
+ * information: new inputs, an updated min/max, or a screen declaration.
  * The service upserts the owning DeviceType; `null` fields mean "no change
  * this tick" and are ignored.
  */
@@ -44,7 +44,7 @@ export interface SchemaUpdate {
   /**
    * Physical-pad identity learned at this update (gamepad transport only).
    * The service persists it onto the owning DeviceInstance and, the first
-   * time an instance ever learns one, preselects its label pack from it —
+   * time an instance ever learns one, preselects its label pack from it,
    * see SerialDeviceService.handleSchemaUpdate.
    */
   gamepadId?: string;
@@ -60,7 +60,7 @@ export interface DeviceTransport {
   onStatus(cb: (status: TransportStatus, err?: unknown) => void): () => void;
   /**
    * Fires when a json-state device announces or updates its schema. Default
-   * implementation (e.g. VirtualTransport) may never fire this — it's
+   * implementation (e.g. VirtualTransport) may never fire this, it's
    * harmless to subscribe anyway.
    */
   onSchema?(cb: (update: SchemaUpdate) => void): () => void;
@@ -72,7 +72,7 @@ export interface DeviceTransport {
    */
   onRawLine?(cb: (line: string) => void): () => void;
   /**
-   * Swap the cached DeviceType — called by the service when an incoming
+   * Swap the cached DeviceType: called by the service when an incoming
    * schema update changes the type's inputs or renderStyleConfig, so the
    * next tick's parser sees the new shape.
    */

@@ -4,7 +4,7 @@ import { NO_TARGET_SENTINEL, resolveTargetName } from "./telemachus";
 describe("resolveTargetName", () => {
   it("treats the Telemachus no-target sentinel as no target", () => {
     // The fork's NavigationHandlers.cs returns this literal string (not "" or
-    // null) when nothing is targeted — it must not be rendered as a real name.
+    // null) when nothing is targeted, it must not be rendered as a real name.
     expect(NO_TARGET_SENTINEL).toBe("No Target Selected.");
     expect(resolveTargetName("No Target Selected.")).toBeUndefined();
   });

@@ -5,13 +5,13 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.identity</c> channel payload — kills V-13 (one typed
+/// The <c>vessel.identity</c> channel payload: kills V-13 (one typed
 /// <see cref="Situation"/> enum replaces the v.situation/v.situationString/
 /// v.landedAt triplet) and moves <c>missionTime</c> off the wire entirely:
 /// <see cref="LaunchUt"/> is static after liftoff (sampleUt - missionTime),
 /// so MET (mission elapsed time) is a consumer-side derivation
 /// (viewUt - launchUt) rather than a tick-rate field that would force this
-/// whole record to re-emit every tick — see
+/// whole record to re-emit every tick: see
 /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
 /// </summary>
 [SitrepContract]
@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.identity")]
 public class VesselIdentity
 {
-    /// <summary>The stable subject id (KSP's <c>Vessel.id</c> GUID, as a string) — the currency of target/vessel-scoped commands (T-1 groundwork) and of <c>Meta.Source</c>'s "vessel:&lt;guid&gt;" provenance stamp.</summary>
+    /// <summary>The stable subject id (KSP's <c>Vessel.id</c> GUID, as a string), the currency of target/vessel-scoped commands (T-1 groundwork) and of <c>Meta.Source</c>'s "vessel:&lt;guid&gt;" provenance stamp.</summary>
     public string VesselId { get; set; } = "";
 
     public string Name { get; set; } = "";

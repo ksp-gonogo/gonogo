@@ -3,7 +3,7 @@
   <!-- MIT, like the rest of gonogo (see LICENSING.md). RealAntennas is
        CC-BY-SA-4.0 (comms-uplink-design.md §4.1), a CONTENT licence whose
        ShareAlike could reach a COMBINED work. This uplink therefore NEVER
-       links RA's assembly and NEVER derives from its types — it reaches every
+       links RA's assembly and NEVER derives from its types, it reaches every
        RA member by runtime reflection (RaReflection), the RemoteTech-style
        arm's-length pattern (§4.2). That arm's-length boundary is what keeps
        this assembly clear of ShareAlike, and it holds under MIT exactly as it
@@ -32,7 +32,7 @@
     <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
-  <!-- KSP / Unity reference assemblies — same portable copy + Private="false"
+  <!-- KSP / Unity reference assemblies: same portable copy + Private="false"
        pattern as Gonogo.KSP. Stock CommNet (CommNetVessel/CommPath/CommNode) is
        stock KSP, so it is a normal reference; only the RealAntennas assembly is
        forbidden as a compile-time reference (reached by reflection instead). -->
@@ -51,7 +51,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface
+  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface
        a third-party uplink needs. NOTE: no reference to RealAntennas.dll, by
        design (§4.2). -->
   <ItemGroup>

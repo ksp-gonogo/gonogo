@@ -4,18 +4,18 @@ namespace Gonogo.KosUplink
 {
     /// <summary>
     /// <see cref="KosExtension"/>'s <see cref="ISitrepUplink.Health"/> state
-    /// machine, as a pure function — mirrors
+    /// machine, as a pure function: mirrors
     /// <c>Gonogo.KerbcastUplink.KerbcastHealth</c> (same split rationale: a
     /// pure function over plain inputs, headless-tested, while the live
     /// uplink only ever touches kOS/Unity).
     ///
     /// <para><b>Divergence from the original design doc:</b> the
     /// telemetry-mod design's original framing for kOS health was "no active
-    /// CPU selected" — but "which CPU is active" is a CLIENT-side concept
+    /// CPU selected": but "which CPU is active" is a CLIENT-side concept
     /// (<c>KosConfig.activeCpu</c> in the app), not something this mod-side
     /// Uplink can observe; the mod has no notion of which CPU the operator
     /// has picked in the browser. The mod-honest signal this reports instead
-    /// is processor-list EMPTINESS — <c>kos.processors</c>' own captured CPU
+    /// is processor-list EMPTINESS, <c>kos.processors</c>' own captured CPU
     /// count (<see cref="KosExtension.HandleProcessors"/>): whether the
     /// active vessel carries any kOS CPU at all. That is a strictly weaker
     /// claim than "a CPU is selected" (a vessel can have CPUs and still have
@@ -29,7 +29,7 @@ namespace Gonogo.KosUplink
         /// </summary>
         /// <param name="unavailableReason">
         /// Non-null when the uplink went inert at registration (the kOS
-        /// version guard failed — kOS absent or its reflection surface
+        /// version guard failed: kOS absent or its reflection surface
         /// moved, see <see cref="KosVersionGuard"/>). Wins over everything
         /// else.
         /// </param>

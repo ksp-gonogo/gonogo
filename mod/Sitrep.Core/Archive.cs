@@ -15,7 +15,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// The timeline epoch this sample was recorded under (see
-        /// <see cref="Meta.TimelineEpoch"/>) — carried on every stored point,
+        /// <see cref="Meta.TimelineEpoch"/>): carried on every stored point,
         /// not just the envelope, so a late subscriber's catch-up/in-flight
         /// replay of an already-archived sample stamps the epoch it was
         /// ACTUALLY recorded on, not whatever epoch happens to be current at
@@ -37,7 +37,7 @@ namespace Sitrep.Core
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/archive.ts</c>'s READ behavior
     /// (<see cref="Record"/>, <see cref="ReadAtVantage"/>, <see cref="Samples"/>).
-    /// Semantics MUST stay byte-for-byte identical to the TS reference —
+    /// Semantics MUST stay byte-for-byte identical to the TS reference,
     /// conformance is asserted by <c>Sitrep.Core.Tests</c> against the shared
     /// golden fixtures in <c>mod/golden-fixtures/archive.json</c>, not by
     /// re-deriving semantics here. If you touch the read path, regenerate the
@@ -45,7 +45,7 @@ namespace Sitrep.Core
     /// (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`) and re-run
     /// `dotnet test` to confirm the two still agree.
     ///
-    /// <see cref="Snapshot"/> / <see cref="Restore"/> are a C#-ONLY addition —
+    /// <see cref="Snapshot"/> / <see cref="Restore"/> are a C#-ONLY addition,
     /// the TS reference has no equivalent. They exist so the delayed archive
     /// (samples AND per-(topic, vantage) cursor positions) can survive a
     /// quicksave/quickload round trip (M5b); see
@@ -56,8 +56,8 @@ namespace Sitrep.Core
     /// Archive is the single per-vessel SCET-stamped history the Courier reads
     /// through. There is ONE archive per vessel (per topic within it); each
     /// Vantage (observer) is a monotonic read-cursor into that archive at its
-    /// own delay offset. That split — one shared history, many independent
-    /// cursors — is what makes delay honest (every vantage sees its own
+    /// own delay offset. That split: one shared history, many independent
+    /// cursors: is what makes delay honest (every vantage sees its own
     /// light-lagged scene of the same underlying truth) and what powers
     /// "freeze-on-recession": if a vantage's delay grows faster than time
     /// advances (the observer recedes), the cursor holds its last position
@@ -104,7 +104,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Record a SCET-stamped sample for <paramref name="topic"/>, valid as
         /// of <paramref name="validAtUt"/>, tagged with <paramref name="epoch"/>
-        /// (<see cref="Meta.TimelineEpoch"/> — defaults to 0 for every
+        /// (<see cref="Meta.TimelineEpoch"/>: defaults to 0 for every
         /// pre-existing call site, i.e. the golden-fixture conformance tests
         /// that replay the TS reference, which has no epoch concept at all).
         /// </summary>
@@ -177,7 +177,7 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// C#-ONLY addition, for the timeline-reset (quickload/rewind) fix —
+        /// C#-ONLY addition, for the timeline-reset (quickload/rewind) fix,
         /// see <see cref="Courier.ResetTimeline"/>'s call site, which invokes
         /// this for EVERY node's archive right before resetting the clock.
         ///
@@ -189,7 +189,7 @@ namespace Sitrep.Core
         /// <item><description>Without dropping future samples, a subscriber
         /// reading through <see cref="ReadAtVantage"/> after the reset can
         /// still find (and keep re-returning) the abandoned pre-reset
-        /// timeline's LATEST sample — the "stale ghost data" defect: with
+        /// timeline's LATEST sample: the "stale ghost data" defect: with
         /// zero delay, a vantage's cursor gets pinned to the old timeline's
         /// peak UT, and every read after a rewind to a lower UT clamps back
         /// up to that stale peak (<c>Math.Max(rawScene, lastScene)</c>) and
@@ -202,7 +202,7 @@ namespace Sitrep.Core
         /// computed against the abandoned timeline (e.g. pinned to UT 100)
         /// would otherwise keep clamping every post-reset read at UT 20 back
         /// up to 100 even though no sample above 20 still exists after the
-        /// prune above — silently freezing the vantage forever instead of
+        /// prune above: silently freezing the vantage forever instead of
         /// merely serving stale data once.</description></item>
         /// </list>
         ///
@@ -223,12 +223,12 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix —
+        /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix,
         /// see <c>Sitrep.Host.ChannelEngine</c>'s <c>_born</c> field and its
         /// rewind branch in <c>ProcessTick</c>. Whether <paramref name="topic"/>
         /// currently has ANY surviving sample at all (post-prune, i.e. call
         /// this AFTER <see cref="ResetTimeline"/> has already dropped
-        /// everything ahead of the new timeline) — a real value OR a
+        /// everything ahead of the new timeline): a real value OR a
         /// tombstone (null <c>Value</c>) both count.
         ///
         /// This is what lets <c>ChannelEngine</c> recompute its per-topic
@@ -238,7 +238,7 @@ namespace Sitrep.Core
         /// stays "born" so the NEXT null mapper result still flows into
         /// <c>Decide</c> and corrects the stale archived value with a
         /// tombstone; a topic whose surviving tail is ALREADY a tombstone
-        /// ALSO stays "born" — otherwise a continuously-connected subscriber
+        /// ALSO stays "born": otherwise a continuously-connected subscriber
         /// who was never actually delivered that tombstone (e.g. its
         /// delivery was still in flight and got dropped by the rewind, see
         /// <c>Sitrep.Core.Courier.ResetTimeline</c>) would never be told of
@@ -256,8 +256,8 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Capture the FULL archive state — every topic's samples plus every
-        /// (topic, vantage) cursor's clamped scene — as a plain <see cref="ArchiveState"/>
+        /// Capture the FULL archive state: every topic's samples plus every
+        /// (topic, vantage) cursor's clamped scene: as a plain <see cref="ArchiveState"/>
         /// POCO (BCL types only; no serialization happens here). Turning this
         /// into the ScenarioModule blob persisted across quicksave/quickload
         /// is an M5b concern (generated Contract serializers), deliberately
@@ -311,7 +311,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Reconstruct an <see cref="Archive"/> from a previously-captured
         /// <see cref="Snapshot"/>, identical in both samples and cursor
-        /// positions — including a frozen (receded) cursor, which is restored
+        /// positions: including a frozen (receded) cursor, which is restored
         /// as-is rather than reset, so a subsequent <see cref="ReadAtVantage"/>
         /// call on the restored archive reproduces exactly what the original
         /// archive would have returned.

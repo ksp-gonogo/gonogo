@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  <!-- Sitrep.Propagation is BCL-only, ZERO external PackageReferences — same
+  <!-- Sitrep.Propagation is BCL-only, ZERO external PackageReferences, same
        invariant as Sitrep.Core (KSP's Unity-2019 Mono + AppDomain
        first-assembly-name-wins collision risk). This is a standalone
        capability project on purpose: propagation is swappable (a future

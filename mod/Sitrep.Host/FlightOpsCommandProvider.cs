@@ -5,19 +5,19 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free command-handling logic for the game-level flight-ops commands
-    /// (<c>ksp.*</c>) — the command-side twin of the <c>ksp</c> uplink's
+    /// (<c>ksp.*</c>): the command-side twin of the <c>ksp</c> uplink's
     /// read topics. Each <c>Handle*</c> method is the exact delegate
     /// <c>Gonogo.KSP.FlightOpsUplink.Register</c> hands to
     /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: parse the
     /// already-typed args, do any check that doesn't need live game state, then
     /// call the one matching <see cref="IFlightOpsActuator"/> method. No
-    /// KSP/Unity type appears here — every check that needs live state (is a
+    /// KSP/Unity type appears here: every check that needs live state (is a
     /// revert currently available, does a vessel id resolve, is there an active
     /// vessel) is the actuator's job and comes back as a typed
     /// <see cref="CommandResult.ErrorCode"/>.
     ///
     /// <para>These commands are game-level/player/scene actions, not uplinks to
-    /// a craft, so they are declared <c>delayed: false</c> — see
+    /// a craft, so they are declared <c>delayed: false</c>; see
     /// <c>FlightOpsUplink</c>'s command table.</para>
     /// </summary>
     public static class FlightOpsCommandProvider
@@ -35,7 +35,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Bridges the opaque <c>"vab"</c>/<c>"sph"</c> wire string to the
         /// KSP-free <see cref="EditorFacilityKind"/> HERE, before the actuator
-        /// is ever called — an unrecognised facility is an out-of-range arg,
+        /// is ever called, an unrecognised facility is an out-of-range arg,
         /// rejected as <see cref="CommandErrorCode.Range"/> without touching the
         /// game (the same admission-gate split every arg-validated command in
         /// this contract uses).
@@ -55,7 +55,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// A missing/empty vessel id can never resolve to a live vessel, so it
-        /// fails fast as <see cref="CommandErrorCode.NotFound"/> here — mirroring
+        /// fails fast as <see cref="CommandErrorCode.NotFound"/> here, mirroring
         /// <see cref="VesselCommandProvider.HandleTargetSet"/>'s null-id guard.
         /// A well-formed id that simply doesn't match a live vessel is the
         /// actuator's own <see cref="CommandErrorCode.NotFound"/> to return
@@ -77,8 +77,8 @@ namespace Sitrep.Host
         /// Arg-gates a launch without touching KSP: an empty ship name can
         /// never resolve to a craft file
         /// (<see cref="CommandErrorCode.NotFound"/>), and an unrecognised
-        /// facility is an out-of-range arg (<see cref="CommandErrorCode.Range"/>)
-        /// — both rejected here, before the actuator (the one with the scene /
+        /// facility is an out-of-range arg (<see cref="CommandErrorCode.Range"/>),
+        /// both rejected here, before the actuator (the one with the scene /
         /// save folder / craft file in hand) is ever called. The
         /// <c>"VAB"</c>/<c>"SPH"</c> wire string bridges to the KSP-free
         /// <see cref="EditorFacilityKind"/> via the same

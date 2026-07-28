@@ -30,7 +30,7 @@ export function useWorldCanvas({
   // trajectoryCount at the last point the canvas was actually painted up to.
   // A plain "draw the latest segment" tip drops every in-between point when
   // a reveal-gate catch-up burst delivers several new samples inside one
-  // batched React commit — this tracks how far behind the paint is so every
+  // batched React commit: this tracks how far behind the paint is so every
   // buffered segment since the last draw gets caught up, not just the tip.
   const lastDrawnCountRef = useRef(0);
   // Mirrors trajectoryCount for the body-switch effect below, which must not
@@ -50,7 +50,7 @@ export function useWorldCanvas({
   }, []);
 
   // Clear trajectory when switching celestial bodies.
-  // bodyName is the trigger, not read inside — biome-ignore is intentional.
+  // bodyName is the trigger, not read inside, biome-ignore is intentional.
   // biome-ignore lint/correctness/useExhaustiveDependencies: bodyName is the change trigger, not consumed in the body
   useEffect(() => {
     const canvas = worldCanvasRef.current;
@@ -63,7 +63,7 @@ export function useWorldCanvas({
     lastDrawnCountRef.current = trajectoryCountRef.current;
   }, [bodyName]);
 
-  // Draw every buffered segment since the last paint, incrementally — no
+  // Draw every buffered segment since the last paint, incrementally, no
   // full redraws, but no dropped segments either.
   useEffect(() => {
     if (trajectoryCount === 0) return;
@@ -76,7 +76,7 @@ export function useWorldCanvas({
     const newPoints = trajectoryCount - lastDrawnCountRef.current;
     if (newPoints <= 0) return;
 
-    // Cap to what's actually in the buffer — if points shifted out of the
+    // Cap to what's actually in the buffer, if points shifted out of the
     // front (buffer over capacity) since the last draw, only what's left
     // can be painted.
     const segments = Math.min(newPoints, trajectory.length - 1);

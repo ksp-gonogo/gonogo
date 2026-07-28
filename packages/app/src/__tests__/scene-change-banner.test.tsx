@@ -14,12 +14,12 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 // SceneChangeBanner reads `spaceCenter.scene` off the mod-side stream (the
 // canonical `useTelemetry("spaceCenter.scene")?.scene`). Drive it with a real
 // `TelemetryProvider` (`TelemetryClient` + `TimelineStore` over a
-// `StubTransport`) — mirrors `flight-outcome-banner.test.tsx`'s
+// `StubTransport`): mirrors `flight-outcome-banner.test.tsx`'s
 // `setupTelemetryStream`, itself mirroring
 // `packages/components/src/test/setupStreamFixture.tsx`. `spaceCenter.scene`
 // is a raw wire topic (no derived channel to register), so a per-scene emit +
 // a manual `store.beginFrame()` is all that's needed to advance the pinned
-// frame — `beginFrame()` is synchronous, so it works under the fake timers the
+// frame: `beginFrame()` is synchronous, so it works under the fake timers the
 // auto-hide assertion needs.
 function setupSceneStream() {
   const wall = createFakeWallClock();
@@ -31,7 +31,7 @@ function setupSceneStream() {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  // Pin the view clock so `store.sample(topic, currentFrame())` resolves — the
+  // Pin the view clock so `store.sample(topic, currentFrame())` resolves, the
   // scene events emit at the default `validAt: 0`, so any pinned UT >= 0 sees
   // the latest one.
   clock.scrubTo(10);

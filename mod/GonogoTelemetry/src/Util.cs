@@ -22,7 +22,7 @@ namespace GonogoTelemetry
             return Math.Round(value, 4);
         }
 
-        /// Same as R4 but for floats — KSP returns single-precision in
+        /// Same as R4 but for floats: KSP returns single-precision in
         /// many places. Promotes to double after rounding so JSON
         /// serialisation matches existing wire shape.
         public static double R4(float value)

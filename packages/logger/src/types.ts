@@ -17,7 +17,7 @@ export interface DeviceIdentity {
    * line a device emits over time.
    */
   id?: string;
-  /** Live broker peer id — fresh per session for stations, stable for hosts. */
+  /** Live broker peer id: fresh per session for stations, stable for hosts. */
   peerId?: string;
   /**
    * For stations: the host peer id they're trying to reach (or are connected
@@ -45,7 +45,7 @@ export interface LogEntry {
 export interface LogTransport {
   /**
    * Emit one or more log entries to the transport. Implementations MUST NOT
-   * throw — log delivery failures must never crash the calling code path.
+   * throw: log delivery failures must never crash the calling code path.
    */
   send(entries: readonly LogEntry[]): void;
   /**

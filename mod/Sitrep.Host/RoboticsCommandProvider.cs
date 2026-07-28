@@ -4,7 +4,7 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free command-handling logic for the Breaking Ground robotics
-    /// commands — the command-side twin of <see cref="PartsViewProvider"/>'s
+    /// commands: the command-side twin of <see cref="PartsViewProvider"/>'s
     /// robotics read channel, and the robotics analogue of
     /// <see cref="VesselCommandProvider"/>. Each <c>Handle*</c> method is the
     /// exact delegate <c>Gonogo.KSP.PartsUplink.Register</c> hands to
@@ -17,10 +17,10 @@ namespace Sitrep.Host
     /// a check that needs only the args themselves happens HERE (an empty
     /// <c>partId</c> can never resolve a live part, so it fails fast with
     /// <see cref="CommandErrorCode.NotFound"/>; the contract-known scalar
-    /// bounds — torque 0–100, brake 0–200 — are rejected with
+    /// bounds (torque 0–100, brake 0–200) are rejected with
     /// <see cref="CommandErrorCode.Range"/>). Everything that needs live game
-    /// state — whether the id resolves, whether the resolved part is the right
-    /// subtype, whether a servo is motorized — is the actuator's job and comes
+    /// state: whether the id resolves, whether the resolved part is the right
+    /// subtype, whether a servo is motorized, is the actuator's job and comes
     /// back as a typed <see cref="CommandResult.ErrorCode"/>.</para>
     ///
     /// <para><b>Absolute set, never toggle</b> for every value/boolean command

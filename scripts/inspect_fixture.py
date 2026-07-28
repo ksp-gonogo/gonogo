@@ -3,17 +3,17 @@
 Inspect a Ship Map topology fixture (or any v.topology capture).
 
 Subcommands:
-  parts <file>                — full per-part dump (name, category, pos, size,
+  parts <file>                : full per-part dump (name, category, pos, size,
                                  up, modules truncated).
-  modules <file> <substring>  — list parts whose modules include <substring>.
-  name <file> <substring>     — list parts whose name contains <substring>
+  modules <file> <substring>  : list parts whose modules include <substring>.
+  name <file> <substring>     : list parts whose name contains <substring>
                                  (case-insensitive).
-  radial <file>               — radial-mount summary: parts whose `up` is
+  radial <file>               : radial-mount summary: parts whose `up` is
                                  within ±15° of axial vs. those that aren't.
-  fuel-lines <file>           — fuel-line linkages (source → target).
-  field <file> <fid> <key>    — dump a single part's value for a single key
+  fuel-lines <file>           : fuel-line linkages (source → target).
+  field <file> <fid> <key>    : dump a single part's value for a single key
                                  (use dotted paths like `bounds.size.x`).
-  bounds <file>               — for every part, print orgPos vs. computed
+  bounds <file>               : for every part, print orgPos vs. computed
                                  body box (lat / axial extents). Catches the
                                  case where orgPos != mesh center.
 
@@ -57,7 +57,7 @@ def cmd_parts(path: str) -> None:
         size = f"({s['x']:.2f},{s['y']:.2f},{s['z']:.2f})"
         pos = "(" + ",".join(f"{v:5.2f}" for v in p["orgPos"]) + ")"
         up_raw = p.get("up")
-        up = "(" + ",".join(f"{v:5.2f}" for v in up_raw) + ")" if up_raw else "—"
+        up = "(" + ",".join(f"{v:5.2f}" for v in up_raw) + ")" if up_raw else "(n/a)"
         mods = ",".join(m for m in p["modules"][:3])
         print(
             f"{short(p['name'], 28):<28} {short(p['category'], 11):<11} "

@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-07-08",
     "vessel": "science station",
-    "notes": "Operational Mobile Processing Lab MPL-LG-2, idle (no data loaded, 2 crew aboard, scienceRate 0) — matches local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json's first science.lab frame, folded into reference-wire-fixture-lab.json."
+    "notes": "Operational Mobile Processing Lab MPL-LG-2, idle (no data loaded, 2 crew aboard, scienceRate 0), matches local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json's first science.lab frame, folded into reference-wire-fixture-lab.json."
   },
   "sci.instruments": [
     {

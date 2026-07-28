@@ -5,7 +5,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * `TimelineStore.sampleRange` — the range
+ * `TimelineStore.sampleRange`: the range
  * read behind the sparkline/`GraphView` series shim (`useDataSeries`) in
  * `@ksp-gonogo/data`,
  * mirroring `sample()`'s raw-topic / raw-field-subtopic resolution
@@ -36,7 +36,7 @@ function orbitPoint(
   };
 }
 
-describe("TimelineStore.sampleRange — raw topics", () => {
+describe("TimelineStore.sampleRange: raw topics", () => {
   it("returns every buffered point on a literal (2-segment) raw topic within the window, payload as-is", () => {
     const store = newStore();
     store.ingest("vessel.orbit", orbitPoint(680_000, 10));
@@ -58,7 +58,7 @@ describe("TimelineStore.sampleRange — raw topics", () => {
   });
 });
 
-describe("TimelineStore.sampleRange — raw record field-subtopics (M3 pilot mechanism)", () => {
+describe("TimelineStore.sampleRange: raw record field-subtopics (M3 pilot mechanism)", () => {
   it("extracts the field from every point on the PARENT raw topic's timeline", () => {
     const store = newStore();
     store.ingest("vessel.orbit", orbitPoint(679_400, 10));
@@ -120,7 +120,7 @@ describe("TimelineStore.sampleRange — raw record field-subtopics (M3 pilot mec
   });
 });
 
-describe("TimelineStore.sampleRange — derived topics are unsupported", () => {
+describe("TimelineStore.sampleRange: derived topics are unsupported", () => {
   const doubler: DerivedChannelDefinition<number> = {
     topic: "derived.double",
     inputs: ["raw.x"],
@@ -130,7 +130,7 @@ describe("TimelineStore.sampleRange — derived topics are unsupported", () => {
     },
   };
 
-  it("returns undefined for a registered derived channel's own topic — no stored history to range over", () => {
+  it("returns undefined for a registered derived channel's own topic, no stored history to range over", () => {
     const store = newStore();
     store.registerDerivedChannel(doubler);
     store.ingest("raw.x", {
@@ -152,7 +152,7 @@ describe("TimelineStore.sampleRange — derived topics are unsupported", () => {
   });
 });
 
-describe("TimelineStore.sampleRange — epoch guard", () => {
+describe("TimelineStore.sampleRange: epoch guard", () => {
   it("a pre-rewind (lower-epoch) timeline reads as empty, never serving dead-epoch history", () => {
     const store = newStore();
     store.ingest("vessel.orbit", orbitPoint(679_000, 10, 0));

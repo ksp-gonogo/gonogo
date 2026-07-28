@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- KSP / Unity reference assemblies. The repo keeps a copy in
-         local_docs/telemachus-fork/references/ — adjust the HintPath
+         local_docs/telemachus-fork/references/: adjust the HintPath
          if your KSP install is elsewhere. -->
     <Reference Include="UnityEngine" Private="false">
       <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.dll</HintPath>

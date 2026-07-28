@@ -16,6 +16,7 @@ import {
   ScrollArea,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -50,11 +51,11 @@ const COMMIT_TIMEOUT_MS = 5_000;
 /**
  * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
  * the new wire shape (`career.status.strategies.all`,
- * CareerViewProvider.BuildStrategyList: `department`) — same field-rename
+ * CareerViewProvider.BuildStrategyList: `department`): same field-rename
  * normalization ContractManager's `parseContracts` applies. Every other
  * field name matches the new wire 1:1 (decompile-confirmed,
  * career-capture-extend-report.md), including `effectiveCostReputation`
- * staying absent on the new wire — the fallback below to
+ * staying absent on the new wire: the fallback below to
  * `initialCostReputation` already covers that, unchanged.
  */
 export function parseStrategies(raw: unknown): Strategy[] | null {
@@ -148,14 +149,14 @@ function StrategiesComponent({
 }: Readonly<ComponentProps<StrategiesConfig>>) {
   // The whole career snapshot rides ONE
   // canonical Topic, `career.status` (CareerStatus). economy.{funds,
-  // reputation,science} and strategies.all are the fields this widget reads —
+  // reputation,science} and strategies.all are the fields this widget reads,
   // the wire's `career.status.strategies.all` carries the full `id`/costs/
   // canActivate/canDeactivate/effect-text shape `parseStrategies` needs
   // (career-capture-extend-report.md; note `department`, not the legacy
   // `departmentName`, which parseStrategies normalizes). No legacy read
-  // fallback — the canonical Topic read has none. The activate/deactivate
+  // fallback: the canonical Topic read has none. The activate/deactivate
   // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
-  // the legacy DataSource via `useExecuteAction` automatically — a later
+  // the legacy DataSource via `useExecuteAction` automatically: a later
   // migration will move the write path too.
   const career = useTelemetry("career.status");
   const stratsRaw = career?.strategies?.all;
@@ -200,7 +201,7 @@ function StrategiesComponent({
       setPendingId(null);
       return;
     }
-    // Either side of the transition counts as "settled" — the action
+    // Either side of the transition counts as "settled", the action
     // mutates isActive in either direction.
     setPendingId(null);
   }, [pendingId, strategies]);
@@ -229,7 +230,7 @@ function StrategiesComponent({
     (s) =>
       !s.canActivate &&
       s.activateBlockedReason !== "" &&
-      // "more than 1 active strategies at this level" is the soft cap —
+      // "more than 1 active strategies at this level" is the soft cap,
       // the strategy IS eligible, just blocked by the active count. Keep
       // those visible in the Available list so the operator sees them as
       // options once they deactivate the running strategy.
@@ -241,7 +242,7 @@ function StrategiesComponent({
       /active strategies at this level/i.test(s.activateBlockedReason),
   );
 
-  // Over-cap detection — the KSP UI silently allows a save to carry
+  // Over-cap detection: the KSP UI silently allows a save to carry
   // more active strategies than the admin building's level allows
   // (see project_ksp_strategy_overcap_quirk). Telemachus's blocked
   // reason text encodes the cap, e.g. "more than 2 active strategies
@@ -284,7 +285,7 @@ function StrategiesComponent({
         {/* HeaderMeta wraps to a second row at narrow widths so funds /
             rep / sci aren't clipped by the title's space-between layout.
             At very narrow widths (cols < 6) the funds/rep/sci line gets
-            dropped entirely — the active count is the headline; full
+            dropped entirely: the active count is the headline; full
             tallies need the wide-9x12 mode to fit on one row. */}
         <HeaderMeta>
           <Tally $overCap={overCap}>
@@ -461,7 +462,7 @@ function AvailableRow({
   expanded: boolean;
   onToggleExpanded: () => void;
 }) {
-  // Scale the cost displays by the factor slider — KSP costs scale
+  // Scale the cost displays by the factor slider, KSP costs scale
   // linearly with the commitment factor inside the slider range. A
   // zero default would divide by zero (NaN/Infinity costs that silently
   // slip past the affordability gate), so fall back to an unscaled 1×.
@@ -471,7 +472,7 @@ function AvailableRow({
   const scaledScience = s.initialCostScience * factorScale;
   const scaledRep = s.effectiveCostReputation * factorScale;
 
-  // Treat a non-finite scaled cost as unaffordable — a NaN comparison is
+  // Treat a non-finite scaled cost as unaffordable, a NaN comparison is
   // always false, which would otherwise let a broken cost bypass the gate.
   const overBudget = (cost: number, balance: number | null) =>
     !Number.isFinite(cost) || (balance ?? Number.POSITIVE_INFINITY) < cost;
@@ -583,7 +584,7 @@ function AvailableRow({
 }
 
 function formatNumber(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
   if (Math.abs(v) >= 1000)
     return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -765,7 +766,7 @@ const FactorRow = styled.div`
 /**
  * A bare `<input type="range">` has no cross-engine styling, so each
  * browser paints its own native track/thumb colours (was mismatched
- * Chromium blue vs. WebKit/Firefox default grey — the "wrong colour" /
+ * Chromium blue vs. WebKit/Firefox default grey: the "wrong colour" /
  * "different coloured blobs" reports). It also has no explicit width, so
  * as a flex child its intrinsic size doesn't shrink to fit a narrow card
  * (was overflowing the widget at portrait/tall sizes). `min-width: 0` +
@@ -855,7 +856,7 @@ const CardFooter = styled.div`
   gap: 6px;
   margin-top: 4px;
   /* At very narrow widths (portrait-5x18) the FactorTag + action button
-     can't sit side by side — wrap the button onto its own line instead of
+     can't sit side by side, wrap the button onto its own line instead of
      letting it overflow the card's right edge (was clipping "DEACTIVATE"
      to "DEACTIVAT"). */
   flex-wrap: wrap;
@@ -882,7 +883,7 @@ registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
   description:
-    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. Activate / deactivate from any scene — the underlying API replicates KSP's eligibility checks against live state.",
+    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. Activate / deactivate from any scene, the underlying API replicates KSP's eligibility checks against live state.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 2, h: 2 },

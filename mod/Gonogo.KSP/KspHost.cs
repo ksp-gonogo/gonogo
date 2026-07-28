@@ -20,16 +20,16 @@ namespace Gonogo.KSP
     /// The ONLY class in the mod that touches KSP/Unity APIs directly ON THE
     /// READ SIDE (see <see cref="IKspHost"/>'s doc comment for the boundary
     /// this enforces). Every public member either returns a primitive/POCO or
-    /// fires <see cref="Lifecycle"/> with one — no <c>CelestialBody</c>/
+    /// fires <see cref="Lifecycle"/> with one: no <c>CelestialBody</c>/
     /// <c>Vessel</c>/<c>Orbit</c> reference ever escapes through this type.
     /// M1 Task 3 added <see cref="KspVesselActuator"/> as this class's
-    /// ACTUATION counterpart (write side, wired to <c>IVesselActuator</c>) —
+    /// ACTUATION counterpart (write side, wired to <c>IVesselActuator</c>),
     /// see its own doc comment; the two are deliberately separate by
     /// direction of data flow rather than one class doing both.
     ///
     /// KSP calls happen ONLY here, from <see cref="KspVesselActuator"/>, and
     /// from <see cref="GonogoAddon"/>'s <c>FixedUpdate</c>/GameEvents
-    /// callbacks (all main-thread, EXCEPT <see cref="KspVesselActuator"/> —
+    /// callbacks (all main-thread, EXCEPT <see cref="KspVesselActuator"/>:
     /// see its own doc comment for the known Courier-thread marshaling gap)
     /// - the courier/transport/recorder machinery downstream of
     /// <see cref="Sample"/> never touches a KSP type.
@@ -68,13 +68,13 @@ namespace Gonogo.KSP
         /// AGX once that phase lands) fresh on every sample. LATE-BOUND on
         /// purpose: <see cref="GonogoAddon"/> constructs this host before the
         /// ChannelEngine exists, and the capability Kernel isn't resolved until
-        /// every uplink has registered its providers — so the resolver is a
+        /// every uplink has registered its providers, so the resolver is a
         /// closure the addon installs after <c>ResolveCapabilities()</c>, not a
         /// constructor argument. Invoked per-sample rather than cached so a
         /// re-resolution is picked up without restarting the host.
         ///
         /// <para>Null before the addon wires it (and in a bare-host unit test),
-        /// which degrades to "no action-group data this tick" — the same
+        /// which degrades to "no action-group data this tick", the same
         /// null the contract already documents. Action groups are not
         /// SpineCritical; the rest of vessel.control is still good telemetry
         /// without them.</para>
@@ -83,7 +83,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Installs the elected-backend resolver. Called by
-        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved —
+        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved,
         /// see <see cref="_actionGroupsBackend"/> for why this can't be a
         /// constructor argument.
         /// </summary>
@@ -104,7 +104,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Installs the elected closest-approach solver resolver. Called by
-        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved —
+        /// <see cref="GonogoAddon"/> once the capability Kernel has resolved,
         /// see <see cref="_approachSolver"/> / <see cref="_actionGroupsBackend"/>
         /// for why this can't be a constructor argument.
         /// </summary>
@@ -351,7 +351,7 @@ namespace Gonogo.KSP
                     // Active launch site: the site currently selected in the
                     // editor (EditorLogic.launchSiteName). EditorLogic.fetch is
                     // null outside the editor, so this is null in flight / the
-                    // space center — the provider passes it straight onto
+                    // space center: the provider passes it straight onto
                     // spaceCenter.scene.launchSite.
                     values["activeLaunchSite"] = BuildActiveLaunchSite();
                 }
@@ -455,16 +455,16 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
             TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
             TryBuildGroup(entry, "landing", () => BuildLanding(vessel, orbit));
-            // ---- P1b slice 2 topology capture-add — the full part tree the
+            // ---- P1b slice 2 topology capture-add: the full part tree the
             // vessel.parts channel (VesselPartsViewProvider) maps. Same
             // try/omit discipline; per-part reads are individually guarded in
             // BuildTopology so one bad part can't blank the list.
             TryBuildGroup(entry, "topology", () => BuildTopology(vessel));
-            // ---- P1b slice 2 stage-ΔV capture-add — KSP's STOCK VesselDeltaV
+            // ---- P1b slice 2 stage-ΔV capture-add: KSP's STOCK VesselDeltaV
             // stage simulation (dv.stages / dv.summary channels,
             // StageDeltaVViewProvider). The new stage-simulation capture path;
             // heavier than a field read, so its own try/omit group. Omitted
-            // (BuildDeltaV returns null) until the stock sim is ready — the
+            // (BuildDeltaV returns null) until the stock sim is ready, the
             // TryBuildGroup + null-return pattern already carries "not ready yet"
             // through to the provider as a null payload.
             TryBuildGroup(entry, "deltaV", () => BuildDeltaV(vessel));
@@ -892,7 +892,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Max skin/internal temperature ratios (temperature/maxTemp) over
         /// every part, plus the raw readings for whichever part is hottest
-        /// by internal-temperature ratio — and the same tracking scoped to
+        /// by internal-temperature ratio: and the same tracking scoped to
         /// engine parts only (any part carrying a <c>ModuleEngines</c>;
         /// covers <c>ModuleEnginesFX</c> too, see <c>BuildPropulsion</c>'s
         /// own comment for the decompile-verified subclass note). A part
@@ -909,7 +909,7 @@ namespace Gonogo.KSP
         /// part").
         ///
         /// "Overheating" has no dedicated KSP flag on <c>ModuleEngines</c>
-        /// (verified by decompile — stock's own overheat/explosion logic is
+        /// (verified by decompile: stock's own overheat/explosion logic is
         /// part-level, off <c>Part.temperature</c> vs <c>maxTemp</c>, not a
         /// per-module bool), so <c>anyEnginesOverheating</c> reuses the same
         /// 0.9 ratio threshold ThermalStatus's inline alert copy already
@@ -1037,7 +1037,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// <paramref name="actionGroupsBackend"/> is the ELECTED action-groups
-        /// backend (stock, or AGX once that phase lands) — resolved by
+        /// backend (stock, or AGX once that phase lands), resolved by
         /// <see cref="GonogoAddon"/> and threaded down here rather than read
         /// from a global, exactly as <c>maneuverNodeIdRegistry</c> is.
         ///
@@ -1045,7 +1045,7 @@ namespace Gonogo.KSP
         /// LIVE KSP, and this method runs on the main thread as part of the
         /// snapshot capture. A channel-source closure
         /// (<c>VesselViewProvider.BuildControlWire</c>) may run on the Courier
-        /// thread and must never touch a backend — the same reason
+        /// thread and must never touch a backend, the same reason
         /// <see cref="CommsCoreUplink"/> reads its backend from
         /// <c>CaptureOnMain</c> rather than from its channel sources. See
         /// <see cref="IActionGroupsBackend"/>'s threading note.</para>
@@ -1107,8 +1107,8 @@ namespace Gonogo.KSP
         /// via decompile). Emitted as a raw string under
         /// <c>vessel.physics.mode</c>; <c>VesselViewProvider.BuildPhysicsMode</c>
         /// maps it string→enum with an Unknown fallback (same convention as
-        /// sasMode). Never null — the flags are always readable on a present
-        /// vessel — so this is a single-key sub-group, not a whole-group
+        /// sasMode). Never null: the flags are always readable on a present
+        /// vessel: so this is a single-key sub-group, not a whole-group
         /// absence case:
         /// <list type="bullet">
         /// <item><c>!loaded</c> ⇒ <c>OnRails</c></item>
@@ -1815,7 +1815,7 @@ namespace Gonogo.KSP
         /// the live vessel/body and feeds the KSP-free <see cref="LandingModel"/>
         /// so the maths stays unit-tested. Returns null (group omitted) unless
         /// the source relevance gate is open: descending toward a solid,
-        /// PQS-backed surface within the closure horizon. Scalar results only —
+        /// PQS-backed surface within the closure horizon. Scalar results only,
         /// never an unverified 0.0.
         /// </summary>
         private static Dictionary<string, object?>? BuildLanding(Vessel vessel, Orbit? orbit)
@@ -1841,7 +1841,7 @@ namespace Gonogo.KSP
 
             if (body.atmosphere)
             {
-                // Aggregate current drag force (kN) — a real measurement, no sim.
+                // Aggregate current drag force (kN): a real measurement, no sim.
                 double dragForce = 0.0;
                 var parts = vessel.parts;
                 if (parts != null)
@@ -1886,7 +1886,7 @@ namespace Gonogo.KSP
                 result["parachuteState"] = BuildParachuteState(vessel);
             }
 
-            // Terrain sampling — option 1 (mod-side predicted touchdown point)
+            // Terrain sampling: option 1 (mod-side predicted touchdown point)
             // with a sub-vessel fallback, behind an injectable sample-source.
             SampleTerrain(result, vessel, orbit, body);
 
@@ -2054,7 +2054,7 @@ namespace Gonogo.KSP
         /// Parachute state affecting the terminal-velocity estimate:
         /// "deployed" (its drag is already in the measured aggregate, so the
         /// estimate self-corrects), "armed" (a future step change the instant
-        /// model cannot see — flag it), or "none".
+        /// model cannot see: flag it), or "none".
         /// </summary>
         private static string BuildParachuteState(Vessel vessel)
         {
@@ -2243,7 +2243,7 @@ namespace Gonogo.KSP
         /// <c>FlightDriver</c> flags KSP's own pause menu
         /// (<c>PauseMenu.drawStockRevertOptions</c>) gates its revert buttons
         /// on. Only sampled in the flight scene (see the <c>Sample</c> call
-        /// site) — the flags are meaningless, and carry stale values from the
+        /// site): the flags are meaningless, and carry stale values from the
         /// previous flight, outside it.
         ///
         /// <para><b>Mapping (verified against <c>drawStockRevertOptions</c>):</b>
@@ -2253,7 +2253,7 @@ namespace Gonogo.KSP
         /// <c>FlightDriver.RevertToPrelaunch(...)</c>, returning to the editor)
         /// are gated on <c>CanRevertToPrelaunch</c>. So <c>canRevertToLaunch</c>
         /// reads <c>CanRevertToPostInit</c> and <c>canRevertToEditor</c> reads
-        /// <c>CanRevertToPrelaunch</c> — the KSP field names read backwards to
+        /// <c>CanRevertToPrelaunch</c>: the KSP field names read backwards to
         /// their button meaning, so this mapping is deliberately the inverse of
         /// a naive name-match.
         /// </summary>
@@ -2289,7 +2289,7 @@ namespace Gonogo.KSP
         /// The launch site currently selected in the editor
         /// (<c>EditorLogic.fetch.launchSiteName</c>). <c>EditorLogic.fetch</c>
         /// is null outside the editor scene, so this returns <c>null</c> in
-        /// flight and at the space center — a genuine "no site selected right
+        /// flight and at the space center: a genuine "no site selected right
         /// now," never a fabricated default. <c>SpaceCenterViewProvider.BuildScene</c>
         /// passes it straight through onto <c>spaceCenter.scene.launchSite</c>.
         /// </summary>
@@ -2860,7 +2860,7 @@ namespace Gonogo.KSP
             return result;
         }
 
-        /// <summary>Bound on the recently-completed contracts list — the last N
+        /// <summary>Bound on the recently-completed contracts list: the last N
         /// <c>State.Completed</c> contracts by finish date, newest-first.</summary>
         private const int CompletedRecentLimit = 10;
 
@@ -3397,7 +3397,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Per-subject rollup of the same stored <see cref="ScienceData"/>
-        /// <see cref="BuildScienceExperiments"/> lists one-row-per-blob — the
+        /// <see cref="BuildScienceExperiments"/> lists one-row-per-blob: the
         /// new home for the old GonogoTelemetry-only
         /// <c>sci.experimentBreakdown</c> enrichment (no equivalent on the base
         /// wire until now). Re-walks the vessel's experiment/container modules
@@ -3408,12 +3408,12 @@ namespace Gonogo.KSP
         /// are likewise separate walks, not derived from each other).
         /// <c>biome</c>/<c>situation</c> come from
         /// <c>ScienceUtil.GetExperimentFieldsFromScienceID</c> (confirmed via
-        /// decompile — public static, splits the subject id APART rather than
+        /// decompile: public static, splits the subject id APART rather than
         /// re-deriving from the vessel's CURRENT position, so a subject
         /// collected earlier in the flight keeps its own original biome/
         /// situation). <c>remainingPotential</c> is the ABSOLUTE science left
         /// in the subject (<c>ScienceSubject.scienceCap - science</c>, via
-        /// <c>ResearchAndDevelopment.GetSubjectByID</c>) — <c>0</c> outside
+        /// <c>ResearchAndDevelopment.GetSubjectByID</c>): <c>0</c> outside
         /// Career/Science mode, where <c>ResearchAndDevelopment.Instance</c> is
         /// null. One entry per DISTINCT subject id; multiple stored blobs for
         /// the same subject collapse into one entry with <c>dataMits</c>
@@ -4487,7 +4487,7 @@ namespace Gonogo.KSP
         }
 
         // ----------------------------------------------------------------
-        // Part-tree topology capture (vessel.parts — P1b slice 2)
+        // Part-tree topology capture (vessel.parts: P1b slice 2)
         // ----------------------------------------------------------------
 
         /// <summary>
@@ -4535,7 +4535,7 @@ namespace Gonogo.KSP
 
         private static Dictionary<string, object?> BuildTopologyPart(Part part)
         {
-            // Same flightID string join key the power/robotics captures use —
+            // Same flightID string join key the power/robotics captures use,
             // see BuildPartsPower's comment. 0 is the uninitialized sentinel.
             var id = part.flightID != 0 ? part.flightID.ToString() : null;
             var parentId = part.parent != null && part.parent.flightID != 0
@@ -4550,7 +4550,7 @@ namespace Gonogo.KSP
                     if (module != null)
                     {
                         // GetType().Name is the CLR class name (e.g.
-                        // "ModuleEngines", "CModuleFuelLine") — exactly what
+                        // "ModuleEngines", "CModuleFuelLine"): exactly what
                         // ShipMap's classifyPart matches on, and guaranteed the
                         // class-name form (unlike PartModule.moduleName).
                         modules.Add(module.GetType().Name);
@@ -4571,7 +4571,7 @@ namespace Gonogo.KSP
                 ["bounds"] = new Dictionary<string, object?>
                 {
                     // prefabSize is the per-part-constant proxy for renderer
-                    // bounds (design §6) — cheap to read every keyframe.
+                    // bounds (design §6): cheap to read every keyframe.
                     ["size"] = Vec3Array(part.prefabSize),
                     ["center"] = Vec3Array(part.boundsCentroidOffset),
                 },
@@ -4579,7 +4579,7 @@ namespace Gonogo.KSP
                 ["inverseStage"] = part.inverseStage,
                 ["maxTemp"] = part.maxTemp,
                 // -1 is the "no skin-thermal model" / "not yet simulated"
-                // sentinel for both skinMaxTemp and temperature — carry it as
+                // sentinel for both skinMaxTemp and temperature: carry it as
                 // null, never a fabricated sub-zero-Kelvin reading.
                 ["skinMaxTemp"] = part.skinMaxTemp > 0 ? part.skinMaxTemp : (double?)null,
                 ["currentTemp"] = part.temperature >= 0 ? part.temperature : (double?)null,
@@ -4596,7 +4596,7 @@ namespace Gonogo.KSP
         }
 
         // The named KSPActionGroup members a part action can be bound to, in
-        // canonical order (None / REPLACEWITHDEFAULT are deliberately excluded —
+        // canonical order (None / REPLACEWITHDEFAULT are deliberately excluded,
         // they aren't real groups). Emitted as their enum-name strings, matching
         // the client's kspActionGroupName vocabulary.
         private static readonly KSPActionGroup[] NamedActionGroups =
@@ -4611,7 +4611,7 @@ namespace Gonogo.KSP
         };
 
         /// <summary>
-        /// Per-action action-group bindings for the parts tree — one entry per
+        /// Per-action action-group bindings for the parts tree, one entry per
         /// part action bound to at least one action group. <c>BaseAction.actionGroup</c>
         /// is a <see cref="KSPActionGroup"/> Flags bitmask; decode it to the named
         /// groups (Custom01…, SAS, Brakes, …) + the action's <c>guiName</c>.
@@ -4658,13 +4658,13 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Per-part live resource storage + flow — the <c>vessel.parts</c>
+        /// Per-part live resource storage + flow: the <c>vessel.parts</c>
         /// replacement for the legacy <c>r.resourceFor[flightId]</c> key.
         /// Every resource the part carries gets an amount/maxAmount row
         /// (storage, always present); a row with zero storage is still added
         /// when a module contributes FLOW for a resource the part doesn't
         /// itself store (e.g. an engine's own part rarely carries its own
-        /// propellant) — same "flow without storage" contract
+        /// propellant): same "flow without storage" contract
         /// <c>PartResources</c>' SDK doc comment documents.
         ///
         /// <para><b>Production flow ("if cheap" only, matching
@@ -4675,16 +4675,16 @@ namespace Gonogo.KSP
         /// (<c>Propellant.currentRequirement</c>, signed negative, no
         /// nominal).</para>
         ///
-        /// <para><b>EC consumption (review finding I3 — restores the old
+        /// <para><b>EC consumption (review finding I3: restores the old
         /// PowerSystems "Consumers" list, which had nothing but production
         /// rows to filter negative out of before this).</b> Every
         /// <c>PartModule</c> carries a <c>resHandler</c>
-        /// (<c>ModuleResourceHandler</c>) field — decompile of
+        /// (<c>ModuleResourceHandler</c>) field: decompile of
         /// <c>UpdateModuleResourceInputs</c> shows
         /// <c>ModuleResource.currentRequest = rate * rateMultiplier *
         /// TimeWarp.fixedDeltaTime</c>, i.e. the live per-tick amount the
         /// module is CURRENTLY drawing, in the SAME <c>resHandler</c> shape
-        /// across every module that uses it — <see cref="EcInputRatePerSecond"/>
+        /// across every module that uses it, <see cref="EcInputRatePerSecond"/>
         /// is the one shared reader for that shape (prefer-the-generic-path
         /// over re-deriving the rate math per module type). It is deliberately
         /// NOT walked blindly across every module on the part though:
@@ -4692,24 +4692,24 @@ namespace Gonogo.KSP
         /// module's own update call, and several of them skip that call
         /// entirely while inactive (e.g. <c>ModuleLight.FixedUpdate</c> jumps
         /// straight past <c>resHandler.UpdateModuleResourceInputs</c> when
-        /// <c>isOn</c> is false) — reading it unconditionally would report a
+        /// <c>isOn</c> is false), reading it unconditionally would report a
         /// switched-off light's LAST active draw forever. So each consumer
         /// below is still gated on its own "is this actually consuming right
         /// now" signal: <c>ModuleReactionWheel.State == Active</c> (decompile
         /// of <c>FixedUpdate</c> confirms the resHandler update itself is
         /// nested behind this exact check), <c>ModuleLight.useResources &amp;&amp;
         /// isOn</c>, <c>ModuleDataTransmitter.IsBusy()</c>.
-        /// <c>ModuleCommand.UpdateControlState()</c> is the one exception —
+        /// <c>ModuleCommand.UpdateControlState()</c> is the one exception,
         /// decompile shows it runs unconditionally every flight FixedUpdate
         /// (hibernation only scales <c>rateMultiplier</c> down, never skips
         /// the call), so it needs no extra active-gate.
         /// <c>ModuleResourceConverter</c>/<c>ModuleResourceHarvester</c>
         /// (ISRU/drills) share a common ancestor, <c>BaseConverter</c>, whose
-        /// EC entry (if any) lives in the PUBLIC <c>inputList</c> — walked
+        /// EC entry (if any) lives in the PUBLIC <c>inputList</c>, walked
         /// generically across every <c>BaseConverter</c> subclass rather than
         /// enumerating the concrete converter/harvester types by hand. Their
         /// live draw is approximated as <c>Ratio * EfficiencyBonus *
-        /// lastTimeFactor</c> (all public fields on <c>BaseConverter</c>) —
+        /// lastTimeFactor</c> (all public fields on <c>BaseConverter</c>):
         /// this REVISES the "not cheaply derivable" call in
         /// <see cref="BuildPartsPower"/>'s doc comment for the EC-INPUT side
         /// specifically (production/output recipe simulation there is
@@ -5018,13 +5018,13 @@ namespace Gonogo.KSP
         /// amount into a per-second rate. Decompile of
         /// <c>ModuleResourceHandler.UpdateModuleResourceInputs</c> shows
         /// <c>ModuleResource.currentRequest = rate * rateMultiplier *
-        /// TimeWarp.fixedDeltaTime</c> — an AMOUNT for that tick, not a rate —
+        /// TimeWarp.fixedDeltaTime</c> (an AMOUNT for that tick, not a rate)
         /// so dividing back out by <c>fixedDeltaTime</c> is what makes this
         /// comparable to every other flow row <see cref="BuildPartResources"/>
         /// emits. Every <c>PartModule</c> has a <c>resHandler</c> (it's a base
         /// -class field, default-empty), so this one reader is shared by
         /// every resHandler-driven consumer in <see cref="BuildPartResources"/>
-        /// instead of re-deriving the same division per module type — see
+        /// instead of re-deriving the same division per module type; see
         /// that method's doc comment for why callers must still gate on the
         /// owning module's own "active right now" signal before calling this
         /// (the field is a stale snapshot when the module skipped its own
@@ -5051,7 +5051,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Per-part module behavioural state — the <c>vessel.parts</c>
+        /// Per-part module behavioural state: the <c>vessel.parts</c>
         /// replacement for the legacy <c>v.partState[flightId]</c> key.
         /// Covers the module types whose deploy/activation state is a
         /// single decompile-verified public field: solar panels / radiators
@@ -5066,7 +5066,7 @@ namespace Gonogo.KSP
         /// (<c>ModuleWheels.ModuleWheelDeployment.stateString</c>, the wheel
         /// FSM's own state name). <c>cargoBay</c> (a defined
         /// <c>PartStateModule.type</c> vocabulary value) is DELIBERATELY not
-        /// captured — <c>ModuleCargoBay</c> delegates its deploy animation to
+        /// captured: <c>ModuleCargoBay</c> delegates its deploy animation to
         /// a configurable <c>IScalarModule</c> index rather than exposing a
         /// direct state field/enum, so there is no single decompile-stable
         /// API to read (flagged rather than guessed, matching this mod's
@@ -5165,7 +5165,7 @@ namespace Gonogo.KSP
             {
                 // RealChute (the parachute mod every RO capsule/booster recovery
                 // chute uses) subclasses PartModule, NOT ModuleParachute, so the
-                // stock reader above misses it entirely — under RO the parachute
+                // stock reader above misses it entirely: under RO the parachute
                 // state would always be empty. Read RealChuteModule's per-canopy
                 // deploy state reflectively; RealChute.dll ships only in an RO
                 // install so it is never referenced at compile time (same
@@ -5294,7 +5294,7 @@ namespace Gonogo.KSP
                 case ModuleDeployablePart.DeployState.RETRACTING:
                     return "retracting";
                 default:
-                    // BROKEN (and any future enum value) — "unknown" is the
+                    // BROKEN (and any future enum value): "unknown" is the
                     // documented fallback; this vocabulary bucket has no
                     // "broken" state (only the parachute bucket does).
                     return "unknown";
@@ -5327,7 +5327,7 @@ namespace Gonogo.KSP
         /// RealChute canopies and stock chutes identically. RealChute's enum:
         /// NONE / STOWED / LOWDEPLOYED / PREDEPLOYED / DEPLOYED / CUT. A STOWED
         /// canopy whose module is <paramref name="armed"/> is reported "armed"
-        /// (deploy triggered, waiting on the pressure/altitude condition) —
+        /// (deploy triggered, waiting on the pressure/altitude condition),
         /// mirroring stock ACTIVE -> "armed"; the pre/low/full deployed stages
         /// all collapse to "extended" like stock SEMIDEPLOYED/DEPLOYED.
         /// </summary>
@@ -5353,7 +5353,7 @@ namespace Gonogo.KSP
         /// <c>ModuleWheelDeployment.stateString</c> is a free-form FSM state
         /// name (<c>"Deployed"</c>/<c>"Retracted"</c>/<c>"Deploying"</c>/
         /// <c>"Retracting"</c>/<c>"Broken"</c> per the wheel FSM's own state
-        /// setup) rather than a typed enum — decompile confirms the field
+        /// setup) rather than a typed enum: decompile confirms the field
         /// but not an enum, so this matches by substring rather than an
         /// exhaustive switch. Order matters: "Deploying"/"Retracting" must
         /// be checked before their "-ed" counterparts since one contains a
@@ -5388,15 +5388,15 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The P1b slice 2 stage-ΔV capture — reads KSP's STOCK
+        /// The P1b slice 2 stage-ΔV capture: reads KSP's STOCK
         /// <c>VesselDeltaV</c> stage simulation (the same numbers the in-game
         /// ΔV app shows; atmosphere/ISP/crossfeed/staging all handled by the
         /// game, so this never hand-rolls the rocket equation) into the raw
         /// <c>deltaV</c> group <see cref="Sitrep.Host.StageDeltaVViewProvider"/>
         /// maps to the <c>dv.stages</c>/<c>dv.summary</c> channels.
         ///
-        /// <para>Uses <c>OperatingStageInfo</c> — the stages that actually have
-        /// ΔV — not the raw stage list, matching what the in-game app shows.
+        /// <para>Uses <c>OperatingStageInfo</c>, the stages that actually have
+        /// ΔV: not the raw stage list, matching what the in-game app shows.
         /// The per-stage dv/twr/thrust/mass fields are <c>float</c> on
         /// <c>DeltaVStageInfo</c> and are widened to <c>double</c> here (no
         /// precision concern); the <c>Total*</c> rollups are already
@@ -5406,7 +5406,7 @@ namespace Gonogo.KSP
         /// dormant. When it is not yet ready we kick it once
         /// (<c>EnableStockSimluation</c> + <c>SetCalcsDirty</c>) so a subsequent
         /// sample reads a clean result, and OMIT the group this tick
-        /// (return null) rather than block <c>Sample()</c> on it — the
+        /// (return null) rather than block <c>Sample()</c> on it, the
         /// <c>TryBuildGroup</c> + null-return pattern carries "not ready yet"
         /// straight through to the provider as a null payload. Whether the
         /// flight-scene sim is live by default is not decompile-resolvable, so
@@ -5422,7 +5422,7 @@ namespace Gonogo.KSP
 
             if (!dv.IsReady)
             {
-                // Stock sim dormant — request it, then read on a later tick.
+                // Stock sim dormant: request it, then read on a later tick.
                 if (!dv.DoStockSimulation)
                 {
                     dv.EnableStockSimluation();
@@ -5480,19 +5480,19 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Per-resource current/max amounts for the parts active in
-        /// <paramref name="stage"/> — the old Telemachus
+        /// <paramref name="stage"/>: the old Telemachus
         /// <c>r.resourceCurrent[X]</c>/<c>r.resourceCurrentMax[X]</c> pair
         /// (stage-scoped, as opposed to <see cref="BuildResources"/>'s
         /// vessel-WIDE totals). <c>DeltaVStageInfo</c> carries only aggregate
-        /// dry/fuel MASS for the stage (confirmed via decompile — no
+        /// dry/fuel MASS for the stage (confirmed via decompile, no
         /// per-resource field at all), so this walks every
         /// <c>DeltaVPartInfo</c> in the stage's own <c>parts</c> list, looks
         /// up that part's <c>stageFuelMass[stage.stage]</c> snapshot (a
-        /// per-stage <c>PartResourceList</c> the stock sim keeps per part —
+        /// per-stage <c>PartResourceList</c> the stock sim keeps per part,
         /// <c>DeltaVPartInfo.stageFuelMass</c> is keyed by stage number), and
         /// sums each resource's <c>amount</c>/<c>maxAmount</c> by name across
         /// every part that carries it in this stage. Returns an EMPTY dict
-        /// (never null) when the stage carries no tracked resources — a real
+        /// (never null) when the stage carries no tracked resources, a real
         /// "nothing here" reading distinct from the whole stage entry being
         /// absent (that's <see cref="BuildDeltaV"/>'s own null case).
         /// </summary>
@@ -5545,7 +5545,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// True when the part carries a solar panel, an engine alternator, an
-        /// EC-producing resource converter, or its own ElectricCharge storage —
+        /// EC-producing resource converter, or its own ElectricCharge storage,
         /// the same producers <see cref="BuildPartsPower"/> enumerates, folded
         /// into a single per-part flag so the topology channel can flag power
         /// nodes without a cross-channel join.
@@ -5603,7 +5603,7 @@ namespace Gonogo.KSP
         /// The stringified flightID of the part a fuel line feeds, or null when
         /// this isn't a fuel-line part. A fuel line is a <see cref="CompoundPart"/>
         /// (its <c>target</c> is the fed part) carrying a
-        /// <c>CModuleFuelLine</c> module — gate on the module so struts (also
+        /// <c>CModuleFuelLine</c> module: gate on the module so struts (also
         /// CompoundParts) don't report a fuel-flow target.
         /// </summary>
         private static string? FuelLineTargetId(Part part)

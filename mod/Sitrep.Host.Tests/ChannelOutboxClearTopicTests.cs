@@ -15,7 +15,7 @@ namespace Sitrep.Host.Tests
     /// quickload/rewind happens. Because the pump drains its reliable lane
     /// (acks, the timeline-reset event) BEFORE its lossy lane, that abandoned
     /// frame would then reach the wire AFTER the reset event the client uses
-    /// to know the old timeline is gone — showing stale data.
+    /// to know the old timeline is gone, showing stale data.
     /// <c>ChannelEngine.BroadcastTimelineReset</c> now calls
     /// <see cref="ChannelOutbox.ClearTopic"/> for every subscribed topic,
     /// right before it queues the reset event, closing that window.
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Tests
         /// mid-send (so both a stale lossy frame AND the reliable reset event
         /// are queued before the pump's next drain cycle), calling
         /// <see cref="ChannelOutbox.ClearTopic"/> before queuing the reset
-        /// event means the stale frame NEVER reaches the wire — only the
+        /// event means the stale frame NEVER reaches the wire, only the
         /// reset does. Remove the <c>ClearTopic</c> call below (as production's
         /// <c>BroadcastTimelineReset</c> used to lack it) and the stale frame
         /// drains to the wire AFTER the reset event, exactly the defect.
@@ -66,7 +66,7 @@ namespace Sitrep.Host.Tests
             outbox.PublishReliable(Bytes("timeline-reset"));
 
             // Release the pump: it finishes "ack", then drains reliable
-            // ("timeline-reset") before lossy — so if the stale frame had NOT
+            // ("timeline-reset") before lossy: so if the stale frame had NOT
             // been cleared it would land right after the reset.
             connection.ReleaseGate();
 
@@ -106,7 +106,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// A connection whose FIRST <see cref="TrySend"/> blocks on a gate
-        /// until <see cref="ReleaseGate"/> is called — used to park the
+        /// until <see cref="ReleaseGate"/> is called, used to park the
         /// outbox pump thread mid-drain so a test can stage further frames
         /// with a guarantee about which drain cycle they land in.
         /// </summary>

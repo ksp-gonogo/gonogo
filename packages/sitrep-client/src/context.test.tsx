@@ -20,7 +20,7 @@ import { ViewClock } from "./view-clock";
 
 /**
  * A fully manual, injected `requestAnimationFrame`/`cancelAnimationFrame`
- * pair — queued callbacks only ever run when the test calls `flush()`
+ * pair, queued callbacks only ever run when the test calls `flush()`
  * itself. Deliberately NOT real rAF (unavailable synchronously anyway) and
  * NOT jsdom's own rAF polyfill (a real `setTimeout(~16ms)` under the hood,
  * which would make "did it coalesce" a real-timing race). This is the
@@ -40,7 +40,7 @@ function installFakeRaf() {
     pending.delete(handle);
   });
   return {
-    /** Run every callback currently queued (a snapshot — callbacks queued DURING flush are not re-flushed). */
+    /** Run every callback currently queued (a snapshot, callbacks queued DURING flush are not re-flushed). */
     flush(): void {
       const callbacks = [...pending.values()];
       pending.clear();
@@ -54,12 +54,12 @@ function installFakeRaf() {
 
 /**
  * `TelemetryProvider` must coalesce `beginFrame()` to animation-frame
- * cadence, not call it once per `stream-data` message — a burst of N
+ * cadence, not call it once per `stream-data` message, a burst of N
  * messages arriving in the same tick must only mint ONE `FrameToken`,
  * matching `beginFrame`'s own doc ("call once per animation frame / read
  * cycle... never once per read"). Calling `store.beginFrame()`
  * synchronously from `client.subscribeStore`'s callback instead would let a
- * burst of 5 ingests produce 5 `beginFrame()` calls — 5 Kepler solves under
+ * burst of 5 ingests produce 5 `beginFrame()` calls, 5 Kepler solves under
  * `deriveVesselState` for what should have been a single frame.
  */
 describe("TelemetryProvider coalesces beginFrame() to (at most) once per animation-frame tick", () => {
@@ -95,10 +95,10 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
       }
     });
 
-    // Not yet — the frame tick hasn't run. If this were failing (RED, the
+    // Not yet: the frame tick hasn't run. If this were failing (RED, the
     // pre-fix behavior), beginFrameSpy would already read 5 here.
     expect(beginFrameSpy).toHaveBeenCalledTimes(0);
-    // And only ONE frame got scheduled for the whole 5-message burst — not 5.
+    // And only ONE frame got scheduled for the whole 5-message burst, not 5.
     expect(raf.pendingCount()).toBe(1);
 
     act(() => raf.flush());
@@ -131,7 +131,7 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
     unmount();
     unsubscribe();
 
-    // Unmount cancelled the scheduled frame — nothing left to flush, and
+    // Unmount cancelled the scheduled frame: nothing left to flush, and
     // flushing whatever's left must not call beginFrame() on the now-gone
     // provider's store.
     expect(raf.pendingCount()).toBe(0);
@@ -141,8 +141,8 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
 });
 
 /**
- * An auto-built store (no `store` prop supplied) must rebuild — and
- * re-`attachStore`/detach — when the `client` prop's identity changes. If
+ * An auto-built store (no `store` prop supplied) must rebuild, and
+ * re-`attachStore`/detach: when the `client` prop's identity changes. If
  * the provider's `useMemo` omitted `client` from its dependency array, an
  * auto-built store would survive a client swap (e.g. a reconnect that hands
  * the provider a fresh `TelemetryClient`), continuing to serve topics from
@@ -174,7 +174,7 @@ describe("TelemetryProvider rebuilds its auto-built store when `client` changes"
 
     const unsubA = clientA.subscribe("v.raw", () => {});
     act(() => transportA.emit("v.raw", 111));
-    // Fresh FrameToken before every read below — `sample()` memoizes per
+    // Fresh FrameToken before every read below, `sample()` memoizes per
     // (token, topic) for that token's whole lifetime (frame coherence), so
     // reusing a token across ingests would mask a real detach bug behind a
     // stale cached read rather than genuinely proving attach/detach.
@@ -184,7 +184,7 @@ describe("TelemetryProvider rebuilds its auto-built store when `client` changes"
     rerender(<Harness client={clientB} />);
     const storeB = seenStores.at(-1) as TimelineStore;
 
-    // A genuinely new store was built for the new client — not the same
+    // A genuinely new store was built for the new client, not the same
     // instance surviving the swap (the RED behavior).
     expect(storeB).not.toBe(storeA);
 
@@ -224,7 +224,7 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
     );
 
     expect(seenClock).toBeInstanceOf(ViewClock);
-    // The hook must hand back the SAME instance the store reads from — not a
+    // The hook must hand back the SAME instance the store reads from, not a
     // second clock. This is the whole single-delay-authority contract.
     expect(seenClock).toBe(seenStore?.clock);
   });
@@ -367,7 +367,7 @@ describe("TelemetryProvider wires comms.delay into the auto-built ViewClock (spe
   });
 });
 
-describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → view-UT)", () => {
+describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-UT)", () => {
   let raf: ReturnType<typeof installFakeRaf>;
 
   beforeEach(() => {
@@ -405,7 +405,7 @@ describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → vi
         <Probe />
       </TelemetryProvider>,
     );
-    // Seeded from `viewUt()` — the same quantity the frame tick delivers — so
+    // Seeded from `viewUt()`: the same quantity the frame tick delivers, so
     // a scrubbed clock reads its target from the very first render. This used
     // to seed from `confirmedEdgeUt()`, which ignores the scrub outright: the
     // probe rendered `undefined` for one frame and only snapped to 12_345 on
@@ -444,7 +444,7 @@ describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → vi
   });
 });
 
-describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedChannels — non-hook command dispatch", () => {
+describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedChannels: non-hook command dispatch", () => {
   it("reports unrouted when no TelemetryProvider is mounted", () => {
     expect(getActiveTelemetryClient()).toBeUndefined();
     expect(getActiveCarriedChannels()).toBeUndefined();

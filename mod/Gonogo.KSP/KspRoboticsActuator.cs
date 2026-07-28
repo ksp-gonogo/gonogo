@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The real <see cref="IRoboticsActuator"/> — the actuation counterpart of
+    /// The real <see cref="IRoboticsActuator"/>: the actuation counterpart of
     /// <see cref="KspHost.BuildPartsRobotics"/>'s read scan. Resolves the
     /// target part by <c>flightID.ToString()</c> across
     /// <c>FlightGlobals.ActiveVessel.parts</c> (the same join key the read side
@@ -27,7 +27,7 @@ namespace Gonogo.KSP
     /// A bare <c>module.rpmLimit = value</c> sets the backing field but never
     /// fires that callback, so a running servo silently ignores it.
     /// <c>BaseField.SetValue(value, host)</c> assigns the field AND invokes
-    /// <c>OnValueModified</c>, so the change actually takes effect — confirmed
+    /// <c>OnValueModified</c>, so the change actually takes effect, confirmed
     /// against this KSP version's decompiled <c>BaseField.SetValue</c>. The
     /// four lock/motor operations (<c>EngageServoLock</c>/<c>DisengageServoLock</c>/
     /// <c>EngageMotor</c>/<c>DisengageMotor</c>) are real methods, not fields,
@@ -105,7 +105,7 @@ namespace Gonogo.KSP
         });
 
         // The torque-limit percentage maps to BaseServo.servoMotorLimit (0–100),
-        // NOT ModuleRoboticServoRotor.maxTorque — see the robotics command brief.
+        // NOT ModuleRoboticServoRotor.maxTorque: see the robotics command brief.
         public CommandResult SetRotorTorqueLimit(string partId, double value) => WithRotor(partId, rotor =>
         {
             rotor.Fields["servoMotorLimit"].SetValue((float)value, rotor);
@@ -148,7 +148,7 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         });
 
-        // "Reverse" flips the spin direction — rotateCounterClockwise, whose
+        // "Reverse" flips the spin direction: rotateCounterClockwise, whose
         // OnValueModified callback (ModifyDirection) is what actually re-drives
         // the running rotor. inverted is a separate axis-invert flag and is NOT
         // what the reverse button targets. Read the live value through the field
@@ -195,7 +195,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Rotor-specific twin of <see cref="WithServo"/>. A part that resolves
         /// but is a hinge/piston rather than a rotor is a subtype mismatch and
-        /// comes back <see cref="CommandErrorCode.ModeUnavailable"/> — an
+        /// comes back <see cref="CommandErrorCode.ModeUnavailable"/>: an
         /// unknown id is still <see cref="CommandErrorCode.NotFound"/>.
         /// </summary>
         private static CommandResult WithRotor(string partId, Func<ModuleRoboticServoRotor, CommandResult> action)

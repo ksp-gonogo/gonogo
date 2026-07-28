@@ -10,7 +10,7 @@ import {
   transferStatus,
 } from "./transfer";
 
-// Real Sun/Earth/Mars values (SI: metres, seconds, m/s) — the canonical
+// Real Sun/Earth/Mars values (SI: metres, seconds, m/s), the canonical
 // interplanetary sanity case every transfer tool is checked against.
 const MU_SUN = 1.32712440018e20;
 const MU_EARTH = 3.986004418e14;
@@ -117,7 +117,7 @@ describe("nextTransferWindowWait", () => {
       destPeriod: T_MARS,
       synodicPeriodSec: syn,
     });
-    // either ~0 or ~synodic (a full cycle) — both mean "window is now"
+    // either ~0 or ~synodic (a full cycle), both mean "window is now"
     expect(Math.min(wait, syn - wait)).toBeLessThan(DAY);
   });
 });

@@ -13,8 +13,8 @@ import { kosSource } from "./kos";
  * Discovery rides the mod's native `kos.processors` push channel, which the
  * `KosDataSource`'s Uplink executor already subscribes to for tagname →
  * coreId resolution. That subscription only exists once a `TelemetryClient`
- * is adopted, so this component — mounted inside `<SitrepTelemetryProvider>`,
- * a sibling of `SitrepPeerRelay` — hands the live client to the source the
+ * is adopted, so this component, mounted inside `<SitrepTelemetryProvider>`,
+ * a sibling of `SitrepPeerRelay`: hands the live client to the source the
  * moment it's available (and on every client change: a reconnect / provider
  * remount mints a fresh client). Adoption is idempotent for the same client.
  *
@@ -22,7 +22,7 @@ import { kosSource } from "./kos";
  * `kosSource.onProcessorsChanged` → `cpuRegistry.reportOnline`, mirroring
  * `MainScreen`'s previous `useKosMainWiring` wiring exactly.
  *
- * Renders nothing. Main-screen only — stations don't dispatch to kOS.
+ * Renders nothing. Main-screen only, stations don't dispatch to kOS.
  */
 export function KosCpuDiscovery({
   cpuRegistry,
@@ -36,7 +36,7 @@ export function KosCpuDiscovery({
     // kosSource is always the registered "kos" Uplink handle in-process
     // (this component only mounts on the main screen), so the instanceof
     // check that used to guard a generic getDataSource("kos") lookup isn't
-    // needed here — it imports the concrete instance directly.
+    // needed here: it imports the concrete instance directly.
     kosSource.attachTelemetryClient(client);
   }, [client]);
 

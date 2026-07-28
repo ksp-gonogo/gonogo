@@ -45,7 +45,7 @@ export class SettingsService {
     this.storage = storage;
     this.load();
     // Flush on tab close so debounced writes don't get dropped. Only
-    // attach in browser-like environments — Node / vitest runs without
+    // attach in browser-like environments: Node / vitest runs without
     // window are no-ops.
     if (typeof window !== "undefined") {
       this.beforeUnloadHandler = () => this.flush();
@@ -59,7 +59,7 @@ export class SettingsService {
   }
 
   set<T>(key: string, value: T): void {
-    // Cheap dedupe — structural compare via JSON since settings are always
+    // Cheap dedupe: structural compare via JSON since settings are always
     // JSON-serialisable by contract.
     const prev = this.values.get(key);
     if (JSON.stringify(prev) === JSON.stringify(value)) return;
@@ -94,7 +94,7 @@ export class SettingsService {
   }
 
   /** Detach the beforeunload listener. Call before discarding the
-   *  service — primarily relevant in tests that mount/unmount many
+   *  service: primarily relevant in tests that mount/unmount many
    *  instances. */
   dispose(): void {
     this.flush();
@@ -120,7 +120,7 @@ export class SettingsService {
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       for (const [k, v] of Object.entries(parsed)) this.values.set(k, v);
     } catch {
-      // Corrupt value — wipe and start clean.
+      // Corrupt value: wipe and start clean.
       this.storage.removeItem(STORAGE_KEY);
     }
   }

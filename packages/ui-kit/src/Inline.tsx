@@ -15,7 +15,7 @@ export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Compact inline cluster for badges/action buttons that must not grow —
+ * Compact inline cluster for badges/action buttons that must not grow,
  * `flex-shrink: 0` so it never yields space to a truncating sibling.
  * Replaces ScienceOfficer's `Badges`/`LabBadges`/`Actions`.
  */

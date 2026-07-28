@@ -3,7 +3,7 @@
  * reachability between a Vantage (observer, e.g. "KSC") and a node (e.g. a
  * vessel id). Point-to-point only (D2): a scalar delay + a boolean
  * reachability per (vantage, node) pair. No contact-plan / routing / moving
- * relays — that's M3b.
+ * relays: that's M3b.
  */
 export interface Network {
   /** One-way light-time seconds from `vantage` to `node`. */
@@ -23,11 +23,11 @@ export interface Network {
  * ("ab", "c") and ("a", "bc").
  *
  * A global `scale` (light-speed / delay-scale config) multiplies every
- * `delayTo` result — the per-pair value above is the *base* delay, scaled
+ * `delayTo` result: the per-pair value above is the *base* delay, scaled
  * on read. `scale = 1` (the default) is unscaled, unchanged Task 3
  * behavior. `scale = 0` zeroes every pair's delay regardless of base
  * (light is instant), which is what collapses the whole M3 courier/archive
- * stack to M2-equivalent immediate delivery. `reachable` is never scaled —
+ * stack to M2-equivalent immediate delivery. `reachable` is never scaled,
  * it's a separate, binary axis.
  */
 export class StubNetwork implements Network {
@@ -48,7 +48,7 @@ export class StubNetwork implements Network {
     return baseDelay * this.scale;
   }
 
-  /** Set the global delay-scale multiplier applied to every `delayTo` pair (0 = instant, 1 = unscaled, N = N times base delay). Negative values clamp to 0 — a negative scale would schedule deliveries in the past. */
+  /** Set the global delay-scale multiplier applied to every `delayTo` pair (0 = instant, 1 = unscaled, N = N times base delay). Negative values clamp to 0, a negative scale would schedule deliveries in the past. */
   setScale(scale: number): void {
     this.scale = Math.max(0, scale);
   }

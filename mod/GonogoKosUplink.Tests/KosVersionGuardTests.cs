@@ -9,7 +9,7 @@ namespace GonogoKosUplink.Tests
     // Fakes matched by SIMPLE NAME, exactly as production resolves the real kOS
     // types (KosVersionGuard.ProbeTypes matches Type.Name). These carry the
     // member NAMES/shapes the guard requires so the probe can be exercised with
-    // no real kOS.dll present — the same technique GonogoScansatUplink's
+    // no real kOS.dll present: the same technique GonogoScansatUplink's
     // VersionGuard tests use.
     namespace Fakes
     {
@@ -52,7 +52,7 @@ namespace GonogoKosUplink.Tests
         }
 
         // A TermWindow whose ONLY ProcessOneInputChar is the non-pinned 3-arg
-        // overload — the ambiguity the guard exists to catch.
+        // overload: the ambiguity the guard exists to catch.
         public class TermWindowThreeArgOnly
         {
             public void ProcessOneInputChar(char ch, object? whichTelnet, bool allowQueue) { }
@@ -60,7 +60,7 @@ namespace GonogoKosUplink.Tests
     }
 
     /// <summary>
-    /// Headless tests for the kOS version guard (spec §7) — assembly/member
+    /// Headless tests for the kOS version guard (spec §7), assembly/member
     /// existence + the 4-arg <c>ProcessOneInputChar</c> overload pin, plus the
     /// optional-postfix availability axis.
     /// </summary>
@@ -137,7 +137,7 @@ namespace GonogoKosUplink.Tests
     }
 
     // A processor stand-in (matched by simple name) missing the KOSCoreId
-    // member — in a distinct namespace from Fakes so it doesn't clash.
+    // member: in a distinct namespace from Fakes so it doesn't clash.
     namespace FakesMissing
     {
 #pragma warning disable IDE1006

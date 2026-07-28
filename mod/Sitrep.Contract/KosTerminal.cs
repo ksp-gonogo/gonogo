@@ -7,13 +7,13 @@ namespace Sitrep.Contract;
 /// <summary>
 /// One frame of interactive-terminal output for a single kOS CPU, delivered on
 /// the <c>kos.terminal.&lt;coreId&gt;</c> dynamic channel
-/// (<c>Delivery.ReliableOrdered</c>, <c>DelayRole.Delayed</c> — the screen
+/// (<c>Delivery.ReliableOrdered</c>, <c>DelayRole.Delayed</c>: the screen
 /// downlink is vessel telemetry and rides gonogo's reveal clock exactly like
 /// <c>vessel.flight</c>).
 ///
 /// <para>The mod reads the CPU's live <c>kOS.Safe.Screen.ScreenSnapShot</c>,
 /// diffs it against the last sent frame, and runs the diff through kOS's own
-/// <c>kOS.UserIO.TerminalXtermMapper</c> — so <see cref="Chunk"/> is already
+/// <c>kOS.UserIO.TerminalXtermMapper</c>: so <see cref="Chunk"/> is already
 /// xterm-ready output bytes (VT100/xterm escape sequences), the same bytes
 /// kOS's telnet server would have sent. The client writes <see cref="Chunk"/>
 /// straight into xterm; there is no proxy and no telnet in the path.</para>
@@ -34,10 +34,10 @@ namespace Sitrep.Contract;
 /// incremental diff with no baseline of its own to apply it to). This is
 /// what lets a late/returning viewer see something immediately instead of
 /// waiting out a fresh reveal-delay window for its own forced reseed to
-/// mature — see local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
+/// mature: see local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
 /// connection" section for the full root-cause writeup. A genuinely
 /// first-ever subscribe to a CPU's terminal (nothing has EVER been recorded
-/// for it) still has to wait out that first reseed's own delay window —
+/// for it) still has to wait out that first reseed's own delay window,
 /// there is no way around that; there is nothing earlier to be sticky
 /// about.</para>
 ///
@@ -57,18 +57,18 @@ public class KosTerminalFrame
     /// <summary>xterm-ready output bytes (already mapped from kOS's screen diff) to write into the terminal.</summary>
     public string Chunk { get; set; } = "";
 
-    /// <summary>True for a self-contained repaint frame — the client clears the terminal before applying <see cref="Chunk"/>.</summary>
+    /// <summary>True for a self-contained repaint frame: the client clears the terminal before applying <see cref="Chunk"/>.</summary>
     public bool FullRepaint { get; set; }
 }
 
 /// <summary>
-/// Args for <c>kos.terminal.open</c> — acquires the single-owner WRITE LEASE on
+/// Args for <c>kos.terminal.open</c>: acquires the single-owner WRITE LEASE on
 /// a CPU's shared terminal (kOS has one Interpreter/Screen per CPU; every
 /// viewer shares it, so writes must be arbitrated). On success the mod starts
 /// (or attaches) the screen downlink and emits a <see cref="KosTerminalFrame"/>
 /// full repaint. A second <c>open</c> on a CPU already leased by a different
 /// holder is REJECTED with <c>CommandErrorCode.ModeUnavailable</c> (no silent
-/// steal) — the caller stays a read-only downlink viewer. Delivered DELAYED
+/// steal): the caller stays a read-only downlink viewer. Delivered DELAYED
 /// (rides gonogo's uplink delay); the CPU-exists guard is re-checked at
 /// delivery on the KSP main thread.
 /// </summary>
@@ -92,14 +92,14 @@ public class KosTerminalOpenArgs
 }
 
 /// <summary>
-/// Args for <c>kos.keystroke</c> — types input into the leased CPU's terminal
+/// Args for <c>kos.keystroke</c>: types input into the leased CPU's terminal
 /// via kOS's public, frozen-signature
 /// <c>TermWindow.ProcessOneInputChar(ch, whichTelnet: null, forceQueue: true)</c>.
 /// <see cref="Chars"/> may be a single character (char-by-char mode) or a whole
 /// composed line (line-mode collapses N light-time round-trips to one).
 /// Rejected with <c>CommandErrorCode.ModeUnavailable</c> if
 /// <see cref="LeaseToken"/> does not match the CPU's current lease holder.
-/// Delivered DELAYED — the keystroke reaches the craft at <c>UT + uplink</c>
+/// Delivered DELAYED: the keystroke reaches the craft at <c>UT + uplink</c>
 /// under gonogo's SignalDelay, which is the sole delay authority (kOS's own
 /// input path is immediate, so there is no double-counting).
 /// </summary>
@@ -115,12 +115,12 @@ public class KosKeystrokeArgs
     /// <summary>The write-lease token from <see cref="KosTerminalOpenArgs.LeaseToken"/>; must match the CPU's current holder.</summary>
     public string LeaseToken { get; set; } = "";
 
-    /// <summary>The character(s) to type — one char, or a whole line in line-mode.</summary>
+    /// <summary>The character(s) to type: one char, or a whole line in line-mode.</summary>
     public string Chars { get; set; } = "";
 }
 
 /// <summary>
-/// Args for <c>kos.terminal.resize</c> — sets the CPU screen's column/row count
+/// Args for <c>kos.terminal.resize</c>: sets the CPU screen's column/row count
 /// (kOS's NAWS equivalent), via the sanctioned resize input sequence
 /// that reaches <c>ScreenBuffer.SetSize</c>. Rejected with
 /// <c>CommandErrorCode.ModeUnavailable</c> on a lease-token mismatch. Delivered
@@ -146,7 +146,7 @@ public class KosTerminalResizeArgs
 }
 
 /// <summary>
-/// Args for <c>kos.terminal.close</c> — releases the write lease if
+/// Args for <c>kos.terminal.close</c>: releases the write lease if
 /// <see cref="LeaseToken"/> matches the CPU's current holder (a mismatched
 /// token is a no-op ack, never steals). Once no holder remains the mod stops
 /// polling that CPU's screen (the downlink is subscription-gated regardless).

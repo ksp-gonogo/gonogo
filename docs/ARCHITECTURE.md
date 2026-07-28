@@ -6,16 +6,16 @@ gonogo is a pnpm + Turborepo monorepo. Everything is built around one idea: a co
 
 ```
 packages/
-  core/        — Plugin registry, shared TS types, React contexts, GO/NO-GO system
-  components/  — Built-in dashboard widget library (uses the core registry)
-  data/        — Flight history + data hooks (useDataSeries, useFlight, …)
-  serial/      — Per-screen serial input platform: device types, transports,
+  core/       : Plugin registry, shared TS types, React contexts, GO/NO-GO system
+  components/ : Built-in dashboard widget library (uses the core registry)
+  data/       : Flight history + data hooks (useDataSeries, useFlight, …)
+  serial/     : Per-screen serial input platform: device types, transports,
                  render styles, InputDispatcher, VirtualDevice widget + UI
-  ui/          — Reusable UI primitives (buttons, inputs, tabs, modal, icons)
-  kerbcast/     — Consumer of the kerbcast camera-streaming sidecar; registers
+  ui/         : Reusable UI primitives (buttons, inputs, tabs, modal, icons)
+  kerbcast/    : Consumer of the kerbcast camera-streaming sidecar; registers
                  a `kerbcast` data source + the Camera Feed widget
-  app/         — Vite + React SPA (main screen + station mode)
-  relay/       — Fastify server hosting /ice-config (TURN credentials) and a
+  app/        : Vite + React SPA (main screen + station mode)
+  relay/      : Fastify server hosting /ice-config (TURN credentials) and a
                  coturn TURN/STUN child process with a per-restart-rotated
                  shared secret, for the camera channel and future
                  cross-internet stations. Also a diagnostics-only /host
@@ -33,7 +33,7 @@ KSP (kOS)                               ──► Gonogo mod kos.run / kos.proce
 Main screen ◄──► Station screens (PeerJS data channels, via a public broker)
 ```
 
-The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). kOS integration rides this same stream now — script dispatch over the `kos.run` command and CPU discovery over the `kos.processors` channel — so there is no separate telnet proxy anymore.
+The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`), no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). kOS integration rides this same stream now, script dispatch over the `kos.run` command and CPU discovery over the `kos.processors` channel, so there is no separate telnet proxy anymore.
 
 The main-screen-is-sole-consumer constraint falls out of this:
 
@@ -69,7 +69,7 @@ interface DataSource {
 }
 ```
 
-This interface covers the app's non-Sitrep data sources — kOS, the camera feed, serial devices — each still read and driven through the same two universal hooks:
+This interface covers the app's non-Sitrep data sources, kOS, the camera feed, serial devices: each still read and driven through the same two universal hooks:
 
 ```ts
 const altitude = useDataValue('kos', 'kos.compute.altitude-feed.value');
@@ -80,7 +80,7 @@ These hooks are the **PeerJS boundary**. On the main screen they call the DataSo
 
 ### Sitrep telemetry: Domain/Topic/Value
 
-The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface — it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.funds`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
+The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface, it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.funds`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
 
 Widgets read and command Topics with `useTelemetry`/`useCommand` (`@ksp-gonogo/core`), the canonical replacements for `useDataValue`/`useExecuteAction` (which still work as deprecated aliases, and remain the only way to reach non-Sitrep sources):
 

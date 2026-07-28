@@ -47,16 +47,16 @@ export interface SettingsModalProps {
   /** Force the initially-active tab (e.g. "uplink-hub" for the first-run
    * auto-open host). Defaults to the existing attention-first selection. */
   initialTabId?: string;
-  /** Passed through to the embedded `UplinkHubWizard` — see its own prop doc. */
+  /** Passed through to the embedded `UplinkHubWizard`: see its own prop doc. */
   uplinkHubFirstRun?: boolean;
-  /** Passed through to the embedded `UplinkHubWizard` — see its own prop doc. */
+  /** Passed through to the embedded `UplinkHubWizard`: see its own prop doc. */
   onUplinkHubFinish?: () => void;
 }
 
 /**
  * Tabbed settings surface. Beyond the auto-rendered registered settings
  * (the "General" tab), this is also the home for the connection/device
- * management that used to live in standalone FABs — Data Sources, Devices
+ * management that used to live in standalone FABs, Data Sources, Devices
  * (serial), and Diagnostics. Each tab can raise an attention dot; the
  * Settings FAB aggregates those dots into its own badge (see SettingsFab).
  */
@@ -71,12 +71,12 @@ export function SettingsModal({
   // main screen. Stations follow the host's consent over PeerJS and have
   // no local control.
   const showConsent = screen === "main";
-  // Data-source management is main-only — stations follow the host over
+  // Data-source management is main-only, stations follow the host over
   // PeerJS and have nothing to manage locally.
   const showDataSources = screen === "main";
 
   // Data Sources now leads with the single Gonogo/Sitrep connection (no
-  // more "Other Connections" list of every registered DataSource — see
+  // more "Other Connections" list of every registered DataSource; see
   // DataSourcesPanel) plus per-Uplink health rows fed by the mod-side
   // self-report (system.uplinkHealth). The tab's attention dot reflects
   // both: the stream connection itself, and any Uplink reporting worse
@@ -94,7 +94,7 @@ export function SettingsModal({
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
-  // Same cross-reference the wizard itself renders — an installed Uplink the
+  // Same cross-reference the wizard itself renders, an installed Uplink the
   // Hub can offer but hasn't loaded yet is exactly what deserves the tab's
   // attention dot (design §4 Decision 1's "carries an attention badge when
   // the cross-reference finds an installed-but-unloaded Uplink with a Hub
@@ -124,7 +124,7 @@ export function SettingsModal({
       indicator: dataSourceIssue,
     });
     // Loading an Uplink client is a main-screen-only action (stations never
-    // talk to the mod directly, same gate as Data Sources above) — hardcoded
+    // talk to the mod directly, same gate as Data Sources above), hardcoded
     // here rather than via `registerSettingsTab`, which is reserved for
     // external contributions (see that hook's own doc comment).
     tabs.push({
@@ -187,12 +187,12 @@ export function SettingsModal({
 
 /**
  * The Data Sources tab. Leads with the single Gonogo/Sitrep connection
- * (host/port config, connect status, setup instructions) — the app's sole
- * live telemetry source — then lists every registered mod-side Uplink's
+ * (host/port config, connect status, setup instructions): the app's sole
+ * live telemetry source: then lists every registered mod-side Uplink's
  * self-reported health beneath it. Deliberately does NOT list every
  * registered `DataSource` the way the old `DataSourceStatusComponent` did:
  * stations don't reach this tab (`showDataSources` gates it main-only), and
- * on main there is exactly one telemetry connection to manage now — the
+ * on main there is exactly one telemetry connection to manage now, the
  * per-Uplink rows are the finer-grained detail that replaces the old
  * "other connections" list.
  */
@@ -260,7 +260,7 @@ function UplinkLoaderSection() {
 }
 
 /**
- * Per-Uplink health rows, fed by `system.uplinkHealth` — the client-derived
+ * Per-Uplink health rows, fed by `system.uplinkHealth`: the client-derived
  * reader over the mod's `system.uplinks` self-report (see
  * `@ksp-gonogo/sitrep-client`'s `uplink-health.ts`). Each Uplink reports its
  * OWN health; this never infers readiness from topic staleness.
@@ -280,7 +280,7 @@ function UplinkHealthList() {
     return <Placeholder>No uplinks registered</Placeholder>;
   }
 
-  // Health is mandatory now (every uplink self-reports — 2026-07-21). Collapse a
+  // Health is mandatory now (every uplink self-reports, 2026-07-21). Collapse a
   // plain "Healthy, nothing to say" entry into the chip below; anything
   // non-healthy, or healthy-WITH a detail string (an uplink offering more than
   // the trivial floor), stays individually visible.
@@ -380,7 +380,7 @@ function GeneralSettings({
 /**
  * Re-toggle for the technical-analytics consent the boot modal first
  * asked about. Bound directly to `analyticsConsentService` (its own
- * localStorage slot) rather than the settings registry — the boot modal,
+ * localStorage slot) rather than the settings registry, the boot modal,
  * the browser Axiom gate, and the peer/relay propagation all read that
  * same service, so routing this through the registry's `gonogo.settings`
  * store would split the source of truth.
@@ -424,13 +424,13 @@ function SettingRow({ def }: { def: SettingDefinition }) {
 /**
  * A source-backed setting's row. Its value lives on the Uplink's `DataSource`
  * (looked up by `sourceId`), read/written through the client-supplied binding
- * closures — NEVER through `SettingsService`/localStorage. When the source
- * isn't registered the row renders inert (disabled) rather than crashing —
+ * closures: NEVER through `SettingsService`/localStorage. When the source
+ * isn't registered the row renders inert (disabled) rather than crashing,
  * the same graceful-absence posture an absent-source-gated surface has.
  */
 function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
-  // An Uplink's source is looked up first in the uplink-handle registry —
-  // where Uplink singletons register (via `registerUplinkHandle`) — then the
+  // An Uplink's source is looked up first in the uplink-handle registry,
+  // where Uplink singletons register (via `registerUplinkHandle`): then the
   // DataSource registry as a fallback for sources registered that way.
   const source: unknown =
     getUplinkHandle(def.sourceId) ?? getDataSource(def.sourceId);
@@ -465,7 +465,7 @@ function ClientPrefRow({
   // `dependsOn` is a rendering-only hint (see its doc comment in
   // registry.ts): read the parent's CURRENT value the same way this row
   // reads its own, so the row visually goes inert the instant the parent
-  // toggles off — no registry-level enforcement, just an honest reflection
+  // toggles off: no registry-level enforcement, just an honest reflection
   // of what the consuming hook (e.g. `useMissionHistorySettings`) actually
   // does with these two values.
   const parent = def.dependsOn

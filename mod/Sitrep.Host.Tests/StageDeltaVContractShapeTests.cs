@@ -15,8 +15,8 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Locks the P1b slice 2 typing for the <c>dv.*</c> channels: proves the
     /// named <c>Sitrep.Contract</c> payload types (<see cref="StageDeltaVEntry"/>,
-    /// <see cref="StageDeltaVSummary"/>) mirror — field name for field name,
-    /// camelCase wire key for camelCase wire key, type for type — the EXACT
+    /// <see cref="StageDeltaVSummary"/>) mirror: field name for field name,
+    /// camelCase wire key for camelCase wire key, type for type, the EXACT
     /// serialized shape <see cref="StageDeltaVViewProvider"/> already emits.
     /// This is a typing change only: the wire is written by <c>JsonWriter</c>
     /// walking the provider's dictionary/list tree, not by serializing these
@@ -71,7 +71,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Synthetic raw snapshot builders — the exact
+        // Synthetic raw snapshot builders: the exact
         // Values["vessel"]["deltaV"] encoding KspHost.BuildDeltaV populates.
         // ----------------------------------------------------------------
 
@@ -127,7 +127,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Shape helpers — mirror PartsContractShapeTests (per-test-file
+        // Shape helpers: mirror PartsContractShapeTests (per-test-file
         // duplication, matching that convention).
         // ----------------------------------------------------------------
 
@@ -165,13 +165,13 @@ namespace Sitrep.Host.Tests
                 {
                     // Dictionary-shaped fields (e.g. StageDeltaVEntry.Resources,
                     // a per-resource-name map) are hand-built by the provider as
-                    // an untyped Dictionary<string, object?> — the same tree
+                    // an untyped Dictionary<string, object?>: the same tree
                     // shape JsonWriter walks for EVERY nested object, regardless
                     // of the strongly-typed nested contract type (ResourceAmount
                     // here) the mirror POCO declares. An exact IsInstanceOfType
                     // match is the wrong check for this case (it would require
                     // the provider to hand-construct ResourceAmount instances,
-                    // which the hand-dict convention deliberately never does) —
+                    // which the hand-dict convention deliberately never does),
                     // assert dictionary-SHAPE instead, matching how every other
                     // nested-record field in this class of provider is emitted.
                     if (expected.IsGenericType && expected.GetGenericTypeDefinition() == typeof(Dictionary<,>))
@@ -200,7 +200,7 @@ namespace Sitrep.Host.Tests
                 : char.ToLower(name[0], CultureInfo.InvariantCulture) + name.Substring(1);
 
         // ----------------------------------------------------------------
-        // [SitrepTopic] tag reader — raw ECMA-335 metadata, NOT CLR attribute
+        // [SitrepTopic] tag reader: raw ECMA-335 metadata, NOT CLR attribute
         // reflection (the [TsInterface] hazard PartsContractShapeTests documents).
         // ----------------------------------------------------------------
 

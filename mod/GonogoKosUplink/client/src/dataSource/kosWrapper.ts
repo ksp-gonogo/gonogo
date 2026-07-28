@@ -29,13 +29,13 @@ export interface BuildKosWrapperOptions {
 const VERSION_SUFFIX = ".ver";
 
 /**
- * Build the per-dispatch wrapper kerboscript. Pure — no I/O, no state.
+ * Build the per-dispatch wrapper kerboscript. Pure: no I/O, no state.
  *
  * History of approaches and why each failed (don't repeat):
- *   - Top-level `LOCAL needsWrite IS TRUE.` — LOCALs don't persist
+ *   - Top-level `LOCAL needsWrite IS TRUE.`, LOCALs don't persist
  *     across statement boundaries at the REPL, so `IF needsWrite { }`
  *     errored with "Undefined Variable Name 'needswrite'".
- *   - Wrap in `FUNCTION gonogoWrapperEnsure { ... }` — kOS REPL keeps
+ *   - Wrap in `FUNCTION gonogoWrapperEnsure { ... }`, kOS REPL keeps
  *     prior FUNCTION definitions cached and ignores re-definitions.
  *     Adding a 4th `bodyText` parameter caused the cached 3-parameter
  *     version to reject calls with "Number of arguments ... Called
@@ -87,9 +87,9 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
 
 /**
  * Build the exact command text a single `executeScript` call dispatches over
- * the `kos.run` Uplink — the managed wrapper (via {@link buildKosWrapper})
+ * the `kos.run` Uplink, the managed wrapper (via {@link buildKosWrapper})
  * when `managed` is supplied, or a bare `RUNPATH(...)` otherwise. Consumed
- * by the `kos.run` Uplink path (`kosUplinkExecutor.ts`) — the wrapper's
+ * by the `kos.run` Uplink path (`kosUplinkExecutor.ts`), the wrapper's
  * file-sync trick works because it's plain kerboscript, transport-agnostic.
  */
 export function buildKosRunCommand(
@@ -112,12 +112,12 @@ export function buildKosRunCommand(
 }
 
 /**
- * Arg formatter for the bare (unmanaged) `RUNPATH` form — kept distinct
+ * Arg formatter for the bare (unmanaged) `RUNPATH` form, kept distinct
  * from this file's sentinel-safe `formatArg` (used inside
  * {@link buildKosWrapper}'s wrapper body, which must also survive
  * `[KOSDATA]`-sentinel splitting). A bare RUNPATH argument list is never
  * echoed back through the parser as source, so simple `"`-doubling is
- * sufficient — this mirrors what `kosComputeSession.ts`'s `drain()` used
+ * sufficient: this mirrors what `kosComputeSession.ts`'s `drain()` used
  * to build inline before this function was extracted.
  */
 function formatBareArg(arg: KosScriptArg): string {
@@ -130,7 +130,7 @@ function formatBareArg(arg: KosScriptArg): string {
  * Sentinels the kOS data-source parser keys off. The wrapper's source is
  * echoed verbatim by the kOS REPL on dispatch, so any contiguous
  * `[KOSDATA]...[/KOSDATA]` (or KOSERROR) byte sequence in the wrapper text
- * — even inside a string literal — gets matched by the parser BEFORE
+ * (even inside a string literal) gets matched by the parser BEFORE
  * the actual script runs. That captures the wrapper's source as the
  * widget's payload and the real script's [KOSDATA] never lands.
  *
@@ -173,7 +173,7 @@ function splitSentinels(s: string): string[] {
 
 /**
  * Quote a JS string as a kOS string-concat expression. kOS has no escape
- * syntax — embed `"` via `CHAR(34)`, and break parser sentinels via the
+ * syntax: embed `"` via `CHAR(34)`, and break parser sentinels via the
  * piece-split above. Output is a kerboscript expression that evaluates
  * to `s` at runtime but never contains an intact sentinel byte sequence
  * in its source.

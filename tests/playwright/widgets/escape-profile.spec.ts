@@ -1,8 +1,8 @@
 /**
- * Widget DOM mirror — EscapeProfile. Asserts the panel title renders on
+ * Widget DOM mirror: EscapeProfile. Asserts the panel title renders on
  * both host and station, and that neither degraded-state notice fires.
  *
- * EscapeProfile is a pure chart widget — its data outputs (orbital-speed
+ * EscapeProfile is a pure chart widget, its data outputs (orbital-speed
  * trace vs altitude, plus the analytic escape-velocity reference curve)
  * are drawn into the LineChart SVG. There's no formatted readout in
  * normal DOM to assert on, so we lean on the panel title plus the
@@ -21,7 +21,7 @@
  *   o.period       = 2276
  *   v.altitude     = 100953
  *
- * Eccentricity < 1, so the vessel is in a closed orbit — no escape
+ * Eccentricity < 1, so the vessel is in a closed orbit, no escape
  * trajectory, but the widget doesn't gate on that: it always plots the
  * trace against the escape-velocity reference curve. Kerbin is a stock
  * body with gm = 3.5316e12, so the widget takes the happy path on both
@@ -30,14 +30,14 @@
  * telemetry the guard sniffs).
  *
  * We assert title visibility on each side and confirm the notice
- * `role="status"` elements are absent — the same invariant on both
+ * `role="status"` elements are absent, the same invariant on both
  * pages is what proves the host→station mirror is intact for this
  * widget's inputs.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — EscapeProfile", () => {
+test.describe("widget DOM mirror: EscapeProfile", () => {
   test("panel title mirrors across host and station with no degraded notice", async ({
     browser,
   }) => {

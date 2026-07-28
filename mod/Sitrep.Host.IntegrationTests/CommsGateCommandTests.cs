@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
     /// on disconnect (see <c>RevealGateTests</c>); this proves the symmetric
     /// uplink rule: a DELAYED command (e.g. a kOS keystroke, a vessel actuation)
     /// dispatched while the vessel's comms link is DOWN must be dropped with
-    /// honest silence — it must NEVER reach the CPU and never resolve, rather
+    /// honest silence: it must NEVER reach the CPU and never resolve, rather
     /// than being delivered after the light-time delay as if the blackout never
     /// happened. Regression for the live-observed bug where keystrokes still
     /// reached the in-game kOS terminal during a signal blackout.
@@ -43,7 +43,7 @@ namespace Sitrep.Host.IntegrationTests
                     TimeSpan.FromMilliseconds(300));
 
                 // Advance well past the full round trip (2 * 5s). Honest silence:
-                // the command is dropped at dispatch — it never reaches the CPU
+                // the command is dropped at dispatch, it never reaches the CPU
                 // and never resolves.
                 engine.TickAndWait(20.0, FreezeGateTestUplink.Snapshot(20.0, connected: false), Timeout);
 
@@ -61,7 +61,7 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public void DelayedCommandWhileConnectedStillReachesTheCpuAfterTheDelay()
         {
-            // The positive control: the gate must only drop during a blackout —
+            // The positive control: the gate must only drop during a blackout,
             // a normal connected dispatch still rides the light-time delay and
             // reaches the CPU once the round trip elapses.
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
@@ -79,7 +79,7 @@ namespace Sitrep.Host.IntegrationTests
                     _ => { },
                     TimeSpan.FromMilliseconds(300));
 
-                // Not yet — a delayed command rides the Courier's uplink delay.
+                // Not yet: a delayed command rides the Courier's uplink delay.
                 Assert.Equal(0, uplink.HandledCount);
 
                 // After the uplink delay elapses, it reaches the CPU.
@@ -96,7 +96,7 @@ namespace Sitrep.Host.IntegrationTests
         public void DelayedCommandExecutesAfterTheLiveSignalDelayNotInstantly()
         {
             // The uplink asymmetry bug: a delayed command (a keystroke, a vessel
-            // actuation) was delivered to the craft near-instantly — the Courier's
+            // actuation) was delivered to the craft near-instantly, the Courier's
             // network delay defaults to 0 and the live signal delay was only ever
             // applied to the DOWNLINK reveal gate, never to command dispatch. The
             // command must reach the craft at t0 + the live one-way signal delay,
@@ -119,7 +119,7 @@ namespace Sitrep.Host.IntegrationTests
                     TimeSpan.FromMilliseconds(300));
 
                 // At UT 2 (< the 5s signal delay) the command must NOT have
-                // reached the craft yet — it rides the signal-delay uplink, not
+                // reached the craft yet: it rides the signal-delay uplink, not
                 // the zero network delay.
                 engine.TickAndWait(
                     2.0,
@@ -169,7 +169,7 @@ namespace Sitrep.Host.IntegrationTests
                 });
                 host.SetConnectivitySource(ComputeConnected);
                 // Same production-shape signal-delay source the bundled
-                // CommsCoreUplink registers — reads a one-way delay off the
+                // CommsCoreUplink registers: reads a one-way delay off the
                 // tick snapshot's "delay" key (absent ⇒ no delay).
                 host.SetSignalDelaySource(ComputeDelay);
             }

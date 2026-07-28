@@ -1,4 +1,4 @@
-// The loader-outcome store — every runtime-load attempt records a legible result
+// The loader-outcome store: every runtime-load attempt records a legible result
 // here, and the Settings › Data Sources › Uplinks surface renders it. The design's
 // core invariant is that a mismatched or unverified client is NEVER silently
 // loaded and NEVER a silent no-op (design §2.4): every refusal carries a reason,
@@ -49,7 +49,7 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
 }
 
 /**
- * Record every given id as `loaded` with reason `"bundled"` — for an Uplink
+ * Record every given id as `loaded` with reason `"bundled"`, for an Uplink
  * loaded via a plain static `import()` rather than the runtime loader, so the
  * loaded-outcome set (read by the Settings › Uplinks list and the Hub
  * wizard's gap computation) isn't left empty for it.

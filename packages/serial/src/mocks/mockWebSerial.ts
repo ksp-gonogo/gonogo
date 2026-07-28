@@ -151,7 +151,7 @@ export class MockWebSerial {
   }
 
   /**
-   * Fire a synthetic 'connect' event. Mirrors the Web Serial spec — the
+   * Fire a synthetic 'connect' event. Mirrors the Web Serial spec, the
    * port lives at `event.target`, not `event.port`. (An earlier mock used
    * `event.port`; tests passed but real browsers were silently broken.)
    */

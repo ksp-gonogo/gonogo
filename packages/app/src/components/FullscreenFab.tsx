@@ -28,7 +28,7 @@ export function FullscreenFab({ bottom = 384 }: { bottom?: number } = {}) {
       }
     } catch {
       // Fullscreen can reject (permissions policy, unsupported browser). The
-      // failure is self-evident — the screen doesn't change — so no need to
+      // failure is self-evident, the screen doesn't change, so no need to
       // surface anything here.
     }
   }

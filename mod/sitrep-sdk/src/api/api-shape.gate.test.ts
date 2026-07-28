@@ -3,7 +3,7 @@ import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
 /**
- * The author-surface shape gate — the TS analogue of the C# ContractShapeGate,
+ * The author-surface shape gate: the TS analogue of the C# ContractShapeGate,
  * applied to the curated barrel. It records the CURRENT proposed export surface
  * (design D-D, not yet frozen) so any change to what third-party authors can
  * import is a DELIBERATE edit to this list, not an accident. When the operator
@@ -63,7 +63,7 @@ afterEach(() => {
   resetTestHost();
 });
 
-describe("sitrep-sdk author-facing barrel — shape gate", () => {
+describe("sitrep-sdk author-facing barrel: shape gate", () => {
   it("exports exactly the recorded value surface (change = deliberate)", () => {
     // Type-only exports are erased at runtime, so Object.keys already yields
     // exactly the value surface.
@@ -127,7 +127,7 @@ describe("sitrep-sdk author-facing barrel — shape gate", () => {
     expect(barrel.useTelemetry("kos.compute.x" as never)).toBe(42);
     // The shim forwards both args through in a single unconditional call
     // (see mod/sitrep-sdk/src/api/index.ts's useTelemetry doc) rather than
-    // branching on `key` before calling the host — so a one-arg canonical
+    // branching on `key` before calling the host, so a one-arg canonical
     // call still reaches the host as a two-arg call with `key` undefined.
     expect(useTelemetry).toHaveBeenCalledWith("kos.compute.x", undefined);
   });

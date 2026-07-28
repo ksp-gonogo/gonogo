@@ -1,16 +1,16 @@
 /**
  * Widget-level mirror test. Boots both screens with a CurrentOrbit
  * widget pre-placed on the dashboard and asserts the rendered Ap value
- * matches on host and station — the data-flow tests only prove values
+ * matches on host and station: the data-flow tests only prove values
  * reach the data source layer; this one proves they reach the DOM.
  *
- * `o.ApA` (old Telemachus) is now the DERIVED `vessel.state.apoapsisAlt` —
+ * `o.ApA` (old Telemachus) is now the DERIVED `vessel.state.apoapsisAlt`,
  * `sma·(1+ecc) - bodyRadius` off the fixture's `vessel.orbit.{sma,ecc}` and
  * `system.bodies`' Kerbin radius (`sitrep-stream-server.mjs`). With
  * sma=773862.315964763 / ecc=0.0956792487342901 / radius=600000 that comes
- * out to ~247904.9 m; formatDistance renders that as "247.9 km" — the exact
+ * out to ~247904.9 m; formatDistance renders that as "247.9 km", the exact
  * string the old fixture's raw `o.ApA` produced, chosen deliberately so this
- * assertion needed no rewrite. Loose match — formatDistance is exercised in
+ * assertion needed no rewrite. Loose match: formatDistance is exercised in
  * unit tests; we only need to confirm the same value flowed through both
  * render paths.
  */
@@ -65,7 +65,7 @@ async function seedContext(
   );
 }
 
-// Wait for the host peer to open, then return its share code — the station
+// Wait for the host peer to open, then return its share code, the station
 // derives `gonogo-host-<code>` and connects directly (stable-host-id model).
 async function getHostPeerId(page: Page): Promise<string> {
   return await page
@@ -114,7 +114,7 @@ async function readOrbitAp(page: Page): Promise<string> {
         );
         if (labels.length === 0) continue;
         const apLabel = labels[0];
-        // The matching value is the next sibling in the grid — walk to
+        // The matching value is the next sibling in the grid, walk to
         // the next element on the same level whose text matches the
         // km/Mm/Gm pattern that formatDistance emits in the relevant
         // range.
@@ -159,10 +159,10 @@ test.describe("widget DOM mirror", () => {
 
     // Ap is only checked on the host. It's the DERIVED `vessel.state.
     // apoapsisAlt`, and only the MAIN screen mounts `SitrepTelemetryProvider`
-    // today — station stream forwarding over PeerJS is a documented pending
+    // today: station stream forwarding over PeerJS is a documented pending
     // gap (see that provider's own doc comment). The station side of this
     // test still proves real value: the dashboard mounts, the widget
-    // renders, and the peer handshake completes — a station-side Ap
+    // renders, and the peer handshake completes, a station-side Ap
     // assertion would fail on the app's current telemetry-forwarding gap,
     // not on anything this harness controls.
     const mainAp = await readOrbitAp(main);

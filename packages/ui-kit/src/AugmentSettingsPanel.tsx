@@ -5,7 +5,7 @@ import { Switch } from "./Switch";
 // Local, structurally-equivalent mirror of `@ksp-gonogo/core`'s
 // `AugmentSettingField`/`NamespacedAugmentSettings` (spec §4.7). This package
 // is the export-safe design system and must never depend on `core` (see
-// `ModalSaveBar.tsx`'s header comment for the same rule applied elsewhere) —
+// `ModalSaveBar.tsx`'s header comment for the same rule applied elsewhere),
 // TS structural typing means callers can pass `core`'s `getAugmentSettings()`
 // result straight through without a cast.
 // ---------------------------------------------------------------------------
@@ -24,16 +24,16 @@ export interface NamespacedAugmentSettings {
 }
 
 export interface AugmentSettingsPanelProps {
-  /** Every augment's settings block for the host widget's slot(s) — see `getAugmentSettings`/`getFogRevealSourceSettings`. */
+  /** Every augment's settings block for the host widget's slot(s); see `getAugmentSettings`/`getFogRevealSourceSettings`. */
   settings: readonly NamespacedAugmentSettings[];
-  /** The widget's persisted per-augment values, keyed `[namespace][key]`. `undefined` when nothing has been saved yet — falls back to each field's own `default`. */
+  /** The widget's persisted per-augment values, keyed `[namespace][key]`. `undefined` when nothing has been saved yet, falls back to each field's own `default`. */
   values: Record<string, Record<string, unknown>> | undefined;
   /** Fired on every field edit with the namespace (augment id), the field key, and the new value. */
   onChange: (namespace: string, key: string, value: unknown) => void;
 }
 
 /**
- * Generic renderer for augment-contributed settings (spec §4.7) — the
+ * Generic renderer for augment-contributed settings (spec §4.7), the
  * read-back half of the loop `registerAugment({ settings: [...] })` writes
  * into. Renders one control per field, namespaced by augment id so two
  * augments' identically-named settings never collide in the host's saved

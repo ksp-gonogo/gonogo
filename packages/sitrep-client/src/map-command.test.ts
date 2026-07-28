@@ -12,7 +12,7 @@ import {
  * shapes are confirmed against `mod/Sitrep.Host/VesselCommandProvider.cs` and
  * `mod/Sitrep.Contract/VesselCommands.cs`; the wire's arg CASING is
  * camelCase (every payload field in `local_docs/telemetry-mod/recordings/
- * reference-wire-fixture.json` is camelCase — `JsonNamingPolicy.CamelCase`,
+ * reference-wire-fixture.json` is camelCase, `JsonNamingPolicy.CamelCase`,
  * confirmed in `mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests
  * .cs`), so `{ index }`/`{ paused }`, not the C#-cased `{ Index }`/
  * `{ Paused }`. See `map-command.ts`'s own doc comment for the three
@@ -48,7 +48,7 @@ describe("mapCommand", () => {
     ).toBeUndefined();
   });
 
-  it("returns undefined for a dataSourceId other than 'data' — nothing else is wired to commands yet", () => {
+  it("returns undefined for a dataSourceId other than 'data', nothing else is wired to commands yet", () => {
     expect(mapCommand("kos", "t.timeWarp[4]")).toBeUndefined();
   });
 
@@ -77,7 +77,7 @@ describe("mapCommand", () => {
         ["f.gear", "vessel.control.gear", "vessel.control.setGear"],
         ["f.brake", "vessel.control.brakes", "vessel.control.setBrakes"],
         ["f.light", "vessel.control.lights", "vessel.control.setLights"],
-        // f.abort is UN-GAPPED — VesselControl.Abort now
+        // f.abort is UN-GAPPED, VesselControl.Abort now
         // ships on the wire, same clean toggle bridge as its siblings.
         ["f.abort", "vessel.control.abort", "vessel.control.setAbort"],
       ];
@@ -90,8 +90,8 @@ describe("mapCommand", () => {
       }
     });
 
-    it("without a getCurrentValue reader, a bare toggle can never resolve — falls back to legacy (never a blind set)", () => {
-      // No third arg at all — mirrors every existing 2-arg call site.
+    it("without a getCurrentValue reader, a bare toggle can never resolve, falls back to legacy (never a blind set)", () => {
+      // No third arg at all: mirrors every existing 2-arg call site.
       expect(mapCommand("data", "f.sas")).toBeUndefined();
       expect(mapCommand("data", "f.rcs")).toBeUndefined();
     });
@@ -107,7 +107,7 @@ describe("mapCommand", () => {
     /**
      * Finds each group by its own `index` in the raw `vessel.control` record.
      * It used to index the array by POSITION
-     * (`vessel.control.actionGroups.{n-1}`) — wrong now that the wire shape is
+     * (`vessel.control.actionGroups.{n-1}`): wrong now that the wire shape is
      * a named list, since position no longer implies identity. The list here is
      * deliberately SPARSE and UNSORTED (no 4..9; 10 before 3) so a positional
      * read could not possibly pass.
@@ -148,7 +148,7 @@ describe("mapCommand", () => {
 
     /**
      * A group the elected backend doesn't report has no current state, so there
-     * is nothing to invert — the toggle -> absolute bridge must decline rather
+     * is nothing to invert, the toggle -> absolute bridge must decline rather
      * than guess. Guards against a stray `state: true` being sent for a group
      * that doesn't exist (e.g. a saved AGX group after AGX is uninstalled).
      */
@@ -171,9 +171,9 @@ describe("mapCommand", () => {
 
     /**
      * AGX (Action Groups Extended) assigns indices well past the stock 1..10
-     * range — up to 250. `f.ag1`/`f.ag10` are the REGRESSION guard (byte-
+     * range: up to 250. `f.ag1`/`f.ag10` are the REGRESSION guard (byte-
      * identical to the old static-table behaviour); `f.ag11`/`f.ag50`/
-     * `f.ag250` are the bug this test locks down — before the fix these
+     * `f.ag250` are the bug this test locks down, before the fix these
      * resolved to `undefined` (no table row), silently no-opping the
      * toggle even though the group renders correctly off the index-generic
      * read path.
@@ -236,7 +236,7 @@ describe("mapCommand", () => {
       });
     });
 
-    it("f.throttleZero/f.throttleFull map to the absolute endpoints — no toggle bridge needed", () => {
+    it("f.throttleZero/f.throttleFull map to the absolute endpoints: no toggle bridge needed", () => {
       expect(mapCommand("data", "f.throttleZero")).toEqual({
         command: "vessel.control.setThrottle",
         args: { value: 0 },
@@ -247,7 +247,7 @@ describe("mapCommand", () => {
       });
     });
 
-    it("a malformed (non-numeric) throttle arg falls back to legacy — never dispatches NaN", () => {
+    it("a malformed (non-numeric) throttle arg falls back to legacy; never dispatches NaN", () => {
       // RED (pre-fix behaviour this test locks in as GREEN): a naive bridge
       // would send `{ value: NaN }` straight to the wire. This must instead
       // resolve to `undefined` so useExecuteAction's shim uses legacy execute().
@@ -333,15 +333,15 @@ describe("mapCommand", () => {
   });
 
   // ---------------------------------------------------------------------
-  // Bridge 2: index -> stable-id — now UN-GAPPED
+  // Bridge 2: index -> stable-id, now UN-GAPPED
   //
   // The read side now round-trips a stable id (vessel.maneuver.nodes[].id
   // and system.vessels[].vesselId), so ManeuverPlanner/TargetPicker
-  // resolve the real id and pass it as the FIRST positional arg — these
+  // resolve the real id and pass it as the FIRST positional arg, these
   // three commands now have real homes instead of being declared gaps.
   // ---------------------------------------------------------------------
 
-  describe("index -> stable-id bridge — un-gapped now that the id round-trips", () => {
+  describe("index -> stable-id bridge: un-gapped now that the id round-trips", () => {
     it("o.updateManeuverNode carries the node id as arg[0], RADIAL/NORMAL/PROGRADE for the rest", () => {
       expect(
         mapCommand(
@@ -384,11 +384,11 @@ describe("mapCommand", () => {
       ).toBe(false);
     });
 
-    it("a fallback positional-index id (pre-round-trip / no-stream) still resolves — the server no-ops an unknown id", () => {
+    it("a fallback positional-index id (pre-round-trip / no-stream) still resolves, the server no-ops an unknown id", () => {
       // ManeuverPlanner's resolveNodeId falls back to String(index) when no
       // stream id has arrived; it's still a non-empty string, so the command
       // builds. (Accepted-risk: a stale index is a harmless server-side miss,
-      // never a crash — see map-command.ts's own doc comment.)
+      // never a crash: see map-command.ts's own doc comment.)
       expect(mapCommand("data", "o.removeManeuverNode[0]")).toEqual({
         command: "vessel.maneuver.remove",
         args: { nodeId: "0" },
@@ -438,7 +438,7 @@ describe("mapCommand", () => {
     });
   });
 
-  describe("science.experiment.* — partId passthrough", () => {
+  describe("science.experiment.*: partId passthrough", () => {
     it("sci.deploy carries the part id as arg[0]", () => {
       expect(mapCommand("data", "sci.deploy[42]")).toEqual({
         command: "science.experiment.deploy",
@@ -473,7 +473,7 @@ describe("mapCommand", () => {
       expect(isKnownCommandGap("kos", "f.abort")).toBe(false);
     });
 
-    it("KNOWN_COMMAND_GAPS is now empty — the fly-by-wire batch was the last remaining command gap", () => {
+    it("KNOWN_COMMAND_GAPS is now empty, the fly-by-wire batch was the last remaining command gap", () => {
       expect(KNOWN_COMMAND_GAPS.size).toBe(0);
     });
 
@@ -486,11 +486,11 @@ describe("mapCommand", () => {
   // ---------------------------------------------------------------------
   // career.*, robotics.*, ksp.*/tar.switchVessel now
   // have registered mod handlers AND their read-side ids stream (career.
-  // status.*, parts.robotics — see map-topic.ts), so they move out of
+  // status.*, parts.robotics: see map-topic.ts), so they move out of
   // KNOWN_COMMAND_GAPS.
   // ---------------------------------------------------------------------
 
-  describe("career.* — command-ungap batch", () => {
+  describe("career.*: command-ungap batch", () => {
     it("strategies.activate carries the strategy id and factor", () => {
       expect(mapCommand("data", "strategies.activate[SETI,0.5]")).toEqual({
         command: "career.strategy.activate",
@@ -554,7 +554,7 @@ describe("mapCommand", () => {
     });
   });
 
-  describe("robotics.* — command-ungap batch", () => {
+  describe("robotics.*: command-ungap batch", () => {
     it("robotics.servo.setTarget carries the partId and value", () => {
       expect(mapCommand("data", "robotics.servo.setTarget[11,65]")).toEqual({
         command: "robotics.servo.setTarget",
@@ -633,7 +633,7 @@ describe("mapCommand", () => {
     });
   });
 
-  describe("ksp.* flight-ops / tar.switchVessel -> ksp.switchVessel — command-ungap batch", () => {
+  describe("ksp.* flight-ops / tar.switchVessel -> ksp.switchVessel: command-ungap batch", () => {
     it("ksp.recover/revertToLaunch/toTrackingStation need no args", () => {
       expect(mapCommand("data", "ksp.recover")).toEqual({
         command: "ksp.recover",
@@ -734,12 +734,12 @@ describe("mapCommand", () => {
   });
 
   // ---------------------------------------------------------------------
-  // Fly-by-wire — command-ungap batch. vessel.control.setFlyByWire
+  // Fly-by-wire: command-ungap batch. vessel.control.setFlyByWire
   // arms/disarms the mod's persistent override; vessel.control.setAxes is a
   // nullable-partial single-field update, not a toggle bridge.
   // ---------------------------------------------------------------------
 
-  describe("fly-by-wire — command-ungap batch", () => {
+  describe("fly-by-wire: command-ungap batch", () => {
     it("v.setPitch/v.setYaw/v.setRoll each map to their own named setAxes field", () => {
       const table: Array<[string, "pitch" | "yaw" | "roll"]> = [
         ["v.setPitch", "pitch"],
@@ -843,7 +843,7 @@ describe("mapCommand", () => {
       ).toEqual({ command: "vessel.control.setThrottle", args: { value: 0 } });
     });
 
-    it("f.throttleUp/f.throttleDown without a live current value fall back to legacy — never a blind nudge", () => {
+    it("f.throttleUp/f.throttleDown without a live current value fall back to legacy; never a blind nudge", () => {
       expect(mapCommand("data", "f.throttleUp")).toBeUndefined();
       expect(
         mapCommand("data", "f.throttleDown", () => undefined),

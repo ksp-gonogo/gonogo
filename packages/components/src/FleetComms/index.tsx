@@ -25,11 +25,11 @@ import {
 } from "./toggles";
 
 /**
- * Fleet/Comms — the first-party Phase 1 augment for `SystemView`'s
+ * Fleet/Comms: the first-party Phase 1 augment for `SystemView`'s
  * `system-view.overlay`/`system-view.actions` slots
  * (`docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md`).
  * Scoped to the ACTIVE VESSEL (the Phase 2 all-vessels enrichment is a
- * separate, later spec — see the design doc's "Out of scope").
+ * separate, later spec: see the design doc's "Out of scope").
  *
  * Draws:
  * - a comms-path highlight from the vessel to its command centre, styled by
@@ -39,16 +39,16 @@ import {
  *
  * **Does NOT draw the vessel itself.** `SystemDiagram.tsx`'s own
  * `VesselMarker` already renders the active vessel unconditionally (it needs
- * no augment — see the design doc's 2026-07-16 AMENDMENT: "the fleet is core
+ * no augment: see the design doc's 2026-07-16 AMENDMENT: "the fleet is core
  * telemetry ... with no comms Uplink mounted you still see the fleet"). This
  * augment used to draw a SECOND copy of that same marker at the identical
  * projected point (`projectOrbitPosition` mirrors `SystemDiagram`'s private
- * `bodyPosition` exactly, by design, so the two dots always coincided) —
+ * `bodyPosition` exactly, by design, so the two dots always coincided),
  * that duplicate render is the root cause of the live-reported "green dots
  * stacked in the centre" bug: two accent-coloured circles stacked exactly on
- * top of each other, and — because a realistic low-orbit vessel projects only
+ * top of each other, and: because a realistic low-orbit vessel projects only
  * a few px from the origin once the diagram's auto-fit scale is set by a
- * farther-out moon — that stacked pair sits inside the frame body's own dot
+ * farther-out moon, that stacked pair sits inside the frame body's own dot
  * at the origin. The projected point (`vesselDot` below) is still computed
  * and still used, but purely as an internal anchor for the commlink
  * line/pulses' endpoints, never rendered as its own marker.
@@ -57,7 +57,7 @@ import {
  * carry no positions (design doc grounding), so there is no honest way yet to
  * place an arbitrary `Vantage` (which may not be KSC) on the diagram. This
  * augment anchors the comms-path/command-traffic lines at the diagram's own
- * origin (`overlay.center`, i.e. the frame body) — exact when the frame body
+ * origin (`overlay.center`, i.e. the frame body): exact when the frame body
  * IS the vessel's home body (the common `frame=auto` case), an approximation
  * otherwise. A faithful multi-hop/arbitrary-Vantage position needs
  * `comms.network` node positions, which is Phase 2 territory (per-vessel +
@@ -68,10 +68,10 @@ import {
  * Delayed reclassification described in the design doc's grounding section
  * lives on the not-yet-merged `ww/comms-terminal` work, which also renames
  * connectivity to `comms.link`). Until that lands, this augment reads
- * `comms.connectivity` via `useLatestValue` — the correct hook for a TrueNow
+ * `comms.connectivity` via `useLatestValue`: the correct hook for a TrueNow
  * command-centre topic (see `use-stream.ts`'s own doc: sampling a TrueNow
  * topic through the delayed frame `useTelemetry`/`useStream` read makes it
- * appear a whole one-way-delay late) — matching `KosTerminal`'s already-
+ * appear a whole one-way-delay late): matching `KosTerminal`'s already-
  * shipped in-transit strip, which reads the exact same three topics the
  * exact same way. Swap to `comms.link` + a Delayed read once that work merges.
  */
@@ -90,7 +90,7 @@ function wrapDegrees360(deg: number): number {
   const wrapped = deg % 360;
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
-/** Case/whitespace-insensitive body-name match — mirrors `SystemDiagram`'s own `nameMatches`. */
+/** Case/whitespace-insensitive body-name match: mirrors `SystemDiagram`'s own `nameMatches`. */
 function frameNameMatches(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
@@ -110,7 +110,7 @@ interface WireOrbit {
 /**
  * `sitrep-client`'s `OrbitElements` needs radians; the wire is degrees for
  * inc/lan/argPe (KSP-native), `meanAnomalyAtEpoch` already radians. Mirrors
- * `SystemView/index.tsx`'s identical `buildElements` — see this file's own
+ * `SystemView/index.tsx`'s identical `buildElements`: see this file's own
  * doc comment for why that duplication is deliberate rather than a shared
  * import (the host stays unchanged; this is the established mirror-not-couple
  * pattern for this one small conversion).
@@ -142,7 +142,7 @@ function FleetCommsOverlay({
 
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
-  // TrueNow command-centre bookkeeping — see this file's class doc for why
+  // TrueNow command-centre bookkeeping: see this file's class doc for why
   // these three ride `useLatestValue`/`useUtNow`, not `useTelemetry`/`useViewUt`.
   const commsPath = useLatestValue<CommsPath>("comms.path");
   const connectivity = useLatestValue<CommsConnectivity>("comms.connectivity");
@@ -168,7 +168,7 @@ function FleetCommsOverlay({
     if (!orbit || universalTime == null || !Number.isFinite(universalTime)) {
       return null;
     }
-    // Hyperbolic/parabolic guard — `solveAnomalies` throws outside `[0, 1)`
+    // Hyperbolic/parabolic guard: `solveAnomalies` throws outside `[0, 1)`
     // eccentricity (an escape/flyby trajectory, routine mid-transfer). Mirrors
     // `SystemView/index.tsx`'s identical guard on the same solver.
     if (!(orbit.ecc >= 0 && orbit.ecc < 1)) return null;
@@ -177,7 +177,7 @@ function FleetCommsOverlay({
     return Number.isFinite(deg) ? deg : null;
   }, [orbit, universalTime]);
 
-  // The active vessel's projected dot — null when off-frame (its SOI body
+  // The active vessel's projected dot: null when off-frame (its SOI body
   // doesn't match the diagram's chosen parent) or the inputs aren't ready
   // yet, same "just don't draw it" contract `SystemDiagram`'s own vessel
   // marker follows.

@@ -13,8 +13,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { compositeCoverage, useCoverageGate } from "./useCoverageGate";
 
 // Rendered hook trees, tracked so afterEach can unmount them BEFORE
-// clearFogRevealSources() notifies the reveal-source registry's subscribers
-// — a still-mounted useCoverageGate instance re-rendering off that
+// clearFogRevealSources() notifies the reveal-source registry's subscribers,
+// a still-mounted useCoverageGate instance re-rendering off that
 // notification is a state update outside act() (CLAUDE.md -> Testing
 // Philosophy). RTL auto-cleanup runs after this file's afterEach, too late
 // to unmount first.
@@ -36,7 +36,7 @@ function mask(data: number[]): BodyMask {
   };
 }
 
-describe("compositeCoverage — pure per-pixel math", () => {
+describe("compositeCoverage: pure per-pixel math", () => {
   it("takes the MAX of weighted intensities across enabled sources at one pixel", () => {
     const sources: FogRevealSourceDefinition[] = [
       { id: "example-uplink:altimetry-lo", weight: 192 },
@@ -64,12 +64,12 @@ describe("compositeCoverage — pure per-pixel math", () => {
     ).toBe(0);
   });
 
-  it("returns 0 (not fully-fogged-black) when zero sources are enabled — no-fog-system case", () => {
+  it("returns 0 (not fully-fogged-black) when zero sources are enabled, no-fog-system case", () => {
     expect(compositeCoverage([], new Map(), undefined, 0)).toBe(0);
   });
 });
 
-describe("useCoverageGate — hook integration", () => {
+describe("useCoverageGate: hook integration", () => {
   it("hasAnySource is false with nothing registered, true once a source registers", async () => {
     const store = new FogMaskStore({
       dbName: `gonogo-fog-test-${Math.random()}`,
@@ -120,7 +120,7 @@ describe("useCoverageGate — hook integration", () => {
 
   it("reports fully-open (hasAnySource false), not a null-data gated state, when no FogMaskCacheProvider is mounted", async () => {
     // A missing cache provider must never blank the map. With a source
-    // registered but no provider in the tree, cache is null forever — the
+    // registered but no provider in the tree, cache is null forever, the
     // gate must degrade to vanilla-open, not stay stuck reporting a source
     // is present while data can never arrive.
     registerFogRevealSource({

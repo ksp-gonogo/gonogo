@@ -15,7 +15,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry — clearActionHandlers() firing on a still-mounted
+// action-handler registry: clearActionHandlers() firing on a still-mounted
 // widget is a state update outside act(). RTL auto-cleanup runs after this
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -30,11 +30,11 @@ function render(ui: ReactElement) {
  * The stream test-adapter proof for PowerSystems:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport` for `parts.power` AND
- * `vessel.parts` (`useTopology` reads the latter canonically —
+ * `vessel.parts` (`useTopology` reads the latter canonically,
  * bypasses `useDataValue`/the carried-channels gate entirely, so it streams
  * as soon as ANY provider is mounted, same as `OrbitView`'s `vessel.orbit`
  * read). `usePartsLive`'s per-part `resources` join now rides the SAME
- * `vessel.parts` payload (each part's `resources` map) — a
+ * `vessel.parts` payload (each part's `resources` map): a
  * `setupMockDataSource` AUX still feeds `parts.power`'s legacy MEASURED
  * reading, the same MIXED-source shape DistanceToTarget/TargetPicker's own
  * stream tests established.
@@ -68,11 +68,11 @@ const VESSEL_PARTS_WIRE = {
   ],
 };
 
-describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch)", () => {
+describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)", () => {
   it("uses the SAME total for PROD/NET as the itemized per-part rows sum to, even when parts.power's totalProductionEc disagrees (M3 whole-branch review #3)", async () => {
     // Before the fix: `totalProduced` preferred the streamed scalar
     // whenever present, so PROD/NET could show a number that contradicts
-    // the itemized Producers rows below it — and NET drives a
+    // the itemized Producers rows below it: and NET drives a
     // charge/consume read the operator relies on. This is the concrete
     // failure case: a single +5.00 producer row, but
     // `totalProductionEc` (a stale/disagreeing measurement) says 42.
@@ -117,7 +117,7 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
     });
 
     // Wait for the stream leg to actually settle (mirrors dual-run.test.tsx's
-    // "has not settled to live yet" idiom) before asserting — otherwise the
+    // "has not settled to live yet" idiom) before asserting; otherwise the
     // check can race the async store update and pass for the wrong reason
     // (checked before the merge would even have applied).
     await waitFor(() => {
@@ -128,14 +128,14 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
     });
 
     // A disagreeing measurement must never win PROD/NET over the itemized
-    // rows — the header must stay CONSISTENT with what's actually listed
+    // rows: the header must stay CONSISTENT with what's actually listed
     // below it. "+42.00/s"/"+42.00" (the old, wrong, enshrined behavior)
     // must never appear.
     expect(screen.queryByText("+42.00/s")).toBeNull();
     expect(screen.getByText("+5.00/s")).toBeTruthy();
     expect(screen.getAllByText("+5.00")).toHaveLength(2); // PROD cell + the one row
 
-    // The disagreeing measurement must not be silently dropped either —
+    // The disagreeing measurement must not be silently dropped either,
     // it's surfaced as a clearly separate, explicitly-labeled reading so
     // the operator isn't blind to a real sensor/topology mismatch.
     expect(screen.getByText("42.00")).toBeTruthy();
@@ -194,7 +194,7 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
     // KspHost.BuildPartResources now walks EC-consuming modules
     // (ModuleReactionWheel/ModuleLight/ModuleCommand/ModuleDataTransmitter/
     // BaseConverter's inputList) and emits negative flow alongside the
-    // existing production rows — this is the widget-side proof that a
+    // existing production rows: this is the widget-side proof that a
     // consumer part carried on the real vessel.parts stream actually lands
     // in the Consumers section (previously empty on the live stream: the
     // mod never emitted a negative-flow row for anything to filter into it).

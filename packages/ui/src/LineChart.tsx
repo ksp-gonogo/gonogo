@@ -15,7 +15,7 @@ import {
  * of equal length. For time-on-x charts, `x` is unix ms; for parametric
  * charts (e.g. altitude vs velocity), `x` carries that dimension's values.
  *
- * `y2` is only consulted for `type: "band"` series — it carries the upper
+ * `y2` is only consulted for `type: "band"` series, it carries the upper
  * bound paired against `y` (the lower bound). Other series types ignore it.
  */
 export interface ChartSeriesData {
@@ -26,12 +26,12 @@ export interface ChartSeriesData {
 
 /**
  * Render type for a single series.
- * - `line`    — straight segments through every sample (default).
- * - `step`    — step-after; flat hold then jump. Right shape for discrete-state
+ * - `line`   : straight segments through every sample (default).
+ * - `step`   : step-after; flat hold then jump. Right shape for discrete-state
  *               telemetry (stage number, throttle setting) where linear
  *               interpolation between transitions is misleading.
- * - `scatter` — discrete points, no joining. For sparse / noisy data.
- * - `band`    — filled envelope between `y` (lower) and `y2` (upper). Requires
+ * - `scatter`: discrete points, no joining. For sparse / noisy data.
+ * - `band`   : filled envelope between `y` (lower) and `y2` (upper). Requires
  *               `data.y2` to be present and the same length as `data.y`.
  */
 export type SeriesType = "line" | "step" | "scatter" | "band";
@@ -74,7 +74,7 @@ export const timeXTickFormat = (
 
 export interface LineChartProps {
   series: ChartSeries[];
-  /** x-domain. Interpretation depends on `xTickFormat` — defaults to unix ms. */
+  /** x-domain. Interpretation depends on `xTickFormat`: defaults to unix ms. */
   xDomain: [number, number];
   yDomainPrimary?: [number, number];
   yDomainSecondary?: [number, number];
@@ -99,7 +99,7 @@ export interface LineChartProps {
 }
 
 const MARGIN = { top: 10, right: 50, bottom: 28, left: 50 };
-// Approximate pixels per tick label — used to scale tick count with plot
+// Approximate pixels per tick label: used to scale tick count with plot
 // dimensions so narrow charts don't stamp 5 labels into 100 px of x-axis
 // (collides) and short charts don't stamp 5 labels into 80 px of y-axis.
 const PX_PER_X_TICK = 70;
@@ -179,7 +179,7 @@ export function LineChart({
   // niceTicks/niceLogTicks round the *step* to a nice magnitude, so on a narrow,
   // non-zero-based domain at a low tick count they can land every tick outside
   // the domain (e.g. a 0.6–30 Mm SMA axis at 2 ticks → [0, 50 Mm]). Rendering
-  // those maps the labels off the plot — a top y-label floating over the title,
+  // those maps the labels off the plot, a top y-label floating over the title,
   // or "0m"/"50.0Mm" out past the axes and clipped at the panel edge. So: keep
   // only in-domain ticks, and if none land inside, retry with a finer count
   // (which forces a smaller step that does) before falling back to the raw
@@ -309,7 +309,7 @@ export function LineChart({
   const yKeepPrimary = yLabelKeep(yTicksPrimary, scaleYPrimary);
   const yKeepSecondary = yLabelKeep(yTicksSecondary, scaleYSecondary);
 
-  // Per-series renderable. Dispatch on type — line/step/scatter share the
+  // Per-series renderable. Dispatch on type: line/step/scatter share the
   // stroked-path render block; band gets a filled closed path.
   const drawables = useMemo(() => {
     return series
@@ -369,7 +369,7 @@ export function LineChart({
     }));
   }, [thresholds, scaleYPrimary, scaleYSecondary]);
 
-  // Container is narrower/shorter than the margins — nothing meaningful to
+  // Container is narrower/shorter than the margins, nothing meaningful to
   // draw, and negative <rect> dimensions spam the console. Render an empty
   // svg until the ResizeObserver reports a usable size.
   if (plotW <= 0 || plotH <= 0) {
@@ -396,7 +396,7 @@ export function LineChart({
       // otherwise carries below itself. With a flex `min-height:0` ancestor
       // (ChartArea) the baseline gap pushes contentRect a few px past the
       // height we just set, ResizeObserver fires, we set a larger height,
-      // and the chart slowly grows turn after turn — visible most clearly
+      // and the chart slowly grows turn after turn, visible most clearly
       // on graphs the user keeps open through a long flight.
       style={{ fontFamily: "monospace", overflow: "visible", display: "block" }}
     >

@@ -33,7 +33,7 @@ const CARRIED = [
   "comms.delay",
 ];
 
-describe("LandingStatus — atmospheric stream render golden (delay=0)", () => {
+describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
   it("suppresses the vacuum burn numbers on the Kerbin reentry off the stream pipeline", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
@@ -65,7 +65,7 @@ describe("LandingStatus — atmospheric stream render golden (delay=0)", () => {
         vesselId: "test-vessel",
         name: "Test Vessel",
         vesselType: 0,
-        // Reentering (descending), not landed — situation SubOrbital, so the
+        // Reentering (descending), not landed: situation SubOrbital, so the
         // landed-state gate doesn't fire on an in-flight vessel.
         situation: 6,
         parentBodyIndex: 1,
@@ -100,7 +100,7 @@ describe("LandingStatus — atmospheric stream render golden (delay=0)", () => {
       });
     });
 
-    // Atmospheric body — subtitle resolves off the derived vessel.state channel.
+    // Atmospheric body: subtitle resolves off the derived vessel.state channel.
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();

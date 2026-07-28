@@ -1,12 +1,13 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * Producer↔consumer disagreements O2/O4 — the CurrentOrbit half (see
+ * Producer↔consumer disagreements O2/O4: the CurrentOrbit half (see
  * `OrbitView/producer-consumer-O2-O3-O4.test.tsx` for the fuller writeup;
  * O3 is OrbitView-only, since CurrentOrbit's apsis radii already came off
  * `useOrbitElements`/`vessel.state`, never a client-side `sma·(1±ecc)`
@@ -15,11 +16,11 @@ import { CurrentOrbitComponent } from "./index";
  * - **O2**: `hasOrbit` must not require apoapsis (`null`-by-design on a
  *   hyperbolic orbit). This was already true by accident here (`null !==
  *   undefined` in the old gate), so this test is a REGRESSION PIN, not a
- *   before/after fix — it guards against a future `apoapsisRadius ??
+ *   before/after fix: it guards against a future `apoapsisRadius ??
  *   undefined` refactor silently flipping the gate.
  * - **O4**: in the "measured" basis the mini diagram must be suppressed
- *   (already true via O2's gate — `periapisR` is `null` there too), but the
- *   numeric grid must still render (raw `ecc` + "—" for the null derived
+ *   (already true via O2's gate: `periapisR` is `null` there too), but the
+ *   numeric grid must still render (raw `ecc` + NULL_DISPLAY for the null derived
  *   apsides) rather than some other empty state.
  */
 const VESSEL_STATE_INPUTS = [
@@ -35,7 +36,7 @@ const VESSEL_STATE_INPUTS = [
 
 const KERBIN_MU = 3.5316e12;
 
-describe("CurrentOrbit — O2: hyperbolic orbit still counts as hasOrbit", () => {
+describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the mini diagram (not suppressed) for a fully hyperbolic orbit", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
@@ -85,8 +86,8 @@ describe("CurrentOrbit — O2: hyperbolic orbit still counts as hasOrbit", () =>
   });
 });
 
-describe("CurrentOrbit — O4: 'measured' basis suppresses the diagram, not the grid", () => {
-  it("shows the grid with '—' apsides and no diagram in the measured basis", async () => {
+describe("CurrentOrbit: O4: 'measured' basis suppresses the diagram, not the grid", () => {
+  it("shows the grid with NULL_DISPLAY apsides and no diagram in the measured basis", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -151,9 +152,9 @@ describe("CurrentOrbit — O4: 'measured' basis suppresses the diagram, not the 
 
     expect(container.querySelector("svg")).toBeNull();
     // Ap/Pe are gated on `hasOrbit`, which is false here (periapsisR null in
-    // the measured basis) — they render as "—", never a stale/garbage value.
-    expect(getValueCell(container, "Ap")).toBe("—");
-    expect(getValueCell(container, "Pe")).toBe("—");
+    // the measured basis): they render as NULL_DISPLAY, never a stale/garbage value.
+    expect(getValueCell(container, "Ap")).toBe(NULL_DISPLAY);
+    expect(getValueCell(container, "Pe")).toBe(NULL_DISPLAY);
   });
 });
 

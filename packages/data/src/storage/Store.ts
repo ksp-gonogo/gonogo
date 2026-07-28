@@ -39,7 +39,7 @@ export interface Store {
 
   /**
    * Inclusive at both ends. Returns samples ordered by `t`. Empty arrays
-   * when nothing matches — never rejects on empty range.
+   * when nothing matches: never rejects on empty range.
    */
   queryRange(
     flightId: string,

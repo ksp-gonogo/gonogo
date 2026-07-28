@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Gonogo.KerbcastUplink
 {
     /// <summary>
-    /// Builds the <c>kerbcast.cameras</c> wire shape — one
+    /// Builds the <c>kerbcast.cameras</c> wire shape: one
     /// <see cref="Sitrep.Contract.KerbcastCameraEntry"/>-shaped dictionary per
     /// camera.
     ///
@@ -13,7 +13,7 @@ namespace Gonogo.KerbcastUplink
     /// bytes. Keys are camelCase to match <c>RtConfig.CamelCaseForProperties</c>,
     /// so this dictionary and the generated TS interface agree field for field.</para>
     ///
-    /// <para>KSP-free by construction, so it is exercised headless — see
+    /// <para>KSP-free by construction, so it is exercised headless; see
     /// <c>GonogoKerbcastUplink.Tests</c>. That matters more than it looks: the
     /// clean-name mapping below (<c>fieldOfView</c> not kerbcast's <c>fov</c>,
     /// <c>panYawMinimum</c> not <c>panYawMin</c>) is exactly the kind of thing
@@ -23,7 +23,7 @@ namespace Gonogo.KerbcastUplink
     {
         /// <summary>
         /// Maps one kerbcast camera view plus this uplink's derived docking
-        /// facts onto the wire shape. Every value stays nullable — an
+        /// facts onto the wire shape. Every value stays nullable, an
         /// unreadable member travels as absent, never as a 0 a consumer would
         /// misread as a real measurement.
         /// </summary>

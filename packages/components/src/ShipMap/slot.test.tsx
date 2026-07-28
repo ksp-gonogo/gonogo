@@ -27,7 +27,7 @@ const TOPOLOGY = fuellinePostStage2["v.topology"];
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 
 // Unmount each rendered tree BEFORE clearing the action-handler/augment
-// registries — a clear firing on a still-mounted widget is a state update
+// registries: a clear firing on a still-mounted widget is a state update
 // outside act(). RTL auto-cleanup runs after this file's afterEach, too late
 // to unmount first.
 const renderedTrees: Array<() => void> = [];
@@ -54,7 +54,7 @@ async function renderDiagram() {
   return fixture;
 }
 
-describe("ShipMap — augment slots (spec §4)", () => {
+describe("ShipMap: augment slots (spec §4)", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -73,7 +73,7 @@ describe("ShipMap — augment slots (spec §4)", () => {
 
   it("renders the diagram with no augments bound (empty slots are inert)", async () => {
     await renderDiagram();
-    // Empty slots add nothing — the stock diagram renders exactly as before.
+    // Empty slots add nothing: the stock diagram renders exactly as before.
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
     expect(screen.queryByTestId("ship-map-overlay-augment")).toBeNull();
     expect(screen.queryByTestId("ship-map-badge-augment")).toBeNull();

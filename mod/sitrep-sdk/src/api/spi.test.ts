@@ -3,7 +3,7 @@ import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
 /**
- * Phase 0.4 additions — stream SPI, data introspection, the game-host SPI,
+ * Phase 0.4 additions: stream SPI, data introspection, the game-host SPI,
  * the map/fog SPI, the Uplink-handle SPI, the settings-tab SPI, and the
  * telemetry-client SPI. Same injected-host contract as every other stateful
  * member (design §4.3 / D-A): fail loud with no host installed, resolve to
@@ -14,12 +14,12 @@ import * as barrel from "./index";
  * production consumers"), a same-night reversal once two facade-sealed
  * Uplink clients turned out to still need it (facade-sealing plan §2.1), and
  * a final removal (2026-07-19) once both were migrated onto non-SPI
- * substitutes — see mod/sitrep-sdk/src/api/types.ts's DataSource type-mirror
+ * substitutes: see mod/sitrep-sdk/src/api/types.ts's DataSource type-mirror
  * comment for the full history. First-party code that still authors a
  * `DataSource` imports @ksp-gonogo/core's registerDataSource/getDataSource
  * directly; there is nothing left on this facade to gate.
  */
-describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
+describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   afterEach(() => {
     resetTestHost();
   });
@@ -243,7 +243,7 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
     expect(barrel.GAME_HOST_KEY).toBe("gameHost");
   });
 
-  it("safeRandomUuid is a stateless util — no host needed, produces distinct v4 UUIDs", () => {
+  it("safeRandomUuid is a stateless util, no host needed, produces distinct v4 UUIDs", () => {
     resetTestHost();
     const a = barrel.safeRandomUuid();
     const b = barrel.safeRandomUuid();
@@ -254,7 +254,7 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
     expect(a).not.toBe(b);
   });
 
-  describe("LocalStorageStore — stateless class, no host needed on the happy path", () => {
+  describe("LocalStorageStore: stateless class, no host needed on the happy path", () => {
     function fakeStorage(): Storage {
       const store = new Map<string, string>();
       return {
@@ -273,7 +273,7 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
       } as Storage;
     }
 
-    it("get/set/patch/clear round-trip with an injected Storage — no host dependency", () => {
+    it("get/set/patch/clear round-trip with an injected Storage, no host dependency", () => {
       resetTestHost();
       const store = new barrel.LocalStorageStore({
         key: "test.widget",
@@ -299,7 +299,7 @@ describe("sitrep-sdk author-facing barrel — SPI gap shims", () => {
         storage,
       });
       // Fails loud rather than silently logging to a dead console-only
-      // logger — same reasoning as the `logger` Proxy shim in ./index.ts.
+      // logger: same reasoning as the `logger` Proxy shim in ./index.ts.
       expect(() => store.get()).toThrow(named);
 
       const warn = vi.fn();

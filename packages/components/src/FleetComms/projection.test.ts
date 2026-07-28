@@ -4,7 +4,7 @@ import { projectOrbitPosition } from "./projection";
 /**
  * `projectOrbitPosition` must produce the SAME parent-centric SVG-space point
  * `SystemDiagram.tsx`'s private `bodyPosition` computes (periapsis on the
- * local +x axis, rotated by `lan + argPe`, parent at the origin/focus) — this
+ * local +x axis, rotated by `lan + argPe`, parent at the origin/focus), this
  * augment draws into the exact coordinate space the diagram itself uses, per
  * `SystemOverlayContext`'s doc comment. `SystemDiagram.tsx` is left untouched
  * (host stays unchanged); these tests pin the formula independently by

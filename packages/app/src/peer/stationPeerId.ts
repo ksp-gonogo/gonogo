@@ -2,13 +2,13 @@
  * Station identity vs. session peer id.
  *
  * - **stationKey** (persistent, in localStorage) is the stable identity for
- *   the device. Used by anything that wants continuity across refreshes —
+ *   the device. Used by anything that wants continuity across refreshes,
  *   today nothing reads it directly; in future GO/NO-GO state could re-key
  *   on it to collapse the brief "ghost station" window after a refresh.
  *
  * - **stationPeerId** (per-session, derived) is the id the station claims
  *   on the PeerJS broker. We append a session token so a hard refresh is
- *   guaranteed to hit a fresh broker entry — this dodges the "ID is taken"
+ *   guaranteed to hit a fresh broker entry, this dodges the "ID is taken"
  *   stall the broker imposes for ~60 s when the previous WS hasn't been
  *   reaped yet (e.g. tab refresh, force close).
  *
@@ -20,7 +20,7 @@
  */
 
 const STATION_KEY_STORAGE = "gonogo.station.key";
-// Legacy storage key — earlier versions stored the full peer id here. We
+// Legacy storage key: earlier versions stored the full peer id here. We
 // migrate it forward as the stationKey so existing devices keep their
 // stable identity across the upgrade.
 const LEGACY_PEER_ID_STORAGE = "gonogo.station.peer-id";
@@ -84,6 +84,6 @@ export function clearStationKey(
   storage.removeItem(LEGACY_PEER_ID_STORAGE);
 }
 
-/** Back-compat alias — call sites that wanted the old "stable" id now get a
+/** Back-compat alias: call sites that wanted the old "stable" id now get a
  * fresh session id instead. Kept for any external imports. */
 export const clearStationPeerId = clearStationKey;

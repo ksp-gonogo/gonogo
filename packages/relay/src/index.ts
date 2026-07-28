@@ -24,7 +24,7 @@ const config = loadConfig();
 // Ship logs to Axiom only when the token is present AND the host has
 // enabled analytics consent (relayed in via POST /analytics-config). The
 // token is the credential; consent is the runtime gate. Default is
-// DISABLED until the first POST — privacy-first. Console/pino output is
+// DISABLED until the first POST: privacy-first. Console/pino output is
 // unaffected. The controller installs/removes the transport as the host's
 // consent changes; `analyticsConfig` drives it through `onChange` below.
 const axiomConsent = new AxiomConsentController({
@@ -49,7 +49,7 @@ const fastify = Fastify({ logger: true });
 
 // Bridge fastify's pino output through @ksp-gonogo/logger so every line
 // hitting stderr/stdout also reaches Axiom (when configured). Pino
-// still writes to its own stream — this is purely additive.
+// still writes to its own stream: this is purely additive.
 function bridgeInfo(msg: string, extra?: Record<string, unknown>): void {
   fastify.log.info(extra ?? {}, msg);
   logger.info(msg, extra);
@@ -78,7 +78,7 @@ await fastify.register(cors, { origin: true });
 // Successful responses (<400) go in at info; >=400 ride the warn
 // channel so a 4xx/5xx blip is queryable via `level == "warn"` without
 // scraping every routine request line. Body / headers are deliberately
-// excluded — log volume + leak surface from no benefit to the
+// excluded: log volume + leak surface from no benefit to the
 // debug use case.
 fastify.addHook("onResponse", async (req, reply) => {
   const status = reply.statusCode;
@@ -94,7 +94,7 @@ fastify.addHook("onResponse", async (req, reply) => {
 });
 
 /**
- * This process's primary non-internal IPv4 — the address coturn can actually
+ * This process's primary non-internal IPv4: the address coturn can actually
  * bind relay sockets to. In a container that's the bridge IP (e.g.
  * `10.89.x.x`); running natively it's the host's LAN IP. Used as the
  * `/private` half of coturn's external-ip mapping. `undefined` if none found.
@@ -119,7 +119,7 @@ function primaryLocalIpv4(): string | undefined {
 let coturnHandle: CoturnHandle | null = null;
 if (config.skipCoturn) {
   bridgeInfo(
-    "SKIP_COTURN set — relay will run without TURN (intended for localhost tests)",
+    "SKIP_COTURN set: relay will run without TURN (intended for localhost tests)",
   );
 } else {
   try {
@@ -127,7 +127,7 @@ if (config.skipCoturn) {
       override: config.turnExternalIp ?? undefined,
     });
     // The address coturn actually binds relay sockets on. When externalIp is
-    // a NAT / published / host-LAN address (the container case — externalIp is
+    // a NAT / published / host-LAN address (the container case, externalIp is
     // the host's LAN IP, this process sees only the container's 10.x), coturn
     // must bind the local interface and merely advertise externalIp. Pass our
     // own primary non-internal IPv4 as the `/private` half.
@@ -137,7 +137,7 @@ if (config.skipCoturn) {
     );
     coturnHandle = startCoturn({
       externalIp,
-      // Only attach the private half when it differs — `X/X` is pointless,
+      // Only attach the private half when it differs, `X/X` is pointless,
       // and when externalIp is itself local (native runs) coturn binds it fine.
       localIp: localIp && localIp !== externalIp ? localIp : undefined,
       logger: {
@@ -147,13 +147,13 @@ if (config.skipCoturn) {
     });
   } catch (err) {
     bridgeError(
-      "failed to discover public IP / start coturn — TURN unavailable until fixed",
+      "failed to discover public IP / start coturn, TURN unavailable until fixed",
       err,
     );
   }
 }
 
-// Stable id for this relay process's lifetime — used only to tag log
+// Stable id for this relay process's lifetime, used only to tag log
 // entries so a single relay's lines are filterable in Axiom.
 const relayId = randomUUID();
 logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
@@ -176,12 +176,12 @@ fastify.get("/version", async () => ({
 // Build the ICE-server list advertising the relay's coturn over BOTH UDP
 // and TCP. Without an explicit `?transport=` hint browsers gather only a
 // UDP TURN candidate, which strands clients on UDP-restrictive networks
-// (corporate firewalls, some cellular carriers — exactly the case our
+// (corporate firewalls, some cellular carriers: exactly the case our
 // self-hosted TURN exists to help). coturn listens on both UDP/3478 and
 // TCP/3478, so the transport list is purely a hint. Consumed by /ice-config
 // (the host browser). The router port-forward needs both protocols (the Add
 // Station modal's Port table lists "TCP & UDP" for 3478).
-// Minimal ICE-server shape — matches the `/ice-config` response and peerjs's
+// Minimal ICE-server shape: matches the `/ice-config` response and peerjs's
 // `config.iceServers`. Defined locally so the relay's tsconfig doesn't have to
 // pull in DOM's `RTCIceServer`.
 interface IceServer {
@@ -216,7 +216,7 @@ function iceServersFor(
  * PeerJS Peer. The relay's TURN credentials live only in this process's
  * memory and rotate on every restart, so any client with stale creds
  * needs to re-fetch this endpoint to recover. Stations don't fetch
- * this themselves — they pair against the host's relay candidates over
+ * this themselves: they pair against the host's relay candidates over
  * the broker's signalling channel, which is sufficient for one-side
  * TURN to work.
  */

@@ -68,7 +68,7 @@ describe("DataKeyMultiPicker", () => {
       />,
     );
     // Real users click the row label, not the visually-hidden checkbox
-    // (pointer-events: none) — the <label htmlFor> delegates the click.
+    // (pointer-events: none): the <label htmlFor> delegates the click.
     await user.click(screen.getByText("Altitude"));
     expect(onChange).toHaveBeenCalledTimes(1);
     const next = onChange.mock.calls[0][0] as Set<string>;

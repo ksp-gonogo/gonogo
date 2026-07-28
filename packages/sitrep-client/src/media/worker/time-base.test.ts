@@ -35,7 +35,7 @@ describe("createNowWall", () => {
     // the worker's own performance.now() reads 500 (2000 - 1500).
     const nowWall = createNowWall(offset, () => 500);
     // The main thread's own performance.now()/1000 at that same absolute
-    // instant would read (2000 - 1000) / 1000 = 1.0 — that's what nowWall()
+    // instant would read (2000 - 1000) / 1000 = 1.0, that's what nowWall()
     // must reproduce from purely the worker's local reading + the offset.
     expect(nowWall()).toBe(1.0);
   });
@@ -52,7 +52,7 @@ describe("createNowWall", () => {
     expect(nowWall()).toBe(1.5);
   });
 
-  it("is injectable — never touches the real performance object", () => {
+  it("is injectable; never touches the real performance object", () => {
     let calls = 0;
     const nowWall = createNowWall(1000, () => {
       calls += 1;

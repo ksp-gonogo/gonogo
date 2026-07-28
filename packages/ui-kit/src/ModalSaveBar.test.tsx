@@ -15,7 +15,7 @@ const SAVED_VALUE = { label: "saved" };
  * state the content registers via `useModalSaveBar` -> `useModalChrome`, so
  * this suite can exercise the hook without pulling in the full modal shell
  * (which lives in `@ksp-gonogo/ui` and needs `safeRandomUuid` from
- * `@ksp-gonogo/core` — a dependency this package must never take on).
+ * `@ksp-gonogo/core`: a dependency this package must never take on).
  */
 function ChromeHost({
   children,
@@ -97,7 +97,7 @@ describe("useModalSaveBar", () => {
   });
 
   it("is a no-op outside a ModalChromeContext provider", () => {
-    // No fallback inline button — renders nothing, throws nothing.
+    // No fallback inline button: renders nothing, throws nothing.
     expect(() => render(<SaveBarContent onSave={vi.fn()} />)).not.toThrow();
   });
 });

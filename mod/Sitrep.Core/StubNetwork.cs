@@ -8,7 +8,7 @@ namespace Sitrep.Core
     /// reachability between a Vantage (observer, e.g. "KSC") and a node (e.g.
     /// a vessel id). Point-to-point only (D2): a scalar delay + a boolean
     /// reachability per (vantage, node) pair. No contact-plan / routing /
-    /// moving relays — that's M3b.
+    /// moving relays: that's M3b.
     /// </summary>
     public interface INetwork
     {
@@ -21,7 +21,7 @@ namespace Sitrep.Core
 
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/stub-network.ts</c>. Semantics MUST
-    /// stay byte-for-byte identical to the TS reference — conformance is
+    /// stay byte-for-byte identical to the TS reference, conformance is
     /// asserted by <c>Sitrep.Core.Tests</c> against the shared golden fixtures
     /// in <c>mod/golden-fixtures/stub-network.json</c>, not by re-deriving
     /// semantics here. If you touch this file, regenerate the fixture from
@@ -40,10 +40,10 @@ namespace Sitrep.Core
     /// ("a", "bc").
     ///
     /// A global <c>scale</c> (light-speed / delay-scale config) multiplies
-    /// every <see cref="DelayTo"/> result — the per-pair value is the *base*
+    /// every <see cref="DelayTo"/> result: the per-pair value is the *base*
     /// delay, scaled on read. <c>scale = 1</c> (the default) is unscaled.
     /// <c>scale = 0</c> zeroes every pair's delay regardless of base (light
-    /// is instant). <see cref="Reachable"/> is never scaled — it's a
+    /// is instant). <see cref="Reachable"/> is never scaled, it's a
     /// separate, binary axis.
     /// </summary>
     public sealed class StubNetwork : INetwork
@@ -74,7 +74,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Set the global delay-scale multiplier applied to every
         /// <see cref="DelayTo"/> pair (0 = instant, 1 = unscaled, N = N times
-        /// base delay). Negative values clamp to 0 — a negative scale would
+        /// base delay). Negative values clamp to 0, a negative scale would
         /// schedule deliveries in the past.
         /// </summary>
         public void SetScale(double scale)

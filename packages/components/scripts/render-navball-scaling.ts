@@ -2,7 +2,7 @@
 /**
  * Render the SAME Navball widget at four grid footprints and assemble them
  * into one side-by-side PNG showing how a gonogo widget reflows and adapts to
- * its container — from a bare numeric readout at the tiniest size up to the
+ * its container: from a bare numeric readout at the tiniest size up to the
  * full GNC control surface (attitude dial + heading tape + throttle + SAS /
  * fly-by-wire controls) at a large footprint.
  *
@@ -12,7 +12,7 @@
  *      left-to-right with ImageMagick, framed in a margin of background.
  *
  * Using a common height (rather than honest pixel footprint) keeps the strip
- * readable as a README hero — the tiniest panel is ~5× shorter than the full
+ * readable as a README hero: the tiniest panel is ~5× shorter than the full
  * control surface, which would otherwise render as an unreadable sliver.
  *
  * Output: `docs/assets/navball-adaptive-scaling.png`
@@ -38,7 +38,7 @@ const DOCS_ASSETS = resolve(REPO_ROOT, "docs/assets");
 // the strip is the footprint-driven layout.
 const FIXTURE = "gravity-turn-east";
 
-// (mode slug, grid label) — the harness writes `<fixture>--<mode>.png`. These
+// (mode slug, grid label): the harness writes `<fixture>--<mode>.png`. These
 // four modes already exist in widgets.ts; we re-derive them here so the strip
 // is self-contained and doesn't depend on the full --all render having run.
 const PANELS: ReadonlyArray<{
@@ -64,7 +64,7 @@ const COMMON_HEIGHT = 760; // px the dial panels are scaled to before montage
 const OUTER_PAD = 64; // px of background margin framing the whole strip
 const BG = "#050505";
 
-// A concrete monospace font file — ImageMagick's named-font lookup ("Courier")
+// A concrete monospace font file: ImageMagick's named-font lookup ("Courier")
 // is unreliable on a fresh Homebrew install (no fontconfig aliases), but a
 // direct path to a system font always resolves. Menlo ships on every macOS.
 const FONT_PATH = "/System/Library/Fonts/Menlo.ttc";
@@ -90,7 +90,7 @@ async function main(): Promise<void> {
 
     await mkdir(DOCS_ASSETS, { recursive: true });
 
-    // 2. Scale each panel to the common height (no captions — the strip
+    // 2. Scale each panel to the common height (no captions, the strip
     //    speaks for itself; footprints are described in the surrounding prose).
     const panels: string[] = [];
     for (const p of PANELS) {

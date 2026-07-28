@@ -34,10 +34,10 @@ export interface TagAutocompleteProps {
 /**
  * Text input that opens a key-picker popover when the user types `{{`,
  * filtered against `TELEMACHUS_META`'s friendly labels/groups (the stream-
- * mapped key catalog — see `useKeyOptions` below). Selection inserts
+ * mapped key catalog: see `useKeyOptions` below). Selection inserts
  * `{{<key>}}` and moves the cursor past the closer.
  *
- * Supports both single-line and multi-line via the `multiline` prop —
+ * Supports both single-line and multi-line via the `multiline` prop,
  * Notes uses single-line for the add-row and multi-line for the
  * in-place edit textarea.
  */
@@ -79,7 +79,7 @@ export const TagAutocomplete = forwardRef<
   }, [options, openAt]);
 
   // Clamp the selection cursor whenever the filtered list shrinks below
-  // it — otherwise Enter inserts the wrong option (or undefined when the
+  // it: otherwise Enter inserts the wrong option (or undefined when the
   // index points past the end of the array).
   useEffect(() => {
     setSelectedIdx((i) => Math.min(i, Math.max(0, filtered.length - 1)));
@@ -108,7 +108,7 @@ export const TagAutocomplete = forwardRef<
       return;
     }
     const partial = upto.slice(openIdx + 2);
-    // Bail if the partial spans a whitespace — likely natural text "{{ foo"
+    // Bail if the partial spans a whitespace, likely natural text "{{ foo"
     // with a space inside is fine, but a newline isn't.
     if (/\n/.test(partial)) {
       setOpenAt(null);
@@ -122,7 +122,7 @@ export const TagAutocomplete = forwardRef<
   ) => {
     onChange(e.target.value);
     // After React applies the value, the cursor position is at the typed
-    // character — schedule a microtask to evaluate so selectionStart is
+    // character: schedule a microtask to evaluate so selectionStart is
     // current.
     queueMicrotask(evaluateCursor);
   };
@@ -232,10 +232,10 @@ export const TagAutocomplete = forwardRef<
 });
 
 function useKeyOptions(): KeyOption[] {
-  // The legacy "data" `DataSource` (and its live schema listing) is gone —
+  // The legacy "data" `DataSource` (and its live schema listing) is gone,
   // suggestions now come straight from `TELEMACHUS_META`, which already
   // covers every stream-mapped key (see `map-topic.ts`'s
-  // `TELEMACHUS_CLEAN_HOMES`). Recomputed every render — the map is small
+  // `TELEMACHUS_CLEAN_HOMES`). Recomputed every render, the map is small
   // (~few dozen entries) and the cost is well under a millisecond.
   return useMemo<KeyOption[]>(() => {
     const merged: KeyOption[] = Object.entries(TELEMACHUS_META).map(

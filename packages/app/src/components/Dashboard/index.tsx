@@ -9,7 +9,7 @@ import { MobileDashboard } from "./MobileDashboard";
 // ---------------------------------------------------------------------------
 
 export interface DashboardItem {
-  /** Unique instance ID — used as the react-grid-layout key. */
+  /** Unique instance ID: used as the react-grid-layout key. */
   i: string;
   /** ID matching a registered component (via registerComponent). */
   componentId: string;
@@ -47,7 +47,7 @@ export interface DashboardConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Dashboard — fully controlled. State lives in `useDashboardState` (called
+// Dashboard: fully controlled. State lives in `useDashboardState` (called
 // by the owning screen) so external consumers like the Phase 4 InputDispatcher
 // can subscribe to item changes without reaching into Dashboard internals.
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ export interface DashboardProps {
 
 export function Dashboard(props: Readonly<DashboardProps>) {
   // Touch devices can't realistically use react-grid-layout's drag handle.
-  // Render a linear list with up/down reorder buttons instead — the desktop
+  // Render a linear list with up/down reorder buttons instead, the desktop
   // grid is unaffected, and a desktop user with a narrow window keeps drag.
   const isTouch = useTouchDevice();
   if (isTouch) return <MobileDashboard {...props} />;

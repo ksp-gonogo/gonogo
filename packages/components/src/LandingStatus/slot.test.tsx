@@ -22,7 +22,7 @@ import {
 // Rendered trees, tracked so afterEach can unmount them synchronously before
 // clearAugments() notifies the augment-slot subscribers and before the pinned-UT
 // ViewClock's next requestAnimationFrame tick fires. RTL auto-cleanup runs after
-// this file's afterEach, so it can't be relied on to unmount first — either
+// this file's afterEach, so it can't be relied on to unmount first, either
 // update landing on the still-mounted widget (its AugmentSlot header) is a state
 // update outside act(), the documented anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -46,8 +46,8 @@ function unmountAll() {
  * header, receiving the widget's labelling context as typed slot props.
  *
  * `bodyName`/`atmospheric` (the slot context) both come off the real,
- * client-derived `vessel.state` channel now (see `stream.test.tsx`) — no
- * legacy fallback exists — so this drives a genuine `setupStreamFixture`
+ * client-derived `vessel.state` channel now (see `stream.test.tsx`): no
+ * legacy fallback exists, so this drives a genuine `setupStreamFixture`
  * instead of a legacy `v.body` emit.
  */
 const CARRIED = [
@@ -62,7 +62,7 @@ const CARRIED = [
 ];
 
 // The header row renders unconditionally, so the badges slot is present even
-// in the idle "no landing" state — no need to drive a full prediction.
+// in the idle "no landing" state: no need to drive a full prediction.
 async function renderWidget() {
   registerStockBodies();
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
@@ -77,7 +77,7 @@ async function renderWidget() {
   );
   await screen.findByText("LANDING");
   act(() => {
-    // Mun — a vacuum body — resolves `vessel.state.parentBodyName`.
+    // Mun (a vacuum body) resolves `vessel.state.parentBodyName`.
     stream.emit("system.bodies", {
       bodies: [
         { name: "Mun", index: 3, parentIndex: 0, radius: 200_000, orbit: null },
@@ -106,7 +106,7 @@ async function renderWidget() {
   return stream;
 }
 
-describe("LandingStatus — augment slots (spec §4)", () => {
+describe("LandingStatus: augment slots (spec §4)", () => {
   afterEach(() => {
     // Unmount before clearing augments so the notify never lands on a mounted
     // widget (a ViewClock tick could also fire on it otherwise).
@@ -153,7 +153,7 @@ describe("LandingStatus — augment slots (spec §4)", () => {
     // The slot passed the widget's labelling context down: the current
     // body and its atmosphere flag (Mun is a vacuum body). The pinned view
     // clock's first frame tick (and so `vessel.state.parentBodyName`) lands
-    // asynchronously — wait rather than asserting on the pre-frame "?".
+    // asynchronously: wait rather than asserting on the pre-frame "?".
     await waitFor(() => expect(badge.textContent).toBe("Mun|vac"));
   });
 });

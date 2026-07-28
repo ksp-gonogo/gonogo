@@ -15,7 +15,7 @@ namespace Sitrep.Host
     /// force <c>D</c> at the current speed (an instantaneous read, no
     /// simulation) it derives the effective drag area and projects the terminal
     /// velocity to any air density. It assumes the current configuration holds
-    /// (attitude, no pending parachute) — accurate near terminal on final
+    /// (attitude, no pending parachute): accurate near terminal on final
     /// descent (where it matters), least accurate through high-mach transients
     /// (where there is time). It is NOT a drag simulation.</para>
     /// </summary>

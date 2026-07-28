@@ -7,8 +7,8 @@ namespace Gonogo.ScansatUplink
     /// and hands to its COURIER-THREAD handle (see
     /// <see cref="Sitrep.Contract.IUplinkHost.AddSampledSource"/> and
     /// <see cref="ScansatUplink"/>'s <c>CaptureOnMain</c>/<c>HandleOnCourier</c>).
-    /// This is deliberately PLAIN, self-contained data — no live KSP/Unity
-    /// object references (no <c>CelestialBody</c>, no SCANsat handles) — so
+    /// This is deliberately PLAIN, self-contained data, no live KSP/Unity
+    /// object references (no <c>CelestialBody</c>, no SCANsat handles), so
     /// every KSP-facing read has already happened on the main thread by the
     /// time the Courier-side handle (<see cref="ScanPublications.Compute"/>)
     /// runs. That KSP-free-ness is what lets the whole Courier-side path be
@@ -17,16 +17,16 @@ namespace Gonogo.ScansatUplink
     /// </summary>
     internal sealed class ScanCapture
     {
-        /// <summary>UT the capture was taken at (from the tick's snapshot) — every publication rides this timestamp.</summary>
+        /// <summary>UT the capture was taken at (from the tick's snapshot), every publication rides this timestamp.</summary>
         public double Ut;
 
-        /// <summary>The active vessel's main body name — the sub-topic body component for every channel.</summary>
+        /// <summary>The active vessel's main body name: the sub-topic body component for every channel.</summary>
         public string BodyName = "";
 
         /// <summary>
         /// A per-read SNAPSHOT of the body's SCANdata coverage grid (already
         /// copied off the live array on the main thread), or null when SCANsat
-        /// has no data for this body yet (never scanned) — in which case no
+        /// has no data for this body yet (never scanned), in which case no
         /// coverage/mask is published.
         /// </summary>
         public short[,]? Coverage;
@@ -58,7 +58,7 @@ namespace Gonogo.ScansatUplink
 
         /// <summary>
         /// The body's SCANsat anomalies (<c>SCANdata.Anomalies</c>), already
-        /// shaped into wire dicts via <see cref="ScanAnomalies.Build"/> —
+        /// shaped into wire dicts via <see cref="ScanAnomalies.Build"/>,
         /// null iff <see cref="Coverage"/> is null (no SCANdata for this body
         /// yet, same gate as coverage/mask). Republished alongside
         /// coverage/mask whenever the body's coverage-grid hash changes (see

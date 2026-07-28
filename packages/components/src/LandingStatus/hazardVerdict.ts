@@ -1,5 +1,5 @@
 /**
- * The landing-site hazard verdict — SAFE / MARGINAL / DIVERT, telemetry alerting
+ * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT, telemetry alerting
  * (never GO/NO-GO, which is human-only). Worst-band-wins across four axes with
  * agent-3's researched defaults, plus a hard water-DIVERT override:
  *
@@ -45,7 +45,7 @@ export interface HazardInputs {
   verticalSpeed?: number | null;
   /** Lateral (horizontal) speed, m/s. */
   lateralSpeed?: number | null;
-  /** Biome at the site — a liquid-surface biome forces DIVERT. */
+  /** Biome at the site: a liquid-surface biome forces DIVERT. */
   biome?: string | null;
 }
 

@@ -38,7 +38,7 @@ export class AmbiguousResolutionError extends Error {
  * gating, or none were registered at all) AND no `vanilla` fallback.
  *
  * The spine cannot boot without this capability, so the kernel refuses to
- * silently continue with the capability absent — unlike a non-spine-critical
+ * silently continue with the capability absent: unlike a non-spine-critical
  * capability in the same situation, which simply resolves to zero active
  * instances.
  */
@@ -62,7 +62,7 @@ export class SpineCapabilityUnsatisfiedError extends Error {
  * order.
  *
  * `cycle` lists the capability ids that form the cycle, in dependency order
- * (each depends on the next, and the last depends back on the first) — it is
+ * (each depends on the next, and the last depends back on the first), it is
  * a diagnostic aid, not necessarily every capability affected by the cycle
  * (a capability outside the cycle that merely depends on a cyclic one is not
  * included).

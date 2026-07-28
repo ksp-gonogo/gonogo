@@ -16,8 +16,8 @@ describe("detectGamepadPack", () => {
     expect(detectGamepadPack("057e-2009-Wireless Controller")).toBe("nintendo");
   });
 
-  it("does not require zero-padding — Firefox omits it", () => {
-    // A real Firefox id shape ("810-3-USB Gamepad") — unrelated vendor,
+  it("does not require zero-padding, Firefox omits it", () => {
+    // A real Firefox id shape ("810-3-USB Gamepad"), unrelated vendor,
     // should resolve to positional, not crash or mis-parse a short hex run.
     expect(detectGamepadPack("810-3-USB Gamepad")).toBe("positional");
   });

@@ -6,7 +6,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Unit tests for the pure landing maths (<see cref="LandingModel"/>): the
     /// source-side relevance gate and the atmosphere-aware terminal-velocity
-    /// model. No KSP types — the KSP capture feeds these the live readings.
+    /// model. No KSP types: the KSP capture feeds these the live readings.
     /// </summary>
     public class LandingModelTests
     {

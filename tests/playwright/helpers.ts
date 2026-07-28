@@ -14,12 +14,12 @@
  * `bootstrapPair` runs steps 1-3 and returns the open pages so the
  * spec can do the widget-specific reads.
  *
- * Don't add widget-specific logic here — keep this generic so a new
+ * Don't add widget-specific logic here: keep this generic so a new
  * widget test is "import bootstrapPair; read DOM on both sides; assert".
  *
- * NOTE — station-side telemetry is currently a known gap: only the MAIN
+ * NOTE: station-side telemetry is currently a known gap: only the MAIN
  * screen mounts `SitrepTelemetryProvider` (see that file's own doc
- * comment — station stream forwarding over PeerJS is "a later task").
+ * comment: station stream forwarding over PeerJS is "a later task").
  * A spec whose station assertion depends on an actual telemetry VALUE
  * (not just static chrome) will not see it mirrored yet; that's an app
  * gap this harness surfaces rather than papers over.
@@ -58,7 +58,7 @@ export interface DashboardLayout {
 /**
  * Build a dashboard config containing a single widget under `componentId`.
  * The default 8×6 footprint is large enough for any widget's rich
- * layout (CurrentOrbit's diagram slot etc.) — use `size` to override
+ * layout (CurrentOrbit's diagram slot etc.): use `size` to override
  * for niche cases.
  */
 export function dashboardWithWidget(
@@ -117,7 +117,7 @@ export async function seedContext(
         // These specs don't drive the wizard; uplink-hub-wizard.spec owns it.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
-        /* private mode / quota — ignore; the seed just won't apply */
+        /* private mode / quota: ignore; the seed just won't apply */
       }
     },
     {
@@ -131,7 +131,7 @@ export async function seedContext(
 /**
  * Wait for the host's PeerJS peer to open on the broker, then return its
  * stable SHARE CODE. Under the stable-host-id model the station derives
- * `gonogo-host-<code>` from this and connects directly — the broker-directory
+ * `gonogo-host-<code>` from this and connects directly: the broker-directory
  * resolve hop (and the host's id-rotation it worked around) are gone, so a
  * plain wait-for-open + return-the-code is all that's needed. The share code
  * is a 4-char `[A-Z0-9]` token; the host's peer id is the derived form.
@@ -164,7 +164,7 @@ export async function getHostPeerId(page: Page): Promise<string> {
  * Seed a remembered Uplink-consent grant for every id@version in the built
  * registry (`/uplinks/registry.local.json`), so a subsequent boot's runtime
  * loader reaches `import()` without the per-version consent modal. Same
- * mechanism as `uplink-loader.spec.ts`'s `seedConsent` — versions are derived
+ * mechanism as `uplink-loader.spec.ts`'s `seedConsent`: versions are derived
  * from the registry, never hand-coded. Granting every id is harmless: only the
  * ids named in `?uplinkLoaderIds=` actually load. Call after `goto` (needs a
  * same-origin document to fetch + set localStorage), then `reload`.
@@ -193,7 +193,7 @@ export interface BootstrappedPair {
 /**
  * Boot main + station with the same widget seeded on both dashboards.
  * `waitFor` is a per-page predicate that must succeed before the
- * function returns — typically `page.getByText("WIDGET-TITLE")
+ * function returns: typically `page.getByText("WIDGET-TITLE")
  * .toBeVisible()`. Don't make the predicate widget-specific in the
  * helper itself; let the spec supply it.
  */
@@ -212,7 +212,7 @@ export async function bootstrapPair(
      * Per-context overrides applied to both main and station. Use for
      * mobile testing: `{ viewport: { width: 375, height: 667 },
      * hasTouch: true }` triggers the MobileDashboard rendering path
-     * (Dashboard/index.tsx:83 — `if (isTouch) return <MobileDashboard
+     * (Dashboard/index.tsx:83: `if (isTouch) return <MobileDashboard
      * .../>;`). Without this every spec runs at the default desktop
      * viewport with no touch, so mobile-only sizing regressions (e.g.
      * the CameraFeed 2x0.5 squish reported 2026-05-18) never surface
@@ -234,11 +234,11 @@ export async function bootstrapPair(
     loadUplinkIds?: string[];
     /**
      * Which fake Sitrep replay server/port this pair points at. Default
-     * `PORTS.sitrepReplay` — the shared snapshot every widget spec normally
+     * `PORTS.sitrepReplay`: the shared snapshot every widget spec normally
      * runs against, deliberately WITHOUT `vessel.parts`/`dv.*` (see
      * sitrep-stream-server.mjs's doc comment). Pass
      * `PORTS.sitrepReplayTopology` for a spec that needs real topology/ΔV
-     * data (power-systems, fuel-status) — a SEPARATE server carrying those
+     * data (power-systems, fuel-status): a SEPARATE server carrying those
      * extra topics on top of the same base snapshot, so the shared fixture
      * (and every absence-dependent assertion built on it) is untouched.
      */
@@ -299,7 +299,7 @@ export async function bootstrapPair(
 }
 
 /**
- * Tear down a bootstrapped pair. Order matters — close pages before
+ * Tear down a bootstrapped pair. Order matters, close pages before
  * contexts so Playwright reports clean shutdown.
  */
 export async function teardownPair(pair: BootstrappedPair): Promise<void> {

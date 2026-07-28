@@ -22,7 +22,7 @@ const CARRIED_CHANNELS = [
 
 /**
  * Resolves `vessel.state.parentBodyName` to `name` via a single-entry
- * `system.bodies` table. `vessel.flight` must ALSO be present here — in the
+ * `system.bodies` table. `vessel.flight` must ALSO be present here, in the
  * "measured" (Loaded) basis `deriveVesselState` gates the WHOLE
  * `vessel.state` record (not just `altitudeAsl`) on `vessel.flight` having
  * arrived at all.

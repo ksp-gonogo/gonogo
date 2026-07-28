@@ -48,7 +48,7 @@ describe("selectDockingCamera", () => {
     expect(selectDockingCamera([cam(1, true), cam(2, false)], 99)).toBe(1);
   });
 
-  it("skips entries with no cameraId — an unusable entry is not a candidate", () => {
+  it("skips entries with no cameraId: an unusable entry is not a candidate", () => {
     const noId = { isDockingCamera: true } as KerbcastCameraEntry;
     expect(selectDockingCamera([noId, cam(5, false)])).toBe(5);
     expect(selectDockingCamera([noId])).toBeNull();

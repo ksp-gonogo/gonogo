@@ -4,7 +4,7 @@
     "vessel": "synthetic (Mk1 pod in LKO, station targeted)",
     "body": "Kerbin",
     "situation": "Orbiting ~120km, targeting Kerbin Station I, Mun encounter ahead",
-    "notes": "SYNTHETIC, hand-generated (no live capture) — replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons."
+    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons."
   },
   "tar.name": "Kerbin Station I",
   "tar.type": "Station",

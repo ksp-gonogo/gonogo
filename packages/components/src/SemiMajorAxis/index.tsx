@@ -37,7 +37,7 @@ function SemiMajorAxisComponent({
   const sma = useTelemetry("vessel.orbit")?.sma;
   const referenceBody =
     useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined;
-  // `useDataSeries` (sparkline history) carries the same stream shim — `o.sma`
+  // `useDataSeries` (sparkline history) carries the same stream shim, `o.sma`
   // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
   // is carried this sparkline reads its window straight off the
   // `TimelineStore`'s buffered history, same as the headline `sma` value
@@ -49,7 +49,7 @@ function SemiMajorAxisComponent({
 
   const cols = w ?? 4;
   const rows = h ?? 4;
-  // Subtitle is "what is this widget" elaboration — suppress when there's
+  // Subtitle is "what is this widget" elaboration, suppress when there's
   // no room without crowding the readout. At default 4×4 the PanelTitle
   // ("SMA") + value already cover the operator's read-at-a-glance need.
   const showSubtitle = rows >= 5 && cols >= 4;
@@ -58,7 +58,7 @@ function SemiMajorAxisComponent({
   // Readout font scales with available width so the value (e.g.
   // "2.87 Mm", "680.0 km") doesn't wrap onto two lines at narrow column
   // counts. Wrap was the underlying cause of the readout overlapping the
-  // subtitle on small widgets — keep it on one line and the layout
+  // subtitle on small widgets: keep it on one line and the layout
   // resolves itself.
   const readoutFontPx = cols <= 3 ? 18 : cols <= 4 ? 22 : 28;
 

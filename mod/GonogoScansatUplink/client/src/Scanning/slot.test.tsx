@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";
 
 /**
- * Scanning augment-slot exposure — SCANsat-OWNED widget exposing slots
+ * Scanning augment-slot exposure: SCANsat-OWNED widget exposing slots
  * OTHER Uplinks fill. The slots (`scanning.sections`, `scanning.badges`)
  * are exposed but ship no filler here (that's an Uplink augment): an empty
  * slot must render cleanly, and a test augment registered into it must
@@ -33,13 +33,13 @@ const KEYS: DataKey[] = [
   { key: "scansat.anomalies.Kerbin" },
 ];
 
-describe("Scanning — augment slots (spec §4)", () => {
+describe("Scanning: augment slots (spec §4)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
   // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
   // the buffered source. RTL auto-cleanup runs after this file's afterEach, so
-  // it can't be relied on to unmount first — disconnecting a live source while
+  // it can't be relied on to unmount first, disconnecting a live source while
   // the widget is still mounted fires a status change into it, a state update
   // outside act() (the documented anti-pattern in CLAUDE.md).
   const renderedTrees: Array<() => void> = [];
@@ -80,7 +80,7 @@ describe("Scanning — augment slots (spec §4)", () => {
 
   it("renders the layout with empty slots inert (stock readout unchanged)", () => {
     renderPresent();
-    expect(screen.getByText(/Coverage — Kerbin/)).toBeInTheDocument();
+    expect(screen.getByText(/Coverage: Kerbin/)).toBeInTheDocument();
     expect(screen.queryByTestId("scan-section-augment")).toBeNull();
     expect(screen.queryByTestId("scan-badge-augment")).toBeNull();
   });

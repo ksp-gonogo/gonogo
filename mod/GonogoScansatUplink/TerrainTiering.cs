@@ -4,7 +4,7 @@ namespace Gonogo.ScansatUplink
 {
     /// <summary>
     /// Replicates SCANsat's own query-time elevation-tiering rule
-    /// (SCANmap.terrainElevation, SCANmap.cs:1373/1378 — see
+    /// (SCANmap.terrainElevation, SCANmap.cs:1373/1378: see
     /// docs/superpowers/specs/2026-07-18-scansat-legit-integration.md
     /// §1.2): HiRes coverage samples the exact query point; LoRes-only
     /// coverage samples the point truncated to the whole degree

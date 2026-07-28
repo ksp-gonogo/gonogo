@@ -12,7 +12,7 @@ import { type GroundSurveyBadgesContext, GroundSurveyComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // augment registry. RTL auto-cleanup runs after this file's afterEach, so it
-// can't be relied on to unmount first — clearAugments() firing on a
+// can't be relied on to unmount first, clearAugments() firing on a
 // still-mounted widget is a state update outside act(), the documented
 // anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -36,12 +36,12 @@ function unmountAll() {
  * smoothness badge, receiving the widget's labelling context as typed slot
  * props.
  *
- * `v.body`/altitude/heightFromTerrain all stream natively now — `v.body`
+ * `v.body`/altitude/heightFromTerrain all stream natively now: `v.body`
  * via `vessel.state.parentBodyName` (`vessel.identity` + `system.bodies`),
- * altitude/heightFromTerrain via `vessel.flight` — see
+ * altitude/heightFromTerrain via `vessel.flight`: see
  * `useGroundSurveySamples`'s doc comment.
  */
-describe("GroundSurvey — augment slots (spec §4)", () => {
+describe("GroundSurvey: augment slots (spec §4)", () => {
   let streamFixture: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {

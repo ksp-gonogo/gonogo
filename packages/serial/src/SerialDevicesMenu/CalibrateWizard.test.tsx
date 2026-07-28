@@ -134,7 +134,7 @@ describe("CalibrateWizard", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /capture range/i }));
-    // Synchronous external pushes into React setState — wrap each in act().
+    // Synchronous external pushes into React setState: wrap each in act().
     act(() => transport.injectRawLine("100"));
     act(() => transport.injectRawLine("900"));
     act(() => transport.injectRawLine("500"));

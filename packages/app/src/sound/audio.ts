@@ -28,7 +28,7 @@ export function getSharedAudioContext(): AudioContext | null {
     }
     return sharedAudioContext;
   } catch {
-    // Autoplay policy or context-limit error — caller treats null as
+    // Autoplay policy or context-limit error: caller treats null as
     // "no audio right now"; the paired visual cue still alerts the operator.
     return null;
   }

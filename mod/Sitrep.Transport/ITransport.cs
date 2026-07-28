@@ -4,7 +4,7 @@ namespace Sitrep.Transport
 {
     /// <summary>
     /// Which delivery class an outbound send belongs to. Telemetry is lossy-latest
-    /// (a dropped/failed send is fine — a fresher sample follows shortly); Response
+    /// (a dropped/failed send is fine, a fresher sample follows shortly); Response
     /// is reliable (command results, acks) and callers should treat a false return
     /// from <see cref="ITransportConnection.TrySend"/> as needing a retry/backoff,
     /// not a silent drop.
@@ -18,7 +18,7 @@ namespace Sitrep.Transport
     /// <summary>
     /// One connected WebSocket peer, abstracted away from whichever library
     /// actually implements the socket. This is the seam a future kernel would
-    /// register a transport provider against — see
+    /// register a transport provider against: see
     /// <c>docs/superpowers/plans/2026-07-06-telemetry-m5-csharp-mod.md</c>.
     /// </summary>
     public interface ITransportConnection
@@ -27,14 +27,14 @@ namespace Sitrep.Transport
 
         /// <summary>
         /// Attempts to send <paramref name="payload"/> to this peer. Returns false
-        /// (without throwing) if the connection is already closing/closed — callers
+        /// (without throwing) if the connection is already closing/closed, callers
         /// should not treat that as an error, just as "nowhere to send this".
         /// A true return means the send was handed off, not that it was flushed;
         /// use <paramref name="cls"/> to decide how much that distinction matters.
         /// </summary>
         bool TrySend(ArraySegment<byte> payload, SendClass cls);
 
-        /// <summary>Raised on a socket thread — never assume this runs on any particular thread.</summary>
+        /// <summary>Raised on a socket thread: never assume this runs on any particular thread.</summary>
         event Action<ArraySegment<byte>> MessageReceived;
 
         /// <summary>Raised on a socket thread when the connection has gone away, for any reason.</summary>

@@ -56,10 +56,10 @@ function num(v: unknown, fallback = 0): number {
 /**
  * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
  * down to `type === "rotor"` entries (hinges/pistons are Robotics Console's
- * domain). `partId` is `Part.flightID` stringified — stable per-part for the
+ * domain). `partId` is `Part.flightID` stringified, stable per-part for the
  * life of the flight and, unlike `partName`, unique even among symmetric
  * same-named parts (multirotors, coaxial helis). Entries with no string
- * `partId` are dropped — they can't be selected or targeted safely.
+ * `partId` are dropped, they can't be selected or targeted safely.
  */
 export function parseRotors(raw: unknown): RotorInfo[] {
   if (!Array.isArray(raw)) return [];

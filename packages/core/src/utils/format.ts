@@ -1,3 +1,4 @@
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 export function formatAge(ms: number): string {
   if (ms < 1000) return "<1s";
   if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
@@ -17,7 +18,7 @@ export function formatCompactNumber(
   value: number,
   decimals: number = 1,
 ): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return NULL_DISPLAY;
   const abs = Math.abs(value);
   if (abs >= 1_000_000) {
     return `${stripTrailingZeros((value / 1_000_000).toFixed(decimals))}M`;

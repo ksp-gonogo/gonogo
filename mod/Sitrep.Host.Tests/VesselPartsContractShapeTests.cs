@@ -15,8 +15,8 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Locks the <c>vessel.parts</c> typing: proves the named
     /// <see cref="VesselParts"/>/<see cref="VesselPart"/>/<see cref="PartBounds"/>
-    /// contract POCOs mirror — field name for field name, camelCase wire key for
-    /// camelCase wire key — the EXACT serialized shape
+    /// contract POCOs mirror: field name for field name, camelCase wire key for
+    /// camelCase wire key: the EXACT serialized shape
     /// <see cref="VesselPartsViewProvider.BuildPartsWire"/> emits. This is the
     /// ToWire-completeness guard: add a POCO field, add a wire key, or this goes
     /// RED (an emitted key with no property, or a property with no emitted key).
@@ -39,7 +39,7 @@ namespace Sitrep.Host.Tests
             var part = Assert.IsType<Dictionary<string, object?>>(Assert.Single(parts));
 
             // Per-part dict keys == VesselPart's camelCase'd props (no extra,
-            // no missing) — the completeness guard.
+            // no missing): the completeness guard.
             AssertPartMirrors(part);
 
             // Nested Vec3 / PartBounds sub-objects are themselves dict-shaped.
@@ -156,7 +156,7 @@ namespace Sitrep.Host.Tests
                 emitted.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
 
             // resources/moduleStates are dict-of-dicts / list-of-dicts (like
-            // bounds' nested Vec3s) — their per-row shape is asserted
+            // bounds' nested Vec3s): their per-row shape is asserted
             // separately by the caller via AssertKeysMatchType, not here.
             var nestedObjectKeys = new HashSet<string> { "position", "up", "bounds", "resources", "moduleStates", "actionBindings" };
 
@@ -210,7 +210,7 @@ namespace Sitrep.Host.Tests
                 ? name
                 : char.ToLower(name[0], CultureInfo.InvariantCulture) + name.Substring(1);
 
-        // ---- PE-metadata [SitrepTopic] reader — copied from
+        // ---- PE-metadata [SitrepTopic] reader: copied from
         // PartsContractShapeTests (see its doc comment for why CLR attribute
         // reflection can't be used on these [TsInterface]-tagged types). ----
 

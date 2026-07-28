@@ -15,10 +15,10 @@ export interface RequiresGuardProps {
    * The widget's declared REQUIRED `channels` (Uplink architecture spec
    * §3.2). When any of these resolves to a non-healthy owning Uplink (via
    * `useUplinkHealthFor`), the gate blocks with that Uplink's
-   * `health.detail` — this check runs BEFORE the `requires` game-context
+   * `health.detail`: this check runs BEFORE the `requires` game-context
    * check, since there's no point reporting "needs flight scene" when the
    * widget's own data isn't flowing anyway. `optionalChannels` are
-   * deliberately never passed here — they always render through.
+   * deliberately never passed here: they always render through.
    */
   channels?: readonly string[];
   children: ReactNode;
@@ -26,7 +26,7 @@ export interface RequiresGuardProps {
 
 /**
  * Wraps a dashboard widget with the framework's unified "can this widget
- * render meaningfully now" gate — merges two independent checks into ONE
+ * render meaningfully now" gate, merges two independent checks into ONE
  * reason line, in priority order:
  *
  * 1. a REQUIRED `channels` topic's owning Uplink is unhealthy -> that
@@ -37,7 +37,7 @@ export interface RequiresGuardProps {
  * No requirements/channels = pass-through (no wrapper DOM, no styling
  * drift). Used by the dashboard orchestrator (`GridItemContent`,
  * `MobileDashboard`, `PushedDashboardOverlay`) so per-widget code stays in
- * `registerComponent({ requires: [...], channels: [...] })` — widgets
+ * `registerComponent({ requires: [...], channels: [...] })`, widgets
  * don't import this file directly.
  */
 export function RequiresGuard({
@@ -51,7 +51,7 @@ export function RequiresGuard({
 
   // Host-down outranks a per-uplink health reading: with no telemetry host
   // at all, "resolved: unhealthy" vs. "unresolved: still booting" is a
-  // distinction without a difference — say so plainly instead. Only gates
+  // distinction without a difference: say so plainly instead. Only gates
   // when the widget actually declared REQUIRED channels; a channel-less
   // widget (e.g. a purely local Serial Devices control) has nothing to
   // block on here.
@@ -88,7 +88,7 @@ export function RequiresGuard({
   // We render a compact placeholder (not the dimmed children) when a
   // requirement is unmet. The previous behaviour was DimmedOverlay
   // around the widget's full content, which on first load (no
-  // telemetry) showed an empty-but-tall card per widget — the dashboard
+  // telemetry) showed an empty-but-tall card per widget, the dashboard
   // looked broken. The placeholder collapses to just the banner;
   // outer flex parents (Panel etc.) constrain to the natural content
   // height. Last-good telemetry isn't preserved across the gate, but
@@ -165,7 +165,7 @@ const PlaceholderHint = styled.span`
   color: var(--color-text-faint);
 `;
 
-// Re-export DimmedOverlay binding so the existing ergonomic stays — older
+// Re-export DimmedOverlay binding so the existing ergonomic stays, older
 // callers that explicitly wrapped their content in DimmedOverlay keep
 // working. RequiresGuard no longer uses it internally.
 export { DimmedOverlay };
@@ -175,7 +175,7 @@ function hintForScene(scene: string): string | undefined {
     case "SpaceCenter":
       return "Launch a vessel to see this widget live.";
     case "Editor":
-      return "Editor scene — vessel data unavailable.";
+      return "Editor scene: vessel data unavailable.";
     case "TrackingStation":
       return "Switch to a vessel in the tracking station.";
     case "MainMenu":

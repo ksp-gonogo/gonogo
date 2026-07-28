@@ -5,16 +5,16 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// C#-side tests for <see cref="Archive.Snapshot"/> / <see cref="Archive.Restore"/>
-    /// — a capability with NO TS reference (added for M5b quicksave, so a
+    /// C#-side tests for <see cref="Archive.Snapshot"/> / <see cref="Archive.Restore"/>,
+    /// a capability with NO TS reference (added for M5b quicksave, so a
     /// delayed archive survives save/load). Unlike
     /// <see cref="ArchiveGoldenFixtureTests"/>, there is no golden fixture
     /// here: these tests build an <see cref="Archive"/> directly, drive it
     /// through reads that advance (and, in one case, FREEZE) its cursors, then
     /// prove an OBJECT-LEVEL round trip (<see cref="Archive.Snapshot"/> straight
-    /// into <see cref="Archive.Restore"/>, no serialization involved — that's
+    /// into <see cref="Archive.Restore"/>, no serialization involved: that's
     /// deliberately out of scope for <c>Sitrep.Core</c>, deferred to M5b)
-    /// reproduces identical subsequent <c>ReadAtVantage</c> results —
+    /// reproduces identical subsequent <c>ReadAtVantage</c> results:
     /// including the frozen cursor position, not merely the recorded samples.
     /// </summary>
     public class ArchiveSnapshotRestoreTests
@@ -49,7 +49,7 @@ namespace Sitrep.Core.Tests
             Assert.Equal(0.0, v2First.Value.ValidAt);
 
             // Snapshot at this point (v1's cursor is FROZEN at scene 3; v2's at scene 0)
-            // and restore straight from the POCO — an object-level round trip,
+            // and restore straight from the POCO: an object-level round trip,
             // with no serialization involved (that's an M5b concern, deferred
             // out of Sitrep.Core; see ArchiveState).
             var snapshot = archive.Snapshot();
@@ -62,7 +62,7 @@ namespace Sitrep.Core.Tests
 
             // The critical proof: a subsequent read on the RESTORED archive whose
             // raw scene (nowUt - delaySeconds) would rewind far behind the frozen
-            // scene must still return the frozen sample — identical to what the
+            // scene must still return the frozen sample, identical to what the
             // ORIGINAL archive (continued, never snapshotted/restored) produces
             // for the exact same call. If Restore had reset cursors instead of
             // preserving them, this call's raw scene (0 - 100 = -100) would be
@@ -87,7 +87,7 @@ namespace Sitrep.Core.Tests
 
             // Negative control: an otherwise-identical archive that was NEVER
             // read through (so it has no cursor at all) returns null for the
-            // same "rewind" call — proving the restored archive's non-null
+            // same "rewind" call: proving the restored archive's non-null
             // result above really does come from the preserved cursor, not
             // from the samples alone.
             var withoutCursor = new Archive();
@@ -102,7 +102,7 @@ namespace Sitrep.Core.Tests
         public void SnapshotCapturesCursorForATopicWithNoRecordedSamples()
         {
             // ReadAtVantage sets a cursor unconditionally, before checking
-            // whether the topic has any samples at all — so a topic that was
+            // whether the topic has any samples at all, so a topic that was
             // only ever read (never recorded) still has cursor state worth
             // preserving across a save/load.
             var archive = new Archive();

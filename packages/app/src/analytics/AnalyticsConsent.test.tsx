@@ -34,7 +34,7 @@ describe("AnalyticsConsentService", () => {
     const seen: (string | undefined)[] = [];
     svc.subscribe((v) => seen.push(v));
     svc.set("enabled");
-    svc.set("enabled"); // unchanged — no fire
+    svc.set("enabled"); // unchanged: no fire
     svc.set("disabled");
     expect(seen).toEqual(["enabled", "disabled"]);
   });

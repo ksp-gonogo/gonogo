@@ -135,7 +135,7 @@ describe("useTelemetry", () => {
     expect(result.current).toBe(80_000);
   });
 
-  it("isolates subscriptions — different keys do not interfere", () => {
+  it("isolates subscriptions: different keys do not interfere", () => {
     const source = makeSource();
     registerDataSource(source);
 

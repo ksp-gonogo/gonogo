@@ -30,7 +30,7 @@ describe("isStationRoute", () => {
     expect(isStationRoute()).toBe(true);
   });
 
-  it("is base-path-relative — matches /gonogo/station under a sub-path BASE_URL (GitHub Pages)", () => {
+  it("is base-path-relative, matches /gonogo/station under a sub-path BASE_URL (GitHub Pages)", () => {
     const original = import.meta.env.BASE_URL;
     import.meta.env.BASE_URL = "/gonogo/";
     try {

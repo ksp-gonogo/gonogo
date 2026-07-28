@@ -7,16 +7,16 @@ import { LandingStatusComponent } from "./index";
 
 /**
  * LandingStatus genuinely running OFF THE STREAM (a real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`) — no legacy
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`): no legacy
  * `DataSource` is registered anywhere in this file, so a value only reaches the
  * widget if it actually streamed.
  *
  * The rebooted widget runs a FULL-VECTOR suicide-burn solve client-side off the
  * streamed `vessel.flight` / `vessel.propulsion` / `vessel.orbit` channels plus
  * the static stock-body radius (`getBody`), with NO derived `vessel.state.
- * landing*` fields involved. This file proves the whole chain — subscription,
+ * landing*` fields involved. This file proves the whole chain, subscription,
  * carried-channel promotion, derived `vessel.state` body resolution, and the
- * DOM render — works end to end on a real Mun descent, with the horizontal
+ * DOM render, works end to end on a real Mun descent, with the horizontal
  * component (the correctness fix) surfaced.
  *
  * `carriedChannels` mirrors `index.test.tsx`'s superset: the carried gate is
@@ -39,7 +39,7 @@ const CARRIED = [
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
-describe("LandingStatus — full-vector solve genuinely runs off the stream", () => {
+describe("LandingStatus: full-vector solve genuinely runs off the stream", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -97,7 +97,7 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
       { quality: Quality.Loaded },
     );
     // h=5km, descending 50 m/s but carrying 540 m/s of (mostly horizontal)
-    // surface speed — the whole point of the full-vector solve.
+    // surface speed: the whole point of the full-vector solve.
     stream.emit("vessel.flight", {
       latitude: 0,
       longitude: 0,
@@ -120,7 +120,7 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
   it("renders the Mun descent board off the derived vessel.state + streamed flight/propulsion", async () => {
     const { container } = renderWidget();
 
-    // Nothing arrived yet — the empty state shows.
+    // Nothing arrived yet: the empty state shows.
     expect(container.textContent).toContain("No landing in progress");
     // A real subscription must have happened for StubTransport (which is
     // subscription-gated) to deliver at all.
@@ -148,8 +148,8 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
   });
 
   // L2 (producer-consumer disagreement): the health badge must track the datum
-  // the widget actually displays — vessel.surface (the lowest-point burn
-  // height) — not vessel.flight. vessel.surface is independently gated (withheld
+  // the widget actually displays: vessel.surface (the lowest-point burn
+  // height): not vessel.flight. vessel.surface is independently gated (withheld
   // while Orbiting/Escaping and under signal delay), so a badge bound to
   // vessel.flight read healthy even when the shown height had silently dropped
   // to the CoM fallback.
@@ -159,7 +159,7 @@ describe("LandingStatus — full-vector solve genuinely runs off the stream", ()
     // test is size-independent.
     renderWidget({ w: 4, h: 10 });
 
-    // A full descent WITH flight flowing but vessel.surface WITHHELD — the
+    // A full descent WITH flight flowing but vessel.surface WITHHELD, the
     // widget falls back to the CoM datum (usingComDatum) and keeps rendering.
     act(() => {
       emitMunDescent(); // emits vessel.flight, NOT vessel.surface

@@ -14,7 +14,7 @@ import { DistanceToTargetComponent } from "./index";
 
 /**
  * DOM snapshots off the stream (`TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore`) pipeline — the widget's legacy `MockDataSource` fallback
+ * `TimelineStore`) pipeline: the widget's legacy `MockDataSource` fallback
  * is gone, so the generic `snapshotWidgetMode` harness (which emits fixture
  * keys straight onto a `MockDataSource`) can't drive it any more. Each
  * fixture's legacy `tar.*`/`dock.*`/`o.closestTgtApprUT` keys are mapped
@@ -28,9 +28,10 @@ import { DistanceToTargetComponent } from "./index";
  * `dock.distanceScalar`→`distance`, `dock.forwardDot`→`forwardDot`.
  *
  * The view-UT clock is pinned at 0, so `o.closestTgtApprUT` (an absolute UT)
- * reads straight through as the TCA duration in `vessel.target.closestApproach.time`
- * — previously this widget had no `TelemetryProvider` at all under the bare
- * snapshot harness, so TCA always degraded to "—"; now every render mounts
+ * reads straight through as the TCA duration in `vessel.target.closestApproach.time`,
+ * previously this widget had no `TelemetryProvider` at all under the bare
+ * snapshot harness, so TCA always degraded to the null-display placeholder;
+ * now every render mounts
  * one (the widget's only reads are canonical Topics), so the approach-mode
  * fixture's TCA renders for real.
  */

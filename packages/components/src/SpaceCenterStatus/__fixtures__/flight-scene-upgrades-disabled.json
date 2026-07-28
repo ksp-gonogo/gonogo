@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Player is in Flight scene — not at Space Center. All upgrade buttons are disabled even though funds are ample. Tests the scene-guard logic. Pad is occupied with a vessel in flight.",
+    "notes": "Player is in Flight scene, not at Space Center. All upgrade buttons are disabled even though funds are ample. Tests the scene-guard logic. Pad is occupied with a vessel in flight.",
     "scenario": "flight-scene-upgrades-disabled"
   },
   "kc.facilityLevels": {

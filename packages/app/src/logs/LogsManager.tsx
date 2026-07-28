@@ -176,7 +176,7 @@ export function LogsManager() {
           </ModeButton>
           <ModeHint>
             {state.mode === "all"
-              ? "Every tag is being logged — very noisy."
+              ? "Every tag is being logged, very noisy."
               : state.mode === "none"
                 ? "No tag-gated debug will print. Warnings & errors still do."
                 : `${state.tags.size} tag${state.tags.size === 1 ? "" : "s"} enabled.`}
@@ -243,7 +243,7 @@ function ReportBug() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Post-send form-reset timer (5s after a successful submit). Held so it
-  // can be cleared on unmount — otherwise closing the Logs modal within 5s
+  // can be cleared on unmount; otherwise closing the Logs modal within 5s
   // of sending fires setState on an unmounted component.
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -361,7 +361,7 @@ function ReportBug() {
       else tagged.error(trimmed, undefined, payload);
       // The Axiom SDK auto-batches and retries on its own. Race the flush
       // against a 10s deadline so a slow transport (e.g. backpressure on
-      // a large screenshot) doesn't trap the UI in "Submitting..." — the
+      // a large screenshot) doesn't trap the UI in "Submitting...", the
       // user's 2026-05-17 bug-report attempt with a screenshot stalled
       // forever and the report never arrived. The entry is in the ring
       // buffer regardless, so timing out is a soft success: surface
@@ -373,7 +373,7 @@ function ReportBug() {
         ),
       ]);
       if (flushOrTimeout === "timeout") {
-        // Don't error out — the entry is in the ring buffer and the SDK
+        // Don't error out: the entry is in the ring buffer and the SDK
         // will keep retrying. Tag a one-liner so the operator sees in
         // their own logs that delivery was slow.
         logger.warn("[report] flush did not complete within 10s", {
@@ -482,7 +482,7 @@ function ReportBug() {
                 {Math.round(screenshot.encodedSize / 1024)} KB
               </span>
               {screenshot.encodedSize > SCREENSHOT_WARN_BYTES && (
-                <Warn>Large image — consider a tighter crop.</Warn>
+                <Warn>Large image: consider a tighter crop.</Warn>
               )}
             </ScreenshotMeta>
           </ScreenshotPreview>

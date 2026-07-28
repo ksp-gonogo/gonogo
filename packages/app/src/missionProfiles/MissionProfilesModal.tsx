@@ -21,7 +21,7 @@ import {
 } from "./MissionProfilesService";
 
 interface MissionProfilesModalProps {
-  /** Current dashboard state — used for the "save current as..." button. */
+  /** Current dashboard state: used for the "save current as..." button. */
   currentItems: DashboardItem[];
   currentLayouts: Layouts;
   /** Called when the user loads a profile. */
@@ -31,7 +31,7 @@ interface MissionProfilesModalProps {
 }
 
 /**
- * Mission Profiles — named dashboard snapshots. Capture the current
+ * Mission Profiles: named dashboard snapshots. Capture the current
  * layout with a name and reload it later; useful for "Launch → Orbit →
  * Rendezvous" flows where the optimal widget set changes sharply
  * between mission phases.
@@ -74,7 +74,7 @@ export function MissionProfilesModal({
     const next = current.includes(scene)
       ? current.filter((s) => s !== scene)
       : [...current, scene];
-    // When bindings clear out, auto-switch becomes meaningless — drop it.
+    // When bindings clear out, auto-switch becomes meaningless, drop it.
     const nextAutoSwitch = next.length === 0 ? false : profile.autoSwitch;
     svc.update(profile.id, {
       sceneBindings: next,
@@ -116,7 +116,7 @@ export function MissionProfilesModal({
     setRenameDraft("");
   };
 
-  // Extracted to avoid a triple-nested ternary inside the JSX — each row is
+  // Extracted to avoid a triple-nested ternary inside the JSX, each row is
   // in exactly one of three states (confirming-load, confirming-delete, or
   // default), and splitting it out keeps the render tree readable.
   function renderRowActions(p: MissionProfile): React.ReactNode {
@@ -240,7 +240,7 @@ export function MissionProfilesModal({
         <Hint>
           Captures the current widget layout. Load it back later to swap the
           whole dashboard at once. Tagged scenes show a load prompt at the
-          bottom of the screen when KSP enters that scene — or auto-load if
+          bottom of the screen when KSP enters that scene, or auto-load if
           "Switch automatically" is on.
         </Hint>
       </Section>

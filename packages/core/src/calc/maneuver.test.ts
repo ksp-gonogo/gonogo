@@ -19,7 +19,7 @@ const KERBIN_MU = 3.5316e12;
 const KERBIN_R = 600_000;
 
 /**
- * 100 km circular orbit at Kerbin. Used as a neutral "no-op" baseline —
+ * 100 km circular orbit at Kerbin. Used as a neutral "no-op" baseline,
  * circularising a circle should give ~zero ΔV.
  */
 const KERBIN_100KM_CIRCULAR: CurrentOrbit = {
@@ -89,7 +89,7 @@ describe("circularizeAtApo", () => {
 
 describe("circularizeAtPeri", () => {
   it("returns a negative prograde burn when peri is below apo", () => {
-    // Circularising at the low point requires braking — the orbit is moving
+    // Circularising at the low point requires braking, the orbit is moving
     // too fast for a circle at that radius.
     const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, 0);
     expect(plan.prograde).toBeLessThan(0);
@@ -118,7 +118,7 @@ describe("customAtApsis", () => {
   it("retrograde at apoapsis lowers periapsis", () => {
     const plan = customAtApsis(KERBIN_ELLIPTIC, KERBIN_MU, 0, "apo", -50, 0, 0);
     expect(plan.projected?.PeR).toBeLessThan(KERBIN_ELLIPTIC.PeR);
-    // Apoapsis unchanged — the burn happens AT apoapsis, and prograde burns
+    // Apoapsis unchanged: the burn happens AT apoapsis, and prograde burns
     // at apoapsis change only the opposite apsis.
     expect(plan.projected?.ApR).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
   });
@@ -467,7 +467,7 @@ describe("hohmannToRadius", () => {
     );
   });
 
-  it("burns are pure prograde — no normal or radial components", () => {
+  it("burns are pure prograde, no normal or radial components", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
@@ -561,7 +561,7 @@ describe("hohmannToRadius", () => {
   });
 
   it("respects explicit fromApsis override", () => {
-    // Force apo-first even though we're raising — the burn UT should
+    // Force apo-first even though we're raising: the burn UT should
     // match timeToAp, not timeToPe.
     const seq = hohmannToRadius(
       KERBIN_ELLIPTIC,
@@ -587,7 +587,7 @@ describe("hohmannToRadius", () => {
 });
 
 describe("hohmannRendezvous", () => {
-  // Coplanar circular vessel @100km, target circular @200km — clean Hohmann.
+  // Coplanar circular vessel @100km, target circular @200km, clean Hohmann.
   const VESSEL_100KM_CIRCULAR_RICH = {
     ...KERBIN_100KM_CIRCULAR,
     trueAnomaly: 0,
@@ -665,7 +665,7 @@ describe("hohmannRendezvous", () => {
     );
     if (!seq) throw new Error("expected sequence");
     expect(seq.burns).toHaveLength(3);
-    // First burn is the plane match — normal-only
+    // First burn is the plane match, normal-only
     expect(seq.burns[0].prograde).toBe(0);
     expect(Math.abs(seq.burns[0].normal)).toBeGreaterThan(0);
     expect(seq.burns[0].radial).toBe(0);
@@ -674,7 +674,7 @@ describe("hohmannRendezvous", () => {
     expect(seq.burns[2].normal).toBe(0);
   });
 
-  it("plane-match threshold is 0.5° — below that, no plane match", () => {
+  it("plane-match threshold is 0.5°, below that, no plane match", () => {
     const v = VESSEL_100KM_CIRCULAR_RICH;
     const seqLow = hohmannRendezvous(
       v,
@@ -741,7 +741,7 @@ describe("hohmannRendezvous", () => {
       noStandoff.burns[0].prograde,
       3,
     );
-    // But burn 1 happens later (or at most a synodic period earlier — not equal)
+    // But burn 1 happens later (or at most a synodic period earlier, not equal)
     expect(withStandoff.burns[0].ut).not.toBe(noStandoff.burns[0].ut);
   });
 

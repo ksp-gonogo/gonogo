@@ -7,7 +7,7 @@ import { SpaceWeatherComponent } from "./index";
 
 // SpaceWeather reads the real `kerbalism.spaceweather` Topic (canonical
 // one-arg useTelemetry) plus `vessel.flight` for the belt-ring altitude, so the
-// tests drive it through a real stream (setupStreamFixture) — not the legacy
+// tests drive it through a real stream (setupStreamFixture), not the legacy
 // MockDataSource. Radiation is emitted rad/s (as the mod does); the widget
 // multiplies by 3600 for the rad/h readout.
 

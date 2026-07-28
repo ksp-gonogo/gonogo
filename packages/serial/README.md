@@ -2,7 +2,7 @@
 
 Per-screen serial input platform. Lets an operator plug physical hardware
 (or a virtual stand-in) into a gonogo screen and map its buttons / knobs
-to widget actions. Each screen has its own set of devices — inputs on a
+to widget actions. Each screen has its own set of devices, inputs on a
 station stay station-local, they don't flow across PeerJS.
 
 ---
@@ -35,10 +35,10 @@ code-registered (see below).
    `Web Serial (USB)` as the transport, set baud rate.
 4. Save. The device appears in the list with status `disconnected`.
 5. Click **Connect** on the device row. **The browser fires
-   `navigator.serial.requestPort()` here** — pick the port from the
+   `navigator.serial.requestPort()` here**: pick the port from the
    browser's dialog. Status flips to `connected`.
 
-The port picker is deliberately a separate step from saving — Web Serial
+The port picker is deliberately a separate step from saving, Web Serial
 needs a live user gesture, and we don't want it firing every time you
 edit an existing device.
 
@@ -56,20 +56,20 @@ bytes. Great for testing a widget's input-mapping UX without hardware.
 
 ## Parsers
 
-Two parsers today — pick one per device type. Each has a `?` help button
+Two parsers today: pick one per device type. Each has a `?` help button
 next to it in the Device Type editor that opens the full protocol reference
 and an MCU example; the shorthand is here.
 
-### `char-position` — fixed-width, user-authored schema
+### `char-position`: fixed-width, user-authored schema
 
 Low-ceremony. Your firmware sends one ASCII line per tick, each input
 occupying a fixed character slice. You declare the inputs and their
 slice positions in the UI. Best for simple MCU projects where
 hand-rolling `snprintf` is easier than pulling in a JSON library.
 
-### `json-state` — self-describing, device-authored schema
+### `json-state`: self-describing, device-authored schema
 
-NDJSON — one line of JSON per tick:
+NDJSON: one line of JSON per tick:
 
 ```json
 {
@@ -79,13 +79,13 @@ NDJSON — one line of JSON per tick:
 }
 ```
 
-The parser discovers the input list from the message itself — the Device
+The parser discovers the input list from the message itself, the Device
 Type's inputs populate (and update) at connect time from what the device
 reports. No offset/length editing in the UI; the "Inputs" section shows
 a read-only list of what the device has announced so far.
 
 All three top-level keys are optional. After the first tick, firmware can
-elide `min`/`max` (`{"analog":{"X":100}}` works — the parser caches the
+elide `min`/`max` (`{"analog":{"X":100}}` works, the parser caches the
 range) and the `screen` block to save bytes. Re-sending the full form
 every few seconds is wise so an app that reconnects mid-stream picks the
 schema up without a handshake.
@@ -96,7 +96,7 @@ The `screen` block's `type` selects a render-style family:
 | ------------- | --------------- | ------------------------- |
 | `"txt"`       | `text-buffer`   | `w`, `h`                  |
 
-Unknown `type` values leave the render style unset — no error, just no
+Unknown `type` values leave the render style unset, no error, just no
 output. New render styles are added under `packages/serial/src/renderStyles/`.
 
 ### How `char-position` slices a line
@@ -132,11 +132,11 @@ Per tick you get five `InputEvent`s:
 
 ### Parsing rules
 
-- **Button** — non-empty slice AND not `"0"` → `true`. Everything else → `false`.
-- **Analog** — `parseInt(slice, 10)` then normalised to `-1..1` using
+- **Button**: non-empty slice AND not `"0"` → `true`. Everything else → `false`.
+- **Analog**: `parseInt(slice, 10)` then normalised to `-1..1` using
   `(raw - min) / (max - min)` mapped into `[-1, 1]`, clamped.
 - **Malformed slices** (out-of-range offset, `NaN`, zero-width range) are
-  silently skipped for that tick — no event for that input. Other inputs
+  silently skipped for that tick: no event for that input. Other inputs
   on the same line still fire.
 
 Source: [`packages/serial/src/parsers/charPosition.ts`](./src/parsers/charPosition.ts)
@@ -209,7 +209,7 @@ action handler returns an object, the service merges returns from every
 widget that targets the same device into one state snapshot and runs it
 through the render style to produce a frame to write back.
 
-The built-in style is **`text-buffer`** — a fixed-width ASCII grid whose
+The built-in style is **`text-buffer`**, a fixed-width ASCII grid whose
 dimensions come from `DeviceType.renderStyleConfig` (`{ w, h }`). Defaults
 to 21×8 when no config is provided; set `{ w: 40, h: 4 }` for a VFD, etc.
 A backward-compat alias **`text-buffer-168`** is registered pointing at
@@ -242,8 +242,8 @@ under `packages/serial/src/renderStyles/` next to the built-in.
 Real USB via `navigator.serial`. Requires:
 
 - An HTTPS context or `localhost` (browser security requirement).
-- A supported browser — Chrome / Edge / Opera today, Firefox via a flag.
-- A user gesture to call `requestPort()` — why Connect is a separate
+- A supported browser: Chrome / Edge / Opera today, Firefox via a flag.
+- A user gesture to call `requestPort()`: why Connect is a separate
   step from Save.
 
 ### `virtual`
@@ -253,7 +253,7 @@ by `VirtualTransport.inject(lines)`. No browser features, no hardware.
 Use this for:
 
 - A controller simulator UI for training / recording without hardware.
-- Integration tests — `VirtualTransport` is the preferred test fixture
+- Integration tests: `VirtualTransport` is the preferred test fixture
   for serial flows, see `packages/serial/src/transports/VirtualTransport.test.ts`.
 
 ---
@@ -292,7 +292,7 @@ packages/serial/src/
 
 ## Testing patterns
 
-- **Prefer `VirtualTransport`** for integration tests — no browser APIs
+- **Prefer `VirtualTransport`** for integration tests: no browser APIs
   needed, inject lines directly via `VirtualTransport.inject(line)`.
 - Use **`MockWebSerial`** when you specifically need to exercise the
   `WebSerialTransport` code path (read loop, buffer handling).

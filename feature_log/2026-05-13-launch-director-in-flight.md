@@ -1,8 +1,8 @@
-# Launch Director — in-flight panel
+# Launch Director: in-flight panel
 
 **Date:** 2026-05-13
-**Task:** #11 from 2026-05-12 feedback — "Launch Director: rework for in-flight mode"
-**Validation:** ⏳ pending — needs a live launch + revert flow in KSP
+**Task:** #11 from 2026-05-12 feedback: "Launch Director: rework for in-flight mode"
+**Validation:** ⏳ pending: needs a live launch + revert flow in KSP
 
 ## Problem
 
@@ -20,7 +20,7 @@ trigger than the previous `kc.padOccupied`). It surfaces:
 - Active vessel name (from `v.name`, with `kc.padVesselTitle` fallback).
 - Mission time as `T+HH:MM:SS` from `v.missionTime`.
 - Altitude from `v.altitude`, formatted `m` or `km`.
-- A red "Crash in progress — return to Space Center to recover" chip
+- A red "Crash in progress: return to Space Center to recover" chip
   when `crash.hasRecent === true`, with the Recover button disabled.
 - Recover / Revert-to-launch / Revert-to-VAB buttons, each greyed out
   with explanatory copy when the corresponding `ksp.canRevert*` key
@@ -33,10 +33,10 @@ recover/revert mini-bar so post-recovery clicks land somewhere sensible.
 ## Data wired
 
 New `dataRequirements`:
-- `kc.scene` — flight-vs-space-center gate.
-- `v.name`, `v.missionTime`, `v.altitude` — in-flight readout.
-- `ksp.canRevertToLaunch`, `ksp.canRevertToEditor` — affordance gates.
-- `crash.hasRecent` — crash blocking.
+- `kc.scene`: flight-vs-space-center gate.
+- `v.name`, `v.missionTime`, `v.altitude`: in-flight readout.
+- `ksp.canRevertToLaunch`, `ksp.canRevertToEditor`: affordance gates.
+- `crash.hasRecent`: crash blocking.
 
 Schema meta entries for the new `ksp.canRevert*` keys added to
 `telemachusMeta.ts`.
@@ -48,7 +48,7 @@ Added two regression tests to `LaunchDirector/index.test.tsx`:
   and clicking "Revert to launch" + confirm fires `ksp.revertToLaunch`.
 - Crash chip appears and Recover is disabled when `crash.hasRecent: true`.
 
-Existing tests untouched — the Space Center flow they cover is the
+Existing tests untouched: the Space Center flow they cover is the
 same code path.
 
 ## Files
@@ -61,7 +61,7 @@ same code path.
 
 - Launch a craft. The widget should switch from the saved-ship list to
   the in-flight panel, showing live mission time and altitude.
-- Try Revert-to-launch and Revert-to-VAB — both should work from Flight,
+- Try Revert-to-launch and Revert-to-VAB: both should work from Flight,
   and both should grey out the moment they're no longer reversible
   (e.g. revert-to-launch becomes unavailable after a save / quickload).
 - Crash the vessel. The crash chip should appear and Recover should be

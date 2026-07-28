@@ -58,8 +58,8 @@ describe("GAMEPAD_GLYPHS (vendored)", () => {
   // Regression for the "renders solid black or invisible" defect: the
   // vendoring transform inlined a `style="stroke-width:Npx;"`-only
   // attribute onto ~51 drawable elements across the 63 glyphs, with no
-  // `fill`/`stroke` colour at all. SVG initial values then apply — `fill`
-  // defaults to black (not `currentColor`), `stroke` defaults to `none` —
+  // `fill`/`stroke` colour at all. SVG initial values then apply, `fill`
+  // defaults to black (not `currentColor`), `stroke` defaults to `none`,
   // so those elements rendered as solid black blobs (fill shapes) or were
   // fully invisible (stroked-only shapes with no stroke colour). The prior
   // mechanical test only sampled one glyph (`xbox/face-south`) for
@@ -83,12 +83,12 @@ describe("GAMEPAD_GLYPHS (vendored)", () => {
 
         if (!hasFillColor && !hasFillNone) {
           // No fill declared at all -> defaults to black.
-          broken.push(`${full} — no fill declared (defaults to black)`);
+          broken.push(`${full}: no fill declared (defaults to black)`);
           continue;
         }
         if (hasFillNone && !hasStrokeColor) {
           // fill:none with no stroke colour -> fully invisible.
-          broken.push(`${full} — fill:none with no stroke colour (invisible)`);
+          broken.push(`${full}: fill:none with no stroke colour (invisible)`);
         }
       }
       return broken;

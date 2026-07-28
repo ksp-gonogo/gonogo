@@ -7,7 +7,7 @@ import { useStream } from "@ksp-gonogo/sitrep-client";
 
 /**
  * Resolution of a widget's declared REQUIRED `channels` against the
- * `system.uplinkHealth` roster — the Phase 2 half of the uplink-health
+ * `system.uplinkHealth` roster: the Phase 2 half of the uplink-health
  * render-gating design (local_docs/uplink-health-render-gating-design.md).
  * `RequiresGuard` (Phase 3) blocks rendering on `"resolved"` with a
  * non-healthy `state`; every other status is a pass-through (there is
@@ -34,7 +34,7 @@ const HEALTH_SEVERITY: Record<UplinkHealthStateName, number> = {
 /**
  * Longest-prefix match: the entry whose `ownedPrefixes` contains the
  * longest string that `topic` starts with wins. An exact-topic prefix
- * (the common case — see `ChannelEngine.ComputeOwnedPrefixes`'s doc
+ * (the common case: see `ChannelEngine.ComputeOwnedPrefixes`'s doc
  * comment) always beats a shorter namespace prefix for the same topic.
  */
 function resolveOwner(
@@ -66,7 +66,7 @@ function worstOf(entries: readonly UplinkHealthEntry[]): UplinkHealthEntry {
  * Resolves `channels` (a widget's declared REQUIRED topics) to their
  * owning Uplink(s) via longest-prefix match against the
  * `system.uplinkHealth` roster, and reports the WORST health state among
- * every distinct owner found. Never infers ownership itself — it only
+ * every distinct owner found. Never infers ownership itself, it only
  * reads what the mod's `ownedPrefixes` already says (Task 1/2).
  */
 export function useUplinkHealthFor(

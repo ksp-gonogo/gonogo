@@ -45,13 +45,13 @@ function optionsForAction(
   devices: DeviceInstance[],
   typeById: Map<string, DeviceType>,
 ): PickerOption[] {
-  const opts: PickerOption[] = [{ value: "", label: "— unbound —" }];
+  const opts: PickerOption[] = [{ value: "", label: "(unbound)" }];
   for (const device of devices) {
     const type = typeById.get(device.typeId);
     if (!type) continue;
     for (const input of type.inputs) {
       if (!action.accepts.includes(input.kind)) continue;
-      // A native <select><option> can only hold plain text — no glyph here
+      // A native <select><option> can only hold plain text, no glyph here
       // (see the readout below the select for that). Still resolve the
       // pack's name (e.g. "Cross" instead of "Face South") so the
       // text-only list reads better for a gamepad with a chosen pack.
@@ -66,7 +66,7 @@ function optionsForAction(
 }
 
 /** Resolve everything the readout needs for the currently-bound input, if
- *  any — shown next to the (text-only) select so a gamepad binding reads
+ *  any: shown next to the (text-only) select so a gamepad binding reads
  *  at a glance instead of parsing "Face South" out of the dropdown text. */
 function resolveBoundDisplay(
   binding: InputBinding | null | undefined,
@@ -102,7 +102,7 @@ function resolveBoundDisplay(
  * not release); analogs must clear half-deflection.
  *
  * Exported so `SerialDevicesMenu/GamepadLearnWizard.tsx` can reuse the same
- * threshold verbatim instead of inventing a second one — see that file for
+ * threshold verbatim instead of inventing a second one; see that file for
  * why it passes `["button", "analog"]` for button-shaped roles too (a
  * non-standard pad's trigger may arrive as an axis, not a button).
  */
@@ -280,7 +280,7 @@ export function InputMappingTab({
                 )}
                 {!isListening && bound?.glyph && bound.role && (
                   // The select's <option> text already carries the name
-                  // (native <option> can't hold arbitrary markup) — this
+                  // (native <option> can't hold arbitrary markup), this
                   // readout adds the glyph so a gamepad binding is
                   // recognisable at a glance, not just readable.
                   <BoundReadout>

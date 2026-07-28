@@ -7,7 +7,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// Assembly-scan discovery for <see cref="ISitrepUplink"/>s — the kOS
+    /// Assembly-scan discovery for <see cref="ISitrepUplink"/>s: the kOS
     /// <c>AddonManager</c>/<c>AssemblyWalkAttribute</c>/<c>Bootstrapper</c>
     /// precedent (<c>local_docs/reference/kos/src/kOS/AddOns/AddonManager.cs</c>
     /// et al.), adapted for Uplinks and kept KSP-free (uses only
@@ -17,26 +17,26 @@ namespace Sitrep.Host
     ///
     /// Pre-filter: kOS's own <c>Bootstrapper</c> narrows its scan to
     /// assemblies declaring a <c>KSPAssemblyDependency</c> on kOS's own
-    /// KSPAssembly name before ever calling <c>GetTypes()</c> on them — both
+    /// KSPAssembly name before ever calling <c>GetTypes()</c> on them, both
     /// cheaper (skips reflecting over every unrelated loaded assembly,
     /// stock KSP DLLs included) and safer (a third-party assembly with no
     /// reason to reference this mod's contract at all is never asked to
     /// resolve its dependency closure). <see cref="Sitrep.Contract"/> is
     /// deliberately KSP-free/multi-targeted (see its own .csproj comment)
     /// and so carries no compile-time reference to KSP's
-    /// <c>Assembly-CSharp</c> — the type <c>KSPAssemblyDependency</c> itself
-    /// lives in — meaning this scan cannot check for the REAL attribute
+    /// <c>Assembly-CSharp</c>: the type <c>KSPAssemblyDependency</c> itself
+    /// lives in: meaning this scan cannot check for the REAL attribute
     /// without breaking that separation. The equivalent, KSP-free pre-filter
     /// used here instead: does the candidate assembly reference
     /// <c>Sitrep.Contract</c> at all (<see cref="ReferencesContract"/>)? Any
     /// assembly implementing <see cref="ISitrepUplink"/> necessarily does,
-    /// since the interface itself lives there — literally true as of the
+    /// since the interface itself lives there: literally true as of the
     /// Uplink-foundation review's fix round, which moved
     /// <see cref="ISitrepUplink"/>, <see cref="IUplinkHost"/>,
     /// <see cref="UplinkManifest"/>, and the rest of the Uplink-facing shape
     /// OUT of this assembly and into <c>Sitrep.Contract</c> (see
     /// <see cref="ISitrepUplink"/>'s own doc comment for the full carve-out
-    /// rationale). Before that move this justification was aspirational —
+    /// rationale). Before that move this justification was aspirational,
     /// the interface actually lived in THIS assembly (<c>Sitrep.Host</c>),
     /// so the real reason the filter worked was that applying
     /// <c>[SitrepUplink]</c> (which HAS always lived in
@@ -47,7 +47,7 @@ namespace Sitrep.Host
     /// </summary>
     public static class UplinkDiscovery
     {
-        /// <summary>One discovered Uplink instance plus the contract version it declared it was built against — see <see cref="SitrepUplinkAttribute"/>.</summary>
+        /// <summary>One discovered Uplink instance plus the contract version it declared it was built against; see <see cref="SitrepUplinkAttribute"/>.</summary>
         public readonly struct DiscoveredUplink
         {
             public ISitrepUplink Uplink { get; }
@@ -69,7 +69,7 @@ namespace Sitrep.Host
         /// Never throws: any per-assembly or per-type failure (a type that
         /// can't be loaded, has no parameterless constructor, or throws in
         /// its constructor) is logged to <see cref="Console.Error"/> and
-        /// skipped — discovery itself must never be fatal, mirroring the
+        /// skipped: discovery itself must never be fatal, mirroring the
         /// per-Uplink <c>Register()</c> fail-soft <see cref="ChannelEngine"/>
         /// applies one layer up.
         /// </summary>
@@ -78,7 +78,7 @@ namespace Sitrep.Host
             return Discover(AppDomain.CurrentDomain.GetAssemblies());
         }
 
-        /// <summary>Testable overload — scans an explicit assembly set instead of the current AppDomain's loaded set.</summary>
+        /// <summary>Testable overload: scans an explicit assembly set instead of the current AppDomain's loaded set.</summary>
         public static IReadOnlyList<DiscoveredUplink> Discover(IEnumerable<Assembly> candidateAssemblies)
         {
             var found = new List<DiscoveredUplink>();
@@ -97,7 +97,7 @@ namespace Sitrep.Host
                 catch (ReflectionTypeLoadException ex)
                 {
                     // Partial-load failure (a missing dependency in one type
-                    // in the assembly) — fall back to whatever types DID
+                    // in the assembly): fall back to whatever types DID
                     // load rather than abandoning the whole assembly.
                     types = ex.Types.Where(t => t != null).Cast<Type>().ToArray();
                 }
@@ -120,7 +120,7 @@ namespace Sitrep.Host
                         // try/catch, not just the ctor-invoke below: it can
                         // itself throw (e.g. a type carrying some OTHER
                         // attribute whose declaring assembly can't be
-                        // resolved) — see UplinkDiscovery's class doc
+                        // resolved): see UplinkDiscovery's class doc
                         // comment's "never fatal" contract. Left outside the
                         // catch, that throw would escape the type loop (and
                         // the assembly loop above it), aborting discovery
@@ -136,7 +136,7 @@ namespace Sitrep.Host
                         {
                             Console.Error.WriteLine(
                                 "[UplinkDiscovery] \"" + type.FullName + "\" carries [SitrepUplink] but has no " +
-                                "parameterless constructor — skipped (a discoverable Uplink must resolve any " +
+                                "parameterless constructor: skipped (a discoverable Uplink must resolve any " +
                                 "real dependency itself, see UplinkDiscovery's doc comment).");
                             continue;
                         }

@@ -15,7 +15,7 @@ import { SettingsService } from "./SettingsService";
  * Proves the aggregate "something needs attention" badge (design §1: "a
  * persistent 'Uplink Hub' affordance that carries an attention badge when
  * the cross-reference finds an installed-but-unloaded Uplink with a Hub
- * entry" — deferred by Task C to this task) — real `useUplinkGap` over a
+ * entry": deferred by Task C to this task), real `useUplinkGap` over a
  * live `system.uplinks` WS stream + an MSW-intercepted registry fetch, same
  * boundary `UplinkHubWizard.test.tsx`/`SettingsModal.test.tsx`'s Uplink Hub
  * describe block already use.
@@ -102,7 +102,7 @@ async function emitRoster(
   wsClients[0]?.send(streamFrame("system.uplinks", { uplinks }));
 }
 
-describe("SettingsFab — Uplink Hub attention badge", () => {
+describe("SettingsFab: Uplink Hub attention badge", () => {
   it("stays plain 'Settings' with nothing installed", async () => {
     serveRegistry({ uplinks: [] });
     renderFab("main");
@@ -176,7 +176,7 @@ describe("SettingsFab — Uplink Hub attention badge", () => {
       ],
     });
     renderFab("station");
-    // No WS roster is even relevant here — `useUplinkGap`'s result is gated
+    // No WS roster is even relevant here, `useUplinkGap`'s result is gated
     // out by `screen === "main"` before it can badge the FAB.
     expect(
       await screen.findByRole("button", { name: "Settings" }),

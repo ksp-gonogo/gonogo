@@ -37,9 +37,9 @@ namespace Gonogo.ScansatUplink
     /// hashing / keyframe-on-change / packing logic that used to run inline in
     /// <c>ScansatUplink.Sample</c> off the main thread, now driven ENTIRELY by
     /// the plain <see cref="ScanCapture"/> payload the main thread already
-    /// gathered. It touches ZERO KSP/Unity/SCANsat API — every input is data
+    /// gathered. It touches ZERO KSP/Unity/SCANsat API: every input is data
     /// on the capture, every output is a <see cref="ScanPublication"/>
-    /// descriptor — which is exactly why it lives in its own file and is
+    /// descriptor, which is exactly why it lives in its own file and is
     /// exercised headlessly (no SCANsat/KSP DLLs) by
     /// <c>ScanPublicationsTests</c>.
     /// </summary>
@@ -52,7 +52,7 @@ namespace Gonogo.ScansatUplink
         /// <paramref name="lastHashByBody"/> and
         /// <paramref name="lastPackedByBodyType"/> are the Courier-owned
         /// keyframe-on-change state and ARE mutated in place as new keyframes
-        /// are emitted — identical semantics to the fields they replace.
+        /// are emitted, identical semantics to the fields they replace.
         /// Height/biome are emitted once per body visit (when
         /// <see cref="ScanCapture.IncludeHeightBiome"/> is set, which the
         /// main-thread capture already gates).
@@ -64,7 +64,7 @@ namespace Gonogo.ScansatUplink
         {
             var publications = new List<ScanPublication>();
 
-            // Height/biome first — independent of SCANsat coverage (stock
+            // Height/biome first: independent of SCANsat coverage (stock
             // PQS/BiomeMap), published once per body visit.
             if (cap.IncludeHeightBiome)
             {
@@ -87,7 +87,7 @@ namespace Gonogo.ScansatUplink
 
             if (cap.Coverage == null || cap.CoveragePercents == null)
             {
-                return publications; // no SCANdata for this body yet — no coverage/mask.
+                return publications; // no SCANdata for this body yet, no coverage/mask.
             }
 
             // Cheap body-level gate: skip the per-type re-pack entirely when
@@ -105,7 +105,7 @@ namespace Gonogo.ScansatUplink
             // Anomalies ride the SAME body-level hash gate as coverage/mask:
             // SCANdata.Anomalies' Known/Detail flags are derived from the
             // exact same coverage grid this hash covers, so "the grid
-            // changed" is already the correct invalidation signal — no
+            // changed" is already the correct invalidation signal, no
             // separate per-anomaly change tracking needed.
             if (cap.Anomalies != null)
             {
@@ -123,7 +123,7 @@ namespace Gonogo.ScansatUplink
                 var lastPacked = lastPackedByBodyType.TryGetValue(key, out var lp) ? lp : null;
                 if (!CoveragePlane.PlaneChanged(lastPacked, packed))
                 {
-                    continue; // this specific type's plane didn't move — another type's bits changed the body hash.
+                    continue; // this specific type's plane didn't move, another type's bits changed the body hash.
                 }
                 lastPackedByBodyType[key] = packed;
 
@@ -131,7 +131,7 @@ namespace Gonogo.ScansatUplink
                 var percent = cap.CoveragePercents.TryGetValue(typeBit, out var p) ? p : 0.0;
 
                 // coverage.<body>.<type> is the SCALAR percentage; mask is the
-                // full packed keyframe — matching the pre-split wire shape.
+                // full packed keyframe: matching the pre-split wire shape.
                 publications.Add(new ScanPublication(ScanChannelKind.Coverage, subTopic, percent, cap.Ut));
                 publications.Add(new ScanPublication(
                     ScanChannelKind.Mask,

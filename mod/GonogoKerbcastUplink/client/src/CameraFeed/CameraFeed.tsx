@@ -31,7 +31,7 @@ import {
 export interface CameraFeedConfig extends Record<string, unknown> {
   /**
    * KSP `Part.flightID` of the camera to stream. `null` (the
-   * default) auto-picks the first available — handy for "drop the
+   * default) auto-picks the first available: handy for "drop the
    * widget on a dashboard and it just works", and the natural state
    * before the operator has explicitly picked one. Once the operator
    * selects a camera (via the in-widget picker or a Next/Previous
@@ -50,7 +50,7 @@ export interface CameraFeedConfig extends Record<string, unknown> {
  * Facecam kind separation (facecam-stage6 consumption design, "requirements
  * gonogo-side" §5): kerbal face cameras get their own crew surfaces
  * (CrewManifest's `crew-manifest.avatar` augment, and eventually a dedicated
- * facecam-wall widget) — they should not also appear in this general
+ * facecam-wall widget): they should not also appear in this general
  * part-camera picker/stepper/auto-latch. `camera.kind` defaults to `Part`
  * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
  * camera the SDK positively reports as a kerbal face; nothing is lost when
@@ -63,19 +63,19 @@ export function isPartCamera(camera: CameraState): boolean {
 // ---------------------------------------------------------------------------
 // Augment slots (Uplink architecture spec §4). CameraFeed is PRIMARILY an
 // augment itself (it fills `distance-to-target.camera`) and secondarily a HOST
-// widget that exposes two slots. No first-party augment fills either here — the
-// package move + Kerbalism/RA fillers are a later phase — so each renders
+// widget that exposes two slots. No first-party augment fills either here, the
+// package move + Kerbalism/RA fillers are a later phase, so each renders
 // nothing until an Uplink registers into it.
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `camera-feed.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `camera-feed.overlay`: an OVERLAY slot (spec §4.8), rendered in a
  * layer absolutely positioned OVER the video element. Data-over-video augments
  * (a telemetry HUD painted on the feed at key moments) draw here in the feed's
  * pixel space, so the slot passes the rendered video-container dimensions and
  * the flightID of the camera currently on screen. `width`/`height` are CSS px
  * (0 before the first measure); `flightId` reflects what the SDK actually shows
- * — auto-picks included — via `onDisplayedCameraChange`, not the requested id.
+ * (auto-picks included) via `onDisplayedCameraChange`, not the requested id.
  *
  * NOTE: richer projection (the SDK's internal pan/zoom transform) isn't
  * readable from this wrapper; exposing it waits on the widget's move into
@@ -91,7 +91,7 @@ export interface CameraOverlayContext {
 }
 
 /**
- * Props for `camera-feed.badges` — the widget's BROAD escape-hatch slot (spec
+ * Props for `camera-feed.badges`: the widget's BROAD escape-hatch slot (spec
  * §4.8 composable badges), rendered as a small chip strip in the feed header.
  * Badge augments read their own Topics via hooks, so the only context passed
  * down is the displayed camera's flightID for labelling.
@@ -107,9 +107,9 @@ export interface CameraBadgesContext {
 // one file that both renders <AugmentSlot> for them AND is sealed onto the
 // facade), so this program's own SlotRegistry merge is the facade's, exactly
 // how Scanning declares its own "scanning.*" slots (see the facade-slotfix
-// report) — the sdk's central mod/sitrep-sdk/src/api/slots.ts deliberately
+// report): the sdk's central mod/sitrep-sdk/src/api/slots.ts deliberately
 // does NOT centrally mirror an Uplink's own slots (would need the sdk leaf to
-// import from an Uplink client package — the exact cycle that file exists to
+// import from an Uplink client package: the exact cycle that file exists to
 // avoid).
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
@@ -176,7 +176,7 @@ export function CameraFeed({
   }, [ds]);
 
   // Diagnostic: which client instance does the provider hold right now? Pairs
-  // with the connected-client `kerbcast:clock` logs — if this `instanceId`
+  // with the connected-client `kerbcast:clock` logs: if this `instanceId`
   // differs from the one logging advancing `captureUt`, a reconnect/TURN
   // rebuild orphaned the clock onto an instance the provider no longer reads.
   useEffect(() => {
@@ -273,10 +273,10 @@ export function CameraFeed({
   const signalStrength = useTelemetry<number>("data", "comm.signalStrength");
   const commConnected = useTelemetry<boolean>("data", "comm.connected");
   // One-way light-time delay for THIS downlink (the footage left the craft
-  // this long ago) — NOT round-trip. Round-trip doubling only applies to
+  // this long ago): NOT round-trip. Round-trip doubling only applies to
   // interactive command/response paths (e.g. the kOS terminal), which this
   // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
-  // (gonogo's own SignalDelay authority) — same clean-name convention as
+  // (gonogo's own SignalDelay authority): same clean-name convention as
   // `comm.signalStrength`/`comm.connected` above.
   const signalDelay = useTelemetry<number | null>("data", "comm.signalDelay");
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -316,12 +316,12 @@ export function CameraFeed({
 
   // Cross-browser kerbcast video-delay design (2026-07-16), decision 5:
   // "can't delay -> no video". `useDelayedKerbcastStream` (passed to the SDK
-  // below as `useStream`) can only return `MediaStream | null` — it has no
+  // below as `useStream`) can only return `MediaStream | null`, it has no
   // channel back to THIS component to say "delay was expected here but no
   // backend could build a pipeline". `useDelayedPlaybackStatus` is that
   // side channel (see that hook's module doc): when it reports
   // `"unavailable"`, render an explicit "delayed feed unavailable" state
-  // INSTEAD of the SDK's own feed — never the live stream underneath it.
+  // INSTEAD of the SDK's own feed: never the live stream underneath it.
   // Called unconditionally, alongside every other hook above, BEFORE the
   // `!client` early return below (rules of hooks).
   const playoutStatus = useDelayedPlaybackStatus(effectiveFlightId);
@@ -341,7 +341,7 @@ export function CameraFeed({
   const badgesContext: CameraBadgesContext = { flightId: effectiveFlightId };
 
   // Always-on status chips, intrinsic to a delayed downlink feed (not a
-  // cross-mod augment) — every camera feed shows both, unobtrusively, next to
+  // cross-mod augment): every camera feed shows both, unobtrusively, next to
   // whatever a `camera-feed.badges` augment contributes.
   const delayBadge = describeSignalDelay(signalDelay);
   const qualityBadge = describeSignalQuality(commConnected, signalStrength);
@@ -415,11 +415,11 @@ interface QualityBadgeInfo extends StatusBadgeInfo {
   tone: BadgeTone;
 }
 
-// Signal-delay badge: ONE-WAY light-time only. This is a downlink — the
-// footage on screen left the craft `signalDelay` seconds ago — so unlike an
+// Signal-delay badge: ONE-WAY light-time only. This is a downlink, the
+// footage on screen left the craft `signalDelay` seconds ago, so unlike an
 // interactive command/response path (e.g. the kOS terminal) there is no
 // round-trip to double. Hidden at 0/null/undefined (LAN, no measurable
-// path, or no delay authority mounted — comms-delay-nullable-when-no-path
+// path, or no delay authority mounted: comms-delay-nullable-when-no-path
 // fix), matching the "unobtrusive" brief: nothing to show, show nothing.
 function describeSignalDelay(
   signalDelay: number | null | undefined,
@@ -432,7 +432,7 @@ function describeSignalDelay(
     return null;
   }
   // A delay is a READOUT, not a countdown, so keep one decimal where it
-  // matters (sub-minute — the common case) instead of formatDuration's
+  // matters (sub-minute, the common case) instead of formatDuration's
   // whole-unit truncation (3.8s must not read as "3s"). Above a minute the
   // decimal is noise, so hand off to the shared scaled formatter.
   const label =
@@ -445,8 +445,8 @@ function describeSignalDelay(
 // Signal-quality badge: craft-side CommNet strength, 0..1 -> percentage.
 // `connected === false` always wins (a lost link has no meaningful strength
 // percentage, even if a stale value is still cached). Hidden only when
-// neither key has ever arrived — the same "no CommNet data" guard the
-// degrade effect above uses — so the badge appears as soon as there's
+// neither key has ever arrived, the same "no CommNet data" guard the
+// degrade effect above uses, so the badge appears as soon as there's
 // anything to say.
 function describeSignalQuality(
   connected: boolean | undefined,
@@ -457,7 +457,7 @@ function describeSignalQuality(
   // effectively zero (0%): a 0% link carries nothing, so it reads as no
   // signal rather than a "0%" quality badge (comms-delay-model-consistency
   // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
-  // link" threshold — a real 1% link still shows its percentage.
+  // link" threshold: a real 1% link still shows its percentage.
   const zeroSignal =
     typeof signalStrength === "number" &&
     Number.isFinite(signalStrength) &&
@@ -509,10 +509,10 @@ const FEED_BADGES_STYLE: CSSProperties = {
 };
 
 // Cross-browser kerbcast video-delay design (2026-07-16), decision 5:
-// "can't delay -> no video" — a full-cover scrim replacing the SDK's own
+// "can't delay -> no video", a full-cover scrim replacing the SDK's own
 // feed whenever `useDelayedPlaybackStatus` reports `"unavailable"`. Opaque
 // (unlike FEED_OVERLAY_STYLE) and above every other layer: the whole point
-// is that the operator must never see live, undelayed pixels here — the
+// is that the operator must never see live, undelayed pixels here, the
 // dark background + centred reason IS the "no signal" visual language this
 // package already uses for a disconnected feed, reused for the "can't
 // delay" case rather than invented fresh.

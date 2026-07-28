@@ -106,7 +106,7 @@ describe("useCamera", () => {
         ptr({ pointerId: 2, clientX: 120, clientY: 50, currentTarget: el }),
       );
     });
-    // Spread the fingers further apart — should zoom in (larger zoom value)
+    // Spread the fingers further apart: should zoom in (larger zoom value)
     act(() => {
       hook.result.current.onPointerMove(
         ptr({ pointerId: 1, clientX: 40, clientY: 50, currentTarget: el }),

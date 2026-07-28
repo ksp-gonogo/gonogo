@@ -4,7 +4,7 @@ import { PORTS } from "../../playwright.config";
 /**
  * Smoke test for the relay webServer. Verifies the playwright webServer
  * config booted the real relay package on http/13002 and that its core
- * endpoints answer. Fast, dependency-free — catches the most common
+ * endpoints answer. Fast, dependency-free: catches the most common
  * breakage (the relay failing to start at all).
  */
 test.describe("relay smoke", () => {

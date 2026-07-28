@@ -29,7 +29,7 @@ import {
 // picker. These describe blocks don't exercise that path (the onFire editor
 // lives on the time-trigger form too, and the presets block only reads
 // telemetry VALUES, not the schema), so registering a mock "data"
-// `DataSource` here is harmless — but note it does NOT prove the real
+// `DataSource` here is harmless, but note it does NOT prove the real
 // threshold-picker path works. That's covered separately, with no "data"
 // `DataSource` registered at all, in the "threshold trigger key picker"
 // describe block at the bottom of this file (Finding 1: the legacy "data"
@@ -38,7 +38,7 @@ import {
 /**
  * `DataKeyPicker`'s search input and the native `<select>` for the onFire
  * action-group both carry the implicit/explicit ARIA `combobox` role, and
- * the picker's input has no accessible name (a pre-existing gap — its
+ * the picker's input has no accessible name (a pre-existing gap, its
  * `<FieldLabel htmlFor="alarm-data-key">` doesn't actually connect to
  * anything, since `DataKeyPicker` doesn't accept an `id` prop), so
  * `getByRole("combobox")` alone is ambiguous. Disambiguate by tag: the
@@ -71,7 +71,7 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
 /**
  * The onFire picker lists the action-group registry, whose CUSTOM half
  * (`AG1`..`AG10`) is derived from live `vessel.control` telemetry rather than
- * hardcoded — so a bare `render()` shows only the stock singletons and `f.ag1`
+ * hardcoded: so a bare `render()` shows only the stock singletons and `f.ag1`
  * isn't a selectable option at all. Mount the minimal real stream carrying the
  * ten stock customs, exactly as the mod sends them.
  */
@@ -151,7 +151,7 @@ describe("AlarmsModal onFire editor", () => {
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
-      // One part with an action bound to Custom01 (== the f.ag1 toggle) — the
+      // One part with an action bound to Custom01 (== the f.ag1 toggle), the
       // caption now derives from this, not the retired f.ag.bindings shim.
       {
         parts: [
@@ -172,7 +172,7 @@ describe("AlarmsModal onFire editor", () => {
     // (Custom01 -> "Toggle Solar Panel"), proving the shim replacement works.
     await screen.findByLabelText(/action group to fire/i);
     await screen.findByRole("option", {
-      name: /AG1 \(f\.ag1\) — Toggle Solar Panel/,
+      name: /AG1 \(f\.ag1\): Toggle Solar Panel/,
     });
   });
 
@@ -221,7 +221,7 @@ describe("AlarmsModal onFire editor", () => {
       />,
     );
 
-    // Prefilled name is visible — operator only needs to confirm.
+    // Prefilled name is visible, operator only needs to confirm.
     expect(screen.getByLabelText(/^name$/i)).toHaveValue("Auto-drafted");
     // Prefilled action is visible in the editor's chip list. The remove
     // button's aria-label is the most stable handle since the chip text
@@ -240,7 +240,7 @@ describe("AlarmsModal onFire editor", () => {
 
 // P1 de-Telemachus: `useManeuverNodes` reads the `vessel.maneuver.legacy`
 // derived channel (reshaping the raw `vessel.maneuver` wire topic) via
-// `useStream` — it never had a legacy "data" `DataSource` behind it. So the
+// `useStream`: it never had a legacy "data" `DataSource` behind it. So the
 // preset tests below feed a real `TelemetryProvider`/`TelemetryClient` stream
 // (emitting raw wire nodes), not the MockDataSource. Only `ut` matters to the
 // preset's soonest-future-node pick; the rest satisfy the wire shape.
@@ -256,7 +256,7 @@ function makeWireNode(id: string, ut: number): ManeuverNodeWirePayload {
 }
 
 // The eight `vesselStateChannel` inputs plus `vessel.maneuver` (the
-// `vessel.maneuver.legacy` reshape's input) — carrying all of them makes both
+// `vessel.maneuver.legacy` reshape's input): carrying all of them makes both
 // the derived `vessel.state.*` fields (`timeToAp`/`timeToPe`) and the maneuver
 // node list resolvable off the stream.
 const PRESET_CARRIED = [
@@ -315,7 +315,7 @@ function renderWithStream(modal: ReactElement, pinnedUt?: number) {
 // Kerbin's GM and a circular-ish parking orbit. With `epoch === pinnedUt` and
 // `meanAnomalyAtEpoch === 0` the vessel sits at periapsis at the view frame, so
 // the derived `timeToAp` is exactly half the orbital period and `timeToPe` is
-// 0 — a hand-checkable value with no reliance on the Kepler solver's internals.
+// 0: a hand-checkable value with no reliance on the Kepler solver's internals.
 const ORBIT_MU = 3.5316e12;
 const ORBIT_SMA = 700_000;
 const ORBIT_EPOCH = 10;
@@ -384,7 +384,7 @@ describe("AlarmsModal recommended presets", () => {
     // At apoapsis (mean anomaly π) → timeToAp is 0. Scheduling ut+0 would fire
     // instantly, so the gate (> 0) drops the apoapsis preset. Proving the
     // transition discriminates the gate from the default-hidden state. (The
-    // periapsis preset takes its place — timeToPe is now half a period — so
+    // periapsis preset takes its place: timeToPe is now half a period, so
     // the section itself stays open.)
     emitOrbitAtApsis(emit, Math.PI);
     await waitFor(() =>
@@ -427,7 +427,7 @@ describe("AlarmsModal recommended presets", () => {
       trigger: { kind: "time", leadSeconds: DEFAULT_LEAD_SECONDS },
     });
     expect(alarm.trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
-    // Presets are notify-only — no onFire side effect attached.
+    // Presets are notify-only, no onFire side effect attached.
     expect(alarm.onFire).toBeUndefined();
   });
 
@@ -443,7 +443,7 @@ describe("AlarmsModal recommended presets", () => {
       />,
     );
 
-    // Node UT is absolute (2500), so the alarm ut should equal it exactly —
+    // Node UT is absolute (2500), so the alarm ut should equal it exactly,
     // no offset.
     emitNodes([2500]);
 
@@ -475,7 +475,7 @@ describe("AlarmsModal recommended presets", () => {
     );
 
     // Snapshot UT is 1000. A past node (500) and two future ones (4000,
-    // 2200) — the preset must resolve to the soonest future (2200), never
+    // 2200): the preset must resolve to the soonest future (2200), never
     // the past node.
     emitNodes([500, 4000, 2200]);
 
@@ -519,7 +519,7 @@ describe("AlarmsModal recommended presets", () => {
 });
 
 describe("AlarmsModal threshold trigger key picker", () => {
-  // Deliberately NOT registering a mock "data" `DataSource` — the real app
+  // Deliberately NOT registering a mock "data" `DataSource`, the real app
   // never has one (deleted in `806e7fe2`). This is the config-UI proof for
   // Finding 1: before the fix, `useValueKeys("data")` always returned `[]`
   // here and the picker showed nothing but "No matches", making it

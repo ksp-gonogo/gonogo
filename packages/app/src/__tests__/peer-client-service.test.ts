@@ -82,7 +82,7 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
 }
 
 // The handleMessage logic is private. To drive it from the outside we reach in
-// via a typed cast — these tests verify the observable contract (listeners fire
+// via a typed cast: these tests verify the observable contract (listeners fire
 // with the right payload) not the internal shape.
 interface PeerClientServiceInternal {
   handleMessage(msg: PeerMessage): void;
@@ -191,7 +191,7 @@ describe("PeerClientService", () => {
       restarts.push(restartCount);
     });
 
-    // First hello — establishes the baseline token. Should NOT fire
+    // First hello: establishes the baseline token. Should NOT fire
     // restart (there's nothing to compare against).
     inner.handleMessage({
       type: "hello",
@@ -202,7 +202,7 @@ describe("PeerClientService", () => {
     expect(restarts).toEqual([]);
 
     // Same token again (transient broker reconnect to the same host
-    // process) — must NOT fire restart.
+    // process): must NOT fire restart.
     inner.handleMessage({
       type: "hello",
       version: "1.0.0",
@@ -211,7 +211,7 @@ describe("PeerClientService", () => {
     });
     expect(restarts).toEqual([]);
 
-    // Fresh token (host was refreshed) — restart fires.
+    // Fresh token (host was refreshed), restart fires.
     inner.handleMessage({
       type: "hello",
       version: "1.0.0",
@@ -220,7 +220,7 @@ describe("PeerClientService", () => {
     });
     expect(restarts).toEqual([1]);
 
-    // Tokenless hello (legacy host) — must NOT fire restart, even though
+    // Tokenless hello (legacy host): must NOT fire restart, even though
     // the token "changed" to undefined.
     inner.handleMessage({
       type: "hello",
@@ -246,7 +246,7 @@ describe("PeerClientService", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Reconnect loop — drives lifecycle via the hoisted FakePeer / FakeDataConnection.
+// Reconnect loop: drives lifecycle via the hoisted FakePeer / FakeDataConnection.
 // ---------------------------------------------------------------------------
 
 describe("PeerClientService reconnect loop", () => {
@@ -276,7 +276,7 @@ describe("PeerClientService reconnect loop", () => {
     expect(FakePeer.instances).toHaveLength(1);
     driveOpen(FakePeer.instances[0]);
 
-    // Drop the conn — should schedule a retry
+    // Drop the conn: should schedule a retry
     FakePeer.instances[0]._lastConn?.emit("close");
     expect(statuses).toContain("reconnecting");
     expect(FakePeer.instances).toHaveLength(1); // retry hasn't fired yet
@@ -327,7 +327,7 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toContain("connected");
 
     // Auxiliary peer.connect() to a missing peer fires peer-unavailable on
-    // the shared Peer with the missing peer id in the message — must not
+    // the shared Peer with the missing peer id in the message, must not
     // tear down the host conn.
     const err = Object.assign(
       new Error("Could not connect to peer ocisly-relay-xyz"),
@@ -369,7 +369,7 @@ describe("PeerClientService reconnect loop", () => {
     svc.onConnectionStatus((s) => statuses.push(s));
 
     svc.connect("Z6HK");
-    // Don't open — simulate a fresh attempt where the host id isn't on the
+    // Don't open: simulate a fresh attempt where the host id isn't on the
     // broker. The connect target is the DERIVED id (`gonogo-host-Z6HK`), so
     // that's what peerjs reports as missing.
     const err = Object.assign(
@@ -402,7 +402,7 @@ describe("PeerClientService reconnect loop", () => {
 });
 
 // ---------------------------------------------------------------------------
-// queryRange — request/response round-trip + lifetime cleanup
+// queryRange: request/response round-trip + lifetime cleanup
 // ---------------------------------------------------------------------------
 
 describe("PeerClientService.sendQueryRange", () => {
@@ -848,7 +848,7 @@ describe("PeerClientService.sendFlightRpc", () => {
     svc.connect("HOST");
     const peer = FakePeer.instances[0];
 
-    // Kick off the RPC BEFORE peer.open / conn.open fire — this is the
+    // Kick off the RPC BEFORE peer.open / conn.open fire, this is the
     // FlightsManager-on-mount race that previously surfaced "not connected"
     // as an uncaught rejection.
     const pending = svc.sendFlightRpc({ op: "list" });
@@ -909,7 +909,7 @@ describe("PeerClientService.sendFlightRpc", () => {
 });
 
 // ---------------------------------------------------------------------------
-// relay-peer-id: applying iceServers to the station's Peer — the
+// relay-peer-id: applying iceServers to the station's Peer, the
 // 2026-05-17 evening session showed 200+ negotiation-failed events
 // on station→relay because the station's Peer had empty iceServers
 // (deliberate, see iceServers.ts) and couldn't reach the relay's
@@ -919,7 +919,7 @@ describe("PeerClientService.sendFlightRpc", () => {
 // peer.connect() for the camera channel uses them.
 // ---------------------------------------------------------------------------
 
-describe("PeerClientService — relay-peer-id iceServers application", () => {
+describe("PeerClientService: relay-peer-id iceServers application", () => {
   it("fires the relay-peer-id listener with the new peer id", () => {
     const svc = new PeerClientService();
     const received: Array<string | null> = [];
@@ -968,7 +968,7 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
   it("does not touch the Peer when iceServers is absent (older host bundle)", () => {
     const svc = new PeerClientService();
     const fakeOptions: { config?: { iceServers: RTCIceServer[] } } = {
-      // Pre-existing config — if our code mistakenly overwrote with an
+      // Pre-existing config: if our code mistakenly overwrote with an
       // empty array, the station would lose any local TURN config it
       // had set elsewhere. Assert we leave it alone.
       config: {
@@ -981,7 +981,7 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
     (svc as unknown as PeerClientServiceInternal).handleMessage({
       type: "relay-peer-id",
       peerId: "relay-abc",
-      // iceServers omitted — older host bundle that doesn't ship this.
+      // iceServers omitted: older host bundle that doesn't ship this.
     });
 
     expect(fakeOptions.config?.iceServers).toEqual([
@@ -991,7 +991,7 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
 
   it("does not throw when iceServers arrives before the station's Peer is constructed", () => {
     const svc = new PeerClientService();
-    // No peer assigned — applyRelayIceServers should silently no-op.
+    // No peer assigned: applyRelayIceServers should silently no-op.
     expect(() =>
       (svc as unknown as PeerClientServiceInternal).handleMessage({
         type: "relay-peer-id",
@@ -1005,7 +1005,7 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
     // gonogo-countdown-start is a fire-and-forget broadcast. A GoNoGo widget
     // that subscribes after the message landed (page mounting, layout switch,
     // remount) used to miss the running countdown entirely and show nothing
-    // until T-0 — the 2026-05-08 "Joel saw only T-0" bug.
+    // until T-0: the 2026-05-08 "Joel saw only T-0" bug.
     it("replays a running countdown to a late subscriber", async () => {
       const svc = new PeerClientService();
       const t0Ms = Date.now() + 8_000;
@@ -1069,13 +1069,13 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Sitrep telemetry-stream forwarding — the wire-level plumbing `PeerTransport`
+// Sitrep telemetry-stream forwarding: the wire-level plumbing `PeerTransport`
 // (packages/app/src/telemetry/PeerTransport.ts) builds on. `PeerTransport`
 // itself is tested against a duck-typed fake of this service
 // (`PeerTransport.test.ts`); these tests cover the real dispatcher wiring +
 // `sendSitrepCommand`'s wire message, which that fake stands in for.
 // ---------------------------------------------------------------------------
-describe("PeerClientService — sitrep frame/command dispatcher wiring", () => {
+describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
   it("dispatches sitrep-frame to onSitrepFrame listeners, unwrapped to the raw ServerMessage", () => {
     const svc = new PeerClientService();
     const received: ServerMessage[] = [];

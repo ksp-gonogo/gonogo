@@ -4,7 +4,7 @@ import { defineConfig } from "tsup";
  * The kit is published to public npm and must stay self-contained: its manifest
  * declares no dependencies, only `react`/`styled-components` peers.
  *
- * `@ksp-gonogo/theme` is an internal, `private: true` workspace package — it is
+ * `@ksp-gonogo/theme` is an internal, `private: true` workspace package, it is
  * never published. The kit is the theme's only public surface, so the build has
  * to inline it rather than reference it. A plain `tsc` build cannot do that,
  * which is what this bundler is here for:
@@ -15,7 +15,7 @@ import { defineConfig } from "tsup";
  *     instead of re-exporting them from a package no consumer can install.
  *
  * `lucide-react` (the icon set behind `./Icons`) is inlined the same way, so
- * the kit's icon exports work with zero extra installs for a consumer —
+ * the kit's icon exports work with zero extra installs for a consumer,
  * export-safe means the peer list stays exactly react/react-dom/styled-components.
  *
  * Everything in `external` is a peer and must NEVER be bundled. styled-components
@@ -38,7 +38,7 @@ export default defineConfig({
     // entry `.d.ts`; the relative re-exports *inside* it (`./theme`,
     // `./defaultDarkTheme`, …) are then left as-is, emitting imports of files
     // that don't exist in our dist. `true` follows them through. Peers stay
-    // external regardless — `external` above governs the dts pass too.
+    // external regardless: `external` above governs the dts pass too.
     resolve: true,
   },
 });

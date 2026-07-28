@@ -3,7 +3,7 @@
  *
  * RSS is core to the RO/RP-1 stack: it replaces the stock Kerbol system with
  * the real solar system (real bodies, radii, SOI, atmospheres). Call
- * registerRSSBodies() ONLY when RSS is present — it deliberately reuses stock
+ * registerRSSBodies() ONLY when RSS is present, it deliberately reuses stock
  * body ids ("Sun", "Earth", "Moon", …), and "Sun" collides with the stock
  * Kerbol entry, so registering these on a stock save would clobber it. This is
  * a presence-gated entrypoint, the mirror of registerStockBodies().
@@ -32,7 +32,7 @@ import { registerBody } from "./bodies";
 
 export function registerRSSBodies(): void {
   // ── Star ───────────────────────────────────────────────────────────────
-  // RSSKopernicus/Sun.cfg — real Sun. No KSP atmosphere block.
+  // RSSKopernicus/Sun.cfg: real Sun. No KSP atmosphere block.
   registerBody({
     id: "Sun",
     name: "Sun",

@@ -9,11 +9,11 @@ import { useMemo } from "react";
  * Parsed maneuver node plus a cached ΔV magnitude. Telemachus exposes
  * `o.maneuverNodes.deltaVMagnitude[id]` as its own key, but we subscribe
  * once to the complex `o.maneuverNodes` object (same pattern as
- * `dv.stages`) and derive the magnitude client-side — one subscription,
+ * `dv.stages`) and derive the magnitude client-side: one subscription,
  * one broadcast per tick, regardless of how many nodes the vessel has.
  */
 export interface ParsedManeuverNode extends ManeuverNode {
-  /** Index of this node in `o.maneuverNodes` — use for update/remove. */
+  /** Index of this node in `o.maneuverNodes`: use for update/remove. */
   id: number;
   /** √(x² + y² + z²) of `deltaV`. m/s. */
   deltaVMagnitude: number;
@@ -27,7 +27,7 @@ const EMPTY: readonly ParsedManeuverNode[] = [];
  * source hasn't produced a value yet.
  *
  * Consumers that want a live "time to burn" countdown should combine the
- * node's `UT` with the current universal time — we don't bake the
+ * node's `UT` with the current universal time, we don't bake the
  * subtraction in so the hook stays pure and only re-renders on actual
  * node-list changes, not every clock tick.
  */

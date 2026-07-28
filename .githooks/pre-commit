@@ -1,8 +1,8 @@
 #!/bin/sh
 # Lint/format + typecheck the workspace before every commit.
 #
-# Why: the test suite covers neither — vitest runs through esbuild (no type
-# checking) and biome lint/format isn't a test — so tsc-only errors and format
+# Why, the test suite covers neither: vitest runs through esbuild (no type
+# checking) and biome lint/format isn't a test, so tsc-only errors and format
 # drift only surfaced in CI, and a batch slipped onto main while CI was blocked
 # at install. biome is sub-second on the whole repo; `turbo typecheck` caches
 # per package, so unchanged packages are instant.
@@ -15,7 +15,7 @@ echo "pre-commit: biome check + pnpm typecheck…"
 # Guard: never commit a file:/link: @jonpepler/kerbcast dependency. It's fine to
 # link kerbcast from disk during cross-repo dev, but a file:/link: path that
 # lands on main breaks `pnpm install --frozen-lockfile` in CI (ENOENT) and
-# silently blocks the deploy — it cost us days once. Pin the published
+# silently blocks the deploy: it cost us days once. Pin the published
 # "^x.y.z" before committing. Checks STAGED package.json content, not the
 # working tree, so an unstaged local link is allowed.
 staged_pkgs=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)package\.json$' || true)

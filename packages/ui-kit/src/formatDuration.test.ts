@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatCountdown, formatDuration } from "./formatDuration";
+import { NULL_DISPLAY } from "./NullValue";
 
 describe("formatDuration", () => {
   it("formats plain seconds below the minute boundary", () => {
@@ -83,9 +84,9 @@ describe("formatDuration", () => {
   });
 
   it("returns an em dash for non-finite input", () => {
-    expect(formatDuration(Number.NaN)).toBe("—");
-    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe("—");
-    expect(formatDuration(Number.NEGATIVE_INFINITY)).toBe("—");
+    expect(formatDuration(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
+    expect(formatDuration(Number.NEGATIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 });
 
@@ -104,7 +105,7 @@ describe("formatCountdown", () => {
   });
 
   it("returns an em dash for non-finite input", () => {
-    expect(formatCountdown(Number.NaN)).toBe("—");
-    expect(formatCountdown(Number.POSITIVE_INFINITY)).toBe("—");
+    expect(formatCountdown(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(formatCountdown(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 });

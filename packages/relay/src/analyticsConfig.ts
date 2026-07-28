@@ -5,17 +5,17 @@ import type { FastifyInstance, FastifyReply } from "fastify";
  *
  * The host POSTs its consent (`{ enabled }`) on every change and re-asserts
  * it on its registry heartbeat. The relay holds the current value in memory
- * (defaulting to DISABLED until the first POST — privacy-first) and fans it
+ * (defaulting to DISABLED until the first POST, privacy-first) and fans it
  * out to the services that can't reach the host directly:
  *
- *   - `GET  /analytics-config`         — pull the current value.
- *   - `GET  /analytics-config/stream`  — Server-Sent Events: the current
+ *   - `GET  /analytics-config`        , pull the current value.
+ *   - `GET  /analytics-config/stream` , Server-Sent Events: the current
  *                                        value on subscribe, then every
  *                                        change, for any service that wants
  *                                        to gate its own Axiom sink on it.
- *   - `POST /analytics-config`         — host pushes `{ enabled: boolean }`.
+ *   - `POST /analytics-config`        : host pushes `{ enabled: boolean }`.
  *
- * In-memory only, single-instance assumption — same as the host registry.
+ * In-memory only, single-instance assumption: same as the host registry.
  * A relay restart resets to disabled; the host's heartbeat re-POST re-learns
  * the real value within one beat.
  */
@@ -27,7 +27,7 @@ export interface AnalyticsConfigController {
   set(enabled: boolean): void;
   /** Subscribe to changes (does NOT fire on subscribe). Returns unsubscribe. */
   subscribe(cb: (enabled: boolean) => void): () => void;
-  /** Live SSE subscriber count — for tests. */
+  /** Live SSE subscriber count: for tests. */
   subscriberCount(): number;
 }
 
@@ -109,7 +109,7 @@ export function registerAnalyticsConfigRoutes(
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
-      // Echo CORS for the SSE response — hijack() bypasses the onSend hooks
+      // Echo CORS for the SSE response: hijack() bypasses the onSend hooks
       // @fastify/cors uses, so the header it would normally add is skipped.
       "access-control-allow-origin": "*",
     });

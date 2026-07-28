@@ -26,23 +26,23 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
   // Ref for the element that receives pointer/wheel events (CanvasContainer)
   const interactionRef = useRef<HTMLDivElement>(null);
 
-  // Active pointers — keyed by pointerId so we can track multi-touch pinches.
+  // Active pointers: keyed by pointerId so we can track multi-touch pinches.
   const activePointers = useRef<Map<number, PointerPos>>(new Map());
   // Last pan-anchor position when there's a single pointer. Reset on transitions
   // in/out of pinch so the pan doesn't jump when a finger is added or lifted.
   const lastPanPos = useRef<PointerPos | null>(null);
-  // Distance between the two pointers on the previous move event — used to
+  // Distance between the two pointers on the previous move event, used to
   // compute a frame-to-frame zoom ratio during pinch.
   const lastPinchDist = useRef<number | null>(null);
 
-  // Reset to global fit when screen resizes — deliberately scoped to w/h
+  // Reset to global fit when screen resizes, deliberately scoped to w/h
   // so a new containerSize object with identical dimensions is a no-op.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — react only to dimension changes, not object identity
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: react only to dimension changes, not object identity
   useEffect(() => {
     if (containerSize) setCamera(fitCamera(containerSize.w, containerSize.h));
   }, [containerSize?.w, containerSize?.h]);
 
-  // Wheel zoom — addEventListener required so we can call preventDefault
+  // Wheel zoom: addEventListener required so we can call preventDefault
   // (React's onWheel is passive in some setups and cannot prevent page scroll)
   useEffect(() => {
     const el = interactionRef.current;
@@ -146,7 +146,7 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
     activePointers.current.delete(e.pointerId);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (activePointers.current.size === 1) {
-      // Pinch ended but one finger remains — re-anchor pan so it doesn't jump.
+      // Pinch ended but one finger remains: re-anchor pan so it doesn't jump.
       const [remaining] = [...activePointers.current.values()];
       lastPanPos.current = { ...remaining };
       lastPinchDist.current = null;

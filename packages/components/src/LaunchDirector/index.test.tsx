@@ -4,6 +4,7 @@ import {
   registerAugment,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -22,7 +23,7 @@ import {
 
 /**
  * Every read this widget makes now has a real wire home (see
- * `stream.test.tsx`'s doc comment for the full read list) — only the
+ * `stream.test.tsx`'s doc comment for the full read list), only the
  * `ksp.*` COMMANDS still fall back to the legacy `DataSource` (their
  * `mapCommand` entries aren't promoted into `carriedChannels` below, so
  * `useExecuteAction("data")` takes the legacy branch every time), so
@@ -30,11 +31,11 @@ import {
  * mock registration in this file. Every other assertion drives real stream
  * emits through `setupStreamFixture`.
  *
- * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design — `met`
+ * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design, `met`
  * only derives in the OnRails/"propagated" basis, `altitudeAsl` only in the
  * Loaded/"measured" basis (`vessel-state.ts`'s own doc). The ACTIVE (flying)
  * vessel this widget's in-flight panel describes is always Loaded, so
- * `missionTime` genuinely renders "—" in every in-flight scenario below —
+ * `missionTime` genuinely renders NULL_DISPLAY in every in-flight scenario below,
  * a real, documented gap in the migrated data, not a test omission.
  */
 const CARRIED = [
@@ -80,7 +81,7 @@ function emitScene(
 
 /**
  * Feeds `vessel.orbit`/`vessel.flight`/`vessel.identity` in the Loaded/
- * "measured" basis (quality 1) so `vessel.state.altitudeAsl` resolves —
+ * "measured" basis (quality 1) so `vessel.state.altitudeAsl` resolves,
  * `met` stays null, per this file's doc comment.
  */
 function emitInFlightVessel(
@@ -268,8 +269,8 @@ describe("LaunchDirectorComponent", () => {
       await screen.findByText(/In flight: Stayputnik X/i),
     ).toBeInTheDocument();
     // missionTime (`vessel.state.met`) is null in the Loaded/measured basis
-    // (see this file's doc comment) — the panel shows its "—" placeholder.
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.getByText("72.4 km")).toBeInTheDocument();
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
     expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
@@ -293,7 +294,7 @@ describe("LaunchDirectorComponent", () => {
       stream.emit("crash.hasRecent", false);
     });
 
-    // First click arms — must NOT fire the flight-ending revert yet.
+    // First click arms: must NOT fire the flight-ending revert yet.
     await user.click(await screen.findByText("Revert to VAB"));
     expect(onExecute).not.toHaveBeenCalledWith("ksp.revertToEditor[vab]");
 
@@ -316,7 +317,7 @@ describe("LaunchDirectorComponent", () => {
     });
 
     expect(
-      await screen.findByText(/Crash in progress — return to Space Center/i),
+      await screen.findByText(/Crash in progress: return to Space Center/i),
     ).toBeInTheDocument();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).toBeDisabled();
@@ -341,19 +342,19 @@ describe("LaunchDirectorComponent", () => {
       stream.emit("crash.hasRecent", false);
     });
 
-    // First click arms the confirm — no execute fired yet.
+    // First click arms the confirm: no execute fired yet.
     await user.click(await screen.findByText("Tracking Station"));
     expect(onExecute).not.toHaveBeenCalledWith("ksp.toTrackingStation");
     // Confirm step is visible.
-    const confirm = screen.getByText(/Confirm — flight may revert/i);
+    const confirm = screen.getByText(/Confirm: flight may revert/i);
     await user.click(confirm);
     expect(onExecute).toHaveBeenCalledWith("ksp.toTrackingStation");
   });
 
-  // The vessel switcher drives off `target.available` — the producer already
+  // The vessel switcher drives off `target.available`: the producer already
   // excludes the active vessel itself, so every entry here is "other". It
   // must dispatch the roster's stable `vesselId` guid, not a positional
-  // array index (`tar.switchVessel` only resolves by guid server-side —
+  // array index (`tar.switchVessel` only resolves by guid server-side,
   // map-command.ts's own doc comment). Body-kind entries aren't offered
   // (they aren't a "switch active vessel" target), and a SpaceObject entry
   // stays hidden until the asteroid/comet toggle is used.
@@ -390,7 +391,7 @@ describe("LaunchDirectorComponent", () => {
             isCurrent: false,
           },
           {
-            kind: 1, // TargetKind.Body — never offered by the switcher
+            kind: 1, // TargetKind.Body: never offered by the switcher
             name: "Mun",
             distance: 12_000_000,
             isCurrent: false,
@@ -438,21 +439,21 @@ describe("LaunchDirectorComponent", () => {
       expect(screen.getByText(/In flight: LFV-1 Lander/i)).toBeInTheDocument(),
     );
     expect(
-      screen.queryByText(/Crash in progress — return to Space Center/i),
+      screen.queryByText(/Crash in progress: return to Space Center/i),
     ).toBeNull();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).not.toBeDisabled();
   });
 
   // 2026-06-12: after a crash + revert-to-launch, the chip blocked recovery
-  // forever — the reverted vessel shares the crashed vessel's name, and
+  // forever: the reverted vessel shares the crashed vessel's name, and
   // crash.hasRecent is session-sticky. Reverting rewinds universal time
   // below the snapshot's capture ut, so a future-dated snapshot is provably
   // from an undone timeline and must not gate recovery. (Telemachus now
   // clears it server-side on the same rule; this is the client mirror for
   // older deployed builds.)
   it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
-    // universalTime reads off `useViewUt()` — pin the view clock at the same
+    // universalTime reads off `useViewUt()`, pin the view clock at the same
     // 113270 the crash-staleness math below needs (replaces the outer
     // beforeEach's pinnedUt: 10).
     teardownMockDataSource(cmdFixture);
@@ -481,7 +482,7 @@ describe("LaunchDirectorComponent", () => {
       expect(screen.getByText(/In flight: Doomed Probe/i)).toBeInTheDocument(),
     );
     expect(
-      screen.queryByText(/Crash in progress — return to Space Center/i),
+      screen.queryByText(/Crash in progress: return to Space Center/i),
     ).toBeNull();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).not.toBeDisabled();

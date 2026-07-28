@@ -1,7 +1,7 @@
 import type { UiKitTheme } from "./theme";
 
 /**
- * `default-dark` — the built-in mission-control theme.
+ * `default-dark`: the built-in mission-control theme.
  *
  * Token values name what is *currently* in the codebase, so the migration
  * from raw hex constants to `theme.*` tokens is mechanical. Palette

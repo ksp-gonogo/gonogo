@@ -5,14 +5,14 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>parts.*</c> channels — added THIS
+    /// KSP-free mapping logic for the <c>parts.*</c> channels, added THIS
     /// session, same "primitives-dict pass-through is fine for now" posture
     /// as <see cref="CareerViewProvider"/>/<see cref="ScienceViewProvider"/>.
-    /// Reads <c>Values["parts"]["power"/"robotics"]</c> —
+    /// Reads <c>Values["parts"]["power"/"robotics"]</c>,
     /// <c>Gonogo.KSP.KspHost.BuildParts</c>'s raw dict.
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildParts must
-    /// populate exactly this shape at <c>Values["parts"]</c> — entirely
+    /// populate exactly this shape at <c>Values["parts"]</c>: entirely
     /// OMITTED, no key at all, whenever there's no active vessel):</b></para>
     /// <code>
     /// snapshot.Values["parts"] = Dictionary&lt;string, object?&gt; {
@@ -33,10 +33,10 @@ namespace Sitrep.Host
     /// }
     /// </code>
     ///
-    /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified
-    /// — stable per-part for the life of the flight and, unlike
+    /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified,
+    /// stable per-part for the life of the flight and, unlike
     /// <c>partName</c>, unique even among symmetric same-named parts (e.g.
-    /// a multirotor's N identical arms). Nullable — a snapshot recorded
+    /// a multirotor's N identical arms). Nullable: a snapshot recorded
     /// before this field existed, or a part whose flightID read as the
     /// uninitialized 0 sentinel, comes through as null; consumers must not
     /// assume presence.</para>
@@ -93,7 +93,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The <c>robotics.available</c> channel — a wrapper object
+        /// The <c>robotics.available</c> channel: a wrapper object
         /// <c>{ available: bool }</c>, or <c>null</c> when there is no active
         /// vessel (no <c>"parts"</c> key at all). Unlike
         /// <see cref="BuildRobotics"/>, this keys off the presence of the
@@ -103,7 +103,7 @@ namespace Sitrep.Host
         /// still report <c>available: false</c>, and only an omitted parts
         /// key (no vessel) collapses to <c>null</c>. That is the empty-vs-no-
         /// vessel disambiguation the bare <c>parts.robotics</c> array can't
-        /// carry — see <see cref="Sitrep.Contract.RoboticsAvailability"/>.
+        /// carry: see <see cref="Sitrep.Contract.RoboticsAvailability"/>.
         /// </summary>
         public static object? BuildRoboticsAvailable(KspSnapshot? snapshot)
         {
@@ -124,7 +124,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Returns <c>false</c> — never throws — whenever the snapshot has
+        /// Returns <c>false</c> (never throws) whenever the snapshot has
         /// no <c>"parts"</c> key, or the sub-group key is itself absent
         /// (KspHost's own <c>TryBuildGroup</c> can omit "power" without
         /// taking out "robotics", and vice versa).

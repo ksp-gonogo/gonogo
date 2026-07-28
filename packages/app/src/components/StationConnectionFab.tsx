@@ -7,6 +7,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";
@@ -28,7 +29,7 @@ interface Props {
 /**
  * Station-side equivalent of the main screen's StationLinkFab. Shows
  * the host code the station is currently connected to (which was
- * otherwise invisible post-connect — a real "where am I?" gap when
+ * otherwise invisible post-connect: a real "where am I?" gap when
  * multiple hosts are in play), plus the connection status, and lets
  * the operator either disconnect entirely or switch to a different
  * host without reloading the page.
@@ -62,7 +63,7 @@ function StationConnectionPanel({
     <Wrap>
       <Row>
         <Label>Host ID</Label>
-        <Code>{hostId ?? "—"}</Code>
+        <Code>{hostId ?? NULL_DISPLAY}</Code>
       </Row>
       <Row>
         <Label>Status</Label>

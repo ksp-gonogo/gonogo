@@ -6,7 +6,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="RoboticsCommandProvider"/>'s <c>Handle*</c>
-    /// glue against a <see cref="FakeRoboticsActuator"/> — proves typed args
+    /// glue against a <see cref="FakeRoboticsActuator"/>: proves typed args
     /// reach the correct actuator method with the correct values (never
     /// scrambled), that args-level validation (empty partId, contract-known
     /// scalar ranges) happens before the actuator is ever called, and that the

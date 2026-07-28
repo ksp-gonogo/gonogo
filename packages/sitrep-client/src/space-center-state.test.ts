@@ -34,8 +34,8 @@ function fakeGet(
       : undefined) as DerivedGet;
 }
 
-describe("deriveSpaceCenterState — pad occupancy off the raw spaceCenter.launchSites array", () => {
-  it("undefined while spaceCenter.launchSites hasn't arrived (resyncing) — never throws", () => {
+describe("deriveSpaceCenterState: pad occupancy off the raw spaceCenter.launchSites array", () => {
+  it("undefined while spaceCenter.launchSites hasn't arrived (resyncing): never throws", () => {
     expect(deriveSpaceCenterState(fakeGet(undefined))).toBeUndefined();
   });
 

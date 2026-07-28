@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { type ParsedManeuverNode, useManeuverNodes } from "./useManeuverNodes";
 import { useVesselDeltaV } from "./useVesselDeltaV";
 
-/** One row of the feasibility verdict — a planned node plus whether we can pull it off. */
+/** One row of the feasibility verdict: a planned node plus whether we can pull it off. */
 export interface NodeFeasibility {
   node: ParsedManeuverNode;
   /**
-   * true  — remaining ΔV after this burn is still non-negative
-   * false — not enough ΔV left for this node
-   * null  — no ΔV telemetry yet, can't judge
+   * true : remaining ΔV after this burn is still non-negative
+   * false: not enough ΔV left for this node
+   * null : no ΔV telemetry yet, can't judge
    */
   ok: boolean | null;
   /** ΔV left after deducting this node + every earlier one, for display. */
@@ -40,11 +40,11 @@ const EMPTY: ManeuverFeasibility = {
  * Combines the maneuver-node list with the vessel's total ΔV into a
  * per-node feasibility verdict plus an overall summary. Runs the
  * deduction in UT order so a later node sees only the ΔV left after
- * earlier burns — matches how the pilot actually executes the plan.
+ * earlier burns: matches how the pilot actually executes the plan.
  *
  * Available ΔV uses `totalVac` from `useVesselDeltaV` as a first-order
  * approximation. Real stage-aware accounting (each node must fit inside
- * its owning stage) is a refinement — when we ship that, the interface
+ * its owning stage) is a refinement, when we ship that, the interface
  * here doesn't change, only the computation inside.
  */
 export function useManeuverFeasibility(): ManeuverFeasibility {

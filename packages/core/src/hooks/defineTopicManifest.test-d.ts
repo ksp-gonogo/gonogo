@@ -1,12 +1,12 @@
 // Type-level tests for the per-widget Topic manifest (spec §3.2 / §3.3).
 //
 // Enforced by `tsc` (the package `typecheck` script runs them via
-// `tsconfig.test-d.json`), NOT by the vitest runner — matching the SDK's
+// `tsconfig.test-d.json`), NOT by the vitest runner: matching the SDK's
 // `topics.test-d.ts` decision (vitest 4's `expectTypeOf` surfacing is unreliable
 // in this workspace). Runtime delegation is covered in `defineTopicManifest.test.tsx`.
 //
 // Everything here is a pure TYPE-level probe (instantiation expressions and
-// membership checks, never a runtime hook call) — appropriate for a `.test-d.ts`,
+// membership checks, never a runtime hook call), appropriate for a `.test-d.ts`,
 // and it sidesteps the `useHookAtTopLevel` lint a top-level `use*()` call would
 // trip. Any regression is a compile error:
 //   - a required Topic that stops resolving non-null fails an `Expect<Equal<...>>`;
@@ -36,7 +36,7 @@ const asConstManifest = defineTopicManifest({
   optionalChannels: ["comms.delay"],
 } as const);
 
-// `typeof hook<"topic">` is an instantiation expression (no call) — its ReturnType is
+// `typeof hook<"topic">` is an instantiation expression (no call), its ReturnType is
 // exactly what a real `topics.useTelemetry("topic")` read would yield.
 type _AcRequired = ReturnType<
   typeof asConstManifest.useTelemetry<"vessel.resources">
@@ -48,7 +48,7 @@ type _AcOptional = ReturnType<
   typeof asConstManifest.useTelemetry<"comms.delay">
 >;
 
-// Required Topics resolve NON-NULL (strict `Equal` — a `| undefined` here would fail).
+// Required Topics resolve NON-NULL (strict `Equal`: a `| undefined` here would fail).
 export type _AcRequiredNonNull = Expect<Equal<_AcRequired, VesselResources>>;
 export type _AcRequired2NonNull = Expect<Equal<_AcRequired2, VesselOrbit>>;
 // Optional Topics resolve to `payload | undefined`.
@@ -56,7 +56,7 @@ export type _AcOptionalUndefined = Expect<
   Equal<_AcOptional, CommsDelay | undefined>
 >;
 
-// ── The same, WITHOUT `as const` — `const` type params make the annotation optional ─
+// ── The same, WITHOUT `as const`: `const` type params make the annotation optional ─
 const plainManifest = defineTopicManifest({
   channels: ["vessel.resources"],
   optionalChannels: ["comms.delay"],
@@ -94,7 +94,7 @@ export type _RoRequiredNonNull = Expect<Equal<_RoRequired, VesselResources>>;
 // ── Reading an UNDECLARED Topic is a compile error ──────────────────────────────────
 // The hook only accepts the union of the two declared arrays. `vessel.orbit` is a
 // valid TopicId but is NOT declared in `plainManifest`, so it is not an accepted
-// argument — proven by the membership check being `false`. A declared Topic IS
+// argument: proven by the membership check being `false`. A declared Topic IS
 // accepted; a non-TopicId string is not.
 type _PlainArg = Parameters<typeof plainManifest.useTelemetry>[0];
 export type _OrbitNotAcceptedArg = Expect<

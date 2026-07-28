@@ -15,7 +15,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
 // The graph's `o.sma`/`o.period` scatter series still ride
-// `useDataSeries("data", ...)` (`@ksp-gonogo/data`) unconditionally — that
+// `useDataSeries("data", ...)` (`@ksp-gonogo/data`) unconditionally, that
 // hook has no stream awareness at all, so a legacy `MockDataSource`
 // registered under "data" is still required for `GraphView` to mount
 // without erroring, even though neither test below emits onto these keys
@@ -40,7 +40,7 @@ const VESSEL_STATE_INPUTS = [
 /**
  * `o.referenceBody`/`v.body` stream off `vessel.state`'s
  * `referenceBodyName`/`parentBodyName` display maps (see `stream.test.tsx`'s
- * doc comment) — no legacy fallback — so both tests below mount a real
+ * doc comment). There's no legacy fallback, so both tests below mount a real
  * `TelemetryProvider` and feed `vessel.orbit`/`vessel.identity`/
  * `system.bodies` rather than emitting the old legacy keys directly.
  */
@@ -148,7 +148,7 @@ describe("KeplerPeriodComponent", () => {
       });
       // referenceBodyIndex points at an index `system.bodies` doesn't carry,
       // so `referenceBodyName` resolves to undefined and the widget falls
-      // back to `parentBodyName` — same precedence `index.tsx` documents.
+      // back to `parentBodyName`: same precedence `index.tsx` documents.
       stream.emit("vessel.orbit", {
         referenceBodyIndex: 999,
         sma: 700000,

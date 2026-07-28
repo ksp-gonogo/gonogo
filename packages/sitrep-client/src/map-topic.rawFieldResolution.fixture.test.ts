@@ -8,10 +8,10 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * Fixture hardening: the deeper half of
  * `map-topic.rawFieldRoots.coverage.test.ts`'s guarantee. That test only
  * checks that a raw-field target's `<domain>.<channel>` ROOT names a real
- * published topic — it does NOT walk the rest of the dotted path against a
+ * published topic: it does NOT walk the rest of the dotted path against a
  * real payload, so it could never have caught the
  * `vessel.resources` bug (a correct root, wrong field PATH one layer
- * deeper — see `map-topic.ts`'s doc comment on the resource regex) or any
+ * deeper: see `map-topic.ts`'s doc comment on the resource regex) or any
  * of its siblings hiding in a channel the old 6-topic reference wire
  * fixture never carried.
  *
@@ -20,7 +20,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * a REAL captured payload for `<domain>.<channel>` from the grown
  * 15-channel `reference-wire-fixture.json`
  * (`mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests.cs`) and
- * walks `<field...>` into it — same mechanical split
+ * walks `<field...>` into it: same mechanical split
  * `TimelineStore.resolveRawFieldSubtopic`/`sampleRawFieldSubtopic`
  * (`timeline-store.ts`) uses at runtime. A path that doesn't resolve
  * against a real payload is exactly the class of dead mapping this guards
@@ -33,13 +33,13 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * blanket-ignored). Regenerate via `dotnet test --filter
  * WireFixtureGeneratorTests` in `mod/`.
  *
- * This guard is a LOCAL/manual regression tool, not a CI gate — and it can't
+ * This guard is a LOCAL/manual regression tool, not a CI gate, and it can't
  * be otherwise. The base `reference-wire-fixture.json` is replayed from a
  * ~7.5 MB real capture (`reference-session-2026-07-07.json`) that is itself
  * gitignored/local-only; there is no committable, CI-reproducible input that
  * produces the full 15-channel fixture (the self-contained synthetic
  * fixtures cover only the career/deployed-science channels, not the rest).
- * So wherever the fixture is absent — dev machine OR CI — this suite skips.
+ * So wherever the fixture is absent, dev machine OR CI: this suite skips.
  * An earlier version tried to fail loudly in CI on a missing fixture, but
  * that just reddened CI permanently: the input recording can never live
  * there. Run it locally after regenerating the fixture to exercise the guard.
@@ -65,7 +65,7 @@ const fixturePath = path.join(recordingsDir, "reference-wire-fixture.json");
 const fixtureExists = existsSync(fixturePath);
 
 /**
- * All per-domain reference wire fixtures (`reference-wire-fixture*.json`) —
+ * All per-domain reference wire fixtures (`reference-wire-fixture*.json`):
  * the base 15-channel one plus the per-domain captures
  * (`-dock`/`-maneuver`/`-comms`/`-career`,
  * `WireFixtureGeneratorTests.cs`). A raw-field target's channel may only be
@@ -85,7 +85,7 @@ function listWireFixturePaths(): string[] {
     .map((name) => path.join(recordingsDir, name));
 }
 
-/** Derived-channel roots (`vessel.state.*`) are out of this raw-field convention's scope — mirrors `map-topic.rawFieldRoots.coverage.test.ts`'s own carve-out. */
+/** Derived-channel roots (`vessel.state.*`) are out of this raw-field convention's scope, mirrors `map-topic.rawFieldRoots.coverage.test.ts`'s own carve-out. */
 const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set(["vessel.state"]);
 
 function firstTwoSegments(topic: string): string {
@@ -99,7 +99,7 @@ function isRawFieldForm(target: string): boolean {
   );
 }
 
-/** Walks `fieldPath` into `payload`, mirroring `sampleRawFieldSubtopic`'s own walk exactly — a missing key at any level is unresolved. */
+/** Walks `fieldPath` into `payload`, mirroring `sampleRawFieldSubtopic`'s own walk exactly, a missing key at any level is unresolved. */
 function resolvesFieldPath(payload: unknown, fieldPath: string[]): boolean {
   let cursor = payload;
   for (const segment of fieldPath) {
@@ -114,7 +114,7 @@ describe.skipIf(!fixtureExists)(
   "mapTopic raw-field paths resolve against the real grown reference wire fixture",
   () => {
     if (!fixtureExists) {
-      it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only — regenerate via `dotnet test --filter WireFixtureGeneratorTests` in `mod/`; see this file's doc comment for why this is local-only, never a CI gate)", () => {});
+      it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only, regenerate via `dotnet test --filter WireFixtureGeneratorTests` in `mod/`; see this file's doc comment for why this is local-only, never a CI gate)", () => {});
       return;
     }
 
@@ -132,7 +132,7 @@ describe.skipIf(!fixtureExists)(
         if (frame.type !== "stream-data" || !frame.topic) continue;
         if (samplePayloadByTopic.has(frame.topic)) continue;
         if (frame.payload === null || typeof frame.payload !== "object") {
-          continue; // tombstone/absent — not a shape sample
+          continue; // tombstone/absent: not a shape sample
         }
         samplePayloadByTopic.set(
           frame.topic,
@@ -177,7 +177,7 @@ describe.skipIf(!fixtureExists)(
     });
 
     // The parametric `r.resource[X]`/`r.resourceMax[X]` family isn't a
-    // static CLEAN_HOMES entry (mapTopic generates its target via regex —
+    // static CLEAN_HOMES entry (mapTopic generates its target via regex,
     // see RESOURCE_VESSEL_TOTAL in map-topic.ts) but resolves through the
     // exact same raw-field mechanism, and is the concrete bug
     // this whole test family exists to prevent a recurrence of. Proven

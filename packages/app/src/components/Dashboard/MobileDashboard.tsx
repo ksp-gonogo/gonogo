@@ -27,7 +27,7 @@ import {
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 import { GearButton } from "./WidgetGearMenu";
 
-// MobileDashboard — flex-wrap column with up/down reorder buttons.
+// MobileDashboard: flex-wrap column with up/down reorder buttons.
 //   • mobileWidth='half' items take ~50% and pair on a row when consecutive;
 //     'full' (default) takes the whole row.
 //   • mobileHeight (px) defaults to defaultSize.h * ROW_HEIGHT.

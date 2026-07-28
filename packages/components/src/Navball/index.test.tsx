@@ -27,7 +27,7 @@ import { NavballComponent } from "./index";
 
 // Legacy source keys: the widget's ACTIONS still route through
 // useExecuteAction("data"), and its connectivity badge reads the legacy
-// "data" status — so a legacy source stays registered for those. Every VALUE
+// "data" status: so a legacy source stays registered for those. Every VALUE
 // read is off the stream now.
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
@@ -81,7 +81,7 @@ describe("NavballComponent", () => {
   let buffered: BufferedDataSource;
   let onExecute: ReturnType<typeof vi.fn>;
   // Unmount before buffered.disconnect() (a status change that re-renders the
-  // still-mounted connectivity badge) — the act() anti-pattern otherwise.
+  // still-mounted connectivity badge): the act() anti-pattern otherwise.
   const trees: Array<() => void> = [];
 
   beforeEach(async () => {
@@ -120,7 +120,7 @@ describe("NavballComponent", () => {
 
   it("renders heading/pitch/roll readouts from the default root-part frame (n.*2)", async () => {
     // Default config (useCoMFrame false) reads the root-part-referenced
-    // frame — vessel.attitude.*RootFrame — per the widget's verified frame
+    // frame: vessel.attitude.*RootFrame: per the widget's verified frame
     // mapping (the UNSUFFIXED n.heading is the CoM frame; see the component's
     // ternary comment and VesselAttitude.cs's class doc).
     const { fixture } = renderNavball();
@@ -220,7 +220,7 @@ describe("NavballComponent", () => {
   describe("FBW-under-delay warning", () => {
     // `role="status"` doesn't compute an accessible name from content (only
     // aria-label/aria-labelledby), and `StreamStatusBadge` already owns a
-    // sibling status region ("OFFLINE") — so identify our live region by its
+    // sibling status region ("OFFLINE"): so identify our live region by its
     // actual text content across `screen.getAllByRole("status")` rather than
     // an accessible-name query.
     function findDelayStatus(): HTMLElement | undefined {
@@ -285,7 +285,7 @@ describe("NavballComponent", () => {
   });
 });
 
-describe("Navball — navball.badges augment slot (spec §4)", () => {
+describe("Navball: navball.badges augment slot (spec §4)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   const trees: Array<() => void> = [];
@@ -302,7 +302,7 @@ describe("Navball — navball.badges augment slot (spec §4)", () => {
   afterEach(() => {
     // Unmount before the state-mutating teardown: clearAugments() notifies the
     // AugmentSlot subscribers and buffered.disconnect() re-renders the
-    // connectivity badge — both are the act() anti-pattern against a live tree.
+    // connectivity badge: both are the act() anti-pattern against a live tree.
     for (const unmount of trees) unmount();
     trees.length = 0;
     clearAugments();

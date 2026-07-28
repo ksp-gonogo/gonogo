@@ -24,7 +24,7 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
 
 type CommandHandler = (command: string, args: unknown) => unknown;
 
-/** One recorded `command-request` envelope, verbatim — see `StubTransport.sentCommands`. */
+/** One recorded `command-request` envelope, verbatim: see `StubTransport.sentCommands`. */
 export interface SentCommand {
   requestId: string;
   command: string;
@@ -37,7 +37,7 @@ export interface SentCommand {
  * In-memory, scriptable `Transport` used to fake a telemetry source in tests.
  *
  * `emit`/`setCommandHandler` are test-only helpers that don't exist on the
- * `Transport` interface itself — they let a test drive the stub as if it
+ * `Transport` interface itself: they let a test drive the stub as if it
  * were a real server on the other end of the pipe.
  */
 export class StubTransport implements Transport {
@@ -54,10 +54,10 @@ export class StubTransport implements Transport {
 
   /**
    * Every `command-request` envelope this transport has been asked to send,
-   * verbatim, in send order — a test-only introspection log independent of
+   * verbatim, in send order: a test-only introspection log independent of
    * `commandHandler`. Exists so a test can assert on envelope fields
    * `CommandHandler`'s 2-arg `(command, args)` shape doesn't see (e.g.
-   * `label`) WITHOUT widening `CommandHandler` itself — a prior attempt at
+   * `label`) WITHOUT widening `CommandHandler` itself: a prior attempt at
    * that broke every pre-existing `toHaveBeenCalledWith(command, args)`
    * exact-arity assertion built on `setCommandHandler(vi.fn())` across the
    * `components` package. Keep this the ONE place a new envelope field gets
@@ -83,7 +83,7 @@ export class StubTransport implements Transport {
         });
         // Answer on a later microtask, not inline within this `send()` call.
         // Even at zero simulated latency, a command response must not
-        // settle synchronously in the same call stack as the request — that
+        // settle synchronously in the same call stack as the request, that
         // would let it race ahead of the caller's own `dispatch()` return,
         // skipping the observable `in-flight` phase. A real transport never
         // resolves in the same tick as the send, so the stub shouldn't either.

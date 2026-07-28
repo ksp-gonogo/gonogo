@@ -8,7 +8,7 @@ import { SDK_VERSION } from "./index";
  *
  * `SDK_VERSION` is generated from package.json by scripts/gen-version.mjs. If a
  * version bump lands without regenerating (or someone hand-edits the generated
- * file), the exported marker no longer matches the manifest — exactly the
+ * file), the exported marker no longer matches the manifest, exactly the
  * "0.0.0 vs 0.0.1" drift this replaces. Read the manifest straight off disk so
  * the comparison is against the real published version, not a second literal.
  */

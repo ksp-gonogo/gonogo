@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>harness D — encoded transform capture-UT mapping</title>
+<title>harness D: encoded transform capture-UT mapping</title>
 </head>
 <body>
 <h1>Encoded transform capture-UT mapping spike (Phase 1)</h1>
@@ -16,7 +16,7 @@
 // capture-clock sample stream that is INDEPENDENT of the RTP timestamp and
 // independent of wall-clock == UT (UT is offset by an arbitrary epoch to
 // prove the mapping does not depend on UT tracking real time 1:1). This is
-// the empirical test of "approach 1" from the report — NOT arrival+delayMs.
+// the empirical test of "approach 1" from the report, NOT arrival+delayMs.
 
 const DELAY_SECONDS = 4;
 const UT_EPOCH_OFFSET = 1_000_000; // arbitrary, deliberately not wall-clock-aligned
@@ -209,7 +209,7 @@ async function run() {
   worker.postMessage({ kind: "capture-sample", ut: trueUt(elapsedMsNow()), warpRate: 1, atMs: performance.now() });
 
   // --- ClockFormulaSnapshot stream (~60Hz), advancing maxSampleUt every
-  // tick (delay-limited regime — sample-limited/jank pacing is a separate,
+  // tick (delay-limited regime: sample-limited/jank pacing is a separate,
   // already-unit-tested concern, out of scope here) ---
   const epoch = 0;
   const snapshotTimer = setInterval(() => {

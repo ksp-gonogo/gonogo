@@ -113,7 +113,7 @@
   },
   {
     "name": "delay-and-reachable-are-independent-axes",
-    "description": "Setting delay for a pair doesn't touch its reachability, and vice versa — they're tracked in separate maps.",
+    "description": "Setting delay for a pair doesn't touch its reachability, and vice versa: they're tracked in separate maps.",
     "ops": [
       {
         "op": "setDelay",
@@ -279,7 +279,7 @@
   },
   {
     "name": "set-scale-zero-collapses-every-delay",
-    "description": "setScale(0) zeroes delay for every pair — default, pinned, and never-touched alike (light-speed-instant collapse).",
+    "description": "setScale(0) zeroes delay for every pair, default, pinned, and never-touched alike (light-speed-instant collapse).",
     "defaults": {
       "delay": 120
     },
@@ -389,7 +389,7 @@
   },
   {
     "name": "negative-set-scale-clamps-to-zero",
-    "description": "setScale(-1) clamps to 0 rather than negating delay — a negative scale would schedule deliveries in the past.",
+    "description": "setScale(-1) clamps to 0 rather than negating delay: a negative scale would schedule deliveries in the past.",
     "defaults": {
       "delay": 100
     },

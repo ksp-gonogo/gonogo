@@ -2,7 +2,7 @@ import styled, { keyframes } from "styled-components";
 
 /**
  * Small inline pending indicator. Sized to slot next to a row label /
- * value without reflowing layout. Honours `prefers-reduced-motion` —
+ * value without reflowing layout. Honours `prefers-reduced-motion`:
  * the spin animation is gated on the no-preference query so users with
  * vestibular sensitivity see a static ring instead.
  */

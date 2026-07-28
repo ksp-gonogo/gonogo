@@ -1,5 +1,5 @@
 /**
- * Widget probe entry — bundled by esbuild for the playwright render
+ * Widget probe entry: bundled by esbuild for the playwright render
  * harness. Exposes `window.__renderProbe({...})` so the driver can mount
  * the same probe page many times with different fixture / size payloads
  * without reloading or re-bundling.
@@ -16,19 +16,19 @@
  * `onTopicStatusChange`. The probe registers a `ProbeKosDataSource` (a
  * MockDataSource subclass that adds those two methods, returning a static
  * healthy status) under `id: "kos"` and routes any fixture key prefixed
- * `kos.` to it. It is registered *unbuffered* — buffer-wrapping would hide
+ * `kos.` to it. It is registered *unbuffered*, buffer-wrapping would hide
  * the topic-status methods so `useKosScriptStatus` would silently fall back
  * to the empty status.
  *
- * A different family of widget — mod-client widgets riding the Sitrep
+ * A different family of widget: mod-client widgets riding the Sitrep
  * WEBSOCKET STREAM directly (`useStream`/`useStreamEvent` from
- * `@ksp-gonogo/sitrep-client`, e.g. the kOS terminal) — never touches the
+ * `@ksp-gonogo/sitrep-client`, e.g. the kOS terminal): never touches the
  * `"data"`/`"kos"` `DataSource` registry at all, so neither of the above
  * paths can drive it. A fixture for one of these widgets carries a
  * top-level `_stream` block (see `StreamFixtureBlock` below) instead of
  * (or alongside) plain data keys. When present, the probe builds a real
- * `setupStreamFixture` — the same test-adapter the widgets' own headless
- * tests use — mounts the widget inside its `Provider`, and replays the
+ * `setupStreamFixture`: the same test-adapter the widgets' own headless
+ * tests use, mounts the widget inside its `Provider`, and replays the
  * fixture's `emits` through `StubTransport.emit` post-mount. This keeps the
  * harness generic: any stream-driven widget gets coverage by authoring a
  * fixture, no probe changes required.
@@ -66,7 +66,7 @@ import {
 // Stock-body registry needs to be populated before any widget that calls
 // getBody(v.body) tries to read it. The live app does this in main.tsx;
 // the probe needs the equivalent or every body-aware widget renders the
-// "unknown body" degraded state. Run once at module load — the registry
+// "unknown body" degraded state. Run once at module load, the registry
 // is idempotent and shared across all probe calls.
 registerStockBodies();
 
@@ -84,7 +84,7 @@ class ProbeKosDataSource extends MockDataSource {
   // CURRENT subscribers, so a value emitted before a subscriber's passive
   // effect lands is lost forever. The `"data"` source dodges this because
   // it's wrapped in BufferedDataSource, which replays last-value on
-  // subscribe — the unbuffered `"kos"` source is the lone outlier. Mirror
+  // subscribe: the unbuffered `"kos"` source is the lone outlier. Mirror
   // the real KosDataSource contract ("late subscribers get the most recent
   // value immediately") by caching emits and replaying on subscribe. Makes
   // the render deterministic regardless of subscribe/emit ordering.
@@ -97,8 +97,8 @@ class ProbeKosDataSource extends MockDataSource {
 
   subscribe(key: string, cb: (v: unknown) => void): () => void {
     const unsub = super.subscribe(key, cb);
-    // Synchronous replay is safe — subscribe runs in a passive effect, not
-    // during render — and is more deterministic for screenshots than
+    // Synchronous replay is safe, subscribe runs in a passive effect, not
+    // during render, and is more deterministic for screenshots than
     // deferring to a microtask.
     if (this.lastValues.has(key)) cb(this.lastValues.get(key));
     return unsub;
@@ -117,7 +117,7 @@ class ProbeKosDataSource extends MockDataSource {
     };
   }
 
-  // No status transitions in the static probe — return a no-op unsubscribe.
+  // No status transitions in the static probe, return a no-op unsubscribe.
   onTopicStatusChange(): () => void {
     return () => {};
   }
@@ -138,22 +138,22 @@ export interface StreamEmit {
    * The one caller today is the LaunchDirector fixtures' `vessel.orbit` emit,
    * which must stamp `quality: Quality.Loaded` (1) so `vessel.state` derives
    * in the measured basis (real `altitudeAsl` off `vessel.flight`) rather than
-   * the OnRails default — mirrors `snapshots.test.tsx`'s `emitLegacyFixture`.
+   * the OnRails default: mirrors `snapshots.test.tsx`'s `emitLegacyFixture`.
    */
   meta?: Partial<Meta>;
 }
 
 /**
- * Fixture block for stream-driven mod-client widgets — see this file's top
+ * Fixture block for stream-driven mod-client widgets: see this file's top
  * doc comment. Keyed `_stream` so it is filtered out of the plain-key
  * `MockDataSource` path the same way every other `_`-prefixed fixture key is.
  */
 export interface StreamFixtureBlock {
-  /** Forwarded to `setupStreamFixture` — topics this fixture carries. */
+  /** Forwarded to `setupStreamFixture`: topics this fixture carries. */
   carriedChannels: string[];
-  /** Forwarded to `setupStreamFixture` — UT to pin the view clock at. */
+  /** Forwarded to `setupStreamFixture`: UT to pin the view clock at. */
   pinnedUt?: number;
-  /** Forwarded to `setupStreamFixture` — fixed network/display delay. */
+  /** Forwarded to `setupStreamFixture`: fixed network/display delay. */
   delaySeconds?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: StreamEmit[];
@@ -180,25 +180,25 @@ export interface ProbePayload {
    * Optional per-key time-series to seed the BufferedDataSource's
    * MemoryStore *before* the widget mounts. Widgets that call
    * `useDataSeries` (sparklines, live trace dots) backfill from
-   * `queryRange` on mount — seeding the store lets those render with
+   * `queryRange` on mount: seeding the store lets those render with
    * real history instead of always-empty arrays.
    *
    * Sample timestamps are unix-ms relative to `now`. The probe stamps
    * its synthetic flight at `t=0`; sample timestamps should be within
    * the widget's window (Twr=60s, KeplerPeriod=60s, etc.). Use
-   * positive numbers — the probe queries `[now - windowMs, now]`.
+   * positive numbers: the probe queries `[now - windowMs, now]`.
    */
   series?: Record<string, readonly ProbeSeriesSample[]>;
   /**
    * Optional synthetic clicks dispatched after the standard mount +
    * emit + settle. Unlocks interactive states that the static render
-   * can't reach — modal opens, arm-then-confirm sequences, dropdown
+   * can't reach, modal opens, arm-then-confirm sequences, dropdown
    * pickers (LaunchDirector crew picker, etc).
    *
    * Each entry runs sequentially: the matching DOM node is clicked
    * via `dispatchEvent(MouseEvent("click"))`, then the probe waits
    * `awaitMs` (or `100` if omitted) before the next click and before
-   * the final screenshot. Missing selectors throw — the driver
+   * the final screenshot. Missing selectors throw: the driver
    * surfaces the error so brittle fixtures get caught.
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
@@ -207,11 +207,11 @@ export interface ProbePayload {
 /**
  * Fixtures authored before the `t.universalTime` client migration
  * (`useTelemetry("data", "t.universalTime")` -> `useViewUt()`) still carry a
- * `"t.universalTime"` key — harmless to leave (a migrated widget just
+ * `"t.universalTime"` key: harmless to leave (a migrated widget just
  * ignores the emit), but `useViewUt()` needs a mounted `TelemetryProvider`
  * to resolve to anything at all. Pin one from the fixture's own value so a
  * probe render matches what the same fixture produced off the legacy
- * `DataSource` — no per-widget probe config needed. Fixtures with no such
+ * `DataSource`: no per-widget probe config needed. Fixtures with no such
  * key are unaffected (`undefined`, no `TelemetryProvider` mounted).
  */
 function resolvePinnedUt(fixture: Record<string, unknown>): number | undefined {
@@ -259,7 +259,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   activeStore = null;
 
   // Stream-driven mod-client widgets (kOS terminal, …) carry their fixture
-  // data in `_stream` rather than plain data keys — see this file's top doc
+  // data in `_stream` rather than plain data keys; see this file's top doc
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the
   // provider-wrap choice below and the post-mount emit loop share it.
   const streamBlock = resolveStreamBlock(payload.fixture);
@@ -317,7 +317,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // Seed the MemoryStore with backfill samples for any keys widgets
   // will call `useDataSeries(key, windowSec)` against. Has to happen
   // *before* widget mount because useDataSeries calls queryRange in
-  // its setup effect — by the time the widget commits, samples need
+  // its setup effect: by the time the widget commits, samples need
   // to already be in the store. Detector flight has to exist first
   // (otherwise queryRange returns empty), which we trigger by
   // emitting vessel-name + mission-time through the buffered
@@ -327,7 +327,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // when present. If we seeded with a fixed placeholder name while the
     // fixture carried a different v.name, the post-mount emit of the real
     // identity would trip FlightDetector's name-change path and mint a
-    // SECOND flight — orphaning these seeded samples under the first flight
+    // SECOND flight: orphaning these seeded samples under the first flight
     // id. useDataSeries' queryRange then resolves to whichever flight is
     // current when its effect runs, which is effect-timing-dependent and so
     // varies by engine (Chromium found the data; Firefox/WebKit rendered an
@@ -351,7 +351,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     if (flight) {
       // Fixture sample timestamps are RELATIVE (negative = N ms ago,
       // 0 = now). useDataSeries queries `[now - windowMs, now]` using
-      // Date.now() — anchor the seeded samples to wall-clock so the
+      // Date.now(): anchor the seeded samples to wall-clock so the
       // backfill range catches them.
       const wallNow = Date.now();
       for (const [key, samples] of Object.entries(payload.series)) {
@@ -366,7 +366,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // layout uses JetBrains Mono metrics for regular AND bold text. Awaiting
   // `document.fonts.ready` alone is not enough: it resolves once the fonts
   // currently in the loading set are done, but a weight the layout hasn't
-  // requested yet may not be in that set — so in Firefox the 700 face could
+  // requested yet may not be in that set, so in Firefox the 700 face could
   // still be its (taller) fallback at screenshot time, inflating bold text
   // (status pills, tags, labels) enough to overflow tight widgets like
   // thermal and clip a row. Explicitly loading each weight then awaiting
@@ -399,7 +399,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
 
   const instanceId = payload.instanceId ?? "probe";
 
-  // The widget tree proper — shared by both provider-wrap branches below.
+  // The widget tree proper: shared by both provider-wrap branches below.
   function buildWidgetTree(): React.ReactNode {
     // Wrap with a no-op AlarmsLauncherProvider so widgets that opt into
     // alarm chrome (`useAlarmsLauncher` / `useAlarmCreator` /
@@ -407,7 +407,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // bell affordance. Without the provider those hooks return null and
     // the bell vanishes from harness PNGs even though it's the operator
     // workflow in live use. The launcher / creator / manager fns are
-    // probe-only stubs — clicking them does nothing because there's no
+    // probe-only stubs: clicking them does nothing because there's no
     // alarm pipeline in the probe page; but the rendered chrome is the
     // thing we want to verify.
     return createElement(
@@ -433,7 +433,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   activeRoot = createRoot(root);
   activeRoot.render(
     // ui-kit-composed widgets read design tokens off the styled-components
-    // theme (e.g. `theme.space.md` in Stack) — without a ThemeProvider the
+    // theme (e.g. `theme.space.md` in Stack): without a ThemeProvider the
     // theme is `{}` and those reads throw "reading 'md'". Match the live app's
     // ThemeProvider so the probe renders migrated widgets the same way.
     createElement(
@@ -462,14 +462,14 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   }
   if (streamFixture && streamBlock) {
     // `StubTransport.emit` is subscription-gated (silently DROPS a sample for
-    // a topic nothing has subscribed to yet — see that method's own doc
+    // a topic nothing has subscribed to yet; see that method's own doc
     // comment). The widget subscribes to its topics inside React *passive*
     // effects (`useStream`/`useTelemetry` → `client.subscribe`), and a single
     // `requestAnimationFrame` does NOT reliably flush those: rAF callbacks and
     // React 18's MessageChannel-scheduled passive effects have no fixed
     // ordering, so whether the subscribe has landed when we emit is a
     // per-run/per-engine coin-flip. When it loses, the sample is dropped and
-    // the widget stays in its empty/initial state — a different capture than a
+    // the widget stays in its empty/initial state, a different capture than a
     // run where it won. That is exactly the launch-director / kOS-terminal
     // visual-gate flake: two renders of the SAME fixture disagree run-to-run,
     // so no baseline regeneration can ever converge.
@@ -479,7 +479,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // passive-effect subscription wave regardless of scheduler ordering, and
     // also covers the causal chain (e.g. the kOS terminal only subscribes to
     // `kos.terminal.<coreId>` once a `kos.processors` emit resolves `coreId`)
-    // because each prior emit's re-render — and the subscription it triggers —
+    // because each prior emit's re-render, and the subscription it triggers:
     // has landed before we wait for the next channel. A topic the widget never
     // reads simply times out and is emitted-then-dropped, exactly as before.
     for (const e of streamBlock.emits) {
@@ -529,12 +529,12 @@ function rafTick(): Promise<void> {
  * Wait until `topic` has an active subscription on the stream transport, or
  * until `maxFrames` frames elapse. `StubTransport.emit` drops samples for an
  * unsubscribed topic, and the widget subscribes inside React passive effects
- * that a single `rafTick` can't be relied on to have flushed — so replaying a
+ * that a single `rafTick` can't be relied on to have flushed, so replaying a
  * `_stream` emit before its subscription lands is the source of the
  * launch-director / kOS-terminal visual-gate flake. Polling here makes the
  * replay deterministic. A topic the widget never reads never subscribes; the
  * bounded loop then returns and the caller emits-then-drops it (harmless,
- * matches the prior behaviour for ignored channels). The bound is generous —
+ * matches the prior behaviour for ignored channels). The bound is generous,
  * realistic causal chains resolve in one or two frames.
  */
 async function waitForSubscription(

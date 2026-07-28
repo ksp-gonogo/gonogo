@@ -8,13 +8,13 @@ interface FabPromptProps {
    * BannerStack) so the parent owns positioning.
    */
   bottom?: number;
-  /** Main label — what the action will do. */
+  /** Main label: what the action will do. */
   label: string;
   /** Tap-target action. */
   onAccept: () => void;
   /** Dismiss without acting. */
   onDismiss: () => void;
-  /** ms — auto-dismiss after this long. Default 15000. Set 0 to disable. */
+  /** ms: auto-dismiss after this long. Default 15000. Set 0 to disable. */
   autoDismissMs?: number;
   /** Optional accessible name for the accept tap target. Falls back to label. */
   acceptLabel?: string;
@@ -25,14 +25,14 @@ interface FabPromptProps {
  * height as the FABs from `@ksp-gonogo/ui/Fab`, wider, with a primary
  * tap-target on the left and a small dismiss × on the right.
  *
- * Designed for transient "Switch to X?" suggestions — auto-dismisses
+ * Designed for transient "Switch to X?" suggestions, auto-dismisses
  * after a configurable timeout so a user who never sees it isn't left
  * with a stuck UI element. Uses role="status" + aria-live so screen
  * readers pick it up without interrupting urgent alerts.
  *
  * Positioning is fixed bottom-right when `bottom` is supplied, offset
  * enough to clear a 40px (or 48px coarse-pointer) FAB at the same
- * `bottom`. Omit `bottom` to render in-flow — the prompt becomes a
+ * `bottom`. Omit `bottom` to render in-flow, the prompt becomes a
  * regular flex child and the parent (e.g. `BannerStack`) owns
  * positioning.
  */

@@ -117,7 +117,7 @@ describe("event alarm trigger", () => {
   });
 
   it("defaults to never firing when no revealed-events reader is wired", () => {
-    // The host constructs the state machine without a reader today — an event
+    // The host constructs the state machine without a reader today, an event
     // alarm must sit pending, not throw.
     const bare = new AlarmStateMachine(
       () => alarms,
@@ -132,7 +132,7 @@ describe("event alarm trigger", () => {
   });
 });
 
-describe("migrateAlarm — event trigger", () => {
+describe("migrateAlarm: event trigger", () => {
   it("round-trips a persisted event alarm", () => {
     const migrated = migrateAlarm({
       id: "e1",

@@ -1,7 +1,7 @@
 /**
  * Notes widget round-trip. Both main and station are seeded with a
  * dashboard config that places a Notes widget on the grid before the
- * page boots — sidesteps the FAB/modal click chain that's brittle to
+ * page boots: sidesteps the FAB/modal click chain that's brittle to
  * pixel-level z-index inside RGL.
  *
  * Asserts:
@@ -9,7 +9,7 @@
  *   2. A subsequent note typed on station appears on main, alongside
  *      the original.
  *
- * Both directions matter because the wire is asymmetric — the host
+ * Both directions matter because the wire is asymmetric, the host
  * owns NotesHostService and broadcasts the canonical snapshot; the
  * station mutates via NotesClientService which sends action messages
  * the host applies and re-broadcasts.
@@ -70,18 +70,18 @@ async function seedContext(
         // The first-run Uplink Hub wizard auto-opens the Settings modal on a
         // fresh browser (own unit/component coverage in
         // UplinkHubWizardHost.test.tsx; e2e coverage in
-        // uplink-hub-wizard.spec.ts) — mark it already-seen so it doesn't
+        // uplink-hub-wizard.spec.ts): mark it already-seen so it doesn't
         // sit over the dashboard and swallow the note-input click too.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
-        /* private mode / quota — ignore */
+        /* private mode / quota: ignore */
       }
     },
     { sitrepCfg: SITREP_CONFIG, dashboardKey, dashboard },
   );
 }
 
-// Wait for the host peer to open, then return its share code — the station
+// Wait for the host peer to open, then return its share code, the station
 // derives `gonogo-host-<code>` and connects directly (stable-host-id model).
 async function getHostPeerId(page: Page): Promise<string> {
   return await page
@@ -112,7 +112,7 @@ async function addNote(page: Page, body: string): Promise<void> {
   await input.fill(body);
   // Enter submits (no Shift held). Matches the production keybinding.
   await input.press("Enter");
-  // Input is cleared on submit — wait for that to confirm the action
+  // Input is cleared on submit, wait for that to confirm the action
   // landed locally before asserting the cross-screen propagation.
   await expect(input).toHaveValue("");
 }
@@ -141,19 +141,19 @@ test.describe("notes widget round-trip", () => {
     });
 
     // Main → station.
-    const mainNote = `Burn at MET+05:00 — note from main ${Date.now()}`;
+    const mainNote = `Burn at MET+05:00: note from main ${Date.now()}`;
     await addNote(main, mainNote);
     await expect(station.getByText(mainNote, { exact: true })).toBeVisible({
       timeout: 10_000,
     });
 
     // Station → main, with the previous note still present.
-    const stationNote = `Confirmed burn — note from station ${Date.now()}`;
+    const stationNote = `Confirmed burn: note from station ${Date.now()}`;
     await addNote(station, stationNote);
     await expect(main.getByText(stationNote, { exact: true })).toBeVisible({
       timeout: 10_000,
     });
-    // The original main note is still rendered on both — neither
+    // The original main note is still rendered on both, neither
     // mutation should have clobbered the prior snapshot.
     await expect(main.getByText(mainNote, { exact: true })).toBeVisible();
     await expect(station.getByText(mainNote, { exact: true })).toBeVisible();

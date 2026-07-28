@@ -15,8 +15,8 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Locks the typing for <c>spaceCenter.*</c>: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="LaunchSiteEntry"/>,
-    /// <see cref="SpaceCenterScene"/>) mirror — field name for field name,
-    /// camelCase wire key for camelCase wire key, type for type — the EXACT
+    /// <see cref="SpaceCenterScene"/>) mirror: field name for field name,
+    /// camelCase wire key for camelCase wire key, type for type, the EXACT
     /// serialized shape <see cref="SpaceCenterViewProvider"/> already emits.
     /// This is the ToWire-completeness guard for this provider: it hand-builds
     /// dicts (no separate <c>ToWire</c> method), so binding the POCO field set
@@ -197,7 +197,7 @@ namespace Sitrep.Host.Tests
                         {
                             // contractTarget kind: exercises status/
                             // contractAgent/contractFundsAdvance/
-                            // contractFundsCompletion/contractDateDeadline —
+                            // contractFundsCompletion/contractDateDeadline:
                             // fields the launch-site entry above leaves null.
                             new Dictionary<string, object?>
                             {
@@ -239,7 +239,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Helpers — copied from PartsContractShapeTests (the PE-metadata
+        // Helpers: copied from PartsContractShapeTests (the PE-metadata
         // reader + camelCase mirror), which documents why raw ECMA-335
         // metadata is read instead of CLR attribute reflection (the payload
         // types also carry the compile-time-only [TsInterface] attribute,
@@ -346,7 +346,7 @@ namespace Sitrep.Host.Tests
                 if (value is not null)
                 {
                     // A collection-typed POCO field (e.g. string[] MissingParts)
-                    // mirrors a List<object?> the provider hand-builds — the
+                    // mirrors a List<object?> the provider hand-builds: the
                     // element type is object? on the wire, so assert the shape is
                     // enumerable rather than an exact generic-type match.
                     if (expected.IsArray || (expected.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(expected) && expected != typeof(string)))

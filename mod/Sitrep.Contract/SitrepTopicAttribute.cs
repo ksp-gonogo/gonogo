@@ -13,7 +13,7 @@ namespace Sitrep.Contract
     /// <c>Sitrep.Contract</c> type is what lets a widget code against a real
     /// payload type.
     ///
-    /// <para>This is a TYPING/codegen marker only — it does NOT change the
+    /// <para>This is a TYPING/codegen marker only, it does NOT change the
     /// wire. The wire bytes are produced by <c>Sitrep.Core.Serialization.
     /// JsonWriter</c> walking the provider's live value tree, entirely
     /// independent of these contract POCOs; the tagged type just mirrors that
@@ -21,16 +21,16 @@ namespace Sitrep.Contract
     ///
     /// <para>Lives IN <c>Sitrep.Contract</c> (like
     /// <see cref="SitrepContractAttribute"/>, and unlike the compile-time-only
-    /// <c>[TsInterface]</c>) so anything reflecting over it — codegen or a
-    /// future runtime map — never has to resolve an external assembly. It is
+    /// <c>[TsInterface]</c>) so anything reflecting over it (codegen or a
+    /// future runtime map) never has to resolve an external assembly. It is
     /// therefore compiled into BOTH target frameworks (not guarded by
     /// <c>#if NETSTANDARD2_0</c>).</para>
     ///
     /// <para><see cref="IsArray"/> marks the payloads that are a BARE JSON
-    /// array of the tagged element type rather than a single object — the
+    /// array of the tagged element type rather than a single object, the
     /// <c>science.*</c> channels emit <c>ExperimentEntry[]</c> /
     /// <c>LabEntry[]</c> / <c>DeployedEntry[]</c> (or <c>null</c>), never a
-    /// wrapper object — so the tag is applied to the ELEMENT type with
+    /// wrapper object: so the tag is applied to the ELEMENT type with
     /// <c>IsArray = true</c> and codegen maps the Topic's payload to
     /// <c>&lt;Element&gt;[]</c>.</para>
     /// </summary>

@@ -4,14 +4,14 @@ import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
 import { BREAKPOINTS, migrateDashboardItems } from "./layoutNormalization";
 
-// Derived from the single source of truth in layoutNormalization.ts — RGL
+// Derived from the single source of truth in layoutNormalization.ts, RGL
 // warns at runtime if a key here isn't a valid breakpoint.
 const COLS_KEYS = Object.keys(BREAKPOINTS);
 
 // Derived from BREAKPOINTS in layoutNormalization.ts as descending
 // [name, minWidth] pairs (Object.entries preserves insertion order). Used so
 // the initial render picks the correct breakpoint before ResponsiveGridLayout
-// has a chance to fire onBreakpointChange — avoids a one-frame flash of desktop
+// has a chance to fire onBreakpointChange, avoids a one-frame flash of desktop
 // layout on phones.
 const INITIAL_BREAKPOINTS: ReadonlyArray<readonly [string, number]> =
   Object.entries(BREAKPOINTS);
@@ -49,7 +49,7 @@ function saveState(key: string, state: PersistedState): void {
   try {
     localStorage.setItem(key, JSON.stringify(state));
   } catch {
-    // quota / private browsing — in-memory state is authoritative.
+    // quota / private browsing: in-memory state is authoritative.
   }
 }
 
@@ -86,7 +86,7 @@ export interface DashboardState {
   /** Set the per-instance mobile-width override (used by MobileDashboard). */
   updateItemMobileWidth: (id: string, width: "full" | "half") => void;
   updateItemMobileHeight: (id: string, height: "full" | "half") => void;
-  /** Subscribe to item changes — fires after every add / update. */
+  /** Subscribe to item changes, fires after every add / update. */
   subscribeItems: (cb: (items: DashboardItem[]) => void) => () => void;
   /** Always returns the latest items without going through React render. */
   getItems: () => readonly DashboardItem[];
@@ -128,7 +128,7 @@ export function useDashboardState(
   const activeKeyRef = useRef(storageKey);
 
   // Side effects (persistence + external subscribers) run from an effect, NOT
-  // inside the setState updater — StrictMode double-invokes updaters to
+  // inside the setState updater: StrictMode double-invokes updaters to
   // detect impurity, which would duplicate writes and subscriber callbacks.
   // Persist to the *active* key (not the prop) so a mid-render scene switch
   // can't clobber the new scene's slot with the old scene's items.
@@ -289,12 +289,12 @@ export function useDashboardState(
   /**
    * Replace items + layouts wholesale. Used by the mission-profile loader
    * so a profile swap snaps the dashboard to a saved state in one tick.
-   * Loses in-flight drag/resize state by design — callers should warn the
+   * Loses in-flight drag/resize state by design: callers should warn the
    * user that unsaved changes are discarded.
    */
   const replaceState = useCallback(
     (nextItems: DashboardItem[], nextLayouts: Layouts) => {
-      // Mission-profile / peer-config loads also carry persisted ids — migrate.
+      // Mission-profile / peer-config loads also carry persisted ids, migrate.
       setItemsInner(migrateDashboardItems(nextItems));
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);

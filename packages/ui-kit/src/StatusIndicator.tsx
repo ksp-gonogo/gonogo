@@ -22,7 +22,7 @@ export interface StatusIndicatorProps
  * as `Badge` but the layout is different: dot on the left, free-form
  * label on the right, optional live-region semantics. Use for
  * "connection status," "TURN reachability," "data source health"
- * surfaces — anywhere a single sentence describes a state and a glance
+ * surfaces: anywhere a single sentence describes a state and a glance
  * at the dot tells you whether to worry.
  *
  * Sister primitive: `Badge`. Use `Badge` for compact uppercase pills,

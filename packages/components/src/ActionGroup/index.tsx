@@ -29,6 +29,7 @@ import {
   ToggleButton,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -55,10 +56,10 @@ export type ActionGroupActions = typeof actionGroupActions;
 //
 // ActionGroup is a single-group control, so its slot props carry the identity
 // and live readout of the *one* group this instance drives. An augment binds a
-// Kerbalism/mod-subsystem status describing WHAT that group toggles — e.g.
-// "AG3 → radiators" — using the group id/datum to scope itself.
-//   • `action-group.badges`   — inline in the header row; per-group indicators.
-//   • `action-group.sections` — richer whole-widget status block in the body.
+// Kerbalism/mod-subsystem status describing WHAT that group toggles, e.g.
+// "AG3 → radiators": using the group id/datum to scope itself.
+//   • `action-group.badges`  : inline in the header row; per-group indicators.
+//   • `action-group.sections`: richer whole-widget status block in the body.
 // Both receive the same context; the placement differs.
 // ---------------------------------------------------------------------------
 
@@ -70,11 +71,11 @@ export type ActionGroupActions = typeof actionGroupActions;
 export interface ActionGroupSlotContext {
   /** The KSP action group this instance controls (e.g. "AG1", "SAS", "Gear"). */
   groupId: ActionGroupId;
-  /** The display label — custom override or the official group name. */
+  /** The display label: custom override or the official group name. */
   label: string;
   /** The group's current Value (boolean or numeric readout); `undefined` if unknown. */
   value: unknown;
-  /** Rendered state readout — "ON" / "OFF" / a numeric string / "—". */
+  /** Rendered state readout: "ON" / "OFF" / a numeric string / NULL_DISPLAY. */
   stateLabel: string;
 }
 
@@ -98,7 +99,7 @@ declare module "@ksp-gonogo/core" {
  * Resolves one group's live value off the canonical payloads.
  *
  * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
- * that index — never by array position (position stopped implying identity when
+ * that index: never by array position (position stopped implying identity when
  * the wire shape became a named list) and never by name (two AGX groups may
  * share a display name).
  *
@@ -111,7 +112,7 @@ function resolveGroupValue(
   payload: VesselControl | VesselStructure | undefined,
 ): unknown {
   if (!group) return undefined;
-  // Stage reads the OTHER topic — see ActionGroupComponent.
+  // Stage reads the OTHER topic; see ActionGroupComponent.
   if (group.name === "Stage") {
     return (payload as VesselStructure | undefined)?.currentStage;
   }
@@ -135,8 +136,8 @@ function resolveGroupValue(
     case "Precision Control":
       return control?.precisionControl;
     default:
-      // A configured id that no longer exists — e.g. a saved AGX group after
-      // AGX was uninstalled. Unknown, not false: the pill shows "—".
+      // A configured id that no longer exists, e.g. a saved AGX group after
+      // AGX was uninstalled. Unknown, not false: the pill shows NULL_DISPLAY.
       return undefined;
   }
 }
@@ -154,8 +155,8 @@ function resolveGroupValue(
  * ACTION_GROUPS registry (`"v.sasValue"`, `"v.ag1Value"`, …), which is exactly
  * what made this widget the mapTopic coverage scan's own blind spot.
  *
- * `vessel.control` is read ONCE and serves both jobs — it carries the named
- * custom groups the registry derives from AND every stock singleton's value —
+ * `vessel.control` is read ONCE and serves both jobs, it carries the named
+ * custom groups the registry derives from AND every stock singleton's value,
  * so the common case costs exactly one subscription, as the single dynamic
  * legacy read did. `Stage` is the sole group whose value lives elsewhere
  * (`vessel.structure.currentStage`; it's a staging command, not a control
@@ -181,7 +182,7 @@ function ActionGroupComponent(
   );
 }
 
-/** The Stage-only leg — see {@link ActionGroupComponent}. */
+/** The Stage-only leg: see {@link ActionGroupComponent}. */
 function StageActionGroup({
   group,
   ...props
@@ -206,7 +207,7 @@ function ActionGroupView({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   // `value` now arrives as a prop, resolved one-arg off the canonical
-  // `vessel.control` / `vessel.structure` Topics by the wrappers above — the
+  // `vessel.control` / `vessel.structure` Topics by the wrappers above, the
   // last `useTelemetry("data", group.value)` shim read is gone, and with it
   // `mapTopic.coverage`'s dynamic-key blind spot: the ACTION_GROUPS registry
   // no longer carries read keys at all. The `.toggle` side is still
@@ -247,7 +248,7 @@ function ActionGroupView({
     );
   }
 
-  // Most groups are boolean (ON/OFF). A few — e.g. Stage's `v.currentStage` —
+  // Most groups are boolean (ON/OFF). A few, e.g. Stage's `v.currentStage`:
   // report a numeric state, so coercing every non-true value to OFF mislabels
   // them. Treat numbers as their own readout and only fall back to ON/OFF for
   // genuine booleans.
@@ -255,7 +256,7 @@ function ActionGroupView({
   const isOn = isNumeric ? value > 0 : value === true;
   const isUnknown = value === undefined;
   const stateLabel = isUnknown
-    ? "—"
+    ? NULL_DISPLAY
     : isNumeric
       ? String(value)
       : value === true
@@ -263,7 +264,7 @@ function ActionGroupView({
         : "OFF";
 
   // Props both augment slots pass down. Built after the `!group`
-  // guard, so this is a plain object rather than a hook — no `useMemo` may run
+  // guard, so this is a plain object rather than a hook, no `useMemo` may run
   // conditionally. A fresh reference per render is fine: the live `value`
   // changes anyway, and `AugmentSlot`'s subscription is store-driven.
   const slotContext: ActionGroupSlotContext = {
@@ -275,21 +276,21 @@ function ActionGroupView({
 
   // Surface the most common reasons the action wouldn't fire if the user
   // pressed it now. Mirrors Telemachus's action-group response codes 1–4
-  // (paused / no power / antenna off / antenna missing) — codes 0 and 5 are
+  // (paused / no power / antenna off / antenna missing), codes 0 and 5 are
   // covered upstream (0 = OK, 5 = handled by `requires: ["flight"]`).
   let unavailableReason: string | null = null;
   if (isPaused === true) unavailableReason = "Paused";
   else if (commConnected === false) unavailableReason = "No signal";
 
-  // Selective rendering — drop the secondary "official name" line when the
+  // Selective rendering: drop the secondary "official name" line when the
   // widget is narrow. The state pill is itself the toggle control, so it is
   // present at every size (no separate vertical-room gate).
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
-  // Precision Control has no toggle key — the pill stays a read-only indicator
+  // Precision Control has no toggle key, the pill stays a read-only indicator
   // there (disabled button) rather than a no-op clickable.
   const canToggle = Boolean(group.toggle);
-  // Bell is reachable from the alarms menu — at tiny size it just crowds the
+  // Bell is reachable from the alarms menu, at tiny size it just crowds the
   // pill and the size-locked button style breaks the layout.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
 
@@ -359,7 +360,7 @@ function ActionGroupView({
           )}
         </LabelArea>
         <HeaderRight>
-          {/* Inline per-group badges — an Uplink can surface a subsystem
+          {/* Inline per-group badges: an Uplink can surface a subsystem
               indicator here without a bespoke slot. Renders nothing
               until an augment binds `action-group.badges`. */}
           <AugmentSlot name="action-group.badges" props={slotContext} />
@@ -401,7 +402,7 @@ function ActionGroupView({
           {unavailableReason}
         </UnavailableNotice>
       )}
-      {/* Richer whole-widget status block — the section-level counterpart to the
+      {/* Richer whole-widget status block: the section-level counterpart to the
           inline badges. An Uplink describing what this group toggles
           (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
       <AugmentSlot name="action-group.sections" props={slotContext} />
@@ -417,7 +418,7 @@ function ActionGroupConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<ActionGroupConfig>>) {
-  // The picker lists whatever the elected backend actually reports — under AGX
+  // The picker lists whatever the elected backend actually reports, under AGX
   // that's the player's own named groups, with no change here.
   const groups = useActionGroups();
   const [actionGroupId, setActionGroupId] = useState<ActionGroupId>(
@@ -493,7 +494,7 @@ registerComponent<ActionGroupConfig>({
 export { ActionGroupComponent };
 
 // ---------------------------------------------------------------------------
-// Styles — component
+// Styles: component
 // ---------------------------------------------------------------------------
 
 const Header = styled.div`
@@ -502,7 +503,7 @@ const Header = styled.div`
   justify-content: space-between;
   gap: 8px;
   /* Full-bleed standard: the Panel no longer imposes a uniform inset, and this
-     bespoke header (not PanelTitle) carried none of its own — so it self-pads
+     bespoke header (not PanelTitle) carried none of its own, so it self-pads
      to the standard local inset to stay readable. */
   padding: 12px 16px 8px;
 `;

@@ -16,8 +16,8 @@ import { WebSocketTransport } from "./websocket-transport";
 
 /**
  * Network-boundary tests for `WebSocketTransport` (browser-transport brief §
- * Validation): intercept the real WebSocket via MSW's `ws` link — the same
- * pattern the app's Telemachus WS tests use — and drive connect -> subscribe
+ * Validation): intercept the real WebSocket via MSW's `ws` link, the same
+ * pattern the app's Telemachus WS tests use, and drive connect -> subscribe
  * -> receive decoded envelope -> status transitions -> reconnect through the
  * REAL transport. No internal module is mocked.
  */
@@ -46,7 +46,7 @@ function streamFrame(topic: string, payload: unknown): string {
  * waits in the package; every other suite drives an injected clock/scheduler
  * and is deterministic. The default `vi.waitFor` window is 1000ms, which is
  * ample on an idle machine but too tight when the full 15-package `turbo test`
- * saturates every core — a real WS handshake or reconnect can then legitimately
+ * saturates every core: a real WS handshake or reconnect can then legitimately
  * take longer than a second. Sizing the window to the operation (not the idle
  * case) is what stops this file from flaking under contention, without touching
  * any assertion. See the "act-warnings load-dependent" note in CLAUDE.md.
@@ -194,7 +194,7 @@ describe("WebSocketTransport", () => {
   it("decodes BINARY stream frames (the real mod server frames JSON as binary, not text)", async () => {
     // Regression for the live-render bug: the mod server (Fleck) sends stream
     // frames as BINARY WebSocket frames. The transport previously dropped every
-    // non-string payload, so nothing rendered in a real browser — invisible to
+    // non-string payload, so nothing rendered in a real browser, invisible to
     // the text-only MSW/stub harnesses. This test sends the frame as bytes.
     let serverClient: {
       send: (data: string | ArrayBuffer | ArrayBufferView) => void;
@@ -337,7 +337,7 @@ describe("WebSocketTransport", () => {
     await waitForStatus(transport, "connected");
     expect(closers).toHaveLength(1);
 
-    // First outage — well inside the window — reconnects.
+    // First outage, well inside the window: reconnects.
     closers[0]();
     await waitForStatus(transport, "reconnecting");
     await waitForStatus(transport, "connected");
@@ -359,7 +359,7 @@ describe("WebSocketTransport", () => {
   });
 
   it("recovers from an `error` that never fires `close` (Fix #2)", async () => {
-    // A fake socket the test drives by hand — lets us fire `error` with no
+    // A fake socket the test drives by hand, lets us fire `error` with no
     // following `close`, which the real browser can do and which used to
     // strand the transport in `error` forever.
     const fakes = makeFakeSocketCtor();
@@ -371,7 +371,7 @@ describe("WebSocketTransport", () => {
     });
     expect(fakes.instances).toHaveLength(1);
 
-    // Error only — no close event follows.
+    // Error only: no close event follows.
     fakes.instances[0].fire("error");
     expect(transport.status).toBe("reconnecting");
 
@@ -392,7 +392,7 @@ describe("WebSocketTransport", () => {
     });
     const first = fakes.instances[0];
 
-    // Two close events on the same socket must trigger only ONE retry — the
+    // Two close events on the same socket must trigger only ONE retry, the
     // second is a no-op, so no leaked timer and no double-open.
     first.fire("close");
     first.fire("close");

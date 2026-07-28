@@ -1,10 +1,10 @@
 export type AlarmState =
   /** Trigger condition not yet met. */
   | "pending"
-  /** Time-based: UT is within the lead window — host has stepped warp down.
+  /** Time-based: UT is within the lead window, host has stepped warp down.
    *  Threshold-based: never used (no lead phase). */
   | "arming"
-  /** Trigger condition just met — banner shows "FIRED", fade-out in a few seconds. */
+  /** Trigger condition just met: banner shows "FIRED", fade-out in a few seconds. */
   | "firing"
   /** Already-fired, kept briefly for visibility then removed. */
   | "fired";
@@ -47,11 +47,11 @@ export type ContractParameterTargetState = "Complete" | "Failed";
  * by its title (string-equal) within the contract whose `id` matches.
  *
  * The trigger ignores the underlying numeric value and works on a
- * discrete state transition — "Incomplete → Complete" is the canonical
+ * discrete state transition: "Incomplete → Complete" is the canonical
  * use case ("ping me when this objective is met"). Picking a contract
  * that's no longer Active (e.g. the operator already accepted, or it
  * was cancelled) means the trigger sits perpetually pending; the host
- * doesn't auto-prune. Same shape as a parameterTitle-typo alarm —
+ * doesn't auto-prune. Same shape as a parameterTitle-typo alarm,
  * fail safe rather than silently fire.
  */
 export interface ContractParameterTrigger {
@@ -61,17 +61,17 @@ export interface ContractParameterTrigger {
   parameterTitle: string;
   /** State the parameter must reach. Default "Complete". */
   targetState: ContractParameterTargetState;
-  /** Sustain seconds — typically 0 since the state is already discrete. */
+  /** Sustain seconds: typically 0 since the state is already discrete. */
   sustainSeconds: number;
 }
 
 /**
  * Fires on the arrival of a discrete occurrence on an `event` stream topic
- * (the discrete-occurrence primitive — see `EventTimeline` in
+ * (the discrete-occurrence primitive: see `EventTimeline` in
  * `@ksp-gonogo/sitrep-client`). Unlike threshold / contract-parameter, which
  * are level-triggered (a condition that holds), an event trigger is
  * edge-triggered: it latches the moment a matching occurrence is *revealed*,
- * then fires and stays fired — an occurrence is a fact of the past, it never
+ * then fires and stays fired: an occurrence is a fact of the past, it never
  * "un-happens".
  *
  * Only occurrences revealed *after* the alarm begins watching count, so
@@ -81,7 +81,7 @@ export interface ContractParameterTrigger {
  *
  * Scaffold note: no producer topic is wired yet. The host reads revealed
  * occurrences through an injected reader on `AlarmStateMachine` that currently
- * defaults to empty — so an `event` alarm sits perpetually pending until a
+ * defaults to empty: so an `event` alarm sits perpetually pending until a
  * producer is wired. Fail-safe, same posture as a typo'd contract-parameter.
  */
 export interface EventTrigger {
@@ -104,11 +104,11 @@ export type AlarmTrigger =
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group
- * only — the operator picks an existing Telemachus action key (`f.ag1`,
+ * only: the operator picks an existing Telemachus action key (`f.ag1`,
  * `f.stage`, etc.) and the host calls `dataSource.execute()` at fire
  * time. Lives alongside the visual fire event so the central alarm
  * pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
- * action-group dispatch automatically — see
+ * action-group dispatch automatically: see
  * `project_central_alarm_pipeline.md`.
  *
  * Discriminated union from the start so future trigger-style side
@@ -127,12 +127,12 @@ export interface Alarm {
   notes?: string;
   trigger: AlarmTrigger;
   state: AlarmState;
-  /** Source of the alarm — "main" or a peer id. */
+  /** Source of the alarm: "main" or a peer id. */
   createdBy: string;
   /** Wall-clock `Date.now()` when created. */
   createdAt: number;
   /**
-   * Threshold alarms only — UT seconds when the condition first matched
+   * Threshold alarms only: UT seconds when the condition first matched
    * in the current run. Reset to null whenever the condition becomes
    * false, so the sustain timer always measures contiguous match.
    */
@@ -150,7 +150,7 @@ export interface AlarmWarpState {
   index: number;
   /** Numeric multiplier corresponding to the index. */
   rate: number;
-  /** "HIGH" | "LOW" — matches Telemachus's t.warpMode when known. */
+  /** "HIGH" | "LOW": matches Telemachus's t.warpMode when known. */
   mode: "HIGH" | "LOW" | "UNKNOWN";
 }
 
@@ -192,7 +192,7 @@ export const MIN_WARP_SAFETY_MARGIN_SECONDS = 1;
 export const MAX_WARP_SAFETY_MARGIN_SECONDS = 120;
 
 /** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
- *  v2 `trigger` shape. Idempotent — already-v2 records pass through. */
+ *  v2 `trigger` shape. Idempotent: already-v2 records pass through. */
 export function migrateAlarm(raw: unknown): Alarm | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;

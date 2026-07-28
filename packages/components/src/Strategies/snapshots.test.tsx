@@ -36,9 +36,9 @@ interface CareerFixture {
 
 /**
  * DOM snapshots. The widget reads its whole career snapshot
- * off the canonical `career.status` Topic (no legacy fallback), so — unlike
+ * off the canonical `career.status` Topic (no legacy fallback), so, unlike
  * the shared legacy `snapshotWidgetMode` helper, which seeds a
- * `MockDataSource` — these snapshots feed the fixture through a real stream
+ * `MockDataSource`: these snapshots feed the fixture through a real stream
  * pipeline (`setupStreamFixture`). The per-strategy entries are emitted
  * VERBATIM (the fixtures already carry `departmentName`/`effectiveCostReputation`,
  * both of which `parseStrategies` reads directly), so the rendered strategy
@@ -90,7 +90,7 @@ async function streamSnapshot(
   });
 
   // Wait for the emitted `career.status` to land in the store (fixture-
-  // independent — every fixture emits it, even the null "feature-unavailable"
+  // independent: every fixture emits it, even the null "feature-unavailable"
   // one). The same `notifyStore` that makes it samplable drives the widget's
   // `useSyncExternalStore` subscription, so once it's present the DOM has
   // committed the read.

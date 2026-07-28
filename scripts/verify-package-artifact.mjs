@@ -5,8 +5,8 @@
  * The kit bundles `@ksp-gonogo/theme` into `dist` on purpose (see
  * `packages/ui-kit/tsup.config.ts`). That bundling is invisible until it
  * breaks: if tsup ever stops inlining the theme, the tarball still packs
- * happily and only fails once an outside consumer — who cannot install a
- * `private: true` package — tries to import it. This script turns that into a
+ * happily and only fails once an outside consumer (who cannot install a
+ * `private: true` package) tries to import it. This script turns that into a
  * build failure instead of a broken publish.
  *
  * Checks, against the tarball rather than the source tree, because the tarball
@@ -14,7 +14,7 @@
  *
  *   1. `private: true` never publishes.
  *   2. No `@ksp-gonogo/*` in dependencies / peerDependencies /
- *      optionalDependencies — those are the fields a consumer's installer
+ *      optionalDependencies: those are the fields a consumer's installer
  *      resolves. devDependencies are deliberately exempt: they are inert for
  *      consumers, and `npm publish` leaves pnpm's `workspace:*` ranges in them
  *      verbatim.
@@ -58,7 +58,7 @@ const readFromTarball = (path) => {
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
       // A missing member is an expected outcome (it's check 3), not noise to
-      // print — the null return is what the caller reports on.
+      // print: the null return is what the caller reports on.
       stdio: ["ignore", "pipe", "ignore"],
     });
   } catch {
@@ -69,7 +69,7 @@ const readFromTarball = (path) => {
 /**
  * Remove comments so prose can't be mistaken for code.
  *
- * Block comments go first — they're the JSDoc that names `@ksp-gonogo/theme`
+ * Block comments go first: they're the JSDoc that names `@ksp-gonogo/theme`
  * in `dist/index.d.ts`, and the only real source of false positives. Line
  * comments are stripped only when `//` opens the line, so a `https://` inside
  * a string literal doesn't take the rest of that line (and any import on it)
@@ -107,7 +107,7 @@ const manifest = JSON.parse(manifestRaw);
 
 if (manifest.private === true) {
   failures.push(
-    `manifest is \`private: true\` — this package must never be published`,
+    `manifest is \`private: true\`, this package must never be published`,
   );
 }
 
@@ -115,7 +115,7 @@ for (const field of RESOLVED_DEP_FIELDS) {
   for (const name of Object.keys(manifest[field] ?? {})) {
     if (name.startsWith(`${SCOPE}/`)) {
       failures.push(
-        `${field}.${name} — a consumer cannot resolve a workspace package; ` +
+        `${field}.${name}: a consumer cannot resolve a workspace package; ` +
           `bundle it into dist instead`,
       );
     }
@@ -140,7 +140,7 @@ const emitted = members.filter((file) => /\.(js|mjs|cjs|d\.ts)$/.test(file));
 for (const required of ["dist/index.js", "dist/index.d.ts"]) {
   if (!members.includes(required)) {
     failures.push(
-      `${required} is missing from the tarball — did the build run?`,
+      `${required} is missing from the tarball, did the build run?`,
     );
   }
 }
@@ -148,14 +148,14 @@ for (const required of ["dist/index.js", "dist/index.d.ts"]) {
 for (const file of emitted) {
   const source = readFromTarball(file);
   if (source === null || source.trim() === "") {
-    failures.push(`${file} is empty or unreadable — did the build run?`);
+    failures.push(`${file} is empty or unreadable, did the build run?`);
     continue;
   }
   const hits = stripComments(source).match(specifierPattern);
   if (hits) {
     failures.push(
       `${file} imports ${SCOPE}/* (${hits.length} ` +
-        `${hits.length === 1 ? "specifier" : "specifiers"}) — it must be ` +
+        `${hits.length === 1 ? "specifier" : "specifiers"}), it must be ` +
         `bundled, not referenced`,
     );
   }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Sitrep.Host.Crash
 {
     /// <summary>
-    /// Channel topic ids for the crash event stream — the single "last
+    /// Channel topic ids for the crash event stream, the single "last
     /// notable crash" record plus its boolean "have we ever recorded one"
     /// companion. Both ride <c>Delivery.ReliableOrdered</c> (the event lane:
     /// every value delivered, in order, replayed to a late subscriber via the
@@ -17,7 +17,7 @@ namespace Sitrep.Host.Crash
     }
 
     /// <summary>
-    /// One part lost in a crash — the plain, KSP-free counterpart to
+    /// One part lost in a crash: the plain, KSP-free counterpart to
     /// <c>Sitrep.Contract.CrashPartLost</c>, filled by the KSP-facing producer
     /// and flattened to a dictionary by <see cref="CrashPayload.Build"/>.
     /// Named distinctly from the contract POCO so a file importing both
@@ -32,7 +32,7 @@ namespace Sitrep.Host.Crash
     }
 
     /// <summary>
-    /// Per-flight statistics accumulated up to the crash — the plain value
+    /// Per-flight statistics accumulated up to the crash, the plain value
     /// bundle <see cref="FlightStatsTracker.Snapshot"/> produces and
     /// <see cref="CrashPayload.Build"/> flattens. Field-for-field the
     /// <c>flightStats</c> object in the wire fixtures.
@@ -83,7 +83,7 @@ namespace Sitrep.Host.Crash
     /// <summary>
     /// Pure crash-record logic, factored out of the KSP-facing
     /// <c>Gonogo.KSP.CrashUplink</c> exactly as <c>Sitrep.Host.Comms.SignalDelay</c>
-    /// is factored out of <c>CommsCoreUplink</c> — no KSP/Unity references, so
+    /// is factored out of <c>CommsCoreUplink</c>, no KSP/Unity references, so
     /// it is headless-testable. Owns the source-side relevance filter and the
     /// wire-dictionary assembly.
     /// </summary>
@@ -94,7 +94,7 @@ namespace Sitrep.Host.Crash
         /// at source</c> rule): a crash record is published only for a real
         /// craft. Debris destruction, a discarded flag, and an Unknown
         /// vessel type would otherwise clobber the single "last notable crash"
-        /// slot, so they are dropped here, in the producer, before publish —
+        /// slot, so they are dropped here, in the producer, before publish,
         /// the consumers deliberately trust whatever arrives. The wire carries
         /// the <c>VesselType</c> enum's string name.
         /// </summary>

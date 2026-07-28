@@ -11,7 +11,7 @@ namespace Sitrep.Core.Tests
     /// every comms.* payload type except <see cref="CommsDelay"/> had NO
     /// <see cref="JsonWriter.AppendValue"/> case, so a POPULATED payload threw
     /// <c>NotSupportedException</c> at the wire boundary and the frame was
-    /// dropped — a client subscribed comms.connectivity / comms.path /
+    /// dropped: a client subscribed comms.connectivity / comms.path /
     /// comms.network / comms.signalStrength but received only "subscribed" and
     /// zero data. Same class of bug the <see cref="CommsDelay"/> /
     /// <see cref="KosProcessorInfo"/> flattens already fixed. These serialize
@@ -191,7 +191,7 @@ namespace Sitrep.Core.Tests
         public void DelaySerializesOneWaySecondsAsZeroWhenDisabledButConnected()
         {
             // The OTHER "None" case: delay feature off, vessel still
-            // connected — a real "zero applied", distinguishable from the
+            // connected: a real "zero applied", distinguishable from the
             // no-path null case above only by this value.
             var el = Write(new CommsDelay
             {

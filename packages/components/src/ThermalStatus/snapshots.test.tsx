@@ -98,7 +98,7 @@ async function snapshotThermalStream(
     });
   });
 
-  // Sample the store directly rather than a DOM signal — the no-thermal-data
+  // Sample the store directly rather than a DOM signal, the no-thermal-data
   // fixture's settled state IS the empty "No thermal data" placeholder, so
   // waiting on rendered content isn't a reliable "landed" signal across
   // every fixture.

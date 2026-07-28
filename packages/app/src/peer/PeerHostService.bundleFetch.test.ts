@@ -1,9 +1,9 @@
 /**
- * D6 — the station conduit for Uplink bundle bytes. Covers the full
+ * D6: the station conduit for Uplink bundle bytes. Covers the full
  * request/response round trip through a real `PeerHostService` +
  * `PeerClientService` pair connected via a fake PeerJS hub (mirrors
  * PeerHostService.uplinkRelay.test.ts's pattern): a station never fetches
- * an Uplink bundle directly — it asks the host, which downloads once,
+ * an Uplink bundle directly: it asks the host, which downloads once,
  * SHA-256-verifies, and relays the verified bytes back over the data
  * channel. See protocol.ts's `uplink-bundle-request`/`-response` doc
  * comment and PeerHostService.handleUplinkBundleRequest.
@@ -168,7 +168,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("refuses to redistribute bytes on a hash mismatch — station's fetchBytes rejects", async () => {
+  it("refuses to redistribute bytes on a hash mismatch, station's fetchBytes rejects", async () => {
     const bundle = textBytes("evil payload");
     vi.stubGlobal(
       "fetch",
@@ -212,7 +212,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     let callCount = 0;
     const BUNDLE_URL = "https://example.test/shared.js";
     // Scoped by url: the host's OWN boot sequence also calls global `fetch`
-    // (`/ice-config`, the relay's best-effort `/host` registration) — only
+    // (`/ice-config`, the relay's best-effort `/host` registration): only
     // count/delay the bundle url itself, or those unrelated calls would
     // inflate callCount and defeat the dedup assertion below.
     vi.stubGlobal(
@@ -254,7 +254,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     expect(new Uint8Array(resultB)).toEqual(new Uint8Array(bundle));
 
     // A THIRD, later request for the same url reuses the cached verified
-    // bytes too — still exactly one underlying fetch.
+    // bytes too: still exactly one underlying fetch.
     const resultC = await clientA.sendBundleFetch(
       "https://example.test/shared.js",
       goodHash,

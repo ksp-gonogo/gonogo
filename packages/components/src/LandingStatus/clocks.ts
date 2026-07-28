@@ -1,5 +1,5 @@
 /**
- * The two delay-native clocks and the regime classifier — the spine of a
+ * The two delay-native clocks and the regime classifier, the spine of a
  * DELAYED landing. Both clocks are trivially derivable client-side from the
  * one-way delay plus the burn solve, and (as far as the design survey found)
  * are unique to gonogo. They are expressed here as MARGINS in seconds rather
@@ -7,10 +7,10 @@
  * already measured against the operator's delayed view frame, so the arithmetic
  * needs no view clock:
  *
- * - **Commit Clock** — `T_commit = T_ignition - N`. The last instant a human GO
+ * - **Commit Clock**: `T_commit = T_ignition - N`. The last instant a human GO
  *   can still reach the vessel before ignition. Margin = `countdown - N`. Once
  *   <= 0 the burn either happens autonomously or not at all: COMMITTED.
- * - **Blind Clock** — `T_blind = T_impact - 2N`. The last instant you could send
+ * - **Blind Clock**: `T_blind = T_impact - 2N`. The last instant you could send
  *   anything and still SEE the result before impact. Margin = `impact - 2N`.
  *   Once <= 0 the outcome is already determined and merely not yet visible.
  *   Surfaced in the UI as the **COMMIT POINT** (the spaceflight-standard term);
@@ -20,13 +20,13 @@
  *
  * The regime classifier turns the round-trip delay into the operator's role
  * (pilot / flight director / mission planner), which is what changes under
- * delay — not just the numbers.
+ * delay: not just the numbers.
  */
 
 export type LandingRegime = "live" | "staged" | "autonomous" | "no-path";
 
 /**
- * Round-trip at or below this is "effectively real-time" — LAN, no-comms, or
+ * Round-trip at or below this is "effectively real-time", LAN, no-comms, or
  * Kerbin-local. The operator can close the control loop.
  */
 const LIVE_ROUND_TRIP_SEC = 1;
@@ -72,13 +72,13 @@ export interface DelayClocks {
   roundTripSeconds: number | null;
   /** Seconds until commit (`countdown - N`); null when no burn solution. */
   commitInSeconds: number | null;
-  /** True once past the commit point — a GO can no longer reach the vessel. */
+  /** True once past the commit point: a GO can no longer reach the vessel. */
   committed: boolean;
   /** Seconds until blind (`impact - 2N`); null when no impact time. */
   blindInSeconds: number | null;
-  /** True once past the blind point — the outcome is fixed and merely unseen. */
+  /** True once past the blind point: the outcome is fixed and merely unseen. */
   blind: boolean;
-  /** True once the vessel has landed — every descent countdown is then void. */
+  /** True once the vessel has landed, every descent countdown is then void. */
   landed: boolean;
 }
 

@@ -1,13 +1,13 @@
 /**
- * #6 — station boot re-sequence. Covers the two halves of
+ * #6: station boot re-sequence. Covers the two halves of
  * `StationUplinkLoader.tsx`:
  *
  *  - `runStationUplinkLoad`: the pure async orchestration (roster read off a
  *    borrowed `TelemetryClient` -> `loadEnabledUplinks` with `fetchBytes`
- *    routed through the D6 peer conduit). No React needed — a `StubTransport`
+ *    routed through the D6 peer conduit). No React needed, a `StubTransport`
  *    stands in for the peer-relayed wire, and a fake `sendBundleFetch`
  *    stands in for `PeerClientService`.
- *  - `StationUplinkLoader`: the component wrapper — gates `children` on the
+ *  - `StationUplinkLoader`: the component wrapper, gates `children` on the
  *    load settling, and runs the load exactly once.
  *
  * Generic fixture ids ("alpha") on purpose, same reasoning as
@@ -15,11 +15,11 @@
  * mod token so the uplink-boundary ratchet stays clean. The one place a real
  * first-party id set necessarily comes into play is the roster-ABSENT
  * fallback test, which exercises `runStationUplinkLoad`'s hard-coded
- * `LOADER_UPLINK_IDS` — that test imports the constant and asserts against
+ * `LOADER_UPLINK_IDS`, that test imports the constant and asserts against
  * it rather than typing any of its members as a literal.
  *
  * The whole point of D6/#6 is that a station never fetches a bundle
- * directly — `stubFetch` below throws on any URL that isn't the registry
+ * directly: `stubFetch` below throws on any URL that isn't the registry
  * index, so an accidental direct-fetch regression fails LOUDLY (the loader
  * catches the throw and quarantines "load failed", which the assertions
  * below would catch as a wrong status) rather than silently passing.
@@ -48,7 +48,7 @@ import {
 const BUNDLE_SRC = "export const marker = 'station-loaded';";
 const BUNDLE_BYTES = new TextEncoder().encode(BUNDLE_SRC).buffer as ArrayBuffer;
 // A data: URL so `defaultImportBundle`'s real `import()` at the end of the
-// loader sequence resolves without ever touching the stubbed `fetch` — the
+// loader sequence resolves without ever touching the stubbed `fetch`, the
 // bytes fetched-and-hash-verified (via the conduit) and the bytes actually
 // executed by `import()` are deliberately independent in this test, matching
 // how the real loader treats them as two separate network reads.
@@ -93,7 +93,7 @@ function registryWith(integrity: string): RegistryIndex {
   };
 }
 
-/** Tracks any fetch NOT for the registry index — must stay empty throughout. */
+/** Tracks any fetch NOT for the registry index, must stay empty throughout. */
 function stubFetch(index: RegistryIndex): string[] {
   const directBundleFetches: string[] = [];
   vi.stubGlobal(
@@ -134,7 +134,7 @@ afterEach(() => {
 describe("runStationUplinkLoad", () => {
   it("with no roster sample (timeout), falls back to LOADER_UPLINK_IDS and never makes a direct bundle fetch", async () => {
     // No registry entries match the real first-party ids in this fixture, so
-    // every one of them quarantines "not found in the registry index" — the
+    // every one of them quarantines "not found in the registry index", the
     // point of this test is the ID SET attempted and the total absence of
     // any direct network call, not a successful load.
     const directBundleFetches = stubFetch({ uplinks: [] });
@@ -156,14 +156,14 @@ describe("runStationUplinkLoad", () => {
     expect(directBundleFetches).toEqual([]);
   });
 
-  it("loads a compatible Uplink with fetchBytes routed through the peer conduit — never a direct fetch for bundle bytes", async () => {
+  it("loads a compatible Uplink with fetchBytes routed through the peer conduit; never a direct fetch for bundle bytes", async () => {
     const directBundleFetches = stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
 
     const pending = runStationUplinkLoad(client, { sendBundleFetch }, 1000);
-    // Roster present and reports "alpha" installed — the registry entry
+    // Roster present and reports "alpha" installed: the registry entry
     // above matches it, so the derived enabled set is exactly ["alpha"].
     stub.emit("system.uplinks", {
       uplinks: [
@@ -185,7 +185,7 @@ describe("runStationUplinkLoad", () => {
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
 
     const pending = runStationUplinkLoad(client, { sendBundleFetch }, 1000);
-    // The mod vouches for a DIFFERENT hash than the Hub index offers —
+    // The mod vouches for a DIFFERENT hash than the Hub index offers,
     // three-way mismatch, must refuse before ever calling the conduit.
     stub.emit("system.uplinks", {
       uplinks: [
@@ -267,10 +267,10 @@ describe("StationUplinkLoader", () => {
     await waitFor(() => {
       expect(screen.getByTestId("dashboard-widgets")).not.toBeNull();
     });
-    // No roster ever arrives here (timeout at 20ms) — falls back to
+    // No roster ever arrives here (timeout at 20ms), falls back to
     // LOADER_UPLINK_IDS, none of which match the "alpha" fixture, so the
     // conduit is never actually called. This test is about the GATE, not
-    // the load outcome — see the runStationUplinkLoad describe block above
+    // the load outcome: see the runStationUplinkLoad describe block above
     // for the load-outcome assertions.
     expect(sendBundleFetch).not.toHaveBeenCalled();
   });
@@ -287,7 +287,7 @@ describe("StationUplinkLoader", () => {
         <Harness client={client} peerClient={peerClient} />
       </StrictMode>,
     );
-    // Deliver the roster so "alpha" is the enabled set — proves the
+    // Deliver the roster so "alpha" is the enabled set, proves the
     // component wiring end-to-end, same as the pure-function tests above.
     stub.emit("system.uplinks", {
       uplinks: [
@@ -299,7 +299,7 @@ describe("StationUplinkLoader", () => {
       expect(screen.getByTestId("dashboard-widgets")).not.toBeNull();
     });
 
-    // One `sendBundleFetch` call for the one enabled id — a StrictMode-
+    // One `sendBundleFetch` call for the one enabled id, a StrictMode-
     // doubled loader run would produce two.
     expect(sendBundleFetch).toHaveBeenCalledTimes(1);
     const outcome = getUplinkOutcomes().find((o) => o.id === "alpha");
@@ -307,7 +307,7 @@ describe("StationUplinkLoader", () => {
   });
 
   it("stays gated (never renders children) while telemetryClient/peerClient aren't both available yet", () => {
-    // No PeerClientProvider at all — usePeerClient() resolves null, so the
+    // No PeerClientProvider at all: usePeerClient() resolves null, so the
     // effect must wait rather than starting the load with a missing conduit.
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);

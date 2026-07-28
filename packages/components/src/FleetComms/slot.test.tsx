@@ -10,7 +10,7 @@ import {
 } from "../test/setupStreamFixture";
 // Importing the augment module registers it ONCE, at this file's first
 // import (module-load self-registration, same lifecycle as
-// `registerComponent`) — deliberately NOT cleared with `clearAugments()`
+// `registerComponent`): deliberately NOT cleared with `clearAugments()`
 // between tests the way `SystemView/slot.test.tsx` clears its ad-hoc,
 // per-test test-augments: there is nothing here to re-register between
 // tests, so clearing would just permanently empty both slots after the
@@ -22,17 +22,17 @@ const KERBIN_MU = 3.5316e12;
 
 /**
  * Integration coverage for the Fleet/Comms augment (Phase 1 spine,
- * docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md) —
+ * docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md):
  * registers into SystemView's real `system-view.overlay`/`system-view.actions`
  * slots and renders through the real host, same pattern as
  * `SystemView/slot.test.tsx`'s own test-augment cases. Pure projection/timing
  * math is covered by `projection.test.ts`/`pendingPulse.test.ts`; this file
- * proves the WIRING — the augment reads the right topics, anchors the
+ * proves the WIRING: the augment reads the right topics, anchors the
  * commlink line/pulses on the vessel's projected position without drawing a
  * second copy of `SystemDiagram`'s own vessel marker, and the two action
  * toggles actually gate what's drawn.
  */
-describe("FleetComms — Phase 1 spine augment on SystemView", () => {
+describe("FleetComms: Phase 1 spine augment on SystemView", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
@@ -122,7 +122,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
     // Root cause of the live-reported bug: this augment used to render its
     // OWN copy of the active-vessel dot at the exact same projected point
     // `SystemDiagram.tsx`'s built-in `VesselMarker` already draws (both use
-    // the identical `--color-accent-fg` fill) — two circles stacked exactly
+    // the identical `--color-accent-fg` fill): two circles stacked exactly
     // on top of each other, which a realistic low orbit projects only a few
     // px from the diagram's origin, reading as duplicate dots sitting on the
     // frame body itself. `SystemDiagram`'s marker fill is the only thing
@@ -147,7 +147,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
       const line = document.querySelector("line");
       expect(line).toBeTruthy();
       // x1/y1 is the diagram origin (the frame body); x2/y2 must be a
-      // distinct, non-zero point — i.e. the vessel's real projected
+      // distinct, non-zero point: i.e. the vessel's real projected
       // position, not collapsed onto the origin.
       const x2 = Number(line?.getAttribute("x2"));
       const y2 = Number(line?.getAttribute("y2"));
@@ -192,7 +192,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
           },
         ],
       });
-      // Vessel orbits Mun (index 1), diagram frame is Kerbin — off-frame.
+      // Vessel orbits Mun (index 1), diagram frame is Kerbin, off-frame.
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Test Ship",
@@ -229,7 +229,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
     });
 
     // `getByTitle` only recognises a `<title>` child of the `<svg>` ROOT
-    // element, not one nested inside a shape element (`<line>`) — so the
+    // element, not one nested inside a shape element (`<line>`), so the
     // commlink line's own `<title>` tooltip is asserted via a direct DOM
     // query instead.
     await waitFor(() => {
@@ -252,7 +252,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
     await renderDiagram();
     // `useUtNow()` tracks the view clock's undelayed estimate, anchored off
     // the `deliveredAt` of the most recently ingested sample ACROSS EVERY
-    // topic (`ViewClock.observeSample`) — not `validAt`, and not this
+    // topic (`ViewClock.observeSample`): not `validAt`, and not this
     // fixture's `pinnedUt` (that only affects `useViewUt()`'s DELAYED read).
     // Overriding `deliveredAt: 95` here anchors `utNow` at 95 for the
     // assertions below (dispatchedAt 90 + oneWaySeconds 5 = still in the
@@ -278,7 +278,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
     });
 
     await waitFor(() => {
-      // The gradient pulse dot is keyed by the entry id — assert via the
+      // The gradient pulse dot is keyed by the entry id, assert via the
       // gradient fill it uses (only present once a pulse actually renders).
       expect(
         document.querySelector(
@@ -298,7 +298,7 @@ describe("FleetComms — Phase 1 spine augment on SystemView", () => {
 
   it("has no axe violations with both slots filled", async () => {
     // `renderDiagram()` already mounts the diagram with both slots filled and
-    // its data emitted — a second mount of the same widget added nothing to
+    // its data emitted: a second mount of the same widget added nothing to
     // scan, and left a tree that was still mid-first-frame while axe's long
     // async traversal ran.
     const { container } = await renderDiagram();

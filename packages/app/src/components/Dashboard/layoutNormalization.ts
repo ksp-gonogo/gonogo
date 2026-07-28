@@ -16,7 +16,7 @@ export const ROW_HEIGHT = 25;
  * existing placements survive a rename instead of silently disappearing.
  *
  * MIGRATION CONVENTION (gonogo is 1.0+): whenever you change a registered
- * component `id`, add an entry here — key = the old id, value = the new id.
+ * component `id`, add an entry here: key = the old id, value = the new id.
  * Never reuse a retired id for a different widget. This is the single source
  * of truth for widget-id renames; every place that deserialises dashboard
  * items routes through `migrateDashboardItems`.
@@ -55,7 +55,7 @@ export function migrateDashboardItems(items: DashboardItem[]): DashboardItem[] {
  * Drop any breakpoint keys RGL doesn't know about. A previous version
  * of COLS included `xxxs` which is now gone; persisted layouts in
  * localStorage still carry the stale entry and RGL warns on every
- * render when it sees one. Cheap to filter — the list is O(5).
+ * render when it sees one. Cheap to filter, the list is O(5).
  */
 export function filterLayouts(layouts: Layouts): Layouts {
   const next: Layouts = {};
@@ -68,7 +68,7 @@ export function filterLayouts(layouts: Layouts): Layouts {
 /**
  * Inject `minW`/`minH` from each item's registered component definition into
  * its layout entries (RGL uses these to gate resize/drag). Also clamps `w`/`h`
- * up to the floor — covers persisted layouts saved before a widget gained a
+ * up to the floor: covers persisted layouts saved before a widget gained a
  * minSize (or when a user shrank one below the new floor).
  */
 export function applyMinSizes(

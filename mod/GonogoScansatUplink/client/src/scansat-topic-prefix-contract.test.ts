@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  * per-(body,type) namespaces must be described by the SAME canonical prefix
  * strings on both sides of the wire, or a future namespace silently desyncs
  * (the mod publishes under one string while the client carries/resolves
- * another — exactly the class of break this whole fix addresses).
+ * another: exactly the class of break this whole fix addresses).
  *
  * This locks the MOD side to the canonical list now, and documents the
  * client-side cross-check to enable the moment the client fix exports its

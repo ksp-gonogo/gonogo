@@ -31,7 +31,7 @@ export interface ResolutionNotice {
 
 /**
  * The set of providers chosen to activate for one capability, decided
- * during the selection phase of `resolve()` — before any factory has run.
+ * during the selection phase of `resolve()`: before any factory has run.
  * Empty `providers` means "no provider survived selection"; activation then
  * falls back to the capability's `vanilla` factory (if any) or resolves to
  * zero active instances.
@@ -45,17 +45,17 @@ interface CapabilitySelection {
  * The capability/provider registry.
  *
  * `resolve()` runs in three phases, in order:
- *  1. **Selection** (`selectCapability`) — for every registered capability,
+ *  1. **Selection** (`selectCapability`): for every registered capability,
  *     decide which provider(s) win (version gating, then exclusive-conflict
  *     resolution or shared fan-out). No factory runs yet, so this phase can
  *     freely iterate `this.capabilities` in registration order without any
  *     capability depending on another capability's factory having already
  *     run.
- *  2. **Ordering** (`topoSortActivationOrder`, in `./broker`) — build one
+ *  2. **Ordering** (`topoSortActivationOrder`, in `./broker`): build one
  *     dependency-graph node per capability from its selected provider(s)'
  *     `deps`, and topo-sort so a capability's declared dependencies precede
  *     it. Throws `DependencyCycleError` if the graph has a cycle.
- *  3. **Activation** (`activateSelection`) — walk the topo order and invoke
+ *  3. **Activation** (`activateSelection`): walk the topo order and invoke
  *     factories, writing each capability's active instances into
  *     `activeInstances` immediately after its factory runs (not batched at
  *     the end), so a later capability's factory can call
@@ -69,7 +69,7 @@ interface CapabilitySelection {
  *  - Task 5 (version gating + spine-halt) is a candidate-filtering pass
  *    (using `spineCritical` / `versions`) inside step 1, before selection,
  *    emitting "version-excluded" notices.
- *  - Task 6 (dependency broker) is steps 2 and 3 — selection decides *who*
+ *  - Task 6 (dependency broker) is steps 2 and 3, selection decides *who*
  *    wins per capability; the broker decides *when* each winner's factory
  *    runs.
  */
@@ -105,7 +105,7 @@ export class Kernel {
       query: <T>(capability: CapabilityId) => this.query<T>(capability),
     };
 
-    // Phase 1: selection — decide the winning provider(s) per capability.
+    // Phase 1: selection, decide the winning provider(s) per capability.
     // No factory has run yet, so this can safely iterate in plain
     // registration order regardless of any `deps` relationships.
     const selections: CapabilitySelection[] = [];
@@ -113,7 +113,7 @@ export class Kernel {
       selections.push(this.selectCapability(descriptor, opts, notices));
     }
 
-    // Phase 2: ordering — topo-sort capability activation so a provider's
+    // Phase 2: ordering, topo-sort capability activation so a provider's
     // `deps` are active before its factory runs. Edges come from each
     // capability's *selected* provider(s), not every registered candidate.
     const order = topoSortActivationOrder(
@@ -128,7 +128,7 @@ export class Kernel {
       selections.map((selection) => [selection.descriptor.id, selection]),
     );
 
-    // Phase 3: activation — run factories in topo order, publishing each
+    // Phase 3: activation, run factories in topo order, publishing each
     // capability's active instances immediately so later factories in the
     // order can `ctx.query()` them.
     for (const capability of order) {
@@ -147,7 +147,7 @@ export class Kernel {
    * Selection phase for one capability: version-gate the registered
    * candidates, apply the spine-critical halt check, then hand the survivors
    * to exclusive-conflict resolution (Task 4) or shared fan-out. Returns the
-   * provider(s) chosen to activate — empty means "fall back to vanilla (or
+   * provider(s) chosen to activate: empty means "fall back to vanilla (or
    * nothing)" once activation runs. Does not call any factory.
    */
   private selectCapability(
@@ -286,13 +286,13 @@ export class Kernel {
    * Precedence for an exclusive capability with ≥2 candidates:
    *  1. `preferences[capability]` naming a registered provider id wins
    *     outright (preference beats default). A preference naming an
-   *     unregistered id is a stale preference — ignored, falling through.
+   *     unregistered id is a stale preference, ignored, falling through.
    *  2. Else a single `isDefault: true` provider wins. Multiple `isDefault`
    *     providers is itself ambiguous.
    *  3. Else the single provider with the unique highest `priority`
-   *     (default 0) wins — a clean supersede.
-   *  4. Else — two or more tied top candidates with no default/preference to
-   *     break the tie — fail loud with `AmbiguousResolutionError` rather
+   *     (default 0) wins: a clean supersede.
+   *  4. Else: two or more tied top candidates with no default/preference to
+   *     break the tie, fail loud with `AmbiguousResolutionError` rather
    *     than silently picking by registration order.
    */
   private resolveExclusiveWinner(
@@ -307,7 +307,7 @@ export class Kernel {
         return { winner: preferred, reason: "user preference" };
       }
       // Stale preference (names a provider that isn't registered for this
-      // capability) — ignore it and fall through to default/priority.
+      // capability): ignore it and fall through to default/priority.
     }
 
     const defaults = candidates.filter((c) => c.isDefault);

@@ -82,7 +82,7 @@ describe("useZoomPan", () => {
     act(() => {
       onPointerDown(ptr({ pointerId: 1, clientX: 50, clientY: 50 }, el));
     });
-    // 1px in each axis — well under the default 4px threshold.
+    // 1px in each axis: well under the default 4px threshold.
     act(() => {
       onPointerMove(ptr({ pointerId: 1, clientX: 51, clientY: 51 }, el));
     });
@@ -100,7 +100,7 @@ describe("useZoomPan", () => {
       onPointerDown(ptr({ pointerId: 1, clientX: 80, clientY: 50 }, el));
       onPointerDown(ptr({ pointerId: 2, clientX: 120, clientY: 50 }, el));
     });
-    // Spread fingers further apart — should zoom in.
+    // Spread fingers further apart: should zoom in.
     act(() => {
       onPointerMove(ptr({ pointerId: 1, clientX: 40, clientY: 50 }, el));
       onPointerMove(ptr({ pointerId: 2, clientX: 160, clientY: 50 }, el));
@@ -114,7 +114,7 @@ describe("useZoomPan", () => {
     const before = hook.result.current.cam;
     const sx = 73;
     const sy = 41;
-    // World point under (sx, sy) before the zoom — must remain pinned after.
+    // World point under (sx, sy) before the zoom, must remain pinned after.
     const worldX = (sx - before.panX) / before.zoom;
     const worldY = (sy - before.panY) / before.zoom;
 

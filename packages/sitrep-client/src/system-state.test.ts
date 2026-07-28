@@ -34,20 +34,20 @@ const THREE_BODIES: SystemBodiesPayload = {
   ],
 };
 
-describe("deriveSystemState — bodyCount (batch-2: b.number off the raw system.bodies array)", () => {
+describe("deriveSystemState: bodyCount (batch-2: b.number off the raw system.bodies array)", () => {
   it("counts the bodies in system.bodies", () => {
     expect(deriveSystemState(fakeGet(bodiesPoint(THREE_BODIES)))).toEqual({
       bodyCount: 3,
     });
   });
 
-  it("reports 0 for an empty (but present) body array — a defined count, not resyncing", () => {
+  it("reports 0 for an empty (but present) body array, a defined count, not resyncing", () => {
     expect(deriveSystemState(fakeGet(bodiesPoint({ bodies: [] })))).toEqual({
       bodyCount: 0,
     });
   });
 
-  it("undefined while system.bodies hasn't arrived (resyncing) — never throws", () => {
+  it("undefined while system.bodies hasn't arrived (resyncing): never throws", () => {
     expect(deriveSystemState(fakeGet(undefined))).toBeUndefined();
   });
 

@@ -7,13 +7,13 @@ import { logger } from "@ksp-gonogo/logger";
  * window.
  *
  * Use this for hot paths where a regression would silently degrade the
- * experience — bytes/sec on the PeerJS broadcast, writes/sec to
+ * experience: bytes/sec on the PeerJS broadcast, writes/sec to
  * localStorage, etc. The warning is informational; the budget is *soft*
  * (no throw, no behavioural change). Tests can also call `rate()` to
  * make explicit assertions about steady-state cost.
  *
  * Cost: one `Date.now()` and a small array push per `record()`. Window
- * trim is amortised O(1) — events are appended in order, so we just
+ * trim is amortised O(1), events are appended in order, so we just
  * walk from the front while the head is older than the window.
  */
 
@@ -28,7 +28,7 @@ export interface PerfBudgetOptions {
    * exceeds, a warn fires (rate-limited to one per window).
    */
   threshold: number;
-  /** Suffix for the warning message — "events", "bytes", "writes" etc. */
+  /** Suffix for the warning message: "events", "bytes", "writes" etc. */
   unit?: string;
 }
 
@@ -73,7 +73,7 @@ export class PerfBudget {
           windowMs: this.opts.windowMs,
           unit: this.opts.unit,
           // Total times we've crossed the threshold since the budget was
-          // created — useful for spotting flapping vs sustained issues.
+          // created: useful for spotting flapping vs sustained issues.
           exceedanceCount: this.exceedanceCount,
         });
       }
@@ -103,7 +103,7 @@ export class PerfBudget {
   /**
    * Clear the rolling-window content (drops `rate()` back to 0) without
    * touching the exceedance counter or warn-throttle state. Used by the
-   * test gate to give each test a fresh window — burst counts from one
+   * test gate to give each test a fresh window, burst counts from one
    * test then don't bleed into the next.
    */
   resetWindow(): void {
@@ -157,7 +157,7 @@ export class PerfBudget {
     return [...PerfBudget.registry];
   }
 
-  /** Test-only — clears the registry. Doesn't dispose existing instances. */
+  /** Test-only: clears the registry. Doesn't dispose existing instances. */
   static clearRegistry(): void {
     PerfBudget.registry.clear();
   }
@@ -170,7 +170,7 @@ export class PerfBudget {
    *
    * Tests that intentionally exceed thresholds (the PerfBudget unit
    * suite, deliberately stress-y benchmarks) should either:
-   *   - Clear the registry in their own `afterEach` — the gate then
+   *   - Clear the registry in their own `afterEach`, the gate then
    *     iterates over zero budgets and passes.
    *   - Call `b.reset()` on the affected budget at the end of the test
    *     so the diff is zero.

@@ -11,7 +11,7 @@
  * becomes an existing token, a new token, or stays raw. On submit it
  * downloads `palette-decisions.json` which feeds the follow-up sweep.
  *
- * Designed to be disposable — once the long tail is migrated and the
+ * Designed to be disposable: once the long tail is migrated and the
  * lint gate is enforcing, this script has no reason to exist.
  */
 
@@ -32,7 +32,7 @@ const SCAN_ROOTS = [
   "packages/ui/src",
 ];
 
-// Files that legitimately contain raw hex values — sources of truth and
+// Files that legitimately contain raw hex values, sources of truth and
 // fixtures. Excluded from the audit so they don't show up as offenders.
 const ALLOWED_PATHS = new Set([
   "packages/app/src/styles/global.css",
@@ -162,13 +162,13 @@ function buildRows(occurrences, tokens) {
   const rows = [];
   for (const [hex, occs] of occurrences.entries()) {
     const lab = hexToLab(hex);
-    // Closest tokens by ΔE — sorted nearest first, top 3.
+    // Closest tokens by ΔE: sorted nearest first, top 3.
     const ranked = tokens
       .map((t) => ({ ...t, distance: deltaE(lab, hexToLab(t.hex)) }))
       .sort((a, b) => a.distance - b.distance);
     const closest = ranked.slice(0, 3);
     // Exact matches (ΔE ≈ 0) mean this hex IS the value of one or more
-    // existing tokens — call sites can swap in the token name without
+    // existing tokens: call sites can swap in the token name without
     // any visual change. Multiple tokens may share a hex (e.g. accent.fg
     // and accent.bg).
     const exactMatches = ranked.filter((t) => t.distance < 0.5);
@@ -181,7 +181,7 @@ function buildRows(occurrences, tokens) {
       exactMatches,
     });
   }
-  // Highest-frequency rows first — biggest payoff for the triager.
+  // Highest-frequency rows first: biggest payoff for the triager.
   rows.sort((a, b) => b.count - a.count);
   return rows;
 }
@@ -204,12 +204,12 @@ function renderHtml({ rows, tokens, totalOccurrences }) {
     .map((r, idx) => {
       const matchTag =
         r.exactMatches.length > 0
-          ? `<span class="match-tag">↔ ${r.exactMatches.map((m) => m.name).join(" / ")} <small>(this hex is already a token value — swap is mechanical${r.exactMatches.length > 1 ? "; pick the role that fits the call site" : ""})</small></span>`
+          ? `<span class="match-tag">↔ ${r.exactMatches.map((m) => m.name).join(" / ")} <small>(this hex is already a token value, swap is mechanical${r.exactMatches.length > 1 ? "; pick the role that fits the call site" : ""})</small></span>`
           : "";
       const closestSwatches = r.closest
         .map(
           (c) => `
-            <div class="swatch-chip" title="ΔE ${c.distance.toFixed(1)} — perceptually ${c.distance < 2 ? "indistinguishable" : c.distance < 5 ? "very close" : c.distance < 12 ? "noticeably different" : "distinct"}">
+            <div class="swatch-chip" title="ΔE ${c.distance.toFixed(1)}: perceptually ${c.distance < 2 ? "indistinguishable" : c.distance < 5 ? "very close" : c.distance < 12 ? "noticeably different" : "distinct"}">
               <span class="swatch" style="background:${c.hex}"></span>
               <code>${c.name}</code>
               <small>${c.hex} · ΔE ${c.distance.toFixed(1)}</small>
@@ -227,7 +227,7 @@ function renderHtml({ rows, tokens, totalOccurrences }) {
         )
         .join("");
       // Dropdown sorted by perceptual distance (closest first) so the
-      // likely target is at the top — but every token is still listed,
+      // likely target is at the top, but every token is still listed,
       // so non-perceptual decisions ("this is semantically a status colour
       // even though the closest neutral is grey-ish") remain reachable.
       const tokenOptions = r.ranked
@@ -254,7 +254,7 @@ function renderHtml({ rows, tokens, totalOccurrences }) {
           <section class="decision">
             <h3>Decision</h3>
             <select class="decision-select" data-hex="${r.hex}">
-              <option value="">— choose —</option>
+              <option value="">(choose)</option>
               ${r.exactMatches
                 .map(
                   (m, i) =>
@@ -566,5 +566,5 @@ const rows = buildRows(occurrences, tokens);
 const html = renderHtml({ rows, tokens, totalOccurrences });
 writeFileSync(OUT, html);
 console.log(
-  `Wrote ${OUT} — ${rows.length} distinct hex values, ${totalOccurrences} total occurrences, ${tokens.length} existing tokens.`,
+  `Wrote ${OUT}: ${rows.length} distinct hex values, ${totalOccurrences} total occurrences, ${tokens.length} existing tokens.`,
 );

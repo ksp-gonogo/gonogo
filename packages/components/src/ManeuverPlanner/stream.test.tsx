@@ -24,14 +24,14 @@ import { ManeuverPlannerComponent } from "./index";
  *
  * `vessel.maneuver.legacy` isn't one of the two derived channels
  * `setupStreamFixture` pre-registers (`vesselStateChannel`/
- * `spaceCenterStateChannel`) — register it locally via
+ * `spaceCenterStateChannel`): register it locally via
  * `fixture.store.registerDerivedChannel(...)`.
  *
  * Every OTHER telemetry read this widget makes (`o.sma`/`o.eccentricity`/
  * `o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe`/`o.orbitalSpeed`/`o.radius` off
  * `vessel.orbit`/the derived `vessel.state`, `t.universalTime` off
  * `useViewUt()`) has moved to a canonical Topic read with NO legacy
- * fallback (see `index.tsx`) — there is no `setupMockDataSource` leg left
+ * fallback (see `index.tsx`): there is no `setupMockDataSource` leg left
  * in this file at all; `emitOrbitReady` feeds the real
  * `vessel.orbit` wire topic instead.
  */
@@ -55,7 +55,7 @@ const REAL_NODE_ID = "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e";
 /**
  * Feeds `vessel.orbit` in the default (OnRails) quality so the derived
  * `vessel.state`'s ApR/PeR/timeToAp/timeToPe/orbitalSpeed/orbitalRadius/mu
- * inputs all resolve — everything `ManeuverPlannerComponent`'s
+ * inputs all resolve: everything `ManeuverPlannerComponent`'s
  * `telemetryStatus` gate needs to clear the "Waiting for telemetry" panel.
  * `epoch` == `pinnedUt` so `trueAnomaly` lands exactly at periapsis (0°),
  * matching the legacy fixture's `o.trueAnomaly: 0`.
@@ -76,7 +76,7 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
 
 /**
  * `TelemetryProvider` coalesces `beginFrame()` to a microtask in jsdom (no
- * `requestAnimationFrame`, see `context.tsx`'s own doc comment) — a plain
+ * `requestAnimationFrame`, see `context.tsx`'s own doc comment): a plain
  * `act()` around `transport.emit` doesn't guarantee that microtask has
  * actually run by the time a synchronous `.click()` fires right after. The
  * "Delete node" button itself appears as soon as the streamed
@@ -116,7 +116,7 @@ function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
   });
 }
 
-describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)", () => {
+describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", () => {
   it("Delete dispatches vessel.maneuver.remove with the REAL node id when vessel.maneuver.remove is carried", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -160,7 +160,7 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
 
   it("Delete falls back to legacy execute() with the resolved id when vessel.maneuver.remove isn't carried", async () => {
     const fixture = setupStreamFixture({
-      // Read IS carried (so the real id resolves) — only the COMMAND isn't.
+      // Read IS carried (so the real id resolves), only the COMMAND isn't.
       carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
       pinnedUt: 1_000_000,
     });
@@ -197,7 +197,7 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
       deleteBtn.click();
     });
 
-    // The real id still resolved (the READ is carried) — it's the command
+    // The real id still resolved (the READ is carried), it's the command
     // dispatch itself that falls back to the legacy DataSource, carrying
     // that same resolved id along with it (map-command.ts's documented
     // accepted-risk note for this edge case).
@@ -218,11 +218,11 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
       },
     });
 
-    // No TelemetryProvider mounted at all — `vessel.maneuver.legacy` never
+    // No TelemetryProvider mounted at all: `vessel.maneuver.legacy` never
     // resolves, so `useManeuverNodes` returns an empty list and no node row
     // (hence no "Delete node" button) renders. This case is now covered by
     // the plain-index unit path on `resolveNodeId` directly instead (see
-    // `index.test.tsx`) — nothing left to exercise here now that
+    // `index.test.tsx`): nothing left to exercise here now that
     // `o.maneuverNodes` has no legacy fallback of its own to fall back to.
     render(
       <DashboardItemContext.Provider value={{ instanceId: "mnv-no-stream" }}>
@@ -300,14 +300,14 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
  * on the wire (map-topic.ts's TELEMACHUS_CLEAN_HOMES, whole-topic identity
  * read) and rides the stream once carried, with zero change to the
  * `useVesselDeltaV()` call site in index.tsx. The two transports disagree
- * on field names though — legacy `StageInfo` (`deltaVVac`/`deltaVASL`) vs.
- * the new mod's `StageDeltaVEntry` (`dvVac`/`dvAsl`) — so this proves
+ * on field names though: legacy `StageInfo` (`deltaVVac`/`deltaVASL`) vs.
+ * the new mod's `StageDeltaVEntry` (`dvVac`/`dvAsl`): so this proves
  * `useVesselDeltaV`'s `normalizeStage` reconciliation actually feeds the
  * widget's rendered "Available" ΔV figure. The ΔV total only renders once
  * `!waiting` (`telemetryStatus` all-clear), so `emitOrbitReady` feeds the
  * rest of the widget's telemetry too.
  */
-describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map batch)", () => {
+describe("ManeuverPlanner: dv.stages read rides the stream (P4a shared-map batch)", () => {
   it("sums the ΔV available total off dv.stages using the new mod StageDeltaVEntry field names", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [...CARRIED_ORBIT, "dv.stages"],
@@ -326,7 +326,7 @@ describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map ba
 
     act(() => {
       emitOrbitReady(fixture);
-      // The mod's real StageDeltaVEntry field names (contract.ts:491) —
+      // The mod's real StageDeltaVEntry field names (contract.ts:491),
       // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`.
       fixture.emit("dv.stages", [
         { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },

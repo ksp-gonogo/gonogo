@@ -7,7 +7,7 @@
  * It mounts the REAL CameraFeed against a real KerbcastDataSource wired to
  * the in-process MockKerbcastSession (the same transport-level fake the vitest
  * suite uses), mirroring `buildConnectedSource()`. The one thing jsdom can't
- * do — a live MediaStream — works here because this runs in real Chromium:
+ * do (a live MediaStream) works here because this runs in real Chromium:
  * a canvas.captureStream() is delivered through the mock's onTrack path, so
  * the <video> actually paints a frame behind the controls.
  */
@@ -52,7 +52,7 @@ function teardown(): void {
   }
 }
 
-/** Paint a "camera view" — star field + a planet limb — into a 2D context of
+/** Paint a "camera view" (star field + a planet limb) into a 2D context of
  *  the given size. `t` animates the limb a touch. Used for both the live
  *  captureStream (track delivery) and the static render backdrop. */
 function paintScene(
@@ -111,9 +111,9 @@ function startCanvasStream(): MediaStream {
 
 /** Insert a static noise/scene backdrop directly behind nothing-but-above the
  *  <video> so the feed area shows a representative image in the render. The
- *  <video> won't paint the captureStream in headless Chromium, so this canvas
- *  — a later DOM sibling, hence stacked above the (black) video but below the
- *  hover chrome/controls — is what makes the feed visible. Pure render-harness
+ *  <video> won't paint the captureStream in headless Chromium, so this canvas,
+ *  a later DOM sibling, hence stacked above the (black) video but below the
+ *  hover chrome/controls: is what makes the feed visible. Pure render-harness
  *  visual; the real widget shows the live WebRTC feed here. */
 function paintFeedBackdrop(): void {
   const video = document.querySelector("video");
@@ -138,7 +138,7 @@ async function renderCamera(payload: Payload): Promise<void> {
   ds = new KerbcastDataSource({ host: "h", port: 1 }, session.transport);
   registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
 
-  // /offer answer — flightIds in track order so the SDK opens a track for
+  // /offer answer: flightIds in track order so the SDK opens a track for
   // the camera we're about to deliver.
   globalThis.fetch = (async () =>
     new Response(

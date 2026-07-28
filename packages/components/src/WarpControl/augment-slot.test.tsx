@@ -13,12 +13,12 @@ import { WarpControlComponent } from "./index";
 /**
  * WarpControl exposes two augment slots (Uplink architecture, locked in
  * `augment-slot-map.md` Feedback round 1): `warp-control.actions` (footer
- * action row — an Uplink contributes a "Warp to <mod-event>" action alongside
+ * action row: an Uplink contributes a "Warp to <mod-event>" action alongside
  * the widget's own warp buttons) and `warp-control.badges` (header escape
  * hatch). This only EXPOSES the slots; no built-in augment fills them, so an
- * unaugmented widget renders exactly as before — the slots compose nothing.
+ * unaugmented widget renders exactly as before, the slots compose nothing.
  */
-// Reset the action-handler + augment registries at the START of each test —
+// Reset the action-handler + augment registries at the START of each test,
 // the prior test's tree is already unmounted (RTL auto-cleanup) by then, so
 // these mutations never fire against a live component.
 beforeEach(() => {
@@ -49,7 +49,7 @@ function renderWarp() {
   return { fixture, ...utils };
 }
 
-describe("WarpControl — augment slots", () => {
+describe("WarpControl: augment slots", () => {
   it("renders with the slots empty when no augment is registered", async () => {
     renderWarp();
     // The widget still renders its own output; the empty slots add nothing.

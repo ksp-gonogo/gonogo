@@ -2,7 +2,7 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
-// suite runs hermetically without a prior build — mirrors the components
+// suite runs hermetically without a prior build, mirrors the components
 // package's vitest config, since the moved Scanning tests were authored against
 // that resolution. `@ksp-gonogo/components` is aliased too: several augments
 // here (TerrainBase/*, FootprintOverlay, CoveragePanel) still take a

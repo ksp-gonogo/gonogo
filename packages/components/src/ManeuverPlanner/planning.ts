@@ -16,7 +16,7 @@ import {
 import { isFiniteNumber, type PresetId } from "./presets";
 
 /**
- * Plan-dispatch helpers. Pure functions — same inputs → same result.
+ * Plan-dispatch helpers. Pure functions: same inputs → same result.
  * Lifted out of the widget so non-React surfaces (the trigger host
  * service, future tests) can reuse the math without dragging the React
  * tree along.
@@ -40,7 +40,7 @@ export interface PlanInputs {
   targetInclinationLive: number | undefined;
   targetLanLive: number | undefined;
   lan: number | undefined;
-  /** Body radius — converts the Hohmann altitude input into a radius. */
+  /** Body radius: converts the Hohmann altitude input into a radius. */
   bodyRadius: number | undefined;
   /** Hohmann target altitude (km above the reference body). */
   targetAltitudeKm: number;
@@ -228,7 +228,7 @@ function planMatchTargetPlane(i: PlanInputs): ManeuverPlan | null {
 
 /**
  * All orbital scalars must be finite before we can construct a
- * CurrentOrbit — otherwise the propagator hits NaNs and downstream
+ * CurrentOrbit: otherwise the propagator hits NaNs and downstream
  * widgets render garbage.
  */
 export function buildCurrentOrbit(vals: {
@@ -311,7 +311,7 @@ export function computeBurnTrueAnomaly(
 }
 
 /**
- * μ from live telemetry only — never the body-registry value. vis-viva
+ * μ from live telemetry only: never the body-registry value. vis-viva
  * (v²·a·r/(2a−r)) is preferred; Kepler's 3rd (4π²a³/T²) is the fallback
  * for the brief window at scene load when orbitalSpeed/radius haven't
  * streamed yet. Returns 0 when neither formula has usable inputs.

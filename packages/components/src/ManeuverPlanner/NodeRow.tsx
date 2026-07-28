@@ -1,6 +1,7 @@
 import { formatDuration } from "@ksp-gonogo/core";
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";
@@ -51,7 +52,7 @@ export function NodeRow({
         <NodeMeta>
           {completed
             ? "Removing in 10 s"
-            : `burn in ${timeTo === null ? "—" : formatDuration(timeTo)}`}
+            : `burn in ${timeTo === null ? NULL_DISPLAY : formatDuration(timeTo)}`}
         </NodeMeta>
       </NodeMain>
       <RowActions>
@@ -132,7 +133,7 @@ function NodeEditor({
         onChange={setUt}
       />
       <EditHint>
-        burn in {timeTo === null ? "—" : formatDuration(timeTo)}
+        burn in {timeTo === null ? NULL_DISPLAY : formatDuration(timeTo)}
       </EditHint>
       <LabeledInput label="Prograde" value={prograde} onChange={setProgade} />
       <LabeledInput label="Normal" value={normal} onChange={setNormal} />

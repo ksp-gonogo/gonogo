@@ -17,7 +17,7 @@ export const DEFAULT_PROFILE_ID = "default";
  * pending writes aren't lost.
  *
  * Internally the cache still namespaces every entry under a constant
- * "default" profile id — the storage layer was originally designed to
+ * "default" profile id: the storage layer was originally designed to
  * support multiple save profiles, but that concept has been retired and
  * there's only ever one bucket now.
  */
@@ -66,7 +66,7 @@ export function useFogMaskStore(): FogMaskStore | null {
 }
 
 /**
- * Standalone store provider — useful when a modal portal renders outside
+ * Standalone store provider: useful when a modal portal renders outside
  * the `FogMaskCacheProvider` tree but still needs access to the store for
  * bulk operations (e.g. clearing a profile's fog on delete).
  */
@@ -86,7 +86,7 @@ export function FogMaskStoreProvider({
 
 /**
  * Returns the current fog mask cache, or null if no provider is mounted
- * above. Fog is an optional dashboard feature — callers should handle null
+ * above. Fog is an optional dashboard feature, callers should handle null
  * by skipping the fog pipeline rather than erroring.
  */
 export function useFogMaskCache(): FogMaskCache | null {

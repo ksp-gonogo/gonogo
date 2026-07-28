@@ -22,7 +22,7 @@ export function createNotesHost(
   service.subscribe((snap) => bridge.broadcastSnapshot(snap));
   // Initial broadcast also fires so a station that's already connected at
   // host startup gets the snapshot. But broadcast() only reaches currently
-  // connected peers — a station that joins LATER misses this. So we also
+  // connected peers: a station that joins LATER misses this. So we also
   // push a fresh snapshot to each new peer on connect (the user-reported
   // bug: first-load station notes widget showed empty until a mutation).
   bridge.broadcastSnapshot(service.snapshot());

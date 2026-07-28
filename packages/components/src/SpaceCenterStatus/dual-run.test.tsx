@@ -6,14 +6,14 @@ import midCareer from "./__fixtures__/mid-career-mixed-no-tier-text.json";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * SpaceCenterStatus's reads are ALL canonical now — `career.status`
+ * SpaceCenterStatus's reads are ALL canonical now, `career.status`
  * (`?.economy?.funds` + `?.facilities`), `spaceCenter.scene`
  * (`?.scene`/`?.launchSite`), `spaceCenter.partsAvailable` (`?.count`) and
- * the derived `spaceCenter.state` channel (pad occupancy) — none has a legacy
+ * the derived `spaceCenter.state` channel (pad occupancy): none has a legacy
  * fallback. The original version of this test rendered the SAME career state
  * once off a legacy `DataSource` (`snapshotWidgetMode`, which mounts no
  * `TelemetryProvider`) and once off the stream, asserting byte-identical DOM;
- * that comparison is no longer possible — the legacy leg now renders nothing
+ * that comparison is no longer possible, the legacy leg now renders nothing
  * but its empty state, since every one of its reads is stream-only. Same
  * underlying cause (full canonical migration, not a test bug) as
  * `TechTree`/`ScienceBench`/`TargetPicker`'s own `dual-run.test.tsx` files
@@ -21,12 +21,12 @@ import { SpaceCenterStatusComponent } from "./index";
  *
  * What remains, and is still worth its own file: the mid-career fixture run
  * genuinely through the stream pipeline in the shape the real wire actually
- * sends — `career.status.facilities` (CareerViewProvider.BuildFacilities) is
+ * sends: `career.status.facilities` (CareerViewProvider.BuildFacilities) is
  * enum-keyed `currentTier`/`maxTier`/`upgradeCost` with no tier text, so this
  * fixture (unlike the tier-text `mid-career-mixed.json`) already omits it,
  * matching what `parseFacilityLevels` produces for a real enum-keyed entry.
  */
-describe("SpaceCenterStatus — real mid-career fixture render off the stream (delay=0)", () => {
+describe("SpaceCenterStatus: real mid-career fixture render off the stream (delay=0)", () => {
   it("renders funds, facility tiers and pad state off the stream, no legacy leg", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: [
@@ -73,7 +73,7 @@ describe("SpaceCenterStatus — real mid-career fixture render off the stream (d
           science: null,
         },
         // Enum-keyed shape the real wire sends (currentTier/maxTier/
-        // upgradeCost) — parseFacilityLevels resolves the enum keys to the
+        // upgradeCost): parseFacilityLevels resolves the enum keys to the
         // widget's short-code display names.
         facilities: {
           LaunchPad: {

@@ -29,7 +29,7 @@ const CARRIED_COMMANDS = [
 
 /**
  * Reconstructs the legacy action string a dispatched `{command, args}` pair
- * used to be — keeps every one of this file's `telemetry.calls`
+ * used to be: keeps every one of this file's `telemetry.calls`
  * assertions (`.toContain("t.timeWarp[0]")`, `.toContain("f.ag1")`, ...)
  * unchanged even though the dispatch itself now goes through
  * `dispatchActiveCommand`/`TelemetryClient.dispatch` instead of a legacy
@@ -51,8 +51,8 @@ function formatCommand(command: string, args: unknown): string {
 /**
  * Real stream harness (`StubTransport` + `TelemetryClient` + `TimelineStore`,
  * registered via the non-hook `setActiveTimelineStoreForTests`/
- * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests` —
- * see `@ksp-gonogo/sitrep-client`'s `context.tsx`) — `AlarmHostService`'s warp
+ * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`:
+ * see `@ksp-gonogo/sitrep-client`'s `context.tsx`): `AlarmHostService`'s warp
  * reads (`getWarpState`), threshold `dataKey` reads (`getValue`), and
  * `contracts.active`/command dispatch (`dispatchActiveCommand`) all ride
  * this same store/client now, replacing the legacy `getLatestValue`/
@@ -63,7 +63,7 @@ function formatCommand(command: string, args: unknown): string {
  * `t.currentRateIndex`/`t.currentRate` merge into a running `WarpState` and
  * re-publish the whole `time.warp` record (the wire shape `getWarpState`
  * reads), and every other key routes through `mapTopic` onto its stream
- * topic — emitted as a bare literal topic (no derived-channel machinery
+ * topic: emitted as a bare literal topic (no derived-channel machinery
  * needed; `AlarmHostService` never reads `vessel.state`/orbit fields).
  */
 function fakeTelemetry(): FakeTelemetry {
@@ -102,7 +102,7 @@ function fakeTelemetry(): FakeTelemetry {
 
   // Seed the action-group current-value read so `f.ag1`'s toggle -> absolute
   // bridge (`getCurrentValue` in `map-command.ts`) has a real boolean to
-  // invert — without it, `buildArgs` returns INVALID and the command never
+  // invert: without it, `buildArgs` returns INVALID and the command never
   // maps at all.
   //
   // Publishes the whole `vessel.control` record (the NAMED action-group list
@@ -308,7 +308,7 @@ describe("AlarmHostService", () => {
 
   it("loads pre-onFire persisted alarms cleanly with onFire undefined", async () => {
     // Hand-rolled v1 record (no `onFire` field) seeded directly into
-    // storage — verifies migrateAlarm leaves onFire undefined and the
+    // storage: verifies migrateAlarm leaves onFire undefined and the
     // service treats it as a no-side-effect alarm.
     const storage = memoryStorage();
     storage.setItem(
@@ -358,7 +358,7 @@ describe("AlarmHostService", () => {
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
       // Drain microtasks (telemetry.execute is async). Don't use
-      // runAllTimersAsync — the host's own tick interval would loop
+      // runAllTimersAsync: the host's own tick interval would loop
       // forever under fake timers.
       await Promise.resolve();
       await Promise.resolve();
@@ -386,12 +386,12 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
-      // runAllTimersAsync — the host's own tick interval would loop
+      // runAllTimersAsync: the host's own tick interval would loop
       // forever under fake timers.
       await Promise.resolve();
       await Promise.resolve();
       // Filter out warp-step calls (`t.timeWarp[0]`) that the warp-down
-      // ladder makes — they're unrelated to onFire dispatch.
+      // ladder makes: they're unrelated to onFire dispatch.
       const userActions = telemetry.calls.filter(
         (c) => !c.startsWith("t.timeWarp"),
       );
@@ -412,11 +412,11 @@ describe("AlarmHostService", () => {
           sustainSeconds: 0,
         },
       });
-      // Start below threshold — alarm stays pending.
+      // Start below threshold: alarm stays pending.
       telemetry.set("v.altitude", 50_000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
-      // Cross the threshold — should immediately fire.
+      // Cross the threshold: should immediately fire.
       telemetry.set("v.altitude", 70_500);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -435,19 +435,19 @@ describe("AlarmHostService", () => {
           sustainSeconds: 3,
         },
       });
-      // First tick — condition matches, but sustain not satisfied.
+      // First tick: condition matches, but sustain not satisfied.
       telemetry.set("v.surfaceSpeed", 200);
       telemetry.set("t.universalTime", 1000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
 
-      // Two seconds later — still under sustain.
+      // Two seconds later: still under sustain.
       telemetry.set("t.universalTime", 1002);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
 
-      // Sustain hit at +3s — alarm fires.
+      // Sustain hit at +3s: alarm fires.
       telemetry.set("t.universalTime", 1003);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
@@ -471,13 +471,13 @@ describe("AlarmHostService", () => {
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
 
-      // Drop below threshold — match resets.
+      // Drop below threshold: match resets.
       telemetry.set("v.altitude", 69_500);
       telemetry.set("t.universalTime", 1003);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
 
-      // Cross again at 1010 — sustain timer starts fresh, not from 1000.
+      // Cross again at 1010: sustain timer starts fresh, not from 1000.
       telemetry.set("v.altitude", 71_000);
       telemetry.set("t.universalTime", 1010);
       await vi.advanceTimersByTimeAsync(1100);
@@ -506,7 +506,7 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1003);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("fired");
-      // Drop below, then cross again — pre-fix this regressed to firing
+      // Drop below, then cross again: pre-fix this regressed to firing
       // and chimed a second time.
       telemetry.set("v.altitude", 69_500);
       telemetry.set("t.universalTime", 1006);
@@ -543,7 +543,7 @@ describe("AlarmHostService", () => {
     it("does nothing when there are no eligible alarms", async () => {
       const { svc, telemetry } = makeService();
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -566,7 +566,7 @@ describe("AlarmHostService", () => {
       // No samples yet → ETA unknown → ladder pinned at 100× while the
       // slope estimator collects data.
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -591,7 +591,7 @@ describe("AlarmHostService", () => {
       });
       const before = [...telemetry.calls];
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -608,7 +608,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -628,7 +628,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -654,13 +654,13 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo?.alarmId).toBe(far.id);
 
-      // Add a sooner alarm — next tick should retarget and pick a lower
+      // Add a sooner alarm: next tick should retarget and pick a lower
       // safe rate based on its earlier UT.
       const near = svc.addAlarm({
         name: "Near",
@@ -688,7 +688,7 @@ describe("AlarmHostService", () => {
         },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -704,7 +704,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -721,7 +721,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -742,7 +742,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -791,7 +791,7 @@ describe("AlarmHostService", () => {
       });
       telemetry.set("v.altitude", 10_000);
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -821,7 +821,7 @@ describe("AlarmHostService", () => {
         },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -833,7 +833,7 @@ describe("AlarmHostService", () => {
       }
       const farIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
       expect(farIndex).toBeGreaterThan(0);
-      // Now jump close to the threshold (still ascending) — only ~50m
+      // Now jump close to the threshold (still ascending), only ~50m
       // distance at 100 m/s = 0.5s ETA → drops to idx 0.
       for (let i = 6; i < 12; i++) {
         telemetry.set("t.universalTime", 1000 + i);
@@ -857,11 +857,11 @@ describe("AlarmHostService", () => {
         },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
-      // Descending altitude — moving away from the >= threshold.
+      // Descending altitude: moving away from the >= threshold.
       for (let i = 0; i < 6; i++) {
         telemetry.set("t.universalTime", 1000 + i);
         telemetry.set("v.altitude", 60_000 - i * 100);
@@ -881,12 +881,12 @@ describe("AlarmHostService", () => {
           op: ">=",
           value: 70_000,
           // Sustain so it stays in `pending` (matchSinceUT set, but state
-          // hasn't transitioned yet) — exercises the matchSinceUT guard.
+          // hasn't transitioned yet): exercises the matchSinceUT guard.
           sustainSeconds: 30,
         },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -896,7 +896,7 @@ describe("AlarmHostService", () => {
       telemetry.set("v.altitude", 71_000);
       await vi.advanceTimersByTimeAsync(1100);
       // matchSinceUT now set; alarm still `pending` but no longer
-      // eligible — session terminates.
+      // eligible: session terminates.
       expect(svc.snapshot().alarms[0].matchSinceUT).not.toBeNull();
       expect(svc.snapshot().warpTo).toBeNull();
     });
@@ -908,7 +908,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask — drain it before any
+      // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
@@ -916,7 +916,7 @@ describe("AlarmHostService", () => {
       telemetry.set("t.currentRateIndex", 5);
       telemetry.set("t.currentRate", 1000);
       // Advance well beyond WARP_INTENT_WINDOW_MS so the legacy intent
-      // suppression has lapsed — the warp-to session itself must keep the
+      // suppression has lapsed, the warp-to session itself must keep the
       // detector quiet.
       await vi.advanceTimersByTimeAsync(5000);
       expect(svc.snapshot().unscheduledWarp).toBeNull();
@@ -1135,7 +1135,7 @@ describe("AlarmHostService", () => {
 
     it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      // Threshold already met — the tick inside addAlarm will fire it
+      // Threshold already met: the tick inside addAlarm will fire it
       // straight away, so the dispatch path runs without further timer
       // advances.
       telemetry.set("v.altitude", 70_500);
@@ -1209,7 +1209,7 @@ describe("AlarmHostService", () => {
         name: "Burn",
         trigger: { kind: "time", ut: 1500, leadSeconds: 5 },
       });
-      // Cross UT — within the 2s firing window.
+      // Cross UT: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
@@ -1217,7 +1217,7 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1501);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
-      // 2s past — transitions to fired.
+      // 2s past: transitions to fired.
       telemetry.set("t.universalTime", 1502);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("fired");

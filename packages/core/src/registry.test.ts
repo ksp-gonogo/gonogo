@@ -124,7 +124,7 @@ describe("registerDataSource / getDataSources", () => {
   it("replaces a source registered under the same id, without throwing (intentional swap)", () => {
     // Unlike components/themes, re-registering a data source under an existing
     // id is a supported swap (live -> replay, PeerHost wrapping, station
-    // PeerClient replacement — see registerDataSource's doc comment). It must
+    // PeerClient replacement: see registerDataSource's doc comment). It must
     // replace + notify, never throw.
     registerDataSource(mockDataSource);
     const swapped: DataSource = { ...mockDataSource, name: "Swapped" };

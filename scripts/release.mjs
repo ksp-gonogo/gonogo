@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bump the lockstep version, commit, and tag. Does NOT push — review the
+// Bump the lockstep version, commit, and tag. Does NOT push, review the
 // commit + tag locally, then push manually:
 //
 //   git push origin main v0.1.0
@@ -70,7 +70,7 @@ if (!bump) {
 
 const dirty = captureStatus();
 if (dirty.length > 0) {
-  console.error("working tree is dirty — commit or stash first:");
+  console.error("working tree is dirty, commit or stash first:");
   console.error(dirty);
   process.exit(1);
 }

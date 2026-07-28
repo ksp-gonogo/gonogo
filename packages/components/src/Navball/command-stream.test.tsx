@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
-/** Stock's ten customs, all disengaged — the named-list shape the mod now sends. */
+/** Stock's ten customs, all disengaged: the named-list shape the mod now sends. */
 const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
   index: i + 1,
   name: `AG${i + 1}`,
@@ -25,21 +25,21 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  * widgets' command side"), mirroring `ActionGroup/stream.test.tsx`'s pilot
  * pattern but covering the
  * three DISTINCT `map-command.ts` arg-shape bridges Navball's own control
- * surface exercises (the widget code is unchanged — this is test/validation
+ * surface exercises (the widget code is unchanged, this is test/validation
  * work proving the transparent command shim genuinely routes each one, not
  * a rewrite of the widget):
  *
- * 1. **toggle -> absolute** — the SAS ON/OFF button (`f.sas` ->
+ * 1. **toggle -> absolute**: the SAS ON/OFF button (`f.sas` ->
  *    `vessel.control.setSas`), same bridge `ActionGroup`'s pilot already
  *    covers, reproduced here because Navball's `ControlSurface` fires it
  *    through its own button rather than `ActionGroupComponent`'s.
- * 2. **positional -> named (enum)** — a SAS-mode button (`f.setSASMode
+ * 2. **positional -> named (enum)**: a SAS-mode button (`f.setSASMode
  *    [Prograde]` -> `vessel.control.setSasMode`, name -> ordinal bridge).
- * 3. **positional -> named (direct-actuation, no state to invert)** — the
+ * 3. **positional -> named (direct-actuation, no state to invert)**, the
  *    throttle ZERO button (`f.throttleZero` -> `vessel.control.setThrottle`).
  *
  * Every mapped action Navball declares that ISN'T one of these three bridge
- * shapes (`f.rcs`/`f.setThrottle`/`f.throttleFull` — each the SAME bridge as
+ * shapes (`f.rcs`/`f.setThrottle`/`f.throttleFull`: each the SAME bridge as
  * one of the three above, just a different key) is covered at the
  * `map-command.ts` unit level already; this file's job is proving the
  * WIDGET's real button click genuinely reaches `TelemetryClient.dispatch`
@@ -47,9 +47,9 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  *
  * `f.throttleUp`/`f.throttleDown`/`arm-fbw`/`disarm-fbw`
  * (`v.setFbW`)/`set-pitch`/`set-yaw`/`set-roll`/`translate-*`/`set-*-trim`
- * are all `KNOWN_COMMAND_GAPS` — deliberately NOT exercised here; they stay
+ * are all `KNOWN_COMMAND_GAPS`, deliberately NOT exercised here; they stay
  * command-legacy (see `map-command.ts`'s own gap list). `Twr` (the other
- * Navball/Twr command-validation candidate) declares `actions: []` — no
+ * Navball/Twr command-validation candidate) declares `actions: []`: no
  * `useExecuteAction` call at all, so there is nothing to validate there;
  * it's command-legacy by having no command surface whatsoever.
  *
@@ -61,11 +61,11 @@ const CONTROL_MODE_CONFIG = { controlMode: true };
 const CONTROL_SIZE = { w: 10, h: 20 };
 
 beforeEach(() => {
-  // Navball registers ~30 actions via useActionInput on every mount — this
+  // Navball registers ~30 actions via useActionInput on every mount, this
   // file mounts it 6 times (one per test) inside the same 1000ms rolling
   // window the `useActionInput register/sec` PerfBudget (threshold 50)
-  // tracks, which would trip on the 2nd mount alone. Reset before each test
-  // — the codebase's established idiom for this exact repeated-mount shape
+  // tracks, which would trip on the 2nd mount alone. Reset before each test,
+  // the codebase's established idiom for this exact repeated-mount shape
   // (see Navball/dual-run.test.tsx, useActionInput.test.tsx).
   PerfBudget.getAll()
     .find((b) => b.name.startsWith("useActionInput register"))
@@ -94,7 +94,7 @@ function renderControlNavball(
   );
 }
 
-describe("Navball control surface — command bridges (M3 batch 4, Part B)", () => {
+describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => {
   it("SAS toggle dispatches vessel.control.setSas when promoted (bridge 1: toggle -> absolute)", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "vessel.control.setSas"],
@@ -199,7 +199,7 @@ describe("Navball control surface — command bridges (M3 batch 4, Part B)", () 
     renderControlNavball("nav-cmd-mode", fixture.Provider);
 
     // No current-value read needed for this bridge (positional -> named,
-    // not toggle -> absolute) — the button is live from first render.
+    // not toggle -> absolute): the button is live from first render.
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
       button.click();

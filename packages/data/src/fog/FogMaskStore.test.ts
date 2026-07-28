@@ -97,12 +97,12 @@ describe("FogMaskStore", () => {
     await store.save("p1", "Kerbin", HI, new Uint8Array([1, 2]), 2, 1);
     await store.save("p1", "Kerbin", LO, new Uint8Array([3, 4]), 2, 1);
     await store.save("p1", "Mun", BIOME, new Uint8Array([5, 6]), 2, 1);
-    // Different profile — must NOT be returned.
+    // Different profile: must NOT be returned.
     await store.save("p2", "Kerbin", HI, new Uint8Array([9]), 1, 1);
 
     const masks = await store.loadAllForProfile("p1");
     expect(masks).toHaveLength(3);
-    // Each row carries its layerId — used by FogSyncHostService to route
+    // Each row carries its layerId: used by FogSyncHostService to route
     // station-bound payloads to the right per-type slot.
     const byKey = new Map(
       masks.map((m) => [

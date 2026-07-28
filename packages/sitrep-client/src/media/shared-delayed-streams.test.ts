@@ -1,5 +1,5 @@
 /**
- * `SharedDelayedStreams` — the per-camera delayed-pipeline cache. Proves the
+ * `SharedDelayedStreams`: the per-camera delayed-pipeline cache. Proves the
  * headline correctness claim of the 2026-07-17 sharing work: delay is a
  * property of the CAMERA, so N consumers of one track share ONE build (one
  * processor), the last consumer tears it down, and a SECOND camera is
@@ -32,7 +32,7 @@ function trackedBuild(tag: string) {
 /** Drain the microtask queue so the cache's async build IIFE settles. */
 const flushMicrotasks = () => Promise.resolve();
 
-describe("SharedDelayedStreams — one pipeline per camera, shared by all consumers", () => {
+describe("SharedDelayedStreams: one pipeline per camera, shared by all consumers", () => {
   it("two consumers of ONE camera build the pipeline exactly once and see the same output", async () => {
     const cache = new SharedDelayedStreams<string, unknown>();
     const camera = {}; // stands in for the shared MediaStream object
@@ -42,7 +42,7 @@ describe("SharedDelayedStreams — one pipeline per camera, shared by all consum
     const b = cache.acquire(camera, build); // second consumer, same camera
     await flushMicrotasks();
 
-    // ONE build — a MediaStreamTrack admits only one processor; this is the
+    // ONE build: a MediaStreamTrack admits only one processor; this is the
     // whole point.
     expect(build).toHaveBeenCalledTimes(1);
     expect(cache.size).toBe(1);

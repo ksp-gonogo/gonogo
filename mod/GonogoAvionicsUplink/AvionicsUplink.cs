@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace GonogoAvionicsUplink
 {
     /// <summary>
-    /// GonogoAvionicsUplink — the RP-1 controllable-mass ascent go/no-go. Reflects
+    /// GonogoAvionicsUplink: the RP-1 controllable-mass ascent go/no-go. Reflects
     /// the RP-1 avionics units' live <c>CurrentMassLimit</c> (arm's-length, no
     /// RP-0 compile link) and pairs it with the active vessel's stock total mass,
     /// emitting a single <c>avionics.status</c> Topic. Presence is exposed on the

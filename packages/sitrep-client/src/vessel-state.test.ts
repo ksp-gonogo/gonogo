@@ -19,7 +19,7 @@ import {
   type VesselTargetPayload,
 } from "./vessel-state";
 
-/** Kerbin's mean radius, metres — a realistic reference body for the apsides tests. */
+/** Kerbin's mean radius, metres, a realistic reference body for the apsides tests. */
 const KERBIN_RADIUS = 600_000;
 
 const CIRCULAR_ORBIT: VesselOrbitPayload = {
@@ -27,8 +27,8 @@ const CIRCULAR_ORBIT: VesselOrbitPayload = {
   sma: 700_000,
   ecc: 0,
   inc: 0,
-  lan: null, // undefined ascending node (near-equatorial) — must not crash/NaN
-  argPe: null, // undefined periapsis (near-circular) — must not crash/NaN
+  lan: null, // undefined ascending node (near-equatorial), must not crash/NaN
+  argPe: null, // undefined periapsis (near-circular): must not crash/NaN
   meanAnomalyAtEpoch: 0,
   epoch: 0,
   mu: 3.5316e12, // Kerbin's GM
@@ -206,7 +206,7 @@ function commsPoint(
   };
 }
 
-describe("enum-ordinal → NAME display maps — situationName/sasModeName/targetKind/commsControlState* (enum-ordinal→string-name migration)", () => {
+describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKind/commsControlState* (enum-ordinal→string-name migration)", () => {
   const IDENTITY: VesselIdentityPayload = {
     vesselId: "vessel:abc-123",
     name: "Test Ship",
@@ -271,7 +271,7 @@ describe("enum-ordinal → NAME display maps — situationName/sasModeName/targe
     expect(s2?.commsControlStateOrdinal).toBe(0);
   });
 
-  it("resolves in the Loaded (measured) basis too — not orbital-derived", () => {
+  it("resolves in the Loaded (measured) basis too, not orbital-derived", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
       "vessel.flight": flightPoint(MEASURED_FLIGHT),
@@ -332,7 +332,7 @@ describe("enum-ordinal → NAME display maps — situationName/sasModeName/targe
   });
 });
 
-describe("encounter display maps — encounterExists/encounterBody/encounterTime (batch-2: o.encounterExists/Body/Time off vessel.orbit.encounter)", () => {
+describe("encounter display maps: encounterExists/encounterBody/encounterTime (batch-2: o.encounterExists/Body/Time off vessel.orbit.encounter)", () => {
   function orbitWithEncounter(
     encounter: VesselOrbitPayload["encounter"],
     quality = Quality.OnRails,
@@ -383,7 +383,7 @@ describe("encounter display maps — encounterExists/encounterBody/encounterTime
     expect(state?.encounterExists).toBe(0);
   });
 
-  it("no encounter record → exists 0 (defined none), body/time undefined — never the whole-record undefined", () => {
+  it("no encounter record → exists 0 (defined none), body/time undefined; never the whole-record undefined", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
     });
@@ -432,7 +432,7 @@ describe("encounter display maps — encounterExists/encounterBody/encounterTime
   });
 });
 
-describe("targetRelativeSpeed — signed range-rate (batch-2: tar.o.relativeVelocity off vessel.target Vec3s)", () => {
+describe("targetRelativeSpeed: signed range-rate (batch-2: tar.o.relativeVelocity off vessel.target Vec3s)", () => {
   it("NEGATIVE when closing (relVel points toward us along the line of sight)", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
@@ -457,7 +457,7 @@ describe("targetRelativeSpeed — signed range-rate (batch-2: tar.o.relativeVelo
     expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeCloseTo(2, 6);
   });
 
-  it("undefined at zero range (no line of sight — never divides by zero)", () => {
+  it("undefined at zero range (no line of sight; never divides by zero)", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.target": targetPoint({
@@ -506,10 +506,10 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
     ecc: 0.1,
   };
 
-  it("apoapsisRadius/periapsisRadius = sma·(1±ecc) off the elements — no body table needed (OnRails)", () => {
+  it("apoapsisRadius/periapsisRadius = sma·(1±ecc) off the elements: no body table needed (OnRails)", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
-      // deliberately NO system.bodies — radii need no body radius
+      // deliberately NO system.bodies: radii need no body radius
     });
 
     const state = deriveVesselState(get, 0);
@@ -543,7 +543,7 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
 
   it("nextApsis picks periapsis (type -1) when timeToPe is the smaller countdown; time equals timeToPe", () => {
     // At meanAnomaly 0 (viewUt 0, epoch 0), timeToPe = 0 (already there),
-    // timeToAp = half a period — so the NEXT apsis is periapsis.
+    // timeToAp = half a period: so the NEXT apsis is periapsis.
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
     });
@@ -697,7 +697,7 @@ describe("target scalar distance + target orbit elements (A-tranche: tar.distanc
     );
   });
 
-  it("targetPeriapsisAlt is undefined (resyncing) while system.bodies is absent — period/trueAnomaly still resolve", () => {
+  it("targetPeriapsisAlt is undefined (resyncing) while system.bodies is absent, period/trueAnomaly still resolve", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.target": targetPoint({
@@ -753,7 +753,7 @@ describe("target scalar distance + target orbit elements (A-tranche: tar.distanc
 });
 
 describe("deriveVesselState", () => {
-  describe("OnRails — propagated from vessel.orbit elements", () => {
+  describe("OnRails: propagated from vessel.orbit elements", () => {
     it("matches kepler.solve(orbit, viewUt) at the frozen viewUt", () => {
       const viewUt = 12_345;
       const { get } = fakeGet({
@@ -796,7 +796,7 @@ describe("deriveVesselState", () => {
       expect(atZero?.position).not.toEqual(later?.position);
     });
 
-    it("does not read vessel.flight at all — OnRails kinematics never touch measured samples", () => {
+    it("does not read vessel.flight at all, OnRails kinematics never touch measured samples", () => {
       const { get, requestedTopics } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
           quality: Quality.OnRails,
@@ -805,8 +805,8 @@ describe("deriveVesselState", () => {
 
       deriveVesselState(get, 100);
 
-      // vessel.identity/system.bodies ARE read on this basis (met/apsides)
-      // — only vessel.flight is off-limits here.
+      // vessel.identity/system.bodies ARE read on this basis (met/apsides),
+      // only vessel.flight is off-limits here.
       expect(requestedTopics).not.toContain("vessel.flight");
       expect(requestedTopics).toContain("vessel.orbit");
     });
@@ -838,7 +838,7 @@ describe("deriveVesselState", () => {
     });
   });
 
-  describe("Loaded — measured from vessel.flight", () => {
+  describe("Loaded: measured from vessel.flight", () => {
     it("returns vessel.flight's own kinematics, not a propagated value", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
@@ -883,7 +883,7 @@ describe("deriveVesselState", () => {
 
     it("the picker reads the ORBIT sample's quality, not any global flag", () => {
       // Orbit says OnRails even though a (possibly stale) flight sample also
-      // happens to be available — must still propagate, not measure.
+      // happens to be available: must still propagate, not measure.
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
           quality: Quality.OnRails,
@@ -901,7 +901,7 @@ describe("deriveVesselState", () => {
       const seenUts: number[] = [];
       const get: DerivedGet = (<T>(topic: string) => {
         // A real `get` is bound to one frame's viewUt structurally (it's
-        // `TimelineStore.sample` closed over a single token) — this fake
+        // `TimelineStore.sample` closed over a single token): this fake
         // asserts the derive function itself never smuggles in a second UT
         // by calling `get` with anything topic-shaped that isn't one of its
         // declared inputs, and that whatever it reads is self-consistent
@@ -925,8 +925,8 @@ describe("deriveVesselState", () => {
     });
   });
 
-  describe("undefined (not whole yet) vs null (confirmed absent) — never conflated", () => {
-    it("no vessel.orbit point yet at viewUt -> undefined (inputs not whole, cold-start/resync — not a confirmed absence)", () => {
+  describe("undefined (not whole yet) vs null (confirmed absent); never conflated", () => {
+    it("no vessel.orbit point yet at viewUt -> undefined (inputs not whole, cold-start/resync, not a confirmed absence)", () => {
       const { get } = fakeGet({});
 
       expect(deriveVesselState(get, 0)).toBeUndefined();
@@ -973,8 +973,8 @@ describe("deriveVesselState", () => {
   });
 });
 
-describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periapsisAlt/timeToAp/timeToPe (M3 vessel.state extend)", () => {
-  describe("OnRails — computed from vessel.orbit elements (+ vessel.identity for met, + system.bodies for apsides)", () => {
+describe("derivable orbital fields: met/period/trueAnomaly/apoapsisAlt/periapsisAlt/timeToAp/timeToPe (M3 vessel.state extend)", () => {
+  describe("OnRails: computed from vessel.orbit elements (+ vessel.identity for met, + system.bodies for apsides)", () => {
     it("period matches 2π·sqrt(sma³/mu) by hand for a circular orbit", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
@@ -1002,7 +1002,7 @@ describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periap
       expect(deriveVesselState(get, 0)?.trueAnomaly).toBe(0);
     });
 
-    it("trueAnomaly advances with viewUt (matches kepler.solveAnomalies exactly, converted to wrapped degrees — never a second Kepler solve)", () => {
+    it("trueAnomaly advances with viewUt (matches kepler.solveAnomalies exactly, converted to wrapped degrees; never a second Kepler solve)", () => {
       const elements: OrbitElements = {
         sma: CIRCULAR_ORBIT.sma,
         ecc: CIRCULAR_ORBIT.ecc,
@@ -1062,7 +1062,7 @@ describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periap
       expect(deriveVesselState(get, 700)?.met).toBe(600);
     });
 
-    it("met is null (not undefined) when vessel.identity hasn't arrived yet — a secondary input, not a whole-record blocker", () => {
+    it("met is null (not undefined) when vessel.identity hasn't arrived yet, a secondary input, not a whole-record blocker", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
           quality: Quality.OnRails,
@@ -1169,7 +1169,7 @@ describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periap
     });
   });
 
-  describe("Loaded — all seven fields are null (measured basis leaves them null, same as position/velocity)", () => {
+  describe("Loaded: all seven fields are null (measured basis leaves them null, same as position/velocity)", () => {
     it("every new field is null, not undefined, in the measured basis", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
@@ -1198,7 +1198,7 @@ describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periap
   });
 });
 
-describe("body-NAME display maps — parentBodyName/referenceBodyName (Step-2 migration task 1: v.body/o.referenceBody index→name)", () => {
+describe("body-NAME display maps: parentBodyName/referenceBodyName (Step-2 migration task 1: v.body/o.referenceBody index→name)", () => {
   const IDENTITY = {
     vesselId: "vessel:abc-123",
     name: "Test Ship",
@@ -1248,7 +1248,7 @@ describe("body-NAME display maps — parentBodyName/referenceBodyName (Step-2 mi
     expect(state?.parentBodyName).toBe("Mun");
   });
 
-  it("resolves names in the Loaded (measured) basis too — not orbital-derived", () => {
+  it("resolves names in the Loaded (measured) basis too, not orbital-derived", () => {
     const { get } = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
       "vessel.flight": flightPoint(MEASURED_FLIGHT),
@@ -1321,8 +1321,8 @@ function fakeGetStatus(
   return (topic) => statuses[topic] ?? "resyncing";
 }
 
-describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", () => {
-  describe("OnRails — status is the orbit input's own status, vessel.flight ignored entirely", () => {
+describe("deriveVesselStateStatus (M2 design §4.4: worst of inputs, T4)", () => {
+  describe("OnRails: status is the orbit input's own status, vessel.flight ignored entirely", () => {
     it("passes the orbit status straight through when the orbit sample is OnRails", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
@@ -1345,14 +1345,14 @@ describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", ()
       });
       const getStatus = fakeGetStatus({
         "vessel.orbit": "live",
-        "vessel.flight": "absent", // worst possible — must be ignored
+        "vessel.flight": "absent", // worst possible: must be ignored
       });
 
       expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("live");
     });
   });
 
-  describe("Loaded — worst of (orbit, flight), tested for each input status", () => {
+  describe("Loaded: worst of (orbit, flight), tested for each input status", () => {
     const cases: Array<{
       orbit: StreamStatusValue;
       flight: StreamStatusValue;
@@ -1393,7 +1393,7 @@ describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", ()
 
   describe("orbit resyncing/absent dominates outright, before quality is even consulted", () => {
     it("vessel.orbit resyncing -> the whole channel is 'resyncing', regardless of vessel.flight", () => {
-      const { get } = fakeGet({}); // nothing ingested yet — orbit not whole
+      const { get } = fakeGet({}); // nothing ingested yet, orbit not whole
       const getStatus = fakeGetStatus({
         "vessel.orbit": "resyncing",
         "vessel.flight": "live",
@@ -1436,7 +1436,7 @@ function getFrom(points: Record<string, TimelinePoint<unknown> | undefined>) {
 
 const ONRAILS = { quality: Quality.OnRails };
 
-describe("R6 twr — vessel.state.twr off vessel.propulsion (dv.currentTWR)", () => {
+describe("R6 twr: vessel.state.twr off vessel.propulsion (dv.currentTWR)", () => {
   const PROP: VesselPropulsionPayload = {
     totalMass: 10,
     dryMass: 4,
@@ -1480,7 +1480,7 @@ describe("R6 twr — vessel.state.twr off vessel.propulsion (dv.currentTWR)", ()
   });
 });
 
-describe("R6 isControllable — vessel.state.isControllable off vessel.comms.controlState (v.isControllable)", () => {
+describe("R6 isControllable: vessel.state.isControllable off vessel.comms.controlState (v.isControllable)", () => {
   const cases: Array<[number, boolean | undefined]> = [
     [0, false], // None
     [4, true], // Full
@@ -1509,7 +1509,7 @@ describe("R6 isControllable — vessel.state.isControllable off vessel.comms.con
   });
 });
 
-describe("R6 identity flags — isEVA / isSplashed off vessel.identity (v.isEVA / v.splashed)", () => {
+describe("R6 identity flags: isEVA / isSplashed off vessel.identity (v.isEVA / v.splashed)", () => {
   function identity(
     over: Partial<VesselIdentityPayload>,
   ): VesselIdentityPayload {
@@ -1572,7 +1572,7 @@ describe("R6 identity flags — isEVA / isSplashed off vessel.identity (v.isEVA 
   });
 });
 
-describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v.ag{n}Value)", () => {
+describe("R6 action groups: vessel.state.actionGroups map + actionGroup{n} (v.ag{n}Value)", () => {
   it("splits the named list into a keyed map + per-index booleans", () => {
     const get = getFrom({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
@@ -1606,7 +1606,7 @@ describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v
 
   /**
    * The AGX-readiness guarantee. Keys must come from each entry's OWN `index`,
-   * never from array position — under AGX the reported range is legitimately
+   * never from array position: under AGX the reported range is legitimately
    * sparse and unsorted, so a position-derived key would silently mislabel
    * every group. (This is exactly what the old positional `bool[]` could not
    * express, and why the contract was retyped.)
@@ -1629,7 +1629,7 @@ describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v
       "3": true,
       "42": false,
     });
-    // Position 0 is group 250 — a positional read would have called it group 1.
+    // Position 0 is group 250, a positional read would have called it group 1.
     expect(state?.actionGroup1).toBeUndefined();
     expect(state?.actionGroup3).toBe(true);
   });
@@ -1662,11 +1662,11 @@ describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v
   });
 });
 
-describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory never throws (ecc >= 1 crash fix)", () => {
+describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never throws (ecc >= 1 crash fix)", () => {
   // A genuine hyperbolic orbit (fast escape/flyby): ecc > 1, and by the same
   // convention `orbitalPeriod`/vis-viva use everywhere else in this package,
-  // sma < 0. `kepler.solveAnomalies`/`solve` throw a RangeError for this —
-  // elliptical-only, matching the C# side — so `deriveVesselState` must guard
+  // sma < 0. `kepler.solveAnomalies`/`solve` throw a RangeError for this,
+  // elliptical-only, matching the C# side: so `deriveVesselState` must guard
   // around them rather than let the throw escape derived-channel resolution.
   const HYPERBOLIC_ORBIT: VesselOrbitPayload = {
     referenceBodyIndex: 1,
@@ -1765,7 +1765,7 @@ describe("hyperbolic orbits — OnRails vessel/target on an escape trajectory ne
   });
 });
 
-describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtImpact/bestSpeedAtImpact/suicideBurnCountdown)", () => {
+describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpact/bestSpeedAtImpact/suicideBurnCountdown)", () => {
   // Synthetic body chosen so gravity is a round g = mu/(radius+altitudeAsl)²:
   // mu = 8e10, radius = 200_000, altitudeAsl = 0 → g = 8e10/200000² = 2.0 m/s².
   const LANDING_BODIES: SystemBodiesPayload = {
@@ -1926,10 +1926,10 @@ describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtIm
 
   // A short (12s) synthetic period so half a period (the apoapsis→periapsis
   // crossing) comfortably fits inside the ~9s horizon `landingTimeToImpact`
-  // (≈6.18s × 1.5) bounds the impact walk to — see `derivePredictedImpact`'s
+  // (≈6.18s × 1.5) bounds the impact walk to; see `derivePredictedImpact`'s
   // doc comment. `period` here is a plain input field to `patchStateAt`, not
   // derived from sma/mu, so it's fine that it's physically inconsistent with
-  // `LANDING_ORBIT`'s own mu — this block only exercises the patch-walk math.
+  // `LANDING_ORBIT`'s own mu: this block only exercises the patch-walk math.
   function syntheticPatch(
     overrides: Partial<OrbitPatchWirePayload> = {},
   ): OrbitPatchWirePayload {
@@ -1940,7 +1940,7 @@ describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtIm
       lan: 0,
       argPe: 0,
       // Mean anomaly π = apoapsis (r = sma·(1+ecc) = 400_000, well above the
-      // 200_000 body radius) — the walk starts above ground and crosses
+      // 200_000 body radius): the walk starts above ground and crosses
       // periapsis (r = sma·(1-ecc) = 100_000, well below it) half a period
       // later.
       meanAnomalyAtEpoch: Math.PI,
@@ -2010,7 +2010,7 @@ describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtIm
   });
 });
 
-describe("vessel.state.orbitPatches — legacy-shaped patch chain (o.orbitPatches)", () => {
+describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)", () => {
   function patchTestGet(
     quality: Quality,
     orbit: VesselOrbitPayload,

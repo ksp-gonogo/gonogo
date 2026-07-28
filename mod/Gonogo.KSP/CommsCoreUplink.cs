@@ -11,26 +11,26 @@ namespace Gonogo.KSP
     /// <see cref="CommNetBackend"/> as the always-present vanilla factory),
     /// declares the four shared always-present channels + <c>comms.network</c>
     /// + the core <c>comms.delay</c> channel ONCE, and sources them from
-    /// whichever backend the election picked — resolved at capture time via
+    /// whichever backend the election picked: resolved at capture time via
     /// <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Neither CommNet
     /// nor RealAntennas declares these channels itself; that is the
     /// shared-namespace-single-declaration rule (§5).
     ///
     /// <para>The elected backend reads live KSP, so every read happens in the
-    /// capture-on-main sampler (<see cref="CaptureOnMain"/>) — the same F1 seam
+    /// capture-on-main sampler (<see cref="CaptureOnMain"/>): the same F1 seam
     /// GonogoScansatUplink uses. The Courier-side handle
     /// (<see cref="HandleOnCourier"/>) only publishes the plain captured
     /// payloads. <c>comms.delay</c> is computed by the CORE
-    /// <see cref="SignalDelay"/> math from the captured hop geometry — gonogo's
+    /// <see cref="SignalDelay"/> math from the captured hop geometry, gonogo's
     /// own light-time computation, not a backend accessor (§3.1).</para>
     ///
-    /// <para><b>Health:</b> implements <see cref="ISitrepUplink.Health"/> —
+    /// <para><b>Health:</b> implements <see cref="ISitrepUplink.Health"/>:
     /// the second real implementation after
     /// <c>Gonogo.KerbcastUplink.KerbcastUplink</c>, and "zero new plumbing":
     /// <see cref="Health"/> reuses the exact same <see cref="CommsElection.Elected"/>
     /// read <see cref="ComputeConnectedOnMain"/>/<see cref="ComputeDelayOnMain"/>/
     /// <see cref="CaptureOnMain"/> already perform. The state machine itself is
-    /// <see cref="CommsHealth"/> — a pure function, headless-tested in
+    /// <see cref="CommsHealth"/>: a pure function, headless-tested in
     /// <c>Sitrep.Host.Tests</c> (see that type's doc comment for why it lives
     /// in <c>Sitrep.Host.Comms</c> rather than here).</para>
     /// </summary>
@@ -46,7 +46,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The client-facing connectivity MetaTopic (comms-delay-model-
-        /// consistency spec) — a Delayed channel the engine special-cases as
+        /// consistency spec): a Delayed channel the engine special-cases as
         /// freeze-EXEMPT (see <see cref="Sitrep.Host.ChannelEngine.ConnectivityMetaTopic"/>,
         /// which this literal must match, and <see cref="Sitrep.Contract.CommsLink"/>).
         /// It carries the same link up/down the TrueNow <c>comms.connectivity</c>
@@ -63,7 +63,7 @@ namespace Gonogo.KSP
         public const string LinkTopic = "comms.link";
 
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
-        // the intended forward default is ON at real light-speed (§3.1) — that
+        // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
         // config layer flips it. Held here so a future config read can set it
         // before Register wires the delay source.
@@ -127,7 +127,7 @@ namespace Gonogo.KSP
         /// exclusive <c>"comms"</c> capability is declared HERE, in the pre-
         /// Register discovery pass, NOT in <see cref="Register"/>. That
         /// guarantees the capability exists before ANY uplink's
-        /// <see cref="Register"/> runs — so RealAntennas' provider registration
+        /// <see cref="Register"/> runs, so RealAntennas' provider registration
         /// (a SEPARATE uplink, in its own <see cref="Register"/>) can never race
         /// ahead of this declaration and throw, regardless of assembly-scan
         /// discovery order. CommNet is the capability's always-present vanilla
@@ -165,7 +165,7 @@ namespace Gonogo.KSP
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
             // Step 2). Without this the gate only ever learned the delay from a
-            // pull-style AddChannelSource (which comms.delay is NOT — it rides
+            // pull-style AddChannelSource (which comms.delay is NOT, it rides
             // the main-thread capture above) or the subscription-gated wire
             // snoop, so a Delayed channel was delivered live whenever no client
             // subscribed comms.delay. This closure is evaluated on the MAIN
@@ -184,12 +184,12 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD connectivity computation for the engine's reveal gate (see
-        /// <see cref="IUplinkHost.SetConnectivitySource"/>) — reads the elected
+        /// <see cref="IUplinkHost.SetConnectivitySource"/>): reads the elected
         /// backend's <see cref="ICommsBackend.Connectivity"/> live, exactly where
         /// <see cref="CaptureOnMain"/>/<see cref="ComputeDelayOnMain"/> run.
         /// Returns null pre-election (no backend), which the gate treats as "no
         /// authority yet" and leaves the last-known state untouched (default
-        /// CONNECTED) — never worse than today's LAN behaviour.
+        /// CONNECTED): never worse than today's LAN behaviour.
         /// </summary>
         internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
         {
@@ -215,20 +215,20 @@ namespace Gonogo.KSP
 
             // A transient backend-read THROW must NOT be swallowed into a hard
             // `false`. The reveal gate treats a `false` from this source as an
-            // AUTHORITATIVE disconnect and FREEZES every Delayed channel — so a
+            // AUTHORITATIVE disconnect and FREEZES every Delayed channel, so a
             // scene-settle / vessel-unload / vessel-change tick where the read
             // throws (e.g. CommNetBackend's un-guarded Meta() dereferencing a
             // torn ActiveVessel) would wrongly freeze ALL vessel.* telemetry,
             // even though the link is up. Worse, the comms.connectivity CHANNEL
             // fail-softs the SAME throw the opposite way (its capture returns
             // null ⇒ keeps last-known `connected:true`), so the two diverge:
-            // the channel reads connected while the gate stays frozen — the
+            // the channel reads connected while the gate stays frozen, the
             // exact live-KSP symptom.
             //
             // Let the throw PROPAGATE instead. The engine's recoverable
             // connectivity fail-soft (ChannelEngine.CaptureConnectivityOnMain →
             // RefreshConnectivityFromCapability) treats a thrown source as
-            // CONNECTED and retries next tick — matching the reveal gate's own
+            // CONNECTED and retries next tick: matching the reveal gate's own
             // documented "a source that threw ⇒ treated as CONNECTED" contract
             // and never worsening LAN behaviour. A GENUINE disconnect still
             // arrives as a clean `false` (Connection() null ⇒ Connected=false,
@@ -238,7 +238,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD delay computation for the engine's reveal gate (see
-        /// <see cref="IUplinkHost.SetSignalDelaySource"/>) — the same elected-
+        /// <see cref="IUplinkHost.SetSignalDelaySource"/>): the same elected-
         /// backend resolution + core <see cref="SignalDelay"/> light-time math
         /// <see cref="CaptureOnMain"/> performs for the <c>comms.delay</c>
         /// channel, factored out so the gate and the channel share one
@@ -264,7 +264,7 @@ namespace Gonogo.KSP
             // (ChannelEngine.CaptureSignalDelayOnMain →
             // RefreshSignalDelayFromCapability → FailSoftSignalDelaySource)
             // instead leaves the LAST-KNOWN delay untouched and retries next
-            // tick — the correct "never reveal earlier than the known horizon"
+            // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
             var path = backend.Path();
             return SignalDelay.Compute(
@@ -278,7 +278,7 @@ namespace Gonogo.KSP
         /// MAIN-THREAD capture: resolves the elected backend and reads every
         /// shared readout (live KSP reads, safe here), then computes the core
         /// SignalDelay from the captured hop geometry. Bundles plain payloads
-        /// into a <see cref="CommsCapture"/> — no live KSP handles cross to the
+        /// into a <see cref="CommsCapture"/>: no live KSP handles cross to the
         /// Courier thread.
         /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
@@ -368,18 +368,18 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The MANDATORY healthcheck (see <see cref="ISitrepUplink.Health"/>) —
+        /// The MANDATORY healthcheck (see <see cref="ISitrepUplink.Health"/>):
         /// polled on the Courier thread every <c>system.uplinks</c> sample.
         /// Reuses <see cref="CommsElection.Elected"/>, the exact same pure
         /// <see cref="Kernel"/> lookup <see cref="ComputeConnectedOnMain"/> and
-        /// <see cref="CaptureOnMain"/> already call — no live KSP/Unity read,
+        /// <see cref="CaptureOnMain"/> already call: no live KSP/Unity read,
         /// so it is safe and cheap off the main thread. The state machine
         /// itself is <see cref="CommsHealth"/>.
         /// </summary>
         public UplinkHealth Health() =>
             CommsHealth.Evaluate(_kernel != null && CommsElection.Elected(_kernel) != null);
 
-        /// <summary>Plain cross-thread payload bundle — no live KSP references.</summary>
+        /// <summary>Plain cross-thread payload bundle: no live KSP references.</summary>
         private sealed class CommsCapture
         {
             public double Ut;

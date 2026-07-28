@@ -4,11 +4,11 @@ import type { FlightRecord } from "./types";
 
 /**
  * Portable, versioned representation of a `BufferedDataSource`-recorded
- * flight — the shape `BufferedDataSource.exportFlight()` produces and the
+ * flight: the shape `BufferedDataSource.exportFlight()` produces and the
  * old flight-history export/download button (still live in `FlightsManager`
  * for legacy, star/graph/chapter-editable flights) downloads as JSON.
  *
- * NOT the mission-recording/replay fixture — that's `ReplayFixture`
+ * NOT the mission-recording/replay fixture: that's `ReplayFixture`
  * (`@ksp-gonogo/sitrep-client`), a raw wire-frame capture the new
  * `StreamRecorder`/`ReplaySessionController` produce and consume. This type
  * predates that system and stays scoped to `BufferedDataSource`'s own
@@ -33,7 +33,7 @@ export interface FlightFixture {
    */
   readonly format: "gonogo-flight-fixture/v1";
   /**
-   * Flight metadata — uses the same `FlightRecord` shape the live
+   * Flight metadata: uses the same `FlightRecord` shape the live
    * `BufferedDataSource` produces, so a captured fixture round-trips
    * losslessly through the Store.
    */
@@ -57,7 +57,7 @@ export interface FlightFixture {
 export const FLIGHT_FIXTURE_FORMAT = "gonogo-flight-fixture/v1" as const;
 
 /**
- * Narrow type predicate — useful when loading a JSON file at the boundary.
+ * Narrow type predicate: useful when loading a JSON file at the boundary.
  * Validates the format tag, the flight metadata shape, and that every
  * sample series is an array of length-2 tuples sorted ascending by `t`.
  */
@@ -127,7 +127,7 @@ export interface ExportFlightOptions {
   keys: ReadonlyArray<string>;
   /**
    * Schema entries to embed in the fixture. Defaults to one bare `{ key }`
-   * entry per `keys[]` — pass the live source's `schema()` to preserve
+   * entry per `keys[]`: pass the live source's `schema()` to preserve
    * labels/units/groups for downstream tools.
    */
   schema?: ReadonlyArray<DataKey>;
@@ -169,7 +169,7 @@ export async function exportFlightToFixture(
 
 /**
  * Write a fixture's flight metadata + every sample tuple into the store.
- * Mirrors the on-disk shape exactly — round-tripping through `export →
+ * Mirrors the on-disk shape exactly: round-tripping through `export →
  * import` produces an identical fixture (modulo undefined-vs-missing
  * schema metadata).
  *

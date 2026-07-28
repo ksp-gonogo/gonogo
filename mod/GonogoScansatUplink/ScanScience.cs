@@ -4,14 +4,14 @@ namespace Gonogo.ScansatUplink
 {
     /// <summary>
     /// Pure (SCANsat/KSP-type-free) builder for the <c>scansat.science</c> wire
-    /// payload — one <c>Dictionary&lt;string, object?&gt;</c> per SCANsat
+    /// payload: one <c>Dictionary&lt;string, object?&gt;</c> per SCANsat
     /// map-scanner part on the active vessel, keyed with the EXACT camelCase
     /// field names the client decodes (JsonWriter emits a dict's keys verbatim;
     /// the client's ScienceOfficer augment / <c>Sitrep.Contract.ScanScienceEntry</c>
-    /// mirror these). Kept SCANsat-type-free — the uplink's
+    /// mirror these). Kept SCANsat-type-free: the uplink's
     /// <see cref="ScansatUplink.CaptureScienceOnMain"/> reads the SCANsat
     /// <c>SCANexperiment</c> fields on the main thread and passes PLAIN scalars
-    /// in here — so the whole shaping path is unit-testable headlessly with no
+    /// in here: so the whole shaping path is unit-testable headlessly with no
     /// SCANsat/KSP DLLs present, the same headless-test split as
     /// <see cref="ScanningVessels"/> / <see cref="GroundTrackFov"/> /
     /// <see cref="ScanGrids"/>.

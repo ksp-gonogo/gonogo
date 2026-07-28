@@ -19,28 +19,28 @@ import { ManeuverPlannerComponent } from "./index";
  *
  * Unlike the other two widgets migrated alongside this one, the migrated surface here
  * (`o.maneuverNodeIds` -> `vessel.maneuver.nodes`, feeding `resolveNodeId`)
- * is entirely DOM-INVISIBLE — no node id is ever rendered, only used to
+ * is entirely DOM-INVISIBLE, no node id is ever rendered, only used to
  * build the update/remove command's args (see stream.test.tsx for that
  * proof). Every field this widget actually RENDERS (`o.maneuverNodes`
- * itself, `o.sma`/`o.eccentricity`/etc.) stays legacy either way — this
+ * itself, `o.sma`/`o.eccentricity`/etc.) stays legacy either way: this
  * dual-run's job is simply proving that mounting the `TelemetryProvider`
  * alongside the existing legacy `DataSource` (the real production shape
  * once ANY widget on a screen migrates) doesn't perturb this widget's own
  * still-fully-legacy rendering at all. `carriedChannels` deliberately
- * carries ONLY `vessel.maneuver` — none of this widget's OTHER keys that
+ * carries ONLY `vessel.maneuver`: none of this widget's OTHER keys that
  * happen to have a mapTopic home from earlier stream-mapping work
  * (`o.ApA`/`o.PeA`/`o.trueAnomaly`/`o.period`/`o.timeToAp`/`o.timeToPe`, all
  * -> `vessel.state.*`) are carried, so they all correctly stay on the
  * legacy read on both legs (`useDataValue`'s `carried` gate), matching
  * `snapshotWidgetMode`'s pure-legacy baseline exactly. `t.universalTime` is
- * read via `useViewUt()` on both legs now — the stream leg pins the view
+ * read via `useViewUt()` on both legs now, the stream leg pins the view
  * clock at the fixture's own `t.universalTime` value (matching what
  * `snapshotWidgetMode` does for the legacy leg automatically), since the
  * planned-burn preview numbers this widget renders are UT-sensitive and an
  * arbitrary stand-in UT would desync the two legs' displayed figures.
  */
 
-describe("ManeuverPlanner — behavior-preservation golden dual-run (delay=0)", () => {
+describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup with a TelemetryProvider mounted (vessel.maneuver carried) as fully legacy", async () => {
     const mode = { name: "default-10x18", w: 10, h: 18 };
 
@@ -53,7 +53,7 @@ describe("ManeuverPlanner — behavior-preservation golden dual-run (delay=0)", 
 
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.maneuver"],
-      // Matches the fixture's own t.universalTime — see this file's doc
+      // Matches the fixture's own t.universalTime: see this file's doc
       // comment on why the stream leg can't use an arbitrary stand-in UT
       // any more.
       pinnedUt: kerbinSuborbital["t.universalTime"],
@@ -87,7 +87,7 @@ describe("ManeuverPlanner — behavior-preservation golden dual-run (delay=0)", 
           (kerbinSuborbital as Record<string, unknown>)[key],
         );
       }
-      // vessel.maneuver itself is DOM-invisible (see doc comment above) —
+      // vessel.maneuver itself is DOM-invisible (see doc comment above),
       // emitted purely to prove its presence doesn't perturb anything.
       streamFixture.emit("vessel.maneuver", {
         nodes: [
@@ -110,7 +110,7 @@ describe("ManeuverPlanner — behavior-preservation golden dual-run (delay=0)", 
     });
     // The migrated read (o.maneuverNodeIds -> vessel.maneuver) is DOM-
     // invisible, so the ONLY stream-dependent chrome is the title-row status
-    // badge — it starts "SYNCING" and clears to nothing once the emitted
+    // badge: it starts "SYNCING" and clears to nothing once the emitted
     // vessel.maneuver frame commits at the pinned viewUt (validAt 0 <= 10 ->
     // live). "Planned nodes" comes from the legacy o.maneuverNodes read and
     // lands a frame earlier, so wait specifically on the badge clearing

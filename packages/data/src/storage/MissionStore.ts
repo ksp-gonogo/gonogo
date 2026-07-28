@@ -3,7 +3,7 @@ import type { FlightChapterRecord } from "../types";
 
 /**
  * Reserved for the video-recording fast-follow (synchronized `MediaRecorder`
- * capture, bound to a mission's `ViewClock` on replay) — not populated by
+ * capture, bound to a mission's `ViewClock` on replay), not populated by
  * anything in this slice. The shape exists now so `MissionRecord.video`'s
  * type is stable once that follow-up lands.
  */
@@ -33,20 +33,20 @@ export interface MissionMeta {
   /**
    * User-pinned: starred missions are exempt from `pruneMissionsKeepLatest`.
    * Per-row delete and "Clear all" still remove them. Optional/backward
-   * compatible — existing rows read as `undefined` (falsy, same as
+   * compatible: existing rows read as `undefined` (falsy, same as
    * unstarred).
    */
   starred?: boolean;
   /**
    * User-authored chapters / markers, ported from the old
-   * `FlightRecord.chapters`. Reuses `FlightChapterRecord` as-is — its
+   * `FlightRecord.chapters`. Reuses `FlightChapterRecord` as-is, its
    * `startMs`/`endMs` fields keep their literal millisecond semantics,
    * elapsed since `firstFrameUt` (converted from the mission's UT-second
    * delta: `(ut - firstFrameUt) * 1000`) rather than since the old
    * wall-clock-ms `launchedAt`. Keeping the unit as ms means
    * `ChaptersEditor`'s `formatElapsed`/`parseElapsed` (which do real ms
-   * math, dividing/multiplying by 1000) need no changes — only the anchor
-   * point moves. Optional — missions start with none.
+   * math, dividing/multiplying by 1000) need no changes, only the anchor
+   * point moves. Optional: missions start with none.
    */
   chapters?: FlightChapterRecord[];
 }
@@ -71,11 +71,11 @@ interface FixtureRow {
 
 /**
  * IndexedDB-backed persistence for `StreamRecorder`-produced mission
- * recordings — the replacement for the old `FlightRecord`/sample-based
+ * recordings: the replacement for the old `FlightRecord`/sample-based
  * flight history this record/replay path used to piggyback on. Deliberately
  * a SEPARATE database from `IndexedDbStore`'s `gonogo-data` (still used by
  * `BufferedDataSource` for its own, unrelated flight-detection/graph
- * bookkeeping) — this is a fresh, unrelated schema, not a migration of the
+ * bookkeeping): this is a fresh, unrelated schema, not a migration of the
  * old one. Old recordings are intentionally not carried over (user-approved:
  * the old `BufferedDataSource` sample format doesn't map onto a raw wire
  * fixture at all).
@@ -101,7 +101,7 @@ export class MissionStore {
   }
 
   /**
-   * Patches `starred`/`chapters` on one mission's meta row — a
+   * Patches `starred`/`chapters` on one mission's meta row, a
    * `META_STORE`-only transaction, never touching the (potentially large)
    * `FIXTURE_STORE` blob. Read-modify-write since IndexedDB has no partial
    * `put`; no-ops (resolves without writing) when the mission doesn't exist.
@@ -140,7 +140,7 @@ export class MissionStore {
     });
   }
 
-  /** Single-row meta lookup by id — cheaper than `listMissions()` + filter for callers (chapter edits, star toggles) that only need one mission. */
+  /** Single-row meta lookup by id: cheaper than `listMissions()` + filter for callers (chapter edits, star toggles) that only need one mission. */
   async getMissionMeta(id: string): Promise<MissionMeta | null> {
     const db = await this.open();
     return new Promise<MissionMeta | null>((resolve, reject) => {
@@ -151,7 +151,7 @@ export class MissionStore {
     });
   }
 
-  /** Loads the (potentially large) fixture payload for one mission — only called when actually replaying/exporting, never for the list view. */
+  /** Loads the (potentially large) fixture payload for one mission, only called when actually replaying/exporting, never for the list view. */
   async getMissionFixture(
     id: string,
   ): Promise<{ fixture: ReplayFixture; video?: VideoRecordingRef } | null> {
@@ -179,8 +179,8 @@ export class MissionStore {
   /**
    * Keep the `keepCount` most recently launched missions (by `launchedAt`),
    * deleting the rest. Starred missions are exempt: never evicted, and don't
-   * count toward the cap. Mirrors `BufferedDataSource.pruneFlightsKeepLatest`
-   * — same semantics, minus the "current flight" exemption (Missions has no
+   * count toward the cap. Mirrors `BufferedDataSource.pruneFlightsKeepLatest`,
+   * same semantics, minus the "current flight" exemption (Missions has no
    * live/in-progress row; a mission only exists once `StreamRecorder` has
    * finished and `saveMission` has been called). Returns the ids actually
    * removed.

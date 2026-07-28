@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Topology/dv variant of the fake Sitrep replay server — a SEPARATE process
+ * Topology/dv variant of the fake Sitrep replay server, a SEPARATE process
  * on a SEPARATE port from `sitrep-stream-server.mjs`, carrying the same base
  * `SNAPSHOT` PLUS `vessel.parts` / `dv.stages` / `dv.summary` /
  * `vessel.structure`.
  *
  * Those four topics are deliberately absent from the shared fixture (see
- * that file's doc comment) — other specs (power-systems.spec.ts's own
+ * that file's doc comment): other specs (power-systems.spec.ts's own
  * ORIGINAL form) asserted the resulting "Waiting for vessel topology…" /
  * title-only state, and the shared snapshot must stay exactly as it is so
  * those assertions keep meaning what they say. Real topology-tree/ΔV-stack
@@ -15,7 +15,7 @@
  * `sitrepPort` option in helpers.ts).
  *
  * The craft below is the SAME "Mun Tester" vessel the shared snapshot
- * describes (Bob Kerman aboard, ~100km circular-ish Kerbin orbit) — a small
+ * describes (Bob Kerman aboard, ~100km circular-ish Kerbin orbit), a small
  * Mk1-pod stack: pod + battery + two deployed solar panels + a high-gain
  * antenna (EC producers/consumers PowerSystems renders), plus a two-tank
  * LiquidFuel/Oxidizer stack feeding an LV-909 Terrier (the propulsive
@@ -248,7 +248,7 @@ const VESSEL_PARTS = {
   meta: payloadMeta,
 };
 
-// Two stages: stage 1 (propulsive — the two fuel tanks + Terrier above) is
+// Two stages: stage 1 (propulsive: the two fuel tanks + Terrier above) is
 // the CURRENT/active stage; stage 0 (pod + chute + battery + panels +
 // antenna, no engine) is the final stage. `thrustVac`/TWR figures are
 // derived from the shared SNAPSHOT's `vessel.propulsion` (totalMass

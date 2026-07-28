@@ -1,7 +1,7 @@
 /**
  * Orbital math utilities.
  *
- * These are pure transformation functions — they convert telemetry data
+ * These are pure transformation functions, they convert telemetry data
  * that KSP has already computed into forms useful for visualisation.
  * No physics simulation happens here.
  *
@@ -9,6 +9,7 @@
  * Telemachus output). Radians are only used internally.
  */
 
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { BodyDefinition } from "./bodies";
 import { degToRad } from "./utils/math";
 
@@ -54,7 +55,7 @@ export function surfaceGravity(
  * Escape velocity from the given altitude above sea level.
  * `sqrt(2·GM / (R + h))` = circularOrbitVelocity × √2.
  * A trajectory whose speed equals this at the current radius is a
- * parabolic escape — anything above is hyperbolic.
+ * parabolic escape: anything above is hyperbolic.
  */
 export function escapeVelocity(
   body: BodyDefinition,
@@ -194,10 +195,10 @@ export function latLonToMap(
 
 /**
  * Format a duration in seconds to a compact string ("2h 14m 08s").
- * Returns "—" for non-finite or negative values.
+ * Returns NULL_DISPLAY for non-finite or negative values.
  */
 export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "—";
+  if (!Number.isFinite(seconds) || seconds < 0) return NULL_DISPLAY;
   const s = Math.floor(seconds);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -210,10 +211,10 @@ export function formatDuration(seconds: number): string {
 /**
  * Format a distance in metres to a compact human-readable string.
  * Examples: "42,350.0 km", "1.24 Gm", "320 m".
- * Returns "—" for non-finite values.
+ * Returns NULL_DISPLAY for non-finite values.
  */
 export function formatDistance(metres: number): string {
-  if (!Number.isFinite(metres)) return "—";
+  if (!Number.isFinite(metres)) return NULL_DISPLAY;
   const abs = Math.abs(metres);
   if (abs >= 1e12) return `${(metres / 1e12).toFixed(2)} Tm`;
   if (abs >= 1e9) return `${(metres / 1e9).toFixed(2)} Gm`;
@@ -223,7 +224,7 @@ export function formatDistance(metres: number): string {
 }
 
 /**
- * Absolute zero expressed in degrees Celsius — the Kelvin→Celsius offset.
+ * Absolute zero expressed in degrees Celsius: the Kelvin→Celsius offset.
  * Several widgets receive part/ambient temperatures from Telemachus in Kelvin
  * and display them in Celsius; this keeps the conversion from being a bare
  * `- 273.15` magic literal sprinkled across the component library.

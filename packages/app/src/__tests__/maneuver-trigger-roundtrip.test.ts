@@ -3,7 +3,7 @@
  * telemetry crosses the threshold, and the station receives an updated
  * snapshot reflecting the dispatched burn.
  *
- * Skips PeerJS entirely — the bridge is two callback sets that mimic the
+ * Skips PeerJS entirely: the bridge is two callback sets that mimic the
  * peer host/client surfaces consumed by the trigger services. That keeps
  * the test focused on the trigger contracts without dragging the real
  * PeerJS stack along.
@@ -62,12 +62,12 @@ function memoryStorage(): Storage {
 }
 
 /**
- * `readLiveOrbit()`/`readVesselName()`'s stream leg — see
+ * `readLiveOrbit()`/`readVesselName()`'s stream leg: see
  * `ManeuverTriggerHostService.test.ts`'s identical fixture for the full
  * reasoning (real `TimelineStore` + `vesselStateChannel`, fed directly via
  * `StubTransport.emit`, no React/`TelemetryProvider` needed). Also the
  * trigger `dataKey` read (`getValue`) and maneuver-node fire's
- * command-dispatch (`dispatchActiveCommand`) leg —
+ * command-dispatch (`dispatchActiveCommand`) leg:
  * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
  * register the client/carried-channels a mounted `TelemetryProvider` would;
  * `calls` records every dispatched `{command, args}` pair via
@@ -113,7 +113,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 
 /**
  * `sma`/`ecc` drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
- * body-radius-independent — see `vessel-state.ts`), which is what this
+ * body-radius-independent: see `vessel-state.ts`), which is what this
  * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
  * 707_000 at the defaults below.
  */
@@ -132,7 +132,7 @@ function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
   };
 }
 
-/** Minimal PeerHostService stub — only the surface the host service uses. */
+/** Minimal PeerHostService stub: only the surface the host service uses. */
 function fakePeerHost() {
   let armCb:
     | ((
@@ -158,7 +158,7 @@ function fakePeerHost() {
         cancelCb = null;
       };
     },
-    /** Test wiring — feed a station-originated arm into the host. */
+    /** Test wiring: feed a station-originated arm into the host. */
     feedArm(
       peerId: string,
       msg: Extract<PeerMessage, { type: "trigger-arm" }>,
@@ -174,7 +174,7 @@ function fakePeerHost() {
   };
 }
 
-/** Minimal PeerClientService stub — only the surface used by the client. */
+/** Minimal PeerClientService stub: only the surface used by the client. */
 function fakePeerClient() {
   let snapCb: ((snap: TriggerSnapshot) => void) | null = null;
   let outgoing: PeerMessage[] = [];
@@ -191,7 +191,7 @@ function fakePeerClient() {
     sendTriggerCancel(id: string) {
       outgoing.push({ type: "trigger-cancel", id });
     },
-    /** Test wiring — feed a host-originated snapshot down to the client. */
+    /** Test wiring: feed a host-originated snapshot down to the client. */
     deliver(msg: PeerMessage) {
       if (msg.type === "trigger-snapshot") snapCb?.(msg.snapshot);
     },
@@ -213,12 +213,12 @@ describe("Maneuver trigger peer roundtrip", () => {
 
   it("station arms → host fires → client snapshot reflects removal", async () => {
     // `t.universalTime`'s DROP: the host service reads view-UT via the
-    // non-hook `getViewUt()` accessor now — register the fixture's own UT
+    // non-hook `getViewUt()` accessor now: register the fixture's own UT
     // value as the fake view clock so `readLiveOrbit`'s plan computation
     // resolves the same as before.
     setActiveViewClockForTests({ viewUt: () => 1_000_000 });
     // Same DROP, for the vessel/target-orbit + vessel-identity reads AND
-    // the trigger dataKey read/maneuver-node fire — register a real store
+    // the trigger dataKey read/maneuver-node fire, register a real store
     // carrying a self-consistent orbit + identity.
     const orbitStore = buildOrbitStoreFixture(1_000_000);
     setActiveTimelineStoreForTests(orbitStore.store);
@@ -243,7 +243,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     );
 
     // Station arms via its peer-client surface. Baseline apoapsisRadius
-    // (707_000) stays below 750_000 — pending until the orbit changes.
+    // (707_000) stays below 750_000: pending until the orbit changes.
     clientSvc.arm({
       dataKey: "o.ApR",
       op: ">=",
@@ -262,9 +262,9 @@ describe("Maneuver trigger peer roundtrip", () => {
     expect(orbitStore.calls).toEqual([]);
 
     // Telemetry crosses the threshold (bump sma so apoapsisRadius clears
-    // 750_000) — host fires + dispatches burn.
+    // 750_000): host fires + dispatches burn.
     orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
-    // The command dispatch settles on a microtask — drain it before
+    // The command dispatch settles on a microtask, drain it before
     // asserting (see `ManeuverTriggerHostService.test.ts`'s identical note).
     await Promise.resolve();
     await Promise.resolve();

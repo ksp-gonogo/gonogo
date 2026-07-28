@@ -115,7 +115,7 @@ describe("PeerBroadcastingDataSource", () => {
     const host = makeFakeHost();
     new PeerBroadcastingDataSource(real, host as never);
 
-    // No UI component has subscribed — broadcast still fires
+    // No UI component has subscribed, broadcast still fires
     real._emit("v.altitude", 12345);
 
     expect(host.broadcasts).toContainEqual(
@@ -133,7 +133,7 @@ describe("PeerBroadcastingDataSource", () => {
     const host = makeFakeHost();
     new PeerBroadcastingDataSource(real, host as never);
 
-    // Only one key emits — both should be set up but only one fires
+    // Only one key emits: both should be set up but only one fires
     real._emit("v.speed", 999);
 
     const speedBroadcasts = host.broadcasts.filter(
@@ -142,7 +142,7 @@ describe("PeerBroadcastingDataSource", () => {
     expect(speedBroadcasts).toHaveLength(1);
   });
 
-  it("subscribe is a clean pass-through — local cb gets value, no double broadcast", () => {
+  it("subscribe is a clean pass-through, local cb gets value, no double broadcast", () => {
     const real = makeRealSource("test-source", ["v.altitude"]);
     const host = makeFakeHost();
     const wrapper = new PeerBroadcastingDataSource(real, host as never);
@@ -263,7 +263,7 @@ describe("PeerBroadcastingDataSource", () => {
     );
     expect(range).toEqual({ t: [1, 2], v: [10, 20] });
 
-    // flightId must round-trip — without it, FlightGraph falls back to the
+    // flightId must round-trip, without it, FlightGraph falls back to the
     // detector's "current" flight and silently returns empty for any
     // historical flight that isn't currently live.
     await wrapper.queryRange("v.altitude", 0, 100, "flight-42");

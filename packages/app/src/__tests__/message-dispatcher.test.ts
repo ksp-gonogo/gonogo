@@ -31,7 +31,7 @@ describe("MessageDispatcher", () => {
     }).not.toThrow();
   });
 
-  it("dispatches synchronously — call order is preserved across consecutive dispatches", () => {
+  it("dispatches synchronously: call order is preserved across consecutive dispatches", () => {
     const calls: string[] = [];
     const dispatcher = new MessageDispatcher<void>({
       data: () => calls.push("data"),
@@ -52,7 +52,7 @@ describe("MessageDispatcher", () => {
     expect(calls).toEqual(["data", "status", "schema"]);
   });
 
-  it("only the matching handler fires — sibling handlers are not consulted", () => {
+  it("only the matching handler fires: sibling handlers are not consulted", () => {
     const dataH = vi.fn();
     const statusH = vi.fn();
     const dispatcher = new MessageDispatcher<void>({

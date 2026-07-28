@@ -88,7 +88,7 @@ namespace Sitrep.Host.IntegrationTests
             if (!File.Exists(recordingPath))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{recordingPath}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{recordingPath}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -271,7 +271,7 @@ namespace Sitrep.Host.IntegrationTests
                 fixture,
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             // BOM-less UTF-8 (System.Text.Encoding.UTF8 writes a BOM by
-            // default) — Node's JSON.parse does not strip a leading BOM and
+            // default): Node's JSON.parse does not strip a leading BOM and
             // would throw on it; the TS-side fixture test reads this file
             // straight through JSON.parse.
             File.WriteAllText(outputPath, fixtureJson, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -282,7 +282,7 @@ namespace Sitrep.Host.IntegrationTests
                 $"{rewindCount} rewinds detected.");
         }
 
-        /// <summary>Serialization shape of the fixture file — see this class's own doc comment.</summary>
+        /// <summary>Serialization shape of the fixture file: see this class's own doc comment.</summary>
         private sealed class WireFixture
         {
             public string GeneratedAtUtc { get; set; } = "";
@@ -295,8 +295,8 @@ namespace Sitrep.Host.IntegrationTests
 
             /// <summary>
             /// Each element is the EXACT raw wire text of one captured frame
-            /// (a JSON-encoded string containing JSON) — not re-parsed/
-            /// re-serialized objects — so the TS side reads byte-for-byte
+            /// (a JSON-encoded string containing JSON), not re-parsed/
+            /// re-serialized objects, so the TS side reads byte-for-byte
             /// what a live connection would have delivered.
             /// </summary>
             public string[] Frames { get; set; } = Array.Empty<string>();

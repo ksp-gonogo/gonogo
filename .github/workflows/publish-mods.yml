@@ -1,6 +1,6 @@
 name: Publish mod zips
 
-# OUTSTANDING PREREQS — this workflow is inert (or partially inert) until
+# OUTSTANDING PREREQS: this workflow is inert (or partially inert) until
 # both of these land:
 #
 #   1. ksp-gonogo/ksp-managed is MISSING GameData/SCANsat/Plugins/{SCANsat.dll,
@@ -8,11 +8,11 @@ name: Publish mod zips
 #      The GonogoScansatUplink and GonogoKosUplink matrix legs WILL FAIL to build
 #      until someone with push access to that private repo vendors those
 #      assemblies in (same redistribution-safe care as the existing
-#      HullCameraVDS entry — see kerbcam's ksp-managed usage). Gonogo core,
+#      HullCameraVDS entry: see kerbcam's ksp-managed usage). Gonogo core,
 #      GonogoRealAntennasUplink and GonogoKerbcastUplink only need the base
 #      UnityEngine/Assembly-CSharp set already present there, so those three
 #      build fine today. (GonogoKerbcastUplink needs NO Kerbcast.dll vendored
-#      at all — it reaches kerbcast purely by reflection, for licence reasons;
+#      at all: it reaches kerbcast purely by reflection, for licence reasons;
 #      see its NOTICE-KERBCAST.txt.)
 #   2. SpaceDock publish needs five repo VARIABLES that do not exist yet:
 #      vars.SPACEDOCK_MOD_ID_GONOGO, vars.SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK,
@@ -25,20 +25,20 @@ name: Publish mod zips
 # Two publish channels, mirroring publish-images.yml:
 #
 #   dev      every CI-green push to main (workflow_run). Builds each mod's
-#            GameData zip and upload-artifacts it — this validates the
+#            GameData zip and upload-artifacts it: this validates the
 #            packaging pipeline on every push. No GitHub Release attach,
 #            no SpaceDock.
 #   release  dispatched by release.yml on a v* tag, with channel=release.
 #            Builds each mod zip, attaches it to the GitHub Release
 #            release.yml already created (`gh release upload`), AND
 #            publishes each mod to SpaceDock. The manual
-#            `prepare-release.yml` dispatch is the sole user gate — same
-#            as the app release — there is no separate SpaceDock approval.
+#            `prepare-release.yml` dispatch is the sole user gate (same
+#            as the app release), there is no separate SpaceDock approval.
 #
 # Secrets required:
-#   KSP_MANAGED_TOKEN — fine-grained PAT (Contents: read) for
+#   KSP_MANAGED_TOKEN: fine-grained PAT (Contents: read) for
 #                        ksp-gonogo/ksp-managed, org-level.
-#   SPACEDOCK_USERNAME / SPACEDOCK_PASSWORD — org-level; SpaceDock has no
+#   SPACEDOCK_USERNAME / SPACEDOCK_PASSWORD: org-level; SpaceDock has no
 #                        API tokens, auth is cookie-based (see
 #                        _build-uplink-mod.yml's "Publish to SpaceDock" step).
 #
@@ -72,12 +72,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # workflow_run events have no inputs — they're always the dev channel.
+  # workflow_run events have no inputs, they're always the dev channel.
   CHANNEL: ${{ inputs.channel || 'dev' }}
 
 jobs:
   # Computed once and fanned out to every matrix leg below, rather than
-  # each leg re-deriving it — the reusable workflow takes version as an
+  # each leg re-deriving it: the reusable workflow takes version as an
   # input instead of computing it itself.
   version:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -155,9 +155,9 @@ jobs:
     secrets: inherit
 
   # Attaches every mod zip to the GitHub Release release.yml already
-  # created for this tag. Needs its own contents:write — the workflow-level
+  # created for this tag. Needs its own contents:write, the workflow-level
   # default stays contents:read since only this job writes anything. This
-  # is the first-party-monorepo-specific aggregation step — it stays here
+  # is the first-party-monorepo-specific aggregation step, it stays here
   # rather than in the reusable per-Uplink workflow.
   attach-to-release:
     needs: build-mod

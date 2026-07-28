@@ -8,14 +8,14 @@ export function makeMissionId(): string {
 }
 
 /**
- * Turns a finished `StreamRecorder` session into a saveable `MissionRecord`
- * — shared by `AutoRecordController` (auto-record on flight boundaries).
- * Returns `null` for an empty fixture (nothing captured — don't save an
+ * Turns a finished `StreamRecorder` session into a saveable `MissionRecord`,
+ * shared by `AutoRecordController` (auto-record on flight boundaries).
+ * Returns `null` for an empty fixture (nothing captured; don't save an
  * empty mission), matching the old manual `RecordingControls.stopRecording`
  * behaviour this replaces.
  *
- * `firstFrameUt`/`lastFrameUt` are read off each frame's `meta.deliveredAt`
- * — the same field the manual flow parsed.
+ * `firstFrameUt`/`lastFrameUt` are read off each frame's `meta.deliveredAt`,
+ * the same field the manual flow parsed.
  */
 export function buildMissionRecord(params: {
   vesselName: string;

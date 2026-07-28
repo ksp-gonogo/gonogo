@@ -7,7 +7,7 @@ import type {
 /**
  * Controllable in-process fake for kerbcast sidecar sessions.
  *
- * Prefer the SDK's `MockSidecar` (`@ksp-gonogo/kerbcast/testing`) — the
+ * Prefer the SDK's `MockSidecar` (`@ksp-gonogo/kerbcast/testing`): the
  * protocol-level canonical fake, which speaks the full wire protocol including
  * the dynamic slot subscription. The component tests (`CameraFeed`) and the
  * dynamic/broker `KerbcastDataSource` tests already use it.
@@ -23,7 +23,7 @@ export interface MockKerbcastSession {
   /** Pass to KerbcastDataSource or KerbcastClient constructor. */
   readonly transport: KerbcastTransport;
   /**
-   * The ICE servers the last `transport.createPeer(...)` was called with —
+   * The ICE servers the last `transport.createPeer(...)` was called with,
    * lets tests assert the relay's TURN creds were threaded through to the
    * peer connection. `undefined` until the first connect builds a peer.
    */
@@ -37,7 +37,7 @@ export interface MockKerbcastSession {
   /** True after `peer.close()` has been called. */
   readonly closed: boolean;
   /**
-   * Simulate the sidecar completing the WebRTC handshake — fires the
+   * Simulate the sidecar completing the WebRTC handshake, fires the
    * control channel's `onOpen` handler. Call this after `ds.connect()`
    * resolves.
    */
@@ -49,19 +49,19 @@ export interface MockKerbcastSession {
   setState(state: "disconnected" | "connecting" | "connected" | "failed"): void;
   /**
    * Deliver a `ServerMessage` from the sidecar into the client.
-   * The object is JSON-serialised before delivery — pass plain objects,
+   * The object is JSON-serialised before delivery, pass plain objects,
    * not pre-serialised strings.
    */
   sendServerMessage(msg: object): void;
   /**
-   * Fire the peer's `onTrack` handler with a real `MediaStreamTrack` —
+   * Fire the peer's `onTrack` handler with a real `MediaStreamTrack`,
    * the WebRTC video path the SDK turns into `camera.mediaStream`. jsdom
    * can't produce a track, so this is only useful in a real browser (the
    * render harness uses `canvas.captureStream()`). `idx` maps to the
    * camera order from the `/offer` answer's `cameras` array (default 0).
    *
    * Slot-aware (dynamic-mode) delivery and the subscribe → slot-map round-trip
-   * live in the SDK's canonical `MockSidecar` (`@ksp-gonogo/kerbcast/testing`) —
+   * live in the SDK's canonical `MockSidecar` (`@ksp-gonogo/kerbcast/testing`),
    * use that for dynamic-subscription tests rather than extending this fake.
    */
   deliverTrack(track: MediaStreamTrack, idx?: number): void;
@@ -149,8 +149,8 @@ export function createMockKerbcastSession(): MockKerbcastSession {
  * Build a URL-aware `fetch` implementation for kerbcast tests. The data source
  * makes two distinct calls on connect: a GET `/ice-config` (TURN creds) and
  * the SDK client's POST `/offer` (SDP answer + camera flightIds). A single
- * shared `Response` can't serve both — its body is consumed on the first read
- * — so this returns a *fresh* Response per call, routed by URL.
+ * shared `Response` can't serve both, its body is consumed on the first read,
+ * so this returns a *fresh* Response per call, routed by URL.
  *
  * Pass to `vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl(...))`.
  * `iceServers` defaults to `[]` (the no-relay case → SDK STUN fallback);

@@ -1,23 +1,23 @@
 // Shared tile→pixel-rect paint loop for the `map-view.base` colormap
-// augments (AltimetryBase, BiomeBase — T8c,
+// augments (AltimetryBase, BiomeBase: T8c,
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md).
 //
 // Ported near-verbatim from the per-cell block-fill loop in
 // packages/components/src/MapView/useScanLayerCanvas.ts's
 // `paintBiomeCanvas`/`paintHeightCanvas` (the loop itself is generic body-
-// texture geometry, not SCANsat-specific — only the per-cell colour lookup
+// texture geometry, not SCANsat-specific: only the per-cell colour lookup
 // differs between altimetry and biome). The one behavioural change from
 // that pre-T8c code: each tile's alpha is now modulated by the T4 coverage
 // paint-gate instead of being baked in as a fixed ramp opacity, per the
 // settled "no fog layer" model (packages/components/src/MapView/
-// useCoverageGate.ts's own header comment) — covered tiles paint at (up to)
+// useCoverageGate.ts's own header comment): covered tiles paint at (up to)
 // full opacity, uncovered tiles paint nothing.
 //
-// PAINT-RESOLUTION SEMANTICS (the preflight's flagged ambiguity —
+// PAINT-RESOLUTION SEMANTICS (the preflight's flagged ambiguity:
 // .superpowers/sdd/preflight-T6-T9.md, T8c section):
 //
 // `MapBaseLayerContext.width`/`height` (threaded onto `SlotProps<
-// "map-view.base">`) are MapView's LIVE viewport/container pixel size —
+// "map-view.base">`) are MapView's LIVE viewport/container pixel size,
 // `containerSize.w`/`h` in packages/components/src/MapView/index.tsx,
 // which changes on every resize and zoom tick. They are NOT a paint
 // resolution and MUST NOT be used to size the canvas this module paints
@@ -32,11 +32,11 @@
 //   1. `BIOME_CANVAS_W`/`H` (2048×1024) in the pre-T8c
 //      `useBiomeCanvas`/`useHeightCanvas` this module replaces.
 //   2. `DEFAULT_MASK_WIDTH`/`HEIGHT` (2048×1024) in
-//      packages/data/src/fog/FogMaskCache.ts — the resolution the T4
+//      packages/data/src/fog/FogMaskCache.ts: the resolution the T4
 //      coverage gate's own composite `Uint8Array` is built at.
 // MapView's own composite step already scales whatever canvas an augment
 // hands back to `WORLD_W`×`WORLD_H` via `ctx.drawImage(canvas, 0, 0,
-// WORLD_W, WORLD_H)` (see index.tsx's `map-view.base composite` comment) —
+// WORLD_W, WORLD_H)` (see index.tsx's `map-view.base composite` comment),
 // exactly the same scale-on-composite treatment the old fixed-resolution
 // `useBiomeCanvas`/`useHeightCanvas` canvases already got. So a fixed
 // paint resolution here needs no special-casing on MapView's side, and
@@ -46,7 +46,7 @@ export const BASE_LAYER_CANVAS_H = 1024;
 
 /**
  * Structural subset of `useCoverageGate`'s `CoverageGate` this module
- * needs. Not imported from `@ksp-gonogo/components` directly — that type
+ * needs. Not imported from `@ksp-gonogo/components` directly, that type
  * isn't part of the package's public barrel (by design: it's MapView-
  * internal plumbing threaded onto `SlotProps<"map-view.base">`, not a
  * general-purpose export). `SlotProps<"map-view.base">["coverageGate"]`
@@ -69,7 +69,7 @@ export interface BodyOffsets {
  * range on a `(maskW, maskH)` texture-space canvas, honouring the body's
  * texture offsets. Direct copy of `../FogReveal/scanDecode.ts`'s
  * `tileToPixelRect` (itself T7's mod-local copy of the shared
- * `@ksp-gonogo/data` utility) — re-declared here rather than imported so
+ * `@ksp-gonogo/data` utility): re-declared here rather than imported so
  * this module has no dependency on the FogReveal decode module, only on
  * the coverage-gate shape. Kept byte-for-byte identical; a future task
  * could hoist a single shared copy without changing behaviour.
@@ -128,13 +128,13 @@ export function tileToPixelRect(
 
 /**
  * Per-tile coverage alpha, `[0, 1]`. Looks up the gate's composite byte at
- * the tile's top-left pixel in GATE space (`gate.width`/`height` —
+ * the tile's top-left pixel in GATE space (`gate.width`/`height`,
  * typically also 2048×1024, but computed independently from the canvas
  * paint resolution rather than assumed equal to it).
  *
  * `hasAnySource: false` (no fog reveal source registered, or no
  * `FogMaskCacheProvider` mounted) degrades to fully-open (alpha 1)
- * unconditionally — the paint-gate's own documented degenerate case, not
+ * unconditionally: the paint-gate's own documented degenerate case, not
  * an error state. Same for a not-yet-resolved gate (`data: null`).
  */
 export function coverageAlphaForTile(
@@ -166,9 +166,9 @@ export function withAlpha(rgbComponents: string, alpha: number): string {
 
 /**
  * effectiveAlpha = layerOpacity * coverageAlpha (spec:
- * local_docs/spec-mapview-stackable-layers.md §1 — "restore the blend").
+ * local_docs/spec-mapview-stackable-layers.md §1: "restore the blend").
  * `coverageAlpha` is surveyed-ness (unchanged, from `coverageAlphaForTile`);
- * `layerOpacity` is this LAYER's own translucency — e.g. a layer drawn on
+ * `layerOpacity` is this LAYER's own translucency, e.g. a layer drawn on
  * top of another, more opaque one. These are two separate channels that
  * must multiply, not collapse into one: a fully-surveyed tile on a
  * translucent layer should still show the layer BENEATH it, and a
@@ -184,16 +184,16 @@ export function effectiveAlpha(
 
 /**
  * Paint every `(iLon, iLat)` cell in a `gridWidth`×`gridHeight` scan grid
- * (the payload's own declared dims — 720×360 for height/biome as of the
+ * (the payload's own declared dims: 720×360 for height/biome as of the
  * res-aware terrain bump) onto `ctx`, gated per-tile by the coverage
- * gate's alpha times `layerOpacity` (`effectiveAlpha`, above — this layer's
+ * gate's alpha times `layerOpacity` (`effectiveAlpha`, above: this layer's
  * own translucency, e.g. a layer meant to sit on top of another, more
  * opaque one). `colourAt` returns `null` to skip a cell entirely (no data
- * for that tile — e.g. biome index 0xFF); otherwise an `"r, g, b"` colour
+ * for that tile: e.g. biome index 0xFF); otherwise an `"r, g, b"` colour
  * component string, composited at the effective alpha via `withAlpha`.
  *
  * Always paints at the fixed `BASE_LAYER_CANVAS_W`×`H` resolution unless a
- * caller explicitly overrides it (tests only — production call sites never
+ * caller explicitly overrides it (tests only: production call sites never
  * pass `canvasW`/`canvasH`, see this module's header comment).
  */
 export function paintTile(

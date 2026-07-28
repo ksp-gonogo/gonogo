@@ -17,11 +17,11 @@ import {
 } from "./fixtures/crash-payloads";
 
 // FlightOutcomeBanner reads recovery.*/crash.* straight off the mod-side
-// stream — `recovery.lastSummary`/`crash.lastCrash` via the canonical
+// stream: `recovery.lastSummary`/`crash.lastCrash` via the canonical
 // `useTelemetry(<topic>)` and the `recovery.hasRecent`/`crash.hasRecent`
 // event flags via `useStream`. There is NO legacy "data" `DataSource` in the
 // app (deleted in `806e7fe2`), so the test drives a real `TelemetryProvider`
-// (`TelemetryClient` + `TimelineStore` over a `StubTransport`) — mirrors
+// (`TelemetryClient` + `TimelineStore` over a `StubTransport`): mirrors
 // `packages/components/src/test/setupStreamFixture.tsx`, hand-rolled here in
 // miniature (no shared test-helper package to import from). The sticky
 // crash/recovery events emit at the default `validAt: 0`, so pinning the view
@@ -79,7 +79,7 @@ describe("FlightOutcomeBanner", () => {
 
   // Reproduction of the user-reported bug from 2026-05-12. Live curl on
   // 2026-05-13 confirmed the fork DOES emit crash.lastCrash + has
-  // crash.hasRecent=true after a crash — so the silent banner was a
+  // crash.hasRecent=true after a crash: so the silent banner was a
   // gonogo-side effect-ordering bug.
   it("fires the crash banner when crash.lastCrash arrives after mount", () => {
     const fixture = setupOutcomeStream();
@@ -93,7 +93,7 @@ describe("FlightOutcomeBanner", () => {
     // Pre-crash: nothing on screen.
     expect(screen.queryByText(/VESSEL DESTROYED/)).toBeNull();
 
-    // Crash data arrives — banner should pop. Real recorded Ship-crash payload.
+    // Crash data arrives: banner should pop. Real recorded Ship-crash payload.
     act(() => {
       fixture.emit("crash.hasRecent", true);
       fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
@@ -104,7 +104,7 @@ describe("FlightOutcomeBanner", () => {
     expect(screen.getByText("career-orbital-test")).toBeInTheDocument();
   });
 
-  // Real re-entry burn-up (eventKind "Destroyed") — fires no onCrash in KSP, so
+  // Real re-entry burn-up (eventKind "Destroyed"): fires no onCrash in KSP, so
   // the onVesselWillDestroy detector is what records it. The banner must surface
   // it like any other crash.
   it("fires the crash banner for a re-entry burn-up (eventKind Destroyed)", () => {
@@ -237,7 +237,7 @@ describe("FlightOutcomeBanner", () => {
     });
     expect(screen.queryByText("Reusable")).toBeNull();
 
-    // Re-emit with the SAME ut — idempotent, no banner.
+    // Re-emit with the SAME ut: idempotent, no banner.
     act(() => {
       fixture.emit("crash.lastCrash", crash);
       fixture.store.beginFrame();

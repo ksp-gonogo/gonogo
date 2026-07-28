@@ -1,5 +1,5 @@
 /**
- * Discover the relay's public IP — the address coturn must advertise to
+ * Discover the relay's public IP: the address coturn must advertise to
  * clients in its `relay` ICE candidates. Without this, coturn falls
  * back to the container's bridge IP (e.g. `10.89.7.x`), which only
  * routes inside the compose network and renders relay candidates
@@ -10,7 +10,7 @@
  * IPv6-only, an explicit DDNS hostname, etc.).
  *
  * Lookup service: a few rotating well-known plain-text endpoints. They
- * all return just an IP. We don't trust any single one — first to
+ * all return just an IP. We don't trust any single one, first to
  * answer wins.
  */
 
@@ -32,7 +32,7 @@ export interface DiscoverOptions {
 /**
  * Resolve the relay's public IP. Returns the override if set, otherwise
  * races multiple lookup services and returns the first valid response.
- * Throws if every lookup fails — the caller decides whether to retry,
+ * Throws if every lookup fails, the caller decides whether to retry,
  * fall back to a sentinel, or refuse to start coturn.
  */
 export async function discoverPublicIp(
@@ -45,7 +45,7 @@ export async function discoverPublicIp(
   const timeoutMs = opts.timeoutMs ?? LOOKUP_TIMEOUT_MS;
   const fetchImpl = opts.fetchImpl ?? fetch;
 
-  // Race them — the first valid IP wins. Failures and timeouts on the
+  // Race them: the first valid IP wins. Failures and timeouts on the
   // others are swallowed because we already have an answer.
   const attempts = urls.map((url) => attemptLookup(url, timeoutMs, fetchImpl));
   return await Promise.any(attempts);
@@ -76,7 +76,7 @@ const IPV6_RE = /^[0-9a-fA-F:]+$/;
 
 function isPlausibleIp(s: string): boolean {
   if (!s) return false;
-  // Don't validate exhaustively — coturn will reject a malformed
+  // Don't validate exhaustively: coturn will reject a malformed
   // address. We just want to filter out HTML error pages and the like.
   return IPV4_RE.test(s) || (s.includes(":") && IPV6_RE.test(s));
 }

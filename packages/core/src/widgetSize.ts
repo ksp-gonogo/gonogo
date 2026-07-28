@@ -3,14 +3,14 @@
  * grid units from `ComponentProps` and derive a bucket here so the boundaries
  * stay consistent across every widget.
  *
- * - `tiny`   — single-glance status / one key readout
- * - `small`  — essential numbers, minimal chrome
- * - `normal` — full widget UI
+ * - `tiny`  : single-glance status / one key readout
+ * - `small` : essential numbers, minimal chrome
+ * - `normal`: full widget UI
  *
  * Boundaries chosen so the existing `defaultSize`s land in `normal`, and the
  * minSize floors set per widget land in `tiny` or `small` once those modes
  * exist. Widgets without a tiny/small mode just render their normal UI at any
- * bucket — there's no requirement to handle every level.
+ * bucket: there's no requirement to handle every level.
  */
 export type SizeBucket = "tiny" | "small" | "normal";
 
@@ -23,7 +23,7 @@ export function getSizeBucket(
   w: number | undefined,
   h: number | undefined,
 ): SizeBucket {
-  // Missing dims (e.g. before the grid has measured) — assume normal so the
+  // Missing dims (e.g. before the grid has measured), assume normal so the
   // first paint isn't a flash of compact UI.
   if (w === undefined || h === undefined) return "normal";
   if (w < TINY_W || h < TINY_H) return "tiny";
@@ -33,16 +33,16 @@ export function getSizeBucket(
 
 /**
  * Shape (orientation) of a widget, orthogonal to its size bucket. A widget can
- * be `tiny` and `landscape`, or `normal` and `portrait` — the two signals
+ * be `tiny` and `landscape`, or `normal` and `portrait`, the two signals
  * answer different questions. `getSizeBucket` says *how much chrome* to show;
  * `getWidgetShape` says *which way to flow it*.
  *
- * - `portrait`  — tall + narrow: stack content in a single column; dock any
+ * - `portrait` : tall + narrow: stack content in a single column; dock any
  *                 secondary panel/legend *below* the primary content.
- * - `landscape` — wide + short: flow content into multiple columns or place a
+ * - `landscape`: wide + short: flow content into multiple columns or place a
  *                 secondary panel *beside* the primary content, using the
  *                 width the size bucket alone can't see.
- * - `square`    — neither axis dominates; the default near-1:1 layout. Also the
+ * - `square`   : neither axis dominates; the default near-1:1 layout. Also the
  *                 neutral fallback before the grid has measured (see below).
  */
 export type WidgetShape = "portrait" | "landscape" | "square";
@@ -62,10 +62,10 @@ export interface WidgetShapeInfo {
  * Landscape begins once a widget is this many times wider than it is tall.
  *
  * The render harness's two aspect-extreme modes are deliberately log-symmetric
- * around 1:1 — `portrait-5x18` has aspect ≈ 0.28 and `landscape-18x5` ≈ 3.6,
+ * around 1:1: `portrait-5x18` has aspect ≈ 0.28 and `landscape-18x5` ≈ 3.6,
  * and log(0.28) ≈ −1.27 mirrors log(3.6) ≈ +1.28. So we center the square band
  * on aspect = 1 and derive the portrait cutoff as the reciprocal of this one
- * constant — a single named threshold, no second magic number.
+ * constant: a single named threshold, no second magic number.
  *
  * The value (1.6) is picked to sit *above* the near-square auto-modes so they
  * stay `square` and take the unchanged single-column path, but well below the
@@ -86,7 +86,7 @@ export function getWidgetShape(
   w: number | undefined,
   h: number | undefined,
 ): WidgetShapeInfo {
-  // Missing dims (e.g. before the grid has measured) — assume `square`, the
+  // Missing dims (e.g. before the grid has measured), assume `square`, the
   // neutral no-reflow default. The size-bucket analogue is `normal`: pick the
   // value that doesn't flash a divergent layout on first paint. Returning
   // `landscape` here would briefly show a multi-column layout before measure.

@@ -9,10 +9,10 @@ import { useCallback, useSyncExternalStore } from "react";
  * `useStream("vessel.identity")`'s own read/subscribe logic (`use-stream.ts`),
  * rebuilt on the OPTIONAL client/store accessors instead of the throwing
  * `useTelemetryClient`/`useTelemetryStore`. Extracted out of
- * `AutoRecordController` (its original, still-primary consumer — see that
+ * `AutoRecordController` (its original, still-primary consumer: see that
  * component's own doc comment for the full "why optional" rationale) so
  * `useFlight` can share the exact same read without either package importing
- * the other's feature module. Degrades to `undefined` — never throws — when
+ * the other's feature module. Degrades to `undefined`; never throws: when
  * no `TelemetryProvider` is mounted (every station screen today, and the
  * brief window on the main screen before its stream connects).
  */
@@ -42,7 +42,7 @@ export function useOptionalVesselIdentity(): VesselIdentity | undefined {
       "vessel.identity",
       store.currentFrame(),
     );
-    // `payload` can be `null` (a confirmed tombstone — vessel confirmed
+    // `payload` can be `null` (a confirmed tombstone, vessel confirmed
     // absent); either that or "no point at all" collapses to `undefined`
     // here, since callers have nothing useful to do with either.
     return point?.payload ?? undefined;

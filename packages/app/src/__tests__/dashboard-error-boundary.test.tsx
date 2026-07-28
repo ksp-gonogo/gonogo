@@ -2,7 +2,7 @@
  * When a registered widget throws during render, Dashboard wraps each cell
  * in an ErrorBoundary so the rest of the dashboard keeps working. The
  * fallback UI surfaces the error and offers a Retry button. Pinned here
- * because the boundary lives across the Grid/Mobile split — both paths
+ * because the boundary lives across the Grid/Mobile split, both paths
  * share the same WidgetError fallback.
  */
 
@@ -65,7 +65,7 @@ describe("Dashboard widget error boundary", () => {
   // second to stderr (that's the bare stack trace that keeps showing
   // up in passing-test output). preventDefault on the event tells jsdom
   // to skip its default handler. We're testing that the boundary catches
-  // and renders a fallback — the fact that React also fires an event
+  // and renders a fallback, the fact that React also fires an event
   // about it is incidental noise, not a real failure.
   const suppressErrorEvent = (e: ErrorEvent) => e.preventDefault();
 

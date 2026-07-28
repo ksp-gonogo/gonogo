@@ -14,7 +14,7 @@ import {
   PanelTitle,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
-import { formatDuration } from "@ksp-gonogo/ui-kit";
+import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -24,15 +24,15 @@ type CommSignalConfig = Record<string, never>;
 // CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT
 // this widget ever importing backend-aware code (locked map: comm-signal):
 //
-//  - `comm-signal.sections` (body, below the signal-bars readout) — the primary
+//  - `comm-signal.sections` (body, below the signal-bars readout): the primary
 //    HIGH-value seat. A RealAntennas Uplink elected via capability contributes a
 //    per-antenna breakdown table (which antenna carries the link, its SNR) here,
 //    reading only its OWN RA Topics. CommSignal stays RA-agnostic.
-//  - `comm-signal.badges` (header, next to the title) — the broad escape hatch
+//  - `comm-signal.badges` (header, next to the title): the broad escape hatch
 //    for small at-a-glance chips a comms Uplink wants beside the COMMNET title.
 //
 // Neither slot passes parent coordinates/projection (they aren't overlay slots),
-// so the props contract is empty — augments render from their own Topics. The
+// so the props contract is empty, augments render from their own Topics. The
 // declaration-merge below keeps the slot ids co-located here rather
 // than in a shared central registry, so parallel widget work never collides.
 declare module "@ksp-gonogo/core" {
@@ -62,7 +62,7 @@ function describeControl(
           ? "Partial"
           : state === 0
             ? "None"
-            : "—";
+            : NULL_DISPLAY;
   const lower = resolved.toLowerCase();
   if (lower === "none" || lower.includes("no signal"))
     return { label: resolved, tone: "lost" };
@@ -77,12 +77,12 @@ function CommSignalComponent({
 }: Readonly<ComponentProps<CommSignalConfig>>) {
   // Every read has a clean stream home now:
   //  - `comm.connected`     -> `comms.link.connected` (the freeze-EXEMPT link
-  //    channel — vessel.comms freezes at last-known through a blackout, so the
+  //    channel: vessel.comms freezes at last-known through a blackout, so the
   //    disconnect edge only fires off comms.link; see map-topic.ts)
   //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
   //  - `comm.controlState`  -> `vessel.state.commsControlStateOrdinal` (the
   //    SDK-derived collapse of `vessel.comms.controlState`'s rich `ControlState`
-  //    enum onto this widget's 0/1/2 level scheme — see `vessel-state.ts`)
+  //    enum onto this widget's 0/1/2 level scheme; see `vessel-state.ts`)
   //  - `comm.controlStateName` -> `vessel.state.commsControlStateName` (that
   //    same ordinal resolved to its enum NAME string)
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
@@ -121,7 +121,7 @@ function CommSignalComponent({
   // edges of a connection.
   //
   // Some KSP installs don't publish comm.signalStrength at all (mod load
-  // order, RemoteTech overrides, vanilla CommNet variants) — in that case
+  // order, RemoteTech overrides, vanilla CommNet variants): in that case
   // we derive bars from comm.controlState so the widget still shows
   // something useful: Full → 4, Partial → 2, None → 0.
   const strengthValid =
@@ -143,7 +143,7 @@ function CommSignalComponent({
   }
   const control = describeControl(controlStateName, controlState);
 
-  // Selective rendering — bars + headline value always show; subtitle and
+  // Selective rendering: bars + headline value always show; subtitle and
   // detail grid drop as height shrinks.
   const cols = w ?? 6;
   const rows = h ?? 5;
@@ -152,7 +152,7 @@ function CommSignalComponent({
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
-  // "LOS" (loss of signal) vs "—" (no telemetry) — both render zero
+  // "LOS" (loss of signal) vs NULL_DISPLAY (no telemetry), both render zero
   // bars, so the headline label is the only differentiator at tiny
   // sizes where subtitle + detail grid are suppressed. Without this
   // split, an occluded vessel and a connection-lost probe looked
@@ -165,12 +165,12 @@ function CommSignalComponent({
         : control.label;
 
   // A11y: the visible readout updates on every telemetry tick (percentage,
-  // bar count), so it must NOT be a live region — that would flood the screen
+  // bar count), so it must NOT be a live region, that would flood the screen
   // reader (see CLAUDE.md: "Don't live-region streaming telemetry"). Instead a
   // dedicated visually-hidden status node announces only the connection-state
   // transition: its text changes between "Signal connected" / "Signal lost",
   // which fires at most once per LOS/regain. The loud role=alert is owned by
-  // the separate SignalLossBanner primitive at the page level — we don't
+  // the separate SignalLossBanner primitive at the page level, we don't
   // duplicate it here.
   const liveAnnouncement =
     connected === false
@@ -214,17 +214,17 @@ function CommSignalComponent({
             <GridLabel>Delay</GridLabel>
             <GridValue>
               {/* null (no measurable ControlPath) reads the same as
-                  undefined (nothing arrived yet) — comms-delay-nullable-
+                  undefined (nothing arrived yet): comms-delay-nullable-
                   when-no-path fix: neither is a number to format. */}
               {typeof delay === "number"
                 ? formatDuration(delay, { ms: true })
-                : "—"}
+                : NULL_DISPLAY}
             </GridValue>
           </Grid>
         )}
       </Body>
 
-      {/* Body sections below the signal-bars readout — a comms Uplink (e.g. a
+      {/* Body sections below the signal-bars readout, a comms Uplink (e.g. a
           RealAntennas per-antenna breakdown) composes here from its own Topics.
           Renders nothing until an augment binds this slot. */}
       <AugmentSlot name="comm-signal.sections" props={{}} />
@@ -235,7 +235,7 @@ function CommSignalComponent({
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 type Tone = "ok" | "warn" | "lost";
-// Bright fills for the signal bars (non-text UI — full-brightness chips).
+// Bright fills for the signal bars (non-text UI, full-brightness chips).
 const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-bg)",
@@ -307,7 +307,7 @@ const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
   background: ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
   border: 1px solid ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
   border-radius: 1px;
-  /* Staircase — short to tall. Sits at the bottom of the flex container. */
+  /* Staircase: short to tall. Sits at the bottom of the flex container. */
   &:nth-child(1) {
     height: 30%;
   }

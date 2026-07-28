@@ -1,14 +1,14 @@
 #!/usr/bin/env tsx
 /**
- * Render the PROMOTED widgets' release/docs assets — each producing an animated
- * GIF and/or static stills — into the tracked `docs/assets/` dir, so
+ * Render the PROMOTED widgets' release/docs assets, each producing an animated
+ * GIF and/or static stills: into the tracked `docs/assets/` dir, so
  * README / release / marketing assets stay fresh. Driven entirely by the
  * `promoted-widgets.ts` manifest; this script is scenario-agnostic.
  *
- * Pipeline (reuses the playwright widget-render harness — no new probe code):
- *   • STILLS  — render each manifest still fixture full-height (`fullContent`,
+ * Pipeline (reuses the playwright widget-render harness, no new probe code):
+ *   • STILLS : render each manifest still fixture full-height (`fullContent`,
  *     so the whole widget is captured, nothing clipped) → one PNG per still.
- *   • GIF     — write the manifest's ordered frames as `_stream` render
+ *   • GIF    : write the manifest's ordered frames as `_stream` render
  *     fixtures, render each full-height, pad every frame up to the tallest
  *     (top-aligned, panel bg) for uniform frames, stitch into a looping GIF.
  *
@@ -17,7 +17,7 @@
  * Run: `pnpm --filter @ksp-gonogo/components render-promoted-assets [--widget <id>] [--list]`
  * Requires ImageMagick (`magick`, or v6 `convert`/`identify`) on PATH.
  *
- * ⚠️ Do NOT commit assets rendered on macOS — OS font rasterisation differs
+ * ⚠️ Do NOT commit assets rendered on macOS, OS font rasterisation differs
  * (same rule as the visual baselines). The committed assets are produced on
  * Linux by the refresh-promoted-assets CI workflow.
  */

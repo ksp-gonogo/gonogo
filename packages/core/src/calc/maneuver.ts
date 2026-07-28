@@ -1,17 +1,17 @@
 /**
- * Maneuver preset solvers — pure functions over Keplerian elements.
+ * Maneuver preset solvers: pure functions over Keplerian elements.
  *
  * All solvers return a `ManeuverPlan` with ΔV components (prograde, normal,
  * radial) in m/s, an absolute UT for the burn, and a projected post-burn
- * orbit for preview. No side effects, no data-source access — call sites
+ * orbit for preview. No side effects, no data-source access; call sites
  * feed in a `CurrentOrbit` snapshot and μ (gravitational parameter).
  *
  * μ availability: KSP body μ isn't carried on BodyDefinition, so derive it
- * from live telemetry with `gravParameterFromState(v, r, a)` — the
+ * from live telemetry with `gravParameterFromState(v, r, a)`, the
  * vis-viva equation gives an exact answer from any point on the orbit.
  *
- * Frame convention: ΔV components are in Telemachus's maneuver-node frame
- * — prograde along velocity, radial along +r̂ (outward from body), normal
+ * Frame convention: ΔV components are in Telemachus's maneuver-node frame,
+ * prograde along velocity, radial along +r̂ (outward from body), normal
  * perpendicular to the orbital plane. The projected-orbit math handles
  * arbitrary flight-path angle; plane change from a non-zero normal is
  * carried through but not reflected in the projected in-plane shape.
@@ -36,7 +36,7 @@ export interface CurrentOrbit {
   timeToPe: number;
 }
 
-/** Resulting orbit shape after a maneuver — for preview, not execution. */
+/** Resulting orbit shape after a maneuver: for preview, not execution. */
 export interface ProjectedOrbit {
   sma: number;
   eccentricity: number;
@@ -64,7 +64,7 @@ export interface ManeuverPlan {
 }
 
 /**
- * A multi-burn plan — used by Hohmann presets (transfer-to-altitude is
+ * A multi-burn plan: used by Hohmann presets (transfer-to-altitude is
  * two burns; rendezvous-with-target adds an optional plane-match burn
  * up front). Each entry is a fully-formed `ManeuverPlan` so the widget
  * commits them sequentially via the same code path as single-burn
@@ -74,7 +74,7 @@ export interface ManeuverSequence {
   burns: ManeuverPlan[];
   /** Sum of `Math.abs(burn.requiredDeltaV)` across all burns (m/s). */
   totalDeltaV: number;
-  /** Orbit shape after the LAST burn — what the vessel ends up on. */
+  /** Orbit shape after the LAST burn: what the vessel ends up on. */
   finalProjected: ProjectedOrbit | null;
   /**
    * For Hohmann transfers, the elliptic orbit between burn 1 and burn 2.
@@ -125,11 +125,11 @@ function periodAt(mu: number, sma: number): number {
  * Decomposes the pre-burn velocity into horizontal + radial components
  * using the flight-path angle, adds the ΔV (prograde along velocity +
  * radial along +r̂), then derives the new sma/ecc from specific energy
- * and angular momentum. Normal components are the caller's responsibility
- * — they tilt the plane without reshaping the in-plane orbit.
+ * and angular momentum. Normal components are the caller's responsibility,
+ * they tilt the plane without reshaping the in-plane orbit.
  *
  * Returns null when the burn puts the vessel on an escape / parabolic
- * trajectory (non-negative specific energy) — V1 previews only support
+ * trajectory (non-negative specific energy): V1 previews only support
  * elliptic post-burn orbits.
  */
 function projectBurn(
@@ -174,7 +174,7 @@ function projectBurn(
 
 /**
  * Analytically propagate a point on a Keplerian orbit to an arbitrary UT.
- * Returns scalar in-plane state at the target UT — enough to feed
+ * Returns scalar in-plane state at the target UT, enough to feed
  * `projectBurn`. Does not attempt SOI transitions; burns that cross a
  * patch boundary need `trajectory.patchStateAt` on the right patch
  * instead.
@@ -300,7 +300,7 @@ export function customAtApsis(
 ): ManeuverPlan {
   const r = apsis === "apo" ? current.ApR : current.PeR;
   const dt = apsis === "apo" ? current.timeToAp : current.timeToPe;
-  // At an apsis γ = 0 by definition — velocity is perpendicular to radius.
+  // At an apsis γ = 0 by definition, velocity is perpendicular to radius.
   const vPre = speedAt(mu, r, current.sma);
   const projected = projectBurn(r, vPre, 0, mu, prograde, radial);
   return {
@@ -320,7 +320,7 @@ export function customAtApsis(
  * γ = 0). `currentTrueAnomalyDeg` is Telemachus's `o.trueAnomaly` at
  * `currentUT`.
  *
- * If `burnUT <= currentUT`, projected is null — we can't plan a burn in
+ * If `burnUT <= currentUT`, projected is null, we can't plan a burn in
  * the past.
  */
 export function customAtUT(
@@ -391,7 +391,7 @@ function nodeAnomalies(argumentOfPeriapsisDeg: number): {
 
 /**
  * Time from `currentTrueAnomalyDeg` forward to `targetTrueAnomalyDeg` on
- * the same orbit, in seconds. Always returns a non-negative value — if
+ * the same orbit, in seconds. Always returns a non-negative value, if
  * the target is "behind" us, we wait for the next pass.
  */
 function timeToTrueAnomaly(
@@ -426,13 +426,13 @@ function timeToTrueAnomaly(
 /**
  * Match a target inclination by burning normal at the next ascending or
  * descending node (whichever is sooner). Preserves the in-plane orbit
- * shape — we only rotate the plane around the node line, which is the
+ * shape: we only rotate the plane around the node line, which is the
  * cheapest kind of inclination change.
  *
  * `currentInclinationDeg` / `targetInclinationDeg` are absolute
  * inclinations from the body's equator (matching `o.inclination`). The
  * result's `normal` is signed: positive at an AN burn increases
- * inclination, negative decreases it — and vice-versa at the DN, so
+ * inclination, negative decreases it: and vice-versa at the DN, so
  * "where are we?" is folded into the sign for us here.
  */
 export function matchInclination(
@@ -492,7 +492,7 @@ export function matchInclination(
 }
 
 /**
- * Match the full orbital plane of a target — both inclination AND LAN.
+ * Match the full orbital plane of a target, both inclination AND LAN.
  * Burns at the intersection line of the two planes, which in general
  * is NOT the current orbit's equatorial AN/DN. Uses the relative
  * angular-momentum geometry:
@@ -503,7 +503,7 @@ export function matchInclination(
  * `u₁` on orbit 1 where it crosses orbit 2's plane. ΔV = 2·v_h·sin(θ_rel/2),
  * applied normal.
  *
- * Result's projected inclination is the target's — after a pure plane
+ * Result's projected inclination is the target's, after a pure plane
  * change at the node, we lie in orbit 2's plane exactly.
  */
 export function matchTargetPlane(
@@ -527,7 +527,7 @@ export function matchTargetPlane(
   const relIncRad = Math.acos(Math.max(-1, Math.min(1, cosRel)));
 
   // Argument of latitude on orbit 1 where it crosses orbit 2's plane
-  // going "up" relative to orbit 2. Standard spherical trig — see any
+  // going "up" relative to orbit 2. Standard spherical trig; see any
   // orbital-mechanics reference on relative AN / DN between two orbits.
   const u1Rad = Math.atan2(
     Math.sin(i2) * Math.sin(dOmega),
@@ -591,7 +591,7 @@ export function matchTargetPlane(
  * heuristic: `peri` when the target is at or above the current SMA
  * (raising), `apo` when below (lowering). For an elliptical current orbit
  * with `targetR` between PeR and ApR the heuristic still produces a
- * valid sequence — the transfer ellipse just overlaps the current orbit.
+ * valid sequence: the transfer ellipse just overlaps the current orbit.
  *
  * Returns null when `targetR <= 0`, `mu <= 0`, or the current SMA is
  * non-positive.
@@ -732,7 +732,7 @@ export function hohmannRendezvous(
   if (!(target.sma > 0)) return null;
   if (!(vessel.sma > 0)) return null;
 
-  // 1. Plane-mismatch detection — cos(rel) formula matches matchTargetPlane.
+  // 1. Plane-mismatch detection: cos(rel) formula matches matchTargetPlane.
   const i1 = degToRad(vesselInclinationDeg);
   const i2 = degToRad(target.inclinationDeg);
   const dOmegaRad = degToRad(target.lanDeg - vesselLanDeg);
@@ -775,7 +775,7 @@ export function hohmannRendezvous(
   const omegaVessel = Math.sqrt(mu / (r1 * r1 * r1));
   const omegaTarget = Math.sqrt(mu / (target.sma * target.sma * target.sma));
   const dPhiDt = omegaTarget - omegaVessel;
-  if (Math.abs(dPhiDt) < 1e-12) return null; // resonant — never aligns
+  if (Math.abs(dPhiDt) < 1e-12) return null; // resonant; never aligns
 
   // Lead angle: target should be `leadAngle` ahead of vessel at burn 1
   // so it walks 180° − leadAngle while vessel transfers half an orbit

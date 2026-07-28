@@ -13,7 +13,7 @@
 // Why this exists: dropping the ~10–15 KB screenshot.base64 field into a
 // Claude Code conversation reliably triggers an SSE-stall freeze when Claude
 // tries to round-trip it into a Write tool call. Decode here, then hand
-// Claude only the resulting `.jpg` path — Read can ingest images directly.
+// Claude only the resulting `.jpg` path: Read can ingest images directly.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -45,7 +45,7 @@ const data = entry.data ?? entry;
 const payload = data.context?.bug_report;
 if (!payload) {
   console.error(
-    "Entry has no `context.bug_report` field — is this really a bug-report row?",
+    "Entry has no `context.bug_report` field, is this really a bug-report row?",
   );
   process.exit(1);
 }

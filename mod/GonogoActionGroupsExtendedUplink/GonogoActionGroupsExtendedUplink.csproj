@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- MIT, like the rest of gonogo (see LICENSING.md). Action Groups Extended
-       (AGX, linuxgurugamer/AGExt) is GPL3 — a CODE copyleft that could reach a
+       (AGX, linuxgurugamer/AGExt) is GPL3, a CODE copyleft that could reach a
        COMBINED work. This uplink therefore NEVER links AGExt's assembly and
        NEVER derives from its types: every AGExt member is reached by runtime
        reflection (AgxReflection), the same arm's-length pattern
@@ -21,11 +21,11 @@
        see below). Sitrep.Host is where the design doc's own §5.4 election
        code (ActionGroupsElection.RegisterActionGroupsExtendedProvider) and
        the IActionGroupsBackend seam actually live
-       (mod/Sitrep.Host/ActionGroups/) — unlike comms' ICommsBackend, which
+       (mod/Sitrep.Host/ActionGroups/): unlike comms' ICommsBackend, which
        sits in Sitrep.Contract, Phase 1 placed the action-groups seam one
        layer down. Sitrep.Host is itself KSP-free/zero-external-dependency
        (see its own csproj comment), so referencing it does not touch KSP or
-       AGExt — the arm's-length boundary this header describes is
+       AGExt: the arm's-length boundary this header describes is
        unaffected. -->
   <PropertyGroup>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -42,18 +42,18 @@
   </PropertyGroup>
 
   <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
-       Sitrep.Transport deps) — compile-time only, exactly GonogoKosUplink's
+       Sitrep.Transport deps): compile-time only, exactly GonogoKosUplink's
        equivalent block. Core Gonogo already ships all four
        (GameData/Gonogo/Plugins/Sitrep.*.dll) and KSP loads every GameData
        plugin into one AppDomain, so this uplink resolves those types from
-       core's copy at runtime — it must NOT bundle its own. Private=false on
+       core's copy at runtime: it must NOT bundle its own. Private=false on
        every one of these keeps them out of THIS project's output/deploy
        set; each is listed explicitly (not left to flow transitively through
-       Sitrep.Host) — Private=false on an OUTER ProjectReference does not,
+       Sitrep.Host): Private=false on an OUTER ProjectReference does not,
        by itself, suppress copying of that project's OWN transitive
        references, so each link in the chain needs the flag itself. NOTE: no
        reference to AGExt.dll, by design (see the licence header above), and
-       NO KSP/Unity reference either (see above — this uplink never touches
+       NO KSP/Unity reference either (see above: this uplink never touches
        stock KSP directly). -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />

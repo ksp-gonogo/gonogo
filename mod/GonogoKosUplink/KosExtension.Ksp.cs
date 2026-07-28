@@ -1,11 +1,11 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 //
 // The KSP/Unity/kOS-touching half of KosExtension. See KosExtension.cs's
 // class doc comment for the full rationale: this file exists so
 // GonogoKosUplink.Tests can Compile-Include KosExtension.cs's KSP-free half
 // without ever needing kOS.dll/UnityEngine.dll reference assemblies (which
-// don't exist in a headless/CI build) — the GonogoKosUplink.Tests.csproj simply
+// don't exist in a headless/CI build), the GonogoKosUplink.Tests.csproj simply
 // does not list this file. The production GonogoKosUplink.csproj compiles both
 // halves together as usual (SDK-style wildcard globbing), so nothing here
 // changes for a live-game build.
@@ -32,7 +32,7 @@ namespace Gonogo.KosUplink
         /// Implements the seam declared in KosExtension.cs: installs the real
         /// Debug.LogError sink, the real GameObject/addon binder, and the real
         /// kOSProcessor-reverse-map CoreIdResolver for a production instance
-        /// (the public parameterless ctor's path only — see the ctor's
+        /// (the public parameterless ctor's path only: see the ctor's
         /// useProductionDefaults gate).
         /// </summary>
         partial void InstallProductionDefaults()
@@ -43,7 +43,7 @@ namespace Gonogo.KosUplink
         }
 
         // Named static helper (not an inline lambda) so ONLY this method's body
-        // references UnityEngine — a headless test that never invokes it never
+        // references UnityEngine: a headless test that never invokes it never
         // needs UnityEngine loaded.
         private static void LogErrorToUnity(string message) => Debug.LogError(message);
 
@@ -70,7 +70,7 @@ namespace Gonogo.KosUplink
                 _unavailableReason = guard.Reason ?? "kOS unavailable";
                 // Still publish an empty CPU list so the client can render a
                 // definite "no kOS" rather than a hang. Always empty on this
-                // path, so the element type is nominal — kept as the same
+                // path, so the element type is nominal, kept as the same
                 // flattened shape HandleProcessors publishes on the
                 // kOS-available path (KosProcessorInfoBuilder), never the raw
                 // POCO, so a reader of this file doesn't mistake it for a
@@ -79,7 +79,7 @@ namespace Gonogo.KosUplink
                 return;
             }
 
-            // kos.processors — capture AllInstances() on the main thread, hand
+            // kos.processors: capture AllInstances() on the main thread, hand
             // the plain list to the Courier to publish (spec §2/§5).
             _processorsPublisher = host.Publisher(KosChannels.ProcessorsTopic);
             host.AddSampledSource(
@@ -87,9 +87,9 @@ namespace Gonogo.KosUplink
                 HandleProcessors,
                 KosChannels.ProcessorsTopic);
 
-            // kos.compute.<id>.<field> — dynamic namespace fed by the Print
+            // kos.compute.<id>.<field>: dynamic namespace fed by the Print
             // postfix (or the snapshot-scrape fallback when the postfix target
-            // is absent). Every compute value is DELAYED (comms authority —
+            // is absent). Every compute value is DELAYED (comms authority,
             // script PRINT downlink is vessel telemetry, spec §4.4).
             _computeSource = host.RegisterDynamicNamespace(
                 KosChannels.ComputePrefix,
@@ -117,7 +117,7 @@ namespace Gonogo.KosUplink
                 }
                 catch (Exception ex)
                 {
-                    // Fall back to the snapshot-scrape path (not wired in P1 —
+                    // Fall back to the snapshot-scrape path (not wired in P1,
                     // see the known-gap note in the report). Never crash the
                     // engine on a patch failure.
                     Debug.LogError("[Gonogo.KosUplink] compute Print-postfix install failed: " + ex);
@@ -130,7 +130,7 @@ namespace Gonogo.KosUplink
             host.AddCommandHandler<KosExecArgs, CommandResult>(KosChannels.DispatchNowCommand, Exec);
             host.AddCommandHandler<KosReEnableArgs, CommandResult>(KosChannels.ReEnableCommand, ReEnable);
 
-            // Interactive terminal — kos.terminal.<coreId> ReliableOrdered
+            // Interactive terminal: kos.terminal.<coreId> ReliableOrdered
             // screen downlink + single-owner keystroke/resize/open/close.
             // Replaces the standalone telnet proxy: the mod reads the CPU screen
             // in-process (spec §P3), no telnet/node-pty anywhere in the path.
@@ -139,7 +139,7 @@ namespace Gonogo.KosUplink
                 new ChannelDeclaration
                 {
                     // Reliable-ordered: terminal output is a discrete event
-                    // stream — a dropped frame corrupts the buffer.
+                    // stream: a dropped frame corrupts the buffer.
                     Delivery = Delivery.ReliableOrdered,
                     // Delayed: the screen is vessel telemetry; it rides gonogo's
                     // reveal clock exactly like vessel.flight (comms authority).
@@ -150,10 +150,10 @@ namespace Gonogo.KosUplink
                     // is a cursor-relative diff stream, so a late/returning
                     // subscriber's catch-up must land on a self-contained
                     // FullRepaint frame, never a bare incremental diff with no
-                    // baseline — see ChannelDeclaration.IsKeyframe and
+                    // baseline: see ChannelDeclaration.IsKeyframe and
                     // Sitrep.Core.Courier's sticky-keyframe cache. Checks the
                     // flattened dictionary (KosTerminalFrameBuilder), not the
-                    // KosTerminalFrame POCO — the dictionary is what actually
+                    // KosTerminalFrame POCO: the dictionary is what actually
                     // reaches Publish below, since the flatten happens at that
                     // same call site.
                     IsKeyframe = value => value is IDictionary<string, object?> d
@@ -164,7 +164,7 @@ namespace Gonogo.KosUplink
                 knownCoreIds: CurrentCoreIds,
                 isSubscribed: coreId => host.IsAnyTopicSubscribed(KosChannels.TerminalTopic(coreId)),
                 // Flattened here, at the actual publish boundary, via
-                // KosTerminalFrameBuilder — KosTerminalManager itself stays
+                // KosTerminalFrameBuilder: KosTerminalManager itself stays
                 // typed in terms of the KosTerminalFrame POCO (its own tests
                 // assert on that shape), only the wire-facing value handed to
                 // Publish is a self-flattened Dictionary<string, object?>. See
@@ -180,7 +180,7 @@ namespace Gonogo.KosUplink
             // must come from a genuinely per-subscription-transition,
             // thread-safe signal (fired on the Courier thread for EVERY
             // individual session subscribe), not a main-thread poll of a
-            // subscriber count sampled once per ~20Hz tick — see
+            // subscriber count sampled once per ~20Hz tick; see
             // KosTerminalManager.NotifySubscribed's doc comment.
             _terminalSource.OnSubscribed(topic =>
             {
@@ -202,7 +202,7 @@ namespace Gonogo.KosUplink
             host.AddCommandHandler<KosTerminalResizeArgs, CommandResult>(KosChannels.TerminalResizeCommand, TerminalResize);
             host.AddCommandHandler<KosTerminalCloseArgs, CommandResult>(KosChannels.TerminalCloseCommand, TerminalClose);
 
-            // kos.run — general-purpose ad-hoc RPC (replaces the standalone
+            // kos.run, general-purpose ad-hoc RPC (replaces the standalone
             // telnet proxy's executeScript path, see
             // kos-uplink-full-migration.md). ReliableOrdered: a lost result
             // frame would strand the caller's promise until its own client-
@@ -216,7 +216,7 @@ namespace Gonogo.KosUplink
                     Delay = DelayRole.Delayed,
                 });
             // Flattened here, at the actual publish boundary, via
-            // KosRunResultBuilder — KosRunManager itself stays typed in terms
+            // KosRunResultBuilder: KosRunManager itself stays typed in terms
             // of the KosRunResult POCO (its own tests assert on that shape),
             // only the wire-facing value handed to Publish is a
             // self-flattened Dictionary<string, object?>. Fields is already a
@@ -230,7 +230,7 @@ namespace Gonogo.KosUplink
             host.AddCommandHandler<KosRunArgs, CommandResult>(KosChannels.RunCommand, Run);
         }
 
-        /// <summary>Current CPU <c>KOSCoreId</c>s (main thread) — the terminal manager's discovery set.</summary>
+        /// <summary>Current CPU <c>KOSCoreId</c>s (main thread): the terminal manager's discovery set.</summary>
         private static IReadOnlyList<int> CurrentCoreIds()
         {
             var ids = new List<int>();
@@ -264,8 +264,8 @@ namespace Gonogo.KosUplink
                 });
             }
             // Carry the capture UT alongside the list (mirrors
-            // CommsCoreUplink.CommsCapture.Ut). Publishing at the real UT — not a
-            // hardcoded 0.0 — keeps this Delayed channel on the same UT-indexed
+            // CommsCoreUplink.CommsCapture.Ut). Publishing at the real UT (not a
+            // hardcoded 0.0) keeps this Delayed channel on the same UT-indexed
             // timeline as every other vessel-sourced channel, so its periodic
             // keyframe cadence and the server reveal gate both work; a fixed 0.0
             // froze the emitter's keyframe clock and made a "Delayed" channel
@@ -278,8 +278,8 @@ namespace Gonogo.KosUplink
         /// the owning CPU's <c>KOSCoreId</c> (spec §4.2:
         /// <c>AllInstances().First(p =&gt; p.GetScreen() == __instance)</c>).
         /// Returns -1 when no CPU owns the screen (should not happen for a
-        /// script PRINT, but fail-soft). Called ONLY on block completion — never
-        /// per <c>PRINT</c> fragment — so its <c>AllInstances()</c> allocation
+        /// script PRINT, but fail-soft). Called ONLY on block completion; never
+        /// per <c>PRINT</c> fragment: so its <c>AllInstances()</c> allocation
         /// is off the hot path.
         /// </summary>
         private static int ResolveCoreId(object screen)
@@ -322,7 +322,7 @@ namespace Gonogo.KosUplink
         }
 
         /// <summary>
-        /// <c>kos.run</c> command handler — the general-purpose replacement
+        /// <c>kos.run</c> command handler, the general-purpose replacement
         /// for the standalone telnet proxy's ad-hoc <c>executeScript</c> RPC
         /// (see <c>kos-uplink-full-migration.md</c>). Unlike <see cref="Exec"/>
         /// (a fixed, pre-registered compute-topic script id with no
@@ -332,7 +332,7 @@ namespace Gonogo.KosUplink
         /// routes the resulting completed block back to
         /// <c>kos.run.&lt;coreId&gt;</c> instead of the compute fanout.
         ///
-        /// <para><b>Unverified against live KSP</b> — this file has no
+        /// <para><b>Unverified against live KSP</b>: this file has no
         /// reference DLLs to build against in a headless environment (see the
         /// migration plan's "What's left"). Written mirroring <see cref="Exec"/>
         /// exactly (same guard, same <c>RunOnMainThread</c> marshalling), but
@@ -354,7 +354,7 @@ namespace Gonogo.KosUplink
                     return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
 
-                // Guard: never type into a booting or busy prompt — same
+                // Guard: never type into a booting or busy prompt, same
                 // posture as Exec.
                 if (!proc.HasBooted || !(proc.GetScreen() is IInterpreter interp) || !interp.IsWaitingForCommand())
                 {
@@ -371,7 +371,7 @@ namespace Gonogo.KosUplink
                     // Another kos.run is already in flight for this CPU. The
                     // client's own per-CPU serialization (mirroring
                     // KosComputeSession's FIFO queue) is expected to prevent
-                    // this in the steady state — reject rather than silently
+                    // this in the steady state: reject rather than silently
                     // clobbering the earlier request's correlation.
                     return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
                 }
@@ -403,10 +403,10 @@ namespace Gonogo.KosUplink
         }
 
         /// <summary>
-        /// Types <paramref name="command"/> — potentially several kerboscript
+        /// Types <paramref name="command"/>: potentially several kerboscript
         /// statements separated by <c>\n</c> (the shape
         /// <c>packages/app/src/dataSources/kosWrapper.ts</c>'s managed-sync
-        /// wrapper already builds for the telnet path) — into
+        /// wrapper already builds for the telnet path), into
         /// <paramref name="proc"/>'s interpreter. Unlike <see cref="TypeLine"/>
         /// (exactly one line, one trailing Enter), every embedded <c>\n</c>
         /// here is itself converted to an Enter press (<c>\r</c> via
@@ -414,7 +414,7 @@ namespace Gonogo.KosUplink
         /// in turn, the same way a human pasting multi-line input would; a
         /// final Enter is appended when <paramref name="command"/> doesn't
         /// already end with one. A stray <c>\r</c> in the input is dropped
-        /// (never double-submits) — <c>Command</c> is caller-built kerboscript
+        /// (never double-submits): <c>Command</c> is caller-built kerboscript
         /// text, not raw keyboard bytes, so CRLF normalisation is the mod's
         /// job, not the caller's.
         /// </summary>

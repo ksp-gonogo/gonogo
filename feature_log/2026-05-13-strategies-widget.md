@@ -1,8 +1,8 @@
 # Strategies / Admin Building widget
 
 **Date:** 2026-05-13
-**Task:** #25 from 2026-05-12 feedback — "Need admin building data/widget for strategies"
-**Validation:** ⏳ pending — needs live session against the new Telemachus fork build
+**Task:** #25 from 2026-05-12 feedback: "Need admin building data/widget for strategies"
+**Validation:** ⏳ pending: needs live session against the new Telemachus fork build
 
 ## Overview
 
@@ -23,7 +23,7 @@ strategies through the Telemachus fork's `strategies.*` keys (shipped
 - For reputation costs, uses the fork's `effectiveCostReputation` field
   so the displayed cost matches the post-curve deduction KSP will
   actually charge.
-- Header shows live funds / reputation / science — per the
+- Header shows live funds / reputation / science, per the
   "spend-funds widgets must display the balance" rule.
 
 ## Files
@@ -45,7 +45,7 @@ strategies through the Telemachus fork's `strategies.*` keys (shipped
   into Locked. Other block reasons (rep gate, conflict, can't afford)
   go to Locked as authoritative.
 - Effect text parser drops the trailing "Setup Cost:" block KSP adds
-  to every strategy — the explicit cost fields already cover that, so
+  to every strategy: the explicit cost fields already cover that, so
   showing it twice would be noise.
 
 ## Open follow-up
@@ -56,7 +56,7 @@ silently exceed the admin-tier active-strategy cap when the player
 activates a second strategy via the in-game dialog while one is
 already active externally (see
 [[project_ksp_strategy_overcap_quirk]]). The widget treats every
-`isActive: true` row as active, so the over-cap state is visible —
+`isActive: true` row as active, so the over-cap state is visible,
 neither the widget nor the fork swallows it. Worth surfacing as a
 warning row in a follow-up session if the over-cap state proves
 common in practice.
@@ -69,5 +69,5 @@ common in practice.
 - Deactivate, confirm the same.
 - Verify the cost preview matches the actual deduction on activate
   (post-curve reputation cost in particular).
-- Verify the locked / available split — soft-blocked strategies should
+- Verify the locked / available split: soft-blocked strategies should
   appear in Available with a hint; rep-gated ones in Locked.

@@ -9,24 +9,24 @@ namespace GonogoTelemetry
     /// <summary>
     /// Launch / recover / revert verbs for the Launch Director widget.
     ///
-    /// Keys (all global — `Vessel` argument optional):
+    /// Keys (all global: `Vessel` argument optional):
     ///
-    /// - `ksp.launch[shipName,facility,site,crewSemicolons]` — load a
+    /// - `ksp.launch[shipName,facility,site,crewSemicolons]`: load a
     ///   saved craft to the chosen pad. `crewSemicolons` is a
     ///   semicolon-separated list of kerbal names (Telemachus splits
     ///   action args on comma, so commas would land in the wrong field;
     ///   we use ';' inside the crew slot). Empty crew = launch unmanned.
     ///   Refuses unless KSP is in the Space Center / Editor scene.
-    /// - `ksp.recover` — recover the active vessel. Refuses unless the
+    /// - `ksp.recover`: recover the active vessel. Refuses unless the
     ///   vessel is recoverable (PRELAUNCH / LANDED / SPLASHED). Fires
     ///   `GameEvents.OnVesselRecoveryRequested` so KSP runs its standard
     ///   refund + crew-roster path.
-    /// - `ksp.revertToEditor[vab|sph]` — revert flight back to the named
+    /// - `ksp.revertToEditor[vab|sph]`: revert flight back to the named
     ///   editor scene with the same craft loaded. Refuses unless KSP is
     ///   in flight.
     ///
     /// Scene transitions are queued onto the main thread via
-    /// `GonogoTelemetryAddon.Defer` — Telemachus handlers run off the
+    /// `GonogoTelemetryAddon.Defer`: Telemachus handlers run off the
     /// HTTP/WS thread, calling `FlightDriver.StartWithNewLaunch` etc.
     /// directly from there crashes.
     /// </summary>
@@ -74,11 +74,11 @@ namespace GonogoTelemetry
 
             // Defensive: even at SC, if there's an ActiveVessel from a
             // prior flight that hasn't been recovered/destroyed yet,
-            // launching another wedges KSP — observed in-session as a
+            // launching another wedges KSP: observed in-session as a
             // frozen Flight scene with maxed-out UT counters. Refuse so
             // the operator recovers the existing vessel first.
             if (FlightGlobals.ActiveVessel != null)
-                return "active vessel exists — recover or revert before launching";
+                return "active vessel exists: recover or revert before launching";
 
             var saveFolder = HighLogic.SaveFolder;
             if (string.IsNullOrEmpty(saveFolder)) return "no active save";
@@ -103,7 +103,7 @@ namespace GonogoTelemetry
             // NREs in LateUpdate. The visible symptom is a "frozen" HUD
             // with sentinel values; root cause is the manifest null.
             //
-            // We populate seats only when crew names are provided —
+            // We populate seats only when crew names are provided,
             // otherwise the manifest exists but has no kerbals assigned,
             // which is the unmanned-launch case KSP handles cleanly.
             VesselCrewManifest manifest;
@@ -122,7 +122,7 @@ namespace GonogoTelemetry
                 return "manifest build failed: " + ex.Message;
             }
 
-            // Resolve flag URL — fall back to stock flag if the player
+            // Resolve flag URL: fall back to stock flag if the player
             // hasn't picked one (the launch path needs *something* there).
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
 
@@ -144,7 +144,7 @@ namespace GonogoTelemetry
 
             // VesselCrewManifest holds part-level manifests on
             // PartManifests (List<PartCrewManifest>). The seat count
-            // varies per part — we just probe AddCrewToSeat with
+            // varies per part: we just probe AddCrewToSeat with
             // increasing indices and break on a slot that already has
             // someone (KSP's PartCrewManifest internally validates the
             // seat index against the part's crewCapacity).
@@ -182,7 +182,7 @@ namespace GonogoTelemetry
             GonogoTelemetryAddon.Defer(() =>
             {
                 // GameEvents.OnVesselRecoveryRequested is EventData<Vessel>
-                // per the decompiled API surface — the lowercase event
+                // per the decompiled API surface: the lowercase event
                 // doesn't exist; the only similar lowercase one is
                 // onVesselRecovered which is the post-recovery
                 // notification, not the request. Fire the request and

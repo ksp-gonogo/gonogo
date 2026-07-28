@@ -34,7 +34,7 @@ export function DeviceEditor({
     initial?.transport ?? "virtual",
   );
   const [baudRate, setBaudRate] = useState<number>(initial?.baudRate ?? 9600);
-  // `undefined` is the "auto-detect from pad" sentinel — distinct from any
+  // `undefined` is the "auto-detect from pad" sentinel, distinct from any
   // real pack choice, so a brand new device that never touches this field
   // still lets SerialDeviceService preselect a pack on first pairing (see
   // handleSchemaUpdate). Once the user (or detection) sets a real value,
@@ -47,7 +47,7 @@ export function DeviceEditor({
 
   const handleSave = () => {
     if (!name.trim()) return;
-    // A brand new gamepad device has no shape to key a type on yet — it
+    // A brand new gamepad device has no shape to key a type on yet, it
     // always starts on the shared placeholder, which SerialDeviceService
     // re-points at a shape-derived type the moment it first pairs. Editing
     // an already-paired gamepad device keeps whatever typeId it has.
@@ -65,7 +65,7 @@ export function DeviceEditor({
       baudRate: transport === "web-serial" ? baudRate : undefined,
       labelPack: isGamepad ? labelPack : undefined,
       // gamepadId is intentionally omitted here (not just set to
-      // undefined) — SerialDeviceService's updateDevice merge preserves an
+      // undefined): SerialDeviceService's updateDevice merge preserves an
       // existing instance's gamepadId only when the key is absent from
       // this object, and this editor never lets the user set/clear it.
     };
@@ -158,8 +158,8 @@ export function DeviceEditor({
           </Select>
           <FieldHint>
             After saving, open the device row, click Connect, then press any
-            button on the pad — the Gamepad API only reports a controller once
-            it sees a press, not on plug-in. Auto-detect picks a pack from the
+            button on the pad: the Gamepad API only reports a controller once it
+            sees a press, not on plug-in. Auto-detect picks a pack from the
             pad's reported name the first time it pairs; your choice here (or
             later) is never reset automatically.
           </FieldHint>

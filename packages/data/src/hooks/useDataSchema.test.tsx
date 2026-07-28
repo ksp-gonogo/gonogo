@@ -31,10 +31,10 @@ describe("useDataSchema", () => {
   });
 
   // Finding 1 (config-UI key pickers permanently empty): the legacy "data"
-  // `DataSource` was deleted in `806e7fe2` — nothing is registered under
+  // `DataSource` was deleted in `806e7fe2`, nothing is registered under
   // that id in the real app any more. A test that registers a mock "data"
   // source before exercising this hook (the old pattern, still used
-  // elsewhere in this repo — see AlarmsModal.test.tsx) masks that
+  // elsewhere in this repo: see AlarmsModal.test.tsx) masks that
   // regression completely, since the mock always answers a non-empty
   // schema(). This test deliberately registers NOTHING to prove the real,
   // mock-free path works.

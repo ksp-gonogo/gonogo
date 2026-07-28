@@ -10,10 +10,10 @@ namespace Sitrep.Contract;
 /// <c>system.uplink.pending</c> (see <c>ChannelEngine.UplinkPendingTopic</c>).
 ///
 /// <para><b>Prediction-only, hard invariant:</b> this type carries ONLY
-/// dispatch-time facts — what the centre sent and when. It must NEVER grow
+/// dispatch-time facts: what the centre sent and when. It must NEVER grow
 /// an execution/result/vessel-derived field (e.g. whether the craft actually
 /// received or ran the command, any onboard state). That distinction is what
-/// keeps the queue "predicted, not confirmed" — the client renders these
+/// keeps the queue "predicted, not confirmed", the client renders these
 /// entries as in-flight until they naturally age out, never as an
 /// acknowledgement of vessel-side effect. <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c>
 /// (a G1 shape ratchet with NO additive carve-out, unlike
@@ -36,7 +36,7 @@ public class PendingUplink
     public string Label { get; set; } = "";
 
     /// <summary>
-    /// Dispatch-time addressing — which part/route the command was sent to
+    /// Dispatch-time addressing, which part/route the command was sent to
     /// (an opaque MQTT-style route, e.g. <c>kos/7</c>), known at the command
     /// centre at send time. NOT vessel state and NOT an execution result, so
     /// it stays inside the prediction-only invariant; it lets a renderer
@@ -46,7 +46,7 @@ public class PendingUplink
 
     /// <summary>
     /// Which command centre / ground station dispatched this command
-    /// (available at dispatch as <c>job.Vantage</c>) — dispatch-time
+    /// (available at dispatch as <c>job.Vantage</c>): dispatch-time
     /// command-centre bookkeeping, not vessel state, so it stays inside the
     /// prediction-only invariant. Future-proofs multiple command sources
     /// without a later contract migration.
@@ -56,11 +56,11 @@ public class PendingUplink
     /// <summary>UT the engine dispatched the command.</summary>
     public double DispatchedAt { get; set; }
 
-    /// <summary>One-way signal delay (seconds) AT DISPATCH, frozen — not re-read as the delay changes.</summary>
+    /// <summary>One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay changes.</summary>
     public double OneWaySeconds { get; set; }
 }
 
-/// <summary>Wire wrapper for <c>system.uplink.pending</c> — the whole queue, resampled every emission.</summary>
+/// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>
 [SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]

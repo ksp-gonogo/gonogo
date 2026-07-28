@@ -12,24 +12,24 @@ import type { KosManagedScript } from "../shared/ScriptableDataSource";
 import { buildKosRunCommand } from "./kosWrapper";
 
 /**
- * `KosDataSource.executeScript`'s Uplink implementation — dispatches the
+ * `KosDataSource.executeScript`'s Uplink implementation: dispatches the
  * kerboscript wrapper text (see `kosWrapper.ts`'s `buildKosRunCommand`) via
  * the `kos.run` command and resolves with the correlated `kos.run.<coreId>`
- * result. This is the ONLY transport `executeScript` uses — there is no
+ * result. This is the ONLY transport `executeScript` uses, there is no
  * telnet path anymore.
  *
  * The `kos.processors` push channel it subscribes to for tagname → coreId
  * resolution doubles as the app's CPU-discovery feed: `onProcessorsChanged`
  * surfaces the processor list (which carries each CPU's `tag`) to the
- * screen-side registry. The subscription is STANDING — established the
+ * screen-side registry. The subscription is STANDING, established the
  * moment a `TelemetryClient` is adopted (`adopt`, driven eagerly by the
- * `KosCpuDiscovery` mount) and held for that client's lifetime — so
+ * `KosCpuDiscovery` mount) and held for that client's lifetime, so
  * discovery works whenever a sitrep stream is mounted, not only while a
  * `kos.run` dispatch is pending.
  *
  * Follows the same wire pattern end to end: dispatch → ack → wait for the
  * correlated channel frame → resolve/reject, as plain, non-hook code
- * driving a `TelemetryClient` handed in by the caller — `KosDataSource` is
+ * driving a `TelemetryClient` handed in by the caller, `KosDataSource` is
  * a plain class, not a React component.
  */
 
@@ -53,7 +53,7 @@ interface InFlightRun {
 
 /**
  * Per-CPU FIFO in front of `kos.run` dispatches to a single `coreId`. A kOS
- * CPU's REPL is single-threaded — only one command may be in flight — so
+ * CPU's REPL is single-threaded (only one command may be in flight) so
  * calls to the SAME core are serialised here; calls to different cores get
  * their own queue and run in parallel.
  */
@@ -123,7 +123,7 @@ class KosUplinkCpuQueue {
             ),
           );
         }
-        // success:true carries no payload of its own — the real result
+        // success:true carries no payload of its own, the real result
         // arrives asynchronously on kos.run.<coreId>, handled below.
       })
       .catch((err: unknown) => {
@@ -135,7 +135,7 @@ class KosUplinkCpuQueue {
   }
 
   private handleResult(payload: KosRunResult): void {
-    // Correlate by requestId — a foreign/stale id (a duplicate, the sticky
+    // Correlate by requestId: a foreign/stale id (a duplicate, the sticky
     // replay of some earlier call, or a result meant for a call we already
     // timed out) must not settle the CURRENT in-flight call.
     if (!this.inFlight || this.inFlight.requestId !== payload.requestId) {
@@ -146,7 +146,7 @@ class KosUplinkCpuQueue {
     this.inFlight = null;
     if (payload.error != null) {
       // Both parse-time kOS errors and explicit [KOSERROR] blocks arrive
-      // this way from the mod (KosRunManager.Complete) — KosScriptError so
+      // this way from the mod (KosRunManager.Complete): KosScriptError so
       // callers can distinguish a script-author fault from a transport
       // error, same as the telnet path's explicit/implicit error handling.
       call.reject(new KosScriptError(payload.error));
@@ -207,7 +207,7 @@ export class KosUplinkExecutor {
   }
 
   /**
-   * Adopt `client` for discovery WITHOUT dispatching a run — the eager
+   * Adopt `client` for discovery WITHOUT dispatching a run, the eager
    * entry point the `KosCpuDiscovery` mount calls so the `kos.processors`
    * subscription (and thus CPU discovery) stands up as soon as a sitrep
    * stream is mounted. Idempotent for the same client; a different client
@@ -219,7 +219,7 @@ export class KosUplinkExecutor {
 
   /**
    * True once a `TelemetryClient` is adopted AND the mod has reported at
-   * least one CPU on `kos.processors` — i.e. the sitrep stream is live and
+   * least one CPU on `kos.processors`: i.e. the sitrep stream is live and
    * kOS is actually present. Drives `KosDataSource`'s status pill.
    */
   get hasLiveProcessors(): boolean {
@@ -245,7 +245,7 @@ export class KosUplinkExecutor {
 
   /**
    * Run `script` on `cpu` (a tagname) via the `kos.run` Uplink. Rejects
-   * immediately — no telnet fallback — if `cpu` doesn't resolve to a known
+   * immediately (no telnet fallback) if `cpu` doesn't resolve to a known
    * `coreId` yet (the `kos.processors` channel hasn't reported it, or it's
    * genuinely not a live CPU).
    */
@@ -261,7 +261,7 @@ export class KosUplinkExecutor {
     if (coreId === undefined) {
       return Promise.reject(
         new Error(
-          `kos.run: no known CPU with tagname "${cpu}" — waiting on kos.processors, or the tagname is wrong`,
+          `kos.run: no known CPU with tagname "${cpu}", waiting on kos.processors, or the tagname is wrong`,
         ),
       );
     }
@@ -294,7 +294,7 @@ export class KosUplinkExecutor {
 
   private handleProcessors(info: KosProcessorInfo[] | undefined): void {
     if (!Array.isArray(info)) return;
-    // Full-snapshot channel — replace, don't merge, so a CPU that goes
+    // Full-snapshot channel: replace, don't merge, so a CPU that goes
     // away (reboot / unload) stops resolving instead of sticking around
     // on a stale coreId.
     this.coreIdByTag.clear();
@@ -309,8 +309,8 @@ export class KosUplinkExecutor {
     const existing = this.queues.get(coreId);
     if (existing) return existing;
     if (!this.client) {
-      // Unreachable in practice — adoptClient() always runs first in run()
-      // — but keeps this method safe to call standalone.
+      // Unreachable in practice: adoptClient() always runs first in run(),
+      // but keeps this method safe to call standalone.
       throw new Error("kos.run: no active telemetry client");
     }
     const queue = new KosUplinkCpuQueue(this.client, coreId, this.timeoutMs);

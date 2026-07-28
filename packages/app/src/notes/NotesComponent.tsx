@@ -93,7 +93,7 @@ function NotesView({
       <PanelTitle>NOTES</PanelTitle>
       <List>
         {ordered.length === 0 ? (
-          <Empty>No notes yet — add one below.</Empty>
+          <Empty>No notes yet: add one below.</Empty>
         ) : (
           ordered.map((note, idx) => (
             <NoteRow
@@ -239,7 +239,7 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
   // Subscribe to every tag the body mentions so the rendered output updates
   // when any of them change. useDataValue is stable per-key so the hook
   // count is constant per render of this component instance, even if the
-  // body is edited — the call list only changes when the *set of tags*
+  // body is edited, the call list only changes when the *set of tags*
   // changes, which is rare.
   const tags = useMemo(() => extractTags(body), [body]);
   const valueMap = useTagValues(tags);
@@ -253,7 +253,7 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
 
 /**
  * Legacy source id `mapTopic` uses to resolve a `{{v.altitude}}`-style tag
- * onto its stream `Topic` — no `DataSource` is registered under this id any
+ * onto its stream `Topic`: no `DataSource` is registered under this id any
  * more (deleted alongside `dataSources/telemachus.ts`), but `map-topic.ts`'s
  * migration table survives P4c-b as the live stream router (see its own
  * doc comment), so this id is still the correct lookup key.
@@ -263,7 +263,7 @@ const LEGACY_DATA_SOURCE_ID = "data";
 /**
  * Set of keys known to the legacy `data` source. The `DataSource` itself is
  * gone (deleted alongside `dataSources/telemachus.ts`), so this always
- * returns an empty set — `renderTemplate`'s empty-set fall-through treats
+ * returns an empty set: `renderTemplate`'s empty-set fall-through treats
  * that as "don't flag unknown tags" rather than crashing, so autocomplete
  * degrades to always-trusting instead of validating against a live schema.
  */
@@ -275,9 +275,9 @@ function useKnownDataKeys(): ReadonlySet<string> {
  * Reads the latest value of every tag, one Topic per note-body placeholder
  * (`{{v.altitude}}`-style). Forces a re-render whenever any of them change.
  *
- * Mirrors `useTelemetry`'s own per-key migration-shim decision (`@ksp-gonogo/core`)
- * — mapped + a `TelemetryProvider` mounted + carried -> the `TimelineStore`;
- * otherwise the legacy `DataSource` — but resolved imperatively for a
+ * Mirrors `useTelemetry`'s own per-key migration-shim decision (`@ksp-gonogo/core`),
+ * mapped + a `TelemetryProvider` mounted + carried -> the `TimelineStore`;
+ * otherwise the legacy `DataSource`: but resolved imperatively for a
  * DYNAMIC tag list instead of one fixed hook call, since a `useTelemetry`
  * loop would change hook count as the tag list grows/shrinks mid-edit.
  */
@@ -300,7 +300,7 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
     const scheduleFlush = () => {
       if (scheduled) return;
       scheduled = true;
-      // Microtask coalesce — many tags can update in the same tick; one
+      // Microtask coalesce: many tags can update in the same tick; one
       // re-render per flush is enough.
       queueMicrotask(flush);
     };
@@ -328,7 +328,7 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
           for (const unsubscribe of unsubscribeInputs) unsubscribe();
         });
       }
-      // No `else` branch — the legacy `DataSource` this used to fall back
+      // No `else` branch: the legacy `DataSource` this used to fall back
       // to for un-carried tags is gone. An un-mapped or un-carried tag
       // simply never resolves (stays `undefined`), same as any other
       // never-arrived value.
@@ -463,7 +463,7 @@ registerComponent({
   id: "notes",
   name: "Notes",
   description:
-    "Mission notes synced across all screens. Use {{key.path}} to embed live telemetry — values update as the data feed ticks.",
+    "Mission notes synced across all screens. Use {{key.path}} to embed live telemetry, values update as the data feed ticks.",
   tags: ["mission-control"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 4 },

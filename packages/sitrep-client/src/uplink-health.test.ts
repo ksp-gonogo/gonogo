@@ -43,7 +43,7 @@ function fakeGet(
       : undefined) as DerivedGet;
 }
 
-describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () => {
+describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   it("decodes a self-reported Degraded entry, deriving nothing from availability", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [
@@ -122,7 +122,7 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
     });
   });
 
-  it("decodes ownedPrefixes straight through — mod-side source of truth, no client re-derivation", () => {
+  it("decodes ownedPrefixes straight through: mod-side source of truth, no client re-derivation", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [
         {
@@ -167,7 +167,7 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
     ).toEqual([]);
   });
 
-  it("falls back to unavailable for an out-of-range health.state ordinal — never throws", () => {
+  it("falls back to unavailable for an out-of-range health.state ordinal; never throws", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [
         {
@@ -185,7 +185,7 @@ describe("deriveSystemUplinkHealth — mod-side Uplink health self-report", () =
     ).toBe("unavailable");
   });
 
-  it("undefined while system.uplinks hasn't arrived (resyncing) — never throws", () => {
+  it("undefined while system.uplinks hasn't arrived (resyncing): never throws", () => {
     expect(deriveSystemUplinkHealth(fakeGet(undefined))).toBeUndefined();
   });
 

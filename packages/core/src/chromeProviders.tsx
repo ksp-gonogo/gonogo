@@ -10,10 +10,10 @@ import type { ComponentType, ReactNode } from "react";
 export interface ChromeProviderDefinition<T = unknown> {
   /** Stable id. */
   id: string;
-  /** Called during the NORMAL render tree — i.e. wherever the value this
+  /** Called during the NORMAL render tree, i.e. wherever the value this
    *  provider re-supplies is already ambiently available (e.g. inside
    *  MainScreen's <CpuRegistryProvider> subtree). Must be an actual hook
-   *  call site — see useChromeWrap's safety note below. */
+   *  call site: see useChromeWrap's safety note below. */
   useValue(): T;
   /** Re-wraps `children` with the captured value, for rendering somewhere
    *  the ambient context from useValue()'s call site won't reach. */
@@ -32,7 +32,7 @@ export function getChromeProviders(): ChromeProviderDefinition[] {
   return [...providers.values()];
 }
 
-/** For use in tests only — resets the registry to empty. */
+/** For use in tests only, resets the registry to empty. */
 export function clearChromeProviders(): void {
   providers.clear();
 }
@@ -43,12 +43,12 @@ export function useChromeWrap(): (children: ReactNode) => ReactNode {
   // this hook ever mounts (self-registration import side effects, same
   // as every other registry in this codebase). The list's length/order is
   // therefore frozen for the lifetime of any given mount of the calling
-  // component — the actual invariant Rules of Hooks protects (consistent
+  // component: the actual invariant Rules of Hooks protects (consistent
   // call order/count across renders of THIS component instance), even
   // though the call isn't textually a top-level hook call. Tests must
   // call clearChromeProviders() + re-register BEFORE render(), never
   // mid-test, to preserve this.
-  // biome-ignore lint/correctness/useHookAtTopLevel: registration is frozen at module-load time (see the comment above), so this list is stable across renders of a given mount — the actual invariant Rules of Hooks protects.
+  // biome-ignore lint/correctness/useHookAtTopLevel: registration is frozen at module-load time (see the comment above), so this list is stable across renders of a given mount, the actual invariant Rules of Hooks protects.
   const values = defs.map((d) => d.useValue());
   return (children: ReactNode) =>
     defs.reduceRight(

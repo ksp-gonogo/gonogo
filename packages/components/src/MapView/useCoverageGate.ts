@@ -1,10 +1,10 @@
-// MapView's paint-gate. NOT a fog overlay compositor — there is no dark
+// MapView's paint-gate. NOT a fog overlay compositor, there is no dark
 // fog layer in this design. A base-layer augment (e.g. an altimetry or
 // biome map) calls useCoverageGate WHILE PAINTING ITS OWN SURFACE and
 // indexes into the returned composite grid to decide each tile's alpha:
 // 0 = fully un-covered (paint nothing / black), 255 = fully covered
 // (paint at full opacity). Replaces the old MapView-internal
-// `useFogMask.ts`'s dark-overlay-canvas shape (deleted, T9) — there is no
+// `useFogMask.ts`'s dark-overlay-canvas shape (deleted, T9): there is no
 // separate canvas to draw on top of the map anymore.
 import {
   type FogRevealSourceDefinition,
@@ -27,17 +27,17 @@ export interface CoverageGate {
    *  False in either the "no fog system mounted" case (zero reveal sources
    *  registered) or the "no cache provider" case (sources are registered
    *  but nothing can fetch their masks). A base-layer augment should treat
-   *  false as "paint fully open," NOT "fully fogged" — an Uplink that
+   *  false as "paint fully open," NOT "fully fogged", an Uplink that
    *  registers a base-layer provider but no reveal source at all gets an
    *  ungated (always-visible) surface, which is the correct degenerate
    *  case, not an error state. A missing `FogMaskCacheProvider` must
-   *  degrade the same way — never a blanked map. */
+   *  degrade the same way: never a blanked map. */
   hasAnySource: boolean;
 }
 
 const DEFAULT_WEIGHT = 255;
 
-/** Exported for direct unit testing without a canvas — pure per-pixel math. */
+/** Exported for direct unit testing without a canvas, pure per-pixel math. */
 export function compositeCoverage(
   sources: readonly FogRevealSourceDefinition[],
   masksByLayer: ReadonlyMap<string, BodyMask>,
@@ -56,7 +56,7 @@ export function compositeCoverage(
   return reveal;
 }
 
-// Stable-reference snapshot cache — getFogRevealSources() allocates fresh
+// Stable-reference snapshot cache: getFogRevealSources() allocates fresh
 // every call, which would infinite-loop useSyncExternalStore directly.
 //
 // Refreshed via an UNCONDITIONAL module-load subscription (mirrors
@@ -78,7 +78,7 @@ export function useCoverageGate(
   augmentSettings: Record<string, Record<string, unknown>> | undefined,
 ): CoverageGate {
   // Per-instance subscribe purely to trigger a re-render when the registry
-  // changes — cachedSources itself is kept fresh by the module-load
+  // changes, cachedSources itself is kept fresh by the module-load
   // subscription above regardless of whether any instance is mounted.
   const sources = useSyncExternalStore(
     onFogRevealSourcesChange,

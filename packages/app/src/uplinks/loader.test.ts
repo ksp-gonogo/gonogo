@@ -126,7 +126,7 @@ describe("loadEnabledUplinks", () => {
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
   });
 
-  it("calls fetchBytes with (bundleUrl, expectedHash) — the D6 seam a peer-backed fetchBytes needs", async () => {
+  it("calls fetchBytes with (bundleUrl, expectedHash): the D6 seam a peer-backed fetchBytes needs", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
@@ -345,7 +345,7 @@ describe("loadEnabledUplinks", () => {
   });
 });
 
-describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (2026-07-24)", () => {
+describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-07-24)", () => {
   it("enables an installed first-party id absent from ctx.enabledIds", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
@@ -356,7 +356,7 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [], // empty — the roster alone drives enabling
+      enabledIds: [], // empty: the roster alone drives enabling
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -372,8 +372,8 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
 
   // Override-precedence: an explicit `?uplinkLoaderIds=` is a deliberate dev/test
   // intent and must WIN over the roster (regression for the Hub-wizard e2e, whose
-  // fixture always supplies a roster — the override was silently ignored before).
-  it("an explicit override (even empty) wins over the roster — loads nothing", async () => {
+  // fixture always supplies a roster: the override was silently ignored before).
+  it("an explicit override (even empty) wins over the roster, loads nothing", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
@@ -384,7 +384,7 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
       enabledIds: ["scansat"],
-      override: [], // explicit "load nothing" — must beat the roster's scansat
+      override: [], // explicit "load nothing": must beat the roster's scansat
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -404,7 +404,7 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
       enabledIds: [],
-      override: ["scansat"], // explicit — must win over the roster's "nothing installed"
+      override: ["scansat"], // explicit: must win over the roster's "nothing installed"
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster: [], // mod reports nothing installed
@@ -424,7 +424,7 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     stubRegistryFetch(indexWith(goodHash));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: ["scansat"], // the OLD static default — must be ignored
+      enabledIds: ["scansat"], // the OLD static default, must be ignored
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster: [], // mod answered: nothing installed
@@ -437,11 +437,11 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     expect(getUplinkOutcomes()).toHaveLength(0);
   });
 
-  it("does not attempt an installed roster id that has no first-party descriptor in the local registry (installed-no-client — a gap, not an auto-load)", async () => {
+  it("does not attempt an installed roster id that has no first-party descriptor in the local registry (installed-no-client, a gap, not an auto-load)", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
-    // The local registry only ships "scansat" — "widget-y" is a mod the
+    // The local registry only ships "scansat": "widget-y" is a mod the
     // roster reports installed with no published client at all.
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
@@ -460,22 +460,22 @@ describe("loadEnabledUplinks — installed-mod-roster drives the enabled set (20
     expect(outcomes).toHaveLength(0);
     expect(importBundle).not.toHaveBeenCalled();
     // No outcome recorded at all (never "quarantined: not found in the
-    // registry index" either) — this id was never enabled in the first
+    // registry index" either): this id was never enabled in the first
     // place, distinct from an enabled-but-missing-descriptor case. The
     // wizard's `useUplinkGap` (`computeUplinkGap`) is what turns this exact
     // shape (installed, no loaded outcome, hub index has no descriptor for
-    // it) into the visible `installed-no-client` gap row — see
+    // it) into the visible `installed-no-client` gap row; see
     // `useUplinkGap.test.ts`'s "installed-no-client" cases, which exercise
     // the same shared join (`rosterGap.ts`) this derivation calls.
     expect(getUplinkOutcomes()).toHaveLength(0);
   });
 
-  it("roster ABSENT (undefined) falls back to ctx.enabledIds unchanged — degraded boot preserved", async () => {
+  it("roster ABSENT (undefined) falls back to ctx.enabledIds unchanged, degraded boot preserved", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
     const outcomes = await loadEnabledUplinks(
-      // No `roster` key at all — the real "no mod talking yet" shape.
+      // No `roster` key at all: the real "no mod talking yet" shape.
       ctx({ index: indexWith(goodHash), importBundle }),
     );
     expect(outcomes).toHaveLength(1);
@@ -766,7 +766,7 @@ describe("descriptorFromClientSource", () => {
   });
 });
 
-describe("loadEnabledUplinks — third-party clientSource path (D5-loader follow-on, 2026-07-25)", () => {
+describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on, 2026-07-25)", () => {
   const THIRD_PARTY_BYTES = new TextEncoder().encode(
     "export const marker = 'widget-y client bytes';",
   ).buffer as ArrayBuffer;
@@ -1049,7 +1049,7 @@ describe("loadEnabledUplinks — third-party clientSource path (D5-loader follow
       roster,
       ensureConsent: async () => true,
       fetchBytes,
-      // manifest self-declares a DIFFERENT integrity than the mod vouched —
+      // manifest self-declares a DIFFERENT integrity than the mod vouched,
       // a real fault since mod + client release together (operator ruling).
       fetchManifest: async () =>
         manifestFor({ integrity: "sha256-manifest-disagrees" }),
@@ -1147,7 +1147,7 @@ describe("loadEnabledUplinks — third-party clientSource path (D5-loader follow
         available: true,
         reason: null,
         // Even with a (nonsense) clientSource present, the first-party
-        // descriptor must win — clientSource is only consulted when the
+        // descriptor must win, clientSource is only consulted when the
         // local index has NO descriptor for the id.
         clientSource: {
           url: "https://cdn.example/scansat.client.js",

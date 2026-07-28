@@ -4,13 +4,13 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free command-handling logic for M1 Task 3's typed vessel/action
-    /// commands — the command-side twin of <see cref="VesselViewProvider"/>.
+    /// commands: the command-side twin of <see cref="VesselViewProvider"/>.
     /// Each <c>Handle*</c> method is the exact delegate
     /// <c>Gonogo.KSP.VesselUplink.Register</c> hands to
     /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: parse
     /// the already-typed args, call the one matching
     /// <see cref="IVesselActuator"/> method, hand back an already-typed
-    /// result. No KSP/Unity type appears anywhere in this file — every
+    /// result. No KSP/Unity type appears anywhere in this file, every
     /// domain check that doesn't need live game state (range validation on
     /// the args themselves) happens HERE; every check that does (mode
     /// availability, whether a target id actually resolves, whether a
@@ -19,7 +19,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Absolute set, never toggle</b> (design doc §3/§6.2): every
     /// boolean actuation command takes the state to APPLY, not "flip
-    /// whatever it currently is" — a toggle racing an unknown intervening
+    /// whatever it currently is", a toggle racing an unknown intervening
     /// state under light-time delay is a footgun this contract doesn't
     /// reproduce.</para>
     /// </summary>
@@ -38,7 +38,7 @@ namespace Sitrep.Host
         /// alongside <c>gear</c>/<c>brakes</c>/<c>lights</c>, but those three
         /// are already split out as their own dedicated commands rather than
         /// folded into <see cref="SetActionGroupCommand"/>'s numbered-group
-        /// shape — <c>abort</c> follows that same precedent instead of the
+        /// shape: <c>abort</c> follows that same precedent instead of the
         /// union's literal shape, so a client never has to string-match
         /// "abort" through the generic action-group command.
         /// </summary>
@@ -92,7 +92,7 @@ namespace Sitrep.Host
         public static CommandResult HandleSetAbort(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetAbort(args.Enabled);
 
-        /// <summary>Validated (not silently clamped) at THIS admission gate — A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
+        /// <summary>Validated (not silently clamped) at THIS admission gate, A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
         public static CommandResult HandleSetThrottle(IVesselActuator actuator, SetThrottleArgs args)
         {
             if (args.Value < 0.0 || args.Value > 1.0)
@@ -108,7 +108,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Clamps every provided axis/trim field to −1..1 HERE (KSP-free
         /// admission validation) before handing the whole partial-update struct
-        /// to the actuator. Axes are CLAMPED rather than rejected — an
+        /// to the actuator. Axes are CLAMPED rather than rejected, an
         /// over-range stick reading is a routine hardware quirk, not an error
         /// (contrast <see cref="HandleSetThrottle"/>, which rejects out-of-range
         /// with <see cref="CommandErrorCode.Range"/> because a throttle past
@@ -154,14 +154,14 @@ namespace Sitrep.Host
         /// reason: the unambiguously-invalid case is rejected HERE, but the
         /// REAL upper bound is only known live, so the actuator owns it.
         ///
-        /// <para>This used to hardcode <c>1..10</c>. It can't any more — the
+        /// <para>This used to hardcode <c>1..10</c>. It can't any more, the
         /// elected action-groups backend owns the range (stock stops at 10;
         /// Action Groups Extended legitimately goes to 250), and this
         /// KSP-free provider cannot see which backend won. A non-positive
         /// group is still nonsense under EVERY backend, so it fails fast here;
         /// anything else goes to the actuator, which asks the backend and
         /// returns <c>CommandErrorCode.Range</c> for a group it doesn't know.
-        /// A command naming an unknown group therefore still fails cleanly —
+        /// A command naming an unknown group therefore still fails cleanly,
         /// the check MOVED, it did not disappear.</para>
         /// </summary>
         public static CommandResult HandleSetActionGroup(IVesselActuator actuator, SetActionGroupArgs args)
@@ -185,7 +185,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Structurally-invalid args (the discriminated union's "wrong field
         /// for this Kind is missing" case) fail-fast here as <c>CommandErrorCode.NotFound</c>
-        /// without ever reaching the actuator — there is nothing a real KSP
+        /// without ever reaching the actuator: there is nothing a real KSP
         /// lookup could resolve from a null id. A well-formed request that
         /// simply doesn't match a live vessel/body/position is the actuator's
         /// own <c>CommandErrorCode.NotFound</c> to return (it's the one with
@@ -219,7 +219,7 @@ namespace Sitrep.Host
         /// command in this file. The real upper bound
         /// (<c>TimeWarp.warpRates.Length</c>) is only known live, so
         /// <c>KspVesselActuator.SetWarp</c> is responsible for rejecting an
-        /// index beyond it with the same <c>CommandErrorCode.Range</c> code — this
+        /// index beyond it with the same <c>CommandErrorCode.Range</c> code, this
         /// provider can't see that bound at all.
         /// </summary>
         public static CommandResult HandleSetWarpIndex(IVesselActuator actuator, SetWarpIndexArgs args)

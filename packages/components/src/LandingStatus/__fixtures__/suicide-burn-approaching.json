@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "suicide-burn-approaching",
-    "notes": "Descending toward Mun at speed, suicide burn in ~15s. Full metric grid visible — impact time, impact speed with 'best' inline, altitude, descent rate, predicted coords. Status row shows T−15.0s in warning colour."
+    "notes": "Descending toward Mun at speed, suicide burn in ~15s. Full metric grid visible, impact time, impact speed with 'best' inline, altitude, descent rate, predicted coords. Status row shows T−15.0s in warning colour."
   },
   "v.body": "Mun",
   "v.heightFromTerrain": 2800,

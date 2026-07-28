@@ -4,18 +4,18 @@
 // vessel marker) drawn on top of it. `map-view.base` is a STACKABLE slot
 // (local_docs/spec-mapview-stackable-layers.md): any number of augments may
 // each contribute a canvas, and every currently-active one is composited in
-// draw order — this module doesn't decide that order (see orderBaseLayers.ts)
+// draw order: this module doesn't decide that order (see orderBaseLayers.ts)
 // or which augments count as "active" (that's config/settings, resolved by
 // the caller); it only paints what it's handed.
 //
 // Whether the host's own stock body texture paints at all is a SEPARATE,
 // declarative decision (`suppressVanilla`, sourced from any registered
-// augment's `suppressesVanillaBase` flag — see augments.ts) — independent of
+// augment's `suppressesVanillaBase` flag: see augments.ts): independent of
 // whether any layer currently has a canvas to contribute. That split matters
 // for the "all layers toggled off" case: if suppression is on, the surface
 // stays black (the dark panel fill already on the canvas shows through),
 // never falling back to the stock texture just because nothing is currently
-// painting (spec §5) — "don't like it, don't have the Uplink" is meant
+// painting (spec §5): "don't like it, don't have the Uplink" is meant
 // literally: the Uplink's mere presence, not its current per-layer
 // visibility, decides this.
 //
@@ -25,7 +25,7 @@
 // hand back a canvas" as the suppression signal. That conflated two
 // concepts a real base-layer Uplink keeps separate (an opaque base surface
 // plus a translucent layer ON TOP of it) and made "hide vanilla, draw
-// nothing" unreachable — a coverage-gated layer that paints nothing for
+// nothing" unreachable: a coverage-gated layer that paints nothing for
 // unsurveyed tiles could only ever REPLACE pixels, never intentionally
 // withhold the whole surface.
 //
@@ -49,7 +49,7 @@ export interface BaseSurfaceCtx {
 
 /** One active `map-view.base` layer's contributed canvas, ready to composite. */
 export interface BaseSurfaceLayer {
-  /** The contributing augment's own id — carried through for callers/tests; drawing itself doesn't need it. */
+  /** The contributing augment's own id: carried through for callers/tests; drawing itself doesn't need it. */
   id: string;
   canvas: CanvasImageSource;
 }
@@ -62,9 +62,9 @@ export interface BaseSurfaceInput {
   /**
    * True when at least one registered `map-view.base` augment BOTH
    * declares `suppressesVanillaBase` AND has a currently-live Domain (spec:
-   * the Uplink's mere presence — meaning its Domain is actually live, not
-   * merely that its client package is registered — suppresses the host
-   * surface, non-optional, no setting overrides it back on) — independent
+   * the Uplink's mere presence: meaning its Domain is actually live, not
+   * merely that its client package is registered, suppresses the host
+   * surface, non-optional, no setting overrides it back on), independent
    * of `layers` below, which only reflects what's CURRENTLY painting. This
    * boolean is the caller's job to resolve (MapView/index.tsx, via
    * `vanillaSuppression.ts`'s `shouldSuppressVanillaBase` +
@@ -74,7 +74,7 @@ export interface BaseSurfaceInput {
   suppressVanilla: boolean;
   /**
    * Every currently-active layer's canvas, already in draw order (earliest
-   * first, so later entries composite on top) — see orderBaseLayers.ts for
+   * first, so later entries composite on top); see orderBaseLayers.ts for
    * how that order is derived.
    */
   layers: readonly BaseSurfaceLayer[];
@@ -117,7 +117,7 @@ export function paintBaseSurface(
 /**
  * Whether {@link paintBaseSurface} actually drew any surface pixels for these
  * inputs: the stock texture / body-colour wash (only when NOT suppressed) OR at
- * least one layer canvas. Mirrors the paint decision above exactly — the
+ * least one layer canvas. Mirrors the paint decision above exactly, the
  * MapView grid-stroke keys its light-vs-dark choice off this so a
  * suppressed-and-empty (deliberately black) map takes the DARK grid, even when
  * a stock texture happens to still be loaded. Keying off `textureImage` alone

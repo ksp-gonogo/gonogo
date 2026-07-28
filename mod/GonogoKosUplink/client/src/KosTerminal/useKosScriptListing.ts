@@ -11,10 +11,10 @@ import {
 const SCRIPT_VERSION = hashKosScript(KOS_FILES_SCRIPT);
 
 /**
- * Volumes probed for the `/`-picker's live listing — the Archive (where
+ * Volumes probed for the `/`-picker's live listing, the Archive (where
  * scripts are normally authored/saved) and the CPU's own local hard drive
  * (where the picker's "copy local & run" toggle lands a copy, so an
- * already-copied script shows up too). Probed independently — a CPU with
+ * already-copied script shows up too). Probed independently, a CPU with
  * no local drive installed rejects `1:` but that must not sink the
  * Archive listing.
  */
@@ -27,7 +27,7 @@ const SCRIPT_FILE_RE = /\.(ks|ksm)$/i;
 export interface KosScriptListingResult {
   paths: string[];
   loading: boolean;
-  /** Human hint for the empty state — no CPU tag, no connection, or a dispatch error's message. `null` once a listing has loaded (even an empty one). */
+  /** Human hint for the empty state: no CPU tag, no connection, or a dispatch error's message. `null` once a listing has loaded (even an empty one). */
   hint: string | null;
 }
 
@@ -35,13 +35,13 @@ const IDLE: KosScriptListingResult = { paths: [], loading: false, hint: null };
 
 /**
  * Live drive listing for the `/`-script picker (kos-terminal-script-picker,
- * hub-wizard-kos Phase 1 increment (b)) — dispatches the resurrected
+ * hub-wizard-kos Phase 1 increment (b)): dispatches the resurrected
  * `KOS_FILES_SCRIPT` ("list" op) via the surviving `KosDataSource.
  * executeScript` RPC for each of `LISTED_VOLUMES`, merges the FILE (not
- * directory) entries, and filters to `*.ks`/`*.ksm` — the only RUNPATH-able
+ * directory) entries, and filters to `*.ks`/`*.ksm`: the only RUNPATH-able
  * kinds. This is the "raw executeScript" RPC-shaped one-shot case
  * (per-call args, request/response), NOT the centralised `kos.compute.*`
- * feed pattern — a directory listing is neither passive telemetry nor a
+ * feed pattern: a directory listing is neither passive telemetry nor a
  * fixed no-args interval script, so it stays outside that registry by
  * design (see the repo CLAUDE.md's "when to use this vs raw executeScript"
  * section).
@@ -49,10 +49,10 @@ const IDLE: KosScriptListingResult = { paths: [], loading: false, hint: null };
  * Lazy + single-shot: does nothing until `enabled` is true (the terminal
  * only passes `true` once the `/`-picker is actually open AND no static
  * `scriptPaths` config already supplies a list), and fetches at most once
- * per `(coreId, cpuTag)` pair — reopening the picker within the same
+ * per `(coreId, cpuTag)` pair, reopening the picker within the same
  * session reuses the cached result rather than re-dispatching. Degrades
  * gracefully (empty `paths` + a `hint`, never a thrown error) on a
- * tagless CPU, no telemetry stream mounted, or a dispatch/timeout error —
+ * tagless CPU, no telemetry stream mounted, or a dispatch/timeout error,
  * `executeScript` itself is the thing flagged unverified-in-source for
  * this environment (`KosExtension.Ksp.cs:335-340`), so every failure mode
  * here is a "show a hint" path, never a crash.
@@ -64,7 +64,7 @@ export function useKosScriptListing(
 ): KosScriptListingResult {
   const [result, setResult] = useState<KosScriptListingResult>(IDLE);
   // Tracks the (coreId, cpuTag) pair a fetch has already been kicked off
-  // for, so re-opening the picker doesn't re-dispatch — see the doc
+  // for, so re-opening the picker doesn't re-dispatch; see the doc
   // comment above. Reset (by identity) whenever coreId/cpuTag actually
   // change, via the dependency array below rather than manual comparison.
   const fetchedForRef = useRef<string | null>(null);
@@ -79,7 +79,7 @@ export function useKosScriptListing(
       setResult({
         paths: [],
         loading: false,
-        hint: "This CPU has no tagname yet — waiting on kos.processors.",
+        hint: "This CPU has no tagname yet: waiting on kos.processors.",
       });
       return;
     }

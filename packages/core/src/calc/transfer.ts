@@ -1,13 +1,13 @@
 /**
- * Interplanetary/interlunar transfer-window math — pure, deterministic,
+ * Interplanetary/interlunar transfer-window math: pure, deterministic,
  * side-effect-free (SI units: metres, seconds, m/s; angles in degrees at the
  * public boundary). Client-derived from the body Keplerian elements already on
  * the wire (`system.bodies`), no mod channel.
  *
  * Two layers:
  *   - the coplanar Hohmann model (phase angle, synodic window timing, ejection
- *     Δv/angle) — the MVP readout, and
- *   - `ITransferSolver` / `keplerTransferSolver` — the swappable seam. The
+ *     Δv/angle): the MVP readout, and
+ *   - `ITransferSolver` / `keplerTransferSolver`: the swappable seam. The
  *     default is this stock two-body Kepler solver; a Principia (n-body)
  *     backend can register over it later, the same electable pattern as
  *     `ITargetApproachSolver`/`StockKeplerApproachSolver`. (The Principia
@@ -15,7 +15,7 @@
  *
  * The porkchop/Lambert layer (departure×arrival Δv surface, inclination-aware)
  * lives alongside in `./lambert` and consumes 3D state from the same body
- * elements — it is a separate, richer computation than this coplanar model.
+ * elements: it is a separate, richer computation than this coplanar model.
  */
 
 // ---------------------------------------------------------------------------
@@ -72,8 +72,8 @@ export function transferStatus(deltaDeg: number): TransferStatus {
 // ---------------------------------------------------------------------------
 
 /**
- * Synodic period (seconds): how often the same relative geometry — and thus
- * the same transfer window — recurs. `|T1·T2 / (T1 − T2)|`. Diverges as the
+ * Synodic period (seconds): how often the same relative geometry, and thus
+ * the same transfer window: recurs. `|T1·T2 / (T1 − T2)|`. Diverges as the
  * two periods converge (co-orbital bodies never realign).
  */
 export function synodicPeriod(t1: number, t2: number): number {
@@ -160,7 +160,7 @@ export interface NextWindowInput {
   originPeriod: number;
   /** Destination body's orbital period (s). */
   destPeriod: number;
-  /** Precomputed synodic period (s) — pass `synodicPeriod(...)`. */
+  /** Precomputed synodic period (s): pass `synodicPeriod(...)`. */
   synodicPeriodSec: number;
 }
 
@@ -223,7 +223,7 @@ export interface TransferSolution {
 /**
  * The swappable transfer-solution seam. The default `keplerTransferSolver`
  * uses the coplanar two-body model above; a Principia-aware backend can be
- * elected over it later (deferred — same pattern as the target-approach
+ * elected over it later (deferred: same pattern as the target-approach
  * solver). `id` names the backend for diagnostics/UI, mirroring
  * `ITargetApproachSolver.BackendId`.
  */

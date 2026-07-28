@@ -1,5 +1,5 @@
 // Workspace definition for pnpm test (turbo per-package runs use their own configs).
-// pnpm coverage uses vitest.config.ts directly — not this file — for a single-process
+// pnpm coverage uses vitest.config.ts directly, not this file: for a single-process
 // cross-package coverage run.
 import { defineWorkspace } from "vitest/config";
 

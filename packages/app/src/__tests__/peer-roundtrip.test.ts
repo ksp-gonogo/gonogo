@@ -9,7 +9,7 @@
  *   → PeerClientDataSource (real)
  *   → subscriber
  *
- * The PeerHostService / PeerClientService layers are bypassed — the relay
+ * The PeerHostService / PeerClientService layers are bypassed, the relay
  * function plays the role of the peer transport. That keeps the test free of
  * PeerJS mocking while still exercising every data-shape + filter boundary
  * that the reported station bug crossed.
@@ -33,7 +33,7 @@ import type { PeerMessage } from "../peer/protocol";
 // Fakes
 // ---------------------------------------------------------------------------
 
-// Minimal Telemachus-shaped fake — built from the shared MockDataSource
+// Minimal Telemachus-shaped fake: built from the shared MockDataSource
 // fixture. `affectedBySignalLoss: true` mirrors the now-deleted legacy
 // TelemachusDataSource so BufferedDataSource's signal-loss gate is
 // exercised end-to-end.
@@ -46,7 +46,7 @@ function makeMockTelemachus(keys: DataKey[]): MockDataSource {
   });
 }
 
-/** Fake PeerHostService — captures broadcasts for the relay to forward. */
+/** Fake PeerHostService: captures broadcasts for the relay to forward. */
 function makeFakeHost() {
   let bridge: ((msg: PeerMessage) => void) | null = null;
   return {
@@ -111,7 +111,7 @@ const TELEMACHUS_KEYS: DataKey[] = [
   { key: "v.missionTime" },
   { key: "v.altitude" },
   // f.throttle is on BufferedDataSource's antenna-only blocklist
-  // (collapses to literal 2 when the Telemachus antenna is down —
+  // (collapses to literal 2 when the Telemachus antenna is down,
   // see 2026-05-18 live test). Use it for the gate drop-path
   // assertion; v.altitude flows honestly regardless of antenna
   // state so it can't exercise the drop.
@@ -129,7 +129,7 @@ function setup() {
   const fakeClient = makeFakeClient();
   fakeHost.bridgeTo((msg) => fakeClient.receive(msg));
 
-  // PBDS subscribes to the buffered source during construction — after this
+  // PBDS subscribes to the buffered source during construction, after this
   // call, any subsequent BufferedDataSource sample fans out as a broadcast.
   new PeerBroadcastingDataSource(buffered, fakeHost as never);
 
@@ -181,13 +181,13 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     ctx.telemachus.emit("v.altitude", 500);
     ctx.telemachus.emit("v.altitude", 600);
 
-    // Gate must not engage — widgets must keep receiving values.
+    // Gate must not engage, widgets must keep receiving values.
     expect(received).toEqual([500, 600]);
   });
 
   it("gates samples after a confirmed true → false transition and resumes on true", () => {
     const received: unknown[] = [];
-    // f.throttle is on the antenna-only blocklist — when the gate is
+    // f.throttle is on the antenna-only blocklist, when the gate is
     // active it drops samples (replacing the prior allowlist behaviour
     // that gated nearly every vessel-required key). See the 2026-05-18
     // live test in local_docs/2026-05-18/_decisions.md.
@@ -206,7 +206,7 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     expect(received).toEqual([0.5, 0.7]);
   });
 
-  it("routes by sourceId — other-source broadcasts don't bleed into the station subscriber", () => {
+  it("routes by sourceId: other-source broadcasts don't bleed into the station subscriber", () => {
     const received: unknown[] = [];
     ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
 

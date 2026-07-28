@@ -21,7 +21,7 @@ export const CHROMIUM_ONLY_SURFACES = [
 
 /**
  * The Gamepad API is cross-browser (Chrome, Firefox, Safari all implement
- * it), unlike Web Serial — so it is deliberately NOT in
+ * it), unlike Web Serial: so it is deliberately NOT in
  * `CHROMIUM_ONLY_SURFACES`. The web-serial-unsupported banner must stay
  * scoped to web-serial devices; gate gamepad UI on this predicate instead,
  * never on `hasWebSerial`.

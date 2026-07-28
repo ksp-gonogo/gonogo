@@ -1,10 +1,10 @@
 /**
  * The minimal, dispatch-time-only shape `computeUplinkPulse` reads off a
- * `system.uplink.pending` entry (`Sitrep.Contract.PendingUplink`) — never
+ * `system.uplink.pending` entry (`Sitrep.Contract.PendingUplink`): never
  * anything execution/result-shaped, matching that contract's own
  * prediction-only invariant (see `mod/Sitrep.Contract/UplinkPending.cs`'s
  * class doc). `dispatchedAt`/`oneWaySeconds` are both TrueNow ground-clock
- * quantities frozen at dispatch time — compare against `useUtNow()`, never
+ * quantities frozen at dispatch time: compare against `useUtNow()`, never
  * the delayed `useViewUt()` (see `use-stream.ts`'s `useLatestValue` doc for
  * why: sampling either through the delayed frame makes the overlay appear,
  * and clear, a whole one-way-delay late).
@@ -21,7 +21,7 @@ export interface UplinkPulse {
   leg: UplinkPulseLeg;
   /** 0..1 fraction of progress ALONG the current leg (0 = leg start, 1 = leg end). */
   progress: number;
-  /** 0..1 render opacity — fades over the final `FADE_FRACTION` of the round trip so a pulse doesn't just vanish. */
+  /** 0..1 render opacity, fades over the final `FADE_FRACTION` of the round trip so a pulse doesn't just vanish. */
   opacity: number;
 }
 
@@ -32,7 +32,7 @@ const MIN_OPACITY = 0.15;
 
 /**
  * Predicts a `PendingUplink` entry's animation state at `utNow` (the
- * TrueNow ground-clock estimate, `useUtNow()`) — an outbound pulse from
+ * TrueNow ground-clock estimate, `useUtNow()`): an outbound pulse from
  * dispatch to `dispatchedAt + oneWaySeconds`, then a return pulse to
  * `dispatchedAt + 2*oneWaySeconds`. Matches the boundary convention
  * `KosTerminal`'s already-shipped in-transit strip uses
@@ -40,17 +40,17 @@ const MIN_OPACITY = 0.15;
  * fraction per leg instead of a countdown string.
  *
  * `null`:
- * - before dispatch (defensive — shouldn't happen, the queue is
+ * - before dispatch (defensive: shouldn't happen, the queue is
  *   dispatch-time-only),
  * - once the round trip has fully elapsed (a client-side safety net;
- *   the SERVER is the actual pruning authority — an entry disappearing from
+ *   the SERVER is the actual pruning authority, an entry disappearing from
  *   a later `system.uplink.pending` snapshot is the real "done" signal, this
  *   is just a belt-and-suspenders local expiry so a delayed prune never
  *   leaves a stale pulse glued to the diagram),
  * - for a non-finite or non-positive `oneWaySeconds` (no meaningful leg
  *   length to animate against).
  *
- * Never reads or infers anything about vessel-side receipt/execution —
+ * Never reads or infers anything about vessel-side receipt/execution,
  * pure dispatch-time arithmetic, honouring the contract's prediction-only
  * invariant.
  */

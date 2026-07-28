@@ -18,7 +18,7 @@ function getProvider() {
 }
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
-// notifies the DataSource-registry subscribers — every useTelemetry call
+// notifies the DataSource-registry subscribers: every useTelemetry call
 // keeps its legacy useDataSourceSubscription wired unconditionally (see that
 // hook's own doc comment), so clearRegistry() firing on a still-mounted hook
 // tree is a state update outside act(). RTL auto-cleanup runs after this
@@ -31,8 +31,8 @@ afterEach(() => {
   clearRegistry();
 });
 
-describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
-  it("is registered with no `requires` gate — core Sitrep data, always potentially present", () => {
+describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
+  it("is registered with no `requires` gate, core Sitrep data, always potentially present", () => {
     expect(getProvider().requires).toBeUndefined();
   });
 
@@ -102,7 +102,7 @@ describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
           contractFundsCompletion: 5000,
           contractDateDeadline: 12345,
         },
-        // Different body — must be filtered out of the Kerbin-scoped result.
+        // Different body: must be filtered out of the Kerbin-scoped result.
         {
           id: "launchSite:Woomerang",
           kind: "launchSite",

@@ -12,7 +12,7 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  * Muted placeholder text shown when a panel has nothing to render. Replaces
  * the many ad-hoc `Empty = styled.div` definitions sprinkled across widgets.
  *
- * `inline` is the default — small vertical padding, sits where it's mounted
+ * `inline` is the default, small vertical padding, sits where it's mounted
  * inside a panel's stack of children. `fill` centres in the available space
  * and is appropriate as a panel's sole child.
  */

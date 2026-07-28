@@ -11,7 +11,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Foundation tests for <see cref="UplinkDiscovery"/> — the kOS
+    /// Foundation tests for <see cref="UplinkDiscovery"/>: the kOS
     /// <c>AddonManager</c> precedent adapted for Uplinks (see
     /// <see cref="UplinkDiscovery"/>'s own doc comment). Uses the
     /// assembly-set overload (<see cref="UplinkDiscovery.Discover(IEnumerable{System.Reflection.Assembly})"/>)
@@ -47,7 +47,7 @@ namespace Sitrep.Host.Tests
         public void SkipsTypeWithNoParameterlessConstructorWithoutThrowing()
         {
             // NoParameterlessCtorUplink carries [SitrepUplink] but only a
-            // one-arg constructor — discovery must skip it (log + continue),
+            // one-arg constructor: discovery must skip it (log + continue),
             // never throw, and every OTHER attributed type in the same scan
             // must still be found.
             var found = UplinkDiscovery.Discover(ThisAssembly);
@@ -85,7 +85,7 @@ namespace Sitrep.Host.Tests
             // >1 match. This reproduces, with no compiled/static dependency
             // on any unloadable assembly, the general shape
             // foundation-review finding #5 named: "a candidate type carries
-            // some OTHER attribute [...] whose [resolution] can throw" — the
+            // some OTHER attribute [...] whose [resolution] can throw", the
             // fix must make GetCustomAttribute's throw here skip only THIS
             // type (log + continue), not abort the whole scan. Asserted by
             // requiring NormalDiscoverableUplink still comes back in the
@@ -164,7 +164,7 @@ namespace Sitrep.Host.Tests
 
             // Health() is now a mandatory ISitrepUplink member, so the emitted type
             // must implement it or CreateType() fails. Return the trivial floor
-            // (UplinkHealth.Healthy) — this type is never actually registered (the
+            // (UplinkHealth.Healthy): this type is never actually registered (the
             // duplicated-attribute resolution throws first), it just has to be a
             // valid ISitrepUplink to load.
             var healthIface = typeof(ISitrepUplink).GetMethod(nameof(ISitrepUplink.Health))!;
@@ -203,7 +203,7 @@ namespace Sitrep.Host.Tests
         {
             // RegisterUplink/RegisterDiscoveredUplink must run BEFORE
             // Start() (see ChannelEngine.RegisterUplink's own doc comment),
-            // so this engine is deliberately never started — Dispose() on an
+            // so this engine is deliberately never started, Dispose() on an
             // unstarted engine would otherwise throw ThreadStateException
             // trying to Join a Thread that was never Start()ed, unrelated to
             // what this test actually exercises. No Stop()/Dispose() needed:

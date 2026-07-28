@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildGamepadInputs, gamepadTypeId } from "./gamepadShape";
 
 describe("gamepadTypeId", () => {
-  it("keys on shape, not identity — two standard 17/4 pads share an id", () => {
+  it("keys on shape, not identity: two standard 17/4 pads share an id", () => {
     expect(gamepadTypeId(17, 4, "standard")).toBe(
       gamepadTypeId(17, 4, "standard"),
     );
@@ -104,7 +104,7 @@ describe("buildGamepadInputs", () => {
       expect(a0?.polarity).toBe("bipolar");
     });
 
-    it("still produces every input — nothing is dropped", () => {
+    it("still produces every input: nothing is dropped", () => {
       expect(inputs).toHaveLength(22);
     });
   });

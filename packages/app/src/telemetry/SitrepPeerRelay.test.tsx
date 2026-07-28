@@ -28,7 +28,7 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
 }
 
 /**
- * Duck-typed fake `PeerHostService` — exposes only the surface
+ * Duck-typed fake `PeerHostService`: exposes only the surface
  * `SitrepPeerRelay` touches (`getConnectedPeerIds`/`onPeerConnect`/
  * `onPeerDisconnect`/`broadcast`/`sendToPeer`), plus test-only
  * `connectPeer`/`disconnectPeer` drivers.
@@ -105,7 +105,7 @@ describe("SitrepPeerRelay", () => {
     act(() => peerHost.connectPeer("station-a"));
     await waitFor(() => {
       expect(transport.isSubscribed("vessel.orbit")).toBe(true);
-      // A second, unrelated topic — not "comms.delay", which
+      // A second, unrelated topic: not "comms.delay", which
       // `TelemetryProvider`'s own auto-attached `DelayAuthority` ALSO
       // subscribes to independently, so its ref count never drops to zero
       // just because this relay tears its own subscription down.

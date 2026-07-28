@@ -6,7 +6,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// Mirrors KSP's own <c>Vessel.Situations</c> enum by concept (member names
-/// here are this contract's own PascalCase spelling — <c>Sitrep.Host.
+/// here are this contract's own PascalCase spelling, <c>Sitrep.Host.
 /// VesselViewProvider</c>'s <c>ParseSituation</c> maps KSP's raw
 /// SCREAMING_SNAKE_CASE <c>.ToString()</c> onto these, never passing the raw
 /// string through directly). Kills V-13: the <c>v.situation</c>/
@@ -64,7 +64,7 @@ public enum VesselType
 }
 
 /// <summary>
-/// Mirrors KSP's <c>Orbit.PatchTransitionType</c> — parsed from the raw
+/// Mirrors KSP's <c>Orbit.PatchTransitionType</c>: parsed from the raw
 /// <c>orbit.patchEndTransition.ToString()</c> value <c>KspHost</c> captures.
 /// <see cref="Unknown"/> is the graceful fallback.
 /// </summary>

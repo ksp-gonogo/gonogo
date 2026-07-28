@@ -11,11 +11,11 @@
  * `prefers-color-scheme`) keep working when a styled-component switches from a
  * raw CSS var to `theme.typography...`.
  *
- * This file is the contract only — plain interfaces, no `styled-components`
+ * This file is the contract only, plain interfaces, no `styled-components`
  * augmentation. The `declare module "styled-components"` block that binds
  * `UiKitTheme` onto `DefaultTheme` lives in the package that needs it
  * (`@ksp-gonogo/ui-kit`, `src/styledComponentsTheme.ts`), because an
- * augmentation only applies where it is compiled from source — see that file
+ * augmentation only applies where it is compiled from source; see that file
  * for why shipping one through a built `.d.ts` does not work.
  */
 
@@ -25,7 +25,7 @@ export interface ThemeColors {
     muted: string;
     dim: string;
     /**
-     * Lowest-contrast foreground tier — placeholder text, disabled labels,
+     * Lowest-contrast foreground tier: placeholder text, disabled labels,
      * extreme captions. Fails large-text WCAG contrast on dark surfaces;
      * use sparingly for non-essential content.
      */
@@ -90,11 +90,11 @@ export interface ThemeSpace {
 }
 
 export interface ThemeRadii {
-  /** Tightest corner — buttons and small controls. */
+  /** Tightest corner: buttons and small controls. */
   xs: string;
   sm: string;
   md: string;
-  /** Fully rounded — chips, avatars, toggle knobs. */
+  /** Fully rounded: chips, avatars, toggle knobs. */
   pill: string;
 }
 

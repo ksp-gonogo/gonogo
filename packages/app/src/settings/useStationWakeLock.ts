@@ -9,7 +9,7 @@ registerSetting({
   type: "boolean",
   label: "Keep screen awake while connected",
   description:
-    "Requests the browser keep this screen on while the station is connected to the main screen. Some browsers ignore the request — behaviour is best-effort.",
+    "Requests the browser keep this screen on while the station is connected to the main screen. Some browsers ignore the request, behaviour is best-effort.",
   category: "Station",
   defaultValue: true,
   screens: ["station"],
@@ -58,14 +58,14 @@ export function useStationWakeLock(active: boolean): void {
         }
         sentinel = next;
       } catch {
-        // Permission denied, page not visible, or user-agent refusal —
+        // Permission denied, page not visible, or user-agent refusal,
         // ignore; the lock is best-effort by contract.
       }
     }
 
     function onVisibilityChange() {
       if (document.visibilityState === "visible" && !sentinel?.released) {
-        // Request was silently dropped while backgrounded — reacquire.
+        // Request was silently dropped while backgrounded, reacquire.
         void acquire();
       }
     }

@@ -26,7 +26,7 @@ interface PendingCallback {
 
 /**
  * Pure virtual clock. Time only moves when `advanceTo` is called, and it
- * never reads Date.now()/performance.now() — that's the whole point: tests
+ * never reads Date.now()/performance.now(), that's the whole point: tests
  * (and the real engine under time-warp) drive it explicitly.
  */
 export class ManualClock implements Clock {
@@ -53,7 +53,7 @@ export class ManualClock implements Clock {
    * Advance current UT to `ut`, firing all non-cancelled pending callbacks
    * with `atUt <= ut`, in ascending atUt order (ties broken by insertion
    * order). Advancing to a UT strictly before the current UT is a no-op
-   * (time never rewinds, nothing fires) — advancing to the *same* UT is
+   * (time never rewinds, nothing fires): advancing to the *same* UT is
    * allowed and still processes any callbacks due at that UT.
    *
    * This drains rather than snapshotting the due batch up front: a firing
@@ -62,7 +62,7 @@ export class ManualClock implements Clock {
    * callbacks after every fire so that newly-scheduled, already-due
    * callbacks are picked up and fired within the same `advanceTo` call,
    * instead of getting stranded until a later advance. A callback that
-   * perpetually reschedules itself at `atUt <= ut` will loop forever here —
+   * perpetually reschedules itself at `atUt <= ut` will loop forever here,
    * that's an author-side bug (equivalent to recursive `setTimeout(0)`),
    * not something this clock should paper over.
    */
@@ -98,7 +98,7 @@ export class ManualClock implements Clock {
 }
 
 /**
- * Wall-clock-backed Clock. Kept minimal — the delay-engine model and its
+ * Wall-clock-backed Clock. Kept minimal: the delay-engine model and its
  * tests run entirely on ManualClock; this exists so production code has a
  * real implementation to construct.
  */

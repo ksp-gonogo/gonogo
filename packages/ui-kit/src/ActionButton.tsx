@@ -7,7 +7,7 @@ export interface ActionButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   /**
    * `ghost` (default) is the neutral compact button. `go` is the go-toned
-   * confirm variant — a filled green button that pulses to draw the eye to a
+   * confirm variant: a filled green button that pulses to draw the eye to a
    * pending confirmation (e.g. "confirm transmit").
    */
   tone?: ActionButtonTone;
@@ -16,7 +16,7 @@ export interface ActionButtonProps
 
 /**
  * Compact row-level action button. Extracted from ScienceOfficer's
- * `ActionButton` + `ConfirmTransmitButton` — the `go` tone replaces the
+ * `ActionButton` + `ConfirmTransmitButton`: the `go` tone replaces the
  * latter.
  */
 export function ActionButton({

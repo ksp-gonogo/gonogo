@@ -65,7 +65,7 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
-    /// <c>ProviderContext</c> — passed to every factory (provider or
+    /// <c>ProviderContext</c>: passed to every factory (provider or
     /// vanilla) when it runs.
     /// </summary>
     public sealed class ProviderContext
@@ -117,8 +117,8 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s <c>Kernel</c>
-    /// class — the capability/provider registry. Semantics MUST stay
-    /// byte-for-byte identical to the TS reference — conformance is asserted
+    /// class: the capability/provider registry. Semantics MUST stay
+    /// byte-for-byte identical to the TS reference: conformance is asserted
     /// by <c>Sitrep.Core.Tests</c> against the shared golden fixture in
     /// <c>mod/golden-fixtures/kernel.json</c>, not by re-deriving semantics
     /// here. If you touch this file, regenerate the fixture from the TS side
@@ -126,19 +126,19 @@ namespace Sitrep.Contract
     /// re-run `dotnet test` to confirm the two still agree.
     ///
     /// <see cref="Resolve"/> runs in three phases, in order:
-    ///  1. <b>Selection</b> (<see cref="SelectCapability"/>) — for every
+    ///  1. <b>Selection</b> (<see cref="SelectCapability"/>): for every
     ///     registered capability, decide which provider(s) win (version
     ///     gating, then exclusive-conflict resolution or shared fan-out). No
     ///     factory runs yet, so this phase can freely iterate capabilities in
     ///     registration order without any capability depending on another
     ///     capability's factory having already run.
-    ///  2. <b>Ordering</b> (<see cref="Broker.TopoSortActivationOrder"/>) —
+    ///  2. <b>Ordering</b> (<see cref="Broker.TopoSortActivationOrder"/>):
     ///     build one dependency-graph node per capability from its selected
     ///     provider(s)' <see cref="ProviderRegistration.Deps"/>, and
     ///     topo-sort so a capability's declared dependencies precede it.
     ///     Throws <see cref="DependencyCycleError"/> if the graph has a
     ///     cycle.
-    ///  3. <b>Activation</b> (<see cref="ActivateSelection"/>) — walk the
+    ///  3. <b>Activation</b> (<see cref="ActivateSelection"/>): walk the
     ///     topo order and invoke factories, writing each capability's active
     ///     instances into the active-instance table immediately after its
     ///     factory runs (not batched at the end), so a later capability's
@@ -161,7 +161,7 @@ namespace Sitrep.Contract
             new Dictionary<string, List<object?>>();
 
         /// <summary>
-        /// Capability registration order — tracked explicitly (rather than
+        /// Capability registration order: tracked explicitly (rather than
         /// relying on <see cref="Dictionary{TKey,TValue}"/> enumeration
         /// order) so selection/ordering stays deterministic regardless of
         /// runtime dictionary-iteration behavior.
@@ -201,7 +201,7 @@ namespace Sitrep.Contract
             var notices = new List<ResolutionNotice>();
             var ctx = new ProviderContext(opts.KernelVersion, capability => Query<object?>(capability));
 
-            // Phase 1: selection — decide the winning provider(s) per
+            // Phase 1: selection, decide the winning provider(s) per
             // capability. No factory has run yet, so this can safely iterate
             // in plain registration order regardless of any Deps
             // relationships.
@@ -211,7 +211,7 @@ namespace Sitrep.Contract
                 selections.Add(SelectCapability(_capabilities[id], opts, notices));
             }
 
-            // Phase 2: ordering — topo-sort capability activation so a
+            // Phase 2: ordering, topo-sort capability activation so a
             // provider's Deps are active before its factory runs. Edges come
             // from each capability's *selected* provider(s), not every
             // registered candidate.
@@ -223,7 +223,7 @@ namespace Sitrep.Contract
             var order = Broker.TopoSortActivationOrder(nodes);
             var selectionById = selections.ToDictionary(s => s.Descriptor.Id);
 
-            // Phase 3: activation — run factories in topo order, publishing
+            // Phase 3: activation, run factories in topo order, publishing
             // each capability's active instances immediately so later
             // factories in the order can ctx.Query() them.
             foreach (var capability in order)
@@ -243,7 +243,7 @@ namespace Sitrep.Contract
         /// Selection phase for one capability: version-gate the registered
         /// candidates, apply the spine-critical halt check, then hand the
         /// survivors to exclusive-conflict resolution or shared fan-out.
-        /// Returns the provider(s) chosen to activate — empty means "fall
+        /// Returns the provider(s) chosen to activate: empty means "fall
         /// back to vanilla (or nothing)" once activation runs. Does not call
         /// any factory.
         /// </summary>
@@ -378,15 +378,15 @@ namespace Sitrep.Contract
         /// Precedence for an exclusive capability with &gt;=2 candidates:
         ///  1. <c>preferences[capability]</c> naming a registered provider id
         ///     wins outright (preference beats default). A preference naming
-        ///     an unregistered id is a stale preference — ignored, falling
+        ///     an unregistered id is a stale preference, ignored, falling
         ///     through.
         ///  2. Else a single <c>IsDefault</c> provider wins. Multiple
         ///     <c>IsDefault</c> providers is itself ambiguous.
         ///  3. Else the single provider with the unique highest
-        ///     <see cref="ProviderRegistration.Priority"/> (default 0) wins —
+        ///     <see cref="ProviderRegistration.Priority"/> (default 0) wins:
         ///     a clean supersede.
-        ///  4. Else — two or more tied top candidates with no
-        ///     default/preference to break the tie — fail loud with
+        ///  4. Else: two or more tied top candidates with no
+        ///     default/preference to break the tie, fail loud with
         ///     <see cref="AmbiguousResolutionError"/> rather than silently
         ///     picking by registration order.
         /// </summary>
@@ -403,7 +403,7 @@ namespace Sitrep.Contract
                     return (preferred, "user preference");
                 }
                 // Stale preference (names a provider that isn't registered
-                // for this capability) — ignore it and fall through to
+                // for this capability): ignore it and fall through to
                 // default/priority.
             }
 
@@ -492,7 +492,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The set of providers chosen to activate for one capability,
-        /// decided during the selection phase of <see cref="Resolve"/> —
+        /// decided during the selection phase of <see cref="Resolve"/>,
         /// before any factory has run. Empty <see cref="Providers"/> means
         /// "no provider survived selection"; activation then falls back to
         /// the capability's vanilla factory (if any) or resolves to zero

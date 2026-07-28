@@ -29,14 +29,14 @@ export interface GameContext {
   /**
    * `career.mode` from Telemachus. `"Unknown"` when the value hasn't
    * arrived yet. Sandbox saves are a meaningful state to detect
-   * (gate career-only widgets) — don't lump it in with Unknown.
+   * (gate career-only widgets): don't lump it in with Unknown.
    */
   careerMode: CareerMode;
-  /** True when careerMode is `"CAREER"` or `"SCIENCE"` — i.e. funds and/or science meaningful. */
+  /** True when careerMode is `"CAREER"` or `"SCIENCE"`, i.e. funds and/or science meaningful. */
   isCareerLike: boolean;
   /**
    * True when we have telemetry but no live game context (no flight,
-   * no save). Used by widgets to decide whether to dim — distinguishes
+   * no save). Used by widgets to decide whether to dim, distinguishes
    * "data sources connected but nothing happening" from "data sources
    * still booting up".
    */
@@ -60,7 +60,7 @@ const KNOWN_MODES: ReadonlySet<CareerMode> = new Set<CareerMode>([
 
 /**
  * `Sitrep.Contract.GameMode`'s enum declaration order (`contract.ts`:
- * Sandbox 0 / Career 1 / Science 2 / Unknown 3) — index-matched so the
+ * Sandbox 0 / Career 1 / Science 2 / Unknown 3), index-matched so the
  * mapped `career.mode.mode` ordinal resolves via a plain array lookup.
  */
 const GAME_MODE_ORDINAL: readonly CareerMode[] = [
@@ -75,7 +75,7 @@ const GAME_MODE_ORDINAL: readonly CareerMode[] = [
  * whether the read routed to the stream or the legacy `DataSource`:
  *  - **legacy** (GonogoTelemetry's `career.mode` Telemachus key): a plain
  *    string (`"CAREER"`/`"SCIENCE"`/`"SANDBOX"`, any casing).
- *  - **stream** (mapped to `career.mode.mode` — see `map-topic.ts`): the
+ *  - **stream** (mapped to `career.mode.mode`: see `map-topic.ts`): the
  *    mod's `GameMode` enum ORDINAL (a number), since `CareerMode.mode` is
  *    serialized as `(int)mode` on the wire, not the enum name.
  * Both resolve to the same `CareerMode` display string here so callers never
@@ -96,7 +96,7 @@ function resolveCareerMode(raw: unknown): CareerMode {
 
 /**
  * Bundled subscription to KSP context telemetry. Widgets read this
- * single hook to decide whether their own data is "live" — most flight
+ * single hook to decide whether their own data is "live", most flight
  * widgets dim themselves outside `Flight`, career-only widgets dim
  * outside `isCareerLike`, etc.
  *

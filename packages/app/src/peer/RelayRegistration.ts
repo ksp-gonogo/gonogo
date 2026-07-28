@@ -26,7 +26,7 @@ export interface RelayRegistrationDeps {
  * the periodic heartbeat that re-asserts both so a relay restart re-learns
  * the current state within one beat.
  *
- * Extracted from `PeerHostService` verbatim — same timeouts, same cadence,
+ * Extracted from `PeerHostService` verbatim: same timeouts, same cadence,
  * same best-effort swallow-and-log behaviour. The service keeps the public
  * `relayRegistered` field and updates it from `onRegisteredChange`; this
  * unit owns the heartbeat timer and drives the two POSTs.
@@ -38,7 +38,7 @@ export class RelayRegistration {
 
   /**
    * POST the current `{ shareCode, peerId }` to the relay's host registry.
-   * DIAGNOSTICS ONLY under the stable-host-id model — discovery no longer
+   * DIAGNOSTICS ONLY under the stable-host-id model: discovery no longer
    * depends on this (stations derive the broker id from the share code).
    * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
    * debug and swallowed. No-op until the Peer has an id.
@@ -114,7 +114,7 @@ export class RelayRegistration {
 
   /**
    * Begin the periodic relay heartbeat so the share-code → peer-id mapping
-   * doesn't expire (relay TTL ~90s). Idempotent — a second call while the
+   * doesn't expire (relay TTL ~90s). Idempotent: a second call while the
    * timer is live is a no-op. Cleared in `stopHeartbeat()`.
    */
   startHeartbeat(): void {

@@ -17,12 +17,12 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module (not a throwaway test double) runs its
-// module-load `registerAugment(...)` exactly once — the same way the app
+// module-load `registerAugment(...)` exactly once: the same way the app
 // picks this augment up via the package's bare `import "./ScienceAugment"`.
 // Unlike Scanning/slot.test.tsx and ScienceOfficer/slot.test.tsx (which
 // probe the SLOT MECHANISM with disposable test augments), this suite
 // verifies the actual production registration, so it deliberately never
-// calls `clearAugments()` — that would wipe the one real registration this
+// calls `clearAugments()`, that would wipe the one real registration this
 // file exists to exercise, and re-importing an already-evaluated ES module
 // is a no-op, so it would never come back.
 import "./index";
@@ -43,7 +43,7 @@ function renderSlot(ui: ReactElement) {
   return render(ui);
 }
 
-describe("SCANsat science augment — science-officer.badges slot", () => {
+describe("SCANsat science augment: science-officer.badges slot", () => {
   beforeEach(() => {
     clearRegistry();
   });
@@ -84,7 +84,7 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
     );
 
     // Announce availability first so the presence-gated augment mounts and its
-    // `scansat.science` subscription goes live — `StubTransport.emit` is
+    // `scansat.science` subscription goes live: `StubTransport.emit` is
     // subscription-gated and drops a frame nothing has subscribed to yet, and
     // the augment isn't rendered (so doesn't subscribe) until `available` is
     // true. The provider commits frames on a rAF, so wait for the subscription
@@ -110,8 +110,8 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
     });
     expect(toggle.textContent).toBe("SCANSAT 1");
 
-    // Collapsed by default (brief's flagged layout tension — a full row list
-    // can't just sit in the header's flex row) — the row is hidden until
+    // Collapsed by default (brief's flagged layout tension, a full row list
+    // can't just sit in the header's flex row), the row is hidden until
     // the operator expands it.
     expect(screen.queryByText("SCANsat SAR Altimetry Sensor")).toBeNull();
 
@@ -121,7 +121,7 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
       screen.getByText("SCANsat SAR Altimetry Sensor"),
     ).toBeInTheDocument();
     // rerunnable=true, deployed=false, inoperable=false on every SCANsat
-    // entry (mod-side ScanScience.Build hard-codes these) — only DATA shows.
+    // entry (mod-side ScanScience.Build hard-codes these): only DATA shows.
     expect(screen.getByText("DATA")).toBeInTheDocument();
     expect(screen.queryByText("ONE-SHOT")).toBeNull();
     expect(screen.queryByText("DEPLOYED")).toBeNull();
@@ -155,7 +155,7 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
   });
 
   it("stays absent when the scansat domain is unavailable but other augments would render", () => {
-    // No TelemetryProvider at all — the app-realistic case of a KSP install
+    // No TelemetryProvider at all: the app-realistic case of a KSP install
     // with no SCANsat mod present: `scansat.available` never arrives, so
     // the presence gate's `available` stays permanently `undefined` (and with
     // no store mounted, the `scansat.science` read never resolves either).
@@ -183,7 +183,7 @@ describe("SCANsat science augment — science-officer.badges slot", () => {
     );
 
     // Availability first (mounts the augment + its science subscription), then
-    // the science frame — see the sibling test's note on subscription-gating
+    // the science frame: see the sibling test's note on subscription-gating
     // and the rAF frame commit.
     act(() => {
       transport.emit("scansat.available", true, {

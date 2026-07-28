@@ -35,7 +35,7 @@ export function compareVersions(a: string, b: string): number {
 
 /**
  * Gate: does the running kernel satisfy a provider's declared minimum
- * kernel version? Inclusive — kernelVersion === minKernelVersion passes.
+ * kernel version? Inclusive: kernelVersion === minKernelVersion passes.
  * An undefined minimum is always satisfied.
  */
 export function satisfiesKernel(

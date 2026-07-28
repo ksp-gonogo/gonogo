@@ -1,5 +1,5 @@
 /**
- * The full-vector suicide-burn solve — the correctness core of the rebooted
+ * The full-vector suicide-burn solve: the correctness core of the rebooted
  * landing widget. Client-side only; every input is already on the wire
  * (`vessel.flight`, `vessel.propulsion`, `vessel.orbit`, `system.bodies`).
  *
@@ -7,7 +7,7 @@
  * purely-VERTICAL burn: it kills `vDown` alone and ignores the horizontal
  * velocity a craft arrives with from orbit. On a standard low-Mun descent that
  * under-states the burn by ~2 orders of magnitude and reports "burn now ->
- * touchdown at 0 m/s" while the craft still carries ~540 m/s horizontally —
+ * touchdown at 0 m/s" while the craft still carries ~540 m/s horizontally,
  * wrong in the fatal (fires-too-late) direction. A vacuum landing is
  * overwhelmingly a HORIZONTAL problem: the burn's job is to null the whole
  * velocity VECTOR, so the stopping distance and the ignition point must be
@@ -18,7 +18,7 @@
  * deceleration `aNet = aMax - g`. This matches the spec's worked Appendix-A
  * numbers and, unlike the vertical-only model, correctly reports the burn as
  * unsurvivable / already-committed when horizontal velocity dominates. It is
- * still a vacuum model — no drag — so the widget suppresses it on atmospheric
+ * still a vacuum model with no drag, so the widget suppresses it on atmospheric
  * bodies rather than emit a confidently wrong number.
  */
 
@@ -30,7 +30,7 @@ export type LandingSolutionState =
 export interface SuicideBurnInputs {
   /** Height of the vessel's LOWEST point above terrain, metres (the burn datum). */
   heightFromTerrain: number | undefined;
-  /** Altitude above sea level, metres — used only to evaluate local gravity. */
+  /** Altitude above sea level, metres: used only to evaluate local gravity. */
   altitudeAsl: number | undefined;
   /** Vertical speed, m/s; NEGATIVE while descending (KSP sign convention). */
   verticalSpeed: number | undefined;
@@ -52,11 +52,11 @@ export interface LandingSolution {
   gravity: number | null;
   /** Descent rate (downward-positive), m/s. */
   verticalSpeed: number | null;
-  /** Horizontal component of the surface velocity, m/s — the tip-over axis. */
+  /** Horizontal component of the surface velocity, m/s, the tip-over axis. */
   horizontalSpeed: number | null;
   /** Ballistic (no-burn) time to terrain impact, seconds. */
   timeToImpact: number | null;
-  /** Impact speed if nothing is done — full surface speed plus the drop's energy, m/s. */
+  /** Impact speed if nothing is done, full surface speed plus the drop's energy, m/s. */
   speedAtImpact: number | null;
   /** Best achievable touchdown speed if the burn starts NOW, m/s (0 when it fits). */
   bestSpeedAtImpact: number | null;
@@ -93,7 +93,7 @@ function base(state: LandingSolutionState): LandingSolution {
   };
 }
 
-/** `availableThrust/totalMass` (kN/t = m/s^2), guarded — the max deceleration. */
+/** `availableThrust/totalMass` (kN/t = m/s^2), guarded: the max deceleration. */
 function deriveMaxAccel(
   availableThrust: number | undefined,
   totalMass: number | undefined,
@@ -126,7 +126,7 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
   if (!(g > 0) || !Number.isFinite(g)) return base("no-solution");
 
   // Full velocity vector magnitude. Guard against a surfaceSpeed that is
-  // (spuriously) below the vertical component — horizontal is never negative.
+  // (spuriously) below the vertical component: horizontal is never negative.
   const surf =
     inp.surfaceSpeed !== undefined && inp.surfaceSpeed > vDown
       ? inp.surfaceSpeed
@@ -139,7 +139,7 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
   const timeToImpact = finiteOrNull(
     (-vDown + Math.sqrt(vDown * vDown + 2 * g * h)) / g,
   );
-  // No-burn impact speed — full surface speed plus the drop's added energy.
+  // No-burn impact speed: full surface speed plus the drop's added energy.
   const speedAtImpact = finiteOrNull(Math.sqrt(surf * surf + 2 * g * h));
 
   const aMax = deriveMaxAccel(inp.availableThrust, inp.totalMass);
@@ -159,7 +159,7 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
     maxAccel: aMax,
   };
 
-  // A suicide burn needs net deceleration — thrust must beat gravity (TWR > 1).
+  // A suicide burn needs net deceleration, thrust must beat gravity (TWR > 1).
   if (aMax === null || !(aMax > g)) return solved;
 
   const aNet = aMax - g;

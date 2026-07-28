@@ -1,5 +1,6 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
 import { StarIcon } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -74,12 +75,12 @@ export interface FlightsManagerProps {
   /**
    * Which screen this modal is rendered on. Read from `useScreen()` by the
    * FAB and passed in explicitly because the modal portal renders above
-   * the ScreenProvider — calling `useScreen()` from inside the modal body
+   * the ScreenProvider: calling `useScreen()` from inside the modal body
    * falls through to the default "main".
    */
   screen?: Screen;
   /**
-   * Mirrors the app-level `mission.historyEnabled` setting — this package
+   * Mirrors the app-level `mission.historyEnabled` setting: this package
    * has no access to `@ksp-gonogo/app`'s `SettingsService`, so the app
    * layer (`FlightsFab`/`MainScreen`) reads the setting and passes the
    * resolved value down. Default `true` (mission history is on by
@@ -88,7 +89,7 @@ export interface FlightsManagerProps {
    */
   missionHistoryEnabled?: boolean;
   /**
-   * Mirrors `mission.recordAllTopics` — see `missionHistoryEnabled`'s doc.
+   * Mirrors `mission.recordAllTopics`: see `missionHistoryEnabled`'s doc.
    * Default `false`. Purely a display hint here (enriches the recording
    * status line); `AutoRecordController` is what actually forwards this to
    * `StreamRecorder`.
@@ -97,33 +98,33 @@ export interface FlightsManagerProps {
 }
 
 /**
- * The unified flight-history table — one list, sourced entirely from
+ * The unified flight-history table: one list, sourced entirely from
  * `AutoRecordController`'s automatic, on-by-default recordings (2026-07-11
- * auto-record rework — see `AutoRecordController`'s own doc comment for the
+ * auto-record rework: see `AutoRecordController`'s own doc comment for the
  * flight-boundary approach). Replaces what used to be TWO separate panels: a
  * `BufferedDataSource`-backed always-on-capture table (star/chapters/graph/
  * export/bulk-actions/keep-latest-N) and a manual "press record"
  * `RecordingControls` flow. Every feature from both now lives on the one
  * Missions-backed table; recording itself moved out of this component
  * entirely (see `AutoRecordStatus`, this file's replacement for the old
- * record button — a read-only readout, not a control, since there's nothing
+ * record button: a read-only readout, not a control, since there's nothing
  * left for the user to press).
  *
  * Station visibility: browsing/star/chapters/graph/export/delete/bulk
- * actions/keep-latest-N are NOT gated by `isMain` — Task 4's peer RPCs
+ * actions/keep-latest-N are NOT gated by `isMain`, Task 4's peer RPCs
  * (`flight-rpc-request`/`query-range-request` against `"missionHistory"`)
  * make them work identically on a station via `PeerClientDataSource`. Only
  * the REPLAY action stays `isMain`-only: `ReplaySessionProvider`/
- * `ReplaySessionController` are only mounted on `MainScreen` — not a
+ * `ReplaySessionController` are only mounted on `MainScreen`, not a
  * data-availability gap peer RPCs could close, a screen the station
  * genuinely doesn't run. (Recording was ALSO main-only under the old manual
- * flow; now it's not rendered here at all — `AutoRecordController` mounts
+ * flow; now it's not rendered here at all, `AutoRecordController` mounts
  * once, on the main screen only, regardless of whether this modal is even
  * open.)
  *
  * No "current flight" badge/highlight, and no "current flight" exemption in
  * the keep-latest-N preview: Missions have no live in-progress concept (a
- * mission only exists once recording has finished) — a direct consequence
+ * mission only exists once recording has finished), a direct consequence
  * of the "press record, no always-on capture" decision, not a separate
  * feature cut.
  */
@@ -151,7 +152,7 @@ export function FlightsManager({
       // On stations the data source is a PeerClientDataSource that proxies
       // listFlights through PeerJS; if the link is mid-handshake or just
       // dropped, the RPC rejects. Swallow + log rather than letting an
-      // uncaught promise rejection surface in the console — the modal
+      // uncaught promise rejection surface in the console, the modal
       // stays on its previous list and recovers on the next reload trigger
       // (flight-list-changed push, or the user reopening the modal).
       console.warn("FlightsManager: failed to load flights", err);
@@ -241,7 +242,7 @@ export function FlightsManager({
   const handleBulkDelete = async () => {
     const src = getSource();
     if (!src) return;
-    // Snapshot the ids — `selectedIds` is cleared by `reload` partway through.
+    // Snapshot the ids: `selectedIds` is cleared by `reload` partway through.
     const ids = Array.from(selectedIds);
     for (const id of ids) {
       await src.deleteFlight(id);
@@ -368,7 +369,7 @@ export function FlightsManager({
                           aria-pressed={Boolean(f.starred)}
                           title={
                             f.starred
-                              ? "Starred — kept from auto-delete"
+                              ? "Starred: kept from auto-delete"
                               : "Star to keep from auto-delete"
                           }
                         >
@@ -379,7 +380,7 @@ export function FlightsManager({
                         </StarButton>
                       </Td>
                       <Td>
-                        {f.vesselName || "—"}
+                        {f.vesselName || NULL_DISPLAY}
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
@@ -561,7 +562,7 @@ export function FlightsManager({
 }
 
 /**
- * Read-only recording status readout — replaces the old "press record"
+ * Read-only recording status readout, replaces the old "press record"
  * button now that `AutoRecordController` (mounted once at `MainScreen`,
  * independent of whether this modal is even open) records every flight
  * automatically. There is deliberately no start/stop control here: a button
@@ -571,7 +572,7 @@ export function FlightsManager({
  * nothing well-defined to do to a recording this component doesn't own.
  * Subscribes to `autoRecordStatus`'s singleton (see that module's doc
  * comment for why a plain pub/sub instead of context) purely to show
- * whether auto-record is currently capturing — the same live feedback the
+ * whether auto-record is currently capturing, the same live feedback the
  * old record button gave, minus the gesture.
  */
 function AutoRecordStatus({
@@ -591,7 +592,7 @@ function AutoRecordStatus({
     <RecordingToolbar>
       {missionHistoryEnabled ? (
         status.recording ? (
-          // No `role="status"`/`aria-live` here deliberately — the frame
+          // No `role="status"`/`aria-live` here deliberately: the frame
           // count updates at stream rate (~4Hz), and CLAUDE.md's
           // accessibility rule is explicit that streaming telemetry must
           // NOT be a live region (it would flood a screen reader). This is
@@ -603,12 +604,12 @@ function AutoRecordStatus({
           </RecordingBadge>
         ) : (
           <MissionHint>
-            Auto-record armed — capture starts the moment a flight begins.
+            Auto-record armed: capture starts the moment a flight begins.
           </MissionHint>
         )
       ) : (
         <MissionHint>
-          Mission history is off — enable it in Settings to auto-record.
+          Mission history is off, enable it in Settings to auto-record.
         </MissionHint>
       )}
     </RecordingToolbar>
@@ -616,7 +617,7 @@ function AutoRecordStatus({
 }
 
 /**
- * Visually hidden but screen-reader-visible text — used for the icon-only
+ * Visually hidden but screen-reader-visible text: used for the icon-only
  * "Starred" and action-buttons table headers. `axe-core`'s
  * `empty-table-header` rule (unlike most accessible-name checks) only
  * counts rendered text content, not `aria-label` alone, so a `<th

@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests
     /// carrying the raw <c>vessel.topology</c> list
     /// <c>Gonogo.KSP.KspHost.BuildTopology</c> produces are mapped to the typed
     /// <see cref="VesselParts"/> tree and asserted against the provider's
-    /// provenance/absence rules — no-vessel / no-topology / null snapshot →
+    /// provenance/absence rules: no-vessel / no-topology / null snapshot →
     /// null; per-part id/parent/thermal round-trip; symmetric same-named parts
     /// stay distinguishable by id.
     /// </summary>
@@ -38,7 +38,7 @@ namespace Sitrep.Host.Tests
         public void BuildPartsReturnsNullWhenVesselHasNoTopologyGroup()
         {
             // Vessel present (identity id resolvable) but no topology list this
-            // tick — never a fabricated empty-parts record.
+            // tick: never a fabricated empty-parts record.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,
@@ -57,7 +57,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildPartsReturnsNullWhenNoSubjectId()
         {
-            // Topology present but no identity id to attribute it to — an
+            // Topology present but no identity id to attribute it to, an
             // unattributable payload is worse than none.
             var snapshot = new KspSnapshot
             {
@@ -189,7 +189,7 @@ namespace Sitrep.Host.Tests
         {
             // Shape KspHost.BuildPartResources now emits for an EC-consuming
             // module (reaction wheel / light / probe core / antenna / active
-            // ISRU input) — review finding I3, restoring PowerSystems'
+            // ISRU input): review finding I3, restoring PowerSystems'
             // Consumers list (it filters contributions.flow < 0). Negative
             // flow must round-trip through the mapper exactly like positive
             // (production) flow already does; PartResourceFlow.Flow has no

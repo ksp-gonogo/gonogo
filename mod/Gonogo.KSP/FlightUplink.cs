@@ -10,21 +10,21 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The flight-lifecycle producer — hooks KSP's crash/recovery GameEvents
+    /// The flight-lifecycle producer: hooks KSP's crash/recovery GameEvents
     /// internally and translates them into the clean <c>flight.*</c> contract
     /// (see <c>Sitrep.Contract.Flight.cs</c>'s doc comment for the full
     /// design). Retires the client-side <c>FlightDetector</c> heuristic.
     ///
     /// <para>Everything that a per-tick vessel-id comparison CAN classify on
-    /// its own — a genuine launch, a revert/quickload, an operator switching
-    /// active-vessel focus — lives in the KSP-free
+    /// its own: a genuine launch, a revert/quickload, an operator switching
+    /// active-vessel focus: lives in the KSP-free
     /// <see cref="FlightLifecycleSampler"/>, registered as an
     /// <see cref="ISnapshotSampler"/> (see that class's own doc comment for
     /// why revert needs no GameEvent hook at all). Only the two end reasons a
-    /// sampler cannot distinguish — crashed/destroyed vs. recovered — are
+    /// sampler cannot distinguish (crashed/destroyed vs. recovered) are
     /// hooked here, mirroring <see cref="CrashUplink"/>/<see cref="RecoveryUplink"/>'s
     /// exact GameEvents and dedupe/filter discipline, independently (zero
-    /// coupling to either uplink — see the contract file's "crash/recovery
+    /// coupling to either uplink: see the contract file's "crash/recovery
     /// stayed separate" note for why).</para>
     /// </summary>
     [SitrepUplink("flight")]
@@ -139,7 +139,7 @@ namespace Gonogo.KSP
         /// source-side relevance filter exactly (a single death can raise
         /// more than one detector; debris/flag/unknown vessels never
         /// contribute a flight record) and its Crash/CrashSplashdown vs.
-        /// Destroyed distinction — <paramref name="reason"/> is
+        /// Destroyed distinction: <paramref name="reason"/> is
         /// <see cref="FlightEndReason.Crashed"/> for a collision/hard
         /// splashdown detector, <see cref="FlightEndReason.Destroyed"/> for
         /// the catch-all (a non-collision death such as a re-entry burn-up,
@@ -180,7 +180,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD: mirrors <c>RecoveryUplink.OnRecoveryComplete</c>'s
-        /// hook choice (decompile-confirmed — see that class's doc comment)
+        /// hook choice (decompile-confirmed: see that class's doc comment)
         /// and relevance filter. Only the completion signal is needed here,
         /// not the rich earned/total breakdown <c>RecoveryUplink</c> already
         /// publishes separately.

@@ -4,7 +4,7 @@
 #   - relay (node)    → /ice-config + host registry on :3002, spawns coturn
 #
 # This is an ADDITIONAL artefact for end users. The per-service relay image
-# (packages/relay/Dockerfile) and the dev docker-compose.yml are unchanged —
+# (packages/relay/Dockerfile) and the dev docker-compose.yml are unchanged,
 # contributors still use those.
 #
 # Build context is the REPO ROOT so pnpm can resolve workspace deps.
@@ -19,7 +19,7 @@
 FROM node:24-bookworm-slim AS builder
 WORKDIR /repo
 
-# pnpm via corepack — workspace-aware install.
+# pnpm via corepack: workspace-aware install.
 RUN corepack enable
 
 # The app build authenticates to GitHub Packages for @jonpepler/kerbcast.
@@ -35,7 +35,7 @@ RUN pnpm install --frozen-lockfile
 
 # Build the app to a static dist. base must stay "/" (this is served at the
 # root, NOT GitHub Pages' /gonogo/). Point the in-app relay URL at the
-# in-container relay's published port — the browser runs on the host, so it
+# in-container relay's published port: the browser runs on the host, so it
 # reaches the relay via the host's localhost:3002. The PeerJS broker stays
 # at the app's public default. turbo builds upstream workspace packages
 # first so the app's `tsc --noEmit` has their types/dist present.
@@ -53,7 +53,7 @@ ENV GONOGO_VERSION_SUFFIX=${GONOGO_VERSION_SUFFIX}
 RUN pnpm turbo build --filter=@ksp-gonogo/app...
 
 # Build the relay and deploy a self-contained dir (workspace deps inlined
-# into node_modules) for the runtime stage — same as its standalone
+# into node_modules) for the runtime stage: same as its standalone
 # Dockerfile.
 RUN pnpm --filter @ksp-gonogo/relay build \
   && pnpm --filter @ksp-gonogo/relay deploy --prod --legacy /opt/relay
@@ -63,10 +63,10 @@ FROM node:24-bookworm-slim
 WORKDIR /app
 
 # Runtime deps:
-#   coturn          — TURN/STUN, spawned by the relay (coturnManager.ts)
-#   tini            — PID 1 that reaps orphans (coturn is a grandchild of
+#   coturn         : TURN/STUN, spawned by the relay (coturnManager.ts)
+#   tini           : PID 1 that reaps orphans (coturn is a grandchild of
 #                     the supervisor via the relay) and forwards signals
-#   ca-certificates — TLS for the relay's public-IP discovery lookup
+#   ca-certificates: TLS for the relay's public-IP discovery lookup
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     coturn tini ca-certificates \
@@ -101,7 +101,7 @@ ENV RELAY_PORT=3002
 ENV KSP_HOST=host.containers.internal
 
 # app SPA, relay http, TURN signalling (udp+tcp), TURN relay range. Host
-# port-forwards must mirror these — see run-gonogo.sh and the README's TURN
+# port-forwards must mirror these; see run-gonogo.sh and the README's TURN
 # section.
 EXPOSE 8080
 EXPOSE 3002

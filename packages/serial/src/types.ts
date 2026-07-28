@@ -1,4 +1,4 @@
-// Serial input platform — shared types (core)
+// Serial input platform: shared types (core)
 //
 // DeviceTypes and DeviceInstances are user-data (persisted to localStorage
 // via the SerialDeviceService in @ksp-gonogo/app). RenderStyles are code-defined
@@ -12,7 +12,7 @@ export type DeviceInputKind = "button" | "analog";
 /**
  * Shape applied to an analog input AFTER it's been normalised to -1..1 using
  * `{ min, max }`. `linear` is pass-through; `squared` (sign-preserving) and
- * `cubic` give finer control near centre — handy for translation/rotation
+ * `cubic` give finer control near centre: handy for translation/rotation
  * sticks where small flying corrections need precision but the full range
  * still has to saturate.
  */
@@ -39,22 +39,22 @@ export interface DeviceInput {
   /**
    * Magnitude (0..1) below which the analog value is snapped to zero. Values
    * outside the deadzone are rescaled so the response curve still reaches
-   * ±1 — without rescaling, a deadzone of 0.1 would cap usable travel at
+   * ±1: without rescaling, a deadzone of 0.1 would cap usable travel at
    * 0.9. Ignored for buttons.
    */
   deadzone?: number;
   /** Response curve applied after deadzone. Default `linear`. */
   curve?: AnalogCurve;
   /**
-   * Analog range convention. `bipolar` (default) spans -1..1 — sticks,
-   * which rest at centre. `unipolar` spans 0..1 — triggers, which rest at
+   * Analog range convention. `bipolar` (default) spans -1..1, sticks,
+   * which rest at centre. `unipolar` spans 0..1, triggers, which rest at
    * zero. Ignored for buttons. Independent of `role`: under a non-standard
    * gamepad mapping a trigger may arrive as either, so this stays a
    * separate, explicitly-set field rather than something derived.
    */
   polarity?: "bipolar" | "unipolar";
   /**
-   * Canonical physical position (gamepad transport only) — e.g.
+   * Canonical physical position (gamepad transport only): e.g.
    * `face-south`, `stick-left-x`. Assigned automatically when a live pad
    * reports the W3C standard mapping; absent for non-standard pads and for
    * every non-gamepad transport. Display metadata only: never implies
@@ -70,7 +70,7 @@ export type DeviceParserId = "char-position" | "json-state";
  * Who owns the type's inputs list? User-authored types are edited through
  * the Device Type editor UI. Device-authored types are populated at connect
  * time from a device's self-reported schema (json-state parser) and are
- * treated as read-only in the editor — the device is the source of truth.
+ * treated as read-only in the editor, the device is the source of truth.
  */
 export type DeviceTypeAuthor = "user" | "device";
 
@@ -80,7 +80,7 @@ export interface DeviceType {
   inputs: DeviceInput[];
   /** Parser used to convert inbound lines to typed input events. */
   parser: DeviceParserId;
-  /** Optional render style id — drives output back to the device. */
+  /** Optional render style id, drives output back to the device. */
   renderStyleId?: string;
   /**
    * Render-style configuration, forwarded to the style's `render(merged, config)`.
@@ -111,7 +111,7 @@ export interface DeviceInstance {
   portInfo?: { vendorId?: number; productId?: number };
   /**
    * Vendor button-label pack for a gamepad device. `undefined` means
-   * "not yet chosen" — preselected once from `gamepad.id` the first time
+   * "not yet chosen": preselected once from `gamepad.id` the first time
    * this instance pairs with a physical pad (see
    * SerialDeviceService.handleSchemaUpdate), and never re-detected over an
    * explicit choice afterwards. Renders as `positional` (name-only, no
@@ -149,7 +149,7 @@ export interface DeviceRenderStyle {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal Web Serial shims — avoid pulling a full `dom-serial` dep for a
+// Minimal Web Serial shims: avoid pulling a full `dom-serial` dep for a
 // single interface. These match the Web Serial spec subset we actually need.
 // ---------------------------------------------------------------------------
 

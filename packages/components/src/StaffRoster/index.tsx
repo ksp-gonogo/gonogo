@@ -13,6 +13,7 @@ import {
   PanelTitle,
   ScrollArea,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type StaffRosterConfig = Record<string, never>;
@@ -24,14 +25,14 @@ type StaffRosterConfig = Record<string, never>;
 // badges slot so a future Kerbalism `Habitat`/`Radiation` Uplink can badge each
 // staff row with comfort/radiation-dose without leaving this widget. Because the
 // slot renders once PER ROW, its props MUST carry the kerbal's identity so the
-// augment badges the right one — `staffName` is that identity (kerbal names are
+// augment badges the right one: `staffName` is that identity (kerbal names are
 // the only per-kerbal handle Sitrep exposes here) and `staffIndex` disambiguates
 // the (legal) case of two kerbals sharing a name.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `staff-roster.badges` augment — one per roster row. */
+/** Props passed to every `staff-roster.badges` augment: one per roster row. */
 export interface StaffBadgeContext {
-  /** The kerbal this badge row belongs to — its identity for the augment. */
+  /** The kerbal this badge row belongs to, its identity for the augment. */
   staffName: string;
   /** Position in the sorted roster; disambiguates duplicate names. */
   staffIndex: number;
@@ -54,7 +55,7 @@ export interface StaffMember {
   experienceLevel: number;
   available: boolean;
   unavailableReason: string;
-  // Expanded fields from kc.crewRoster — additive, default to safe
+  // Expanded fields from kc.crewRoster: additive, default to safe
   // zero/false when the older Telemachus DLL is loaded.
   veteran: boolean;
   isBadass: boolean;
@@ -66,7 +67,7 @@ export interface StaffMember {
 
 /**
  * Defensive parser for `kc.crewRoster` from the GonogoTelemetry plugin.
- * Mirrors the shape used by the Launch Director's crew picker — same
+ * Mirrors the shape used by the Launch Director's crew picker, same
  * payload, different consumer. Drops malformed entries; preserves the
  * `unavailableReason` string for tooltips on greyed rows.
  */
@@ -111,10 +112,10 @@ const TRAIT_RANK: Record<string, number> = TRAIT_ORDER.reduce(
 // Tooltip stitched from the expanded kc.crewRoster fields. Includes
 // courage/stupidity (which we don't render as primary chrome to keep
 // the row compact) and the current-vessel attribution for assigned
-// kerbals — useful context the row otherwise loses.
+// kerbals: useful context the row otherwise loses.
 function buildTooltip(k: StaffMember): string {
   const parts: string[] = [];
-  parts.push(`${k.trait || "—"} · L${k.experienceLevel}`);
+  parts.push(`${k.trait || NULL_DISPLAY} · L${k.experienceLevel}`);
   if (k.careerFlights > 0) parts.push(`${k.careerFlights} flight(s)`);
   parts.push(`courage ${Math.round(k.courage * 100)}`);
   parts.push(`stupidity ${Math.round(k.stupidity * 100)}`);
@@ -153,7 +154,7 @@ function StaffRosterComponent({
   const showSubtitle = rows >= 4;
   const sizeBucket = getSizeBucket(w, h);
   // Wide-short boxes (landscape-18x5) leave a single-column list stranded with
-  // a long empty gutter — only the shape signal can see that, since the size
+  // a long empty gutter: only the shape signal can see that, since the size
   // bucket reads the same `normal` at 18x5 as at 5x18. Flow the rows into a
   // width-following multi-column grid only when landscape; portrait and square
   // keep the unchanged single column so those sizes can't regress.
@@ -176,7 +177,7 @@ function StaffRosterComponent({
       <Panel>
         <PanelTitle>STAFF ROSTER</PanelTitle>
         {showSubtitle && (
-          <PanelSubtitle>Roster empty — no kerbals hired.</PanelSubtitle>
+          <PanelSubtitle>Roster empty: no kerbals hired.</PanelSubtitle>
         )}
       </Panel>
     );
@@ -239,7 +240,7 @@ function StaffRosterComponent({
               <Name>{kerbal.name}</Name>
               <Meta>
                 <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
-                  {kerbal.trait || "—"}
+                  {kerbal.trait || NULL_DISPLAY}
                 </TraitTag>
                 <Level
                   title={`Experience level ${kerbal.experienceLevel}`}
@@ -252,7 +253,7 @@ function StaffRosterComponent({
                     tone="go"
                     size="sm"
                     aria-label="veteran"
-                    title="Veteran — has flown a notable mission"
+                    title="Veteran: has flown a notable mission"
                   >
                     ★
                   </Badge>
@@ -262,7 +263,7 @@ function StaffRosterComponent({
                     tone="warn"
                     size="sm"
                     aria-label="badass"
-                    title="Badass — KSP's brave trait; rarely panics"
+                    title="Badass: KSP's brave trait; rarely panics"
                   >
                     BA
                   </Badge>
@@ -291,7 +292,7 @@ function StaffRosterComponent({
                   </Badge>
                 )}
                 {/* Per-kerbal inline badges slot. Renders nothing until an Uplink
-                    (e.g. Kerbalism Habitat/Radiation) binds — the props carry
+                    (e.g. Kerbalism Habitat/Radiation) binds: the props carry
                     this row's kerbal identity so the augment badges the right
                     one. */}
                 <AugmentSlot
@@ -423,13 +424,13 @@ registerComponent<StaffRosterConfig>({
   id: "staff-roster",
   name: "Staff Roster",
   description:
-    "Whole-program kerbal roster sourced from kc.crewRoster — pilots, engineers, scientists, tourists. Sorted available-first then by trait + experience. Unavailable kerbals greyed with reason (Assigned / Hospitalised / etc.) in the tooltip. Cross-scene: works at SC, in flight, in editor.",
+    "Whole-program kerbal roster sourced from kc.crewRoster: pilots, engineers, scientists, tourists. Sorted available-first then by trait + experience. Unavailable kerbals greyed with reason (Assigned / Hospitalised / etc.) in the tooltip. Cross-scene: works at SC, in flight, in editor.",
   tags: ["career", "crew"],
   defaultSize: { w: 5, h: 7 },
   minSize: { w: 2, h: 2 },
   component: StaffRosterComponent,
   // Per-kerbal inline badges slot (augment-slot-map: staff-roster.badges).
-  // Unfilled until a Kerbalism-style Uplink binds — the roster renders as before.
+  // Unfilled until a Kerbalism-style Uplink binds: the roster renders as before.
   augmentSlots: ["staff-roster.badges"],
   dataRequirements: ["kc.crewRoster"],
   defaultConfig: {},

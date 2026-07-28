@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "docking-misaligned",
-    "notes": "Docking-port target at 35m WITH vessel.dock present. vessel.dock.relativePosition has large lateral offsets so the derived line-of-sight angles are well past 1° (~7.8° / -5.9°) — reticle is amber/warn and positioned off-centre. Positive radial rate = opening (pilot is drifting away) — Δv row shows warn tone. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness — vessel.target then vessel.dock so the mode effect enters the docking HUD. Keep the two in sync."
+    "notes": "Docking-port target at 35m WITH vessel.dock present. vessel.dock.relativePosition has large lateral offsets so the derived line-of-sight angles are well past 1° (~7.8° / -5.9°), reticle is amber/warn and positioned off-centre. Positive radial rate = opening (pilot is drifting away), Δv row shows warn tone. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness, vessel.target then vessel.dock so the mode effect enters the docking HUD. Keep the two in sync."
   },
   "tar.name": "Space Station Hub",
   "tar.type": "Vessel",

@@ -13,7 +13,7 @@ import type { CameraFeedConfig } from "./CameraFeed";
  * Settings-tab config UI for the Camera Feed widget. Rendered by the dashboard
  * gear modal (alongside the Inputs tab, since the widget also has actions).
  *
- * Only `showDebugInfo` is editable here — `flightId` is driven by the in-widget
+ * Only `showDebugInfo` is editable here, `flightId` is driven by the in-widget
  * camera picker, so we thread the incoming `flightId` straight back through
  * `onSave` to avoid the save wiping the current camera selection.
  */

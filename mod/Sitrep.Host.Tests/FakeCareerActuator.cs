@@ -4,7 +4,7 @@ using Sitrep.Host;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Test double for <see cref="ICareerActuator"/> — records exactly what each
+    /// Test double for <see cref="ICareerActuator"/>: records exactly what each
     /// call was made with (so a test can assert "typed args produced the correct
     /// actuator call with the correct values") and returns a per-method,
     /// test-configurable result (defaulting to success) instead of ever touching

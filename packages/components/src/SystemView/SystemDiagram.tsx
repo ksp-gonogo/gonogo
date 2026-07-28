@@ -1,4 +1,5 @@
 import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -25,7 +26,7 @@ import type { CelestialBody } from "./useCelestialBodies";
  * affordances on top of the basic schematic:
  *
  *   - Inclination is implied by a stroke gradient perpendicular to each
- *     orbit's line of nodes — red for the half above the reference
+ *     orbit's line of nodes: red for the half above the reference
  *     plane, blue for the half below. Strength scales with inclination,
  *     so flat orbits are mostly neutral.
  *   - The active vessel renders as a green dot on its own orbit when
@@ -47,7 +48,7 @@ export interface VesselOrbit {
   lan: number;
   /** Argument of periapsis, degrees. */
   argPe: number;
-  /** Inclination in degrees — drives the inclination gradient. */
+  /** Inclination in degrees: drives the inclination gradient. */
   inclination: number;
   /** True anomaly, degrees. */
   trueAnomaly: number;
@@ -67,11 +68,11 @@ export interface SystemDiagramProps {
    * Live phase angles (deg, to active vessel) keyed by body index. When
    * provided, each body gets a tiny numeric label rendered next to its
    * orbit dot. The vessel's own parent body (if any) should be excluded
-   * by the caller — the angle is meaningless there.
+   * by the caller: the angle is meaningless there.
    */
   phaseAngles?: ReadonlyMap<number, number>;
   /**
-   * Hohmann transfer-window state per body — `"go"` when the live phase
+   * Hohmann transfer-window state per body: `"go"` when the live phase
    * angle is within ±2° of the ideal, `"soon"` within ±10°. Drives the
    * colour of the phase-angle label.
    */
@@ -116,8 +117,8 @@ export function SystemDiagram({
     [bodies, parentName],
   );
 
-  // Plot scale (metres → px). Independent of zoom/pan — those are applied via
-  // the SVG viewBox — so it only changes when the frame, geometry, or tile
+  // Plot scale (metres → px). Independent of zoom/pan, those are applied via
+  // the SVG viewBox: so it only changes when the frame, geometry, or tile
   // size do. Lifted above the empty-state return so the trajectory memo can
   // depend on it without violating the rules of hooks.
   const plotScale = useMemo(() => {
@@ -131,8 +132,8 @@ export function SystemDiagram({
     return effectiveMax > 0 ? baseRadius / effectiveMax : 1;
   }, [width, height, maxRadius, vessel, parentName]);
 
-  // Predicted multi-SOI trajectory. Memoised so panning/zooming/hovering —
-  // which re-render the SVG — don't re-run the Kepler propagation. Only a new
+  // Predicted multi-SOI trajectory. Memoised so panning/zooming/hovering:
+  // which re-render the SVG; don't re-run the Kepler propagation. Only a new
   // patch set, a new `ut` bucket (parent throttles to 1 Hz), a frame change, or
   // a geometry/size change invalidates it. Child offsets are the drawn moon
   // positions so an encounter patch plots in that moon's local frame.
@@ -165,7 +166,7 @@ export function SystemDiagram({
     });
   }, [predicted, plotScale, children, parentName]);
 
-  // Zoom + pan state — kept above the empty-state return so the hook
+  // Zoom + pan state: kept above the empty-state return so the hook
   // count stays stable across renders.
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -208,14 +209,14 @@ export function SystemDiagram({
   }, [onPointerMove, onPointerUp]);
 
   // Mirror hover into the surrounding widget so it can drive a side panel.
-  // Only the body identity matters — cursor-position changes don't propagate.
+  // Only the body identity matters, cursor-position changes don't propagate.
   const focusedBody = hover?.body ?? null;
   useEffect(() => {
     onFocusBodyChange?.(focusedBody);
   }, [focusedBody, onFocusBodyChange]);
 
   const handleWheel = useCallback((e: ReactWheelEvent) => {
-    // Don't preventDefault — React's passive listener can't, and
+    // Don't preventDefault: React's passive listener can't, and
     // letting the page scroll while the cursor is elsewhere is the
     // expected behaviour. We only zoom when the cursor is over the
     // diagram (this handler only fires then).
@@ -323,7 +324,7 @@ export function SystemDiagram({
           )}
         </defs>
 
-        {/* Orbit ellipses — focus at origin (parent). Each is its own
+        {/* Orbit ellipses: focus at origin (parent). Each is its own
             <g rotate(phi)> so the ellipse can sit with periapsis along
             +x and the focus at origin via cx = -ae. */}
         {children.map((c) => {
@@ -353,14 +354,14 @@ export function SystemDiagram({
           );
         })}
 
-        {/* Predicted multi-SOI trajectory — patch arcs. Drawn under the body
+        {/* Predicted multi-SOI trajectory: patch arcs. Drawn under the body
             dots and vessel marker so they read as background path. The live
             patch is solid green; upcoming patches are dashed + de-emphasised. */}
         {trajectory?.patches.map((patch) => (
           <PredictedPatchArc key={`pred-${patch.patchIndex}`} patch={patch} />
         ))}
 
-        {/* Vessel orbit (if any) — same focus-correct geometry. */}
+        {/* Vessel orbit (if any): same focus-correct geometry. */}
         {showVessel && (
           <VesselOrbitPath
             vessel={vessel}
@@ -458,7 +459,7 @@ export function SystemDiagram({
                 fontSize={10 / zoom}
                 pointerEvents="none"
               >
-                {c.name ?? "—"}
+                {c.name ?? NULL_DISPLAY}
               </text>
               {phaseAngles?.has(c.index) && (
                 <text
@@ -484,7 +485,7 @@ export function SystemDiagram({
           );
         })}
 
-        {/* Encounter / escape markers — SOI crossings on the predicted path.
+        {/* Encounter / escape markers: SOI crossings on the predicted path.
             Drawn above the arcs and body dots so they're unmistakable. */}
         {trajectory?.encounters.map((enc) => (
           <EncounterMarker
@@ -497,7 +498,7 @@ export function SystemDiagram({
           />
         ))}
 
-        {/* Vessel marker — drawn last so it's always on top. */}
+        {/* Vessel marker: drawn last so it's always on top. */}
         {showVessel && (
           <VesselMarker vessel={vessel} plotScale={plotScale} zoom={zoom} />
         )}
@@ -740,7 +741,7 @@ function pointsToPath(points: readonly ProjectedPoint[]): string {
  * at the origin (focus of the ellipse). Uses the polar form:
  *   r(θ) = a (1 - e²) / (1 + e cos θ)
  * which is exact for an elliptical orbit. The 2D projection is a
- * top-down view ignoring inclination — the inclination axis is
+ * top-down view ignoring inclination: the inclination axis is
  * rendered separately as a stroke gradient.
  */
 function bodyPosition(
@@ -832,7 +833,7 @@ function organise(
   children: CelestialBody[];
   maxRadius: number;
 } {
-  // Case + whitespace insensitive match — Telemachus has historically
+  // Case + whitespace insensitive match: Telemachus has historically
   // shipped slightly different casings for body names across versions
   // ("Sun" vs "Sun ", and a stray "Kerbol" alias floating around).
   const target = parentName.trim().toLowerCase();

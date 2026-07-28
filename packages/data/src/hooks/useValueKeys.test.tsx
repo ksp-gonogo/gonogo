@@ -26,7 +26,7 @@ describe("useValueKeys", () => {
     clearRegistry();
   });
 
-  // Same "no mock DataSource" proof as useDataSchema.test.tsx — AlarmsModal,
+  // Same "no mock DataSource" proof as useDataSchema.test.tsx, AlarmsModal,
   // Graph, MapViewConfig and TriggerEditor all call `useValueKeys("data")`
   // with nothing registered under that id in the real app (the legacy
   // `DataSource` was deleted in `806e7fe2`). A test that pre-registers a
@@ -65,7 +65,7 @@ describe("useValueKeys", () => {
   });
 
   // The filter's whole justification (see useValueKeys.ts's doc comment) is
-  // that every surviving key must resolve to a live stream home — otherwise
+  // that every surviving key must resolve to a live stream home; otherwise
   // a threshold/trigger picker could offer a key that silently never fires.
   // Assert that invariant directly against the real mapTopic, not just trust
   // the filter predicate reads correctly.

@@ -7,12 +7,12 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The real <see cref="IFlightOpsActuator"/> — the KSP-actuation seam for
+    /// The real <see cref="IFlightOpsActuator"/>: the KSP-actuation seam for
     /// the game-level flight-ops commands (<c>ksp.*</c>), wired to
     /// <c>FlightDriver</c>/<c>HighLogic</c>/<c>FlightGlobals</c>/<c>GameEvents</c>,
     /// confirmed against this KSP version's actual API shapes via decompile
     /// (see each method's comment for the specific call). Sibling of
-    /// <see cref="KspVesselActuator"/> on the actuation side, and — like it —
+    /// <see cref="KspVesselActuator"/> on the actuation side, and (like it)
     /// runs entirely on the Unity main thread: <see cref="ChannelEngine"/> is
     /// constructed with <c>executeCommandsOnMainThread: true</c>, so every
     /// command handler is drained on the main thread in <c>GonogoAddon.FixedUpdate</c>
@@ -20,7 +20,7 @@ namespace Gonogo.KSP
     /// marshaling story). Scene loads and revert calls MUST run there.
     ///
     /// <para>Every method returns a typed <see cref="CommandResult"/> failure
-    /// rather than throwing when its precondition isn't met — matching the
+    /// rather than throwing when its precondition isn't met, matching the
     /// <see cref="IVesselActuator"/> fail-soft convention.</para>
     /// </summary>
     public sealed class KspFlightOpsActuator : IFlightOpsActuator
@@ -28,7 +28,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Reverts the flight to its on-the-pad launch state via
         /// <c>FlightDriver.RevertToLaunch()</c> (static, no args), gated on
-        /// <c>FlightDriver.CanRevertToPostInit</c> — the same flag KSP's own
+        /// <c>FlightDriver.CanRevertToPostInit</c>: the same flag KSP's own
         /// pause menu reads to decide whether to draw the "Revert to Launch"
         /// button (see <c>Sitrep.Contract.RevertAvailability</c>'s field
         /// mapping). Unavailable → <see cref="CommandErrorCode.ModeUnavailable"/>
@@ -46,7 +46,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Reverts the flight back into the editor via
-        /// <c>FlightDriver.RevertToPrelaunch(EditorFacility)</c> — the call
+        /// <c>FlightDriver.RevertToPrelaunch(EditorFacility)</c>: the call
         /// KSP's own pause menu makes for its "Revert to VAB/SPH" buttons
         /// (restoring the pre-launch state), NOT <c>FlightDriver.ReturnToEditor</c>
         /// (which instead saves the CURRENT flight state and returns to the
@@ -83,7 +83,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Loads the tracking-station scene via
         /// <c>HighLogic.LoadScene(GameScenes.TRACKSTATION)</c> (static, no
-        /// args) — a game-level scene change with no vessel precondition.
+        /// args): a game-level scene change with no vessel precondition.
         /// </summary>
         public CommandResult ToTrackingStation()
         {
@@ -95,8 +95,8 @@ namespace Gonogo.KSP
         /// Makes the vessel with the given STABLE id the active vessel via
         /// <c>FlightGlobals.SetActiveVessel(Vessel)</c>. The opaque
         /// <paramref name="vesselId"/> is resolved server-side by scanning
-        /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>
-        /// — the identical resolution
+        /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>,
+        /// the identical resolution
         /// <see cref="KspVesselActuator.SetTarget"/> uses, so the client never
         /// needs (or supplies) a live roster index. <c>SetActiveVessel</c>
         /// returns false when KSP refuses the switch (e.g. the vessel isn't in
@@ -132,15 +132,15 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Recovers the active vessel by firing
-        /// <c>GameEvents.OnVesselRecoveryRequested.Fire(FlightGlobals.ActiveVessel)</c>
-        /// — the exact call KSP's own recover button makes (decompile-confirmed
+        /// <c>GameEvents.OnVesselRecoveryRequested.Fire(FlightGlobals.ActiveVessel)</c>,
+        /// the exact call KSP's own recover button makes (decompile-confirmed
         /// against the stock recovery-request path). That path first checks the
         /// vessel is in a recoverable state (<c>FlightGlobals.ClearToSave()</c>
         /// returns <c>ClearToSaveStatus.CLEAR</c>) and that the current game
         /// permits leaving to the space center
         /// (<c>Parameters.Flight.CanLeaveToSpaceCenter</c>); both gates are
         /// mirrored here so recovery is never requested when KSP itself would
-        /// refuse it — a failed gate returns
+        /// refuse it: a failed gate returns
         /// <see cref="CommandErrorCode.ModeUnavailable"/> rather than firing a
         /// destructive recovery.
         /// </summary>
@@ -172,14 +172,14 @@ namespace Gonogo.KSP
         /// <c>FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest)</c>
         /// (decompile-confirmed signature), the same call KSP's own launch path
         /// makes. Unlike the Telemachus-era original this runs directly on the
-        /// main thread — <see cref="ChannelEngine"/>'s
+        /// main thread: <see cref="ChannelEngine"/>'s
         /// <c>executeCommandsOnMainThread: true</c> drains this handler in
-        /// <c>GonogoAddon.FixedUpdate</c> — so no <c>Defer</c> wrapper is needed
+        /// <c>GonogoAddon.FixedUpdate</c>: so no <c>Defer</c> wrapper is needed
         /// (KSP's scene loader is not re-entrant off the main thread).
         ///
         /// <para>Refuses unless the scene is the space center or an editor, and
         /// refuses when an <c>ActiveVessel</c> from a prior flight still exists
-        /// (launching over one wedges KSP into a frozen Flight scene) — both
+        /// (launching over one wedges KSP into a frozen Flight scene), both
         /// surface as <see cref="CommandErrorCode.ModeUnavailable"/>. The craft
         /// path is rebuilt server-side from
         /// <c>&lt;AppRoot&gt;/saves/&lt;SaveFolder&gt;/Ships/&lt;facility&gt;/&lt;shipName&gt;.craft</c>;
@@ -187,7 +187,7 @@ namespace Gonogo.KSP
         /// craft file <see cref="CommandErrorCode.NotFound"/>.</para>
         ///
         /// <para>A <c>VesselCrewManifest</c> is ALWAYS built from the craft node
-        /// (even unmanned — passing null NREs inside
+        /// (even unmanned: passing null NREs inside
         /// <c>FlightDriver.setStartupNewVessel</c>, leaving a half-initialised
         /// Flight scene that spams NREs every frame); seats are populated only
         /// when crew names are supplied.</para>
@@ -201,7 +201,7 @@ namespace Gonogo.KSP
             }
 
             // A leftover ActiveVessel from an un-recovered prior flight wedges
-            // KSP when a second craft is launched over it — refuse so the
+            // KSP when a second craft is launched over it, refuse so the
             // operator recovers/reverts the existing vessel first.
             if (FlightGlobals.ActiveVessel != null)
             {
@@ -264,7 +264,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Seats <paramref name="crewNames"/> into the craft's free seats, in
-        /// order — probing each part manifest's seats and skipping occupied
+        /// order: probing each part manifest's seats and skipping occupied
         /// ones. Kerbals that aren't in the roster or aren't
         /// <c>RosterStatus.Available</c> are skipped rather than blocking the
         /// launch. Ported verbatim from the Telemachus-era implementation.

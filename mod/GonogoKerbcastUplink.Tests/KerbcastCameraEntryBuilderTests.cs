@@ -103,7 +103,7 @@ public class KerbcastCameraEntryBuilderTests
         Assert.Null(entry["panYawMinimum"]);
         Assert.Null(entry["supportsPan"]);
         Assert.Null(entry["vesselId"]);
-        // Crucially NOT 0.0 / false — those would read as real measurements.
+        // Crucially NOT 0.0 / false: those would read as real measurements.
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class KerbcastCameraEntryBuilderTests
     {
         // A part titled "Clamp-O-Tron Docking Port" with NO docking node read
         // must NOT be reported as a docking camera. Title-sniffing is exactly
-        // the guess this uplink exists to replace — it false-positives on any
+        // the guess this uplink exists to replace, it false-positives on any
         // part someone named "Docking Bay Floodlight".
         var view = FullView();
         view.PartTitle = "Clamp-O-Tron Docking Port";
@@ -155,7 +155,7 @@ public class KerbcastCameraEntryBuilderTests
     public void EmitsExactlyTheContractsFieldSet()
     {
         // Guards against a field being added to the builder but not the contract
-        // type (or vice versa) — they must agree field for field.
+        // type (or vice versa): they must agree field for field.
         var entry = KerbcastCameraEntryBuilder.Build(FullView(), default, "vessel:abc");
 
         var expected = new[]

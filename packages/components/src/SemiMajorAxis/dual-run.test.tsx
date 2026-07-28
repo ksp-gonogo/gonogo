@@ -12,13 +12,13 @@ import { SemiMajorAxisComponent } from "./index";
  * WarpControl pilot pattern): the SAME state rendered once off the legacy
  * `DataSource` and once off the stream, asserted byte-identical. That legacy
  * `"data"` `MockDataSource` leg is moot now that both of this widget's reads
- * are clean-home stream Topics and the fork is on its way out, so it's dropped
- * — what remains is the stream leg on its own, proving the widget renders the
+ * are clean-home stream Topics and the fork is on its way out, so it's dropped,
+ * what remains is the stream leg on its own, proving the widget renders the
  * full readout (headline `sma` + the derived reference-body subtitle) with NO
  * legacy source registered anywhere in this file.
  */
 
-describe("SemiMajorAxis — renders off the stream alone (R6 Wave 1)", () => {
+describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
   it("renders sma and the derived reference-body subtitle purely off the stream", async () => {
     const fixture = setupStreamFixture({
       // `o.referenceBody` -> `vessel.state.referenceBodyName` is "carried" only

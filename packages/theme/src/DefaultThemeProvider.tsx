@@ -7,7 +7,7 @@ export interface DefaultThemeProviderProps {
 }
 
 /**
- * Mounts the kit's default dark theme — the same one the app mounts in
+ * Mounts the kit's default dark theme: the same one the app mounts in
  * `main.tsx`.
  *
  * Kit primitives read `theme.space`/`theme.colors` and throw without a

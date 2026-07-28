@@ -9,10 +9,10 @@ import {
 import styled from "styled-components";
 
 export const Panel = styled.div`
-  /* Glow extension picked up by ScrollArea — descendant glows extend by these
+  /* Glow extension picked up by ScrollArea: descendant glows extend by these
      amounts so they sit flush with the panel chrome rather than the inner
      scroll-container edge. Panel's overflow:hidden clips the overhang. The
-     Panel itself imposes NO content inset (full-bleed standard — content
+     Panel itself imposes NO content inset (full-bleed standard, content
      reaches every edge; margin lives outside, in the dashboard gutter), so a
      ScrollArea that sits DIRECTLY in the Panel body needs no glow extension.
      A ScrollArea nested inside a padded PanelBody re-sets these to PanelBody's
@@ -102,7 +102,7 @@ const ScrollAreaInner = styled.div`
   flex: 1;
   min-height: 0;
   overflow: auto;
-  /* Hide the native scrollbar — the glow indicators communicate scroll state.
+  /* Hide the native scrollbar: the glow indicators communicate scroll state.
      Trackpads/wheels still scroll; keyboard PageUp/Down/arrows still work. */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -130,7 +130,7 @@ const ScrollOverflowGlow = styled.div<{
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity 150ms ease;
-  /* Full-width linear fade anchored on the chrome edge — brightest right at
+  /* Full-width linear fade anchored on the chrome edge, brightest right at
      the scrollable boundary and tapering inward across the whole width. A
      centred radial ellipse read as a discrete glowing blob floating over the
      content; a full-width edge fade reads as the content itself dissolving

@@ -11,7 +11,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// U5 "Layer A" synthetic end-to-end coverage for the CORE comms surface —
+    /// U5 "Layer A" synthetic end-to-end coverage for the CORE comms surface,
     /// the KSP-INDEPENDENT half of <c>Gonogo.KSP.CommsCoreUplink</c>. The real
     /// uplink is net472/KSP-facing (it hard-references the live-KSP
     /// <c>CommNetBackend</c>), so it can't build headless; this suite proves
@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     /// backend's <see cref="CommsPath"/> geometry is delivered as the
     /// <c>comms.delay</c> payload over a REAL ClientWebSocket, with the correct
     /// one-way seconds and <see cref="CommsDelaySource.SignalDelay"/> provenance;</item>
-    /// <item><c>comms.delay</c> is TRUE-NOW — revealed on the very tick it is
+    /// <item><c>comms.delay</c> is TRUE-NOW, revealed on the very tick it is
     /// emitted, never gated by the delay it itself defines (§1: gating it would
     /// be circular).</item>
     /// </list>
@@ -35,7 +35,7 @@ namespace Sitrep.Host.IntegrationTests
     /// (<see cref="ICommsBackend.Connectivity"/> / <c>SignalStrength</c> /
     /// <c>ControlState</c> / <c>Path</c> / <c>Network</c>) are proven at the
     /// contract/election level below (the elected backend supplies them all),
-    /// which is where their KSP-independent surface actually lives — their
+    /// which is where their KSP-independent surface actually lives, their
     /// live-backend values and their eventual wire flattening are KSP-facing
     /// concerns deferred to the Deck DLLs.</para>
     /// </summary>
@@ -43,7 +43,7 @@ namespace Sitrep.Host.IntegrationTests
     {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
-        // Kerbin-to-Mun-ish one-way distance — a realistic non-zero hop.
+        // Kerbin-to-Mun-ish one-way distance: a realistic non-zero hop.
         private const double HopDistanceMeters = 12_000_000.0;
 
         private static ChannelEngine EngineWith(TestCommsCoreUplink uplink, double networkDelaySeconds = 0)
@@ -63,7 +63,7 @@ namespace Sitrep.Host.IntegrationTests
             var uplink = new TestCommsCoreUplink(HopDistanceMeters, signalDelayEnabled: true);
             using var engine = EngineWith(uplink);
 
-            // The election resolved a backend before the first tick — the same
+            // The election resolved a backend before the first tick, the same
             // Kernel.Query the comms.delay source uses each tick.
             var elected = CommsElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
@@ -81,13 +81,13 @@ namespace Sitrep.Host.IntegrationTests
 
                 Assert.Equal(TestCommsCoreUplink.DelayTopic, delivered.Topic);
 
-                // TRUE-NOW: comms.delay reaches the wire on its own tick — never
+                // TRUE-NOW: comms.delay reaches the wire on its own tick; never
                 // gated by the (large) delay it defines.
                 Assert.Equal(ut, delivered.Meta.ValidAt);
                 Assert.Equal(ut, delivered.Meta.DeliveredAt);
 
                 // The CommsDelay POCO is flattened by JsonWriter to
-                // { oneWaySeconds, source, meta:{ source, quality } } — source
+                // { oneWaySeconds, source, meta:{ source, quality } }, source
                 // is the enum ordinal (SignalDelay == 1).
                 var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
                 Assert.Equal(uplink.ExpectedOneWaySeconds, Convert.ToDouble(payload["oneWaySeconds"]), precision: 6);
@@ -103,7 +103,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// SignalDelay flag OFF ⇒ <c>comms.delay</c> is still emitted (the
         /// authority is always present) but carries 0 seconds /
-        /// <see cref="CommsDelaySource.None"/> — the "no delay authority" state
+        /// <see cref="CommsDelaySource.None"/>: the "no delay authority" state
         /// a consumer reads as pass-through, never mistaking the 0 for a
         /// measured zero-distance delay.
         /// </summary>
@@ -139,7 +139,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="ICommsBackend.Path"/> carries the hop geometry
         /// <see cref="SignalDelay"/> integrates over. This is the coverage for
         /// the shared <c>comms.*</c> readouts that don't (yet) have a wire
-        /// flatten — asserted against the SAME elected instance the wire
+        /// flatten: asserted against the SAME elected instance the wire
         /// <c>comms.delay</c> above is derived from.
         /// </summary>
         [Fact]
@@ -171,7 +171,7 @@ namespace Sitrep.Host.IntegrationTests
 
             // This test never Start()s the engine (pure election/contract
             // inspection), so Dispose()'s Stop() would Join a never-started
-            // Courier thread — tear down explicitly-safe by not disposing.
+            // Courier thread: tear down explicitly-safe by not disposing.
             _ = engine;
         }
     }

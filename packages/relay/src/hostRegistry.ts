@@ -5,7 +5,7 @@ import type { FastifyInstance } from "fastify";
  *
  * Decouples the stable, operator-facing **share-code** (which never
  * changes across host refreshes) from the **ephemeral PeerJS peer id**
- * (which the public broker forces the host to rotate on any navigation —
+ * (which the public broker forces the host to rotate on any navigation,
  * see `local_docs/relay-host-discovery.md`).
  *
  * - The host `POST /host { shareCode, peerId }` on every PeerJS `open`
@@ -16,7 +16,7 @@ import type { FastifyInstance } from "fastify";
  *   It remains a useful "is this host currently online?" signal.
  *
  * In-memory only. A relay restart just means hosts re-register on their
- * next heartbeat. Single-instance assumption — a shared registry across
+ * next heartbeat. Single-instance assumption: a shared registry across
  * relay instances is out of scope (the same assumption coturn makes).
  */
 
@@ -63,7 +63,7 @@ export class HostRegistry {
     }
   }
 
-  /** Live entry count — used by tests to assert TTL sweeps. */
+  /** Live entry count: used by tests to assert TTL sweeps. */
   get size(): number {
     return this.entries.size;
   }
@@ -84,10 +84,10 @@ export interface RegisterHostRoutesOptions {
 /**
  * Mount the host-discovery route onto a Fastify instance. CORS is
  * inherited from the global `@fastify/cors` registration the relay
- * already applies (same as `/ice-config`) — no per-route allowlist.
+ * already applies (same as `/ice-config`), no per-route allowlist.
  *
  * Only `POST /host` is exposed: stations don't read the registry at all
- * under the stable-host-id model — they derive the host's broker peer id
+ * under the stable-host-id model: they derive the host's broker peer id
  * from the share code directly. The registry is diagnostics-only.
  *
  * Returns the backing registry so the caller can wire a periodic sweep

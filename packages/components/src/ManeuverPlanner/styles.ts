@@ -11,7 +11,7 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
   padding: 1px 6px;
   border-radius: 10px;
-  /* Failing state shifted brighter — the quiet maroon on dark background
+  /* Failing state shifted brighter: the quiet maroon on dark background
      was sliding past readers. WCAG 1.4.11 non-text contrast met at 3:1. */
   background: ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-alert-muted)")};
   border: 1px solid ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-nogo-bg)")};

@@ -10,7 +10,7 @@ import type { Screen } from "@ksp-gonogo/sitrep-sdk";
  * Discovery (the kOS top-level menu, parsed by KosDataSource) feeds in
  * tagnames it has seen on currently-loaded vessels and they are merged
  * as registry entries with `lastSeenAt` set. Entries are never removed
- * by discovery — a CPU on an unloaded craft just stops being "online";
+ * by discovery: a CPU on an unloaded craft just stops being "online";
  * the user-supplied name and description persist.
  *
  * Per-screen storage is intentional: a station can keep its own
@@ -23,14 +23,14 @@ export interface KosCpuEntry {
   label?: string;
   /** Optional free-text description ("flight computer", "lander", etc.). */
   description?: string;
-  /** ms — most recent moment discovery saw this CPU in the kOS menu. */
+  /** ms: most recent moment discovery saw this CPU in the kOS menu. */
   lastSeenAt?: number;
-  /** ms — when the entry was first created. */
+  /** ms: when the entry was first created. */
   createdAt: number;
   /**
    * True if discovery currently sees this CPU on the active vessel.
    * Derived from the in-memory online set; not persisted. Stale across
-   * a page reload — `lastSeenAt` is the persisted half of the signal.
+   * a page reload: `lastSeenAt` is the persisted half of the signal.
    */
   online: boolean;
 }
@@ -41,7 +41,7 @@ function storageKeyFor(screen: Screen): string {
   return `gonogo.kos.cpus.${screen}`;
 }
 
-/** Stored shape — the persisted half of an entry, without the in-memory `online` flag. */
+/** Stored shape: the persisted half of an entry, without the in-memory `online` flag. */
 type StoredEntry = Omit<KosCpuEntry, "online">;
 
 function isStoredEntry(value: unknown): value is StoredEntry {
@@ -66,7 +66,7 @@ export class CpuRegistryService {
 
   list(): readonly KosCpuEntry[] {
     // Sort: online first; then by recency of lastSeenAt; then alphabetical
-    // by label/tagname. Online-first matters for the picker — the CPUs the
+    // by label/tagname. Online-first matters for the picker, the CPUs the
     // user can actually run a script on right now should sit at the top.
     const decorated = this.entries.map((e) => this.decorate(e));
     return decorated.sort((a, b) => {
@@ -154,7 +154,7 @@ export class CpuRegistryService {
    * for everything in the new set; entries previously online but not in
    * the new set become offline (their `lastSeenAt` is untouched, so the
    * picker can still show "last seen N min ago"). Unknown tagnames get
-   * bare entries created — discovery shouldn't lose data.
+   * bare entries created: discovery shouldn't lose data.
    *
    * This is the canonical hook for the kOS menu peek: "these are the
    * CPUs kOS is currently exposing on the active vessel."
@@ -212,7 +212,7 @@ export class CpuRegistryService {
         this.entries = parsed.filter(isStoredEntry);
       }
     } catch {
-      // Corrupt JSON shouldn't wedge the screen — drop the key.
+      // Corrupt JSON shouldn't wedge the screen: drop the key.
       this.storage.removeItem(storageKeyFor(this.screen));
     }
   }

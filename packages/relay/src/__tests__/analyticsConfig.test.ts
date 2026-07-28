@@ -82,7 +82,7 @@ describe("analytics-config SSE stream (real listen)", () => {
   // Real Fastify listen + SSE fetch + app.close(): fast locally, but on a
   // slow/loaded CI runner the round-trips and the server close can crawl past
   // vitest's 5s test / 10s hook defaults. Give both generous headroom (the
-  // cleanup itself is correct — see the disconnect test below) so this doesn't
+  // cleanup itself is correct; see the disconnect test below) so this doesn't
   // flake on runner-speed roulette.
   afterEach(async () => {
     await app?.close();

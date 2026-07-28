@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -7,7 +8,7 @@ import { useStream } from "./use-stream";
 
 function Alt() {
   const v = useStream<number>("v.alt");
-  return <div>alt:{v ?? "—"}</div>;
+  return <div>alt:{v ?? NULL_DISPLAY}</div>;
 }
 
 describe("useStream", () => {
@@ -19,7 +20,7 @@ describe("useStream", () => {
         <Alt />
       </TelemetryProvider>,
     );
-    expect(screen.getByText("alt:—")).toBeTruthy();
+    expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
     act(() => {
       t.emit("v.alt", 123);
     });

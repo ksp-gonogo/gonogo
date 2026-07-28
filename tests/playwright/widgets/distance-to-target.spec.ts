@@ -1,9 +1,9 @@
 /**
- * Widget DOM mirror — DistanceToTarget. Asserts the panel title and the
+ * Widget DOM mirror: DistanceToTarget. Asserts the panel title and the
  * no-target placeholder match on host and station.
  *
  * The recorded fixture's final snapshot has tar.name = "No Target Selected."
- * — the KSP NO_TARGET_SENTINEL, which `resolveTargetName` maps to undefined.
+ * the KSP NO_TARGET_SENTINEL, which `resolveTargetName` maps to undefined.
  * So the widget takes its no-target branch and renders the TARGET panel with
  * the "No target set in KSP" placeholder (not a tracking readout). PBDS
  * mirrors the same value to the station, so both sides read identically.
@@ -11,7 +11,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — DistanceToTarget", () => {
+test.describe("widget DOM mirror: DistanceToTarget", () => {
   test("no-target placeholder mirrors across host and station", async ({
     browser,
   }) => {

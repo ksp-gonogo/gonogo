@@ -13,15 +13,15 @@ import unknown from "./__fixtures__/unknown-body-no-reference.json";
 import { EscapeProfileComponent } from "./index";
 
 /**
- * DOM snapshots off the stream — the widget's one direct read, `v.body`, is
+ * DOM snapshots off the stream: the widget's one direct read, `v.body`, is
  * now a native `useStream<VesselState>("vessel.state")?.parentBodyName`
  * read with no legacy fallback, so the generic `snapshotWidgetMode` harness
  * (which emits fixture keys straight onto a `MockDataSource`, no
- * `TelemetryProvider` mounted) can't drive it any more — every fixture's
+ * `TelemetryProvider` mounted) can't drive it any more, every fixture's
  * `v.body` is mapped here onto `vessel.identity.parentBodyIndex` resolved
  * against a `system.bodies` entry, same as `stream.test.tsx`/the retired
  * `dual-run.test.tsx`. `v.altitude`/`v.orbitalVelocity` (the `GraphView`
- * trace) aren't emitted at all — they render nothing under jsdom regardless
+ * trace) aren't emitted at all: they render nothing under jsdom regardless
  * (no ResizeObserver stub here, matching this file's pre-migration
  * behavior).
  */
@@ -39,7 +39,7 @@ const FIXTURES: Record<string, Fixture> = {
   "unknown-body-no-reference": unknown,
 };
 
-// vessel.state's carried-channels gate is parent-channel-scoped — every
+// vessel.state's carried-channels gate is parent-channel-scoped, every
 // vessel.state.* field needs ALL of vesselStateChannel.inputs carried, even
 // the ones (here, all but vessel.identity/system.bodies) parentBodyName
 // never consults.
@@ -116,7 +116,7 @@ describe("EscapeProfile DOM snapshots", () => {
             throw new Error("widget has not rendered yet");
           }
           // The title renders on first paint, before vessel.state.parentBodyName
-          // has actually resolved through the frame-scheduled TimelineStore —
+          // has actually resolved through the frame-scheduled TimelineStore,
           // waiting on the title alone raced the body resolution and could
           // snapshot the widget's PRE-body-arrival DOM. Wait on the resolved
           // store value directly instead.

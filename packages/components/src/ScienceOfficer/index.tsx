@@ -37,7 +37,7 @@ export interface Instrument {
 }
 
 /**
- * Slot context for `science-officer.sections` — the per-instrument-row slot.
+ * Slot context for `science-officer.sections`: the per-instrument-row slot.
  * The row slot passes down the `Instrument` it sits beside so an augment
  * (e.g. an on-vessel-lab Kerbalism experiment table, the locked alternate to
  * `deployed-science`) can render a per-instrument extension scoped to
@@ -49,7 +49,7 @@ export interface ScienceOfficerInstrumentSlotContext {
 }
 
 /**
- * Slot context for `science-officer.badges` — the header escape-hatch slot next
+ * Slot context for `science-officer.badges`: the header escape-hatch slot next
  * to the title. Deliberately broad: it carries the whole instrument list
  * (`null` while awaiting telemetry, `[]` for a vessel with no instruments)
  * plus the total stored science so a header augment can summarise
@@ -78,7 +78,7 @@ declare module "@ksp-gonogo/core" {
 
 // The facade-sealed-client copy of this merge lives in
 // `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
-// "@ksp-gonogo/sitrep-sdk"` block here — see MapView/index.tsx's identical
+// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
 // comment / that module's header for why
 // (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
 
@@ -89,7 +89,7 @@ declare module "@ksp-gonogo/core" {
  *   deployed, hasData, rerunnable, inoperable }`.
  * - New SDK `science.instruments` (mapped onto this same widget-facing key
  *   via `map-topic.ts`):
- *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s `InstrumentEntry` — `{
+ *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s `InstrumentEntry`: `{
  *   partId: string (part.flightID.ToString()), partName, experimentId,
  *   title, deployed, inoperable, rerunnable, resettable, dataIsCollectable
  *   }`. `partName`/`experimentId`/`dataIsCollectable` are the new wire's
@@ -98,7 +98,7 @@ declare module "@ksp-gonogo/core" {
  *   `dataIsCollectable` is the "instrument currently holds collectable
  *   data" flag `hasData` always meant); `title` (the experiment's own
  *   title, distinct from the part's) has no legacy analogue this widget
- *   reads. `partId` normalizes to a string either way — every consumer
+ *   reads. `partId` normalizes to a string either way, every consumer
  *   below only ever interpolates it into a key or an action-command
  *   string, never does numeric comparison on it.
  */
@@ -147,7 +147,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
 
 /**
  * Sums `dataAmount` across every entry of `sci.experiments`/
- * `science.experiments` — the same vessel-wide aggregate the old
+ * `science.experiments`: the same vessel-wide aggregate the old
  * `sci.dataAmount` Telemachus key carried, derived instead of read as a
  * separate pre-aggregated field (no such field exists on the new wire).
  */
@@ -178,13 +178,13 @@ export interface LabStatus {
 
 /**
  * Parses `science.lab` (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
- * `BuildLab`) — a NEW capability, no legacy Telemachus/GonogoTelemetry
+ * `BuildLab`): a NEW capability, no legacy Telemachus/GonogoTelemetry
  * analogue existed for Mobile Processing Lab status, so this is a straight
  * whole-topic raw-array read (same `parts.power`/`parts.robotics`
  * "key == topic" precedent in `map-topic.ts`), not a migration of an
  * existing `sci.*` field. Each entry is a lab part on the active vessel; an
  * idle-but-operational lab (crewed, no data loaded) is a normal, valid
- * state — `dataStored`/`processingData`/`scienceRate` all sitting at zero
+ * state: `dataStored`/`processingData`/`scienceRate` all sitting at zero
  * doesn't mean "no lab", it means "lab with nothing to process yet".
  */
 export function parseLab(raw: unknown): LabStatus[] | null {
@@ -220,7 +220,7 @@ function ScienceOfficerComponent({
   // sci.deploy[...]/sci.transmit[...] spend commands still route through the
   // legacy `execute()` (map-command.ts's science.experiment.deploy/transmit).
   const instrumentsRaw = useTelemetry("science.instruments");
-  // No pre-aggregated data field on the wire — derive the vessel-wide total
+  // No pre-aggregated data field on the wire, derive the vessel-wide total
   // client-side from the same `science.experiments` Topic ScienceBench uses,
   // same aggregate semantics as the old Telemachus "Total science data (mits)".
   const experimentsRaw = useTelemetry("science.experiments");
@@ -228,7 +228,7 @@ function ScienceOfficerComponent({
   const execute = useExecuteAction("data");
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
-  // science.lab is a NEW capability (no legacy sci.instruments equivalent —
+  // science.lab is a NEW capability (no legacy sci.instruments equivalent,
   // the Mobile Processing Lab is a different part from the crew-report/goo/
   // barometer instruments science.instruments tracks), read independently of
   // the instrument list above.
@@ -282,7 +282,7 @@ function ScienceOfficerComponent({
       <Cluster>
         <PanelTitle>SCIENCE LAB</PanelTitle>
         <StreamStatusBadge status={labStreamStatus} />
-        {/* Header escape-hatch slot — a broad badge/summary augment
+        {/* Header escape-hatch slot: a broad badge/summary augment
             composes next to the title. Empty (renders nothing) until an Uplink
             registers into it. */}
         <AugmentSlot
@@ -316,7 +316,7 @@ function ScienceOfficerComponent({
                       void execute(`sci.transmit[${partId}]`)
                     }
                   />
-                  {/* Per-instrument section slot — passes this instrument
+                  {/* Per-instrument section slot: passes this instrument
                       down so an on-vessel-lab augment can extend the row.
                       Empty until an Uplink registers into it. Kept here in
                       the widget rather than inside the kit row: the slot is
@@ -339,7 +339,7 @@ function ScienceOfficerComponent({
 /**
  * Mobile Processing Lab status, from `science.lab`. Renders nothing when
  * there's no lab data yet (`null`, still loading) or the vessel carries no
- * lab (`[]`) — same "silent until real content" contract as the rest of the
+ * lab (`[]`): same "silent until real content" contract as the rest of the
  * widget, so a lab-less vessel's layout is unaffected.
  */
 function LabSection({ labs }: { labs: LabStatus[] | null }) {
@@ -348,7 +348,7 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
     <LabList>
       {labs.map((lab, i) => (
         // No stable id on a science.lab entry (unlike sci.instruments'
-        // partId) — the list is never reordered within a render, so index
+        // partId): the list is never reordered within a render, so index
         // just disambiguates two labs that happen to share a partName.
         // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
         <LabRow key={`${lab.partName}-${i}`}>
@@ -482,7 +482,7 @@ const Body = styled(ScrollArea)<{ $row?: boolean }>`
 
 // `InstrumentList` resets `<ul>` browser chrome (list-style/margin/padding)
 // and stacks the per-instrument rows with the same 2px gap the kit's
-// `Section` uses one level up — the kit has no `<ul>`-reset primitive yet
+// `Section` uses one level up, the kit has no `<ul>`-reset primitive yet
 // (only the row itself is covered, not the list it sits in), so this stays
 // local rather than risk the visual-gate diff of dropping list semantics
 // altogether.

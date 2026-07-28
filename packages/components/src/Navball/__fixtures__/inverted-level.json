@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Inverted, wings level — 180° roll. Sky and ground swap: warm/ground band on top, cool/sky band below. SAS off, manual flight.",
+    "notes": "Inverted, wings level: 180° roll. Sky and ground swap: warm/ground band on top, cool/sky band below. SAS off, manual flight.",
     "scenario": "inverted-level"
   },
   "n.heading": 90,

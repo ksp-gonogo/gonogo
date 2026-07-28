@@ -7,7 +7,7 @@ namespace GonogoScansatUplink.Tests
 {
     /// <summary>
     /// Shape-tests the pure <c>scansat.scanningVessels</c> wire builder
-    /// (<see cref="ScanningVessels"/>) — the exact camelCase keys, the sensor
+    /// (<see cref="ScanningVessels"/>): the exact camelCase keys, the sensor
     /// array shape, the trackColor packing, and the null-when-idle FoV-width
     /// rule the client contract (<c>Sitrep.Contract.ScanningVesselEntry</c> /
     /// the widget's <c>SCANScanningVessel</c>) reads. No live SCANsat/KSP: the
@@ -17,7 +17,7 @@ namespace GonogoScansatUplink.Tests
     public class ScanningVesselsTests
     {
         // Kerbin-scale body, a mapping sat at best-alt with two in-range
-        // sensors — the common "actively scanning" case.
+        // sensors: the common "actively scanning" case.
         private static Dictionary<string, object?> BuildActive(double subLat = 12.0)
         {
             var sensors = new List<ScanningVessels.SensorInput>
@@ -97,7 +97,7 @@ namespace GonogoScansatUplink.Tests
             var wire = BuildActive();
 
             // At best-alt on the home body surfScale floors to 1, so the FoV
-            // width passes through as the raw fov (5) — a concrete number, not null.
+            // width passes through as the raw fov (5), a concrete number, not null.
             var widthDeg = Assert.IsType<double>(wire["groundTrackWidthDeg"]);
             Assert.Equal(5.0, widthDeg, precision: 6);
 

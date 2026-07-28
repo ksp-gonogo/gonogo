@@ -16,21 +16,21 @@ namespace Sitrep.Skeleton
     /// The M5a walking-skeleton: wires <see cref="Courier"/> (the delay engine),
     /// <see cref="FleckTransportListener"/> (a real WebSocket transport), and
     /// <see cref="EnvelopeCodec"/> (the wire format) together over exactly the
-    /// three-domain threading model the committed architecture calls for — no
+    /// three-domain threading model the committed architecture calls for, no
     /// KSP anywhere in this assembly. If this behaves correctly here, M5b is
     /// wiring into the game, not a bet.
     ///
     /// <para><b>The three domains</b></para>
     /// <list type="bullet">
-    /// <item><description><b>Main-loop domain</b> — simulates KSP's
+    /// <item><description><b>Main-loop domain</b>: simulates KSP's
     /// <c>FixedUpdate</c>. <see cref="Tick"/> is the entry point: in KSP,
     /// Unity's main thread would call it every fixed frame; here, whichever
     /// thread calls it (a test thread driving UT deterministically, or a
     /// free-running caller) stands in for that role. It touches nothing but
     /// primitives (a UT double + a counter value) and hands them across the
-    /// explicit main-&gt;courier queue — it never touches <see cref="Courier"/>,
+    /// explicit main-&gt;courier queue: it never touches <see cref="Courier"/>,
     /// <see cref="ManualClock"/>, or any Fleck/socket type directly.</description></item>
-    /// <item><description><b>Courier domain</b> — one dedicated background
+    /// <item><description><b>Courier domain</b>: one dedicated background
     /// thread (<see cref="_courierThread"/>) that is the ONLY thread ever
     /// allowed to touch <see cref="_courier"/> / <see cref="_clock"/> (neither
     /// is internally thread-safe). It drains a single ordered job queue fed by
@@ -38,19 +38,19 @@ namespace Sitrep.Skeleton
     /// / unsubscribe / disconnect), so ordering between "record this sample"
     /// and "this client (un)subscribed" is preserved exactly as the two
     /// domains issued it. Serialization (<see cref="EnvelopeCodec"/>) also
-    /// happens here, inside the Courier's own delivery callback — never on a
+    /// happens here, inside the Courier's own delivery callback; never on a
     /// socket thread.</description></item>
-    /// <item><description><b>Socket domain</b> — Fleck's own connection
+    /// <item><description><b>Socket domain</b>: Fleck's own connection
     /// threads. <see cref="ITransportConnection.MessageReceived"/> fires here;
     /// inbound envelopes are parsed and handed off as courier-queue jobs
     /// (never processed inline against <see cref="_courier"/>). Outbound bytes
     /// cross the explicit courier-&gt;socket queue
     /// (<see cref="ConnectionOutbox"/>) and are sent via
     /// <see cref="ITransportConnection.TrySend"/> from that connection's own
-    /// dedicated pump thread — never from the Courier thread.</description></item>
+    /// dedicated pump thread: never from the Courier thread.</description></item>
     /// </list>
     ///
-    /// <para><b>Protocol (deliberately minimal — echo / counter-stream only)</b></para>
+    /// <para><b>Protocol (deliberately minimal: echo / counter-stream only)</b></para>
     /// A client may <c>subscribe</c> to the single topic <see cref="CounterTopic"/>
     /// on the single node <see cref="ShipNode"/>; the server acks with an
     /// <see cref="EventMsg"/> (<c>name: "subscribed"</c>) sent as a reliable
@@ -58,8 +58,8 @@ namespace Sitrep.Skeleton
     /// main loop records samples. Any inbound frame that ISN'T a recognized
     /// <c>subscribe</c>/<c>unsubscribe</c>/<c>command-request</c> envelope
     /// (i.e. <see cref="EnvelopeCodec.ParseClientMessage"/> throws
-    /// <see cref="FormatException"/>) is echoed back byte-for-byte, unchanged
-    /// — this proves the inbound-&gt;outbound socket-domain wiring directly and
+    /// <see cref="FormatException"/>) is echoed back byte-for-byte, unchanged,
+    /// this proves the inbound-&gt;outbound socket-domain wiring directly and
     /// needs no delay-engine involvement. <c>command-request</c> is parsed but
     /// deliberately left unhandled: command dispatch is out of this
     /// skeleton's scope (echo / delayed counter-stream / back-pressure /
@@ -91,7 +91,7 @@ namespace Sitrep.Skeleton
         /// <summary>Set from inside a socket-domain event handler; read by tests to prove socket work never runs on the Courier thread.</summary>
         public int? LastSocketThreadId { get; private set; }
 
-        /// <summary>Raised (from the Courier thread) once a disconnect has been fully processed and the session removed — a deterministic hook for tests instead of a polling loop.</summary>
+        /// <summary>Raised (from the Courier thread) once a disconnect has been fully processed and the session removed, a deterministic hook for tests instead of a polling loop.</summary>
         public event Action<string>? SessionRemoved;
 
         public int BoundPort => _listener.BoundPort;
@@ -118,14 +118,14 @@ namespace Sitrep.Skeleton
             // Closed callback the listener/socket domain still raises while
             // tearing down (a client disconnecting during shutdown, e.g.)
             // enqueues a DisconnectJob via OnConnectionClosed, and that job
-            // must still be drained so its unsubscribe runs — a subscriber
+            // must still be drained so its unsubscribe runs, a subscriber
             // stranded in Courier's own subscription state otherwise. Rather
             // than racing a volatile flag against _jobs.IsEmpty (the previous,
             // buggy ordering could exit the Courier loop with a DisconnectJob
             // still in flight), enqueue an explicit sentinel job:
             // ConcurrentQueue is FIFO, so everything enqueued before the
-            // sentinel — including anything the listener stop just triggered
-            // — is guaranteed to be dequeued and processed before the loop
+            // sentinel: including anything the listener stop just triggered,
+            // is guaranteed to be dequeued and processed before the loop
             // sees the sentinel and returns.
             _listener.Stop();
 
@@ -148,7 +148,7 @@ namespace Sitrep.Skeleton
         /// The main-loop tick: record one sample of the monotonically
         /// increasing counter at <paramref name="ut"/>, and request the
         /// shared clock be advanced to <paramref name="ut"/>. Callable from
-        /// any thread (see the class doc comment) — it only ever touches
+        /// any thread (see the class doc comment), it only ever touches
         /// primitives and the explicit job queue, never <see cref="_courier"/>
         /// or <see cref="_clock"/> directly.
         /// </summary>
@@ -175,7 +175,7 @@ namespace Sitrep.Skeleton
         public bool HasSession(string connectionId) => _sessions.ContainsKey(connectionId);
 
         // ----------------------------------------------------------------
-        // Courier domain (the dedicated Courier thread — the only thread
+        // Courier domain (the dedicated Courier thread: the only thread
         // that may touch _courier / _clock)
         // ----------------------------------------------------------------
 
@@ -195,7 +195,7 @@ namespace Sitrep.Skeleton
                             // Sentinel: Stop() enqueues this only after
                             // stopping the listener, so anything the listener
                             // teardown triggered (DisconnectJobs included) was
-                            // enqueued — and, by the loop above, drained —
+                            // enqueued (and, by the loop above, drained)
                             // before this case is ever reached.
                             return;
                         case TickJob tick:
@@ -230,8 +230,8 @@ namespace Sitrep.Skeleton
                 // from inside Courier.SubscribeStream's catch-up call or from
                 // inside ManualClock.AdvanceTo's drain loop. Serialization
                 // happens here, then the bytes cross the explicit
-                // courier->socket queue via the connection's ConnectionOutbox
-                // — TrySend itself is called later, from that connection's
+                // courier->socket queue via the connection's ConnectionOutbox,
+                // TrySend itself is called later, from that connection's
                 // own pump thread, never from here.
                 var json = EnvelopeCodec.WriteStreamData(streamData);
                 session.Outbox.PublishTelemetry(topic, Encoding.UTF8.GetBytes(json));
@@ -306,13 +306,13 @@ namespace Sitrep.Skeleton
                         EnqueueJob(new UnsubscribeJob(session, unsub.Topic));
                         break;
                         // CommandRequest<object?> is parsed but deliberately
-                        // unhandled here — out of scope for this skeleton.
+                        // unhandled here: out of scope for this skeleton.
                 }
             }
             catch (FormatException)
             {
                 // Not a recognized envelope: echo the raw bytes back exactly
-                // as received. Pure socket-domain work — no Courier/delay
+                // as received. Pure socket-domain work, no Courier/delay
                 // involvement needed for an instantaneous echo.
                 session.Connection.TrySend(payload, SendClass.Response);
             }
@@ -384,14 +384,14 @@ namespace Sitrep.Skeleton
             }
         }
 
-        /// <summary>Shutdown sentinel — see <see cref="Stop"/> and <see cref="CourierLoop"/>.</summary>
+        /// <summary>Shutdown sentinel: see <see cref="Stop"/> and <see cref="CourierLoop"/>.</summary>
         private sealed class StopJob : ICourierJob
         {
         }
 
         /// <summary>
         /// Per-connection state. <see cref="Unsubscribers"/> is mutated ONLY
-        /// from the Courier thread (Process* methods above) — same
+        /// from the Courier thread (Process* methods above), same
         /// single-writer invariant as <see cref="_courier"/> itself.
         /// <see cref="Outbox"/> is the courier-&gt;socket queue crossing and
         /// owns its own independent pump thread (see

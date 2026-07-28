@@ -1,7 +1,7 @@
 /**
  * Shared, dependency-free key/value settings for the whole app, owned by
  * core so every package that depends on core (app, data, kerbcast, future
- * Uplink packages) reads the SAME authoritative value — e.g. `gameHost`,
+ * Uplink packages) reads the SAME authoritative value, e.g. `gameHost`,
  * the one host the mod runs on. Two runtime layers:
  *
  *   getSetting(key) = saved ?? seed
@@ -12,7 +12,7 @@
  *   KSP_HOST so changing that env + restarting takes effect on next load,
  *   never stuck behind a stale saved value.
  *
- * The build-time default is NOT a layer here — a typed accessor (e.g.
+ * The build-time default is NOT a layer here, a typed accessor (e.g.
  * `getGameHost`) supplies it at the call site, so this store needs no per-key
  * defaults registry and stays fully generic.
  *
@@ -28,7 +28,7 @@ interface SettingsBlob {
   values: Record<string, string>;
 }
 
-// In-memory seed layer — deliberately never written to localStorage.
+// In-memory seed layer: deliberately never written to localStorage.
 const seedLayer = new Map<string, string>();
 
 // Per-key subscriber sets.
@@ -66,7 +66,7 @@ function writeBlob(values: Record<string, string>): void {
       } satisfies SettingsBlob),
     );
   } catch {
-    /* storage full / disabled — in-memory read still works this session */
+    /* storage full / disabled: in-memory read still works this session */
   }
 }
 

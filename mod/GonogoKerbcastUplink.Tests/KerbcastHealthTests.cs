@@ -5,7 +5,7 @@ using Xunit;
 namespace GonogoKerbcastUplink.Tests;
 
 /// <summary>
-/// The mandatory healthcheck's state machine — the reason the kerbcast Uplink
+/// The mandatory healthcheck's state machine: the reason the kerbcast Uplink
 /// exists (see <see cref="KerbcastHealth"/>'s doc and commit 45111e44).
 ///
 /// <para>These assert the DISTINCTIONS, not just the enum: an operator looking
@@ -45,8 +45,8 @@ public class KerbcastHealthTests
     {
         var health = KerbcastHealth.Evaluate(null, sampledOnce: false, coreActive: false, cameraCount: -1);
 
-        // Not Healthy — we would be claiming a camera count we have not observed.
-        // Not Unavailable — kerbcast registered fine.
+        // Not Healthy: we would be claiming a camera count we have not observed.
+        // Not Unavailable: kerbcast registered fine.
         Assert.Equal(UplinkHealthState.Degraded, health.State);
         Assert.Contains("waiting for the first sample", health.Detail);
     }

@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
     /// Headless test for the P1b slice 2 <see cref="StageDeltaVViewProvider"/>:
     /// a fake <see cref="KspSnapshot"/> carrying the raw
     /// <c>Values["vessel"]["deltaV"]</c> encoding
-    /// (<c>Gonogo.KSP.KspHost.BuildDeltaV</c>'s shape — a <c>stages</c> list of
+    /// (<c>Gonogo.KSP.KspHost.BuildDeltaV</c>'s shape: a <c>stages</c> list of
     /// per-stage dicts plus a <c>summary</c> dict) is mapped to the
     /// <c>dv.stages</c> (bare array) and <c>dv.summary</c> (wrapper object)
     /// payloads and asserted against every rule in the provider doc: null when
@@ -24,7 +24,7 @@ namespace Sitrep.Host.Tests
     public class StageDeltaVViewProviderTests
     {
         // ----------------------------------------------------------------
-        // Absence — "sim not ready" is a null payload, distinct from "zero
+        // Absence: "sim not ready" is a null payload, distinct from "zero
         // stages" (an empty list).
         // ----------------------------------------------------------------
 
@@ -41,7 +41,7 @@ namespace Sitrep.Host.Tests
         public void BuildStagesReturnsNullWhenVesselHasNoDeltaVGroup()
         {
             // Active vessel present, but the stock sim wasn't ready this tick so
-            // KspHost omitted the deltaV group — the provider must surface that
+            // KspHost omitted the deltaV group: the provider must surface that
             // as null (not an empty list), so a widget tells "sim warming up"
             // apart from "genuinely zero ΔV stages".
             var snapshot = new KspSnapshot
@@ -61,7 +61,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Mapping — multi-stage, in order, every per-stage field.
+        // Mapping: multi-stage, in order, every per-stage field.
         // ----------------------------------------------------------------
 
         [Fact]
@@ -136,7 +136,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Stage-scoped resources — the old Telemachus r.resourceCurrent[X]/
+        // Stage-scoped resources: the old Telemachus r.resourceCurrent[X]/
         // r.resourceCurrentMax[X] pair, KspHost.BuildStageResources's
         // per-resource {current, max} map for THIS stage.
         // ----------------------------------------------------------------
@@ -193,7 +193,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // R1/F-1 — a NaN/Infinity ΔV the sim reports maps to null, never a
+        // R1/F-1: a NaN/Infinity ΔV the sim reports maps to null, never a
         // sentinel on the wire.
         // ----------------------------------------------------------------
 
@@ -220,7 +220,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(100.0, stage["thrustVac"]); // finite field unaffected
             Assert.Null(stage["dvAsl"]);   // absent raw field -> null, not 0
 
-            // Serializes cleanly through the REAL production path — no NaN /
+            // Serializes cleanly through the REAL production path, no NaN /
             // Infinity token ever reaches the wire.
             var json = SerializeThroughWire(StageDeltaVViewProvider.StagesTopic, stages);
             Assert.DoesNotContain("NaN", json);
@@ -228,7 +228,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Summary — key set + totals round-trip.
+        // Summary: key set + totals round-trip.
         // ----------------------------------------------------------------
 
         [Fact]

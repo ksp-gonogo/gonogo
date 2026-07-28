@@ -7,10 +7,10 @@ import { GroundSurveyComponent } from "./index";
 
 /**
  * The stream test-adapter proof for GroundSurvey. `useGroundSurveySamples`
- * now reads BOTH `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed —
+ * now reads BOTH `vessel.flight` (altitude/heightFromTerrain/surfaceSpeed,
  * a canonical Topic) and the `vessel.state` DERIVED channel
  * (`parentBodyName`/`isSplashed`/`landingPredictedLat`/`landingPredictedLon`,
- * via `useStream`) — genuinely running off the real `TelemetryProvider`/
+ * via `useStream`): genuinely running off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`, no legacy
  * `DataSource` fallback at all any more.
  */
@@ -30,7 +30,7 @@ const FLIGHT_FIXTURE = {
   atmosphericTemperature: 280,
 };
 
-describe("GroundSurvey — genuinely runs off the stream (vessel.flight + vessel.state canonical reads)", () => {
+describe("GroundSurvey: genuinely runs off the stream (vessel.flight + vessel.state canonical reads)", () => {
   it("renders its normal awaiting state under a TelemetryProvider before vessel.flight has arrived", () => {
     const fixture = setupStreamFixture({ carriedChannels: [] });
 

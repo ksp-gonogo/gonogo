@@ -1,7 +1,7 @@
 name: release
 
 # Publishes a release from a v* tag (normally dispatched by
-# prepare-release.yml — GITHUB_TOKEN tag pushes don't fire push triggers,
+# prepare-release.yml: GITHUB_TOKEN tag pushes don't fire push triggers,
 # so the tag-push trigger below only matters for manually pushed tags).
 #
 # A release is the deliberate act that moves what users see; pushes to
@@ -9,7 +9,7 @@ name: release
 # This workflow:
 #
 #   1. runs the full test suite at the tag (the release commit was pushed
-#      with GITHUB_TOKEN, so the CI workflow never ran on it — the gate
+#      with GITHUB_TOKEN, so the CI workflow never ran on it, the gate
 #      lives here),
 #   2. builds the production site and uploads it as the GitHub Release
 #      asset `gonogo-site.tar.gz` (deploy.yml composes the Pages root
@@ -30,7 +30,7 @@ name: release
 # filename 401s, so this is the only place in the repo that can publish.
 #
 # It also matches the cadence we want. Riding the app's release couples *when*
-# a package may publish, not *what version* it publishes — each package's
+# a package may publish, not *what version* it publishes, each package's
 # version still comes from its own package.json, on its own SemVer line. Every
 # release is an opportunity for a package release: unchanged version, nothing
 # happens; bumped version, it goes out.
@@ -43,7 +43,7 @@ on:
     inputs:
       packages_only:
         description: >-
-          Publish npm packages only. Skips the app release entirely — no GitHub
+          Publish npm packages only. Skips the app release entirely, no GitHub
           Release, no images, no mod zips, no Pages flip.
         type: boolean
         default: false
@@ -67,8 +67,8 @@ concurrency:
 jobs:
   release:
     # A packages_only dispatch skips the app release outright, so the escape
-    # hatch for an out-of-band package publish can't be mistaken for — or
-    # accidentally become — a release of the app.
+    # hatch for an out-of-band package publish can't be mistaken for, or
+    # accidentally become, a release of the app.
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.packages_only) }}
     runs-on: ubuntu-latest
     steps:
@@ -162,12 +162,12 @@ jobs:
             --ref main
 
   # Publishes each package whose own version has moved, via npm OIDC trusted
-  # publishing — no NPM_TOKEN, nothing to rotate, provenance on every publish.
+  # publishing: no NPM_TOKEN, nothing to rotate, provenance on every publish.
   # See local_docs/oidc-publishing-guide.md.
   #
   # Runs per package, after `release`, so a failed app release never publishes.
   # An unchanged version is already on the registry and is skipped with a
-  # notice rather than failing the release — npm rejects a republish outright,
+  # notice rather than failing the release: npm rejects a republish outright,
   # so "no change, no publish" needs no extra bookkeeping here.
   publish-packages:
     needs: release
@@ -201,7 +201,7 @@ jobs:
           DIR='${{ matrix.dir }}'
           # @ksp-gonogo/theme is private and bundled into ui-kit's dist by
           # tsup. It is absent from the matrix above and would fail the
-          # artifact check below, but refuse it here too — this is the cheap
+          # artifact check below, but refuse it here too, this is the cheap
           # guard that also catches a publishable package being marked private
           # by mistake.
           if [ "$(node -p "require('./$DIR/package.json').private === true")" = "true" ]; then
@@ -211,7 +211,7 @@ jobs:
           NAME="$(node -p "require('./$DIR/package.json').name")"
           VERSION="$(node -p "require('./$DIR/package.json').version")"
           if [ "$NAME" != '${{ matrix.package }}' ]; then
-            echo "::error::$DIR is $NAME, expected ${{ matrix.package }} — the matrix and the tree disagree."
+            echo "::error::$DIR is $NAME, expected ${{ matrix.package }}, the matrix and the tree disagree."
             exit 1
           fi
           {
@@ -249,10 +249,10 @@ jobs:
           VERSION='${{ steps.pkg.outputs.version }}'
           # A non-zero exit is an E404 (not published) or a registry blip.
           # Both fall through to a publish attempt, and npm refuses to
-          # overwrite an existing version anyway — the registry stays the
+          # overwrite an existing version anyway: the registry stays the
           # authority; this check only keeps an unchanged package green.
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
-            echo "::notice::$NAME@$VERSION is already published — no version change, nothing to do."
+            echo "::notice::$NAME@$VERSION is already published, no version change, nothing to do."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "$NAME@$VERSION is not on npm yet."
@@ -273,7 +273,7 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: npm pack --pack-destination "$RUNNER_TEMP"
 
-      # Gate the tarball, then publish that same file — what was checked is
+      # Gate the tarball, then publish that same file, what was checked is
       # exactly what ships, rather than a re-pack that could differ.
       - name: Verify the packed artifact
         if: steps.published.outputs.skip == 'false'
@@ -314,9 +314,9 @@ jobs:
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
           if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
-            echo "⏭ $NAME@$VERSION — already on npm, no version change." >> "$GITHUB_STEP_SUMMARY"
+            echo "⏭ $NAME@$VERSION: already on npm, no version change." >> "$GITHUB_STEP_SUMMARY"
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then
-            echo "🧪 $NAME@$VERSION — packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
+            echo "🧪 $NAME@$VERSION: packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "📦 Published $NAME@$VERSION with provenance." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"

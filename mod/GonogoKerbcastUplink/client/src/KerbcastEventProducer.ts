@@ -9,7 +9,7 @@ import { type EventOccurrence, EventTimeline } from "@ksp-gonogo/sitrep-client";
 
 /**
  * The synthetic event-stream topic id the kerbcast Uplink publishes its
- * discrete occurrences under. Not a codegen'd wire topic — the Uplink
+ * discrete occurrences under. Not a codegen'd wire topic, the Uplink
  * SYNTHESISES it from kerbcast's raw edges (per the kerbcast decision,
  * `local_docs/kerbalism-RO-design-DECISIONS.md` §New PRIMITIVES). An `event`
  * alarm targets `{ kind: "event", topic: KERBCAST_EVENTS_TOPIC, eventKind }`.
@@ -45,7 +45,7 @@ export interface StreamDegradedPayload {
 }
 
 /**
- * Structural view of the kerbcast SDK client the producer needs — the edge
+ * Structural view of the kerbcast SDK client the producer needs, the edge
  * event bus plus the capture clock. `KerbcastClient` satisfies this; tests
  * drive a fake emitter so no WebRTC is needed.
  */
@@ -63,11 +63,11 @@ export interface KerbcastEdgeSource {
  * (`EventTimeline` in `@ksp-gonogo/sitrep-client`); it owns the reveal/delay
  * semantics the kerbcast SDK deliberately doesn't carry.
  *
- * Occurrence timing: each edge is stamped with `client.clock.captureUt` — the
+ * Occurrence timing: each edge is stamped with `client.clock.captureUt`, the
  * KSP UT the current video frame was captured at, i.e. live real-time. The
  * consumer reads `revealed(now)` at the operator's DELAYED view UT
  * (`getViewUt`), so an occurrence only becomes visible once the view clock
- * catches up past `captureUt` — the signal delay realised by construction, no
+ * catches up past `captureUt`: the signal delay realised by construction, no
  * explicit delay term needed. Meta edges (`signal-lost`) are intentionally NOT
  * connectivity-gated: gating a signal-loss event on connectivity-at-its-own-ut
  * would drop the very event that reports the loss.
@@ -93,7 +93,7 @@ export class KerbcastEventProducer {
     this.timeline = timeline;
   }
 
-  /** The occurrence buffer — exposed for the host reader, tests, diagnostics. */
+  /** The occurrence buffer: exposed for the host reader, tests, diagnostics. */
   get events(): EventTimeline<KerbcastEventKind> {
     return this.timeline;
   }

@@ -12,7 +12,7 @@ import {
   useKerbcastStream,
 } from "../hooks/useKerbcastStream";
 
-// Re-exported for backward compat — `interpolateCaptureUt`/`CaptureClockSample`
+// Re-exported for backward compat: `interpolateCaptureUt`/`CaptureClockSample`
 // are the generic capture-clock helpers, now in `@ksp-gonogo/sitrep-client`'s
 // media layer (2026-07-17 move out of the kerbcast client) so any camera
 // Uplink's worker-hosted backend shares the exact same interpolation. Sourced
@@ -25,27 +25,27 @@ export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-client/media";
 // Delayed-playout STATUS side channel (cross-browser kerbcast video-delay
 // design, 2026-07-16). `useDelayedKerbcastStream` is called BY the kerbcam
 // SDK's `useStream` seam, which constrains its return type to
-// `MediaStream | null` (`CameraStreamHook` — see `kerbcast-react`'s
+// `MediaStream | null` (`CameraStreamHook`: see `kerbcast-react`'s
 // `CameraFeed.d.ts`). That leaves no channel for `CameraFeed.tsx` (which
-// does NOT call this hook itself — the SDK does, internally) to learn
+// does NOT call this hook itself, the SDK does, internally) to learn
 // "delay was expected here but the pipeline couldn't be built", which it
 // needs to render the explicit "delayed feed unavailable" state (decision
-// 5 — never the live stream).
+// 5: never the live stream).
 //
 // Fix: this hook writes its OWN `DelayedPlayoutResult` into a tiny external
 // store keyed by `flightId`, and `useDelayedPlaybackStatus` (below) reads it
-// via `useSyncExternalStore` — the same "refcounted external resource,
+// via `useSyncExternalStore`: the same "refcounted external resource,
 // subscribe/notify" shape `KerbcastDataSource` and `PerfBudget` already use
 // elsewhere in this codebase, just sized for a single in-memory value
 // instead of a class. `CameraFeed.tsx` calls `useDelayedPlaybackStatus`
 // directly (its own hook call, independent of the SDK's `useStream`
-// invocation) — no second pipeline is built; this is read-only.
+// invocation): no second pipeline is built; this is read-only.
 //
 // Status keying: by `flightId`, so two consumers of the SAME camera (e.g. a
 // CameraFeed and the docking-HUD backdrop) share one status entry. That is
 // now CORRECT rather than a lossy compromise: as of the per-camera sharing in
 // `useDelayedPlayout` (2026-07-17) those two consumers ARE one delayed
-// pipeline — `sharedDelayedStreams` keys the pipeline by the raw `MediaStream`
+// pipeline: `sharedDelayedStreams` keys the pipeline by the raw `MediaStream`
 // identity, so one `MediaStreamTrackProcessor` / `RTCRtpScriptTransform` per
 // track feeds every consumer, and they necessarily see the same delayed
 // output and thus the same status. Delay is a property of the camera, not the
@@ -89,11 +89,11 @@ const NO_FLIGHT_STATUS: DelayedPlayoutResult = { kind: "raw", stream: null };
 
 /**
  * Reactive read of the delayed-playout status published by
- * `useDelayedKerbcastStream` for `flightId` — the side channel documented
+ * `useDelayedKerbcastStream` for `flightId`: the side channel documented
  * above. `CameraFeed.tsx` uses this to decide whether to render the
  * explicit "delayed feed unavailable" state instead of the SDK's normal
  * feed. `null` `flightId` always reads `{kind: "raw", stream: null}` (no
- * camera resolved yet — nothing to be unavailable about).
+ * camera resolved yet: nothing to be unavailable about).
  */
 export function useDelayedPlaybackStatus(
   flightId: number | null,
@@ -109,7 +109,7 @@ export function useDelayedPlaybackStatus(
  * `useStream` seam (kerbcam SDK §3.4). It composes three already-tested
  * pieces without moving any of them into the SDK:
  *
- *   1. the SDK/data-source glue `useKerbcastStream` — the raw live `MediaStream`
+ *   1. the SDK/data-source glue `useKerbcastStream`: the raw live `MediaStream`
  *      for the RESOLVED flightId (auto-latch / fallback already applied by the
  *      feed, so this hook never re-derives it);
  *   2. gonogo's `DelayedPlayoutBuffer` (via `useDelayedPlayout`);
@@ -120,13 +120,13 @@ export function useDelayedPlaybackStatus(
  * Single-authority guarantee: `view` is the same `ViewClock` instance every
  * delay-consistent telemetry surface reads, and the buffer only releases a
  * frame once that clock's `confirmedEdgeUt()` sweeps past the frame's capture
- * UT — so a media frame and a telemetry sample stamped the same UT surface on
+ * UT: so a media frame and a telemetry sample stamped the same UT surface on
  * the same clock crossing.
  *
  * Passthrough (byte-for-byte live, unchanged) in two cases, both by feeding
  * `useDelayedPlayout` no delay config:
- *   - no `TelemetryProvider` in the tree (`view === undefined`) — the LAN case;
- *   - no capture clock yet (`captureUt == null` — old kerbcast plugin/sidecar,
+ *   - no `TelemetryProvider` in the tree (`view === undefined`), the LAN case;
+ *   - no capture clock yet (`captureUt == null`, old kerbcast plugin/sidecar,
  *     or before the first ~1Hz sample), so we never hold video without knowing
  *     when it was captured.
  *
@@ -137,11 +137,11 @@ export function useDelayedPlaybackStatus(
  * arrive.
  *
  * Adapts `useDelayedPlayout`'s discriminated `DelayedPlayoutResult` down to
- * the `MediaStream | null` the SDK's `useStream` seam requires — `"raw"` and
+ * the `MediaStream | null` the SDK's `useStream` seam requires, `"raw"` and
  * `"delayed"` surface their stream (possibly `null` for `"raw"` while the
  * camera connects); `"connecting"` and `"unavailable"` both surface `null`
  * (the SDK just shows its own connecting/no-signal look either way). The
- * full result — including `"unavailable"`'s reason — is separately
+ * full result (including `"unavailable"`'s reason) is separately
  * published for `CameraFeed.tsx` to read via `useDelayedPlaybackStatus`
  * (see this module's top-of-file doc), so "can't delay" gets its own
  * explicit UI rather than being indistinguishable from "still connecting".
@@ -154,16 +154,16 @@ export function useDelayedKerbcastStream(
   flightId: number | null,
 ): MediaStream | null {
   const raw = useKerbcastStream(flightId);
-  // The facade's `useViewClockOptional` is typed `unknown` (opaque — see its
+  // The facade's `useViewClockOptional` is typed `unknown` (opaque; see its
   // own doc: the concrete ViewClock stays sitrep-client-internal). Narrow to
-  // the structural `DelayClockLike` contract this module actually drives —
+  // the structural `DelayClockLike` contract this module actually drives,
   // the real `ViewClock` satisfies it (see that class's own doc).
   const view = useViewClockOptional() as DelayClockLike | undefined;
   const { captureUt, epoch, warpRate } = useKerbcastClock();
 
   // Latch each ~1Hz clock sample with the wall-clock instant we saw it, so the
   // per-frame `liveCaptureUt` can interpolate forward between samples. Kept in
-  // a ref (not state) — the buffer reads it lazily at frame-stamp time, and we
+  // a ref (not state): the buffer reads it lazily at frame-stamp time, and we
   // don't want a re-render per sample.
   const sampleRef = useRef<CaptureClockSample>({
     ut: captureUt,
@@ -175,7 +175,7 @@ export function useDelayedKerbcastStream(
     // Diagnostic: does the consumer's `useKerbcastClock` actually yield a
     // `captureUt`? Null here while the connected client logs advancing
     // `captureUt` would mean the path is starved downstream of the SDK client.
-    // NOTE: this proves the CLOCK reaches the consumer — it does NOT by itself
+    // NOTE: this proves the CLOCK reaches the consumer, it does NOT by itself
     // prove a given frame was held/released correctly; that's `frameDelay.ts`'s
     // real per-frame pipeline (`useDelayedPlayout`), which this hook composes
     // below. `confirmedEdgeUt` is the only ViewClock method `ViewClockView`
@@ -192,7 +192,7 @@ export function useDelayedKerbcastStream(
     () => interpolateCaptureUt(sampleRef.current, performance.now()) ?? 0,
     [],
   );
-  // The worker backend needs the RAW sample, not the interpolated value —
+  // The worker backend needs the RAW sample, not the interpolated value,
   // see `KerbcastStreamDelayOptions.getCaptureSample`'s doc.
   const getCaptureSample = useCallback(() => sampleRef.current, []);
 

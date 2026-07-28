@@ -6,18 +6,18 @@ using System.Text;
 namespace Sitrep.Core.Serialization
 {
     /// <summary>
-    /// Hand-written recursive-descent JSON parser — no Json.NET, no
+    /// Hand-written recursive-descent JSON parser: no Json.NET, no
     /// System.Text.Json (see <see cref="JsonWriter"/> for why). Parses into
     /// the same generic CLR value shape <see cref="JsonWriter.AppendValue"/>
     /// writes: <c>null</c>, <c>bool</c>, <c>double</c>, <c>string</c>,
     /// <c>Dictionary&lt;string, object?&gt;</c>, <c>List&lt;object?&gt;</c>.
     ///
     /// THE only place a JSON string VALUE (not an object key) is converted
-    /// to a CLR value — every string token is checked against
+    /// to a CLR value: every string token is checked against
     /// <see cref="NanPolicy.TryDecode"/> and, if it matches, decoded straight
     /// to the corresponding non-finite <c>double</c> instead of staying a
     /// string. Applied uniformly regardless of nesting depth, symmetric with
-    /// <see cref="JsonWriter.AppendNumber"/> on the write side — so by the
+    /// <see cref="JsonWriter.AppendNumber"/> on the write side: so by the
     /// time <c>EnvelopeCodec</c> reads a field out of the parsed tree
     /// (<c>Meta.ValidAt</c>, a <c>Payload</c> entry, anything), the sentinel
     /// has already round-tripped back to a real <c>double</c> and no

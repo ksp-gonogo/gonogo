@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Unit tests for <see cref="FlightLifecycleSampler"/> in isolation —
+    /// Unit tests for <see cref="FlightLifecycleSampler"/> in isolation,
     /// mirrors <c>VesselEpochSamplerTests</c>'s style (a fake
     /// <see cref="IChannelPublisher"/> per channel, hand-built
     /// <see cref="KspSnapshot"/>s) rather than a full <see cref="Sitrep.Host.ChannelEngine"/>,
@@ -181,7 +181,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(VesselA, endedPayload.VesselId);
             Assert.Equal(FlightEndReason.Reverted, endedPayload.Reason);
             // Ended at the REVERT-TARGET ut (0.5) -- not the pre-revert
-            // highwater mark (10.0) and not some wall-clock capture — this is
+            // highwater mark (10.0) and not some wall-clock capture, this is
             // what keeps the event on the surviving side of the timeline
             // reset (see the sampler's own doc comment).
             Assert.Equal(0.5, endedPayload.Ut);

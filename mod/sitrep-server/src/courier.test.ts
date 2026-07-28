@@ -143,7 +143,7 @@ describe("Courier", () => {
       received.push(msg);
     });
 
-    // No catch-up available yet (sample hasn't arrived) — must not be lost.
+    // No catch-up available yet (sample hasn't arrived), must not be lost.
     expect(received).toHaveLength(0);
 
     clock.advanceTo(2);
@@ -222,7 +222,7 @@ describe("Courier", () => {
         onResponse,
       );
 
-      // Dispatch and confirmation land at the same t0 — neither fires
+      // Dispatch and confirmation land at the same t0, neither fires
       // synchronously on dispatch (the schedule() seam still applies), but
       // both are due and fire together on the next advanceTo(t0) tick.
       expect(handler).not.toHaveBeenCalled();

@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests
     /// (<see cref="IUplinkHost.AddSampledSource"/>): the capture runs on the
     /// tick (main-loop) thread, its exact opaque result is carried to and
     /// handed to the handle on the Courier thread, and a throwing capture
-    /// degrades only its own owning uplink — every other source and the rest
+    /// degrades only its own owning uplink: every other source and the rest
     /// of the tick keep running.
     /// </summary>
     public class SampledSourceTests
@@ -52,11 +52,11 @@ namespace Sitrep.Host.Tests
             // Handle got the EXACT object the capture returned (reference identity).
             Assert.Same(capturePayload, handleReceived);
 
-            // Capture ran on the caller's (main-loop) thread — synchronously
+            // Capture ran on the caller's (main-loop) thread, synchronously
             // inside TickAndWait, before the job crossed to the Courier.
             Assert.Equal(testThreadId, captureThreadId);
 
-            // Handle ran on a DIFFERENT thread (the Courier) — the same one an
+            // Handle ran on a DIFFERENT thread (the Courier), the same one an
             // ordinary ISnapshotSampler runs on.
             Assert.NotEqual(captureThreadId, handleThreadId);
             Assert.Equal(samplerThreadId, handleThreadId);
@@ -97,14 +97,14 @@ namespace Sitrep.Host.Tests
             engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
 
             // The throwing capture's handle never ran (no value produced); the
-            // healthy one did, with its exact captured payload — the tick
+            // healthy one did, with its exact captured payload, the tick
             // completed for it.
             Assert.Equal(0, throwingHandleCalls);
             Assert.Equal(1, healthyHandleCalls);
             Assert.Same(healthyPayload, healthyReceived);
 
             // A CAPTURE throw is TRANSIENT (e.g. a KSP read before the game is
-            // ready): it must NOT mark the uplink Unavailable — it retries. (The
+            // ready): it must NOT mark the uplink Unavailable, it retries. (The
             // SCANsat "coverage never surfaces" root cause was exactly a transient
             // early-tick capture throw permanently disabling the sampler.)
             Assert.True(engine.AvailabilityOf("sampled.throwing").IsAvailable);
@@ -129,7 +129,7 @@ namespace Sitrep.Host.Tests
 
             // Register adds a sampled source, THEN throws. Fix #4: the catch
             // must route through MarkUplinkUnavailable so the already-registered
-            // source's Disabled flag is set — otherwise RunCaptures (which gates
+            // source's Disabled flag is set; otherwise RunCaptures (which gates
             // only on source.Disabled, not _availability) keeps invoking the
             // half-initialised capture every tick forever.
             var failing = new RecordingUplink(
@@ -151,7 +151,7 @@ namespace Sitrep.Host.Tests
             engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
             engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
 
-            // The capture never ran on either tick — the source was disabled
+            // The capture never ran on either tick, the source was disabled
             // by the registration-failure path, not left live.
             Assert.Equal(0, captureCalls);
         }

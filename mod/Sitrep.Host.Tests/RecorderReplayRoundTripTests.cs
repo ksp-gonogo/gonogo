@@ -13,7 +13,7 @@ namespace Sitrep.Host.Tests
     /// written to a file and loaded back into a <see cref="ReplayKspHost"/>,
     /// and the replay is asserted to reproduce the EXACT same
     /// <see cref="IKspHost.Sample"/> values and <see cref="IKspHost.Lifecycle"/>
-    /// event sequence the original host produced — including a NaN value
+    /// event sequence the original host produced: including a NaN value
     /// surviving the JSON round-trip. This is the exact record-once /
     /// replay-headless loop the user's real KSP capture will drive.
     /// </summary>
@@ -112,7 +112,7 @@ namespace Sitrep.Host.Tests
                 Assert.Equal("one", replay.Sample().Values["name"]);
                 Assert.Empty(firedEvents);
 
-                // T=1.5 event now in range, but the T=2 snapshot is not yet — Sample()
+                // T=1.5 event now in range, but the T=2 snapshot is not yet, Sample()
                 // must still report the LATEST snapshot <= ut, not merely the latest overall.
                 replay.AdvanceTo(1.5);
                 Assert.Equal(1.0, replay.Sample().Values["a"]);
@@ -233,11 +233,11 @@ namespace Sitrep.Host.Tests
         /// (<c>truthPosition</c>/<c>truthVelocity</c>/<c>relativePosition</c>/
         /// <c>relativeVelocity</c>) as raw <c>double[]</c>, not a hand-built
         /// <c>List&lt;object?&gt;</c>. This builds a snapshot shaped exactly
-        /// like <c>KspHost.Sample()</c>'s real output — nested per-group
+        /// like <c>KspHost.Sample()</c>'s real output: nested per-group
         /// dictionaries under "vessel" (identity/orbit/flight/resources),
         /// <c>double[]</c> vectors inside "orbit", a "bodies"
         /// <c>List&lt;object?&gt;</c> of dictionaries, a NaN buried in the
-        /// tree, plus a lifecycle event — and drives it through the EXACT
+        /// tree, plus a lifecycle event: and drives it through the EXACT
         /// path a real quit does: <see cref="Recorder.Save"/> to a real file
         /// on disk, then <see cref="RecordedSessionCodec.Parse"/> the bytes
         /// back. This is the test that would have caught the bug: every
@@ -290,7 +290,7 @@ namespace Sitrep.Host.Tests
                 Assert.Equal(700000.0, orbit["sma"]);
 
                 // The double[] vectors: written as a JSON array, read back as
-                // List<object?> (per JsonReader's array contract) — NOT
+                // List<object?> (per JsonReader's array contract): NOT
                 // reconstructed as a double[]. Each element is still a
                 // genuine double.
                 var truthPosition = Assert.IsType<List<object?>>(orbit["truthPosition"]);
@@ -346,7 +346,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Mirrors the dictionary/list/array shape <c>Gonogo.KSP.KspHost.Sample</c>
         /// actually produces (per-group vessel dictionaries, <c>double[]</c>
-        /// ground-truth vectors, a bodies list of dictionaries) — see that
+        /// ground-truth vectors, a bodies list of dictionaries); see that
         /// class's <c>BuildVesselEntry</c>/<c>BuildOrbit</c>/<c>BuildFlight</c>/
         /// <c>BuildResources</c>/<c>BuildBodyEntry</c> for the real field
         /// names this deliberately matches.
@@ -394,7 +394,7 @@ namespace Sitrep.Host.Tests
                         ["periapsisAlt"] = 70000.0,
                         ["referenceBody"] = "Kerbin",
                         // The exact bug: KspHost.BuildOrbit stores these as
-                        // `new[] { pos.x, pos.y, pos.z }` — a real double[],
+                        // `new[] { pos.x, pos.y, pos.z }`: a real double[],
                         // not a List<object?>.
                         ["truthPosition"] = new[] { 100.5, -200.25, 300.0 },
                         ["truthVelocity"] = new[] { 1.1, -2.2, 3.3 },
@@ -412,7 +412,7 @@ namespace Sitrep.Host.Tests
                         ["orbitalSpeed"] = 2246.1,
                         ["gForce"] = 0.0,
                         ["dynamicPressure"] = 0.0,
-                        // NaN buried inside a nested group — a real source
+                        // NaN buried inside a nested group: a real source
                         // per the existing golden test above (KSP orbit/atmo
                         // math is a real source of these at edge conditions,
                         // e.g. mach at zero atmospheric density).

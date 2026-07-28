@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// <c>ksp.revertToEditor</c>'s args — which editor the flight reverts back
+/// <c>ksp.revertToEditor</c>'s args, which editor the flight reverts back
 /// into. <see cref="Editor"/> is a small opaque string (<c>"vab"</c> or
 /// <c>"sph"</c>, case-insensitive) rather than the KSP <c>EditorFacility</c>
 /// enum, so the wire contract never leaks a native KSP type; the host bridges
@@ -28,7 +28,7 @@ public class RevertToEditorArgs
 }
 
 /// <summary>
-/// <c>ksp.switchVessel</c>'s args — the STABLE opaque vessel id
+/// <c>ksp.switchVessel</c>'s args: the STABLE opaque vessel id
 /// (<c>vessel.id.ToString()</c>, the same id <see cref="SetTargetArgs.VesselId"/>
 /// uses), resolved server-side against <c>FlightGlobals.Vessels</c>. Never a
 /// live roster array index a client would have to track itself: the same
@@ -46,9 +46,9 @@ public class SwitchVesselArgs
 }
 
 /// <summary>
-/// <c>ksp.launch</c>'s args — load a saved craft onto a launch site. The craft
+/// <c>ksp.launch</c>'s args: load a saved craft onto a launch site. The craft
 /// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
-/// was saved from (<c>"VAB"</c>/<c>"SPH"</c>, case-insensitive — the host
+/// was saved from (<c>"VAB"</c>/<c>"SPH"</c>, case-insensitive, the host
 /// bridges it to KSP's <c>EditorFacility</c> and rebuilds the on-disk
 /// <c>.craft</c> path server-side, so the wire never carries a native KSP type
 /// or an absolute path). An empty ship name or an unrecognised facility fails
@@ -57,7 +57,7 @@ public class SwitchVesselArgs
 ///
 /// <para><see cref="Crew"/> is a real array of kerbal names (empty = launch
 /// unmanned), NOT the legacy semicolon-joined blob the old Telemachus action
-/// string used — the command surface is JSON, so the client unwinds its
+/// string used: the command surface is JSON, so the client unwinds its
 /// <c>;</c>-encoded crew list back into an array before dispatching and the
 /// host assigns each name into a free craft seat.</para>
 /// </summary>

@@ -1,7 +1,7 @@
 {
   "name": "gonogo",
   "short_name": "gonogo",
-  "description": "KSP mission control — main screen and peer-connected stations.",
+  "description": "KSP mission control: main screen and peer-connected stations.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System;
@@ -13,8 +13,8 @@ namespace Gonogo.KosUplink
     /// implementation (<see cref="KosProcessorScreen"/>) wraps a live
     /// <c>kOSProcessor</c> + kOS's own <c>ScreenSnapShot</c>/<c>DiffFrom</c> +
     /// <c>TerminalXtermMapper</c>; headless tests supply a fake. Keeping this
-    /// as an interface is what lets <see cref="KosTerminalManager"/> — all the
-    /// lease/cadence/publish logic — stay free of any kOS/Unity type and run
+    /// as an interface is what lets <see cref="KosTerminalManager"/>, all the
+    /// lease/cadence/publish logic: stay free of any kOS/Unity type and run
     /// under the xunit headless runner.
     /// </summary>
     internal interface IKosTerminalScreen
@@ -35,7 +35,7 @@ namespace Gonogo.KosUplink
         void Resize(int cols, int rows);
     }
 
-    /// <summary>Outcome of one <see cref="IKosTerminalScreen.ReadChunk"/> — either nothing, or an xterm-ready chunk.</summary>
+    /// <summary>Outcome of one <see cref="IKosTerminalScreen.ReadChunk"/>: either nothing, or an xterm-ready chunk.</summary>
     internal readonly struct TerminalReadResult
     {
         public bool HasOutput { get; }
@@ -60,7 +60,7 @@ namespace Gonogo.KosUplink
     /// replacing the standalone telnet proxy. All state lives on the KSP main
     /// thread: <see cref="Poll"/> is driven from the dispatcher addon's
     /// <c>Update</c>, and every command handler is marshalled to the same
-    /// thread by <see cref="KosExtension.RunOnMainThread"/> — so no locking is
+    /// thread by <see cref="KosExtension.RunOnMainThread"/>: so no locking is
     /// needed. It has no kOS/Unity references (those are behind
     /// <see cref="IKosTerminalScreen"/> + injected delegates), so it is fully
     /// unit-testable headlessly.
@@ -68,18 +68,18 @@ namespace Gonogo.KosUplink
     /// <para><b>Downlink:</b> each poll it walks the current CPU ids, and for
     /// every one currently subscribed (<c>host.IsAnyTopicSubscribed</c>, a
     /// main-thread-safe read of the engine's thread-safe subscribed-topics
-    /// mirror — never the Courier-owned subscriber registry) reads the
+    /// mirror: never the Courier-owned subscriber registry) reads the
     /// screen diff and publishes a <see cref="KosTerminalFrame"/>. A full
     /// repaint (<see cref="KosTerminalFrame.FullRepaint"/>) is forced for a
     /// CPU whenever <see cref="NotifySubscribed"/> was called for it since
-    /// the last poll — the THREAD-SAFE seam the terminal's dynamic-namespace
+    /// the last poll: the THREAD-SAFE seam the terminal's dynamic-namespace
     /// registration wires to <c>IDynamicChannelSource.OnSubscribed</c>,
     /// which the engine invokes on the COURIER thread for EVERY individual
     /// session subscribe (a first subscriber, a SECOND simultaneous viewer,
     /// or a resubscribe faster than one poll tick), never gated on whether
     /// some aggregate subscriber count merely stayed the same across a
-    /// sampling window. So every late/reconnecting/new viewer — none of
-    /// which get the sticky replay via <c>useStreamEvent</c> — resyncs from
+    /// sampling window. So every late/reconnecting/new viewer: none of
+    /// which get the sticky replay via <c>useStreamEvent</c>, resyncs from
     /// a clean screen rather than an orphaned diff. Because the downlink is
     /// a broadcast (one frame reaches every current subscriber of the
     /// topic), this repaint is necessarily shared: an existing viewer
@@ -90,7 +90,7 @@ namespace Gonogo.KosUplink
     /// <para><b>Uplink lease:</b> one holder per CPU, keyed by the caller's
     /// opaque lease token (<see cref="KosTerminalOpenArgs.LeaseToken"/>). A
     /// second <c>open</c> by a different token is rejected
-    /// (<see cref="CommandErrorCode.ModeUnavailable"/>) — never a silent steal;
+    /// (<see cref="CommandErrorCode.ModeUnavailable"/>): never a silent steal;
     /// keystrokes/resizes from a non-holder are rejected the same way.</para>
     /// </summary>
     internal sealed class KosTerminalManager
@@ -123,30 +123,30 @@ namespace Gonogo.KosUplink
 
         // THREAD-SAFE: the set of CPUs with an individual subscribe
         // transition pending a reseed, as reported by NotifySubscribed
-        // (called from the Courier thread in production — see that
+        // (called from the Courier thread in production; see that
         // method's doc comment and the class doc comment's "Downlink"
         // paragraph). Poll (main thread) drains this every tick. This is
         // the Gap A fix's seam: it deliberately carries no subscriber
         // COUNT, just "this CPU had a subscribe transition since the last
-        // drain" — Poll never reads any Courier-owned subscription state.
+        // drain": Poll never reads any Courier-owned subscription state.
         private readonly ConcurrentDictionary<int, byte> _pendingReseeds = new ConcurrentDictionary<int, byte>();
 
         private double _accumulatedSeconds;
 
         /// <param name="knownCoreIds">Current CPU <c>KOSCoreId</c>s (main thread; real impl reads <c>kOSProcessor.AllInstances()</c>).</param>
-        /// <param name="isSubscribed">Is <c>kos.terminal.&lt;coreId&gt;</c> CURRENTLY subscribed (e.g. <c>host.IsAnyTopicSubscribed</c>)? A pure "should I bother reading/publishing this CPU's screen at all" gate — the reseed decision is <see cref="NotifySubscribed"/>'s job, not this one.</param>
+        /// <param name="isSubscribed">Is <c>kos.terminal.&lt;coreId&gt;</c> CURRENTLY subscribed (e.g. <c>host.IsAnyTopicSubscribed</c>)? A pure "should I bother reading/publishing this CPU's screen at all" gate, the reseed decision is <see cref="NotifySubscribed"/>'s job, not this one.</param>
         /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT (the current clock read; the terminal channel is <c>Delivery.ReliableOrdered</c>, so the engine forwards each frame in order regardless of whether several share a <c>ValidAt</c>).</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
-        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls — harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames no longer coalesce.</param>
-        /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz — 0.05s).</param>
+        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls, harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames no longer coalesce.</param>
+        /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz, 0.05s).</param>
         /// <param name="keyframeIntervalSeconds">
         /// Periodic full-repaint (keyframe) cadence per subscribed CPU. The
         /// read-back is a stream of non-idempotent cursor-relative diffs, so a
         /// single lost frame (a reveal-gate drop on a comms blip, a quickload,
         /// any transit loss) would otherwise corrupt the client screen until the
         /// next subscribe. Forcing a self-contained full repaint every interval
-        /// lets the client re-sync from a clean frame — the video-I-frame model
-        /// — so any drop self-heals within one interval. Default 1.0s.
+        /// lets the client re-sync from a clean frame, the video-I-frame model,
+        /// so any drop self-heals within one interval. Default 1.0s.
         /// </param>
         public KosTerminalManager(
             Func<IReadOnlyList<int>> knownCoreIds,
@@ -167,13 +167,13 @@ namespace Gonogo.KosUplink
         }
 
         /// <summary>
-        /// THREAD-SAFE — call from ANY thread (in production, the Courier
+        /// THREAD-SAFE: call from ANY thread (in production, the Courier
         /// thread, via the callback wired to
         /// <c>IDynamicChannelSource.OnSubscribed</c> for the
         /// <c>kos.terminal.</c> namespace) to record that <paramref name="coreId"/>
         /// just saw an individual subscribe transition. The next
         /// <see cref="Poll"/> drains this and forces a full repaint for
-        /// every CPU it names — see the class doc comment's "Downlink"
+        /// every CPU it names: see the class doc comment's "Downlink"
         /// paragraph. Deliberately just a set of pending coreIds, not a
         /// count: every notification, however many arrive between polls,
         /// collapses to "reseed this CPU once" on the next drain, which is
@@ -188,7 +188,7 @@ namespace Gonogo.KosUplink
         /// Advance the ~20 Hz downlink loop by <paramref name="deltaSeconds"/>.
         /// Cheap on ticks that don't reach the interval; on a tick that does, it
         /// reads + publishes a diff for each subscribed CPU. Called every Unity
-        /// frame — the accumulator decouples the publish cadence from the frame
+        /// frame: the accumulator decouples the publish cadence from the frame
         /// rate.
         /// </summary>
         public void Poll(double deltaSeconds)
@@ -218,7 +218,7 @@ namespace Gonogo.KosUplink
 
                 var now = _nowUt();
 
-                // Drain this CPU's pending-reseed signal — set from
+                // Drain this CPU's pending-reseed signal: set from
                 // NotifySubscribed, possibly from another thread, possibly
                 // several times since the last poll (each collapses to one
                 // reseed here).
@@ -229,7 +229,7 @@ namespace Gonogo.KosUplink
                 // client screen until the next subscribe. Force a self-contained
                 // full repaint every _keyframeIntervalSeconds so any transit loss
                 // (a reveal-gate drop on a comms blip, a quickload) self-heals
-                // within one interval — the video-I-frame model.
+                // within one interval: the video-I-frame model.
                 var keyframeDue = !session.LastKeyframeUt.HasValue
                     || now - session.LastKeyframeUt.Value >= _keyframeIntervalSeconds;
 
@@ -240,7 +240,7 @@ namespace Gonogo.KosUplink
                 if (result.HasOutput)
                 {
                     // A full repaint (whether from a subscribe/reseed edge or the
-                    // periodic keyframe) re-bases the interval — one keyframe per
+                    // periodic keyframe) re-bases the interval: one keyframe per
                     // interval, not one every poll once due.
                     if (result.FullRepaint)
                     {
@@ -351,7 +351,7 @@ namespace Gonogo.KosUplink
             if (cols > 0 && rows > 0)
             {
                 screen.Resize(cols, rows);
-                // A dimension change invalidates the diff baseline — force a
+                // A dimension change invalidates the diff baseline, force a
                 // clean full repaint on the next poll.
                 GetOrCreateSession(coreId).PendingReseed = true;
             }

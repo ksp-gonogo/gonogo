@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>avionics.status</c> channel — RP-1 controllable-mass ascent go/no-go.
+/// The <c>avionics.status</c> channel: RP-1 controllable-mass ascent go/no-go.
 /// RP-1 gates vehicle control by an avionics unit's tonnage limit: if the
 /// vessel's mass exceeds the controllable mass of its active avionics, the craft
 /// cannot be steered during ascent. Produced by <c>GonogoAvionicsUplink</c>,
@@ -30,7 +30,7 @@ public sealed class AvionicsStatus
     /// <summary>True when an avionics unit is present + active on the vessel.</summary>
     public bool? AvionicsActive { get; set; }
 
-    /// <summary>Controllable-mass limit of the active avionics (tonnes) — the MAX
+    /// <summary>Controllable-mass limit of the active avionics (tonnes), the MAX
     /// across parts of each part's summed <c>CurrentMassLimit</c>, matching
     /// <c>ControlLockerUtils.ShouldLock</c>. Null when no avionics is present.</summary>
     public double? ControllableMassTons { get; set; }

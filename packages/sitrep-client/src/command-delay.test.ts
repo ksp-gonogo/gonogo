@@ -90,7 +90,7 @@ describe("latchForward", () => {
     const first = latchForward(deriveInFlight([entry()], 106), memory); // awaiting-reply
     expect(first[0].predictedPhase).toBe("awaiting-reply");
 
-    // A judder briefly reports nowUt < reachUt again — the latch must not
+    // A judder briefly reports nowUt < reachUt again, the latch must not
     // regress the observed phase back to in-transit.
     const blip = latchForward(deriveInFlight([entry()], 103), memory);
     expect(blip[0].predictedPhase).toBe("awaiting-reply");

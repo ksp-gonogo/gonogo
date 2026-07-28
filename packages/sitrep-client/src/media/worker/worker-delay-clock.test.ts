@@ -55,7 +55,7 @@ describe("createWorkerDelayClock", () => {
       expect(clock.currentSnapshot().maxSampleUt).toBe(500);
 
       // A late-arriving epoch-1 snapshot (posted before the epoch-2 bump,
-      // delivered after) must not undo the newer state — mirrors
+      // delivered after) must not undo the newer state, mirrors
       // ViewClock.observeSample's own stale-epoch straggler discard.
       clock.applySnapshot({
         epoch: 1,
@@ -150,7 +150,7 @@ describe("createWorkerDelayClock", () => {
 
       const countBeforeUnsub = ticks.length;
       unsubscribe();
-      vi.advanceTimersByTime(100); // no more subscribers — polling should have stopped
+      vi.advanceTimersByTime(100); // no more subscribers: polling should have stopped
       expect(ticks.length).toBe(countBeforeUnsub);
     });
 

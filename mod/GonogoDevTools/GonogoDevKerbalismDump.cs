@@ -12,17 +12,17 @@ namespace GonogoDevTools
     /// <c>PluginData/kerbalism-dump-request.cfg</c> (a <c>KERBDUMP { id, scenario }</c> node,
     /// same request/result-cfg pattern as <see cref="GonogoDevForceComms"/> /
     /// GonogoDevStampScan) and, on a NEW id, reflects into Kerbalism at RUNTIME (no
-    /// compile-time Kerbalism reference — pure reflection, version-agnostic, builds even
+    /// compile-time Kerbalism reference: pure reflection, version-agnostic, builds even
     /// with Kerbalism absent) and dumps a fixture JSON of everything the uplink will need:
-    ///   - <c>Kerbalism.System.API</c> — every public static method that takes just a
+    ///   - <c>Kerbalism.System.API</c>: every public static method that takes just a
     ///     <c>Vessel</c> (the ~55 vessel-keyed aggregate reads), invoked for the active vessel;
     ///     plus the <c>(Vessel,string)</c> resource methods invoked for a candidate resource set.
-    ///   - Greenhouse / ProcessController PartModules on the active vessel — public field/prop dump.
+    ///   - Greenhouse / ProcessController PartModules on the active vessel, public field/prop dump.
     ///   - Per-kerbal <c>KerbalData.rules</c> problem accumulators (best-effort via the Kerbalism DB).
     ///   - The <c>Features.*</c> static bools (the unmodeled-vs-healthy gates).
-    ///   - <c>bodies</c> — the RSS/RO celestial body registry (real radii/mass/SOI/atmosphere),
+    ///   - <c>bodies</c>: the RSS/RO celestial body registry (real radii/mass/SOI/atmosphere),
     ///     reflected from <c>FlightGlobals.Bodies</c>. Body-only, no active vessel required.
-    ///   - <c>roParts</c> — every active-vessel PartModule whose type belongs to a recognised RO/RP-1
+    ///   - <c>roParts</c>: every active-vessel PartModule whose type belongs to a recognised RO/RP-1
     ///     mod (TestFlight, RealFuels, RP-1, RealHeat, ROLib/ROSolar, SolverEngines, ...), field/prop dumped.
     /// Output: <c>PluginData/kerbalism-fixture-&lt;scenario&gt;.json</c>. Result cfg records ok + path + counts.
     /// The whole thing is fail-soft: a missing type / thrown method is recorded as null, never fatal.

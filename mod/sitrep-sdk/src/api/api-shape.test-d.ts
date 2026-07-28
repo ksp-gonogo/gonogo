@@ -1,7 +1,7 @@
 // Type-level half of the author-surface shape gate (see api-shape.gate.test.ts
 // for the runtime half). Enforced by `tsc` via tsconfig.test-d.json, matching
 // the topics.test-d.ts convention. Removing or renaming any exported author type
-// breaks this compile — the type analogue of the runtime export-name lock.
+// breaks this compile, the type analogue of the runtime export-name lock.
 //
 // PROPOSAL surface (design D-D). This is the current recorded type list; it is
 // not frozen until operator sign-off.
@@ -52,7 +52,7 @@ import type {
 } from "./index";
 
 // Reference every exported type so a removal/rename is a compile error. The
-// declarations are `declare`d (never constructed) — this is a name+assignability
+// declarations are `declare`d (never constructed), this is a name+assignability
 // probe, not a value test.
 declare const _componentDef: ComponentDefinition<{ label: string }>;
 declare const _componentProps: ComponentProps<{ label: string }>;
@@ -99,7 +99,7 @@ declare const _streamStatusValue: StreamStatusValue;
 declare const _lateTelemetrySubscribe: LateTelemetrySubscribe;
 declare const _uplinkClientHandle: UplinkClientHandle;
 
-// The author-set core of a ComponentDefinition must remain assignable — a probe
+// The author-set core of a ComponentDefinition must remain assignable, a probe
 // that the required fields don't silently become optional or retyped.
 const _probe: ComponentDefinition = {
   id: "x",

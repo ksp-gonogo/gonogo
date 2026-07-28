@@ -13,7 +13,7 @@
  *   4. Replace each raw hex with `var(<token>)` in source
  *
  * The new tokens themselves (CSS variables) are added separately to
- * packages/app/src/styles/global.css — done by hand so the diff is
+ * packages/app/src/styles/global.css: done by hand so the diff is
  * reviewable.
  */
 
@@ -49,16 +49,16 @@ const ALLOWED_PATHS = new Set([
 ]);
 
 // ---------------------------------------------------------------------------
-// New tokens introduced by this sweep — keep in sync with global.css edits.
+// New tokens introduced by this sweep: keep in sync with global.css edits.
 // Representative values picked from the user's grouping (most-frequent
 // shade, or median lightness if frequencies tie).
 // ---------------------------------------------------------------------------
 
 const NEW_TOKENS = {
-  // Status — muted alert variants
+  // Status: muted alert variants
   "--color-status-alert-muted": "#4a0e0e",
   "--color-status-warning-bg-muted": "#3a2a0a",
-  // Tag palette — fg / bg / border per colour
+  // Tag palette: fg / bg / border per colour
   "--color-tag-blue-fg": "#4488ff",
   "--color-tag-blue-bg": "#0a0a1a",
   "--color-tag-blue-border": "#1a1a3a",
@@ -76,7 +76,7 @@ const NEW_TOKENS = {
 };
 
 // ---------------------------------------------------------------------------
-// Walk + colour math — duplicated from palette-audit.mjs because these are
+// Walk + colour math: duplicated from palette-audit.mjs because these are
 // throwaway one-shot scripts and a shared module is overkill.
 // ---------------------------------------------------------------------------
 
@@ -132,7 +132,7 @@ function hexToLab(hex) {
 }
 
 // ---------------------------------------------------------------------------
-// Token table — existing (parsed from global.css) + new (declared above)
+// Token table: existing (parsed from global.css) + new (declared above)
 // ---------------------------------------------------------------------------
 
 function buildTokenTable() {
@@ -150,7 +150,7 @@ function buildTokenTable() {
 }
 
 // ---------------------------------------------------------------------------
-// Decision refinement — apply fix-ups to the human-authored JSON
+// Decision refinement: apply fix-ups to the human-authored JSON
 // ---------------------------------------------------------------------------
 
 // Direct overrides per hex value. The user's JSON had a few entries that
@@ -162,9 +162,9 @@ const FIXUPS = {
   "#ffb0b0": "--color-status-nogo-fg",
   // The decision said new-token but the tokenName was an existing token.
   "#3a5a7a": "--color-status-info-fg",
-  // Lavender used as text on a purple background — tag-fg.
+  // Lavender used as text on a purple background, tag-fg.
   "#e0c8ff": "--color-tag-purple-fg",
-  // Light yellow used as text on a yellow tag — tag-fg.
+  // Light yellow used as text on a yellow tag, tag-fg.
   "#e4d99e": "--color-tag-yellow-fg",
 };
 
@@ -203,7 +203,7 @@ function refineDecisions(rawDecisions, tokens) {
     }
 
     // 3. The user's "decision: new-token" form sometimes carried an
-    //    inline "merge into <name>" instruction — normalize.
+    //    inline "merge into <name>" instruction: normalize.
     if (dec.decision === "new-token") {
       const raw = String(dec.tokenName || "").trim();
       // Strip "merge into [new] " / "merge to [new] " prefixes.
@@ -324,7 +324,7 @@ function autoPair(offenders, tokens, decided) {
 }
 
 // ---------------------------------------------------------------------------
-// Sweep — replace raw hex with var(<token>) per decisions
+// Sweep: replace raw hex with var(<token>) per decisions
 // ---------------------------------------------------------------------------
 
 function sweep(allDecisions) {
@@ -374,7 +374,7 @@ writeFileSync(DECISIONS_OUT, `${JSON.stringify(all, null, 2)}\n`);
 
 const result = sweep(all);
 console.log(
-  `Wrote ${DECISIONS_OUT} — ${Object.keys(refined).length} explicit + ` +
+  `Wrote ${DECISIONS_OUT}: ${Object.keys(refined).length} explicit + ` +
     `${Object.keys(auto).length} auto-paired = ${Object.keys(all).length} total.`,
 );
 console.log(

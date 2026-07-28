@@ -1,31 +1,32 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
  * Stream test-adapter proof: `WarpControl` genuinely running off the
- * stream — a real
+ * stream: a real
  * `TelemetryProvider` + `TelemetryClient`/`TimelineStore` pipeline fed via
- * `StubTransport` — never the legacy `MockDataSource` registry (none is even
+ * `StubTransport`: never the legacy `MockDataSource` registry (none is even
  * registered in this file). Green here means "works off streams", not
  * "green off the legacy fallback while the mapped read silently never
- * fires" — the test-green-but-semantically-drifted risk this adapter
+ * fires": the test-green-but-semantically-drifted risk this adapter
  * exists to close.
  */
-// Reset the action-handler registry at the START of each test — the prior
+// Reset the action-handler registry at the START of each test, the prior
 // test's tree is already unmounted (RTL auto-cleanup) by then, so this never
 // fires against a live component.
 beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("WarpControl — genuinely runs off the stream (M3 pilot)", () => {
+describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
   it("reads the recorded time.warp state off the real stream pipeline, not legacy", async () => {
-    // No legacy "data" DataSource registered anywhere in this file — if the
+    // No legacy "data" DataSource registered anywhere in this file, if the
     // widget's reads were still secretly falling back to legacy, there
-    // would be nothing to fall back TO and the rate readout would stay "—"
+    // would be nothing to fall back TO and the rate readout would stay NULL_DISPLAY
     // forever, not resolve to "10×".
     const fixture = setupStreamFixture({
       carriedChannels: ["time.warp"],
@@ -40,10 +41,10 @@ describe("WarpControl — genuinely runs off the stream (M3 pilot)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — the rate readout is the loading placeholder.
-    expect(screen.getByText("—")).toBeTruthy();
+    // Nothing arrived yet: the rate readout is the loading placeholder.
+    expect(screen.getByText(NULL_DISPLAY)).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("time.warp")).toBe(true);
 
@@ -135,7 +136,7 @@ describe("WarpControl — genuinely runs off the stream (M3 pilot)", () => {
     await waitFor(() => expect(screen.getByText("1×")).toBeTruthy());
 
     // The pause toggle button only renders in the "Flight" scene
-    // (`useGameContext`'s `kc.scene`, unmapped/legacy-only) — no legacy
+    // (`useGameContext`'s `kc.scene`, unmapped/legacy-only): no legacy
     // source is registered in this stream-only test, so `scene` reads
     // "Unknown" and the pause button doesn't render. Fire the command
     // directly via the widget's own action instead (still exercises the

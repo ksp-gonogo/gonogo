@@ -12,7 +12,7 @@ export interface SignalLossBannerProps {
 /**
  * Presentational banner for signal-state indication. Fixed-position pill at
  * the top of the viewport; renders nothing when signal is healthy. Meant to
- * be dropped at the root of each screen — no data wiring, pure props in.
+ * be dropped at the root of each screen, no data wiring, pure props in.
  */
 export function SignalLossBanner({ state, elapsedMs }: SignalLossBannerProps) {
   if (state === "connected") return null;

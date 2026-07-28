@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
 
-// Generic fixture ids — never a real mod name (uplink-boundary ratchet scans
+// Generic fixture ids: never a real mod name (uplink-boundary ratchet scans
 // shared-package fixtures for literal mod tokens, see feedback_telemachus_artifact_vs_uplink_domain).
 const SETTINGS: NamespacedAugmentSettings[] = [
   {

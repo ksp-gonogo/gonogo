@@ -13,7 +13,7 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
-// From the `/runtime` subpaths (not the package roots) — MainScreen needs
+// From the `/runtime` subpaths (not the package roots), MainScreen needs
 // this infra regardless of whether the CameraFeed/KosTerminal WIDGETS are
 // statically bundled or loaded at runtime via the Uplink loader; importing
 // the package root would also evaluate the widget's own module and collide
@@ -103,7 +103,7 @@ import { DEMO_CONFIG } from "./demoConfig";
 // auto-persisted dashboard slot, so edits made in one scene survive switching
 // to another and back (instead of a scene-bound load clobbering the single
 // shared dashboard). Transient/unknown scenes fall back to the shared base
-// key — which is also the legacy key, so existing dashboards load unchanged
+// key, which is also the legacy key, so existing dashboards load unchanged
 // with no migration step.
 const BASE_DASHBOARD_KEY = "gonogo:dashboard:main";
 const SCENE_SCOPED_KEYS = new Set([
@@ -133,7 +133,7 @@ export function MainScreen() {
   const [cpuRegistry] = useState(() => new CpuRegistryService("main"));
   const [fogMaskStore] = useState(() => new FogMaskStore());
   // GoNoGoHostService lives for the app's lifetime. Intentionally no dispose
-  // cleanup — StrictMode's simulated unmount would run it and leave the
+  // cleanup: StrictMode's simulated unmount would run it and leave the
   // second mount with a zombie service that no longer receives host events
   // (the useState initializer only runs once per mount cycle).
   const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
@@ -143,7 +143,7 @@ export function MainScreen() {
       // Feed the `event` alarm trigger from the kerbcast Uplink's producer.
       // `getViewUt()` is the operator's delayed view clock, so a kerbcast edge
       // (stamped at its live capture UT) reveals only once the view catches up
-      // past it — the signal delay realised for free.
+      // past it: the signal delay realised for free.
       getRevealedEvents: (topic) =>
         topic === KERBCAST_EVENTS_TOPIC
           ? kerbcastSource.revealedEvents(getViewUt())
@@ -167,7 +167,7 @@ export function MainScreen() {
   }, [fogSyncHost]);
 
   // Prime the module-scoped sound flag from the persisted setting and keep
-  // it in sync. MAIN-ONLY — StationScreen never calls this, so station
+  // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
 
@@ -184,7 +184,7 @@ export function MainScreen() {
   useEffect(() => {
     // Auto-reopen previously-authorised serial ports on load. Silent no-op
     // on browsers without Web Serial, or when there are no saved devices.
-    // Also re-attach the navigator.serial hot-plug listeners — destroy()
+    // Also re-attach the navigator.serial hot-plug listeners: destroy()
     // detaches them, so a StrictMode cleanup→setup cycle would otherwise
     // leave hot-plug silently dead for the rest of the page lifetime.
     serialService.attachNavigatorListeners();
@@ -203,7 +203,7 @@ export function MainScreen() {
       // A source that can't connect settles its own status + schedules its own
       // reconnect; swallow the rejection here so it doesn't surface as an
       // unhandled promise rejection. (kerbcast is connected separately, via
-      // useKerbcastMainConnect below — it's no longer a registered DataSource.)
+      // useKerbcastMainConnect below: it's no longer a registered DataSource.)
       void s.connect().catch(() => {});
     });
     return () => {
@@ -305,7 +305,7 @@ export function MainScreen() {
                                     </FabClusterProvider>
                                     <ReplaySessionBanner />
                                     <BannerStack>
-                                      {/* BannerStack is row-reverse —
+                                      {/* BannerStack is row-reverse,
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -350,7 +350,7 @@ export function MainScreen() {
 /**
  * `FlightsFab` needs the resolved mission-history settings, but
  * `@ksp-gonogo/data` (where it lives) has no access to `@ksp-gonogo/app`'s
- * `SettingsService` — this tiny wrapper bridges the two, and must be
+ * `SettingsService`: this tiny wrapper bridges the two, and must be
  * rendered inside `<SettingsProvider>` (unlike `MainScreen` itself, which
  * constructs the `SettingsService` instance but sits OUTSIDE its own
  * provider's subtree).
@@ -367,16 +367,16 @@ function FlightsFabWithMissionHistory() {
 }
 
 /**
- * Renders nothing — mounts `AutoRecordController`, the auto-record
+ * Renders nothing, mounts `AutoRecordController`, the auto-record
  * lifecycle (see that component's own doc comment for the flight-boundary
  * approach), for the app's lifetime. Same settings-bridging need as
  * `FlightsFabWithMissionHistory` above: `@ksp-gonogo/data` has no access to
  * this app's `SettingsService`. `scene` is passed down rather than read via
- * a second `useGameContext()` call — `MainScreen` already calls it once
+ * a second `useGameContext()` call: `MainScreen` already calls it once
  * (for the per-scene dashboard key) and this wrapper reuses that value.
  *
  * Deliberately main-only by construction: this is only ever rendered from
- * `MainScreen`'s own JSX, never `StationScreen`'s — there is no separate
+ * `MainScreen`'s own JSX, never `StationScreen`'s: there is no separate
  * `isMain` gate to get wrong.
  */
 function AutoRecordControllerWithMissionHistory({
@@ -398,7 +398,7 @@ function AutoRecordControllerWithMissionHistory({
 
 /**
  * Closure-based snapshot hook so the modal works without needing
- * AlarmHostContext in its ancestor tree — ModalProvider mounts portaled
+ * AlarmHostContext in its ancestor tree: ModalProvider mounts portaled
  * modals above this point in the tree, so the context-reading variant
  * (useAlarmSnapshot) throws when called from inside the modal. Same shape
  * as the station-side equivalent in StationScreen.

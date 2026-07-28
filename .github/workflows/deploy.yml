@@ -2,10 +2,10 @@ name: Deploy to GitHub Pages
 
 # Channel model: the Pages site carries BOTH channels in one artifact.
 #
-#   /gonogo/        the latest RELEASE build — downloaded from the newest
+#   /gonogo/        the latest RELEASE build: downloaded from the newest
 #                   GitHub Release's site asset (uploaded by release.yml).
 #                   End users and the README only ever see this.
-#   /gonogo/dev/    the dev channel — rebuilt fresh from main on every
+#   /gonogo/dev/    the dev channel: rebuilt fresh from main on every
 #                   CI-green push, version-suffixed `-dev.<shortsha>` so
 #                   stations and the hello handshake identify it.
 #
@@ -79,15 +79,15 @@ jobs:
       - name: Confirm Axiom token presence
         env:
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
-        # Length only — never the value. GitHub masks the secret in logs
+        # Length only: never the value. GitHub masks the secret in logs
         # but the workflow run UI doesn't tell you whether a referenced
         # secret actually had a value, so this gives us an explicit
         # success/skip signal per deploy.
         run: |
           if [ -n "$VITE_AXIOM_TOKEN" ]; then
-            echo "Axiom token present (len=${#VITE_AXIOM_TOKEN}) — remote logging enabled."
+            echo "Axiom token present (len=${#VITE_AXIOM_TOKEN}): remote logging enabled."
           else
-            echo "Axiom token MISSING — remote logging disabled for this deploy."
+            echo "Axiom token MISSING: remote logging disabled for this deploy."
           fi
 
       - name: Build dev-channel app
@@ -113,7 +113,7 @@ jobs:
             echo "Root will serve the latest release site asset."
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No release site asset yet — dev build will serve the root too."
+            echo "No release site asset yet: dev build will serve the root too."
           fi
 
       - name: Compose site (release at /, dev at /dev/)
@@ -133,7 +133,7 @@ jobs:
             cp -R packages/app/dist/. site/
           fi
           # Pages only serves the ROOT 404.html as the SPA fallback, and
-          # after composition that's the release build — a deep link to
+          # after composition that's the release build: a deep link to
           # /gonogo/dev/station would boot the wrong app. Materialise the
           # dev SPA's routes as real files instead.
           mkdir -p site/dev/station

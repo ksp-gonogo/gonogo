@@ -2,7 +2,7 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
-// suite runs hermetically without a prior build — mirrors the components /
+// suite runs hermetically without a prior build, mirrors the components /
 // kos-client vitest configs. `@ksp-gonogo/sitrep-client` / `@ksp-gonogo/sitrep-sdk`
 // stay unaliased (resolved from their built dist), exactly as the stream
 // test-adapter and the sdk facade shims expect.

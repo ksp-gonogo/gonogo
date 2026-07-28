@@ -1,10 +1,10 @@
 /**
- * `attachEncodedFrameDelayTransform` — the encoded-domain backend adapter.
+ * `attachEncodedFrameDelayTransform`: the encoded-domain backend adapter.
  * Uses REAL `ReadableStream`/`WritableStream` objects (available in
  * Node/jsdom, unlike `MediaStreamTrackProcessor`/`RTCRtpScriptTransform`
  * themselves) rather than raw fake reader/writer objects, so these tests
  * exercise the actual `.getReader()`/`.getWriter()` extraction this
- * module's whole job is to do — stronger fidelity than passing
+ * module's whole job is to do, stronger fidelity than passing
  * hand-rolled reader/writer stand-ins directly to `runFrameDelayPipeline`
  * (see `frameDelay.test.ts` for that lower-level coverage).
  */
@@ -39,7 +39,7 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
 }
 
 /** A real `{readable, writable}` transformer pair, backed by genuine Streams
- *  API objects — the same shape `RTCTransformEvent.transformer` provides. */
+ *  API objects: the same shape `RTCTransformEvent.transformer` provides. */
 function fakeTransformer(frames: EncodedVideoFrameLike[]): {
   transformer: EncodedTransformerLike;
   written: EncodedVideoFrameLike[];
@@ -48,7 +48,7 @@ function fakeTransformer(frames: EncodedVideoFrameLike[]): {
   const readable = new ReadableStream<EncodedVideoFrameLike>({
     start(controller) {
       for (const f of frames) controller.enqueue(f);
-      // Deliberately never closes — mirrors a live track that keeps
+      // Deliberately never closes: mirrors a live track that keeps
       // flowing, matching `frameDelay.test.ts`'s `queuedSource` convention.
     },
   });
@@ -69,7 +69,7 @@ function deltaFrame(byteLength: number): EncodedVideoFrameLike {
 
 describe("attachEncodedFrameDelayTransform", () => {
   it("reads real encoded frames off transformer.readable and writes released ones to transformer.writable", async () => {
-    const clock = manualClock(0); // edge already caught up — releases immediately
+    const clock = manualClock(0); // edge already caught up, releases immediately
     const frame = keyFrame(64);
     const { transformer, written } = fakeTransformer([frame]);
 
@@ -79,7 +79,7 @@ describe("attachEncodedFrameDelayTransform", () => {
     });
 
     // This backend always paces (mirrors createFrameDelayStream's F3 jank
-    // fix) — a released-into-the-pacer frame only actually reaches
+    // fix): a released-into-the-pacer frame only actually reaches
     // transformer.writable once tickPacing drains it (see
     // frameDelay.pacing.test.ts's identical pattern).
     await vi.waitFor(() => {
@@ -89,7 +89,7 @@ describe("attachEncodedFrameDelayTransform", () => {
     pipeline.dispose();
   });
 
-  it("holds a frame until confirmedEdgeUt() reaches its stamped UT — never arrival, only the gate", async () => {
+  it("holds a frame until confirmedEdgeUt() reaches its stamped UT; never arrival, only the gate", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const frame = keyFrame(64);
     const { transformer, written } = fakeTransformer([frame]);
@@ -100,7 +100,7 @@ describe("attachEncodedFrameDelayTransform", () => {
     });
 
     // Frame has definitely been read (queued) by now, but the clock has
-    // never confirmed anything — must NOT have been released, paced or not.
+    // never confirmed anything: must NOT have been released, paced or not.
     await new Promise((r) => setTimeout(r, 10));
     pipeline.tickPacing(0);
     expect(written).toEqual([]);
@@ -113,10 +113,10 @@ describe("attachEncodedFrameDelayTransform", () => {
     pipeline.dispose();
   });
 
-  it("classifies frame.type as the DelayedPlayoutBuffer keyframe field and uses real byteLength for cap accounting — a GOP survives eviction intact", async () => {
-    const clock = manualClock(Number.NEGATIVE_INFINITY); // nothing releases — pure eviction test
+  it("classifies frame.type as the DelayedPlayoutBuffer keyframe field and uses real byteLength for cap accounting, a GOP survives eviction intact", async () => {
+    const clock = manualClock(Number.NEGATIVE_INFINITY); // nothing releases, pure eviction test
     // GOP 1 (k1+d1a+d1b = 60 bytes) then GOP 2's keyframe (k2, 20 bytes)
-    // pushes total to 80 — over an intentionally tiny 60-byte cap.
+    // pushes total to 80: over an intentionally tiny 60-byte cap.
     const k1 = keyFrame(20);
     const d1a = deltaFrame(20);
     const d1b = deltaFrame(20);
@@ -132,7 +132,7 @@ describe("attachEncodedFrameDelayTransform", () => {
     // Give the async pump loop time to read all 4 frames and evict.
     await new Promise((r) => setTimeout(r, 20));
 
-    // Whole GOP 1 evicted as a unit (never a lone mid-GOP delta) — proven
+    // Whole GOP 1 evicted as a unit (never a lone mid-GOP delta), proven
     // at the DelayedPlayoutBuffer level already; here we only need to know
     // this adapter's isKeyframe/frameBytes wiring feeds real values through
     // (a wrong classification would either evict k2 instead, or evict
@@ -141,7 +141,7 @@ describe("attachEncodedFrameDelayTransform", () => {
     pipeline.dispose();
   });
 
-  it("never calls close() on an encoded frame (it has none) — no crash", async () => {
+  it("never calls close() on an encoded frame (it has none), no crash", async () => {
     const clock = manualClock(0);
     const frame = keyFrame(64);
     const { transformer, written } = fakeTransformer([frame]);
@@ -153,7 +153,7 @@ describe("attachEncodedFrameDelayTransform", () => {
       });
       pipeline.dispose();
     }).not.toThrow();
-    // written may or may not have landed before dispose — the point is no
+    // written may or may not have landed before dispose, the point is no
     // throw from a stray `.close()` call on a plain data object.
     void written;
   });

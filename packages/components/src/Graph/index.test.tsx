@@ -94,11 +94,11 @@ describe("GraphComponent", () => {
 
   it("plots series with no axis field inside the chart bounds (defaults to auto)", async () => {
     // Persisted configs from programmatic writes / older saves omit `axis`
-    // entirely — the config form writes "auto" explicitly, so only these
+    // entirely: the config form writes "auto" explicitly, so only these
     // configs hit the undefined branch. The regression: resolveAxes passed
     // `undefined` through, the domain computation saw no primary/secondary
     // series (fell back to [0,1]) while the path builder plotted real
-    // values against that degenerate scale — curves landed millions of
+    // values against that degenerate scale: curves landed millions of
     // pixels off-canvas and the chart looked empty.
     const config = {
       series: [
@@ -214,7 +214,7 @@ describe("GraphComponent", () => {
     act(() => {
       source.emit("v.name", "Kerbal X");
       source.emit("v.missionTime", 0);
-      // Emit a value way outside the pinned domain — ticks should stay anchored
+      // Emit a value way outside the pinned domain, ticks should stay anchored
       // to [0, 1000] regardless.
       source.emit("v.altitude", 500_000);
     });
@@ -226,7 +226,7 @@ describe("GraphComponent", () => {
       // niceTicks over [0, 1000] with 5 ticks produces 0, 250, 500, 750, 1000;
       // formatYTick renders 1000 as "1.0k".
       expect(texts).toContain("1.0k");
-      // And no tick should be near 500_000 ("500.0k") — the pin is respected.
+      // And no tick should be near 500_000 ("500.0k"), the pin is respected.
       expect(texts.some((t) => t === "500.0k")).toBe(false);
     });
   });
@@ -251,7 +251,7 @@ describe("GraphComponent", () => {
     await waitFor(() => {
       // Big readout shows the formatted latest value (12.3k for 12_345).
       expect(container.textContent ?? "").toMatch(/12\.3k/);
-      // No <LineChart> rect / axis text — the readout doesn't render the chart.
+      // No <LineChart> rect / axis text: the readout doesn't render the chart.
       const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
       expect(axisTicks.length).toBe(0);
     });
@@ -288,7 +288,7 @@ describe("GraphComponent", () => {
       windowSec: 300,
     };
 
-    // small size bucket: 5 <= w < 8 OR 4 <= h < 7 — chart axes get squashed,
+    // small size bucket: 5 <= w < 8 OR 4 <= h < 7, chart axes get squashed,
     // readout is preferred.
     const { container } = render(
       <GraphComponent config={config} id="graph-test" w={6} h={6} />,

@@ -11,12 +11,12 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// <c>system.uplink.pending</c> — the ground-side pending-uplink queue,
+    /// <c>system.uplink.pending</c>: the ground-side pending-uplink queue,
     /// populated from <c>ChannelEngine.ProcessDispatchCommand</c>'s delayed
     /// branch and pruned on Tick. Prediction-only, hard invariant (see
     /// <see cref="PendingUplink"/>'s doc comment): an entry carries only
     /// dispatch-time facts and ages out on the PREDICTED round trip
-    /// (<c>DispatchedAt + 2*OneWaySeconds</c>), never on real completion —
+    /// (<c>DispatchedAt + 2*OneWaySeconds</c>), never on real completion,
     /// this suite never asserts on <c>uplink.HandledCount</c> or any other
     /// execution-side signal, only on the queue's own delivered shape.
     /// </summary>

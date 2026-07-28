@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Vec3Tuple } from "./lambert";
 import { buildPorkchop, type StateLike } from "./porkchop";
 
-// A circular coplanar orbit propagator (analytic) — enough to drive the grid
+// A circular coplanar orbit propagator (analytic): enough to drive the grid
 // builder end-to-end without the streaming Kepler propagator.
 function circularBody(radius: number, mu: number, theta0: number) {
   const n = Math.sqrt(mu / radius ** 3); // rad/s
@@ -44,7 +44,7 @@ describe("buildPorkchop", () => {
   });
 
   it("skips cells where arrival ≤ departure (deltaV null)", () => {
-    // arrival grid starts at 200 d, departure spans 0..220 d — the late
+    // arrival grid starts at 200 d, departure spans 0..220 d, the late
     // departures / early arrivals with arr ≤ dep must be null.
     const someNull = grid.cells
       .flat()

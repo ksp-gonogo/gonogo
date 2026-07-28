@@ -50,7 +50,7 @@ const defaultTransportFactory: TransportFactory = (instance, deviceType) => {
         filters: instance.filters,
       });
     default: {
-      // Exhaustiveness check — a new DeviceTransportKind that isn't handled
+      // Exhaustiveness check: a new DeviceTransportKind that isn't handled
       // above is a compile error here, not a silent fallthrough to
       // WebSerialTransport (the bug this switch replaced a fallthrough
       // `else` to guard against).
@@ -90,13 +90,13 @@ export class SerialDeviceService {
    * When true, the InputDispatcher skips dispatch on incoming events. Used
    * by the input-mapping UI's "press to bind" mode so the OLD binding for
    * a button doesn't fire while the user is trying to capture a NEW one.
-   * onInput listeners still receive events — only the dispatcher path is
+   * onInput listeners still receive events: only the dispatcher path is
    * gated.
    */
   private captureMode = false;
   /**
    * `navigator.serial` event listeners installed for hot-plug awareness.
-   * Stored so destroy() can detach them — important for tests that spin
+   * Stored so destroy() can detach them, important for tests that spin
    * up many services against a shared mock navigator.
    */
   private hotPlugConnectListener:
@@ -108,19 +108,19 @@ export class SerialDeviceService {
   /**
    * Saved web-serial devices for which autoReconnect found 2+ candidate
    * ports (same VID/PID, e.g. two identical foot-pedals plugged in). The
-   * Devices menu surfaces these so the user picks the right one — without
+   * Devices menu surfaces these so the user picks the right one, without
    * the picker the device would silently stay disconnected.
    */
   private pendingChoices = new Map<string, SerialPort[]>();
 
   /**
    * Single typed registry backing every `on*`/emit pair on the service. Each
-   * event key maps to its listener argument tuple — the public `on*` methods
+   * event key maps to its listener argument tuple, the public `on*` methods
    * are thin wrappers over `events.on(...)` and the emit sites call
    * `events.emit(...)`. The `portRecovery` event fires when the hot-plug
    * adopt path detects a returning device that can't be reopened in this JS
    * context (streams stay locked even after pipeTo abort + close);
-   * subscribers — typically a top-level modal — can offer a page reload, the
+   * subscribers, typically a top-level modal, can offer a page reload, the
    * only reliable way to release the SerialPort instance.
    */
   private events = new TypedListeners<{
@@ -147,7 +147,7 @@ export class SerialDeviceService {
 
   /**
    * Unlike `seedDefaultsIfEmpty` (which only seeds on a truly empty
-   * install), this always makes sure the gamepad placeholder type exists —
+   * install), this always makes sure the gamepad placeholder type exists,
    * a screen that already has other device types (the common case after
    * first run) still needs somewhere for a brand new gamepad device to
    * point before it has ever paired with a physical pad. Idempotent and
@@ -169,7 +169,7 @@ export class SerialDeviceService {
    * mock installed).
    */
   /**
-   * Idempotent — calling twice doesn't double-attach. Public so the screen
+   * Idempotent: calling twice doesn't double-attach. Public so the screen
    * lifecycle effect can re-attach after a StrictMode cleanup→setup cycle
    * (destroy detaches; without re-attach the navigator.serial 'connect'
    * event has no listener for the rest of the page lifetime).
@@ -235,7 +235,7 @@ export class SerialDeviceService {
   private async tryAdoptPort(port: SerialPort): Promise<void> {
     const info = port?.getInfo?.();
     if (!info?.usbVendorId) {
-      trace.debug("hot-plug skip — port has no VID/PID");
+      trace.debug("hot-plug skip: port has no VID/PID");
       return;
     }
     const candidates = Array.from(this.managed.values()).filter(
@@ -249,7 +249,7 @@ export class SerialDeviceService {
     for (const managed of candidates) {
       // USB hubs sometimes emit a phantom 'connect' event during the
       // first moments of an unplug, before the disconnect propagates.
-      // Skip if a connect is already in flight on this transport — the
+      // Skip if a connect is already in flight on this transport, the
       // existing one wins (or fails on its own terms).
       const inflight = (
         managed.transport as DeviceTransport & {
@@ -257,13 +257,13 @@ export class SerialDeviceService {
         }
       ).isConnecting?.();
       if (inflight) {
-        trace.debug("hot-plug skip — connect in flight", {
+        trace.debug("hot-plug skip: connect in flight", {
           deviceId: managed.instance.id,
         });
         continue;
       }
       // If status is "connected" but the OS just told us this port
-      // became available, our state is stale — neither the read-loop's
+      // became available, our state is stale, neither the read-loop's
       // NetworkError catch nor the navigator.serial 'disconnect' event
       // always fires on an unplug, so cleanup never ran and pipeTo's
       // locks on port.readable/writable are still held. Force cleanup
@@ -283,7 +283,7 @@ export class SerialDeviceService {
       }
       const saved = managed.instance.portInfo;
       if (!saved?.vendorId) {
-        trace.debug("hot-plug skip — no saved VID/PID", {
+        trace.debug("hot-plug skip: no saved VID/PID", {
           deviceId: managed.instance.id,
         });
         continue;
@@ -314,7 +314,7 @@ export class SerialDeviceService {
           { err: String(err) },
         );
         // The OS just told us the device returned, but we can't reopen
-        // the port in this JS context — surface a recovery prompt. Match
+        // the port in this JS context: surface a recovery prompt. Match
         // on the message rather than introducing a sentinel class so
         // future tweaks to doConnect's throw don't silently break the
         // hook-up; the message is unique to this code path.
@@ -325,7 +325,7 @@ export class SerialDeviceService {
           this.emitPortRecovery(managed.instance.id, managed.instance.name);
         }
       }
-      // First match wins — refusing fan-out keeps two identical controllers
+      // First match wins: refusing fan-out keeps two identical controllers
       // from racing to claim the same physical port.
       return;
     }
@@ -471,11 +471,11 @@ export class SerialDeviceService {
     this.managed.delete(id);
     this.saveDevices();
     this.emitDevicesChange();
-    // Self-describing device types belong to a single instance — when that
+    // Self-describing device types belong to a single instance, when that
     // instance goes, the type would otherwise dangle in the type editor with
     // no way to manage it. Drop it once the last referring device is gone.
     // Exempt the gamepad placeholder: it's a shared landing type for every
-    // brand new (never-yet-paired) gamepad device, not a per-device type —
+    // brand new (never-yet-paired) gamepad device, not a per-device type,
     // deleting it here would break the *next* "add device" until the next
     // page load re-seeds it (ensureGamepadPlaceholderType runs once, in the
     // constructor, not on every removeDevice).
@@ -504,7 +504,7 @@ export class SerialDeviceService {
   /**
    * Connect a device. If a port is supplied (e.g. from a wizard that already
    * called navigator.serial.requestPort), it's passed straight to the
-   * transport's connect — useful for one-shot pairing flows that want to
+   * transport's connect: useful for one-shot pairing flows that want to
    * avoid prompting the user a second time.
    */
   async connect(deviceId: string, opts?: { port?: SerialPort }): Promise<void> {
@@ -527,7 +527,7 @@ export class SerialDeviceService {
    * isn't already connected, adopt it. Ambiguous matches (two identical
    * devices plugged in) are left alone so the user can pick explicitly.
    *
-   * Safe to call on any screen — no-op if the browser doesn't expose
+   * Safe to call on any screen: no-op if the browser doesn't expose
    * `navigator.serial.getPorts`.
    */
   async autoReconnect(): Promise<void> {
@@ -566,7 +566,7 @@ export class SerialDeviceService {
       });
       if (candidates.length === 0) continue;
       if (candidates.length > 1) {
-        // Same VID/PID on two ports — can't pick automatically. Park them
+        // Same VID/PID on two ports: can't pick automatically. Park them
         // for the UI to resolve via resolvePendingChoice().
         this.pendingChoices.set(managed.instance.id, candidates);
         this.emitPendingChoicesChange();
@@ -655,7 +655,7 @@ export class SerialDeviceService {
   private capturePortInfo(managed: ManagedDevice): void {
     // The connect that triggered this could have started before the device
     // was removed (or before destroy ran in a StrictMode cycle). If the
-    // managed entry isn't current any more, don't act — saveDevices()
+    // managed entry isn't current any more, don't act, saveDevices()
     // would otherwise persist a list that doesn't include the orphaned
     // device, which can wipe a perfectly valid localStorage entry.
     if (this.managed.get(managed.instance.id) !== managed) return;
@@ -749,7 +749,7 @@ export class SerialDeviceService {
    *   - tear down the transport→service forwards (so even after autoReconnect
    *     re-opened the port, no events would surface to widgets).
    *
-   * Only the transient transport state — open ports, render timers — is
+   * Only the transient transport state: open ports, render timers, is
    * torn down. Calling autoReconnect afterwards reopens the same transports
    * cleanly via the defensive force-close path in WebSerialTransport.connect.
    */
@@ -813,8 +813,8 @@ export class SerialDeviceService {
 
     // Resolve which DeviceType this update targets. json-state devices
     // never send `typeId`, so `targetTypeId` defaults to "the type this
-    // instance already has" — unchanged behaviour. GamepadTransport does
-    // send it (shape-derived — see gamepadShape.ts), so pads reporting the
+    // instance already has", unchanged behaviour. GamepadTransport does
+    // send it (shape-derived: see gamepadShape.ts), so pads reporting the
     // same shape land on the same type instead of each connection
     // breeding a near-duplicate.
     const targetTypeId = update.typeId ?? current.id;
@@ -852,7 +852,7 @@ export class SerialDeviceService {
       instanceChanged = true;
     }
     if (update.gamepadId && update.gamepadId !== nextInstance.gamepadId) {
-      // First-ever pairing for this instance — preselect a label pack from
+      // First-ever pairing for this instance: preselect a label pack from
       // the pad's id. A hint, not authority: only fires once (gamepadId
       // transitioning unset -> set) and only if the user hasn't already
       // chosen a pack, so an explicit choice is never re-detected over.
@@ -954,7 +954,7 @@ export class SerialDeviceService {
         JSON.stringify(Array.from(this.deviceTypes.values())),
       );
     } catch {
-      // ignore quota/permission errors — in-memory state is authoritative
+      // ignore quota/permission errors: in-memory state is authoritative
     }
   }
 
@@ -968,7 +968,7 @@ export class SerialDeviceService {
         const type = this.deviceTypes.get(inst.typeId);
         if (!type) {
           logger.warn(
-            `[SerialDeviceService] dropping device ${inst.id} — unknown type ${inst.typeId}`,
+            `[SerialDeviceService] dropping device ${inst.id}: unknown type ${inst.typeId}`,
           );
           droppedAny = true;
           continue;
@@ -977,7 +977,7 @@ export class SerialDeviceService {
       }
       // Self-heal: rewrite localStorage without the orphans so we don't
       // log the same warning every refresh. Persisting the in-memory list
-      // is enough — the dropped entries are gone from memory already.
+      // is enough, the dropped entries are gone from memory already.
       if (droppedAny) this.saveDevices();
     } catch (err) {
       logger.warn("[SerialDeviceService] failed to load devices", {

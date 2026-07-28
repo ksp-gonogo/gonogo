@@ -1,10 +1,10 @@
 /**
- * CommitLayer — the delay-native "soul" of the landing widget, and what makes it
+ * CommitLayer: the delay-native "soul" of the landing widget, and what makes it
  * gonogo's rather than a re-skinned KER. Under signal delay a landing cannot be
  * hand-flown, so the job shifts from "cue the burn" to "did I commit correctly
  * before I went blind":
  *
- * - Regime pill (LIVE / STAGED / AUTONOMOUS / LINK —) + round-trip.
+ * - Regime pill (LIVE / STAGED / AUTONOMOUS / LINK, ) + round-trip.
  * - Hero: live → the ignition countdown; delayed → the burn-GO clock (the last
  *   instant a GO can still reach the vessel to START the burn, T_ignition − N) →
  *   BURN LOCKED once past it.
@@ -15,7 +15,7 @@
  *   before impact (T_impact − 2N); past it the outcome is fixed and merely not
  *   yet visible. (The spaceflight-standard term for what was internally "blind".)
  *
- * Landing is an INSTRUMENT, not a command surface — gear/brakes are fired from
+ * Landing is an INSTRUMENT, not a command surface, gear/brakes are fired from
  * the operator's own action-group widgets placed alongside, so this layer holds
  * only decision-support (clocks, uncommandable, ignition cue), no commands.
  *
@@ -25,6 +25,7 @@
 import {
   Cluster,
   formatDuration,
+  NULL_DISPLAY,
   Readout,
   ReadoutCaption,
   type ReadoutTone,
@@ -59,7 +60,7 @@ export interface CommitLayerProps {
   committed: boolean;
   blindInSeconds: number | null;
   blind: boolean;
-  /** True once the vessel has touched down — the descent clocks are then void
+  /** True once the vessel has touched down, the descent clocks are then void
    * and the hero shows a settled LANDED state instead of a stale countdown. */
   landed?: boolean;
 }
@@ -79,7 +80,7 @@ export function CommitLayer({
 
   // Uncommandable: a full round-trip no longer fits inside the remaining burn
   // window, so a command sent now cannot be confirmed (or corrected) in time.
-  // Void once landed — there is no burn window left.
+  // Void once landed: there is no burn window left.
   const uncommandable =
     !landed &&
     roundTripSeconds != null &&
@@ -94,14 +95,14 @@ export function CommitLayer({
   let urgent = false;
   if (landed) {
     // Settled on the surface: the descent is over, so no commit / blind / burn
-    // countdown — a confident touchdown confirmation instead.
+    // countdown: a confident touchdown confirmation instead.
     heroValue = "LANDED";
     heroCaption = "TOUCHDOWN CONFIRMED";
     heroTone = "go";
   } else if (live) {
     heroCaption = "SUICIDE BURN";
     if (countdown == null) {
-      heroValue = "—";
+      heroValue = NULL_DISPLAY;
       heroTone = "default";
     } else if (countdown <= 0) {
       heroValue = "IGNITE";
@@ -121,11 +122,11 @@ export function CommitLayer({
     if (committed) {
       heroValue = "BURN LOCKED";
       heroTone = "alert";
-      // Past the deadline a GO can no longer arrive in time — the burn plan is
+      // Past the deadline a GO can no longer arrive in time, the burn plan is
       // locked in (autonomous), so the "BURN GO IN" caption is dropped.
       heroCaption = "";
     } else if (commitInSeconds == null) {
-      heroValue = "—";
+      heroValue = NULL_DISPLAY;
       heroTone = "default";
     } else {
       heroValue = `T−${formatDuration(commitInSeconds, { ms: true })}`;
@@ -134,7 +135,7 @@ export function CommitLayer({
   }
 
   // Only the instantaneous ignition cue interrupts (assertive). Uncommandable /
-  // blind are sustained states — announce them politely, per the a11y rule that
+  // blind are sustained states, announce them politely, per the a11y rule that
   // reserves assertive for ABORT-class events.
   const alarmed = urgent;
 

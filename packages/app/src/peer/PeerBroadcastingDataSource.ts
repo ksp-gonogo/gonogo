@@ -87,7 +87,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     // PCDS construction in same-process tests. Optional-chain because
     // some tests inject a host stub without the back-fill API.
     host.registerSourceForBackfill?.(real.id, this);
-    // Subscribe to every schema key for the lifetime of the wrapper — we do
+    // Subscribe to every schema key for the lifetime of the wrapper, we do
     // NOT unsubscribe in disconnect(). Reason: MainScreen's StrictMode
     // mount→unmount→mount cycle calls wrapper.disconnect() between the two
     // setups; if we unsubbed, the broadcast callbacks would be gone on the
@@ -97,7 +97,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     // correct scope for broadcasting.
     // Use the plain `subscribe` path for the broadcast loop, even when
     // the wrapped source supports `subscribeSamples`. BufferedDataSource
-    // gates `sampleSubscribers.fire` on flight detection — pre-flight
+    // gates `sampleSubscribers.fire` on flight detection: pre-flight
     // samples never reach `subscribeSamples` consumers, which means
     // low-change-rate keys that emit before the FlightDetector
     // establishes a current flight (v.body, v.situationString, sci.*,
@@ -106,7 +106,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     // permanently undefined.
     //
     // `subscribe` fires from `keySubscribers`, which `handleSample`
-    // calls unconditionally. Cost is host-side timestamp loss — receivers
+    // calls unconditionally. Cost is host-side timestamp loss, receivers
     // fall back to Date.now(), a few ms of skew on station-side live
     // charts. Acceptable trade for not silently losing values.
     //

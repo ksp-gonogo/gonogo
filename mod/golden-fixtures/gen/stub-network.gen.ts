@@ -10,7 +10,7 @@
  * observations are *inline*: a scenario's `ops` list interleaves mutations
  * (`setDelay` / `setReachable` / `setScale`) with queries (`queryDelay` /
  * `queryReachable`), and each query op is enriched with the `expected` value
- * the TS instance actually returned when it was reached — so ordering (e.g.
+ * the TS instance actually returned when it was reached, so ordering (e.g.
  * "query, then setScale, then query again") is preserved exactly.
  *
  * The `expected` fields are NEVER hand-authored: `runScenario` executes the
@@ -53,7 +53,7 @@ interface QueryDelayOp {
   op: "queryDelay";
   vantage: string;
   node: string;
-  /** Filled in by `runScenario` from the real TS instance — never hand-authored. */
+  /** Filled in by `runScenario` from the real TS instance, never hand-authored. */
   expected?: number;
 }
 
@@ -61,7 +61,7 @@ interface QueryReachableOp {
   op: "queryReachable";
   vantage: string;
   node: string;
-  /** Filled in by `runScenario` from the real TS instance — never hand-authored. */
+  /** Filled in by `runScenario` from the real TS instance, never hand-authored. */
   expected?: boolean;
 }
 
@@ -159,7 +159,7 @@ const scenarios: Scenario[] = [
   {
     name: "delay-and-reachable-are-independent-axes",
     description:
-      "Setting delay for a pair doesn't touch its reachability, and vice versa — they're tracked in separate maps.",
+      "Setting delay for a pair doesn't touch its reachability, and vice versa: they're tracked in separate maps.",
     ops: [
       { op: "setDelay", vantage: "KSC", node: "v1", seconds: 300 },
       { op: "queryDelay", vantage: "KSC", node: "v1" },
@@ -218,7 +218,7 @@ const scenarios: Scenario[] = [
   {
     name: "set-scale-zero-collapses-every-delay",
     description:
-      "setScale(0) zeroes delay for every pair — default, pinned, and never-touched alike (light-speed-instant collapse).",
+      "setScale(0) zeroes delay for every pair, default, pinned, and never-touched alike (light-speed-instant collapse).",
     defaults: { delay: 120 },
     ops: [
       { op: "setDelay", vantage: "KSC", node: "v1", seconds: 240 },
@@ -262,7 +262,7 @@ const scenarios: Scenario[] = [
   {
     name: "negative-set-scale-clamps-to-zero",
     description:
-      "setScale(-1) clamps to 0 rather than negating delay — a negative scale would schedule deliveries in the past.",
+      "setScale(-1) clamps to 0 rather than negating delay: a negative scale would schedule deliveries in the past.",
     defaults: { delay: 100 },
     ops: [
       { op: "setScale", scale: -1 },

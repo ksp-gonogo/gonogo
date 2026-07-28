@@ -12,13 +12,13 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Locks the P0.5 typing change for <c>science.*</c>: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="ExperimentEntry"/>,
-    /// <see cref="LabEntry"/>, <see cref="DeployedEntry"/>) mirror — field name
+    /// <see cref="LabEntry"/>, <see cref="DeployedEntry"/>) mirror: field name
     /// for field name, camelCase wire key for camelCase wire key, type for
-    /// type — the EXACT serialized shape <see cref="ScienceViewProvider"/>
+    /// type: the EXACT serialized shape <see cref="ScienceViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
     /// <c>JsonWriter</c> walking the provider's dictionary, not by serializing
     /// these POCOs, so if the two shapes ever drift (a field renamed, removed,
-    /// added, or retyped on either side) this test fails — the guarantee that
+    /// added, or retyped on either side) this test fails, the guarantee that
     /// the contract type a widget codes against is byte-identical to the wire.
     ///
     /// <para>Each channel's payload is a BARE ARRAY of the entry type (or
@@ -148,7 +148,7 @@ namespace Sitrep.Host.Tests
         // types also carry [TsInterface], and reading ANY custom attribute off
         // such a type through System.Reflection forces the CLR to resolve the
         // compile-time-only Reinforced.Typings assembly (never deployed at
-        // runtime) and throws FileNotFoundException — the exact trap
+        // runtime) and throws FileNotFoundException: the exact trap
         // ContractShapeGateTests works around with raw ECMA-335 metadata. The
         // tag is source-visible and is consumed by the TS-SDK codegen via
         // metadata (the next P0.5 task), which is where it is exercised.

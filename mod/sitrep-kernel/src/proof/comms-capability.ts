@@ -8,7 +8,7 @@
  * expose the SAME clock instance they schedule delivery on, so a test can
  * drive/observe delivery without reaching into either provider's internals).
  *
- * Declared `exclusive` — at most one `comms` provider is active — with
+ * Declared `exclusive` (at most one `comms` provider is active) with
  * `vanilla-comms`'s zero-delay implementation as the fallback when no real
  * provider is registered (or survives version gating).
  */
@@ -29,7 +29,7 @@ export interface CommsSample {
 
 /** The minimal shape every `comms` provider (real or vanilla) exposes. */
 export interface CommsCapability {
-  /** Shared clock the provider schedules delivery on — advance it to observe delayed vs immediate delivery. */
+  /** Shared clock the provider schedules delivery on, advance it to observe delayed vs immediate delivery. */
   readonly clock: Clock;
   /** Record a telemetry sample valid at `validAtUt`, scheduling delayed delivery to current subscribers. */
   record(topic: string, value: unknown, validAtUt: number): void;

@@ -8,7 +8,7 @@ import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
  * OrbitView behavioural unit tests. The widget reads
  * exclusively off the SDK stream (`vessel.orbit` + the `vessel.state` derived
  * channel), so these render through a real `TelemetryProvider` via the shared
- * `renderOrbitViewStream` harness — there is no legacy `MockDataSource`
+ * `renderOrbitViewStream` harness: there is no legacy `MockDataSource`
  * anywhere in this file. Reads settle a frame after the emit, so the
  * data-present assertions wait for the diagram/pill rather than reading
  * synchronously.
@@ -83,7 +83,7 @@ describe("OrbitViewComponent", () => {
  */
 describe("OrbitView augment slots", () => {
   // Unmount the rendered trees synchronously before clearAugments() notifies
-  // the still-mounted AugmentSlot subscribers — that notification is a state
+  // the still-mounted AugmentSlot subscribers, that notification is a state
   // update, so firing it against a live tree is the act() anti-pattern. RTL
   // auto-cleanup runs after this hook, too late to rely on for ordering.
   const trees: Array<() => void> = [];
@@ -98,7 +98,7 @@ describe("OrbitView augment slots", () => {
       id: "test-orbit-overlay",
       augments: "orbit-view.overlay",
       component: (ctx: OrbitOverlayContext) => (
-        // `apoapsis` is `undefined` on a hyperbolic orbit (no apoapsis) —
+        // `apoapsis` is `undefined` on a hyperbolic orbit (no apoapsis),
         // this scenario (LKO) is elliptical, so it's always a real number
         // here; the `?? Number.NaN` only satisfies the type.
         <div data-testid="overlay-probe">

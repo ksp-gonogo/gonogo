@@ -6,7 +6,7 @@ import { useWorldCanvas } from "./useWorldCanvas";
 // Regression coverage for the trajectory-jank bug: under React 18 batching +
 // the reveal-gate's bursty catch-up delivery, several new buffered points can
 // land inside a single commit. The draw effect must paint every new segment,
-// not just the latest one — otherwise the rendered trajectory skips facets.
+// not just the latest one: otherwise the rendered trajectory skips facets.
 
 function point(over: Partial<TrajectoryPoint> = {}): TrajectoryPoint {
   return {
@@ -87,7 +87,7 @@ describe("useWorldCanvas", () => {
         point({ lat: 2, lon: 2 }),
         point({ lat: 3, lon: 3 }),
       );
-      // One commit carrying 3 new segments (0-1, 1-2, 2-3) — mirrors a
+      // One commit carrying 3 new segments (0-1, 1-2, 2-3), mirrors a
       // reveal-gate catch-up burst landing inside a single React commit.
       hook.rerender({ trajectoryCount: 3, bodyName: "Kerbin" });
     });
@@ -106,7 +106,7 @@ describe("useWorldCanvas", () => {
     expect(moveToCalls()).toHaveLength(1);
 
     act(() => {
-      // Same trajectoryCount, same bodyName — nothing new to draw.
+      // Same trajectoryCount, same bodyName: nothing new to draw.
       hook.rerender({ trajectoryCount: 1, bodyName: "Kerbin" });
     });
     expect(moveToCalls()).toHaveLength(1);
@@ -138,7 +138,7 @@ describe("useWorldCanvas", () => {
       hook.rerender({ trajectoryCount: 4, bodyName: "Mun" });
     });
 
-    // Only the one new segment for the new body should be painted — the
+    // Only the one new segment for the new body should be painted, the
     // pre-switch backlog must not get replayed onto the freshly-cleared canvas.
     expect(moveToCalls().length - drawnBeforeNewPoint).toBe(1);
   });

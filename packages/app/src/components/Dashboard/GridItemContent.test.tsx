@@ -64,7 +64,7 @@ function StubWidget(_: ComponentProps) {
 
 const STUB_ITEM: DashboardItem = { i: "w1", componentId: "stub" };
 
-describe("GridItemContent — draggableCancel structural guard", () => {
+describe("GridItemContent: draggableCancel structural guard", () => {
   beforeEach(() => {
     clearRegistry();
     registerComponent({
@@ -133,7 +133,7 @@ describe("GridItemContent — draggableCancel structural guard", () => {
   it("hands the render-gate def.channels only, never def.optionalChannels", () => {
     // optionalChannels must never gate: an unhealthy OPTIONAL uplink should not
     // blank a widget that handles absence itself (SystemView relies on this).
-    // The chrome enforces it by passing the gate def.channels alone — guard that
+    // The chrome enforces it by passing the gate def.channels alone, guard that
     // wiring so a future accidental optionalChannels pass-through is caught.
     registerComponent({
       id: "optional-channels-stub",

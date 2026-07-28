@@ -14,7 +14,7 @@ namespace Gonogo.RealAntennasUplink
     /// <item>When RealAntennas is loaded (the <see cref="RaReflection"/> probe,
     /// §4.2), it registers a higher-priority <c>"comms"</c> provider on the
     /// engine Kernel so <see cref="RaCommsBackend"/> WINS the exclusive comms
-    /// election — geometry/connectivity via stock CommNet, hops enriched with RA
+    /// election: geometry/connectivity via stock CommNet, hops enriched with RA
     /// data rate. Registering the provider IS the gate (§2.2): absent RA, no
     /// provider is registered and CommNet vanilla stays elected.</item>
     /// <item>It declares + sources the RA-ONLY channels
@@ -25,7 +25,7 @@ namespace Gonogo.RealAntennasUplink
     /// reflected off a live field.</item>
     /// </list>
     ///
-    /// <para>NO compile-time reference to RA's CC-BY-SA-4.0 assembly — every RA
+    /// <para>NO compile-time reference to RA's CC-BY-SA-4.0 assembly, every RA
     /// member is reached by reflection (§4.1/§4.2). Compile surface is
     /// <c>Sitrep.Contract</c> + stock KSP only.</para>
     /// </summary>
@@ -37,7 +37,7 @@ namespace Gonogo.RealAntennasUplink
         public const string LinkMarginTopic = "comms.linkMargin";
 
         // Best-effort link-budget inputs RA does not expose publicly on the live
-        // graph (§4.3 — margin is computed in RA's internal Precompute job). These
+        // graph (§4.3: margin is computed in RA's internal Precompute job). These
         // are documented display estimates, NOT RA's negotiated values.
         private const double DefaultReceiverNoiseTempKelvin = 200.0;
         private const double DefaultRequiredEbN0Db = 2.5;
@@ -70,7 +70,7 @@ namespace Gonogo.RealAntennasUplink
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
         /// Unavailable when the RealAntennas assembly is absent (the uplink went inert at
-        /// Register — <see cref="_ra"/> stays null/unavailable), else Healthy.</summary>
+        /// Register: <see cref="_ra"/> stays null/unavailable), else Healthy.</summary>
         public UplinkHealth Health() =>
             _ra != null && _ra.IsAvailable
                 ? UplinkHealth.Healthy
@@ -81,18 +81,18 @@ namespace Gonogo.RealAntennasUplink
             _ra = RaReflection.Probe();
             if (_ra == null || !_ra.IsAvailable)
             {
-                // RA not installed — go inert. The exclusive comms capability
+                // RA not installed: go inert. The exclusive comms capability
                 // keeps CommNet vanilla; the RA-only channels simply never emit.
                 host.SetAvailability(Availability.Unavailable("RealAntennas assembly not loaded"));
                 return;
             }
 
             // Register the RA comms provider directly on the Kernel (Kernel lives
-            // in Sitrep.Contract — no engine reference needed). The bundled comms
+            // in Sitrep.Contract: no engine reference needed). The bundled comms
             // core uplink OWNS the "comms" capability descriptor and declares it
             // in the two-pass discovery's capability pass (see
             // CommsCoreUplink.DeclareCapabilities / IUplinkCapabilityDeclarer),
-            // which runs before ANY uplink's Register — so by the time this line
+            // which runs before ANY uplink's Register, so by the time this line
             // executes the capability is guaranteed present regardless of the
             // order the assembly scan discovered RA vs. the comms core. The
             // try/catch is now pure defence-in-depth (a genuinely absent comms
@@ -138,7 +138,7 @@ namespace Gonogo.RealAntennasUplink
             // closesLink:true, 49 dB, while comms.connectivity correctly reported
             // connected:false). Because these channels are LossyLatest, returning
             // null on a down link would leave the last-good positive margin stale
-            // on the wire — which is exactly the observed failure. So when the link
+            // on the wire, which is exactly the observed failure. So when the link
             // is not actually connected we PUBLISH a definitive link-down state
             // (closesLink:false, zero throughput) rather than emit nothing.
             var link = PrimaryControlLink();
@@ -156,7 +156,7 @@ namespace Gonogo.RealAntennasUplink
             // BOTH directions read. CommsDataRate's Up/DownBitsPerSec are
             // non-nullable doubles (a per-field null would be a wire-shape change
             // and a contract Major/Minor bump), so a half-read used to fill the
-            // missing side with `?? 0.0` — a false "no throughput" reading
+            // missing side with `?? 0.0`: a false "no throughput" reading
             // indistinguishable from a genuinely idle link. Emitting nothing
             // (payload-level typed absence) when either side is missing is the
             // honest choice: the channel simply reports no value that tick rather
@@ -165,7 +165,7 @@ namespace Gonogo.RealAntennasUplink
             // LOG-ONLY (needs live RA to validate): the up/down direction mapping
             // below (UpBitsPerSec = REVERSE rate, DownBitsPerSec = FORWARD rate)
             // is assumed from the RA node identity but not yet confirmed against a
-            // live link — it may be swapped. Verify on a real RA install before
+            // live link: it may be swapped. Verify on a real RA install before
             // relying on the per-direction figures.
             if (fwd != null && rev != null)
             {
@@ -195,7 +195,7 @@ namespace Gonogo.RealAntennasUplink
                 // reachable public members (RealAntenna.RequiredCI →
                 // Encoder.RequiredEbN0, Physics.NoiseTemperature per the RA
                 // playbook); wiring those in would sharpen the margin. Acceptable
-                // as-is pending live validation — left as constants for now.
+                // as-is pending live validation, left as constants for now.
                 if (txPower != null && txGain != null && rxGain != null && freq != null && symbolRate != null)
                 {
                     double pr = RaLinkBudget.ReceivedPowerDbm(txPower.Value, txGain.Value, rxGain.Value, distance, freq.Value);
@@ -206,7 +206,7 @@ namespace Gonogo.RealAntennasUplink
                     // rate (and NaN is possible from degenerate inputs). A
                     // non-finite double is not valid JSON on the wire, so instead
                     // of publishing it we leave BOTH margin and quality unset
-                    // (payload-level typed absence — the derived quality is
+                    // (payload-level typed absence: the derived quality is
                     // meaningless when the margin it comes from is invalid). net48
                     // has no double.IsFinite, hence the explicit NaN/Infinity test.
                     if (!double.IsNaN(margin) && !double.IsInfinity(margin))
@@ -216,7 +216,7 @@ namespace Gonogo.RealAntennasUplink
                         {
                             DecibelMargin = margin,
                             // We only reach this branch when CommNet reports the
-                            // link connected, so the link DOES close — the
+                            // link connected, so the link DOES close, the
                             // authoritative state wins over the geometry-only
                             // margin sign (which can disagree, e.g. a marginal but
                             // negotiated link).

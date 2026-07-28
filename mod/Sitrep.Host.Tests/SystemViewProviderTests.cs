@@ -18,9 +18,9 @@ namespace Sitrep.Host.Tests
     /// class doc: the parent-index tree, root orbit == null, missing raw
     /// fields → null (never a sentinel), no <c>eccentricAnomaly</c> key
     /// anywhere, and the payload serializing cleanly through the REAL
-    /// production path — <c>StreamData&lt;object?&gt;.Payload</c> via
+    /// production path: <c>StreamData&lt;object?&gt;.Payload</c> via
     /// <c>Sitrep.Core.Serialization.EnvelopeCodec.WriteStreamData</c>/
-    /// <c>ParseStreamData</c> — round-tripping to an equivalent tree.
+    /// <c>ParseStreamData</c>: round-tripping to an equivalent tree.
     /// </summary>
     public class SystemViewProviderTests
     {
@@ -60,7 +60,7 @@ namespace Sitrep.Host.Tests
                             ["epoch"] = 0.0,
                         },
                         // Moon of Kerbin: MISSING "radius" entirely and
-                        // "ecc" explicitly null — both must map to null,
+                        // "ecc" explicitly null: both must map to null,
                         // never a sentinel like -1 or 0.
                         new Dictionary<string, object?>
                         {
@@ -116,7 +116,7 @@ namespace Sitrep.Host.Tests
 
             // Serializes cleanly through the REAL production path: dropped
             // straight into a StreamData<object?>.Payload and encoded with
-            // the existing Sitrep.Core EnvelopeCodec/JsonWriter — no writer
+            // the existing Sitrep.Core EnvelopeCodec/JsonWriter: no writer
             // changes needed for this payload shape.
             var streamData = new StreamData<object?>
             {
@@ -574,7 +574,7 @@ namespace Sitrep.Host.Tests
         {
             // The producer omits crewCount/crewCapacity/commsConnected/
             // commsControlSource entirely (never a fabricated zero/false)
-            // whenever its own try/catch caught something — assert the
+            // whenever its own try/catch caught something: assert the
             // mapper preserves that as a typed null, not a sentinel.
             var snapshot = new KspSnapshot
             {
@@ -733,15 +733,15 @@ namespace Sitrep.Host.Tests
         // Contract-shape mirror (P0.5): the named Sitrep.Contract payload
         // types (SystemBodies/BodyEntry/OrbitEntry, SystemVessels/
         // VesselRosterEntry) exist so a widget resolves a real payload type
-        // instead of `unknown`. They are TYPING-ONLY — they do NOT
+        // instead of `unknown`. They are TYPING-ONLY, they do NOT
         // participate in serialization (JsonWriter walks the provider's live
         // value tree, not these POCOs). Nothing at compile time binds the
         // POCO field set to the dict keys the provider actually emits, so
         // these tests bind them at run time: every field name the provider
         // puts on the wire must equal the camelCased public-property set of
         // its contract type (RtConfig's CamelCaseForProperties rule), and no
-        // more. A rename/add/remove on either side — or a `meta` key
-        // creeping onto a system.* payload — fails here.
+        // more. A rename/add/remove on either side (or a `meta` key
+        // creeping onto a system.* payload) fails here.
         // ----------------------------------------------------------------
 
         // RtConfig.CamelCaseForProperties: lowercase the first char only
@@ -790,7 +790,7 @@ namespace Sitrep.Host.Tests
 
             var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemBodies(snapshot));
 
-            // Top level: exactly { bodies } — no `meta` on a system.* payload.
+            // Top level: exactly { bodies }, no `meta` on a system.* payload.
             Assert.Equal(WireFieldNamesOf(typeof(SystemBodies)), root.Keys.ToHashSet());
 
             var bodies = Assert.IsType<List<object?>>(root["bodies"]);

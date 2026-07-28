@@ -1,18 +1,18 @@
 /**
- * Stable host peer-id derivation — the heart of the "stable host peer id"
+ * Stable host peer-id derivation: the heart of the "stable host peer id"
  * model that replaced the relay-hosted broker directory.
  *
  * The host's PeerJS peer claims a deterministic id derived from the
  * operator-facing 4-char share code (`gonogo-host-<CODE>`). The station
  * derives the *same* id from the code the operator types/scans and connects
- * to it directly — no directory peer, no resolve hop. Both ends are
+ * to it directly: no directory peer, no resolve hop. Both ends are
  * browsers, so mDNS host candidates resolve natively on the LAN; the old
  * Node-wrtc directory peer (which could neither resolve mDNS nor do TURN on
  * a macOS host) is gone.
  *
  * The prefix is REQUIRED: bare 4-char codes would collide with other gonogo
  * users on the shared broker key "gonogo". The operator never sees the
- * prefix — they share the 4-char code; the prefix is an implementation
+ * prefix: they share the 4-char code; the prefix is an implementation
  * detail of both ends.
  */
 

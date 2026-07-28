@@ -24,7 +24,7 @@ describe("capabilities", () => {
     );
   });
 
-  it("hasGamepad is true when navigator.getGamepads exists — cross-browser, unlike web-serial", () => {
+  it("hasGamepad is true when navigator.getGamepads exists, cross-browser, unlike web-serial", () => {
     vi.stubGlobal("navigator", { getGamepads: () => [] });
     expect(hasGamepad()).toBe(true);
   });

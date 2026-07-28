@@ -11,25 +11,25 @@ import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 
 /**
- * The always-on shared POI layer — mounted as a sibling to
+ * The always-on shared POI layer: mounted as a sibling to
  * `OverlayAugmentLayer`, above the coverage-gated surface (see this file's
  * placement in `index.tsx`). Renders every registered `MapPoiProvider`'s
  * points for the currently-mapped body as markers, with ONE shared hover
  * card (label/detail/coords/meta + actions) rather than letting each
- * provider invent its own hover UX — same reasoning as `mapPoi.ts`'s own
+ * provider invent its own hover UX: same reasoning as `mapPoi.ts`'s own
  * header comment.
  */
 export interface MapPoiLayerProps {
   bodyId: string | undefined;
   /** Project geographic lat/lon (degrees) to a pixel coordinate in this
-   *  layer's own space — the same `MapOverlayContext.project` a `map-view.overlay`
+   *  layer's own space: the same `MapOverlayContext.project` a `map-view.overlay`
    *  augment draws with, so a POI marker lands on the same pixels. */
   project: (lat: number, lon: number) => { x: number; y: number };
   width: number;
   height: number;
 }
 
-// Stable-reference snapshot cache — getMapPoiProviders() allocates a fresh
+// Stable-reference snapshot cache: getMapPoiProviders() allocates a fresh
 // array every call, which would infinite-loop useSyncExternalStore directly.
 // Refreshed via an UNCONDITIONAL module-load subscription (mirrors
 // useCoverageGate.ts's cachedSources / AugmentSlot.tsx's slotCache), not from
@@ -251,8 +251,8 @@ function PoiProviderGate({
 
 /**
  * Calls the provider's own `usePois` hook and renders one marker per POI.
- * A distinct component instance from `PoiProviderGate` so `usePois` — which
- * itself may call `useTelemetry`/`useMemo`/etc — is only ever mounted (and
+ * A distinct component instance from `PoiProviderGate` so `usePois`, which
+ * itself may call `useTelemetry`/`useMemo`/etc, is only ever mounted (and
  * its hooks only ever called) while the provider's gate is satisfied.
  */
 function PoiProviderMarkers({

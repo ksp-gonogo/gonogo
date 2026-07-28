@@ -28,11 +28,11 @@ import { WarpControlComponent } from "./index";
  *
  * `rails-warp-1000x` exercises every branch worth covering: an active
  * on-rails warp rate (formatRate's `k×` branch), the highlighted ladder
- * button, AND the Flight-scene pause toggle. Scene now streams too —
+ * button, AND the Flight-scene pause toggle. Scene now streams too,
  * `useGameContext` reads `spaceCenter.scene` off the canonical stream
  * (migrated off the `kc.scene` shim), so the whole render is one wire.
  */
-// Reset the action-handler registry at the START of each test — the prior
+// Reset the action-handler registry at the START of each test, the prior
 // test's tree is already unmounted (RTL auto-cleanup, plus each test's own
 // inline teardownMockDataSource) by then, so this never fires against a live
 // component.
@@ -40,7 +40,7 @@ beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("WarpControl — stream render golden (delay=0)", () => {
+describe("WarpControl: stream render golden (delay=0)", () => {
   it("renders the full warp state off the stream pipeline", async () => {
     const mode = { name: "default-6x5", w: 6, h: 5 };
 
@@ -59,10 +59,10 @@ describe("WarpControl — stream render golden (delay=0)", () => {
 
     act(() => {
       // Scene rides the canonical stream (useGameContext reads
-      // spaceCenter.scene) — a Flight scene renders the pause toggle.
+      // spaceCenter.scene): a Flight scene renders the pause toggle.
       streamFixture.emit("spaceCenter.scene", { scene: rails["kc.scene"] });
       // The full warp state on the new wire: one "time.warp" record.
-      // warpMode 0 = High — see normalizeWarpMode's doc comment in index.tsx.
+      // warpMode 0 = High: see normalizeWarpMode's doc comment in index.tsx.
       streamFixture.emit("time.warp", {
         warpRate: rails["t.currentRate"],
         warpRateIndex: rails["t.timeWarp"],
@@ -95,8 +95,8 @@ describe("WarpControl — stream render golden (delay=0)", () => {
 
 /**
  * The plan's literal "off the recording's wire" golden (`m3-migration-plan
- * .md` §4-behavior: "stream — TelemetryProvider fed the reference-wire-
- * fixture.json frames"). Gitignored/local-only, skip-if-absent — mirrors
+ * .md` §4-behavior: "stream: TelemetryProvider fed the reference-wire-
+ * fixture.json frames"). Gitignored/local-only, skip-if-absent: mirrors
  * `reference-wire-fixture.test.ts`'s own discipline; CI never has this file
  * checked out, so this is a local/branch gate, not a CI one.
  */
@@ -108,7 +108,7 @@ const realFixturePath = path.join(
 const realFixtureExists = existsSync(realFixturePath);
 
 describe.skipIf(!realFixtureExists)(
-  "WarpControl — stream render golden against the REAL captured recording",
+  "WarpControl: stream render golden against the REAL captured recording",
   () => {
     if (!realFixtureExists) {
       it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only)", () => {});
@@ -118,12 +118,12 @@ describe.skipIf(!realFixtureExists)(
     it("renders the recorded rate/mode readout off the real recording's wire", async () => {
       const realFixture = JSON.parse(readFileSync(realFixturePath, "utf-8"));
 
-      // The recording carries 3 rewinds (epochsSeen [0,1,2,3] —
+      // The recording carries 3 rewinds (epochsSeen [0,1,2,3],
       // reference-wire-fixture.test.ts's own assertion), each of which
       // resets validAt back near 0 in its own epoch and drops every
       // PRIOR-epoch point from the store's timelines (TimelineStore's
       // cross-topic sweep, `m3-migration-plan.md`'s "client ghost"
-      // avoidance) — so replaying the WHOLE recording and then pinning
+      // avoidance): so replaying the WHOLE recording and then pinning
       // viewUt at 0 would resolve against whatever epoch-3 frame happens to
       // sit at validAt<=0, not the true first frame of the session (a real
       // trap the first draft of this test fell into: RED with a mismatched
@@ -164,13 +164,13 @@ describe.skipIf(!realFixtureExists)(
 
       const mode = { name: "default-6x5", w: 6, h: 5 };
 
-      // A "schedule" clock that QUEUES deliveries instead of firing them —
+      // A "schedule" clock that QUEUES deliveries instead of firing them,
       // ReplayTransport's constructor arms every frame's delivery
       // immediately, before `TelemetryClient` (built from `transport`,
       // necessarily AFTER it) has had a chance to `onMessage`-subscribe. A
       // clock whose `schedule` fires synchronously would lose every frame to
       // no listener; queueing lets the test flush them explicitly, once,
-      // after the widget has mounted — deterministic, no real timers.
+      // after the widget has mounted, deterministic, no real timers.
       const pending: (() => void)[] = [];
       const queueingClock = {
         now: () => 0,
@@ -188,15 +188,15 @@ describe.skipIf(!realFixtureExists)(
       const client = new TelemetryClient(transport);
 
       // Pinned to UT 0 (the FIRST time.warp frame's own validAt, asserted
-      // above) via `clock.scrubTo` — the plan's "FixedViewClock" pattern
+      // above) via `clock.scrubTo`: the plan's "FixedViewClock" pattern
       // (`m3-migration-plan.md` §4-test). Belt-and-suspenders alongside the
-      // trim above (not load-bearing on its own — see that comment for why
+      // trim above (not load-bearing on its own; see that comment for why
       // trimming, not just pinning, is what actually fixes the epoch trap):
       // pinning ALONE, against the untrimmed full recording, advances the
       // confirmed edge to the LATEST
       // observed sample across the entire session, and the widget would
       // render the flight's FINAL warp state instead of the one frame this
-      // test means to compare — a real trap the first draft of this test
+      // test means to compare, a real trap the first draft of this test
       // fell into (RED: mismatched mode caption AND highlighted ladder
       // button once the full recording was flushed unpinned).
       const store = new TimelineStore(
@@ -221,7 +221,7 @@ describe.skipIf(!realFixtureExists)(
         for (const fn of pending.slice()) fn();
       });
 
-      // Specifically the rate READOUT, not just any "1×" text — the static
+      // Specifically the rate READOUT, not just any "1×" text, the static
       // ladder always renders a "1×" button regardless of whether data has
       // arrived, which would otherwise satisfy a looser text check before
       // the real state has actually settled.

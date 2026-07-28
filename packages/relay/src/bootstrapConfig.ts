@@ -4,8 +4,8 @@ import type { FastifyInstance } from "fastify";
  * First-run bootstrap config for the bundled container.
  *
  * The bundle takes a single `KSP_HOST` env var ("where is KSP, as seen
- * from this container") and the relay republishes it here so the SPA —
- * a static build that can't read container env — can seed the default
+ * from this container") and the relay republishes it here so the SPA,
+ * a static build that can't read container env, can seed the default
  * hosts for its data sources (Telemachus, kOS, kerbcast sidecar) on a
  * browser that has never saved a config.
  *
@@ -18,7 +18,7 @@ import type { FastifyInstance } from "fastify";
  * in-container proxy is the thing dialling it.
  *
  * Outside the bundle (public relay deployments) `KSP_HOST` is unset and
- * this returns `{ kspHost: null }` — the app treats that as "no seed".
+ * this returns `{ kspHost: null }`: the app treats that as "no seed".
  */
 export function registerBootstrapConfigRoutes(
   fastify: FastifyInstance,

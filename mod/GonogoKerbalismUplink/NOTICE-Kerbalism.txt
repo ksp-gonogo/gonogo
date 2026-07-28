@@ -1,6 +1,6 @@
 GonogoKerbalismUplink reaches Kerbalism entirely by runtime reflection
 (KerbalismReflection.cs). It does NOT link Kerbalism's assembly and does NOT
-derive from its types — the same arm's-length pattern GonogoRealAntennasUplink
+derive from its types: the same arm's-length pattern GonogoRealAntennasUplink
 uses for RealAntennas.
 
 Kerbalism is authored by Sir Mortimer and the Kerbalism contributors and

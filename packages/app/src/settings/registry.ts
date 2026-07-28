@@ -3,7 +3,7 @@
 // `registerSettingsTab`. Re-exported here for back-compat.
 //
 // Note the rename: core's setting-def lookup is `getSettingDefinition` (not
-// `getSetting`, which core already uses for its string-valued settings store —
+// `getSetting`, which core already uses for its string-valued settings store,
 // see core's `settings/store.ts`).
 export {
   __clearSettingsForTests,

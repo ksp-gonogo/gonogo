@@ -38,7 +38,7 @@ interface BannerProbePayload {
 
 let activeRoot: Root | null = null;
 
-/** Minimal AlarmHostService stub — satisfies the surface the banner
+/** Minimal AlarmHostService stub: satisfies the surface the banner
  *  actually calls (snapshot / subscribe + the action methods).
  *  Action methods are no-ops; the probe verifies rendering, not
  *  interaction. */
@@ -73,7 +73,7 @@ function BannerHarness({ snapshot }: { snapshot: AlarmSnapshot }) {
   // payload change. Avoid the "stale snapshot" cache by passing the
   // host instance through state.
   const [host] = useState(() => new StubHost(snapshot));
-  // Push updated snapshots when the prop changes — not strictly
+  // Push updated snapshots when the prop changes, not strictly
   // needed for one-shot screenshots but lets the same root re-render
   // with a new payload without an unmount/mount cycle.
   useEffect(() => {

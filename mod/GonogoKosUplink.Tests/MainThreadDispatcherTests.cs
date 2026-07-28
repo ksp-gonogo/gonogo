@@ -11,11 +11,11 @@ namespace GonogoKosUplink.Tests
     /// Covers the three invariants local_docs/telemetry-mod/kos-migration-spec.md
     /// §2 demands of the main-thread dispatch spine: (1) actions enqueued
     /// from a background thread drain in FIFO order on the draining
-    /// thread, (2) a throwing action never stops — or drops — the actions
+    /// thread, (2) a throwing action never stops (or drops) the actions
     /// behind it, and (3) draining an empty queue is a safe no-op.
     ///
     /// Deliberately does NOT touch <c>KosExtension</c> or
-    /// <c>KosMainThreadDispatcherAddon</c> — both create a real Unity
+    /// <c>KosMainThreadDispatcherAddon</c>: both create a real Unity
     /// <c>GameObject</c>, which throws outside a live KSP/Unity process.
     /// <see cref="MainThreadDispatcher"/> itself has zero UnityEngine
     /// dependency, which is exactly what makes it testable here.
@@ -119,7 +119,7 @@ namespace GonogoKosUplink.Tests
             dispatcher.Dispatch(() =>
             {
                 ran.Add("a");
-                // Enqueued mid-drain — should NOT run until the next Drain call.
+                // Enqueued mid-drain: should NOT run until the next Drain call.
                 dispatcher.Dispatch(() => ran.Add("queued-during-drain"));
             });
 

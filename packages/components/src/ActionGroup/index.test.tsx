@@ -15,6 +15,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -25,7 +26,7 @@ import { ActionGroupComponent, type ActionGroupSlotContext } from "./index";
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
 // legacy source or clearing the action-handler/augment registries. RTL
 // auto-cleanup runs after this file's afterEach, so it can't be relied on to
-// unmount first — buffered.disconnect()/clearActionHandlers()/clearAugments()
+// unmount first: buffered.disconnect()/clearActionHandlers()/clearAugments()
 // firing on a still-mounted widget is a state update outside act(), the
 // documented anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -44,7 +45,7 @@ function unmountAll() {
 /**
  * The widget no longer READS anything off the legacy `data` source. Its group
  * values come off the canonical `vessel.control` / `vessel.structure` stream
- * (the `useTelemetry("data", group.value)` shim is gone — see `emitControl`),
+ * (the `useTelemetry("data", group.value)` shim is gone; see `emitControl`),
  * and `isPaused` / `commConnected` are canonical stream reads too
  * (`time.warp.paused` / `comms.link.connected`). The MockDataSource below
  * survives only for the WRITE path: `useExecuteAction("data")` still dispatches
@@ -135,10 +136,10 @@ describe("ActionGroupComponent", () => {
     expect(screen.getByText("No action group configured")).toBeInTheDocument();
   });
 
-  it("shows the '—' unknown indicator before telemetry arrives", () => {
+  it("shows the NULL_DISPLAY unknown indicator before telemetry arrives", () => {
     renderGroup({ actionGroupId: "SAS" });
-    // No emit yet — value is undefined → unknown state
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // No emit yet: value is undefined → unknown state
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
   it("shows OFF when the group value is false", async () => {
@@ -178,7 +179,7 @@ describe("ActionGroupComponent", () => {
   });
 
   it("suppresses the unavailability notice in the tiny size bucket (w<5)", async () => {
-    // At 3×4 the widget is in the tiny bucket — UnavailableNotice must not render.
+    // At 3×4 the widget is in the tiny bucket, UnavailableNotice must not render.
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 4 });
     emitControl({ sas: false });
     act(() => {
@@ -246,16 +247,16 @@ describe("ActionGroupComponent", () => {
     const { container } = renderGroup({ actionGroupId: "SAS" });
     emitControl({ sas: true });
     // Let the emitted frame settle BEFORE axe runs. `emitControl` delivers on a
-    // deferred `beginFrame` (a `queueMicrotask` under jsdom — see
+    // deferred `beginFrame` (a `queueMicrotask` under jsdom: see
     // `setupStreamFixture`/`scheduleFrame`), so the render reflecting `sas:true`
     // lands one microtask after the sync `act()` returns. Every other test here
     // follows the emit with an RTL `findBy`/`waitFor`, which polls with the
     // act-environment OFF and quietly absorbs that frame; this test alone went
     // straight into `axe()`, whose long scan runs with the act-environment ON
-    // but no `act()` on the stack — so the deferred frame re-rendered
+    // but no `act()` on the stack: so the deferred frame re-rendered
     // `ActionGroupComponent` mid-scan, outside act (the load-dependent
-    // "not wrapped in act" warning). Settling on the rendered state first — the
-    // same guard the Navball/FleetComms axe tests use — drains it cleanly.
+    // "not wrapped in act" warning). Settling on the rendered state first, the
+    // same guard the Navball/FleetComms axe tests use, drains it cleanly.
     await screen.findByText("ON");
     expect(await axe(container)).toHaveNoViolations();
   });

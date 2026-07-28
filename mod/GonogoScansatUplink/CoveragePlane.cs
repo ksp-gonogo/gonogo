@@ -6,15 +6,15 @@ namespace Gonogo.ScansatUplink
     /// Extracts a single SCANtype's bit-plane out of a snapshotted
     /// <c>SCANdata.Coverage</c> grid and packs it byte-identically to the
     /// fork's <c>SCANCoverageBitmap</c> wire shape (MSB-first,
-    /// <c>ilon*height+ilat</c>, south-pole row first — scansat-migration-
+    /// <c>ilon*height+ilat</c>, south-pole row first: scansat-migration-
     /// spec.md §2.3). Pure functions over caller-supplied data; no SCANsat
     /// or KSP types involved, so this is unit-testable headlessly.
     /// </summary>
     public static class CoveragePlane
     {
         /// <summary>
-        /// Packs one bit per (ilon,ilat) cell — 1 when
-        /// <c>(coverage[ilon,ilat] &amp; scanType) != 0</c> — MSB-first
+        /// Packs one bit per (ilon,ilat) cell (1 when
+        /// <c>(coverage[ilon,ilat] &amp; scanType) != 0</c>), MSB-first
         /// within each byte, row-major over ilon then ilat
         /// (<c>ilon*height+ilat</c>).
         /// </summary>
@@ -40,7 +40,7 @@ namespace Gonogo.ScansatUplink
         }
 
         /// <summary>
-        /// True when the packed planes differ (either direction — bits set
+        /// True when the packed planes differ (either direction, bits set
         /// OR cleared, per the R7 keyframe-on-change model that must
         /// represent shrink/reset/quickload, spec §2.3 step 3/§2.3
         /// "why keyframe-on-change and not a set-only delta").

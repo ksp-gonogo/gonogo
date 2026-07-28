@@ -9,7 +9,7 @@
  * `getTopicStatus` / `onTopicStatusChange`, so the probe registers a
  * `ProbeKosDataSource` (a MockDataSource subclass that adds those two methods,
  * returning a static healthy status) under `id: "kos"` and routes any fixture
- * key prefixed `kos.` to it. It is registered *unbuffered* — buffer-wrapping
+ * key prefixed `kos.` to it. It is registered *unbuffered*, buffer-wrapping
  * would hide the topic-status methods so `useKosScriptStatus` would silently
  * fall back to the empty status. Mirrors the shared components probe pattern
  * (the harness the widget used before it moved to `@ksp-gonogo/gonogo-kos-uplink`).

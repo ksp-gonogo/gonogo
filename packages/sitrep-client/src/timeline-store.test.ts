@@ -55,7 +55,7 @@ describe("TimelineStore", () => {
 
     expect(store.sample<number>("a")?.payload).toBe(2);
 
-    // A later sample arrives mid-frame (before the next beginFrame) — the
+    // A later sample arrives mid-frame (before the next beginFrame), the
     // frozen token must not see it.
     store.ingest("a", point(30, 3));
     expect(store.sample<number>("a")?.payload).toBe(2);
@@ -86,7 +86,7 @@ describe("TimelineStore", () => {
       expect(token.viewUt).toBe(50); // estimate (100 - 50 delay) well under the sample clamp of 100
 
       const a = store.sample<number>("topic.a", store.currentFrame());
-      // Wall time advances mid-frame (e.g. a slow widget's own work) — a
+      // Wall time advances mid-frame (e.g. a slow widget's own work), a
       // live clock read would now disagree with the frozen token.
       wall.advanceBy(10);
       const b = store.sample<number>("topic.b", store.currentFrame());
@@ -137,7 +137,7 @@ describe("TimelineStore", () => {
     });
   });
 
-  describe("cross-topic epoch ghost — store is the epoch authority (Defect 1+2)", () => {
+  describe("cross-topic epoch ghost: store is the epoch authority (Defect 1+2)", () => {
     it("a slow topic that hasn't re-sampled since a rewind reads cold, not its dead-epoch point", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
@@ -148,7 +148,7 @@ describe("TimelineStore", () => {
       store.beginFrame();
       expect(store.sample<number>("slow.b")?.payload).toBe(2);
 
-      // Quickload rewind confirmed on the fast topic only — the slow topic
+      // Quickload rewind confirmed on the fast topic only, the slow topic
       // never re-samples.
       store.ingest("fast.a", point(50, 999, { epoch: 1 }));
       const token = store.beginFrame();
@@ -172,7 +172,7 @@ describe("TimelineStore", () => {
       expect(store.clock.getEpoch()).toBe(1);
 
       // topic.c's very first-ever sample arrives late, still tagged epoch 0
-      // (queued behind the rewind broadcast) — it must not be admitted.
+      // (queued behind the rewind broadcast): it must not be admitted.
       store.ingest("topic.c", point(40, 111, { epoch: 0 }));
 
       expect(store.sample<number>("topic.c", token)).toBeUndefined();
@@ -180,7 +180,7 @@ describe("TimelineStore", () => {
     });
   });
 
-  describe("frame coherence — memoized reads (Defect 3)", () => {
+  describe("frame coherence: memoized reads (Defect 3)", () => {
     it("a mid-frame late sample below viewUt doesn't flip sample() until the next beginFrame()", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
@@ -193,7 +193,7 @@ describe("TimelineStore", () => {
       expect(firstRead).toBeUndefined(); // cold: nothing ingested for "b" yet
 
       // A late out-of-order sample arrives mid-frame, validAt (50) <= viewUt
-      // (100) — a fresh, unmemoized `at(100)` read WOULD now find it.
+      // (100): a fresh, unmemoized `at(100)` read WOULD now find it.
       store.ingest("b", point(50, 777));
 
       const secondRead = store.sample<number>("b", token);
@@ -229,13 +229,13 @@ describe("TimelineStore", () => {
       const staleToken = store.beginFrame(); // viewUt frozen at 10
       expect(store.sample<number>("x", staleToken)?.payload).toBe(1);
 
-      // Frame advances — staleToken is now from a superseded frame.
+      // Frame advances: staleToken is now from a superseded frame.
       store.ingest("x", point(20, 2));
       store.beginFrame(); // new frame, viewUt now 20
 
       // A caller that held onto staleToken across the frame boundary (a bug
       // on its own) can't use it to read a frozen-in-the-past viewUt
-      // forever — it gets routed to the current frame instead.
+      // forever: it gets routed to the current frame instead.
       const result = store.sample<number>("x", staleToken);
       expect(result?.payload).toBe(2);
     });
@@ -351,7 +351,7 @@ describe("TimelineStore", () => {
           },
         });
 
-        // Nothing ever ingested for "a" — cold start.
+        // Nothing ever ingested for "a": cold start.
         store.beginFrame();
 
         expect(store.sample<{ n: number }>("derived.notWhole")).toBeUndefined();
@@ -404,7 +404,7 @@ describe("TimelineStore", () => {
         expect(first?.payload.n).toBe(1);
         expect(computeSpy).toHaveBeenCalledTimes(1);
 
-        // Quickload rewind mid-frame — epoch bumps via an unrelated topic's
+        // Quickload rewind mid-frame: epoch bumps via an unrelated topic's
         // ingest, no new beginFrame() yet, so `token` is still current.
         store.ingest("unrelated", point(0, 0, { epoch: 1 }));
         expect(store.clock.getEpoch()).toBe(1);
@@ -492,13 +492,13 @@ describe("TimelineStore", () => {
   });
 });
 
-describe("TimelineStore.resolveSubscriptionTopics — derived-input ref-counting (M2 bridge task, Fix 1 item 3)", () => {
+describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M2 bridge task, Fix 1 item 3)", () => {
   function makeStore(): TimelineStore {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     return new TimelineStore(clock);
   }
 
-  it("a plain raw topic resolves to itself (identity — nothing to redirect)", () => {
+  it("a plain raw topic resolves to itself (identity, nothing to redirect)", () => {
     const store = makeStore();
     expect(store.resolveSubscriptionTopics("vessel.orbit")).toEqual([
       "vessel.orbit",
@@ -568,7 +568,7 @@ describe("TimelineStore.resolveSubscriptionTopics — derived-input ref-counting
   });
 });
 
-describe("TimelineStore.isUnresolvableField — phantom-field diagnostic (M2 bridge task, Fix 1 item 4)", () => {
+describe("TimelineStore.isUnresolvableField: phantom-field diagnostic (M2 bridge task, Fix 1 item 4)", () => {
   function makeStore(): TimelineStore {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
@@ -619,14 +619,14 @@ describe("TimelineStore.isUnresolvableField — phantom-field diagnostic (M2 bri
   });
 });
 
-describe("TimelineStore.isUnresolvableField — RAW-FIELD phantom-mapping diagnostic (M3 whole-branch review #2)", () => {
+describe("TimelineStore.isUnresolvableField: RAW-FIELD phantom-mapping diagnostic (M3 whole-branch review #2)", () => {
   /**
    * Before this fix, `isUnresolvableField` only guarded DERIVED-channel
-   * parents (`this.derivedChannels.has(parentTopic)` — see the describe
+   * parents (`this.derivedChannels.has(parentTopic)`; see the describe
    * block above). A raw record field-subtopic (e.g.
-   * `"vessel.resources.resources.<name>.current"` — `resolveRawFieldSubtopic`)
+   * `"vessel.resources.resources.<name>.current"`: `resolveRawFieldSubtopic`)
    * fell straight through that guard and always returned `false`, even once
-   * its RAW parent had arrived whole and genuinely lacked the field — so a
+   * its RAW parent had arrived whole and genuinely lacked the field, so a
    * wrong/drifted raw fieldpath served a permanent `undefined` with no
    * legacy fallback (`useDataValue.ts`'s belt-and-suspenders check never
    * fired for it). This mirrors the derived-channel behavior for the raw
@@ -695,7 +695,7 @@ describe("TimelineStore.isUnresolvableField — RAW-FIELD phantom-mapping diagno
         "vessel.resources.resources.LiquidFuel.current",
       ),
     ).toBe(false);
-    // Wrong/drifted resource name — a phantom mapping one layer deeper than
+    // Wrong/drifted resource name: a phantom mapping one layer deeper than
     // the raw-topic root, exactly the class of bug
     // `map-topic.rawFieldResolution.fixture.test.ts` guards against.
     expect(
@@ -713,7 +713,7 @@ describe("TimelineStore.isUnresolvableField — RAW-FIELD phantom-mapping diagno
   });
 });
 
-describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
+describe("lerpPayload: angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
   it("wraps a longitude field the SHORT way around the antimeridian, instead of lerping straight through the planet", () => {
     // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a
     // ~358-degree hop the naive numeric lerp takes through 0.
@@ -721,7 +721,7 @@ describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-revi
     const after = { longitude: -179 };
     const result = lerpPayload(before, after, 0.5);
     expect(result).toBeDefined();
-    // Naive lerp would give ~0 here — assert we're nowhere near that and
+    // Naive lerp would give ~0 here, assert we're nowhere near that and
     // instead land on the wrapped short-way midpoint (+-180).
     expect(Math.abs(result?.longitude ?? 0)).toBeGreaterThan(170);
   });
@@ -736,7 +736,7 @@ describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-revi
   });
 });
 
-describe("resolveSubscriptionTopics — dynamicWholeTopicPrefixes (Bug B fix)", () => {
+describe("resolveSubscriptionTopics: dynamicWholeTopicPrefixes (Bug B fix)", () => {
   const clock = () =>
     new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
   // Synthetic namespace so this mod-agnostic test names no mod token; the real

@@ -19,7 +19,7 @@ const MUN_DESCENT: SuicideBurnInputs = {
   totalMass: 1, // t -> aMax = 20 m/s^2
 };
 
-describe("solveSuicideBurn — full-vector Mun descent (spec Appendix A)", () => {
+describe("solveSuicideBurn: full-vector Mun descent (spec Appendix A)", () => {
   const s = solveSuicideBurn(MUN_DESCENT);
 
   it("is a solved vacuum descent", () => {
@@ -32,7 +32,7 @@ describe("solveSuicideBurn — full-vector Mun descent (spec Appendix A)", () =>
 
   it("splits velocity into vertical and (dominant) horizontal", () => {
     expect(s.verticalSpeed).toBeCloseTo(50, 5);
-    // sqrt(540^2 - 50^2) = 537.7 — horizontal is the one that kills you.
+    // sqrt(540^2 - 50^2) = 537.7: horizontal is the one that kills you.
     expect(s.horizontalSpeed).toBeCloseTo(537.7, 1);
   });
 
@@ -42,7 +42,7 @@ describe("solveSuicideBurn — full-vector Mun descent (spec Appendix A)", () =>
     expect(s.bestSpeedAtImpact).toBeCloseTo(327, 0);
   });
 
-  it("says ignite now — the burn no longer fits the remaining altitude", () => {
+  it("says ignite now: the burn no longer fits the remaining altitude", () => {
     // burnDistance = 540^2/(2*18.45) ~ 7902 m > 5000 m -> ignition altitude negative.
     expect(s.ignitionAltitude).not.toBeNull();
     expect(s.ignitionAltitude as number).toBeLessThan(0);
@@ -61,7 +61,7 @@ describe("solveSuicideBurn — full-vector Mun descent (spec Appendix A)", () =>
   });
 });
 
-describe("solveSuicideBurn — near-vertical hover descent", () => {
+describe("solveSuicideBurn: near-vertical hover descent", () => {
   // Small horizontal component: the burn fits, countdown is positive.
   const s = solveSuicideBurn({
     ...MUN_DESCENT,
@@ -78,7 +78,7 @@ describe("solveSuicideBurn — near-vertical hover descent", () => {
   });
 });
 
-describe("solveSuicideBurn — gating", () => {
+describe("solveSuicideBurn: gating", () => {
   it("not-descending when climbing", () => {
     const s = solveSuicideBurn({ ...MUN_DESCENT, verticalSpeed: 5 });
     expect(s.state).toBe("not-descending");
@@ -97,7 +97,7 @@ describe("solveSuicideBurn — gating", () => {
   });
 
   it("keeps impact numbers but nulls the burn when thrust cannot beat gravity", () => {
-    // aMax = 1 kN / 1 t = 1 m/s^2 < g (1.55) — cannot decelerate.
+    // aMax = 1 kN / 1 t = 1 m/s^2 < g (1.55), cannot decelerate.
     const s = solveSuicideBurn({ ...MUN_DESCENT, availableThrust: 1 });
     expect(s.state).toBe("vacuum-solved");
     expect(s.speedAtImpact).not.toBeNull();

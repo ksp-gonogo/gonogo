@@ -1,8 +1,8 @@
 import type { LogEntry } from "./types.js";
 
 /**
- * Fixed-size ring buffer for log entries. Captures every emitted entry
- * — including tag-gated entries the console suppresses — so operators can
+ * Fixed-size ring buffer for log entries. Captures every emitted entry,
+ * including tag-gated entries the console suppresses: so operators can
  * download a rich trail even when they didn't pre-enable the relevant tag.
  *
  * Eviction: oldest-first, soft-capped via shift() rather than a circular
@@ -13,7 +13,7 @@ import type { LogEntry } from "./types.js";
  * Persistence (opt-in): with a `persist` config the buffer mirrors itself
  * to sessionStorage on a 2 s interval and on `pagehide` so a hard refresh
  * preserves the trail. sessionStorage (not localStorage) is the right
- * scope — survives refresh in the same tab, doesn't bleed between tabs.
+ * scope: survives refresh in the same tab, doesn't bleed between tabs.
  */
 export interface PersistConfig {
   /** Storage key. */
@@ -39,12 +39,12 @@ export class LogRingBuffer {
     if (this.persist) {
       this.restore();
       const interval = persist?.flushIntervalMs ?? DEFAULT_FLUSH_MS;
-      // Lifetime-of-page interval — the ring buffer is owned by the
+      // Lifetime-of-page interval: the ring buffer is owned by the
       // ConsoleLogger singleton, so there's no dispose path; letting it
       // run for the page is fine.
       setInterval(() => this.flush(), interval);
       // pagehide is the most reliable "tab going away" event in browsers
-      // (fires for refresh, navigation away, and tab close — beforeunload
+      // (fires for refresh, navigation away, and tab close, beforeunload
       // doesn't always fire on mobile). Best-effort: skip wiring if we're
       // not in a browser-like global.
       const target = (
@@ -95,7 +95,7 @@ export class LogRingBuffer {
       this.dirty = false;
     } catch {
       // Quota exceeded is the only realistic failure here. Drop the older
-      // half and try once more — losing some history beats the buffer
+      // half and try once more: losing some history beats the buffer
       // never persisting again for the rest of the session.
       this.entries = this.entries.slice(Math.floor(this.entries.length / 2));
       try {
@@ -115,11 +115,11 @@ export class LogRingBuffer {
       if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) return;
-      // Trust the shape loosely — restore is best-effort; a malformed entry
+      // Trust the shape loosely: restore is best-effort; a malformed entry
       // still serialises back out fine because we never read fields here.
       this.entries = (parsed as LogEntry[]).slice(-this.capacity);
     } catch {
-      // Corrupt cache — drop it.
+      // Corrupt cache: drop it.
       try {
         this.persist.storage.removeItem(this.persist.key);
       } catch {

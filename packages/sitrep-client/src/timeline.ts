@@ -3,7 +3,7 @@ import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 /**
  * One point on a topic's `ClientTimeline`.
  *
- * `payload: null` is a tombstone (absence-as-data) — a
+ * `payload: null` is a tombstone (absence-as-data), a
  * confirmed "there is no value", distinct from `undefined` (never received).
  * `meta` is kept whole (not just the payload) because quality-picking,
  * subject-provenance guarding (`sameSubject`, later task), and staleness all
@@ -11,7 +11,7 @@ import type { Meta } from "@ksp-gonogo/sitrep-sdk";
  *
  * `epoch` is the client-side timeline-reset generation this point was
  * ingested under (mirrors `meta.timelineEpoch`, copied in verbatim by
- * whoever constructs the point — `ClientTimeline.append` trusts it, it does
+ * whoever constructs the point: `ClientTimeline.append` trusts it, it does
  * not re-derive it from `meta`).
  */
 export interface TimelinePoint<T = unknown> {
@@ -27,7 +27,7 @@ export interface ClientTimelineOptions {
    * being evicted automatically. Foundation-level default; a later task may
    * additionally call `evictBelow` with the real confirmed-edge-minus-delay
    * bound once a `ViewClock`/subscription option is wired in. Default is
-   * generous (5 minutes of UT) — tight enough to bound memory, loose enough
+   * generous (5 minutes of UT): tight enough to bound memory, loose enough
    * not to surprise a topic with no external eviction driver.
    */
   retentionSeconds?: number;
@@ -37,16 +37,16 @@ const DEFAULT_RETENTION_SECONDS = 300;
 
 /**
  * Per-topic buffer of delivered samples, insert-sorted by `validAt` (samples
- * can arrive out of order — per-topic delays differ once comms modelling
+ * can arrive out of order, per-topic delays differ once comms modelling
  * lands, and the server's `Archive.Record` makes the same allowance).
  *
  * Bounded to a retention window behind the latest ingested sample so a
- * long-running client doesn't grow this unboundedly — see
+ * long-running client doesn't grow this unboundedly: see
  * `ClientTimelineOptions.retentionSeconds` and `evictBelow`.
  *
  * Epoch-aware ("client-side ghost avoidance"): a
  * quickload rewind is detected per-topic from the incoming sample's own
- * `epoch` field (no separate reset message needed at this layer) —
+ * `epoch` field (no separate reset message needed at this layer),
  *
  * - a sample from a LOWER epoch than the timeline currently holds is a
  *   stale straggler (e.g. queued behind the rewind) and is discarded on
@@ -54,7 +54,7 @@ const DEFAULT_RETENTION_SECONDS = 300;
  * - a sample from a HIGHER epoch is a rewind: every existing point is
  *   dropped atomically and the timeline adopts the new epoch before the
  *   incoming point is appended. This is the client analog of the server's
- *   `Archive.ResetTimeline` — get it wrong and stale pre-rewind data can be
+ *   `Archive.ResetTimeline`: get it wrong and stale pre-rewind data can be
  *   read forever after the epoch bump (the "stale ghost" defect the server
  *   side already fixed).
  */
@@ -79,7 +79,7 @@ export class ClientTimeline<T = unknown> {
   /** Insert a delivered sample, sorted by `validAt` (tie-break: `meta.seq`). */
   append(point: TimelinePoint<T>): void {
     if (point.epoch < this.currentEpoch) {
-      // Stale-epoch straggler (queued behind a rewind broadcast) — never
+      // Stale-epoch straggler (queued behind a rewind broadcast); never
       // let pre-rewind data re-enter a post-rewind timeline.
       return;
     }
@@ -98,7 +98,7 @@ export class ClientTimeline<T = unknown> {
     this.autoEvict();
   }
 
-  /** Latest point with `validAt <= ut` (current epoch only — the buffer never holds stale-epoch points). */
+  /** Latest point with `validAt <= ut` (current epoch only, the buffer never holds stale-epoch points). */
   at(ut: number): TimelinePoint<T> | undefined {
     // points are sorted ascending by validAt; scan back from the end since
     // reads cluster near the live edge.
@@ -110,11 +110,11 @@ export class ClientTimeline<T = unknown> {
   }
 
   /**
-   * The pair of points straddling `ut` — `[before, after]` where
+   * The pair of points straddling `ut`, `[before, after]` where
    * `before.validAt <= ut < after.validAt`. Undefined when `ut` is before
    * the first point or at-or-after the last (nothing to interpolate
    * towards). A hold-last read (`at`) is what T2 consumers use; interpolation
-   * lands in a later task — this is the seam it will use.
+   * lands in a later task: this is the seam it will use.
    */
   straddle(ut: number): [TimelinePoint<T>, TimelinePoint<T>] | undefined {
     for (let i = 0; i < this.points.length - 1; i++) {
@@ -130,18 +130,18 @@ export class ClientTimeline<T = unknown> {
     return this.points.filter((p) => p.validAt >= fromUt && p.validAt <= toUt);
   }
 
-  /** The most recently ingested point — the confirmed edge for this topic. */
+  /** The most recently ingested point: the confirmed edge for this topic. */
   latest(): TimelinePoint<T> | undefined {
     return this.points[this.points.length - 1];
   }
 
   /**
-   * Proactively adopt a higher epoch with no incoming sample — a no-op if
+   * Proactively adopt a higher epoch with no incoming sample, a no-op if
    * `epoch` isn't actually higher than the one this timeline currently
    * holds. Used by `TimelineStore`'s cross-topic sweep (guards against
    * "the client ghost"): a rewind confirmed by one topic's
    * ingest doesn't, on its own, tell every OTHER topic's `ClientTimeline` to
-   * reset — each timeline only ever learns about a rewind from its own next
+   * reset: each timeline only ever learns about a rewind from its own next
    * `append`. Without this, a slow/change-gated topic that hasn't re-sampled
    * since the rewind keeps serving its dead-epoch points indefinitely. The
    * store calls this on every registered timeline the instant any topic's

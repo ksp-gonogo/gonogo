@@ -5,7 +5,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// <see cref="CommsHealth"/> — the comms core uplink's
+    /// <see cref="CommsHealth"/>: the comms core uplink's
     /// <see cref="ISitrepUplink.Health"/> state machine (mirrors
     /// <c>GonogoKerbcastUplink.Tests.KerbcastHealthTests</c>).
     /// </summary>

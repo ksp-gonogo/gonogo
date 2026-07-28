@@ -75,7 +75,7 @@ export type SerialAggregateStatus =
 
 /**
  * Aggregate connectivity across every registered web-serial device on this
- * screen. Virtual devices are excluded — they don't represent physical
+ * screen. Virtual devices are excluded, they don't represent physical
  * connections, so they'd skew the headline. Used by the joystick FAB to
  * surface a "controller dropped" hint without the user having to open the
  * Devices menu.
@@ -99,7 +99,7 @@ export function useSerialAggregateStatus(): SerialAggregateStatus {
 }
 
 /**
- * Reactive view of the pending-port-choice list — saved devices that need
+ * Reactive view of the pending-port-choice list: saved devices that need
  * the user to pick between two or more matching ports. Empty almost all
  * the time; only fills when autoReconnect found ambiguous candidates.
  */

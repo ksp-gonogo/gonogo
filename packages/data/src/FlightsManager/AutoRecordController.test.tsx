@@ -17,7 +17,7 @@ import {
 import { MissionHistorySource } from "./MissionHistorySource";
 
 /**
- * Coverage for the auto-record lifecycle — post flight-lifecycle spec
+ * Coverage for the auto-record lifecycle: post flight-lifecycle spec
  * (`docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`), boundaries
  * are delimited by the mod's own `flight.started`/`flight.ended` events
  * rather than the retired client-side `FlightDetector` heuristic. This
@@ -83,7 +83,7 @@ function buildRig(): Rig {
   return { transport, client, clock, store, missionStore, source, raf };
 }
 
-/** Emits a `flight.started` event, pins the shared clock's viewUt to `ut`, and flushes the coalesced beginFrame — one full "tick" of the stream. */
+/** Emits a `flight.started` event, pins the shared clock's viewUt to `ut`, and flushes the coalesced beginFrame, one full "tick" of the stream. */
 function start(
   rig: Rig,
   ut: number,
@@ -116,7 +116,7 @@ function end(rig: Rig, ut: number, flightId: string, reason = 0): void {
 /**
  * Emits a `vessel.identity` sample (feeds `StreamRecorder`'s own frame
  * capture) alongside a `flight.current` tick (the live frame-count
- * heartbeat `AutoRecordController` reads — see its own doc comment),
+ * heartbeat `AutoRecordController` reads; see its own doc comment),
  * mirroring how the mod publishes both every sample while a flight is
  * active. Flushes one coalesced frame.
  */
@@ -150,7 +150,7 @@ describe("AutoRecordController", () => {
   it("mounts without throwing when no TelemetryProvider is in the tree", () => {
     // The real-world case this guards: SitrepTelemetryProvider only mounts
     // a TelemetryProvider once the dev streaming flag is on AND its client
-    // has connected — release builds (and the pre-connect window in dev)
+    // has connected, release builds (and the pre-connect window in dev)
     // render `children` bare. AutoRecordController is mounted
     // unconditionally at MainScreen, so it must degrade to idle rather than
     // throw.

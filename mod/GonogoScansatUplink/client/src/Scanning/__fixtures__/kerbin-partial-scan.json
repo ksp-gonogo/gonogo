@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "SYNTHETIC, hand-generated (no live SCANsat capture available) — replace with a real capture when SCANsat is installed and a body scanned. Structured asymmetrically (south ice cap > north, west-hemisphere ocean, mountains patch, ~46% scanned swath) so an N/S axis flip or wrong longitude offset is visible in the render. Cell order idx=ilon*180+ilat per scanDecode."
+    "notes": "SYNTHETIC, hand-generated (no live SCANsat capture available), replace with a real capture when SCANsat is installed and a body scanned. Structured asymmetrically (south ice cap > north, west-hemisphere ocean, mountains patch, ~46% scanned swath) so an N/S axis flip or wrong longitude offset is visible in the render. Cell order idx=ilon*180+ilat per scanDecode."
   },
   "v.body": "Kerbin",
   "v.biome": "Highlands",

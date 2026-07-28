@@ -14,6 +14,7 @@ import {
   ScrollArea,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -45,8 +46,8 @@ const WIRE_SENSOR_TYPE: Record<SensorType, string> = {
 };
 
 /**
- * Parses the `science.sensors` whole-topic read — a bare
- * `SensorEntry[]` or `null`/`undefined` while not yet loaded — into a plain
+ * Parses the `science.sensors` whole-topic read, a bare
+ * `SensorEntry[]` or `null`/`undefined` while not yet loaded, into a plain
  * object array `readingFromObject`/`parseSensorReadings` can filter by
  * `type` and parse per sensor row. Returns `null` (not "no sensors") when
  * the topic hasn't resolved at all, so the per-type rows render as loading
@@ -69,7 +70,7 @@ function parseSensorEntryList(
  * `[names, values]` tuple, and falls back to "no sensors" when nothing
  * resolves to a real reading.
  *
- * Returns `"no sensors"` to mean "vessel has no sensor of this type" — the
+ * Returns `"no sensors"` to mean "vessel has no sensor of this type", the
  * UI distinguishes this from the loading state (`null`).
  */
 interface SensorReading {
@@ -89,7 +90,7 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
   }
   if (Array.isArray(raw)) {
     // Parallel-arrays tuple: `[partNames[], values[]]`. Telemachus uses this
-    // shape for `s.sensor.<type>` — names in slot 0, values in slot 1, by
+    // shape for `s.sensor.<type>`: names in slot 0, values in slot 1, by
     // index. Detect it before falling through to the heterogeneous-entries
     // path so we don't drop matched name/value pairs on the floor.
     if (
@@ -148,7 +149,7 @@ function readingFromObject(entry: unknown): SensorReading | null {
   if (value === null && typeof e.readout === "string") {
     // science.sensors' `readout` is KSP's own human-readable
     // sensor string (`ModuleEnviroSensor.readoutInfo`, e.g. "293.1K",
-    // "Off") rather than a raw number — pull the leading numeric value out
+    // "Off") rather than a raw number: pull the leading numeric value out
     // of it. A non-numeric readout (an inactive/disabled sensor) has no
     // match and the entry is dropped, same as Telemachus's old
     // disabled-sensor `0` handling elsewhere in this file.
@@ -186,7 +187,7 @@ export interface ParsedExperiment {
  *   ScienceCareerDataLinkHandler in the Telemachus fork).
  * - New SDK `science.experiments` (mapped onto this
  *   same widget-facing key via `map-topic.ts`): `{ partName, location,
- *   experimentId, subjectId, title, dataAmount, ... }` —
+ *   experimentId, subjectId, title, dataAmount, ... }`:
  *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,
  *   `partName` in place of `part`. `entry.partName ?? entry.part` below
  *   reads either wire's field name identically; every other field the
@@ -230,7 +231,7 @@ export interface ExperimentBreakdownEntry {
 }
 
 /**
- * Parses `sci.experimentBreakdown` — now mapped on the wire onto
+ * Parses `sci.experimentBreakdown`: now mapped on the wire onto
  * `science.experimentBreakdown` (`Sitrep.Host.ScienceViewProvider.
  * BuildExperimentBreakdown`), same field names as the old GonogoTelemetry
  * shape this parser was originally written against. Richer than
@@ -262,7 +263,7 @@ export function parseExperimentBreakdown(
         typeof e.remainingPotential === "number" ? e.remainingPotential : 0,
     });
   }
-  // Sort by remaining potential desc — subjects with the most science left
+  // Sort by remaining potential desc: subjects with the most science left
   // to extract come first; the operator focuses on what's worth recovering.
   out.sort((a, b) => b.remainingPotential - a.remainingPotential);
   return out;
@@ -289,7 +290,7 @@ function ScienceBenchComponent({
   const situation = vesselState?.situationName ?? undefined;
   const surface = useTelemetry("vessel.surface");
   const landedAt = surface?.landedAt;
-  // Live biome from `ScienceUtil.GetExperimentBiome` — the same source the
+  // Live biome from `ScienceUtil.GetExperimentBiome`: the same source the
   // game uses to attribute new experiments. Works in flight + space scenes
   // (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike `v.landedAt` which
   // is only populated on the surface. Falls back to landedAt when blank.
@@ -310,7 +311,7 @@ function ScienceBenchComponent({
   );
 
   // career.mode reads through useGameContext rather than a raw
-  // telemetry read — the stream carries it as the mod's GameMode enum
+  // telemetry read, the stream carries it as the mod's GameMode enum
   // ORDINAL (a number), not the legacy Telemachus string, and
   // useGameContext.careerMode already resolves both shapes to the same
   // display value.
@@ -319,7 +320,7 @@ function ScienceBenchComponent({
   const careerFunds = careerEconomy?.funds;
   const careerRep = careerEconomy?.reputation;
 
-  // Composite "where am I doing science" key — body / situation / biome.
+  // Composite "where am I doing science" key, body / situation / biome.
   // Debounced to suppress momentary biome flickers during low passes; the
   // NEW badge only lights on a settled change. Prefer the live biome over
   // `landedAt` because biome covers in-flight bands too.
@@ -353,7 +354,7 @@ function ScienceBenchComponent({
 
   const sensors: Array<[SensorType, unknown]> = SENSOR_TYPES.map((type) => [
     type,
-    // null (not an empty array) while the list hasn't resolved — the parser
+    // null (not an empty array) while the list hasn't resolved, the parser
     // renders that as loading rather than a false "no sensors".
     sensorEntries
       ? sensorEntries.filter(
@@ -367,7 +368,7 @@ function ScienceBenchComponent({
   const experiments = parseExperiments(sciExperimentsRaw);
   const breakdown = parseExperimentBreakdown(sciBreakdownRaw);
   // sci.count/sci.dataAmount stay gapped on the wire (no
-  // pre-aggregated field) — derive both client-side from the same
+  // pre-aggregated field): derive both client-side from the same
   // already-migrated experiments array instead of a separate read.
   const sciCount = experiments ? experiments.length : undefined;
   const sciDataAmount = experiments
@@ -375,7 +376,7 @@ function ScienceBenchComponent({
     : undefined;
   const showCareer = careerMode !== "Unknown" && careerMode !== "SANDBOX";
 
-  // Selective rendering — situation pill always; supplementary sections
+  // Selective rendering: situation pill always; supplementary sections
   // drop bottom-up as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 10;
@@ -401,7 +402,7 @@ function ScienceBenchComponent({
         >
           <SituationText>
             {body && situation
-              ? `${situation}${situationLocale ? ` — ${situationLocale}` : ""}`
+              ? `${situation}${situationLocale ? `: ${situationLocale}` : ""}`
               : "Awaiting situation telemetry"}
           </SituationText>
           {showNew && <NewBadge>NEW</NewBadge>}
@@ -482,7 +483,7 @@ interface AggregatedReading {
  * One chip per unique part name. Telemachus's `s.sensor.<type>` payload
  * has been observed emitting more entries than there are physical sensors
  * (a vessel with 3 thermometers can produce a list ~10× longer), so the
- * raw count is unreliable — we just average the readings within a part
+ * raw count is unreliable, we just average the readings within a part
  * and surface a single value. Different parts stay on separate rows so
  * genuine readings (e.g. a heat-shielded sensor vs an exposed one) aren't
  * folded together.
@@ -511,7 +512,7 @@ function renderSensorValues(
   parsed: SensorParseResult,
   type: SensorType,
 ): React.ReactNode {
-  if (parsed === null) return <SensorMuted>—</SensorMuted>;
+  if (parsed === null) return <SensorMuted>{NULL_DISPLAY}</SensorMuted>;
   if (parsed === "no sensors") return <SensorMuted>None installed</SensorMuted>;
   if (parsed.length === 0) return <SensorMuted>None installed</SensorMuted>;
   return aggregateByPart(parsed).map((agg) => (
@@ -567,7 +568,7 @@ function ExperimentList({
       <Muted>
         {sciCount === 0
           ? "No experiments aboard."
-          : `${String(sciCount)} record(s) — details unavailable.`}
+          : `${String(sciCount)} record(s): details unavailable.`}
       </Muted>
     );
   }
@@ -578,7 +579,9 @@ function ExperimentList({
         <ExperimentRow key={e.subjectId}>
           <ExpSubject>{e.title}</ExpSubject>
           <ExpData>
-            {e.dataAmount === null ? "—" : `${e.dataAmount.toFixed(1)} mits`}
+            {e.dataAmount === null
+              ? NULL_DISPLAY
+              : `${e.dataAmount.toFixed(1)} mits`}
           </ExpData>
         </ExperimentRow>
       ))}
@@ -587,7 +590,7 @@ function ExperimentList({
 }
 
 function formatNumber(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  if (typeof value !== "number" || !Number.isFinite(value)) return NULL_DISPLAY;
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
   return value.toFixed(0);
@@ -793,7 +796,7 @@ registerComponent<ScienceBenchConfig>({
   id: "science-bench",
   name: "Science Bench",
   description:
-    "Science officer station — current body / situation / biome with a NEW flash on transition, live readings from temp/pres/grav/acc sensors, an experiment-data inventory, and a career-mode strip for funds / reputation / science points.",
+    "Science officer station: current body / situation / biome with a NEW flash on transition, live readings from temp/pres/grav/acc sensors, an experiment-data inventory, and a career-mode strip for funds / reputation / science points.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },

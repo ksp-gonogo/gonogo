@@ -16,7 +16,7 @@ import { KeplerPeriodComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearBodies()
 // notifies the body-registry subscribers. RTL auto-cleanup runs after this
-// file's afterEach, so it can't be relied on to unmount first — clearBodies()
+// file's afterEach, so it can't be relied on to unmount first, clearBodies()
 // firing on a still-mounted widget is a state update outside act(), the
 // documented anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -36,10 +36,10 @@ function unmountAll() {
  * KeplerPeriod's stream proof. When this widget was first authored
  * its two `useDataValue` reads (`v.body`, `o.referenceBody`) were declared
  * GAPS, so it stayed 100% legacy and this test only asserted a stream-safe
- * no-op. Both are now un-gapped onto SDK-derived display maps —
+ * no-op. Both are now un-gapped onto SDK-derived display maps,
  * `v.body` -> `vessel.state.parentBodyName`, `o.referenceBody` ->
  * `vessel.state.referenceBodyName` (index→name resolution against
- * `system.bodies`, see `vessel-state.ts`) — so the reads are now migrated to
+ * `system.bodies`, see `vessel-state.ts`): so the reads are now migrated to
  * `useTelemetry` and genuinely ride the stream.
  *
  * This test runs the widget OFF THE REAL PIPELINE (`TelemetryProvider` +
@@ -48,12 +48,12 @@ function unmountAll() {
  * through the derived channel: emitting a body the stock registry doesn't
  * know surfaces the widget's "Unknown body" degraded notice, which fires
  * ONLY when `bodyName` (the streamed `parentBodyName`) is defined but
- * `getBody` can't resolve it — a positive assertion that the value reached
+ * `getBody` can't resolve it, a positive assertion that the value reached
  * the widget off the stream.
  *
  * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs even
  * though only `vessel.orbit`/`vessel.identity`/`system.bodies` are consulted
- * here — the carried-channels gate is parent-channel-scoped, not per-field
+ * here: the carried-channels gate is parent-channel-scoped, not per-field
  * (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
  *
  * The graph's `o.sma`/`o.period` series flow through `GraphView` ->
@@ -81,7 +81,7 @@ const VESSEL_STATE_INPUTS = [
   "vessel.propulsion",
 ];
 
-describe("KeplerPeriod — reads body names off the stream (R6 Wave 1)", () => {
+describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
   it("resolves parentBodyName/referenceBodyName from the derived channel and surfaces the unknown-body notice", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -98,7 +98,7 @@ describe("KeplerPeriod — reads body names off the stream (R6 Wave 1)", () => {
 
     // GraphView's title always renders regardless of data state.
     expect(screen.getByText("KEPLER PERIOD")).toBeTruthy();
-    // Nothing arrived yet — neither degraded notice fires.
+    // Nothing arrived yet: neither degraded notice fires.
     expect(screen.queryByText(/Unknown body/)).toBeNull();
 
     // Emit the derived channel's inputs. `referenceBodyIndex` /

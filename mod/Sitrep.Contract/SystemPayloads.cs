@@ -6,20 +6,20 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>system.bodies</c> channel payload — the celestial-body tree,
+/// The <c>system.bodies</c> channel payload: the celestial-body tree,
 /// produced by <c>Sitrep.Host.SystemViewProvider.BuildSystemBodies</c>.
 /// This type MIRRORS that provider's existing hand-built serialized shape
 /// EXACTLY (a wrapper object <c>{ "bodies": [ ... ] }</c>); it is a
 /// typing/codegen marker so a widget resolves a real payload type instead of
 /// <c>unknown</c>, and does NOT participate in serialization (the provider
-/// still emits the live value tree that <c>JsonWriter</c> walks — see
+/// still emits the live value tree that <c>JsonWriter</c> walks; see
 /// <see cref="SitrepTopicAttribute"/>). The whole payload is <c>null</c> (not
-/// an empty-bodies object) when no sample has landed yet — the provider's
+/// an empty-bodies object) when no sample has landed yet, the provider's
 /// "no data yet" vs. "zero bodies" distinction.
 ///
 /// <para>Deliberately carries NO <c>Meta</c> field: unlike the
 /// <c>vessel.*</c> family, this <c>system</c>-domain snapshot has no
-/// per-payload provenance — its <see cref="Meta"/> rides the envelope
+/// per-payload provenance: its <see cref="Meta"/> rides the envelope
 /// (<c>StreamData.Meta</c>), never the payload body.</para>
 /// </summary>
 [SitrepContract]
@@ -34,12 +34,12 @@ public class SystemBodies
 
 /// <summary>
 /// One celestial body in the <see cref="SystemBodies"/> tree. Mirrors the
-/// exact per-body dict <c>SystemViewProvider.BuildBody</c> emits — same field
+/// exact per-body dict <c>SystemViewProvider.BuildBody</c> emits: same field
 /// names, casing and nullability. Kills the Telemachus orbit warts at the
 /// source: an explicit parent-index tree (no flat <c>b.*[idx]</c> keys), no
 /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c> field
 /// (Telemachus's <c>OrbitPatchJSONFormatter</c> mis-assigns that key the
-/// body's eccentricity — a confirmed copy-paste bug).
+/// body's eccentricity: a confirmed copy-paste bug).
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -50,7 +50,7 @@ public class BodyEntry
     /// <summary>Body name (e.g. "Kerbin"); null when the live game hasn't populated it.</summary>
     public string? Name { get; set; }
 
-    /// <summary>This body's position in the list — stable per session. Always present (the provider falls back to the list index when the raw field is missing), never null.</summary>
+    /// <summary>This body's position in the list: stable per session. Always present (the provider falls back to the list index when the raw field is missing), never null.</summary>
     public int Index { get; set; }
 
     /// <summary>Index of the body this one orbits; null ONLY for the root star (no parent), never a sentinel like -1.</summary>
@@ -59,14 +59,14 @@ public class BodyEntry
     /// <summary>Mean radius, metres; null when the live game doesn't have it yet (never 0/-1 as a stand-in).</summary>
     public double? Radius { get; set; }
 
-    /// <summary>Orbital elements; null ONLY for the root star (orbit is meaningless without a parent) — the "sun has a bogus orbit" wart suppressed at the source.</summary>
+    /// <summary>Orbital elements; null ONLY for the root star (orbit is meaningless without a parent), the "sun has a bogus orbit" wart suppressed at the source.</summary>
     public OrbitEntry? Orbit { get; set; }
 
     /// <summary>
     /// Standard gravitational parameter μ = G·M, m³/s² (KSP
     /// <c>CelestialBody.gravParameter</c>). The single compute primitive the
     /// client derives mass (μ/G), surface gravity (μ/r²), escape velocity
-    /// (√(2μ/r)) and orbital period (2π√(a³/μ_parent)) from — so none of those
+    /// (√(2μ/r)) and orbital period (2π√(a³/μ_parent)) from: so none of those
     /// ride the wire. Null when the live game hasn't populated it.
     /// </summary>
     public double? GravParameter { get; set; }
@@ -80,7 +80,7 @@ public class BodyEntry
     /// <summary>Whether the body is tidally locked to its parent (<c>CelestialBody.tidallyLocked</c>); null when absent.</summary>
     public bool? TidallyLocked { get; set; }
 
-    /// <summary>Atmosphere descriptor; null when the body has no atmosphere (<c>!CelestialBody.atmosphere</c>) — the "airless vs. no-data" distinction the whole payload's null-not-sentinel rule preserves.</summary>
+    /// <summary>Atmosphere descriptor; null when the body has no atmosphere (<c>!CelestialBody.atmosphere</c>), the "airless vs. no-data" distinction the whole payload's null-not-sentinel rule preserves.</summary>
     public AtmosphereEntry? Atmosphere { get; set; }
 
     /// <summary>Whether the body has a liquid ocean (<c>CelestialBody.ocean</c>); null when absent.</summary>
@@ -89,15 +89,15 @@ public class BodyEntry
     /// <summary>KSP's per-body flavour text (<c>CelestialBody.bodyDescription</c>); null when absent. May be a raw <c>#autoLOC…</c> localization tag the client suppresses.</summary>
     public string? Description { get; set; }
 
-    // Deliberately NO "eccentricAnomaly" field — see the class doc.
+    // Deliberately NO "eccentricAnomaly" field: see the class doc.
     // Deliberately NO raw mass / surfaceGravity / escapeVelocity / period /
-    // trueAnomaly / rotates / hillSphere — all derived client-side from
+    // trueAnomaly / rotates / hillSphere: all derived client-side from
     // GravParameter + Radius + Orbit, so they never waste wire bytes.
 }
 
 /// <summary>
 /// A body's atmosphere, present on a <see cref="BodyEntry"/> only when the body
-/// actually has one (null otherwise — never an all-null placeholder, matching
+/// actually has one (null otherwise; never an all-null placeholder, matching
 /// the payload's null-not-sentinel discipline). Mirrors the exact nested dict
 /// <c>SystemViewProvider.BuildAtmosphere</c> emits.
 /// </summary>
@@ -122,7 +122,7 @@ public class AtmosphereEntry
 /// <c>SystemViewProvider.BuildOrbit</c> (present on every
 /// <see cref="BodyEntry"/> except the root star). Each element is
 /// independently nullable: KSP's own <c>lan</c>/<c>argPe</c> are NaN for a
-/// near-equatorial/near-circular orbit — a routine case — and the provider
+/// near-equatorial/near-circular orbit (a routine case) and the provider
 /// maps that (and any genuinely-absent value) to null via the shared
 /// non-finite-is-absent rule, never a NaN token on the wire.
 ///
@@ -161,13 +161,13 @@ public class OrbitEntry
 }
 
 /// <summary>
-/// The <c>system.vessels</c> channel payload — the full known-vessel roster
+/// The <c>system.vessels</c> channel payload: the full known-vessel roster
 /// (every vessel, not just the active one, for TargetPicker-style "what could
 /// I target" listings), produced by
 /// <c>SystemViewProvider.BuildSystemVessels</c>. Mirrors that provider's
 /// existing serialized shape EXACTLY (a wrapper object
 /// <c>{ "vessels": [ ... ] }</c>). The whole payload is <c>null</c> when
-/// nothing is loaded (main menu) — distinct from an empty roster
+/// nothing is loaded (main menu), distinct from an empty roster
 /// (<c>{ "vessels": [] }</c>) when the game genuinely reports zero vessels.
 /// Same <c>system</c>-domain convention as <see cref="SystemBodies"/>: no
 /// per-payload <c>Meta</c> (it rides the envelope).
@@ -184,8 +184,8 @@ public class SystemVessels
 
 /// <summary>
 /// Roster-level control-link tier for <see cref="VesselRosterEntry.CommsControlSource"/>.
-/// Deliberately its OWN enum, not a reuse of <see cref="Sitrep.Contract.CommsControlSource"/>
-/// — that type belongs to the active-vessel-only <c>comms.*</c> elected-backend
+/// Deliberately its OWN enum, not a reuse of <see cref="Sitrep.Contract.CommsControlSource"/>,
+/// that type belongs to the active-vessel-only <c>comms.*</c> elected-backend
 /// family (<see cref="ICommsBackend"/>/<c>CommsElection</c>), which this roster
 /// read does not touch (see <see cref="VesselRosterEntry"/>'s own doc comment).
 /// The three tiers happen to mirror stock <c>Vessel.ControlLevel</c>'s
@@ -214,7 +214,7 @@ public enum RosterCommsControlSource
 #endif
 public class VesselRosterEntry
 {
-    /// <summary>Stable subject id (KSP vessel GUID). Always present — entries without one are dropped.</summary>
+    /// <summary>Stable subject id (KSP vessel GUID). Always present, entries without one are dropped.</summary>
     public string VesselId { get; set; } = "";
 
     /// <summary>Display name; defaults to the empty string, never null.</summary>
@@ -232,10 +232,10 @@ public class VesselRosterEntry
     /// <summary>
     /// Kerbals aboard right now. Read off the LOADED vessel's crew when
     /// loaded, off <c>ProtoVessel</c> otherwise (<c>KspHost.BuildVesselRosterEntry</c>'s
-    /// doc comment) — so an unloaded background vessel still reports a real
+    /// doc comment): so an unloaded background vessel still reports a real
     /// count. Null only if the read itself failed (the producer omits the raw
     /// key rather than fabricate a zero); never used to distinguish "probe"
-    /// from "unknown" — that is <see cref="CrewCount"/> == 0 vs. null.
+    /// from "unknown", that is <see cref="CrewCount"/> == 0 vs. null.
     /// </summary>
     public int? CrewCount { get; set; }
 
@@ -244,14 +244,14 @@ public class VesselRosterEntry
 
     /// <summary>
     /// Whether stock CommNet reports a live control link home for this
-    /// vessel right now — a raw <c>Vessel.connection.IsConnected</c> read
+    /// vessel right now: a raw <c>Vessel.connection.IsConnected</c> read
     /// against EVERY roster vessel (loaded or not), NOT the active-vessel-only
     /// elected-backend <c>comms.*</c> family. Null when CommNet has no
-    /// connection object to read for this vessel this tick — an honest
+    /// connection object to read for this vessel this tick, an honest
     /// "unknown", not a fabricated "no link". Two distinct causes collapse to
     /// the same null: a transient scene-transition race (rare), and a
     /// PERMANENT, by-design absence for <c>Debris</c>/<c>SpaceObject</c>
-    /// (asteroids/comets)/<c>Unknown</c> vessel types — verified against
+    /// (asteroids/comets)/<c>Unknown</c> vessel types: verified against
     /// <c>CommNet.CommNetVessel.OnStart</c>, which never assigns
     /// <c>vessel.connection</c> for those three types. A debris or asteroid
     /// roster entry is expected to carry null here on every sample, not
@@ -262,7 +262,7 @@ public class VesselRosterEntry
     /// <summary>
     /// The same read's control-level tier, for the roster's connected/partial/
     /// none link-quality tag. Null under the same "nothing to read" condition
-    /// as <see cref="CommsConnected"/> — including the permanent
+    /// as <see cref="CommsConnected"/>: including the permanent
     /// Debris/SpaceObject/Unknown-vessel-type case documented there.
     /// </summary>
     public RosterCommsControlSource? CommsControlSource { get; set; }

@@ -10,7 +10,7 @@ import { DeployedScienceComponent } from "./index";
  * grouped-base shape compared against `science.deployed`'s flat
  * per-experiment shape); with the widget now reading its whole state off the
  * canonical `science.deployed` + `game.dlc` Topics, there is no legacy read
- * path left to compare against — same "the legacy leg is gone" story as
+ * path left to compare against: same "the legacy leg is gone" story as
  * `ScienceOfficer/dual-run.test.tsx`'s own doc comment. What remains proves
  * the widget renders the full two-experiment Mun cluster correctly off the
  * real stream pipeline, from the flat `science.deployed` wire shape grouped by
@@ -19,7 +19,7 @@ import { DeployedScienceComponent } from "./index";
  * new wire, only the coarse `powerState` enum), progress derived straight from
  * `scienceCompletedPercentage`.
  */
-describe("DeployedScience — stream render golden (delay=0)", () => {
+describe("DeployedScience: stream render golden (delay=0)", () => {
   it("renders the full deployed-cluster state off the stream pipeline", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["science.deployed", "game.dlc"],

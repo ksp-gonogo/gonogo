@@ -12,7 +12,7 @@ import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 
 /**
- * Station-link FAB — shows the host's peer ID + a QR code so a station
+ * Station-link FAB: shows the host's peer ID + a QR code so a station
  * screen can be pointed at this main screen. Sits above the FlightsFab
  * at bottom: 144px and opens a modal with the link details.
  */
@@ -36,7 +36,7 @@ export function StationLinkFab() {
 }
 
 /**
- * Canonical deployed station URL — used when the host is running on a
+ * Canonical deployed station URL: used when the host is running on a
  * local-dev origin (localhost / LAN IP) so the QR a phone scans points
  * at the HTTPS GitHub Pages build instead of an unreachable
  * `http://192.168.x.x:5173`. Forks can override via VITE_STATION_URL.
@@ -53,11 +53,11 @@ function isLocalDevOrigin(origin: string): boolean {
  * Build the absolute station URL for this host.
  *
  * Priority:
- *  1. `VITE_STATION_URL` if set — explicit override for forks pointing at
+ *  1. `VITE_STATION_URL` if set: explicit override for forks pointing at
  *     their own deploy.
- *  2. Page origin — when the host page itself is loaded from an HTTPS
+ *  2. Page origin: when the host page itself is loaded from an HTTPS
  *     deploy, that's the right base for stations too.
- *  3. `PROJECT_STATION_URL` — fallback when the host is on a local-dev
+ *  3. `PROJECT_STATION_URL`: fallback when the host is on a local-dev
  *     origin (localhost / LAN IP). Stations on phones / friends'
  *     machines can't reach those, so the QR points at the canonical
  *     deploy instead.
@@ -82,11 +82,11 @@ function buildStationUrl(code: string): string {
 function StationLinkPanel() {
   // The modal portal renders outside the PeerHostProvider subtree, so the
   // usePeerHost() context hook would always return null in here. Subscribe
-  // to the service singleton directly — it already drives the provider's
+  // to the service singleton directly: it already drives the provider's
   // state, so this sees the same value without relying on React context.
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
   // The operator-facing 4-char share code. Stable across refreshes; only a
-  // regenerate changes it. Both the QR and the typed value are this code —
+  // regenerate changes it. Both the QR and the typed value are this code,
   // the station derives the broker peer id (`gonogo-host-<code>`) from it.
   const [shareCode, setShareCode] = useState(peerHostService.shareCode);
   // True while the host is retry-reclaiming its derived id after an unclean
@@ -105,7 +105,7 @@ function StationLinkPanel() {
   }, []);
 
   // While reclaiming the broker hasn't confirmed the derived id (peerId is
-  // null), but the share code IS valid — show it with a clear status so the
+  // null), but the share code IS valid, show it with a clear status so the
   // operator can already share the link; stations retry until the host's back.
   if (!peerId && !reclaiming) {
     return <Empty>Connecting to peer network...</Empty>;
@@ -117,7 +117,7 @@ function StationLinkPanel() {
     <Wrap>
       {reclaiming && (
         <StatusIndicator tone="info" live>
-          Reclaiming your share code after an unexpected restart — stations
+          Reclaiming your share code after an unexpected restart, stations
           reconnect automatically.
         </StatusIndicator>
       )}
@@ -136,7 +136,7 @@ function StationLinkPanel() {
       </QrRow>
       <TurnStatus />
       <Hint>
-        Scan to open <code>/station</code> on another device — it&apos;ll
+        Scan to open <code>/station</code> on another device, it&apos;ll
         auto-connect to this host. Or copy the link above.
       </Hint>
       <RegenerateRow />
@@ -179,7 +179,7 @@ function RegenerateRow() {
       )}
       {phase === "confirming" && (
         <GhostButton type="button" onClick={run}>
-          Confirm — old code stops working
+          Confirm: old code stops working
         </GhostButton>
       )}
       {phase === "running" && (
@@ -188,7 +188,7 @@ function RegenerateRow() {
         </GhostButton>
       )}
       <RegenerateHint>
-        Mints a fresh share code. The old code stops working — anyone who had it
+        Mints a fresh share code. The old code stops working, anyone who had it
         (including connected stations once they drop) needs the new code shown
         above.
       </RegenerateHint>
@@ -202,7 +202,7 @@ function RegenerateRow() {
  * trying to share the link with a friend whether their relay is
  * actually reachable from outside their network.
  *
- * Re-runs every 30 s while the modal is open — picks up router or
+ * Re-runs every 30 s while the modal is open; picks up router or
  * relay restarts without spam, and gives the user a fresh check after
  * they fix a port-forward without having to close + reopen the modal.
  */
@@ -249,17 +249,17 @@ function describeProbeFailure(
   r: Extract<TurnProbeResult, { ok: false }>,
 ): string {
   if (r.reason === "no-ice-servers") {
-    return "No TURN configured — off-network stations won't be able to connect.";
+    return "No TURN configured: off-network stations won't be able to connect.";
   }
   if (r.reason === "errored") {
-    return "TURN probe errored — see logs (peer:turn-probe).";
+    return "TURN probe errored: see logs (peer:turn-probe).";
   }
-  // timeout — most likely cause is router port-forward missing.
+  // timeout: most likely cause is router port-forward missing.
   if (r.errors.length > 0) {
     const first = r.errors[0];
     return `TURN unreachable (${first.url} → ${first.code}). Check router port-forward for UDP 3478 + 49160-49200.`;
   }
-  return "TURN unreachable — relay never returned a relay candidate. Check router port-forward for UDP 3478 + 49160-49200.";
+  return "TURN unreachable: relay never returned a relay candidate. Check router port-forward for UDP 3478 + 49160-49200.";
 }
 
 const Wrap = styled.div`

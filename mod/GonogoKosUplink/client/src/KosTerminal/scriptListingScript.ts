@@ -2,7 +2,7 @@
  * Kerboscript for the `/`-script picker's live drive listing
  * (kos-terminal-script-picker, hub-wizard-kos Phase 1 increment (b)).
  * Resurrected VERBATIM from the deleted KosFiles widget (`git show
- * 855bd024^:mod/GonogoKosUplink/client/src/KosFiles/filesScript.ts`) — same
+ * 855bd024^:mod/GonogoKosUplink/client/src/KosFiles/filesScript.ts`): same
  * [KOSDATA] contract, same two-mode dispatcher. The picker only ever
  * dispatches the "list" op; "read" is kept intact rather than trimmed, to
  * stay a faithful resurrection instead of a re-derived rewrite of a script
@@ -19,10 +19,10 @@
  *   [KOSDATA]op=read;path=<absolute>;contents="<json-escaped string>"[/KOSDATA]
  *
  * Each listing entry: `{ name, size, isDir }`. `isDir` lets a caller
- * recurse into subdirectories (the picker itself doesn't — see
+ * recurse into subdirectories (the picker itself doesn't; see
  * `useKosScriptListing`'s doc comment).
  *
- * Escaping notes — `;` is the [KOSDATA] field delimiter, so file contents
+ * Escaping notes: `;` is the [KOSDATA] field delimiter, so file contents
  * containing `;` would otherwise truncate. We escape `;` as `;` along
  * with the usual JSON specials (`\\`, `\"`, `\n`, `\r`, `\t`). The caller's
  * `JSON.parse` decodes everything back transparently.
@@ -34,7 +34,7 @@
  * kOS global / suffix and shadowing it has a history of confusing the
  * parser depending on context.
  */
-export const KOS_FILES_SCRIPT = `// gonogo kos-files — save to your kOS Archive volume (default
+export const KOS_FILES_SCRIPT = `// gonogo kos-files, save to your kOS Archive volume (default
 // 0:/widget_scripts/files.ks).
 PARAMETER op IS "list".
 PARAMETER pathArg IS "0:".
@@ -44,7 +44,7 @@ LOCAL backslash IS CHAR(92).
 
 IF op = "list" {
   // Normalize bare volume names to volume-rooted paths. CD doesn't accept
-  // \`Archive\` on its own — that's a volume identifier, not a path —
+  // \`Archive\` on its own (that's a volume identifier, not a path)
   // but \`Archive:/\` works (it switches volumes and CDs to root).
   // Inputs containing "/" are assumed already volume-qualified.
   LOCAL navPath IS pathArg.
@@ -66,7 +66,7 @@ IF op = "list" {
     SET first TO FALSE.
     LOCAL size IS 0.
     IF f:HASSUFFIX("SIZE") { SET size TO f:SIZE. }
-    // VolumeItems expose :ISFILE — false means a directory. Older kOS
+    // VolumeItems expose :ISFILE: false means a directory. Older kOS
     // versions may not have the suffix, in which case we conservatively
     // treat everything as a file.
     LOCAL isDir IS FALSE.
@@ -86,7 +86,7 @@ IF op = "list" {
     LOCAL f IS OPEN(pathArg).
     LOCAL contents IS f:READALL:STRING.
 
-    // Bulk REPLACE — quadratic-ish but fine for small scripts. Order
+    // Bulk REPLACE, quadratic-ish but fine for small scripts. Order
     // matters: backslash first, before we add new backslashes for other
     // escapes. \\u003b for ';' so the [KOSDATA] field-delimiter doesn't
     // truncate the value.

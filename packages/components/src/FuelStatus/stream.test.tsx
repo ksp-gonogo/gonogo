@@ -8,34 +8,34 @@ import { FuelStatusComponent } from "./index";
  * The stream test-adapter proof for FuelStatus (mirrors
  * `WarpControl/stream.test.tsx`, the pilot): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` — no legacy `DataSource` is registered anywhere in this
+ * `StubTransport`: no legacy `DataSource` is registered anywhere in this
  * file.
  *
  * FuelStatus's keys split MAPPED / GAPPED (`map-topic.ts`):
  * - MAPPED: `v.currentStage` -> `vessel.structure.currentStage`;
  *   `r.resource[X]`/`r.resourceMax[X]` (vessel-TOTAL) -> `vessel.resources.
- *   resources.<X>.{current,max}` — but only 3 of the 5 catalogued resources
+ *   resources.<X>.{current,max}`: but only 3 of the 5 catalogued resources
  *   (MonoPropellant, XenonGas, ElectricCharge) are read at `scope:"vessel"`
  *   by `useResourceReading`; LiquidFuel/Oxidizer read the STAGE-scoped
  *   variant instead (below). Also MAPPED:
  *   `dv.stages` -> whole-topic `dv.stages` (a `StageDeltaVEntry[]`, a
- *   DIFFERENT field-name shape to the legacy `StageInfo` — `parseStages` in
+ *   DIFFERENT field-name shape to the legacy `StageInfo`, `parseStages` in
  *   `index.tsx` reconciles it, exercised below) and `dv.stageCount`/
  *   `dv.totalDV*`/`dv.totalBurnTime` -> raw-field walks on the sibling
  *   `dv.summary` topic.
- * - GAPPED (stays legacy forever until a gap lands — not exercised here
+ * - GAPPED (stays legacy forever until a gap lands, not exercised here
  *   since no legacy source exists in this file): `r.resourceCurrent(Max)[X]`
- *   (STAGE-scoped, which is what LiquidFuel/Oxidizer actually read) — so
+ *   (STAGE-scoped, which is what LiquidFuel/Oxidizer actually read), so
  *   those two resources render as absent (`max > 0` filter drops them from
  *   the list) even once everything else streams.
  *
  * `vessel.resources`'s wire shape is `{ resources: { <name>: {current,
- * max} }, meta }` — the extra nesting that fix added to
+ * max} }, meta }`: the extra nesting that fix added to
  * `mapTopic`'s resource regex (see `map-topic.ts`'s doc comment); this
  * fixture reproduces that real shape rather than the flatter one a naive
  * reading of the old (buggy) mapping would suggest.
  */
-describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* migration)", () => {
+describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migration)", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.structure", "vessel.resources"],
@@ -50,12 +50,12 @@ describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* mi
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — every mapped/gapped key is undefined, so no
+    // Nothing arrived yet: every mapped/gapped key is undefined, so no
     // resource row or stage subtitle has anything to render.
     expect(screen.getByText("FUEL · ΔV")).toBeTruthy();
     expect(screen.queryByText(/^Stage /)).not.toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.structure")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.resources")).toBe(true);
@@ -73,7 +73,7 @@ describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* mi
 
     await waitFor(() => expect(screen.getByText("Stage 2")).toBeTruthy());
     // MonoPropellant (RCS) and ElectricCharge (Power) both stream a
-    // positive max and render; XenonGas's max === 0 so it's filtered out —
+    // positive max and render; XenonGas's max === 0 so it's filtered out,
     // exercising the widget's own "resources absent from the vessel are
     // skipped" rule off REAL streamed data, not a fixture shortcut.
     expect(screen.getByText("RCS")).toBeTruthy();
@@ -81,7 +81,7 @@ describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* mi
     // formatAmount: <100 -> 2 decimals, >=100 -> 1 decimal.
     expect(screen.getByText("30.00 / 30.00")).toBeTruthy();
     expect(screen.getByText("150.0 / 200.0")).toBeTruthy();
-    // LiquidFuel/Oxidizer read the GAPPED stage-scoped keys — with no
+    // LiquidFuel/Oxidizer read the GAPPED stage-scoped keys, with no
     // legacy source in this file they never arrive, so max stays 0 and
     // they're filtered out of the resource list exactly like XenonGas.
     expect(screen.queryByText("Liquid Fuel")).not.toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("FuelStatus — genuinely runs off the stream (M3 batch 1 + P4a dv.* mi
         totalDvActual: 3900,
         totalBurnTime: 125,
       });
-      // The mod's real StageDeltaVEntry field names (contract.ts:491) —
+      // The mod's real StageDeltaVEntry field names (contract.ts:491),
       // `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/`twrActual`/`thrustAsl`,
       // NOT the legacy `StageInfo` names. Proves `parseStages` reads the
       // new wire, not just the old shape `index.test.tsx` covers.

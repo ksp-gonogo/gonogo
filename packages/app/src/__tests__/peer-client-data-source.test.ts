@@ -183,7 +183,7 @@ describe("PeerClientDataSource", () => {
 
     const schema = source.schema();
     expect(schema).toHaveLength(2);
-    // Critically, the label/unit/group are preserved — this is what drives
+    // Critically, the label/unit/group are preserved, this is what drives
     // the MapView config's grouped, searchable key picker on a station.
     expect(schema[0]).toMatchObject({
       key: "v.altitude",
@@ -197,7 +197,7 @@ describe("PeerClientDataSource", () => {
     const fake = makeFakeClient();
     const source = new PeerClientDataSource("data", "Data", fake.service);
 
-    // Nothing seen yet — readers that snapshot synchronously (a widget
+    // Nothing seen yet: readers that snapshot synchronously (a widget
     // resolving a telemetry arg at dispatch time) get undefined.
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
 
@@ -232,7 +232,7 @@ describe("PeerClientDataSource", () => {
       () => {},
     );
 
-    // Three keys, one wire message — not three.
+    // Three keys, one wire message: not three.
     // biome-ignore lint/suspicious/noExplicitAny: same as above
     expect((fake.service as any).sendDataSubscribe).toHaveBeenCalledTimes(1);
     // biome-ignore lint/suspicious/noExplicitAny: same as above
@@ -252,7 +252,7 @@ describe("PeerClientDataSource", () => {
     );
   });
 
-  it("subscribe + subscribeCollection share refcount — overlapping keys don't double-emit", () => {
+  it("subscribe + subscribeCollection share refcount: overlapping keys don't double-emit", () => {
     const fake = makeFakeClient();
     // biome-ignore lint/suspicious/noExplicitAny: extend the fake on the fly
     (fake.service as any).sendDataSubscribe = vi.fn();
@@ -284,7 +284,7 @@ describe("PeerClientDataSource", () => {
       ["v.surfaceVelocity"],
     );
 
-    // Tear down the collection — only v.surfaceVelocity hits zero refs.
+    // Tear down the collection: only v.surfaceVelocity hits zero refs.
     unsubGroup();
     // biome-ignore lint/suspicious/noExplicitAny: same as above
     expect((fake.service as any).sendDataUnsubscribe).toHaveBeenCalledWith(
@@ -311,7 +311,7 @@ describe("PeerClientDataSource", () => {
 
     const seen: Array<FlightRecord | null> = [];
     source.onFlightChange((f) => seen.push(f));
-    // Subscribers fire immediately with the cached snapshot — null right now.
+    // Subscribers fire immediately with the cached snapshot, null right now.
     expect(seen).toEqual([null]);
 
     const flight: FlightRecord = {

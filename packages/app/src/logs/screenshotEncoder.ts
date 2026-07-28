@@ -37,7 +37,7 @@ export async function encodeScreenshot(file: File): Promise<EncodedScreenshot> {
 
   if (blob.size > SCREENSHOT_REFUSE_BYTES) {
     throw new ScreenshotTooLargeError(
-      `Screenshot is still ${Math.round(blob.size / 1024)} KB after compression — please pick a smaller image.`,
+      `Screenshot is still ${Math.round(blob.size / 1024)} KB after compression, please pick a smaller image.`,
       blob.size,
     );
   }
@@ -135,7 +135,7 @@ function blobToBase64(blob: Blob): Promise<string> {
         reject(new Error("Unexpected FileReader result"));
         return;
       }
-      // strip the `data:image/jpeg;base64,` prefix — Axiom only needs the payload
+      // strip the `data:image/jpeg;base64,` prefix: Axiom only needs the payload
       const comma = result.indexOf(",");
       resolve(comma >= 0 ? result.slice(comma + 1) : result);
     };

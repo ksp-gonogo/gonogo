@@ -6,7 +6,7 @@ namespace GonogoScansatUplink.Tests
 {
     /// <summary>
     /// Shape-tests the pure <c>scansat.anomalies.&lt;body&gt;</c> wire builder
-    /// (<see cref="ScanAnomalies"/>) — the exact camelCase keys and the
+    /// (<see cref="ScanAnomalies"/>): the exact camelCase keys and the
     /// straight pass-through of SCANsat's own name/lat/lon/known/detail
     /// fields the client contract (<c>Sitrep.Contract.ScanAnomalyEntry</c> /
     /// the client's <c>SCANAnomalyEntry</c>) reads. No live SCANsat/KSP: the
@@ -48,7 +48,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void KnownButNoDetail_ReflectsPartialDiscovery()
         {
-            // Anomaly-type scan found it (known) but AnomalyDetail hasn't —
+            // Anomaly-type scan found it (known) but AnomalyDetail hasn't,
             // the player sees a marker without a name yet.
             var wire = ScanAnomalies.Build(new List<ScanAnomalies.AnomalyInput>
             {

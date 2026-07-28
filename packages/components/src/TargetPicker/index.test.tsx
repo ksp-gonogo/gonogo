@@ -22,12 +22,12 @@ import { TargetPickerComponent } from "./index";
 
 /**
  * TargetPicker's Suggested + categorised UX, driven entirely by the
- * `target.available` channel (`useTelemetry("target.available")` — the
+ * `target.available` channel (`useTelemetry("target.available")`: the
  * CANONICAL one-arg Topic read, which has no legacy fallback at all, so
  * every test here needs a real `TelemetryProvider` mounted, unlike the old
  * Bodies-tree/Vessels-roster/Current-tab widget this replaces). The `"data"`
  * `MockDataSource` is only wired for `useExecuteAction("data")`'s legacy
- * fallback — none of `carriedChannels` below include `vessel.target.set`,
+ * fallback: none of `carriedChannels` below include `vessel.target.set`,
  * so every dispatch in this file resolves through that fallback and lands
  * on `onExecute` as the literal legacy action string.
  */
@@ -60,7 +60,7 @@ function emitAvailable(
 }
 
 /** One body, two vessels (one a hidden-by-default SpaceObject), one docking
- * port — enough to exercise Suggested composition, per-category sort, the
+ * port: enough to exercise Suggested composition, per-category sort, the
  * asteroid toggle, and all three dispatch kinds in one fixture. */
 const KERBIN = {
   kind: 1, // Body
@@ -114,7 +114,7 @@ const ASTEROID = {
   kind: 0,
   name: "Ast. UQR-118",
   vesselId: "vessel-asteroid-1",
-  vesselType: 10, // SpaceObject — closer than every vessel above, hidden by default
+  vesselType: 10, // SpaceObject: closer than every vessel above, hidden by default
   situation: 3,
   distance: 10,
   isCurrent: false,
@@ -150,7 +150,7 @@ const FULL_ENTRIES = [
   PORT_ALPHA,
 ];
 
-describe("TargetPickerComponent — Suggested + categorised list", () => {
+describe("TargetPickerComponent: Suggested + categorised list", () => {
   let dataFixture: MockDataSourceFixture;
   let fixture: StreamFixture;
   let onExecute: ReturnType<typeof vi.fn>;
@@ -177,9 +177,9 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
   });
 
   // T1: a modded ITargetable surfaces as TargetKind.Other (2), and any kind the
-  // consumer doesn't recognise (e.g. Position = 3) must degrade gracefully too
-  // — both bucket into an "Other" section rather than falling into no list and
-  // rendering invisibly, and carry a distance (kind-agnostic — Jon's explicit
+  // consumer doesn't recognise (e.g. Position = 3) must degrade gracefully too,
+  // both bucket into an "Other" section rather than falling into no list and
+  // rendering invisibly, and carry a distance (kind-agnostic, Jon's explicit
   // requirement).
   it("buckets Other / unknown-kind targetables into an 'Other' section with distance (T1)", async () => {
     renderPicker(fixture);
@@ -194,7 +194,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
       { kind: 3, name: "Flag Marker", distance: 12_000, isCurrent: false },
     ]);
 
-    // The Other category section appears (2 entries) — previously an Other/
+    // The Other category section appears (2 entries), previously an Other/
     // unknown-kind entry landed in no list and was invisible.
     await screen.findByRole("button", { name: /^Other/ });
     expect(screen.getByText("Deployed Ground Station")).toBeInTheDocument();
@@ -215,8 +215,8 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
       .getAllByRole("button")
       .map((el) => el.textContent);
 
-    // 2 closest bodies (Kerbin 500, Mun 2000 — Minmus 50000 excluded),
-    // 2 closest vessels (Relay One 1000, Relay Two 2000 — the asteroid at
+    // 2 closest bodies (Kerbin 500, Mun 2000, Minmus 50000 excluded),
+    // 2 closest vessels (Relay One 1000, Relay Two 2000, the asteroid at
     // distance 10 is closer than both but hidden by default so it's
     // excluded from "closest", and Relay Three 5000 doesn't make the cut),
     // then ALL parts regardless of distance (Port Alpha, Port Beta).
@@ -253,7 +253,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     const vesselNames = within(vesselsPanel as HTMLElement)
       .getAllByRole("button")
       .map((el) => el.textContent);
-    // Asteroid hidden by default — only the three Relay vessels, closest first.
+    // Asteroid hidden by default: only the three Relay vessels, closest first.
     expect(vesselNames).toEqual([
       expect.stringContaining("Relay One"),
       expect.stringContaining("Relay Two"),
@@ -295,7 +295,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Scoped to the Vessels category panel — once revealed, the asteroid
+    // Scoped to the Vessels category panel: once revealed, the asteroid
     // (distance 10) is also the globally closest vessel, so it legitimately
     // appears a SECOND time in Suggested too; scoping avoids that collision.
     const vesselsToggle = await screen.findByRole("button", {
@@ -353,7 +353,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Kerbin appears both in Suggested and in the Bodies category — either
+    // Kerbin appears both in Suggested and in the Bodies category, either
     // instance dispatches identically, so the first match is fine.
     const rows = await screen.findAllByRole("button", { name: /^Kerbin/ });
     await user.click(rows[0]);
@@ -367,7 +367,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Relay Three only appears in the Vessels category, not Suggested —
+    // Relay Three only appears in the Vessels category, not Suggested,
     // proves the category (not just Suggested) rows dispatch correctly.
     const row = await screen.findByRole("button", { name: /Relay Three/ });
     await user.click(row);
@@ -384,7 +384,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     emitAvailable(fixture, FULL_ENTRIES);
 
     // Port Alpha appears both in Suggested (parts are always ALL included)
-    // and in the Parts category — either instance dispatches identically.
+    // and in the Parts category: either instance dispatches identically.
     const rows = await screen.findAllByRole("button", { name: /Port Alpha/ });
     await user.click(rows[0]);
     await waitFor(() => {
@@ -398,7 +398,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, [KERBIN, { ...MUN, isCurrent: true }, RELAY_ONE]);
     // Mun appears in both Suggested and the Bodies category (only 2 bodies
-    // total, both fit in "2 closest") — both instances carry the tag.
+    // total, both fit in "2 closest"): both instances carry the tag.
     const rows = await screen.findAllByRole("button", { name: /^Mun/ });
     expect(rows).toHaveLength(2);
     for (const row of rows) {
@@ -412,7 +412,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     act(() => {
       // producer-consumer-T4: tarType/tarDistance/tarRelVel now derive
       // NATIVELY off `vessel.target` alone (kind/relativePosition/
-      // relativeVelocity) — no `vessel.state` emission (no
+      // relativeVelocity): no `vessel.state` emission (no
       // `vessel.orbit`/`vessel.flight` inputs) needed to unblock them, unlike
       // before the fix. kind: 0 -> targetKind "Vessel". relativePosition
       // magnitude 1500 -> targetDistance; dot(relPos, relVel)/|relPos| ==
@@ -443,7 +443,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
     act(() => {
       // kind: 4 -> Part (a docking port) -> targetKindLabel "Docking Port".
       // No `vessel.orbit`/`vessel.flight`/any `vessel.state` input is emitted
-      // anywhere in this test — proves the derived `vessel.state` channel is
+      // anywhere in this test: proves the derived `vessel.state` channel is
       // no longer a dependency of the current-target detail readout.
       fixture.emit("vessel.target", {
         name: "Port Alpha",
@@ -490,7 +490,7 @@ describe("TargetPickerComponent — Suggested + categorised list", () => {
   });
 });
 
-describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => {
+describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
   let dataFixture: MockDataSourceFixture;
   let fixture: StreamFixture;
 
@@ -507,7 +507,7 @@ describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => 
 
   it("exposes the two host slots empty by default (no augment DOM)", () => {
     renderPicker(fixture);
-    // Neither slot has a bound augment, so nothing extra renders — the frame is
+    // Neither slot has a bound augment, so nothing extra renders, the frame is
     // unchanged from before the slots existed. Registry-side, both are exposable.
     expect(getAugmentsForSlot("target-picker.sections")).toHaveLength(0);
     expect(getAugmentsForSlot("target-picker.badges")).toHaveLength(0);

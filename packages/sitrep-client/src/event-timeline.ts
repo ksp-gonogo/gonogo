@@ -5,12 +5,12 @@
  * `TimelinePoint`: where a value channel is a keyframed timeline that a value
  * *holds* across (read with `at(ut)`), an event topic is a timeline of things
  * that *happened* at a UT (part-failed, storm-arrived, camera-added). Each
- * occurrence is an edge, not a level — it never "holds", it fires once.
+ * occurrence is an edge, not a level, it never "holds", it fires once.
  *
  * Delivered discretely (`Delivery.ReliableOrdered` on the wire, the same lane
  * as `flight.started` / `crash.lastCrash`) and reveal-gated: an occurrence at
  * `ut` becomes visible only once `now >= ut + delay` AND the comms link was up
- * at `ut`. Reveal here is DERIVED for legibility — enforcement stays
+ * at `ut`. Reveal here is DERIVED for legibility, enforcement stays
  * server-side in the mod's reveal gate (see `project_streaming_delay_model`).
  * The gonogo Uplink layer that owns reveal/delay semantics synthesises this
  * primitive from a producer's raw discrete edges (see the kerbcast-Uplink
@@ -22,7 +22,7 @@
  * re-revealed after the rewind.
  */
 export interface EventOccurrence<K extends string = string, P = unknown> {
-  /** Universal Time the occurrence happened at — the reveal-gate key. */
+  /** Universal Time the occurrence happened at: the reveal-gate key. */
   ut: number;
   /** Discriminant naming what happened, e.g. `"part-failed"`, `"storm-arrived"`. */
   kind: K;
@@ -41,8 +41,8 @@ export type ConnectivityAt = (ut: number) => boolean;
 
 export interface EventRevealOptions {
   /**
-   * Current view UT. An occurrence reveals only once `now >= ut + delaySeconds`
-   * — the delayed-horizon check.
+   * Current view UT. An occurrence reveals only once `now >= ut + delaySeconds`,
+   * the delayed-horizon check.
    */
   now: number;
   /**
@@ -62,7 +62,7 @@ export interface EventTimelineOptions {
   /**
    * How far behind the latest ingested occurrence `ut` older occurrences are
    * retained before automatic eviction. Mirrors `ClientTimelineOptions`;
-   * default 5 minutes of UT — bounds memory without surprising a low-rate
+   * default 5 minutes of UT: bounds memory without surprising a low-rate
    * event topic.
    */
   retentionSeconds?: number;
@@ -101,7 +101,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   /** Insert a delivered occurrence, sorted by `ut` (ties keep arrival order). */
   append(occurrence: EventOccurrence<K, P>): void {
     if (occurrence.epoch < this.currentEpoch) {
-      // Stale-epoch straggler (queued behind a rewind) — never let a
+      // Stale-epoch straggler (queued behind a rewind): never let a
       // pre-rewind occurrence re-enter a post-rewind timeline.
       return;
     }
@@ -120,7 +120,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   }
 
   /**
-   * The occurrences visible at `now` under the reveal gate — those matured
+   * The occurrences visible at `now` under the reveal gate, those matured
    * past the delay horizon (`now >= ut + delay`) whose `ut` fell while the
    * link was up. Ascending by `ut`. This is the DERIVED reveal a consumer
    * (e.g. the alarm `event` trigger) reads; the server enforces the same gate
@@ -138,7 +138,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   }
 
   /**
-   * Every buffered occurrence, ascending by `ut`, WITHOUT reveal-gating —
+   * Every buffered occurrence, ascending by `ut`, WITHOUT reveal-gating,
    * i.e. what has been received, not what is visible. Consumers that care
    * about legibility want `revealed`; this is the raw view for producers and
    * tests.
@@ -163,7 +163,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   }
 
   /**
-   * Proactively adopt a higher epoch with no incoming occurrence — a no-op if
+   * Proactively adopt a higher epoch with no incoming occurrence, a no-op if
    * `epoch` isn't higher than the one currently held. The cross-topic rewind
    * sweep analog of `ClientTimeline.adoptEpoch`: a rewind confirmed by one
    * topic's ingest tells every other topic's timeline to drop immediately.

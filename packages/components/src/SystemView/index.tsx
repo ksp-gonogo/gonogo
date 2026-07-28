@@ -26,6 +26,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
@@ -57,16 +58,16 @@ interface SystemViewConfig {
 // The `.actions` + `.overlay` pair is designed to be driven by ONE coordinated
 // augment: e.g. a "show commlinks" toggle contributed into `.actions` drives a
 // commlink overlay contributed into `.overlay`, sharing state through the
-// augment's OWN context — no cross-Uplink coupling, the host only exposes the
+// augment's OWN context: no cross-Uplink coupling, the host only exposes the
 // two extension points.
 
 /**
- * Props for `system-view.overlay` — an OVERLAY slot, rendered in
+ * Props for `system-view.overlay`: an OVERLAY slot, rendered in
  * a layer absolutely positioned over the solar-system body diagram. The diagram
  * draws parent-centric in SVG user-units: the frame body sits at `center` (the
  * SVG origin) and a distance of `d` metres from it projects to `d · plotScale`
  * user-units, over a `width`×`height` px, origin-centred viewBox. An overlay
- * augment — e.g. a future RealAntennas relay-network / range-ring visualiser —
+ * augment: e.g. a future RealAntennas relay-network / range-ring visualiser,
  * builds a matching viewBox / transform from these to draw in the diagram's
  * coordinate space. The projection describes the diagram's auto-fit view (zoom=1,
  * no pan); live pan/zoom is internal to `SystemDiagram` and not reflected here,
@@ -86,7 +87,7 @@ export interface SystemOverlayContext {
 }
 
 /**
- * Props for `system-view.badges` — the widget's BROAD escape-hatch slot for
+ * Props for `system-view.badges`: the widget's BROAD escape-hatch slot for
  * inline indicators, rendered in the header next to the title. Badge augments
  * read their own Topics via hooks, so the only context passed down is the
  * frame body name for labelling.
@@ -98,7 +99,7 @@ export interface SystemBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
 // on other widgets never collides on this seam. `.actions` takes no
-// props (`Record<string, never>`) — an actions augment reads its own state.
+// props (`Record<string, never>`): an actions augment reads its own state.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "system-view.actions": Record<string, never>;
@@ -107,11 +108,11 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/** Auto-fit padding — mirrors `SystemDiagram`'s own `PAD` so the overlay
+/** Auto-fit padding: mirrors `SystemDiagram`'s own `PAD` so the overlay
  * projection matches the diagram's metres → px scale. */
 const DIAGRAM_PAD = 20;
 
-/** Case/whitespace-insensitive body-name match — mirrors `SystemDiagram`'s
+/** Case/whitespace-insensitive body-name match: mirrors `SystemDiagram`'s
  * `nameMatches`, used to decide whether the vessel's orbit contributes to the
  * overlay's auto-fit extent. */
 function frameNameMatches(a: string, b: string): boolean {
@@ -125,7 +126,7 @@ function frameNameMatches(a: string, b: string): boolean {
 // `vessel.orbit` elements + the SDK view-UT, derived client-side.
 // `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
 // `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
-// normalised (meanAnomalyAtEpoch is already radians — the documented KSP quirk).
+// normalised (meanAnomalyAtEpoch is already radians, the documented KSP quirk).
 
 /** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces. */
 const TRANSITION_TYPE_ENCOUNTER = 2;
@@ -216,7 +217,7 @@ function SystemViewComponent({
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
   // Streamed Topics: raw `vessel.*` records read straight off the Uplink
-  // store via the canonical `useTelemetry(TopicId)` hook — no legacy
+  // store via the canonical `useTelemetry(TopicId)` hook: no legacy
   // `DataSource` fallback. The scalars the widget used to read off
   // Telemachus's derived `o.*` keys (trueAnomaly / next-apsis / encounter) are
   // reconstructed client-side below from `vessel.orbit`'s elements + the SDK
@@ -225,12 +226,12 @@ function SystemViewComponent({
   const identity = useTelemetry("vessel.identity");
   const systemBodies = useTelemetry("system.bodies");
   const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
-  // View-UT — the SDK view time the propagation already evaluates at
+  // View-UT: the SDK view time the propagation already evaluates at
   // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
   const universalTime = useViewUt();
 
   // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
-  // array position) — the display-map behind `v.body` / `o.encounterBody`.
+  // array position): the display-map behind `v.body` / `o.encounterBody`.
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
     for (const b of systemBodies?.bodies ?? []) {
@@ -239,7 +240,7 @@ function SystemViewComponent({
     return m;
   }, [systemBodies]);
 
-  // Vessel's current body NAME (old Telemachus `v.body`) — parentBodyIndex
+  // Vessel's current body NAME (old Telemachus `v.body`), parentBodyIndex
   // resolved against `system.bodies`.
   const vesselBody =
     identity?.parentBodyIndex != null
@@ -253,7 +254,7 @@ function SystemViewComponent({
       return null;
     }
     // `solveAnomalies` throws a RangeError for parabolic/hyperbolic orbits
-    // (ecc outside `[0, 1)` — escape/flyby trajectories, a routine state for a
+    // (ecc outside `[0, 1)`: escape/flyby trajectories, a routine state for a
     // system-wide diagram during interplanetary transfers). Degrade the
     // orbital scalars to null rather than crashing the whole widget mid-render
     // (there's no error boundary inside it, and the old Telemachus path read
@@ -300,7 +301,7 @@ function SystemViewComponent({
       ? encounter.transitionUt
       : null;
 
-  // Vessel orbit — feeds the dot drawn on its own orbit when the chosen frame
+  // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame
   // matches its parent body.
   const vSma = orbit?.sma;
   const vesselOrbit =
@@ -320,14 +321,14 @@ function SystemViewComponent({
 
   // Predicted trajectory input for the diagram. Throttle `ut` into 1s buckets
   // (same as MapView) so the patch projection only re-runs ~1/sec, not on
-  // every stream frame — the orbit shape doesn't change between ticks.
+  // every stream frame: the orbit shape doesn't change between ticks.
   const utBucket = quantiseUt(
     typeof universalTime === "number" ? universalTime : undefined,
     1,
   );
   // Client-propagated predicted trajectory: with only the current elements +
   // the next transition on the wire, the honestly-drawable
-  // chain is a single conic — the current orbit sampled from the view-UT to the
+  // chain is a single conic, the current orbit sampled from the view-UT to the
   // encounter (an arc terminated at the SOI boundary) or, with no encounter,
   // over one full period (a closed ellipse). Built as the core `OrbitPatch`
   // shape so `SystemDiagram`'s existing Keplerian projection samples it
@@ -338,7 +339,7 @@ function SystemViewComponent({
     if (!orbit || vesselBody == null || utBucket == null) return [];
     const period = derived?.period;
     if (period == null || period <= 0) return [];
-    if (!(orbit.ecc < 1)) return []; // hyperbolic — elliptical solver only
+    if (!(orbit.ecc < 1)) return []; // hyperbolic, elliptical solver only
     const hasEncounter =
       encounterExists !== 0 &&
       encounterTimeUt != null &&
@@ -389,7 +390,7 @@ function SystemViewComponent({
     [orbitPatches, utBucket],
   );
 
-  // Children of the chosen frame — the only bodies actually drawn. Phase
+  // Children of the chosen frame: the only bodies actually drawn. Phase
   // angles only get subscribed for these, so the b.o.phaseAngle[i] sub
   // count tracks what's on screen, not the whole solar system.
   const children = useMemo(() => {
@@ -401,7 +402,7 @@ function SystemViewComponent({
   const phaseAngles = usePhaseAngles(children);
 
   // Transfer-window highlighting. Only meaningful when the rendered frame is
-  // the same parent the vessel orbits — otherwise the bodies aren't co-orbital
+  // the same parent the vessel orbits: otherwise the bodies aren't co-orbital
   // with the vessel and the Hohmann formula doesn't apply.
   const transferStatuses = useMemo(() => {
     const out = new Map<number, "go" | "soon">();
@@ -423,7 +424,7 @@ function SystemViewComponent({
   }, [children, phaseAngles, vesselBody, parentName, vSma]);
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
-  // Default focus to the vessel's body when nothing is hovered — gives the
+  // Default focus to the vessel's body when nothing is hovered, gives the
   // panel useful content out of the box.
   const vesselBodyRecord = useMemo(
     () =>
@@ -463,24 +464,24 @@ function SystemViewComponent({
         })()
       : null;
 
-  // Diagram column size — feeds the SVG viewBox aspect. This is the 1fr grid
+  // Diagram column size: feeds the SVG viewBox aspect. This is the 1fr grid
   // child, so it legitimately shrinks when the side almanac mounts.
   const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
 
-  // Whole-tile size — drives the portrait/landscape decision. Measured on the
+  // Whole-tile size: drives the portrait/landscape decision. Measured on the
   // grid *container* (Body), whose border-box is fixed by `flex:1` and does NOT
   // change when the inner grid-template flips between side/bottom almanac. (If
   // orientation were derived from the diagram column instead, mounting the side
   // panel would shrink that column, flip the reading to portrait, and oscillate.)
   const { ref: tileRef, size: tileSize } = useElementSize({ w: 360, h: 280 });
 
-  // Selective rendering — diagram needs real area; almanac sidebar is
+  // Selective rendering: diagram needs real area; almanac sidebar is
   // wide chrome. At small sizes collapse to a text "Frame: X" summary.
   const cols = w ?? 10;
   const rows = h ?? 12;
   const showDiagram = rows >= 5 && cols >= 5;
   // Orientation is taken from the *measured pixel* aspect, not raw grid
-  // units — grid rows are shorter than columns are wide, so a 10×12
+  // units: grid rows are shorter than columns are wide, so a 10×12
   // (rows>cols) tile is actually near-square in pixels and must keep the
   // side panel. Only a clearly taller-than-wide tile (e.g. 5×18) reads as
   // portrait and flows the almanac to the bottom. The threshold (1.3) keeps
@@ -498,7 +499,7 @@ function SystemViewComponent({
 
   // Slot props. `badges` carries just the frame name for labelling.
   // `overlay` carries the diagram's parent-centric projection so an augment can
-  // draw in the SVG's coordinate space — the metres → px `plotScale` is
+  // draw in the SVG's coordinate space: the metres → px `plotScale` is
   // reconstructed exactly as `SystemDiagram` derives it (auto-fit over the drawn
   // children + the vessel's own orbit when it shares the frame). It is null until
   // there is a frame and a measured diagram to overlay.
@@ -534,7 +535,7 @@ function SystemViewComponent({
         <TitleControls>
           {/* Header slots: an inline `.badges` escape-hatch and an `.actions`
               control row, both alongside the widget's own header. Empty until an
-              Uplink binds — an empty slot renders nothing. */}
+              Uplink binds: an empty slot renders nothing. */}
           <AugmentSlot name="system-view.badges" props={badgesContext} />
           <AugmentSlot name="system-view.actions" props={{}} />
         </TitleControls>
@@ -573,7 +574,7 @@ function SystemViewComponent({
                 height={size.h}
               />
             )}
-            {/* Overlay slot — layered over the body diagram, passed the diagram's
+            {/* Overlay slot: layered over the body diagram, passed the diagram's
                 parent-centric projection so an augment draws in its coordinate
                 space. The layer is pointer-transparent so an empty slot is
                 visually + interactively inert. */}
@@ -628,7 +629,7 @@ function SystemViewComponent({
         </Body>
       ) : (
         <CompactBody>
-          <CompactValue>{parentName ?? "—"}</CompactValue>
+          <CompactValue>{parentName ?? NULL_DISPLAY}</CompactValue>
           {typeof vesselBody === "string" && vesselBody !== parentName && (
             <CompactSub>vessel · {vesselBody}</CompactSub>
           )}
@@ -711,7 +712,7 @@ function SystemViewConfigComponent({
             ))}
         </Select>
         <FieldHint>
-          "Auto" follows the vessel's current body — Kerbin-orbit shows
+          "Auto" follows the vessel's current body: Kerbin-orbit shows
           Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the star so
           you see the whole system. Pick a specific body to pin the frame.
         </FieldHint>
@@ -826,7 +827,7 @@ registerComponent<SystemViewConfig>({
     "system-view.badges",
   ],
   // The body table + phase angles still fan out over the shared `b.*` hooks
-  // (`useCelestialBodies`/`usePhaseAngles`) — a separate, shared-hook migration.
+  // (`useCelestialBodies`/`usePhaseAngles`): a separate, shared-hook migration.
   // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
   dataRequirements: ["b.number"],
   optionalChannels: [

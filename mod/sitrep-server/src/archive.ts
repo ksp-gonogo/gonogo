@@ -2,7 +2,7 @@
  * Archive is the single per-vessel SCET-stamped history the Courier reads
  * through. There is ONE archive per vessel (per topic within it); each
  * Vantage (observer) is a monotonic read-cursor into that archive at its own
- * delay offset. That split — one shared history, many independent cursors —
+ * delay offset. That split (one shared history, many independent cursors)
  * is what makes delay honest (every vantage sees its own light-lagged scene
  * of the same underlying truth) and what powers "freeze-on-recession": if a
  * vantage's delay grows faster than time advances (the observer recedes),

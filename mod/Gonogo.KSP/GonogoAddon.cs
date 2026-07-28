@@ -71,7 +71,7 @@ namespace Gonogo.KSP
         private Recorder? _recorder;
         // Dev-capture recorder gate. OFF by default: the recorder writes a
         // growing session-*.json every flush and spams the log heartbeat, which
-        // is pure overhead for a normal launch — it's only wanted when actively
+        // is pure overhead for a normal launch, it's only wanted when actively
         // capturing a reference fixture. Opt in via PluginData/gonogo.cfg's
         // RECORDING node (`enabled = true`). The recorder object is still
         // CONSTRUCTED unconditionally (the FixedUpdate sample/Tick path that
@@ -92,7 +92,7 @@ namespace Gonogo.KSP
             {
                 _host = new KspHost(SharedManeuverNodeIdRegistry);
                 _recorder = new Recorder(_host);
-                // executeCommandsOnMainThread: true — F2 Part 1. The engine
+                // executeCommandsOnMainThread: true (F2 Part 1). The engine
                 // marshals every command handler onto its main-thread queue,
                 // drained by _engine.RunPendingCommands() in FixedUpdate below,
                 // so live KSP/Unity actuation (KspVesselActuator) runs on the
@@ -102,7 +102,7 @@ namespace Gonogo.KSP
 
                 // Route the engine's fail-soft diagnostics to the KSP log.
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does
-                // NOT capture — so a disabled/unavailable uplink or a retrying
+                // NOT capture: so a disabled/unavailable uplink or a retrying
                 // capture-throw was invisible in the live log. That invisibility
                 // hid the SCANsat coverage root cause for the entire
                 // investigation; this sink makes the whole fail-soft class
@@ -110,19 +110,19 @@ namespace Gonogo.KSP
                 _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
 
                 // [SitrepUplink] assembly-scan discovery REPLACES the
-                // previous hardcoded RegisterUplink(new XyzUplink()) list —
+                // previous hardcoded RegisterUplink(new XyzUplink()) list:
                 // see Sitrep.Host.UplinkDiscovery's doc comment. The bundled
                 // core uplinks (System/Vessel/Career/Science/Parts) carry
                 // the attribute identically to any future third-party
-                // Uplink — nothing about this loop is special-cased to them.
+                // Uplink: nothing about this loop is special-cased to them.
                 // Two-pass registration (RegisterDiscoveredUplinks): every
                 // capability is declared BEFORE any provider registers, so the
                 // comms election is correct regardless of the order the
-                // assembly scan happens to return uplinks in — see
+                // assembly scan happens to return uplinks in; see
                 // ChannelEngine.RegisterDiscoveredUplinks / the two-pass fix.
                 // Enable the light-time delay capability BEFORE discovery, so
                 // the comms uplink's SignalDelay source is configured at
-                // Register time. This wiring was previously MISSING —
+                // Register time. This wiring was previously MISSING,
                 // ConfigureSignalDelay had no caller, so SignalDelayConfig
                 // stayed at its Off() default and comms.delay was always 0
                 // (the headline delay feature was dormant). Config comes from
@@ -133,8 +133,8 @@ namespace Gonogo.KSP
                 _recordingEnabled = ReadRecordingEnabled();
                 _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
                 // Drive the capability Kernel once every uplink has registered
-                // its providers (the comms backend election — CommNet vanilla vs
-                // RealAntennas when present — see Sitrep.Host.Comms.CommsElection)
+                // its providers (the comms backend election, CommNet vanilla vs
+                // RealAntennas when present, see Sitrep.Host.Comms.CommsElection)
                 // and BEFORE Start(), so the shared comms.* channel closures that
                 // Query the elected backend at Tick time see a resolved kernel.
                 _engine.ResolveCapabilities();
@@ -143,7 +143,7 @@ namespace Gonogo.KSP
                 // now the Kernel has resolved (VesselUplink declared the
                 // capability in the pre-Register pass and installed the
                 // WRITE-side resolver on its actuator). KspHost samples the
-                // backend on the main thread inside BuildControl — the same
+                // backend on the main thread inside BuildControl, the same
                 // main-thread seam the comms uplink reads ICommsBackend from.
                 // Late-bound because the engine, and therefore the Kernel, does
                 // not exist when KspHost is constructed above.
@@ -184,7 +184,7 @@ namespace Gonogo.KSP
         /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>SIGNAL_DELAY</c>
         /// node: <c>enabled = true|false</c>, <c>lightSpeedScale = &lt;double&gt;</c>).
         /// Default when the file/node is absent: delay ON at real light-speed
-        /// (scale 1.0) — the mod's realism default. A smaller scale lengthens
+        /// (scale 1.0): the mod's realism default. A smaller scale lengthens
         /// delay (slower light); a larger scale shortens it. Never throws.
         /// </summary>
         private static Sitrep.Host.Comms.SignalDelayConfig ReadSignalDelayConfig()
@@ -222,7 +222,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Reads the dev-capture recorder toggle from
         /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>RECORDING</c> node:
-        /// <c>enabled = true|false</c>). Defaults to <b>false</b> (off) — unlike
+        /// <c>enabled = true|false</c>). Defaults to <b>false</b> (off), unlike
         /// <see cref="ReadSignalDelayConfig"/>, absent config means OFF, because
         /// recording is a dev fixture-capture tool that only wastes disk + log
         /// on a normal launch. Opt in only when actively capturing a fixture.
@@ -256,15 +256,15 @@ namespace Gonogo.KSP
         /// F2-fix (CRITICAL): the command-queue drain runs from Update(), NOT
         /// FixedUpdate(). KSP pause (<c>Time.timeScale = 0</c>, the Esc menu /
         /// <c>FlightDriver.SetPause</c>) STOPS FixedUpdate but Update() keeps
-        /// running every frame regardless of timeScale — so an instant command
+        /// running every frame regardless of timeScale: so an instant command
         /// dispatched while paused (time.warp / time.pause / vessel.target, and
         /// critically the UNPAUSE command itself) now executes on the main
         /// thread instead of parking the single-drain Courier thread on
         /// <c>Done.Wait()</c> until the player unpauses in-game (which, for the
-        /// unpause command, could never happen — a self-wedge). These are the
+        /// unpause command, could never happen, a self-wedge). These are the
         /// same actuator calls FixedUpdate would have made; KSP applies or
         /// queues them fine off Update. Telemetry sampling stays in FixedUpdate
-        /// (physics cadence) — only the command drain moved here.
+        /// (physics cadence): only the command drain moved here.
         /// </summary>
         private void Update()
         {
@@ -283,11 +283,11 @@ namespace Gonogo.KSP
 
             // Only capture in a loaded GAME scene (FLIGHT/SPACECENTER/EDITOR/
             // TRACKSTATION). At MAINMENU (and LOADING/SETTINGS/CREDITS) there is
-            // no game to sample — `Sample()` would walk uninitialised KSP/Unity
+            // no game to sample: `Sample()` would walk uninitialised KSP/Unity
             // state, and a producer that doesn't guard the no-vessel/no-game case
             // can hang the main thread there (an infinite loop, which Sample()'s
             // catch-and-degrade discipline can't rescue). That hang starves every
-            // other MAINMENU coroutine — notably GonogoDevAutoLoad's save load.
+            // other MAINMENU coroutine: notably GonogoDevAutoLoad's save load.
             // The WS server (background thread) stays up regardless; a client that
             // connects at the menu simply sees no telemetry, which is correct.
             if (!HighLogic.LoadedSceneIsGame)

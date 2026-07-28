@@ -13,7 +13,7 @@ import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 // Importing the real module (not a throwaway test double) runs its
-// module-load `registerMapPoiProvider(...)` exactly once — same convention
+// module-load `registerMapPoiProvider(...)` exactly once: same convention
 // as the deleted slot.test.tsx's `registerAugment` import.
 import "./index";
 
@@ -34,7 +34,7 @@ function wrapper(client: TelemetryClient) {
 }
 
 // Rendered hook trees, tracked so afterEach can unmount them BEFORE
-// clearRegistry() notifies the DataSource-registry subscribers — every
+// clearRegistry() notifies the DataSource-registry subscribers: every
 // useTelemetry call keeps its legacy useDataSourceSubscription wired
 // unconditionally, so clearRegistry() firing on a still-mounted hook tree is
 // a state update outside act(). RTL auto-cleanup runs after this file's
@@ -153,7 +153,7 @@ describe("scansat:anomalies map POI provider", () => {
       await Promise.resolve();
     });
 
-    // Wait specifically for the action to appear — a bare length-1 check on
+    // Wait specifically for the action to appear, a bare length-1 check on
     // `result.current` would already be satisfied by the anomaly landing
     // before `system.bodies` resolves (actions start empty until the body
     // index is known), which would grab a stale snapshot.

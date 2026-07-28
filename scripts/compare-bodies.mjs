@@ -11,11 +11,11 @@
 // ── Usage ──────────────────────────────────────────────────────────────
 //   node scripts/compare-bodies.mjs [host]
 //
-//   HOST env var / positional arg     — KSP machine (default 192.168.86.33)
-//   TELEMACHUS_WS_URL env var         — overrides ws://<host>:8085/datalink
-//   GONOGO_WS_URL env var             — overrides ws://<host>:8090
+//   HOST env var / positional arg:     KSP machine (default 192.168.86.33)
+//   TELEMACHUS_WS_URL env var:         overrides ws://<host>:8085/datalink
+//   GONOGO_WS_URL env var:             overrides ws://<host>:8090
 //
-// Requires `ws` (already a root workspace dependency — see package.json).
+// Requires `ws` (already a root workspace dependency; see package.json).
 // Run from the repo root: `node scripts/compare-bodies.mjs`.
 //
 // ── Prerequisite ───────────────────────────────────────────────────────
@@ -30,7 +30,7 @@
 //   structurally sound against both protocols as read from source
 //   (Telemachus fork C# + Sitrep.Contract/Sitrep.Host/Gonogo.KSP), but
 //   has never been run against a live socket on either end. Expect to
-//   iron out framing/timeout edge cases on first live run — see the
+//   iron out framing/timeout edge cases on first live run: see the
 //   "known risk areas" note near the bottom of this header.
 //
 // ── What it compares ───────────────────────────────────────────────────
@@ -38,7 +38,7 @@
 //   then loop `b.name[i]` / `b.radius[i]` / `b.o.sma[i]` / etc. for
 //   i in [0, count). Per-body ORBITAL ELEMENTS *are* exposed by
 //   Telemachus (b.o.sma/eccentricity/inclination/lan/argumentOfPeriapsis/
-//   maae — contrary to the initial assumption that they might not be).
+//   maae, contrary to the initial assumption that they might not be).
 //   Gonogo's `system.bodies` stream returns one shot with the whole tree
 //   already assembled: { bodies: [{ name, index, parentIndex, radius,
 //   orbit: { sma, ecc, inc, lan, argPe, meanAnomalyAtEpoch, epoch } }] }.
@@ -57,7 +57,7 @@
 //   nonsensical too, so root-only compares radius).
 //
 // ── What it CANNOT compare (fields one side doesn't expose) ───────────
-//   - Gonogo `orbit.epoch` — Telemachus has NO per-body epoch key. It
+//   - Gonogo `orbit.epoch`: Telemachus has NO per-body epoch key. It
 //     only exposes `o.epoch` for the *active vessel's* orbit
 //     (VesselDataHandlers.cs:368-369), not `b.o.epoch` for an arbitrary
 //     body. This field is reported as "uncomparable", never silently
@@ -77,7 +77,7 @@
 //   Telemachus WS (ws://<host>:8085/datalink):
 //     subscribe:  {"run": ["b.number"], "rate": 1000}
 //     Per CLAUDE.md / scripts/gonogo_claude_tools.sh `tele_subscribe`:
-//     "run" is a ONE-SHOT query (fires once, then clears) — exactly
+//     "run" is a ONE-SHOT query (fires once, then clears), exactly
 //     what we want for a single snapshot; "+" is the persistent-stream
 //     verb used for continuous subscriptions and is NOT used here.
 //     Response frames are flat JSON objects keyed by the requested
@@ -100,10 +100,10 @@
 //     requested keys, so it should tolerate that either way).
 //   - Whether GonogoAddon is actually ticking `GonogoBodiesServer.Tick`
 //     with a populated "bodies" list yet (SystemViewProvider.BuildSystemBodies
-//     returns null — not an empty list — until a sample lands; this
+//     returns null, not an empty list, until a sample lands; this
 //     script treats a null/absent `bodies` payload as a hard error with
 //     a clear message rather than crashing on `undefined.length`).
-//   - Exact Telemachus body ordering/indexing vs Gonogo's `index` — this
+//   - Exact Telemachus body ordering/indexing vs Gonogo's `index`: this
 //     script does NOT assume the two sides share index space; it matches
 //     purely by case-normalized `name`.
 
@@ -132,7 +132,7 @@ const ABS_EPS = {
 };
 
 // Telemachus keys Gonogo's system.bodies stream simply doesn't carry
-// (yet). Purely informational — printed in the summary, never diffed.
+// (yet). Purely informational, printed in the summary, never diffed.
 const TELEMACHUS_ONLY_FIELDS = [
   "b.mass",
   "b.geeASL",
@@ -220,7 +220,7 @@ function runQuery(ws, keys, { timeoutMs = RESPONSE_TIMEOUT_MS } = {}) {
       try {
         frame = JSON.parse(data.toString());
       } catch {
-        return; // not JSON — ignore (e.g. binary frame, stray text)
+        return; // not JSON, ignore (e.g. binary frame, stray text)
       }
       for (const key of keys) {
         if (key in frame) {
@@ -261,7 +261,7 @@ async function collectTelemachusBodies(ws) {
   const count = Number(rawCount);
   if (!Number.isFinite(count) || count <= 0) {
     fail(
-      `Telemachus returned an invalid b.number (${JSON.stringify(rawCount)}) — is a save loaded?`,
+      `Telemachus returned an invalid b.number (${JSON.stringify(rawCount)}), is a save loaded?`,
     );
   }
   console.log(`Telemachus reports ${count} bodies.`);
@@ -284,7 +284,7 @@ async function collectTelemachusBodies(ws) {
   try {
     raw = await runQuery(ws, keys, { timeoutMs: RESPONSE_TIMEOUT_MS * 2 });
   } catch (err) {
-    // Partial data is still useful for a diff report — surface what we
+    // Partial data is still useful for a diff report, surface what we
     // got, but make the truncation loud.
     console.warn(`WARNING: ${err.message}`);
     raw = err.partial || {};
@@ -293,7 +293,7 @@ async function collectTelemachusBodies(ws) {
   const bodies = [];
   for (let i = 0; i < count; i++) {
     const name = raw[`b.name[${i}]`];
-    if (name == null) continue; // never arrived — skip rather than fabricate
+    if (name == null) continue; // never arrived, skip rather than fabricate
     bodies.push({
       name: String(name),
       radius: toNumber(raw[`b.radius[${i}]`]),
@@ -358,7 +358,7 @@ function collectGonogoBodies(ws) {
         return;
       }
       if (frame.type === "event" && frame.topic === "system.bodies") {
-        // subscribe ack — keep waiting for the actual stream-data frame.
+        // subscribe ack; keep waiting for the actual stream-data frame.
         return;
       }
       if (frame.type === "stream-data" && frame.topic === "system.bodies") {
@@ -369,7 +369,7 @@ function collectGonogoBodies(ws) {
             new Error(
               "Gonogo system.bodies payload has no `bodies` array yet " +
                 "(SystemViewProvider.BuildSystemBodies returns null until a " +
-                "sample lands — is GonogoAddon actually ticking?)",
+                "sample lands, is GonogoAddon actually ticking?)",
             ),
           );
           return;
@@ -404,7 +404,7 @@ function fieldMatches(field, a, b) {
 }
 
 function fmt(n) {
-  if (n == null) return "—";
+  if (n == null) return "n/a";
   return Number.isInteger(n) ? String(n) : n.toPrecision(8);
 }
 
@@ -429,7 +429,7 @@ async function main() {
     ]);
   } catch (err) {
     fail(
-      `${err.message}\n\nThis tool requires a live game — KSP running with both the ` +
+      `${err.message}\n\nThis tool requires a live game: KSP running with both the ` +
         `Telemachus fork and the Gonogo Sitrep mod loaded, listening on the ports above.`,
     );
     return;
@@ -532,7 +532,7 @@ async function main() {
 
   if (mismatches > 0) {
     console.log(
-      `\n${mismatches} mismatch(es) found — inspect the table above before trusting Gonogo's body extraction.`,
+      `\n${mismatches} mismatch(es) found; inspect the table above before trusting Gonogo's body extraction.`,
     );
     process.exitCode = 1;
   } else {

@@ -9,8 +9,8 @@ import { LOSS_MARGIN, TelemetryClient } from "./client";
 
 // These cases drive a real `TelemetryClient` over the delay-modelling
 // server stack (`Courier` + `CourierTransport` + `StubNetwork`, all from
-// `@ksp-gonogo/sitrep-server`). They live here — not in sitrep-server's own
-// `courier-transport.test.ts` — because sitrep-server must not depend on
+// `@ksp-gonogo/sitrep-server`). They live here: not in sitrep-server's own
+// `courier-transport.test.ts`: because sitrep-server must not depend on
 // sitrep-client: the natural DAG is `sitrep-sdk <- sitrep-server <-
 // sitrep-client`, and this package already has a test-only devDependency on
 // sitrep-server (see package.json) to support exactly this kind of
@@ -64,9 +64,9 @@ describe("CourierTransport", () => {
     // etaConfirm comes from the transport's predictConfirmEta (dispatch UT
     // 0 + roundTripEta 4). The client shares the same ManualClock as the
     // courier/transport so its loss timer lives in the same UT domain as
-    // predictConfirmEta — required per the domain note on `Clock` (see
+    // predictConfirmEta: required per the domain note on `Clock` (see
     // packages/sitrep-client/src/clock.ts). This test never lets that timer
-    // fire — the confirmation below cancels it first, deterministically
+    // fire: the confirmation below cancels it first, deterministically
     // (advanceTo(4) is still short of the loss deadline at 4 + LOSS_MARGIN).
     expect(client.getCommand(requestId)).toEqual({
       phase: "in-flight",
@@ -75,7 +75,7 @@ describe("CourierTransport", () => {
     });
 
     // Uplink elapsed (executes on the node) but confirmation still in
-    // flight downlink — the client must still see in-flight.
+    // flight downlink: the client must still see in-flight.
     clock.advanceTo(2);
     expect(client.getCommand(requestId)).toEqual({
       phase: "in-flight",

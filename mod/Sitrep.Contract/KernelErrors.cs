@@ -44,7 +44,7 @@ namespace Sitrep.Contract
     /// <c>Vanilla</c> fallback.
     ///
     /// The spine cannot boot without this capability, so the kernel refuses
-    /// to silently continue with the capability absent — unlike a
+    /// to silently continue with the capability absent, unlike a
     /// non-spine-critical capability in the same situation, which simply
     /// resolves to zero active instances.
     /// </summary>
@@ -70,7 +70,7 @@ namespace Sitrep.Contract
     ///
     /// <see cref="Cycle"/> lists the capability ids that form the cycle, in
     /// dependency order (each depends on the next, and the last depends back
-    /// on the first) — it is a diagnostic aid, not necessarily every
+    /// on the first): it is a diagnostic aid, not necessarily every
     /// capability affected by the cycle (a capability outside the cycle that
     /// merely depends on a cyclic one is not included).
     /// </summary>

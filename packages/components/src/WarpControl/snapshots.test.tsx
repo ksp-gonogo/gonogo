@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import {
@@ -52,12 +53,12 @@ interface Mode {
  * describe through the real stream pipeline (`TelemetryProvider` +
  * `TelemetryClient`/`TimelineStore`) instead of a legacy `MockDataSource`.
  *
- * Scene streams too — `useGameContext` reads `spaceCenter.scene` off the
+ * Scene streams too: `useGameContext` reads `spaceCenter.scene` off the
  * canonical stream now (migrated off the `kc.scene` shim), so it rides
  * `carriedChannels` alongside `time.warp`. The legacy `data` source stays
  * connected purely so `useDataStreamStatus("data", "t.timeWarp")` reads
  * "live" (=> no disconnected badge) and `useExecuteAction("data")` has a
- * target — reproducing the "connected, streaming" status these fixtures
+ * target: reproducing the "connected, streaming" status these fixtures
  * depict (and the committed snapshots reflect); it no longer feeds any value.
  */
 async function snapshotWarpStream(
@@ -68,7 +69,7 @@ async function snapshotWarpStream(
     carriedChannels: ["spaceCenter.scene"],
     pinnedUt: 10,
   });
-  // Connected only for the status badge + action target — no value reads.
+  // Connected only for the status badge + action target, no value reads.
   const legacyAux = await setupMockDataSource({
     id: "data",
     keys: [
@@ -105,18 +106,18 @@ async function snapshotWarpStream(
     });
   });
 
-  // Wait until the warp state has settled off the stream — the rate readout
-  // starts as the "—" loading placeholder before the first sample resolves.
+  // Wait until the warp state has settled off the stream, the rate readout
+  // starts as the NULL_DISPLAY loading placeholder before the first sample resolves.
   await waitFor(() => {
     const label = within(container).getByRole("img").getAttribute("aria-label");
-    if (!label || label.endsWith("—")) {
+    if (!label || label.endsWith(NULL_DISPLAY)) {
       throw new Error("warp state has not rendered off the stream yet");
     }
   });
 
   const html = stripVolatile(container.innerHTML);
   // `teardownMockDataSource` unmounts (cleanup) before it disconnects the aux
-  // source, so no separate cleanup() is needed here — html is already captured.
+  // source, so no separate cleanup() is needed here, html is already captured.
   teardownMockDataSource(legacyAux);
   return html;
 }

@@ -21,7 +21,7 @@ export const DEFAULT_SCAN_TYPE: SCANType = SCAN_TYPE.AltimetryHiRes;
 /**
  * Decode a SCANsat coverage bitmap (1°×1° tile bits, base64-packed) and
  * upsample it into a `BodyMask`'s alpha bytes (typically 2048×1024).
- * Writes use max-lighten so existing painter writes survive — the fog
+ * Writes use max-lighten so existing painter writes survive, the fog
  * cache treats the bytes as "highest imaging quality reached so far".
  *
  * Returns true when any byte was newly raised (caller should call
@@ -58,7 +58,7 @@ export function applyScanCoverageToMask(
   let changed = false;
   // Iterate each SCANsat tile, set the corresponding pixel block when
   // its bit is set. With 2048×1024 mask + 360×180 SCAN grid that's
-  // ~5.69×5.69 pixels per tile — cheap, ~65K iterations.
+  // ~5.69×5.69 pixels per tile: cheap, ~65K iterations.
   for (let iLon = 0; iLon < bitmap.width; iLon++) {
     for (let iLat = 0; iLat < bitmap.height; iLat++) {
       const bitIdx = iLon * bitmap.height + iLat;
@@ -126,7 +126,7 @@ function base64ToBytes(b64: string): Uint8Array {
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
   }
-  // Node fallback for tests / SSR — Buffer is available in the harness.
+  // Node fallback for tests / SSR: Buffer is available in the harness.
   const g = globalThis as unknown as {
     Buffer?: {
       from: (s: string, enc: string) => { [n: number]: number; length: number };

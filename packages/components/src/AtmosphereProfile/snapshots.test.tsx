@@ -15,7 +15,7 @@ import { AtmosphereProfileComponent } from "./index";
 
 /**
  * DOM snapshots off the stream (`TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore`) pipeline — the widget's legacy `MockDataSource` fallback
+ * `TimelineStore`) pipeline: the widget's legacy `MockDataSource` fallback
  * is gone (all five reads are native), so the generic `snapshotWidgetMode`
  * harness (which emits fixture keys straight onto a `MockDataSource`) can't
  * drive it any more. Each fixture's legacy `v.body`/`v.altitude`/

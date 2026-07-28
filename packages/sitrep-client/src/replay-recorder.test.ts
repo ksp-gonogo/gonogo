@@ -12,7 +12,7 @@ import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
-/** Deterministic `Clock` double for driving `ReplayTransport` — mirrors `replay-transport.test.ts`'s own `FakeClock`. */
+/** Deterministic `Clock` double for driving `ReplayTransport`: mirrors `replay-transport.test.ts`'s own `FakeClock`. */
 class FakeClock implements Clock {
   private currentUt: number;
   private pending: { atUt: number; fn: () => void; cancelled: boolean }[] = [];
@@ -57,7 +57,7 @@ describe("StreamRecorder", () => {
     expect(transport.isSubscribed("vessel.flight")).toBe(false);
 
     transport.emit("vessel.orbit", { sma: 700_000 }, { validAt: 1 });
-    // Unsubscribed topic — StubTransport.emit gates on subscription, so this
+    // Unsubscribed topic: StubTransport.emit gates on subscription, so this
     // is a no-op, proving the recorder itself never subscribed vessel.flight.
     transport.emit("vessel.flight", { altitudeAsl: 100 }, { validAt: 1 });
 
@@ -71,7 +71,7 @@ describe("StreamRecorder", () => {
 
   it("recordAllTopics subscribes to every getAllKnownTopicIds entry (incl. registered bare Topics) while recording, and releases them on stop", () => {
     // A registered bare-primitive Uplink Topic must be part of the full-archive
-    // sweep even though it is not a static `TOPIC_IDS` member — this synthetic
+    // sweep even though it is not a static `TOPIC_IDS` member, this synthetic
     // registration stands in for a real Uplink's bare presence-gate Topic without
     // pulling the Uplink clients into this mod-agnostic package's tests.
     const syntheticBare = "test.replay.bare";
@@ -137,7 +137,7 @@ describe("StreamRecorder", () => {
     expect(recorder.frameCount).toBe(1);
     expect(recorder.latestUt).toBe(10);
 
-    transport.emit("vessel.orbit", { sma: 2 }, { validAt: 5 }); // out of order — latestUt never regresses
+    transport.emit("vessel.orbit", { sma: 2 }, { validAt: 5 }); // out of order, latestUt never regresses
     expect(recorder.frameCount).toBe(2);
     expect(recorder.latestUt).toBe(10);
 

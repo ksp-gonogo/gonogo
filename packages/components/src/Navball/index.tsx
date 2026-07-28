@@ -25,7 +25,12 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Badge, formatDuration, StatusIndicator } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  formatDuration,
+  NULL_DISPLAY,
+  StatusIndicator,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -33,10 +38,10 @@ import { AttitudeIndicator } from "./AttitudeIndicator";
 /**
  * Warn once one-way signal delay crosses this threshold AND fly-by-wire is
  * armed. The felt control-loop lag is ~2x one-way (command out + result
- * back), so 1s one-way ≈ 2s round-trip — the point past which closed-loop
+ * back), so 1s one-way ≈ 2s round-trip, the point past which closed-loop
  * stick flying stops working. Below that FBW is sloppy but usable; holding
  * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
- * mirrors the shared `formatDuration` helper's ms-below-1s breakpoint — an
+ * mirrors the shared `formatDuration` helper's ms-below-1s breakpoint, an
  * already-meaningful threshold in this codebase, tunable here if a live
  * session says otherwise.
  */
@@ -57,7 +62,7 @@ const SAS_MODES = [
 type SasMode = (typeof SAS_MODES)[number];
 
 interface NavballConfig {
-  /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2) — see the component body's ternary comment for which raw key backs which frame. */
+  /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */
   useCoMFrame?: boolean;
   /** When true, render the control surface; otherwise show display-only. */
   controlMode?: boolean;
@@ -66,7 +71,7 @@ interface NavballConfig {
 // `navball.badges` is a header badge slot (augment-slot-map.md): a broad
 // escape-hatch for small inline indicators alongside the SAS-mode / RCS
 // badges. The proposed filler is a future autopilot Uplink (MechJeb-alike)
-// surfacing its active mode next to SAS/RCS — a badge that reads its OWN
+// surfacing its active mode next to SAS/RCS, a badge that reads its OWN
 // Domain's Topics, not the navball's attitude reads, so the slot passes no
 // props. Declaration-merge the slot id → props type into core's `SlotRegistry`
 // so `registerAugment` and `<AugmentSlot name="navball.badges" ...>`
@@ -79,7 +84,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Action surface — kept verbose so each axis / mode is independently
+// Action surface: kept verbose so each axis / mode is independently
 // mappable to a hardware input. The order matches the visible button rows
 // for cognitive consistency.
 const navballActions = [
@@ -92,16 +97,16 @@ const navballActions = [
   { id: "toggle-rcs", label: "Toggle RCS", accepts: ["button"] },
   { id: "toggle-precision", label: "Toggle precision", accepts: ["button"] },
   { id: "kill-rotation", label: "Kill rotation (SAS)", accepts: ["button"] },
-  { id: "sas-stability", label: "SAS — Stability", accepts: ["button"] },
-  { id: "sas-prograde", label: "SAS — Prograde", accepts: ["button"] },
-  { id: "sas-retrograde", label: "SAS — Retrograde", accepts: ["button"] },
-  { id: "sas-normal", label: "SAS — Normal", accepts: ["button"] },
-  { id: "sas-antinormal", label: "SAS — Anti-normal", accepts: ["button"] },
-  { id: "sas-radial-in", label: "SAS — Radial in", accepts: ["button"] },
-  { id: "sas-radial-out", label: "SAS — Radial out", accepts: ["button"] },
-  { id: "sas-target", label: "SAS — Target", accepts: ["button"] },
-  { id: "sas-anti-target", label: "SAS — Anti-target", accepts: ["button"] },
-  { id: "sas-maneuver", label: "SAS — Maneuver", accepts: ["button"] },
+  { id: "sas-stability", label: "SAS: Stability", accepts: ["button"] },
+  { id: "sas-prograde", label: "SAS: Prograde", accepts: ["button"] },
+  { id: "sas-retrograde", label: "SAS: Retrograde", accepts: ["button"] },
+  { id: "sas-normal", label: "SAS: Normal", accepts: ["button"] },
+  { id: "sas-antinormal", label: "SAS: Anti-normal", accepts: ["button"] },
+  { id: "sas-radial-in", label: "SAS: Radial in", accepts: ["button"] },
+  { id: "sas-radial-out", label: "SAS: Radial out", accepts: ["button"] },
+  { id: "sas-target", label: "SAS: Target", accepts: ["button"] },
+  { id: "sas-anti-target", label: "SAS: Anti-target", accepts: ["button"] },
+  { id: "sas-maneuver", label: "SAS: Maneuver", accepts: ["button"] },
   // Throttle
   { id: "set-throttle", label: "Set throttle", accepts: ["analog"] },
   { id: "throttle-up", label: "Throttle up 10%", accepts: ["button"] },
@@ -134,7 +139,7 @@ function NavballComponent({
 
   // VERIFIED (KspHost.BuildAttitude / VesselAttitude.cs class doc): the
   // UNSUFFIXED n.heading/pitch/roll are the CoM-referenced frame; the *2
-  // suffix is the genuinely distinct ROOT-PART-referenced frame — the
+  // suffix is the genuinely distinct ROOT-PART-referenced frame, the
   // OPPOSITE pairing a naive reading of Telemachus's old root-vs-CoM
   // convention would suggest. The ternary below is deliberately "backwards"
   // relative to the key names so the toggle's OWN semantics (useCoMFrame
@@ -165,14 +170,14 @@ function NavballComponent({
   // `n.heading` is representative of the widget's mapped attitude/control
   // read set regardless of the CoM-frame toggle (both n.heading and
   // n.heading2 are mapped on the wire now, off the same
-  // vessel.attitude topic) — so it stays a stable status source across
+  // vessel.attitude topic): so it stays a stable status source across
   // config changes rather than switching with `useCoM`.
   const streamStatus = useDataStreamStatus("data", "n.heading");
 
   const execute = useExecuteAction("data");
 
   // FBW arm/disarm with auto-disarm on unmount. State mirrors the latest
-  // arm command rather than a Telemachus key — no readback for FBW.
+  // arm command rather than a Telemachus key, no readback for FBW.
   const [fbwArmed, setFbwArmed] = useState(false);
   const fbwArmedRef = useRef(false);
   useEffect(() => {
@@ -180,7 +185,7 @@ function NavballComponent({
   }, [fbwArmed]);
   useEffect(() => {
     return () => {
-      // Component unmounting — release control regardless of state. Don't
+      // Component unmounting: release control regardless of state. Don't
       // wait for the render-cycle setFbwArmed(false), the effect cleanup
       // is the last reliable place to fire.
       if (fbwArmedRef.current) void execute("v.setFbW[0]");
@@ -197,7 +202,7 @@ function NavballComponent({
   };
 
   // FBW-under-delay warning. `comms.delay.oneWaySeconds` is gonogo's own
-  // SignalDelay authority (a TrueNow channel, never itself delayed) — a plain
+  // SignalDelay authority (a TrueNow channel, never itself delayed), a plain
   // number of one-way light-time seconds, 0 when the delay feature is
   // disabled, so the warning naturally stays hidden with no extra "is it
   // enabled" check.
@@ -208,7 +213,7 @@ function NavballComponent({
     delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;
 
-  // Action wiring — every action surface has a mapping into a Telemachus
+  // Action wiring: every action surface has a mapping into a Telemachus
   // execute call, with analog values clamped to [-1, 1] and throttle to
   // [0, 1]. Button payloads only fire on the press edge (value=true) so
   // a hardware press+release doesn't trigger twice.
@@ -235,7 +240,7 @@ function NavballComponent({
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
-      // No dedicated key in Telemachus — toggling FBW pitch trim doesn't
+      // No dedicated key in Telemachus: toggling FBW pitch trim doesn't
       // help. v.precisionControlValue is a read; setting precision happens
       // via the SAS path. For now treat as a no-op with a console hint.
       // (Surfaced as an action so a future Telemachus version can wire it.)
@@ -287,7 +292,7 @@ function NavballComponent({
     },
     "translate-x": (p) => {
       if (p.kind !== "analog") return;
-      // Telemachus exposes v.setTranslation[x,y,z] only — synthesize the
+      // Telemachus exposes v.setTranslation[x,y,z] only: synthesize the
       // missing axes from zero so per-axis bindings can each fire alone.
       const v = clamp(p.value as number, -1, 1);
       void execute(`v.setTranslation[${v.toFixed(3)},0,0]`);
@@ -323,7 +328,7 @@ function NavballComponent({
   });
 
   // Measure the dial's available box and pick a square size that fits both
-  // axes. The previous version capped at 220 px and read width only — that
+  // axes. The previous version capped at 220 px and read width only, that
   // left the dial stuck small on tall/wide widgets, and on small widgets it
   // never shrank enough to leave room for the throttle column. Cap at 600
   // because the indicator's tick text becomes blurry beyond that on
@@ -355,7 +360,7 @@ function NavballComponent({
         const verticalReserve = 74;
         const fit = Math.min(w - throttleReserve, h - verticalReserve);
         // In control mode the dial competes with the SAS / throttle / FBW
-        // surface for vertical space — cap it so the buttons stay readable.
+        // surface for vertical space: cap it so the buttons stay readable.
         // The display-only path keeps the full 600px ceiling so a dedicated
         // big-navball widget still fills its slot.
         const cap = controlModeRef.current ? 200 : 600;
@@ -367,7 +372,7 @@ function NavballComponent({
     return () => ro.disconnect();
   }, []);
 
-  // Selective rendering — at very small sizes the SVG dial doesn't have
+  // Selective rendering: at very small sizes the SVG dial doesn't have
   // room to be readable, so collapse to numeric heading/pitch/roll
   // readouts. The throttle column and mode badge row drop independently.
   //
@@ -375,7 +380,7 @@ function NavballComponent({
   // because the SAS mode grid + throttle group + FBW row need ~350px of
   // vertical real estate on top of the dial + strip + readouts. Anything
   // smaller and the surface overlaps the dial. When the widget is too
-  // small for the surface, control mode degrades to a regular dial — the
+  // small for the surface, control mode degrades to a regular dial, the
   // user keeps the deeper config selection without losing the readout.
   const cols = w ?? 8;
   const rows = h ?? 11;
@@ -384,7 +389,7 @@ function NavballComponent({
   const showModeBadges = cols >= 5;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
   controlModeRef.current = showControlSurface;
-  // Sync refs the ResizeObserver reads inside its closure — the observer
+  // Sync refs the ResizeObserver reads inside its closure, the observer
   // was created on mount with the initial values closed over, so updates
   // to either flag need to propagate via refs the callback re-reads on
   // each observation.
@@ -441,14 +446,14 @@ function NavballComponent({
             <ReadoutRow>
               <ReadoutLabel>HDG</ReadoutLabel>
               <ReadoutValue>
-                {heading === null ? "—" : `${heading.toFixed(0)}°`}
+                {heading === null ? NULL_DISPLAY : `${heading.toFixed(0)}°`}
               </ReadoutValue>
             </ReadoutRow>
             <ReadoutRow>
               <ReadoutLabel>PCH</ReadoutLabel>
               <ReadoutValue>
                 {pitch === null
-                  ? "—"
+                  ? NULL_DISPLAY
                   : `${pitch >= 0 ? "+" : ""}${pitch.toFixed(0)}°`}
               </ReadoutValue>
             </ReadoutRow>
@@ -456,7 +461,7 @@ function NavballComponent({
               <ReadoutLabel>RLL</ReadoutLabel>
               <ReadoutValue>
                 {roll === null
-                  ? "—"
+                  ? NULL_DISPLAY
                   : `${roll >= 0 ? "+" : ""}${roll.toFixed(0)}°`}
               </ReadoutValue>
             </ReadoutRow>
@@ -519,7 +524,7 @@ function ControlSurface({
     <ControlWrap>
       {disabled && (
         <Banner role="status" aria-live="polite">
-          Vessel not controllable — buttons disabled.
+          Vessel not controllable: buttons disabled.
         </Banner>
       )}
       <Group>
@@ -634,7 +639,7 @@ function ControlSurface({
         </FbwRow>
         {showFbwDelayWarning && delaySeconds !== null && (
           <StatusIndicator tone="warn" live>
-            High signal delay ({formatDuration(delaySeconds, { ms: true })}) —
+            High signal delay ({formatDuration(delaySeconds, { ms: true })}),
             fly-by-wire stick input lags round-trip; expect to overcorrect.
           </StatusIndicator>
         )}
@@ -711,8 +716,8 @@ function NavballConfigComponent({
           value={controlMode ? "control" : "display"}
           onChange={(e) => setControlMode(e.target.value === "control")}
         >
-          <option value="display">Display only — read attitude</option>
-          <option value="control">Control mode — buttons + FBW</option>
+          <option value="display">Display only: read attitude</option>
+          <option value="control">Control mode: buttons + FBW</option>
         </Select>
         <FieldHint>
           Control mode adds SAS-mode buttons, throttle controls, and an FBW
@@ -783,7 +788,7 @@ const Body = styled.div`
 `;
 
 const DialWrap = styled.div`
-  /* Fill the available column so the ResizeObserver sees real dimensions —
+  /* Fill the available column so the ResizeObserver sees real dimensions,
      without flex:1 the wrap collapses to its content and the dial gets
      stuck at whatever size it last resolved to. */
   flex: 1;
@@ -954,17 +959,17 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball / Attitude Director",
   description:
-    "Attitude indicator + control surface. Reads heading/pitch/roll from Telemachus's n.* bucket and exposes a deep action surface — every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim — so a hardware stick mapped via the Inputs tab can fly the vessel.",
+    "Attitude indicator + control surface. Reads heading/pitch/roll from Telemachus's n.* bucket and exposes a deep action surface (every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim) so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
   minSize: { w: 3, h: 4 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
   // n.heading2/n.pitch2/n.roll2 (root-part frame) are mapped on
-  // the wire now — VesselAttitude carries a genuinely distinct second frame,
+  // the wire now: VesselAttitude carries a genuinely distinct second frame,
   // see map-topic.ts's TELEMACHUS_CLEAN_HOMES. v.angleToPrograde stays
   // dropped from this declared list: a permanent gap on the new mod wire
-  // with no planned replacement (map-topic.ts's TELEMACHUS_KNOWN_GAPS) —
+  // with no planned replacement (map-topic.ts's TELEMACHUS_KNOWN_GAPS):
   // it was never actually read by this widget anyway.
   dataRequirements: [
     "n.heading",
@@ -984,8 +989,8 @@ registerComponent<NavballConfig>({
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
   // Header badge slot for an autopilot (MechJeb-alike) active-mode indicator
-  // alongside the SAS/RCS badges. Unfilled until an Uplink registers an augment
-  // — see the `SlotRegistry` merge above and augment-slot-map.md.
+  // alongside the SAS/RCS badges. Unfilled until an Uplink registers an augment;
+  // see the `SlotRegistry` merge above and augment-slot-map.md.
   augmentSlots: ["navball.badges"],
   pushable: true,
   requires: ["flight"],

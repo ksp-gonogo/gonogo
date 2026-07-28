@@ -1,18 +1,18 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 namespace Gonogo.KosUplink
 {
     /// <summary>
     /// Pure (kOS/KSP-type-free) channel/command topic conventions for the
-    /// kOS Uplink P1 surface — the exact wire strings the client consumes,
+    /// kOS Uplink P1 surface: the exact wire strings the client consumes,
     /// kept in one place so both the manifest wiring
     /// (<see cref="KosExtension"/>) and the headless tests reference the same
     /// constants. See <c>kos-migration-spec.md</c> §4.4's topic table.
     ///
     /// <para><b>The compute topics are byte-identical to today's app-side
     /// centralised-feed keys</b> (<c>kos.compute.&lt;id&gt;.&lt;field&gt;</c>
-    /// / <c>.status</c> — see the repo CLAUDE.md "Centralised kOS scripts"
+    /// / <c>.status</c>: see the repo CLAUDE.md "Centralised kOS scripts"
     /// section and <c>packages/core/src/kos/scriptRegistry.ts</c>), so the
     /// client migrates by a pure <c>useDataValue → useStream</c> swap with no
     /// topic change on the wire.</para>
@@ -28,7 +28,7 @@ namespace Gonogo.KosUplink
         /// <summary>Command: run a registered compute script on a CPU (the <c>RUNPATH</c> trigger).</summary>
         public const string ExecCommand = "kos.exec";
 
-        /// <summary>Command alias for <see cref="ExecCommand"/> — the app-side <c>dispatchNow</c> affordance.</summary>
+        /// <summary>Command alias for <see cref="ExecCommand"/>: the app-side <c>dispatchNow</c> affordance.</summary>
         public const string DispatchNowCommand = "kos.dispatchNow";
 
         /// <summary>Command: re-arm a tripped per-topic compute breaker.</summary>
@@ -39,7 +39,7 @@ namespace Gonogo.KosUplink
         /// downlink: <c>kos.terminal.&lt;coreId&gt;</c>
         /// (<c>Delivery.ReliableOrdered</c>, <c>DelayRole.Delayed</c>). Payload
         /// = <see cref="Sitrep.Contract.KosTerminalFrame"/>. Replaces the
-        /// standalone telnet proxy's byte stream — the mod reads the CPU screen
+        /// standalone telnet proxy's byte stream: the mod reads the CPU screen
         /// in-process and publishes xterm-ready diffs.
         /// </summary>
         public const string TerminalPrefix = "kos.terminal.";
@@ -68,7 +68,7 @@ namespace Gonogo.KosUplink
         /// topic string. Used by the <see cref="TerminalPrefix"/> dynamic
         /// namespace's <c>IDynamicChannelSource.OnSubscribed</c> listener to
         /// translate the subscribed TOPIC the engine hands back into the
-        /// coreId <c>KosTerminalManager.NotifySubscribed</c> expects — see
+        /// coreId <c>KosTerminalManager.NotifySubscribed</c> expects: see
         /// Gap A of the terminal-integrity adversarial review. Returns false for
         /// anything not under <see cref="TerminalPrefix"/> or whose
         /// sub-topic isn't a plain integer.
@@ -96,11 +96,11 @@ namespace Gonogo.KosUplink
         /// feed's status: <c>"&lt;id&gt;.status"</c>.
         ///
         /// <para><b>P1 has no producer for this sub-topic.</b> The status channel
-        /// (<c>KosComputeStatus</c> — running / lastGoodAt / scriptError /
+        /// (<c>KosComputeStatus</c>: running / lastGoodAt / scriptError /
         /// parseError / paused) is only fed once the mod-side per-topic breaker
         /// lands in P2 (see <see cref="ReEnableCommand"/>'s P1-no-op note and the
         /// spec §4.4 breaker). Until then the client's <c>useKosScriptStatus</c>
-        /// receives nothing on this topic — the additive contract type + the
+        /// receives nothing on this topic: the additive contract type + the
         /// topic convention ship now (so the wire shape is fixed and the client
         /// can migrate), the producer follows in P2. This is a deliberate,
         /// disclosed gap, not a wiring omission.</para>
@@ -112,7 +112,7 @@ namespace Gonogo.KosUplink
         /// REPL and correlate the resulting <c>[KOSDATA]</c>/<c>[KOSERROR]</c>
         /// block back via <see cref="RunTopic"/> (<see cref="Sitrep.Contract.KosRunArgs"/>).
         /// The general-purpose replacement for the standalone telnet proxy's
-        /// ad-hoc <c>executeScript</c> RPC — see
+        /// ad-hoc <c>executeScript</c> RPC: see
         /// <c>kos-uplink-full-migration.md</c>. Distinct from
         /// <see cref="ExecCommand"/>: that one triggers a fixed, pre-registered
         /// compute-topic script by id and reports nothing back directly; this

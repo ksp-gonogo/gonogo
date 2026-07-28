@@ -18,12 +18,12 @@ import { VERSION } from "../../version";
 import { type UplinkGapEntry, useUplinkGap } from "../useUplinkGap";
 
 /**
- * Results step (design §3 steps 5-7) — calls `useUplinkGap()` and renders one
+ * Results step (design §3 steps 5-7): calls `useUplinkGap()` and renders one
  * row per entry, the row's affordance a pure function of `entry.state`. The
  * Load action (`load-from-hub` rows) runs `loadUplinkById` and never mutates
  * local state on success: `useUplinkGap` already re-subscribes to
  * `loaderState` via `useSyncExternalStore`, so a `setUplinkOutcome({status:
- * "loaded"})` call inside `loadUplinkById` flips the row on its own — the
+ * "loaded"})` call inside `loadUplinkById` flips the row on its own, the
  * local `pendingId`/`loadErrors` state here exists only for the in-flight
  * spinner and a failure's reason, neither of which `loaderState` surfaces
  * for a `quarantined` outcome (only `loaded` outcomes feed `useUplinkGap`'s

@@ -27,14 +27,14 @@ import type {
 
 /**
  * Full-history-store rebuilds are one-shot/user-triggered (panel expand),
- * never a steady-state loop — but `MissionHistorySource` is still a
+ * never a steady-state loop: but `MissionHistorySource` is still a
  * registry-visible `DataSource`, and CLAUDE.md's rule ("any new data source
  * MUST register a sample-rate/dispatch-rate PerfBudget") is written to catch
  * exactly the failure mode a memoization bug here would cause: a cache-key
  * miss on every render turning "expand one graph panel" into "replay this
  * mission's entire fixture every frame". Threshold is generous (rebuilding
  * the same or a handful of different missions within a minute is normal
- * click-around use; dozens/sec is a real regression) — this is a defensive
+ * click-around use; dozens/sec is a real regression), this is a defensive
  * tripwire, not a steady-state capacity budget.
  */
 const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
@@ -45,7 +45,7 @@ const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
 });
 
 /**
- * Legacy Telemachus keys with no queryable stream equivalent — filtered out
+ * Legacy Telemachus keys with no queryable stream equivalent, filtered out
  * of `schema()` the same way `BufferedDataSource`'s live schema never
  * offered them; nothing to `sampleRange` against.
  */
@@ -56,18 +56,18 @@ function isGapKey(key: string): boolean {
 /**
  * The `"data"`/`BufferedDataSource` replacement for the flight-history
  * surface (`FlightsManager`, `FlightGraph`, `ChaptersEditor`, and the
- * flight-history peer RPCs) — reads exclusively off `MissionStore`'s
+ * flight-history peer RPCs): reads exclusively off `MissionStore`'s
  * "press record" recordings instead of always-on Telemachus capture.
  *
  * Registered under a FRESH id (`"missionHistory"`, see
  * `packages/app/src/dataSources/missionHistory.ts`) rather than reusing
- * `"data"` — `"data"`/`BufferedDataSource` are being deleted wholesale in a
+ * `"data"`: `"data"`/`BufferedDataSource` are being deleted wholesale in a
  * later pass (P4c-b) and are untouched by this port.
  *
  * Per-mission `queryRange` reads are served by replaying that mission's
  * `ReplayFixture` through `buildFullHistoryStore` (unbounded retention,
  * unlike every live `TimelineStore`) and caching the resulting store by
- * mission id — `evictFullHistoryStore` lets a caller (the FlightGraph panel,
+ * mission id: `evictFullHistoryStore` lets a caller (the FlightGraph panel,
  * on collapse/unmount) drop the cache entry rather than holding a whole
  * mission's frame history in memory indefinitely.
  */
@@ -83,7 +83,7 @@ export class MissionHistorySource implements DataSource {
 
   // --- DataSource ----------------------------------------------------------
   // No live connection: this source only ever reads IndexedDB. Always
-  // "connected" — there's nothing to reconnect or fail.
+  // "connected": there's nothing to reconnect or fail.
 
   async connect(): Promise<void> {}
 
@@ -96,7 +96,7 @@ export class MissionHistorySource implements DataSource {
   }
 
   subscribe(_key: string, _cb: (value: unknown) => void): () => void {
-    // No live values to push — Missions are finished recordings, read only
+    // No live values to push: Missions are finished recordings, read only
     // through queryRange. Matches BufferedDataSource's contract shape
     // without a live upstream: return a no-op unsubscribe.
     return () => {};
@@ -152,7 +152,7 @@ export class MissionHistorySource implements DataSource {
   }
 
   /**
-   * Persists a finished recording AND fires `onFlightListChange` — the only
+   * Persists a finished recording AND fires `onFlightListChange`, the only
    * correct way to save a new mission. A caller that instead writes straight
    * to its own `MissionStore` instance (bypassing this method) still lands
    * the row in IndexedDB, but `PeerHostService.attachFlightListChangeBroadcaster`
@@ -252,7 +252,7 @@ export class MissionHistorySource implements DataSource {
 
   /**
    * Drops one mission's cached full-history store (or all of them when
-   * called with no id) — called by `FlightGraph` on panel collapse/unmount
+   * called with no id): called by `FlightGraph` on panel collapse/unmount
    * so a long FlightsManager session graphing many missions doesn't hold
    * every one's entire frame history in memory forever.
    */
@@ -293,14 +293,14 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
     launchedAt: meta.launchedAt,
     lastSampleAt: meta.launchedAt + elapsedMs,
     // Missions have no live revert-detection concept (a mission only exists
-    // once recording has finished) — this field is unused by
+    // once recording has finished), this field is unused by
     // MissionHistorySource; kept populated (elapsed UT seconds) only for
     // FlightRecord shape compatibility with existing consumers.
     lastMissionTime: meta.lastFrameUt - meta.firstFrameUt,
     sampleCount: meta.frameCount,
     starred: meta.starred,
     chapters: meta.chapters,
-    // No Mission/stream equivalent captured yet — see the port plan's risk
+    // No Mission/stream equivalent captured yet: see the port plan's risk
     // flag on `outcome`. `crash.lastCrash` has a stream topic today but is a
     // single global "last notable crash" event slot, not mission-scoped or
     // queryRange-able, and there is no stream equivalent at all yet for

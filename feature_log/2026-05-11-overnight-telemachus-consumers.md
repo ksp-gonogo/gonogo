@@ -1,7 +1,7 @@
 # Overnight Telemachus consumer sweep + crash handler
 
 - **Date:** 2026-05-11
-- **Validation:** ⏳ pending — landed and tested in CI; not yet exercised in
+- **Validation:** ⏳ pending: landed and tested in CI; not yet exercised in
   a live multi-screen KSP session.
 - **Context:** Following the 2026-05-10 Telemachus extension work (recovery
   dialog, alarm fixes, action-gate, long-id strings, type-aware parameter
@@ -15,15 +15,15 @@
 
 Mirror of `RecoveryDialogHandler` but for the destruction case.
 Subscribes via a deferred `[KSPAddon(KSPAddon.Startup.MainMenu, true)]`
-MonoBehaviour using **instance-method handlers** — same workaround for
+MonoBehaviour using **instance-method handlers**: same workaround for
 KSP's `EventData.EvtDelegate` constructor that does
 `evt.Target.GetType().Name` unconditionally and NREs on static-method
 delegates.
 
 Subscribes to three 1-param `EventData<EventReport>` events:
-- `onCrash` — primary crash trigger
-- `onCrashSplashdown` — high-speed water entry
-- `onCrewKilled` — appends kerbal name to the active snapshot
+- `onCrash`: primary crash trigger
+- `onCrashSplashdown`: high-speed water entry
+- `onCrewKilled`: appends kerbal name to the active snapshot
 
 KSP fires `onCrash` once per part during a destruction event.
 Coalescing window (5s, same vessel id) collects multiple part-loss
@@ -32,12 +32,12 @@ first one. After 5s the next crash starts a fresh snapshot.
 
 Exposes two keys:
 - `recovery.hasRecent` → `crash.hasRecent` (bool)
-- `crash.lastCrash` — full snapshot: vesselName, vesselId, body, situation,
+- `crash.lastCrash`: full snapshot: vesselName, vesselId, body, situation,
   lat/lon/alt, ut, what (what was hit), msg, eventKind
   (Crash/CrashSplashdown), partsLost (list), crewAboard, kerbalsKilled.
 
 Built into Telemachus.dll 1076736 bytes installed 2026-05-11 00:30. **Requires
-KSP restart to load** — the addon registers via the KSPAddon attribute at
+KSP restart to load**: the addon registers via the KSPAddon attribute at
 MainMenu.
 
 ## gonogo-side consumer changes
@@ -51,28 +51,28 @@ keeps working against the older Telemachus DLL (before the kc.crewRoster
 expansion).
 
 Row chrome additions (using `@gonogo/ui` `Badge` primitive, not
-co-located styled spans — per the project's UI-primitive convention):
+co-located styled spans: per the project's UI-primitive convention):
 - Veteran: ★ in `tone="go"`
 - Badass: BA in `tone="warn"`
 - Career flights count: `{N}F` in `tone="neutral"`
 - Unavailable reason (was an ad-hoc styled span): now `tone="nogo"`
 
 Tooltip on each row stitches courage / stupidity / careerFlights /
-veteran / badass / currentVesselName into a one-line summary — kept
+veteran / badass / currentVesselName into a one-line summary, kept
 out of the primary chrome to keep rows compact in narrow layouts.
 
-Tests: 9 pass (added 2 new — "parses expanded fields when present"
+Tests: 9 pass (added 2 new: "parses expanded fields when present"
 and "defaults expanded fields when older Telemachus DLL is loaded").
 
-### AlarmsModal — AG-binding captions
+### AlarmsModal: AG-binding captions
 
 Wired `f.ag.bindings` into the action-group picker via `useDataValue`.
 Each option in the "When fires" picker now shows what's bound to that
 AG on the active vessel:
 
 ```
-AG1 (f.ag1) — Toggle Lights
-AG2 (f.ag2) — Extend Solar Panels +2 more
+AG1 (f.ag1): Toggle Lights
+AG2 (f.ag2): Extend Solar Panels +2 more
 ```
 
 Caption shows the first bound action's `actionGuiName`, plus a
@@ -88,7 +88,7 @@ key (e.g. brake → Brakes).
 Defensive: `isAgBindingArray` type-guards the unknown payload so a
 DLL drift can't crash the picker.
 
-Tests: 45 pass (existing — no new tests added; the change is purely
+Tests: 45 pass (existing: no new tests added; the change is purely
 visual caption text driven by useDataValue, which the existing test
 harness already exercises through `useDataSchema`).
 
@@ -97,25 +97,25 @@ harness already exercises through `useDataSchema`).
 Parser updated to capture the type-aware fields (`parameterType`,
 `minAltitude`, `maxAltitude`, `body`, `situation`, `partName`). New
 `AltitudeProgress` sub-component renders a thin progress bar under any
-`Incomplete` parameter of type `ReachAltitudeEnvelope` — fills toward
+`Incomplete` parameter of type `ReachAltitudeEnvelope`: fills toward
 target band when below, full green when in-band, full grey + `+Xkm`
 overshoot when above. Driven by `v.altitude` from the existing live
 subscription.
 
 **Long-id-as-string fix shipped in this session also required parser
-changes here** — KSP contract IDs exceed 2^53 and the previous strict
+changes here**, KSP contract IDs exceed 2^53 and the previous strict
 `typeof e.id === "number"` would silently drop string-encoded contracts
 after the fork's restart. Parser now accepts both string and number,
 normalises to string internally. ContractEntry.id is now `string`.
 
 Downstream consumers (`CancelButton`, `DeclineButton`) widened their
 contractId prop from `number` to `string`. The contract-parameter alarm
-trigger still uses `contractId: number` (alarm-system type) — bell button
+trigger still uses `contractId: number` (alarm-system type), bell button
 is now gated by a safe-integer check via `contractIdToSafeNumber()`;
 big-id contracts render a disabled bell with explanatory tooltip rather
 than silently dropping the bell or crashing on overflow.
 
-Tests: 16 pass (added 1 new — "preserves big-number contract IDs from
+Tests: 16 pass (added 1 new: "preserves big-number contract IDs from
 the new long-as-string fork").
 
 ### Mission summary banner + modal
@@ -130,16 +130,16 @@ modal with the full breakdowns (science subjects, parts, resources,
 crew XP).
 
 Wired into both `MainScreen` and `StationScreen` next to existing
-banners — every screen pops its own independent banner since the
+banners: every screen pops its own independent banner since the
 underlying data flows over `PeerBroadcastingDataSource` to every
 station automatically.
 
 ### Flight history annotation (recovery + crash)
 
 New `FlightOutcome` discriminated union on `FlightRecord` with two
-variants: `FlightRecoveryOutcome` (kind: "recovered" — recoveryLocation,
+variants: `FlightRecoveryOutcome` (kind: "recovered", recoveryLocation,
 recoveryFactor, fundsEarned, scienceEarned, reputationEarned, crew) and
-`FlightCrashOutcome` (kind: "crashed" — body, situation, what,
+`FlightCrashOutcome` (kind: "crashed": body, situation, what,
 partsLostCount, kerbalsKilled).
 
 `BufferedDataSource.handleSample` now intercepts `recovery.lastSummary`
@@ -156,11 +156,11 @@ kerbals KIA).
 
 Tests: 272 data tests + 382 app tests still pass; no new tests for the
 outcome annotation itself (would need integration-level fixtures with
-a fake store + faked recovery.lastSummary samples — worth a follow-up).
+a fake store + faked recovery.lastSummary samples, worth a follow-up).
 
 ## Deferred this session
 
-### Stock alarm mirror — blocked on read-response design
+### Stock alarm mirror: blocked on read-response design
 
 `alarm.add` now returns the new alarm's uint id over HTTP, but
 gonogo's data source uses `fetch(url, { mode: "no-cors" })` for
@@ -173,7 +173,7 @@ Two paths, both larger than overnight-scope:
 1. **CORS-enabled execute path**: extend the data source interface
    with `executeAndRead(action): Promise<unknown>`, parse the JSON
    response. Requires Telemachus to set `Access-Control-Allow-Origin`
-   on the response — fork edit. Cleanest API, biggest blast radius.
+   on the response: fork edit. Cleanest API, biggest blast radius.
 2. **WS observation matching**: gonogo calls `execute("alarm.add[gonogo:<localId>,...]")`
    fire-and-forget, then watches `alarm.list` over the WS subscription
    for a row with matching title prefix to extract the stock id.
@@ -184,12 +184,12 @@ Reconciliation on host startup (delete orphaned `gonogo:` alarms
 from a previous session that's no longer running) is mechanically
 fine with either path.
 
-**Recommendation:** path 2 (WS observation) — keeps the data layer
+**Recommendation:** path 2 (WS observation): keeps the data layer
 contract simple and the alarm mirror's "create + observe" model
 matches how gonogo already syncs state with KSP. Worth a focused
 design session.
 
-### Stock alarm mirror — same blocker (CORS / WS-observation design)
+### Stock alarm mirror: same blocker (CORS / WS-observation design)
 
 ## Files touched
 
@@ -206,7 +206,7 @@ packages/app/src/alarms/AlarmsModal.tsx                          (AG captions)
 # gonogo (commit 2)
 packages/components/src/MissionDirector/index.tsx                (multi-param + altitude progress + id-as-string)
 packages/components/src/MissionDirector/index.test.tsx           (1 new test for big-id roundtrip)
-packages/app/src/components/RecoverySummaryBanner.tsx            (NEW — banner + modal)
+packages/app/src/components/RecoverySummaryBanner.tsx            (NEW: banner + modal)
 packages/app/src/screens/MainScreen.tsx                          (mount banner)
 packages/app/src/screens/StationScreen.tsx                       (mount banner)
 packages/data/src/types.ts                                       (FlightOutcome union on FlightRecord)

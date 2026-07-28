@@ -9,7 +9,7 @@ const trace = logger.tag("serial:parser");
 /**
  * Screen declaration as it arrives inside the device's state message.
  * `type` selects a render-style family (today: `"txt"` → the text-buffer
- * style). Other fields depend on the family — `txt` takes `w`/`h`.
+ * style). Other fields depend on the family, `txt` takes `w`/`h`.
  */
 export interface JsonStateScreen {
   type: string;
@@ -19,7 +19,7 @@ export interface JsonStateScreen {
 /**
  * Output of one `parseJsonState` call. `events` is emitted per tick. The
  * two `*Update` fields are only populated when the message carried new
- * structural information — callers can short-circuit schema persistence
+ * structural information: callers can short-circuit schema persistence
  * when both are `null`.
  */
 export interface JsonStateParseResult {
@@ -28,7 +28,7 @@ export interface JsonStateParseResult {
   inputsUpdate: DeviceInput[] | null;
   /** Latest screen declaration. `null` when the message didn't include one. */
   screenUpdate: JsonStateScreen | null;
-  /** True only when the line couldn't be parsed as JSON at all — caller may log. */
+  /** True only when the line couldn't be parsed as JSON at all, caller may log. */
   malformed: boolean;
 }
 
@@ -45,7 +45,7 @@ type KnownInputsIndex = Map<string, DeviceInput>;
  *
  * All three top-level keys are optional; messages may also elide `min`/`max`
  * after the first tick and we fall back to the cached values in
- * `knownInputs`. The parser is pure — state (last-known schema) lives in
+ * `knownInputs`. The parser is pure, state (last-known schema) lives in
  * the caller.
  */
 export function parseJsonState(
@@ -161,7 +161,7 @@ function parseAnalog(
     if (typeof raw.min === "number") min = raw.min;
     if (typeof raw.max === "number") max = raw.max;
   } else if (typeof raw === "number") {
-    // Short-form: `"X": 100` with no min/max — only works if the analog
+    // Short-form: `"X": 100` with no min/max, only works if the analog
     // has been declared in a previous tick (`known` has them).
     val = raw;
   }
@@ -171,7 +171,7 @@ function parseAnalog(
 
   let updatedInput: DeviceInput | null = null;
   // Only register/update an input when we actually have a usable range.
-  // A short-form value with no cached range is unregisterable — the caller
+  // A short-form value with no cached range is unregisterable, the caller
   // will ignore it entirely and we surface nothing.
   if (haveRange && (!known || rangeChanged)) {
     updatedInput = { id, name: id, kind: "analog", min, max };
@@ -185,7 +185,7 @@ function parseAnalog(
         ? "no-value"
         : !haveRange
           ? "no-range-cached" // typical: short-form `"X": 100` with no prior `{min,max}` declaration
-          : "min-equals-max"; // device misconfigured — range collapsed
+          : "min-equals-max"; // device misconfigured: range collapsed
     trace.debug("analog skipped", {
       id,
       reason,
@@ -202,7 +202,7 @@ function parseAnalog(
     -1,
     1,
   );
-  // Apply user-set shaping (if any) using the cached `known` input — device
+  // Apply user-set shaping (if any) using the cached `known` input, device
   // schema announcements clobber inputs wholesale via handleSchemaUpdate, so
   // deadzone/curve survive only as long as the device doesn't re-announce.
   const shaped = known ? applyAnalogShaping(known, normalised) : normalised;

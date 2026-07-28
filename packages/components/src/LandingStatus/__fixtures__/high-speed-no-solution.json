@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "high-speed-no-solution",
-    "notes": "High vertical speed downward on Mun but no trajectory solution — impact solver returned NaN for timeToImpact. Widget shows 'Waiting for a landing prediction' because vessel is descending with no prediction."
+    "notes": "High vertical speed downward on Mun but no trajectory solution, impact solver returned NaN for timeToImpact. Widget shows 'Waiting for a landing prediction' because vessel is descending with no prediction."
   },
   "v.body": "Mun",
   "v.heightFromTerrain": 12000,

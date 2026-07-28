@@ -2,7 +2,7 @@
 
 - **Date:** 2026-05-11 (continued overnight work after the
   2026-05-11-overnight-telemachus-consumers entry)
-- **Validation:** ⏳ pending — fork code compiled clean and installed,
+- **Validation:** ⏳ pending: fork code compiled clean and installed,
   but unverified in a live session. Two checks pending the next KSP
   boot: (a) the new `ALLOWED_ORIGINS` config line is read correctly
   by the plugin and surfaced in the boot log; (b) a `fetch()` from
@@ -13,20 +13,20 @@
 
 `gonogo`'s data source (`packages/app/src/dataSources/telemachus.ts`)
 fires actions via `fetch(url, { mode: "no-cors" })`. That dodges the
-question of whether Telemachus emits proper CORS headers — the request
+question of whether Telemachus emits proper CORS headers, the request
 fires, the action takes effect, but the response body is opaque to JS.
 For every action where the state change arrives moments later over the
 WebSocket, that's fine. For `alarm.add` it isn't: the returned alarm
 id is needed to mirror the local alarm into stock KSP's AlarmClock and
 later delete it.
 
-Grep of the fork source confirmed there's **no CORS handling anywhere**
-— Telemachus has historically served only its bundled HTML UI on its
+Grep of the fork source confirmed there's **no CORS handling anywhere**,
+Telemachus has historically served only its bundled HTML UI on its
 own port (same origin, no CORS friction), so neither the original mod
 nor any prior fork ever needed it. gonogo's deployed-on-GitHub-Pages-
 talks-to-LAN-Telemachus architecture is the unusual case.
 
-## Design — config-driven echo-origin allowlist
+## Design: config-driven echo-origin allowlist
 
 `Access-Control-Allow-Origin: *` would unblock gonogo but also expose
 the action surface (alarms, launches, contracts, facility upgrades) to
@@ -54,9 +54,9 @@ local_docs/telemachus-fork/Telemachus/src/TelemachusBehaviour.cs
 
 local_docs/telemachus-fork/Telemachus/src/DataLinkResponsibility.cs
     + Optional ServerConfiguration in ctor (default null for back-compat)
-    + applyCorsHeader() helper — sets Access-Control-Allow-Origin + Vary
+    + applyCorsHeader() helper: sets Access-Control-Allow-Origin + Vary
       when the request's Origin is in the allowlist
-    + OPTIONS preflight handler — responds 204 with Allow-Methods +
+    + OPTIONS preflight handler: responds 204 with Allow-Methods +
       Allow-Headers + Max-Age when the request is OPTIONS and the
       origin is allowlisted. Forward-compat for future endpoints that
       take custom headers; Telemachus's current GET-only surface
@@ -79,7 +79,7 @@ inside the `<config>` element:
 ```
 
 Multiple origins comma-separated, no trailing slashes, no wildcards.
-Restart KSP — the file is read once at plugin start, not on
+Restart KSP: the file is read once at plugin start, not on
 ModuleManager reload. Verify with curl:
 
 ```
@@ -103,12 +103,12 @@ who don't need the feature aren't disturbed.
 
 - **Live verification** of the boot-log line + a real cross-origin
   fetch from the dev server against the configured origin.
-- **`executeAndRead` data-source path** — once CORS is verified, the
+- **`executeAndRead` data-source path**: once CORS is verified, the
   data source needs a sibling method to `execute()` that drops
   `mode: "no-cors"` and parses the response. Unblocks the stock alarm
   mirror; trivial change. Pending until CORS is verified live so we
   don't ship a broken read path against a CORS-less Telemachus.
-- **Stock alarm mirror** — implements via `executeAndRead`. Title
+- **Stock alarm mirror**: implements via `executeAndRead`. Title
   prefix `gonogo:<localAlarmId>` for reconciliation on host startup;
   TimeTrigger only (threshold + contract-parameter have no stock
   equivalent, see prior entry). Pending the data source update.

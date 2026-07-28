@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
 
-// Unmount each rendered tree BEFORE clearing the action-handler registry —
+// Unmount each rendered tree BEFORE clearing the action-handler registry,
 // clearActionHandlers() firing on a still-mounted widget is a state update
 // outside act(). RTL auto-cleanup runs after this file's afterEach, too late
 // to unmount first.
@@ -16,7 +16,7 @@ const renderedTrees: Array<() => void> = [];
  * `TimelineStore` pipeline via `StubTransport`. `career.funds`/
  * `career.reputation`/`career.science` (-> `career.status.economy.*`) AND
  * `strategies.all` (-> `career.status.strategies.all`)
- * all stream now — no legacy AUX needed for this widget any more.
+ * all stream now: no legacy AUX needed for this widget any more.
  */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
@@ -24,7 +24,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("Strategies — genuinely runs off the stream (M3/M3b career batch)", () => {
+describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () => {
   it("renders the funds/reputation/science tallies derived from career.status.economy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
@@ -100,8 +100,8 @@ describe("Strategies — genuinely runs off the stream (M3/M3b career batch)", (
         economy: { funds: 289848, reputation: 420, science: 145 },
         facilities: null,
         contracts: null,
-        // parseStrategies (and the widget) reads `strategies.all` only —
-        // `active` is derived client-side by filtering `isActive` — so the
+        // parseStrategies (and the widget) reads `strategies.all` only,
+        // `active` is derived client-side by filtering `isActive`, so the
         // entry must be present in `all`, not just `active`.
         strategies: {
           active: [aggressiveNegotiations],

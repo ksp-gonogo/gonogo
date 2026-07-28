@@ -10,7 +10,7 @@ import { useSerialDeviceService } from "./SerialDeviceContext";
  * without a page refresh. Mount inside both `<SerialDeviceProvider>`
  * and `<ModalProvider>`.
  *
- * Only the locked-streams unrecoverable case fires this event — the
+ * Only the locked-streams unrecoverable case fires this event, the
  * rest of the hot-plug path adopts silently.
  */
 export function SerialPortRecoveryWatcher() {

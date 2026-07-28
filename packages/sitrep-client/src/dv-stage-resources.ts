@@ -30,7 +30,7 @@ export type ResourceAmountMap = Record<string, number>;
  * pick out the ONE entry the old Telemachus `r.resourceCurrent[X]`/
  * `r.resourceCurrentMax[X]` pair meant ("the currently active stage"), since a
  * raw-field-subtopic string can't express a dynamic array lookup keyed by
- * another topic's live value — the lookup has to happen here, in a real
+ * another topic's live value: the lookup has to happen here, in a real
  * `derive()` function, not as a static field path in `map-topic.ts`.
  *
  * `undefined` while `dv.stages` OR `vessel.structure` hasn't arrived
@@ -65,7 +65,7 @@ function currentStageResources(
 }
 
 /**
- * `dv.currentStageResource` derivation — the CURRENT amount per resource name
+ * `dv.currentStageResource` derivation: the CURRENT amount per resource name
  * for the active stage, behind the old Telemachus `r.resourceCurrent[X]`.
  * Entries whose `current` isn't a finite number are omitted (same
  * "absent, not fabricated" discipline every other raw-dict reader in this
@@ -87,7 +87,7 @@ export function deriveCurrentStageResourceCurrent(
 }
 
 /**
- * `dv.currentStageResourceMax` derivation — the MAX amount per resource name
+ * `dv.currentStageResourceMax` derivation: the MAX amount per resource name
  * for the active stage, behind the old Telemachus `r.resourceCurrentMax[X]`.
  * Same omission discipline as {@link deriveCurrentStageResourceCurrent}.
  */
@@ -107,10 +107,10 @@ export function deriveCurrentStageResourceMax(
 }
 
 /**
- * Ready-to-register definitions —
+ * Ready-to-register definitions:
  * `store.registerDerivedChannel(dvCurrentStageResourceChannel)` /
  * `...(dvCurrentStageResourceMaxChannel)`. `fields: true` on each exposes
- * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>` — the
+ * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>`: the
  * targets `map-topic.ts`'s `RESOURCE_STAGE_SCOPED` resolution points at.
  * `deriveStatus` omitted: the default (worst status across `dv.stages` +
  * `vessel.structure`, both genuinely consulted every call) is exactly right.

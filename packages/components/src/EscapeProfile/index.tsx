@@ -14,7 +14,7 @@ export interface EscapeProfileConfig {
 
 const REFERENCE_SAMPLES = 60;
 
-// Escape from low orbit happens at much higher altitudes than ascent — give
+// Escape from low orbit happens at much higher altitudes than ascent, give
 // the curve more headroom. For atmospheric bodies extend to 10× the
 // atmosphere ceiling; for airless bodies use a few body radii. Either way
 // the live trace's X domain auto-extends if needed.
@@ -43,7 +43,7 @@ function buildEscapeCurve(
     // The shared LineChart legend stamps the label as a single un-truncated
     // line of SVG <text>; on a narrow plot the body-name parenthetical runs
     // past the right edge and is clipped by the viewport. Drop it below ~6
-    // grid columns so the label fits — the body name is still implied by the
+    // grid columns so the label fits: the body name is still implied by the
     // widget context / title. Wider cells keep the explicit body name.
     label: narrow ? "Escape velocity" : `Escape velocity (${body.name})`,
     xs,
@@ -58,7 +58,7 @@ function EscapeProfileComponent({
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
   // Native read: the `vessel.state` DERIVED channel's `parentBodyName`
   // display map (`vessel.identity.parentBodyIndex` resolved against
-  // `system.bodies`) — the same channel `DistanceToTarget`/`TargetPicker`/
+  // `system.bodies`): the same channel `DistanceToTarget`/`TargetPicker`/
   // `ManeuverPlanner`/`CurrentOrbit` read for their own `vessel.state.*`
   // fields, off the legacy two-arg `data`-source shim.
   const bodyName =
@@ -68,7 +68,7 @@ function EscapeProfileComponent({
   const windowSec = config?.windowSec ?? 600;
 
   // At ~6 grid columns or fewer the plot is too narrow for the full
-  // "Escape velocity (Body)" legend to fit — shorten it (see buildEscapeCurve).
+  // "Escape velocity (Body)" legend to fit: shorten it (see buildEscapeCurve).
   const narrow = w !== undefined && w <= 6;
 
   const referenceCurve = useMemo(() => {
@@ -108,12 +108,12 @@ function EscapeProfileComponent({
       />
       {showNoGmNotice && body && (
         <Notice role="status">
-          No reference data for {body.name} — plotting trace only.
+          No reference data for {body.name}: plotting trace only.
         </Notice>
       )}
       {showNoBodyNotice && (
         <Notice role="status">
-          Unknown body “{bodyName}” — plotting trace only.
+          Unknown body “{bodyName}”: plotting trace only.
         </Notice>
       )}
     </Wrap>

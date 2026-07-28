@@ -4,7 +4,7 @@ namespace Sitrep.Core
 {
     /// <summary>
     /// Tracks which channels currently have at least one subscriber. This is
-    /// the OUTER gate in the streaming-slice-1 sampling pipeline —
+    /// the OUTER gate in the streaming-slice-1 sampling pipeline,
     /// <see cref="ChannelEmitter"/> is the INNER one. A channel with zero
     /// subscribers must never be sampled or have <see cref="ChannelEmitter.Decide"/>
     /// called for it at all: the intended call-site shape (future Track C,
@@ -29,7 +29,7 @@ namespace Sitrep.Core
     /// separate from <see cref="ChannelEmitter"/> itself (rather than one
     /// class owning both gates) so a caller that already has its own
     /// subscriber bookkeeping (e.g. Courier's per-(node,topic) subscriber
-    /// sets) isn't forced to duplicate it here — this class exists for
+    /// sets) isn't forced to duplicate it here, this class exists for
     /// callers that don't.
     /// </summary>
     public sealed class SubscriptionRegistry
@@ -39,7 +39,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Register one more subscriber for <paramref name="channelId"/>.
         /// Returns <c>true</c> only on a genuine 0 -&gt; 1 transition (the
-        /// channel had no subscribers before this call) — the caller should
+        /// channel had no subscribers before this call), the caller should
         /// treat that as the signal to force an immediate keyframe via
         /// <see cref="ChannelEmitter.NotifySubscribed"/>.
         /// </summary>

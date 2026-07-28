@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// The runtime witness that health is now MANDATORY (2026-07-21,
     /// <c>local_docs/holiday_week/HIGH-PRIORITY-mandatory-healthchecks.md</c>). The
-    /// real enforcement is COMPILE-TIME — <c>Health()</c> is a required member of
+    /// real enforcement is COMPILE-TIME, <c>Health()</c> is a required member of
     /// <see cref="ISitrepUplink"/> with NO default, so an uplink that omits it does
     /// not compile (proven by the migration: 46 test doubles hard-errored with
     /// CS0535 until each declared it). A compile failure can't be a runtime test, so
@@ -30,7 +30,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(method.GetParameters());
             // No default interface implementation: a mandate that ships a default
             // lets an author silently omit health (operator Q1 rejected exactly this).
-            Assert.True(method.IsAbstract, "Health() must have NO default interface body — it must force an explicit implementation.");
+            Assert.True(method.IsAbstract, "Health() must have NO default interface body, it must force an explicit implementation.");
         }
 
         [Fact]

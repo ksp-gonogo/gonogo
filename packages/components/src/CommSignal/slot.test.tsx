@@ -17,7 +17,7 @@ import { CommSignalComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // augment registry. RTL auto-cleanup runs after this file's afterEach, so it
-// can't be relied on to unmount first — clearAugments() notifying a
+// can't be relied on to unmount first, clearAugments() notifying a
 // still-mounted AugmentSlot's subscribers is a state update outside act(), the
 // documented anti-pattern in CLAUDE.md.
 const renderedTrees: Array<() => void> = [];
@@ -35,8 +35,8 @@ function unmountAll() {
 
 /**
  * CommSignal exposes two augment slots (locked map: comm-signal):
- *  - `comm-signal.sections` — body, below the signal-bars readout
- *  - `comm-signal.badges`   — header, next to the title
+ *  - `comm-signal.sections`: body, below the signal-bars readout
+ *  - `comm-signal.badges`  : header, next to the title
  *
  * These tests prove the seats exist and compose an augment WITHOUT CommSignal
  * importing any backend-aware code. Only the slots are exposed here; a real
@@ -44,7 +44,7 @@ function unmountAll() {
  * So an empty slot rendering nothing is the correct steady state here.
  */
 
-// Mirrors dual-run.test.tsx — every channel `vessel-state.ts` reads plus the
+// Mirrors dual-run.test.tsx, every channel `vessel-state.ts` reads plus the
 // delay channel, so the derived control-state/delay fields resolve off the
 // stream and the widget reaches its populated readout.
 const CARRIED = [
@@ -97,7 +97,7 @@ afterEach(() => {
   clearAugments();
 });
 
-describe("CommSignal — augment slots (Uplink spec §4)", () => {
+describe("CommSignal: augment slots (Uplink spec §4)", () => {
   it("declares both slots empty by default and renders its own readout unchanged", async () => {
     expect(getAugmentsForSlot("comm-signal.sections")).toHaveLength(0);
     expect(getAugmentsForSlot("comm-signal.badges")).toHaveLength(0);

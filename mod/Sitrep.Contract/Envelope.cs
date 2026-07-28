@@ -48,7 +48,7 @@ public class CommandRequest<TArgs>
     public string Command { get; set; } = "";
 
     /// <summary>
-    /// Caller-supplied, generic display label for this dispatch — carried
+    /// Caller-supplied, generic display label for this dispatch, carried
     /// verbatim into the corresponding <see cref="Sitrep.Contract.PendingUplink.Label"/>
     /// entry on <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back
     /// to <see cref="Command"/>. Never inspected/parsed by the engine.
@@ -56,7 +56,7 @@ public class CommandRequest<TArgs>
     public string Label { get; set; } = "";
 
     /// <summary>
-    /// Dispatch-time addressing — carried verbatim into the corresponding
+    /// Dispatch-time addressing: carried verbatim into the corresponding
     /// <see cref="Sitrep.Contract.PendingUplink.Topic"/> entry on
     /// <c>system.uplink.pending</c>. Never inspected/parsed by the engine.
     /// </summary>

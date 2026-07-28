@@ -7,12 +7,12 @@ import { OrbitalAscentComponent } from "./index";
 /**
  * The stream test-adapter proof for OrbitalAscent: the widget's own read
  * (`v.body`) genuinely runs off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport` — no legacy `DataSource` is
+ * `TimelineStore` pipeline via `StubTransport`: no legacy `DataSource` is
  * registered anywhere in this file, so a value only reaches the widget if it
  * actually streamed.
  *
  * `v.body` is mapped to the DERIVED
- * `vessel.state.parentBodyName` field — the index→name display map
+ * `vessel.state.parentBodyName` field: the index→name display map
  * `deriveVesselState` resolves from `vessel.identity.parentBodyIndex` against
  * `system.bodies` (`vessel-state.ts`). Emitting `vessel.orbit` (which gates the
  * whole `vessel.state` record; default `StubTransport` meta quality is
@@ -22,7 +22,7 @@ import { OrbitalAscentComponent } from "./index";
  * stream: the widget renders its "Unknown body" notice, which it could not do
  * from a legacy fallback that isn't wired here.
  *
- * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs — the
+ * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs, the
  * carried-channels gate is parent-channel-scoped, not per-field (see
  * `vessel-state.ts`'s `vesselStateChannel` doc comment), so even a field that
  * only consults `vessel.identity`/`system.bodies` needs the whole set carried
@@ -32,13 +32,13 @@ import { OrbitalAscentComponent } from "./index";
  * asserted here: both map to DERIVED `vessel.state.*` channels, and
  * `useDataSeries` CAN now serve a derived channel's windowed history off the
  * stream via `TimelineStore.sampleDerivedRange` (a replay of `derive()` off
- * the raw inputs' own buffered ranges — `sampleRange` itself still returns
+ * the raw inputs' own buffered ranges: `sampleRange` itself still returns
  * `undefined` for a derived topic by design, unchanged). This file just never
- * emits `vessel.flight`, so both series resolve empty/null here regardless —
+ * emits `vessel.flight`, so both series resolve empty/null here regardless,
  * not exercised, not because the stream structurally can't serve them. The
  * widget still renders its chrome, which the assertions below confirm.
  */
-describe("OrbitalAscent — v.body genuinely runs off the stream (R6)", () => {
+describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
   it("resolves the streamed parent-body name off the real pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [

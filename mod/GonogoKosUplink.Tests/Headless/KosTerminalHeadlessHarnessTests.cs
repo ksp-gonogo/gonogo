@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ namespace GonogoKosUplink.Tests.Headless
     /// <summary>
     /// The KSP-free, end-to-end terminal harness: it drives a REAL
     /// <c>kOS.Safe.Screen.ScreenBuffer</c> (the same screen type a live kOS CPU
-    /// runs), runs its snapshots through the REAL <see cref="ScreenDiffMapper"/>
-    /// — real <c>ScreenSnapShot.DiffFrom</c> + real
-    /// <c>kOS.UserIO.TerminalXtermMapper</c>, no KSP/Unity process — through the
+    /// runs), runs its snapshots through the REAL <see cref="ScreenDiffMapper"/>,
+    /// real <c>ScreenSnapShot.DiffFrom</c> + real
+    /// <c>kOS.UserIO.TerminalXtermMapper</c>, no KSP/Unity process: through the
     /// REAL <see cref="KosTerminalManager"/> and into a REAL
     /// <see cref="Courier"/>/<c>Archive</c> delay engine driven by a
     /// <see cref="ManualClock"/>, then reconstructs the client-side screen from
@@ -29,7 +29,7 @@ namespace GonogoKosUplink.Tests.Headless
     /// and never model <c>Archive.ReadAtVantage</c>'s "latest sample as of the
     /// light-lagged scene" coalescing (the state re-read lane the terminal is
     /// deliberately NOT on). Here the whole chain runs, so a
-    /// same-<c>ValidAt</c> collision doesn't just return a wrong number — it
+    /// same-<c>ValidAt</c> collision doesn't just return a wrong number, it
     /// silently corrupts the reconstructed screen. See
     /// <see cref="Burst_ConstantValidAt_LossyLatestLane_StillCoalescesAndCorruptsTheScreen"/>
     /// for the executable proof that this harness catches the coalescing garble
@@ -41,13 +41,13 @@ namespace GonogoKosUplink.Tests.Headless
     /// it with an actual git-revert-of-Fix-#1 run of the positive test.</para>
     ///
     /// <para><b>Interpreter vs ScreenBuffer:</b> this drives the ScreenBuffer
-    /// directly rather than standing up the full kOS interpreter headlessly —
+    /// directly rather than standing up the full kOS interpreter headlessly,
     /// the sanctioned fallback. It exercises the exact real pipeline the
     /// terminal-garble class lives in (screen state → diff → xterm map → delay
     /// engine); printing to the ScreenBuffer is precisely what a kerboscript
     /// <c>PRINT</c> does to a CPU's screen. A subscriber joins on a blank screen
     /// (its reseed frame is a clean clear) and then watches a burst of PRINTed
-    /// lines arrive as cursor-relative incremental diffs — which is exactly the
+    /// lines arrive as cursor-relative incremental diffs, which is exactly the
     /// frame shape that coalesces on ValidAt.</para>
     /// </summary>
     public class KosTerminalHeadlessHarnessTests
@@ -71,7 +71,7 @@ namespace GonogoKosUplink.Tests.Headless
         /// <summary>
         /// Adapts a live <see cref="ScreenBuffer"/> to the manager's
         /// <see cref="IKosTerminalScreen"/> port by delegating to a real
-        /// <see cref="ScreenDiffMapper"/> — the same delegation the production
+        /// <see cref="ScreenDiffMapper"/>: the same delegation the production
         /// <c>KosProcessorScreen</c> shell does, minus the <c>kOSProcessor</c>
         /// resolution. The test mutates the shared buffer between polls, exactly
         /// as a running kerboscript would mutate a CPU's screen.
@@ -194,7 +194,7 @@ namespace GonogoKosUplink.Tests.Headless
             // Then a kerboscript PRINTs a burst of lines: one line per ~20Hz
             // poll, while the Courier clock stays PARKED at a single tick
             // (production: the ~50ms Courier cadence is outrun by the main-thread
-            // poll). Each poll is a cursor-relative incremental diff — exactly
+            // poll). Each poll is a cursor-relative incremental diff, exactly
             // the frames that collide on ValidAt without Fix #1.
             foreach (var line in BurstLines)
             {
@@ -205,13 +205,13 @@ namespace GonogoKosUplink.Tests.Headless
             // Drain every scheduled (zero-delay) delivery.
             clock.AdvanceTo(clock.Now() + 1);
 
-            // Completeness: every published frame was delivered — none dropped
+            // Completeness: every published frame was delivered, none dropped
             // or duplicated (1 reseed + one per burst line).
             Assert.Equal(BurstLines.Length + 1, publishedUts.Count);
             Assert.Equal(publishedUts.Count, delivered.Count);
 
             // Order: the ReliableOrdered lane forwards each captured frame
-            // exactly once, in record order — NOT dependent on distinct
+            // exactly once, in record order: NOT dependent on distinct
             // ValidAt stamps (that was Fix #1's job, now retired: a same-tick
             // burst forwards per-sample rather than re-reading the coalesced
             // latest). ValidAt stays monotonic non-decreasing (the clock never
@@ -241,14 +241,14 @@ namespace GonogoKosUplink.Tests.Headless
         public void Burst_ConstantValidAt_LossyLatestLane_StillCoalescesAndCorruptsTheScreen()
         {
             // The negative control: proof the harness still CATCHES the
-            // coalescing garble class, and pins exactly WHERE it lives — the
+            // coalescing garble class, and pins exactly WHERE it lives, the
             // state re-read lane (Delivery.LossyLatest). Every burst frame is
             // recorded at the SAME constant ValidAt on that lane. Everything
             // else is the REAL pipeline: real ScreenBuffer, real
             // ScreenDiffMapper diffs, real Archive.ReadAtVantage coalescing.
             // Contrast with the ReliableOrdered test below, which records the
             // identical burst at the identical constant ValidAt and does NOT
-            // corrupt — the whole point of the reclassify.
+            // corrupt: the whole point of the reclassify.
             var clock = new ManualClock(startUt: 1000);
             var network = new StubNetwork(delay: 0);
             var courier = new Courier(clock, network);
@@ -274,7 +274,7 @@ namespace GonogoKosUplink.Tests.Headless
                 var result = screen.ReadChunk(force);
                 if (result.HasOutput)
                 {
-                    // Delivery.LossyLatest (the default) — the state re-read
+                    // Delivery.LossyLatest (the default): the state re-read
                     // lane, where same-ValidAt frames coalesce.
                     courier.Record(Node, topic, new KosTerminalFrame
                     {
@@ -303,7 +303,7 @@ namespace GonogoKosUplink.Tests.Headless
             // bug would have stopped being observable here.
             Assert.NotEqual(truth, client.Text);
 
-            // Concretely: earlier burst lines were dropped from the client — the
+            // Concretely: earlier burst lines were dropped from the client, the
             // reader only ever resolved the LATEST same-ValidAt sample.
             Assert.DoesNotContain("STAGE 1 IGNITION", client.Text);
             Assert.DoesNotContain("BOOT SEQUENCE COMPLETE", client.Text);
@@ -313,8 +313,8 @@ namespace GonogoKosUplink.Tests.Headless
         public void Burst_ConstantValidAt_ReliableOrderedLane_DeliversEveryFrameAndReconstructsExactScreen()
         {
             // The heart of the reclassify proof. Same real pipeline, same
-            // constant ValidAt as the LossyLatest control above — the exact
-            // shape reverting Fix #1 produces (no strictly-increasing stamp) —
+            // constant ValidAt as the LossyLatest control above, the exact
+            // shape reverting Fix #1 produces (no strictly-increasing stamp),
             // but on the Delivery.ReliableOrdered lane. Because that
             // lane forwards each captured sample per-frame instead of
             // re-reading the archive at fire time, the constant ValidAt no
@@ -340,7 +340,7 @@ namespace GonogoKosUplink.Tests.Headless
             var blankBaseline = new ScreenSnapShot(buffer).DeepCopy();
             var screen = new ScreenBufferTerminal(buffer);
 
-            const double frozenUt = 1000.0; // constant raw UT — the reverted-Fix-#1 shape.
+            const double frozenUt = 1000.0; // constant raw UT, the reverted-Fix-#1 shape.
 
             void RecordFrame(bool force)
             {
@@ -392,7 +392,7 @@ namespace GonogoKosUplink.Tests.Headless
             //
             // The bug: ScreenDiffMapper's reseed baseline used
             // ScreenSnapShot.EmptyScreen, whose fresh rows carry the newest
-            // LastChangeTick — so ScreenSnapShot.DiffFrom's tick-skip discarded
+            // LastChangeTick: so ScreenSnapShot.DiffFrom's tick-skip discarded
             // every already-printed row and the reseed emitted only a clear. The
             // fix (FullRepaintBaseline, an empty-buffer baseline) makes DiffFrom
             // emit the full current content regardless of ticks. This runs the
@@ -720,8 +720,8 @@ namespace GonogoKosUplink.Tests.Headless
 
         /// <summary>
         /// Runs the real pipeline under NONZERO signal delay while dropping
-        /// exactly one incremental diff in transit — the exact class the
-        /// reveal-gate discards on a comms blip / quickload — and returns the
+        /// exactly one incremental diff in transit: the exact class the
+        /// reveal-gate discards on a comms blip / quickload, and returns the
         /// mod's final screen (truth) next to the client's reconstruction.
         /// Parameterised by the periodic-keyframe interval so the pair of tests
         /// below can contrast "keyframes off" (permanent corruption) with
@@ -729,7 +729,7 @@ namespace GonogoKosUplink.Tests.Headless
         /// </summary>
         private static (string truth, string client) RunWithOneDroppedDiff(double keyframeIntervalSeconds)
         {
-            const double delay = 2.0; // nonzero signal delay — the untested path.
+            const double delay = 2.0; // nonzero signal delay, the untested path.
             const string droppedLine = "STAGE 1 SEPARATION";
             var clock = new ManualClock(startUt: 1000);
             var network = new StubNetwork(delay: delay);
@@ -801,7 +801,7 @@ namespace GonogoKosUplink.Tests.Headless
         {
             // Negative control (pre-fix behaviour: reseed only on subscribe). A
             // single lost incremental diff under signal delay is never resent,
-            // so the client screen is missing that line forever — the exact
+            // so the client screen is missing that line forever, the exact
             // "the terminals are not the same / not 100% reliable" divergence.
             var (truth, client) = RunWithOneDroppedDiff(keyframeIntervalSeconds: double.PositiveInfinity);
             Assert.NotEqual(truth, client);
@@ -870,7 +870,7 @@ namespace GonogoKosUplink.Tests.Headless
             buffer.Print("POST-QUICKLOAD LINE");
             manager.Poll(1.0);
 
-            // The post-rewind stamp is the new, lower clock UT — never a ghost
+            // The post-rewind stamp is the new, lower clock UT; never a ghost
             // stamp pinned above the stale pre-rewind peak.
             var postStamp = publishedUts.Last();
             Assert.True(postStamp < prePeak,

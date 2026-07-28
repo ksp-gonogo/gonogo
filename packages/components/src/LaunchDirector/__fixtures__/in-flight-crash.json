@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "in-flight-crash",
-    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness — same translation, keep in sync. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone blocks recovery (fail-safe branch)."
+    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness, same translation, keep in sync. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone blocks recovery (fail-safe branch)."
   },
   "kc.savedShips": [],
   "kc.crewRoster": [],

@@ -1,4 +1,4 @@
-// GonogoKosUplink — GPLv3. See GonogoKosUplink.csproj's header comment for the
+// GonogoKosUplink: GPLv3. See GonogoKosUplink.csproj's header comment for the
 // licence/linkage rationale.
 
 using System;
@@ -11,12 +11,12 @@ namespace Gonogo.KosUplink
     /// <summary>
     /// Result of the mandatory kOS version-guard probe
     /// (<c>kos-migration-spec.md</c> §7): assembly presence, version pin, and
-    /// member-existence for every kOS member this Uplink binds. Never throws —
+    /// member-existence for every kOS member this Uplink binds. Never throws,
     /// every failure mode degrades to <see cref="IsAvailable"/> = false with a
     /// <see cref="Reason"/>, per the fail-soft contract
     /// (<c>IUplinkHost.SetAvailability</c>). <see cref="ComputePostfixAvailable"/>
     /// is a SEPARATE, non-fatal axis: the <c>ScreenBuffer.Print(string,bool)</c>
-    /// postfix target being absent does NOT make the Uplink unavailable — it
+    /// postfix target being absent does NOT make the Uplink unavailable, it
     /// only means compute falls back to the public snapshot-scrape (spec §4.4).
     /// </summary>
     public readonly struct KosGuardResult
@@ -46,20 +46,20 @@ namespace Gonogo.KosUplink
     /// <c>GonogoScansatUplink.VersionGuard</c>).
     ///
     /// <para><b>The 4-arg <c>ProcessOneInputChar</c> overload is pinned by
-    /// explicit parameter shape</b> — spec §7's load-bearing point: there are
+    /// explicit parameter shape</b>, spec §7's load-bearing point: there are
     /// three <c>ProcessOneInputChar</c> overloads (4-arg at
     /// <c>TermWindow.cs:632</c>, 3-arg at <c>:723</c>, 2-arg at <c>:739</c>),
     /// and binding by name alone is ambiguous. The probe requires a method
     /// named <c>ProcessOneInputChar</c> with exactly four parameters whose
     /// first is <see cref="char"/> and whose last two are <see cref="bool"/>
     /// (the <c>(char, TelnetSingletonServer, bool, bool)</c> shape kOS keeps
-    /// frozen as an external contract, <c>TermWindow.cs:713-720</c>) — the
+    /// frozen as an external contract, <c>TermWindow.cs:713-720</c>): the
     /// middle <c>TelnetSingletonServer</c> is matched by position only so the
     /// check stays runnable in the headless test without that kOS type.</para>
     /// </summary>
     public static class KosVersionGuard
     {
-        /// <summary>Pinned known-good kOS major (validated against kOS 1.6.x — the live install's kOS.dll is 1.6.0.1).</summary>
+        /// <summary>Pinned known-good kOS major (validated against kOS 1.6.x, the live install's kOS.dll is 1.6.0.1).</summary>
         public const int MinKnownGoodMajor = 1;
         public const int MaxKnownGoodMajor = 1;
 
@@ -139,7 +139,7 @@ namespace Gonogo.KosUplink
         /// <summary>
         /// True iff <paramref name="termWindow"/> declares a
         /// <c>ProcessOneInputChar</c> overload with exactly four parameters
-        /// shaped <c>(char, *, bool, bool)</c> — the pinned 4-arg overload
+        /// shaped <c>(char, *, bool, bool)</c>: the pinned 4-arg overload
         /// (spec §7). The second parameter's type (<c>TelnetSingletonServer</c>)
         /// is matched by POSITION only, so the check needs no kOS type present.
         /// </summary>

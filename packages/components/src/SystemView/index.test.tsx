@@ -8,14 +8,14 @@ import { SystemViewComponent } from "./index";
 
 /**
  * SystemView reads entirely off the stream. The body table
- * (`useCelestialBodies`) now rides the mod's `system.bodies` Topic — the old
- * Telemachus `b.*[i]` fan-out via `getDataSource("data")` is gone — and the
+ * (`useCelestialBodies`) now rides the mod's `system.bodies` Topic, the old
+ * Telemachus `b.*[i]` fan-out via `getDataSource("data")` is gone, and the
  * orbit / target / encounter / apsis scalars + view-UT come off the streamed
  * `vessel.*` Topics via `useTelemetry` / `useViewUt`, all through a real
  * `TelemetryProvider` + `TimelineStore` (`setupStreamFixture`).
  */
 
-// Kerbin's GM — makes the client-side period / true-anomaly derivation land on
+// Kerbin's GM: makes the client-side period / true-anomaly derivation land on
 // real numbers so the predicted arc actually renders.
 const KERBIN_MU = 3.5316e12;
 
@@ -115,7 +115,7 @@ describe("SystemViewComponent", () => {
     });
   });
 
-  // Body tree + vessel identity + orbit — everything off the stream.
+  // Body tree + vessel identity + orbit, everything off the stream.
   function primeStream(orbit?: unknown) {
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
@@ -146,7 +146,7 @@ describe("SystemViewComponent", () => {
       </fixture.Provider>,
     );
     primeStream();
-    // "Kerbin" appears in both the SVG parent label and the almanac title —
+    // "Kerbin" appears in both the SVG parent label and the almanac title,
     // both confirm the panel landed on the vessel's body (v.body, resolved off
     // vessel.identity.parentBodyIndex + system.bodies).
     await waitFor(() =>
@@ -196,7 +196,7 @@ describe("SystemViewComponent", () => {
 
   it("renders without crashing on a hyperbolic (escape) orbit", async () => {
     // ecc >= 1 makes the client-side Kepler solver (`solveAnomalies`) throw a
-    // RangeError — a routine state for a system-wide diagram during an
+    // RangeError: a routine state for a system-wide diagram during an
     // interplanetary escape/flyby. The derivation must degrade the orbital
     // scalars to null instead of crashing the widget mid-render (no error
     // boundary inside it).
@@ -207,7 +207,7 @@ describe("SystemViewComponent", () => {
     );
     primeStream({
       referenceBodyIndex: 0,
-      sma: -8_000_000, // negative sma — a hyperbolic conic
+      sma: -8_000_000, // negative sma: a hyperbolic conic
       ecc: 1.3,
       inc: 0,
       lan: 0,
@@ -242,7 +242,7 @@ describe("SystemViewComponent", () => {
   // centre" bug (see FleetComms/slot.test.tsx for the duplicate-render half
   // of the fix). The vessel marker itself (`SystemDiagram`'s `VesselMarker`)
   // is the sole surface that draws the active vessel's dot now that
-  // `FleetComms` no longer renders its own copy — it must never fabricate a
+  // `FleetComms` no longer renders its own copy, it must never fabricate a
   // position: no `vessel.orbit` sample yet (or one with a non-numeric `sma`)
   // must draw NOTHING rather than a dot at the origin.
 

@@ -13,6 +13,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -20,7 +21,7 @@ import { FuelStatusComponent } from "./index";
 
 /**
  * FuelStatus runs genuinely off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport` — every read is canonical
+ * `TimelineStore` pipeline via `StubTransport`: every read is canonical
  * (`useTelemetry`/`useStream`), with no legacy `DataSource` anywhere:
  * - `v.currentStage` -> `vessel.structure.currentStage`
  * - `dv.stageCount`/`dv.totalDV*`/`dv.totalBurnTime` -> `dv.summary.*`
@@ -35,7 +36,7 @@ import { FuelStatusComponent } from "./index";
  */
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// augment registry — clearAugments() firing on a still-mounted AugmentSlot is
+// augment registry: clearAugments() firing on a still-mounted AugmentSlot is
 // a state update outside act() (CLAUDE.md → Testing Philosophy).
 const renderedTrees: Array<() => void> = [];
 
@@ -83,7 +84,7 @@ function renderFuel(
   );
 }
 
-/** A `dv.stages` entry carrying a per-stage resource breakdown — the shape the
+/** A `dv.stages` entry carrying a per-stage resource breakdown, the shape the
  * `dv.currentStageResource(Max)` derivation reads. */
 function stageWithResources(
   stage: number,
@@ -123,7 +124,7 @@ describe("FuelStatusComponent", () => {
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 0 });
-      // LiquidFuel + Oxidizer are stage-scoped — carried on the active stage's
+      // LiquidFuel + Oxidizer are stage-scoped, carried on the active stage's
       // slice of dv.stages. RCS and friends stay absent (no vessel.resources).
       fixture.emit("dv.stages", [
         stageWithResources(0, {
@@ -246,14 +247,19 @@ describe("FuelStatusComponent", () => {
       ]);
     });
 
-    // No error boundary fallback — the panel rendered. The non-numeric stage
-    // falls back to "—" rather than crashing (wait for the stage stack to land
-    // off the stream, since the panel title alone renders before any data).
+    // No error boundary fallback, the panel rendered. The non-numeric stage
+    // falls back to the null-display placeholder rather than crashing (wait
+    // for the stage stack to land off the stream, since the panel title
+    // alone renders before any data).
     await waitFor(() =>
-      expect(screen.queryAllByText("— m/s").length).toBeGreaterThan(0),
+      expect(
+        screen.queryAllByText(`${NULL_DISPLAY} m/s`).length,
+      ).toBeGreaterThan(0),
     );
     expect(container.textContent).toContain("FUEL · ΔV");
-    expect(screen.queryAllByText(/TWR\s+—/).length).toBeGreaterThan(0);
+    expect(
+      screen.queryAllByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)).length,
+    ).toBeGreaterThan(0);
   });
 
   it("displays totals and per-stage ΔV for the selected reference mode", async () => {
@@ -308,7 +314,7 @@ describe("FuelStatusComponent", () => {
     expect(stageValueTexts).toContain("1700 m/s");
   });
 
-  // Augment slots (Uplink architecture §4) — the widget exposes
+  // Augment slots (Uplink architecture §4): the widget exposes
   // `fuel-status.badges` (header) and `fuel-status.sections` (body). With no
   // augment registered the slots render nothing and the widget is unchanged.
   it("renders with empty augment slots when nothing is registered", async () => {

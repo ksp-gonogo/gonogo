@@ -7,14 +7,14 @@ using Sitrep.Core.Serialization;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// Hand-rolled JSON codec for <see cref="RecordedSession"/> — REUSES
+    /// Hand-rolled JSON codec for <see cref="RecordedSession"/>: REUSES
     /// <c>Sitrep.Core</c>'s zero-external-dep <c>JsonWriter</c>/<c>JsonReader</c>
     /// (and, transitively through them, the NaN/Infinity sentinel policy in
     /// <c>NanPolicy</c>) rather than hand-rolling a second JSON
     /// parser/writer in this assembly. Those types are <c>internal</c> to
     /// <c>Sitrep.Core</c>; <c>Sitrep.Core.csproj</c> grants this assembly
-    /// friend-assembly visibility via <c>&lt;InternalsVisibleTo Include="Sitrep.Host" /&gt;</c>
-    /// — the same pattern <c>Sitrep.Skeleton</c> already uses for its own
+    /// friend-assembly visibility via <c>&lt;InternalsVisibleTo Include="Sitrep.Host" /&gt;</c>,
+    /// the same pattern <c>Sitrep.Skeleton</c> already uses for its own
     /// Tests project. Field shape follows the M5b plan's record-format spec
     /// exactly: <c>{ schemaVersion, startUt, entries: [{ t, kind, snapshot? | event? }] }</c>.
     /// </summary>
@@ -43,7 +43,7 @@ namespace Sitrep.Host
             if (schemaVersion != CurrentSchemaVersion)
             {
                 throw new FormatException(
-                    $"Unsupported RecordedSession schemaVersion {schemaVersion} — this build only understands schemaVersion {CurrentSchemaVersion}.");
+                    $"Unsupported RecordedSession schemaVersion {schemaVersion}: this build only understands schemaVersion {CurrentSchemaVersion}.");
             }
 
             return new RecordedSession
@@ -146,7 +146,7 @@ namespace Sitrep.Host
                 var kind = RequireString(obj, "kind");
                 if (kind != "snapshot" && kind != "event")
                 {
-                    throw new FormatException($"Unknown RecordedEntry \"kind\" \"{kind}\" — expected \"snapshot\" or \"event\".");
+                    throw new FormatException($"Unknown RecordedEntry \"kind\" \"{kind}\": expected \"snapshot\" or \"event\".");
                 }
 
                 var snapshotObj = obj.TryGetValue("snapshot", out var snapshotRaw) ? snapshotRaw as Dictionary<string, object?> : null;

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Slot-registry mirror — the `SlotRegistry` declaration-merge for every
+// Slot-registry mirror: the `SlotRegistry` declaration-merge for every
 // first-party (packages/components-owned) augment slot, carried by the sdk
 // leaf itself.
 //
@@ -10,36 +10,36 @@
 // MapView/index.tsx). That doesn't work: TypeScript only applies ambient
 // module augmentation from files that are actually part of the compiled
 // PROGRAM, and a facade-sealed client (which must not import
-// `@ksp-gonogo/components`) never pulls those files in — so
+// `@ksp-gonogo/components`) never pulls those files in: so
 // `SlotProps<"map-view.overlay">` etc. silently fall back to the untyped
 // `Record<string, unknown>` for a sealed client, exactly the failure mode
 // this seam exists to prevent.
 //
-// The fix is NOT `import type` from `@ksp-gonogo/components` — same leaf
+// The fix is NOT `import type` from `@ksp-gonogo/components`, same leaf
 // constraint documented at length in `./types.ts`'s header: sitrep-sdk is
 // the dependency-graph LEAF (core, components, data, and sitrep-client all
 // depend on the sdk already), so naming `@ksp-gonogo/components` here, even
 // as a type-only import, would form a turbo `^build` cycle. Every slot
 // context type below is therefore MIRRORED (duplicated), same as every
-// other author-facing type in `./types.ts` — self-contained, kept honest by
+// other author-facing type in `./types.ts`: self-contained, kept honest by
 // eyeball + the widget's own doc comments, not a live import.
 //
 // `index.ts` imports this module for its ambient side effect only (no named
-// exports added to the barrel) so every consumer of the facade — sealed or
-// not — gets the full merge automatically, without a per-file side-effect
+// exports added to the barrel) so every consumer of the facade, sealed or
+// not: gets the full merge automatically, without a per-file side-effect
 // import.
 //
 // Scope: every slot OWNED by a `packages/components` widget. Slots owned by
-// an UPLINK's own client package (SCANsat's `Scanning` — "scanning.sections"
-// /".badges"; kerbcast's `CameraFeed` — "camera-feed.overlay"/".badges") are
+// an UPLINK's own client package (SCANsat's `Scanning`, "scanning.sections"
+// /".badges"; kerbcast's `CameraFeed`: "camera-feed.overlay"/".badges") are
 // deliberately NOT mirrored here: mirroring them would require the sdk to
-// import type shapes from an Uplink client package, which — since every
-// Uplink client already depends on the sdk — would be the exact same cycle.
+// import type shapes from an Uplink client package, which, since every
+// Uplink client already depends on the sdk, would be the exact same cycle.
 // Those slots stay owned/declared entirely inside the Uplink's own file
 // (once sealed, its `declare module "@ksp-gonogo/sitrep-sdk"` block lives
 // right there, which works fine: the owning file is always part of its OWN
 // package's compiled program, so no cross-package reachability problem
-// exists for a slot's OWNER — only for a FOREIGN filler, which is exactly
+// exists for a slot's OWNER, only for a FOREIGN filler, which is exactly
 // the packages/components case this file solves).
 // ---------------------------------------------------------------------------
 
@@ -65,7 +65,7 @@
 
 /** Mirrors `StaffBadgeContext` (StaffRoster/index.tsx). */
 export interface StaffBadgeContext {
-  /** The kerbal this badge row belongs to — its identity for the augment. */
+  /** The kerbal this badge row belongs to, its identity for the augment. */
   staffName: string;
   /** Position in the sorted roster; disambiguates duplicate names. */
   staffIndex: number;
@@ -84,8 +84,8 @@ export interface DistanceToTargetHudContext {
    */
   reticleOffset: { x: number; y: number };
   /**
-   * Percent of the half-box the reticle travels per unit of `reticleOffset`
-   * — an overlay places a marker at `50 + offset·reticleTravelPct` % to sit
+   * Percent of the half-box the reticle travels per unit of `reticleOffset`,
+   * an overlay places a marker at `50 + offset·reticleTravelPct` % to sit
    * in the same space.
    */
   reticleTravelPct: number;
@@ -98,7 +98,7 @@ export interface DistanceToTargetHudContext {
   distance: number | undefined;
   /**
    * Camera id the operator pinned for the backdrop, or unset to let the
-   * augment choose. Opaque to this widget — the filling augment interprets it.
+   * augment choose. Opaque to this widget: the filling augment interprets it.
    */
   cameraFlightId: number | null | undefined;
 }
@@ -119,7 +119,7 @@ export interface DistanceToTargetBadgeContext {
 
 // --- ShipMap (packages/components/src/ShipMap) -----------------------------
 
-/** Mirrors `PartStateModule` (`packages/core/src/schemas/vessel-parts.ts`) — the
+/** Mirrors `PartStateModule` (`packages/core/src/schemas/vessel-parts.ts`): the
  * only core-owned nested type `ShipMapPart` actually references. */
 export interface ShipMapPartStateModule {
   type:
@@ -217,7 +217,7 @@ export interface ContractBadgeContext {
   contractId: string;
   /** Contract title, as shown in the card header. */
   title: string;
-  /** Sponsoring agency — the natural key for contract-pack iconography. */
+  /** Sponsoring agency: the natural key for contract-pack iconography. */
   agency: string;
   /** Which list the row sits in. */
   section: "active" | "offered";
@@ -227,7 +227,7 @@ export interface ContractBadgeContext {
 
 /** Mirrors `CrewBadgeContext` (CrewManifest/index.tsx). */
 export interface CrewBadgeContext {
-  /** The crew member this badge row belongs to — its identity for the augment. */
+  /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
   /** Position in the roster; disambiguates duplicate names. */
   crewIndex: number;
@@ -235,7 +235,7 @@ export interface CrewBadgeContext {
 
 /** Mirrors `CrewAvatarContext` (CrewManifest/index.tsx). */
 export interface CrewAvatarContext {
-  /** The crew member this avatar belongs to — its identity for the augment. */
+  /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;
   /** Position in the roster; disambiguates duplicate names. */
   crewIndex: number;
@@ -270,10 +270,10 @@ export interface ObjectiveSlotItem {
   title: string;
   description?: string;
   state: ObjectiveSlotState;
-  /** Parent label — the mission or contract this objective belongs to. */
+  /** Parent label: the mission or contract this objective belongs to. */
   source: string;
   optional?: boolean;
-  /** Set for contract parameters — enables the "alarm on completion" toggle. */
+  /** Set for contract parameters: enables the "alarm on completion" toggle. */
   contractId?: string;
 }
 
@@ -296,7 +296,7 @@ export interface ObjectiveSourceContext {
 
 // --- ActionGroup (packages/components/src/ActionGroup) ---------------------
 
-/** Mirrors `ActionGroupId` (`packages/core/src/actionGroups.ts`) — the eight
+/** Mirrors `ActionGroupId` (`packages/core/src/actionGroups.ts`): the eight
  * known stock names, widened to admit an arbitrary custom (AGX) id. */
 export type ActionGroupSlotId =
   | "SAS"
@@ -313,11 +313,11 @@ export type ActionGroupSlotId =
 export interface ActionGroupSlotContext {
   /** The KSP action group this instance controls (e.g. "AG1", "SAS", "Gear"). */
   groupId: ActionGroupSlotId;
-  /** The display label — custom override or the official group name. */
+  /** The display label: custom override or the official group name. */
   label: string;
   /** The group's current Value (boolean or numeric readout); `undefined` if unknown. */
   value: unknown;
-  /** Rendered state readout — "ON" / "OFF" / a numeric string / "—". */
+  /** Rendered state readout: "ON", "OFF", a numeric string, or the null-display placeholder. */
   stateLabel: string;
 }
 
@@ -408,19 +408,19 @@ export interface MapCoverageGate {
   hasAnySource: boolean;
 }
 
-/** Mirrors `MapBaseLayerContext` (MapView/index.tsx). Stackable — any number
+/** Mirrors `MapBaseLayerContext` (MapView/index.tsx). Stackable: any number
  *  of registered augments may fill this slot at once. */
 export interface MapBaseLayerContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyId: string | undefined;
   width: number;
   height: number;
-  /** Per-namespace augment settings — same shape/caveat as `MapSectionsContext`. */
+  /** Per-namespace augment settings: same shape/caveat as `MapSectionsContext`. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** The paint-gate (T4) for this body. */
   coverageGate: MapCoverageGate;
   /** Called by the augment whenever it has a fresh canvas to contribute (or
-   *  `null` to withdraw one) — MUST pass the augment's OWN id first, since
+   *  `null` to withdraw one): MUST pass the augment's OWN id first, since
    *  more than one augment may hold a canvas at once. */
   onLayer: (
     id: string,
@@ -431,7 +431,7 @@ export interface MapBaseLayerContext {
 
 /** Mirrors `MapActionsContext` (MapView/index.tsx). */
 export interface MapActionsContext {
-  /** Per-namespace augment settings — same shape as `MapSectionsContext`'s own field. */
+  /** Per-namespace augment settings: same shape as `MapSectionsContext`'s own field. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** Persists ONE augment's `show` setting into this widget instance's own config. */
   setAugmentShow: (augmentId: string, show: boolean) => void;
@@ -465,7 +465,7 @@ export interface TechSlotNode {
 
 /** Mirrors `TechNodeBadgeContext` (TechTree/index.tsx). */
 export interface TechNodeBadgeContext {
-  /** The node this badge belongs to — its full identity for the augment. */
+  /** The node this badge belongs to: its full identity for the augment. */
   node: TechSlotNode;
 }
 
@@ -489,7 +489,7 @@ export interface OrbitOverlayContext {
   ecc: number;
   /**
    * Apoapsis radius from body centre, same units. `undefined` on a hyperbolic
-   * orbit (`ecc >= 1`) — there is no apoapsis to report (see
+   * orbit (`ecc >= 1`): there is no apoapsis to report (see
    * `VesselState.apoapsisRadius`'s doc comment).
    */
   apoapsis?: number;
@@ -560,7 +560,7 @@ export interface DeployedScienceExperiment {
 
 /** Mirrors `DeployedExperimentContext` (DeployedScience/index.tsx). */
 export interface DeployedExperimentContext {
-  /** The deployed experiment this card renders — the augment's datum. */
+  /** The deployed experiment this card renders, the augment's datum. */
   experiment: DeployedScienceExperiment;
   /** The body the parent base sits on, for context. */
   body: string;
@@ -589,14 +589,14 @@ export interface PowerSystemsSlotContext {
 }
 
 // ---------------------------------------------------------------------------
-// The merge itself — every first-party (packages/components-owned) slot id,
+// The merge itself: every first-party (packages/components-owned) slot id,
 // enumerated by grepping every `declare module "@ksp-gonogo/core"` /
 // `"@ksp-gonogo/sitrep-sdk"` SlotRegistry block across packages/components
 // (2026-07-19).
 // ---------------------------------------------------------------------------
 
 // Targets `./types` (relative), NOT the package specifier
-// "@ksp-gonogo/sitrep-sdk" — both resolve to the exact same file (this
+// "@ksp-gonogo/sitrep-sdk": both resolve to the exact same file (this
 // package's own `SlotRegistry` is declared in `./types.ts`, and TS module
 // augmentation merges by resolved FILE IDENTITY, not by specifier string),
 // but the relative form sidesteps a real self-referencing-package

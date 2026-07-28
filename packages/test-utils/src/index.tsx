@@ -11,7 +11,7 @@ import type { JSXElementConstructor, ReactElement, ReactNode } from "react";
 
 /**
  * The project's render. Import `render`/`renderHook` from here, never from
- * `@testing-library/react` directly — a lint rule enforces it.
+ * `@testing-library/react` directly: a lint rule enforces it.
  *
  * Kit primitives read `theme.space`/`theme.colors` and throw without a
  * `ThemeProvider` in scope, so every render needs one. Leaving that to each

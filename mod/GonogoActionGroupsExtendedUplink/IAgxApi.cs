@@ -5,8 +5,8 @@ namespace Gonogo.ActionGroupsExtendedUplink
     /// <summary>
     /// KSP-free, Sitrep.Contract-free pure plumbing seam onto Action Groups
     /// Extended (docs/superpowers/specs/2026-07-17-agx-backend-design.md
-    /// §5.2). <see cref="AgxReflection"/> is the only real implementation —
-    /// it carries the arm's-length GPL3 reflection boundary — but the
+    /// §5.2). <see cref="AgxReflection"/> is the only real implementation,
+    /// it carries the arm's-length GPL3 reflection boundary, but the
     /// mapping logic in <see cref="AgxActionGroupsBackend"/> is written
     /// against this interface so it is unit-testable with a fake, exactly
     /// the extra TDD step the RA uplink does not take (RA leaves its backend
@@ -20,9 +20,9 @@ namespace Gonogo.ActionGroupsExtendedUplink
         /// <summary>
         /// Every group AGExt reports assigned on the active vessel, in
         /// whatever order the underlying call returns them. Null means "no
-        /// data this tick" / a read failure — the contract's documented
+        /// data this tick" / a read failure, the contract's documented
         /// typed absence, mirroring <c>IActionGroupsBackend.Groups()</c>'s
-        /// null contract — and must NEVER be conflated with an empty list
+        /// null contract: and must NEVER be conflated with an empty list
         /// (which would assert "this vessel has zero groups").
         /// </summary>
         IReadOnlyList<AgxGroup>? AssignedGroups();

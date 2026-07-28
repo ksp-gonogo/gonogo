@@ -17,17 +17,17 @@ import { parseServos, RoboticsConsoleComponent } from "./index";
 
 /**
  * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` —
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` is its whole identity list and `robotics.available` its
  * DLC-presence flag, both canonical stream reads (`useTelemetry`, no legacy
  * fallback). Command dispatch (`robotics.servo.*`) still routes through the
- * legacy `DataSource`'s `execute()` — no mod command handler exists for it
- * yet — so a plain `setupMockDataSource` registered under `"data"` captures
+ * legacy `DataSource`'s `execute()`: no mod command handler exists for it
+ * yet: so a plain `setupMockDataSource` registered under `"data"` captures
  * those calls; it carries no keys of its own and is never read from.
  */
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry — clearActionHandlers() firing on a still-mounted
+// action-handler registry: clearActionHandlers() firing on a still-mounted
 // widget is a state update outside act(). RTL auto-cleanup runs after this
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];

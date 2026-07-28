@@ -12,20 +12,20 @@ interface LaunchSiteWireEntry {
 }
 
 /**
- * The `spaceCenter.state` derived channel — the pad-occupancy scalars behind
+ * The `spaceCenter.state` derived channel: the pad-occupancy scalars behind
  * the legacy Telemachus `kc.padOccupied` / `kc.padVesselTitle` keys. The mod
  * already carries per-site occupancy on `spaceCenter.launchSites`
- * (`LaunchSiteEntry.padOccupied` is non-null only on the stock KSC pad — there
+ * (`LaunchSiteEntry.padOccupied` is non-null only on the stock KSC pad, there
  * is no clean stock per-site occupancy API, so it rides the one pad), so this
  * derives the two vessel-independent scalars off that array rather than the mod
- * duplicating them onto a second channel. Vessel-independent, ground-side facts
- * — the same lifetime as `spaceCenter.launchSites` itself, matching the legacy
+ * duplicating them onto a second channel. Vessel-independent, ground-side facts,
+ * the same lifetime as `spaceCenter.launchSites` itself, matching the legacy
  * keys' scope.
  */
 export interface SpaceCenterState {
-  /** Whether the stock KSC pad currently has a vessel on it — old `kc.padOccupied`. */
+  /** Whether the stock KSC pad currently has a vessel on it, old `kc.padOccupied`. */
   padOccupied: boolean;
-  /** Name of the vessel occupying the pad, or null when it's clear — old `kc.padVesselTitle`. */
+  /** Name of the vessel occupying the pad, or null when it's clear, old `kc.padVesselTitle`. */
   padVesselTitle: string | null;
 }
 
@@ -58,7 +58,7 @@ export function deriveSpaceCenterState(
 }
 
 /**
- * Ready-to-register definition — `store.registerDerivedChannel(spaceCenterStateChannel)`.
+ * Ready-to-register definition: `store.registerDerivedChannel(spaceCenterStateChannel)`.
  * `fields: true` exposes `spaceCenter.state.padOccupied` /
  * `spaceCenter.state.padVesselTitle`. `deriveStatus` omitted: the default
  * (worst status across the single `spaceCenter.launchSites` input) is right for

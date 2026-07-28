@@ -165,7 +165,7 @@ function PushedItem({
       <ItemBody>
         {def ? (
           // DashboardItemContext is required by widgets that consume
-          // `useActionInput` (MapView, ActionGroup, ...) — the station's
+          // `useActionInput` (MapView, ActionGroup, ...): the station's
           // copy has it; our mirror on main has to provide it too or the
           // hook throws. Actions won't actually fire here since there's
           // no main-side InputDispatcher bound to this instance id.
@@ -266,7 +266,7 @@ const ItemFrame = styled.div`
   border-radius: 4px;
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
-     percentage reference — flex: 1 + min-height: 0 doesn't reliably
+     percentage reference: flex: 1 + min-height: 0 doesn't reliably
      provide one. */
   display: grid;
   grid-template-rows: auto 1fr;
@@ -304,7 +304,7 @@ const DismissBtn = styled.button`
 `;
 
 const ItemBody = styled.div`
-  /* 1fr grid row — children with height: 100% resolve to this row's
+  /* 1fr grid row: children with height: 100% resolve to this row's
      concrete height. min-height: 0 so content can't force the row taller. */
   min-height: 0;
   overflow: hidden;

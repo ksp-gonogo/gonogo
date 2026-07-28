@@ -7,7 +7,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="FlightOpsCommandProvider"/>'s <c>Handle*</c>
-    /// glue against a <see cref="FakeFlightOpsActuator"/> — proves the no-arg
+    /// glue against a <see cref="FakeFlightOpsActuator"/>: proves the no-arg
     /// commands call the actuator exactly once, that the <c>"vab"</c>/<c>"sph"</c>
     /// string bridges to the correct <see cref="EditorFacilityKind"/> (and an
     /// unrecognised facility fails before the actuator is ever called), that the

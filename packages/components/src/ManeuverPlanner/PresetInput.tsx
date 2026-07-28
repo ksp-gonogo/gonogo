@@ -1,3 +1,4 @@
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";
 import { PresetPicker } from "./PresetPicker";
@@ -174,7 +175,7 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     return (
       <PresetDesc>
         {targetName && targetLanLive !== undefined
-          ? `Target: ${targetName} — i=${(targetInclinationLive ?? 0).toFixed(1)}° Ω=${targetLanLive.toFixed(1)}°`
+          ? `Target: ${targetName}, i=${(targetInclinationLive ?? 0).toFixed(1)}° Ω=${targetLanLive.toFixed(1)}°`
           : "No target selected in-game (or target LAN unavailable)."}
       </PresetDesc>
     );
@@ -191,10 +192,12 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     );
     return (
       <PresetDesc>
-        Target: {targetName} — PeA{" "}
-        {targetPeA === undefined ? "—" : `${(targetPeA / 1000).toFixed(1)} km`},
-        i={(targetInclinationLive ?? 0).toFixed(1)}°, Δplane=
-        {planeMismatch === null ? "—" : `${planeMismatch.toFixed(1)}°`}
+        Target: {targetName}, PeA{" "}
+        {targetPeA === undefined
+          ? NULL_DISPLAY
+          : `${(targetPeA / 1000).toFixed(1)} km`}
+        , i={(targetInclinationLive ?? 0).toFixed(1)}°, Δplane=
+        {planeMismatch === null ? NULL_DISPLAY : `${planeMismatch.toFixed(1)}°`}
         {planeMismatch !== null && planeMismatch > 0.5
           ? " (plane match prepended)"
           : ""}

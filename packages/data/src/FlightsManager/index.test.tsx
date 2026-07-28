@@ -14,13 +14,13 @@ import { FlightsManager } from "./index";
 import { MissionHistorySource } from "./MissionHistorySource";
 
 /**
- * Component-level coverage for FlightsManager, previously untested — this
+ * Component-level coverage for FlightsManager, previously untested: this
  * is the file that merged two panels' worth of interaction logic (bulk
  * select, keep-latest-N eligibility, star, expand-row wiring, isMain
  * gating for record/replay) with no component test at all. It's also
  * where the review's Finding 2 (a freshly-saved recording never notifying
  * connected stations, see MissionHistorySource.test.ts's "saveMission"
- * coverage) lived — a real registry + real MissionHistorySource, the way
+ * coverage) lived: a real registry + real MissionHistorySource, the way
  * this suite is built, is exactly what would have caught it.
  */
 
@@ -163,7 +163,7 @@ describe("FlightsManager", () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));
     // DEFAULT_KEEP_COUNT (20) unstarred flights are exempt; two more push
-    // two over the cap — mirrors pruneFlightsKeepLatest/
+    // two over the cap: mirrors pruneFlightsKeepLatest/
     // pruneMissionsKeepLatest exactly (starred is exempt, newest-first).
     for (let i = 0; i < DEFAULT_KEEP_COUNT + 2; i++) {
       await seedMission(store);
@@ -179,7 +179,7 @@ describe("FlightsManager", () => {
   it("does not show the eligibility hint when starred flights keep the unstarred count under the cap", async () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));
-    // 22 total, but 2 are starred (exempt) — only 20 unstarred, at the cap,
+    // 22 total, but 2 are starred (exempt), only 20 unstarred, at the cap,
     // not over it.
     for (let i = 0; i < DEFAULT_KEEP_COUNT; i++) {
       await seedMission(store);
@@ -212,7 +212,7 @@ describe("FlightsManager", () => {
     await user.click(graphButton);
 
     expect(graphButton.getAttribute("aria-expanded")).toBe("true");
-    // FlightGraph's own placeholder — proves it actually mounted with this
+    // FlightGraph's own placeholder: proves it actually mounted with this
     // row's missionId/firstFrameUt/lastFrameUt wired through.
     expect(
       screen.getByText(/pick one or more numeric telemetry keys/i),
@@ -233,14 +233,14 @@ describe("FlightsManager", () => {
     render(<FlightsManager screen="station" />);
     await screen.findByText("Station View");
 
-    // Recording is never a station concern at all now — it's not a button
+    // Recording is never a station concern at all now, it's not a button
     // anywhere, main or station (see AutoRecordStatus's own doc comment).
     expect(screen.queryByText(/mission history is off/i)).toBeNull();
     expect(
       screen.queryByRole("button", { name: /replay station view/i }),
     ).toBeNull();
 
-    // Non-recording, non-replay interactions stay available on a station —
+    // Non-recording, non-replay interactions stay available on a station,
     // per-mission peer RPCs make them work identically there.
     expect(
       screen.getByRole("button", { name: /star station view/i }),
@@ -260,9 +260,7 @@ describe("FlightsManager", () => {
 
     // No AutoRecordController mounted in this test, so the status readout
     // shows the "armed" idle state rather than an active recording.
-    expect(
-      screen.getByText(/auto-record armed — capture starts/i),
-    ).toBeTruthy();
+    expect(screen.getByText(/auto-record armed: capture starts/i)).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /replay main view/i }),
     ).toBeTruthy();
@@ -277,7 +275,7 @@ describe("FlightsManager", () => {
     await screen.findByText("Off View");
 
     expect(
-      screen.getByText(/mission history is off — enable it in settings/i),
+      screen.getByText(/mission history is off, enable it in settings/i),
     ).toBeTruthy();
     expect(screen.queryByText(/auto-record armed/i)).toBeNull();
   });

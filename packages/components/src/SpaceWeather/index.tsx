@@ -9,7 +9,7 @@ type SpaceWeatherConfig = Record<string, never>;
 // Data read
 //
 // Reads the real KerbalismUplink `kerbalism.spaceweather` Topic (canonical
-// one-arg useTelemetry — streams whenever a provider is mounted). Vessel
+// one-arg useTelemetry: streams whenever a provider is mounted). Vessel
 // altitude (belt-ring placement) comes from the `vessel.flight` channel.
 // The presentation below is a pure function of `SpaceWeatherData`, so the
 // offline snapshot harness feeds the same shape (see widgetDomSnapshot's
@@ -41,8 +41,8 @@ function useSpaceWeather(): SpaceWeatherData {
       ? "incoming"
       : "none";
   // FUTURE: storm-ETA countdown. The mod emits storm PRESENCE only
-  // (stormIncoming/stormInProgress bools, KerbalismCapture.cs) — no onset/clear
-  // clock — so the timeline renders the phase WITHOUT a numeric countdown. A
+  // (stormIncoming/stormInProgress bools, KerbalismCapture.cs): no onset/clear
+  // clock: so the timeline renders the phase WITHOUT a numeric countdown. A
   // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
   // timing internally / reflectable) surfaced on the Topic; the UI was designed
   // for it, the data isn't wired. Tracked in local_docs/feature_log/.
@@ -59,7 +59,7 @@ function useSpaceWeather(): SpaceWeatherData {
     magnetosphere,
     blackout: t?.blackout ?? false,
     shieldingValue: t?.shieldingAmount ?? 0,
-    // (stormTimeSec removed — see the FUTURE note above.)
+    // (stormTimeSec removed: see the FUTURE note above.)
     shieldingCapacity: t?.shieldingCapacity ?? 1,
     altitudeKm: (flight?.altitudeAsl ?? 0) / 1000,
     // Deterministic noise seed derived from the weather state itself (stable
@@ -123,7 +123,7 @@ function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-sections (inline SVG — the harness rasterises SVG + a Playwright PNG)
+// Sub-sections (inline SVG: the harness rasterises SVG + a Playwright PNG)
 // ---------------------------------------------------------------------------
 
 function StormTimeline({ state }: { state: StormState }) {
@@ -136,7 +136,7 @@ function StormTimeline({ state }: { state: StormState }) {
   ];
   // "now" marker position (0..100) by state.
   const nowPct = state === "none" ? 17 : state === "incoming" ? 45 : 67;
-  // Phase only — no numeric countdown (the mod emits storm presence, not a
+  // Phase only: no numeric countdown (the mod emits storm presence, not a
   // clock; see the FUTURE note in useSpaceWeather).
   const headline =
     state === "inprogress"
@@ -220,7 +220,7 @@ function BeltRings({
   // that belt's ring so the "you are here" dot sits on the lit band (the belt
   // bool is authoritative for membership; the ring radii are fixed visual
   // bands, not an altitude scale). Outside any belt, fall back to the altitude
-  // map (0..8000km across body(12)..pause(48)) — correct for the low-orbit /
+  // map (0..8000km across body(12)..pause(48)): correct for the low-orbit /
   // between-bands case.
   const vr = inner
     ? 26

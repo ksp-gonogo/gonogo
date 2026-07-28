@@ -2,19 +2,19 @@ import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 /**
- * Mobile sizing regression — CameraFeed at full mobile width.
+ * Mobile sizing regression: CameraFeed at full mobile width.
  *
  * The 2026-05-18 self-test surfaced a regression where the camera widget
  * rendered as a flat ~2:0.5 band on portrait phones instead of a useful
  * box. Root cause: a missing `mobileHeight` on the component
  * registration, so MobileDashboard falls back to
- * `defaultSize.h * ROW_HEIGHT` (5 * 25 = 125px) — far too short for a
+ * `defaultSize.h * ROW_HEIGHT` (5 * 25 = 125px), far too short for a
  * 16:9 hullcam frame. The kerbcast CameraFeed sets `mobileHeight: 280`.
  *
  * This spec catches that regression by booting a touch-emulated context
  * (which routes through MobileDashboard rather than the responsive grid)
  * and asserting the widget's mobile cell actually gets the height it asks
- * for. It doesn't exercise the WebRTC media pipe or the relay — the
+ * for. It doesn't exercise the WebRTC media pipe or the relay, the
  * sizing holds whether or not a stream arrives (the kerbcast vitest suite
  * drives the sidecar protocol).
  */
@@ -37,7 +37,7 @@ test.describe("CameraFeed mobile sizing", () => {
     browserName,
   }) => {
     // Firefox's Playwright driver rejects `isMobile` in newContext() outright
-    // (unsupported by the engine, not a gonogo bug) — bootstrapPair below
+    // (unsupported by the engine, not a gonogo bug), bootstrapPair below
     // passes it straight through via contextOptions. Chromium and WebKit both
     // support it, so this is a Firefox-only skip, not a `@chromium-only` tag.
     test.skip(
@@ -46,12 +46,12 @@ test.describe("CameraFeed mobile sizing", () => {
     );
 
     const pair = await bootstrapPair(browser, "camera-feed", {
-      // camera-feed IS the kerbcast Uplink's own widget — load kerbcast so it
+      // camera-feed IS the kerbcast Uplink's own widget, load kerbcast so it
       // registers (consent is pre-seeded by bootstrapPair).
       loadUplinkIds: ["kerbcast"],
       widget: {
         config: {
-          // No sidecar in CI — the widget shows its empty state, but the
+          // No sidecar in CI: the widget shows its empty state, but the
           // cell still gets the mobileHeight box regardless of content.
           flightId: null,
         },
@@ -70,7 +70,7 @@ test.describe("CameraFeed mobile sizing", () => {
     });
 
     for (const page of [pair.main, pair.station]) {
-      // Measure the widget's mobile cell directly — its rendered height
+      // Measure the widget's mobile cell directly: its rendered height
       // reflects the registered `mobileHeight`. A cell ~125px tall is the
       // squish regression; ~280px+ is correct.
       const height = await page.evaluate((sel) => {

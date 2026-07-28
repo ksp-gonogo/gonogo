@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Design-system guard: migrated widgets carry zero bespoke CSS — they
+ * Design-system guard: migrated widgets carry zero bespoke CSS, they
  * compose @ksp-gonogo/ui-kit primitives + layout + tokens instead of
- * styling themselves with styled-components directly. Ratchet-style —
+ * styling themselves with styled-components directly. Ratchet-style:
  * every widget migration that drops a styled-components import lowers
  * the baseline, every commit that adds one back fails the build with a
  * clear pointer at the offender.
@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
  * local_docs/telemetry-mod/ui-kit-design.md for the component catalogue.
  *
  * packages/ui and packages/ui-kit are themselves allowed to depend on
- * styled-components — they're the styling layer everything else should
+ * styled-components: they're the styling layer everything else should
  * be composing instead.
  */
 
@@ -32,7 +32,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // styled-components import, lower this number in the same commit.
 // Locks in the KosScriptFrame and Scanning migrations.
 //
-// What remains is bespoke widget CSS — the test-infrastructure imports are
+// What remains is bespoke widget CSS, the test-infrastructure imports are
 // gone. Snapshot tests, the `widgetDomSnapshot.tsx` harness, and the local
 // `testTheme.tsx` helpers each used to pair `ThemeProvider` (from
 // styled-components) with `defaultDarkTheme` themselves, which the scan root
@@ -43,9 +43,9 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // 72 -> 74 when a camera Uplink's client half moved out of `packages/` (never
 // scanned) and into `mod/<uplink>/client` (scanned, being a mod client
 // bundle). Both added lines are SCOPE, not new bespoke CSS:
-//   • its settings panel — untouched pre-existing code the scan simply reaches
+//   • its settings panel: untouched pre-existing code the scan simply reaches
 //     now. A genuine migration candidate, newly visible rather than newly bad.
-//   • its docking-camera augment — the SAME styled `<video>` backdrop that
+//   • its docking-camera augment: the SAME styled `<video>` backdrop that
 //     used to live in DistanceToTarget as `HudVideo`, deleted from there in
 //     the same commit. The app's bespoke CSS did not grow; it moved into the
 //     Uplink that owns it. It reads as +1 only because DistanceToTarget still
@@ -77,7 +77,7 @@ function isScannedBundleFile(rel: string): boolean {
   return rel.startsWith("mod/") && rel.includes(suffix);
 }
 
-// Enumerate git-TRACKED files, not a live filesystem walk — the walk races
+// Enumerate git-TRACKED files, not a live filesystem walk, the walk races
 // with dist/ output and temp fixtures other packages write during a
 // concurrent `turbo test`, making the count flicker; the git index is stable
 // for the duration of a test run.
@@ -119,7 +119,7 @@ describe("design-system: styled-components imports outside ui-kit", () => {
       throw new Error(
         `styled-components import count (${offenders.length}) exceeds baseline ` +
           `(${STYLED_COMPONENTS_IMPORT_BASELINE}) by ${newCount}.\n` +
-          `Migrated widgets carry zero bespoke CSS — compose @ksp-gonogo/ui-kit ` +
+          `Migrated widgets carry zero bespoke CSS: compose @ksp-gonogo/ui-kit ` +
           `primitives + layout + tokens instead. Recent offenders:\n${sample}`,
       );
     }

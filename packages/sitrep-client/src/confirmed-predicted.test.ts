@@ -117,7 +117,7 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
     expect(token.certainty).toBe("confirmed");
 
     // Contrast: sample()/get stays hold-last (the "cause" semantics, used
-    // by e.g. orbit elements) — it must NOT have started interpolating.
+    // by e.g. orbit elements): it must NOT have started interpolating.
     expect(store.sample<number>("temperature")?.payload).toBe(10);
 
     const interpolated = store.sampleInterpolated<number>("temperature");
@@ -193,7 +193,7 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
 });
 
 describe("predicted-range reads (M2 design §3.3)", () => {
-  it("vessel.state (orbital) past the horizon equals kepler.solve(elements, viewUt) — propagated, marked predicted", () => {
+  it("vessel.state (orbital) past the horizon equals kepler.solve(elements, viewUt), propagated, marked predicted", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -216,7 +216,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     expect(token.viewUt).toBe(150);
     expect(token.certainty).toBe("predicted");
     expect(store.sampleCertainty()).toBe("predicted");
-    // The horizon itself did not move — only the estimate ran ahead of it.
+    // The horizon itself did not move, only the estimate ran ahead of it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
     const state = store.sample<{
@@ -276,7 +276,7 @@ describe("scrubTo (M2 design §3.2)", () => {
     expect(store.sample<number>("b")?.payload).toBe(2);
     expect(store.sampleStatus("b")).toBe("live");
 
-    clock.scrubTo(80); // below the retention floor — evicted
+    clock.scrubTo(80); // below the retention floor: evicted
     store.beginFrame();
     expect(store.sample<number>("b")).toBeUndefined();
     expect(store.sampleStatus("b")).toBe("resyncing");
@@ -315,7 +315,7 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
     store.beginFrame();
 
     // vessel.orbit's pre-reset point was swept away by the epoch bump
-    // (TimelineStore's cross-topic sweep) — no post-reset keyframe has
+    // (TimelineStore's cross-topic sweep): no post-reset keyframe has
     // landed for it yet, so vessel.state must be undefined ("resyncing"),
     // never a propagation off the dead pre-reset elements.
     expect(store.sample("vessel.state")).toBeUndefined();
@@ -323,7 +323,7 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
   });
 });
 
-describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 close-review Fix 1)", () => {
+describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close-review Fix 1)", () => {
   it("sample() must not replay a cached pre-bump point after a mid-token epoch bump (same FrameToken, no beginFrame())", () => {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
@@ -340,7 +340,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
 
     // Mid-token quickload: an UNRELATED topic's ingest bumps the shared
     // epoch. vessel.orbit itself hasn't re-sampled, so its ClientTimeline is
-    // swept to the new epoch (no points) by the store's cross-topic sweep —
+    // swept to the new epoch (no points) by the store's cross-topic sweep,
     // exactly like the existing "cross-topic epoch ghost" coverage, except
     // this read happens WITHIN the same token/read-cycle instead of across a
     // beginFrame() boundary.
@@ -349,7 +349,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
-    // SAME token, no beginFrame() — a caller's rAF loop reading twice within
+    // SAME token, no beginFrame(): a caller's rAF loop reading twice within
     // one read cycle.
     const second = store.sample<VesselOrbitPayload>("vessel.orbit", token);
     expect(second).toBeUndefined(); // must NOT be the dead epoch-0 point
@@ -402,18 +402,18 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
     // Sanity: genuinely propagating off the live orbit before the bump.
     expect(first?.payload?.basis).toBe("propagated");
 
-    // Mid-token quickload rewind via an UNRELATED topic — vessel.orbit
+    // Mid-token quickload rewind via an UNRELATED topic, vessel.orbit
     // hasn't re-sampled, so it's swept to the new epoch with no points.
     store.ingest(
       "system.clock",
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
-    // SAME token — no beginFrame(). vessel.state's OWN derived-memo key
-    // already folds epoch, so it recomputes — but that recompute calls
+    // SAME token: no beginFrame(). vessel.state's OWN derived-memo key
+    // already folds epoch, so it recomputes: but that recompute calls
     // get("vessel.orbit"), i.e. sample("vessel.orbit", token). If THAT raw
     // read still serves its pre-bump cache entry, the recompute propagates
-    // off the dead epoch-0 orbit and stamps the result with the NEW epoch —
+    // off the dead epoch-0 orbit and stamps the result with the NEW epoch,
     // a ghost `vessel.state` masquerading as post-rewind truth.
     const second = store.sample<{
       position: readonly [number, number, number] | null;
@@ -425,7 +425,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
   // The sibling of the two `sample()`/
   // `sampleInterpolated()` LENS-4 cases above, for the STATUS surface. The
   // raw-status memo key folds epoch (`\0status\0${topic}\0epoch\0${epoch}`)
-  // for exactly this reason — a status read taken before a mid-token epoch
+  // for exactly this reason: a status read taken before a mid-token epoch
   // bump must not survive it (and thereby disagree with the epoch-folded
   // value read for the same topic in the same frame). The value/derived-
   // status paths already had dedicated LENS-4 coverage; the raw-status path
@@ -434,7 +434,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
 
-    // A live, fresh raw topic — reads "live" before the bump.
+    // A live, fresh raw topic: reads "live" before the bump.
     store.ingest("temperature", numberPoint(100, 10, { deliveredAt: 100 }));
     store.beginFrame();
     const token = store.currentFrame();
@@ -442,7 +442,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
     const first = store.sampleStatus("temperature", token);
     expect(first).toBe("live");
 
-    // Mid-token quickload rewind via an UNRELATED topic — temperature hasn't
+    // Mid-token quickload rewind via an UNRELATED topic, temperature hasn't
     // re-sampled, so the store's cross-topic sweep clears its timeline to the
     // new (empty) epoch. No point at all in the new epoch now.
     store.ingest(
@@ -450,11 +450,11 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
-    // SAME token, no beginFrame() — a caller reading status twice within one
+    // SAME token, no beginFrame(): a caller reading status twice within one
     // read cycle. Must recompute against the new epoch: temperature has no
     // post-reset point, so it's "resyncing" (cold in the new epoch), NOT the
     // cached pre-bump "live". Without the epoch fold in the raw-status memo
-    // key, this would replay "live" — a ghost status for a dead timeline.
+    // key, this would replay "live", a ghost status for a dead timeline.
     const second = store.sampleStatus("temperature", token);
     expect(second).toBe("resyncing");
   });
@@ -483,7 +483,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.currentFrame().certainty).toBe("confirmed");
   });
 
-  it("predicted mode CAN read held-stale (T4) alongside a genuine arrival gap — the two channels don't fight", () => {
+  it("predicted mode CAN read held-stale (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -499,7 +499,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     store.beginFrame();
     expect(store.currentFrame().certainty).toBe("predicted");
     // ...but the certainty HORIZON (confirmedEdgeUt) is still sample-clamped
-    // near 100 — nothing has confirmed 1000s of real elapsed UT, only the
+    // near 100: nothing has confirmed 1000s of real elapsed UT, only the
     // wall clock ran. isOverdue must not fire off the predicted cursor
     // racing ahead on its own.
     expect(store.sampleStatus("c")).toBe("live");
@@ -514,7 +514,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.sample<number>("c")?.payload).toBe(1);
   });
 
-  it("a healthy predicted-mode topic (single fresh arrival, no further traffic) reads live regardless of delay — isOverdue must key off confirmedHorizonUt(), not the far-future predicted viewUt (M2 T5 close-review Fix 2)", () => {
+  it("a healthy predicted-mode topic (single fresh arrival, no further traffic) reads live regardless of delay, isOverdue must key off confirmedHorizonUt(), not the far-future predicted viewUt (M2 T5 close-review Fix 2)", () => {
     for (const delay of [0, 300]) {
       const wall = fakeWall();
       const clock = new ViewClock({
@@ -530,7 +530,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
 
       store.beginFrame();
       expect(store.currentFrame().certainty).toBe("predicted");
-      // Nothing else has confirmed elapsed UT beyond this one sample — the
+      // Nothing else has confirmed elapsed UT beyond this one sample, the
       // confirmed horizon stays sample-clamped, so there is no genuine
       // arrival gap for "c" to be overdue against.
       expect(store.sampleStatus("c")).toBe("live");

@@ -5,8 +5,8 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>vessel.parts</c> channel (P1b slice 2)
-    /// — the active vessel's full part-tree topology. Kept SEPARATE from
+    /// KSP-free mapping logic for the <c>vessel.parts</c> channel (P1b slice 2),
+    /// the active vessel's full part-tree topology. Kept SEPARATE from
     /// <see cref="PartsViewProvider"/> (which owns the <c>parts.power</c>/
     /// <c>parts.robotics</c> raw dicts): this channel's domain is
     /// <c>vessel</c>, so it is subject-provenance-scoped exactly like
@@ -16,7 +16,7 @@ namespace Sitrep.Host
     /// lives on <c>Gonogo.KSP.VesselUplink</c> beside <c>vessel.structure</c>.
     ///
     /// <para><b>Raw snapshot encoding (<c>Gonogo.KSP.KspHost.BuildTopology</c>
-    /// populates exactly this shape at <c>Values["vessel"]["topology"]</c> — a
+    /// populates exactly this shape at <c>Values["vessel"]["topology"]</c>: a
     /// LIST like <c>maneuverNodes</c>, entirely omitted when there's no active
     /// vessel):</b></para>
     /// <code>
@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// <para><b>Wire adapter.</b> Same reasoning as
     /// <see cref="VesselViewProvider"/>'s <c>*Wire</c> methods: the typed POCOs
     /// (<see cref="VesselParts"/>/<see cref="VesselPart"/>/<see cref="PartBounds"/>)
-    /// are never handed to <c>JsonWriter.AppendValue</c> raw — <see cref="ToWire(VesselParts)"/>
+    /// are never handed to <c>JsonWriter.AppendValue</c> raw, <see cref="ToWire(VesselParts)"/>
     /// flattens them into the <c>Dictionary&lt;string, object?&gt;</c> tree the
     /// writer understands. <see cref="BuildPartsWire"/> is what
     /// <c>VesselUplink.Register</c> hands to <c>AddChannelSource</c>;
@@ -62,7 +62,7 @@ namespace Sitrep.Host
             if (!vessel.TryGetValue("topology", out var rawTopology) || rawTopology is not IEnumerable<object?> rawList)
             {
                 // No topology group at all this tick (KspHost.BuildTopology
-                // returned null or the group build threw and was omitted) —
+                // returned null or the group build threw and was omitted),
                 // never a fabricated empty-vessel record.
                 return null;
             }
@@ -95,7 +95,7 @@ namespace Sitrep.Host
                 Title = GetString(raw, "title") ?? "",
                 // Position is a required field but stays a zero Vec3 rather
                 // than dropping the whole part if a single part's orgPos read
-                // was non-finite (R1/F-1) — one bad part must not blank the
+                // was non-finite (R1/F-1), one bad part must not blank the
                 // tree the rest of the topology needs.
                 Position = GetVec3(raw, "position") ?? new Vec3(),
                 Up = GetVec3(raw, "up"),
@@ -225,7 +225,7 @@ namespace Sitrep.Host
         }
 
         // ----------------------------------------------------------------
-        // Wire adapter — see the class doc comment for why this exists.
+        // Wire adapter: see the class doc comment for why this exists.
         // ----------------------------------------------------------------
 
         public static object? BuildPartsWire(KspSnapshot? snapshot) =>
@@ -304,7 +304,7 @@ namespace Sitrep.Host
         };
 
         // ----------------------------------------------------------------
-        // Shared helpers — copied from VesselViewProvider (the per-provider
+        // Shared helpers: copied from VesselViewProvider (the per-provider
         // duplication that class documents; matching that convention).
         // ----------------------------------------------------------------
 

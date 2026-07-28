@@ -1,8 +1,8 @@
 /**
  * Runtime carrier for the local app version. The actual constants live in
  * `packages/app/src/version.ts` (baked in by Vite); the app calls
- * `setAppVersion()` once at boot so packages outside @ksp-gonogo/app — most
- * notably the components library — can read it without a circular import.
+ * `setAppVersion()` once at boot so packages outside @ksp-gonogo/app, most
+ * notably the components library: can read it without a circular import.
  */
 
 let appVersion: { version: string; buildTime: string } | null = null;

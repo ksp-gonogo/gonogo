@@ -16,13 +16,14 @@ import {
   StatusPill,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
-// Empty config — room to add a "hide heat shield" toggle later.
+// Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
 
 // The `thermal-status.badges` slot (augment-slot-map "thermal-status" row):
-// whole-widget context, no slot props — a header quick-glance badge (e.g. a
+// whole-widget context, no slot props: a header quick-glance badge (e.g. a
 // future Kerbalism Reliability "N parts at risk" indicator) sits alongside the
 // stream-status badge. Declaration-merge the slot id → props type into core's
 // `SlotRegistry`, co-located here so parallel slot work doesn't collide on a
@@ -34,7 +35,7 @@ declare module "@ksp-gonogo/core" {
 }
 
 // Telemachus emits readings near absolute zero (~−271°C / ~2 K) when no
-// real value is available — typically when the corresponding part isn't
+// real value is available, typically when the corresponding part isn't
 // fitted (e.g. early-career rocket with no thermometer or heat shield) or
 // the science instrument hasn't been unlocked yet. Treat anything below
 // this threshold as "no data" rather than rendering bogus CRITICAL bars.
@@ -68,7 +69,7 @@ function bandFromRatio(ratio: number | undefined): Band {
 }
 
 // Heat escalation: green → yellow → orange → red. Pre-fix, both warm
-// and hot mapped to the same orange — operator at 94% saw the same
+// and hot mapped to the same orange, operator at 94% saw the same
 // colour as 80% and couldn't tell they were approaching critical. The
 // distinct yellow/orange split gives a visible step at the 90% gate.
 const BAND_COLOR: Record<Band, string> = {
@@ -88,7 +89,7 @@ const BAND_LABEL: Record<Band, string> = {
 const BAND_TONE: Record<Band, ReadoutTone> = {
   nominal: "go",
   // `warm` keeps `warning` tone for the StatusPill / inline alert layer
-  // even though its bar colour is yellow — the alert taxonomy stays
+  // even though its bar colour is yellow, the alert taxonomy stays
   // binary (go/warning/alert) while the colour gradient is finer.
   warm: "warning",
   hot: "warning",
@@ -103,13 +104,13 @@ const BAND_RANK: Record<Band, number> = {
 };
 
 function formatTempC(c: number | undefined): string {
-  if (c === undefined || !Number.isFinite(c)) return "—";
+  if (c === undefined || !Number.isFinite(c)) return NULL_DISPLAY;
   if (Math.abs(c) >= 1000) return `${c.toFixed(0)}°C`;
   return `${c.toFixed(1)}°C`;
 }
 
 function formatKw(kw: number | undefined): string {
-  if (kw === undefined || !Number.isFinite(kw)) return "—";
+  if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
   if (Math.abs(kw) >= 1000) return `${(kw / 1000).toFixed(2)} MW`;
   return `${kw.toFixed(1)} kW`;
 }
@@ -145,7 +146,7 @@ function ThermalStatusComponent({
   // rather than conflating "stream carried" with "legacy connected".
   const streamStatus = useDataStreamStatus("data", "therm.hottestPartTemp");
 
-  // Sentinel guard — drop the whole group when its max (or temp) is at the
+  // Sentinel guard: drop the whole group when its max (or temp) is at the
   // absolute-zero floor. The ratio is meaningless in that case and rendering
   // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
   const hottestSentinel =
@@ -179,7 +180,7 @@ function ThermalStatusComponent({
   const hottestBand = bandFromRatio(hottestRatio);
   const engineBand = engineOverheat ? "critical" : bandFromRatio(engineRatio);
 
-  // The pill summarises the worst observed band — it's the at-a-glance
+  // The pill summarises the worst observed band, it's the at-a-glance
   // affordance the tiny mode lives by.
   const worstBand: Band =
     BAND_RANK[engineBand] > BAND_RANK[hottestBand] ? engineBand : hottestBand;
@@ -191,7 +192,7 @@ function ThermalStatusComponent({
     engineTempK === undefined &&
     shieldTempC === undefined;
 
-  // Selective rendering — pill is always shown; rows drop from the bottom
+  // Selective rendering: pill is always shown; rows drop from the bottom
   // (heat shield first, then engine, then hottest-part) as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 7;
@@ -199,7 +200,7 @@ function ThermalStatusComponent({
   const showEngineRow = rows >= 6;
   const hasShieldData = shieldTempC !== undefined || shieldFluxKw !== undefined;
   const showShieldRow = rows >= 7 && hasShieldData;
-  // Inline alert fires at hot (90-97%) and critical (≥97%) — the
+  // Inline alert fires at hot (90-97%) and critical (≥97%), the
   // hot band is the "still time to act" warning; without an alert at
   // 94% the operator only got the colour change in the bar and a
   // small "hot" tag, no headline cue. Critical keeps the louder
@@ -213,7 +214,7 @@ function ThermalStatusComponent({
         <PanelTitle>THERMAL</PanelTitle>
         {/* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
             into the header next to the stream-status badge. AugmentSlot renders
-            a fragment — nothing in the DOM — until an augment registers, so the
+            a fragment: nothing in the DOM: until an augment registers, so the
             unfilled slot leaves the header's existing output untouched. */}
         <AugmentSlot name="thermal-status.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
@@ -251,7 +252,7 @@ function ThermalStatusComponent({
                     </BandTag>
                   </RowHeader>
                   <RowBody>
-                    <PartName>{hottestName ?? "—"}</PartName>
+                    <PartName>{hottestName ?? NULL_DISPLAY}</PartName>
                     <TempMeter>
                       <TempBar
                         style={{
@@ -346,7 +347,7 @@ const PillRow = styled.div`
   gap: 8px;
 `;
 
-// The shared StatusPill sizes itself to its label at a fixed padding —
+// The shared StatusPill sizes itself to its label at a fixed padding,
 // fine everywhere it's used except this widget's narrowest "pill-only"
 // mode (minSize is 3 cols wide), where "CRITICAL" no longer fits and was
 // overflowing past the panel's right edge under Panel's overflow:hidden.
@@ -375,7 +376,7 @@ const RowsScroll = styled(ScrollArea)`
   flex: 1;
   min-height: 0;
   /* Bleed the scroll viewport down through the panel's bottom padding so
-     overflowing rows are revealed — and clipped — right at the widget's
+     overflowing rows are revealed, and clipped: right at the widget's
      bottom edge, with the scroll fade drawn over the top of them. Without
      this the rows cut off ~12px short of the border, leaving a dead gap
      that reads as "content truncated even though there's space". The panel
@@ -396,7 +397,7 @@ const Row = styled.div`
 `;
 
 // Label + band badge share the row's top line so the band reads as a
-// top-right badge and the value readout below stays short — at the
+// top-right badge and the value readout below stays short, at the
 // narrowest sizes the readout no longer wraps the band tag onto a second
 // line that then gets clipped.
 const RowHeader = styled.div`
@@ -480,7 +481,7 @@ registerComponent<ThermalStatusConfig>({
   id: "thermal-status",
   name: "Thermal",
   description:
-    "Aggregate thermal readouts — hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
+    "Aggregate thermal readouts: hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
   minSize: { w: 3, h: 4 },

@@ -1,15 +1,15 @@
 /**
- * `DelayedPlayoutBuffer` scenario tests — the goal-doc list from
+ * `DelayedPlayoutBuffer` scenario tests: the goal-doc list from
  * `local_docs/telemetry-mod/m2-sdk-delay-design.md` §5.5, in priority
  * order. Courier delay-test discipline throughout: inject UT-stamped
- * frames (the "mock media stream" — plain stand-in payloads, since a real
+ * frames (the "mock media stream": plain stand-in payloads, since a real
  * browser `MediaStream` can't be produced or frame-decomposed in jsdom;
  * see `CameraFeed.test.tsx`'s docstring), drive a manually-controlled
  * clock, assert release timing.
  *
  * Scenario 2 (the headline video↔telemetry sync test) drives the real
- * `@ksp-gonogo/sitrep-client` `ViewClock` — the actual production delay
- * authority — rather than a fake, to prove the buffer and a simulated
+ * `@ksp-gonogo/sitrep-client` `ViewClock`: the actual production delay
+ * authority: rather than a fake, to prove the buffer and a simulated
  * telemetry-confirmation read genuinely share one clock object. Every
  * other scenario uses a lightweight manual clock double (mirrors
  * `view-clock.test.ts`'s `fakeWall` / `courier-transport.integration.test`'s
@@ -27,7 +27,7 @@ import {
 
 /** A clock double a test can set directly, standing in for confirmedEdgeUt.
  *  `setEdge` both advances the value and fires the buffer's per-frame
- *  subscription — the deterministic substitute for a real rAF tick. */
+ *  subscription: the deterministic substitute for a real rAF tick. */
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   setEdge(v: number): void;
 } {
@@ -48,8 +48,8 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   };
 }
 
-/** A wall clock a test can advance explicitly, instead of racing real time
- *  — mirrors `view-clock.test.ts`'s `fakeWall`. */
+/** A wall clock a test can advance explicitly, instead of racing real time,
+ *  mirrors `view-clock.test.ts`'s `fakeWall`. */
 function fakeWall(start = 0) {
   let now = start;
   return {
@@ -75,11 +75,11 @@ describe("DelayedPlayoutBuffer", () => {
     expect(released).toHaveLength(0);
     expect(buffer.current()).toBeUndefined();
 
-    // Edge advances but hasn't reached 100 yet — still held.
+    // Edge advances but hasn't reached 100 yet, still held.
     clock.setEdge(99);
     expect(released).toHaveLength(0);
 
-    // Edge crosses 100 (capture-UT + delay, in wall-time terms) — releases.
+    // Edge crosses 100 (capture-UT + delay, in wall-time terms), releases.
     clock.setEdge(100);
     expect(released).toEqual([{ ut: 100, keyframe: true, data: "frame@100" }]);
     expect(buffer.current()).toEqual({
@@ -92,7 +92,7 @@ describe("DelayedPlayoutBuffer", () => {
   // -- Scenario 2: THE headline video<->telemetry sync test ----------------
   it("releases a media frame at the same wall-time a same-UT telemetry sample would confirm, driven by one shared confirmedEdgeUt clock", () => {
     const wall = fakeWall();
-    // The real production delay authority — not a fake. Both "video" and
+    // The real production delay authority: not a fake. Both "video" and
     // "telemetry" in this test read confirmedEdgeUt() off this one instance.
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -100,7 +100,7 @@ describe("DelayedPlayoutBuffer", () => {
       delaySeconds: () => 30,
     });
     // Wrap rather than pass the ViewClock instance directly so the test
-    // doesn't schedule a real rAF/setTimeout tick via its onFrame — release
+    // doesn't schedule a real rAF/setTimeout tick via its onFrame, release
     // timing is driven explicitly via pump() for determinism.
     const clockView: DelayClockLike = {
       confirmedEdgeUt: () => clock.confirmedEdgeUt(),
@@ -119,7 +119,7 @@ describe("DelayedPlayoutBuffer", () => {
 
     // A telemetry sample stamped the identical UT is observed by the same
     // clock instance (deliveredAt = SAME_UT: the observation lands with no
-    // extra network transit modelled here — delaySeconds is the display-lag
+    // extra network transit modelled here: delaySeconds is the display-lag
     // policy under test, not courier network delay).
     clock.observeSample(SAME_UT, SAME_UT);
     const telemetryConfirmed = () => clock.confirmedEdgeUt() >= SAME_UT;
@@ -132,7 +132,7 @@ describe("DelayedPlayoutBuffer", () => {
     expect(telemetryConfirmed()).toBe(false);
 
     // At exactly delaySeconds elapsed, BOTH cross in the same wall-time
-    // step — the one shared clock makes them common-mode.
+    // step: the one shared clock makes them common-mode.
     wall.advanceBy(1);
     buffer.pump();
     expect(released).toHaveLength(1);
@@ -154,16 +154,16 @@ describe("DelayedPlayoutBuffer", () => {
     buffer.push({ ut: 20, keyframe: false });
     buffer.push({ ut: 30, keyframe: false });
 
-    // A larger delay: edge sits below all three — nothing released early.
+    // A larger delay: edge sits below all three, nothing released early.
     clock.setEdge(5);
     expect(released).toEqual([]);
 
-    // Delay shrinks — edge jumps forward; frames release in UT order, none
+    // Delay shrinks: edge jumps forward; frames release in UT order, none
     // skipped (no gap), none double-released.
     clock.setEdge(20);
     expect(released).toEqual([10, 20]);
 
-    // Delay grows again (edge stalls) — the still-queued frame (30) stays
+    // Delay grows again (edge stalls): the still-queued frame (30) stays
     // held, not shown early.
     clock.setEdge(20);
     expect(released).toEqual([10, 20]);
@@ -195,7 +195,7 @@ describe("DelayedPlayoutBuffer", () => {
     expect(buffer.current()).toBeUndefined();
 
     // Even once the (post-reset) clock sweeps far past the discarded UTs,
-    // those old frames never surface — they were dropped, not just held.
+    // those old frames never surface: they were dropped, not just held.
     clock.setEdge(1000);
     expect(released).toEqual([]);
 
@@ -207,7 +207,7 @@ describe("DelayedPlayoutBuffer", () => {
   });
 
   // -- Scenario 5: lossy bounds ------------------------------------------
-  it("over the byte cap, drops the oldest non-keyframe frame first — a keyframe survives", () => {
+  it("over the byte cap, drops the oldest non-keyframe frame first, a keyframe survives", () => {
     // Edge never advances, so nothing releases and frames simply accumulate.
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const released: StampedFrame[] = [];
@@ -227,13 +227,13 @@ describe("DelayedPlayoutBuffer", () => {
     expect(buffer.peekQueue().map((f) => f.ut)).toEqual([1, 3, 4]);
     expect(released).toEqual([]);
 
-    // A second delta arrives — the next-oldest delta (ut=3) goes, the
+    // A second delta arrives: the next-oldest delta (ut=3) goes, the
     // keyframe still survives.
     buffer.push({ ut: 5, keyframe: false, bytes: 1 });
     expect(buffer.peekQueue().map((f) => f.ut)).toEqual([1, 4, 5]);
 
     // Once only keyframes remain over cap, the eviction has no non-keyframe
-    // to trade away and stops rather than stalling — never blocks ingest.
+    // to trade away and stops rather than stalling; never blocks ingest.
     const kfOnly = new DelayedPlayoutBuffer({
       view: manualClock(Number.NEGATIVE_INFINITY),
       onRelease: () => {},
@@ -243,13 +243,13 @@ describe("DelayedPlayoutBuffer", () => {
     kfOnly.push({ ut: 2, keyframe: true, bytes: 1 });
     kfOnly.push({ ut: 3, keyframe: true, bytes: 1 }); // over cap, all keyframes
     // Last-resort: the oldest keyframe is dropped rather than growing
-    // unboundedly — cap is still respected.
+    // unboundedly: cap is still respected.
     expect(kfOnly.peekQueue().map((f) => f.ut)).toEqual([2, 3]);
   });
 
   // -- Scenario 6: delay=0 (LAN) passthrough --------------------------------
   it("delay=0: a frame releases immediately when confirmedEdgeUt is already at the frame's UT (strict passthrough)", () => {
-    const clock = manualClock(0); // edge already caught up — no delay modelled
+    const clock = manualClock(0); // edge already caught up, no delay modelled
     const released: StampedFrame[] = [];
     const buffer = new DelayedPlayoutBuffer({
       view: clock,
@@ -258,7 +258,7 @@ describe("DelayedPlayoutBuffer", () => {
     });
 
     buffer.push({ ut: 0, keyframe: true, data: "live-frame" });
-    // Released synchronously on push — no held-back wait, existing
+    // Released synchronously on push: no held-back wait, existing
     // LAN-latency CameraFeed behaviour is unaffected.
     expect(released).toEqual([{ ut: 0, keyframe: true, data: "live-frame" }]);
 
@@ -286,7 +286,7 @@ describe("DelayedPlayoutBuffer", () => {
   // -- onDrop: the resource-cleanup hook a caller wires when T holds an
   // external resource (e.g. a WebCodecs VideoFrame) that must be closed on
   // every discard path, not just on release. Added for the per-frame video
-  // delay pipeline (frame-delay.ts) — see its MEMORY-LEAK-TRAP doc comment.
+  // delay pipeline (frame-delay.ts): see its MEMORY-LEAK-TRAP doc comment.
   describe("onDrop", () => {
     it("fires for a frame evicted by the over-cap eviction, never for a released frame", () => {
       const clock = manualClock(Number.NEGATIVE_INFINITY);
@@ -301,7 +301,7 @@ describe("DelayedPlayoutBuffer", () => {
 
       buffer.push({ ut: 1, keyframe: false, data: "a", bytes: 1 });
       buffer.push({ ut: 2, keyframe: false, data: "b", bytes: 1 });
-      buffer.push({ ut: 3, keyframe: false, data: "c", bytes: 1 }); // over cap — evicts ut=1
+      buffer.push({ ut: 3, keyframe: false, data: "c", bytes: 1 }); // over cap, evicts ut=1
 
       expect(dropped.map((f) => f.data)).toEqual(["a"]);
       expect(released).toEqual([]);
@@ -346,7 +346,7 @@ describe("DelayedPlayoutBuffer", () => {
       expect(dropped.map((f) => f.data)).toEqual(["held-1", "held-2"]);
     });
 
-    it("is optional — omitting it doesn't throw on eviction, flush, or dispose", () => {
+    it("is optional, omitting it doesn't throw on eviction, flush, or dispose", () => {
       const clock = manualClock(Number.NEGATIVE_INFINITY);
       const buffer = new DelayedPlayoutBuffer({
         view: clock,
@@ -365,7 +365,7 @@ describe("DelayedPlayoutBuffer", () => {
 
   // -- gopSafeEviction: the fix for encoded video's GOP-dependency hazard
   // flagged in local_docs/reports/encoded-transform-spike-report.md
-  // ("frame ordering / GOP dependency survival") — an encoded delta frame
+  // ("frame ordering / GOP dependency survival"): an encoded delta frame
   // depends on a prior reference frame, so evicting a single mid-GOP delta
   // frame (the default eviction unit) would corrupt the decode chain.
   describe("gopSafeEviction", () => {
@@ -390,7 +390,7 @@ describe("DelayedPlayoutBuffer", () => {
       buffer.push({ ut: 6, keyframe: false, data: "d2b", bytes: 1 });
 
       // The ENTIRE oldest GOP (k1, d1a, d1b) was dropped together, never a
-      // lone delta pulled from the middle — the retained queue starts
+      // lone delta pulled from the middle: the retained queue starts
       // exactly at a keyframe boundary (k2), a valid decodable prefix.
       expect(dropped).toEqual(["k1", "d1a", "d1b"]);
       expect(buffer.peekQueue().map((f) => f.data)).toEqual([
@@ -412,7 +412,7 @@ describe("DelayedPlayoutBuffer", () => {
       });
 
       // Buffer's head is a delta with no keyframe before it in the queue
-      // (its owning keyframe already released/expired) — still must not be
+      // (its owning keyframe already released/expired): still must not be
       // evicted alone if a later delta in the SAME run is kept.
       buffer.push({ ut: 1, keyframe: false, data: "d0a", bytes: 1 });
       buffer.push({ ut: 2, keyframe: false, data: "d0b", bytes: 1 });
@@ -438,7 +438,7 @@ describe("DelayedPlayoutBuffer", () => {
       expect(buffer.peekQueue().map((f) => f.data)).toEqual(["only"]);
     });
 
-    it("does not change the default (gopSafeEviction unset) frame-at-a-time behaviour — no regression for the decoded backend", () => {
+    it("does not change the default (gopSafeEviction unset) frame-at-a-time behaviour, no regression for the decoded backend", () => {
       const clock = manualClock(Number.NEGATIVE_INFINITY);
       const dropped: string[] = [];
       const buffer = new DelayedPlayoutBuffer({
@@ -451,7 +451,7 @@ describe("DelayedPlayoutBuffer", () => {
 
       // Matches the decoded backend's real usage: every frame tagged
       // `keyframe: false` (frame-delay.ts never marks decoded VideoFrames as
-      // keyframes — see its module doc), so eviction is plain FIFO,
+      // keyframes: see its module doc), so eviction is plain FIFO,
       // ONE frame per push, not a GOP-sized batch.
       buffer.push({ ut: 1, keyframe: false, data: "f1", bytes: 1 });
       buffer.push({ ut: 2, keyframe: false, data: "f2", bytes: 1 });

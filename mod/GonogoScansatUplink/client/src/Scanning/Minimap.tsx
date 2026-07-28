@@ -1,5 +1,5 @@
 import { type BodyDefinition, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { useElementSize } from "@ksp-gonogo/ui-kit";
+import { NullValue, useElementSize } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useScanCoverageGate } from "../FogReveal/useScanCoverageGate";
@@ -22,7 +22,7 @@ import {
  * `BiomeBase` map-view.base augment uses) into an offscreen canvas, then
  * draws a windowed crop of it plus the vessel crosshair and any anomalies
  * that fall inside the window. There is no separate dark fog-overlay
- * canvas composited on top — per the settled "no fog layer" model
+ * canvas composited on top: per the settled "no fog layer" model
  * (`useScanCoverageGate`'s own header comment), a covered tile paints the
  * biome colourmap and an uncovered tile paints nothing, letting the
  * canvas's own dark background fill show through. The base pixels come
@@ -52,7 +52,7 @@ export function Minimap({
   vesselLon,
 }: Readonly<MinimapProps>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // Offscreen surface the coverage-gated biome colourmap is painted onto —
+  // Offscreen surface the coverage-gated biome colourmap is painted onto,
   // same fixed-resolution technique as TerrainBase/BiomeBase.tsx's
   // map-view.base augment, just owned locally rather than handed to
   // MapView via ctx.onLayer. Lazily created and reused across repaints so
@@ -71,8 +71,8 @@ export function Minimap({
   const scanningVessels = useScanningVessels();
 
   // Repaint on body change, vessel-move, resize, or upstream biome/coverage
-  // change (coverageGate is a fresh object on every recompute — see
-  // useScanCoverageGate's own setGate calls — so no separate version field
+  // change (coverageGate is a fresh object on every recompute; see
+  // useScanCoverageGate's own setGate calls: so no separate version field
   // is needed here the way the old canvas-ref hooks needed one).
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,7 +102,7 @@ export function Minimap({
     const sw = 2 * halfWpx;
     const sh = 2 * halfHpx;
 
-    // Coverage-gated biome colourmap — a covered tile paints its biome
+    // Coverage-gated biome colourmap: a covered tile paints its biome
     // colour (up to full opacity), an uncovered tile paints nothing at
     // all, letting the "#0a0a0a" background fill above show through. No
     // separate dark fog-overlay canvas is composited on top; this single
@@ -136,7 +136,7 @@ export function Minimap({
       }
     }
 
-    // Scanner footprints — drawn with SCANsat's own getFOV +
+    // Scanner footprints: drawn with SCANsat's own getFOV +
     // trackColor so the minimap mirrors the in-game ground-track
     // overlay. We render every tracked vessel on this body, not just
     // the active one.
@@ -195,7 +195,7 @@ export function Minimap({
             {vesselLat.toFixed(2)}°, {vesselLon.toFixed(2)}°
           </span>
         ) : (
-          <span>—</span>
+          <NullValue />
         )}
       </MinimapLabel>
     </MinimapRoot>
@@ -273,11 +273,11 @@ function drawWindowed(
 
 /**
  * Paint a single scanning vessel's footprint rectangle. The lat/lon
- * extents come straight off the wire — `groundTrackWidthDeg` (from
+ * extents come straight off the wire: `groundTrackWidthDeg` (from
  * SCANsat's private `getFOV` via reflection) for latitude, and
  * `groundTrackLonHalfDeg` (the fork-side 1/cos widening with the 120°
  * cap that SCANsat itself uses) for longitude. The tint mirrors
- * `SCANvessel.trackColor`. No formula here — only projection of the
+ * `SCANvessel.trackColor`. No formula here: only projection of the
  * SCANsat-supplied rect into the minimap's window.
  */
 function drawScannerFootprint(
@@ -300,7 +300,7 @@ function drawScannerFootprint(
 
   const vTexLat = v.subLatitude + (body.latitudeOffset ?? 0);
   const vTexLon = wrapLon(v.subLongitude + (body.longitudeOffset ?? 0));
-  // Vertical extent — straight delta-lat from the minimap centre.
+  // Vertical extent: straight delta-lat from the minimap centre.
   const dLatTop = vTexLat + halfLat - centerTexLat;
   const dLatBot = vTexLat - halfLat - centerTexLat;
   if (dLatTop < -WINDOW_HALF_DEG && dLatBot < -WINDOW_HALF_DEG) return;
@@ -314,7 +314,7 @@ function drawScannerFootprint(
     (clamp(dLatBot, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
       (px / 2);
 
-  // Horizontal extent — shortest delta-lon from the minimap centre.
+  // Horizontal extent: shortest delta-lon from the minimap centre.
   const dLon = shortestLonDelta(vTexLon, centerTexLon);
   const dLonLeft = dLon - halfLon;
   const dLonRight = dLon + halfLon;

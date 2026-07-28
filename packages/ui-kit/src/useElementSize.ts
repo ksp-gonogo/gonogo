@@ -17,7 +17,7 @@ export interface ElementSize {
  * inline versions did).
  *
  * @param initial seed size used until the first non-zero measurement.
- * @returns `{ ref, size }` — attach `ref` to the element to measure.
+ * @returns `{ ref, size }`: attach `ref` to the element to measure.
  */
 export function useElementSize<T extends HTMLElement = HTMLDivElement>(
   initial: ElementSize,

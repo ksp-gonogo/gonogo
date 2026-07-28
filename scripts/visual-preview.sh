@@ -6,26 +6,26 @@
 # every widget, diffs each against its committed baseline, and on drift writes
 # baseline/actual/diff PNGs to local_docs/renders/_visual-gate-diffs/. This is a
 # thin wrapper that runs that gate INSIDE the exact Linux image CI uses, so the
-# diffs are faithful — a macOS-local gate run is pure font noise and useless for
+# diffs are faithful, a macOS-local gate run is pure font noise and useless for
 # deciding whether a render legitimately changed.
 #
 #   scripts/visual-preview.sh --engine <chromium|firefox|webkit> [--widget <id>] [--update]
 #
 # PREVIEW (default): run the gate, surface the drift, print a SUMMARY (drifted
-#   renders + host paths to their baseline/actual/diff PNGs) and exit 0 — drift
+#   renders + host paths to their baseline/actual/diff PNGs) and exit 0, drift
 #   is the signal you asked for, not a failure. Share the PNGs, get an OK.
 # UPDATE (--update): (re)write Linux-faithful, committable baselines to the host
 #   (packages/components/visual-baselines/<engine>/). The post-confirm step.
 #
 # Prereqs:
 #   • podman (default /opt/podman/bin/podman; override with $PODMAN).
-#   • ~/.npmrc — mounted read-only into the container for registry auth. `pnpm
+#   • ~/.npmrc: mounted read-only into the container for registry auth. `pnpm
 #     install` pulls @ksp-gonogo/kerbcast* from npm; ~/.npmrc carries the
 #     @ksp-gonogo registry routing + token. (If those packages are ever moved to
 #     GitHub Packages, ~/.npmrc would need a GH token / a GH_TOKEN env instead.)
 #
 # The container does its OWN Linux `pnpm install` into NAMED volumes (the host's
-# node_modules are macOS-native — esbuild darwin binaries — and cannot be
+# node_modules are macOS-native, esbuild darwin binaries: and cannot be
 # reused). First run is slow (full install); named volumes make re-runs fast.
 # The host's node_modules are never touched (each is shadowed by a volume).
 set -euo pipefail
@@ -73,7 +73,7 @@ if [ ! -x "$PODMAN" ] && ! command -v "$PODMAN" >/dev/null 2>&1; then
   exit 2
 fi
 if [ ! -f "$HOME/.npmrc" ]; then
-  echo "error: ~/.npmrc not found — needed for registry auth inside the container." >&2
+  echo "error: ~/.npmrc not found: needed for registry auth inside the container." >&2
   echo "       Run a local 'pnpm install' once, or create ~/.npmrc with the @ksp-gonogo registry + token." >&2
   exit 2
 fi
@@ -82,7 +82,7 @@ fi
 # when $VISUAL_PREVIEW_IMAGE points elsewhere.
 if [ "$IMAGE" = "localhost/gonogo-visual-preview:pw${PLAYWRIGHT_VERSION}" ] \
    && ! "$PODMAN" image exists "$IMAGE" 2>/dev/null; then
-  echo "building font-baked image $IMAGE (first time — pulls the base + installs fonts)…"
+  echo "building font-baked image $IMAGE (first time, pulls the base + installs fonts)…"
   "$PODMAN" build \
     --build-arg "PW_VERSION=${PLAYWRIGHT_VERSION}" \
     -t "$IMAGE" \
@@ -93,7 +93,7 @@ fi
 # Shadow every workspace package's node_modules (root + globs) with its own
 # named volume, so the container's Linux install lands in the volumes and the
 # host's macOS node_modules are left untouched. (inject-workspace-packages=true
-# means these are real copies, not symlinks — each must be shadowed.)
+# means these are real copies, not symlinks, each must be shadowed.)
 NM_MOUNTS=()
 add_nm() {
   local dir="$1" target slug
@@ -124,7 +124,7 @@ $GATE"
 
 echo "image:  $IMAGE"
 echo "engine: $ENGINE${WIDGET:+  widget: $WIDGET}$([ "$UPDATE" = 1 ] && echo '  MODE: update' || echo '  MODE: preview')"
-echo "(first run installs Linux deps into named volumes — slow; re-runs are fast)"
+echo "(first run installs Linux deps into named volumes, slow; re-runs are fast)"
 echo
 
 LOG="$(mktemp)"
@@ -151,14 +151,14 @@ DIFF_DIR="$REPO_ROOT/local_docs/renders/_visual-gate-diffs/$ENGINE"
 echo
 echo "════════════ VISUAL PREVIEW SUMMARY ($ENGINE) ════════════"
 if grep -q "✓ No visual drift." "$LOG"; then
-  echo "CLEAN — no drift against the committed $ENGINE baselines."
+  echo "CLEAN: no drift against the committed $ENGINE baselines."
   echo "(This is the faithfulness proof for an unchanged widget.)"
   rm -f "$LOG"
   exit 0
 fi
 if ! grep -q "visual difference(s):" "$LOG"; then
   echo "!! The gate did not complete (install/build/other error, exit $GATE_EXIT)."
-  echo "   This is a REAL failure, not drift — see the log above."
+  echo "   This is a REAL failure, not drift; see the log above."
   rm -f "$LOG"
   exit "${GATE_EXIT:-1}"
 fi
@@ -179,7 +179,7 @@ if [ -d "$DIFF_DIR" ]; then
     echo "   diff:     ${diff}"
   done < <(find "$DIFF_DIR" -name '*.diff.png' 2>/dev/null | sort)
 fi
-# Missing-baseline failures produce no diff PNGs — surface them from the log.
+# Missing-baseline failures produce no diff PNGs: surface them from the log.
 if grep -q "MISSING baseline:" "$LOG"; then
   echo
   echo "MISSING baselines (no committed baseline to diff against):"
@@ -187,7 +187,7 @@ if grep -q "MISSING baseline:" "$LOG"; then
 fi
 echo
 echo "${count} drifted render(s) with baseline/actual/diff PNGs above."
-echo "(The gate clears these at the START of the next run — Read/copy them first.)"
+echo "(The gate clears these at the START of the next run; Read/copy them first.)"
 echo "Review, get an OK, then re-run with --update to write committable baselines."
 rm -f "$LOG"
 exit 0

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "cruise-nominal",
-    "notes": "Cruising in upper atmosphere. All thermal readings nominal — parts and engines well below limits. No heat shield fitted."
+    "notes": "Cruising in upper atmosphere. All thermal readings nominal, parts and engines well below limits. No heat shield fitted."
   },
   "therm.hottestPartName": "LV-T30 'Reliant'",
   "therm.hottestPartTemp": 287.5,

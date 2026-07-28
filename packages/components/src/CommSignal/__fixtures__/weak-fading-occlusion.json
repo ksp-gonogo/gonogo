@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "weak-fading-occlusion",
-    "notes": "Partial signal during orbit-occlusion. Vessel is near the limb of Kerbin and signal is fading — 2 bars, partial control state."
+    "notes": "Partial signal during orbit-occlusion. Vessel is near the limb of Kerbin and signal is fading, 2 bars, partial control state."
   },
   "comm.connected": true,
   "comm.signalStrength": 0.23,

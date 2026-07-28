@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 /**
- * Reader for the revealed occurrences on an event topic — the seam the
+ * Reader for the revealed occurrences on an event topic, the seam the
  * `event` trigger consumes. Returns occurrences already past the reveal gate
  * (delay + connectivity), newest-last; see `EventTimeline.revealed`. Defaults
  * to empty on the host until a producer topic is wired.
@@ -42,7 +42,7 @@ const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
  * through getter callbacks so it never holds stale copies. Threshold
  * `dataKey` reads and the contract-parameter trigger's `contracts.active`
  * read both come off the stream now (`getValue`/`getContractsActive`,
- * `@ksp-gonogo/sitrep-client`) rather than the legacy `"data"` `DataSource` —
+ * `@ksp-gonogo/sitrep-client`) rather than the legacy `"data"` `DataSource`,
  * `DataKeyPicker`'s Value restriction (`useValueKeys`) guarantees a
  * `ThresholdTrigger.dataKey` always has a stream home.
  */
@@ -51,7 +51,7 @@ export class AlarmStateMachine {
   /**
    * Per-event-alarm watch baseline: the observed UT at which the alarm first
    * ticked. Only occurrences revealed after this fire, so an alarm never
-   * replays an event already in the buffer when it's created. Not persisted —
+   * replays an event already in the buffer when it's created. Not persisted,
    * a reload restarts the watch from the reload UT (old events don't re-fire;
    * an already-latched `matchSinceUT` still keeps the alarm fired).
    */
@@ -68,7 +68,7 @@ export class AlarmStateMachine {
    * sample if the alarm is still in the pending pre-match phase. Mutates
    * `alarm.matchSinceUT`. Returns true if `matchSinceUT` changed.
    *
-   * IMPORTANT: must run *before* `deriveState` for the same tick — it
+   * IMPORTANT: must run *before* `deriveState` for the same tick, it
    * inspects `alarm.state` from the previous tick to decide whether to
    * keep the rolling buffer.
    */
@@ -115,7 +115,7 @@ export class AlarmStateMachine {
   /**
    * Latch an event alarm the moment a matching occurrence is revealed after
    * the alarm began watching. Edge-triggered: `matchSinceUT` is set to the
-   * observed UT at reveal (NOT the occurrence's own UT — a delayed occurrence
+   * observed UT at reveal (NOT the occurrence's own UT, a delayed occurrence
    * reveals long after it happened, and the firing window must start from
    * reveal so the `firing` transition isn't skipped). Once latched it never
    * clears; an occurrence is a fact of the past. Returns true iff it changed.
@@ -125,7 +125,7 @@ export class AlarmStateMachine {
     if (alarm.matchSinceUT != null) return false;
     const from = this.eventWatchFrom.get(alarm.id);
     if (from == null) {
-      // First tick for this alarm — start watching from now.
+      // First tick for this alarm: start watching from now.
       this.eventWatchFrom.set(alarm.id, ut);
       return false;
     }
@@ -136,7 +136,7 @@ export class AlarmStateMachine {
     return false;
   }
 
-  /** Drop sample buffer for an alarm — used on delete or trigger change. */
+  /** Drop sample buffer for an alarm: used on delete or trigger change. */
   forget(alarmId: string): void {
     this.thresholdSamples.delete(alarmId);
     this.eventWatchFrom.delete(alarmId);
@@ -176,7 +176,7 @@ export class AlarmStateMachine {
   }
 
   /**
-   * Pick the closest pending alarm we can plan against — earliest time
+   * Pick the closest pending alarm we can plan against, earliest time
    * alarm or smallest-ETA threshold alarm.
    */
   findClosestPendingTrackableAlarm(): {
@@ -225,7 +225,7 @@ export class AlarmStateMachine {
 
   /**
    * True iff a *different* pending threshold alarm exists whose ETA
-   * cannot currently be modelled — the warp controller uses this to cap
+   * cannot currently be modelled: the warp controller uses this to cap
    * the rate so the unmodelable target gets a chance to register.
    */
   hasUnmodelableThresholdOther(target: Alarm): boolean {
@@ -253,7 +253,7 @@ export class AlarmStateMachine {
       if (!c || typeof c !== "object") continue;
       // `CareerContract.id` is a wire string; `ContractParameterTrigger
       // .contractId` predates any real contract-id picker UI and is still
-      // `number` (see `types.ts`) — compare as strings rather than widen
+      // `number` (see `types.ts`): compare as strings rather than widen
       // the trigger's own persisted shape here.
       if (c.id !== String(t.contractId)) continue;
       if (!Array.isArray(c.parameters)) return false;

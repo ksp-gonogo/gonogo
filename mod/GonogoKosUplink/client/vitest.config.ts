@@ -2,11 +2,11 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
-// suite runs hermetically without a prior build — mirrors the components
+// suite runs hermetically without a prior build, mirrors the components
 // package's vitest config, since the moved kOS widget tests were authored
 // against that resolution. `@ksp-gonogo/sitrep-client` / `@ksp-gonogo/sitrep-sdk` stay
 // unaliased (resolved from their built dist) exactly as they were in
-// @ksp-gonogo/components — the stream test-adapter and KosProcessors consume them.
+// @ksp-gonogo/components: the stream test-adapter and KosProcessors consume them.
 const pkgs = path.resolve(import.meta.dirname, "../../../packages");
 
 export default defineConfig({

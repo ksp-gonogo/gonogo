@@ -23,21 +23,21 @@ import {
 
 /**
  * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
- * in this directory) — `career.status` (tech nodes + science) and
+ * in this directory): `career.status` (tech nodes + science) and
  * `spaceCenter.scene` are ONE-ARG canonical reads with no legacy fallback
  * at all, so every render here runs off a real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`. Sample
  * nodes are emitted directly onto `career.status.tech.nodes` using the
- * LEGACY short-form shape (`state`/`parents` on each node) — `parseTechNodes`
+ * LEGACY short-form shape (`state`/`parents` on each node), `parseTechNodes`
  * (index.tsx) explicitly accepts this exact shape as one of its two
  * supported inputs (its own doc comment: "Accepts BOTH the legacy
  * GonogoTelemetry tech.nodes shape... and the career-detail wire shape"),
- * so this is a legitimate value for that field, not a bypass — it's what
+ * so this is a legitimate value for that field, not a bypass, it's what
  * lets these tests keep exercising the rich `description`/`parts` rendering
  * (`career.status.tech.nodes` has no such fields on the real wire; see
  * `dual-run.test.tsx`'s own real-wire-shape fixture for that coverage).
  * `tech.unlock[...]` (the spend command, unmapped) stays on the legacy
- * `useExecuteAction("data")` fallback — a `setupMockDataSource` AUX
+ * `useExecuteAction("data")` fallback: a `setupMockDataSource` AUX
  * supplies the `onExecute` spy for the arm-then-confirm test.
  */
 const CARRIED_CHANNELS = ["career.status", "spaceCenter.scene"];
@@ -114,7 +114,7 @@ function renderTree(fixture: StreamFixture) {
 }
 
 describe("TechTreeComponent", () => {
-  // Reset the action-handler + augment registries at the START of each test —
+  // Reset the action-handler + augment registries at the START of each test,
   // by this point the prior test's tree is already unmounted (RTL
   // auto-cleanup), so these registry mutations never fire against a live
   // component (no manual `cleanup()` needed to order them).
@@ -142,7 +142,7 @@ describe("TechTreeComponent", () => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
-    // Default filter is "All" — every node is present on first paint.
+    // Default filter is "All", every node is present on first paint.
     await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();

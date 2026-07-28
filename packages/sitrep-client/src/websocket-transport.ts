@@ -4,7 +4,7 @@ import type { Transport, TransportStatus } from "./transport";
 
 /**
  * Minimal structural view of the parts of the DOM `WebSocket` this transport
- * touches — enough to construct, listen, send, close, and read `readyState`.
+ * touches: enough to construct, listen, send, close, and read `readyState`.
  * Declared locally (rather than leaning on `lib.dom`'s global `WebSocket`) so
  * the class stays injectable: a test can hand in any conforming
  * constructor, and the default is the ambient global. MSW's `ws` interceptor
@@ -37,7 +37,7 @@ export interface WebSocketCtor {
   readonly OPEN: number;
 }
 
-/** Reported to the caller for each delivered `stream-data` frame — the perf-budget seam (see `onStreamFrame`). */
+/** Reported to the caller for each delivered `stream-data` frame, the perf-budget seam (see `onStreamFrame`). */
 export interface StreamFrameInfo {
   topic: string;
   /** Length of the raw wire text of this frame, in UTF-16 code units (cheap `string.length`, not a UTF-8 byte count). */
@@ -56,7 +56,7 @@ export interface WebSocketTransportOptions {
   /** Give up (settle to `disconnected`) after this long retrying, ms (default 5 min). */
   retryTimeoutMs?: number;
   /**
-   * Called once per delivered `stream-data` frame — the perf-budget seam.
+   * Called once per delivered `stream-data` frame: the perf-budget seam.
    * `@ksp-gonogo/sitrep-client` deliberately does NOT depend on `@ksp-gonogo/core`
    * (that would be a cycle: core imports this package), so the `PerfBudget`
    * itself lives in the app layer and records from this callback.
@@ -68,7 +68,7 @@ export interface WebSocketTransportOptions {
   now?: () => number;
 }
 
-/** Shared UTF-8 decoder for binary stream frames (module scope — stateless, reused per frame). */
+/** Shared UTF-8 decoder for binary stream frames (module scope, stateless, reused per frame). */
 const FRAME_TEXT_DECODER = new TextDecoder();
 
 /**
@@ -93,7 +93,7 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * A live `Transport` over a Sitrep mod WebSocket (`ws://<host>:<port>`,
- * default port 8090 — the `GonogoAddon`/Fleck server).
+ * default port 8090: the `GonogoAddon`/Fleck server).
  *
  * Owns its own socket lifecycle (opens in the constructor, like
  * `ReplayTransport`) and mirrors `TelemachusDataSource.openWebSocket`'s
@@ -101,16 +101,16 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * `connected`/`reconnecting`/`disconnected`/`error` status transitions, and
  * re-subscription of every still-active topic on every fresh connection.
  *
- * **Wire decode** reuses `parseServerMessage` (`@ksp-gonogo/sitrep-sdk`) — the
+ * **Wire decode** reuses `parseServerMessage` (`@ksp-gonogo/sitrep-sdk`): the
  * exact decode path proven against real engine output by
  * `reference-wire-fixture.test.ts`; nothing is re-implemented here.
  *
- * **`carriedChannels`** — the mod server does NOT (yet) advertise a
+ * **`carriedChannels`**: the mod server does NOT (yet) advertise a
  * channel list on connect (no hello/handshake frame exists in
  * `mod/Sitrep.Transport`/`GonogoAddon`), so this transport falls back to the
  * documented behaviour in the browser-transport brief: it marks a channel
  * carried the first time a `stream-data` frame for it arrives. NOTE the
- * consequence — this set starts EMPTY and grows only as data flows, and it is
+ * consequence: this set starts EMPTY and grows only as data flows, and it is
  * read once by `TelemetryClient.declaredChannels` at provider-mount time, so
  * it does NOT retroactively flip the carried-channels gate for a topic that
  * arrives later. The reliable way to promote a topic to the stream today is
@@ -140,9 +140,9 @@ export class WebSocketTransport implements Transport {
     (status: TransportStatus) => void
   >();
 
-  /** Topics with a live `subscribe` (no matching `unsubscribe`) — re-sent on every fresh open. */
+  /** Topics with a live `subscribe` (no matching `unsubscribe`), re-sent on every fresh open. */
   private readonly subscribedTopics = new Set<string>();
-  /** Non-subscribe messages (command-requests) issued while the socket wasn't open — flushed on open. */
+  /** Non-subscribe messages (command-requests) issued while the socket wasn't open, flushed on open. */
   private readonly pendingSends: ClientMessage[] = [];
   private readonly carried = new Set<string>();
 
@@ -196,7 +196,7 @@ export class WebSocketTransport implements Transport {
 
   /**
    * Permanently tear down: stop retrying, close the socket, and drop all
-   * listeners. Idempotent. After this the transport never reconnects — a new
+   * listeners. Idempotent. After this the transport never reconnects, a new
    * instance is required (matches `ReplayTransport.stop`'s finality).
    */
   dispose(): void {
@@ -222,7 +222,7 @@ export class WebSocketTransport implements Transport {
     try {
       ws = new this.WebSocketImpl(this.url);
     } catch {
-      // Constructor threw synchronously (e.g. a malformed URL) — treat it the
+      // Constructor threw synchronously (e.g. a malformed URL); treat it the
       // same as a failed connection so the retry loop still governs.
       this.scheduleRetry();
       return;
@@ -230,7 +230,7 @@ export class WebSocketTransport implements Transport {
     this.ws = ws;
 
     // The mod server sends stream frames as BINARY WebSocket frames. Request
-    // ArrayBuffer delivery so `handleMessage` can decode them synchronously —
+    // ArrayBuffer delivery so `handleMessage` can decode them synchronously,
     // the browser default is `"blob"`, whose async `.text()` read would both
     // drop frames on the floor here (the old `typeof data !== "string"` guard)
     // and reorder the stream. Guarded because injected/test sockets need not
@@ -244,7 +244,7 @@ export class WebSocketTransport implements Transport {
       // starts a fresh `retryTimeoutMs` budget. Without this, `retryStart` is
       // pinned to the first-ever drop and any later drop more than
       // `retryTimeoutMs` of wall-clock after it would give up with zero
-      // retries — fatal for hours-long sessions.
+      // retries: fatal for hours-long sessions.
       this.retryStart = null;
       this.setStatus("connected");
       // Re-subscribe to everything still active, then drain queued commands.
@@ -280,7 +280,7 @@ export class WebSocketTransport implements Transport {
     try {
       ws.close();
     } catch {
-      // ignore — best-effort teardown
+      // ignore: best-effort teardown
     }
     this.scheduleRetry();
   }
@@ -291,7 +291,7 @@ export class WebSocketTransport implements Transport {
 
     if (this.now() - this.retryStart >= this.retryTimeoutMs) {
       this.retryStart = null;
-      this.setStatus("disconnected"); // gave up — a manual reconnect is needed
+      this.setStatus("disconnected"); // gave up: a manual reconnect is needed
       return;
     }
 
@@ -328,7 +328,7 @@ export class WebSocketTransport implements Transport {
     try {
       message = parseServerMessage(text);
     } catch {
-      // Malformed / unknown envelope — drop it, same posture as the
+      // Malformed / unknown envelope: drop it, same posture as the
       // Telemachus data source's own JSON guard.
       return;
     }
@@ -342,7 +342,7 @@ export class WebSocketTransport implements Transport {
       try {
         listener(message);
       } catch (error) {
-        // One throwing listener must not starve the rest of fan-out — same
+        // One throwing listener must not starve the rest of fan-out, same
         // isolation contract as StubTransport/ReplayTransport.
         console.error("WebSocketTransport: message listener threw", error);
       }

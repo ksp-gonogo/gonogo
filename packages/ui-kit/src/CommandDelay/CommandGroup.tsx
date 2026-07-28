@@ -4,11 +4,11 @@ import styled, { css } from "styled-components";
 export interface CommandGroupProps<V extends Record<string, unknown>> {
   value: V;
   onChange: (v: V) => void;
-  /** Fired exactly once, with the group's current `value`, on an explicit commit — never on a child input's own change. */
+  /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
   onCommit: (v: V) => void;
   /** `no-path`: disables the commit control and switches it to an error tone. `onCommit` never fires while gated. */
   gated?: boolean;
-  /** The group's own inputs (wheels/sliders/etc.) — this component owns none of their rendering. */
+  /** The group's own inputs (wheels/sliders/etc.): this component owns none of their rendering. */
   children: ReactNode;
   /** Label for the commit button. Defaults to "Commit". */
   commitLabel?: string;
@@ -20,7 +20,7 @@ export interface CommandGroupProps<V extends Record<string, unknown>> {
  * Grouped-confirm / select-then-commit primitive: N child inputs write into
  * a shared, controlled `value` via `onChange` as the operator dials them,
  * and nothing dispatches until the explicit commit action fires `onCommit`
- * once with the whole group's value — one delayed dispatch for the whole
+ * once with the whole group's value: one delayed dispatch for the whole
  * group, not one per input. Vanilla-safe: no data hooks, no dispatch of its
  * own: the commit callback is the caller's own `useCommand().send`.
  */
@@ -30,7 +30,7 @@ export function CommandGroup<V extends Record<string, unknown>>({
   gated = false,
   children,
   commitLabel = "Commit",
-  gatedReason = "No path — command dispatch is disabled",
+  gatedReason = "No path: command dispatch is disabled",
 }: CommandGroupProps<V>) {
   return (
     <CommandGroup__Root data-gated={gated}>

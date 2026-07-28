@@ -111,7 +111,7 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("ProgressBar has no axe violations", async () => {
     const { container } = render(
-      <ProgressBar value={64} ariaLabel="Biome coverage — Kerbin" />,
+      <ProgressBar value={64} ariaLabel="Biome coverage: Kerbin" />,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
@@ -189,7 +189,7 @@ describe("a11y smoke (jest-axe)", () => {
     const { container } = render(
       <Section>
         <SectionTitle>Coverage</SectionTitle>
-        <span>Altimetry (Hi) — 42%</span>
+        <span>Altimetry (Hi): 42%</span>
       </Section>,
     );
     const results = await axe(container);

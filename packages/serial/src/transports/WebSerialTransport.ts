@@ -23,7 +23,7 @@ interface WebSerialTransportOptions {
  * Opens a `navigator.serial` port for a single device instance, reads
  * newline-delimited lines, runs the configured parser against each one,
  * and emits `InputEvent`s upstream. Frames written via `write()` are
- * pushed straight to the port (no padding — padding is the render
+ * pushed straight to the port (no padding, padding is the render
  * style's job).
  */
 export class WebSerialTransport implements DeviceTransport {
@@ -60,7 +60,7 @@ export class WebSerialTransport implements DeviceTransport {
   >();
 
   /**
-   * In-flight connect promise. Coalesces concurrent calls — autoReconnect
+   * In-flight connect promise. Coalesces concurrent calls: autoReconnect
    * (StrictMode setup) and tryAdoptPort (hot-plug) can both fire connect()
    * for the same transport in quick succession, and Web Serial rejects the
    * second port.open() with "A call to open() is already in progress".
@@ -78,7 +78,7 @@ export class WebSerialTransport implements DeviceTransport {
 
   /**
    * Exposed so SerialDeviceService can persist the VID/PID after a successful
-   * connect — auto-reconnect on the next load needs it to match against
+   * connect: auto-reconnect on the next load needs it to match against
    * `navigator.serial.getPorts()`.
    */
   getPortInfo(): { vendorId?: number; productId?: number } | null {
@@ -89,7 +89,7 @@ export class WebSerialTransport implements DeviceTransport {
 
   /**
    * Live SerialPort reference (or null when disconnected). The wizard's
-   * collision check uses this to compare port identity directly — way
+   * collision check uses this to compare port identity directly, way
    * more reliable than VID/PID matching for boards that expose 0 or
    * undefined for one of them.
    */
@@ -120,7 +120,7 @@ export class WebSerialTransport implements DeviceTransport {
    *
    * After a hot-unplug Chrome can hold the same SerialPort instance in a
    * stuck "open in progress" state that survives even our explicit
-   * close() — only a few hundred ms of dwell, or a page refresh, lets it
+   * close(): only a few hundred ms of dwell, or a page refresh, lets it
    * drain. A page refresh worked because the OS had ~time to settle by
    * the time autoReconnect fired; in-session replug had no such gap.
    *
@@ -142,7 +142,7 @@ export class WebSerialTransport implements DeviceTransport {
       try {
         await port.close();
       } catch {
-        // Port wasn't open in any meaningful sense — fine.
+        // Port wasn't open in any meaningful sense, fine.
       }
       try {
         await port.open({
@@ -159,13 +159,13 @@ export class WebSerialTransport implements DeviceTransport {
           err instanceof Error && err.name === "InvalidStateError";
         if (!transient) throw err;
         // The port can be open at OS level even though our await for
-        // open() rejected — a previous in-progress open quietly resolved
+        // open() rejected: a previous in-progress open quietly resolved
         // and our explicit close() didn't tear it down. `port.readable`
         // and `port.writable` are non-null exactly when the port is
         // currently open. Treat that as success: doConnect will hook
         // streams off the existing open state instead of fighting it.
         if (port.readable !== null && port.writable !== null) {
-          trace.debug("open recovered — port already open at OS level", {
+          trace.debug("open recovered: port already open at OS level", {
             deviceId: this.id,
             attempt: i + 1,
           });
@@ -199,7 +199,7 @@ export class WebSerialTransport implements DeviceTransport {
 
       await this.openWithRetry(port);
 
-      // pipeTo's lock release after AbortController.abort() is async —
+      // pipeTo's lock release after AbortController.abort() is async,
       // poll briefly before declaring the streams unrecoverable.
       // Cleanup ran moments ago in tryAdoptPort's stale-connected
       // branch; the abort signal may still be propagating through
@@ -257,7 +257,7 @@ export class WebSerialTransport implements DeviceTransport {
       // condition: a phantom 'connect' event fired during an unplug,
       // an autoReconnect raced a still-resolving teardown, or the OS
       // has the port in an "open in progress" state we couldn't clear.
-      // None of these are app bugs — log them quietly at warn, mark
+      // None of these are app bugs, log them quietly at warn, mark
       // the device as disconnected (not error) so the next legitimate
       // 'connect' event triggers a fresh adopt rather than skipping
       // this transport, and rethrow for the caller's own handling.
@@ -287,7 +287,7 @@ export class WebSerialTransport implements DeviceTransport {
    * Shared cleanup path used by `disconnect()` and the read-loop's
    * error path. Each step runs independently so a single failure (e.g.
    * `reader.cancel()` rejecting on a hot-pulled device) doesn't abort
-   * the rest of the teardown — without this, locks on `port.readable`
+   * the rest of the teardown: without this, locks on `port.readable`
    * / `port.writable` from a now-dead session linger and a subsequent
    * doConnect (after openWithRetry recovers a still-OS-open port) hits
    * "Cannot pipe a locked stream" when it tries to set up new streams.
@@ -296,7 +296,7 @@ export class WebSerialTransport implements DeviceTransport {
     finalStatus: TransportStatus,
     err?: unknown,
   ): Promise<void> {
-    // Abort the pipeTos first — that's what releases the locks on
+    // Abort the pipeTos first: that's what releases the locks on
     // port.readable / port.writable. reader.cancel + releaseLock alone
     // only release the decoder/encoder side; the locks pipeTo holds on
     // the SerialPort streams themselves only drop when pipeTo settles,
@@ -317,7 +317,7 @@ export class WebSerialTransport implements DeviceTransport {
       // releaseLock throws if already released
     }
     this.reader = null;
-    // Do NOT await readableClosed / writableClosed — their pipeTo promises
+    // Do NOT await readableClosed / writableClosed, their pipeTo promises
     // only resolve once the source/destination fully close, which for a
     // mock or a hard-pulled USB device may never happen. Drop the refs.
     this.readableClosed?.catch(() => {});
@@ -404,7 +404,7 @@ export class WebSerialTransport implements DeviceTransport {
         `[WebSerialTransport ${this.id}] read loop error`,
         err instanceof Error ? err : new Error(String(err)),
       );
-      // Run the same cleanup disconnect() does — crucially, this
+      // Run the same cleanup disconnect() does, crucially, this
       // includes reader.cancel() + releaseLock() so port.readable's
       // lock is freed. Without that, the port can stay OS-open after
       // unplug (close() throws on a lost device) and the next session's

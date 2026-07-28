@@ -49,7 +49,7 @@ const inputBase = `
   box-sizing: border-box;
 
   &:focus {
-    /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1 — well clear of WCAG 1.4.11's 3:1 minimum
+    /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1: well clear of WCAG 1.4.11's 3:1 minimum
        for non-text UI components. The previous var(--color-text-faint) border was ~1.4:1. */
     border-color: var(--color-accent-fg);
     outline: none;

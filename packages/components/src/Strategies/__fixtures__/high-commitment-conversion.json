@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "High-commitment strategy: a funds-to-science conversion running at factor=1.0 (maximum commitment). Shows long multi-bullet effect text. No other slots consumed — room for one more strategy. Good resources.",
+    "notes": "High-commitment strategy: a funds-to-science conversion running at factor=1.0 (maximum commitment). Shows long multi-bullet effect text. No other slots consumed, room for one more strategy. Good resources.",
     "scenario": "high-commitment-conversion"
   },
   "strategies.all": [

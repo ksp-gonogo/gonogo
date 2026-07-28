@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-/** Default action button — neutral dark style */
+/** Default action button: neutral dark style */
 export const Button = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
@@ -33,7 +33,7 @@ export const Button = styled.button`
   }
 `;
 
-/** Confirm / save — green accent */
+/** Confirm / save: green accent */
 export const PrimaryButton = styled(Button)`
   background: var(--color-status-go-bg);
   border-color: var(--color-status-go-bg);
@@ -49,7 +49,7 @@ export const PrimaryButton = styled(Button)`
   }
 `;
 
-/** Ghost / cancel — no background */
+/** Ghost / cancel: no background */
 export const GhostButton = styled(Button)`
   background: none;
   border-color: var(--color-border-strong);
@@ -65,7 +65,7 @@ export const GhostButton = styled(Button)`
   }
 `;
 
-/** Inline subtle link-style button — tertiary actions placed inline with
+/** Inline subtle link-style button: tertiary actions placed inline with
  *  surrounding copy (e.g. "Clear all", "Cancel" inside a list row). For a
  *  paired Cancel / Confirm action row, prefer GhostButton + PrimaryButton. */
 export const TextButton = styled.button`
@@ -94,7 +94,7 @@ export const TextButton = styled.button`
   }
 `;
 
-/** Icon-only button — no chrome, just text/icon */
+/** Icon-only button: no chrome, just text/icon */
 export const IconButton = styled.button`
   background: none;
   border: none;

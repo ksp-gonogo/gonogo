@@ -12,12 +12,12 @@ import { parseRotors, RotorTachometerComponent } from "./index";
 
 /**
  * RotorTachometer runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` —
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` is its whole identity list (filtered to `type === "rotor"`)
  * and `robotics.available` its DLC-presence flag, both canonical stream reads
  * (`useTelemetry`, no legacy fallback). Command dispatch (`robotics.rotor.*`)
- * still routes through the legacy `DataSource`'s `execute()` — no mod command
- * handler exists for it yet — so a plain `setupMockDataSource` registered
+ * still routes through the legacy `DataSource`'s `execute()`, no mod command
+ * handler exists for it yet, so a plain `setupMockDataSource` registered
  * under `"data"` captures those calls; it carries no keys of its own.
  */
 

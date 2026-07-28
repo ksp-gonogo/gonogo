@@ -1,7 +1,7 @@
 #!/bin/bash
 # Supervisor for the gonogo bundle image. Runs two long-lived processes:
-#   1. static server  — the app SPA on $APP_PORT (history-fallback for /station)
-#   2. relay (node)    — /ice-config + host registry on $RELAY_PORT; spawns coturn
+#   1. static server : the app SPA on $APP_PORT (history-fallback for /station)
+#   2. relay (node)   : /ice-config + host registry on $RELAY_PORT; spawns coturn
 #
 # tini is PID 1 (see ENTRYPOINT) so orphan reaping + signal delivery are
 # handled. This script's job is to start the two, propagate a shutdown
@@ -9,7 +9,7 @@
 # as a unit rather than limping along half-up).
 #
 # bash (not sh): node:24-bookworm-slim is Debian, where bash is Essential, so
-# `wait -n` is available — it returns the instant any child exits and reaps it,
+# `wait -n` is available, it returns the instant any child exits and reaps it,
 # which a POSIX `kill -0` poll can't do (an exited-but-unwaited child stays a
 # zombie this script would still see as "alive").
 
@@ -45,5 +45,5 @@ pids="$pids $!"
 # instead of leaving a partial set running. `|| true` keeps a non-zero child
 # exit from bypassing the explicit teardown.
 wait -n || true
-echo "[supervisor] a child process exited — shutting the rest down"
+echo "[supervisor] a child process exited: shutting the rest down"
 term

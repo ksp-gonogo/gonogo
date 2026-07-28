@@ -1,15 +1,15 @@
 #!/bin/sh
-# Pre-push gate — fast, affected-only checks. CI is the gate of record.
+# Pre-push gate: fast, affected-only checks. CI is the gate of record.
 #
 # A push to main deploys the dev channel, and the deploy only fires when CI is
 # green (deploy.yml triggers on a successful CI workflow_run). So a push that
 # fails CI silently skips the deploy. This hook catches the common failures
-# locally — but it is deliberately LIGHT: the full cross-package suite and the
+# locally, but it is deliberately LIGHT: the full cross-package suite and the
 # full cross-browser e2e matrix run in CI on dedicated runners, not here.
 #
 # What runs locally:
 #   - biome (format + lint)
-#   - `turbo run test` — cached + affected-only. NOT --force: core#test now
+#   - `turbo run test`, cached + affected-only. NOT --force: core#test now
 #     keys its cache on the whole workspace src (packages/core/turbo.json), so
 #     the cross-package design-system hex-scan re-runs on any src change without
 #     forcing every package fresh. CI=true makes vitest treat snapshots as
@@ -22,7 +22,7 @@
 echo "pre-push: lint + affected test gate (CI runs the full matrix)…"
 
 if ! pnpm exec biome check .; then
-  echo "✖ pre-push: biome found issues — run 'pnpm lint' to auto-fix, then re-push."
+  echo "✖ pre-push: biome found issues, run 'pnpm lint' to auto-fix, then re-push."
   exit 1
 fi
 
@@ -39,21 +39,21 @@ fi
 # cross-browser matrix as the gate of record. Playwright's --only-changed
 # traces test-file imports; these specs drive a running server rather than
 # importing app source, so an app-source-only change selects nothing here and
-# relies on CI — which is the intended split. The git-diff gate avoids paying
+# relies on CI, which is the intended split. The git-diff gate avoids paying
 # Playwright's webServer startup when no e2e file changed at all.
 if [ "$SKIP_E2E" = "1" ]; then
-  echo "pre-push: SKIP_E2E=1 set — skipping Playwright e2e (CI will still run it)."
+  echo "pre-push: SKIP_E2E=1 set, skipping Playwright e2e (CI will still run it)."
 else
   # Base = the merge target (squash-to-main model): e2e validates the specs that
-  # differ from main, deterministically — not whatever the branch upstream
+  # differ from main, deterministically: not whatever the branch upstream
   # happens to be. On a direct main push this is just that push's delta.
   BASE="origin/main"
   if ! git rev-parse --verify --quiet "$BASE" >/dev/null; then
-    echo "pre-push: no base ref ($BASE) to diff e2e against — skipping e2e (CI runs the full matrix)."
+    echo "pre-push: no base ref ($BASE) to diff e2e against, skipping e2e (CI runs the full matrix)."
   elif git diff --quiet "$BASE" HEAD -- tests/playwright; then
-    echo "pre-push: no e2e spec changes vs $BASE — skipping e2e (CI runs the full matrix)."
+    echo "pre-push: no e2e spec changes vs $BASE, skipping e2e (CI runs the full matrix)."
   else
-    echo "pre-push: e2e specs changed vs $BASE — running affected specs on chromium…"
+    echo "pre-push: e2e specs changed vs $BASE, running affected specs on chromium…"
     if ! pnpm exec playwright test --only-changed="$BASE" --project=chromium --pass-with-no-tests; then
       echo "✖ pre-push: affected Playwright e2e failed (full matrix still runs in CI)."
       echo "  If browsers are missing: pnpm exec playwright install --with-deps chromium"

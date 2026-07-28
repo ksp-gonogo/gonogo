@@ -7,7 +7,7 @@ import {
 /**
  * Convenience factory mirroring `createAlarmHost`. Historically wrapped a
  * live `BufferedDataSource` lookup so the host could be constructed at
- * MainScreen-mount time even before the data source was registered — now
+ * MainScreen-mount time even before the data source was registered, now
  * that every telemetry read/command dispatch inside `ManeuverTriggerHostService`
  * rides the stream (`getValue`/`dispatchActiveCommand`), there's nothing
  * left to wrap; kept as a thin pass-through so the MainScreen call site

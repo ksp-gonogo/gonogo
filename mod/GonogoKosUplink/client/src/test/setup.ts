@@ -30,13 +30,13 @@ PerfBudget.installTestGate();
 
 // Bridge the sitrep-sdk facade's fail-loud shims to the SAME real core
 // singletons this test suite's fixtures (MockKosTelnet-style fakes,
-// registerUplinkHandle, clearRegistry, ...) already exercise directly —
+// registerUplinkHandle, clearRegistry, ...) already exercise directly:
 // mirrors packages/app/src/uplinks/host.ts's buildGonogoHost() member-for-
 // member, scoped to the subset a facade-sealed production file in this
 // client actually calls. Without this, any sealed file's hook/registration
 // call throws "the gonogo host has not been installed" the moment a test
 // renders it, since the sdk shims resolve via `globalThis.__GONOGO_SDK__`,
-// not a bundled copy (mod/sitrep-sdk/src/api/host.ts). Partial by design —
+// not a bundled copy (mod/sitrep-sdk/src/api/host.ts). Partial by design,
 // only wire members code under test actually calls (installTestHost's own
 // contract).
 installTestHost({

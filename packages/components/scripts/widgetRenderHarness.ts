@@ -42,7 +42,7 @@ function artifactMatchesSuffix(name: string, suffix: string): boolean {
 
 // Pin the page clock so time-based widgets render byte-deterministically.
 // The graph derives its X-axis domain (and tick labels) from Date.now(), so
-// without this two runs seconds apart differ — enough to trip the visual
+// without this two runs seconds apart differ, enough to trip the visual
 // gate's tight threshold on every run. A fixed epoch makes every render of a
 // given fixture reproducible across runs and machines. Chosen arbitrarily
 // (2023-11-14T22:13:20Z); only its stability matters.
@@ -51,7 +51,7 @@ const FIXED_EPOCH_MS = 1_700_000_000_000;
 /** Freeze `Date.now()` in the page before any script runs, so `Date.now()`-
  *  derived layout (the graph's time axis) renders reproducibly. Added via
  *  addInitScript so it lands before the probe module and the widgets it
- *  mounts read the clock. Note: only `Date.now()` is pinned — a future widget
+ *  mounts read the clock. Note: only `Date.now()` is pinned, a future widget
  *  deriving layout from `new Date()` / `performance.now()` would reintroduce
  *  nondeterminism and need handling here. */
 async function installFixedClock(page: Page): Promise<void> {
@@ -71,7 +71,7 @@ const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
 const ARTIFACT_EXTS = new Set([".png"]);
 
-// Dashboard grid constants — mirrors packages/app/src/components/Dashboard/
+// Dashboard grid constants: mirrors packages/app/src/components/Dashboard/
 // layoutNormalization.ts (ROW_HEIGHT, margin) plus a colWidth approximating
 // `lg` (cols=36) at a comfortable viewport.
 const COL_WIDTH = 32;
@@ -134,7 +134,7 @@ export interface ScreenBreakpoint {
   touch?: boolean;
 }
 
-/** One visual state of a screen — selects the prop set passed to the screen
+/** One visual state of a screen: selects the prop set passed to the screen
  *  view (idle / error / reconnecting). */
 export interface ScreenState {
   /** Slug used in the output filename. */
@@ -174,7 +174,7 @@ interface ProbePayload {
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
 }
 
-/** Render every (fixture × mode) for one widget — convenience wrapper for
+/** Render every (fixture × mode) for one widget, convenience wrapper for
  *  the common single-widget invocation. */
 export async function renderWidget(config: WidgetRenderConfig): Promise<void> {
   await renderWidgets([config]);
@@ -194,7 +194,7 @@ export async function renderWidgets(
      * lays out at the real tile size and its responsive breakpoints engage),
      * but before the screenshot the harness grows `#root` to swallow any
      * content clipped by the Panel's `overflow:hidden` or trapped inside a
-     * ScrollArea — so nothing below the fold is lost. The review path
+     * ScrollArea: so nothing below the fold is lost. The review path
      * (`render-widget`) turns this ON harness-wide so every widget renders
      * uncropped; the VISUAL GATE leaves it OFF so its per-tile baselines are
      * unaffected.
@@ -230,7 +230,7 @@ export async function renderWidgets(
       deviceScaleFactor: 2,
       // Several widgets pulse with `animation: … infinite` guarded by
       // `@media (prefers-reduced-motion: no-preference)`. Emulate reduce so
-      // those guards suppress the animation — otherwise a pulsing state is
+      // those guards suppress the animation: otherwise a pulsing state is
       // captured at an arbitrary opacity phase and the visual gate flakes.
       reducedMotion: "reduce",
     });
@@ -286,7 +286,7 @@ export async function renderWidgets(
  * The defining difference from `renderWidgets`: a screen owns the whole
  * viewport, so this resizes the PAGE viewport per breakpoint (and toggles
  * touch emulation) rather than sizing `#root`. That is what makes a screen's
- * `@media (max-width: …)` / `(pointer: coarse)` rules actually engage —
+ * `@media (max-width: …)` / `(pointer: coarse)` rules actually engage,
  * those match against the viewport + device, not an element's box. A fresh
  * browser CONTEXT is created per breakpoint because `hasTouch` is a
  * context-level option (it can't be flipped on a live page).
@@ -331,7 +331,7 @@ async function renderOneScreen(
   console.log(`\n── screen: ${config.screenId} ──`);
   let count = 0;
   for (const bp of config.breakpoints) {
-    // hasTouch is a context-level option — a new context per breakpoint is
+    // hasTouch is a context-level option, a new context per breakpoint is
     // the only way to flip coarse-pointer emulation. deviceScaleFactor=2
     // mirrors the widget harness for crisp retina-density PNGs.
     const touch = bp.touch ?? bp.width <= 768;
@@ -375,7 +375,7 @@ async function renderOneScreen(
       );
       const outName = `${state.name}--${bp.name}.png`;
       // Full-page screenshot (not `#root`) so the captured frame is exactly
-      // the breakpoint viewport — the whole point of a screen render.
+      // the breakpoint viewport: the whole point of a screen render.
       await page.screenshot({
         path: join(outDir, outName),
         animations: "disabled",
@@ -457,16 +457,16 @@ async function renderOneWidget(
       );
       // Full-content capture (review path): grow `#root` until nothing is
       // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
-      // Content can hide in two places — behind the Panel's `overflow:hidden`,
-      // or inside a ScrollArea's `overflow:auto` — so we measure both (the
+      // Content can hide in two places, behind the Panel's `overflow:hidden`,
+      // or inside a ScrollArea's `overflow:auto`: so we measure both (the
       // Panel is `#root`'s first child; ScrollArea inners carry a stable
       // `data-scroll-area-inner` attribute) and grow to swallow the larger
       // overflow, iterating to a fixpoint since growing the box can reveal a
       // little more. The mount already laid out at the real tile WIDTH, so
-      // responsive breakpoints stay honest — only the vertical crop is lifted.
+      // responsive breakpoints stay honest: only the vertical crop is lifted.
       // OFF for the visual gate, so its per-tile baselines are unaffected.
       if (fullContent) {
-        // NB: no named `const fn = () => …` helpers inside this evaluate —
+        // NB: no named `const fn = () => …` helpers inside this evaluate,
         // tsx's keepNames wraps them with a `__name(…)` helper that is only
         // defined in the module scope, not the serialized page context, so a
         // named arrow here throws "__name is not defined". Keep it inline.
@@ -528,8 +528,8 @@ interface PreparePageOpts {
 
 /**
  * A widget's own bare `import "some.css"` (e.g. `@xterm/xterm/css/xterm.css`
- * in the kOS terminal) needs to actually land in the page as a `<style>` tag
- * — `loader: "text"` alone just turns the file into an inert string module
+ * in the kOS terminal) needs to actually land in the page as a `<style>` tag,
+ * `loader: "text"` alone just turns the file into an inert string module
  * that nothing reads, which esbuild's tree-shaking then elides outright
  * whenever the imported package declares `sideEffects: false` (as
  * `@xterm/xterm` does), producing an "ignored bare import" warning and a
@@ -545,8 +545,8 @@ const cssSideEffectPlugin: Plugin = {
       // Resolve via NODE's own resolver (the same `require.resolve` approach
       // `jetbrainsMonoFontFace` below uses for its woff2 files) rather than
       // `pluginBuild.resolve()`. The latter re-enters esbuild's onResolve
-      // pipeline — including THIS callback, which matches the same `.css`
-      // filter — and esbuild does not dedupe that self-recursion; it hung /
+      // pipeline: including THIS callback, which matches the same `.css`
+      // filter: and esbuild does not dedupe that self-recursion; it hung /
       // crashed the esbuild service (goroutine explosion) the first time
       // this plugin ran against a real `.css` import.
       const resolvedPath = require.resolve(args.path, {
@@ -567,7 +567,7 @@ document.head.appendChild(__style);`,
 };
 
 /** Build a probe bundle, inline it + the theme CSS into the HTML template,
- *  write to tmpdir. Shared by the widget and screen render paths — they
+ *  write to tmpdir. Shared by the widget and screen render paths, they
  *  differ only in entry point + HTML template. Returns the generated HTML
  *  path. */
 async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
@@ -593,7 +593,7 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   // Inline-script payload may contain `</script>` (rare but possible in
   // bundled React code embedded as strings); escape so the host page
   // doesn't terminate the script tag early. Use a function-form `.replace`
-  // so the replacement string is treated literally — String.replace's
+  // so the replacement string is treated literally, String.replace's
   // string form interprets `$&`, `$1`, etc. as backreferences, which would
   // corrupt the bundle (React's sanitisation helpers use `$&` extensively).
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");

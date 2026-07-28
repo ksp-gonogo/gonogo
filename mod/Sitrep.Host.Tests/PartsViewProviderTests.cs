@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
     /// <see cref="PartsViewProvider"/>: fake <see cref="KspSnapshot"/>s
     /// carrying the raw <c>"parts"</c> encoding <c>Gonogo.KSP.KspHost.
     /// BuildParts</c> produces are mapped to <c>parts.power</c>/
-    /// <c>parts.robotics</c> and asserted against the class doc's rules —
+    /// <c>parts.robotics</c> and asserted against the class doc's rules,
     /// no-vessel/no-data -&gt; null, primitives-only shape.
     /// </summary>
     public class PartsViewProviderTests
@@ -330,7 +330,7 @@ namespace Sitrep.Host.Tests
         /// The whole reason robotics.available is its own Topic and not an
         /// empty <c>parts.robotics</c> array: a vessel present but carrying no
         /// robotic parts must report <c>available: false</c> (the parts key
-        /// exists, roboticsAvailable is false) — distinct from "no active
+        /// exists, roboticsAvailable is false), distinct from "no active
         /// vessel" (no parts key → null payload). Both cases are asserted
         /// here so the empty-vs-no-vessel disambiguation can't regress.
         /// </summary>

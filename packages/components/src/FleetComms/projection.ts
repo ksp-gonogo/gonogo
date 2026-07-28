@@ -1,7 +1,7 @@
 import { orbitalToCartesian, trueAnomalyToRadius } from "@ksp-gonogo/core";
 
 /**
- * Minimal orbit-shape input `projectOrbitPosition` needs — a subset of
+ * Minimal orbit-shape input `projectOrbitPosition` needs, a subset of
  * `SystemDiagram`'s own `VesselOrbit`, degrees throughout (matching the wire
  * convention `SystemView/index.tsx` already normalises vessel.orbit to
  * before handing it to the diagram).
@@ -20,7 +20,7 @@ export interface ProjectableOrbit {
 }
 
 /**
- * Parent-centric SVG-space position of a body/vessel on its orbit — the
+ * Parent-centric SVG-space position of a body/vessel on its orbit, the
  * exact geometry `SystemDiagram.tsx`'s private `bodyPosition` uses (polar
  * radius at the given true anomaly, rotated by `lan + argPe` so periapsis
  * sits on the local +x axis before rotation, parent at the origin/focus).
@@ -28,7 +28,7 @@ export interface ProjectableOrbit {
  * `orbitalToCartesian` rather than re-deriving the polar-radius formula, so
  * this stays a thin rotation wrapper, not a second implementation of the
  * conic-section math. `SystemDiagram.tsx` is intentionally left untouched
- * (the host stays unchanged) — this lives beside the augment that needs it.
+ * (the host stays unchanged): this lives beside the augment that needs it.
  *
  * `scale` is the diagram's metres -> SVG-user-unit `plotScale` (from
  * `SystemOverlayContext`); apply it to the radius BEFORE rotating, matching

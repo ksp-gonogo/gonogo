@@ -62,7 +62,7 @@ describe("scansat wire contract: mod emits <-> client subscribes", () => {
     expect(store.resolveSubscriptionTopics("scansat.height.Kerbin")).toEqual([
       "scansat.height.Kerbin",
     ]);
-    // control: an ordinary field-subtopic is untouched — still its 2-seg parent
+    // control: an ordinary field-subtopic is untouched, still its 2-seg parent
     expect(store.resolveSubscriptionTopics("vessel.orbit.sma")).toEqual([
       "vessel.orbit",
     ]);

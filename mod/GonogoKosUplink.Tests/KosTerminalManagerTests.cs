@@ -6,11 +6,11 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Headless coverage of <see cref="KosTerminalManager"/> — the lease
+    /// Headless coverage of <see cref="KosTerminalManager"/>: the lease
     /// arbitration, the reject-with-notification rule (Q-P3-2), and the
     /// subscription-gated downlink poll (full-repaint on open / new subscriber,
     /// diffs otherwise, silence when unwatched). The kOS screen is faked via
-    /// <see cref="FakeScreen"/> so no live KSP/Unity process is needed — exactly
+    /// <see cref="FakeScreen"/> so no live KSP/Unity process is needed, exactly
     /// the split that keeps the manager free of kOS types.
     /// </summary>
     public class KosTerminalManagerTests
@@ -51,11 +51,11 @@ namespace GonogoKosUplink.Tests
         /// <see cref="KosTerminalManager.Poll"/>'s "is anyone watching this
         /// CPU" check. Deliberately exposes the same <c>Add</c>/<c>Remove</c>
         /// call shape a plain <c>HashSet&lt;int&gt;</c> would (so every
-        /// pre-existing single-subscriber test — one <c>Add</c>, one
-        /// <c>Remove</c> — keeps compiling and behaving identically) while
+        /// pre-existing single-subscriber test, one <c>Add</c>, one
+        /// <c>Remove</c>, keeps compiling and behaving identically) while
         /// ALSO letting a test model a second simultaneous subscriber by
         /// calling <c>Add</c> twice for the same id. NOTE: this is
-        /// deliberately NOT the reseed signal (Gap A) — that is
+        /// deliberately NOT the reseed signal (Gap A), that is
         /// <see cref="KosTerminalManager.NotifySubscribed"/>, modelled by
         /// <see cref="Harness.Subscribe"/> below, which mirrors production's
         /// separation between "is this CPU currently subscribed at all"
@@ -97,7 +97,7 @@ namespace GonogoKosUplink.Tests
             public readonly List<KosTerminalFrame> Published = new List<KosTerminalFrame>();
             public readonly List<double> PublishedUts = new List<double>();
             // Constant by default: reproduces production's "the terminal's
-            // ~20Hz poll runs faster than the UT source advances" shape —
+            // ~20Hz poll runs faster than the UT source advances" shape,
             // see KosTerminalCourierBurstTests for the end-to-end proof this
             // matters for.
             public double Now;
@@ -143,7 +143,7 @@ namespace GonogoKosUplink.Tests
                 Manager.NotifySubscribed(coreId);
             }
 
-            /// <summary>Models a session unsubscribing — never itself a reseed trigger.</summary>
+            /// <summary>Models a session unsubscribing: never itself a reseed trigger.</summary>
             public void Unsubscribe(int coreId) => Subscribed.Remove(coreId);
         }
 
@@ -227,7 +227,7 @@ namespace GonogoKosUplink.Tests
             h.Manager.Open(7, "tokenA");
             Assert.True(h.Manager.Close(7, "tokenA").Success);
 
-            // Lease is free — a different token may now acquire it.
+            // Lease is free, a different token may now acquire it.
             Assert.True(h.Manager.Open(7, "tokenB").Success);
             Assert.True(h.Manager.Keystroke(7, "tokenB", "x").Success);
         }
@@ -305,8 +305,8 @@ namespace GonogoKosUplink.Tests
             // Root cause #2: the reseed decision was a 0->1 AGGREGATE
             // transition for the whole CPU (host.IsAnyTopicSubscribed),
             // sampled once per poll. A second, simultaneous viewer never
-            // saw that transition — the aggregate was already "subscribed"
-            // — so their fresh xterm got incremental diffs onto a blank
+            // saw that transition: the aggregate was already "subscribed",
+            // so their fresh xterm got incremental diffs onto a blank
             // canvas instead of a full-repaint baseline.
             var h = new Harness();
 
@@ -315,7 +315,7 @@ namespace GonogoKosUplink.Tests
             h.Tick();
             Assert.Single(h.Published.FindAll(f => f.FullRepaint));
 
-            // Subscriber B joins the SAME CPU while A is still attached —
+            // Subscriber B joins the SAME CPU while A is still attached,
             // the aggregate "is CPU 7 subscribed at all" was already true,
             // so this must be recognised as a genuinely new subscriber
             // (not a no-op) and force another full repaint for B's benefit.
@@ -338,13 +338,13 @@ namespace GonogoKosUplink.Tests
             // for the new xterm. The fix drives the reseed decision from a
             // THREAD-SAFE per-transition signal (NotifySubscribed, fired once
             // per individual subscribe on the Courier thread in production)
-            // instead — Subscribe below models exactly that per-call
+            // instead: Subscribe below models exactly that per-call
             // notification, so a fast unsub-&gt;resub genuinely fires it
             // twice, not "once, net of the flip".
             //
             // The RED run of this test (see the report) was recorded against
             // the PRE-fix Harness, which had no Subscribe/NotifySubscribed
-            // seam — h.Subscribed.Add(7)/.Remove(7)/.Add(7) directly, i.e.
+            // seam: h.Subscribed.Add(7)/.Remove(7)/.Add(7) directly, i.e.
             // exactly the aggregate-count shape that failed to net out. This
             // is the fix's necessary API reshape: the bug can only be
             // fixed by adding a genuinely thread-safe transition seam, so the
@@ -367,7 +367,7 @@ namespace GonogoKosUplink.Tests
             // Post-reclassify: the terminal is a Delivery.ReliableOrdered
             // channel, so the engine forwards each frame per-sample, in order,
             // regardless of whether several share a ValidAt. The manager
-            // therefore no longer manufactures strictly-increasing stamps — it
+            // therefore no longer manufactures strictly-increasing stamps: it
             // publishes at the raw clock UT. A constant nowUt across a burst
             // yields identical stamps, which is fine (see
             // KosTerminalCourierBurstTests for the Courier-backed proof the
@@ -405,7 +405,7 @@ namespace GonogoKosUplink.Tests
             h.CoreIds = new List<int>();
             h.Tick();
 
-            // CPU 7 comes back — the stale lease is gone, so a new token opens.
+            // CPU 7 comes back: the stale lease is gone, so a new token opens.
             h.CoreIds = new List<int> { 7 };
             Assert.True(h.Manager.Open(7, "tokenB").Success);
         }

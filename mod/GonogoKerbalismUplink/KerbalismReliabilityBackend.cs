@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Gonogo.KerbalismUplink
 {
     /// <summary>
-    /// Kerbalism's <see cref="IReliabilityBackend"/> — the LOW-specificity
+    /// Kerbalism's <see cref="IReliabilityBackend"/>: the LOW-specificity
     /// (Priority 1) provider of the "reliability" capability. Reports
     /// <c>Unmodeled=true</c> when <c>Features.Reliability</c> is off (RO/RP-1,
     /// where TestFlight owns engine failures and outranks this at Priority 10).

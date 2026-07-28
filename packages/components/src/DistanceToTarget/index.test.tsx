@@ -14,16 +14,16 @@ import { DistanceToTargetComponent } from "./index";
 /**
  * Mode-transition + docking-gate behavior, exercised through the stream
  * (`TelemetryProvider`/`TelemetryClient`/`TimelineStore`) pipeline via
- * `setupStreamFixture` — the widget's legacy `MockDataSource` fallback path
+ * `setupStreamFixture`: the widget's legacy `MockDataSource` fallback path
  * is gone (`vessel.target`/`vessel.dock` are its only reads). The widget
  * derives distance / closing rate / docking angles client-side from
  * `vessel.target`/`vessel.dock`'s Vec3 fields, so these tests feed those Vec3
- * reads directly — the widget's `tarDistance` (which drives every mode
+ * reads directly, the widget's `tarDistance` (which drives every mode
  * switch) is `|vessel.target.relativePosition|`. The live TCA readout, which
  * needs the SDK view-UT (`useViewUt`, provider-only), is covered in
  * `stream.test.tsx`.
  *
- * Every assertion that follows a `fixture.emit` is wrapped in `waitFor` —
+ * Every assertion that follows a `fixture.emit` is wrapped in `waitFor`,
  * the streamed value only lands via `TimelineStore`'s `subscribeFrame`
  * (a `requestAnimationFrame`-scheduled commit, unlike the old synchronous
  * `MockDataSource` emit), so a bare post-`act()` read races the update.
@@ -38,7 +38,7 @@ function atRange(d: number) {
 const KIND: Record<string, number> = { Vessel: 0, CelestialBody: 1 };
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearAugments()
-// notifies the augment-slot subscribers — clearAugments() firing on a
+// notifies the augment-slot subscribers: clearAugments() firing on a
 // still-mounted widget's AugmentSlot is a state update outside act() (CLAUDE.md
 // -> Testing Philosophy). RTL auto-cleanup runs after this file's afterEach
 // hooks, too late to unmount first.
@@ -124,8 +124,9 @@ describe("DistanceToTargetComponent", () => {
   });
 
   it("does NOT enter the docking HUD for a Vessel target with no vessel.dock (T2)", async () => {
-    // T2: a plain Vessel target has no dock channel — promoting it to the HUD
-    // on distance alone rendered a dead-centre reticle with all rows "—".
+    // T2: a plain Vessel target has no dock channel, promoting it to the HUD
+    // on distance alone rendered a dead-centre reticle with every row showing
+    // the null-display placeholder.
     // Under 100 m with no dock it must stay in the approach view instead.
     fixture = setupStreamFixture({
       carriedChannels: ["vessel.target", "vessel.dock"],
@@ -179,7 +180,7 @@ describe("DistanceToTargetComponent", () => {
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
 
-  it("applies hysteresis — stays in HUD until distance rises past 150 m", async () => {
+  it("applies hysteresis; stays in HUD until distance rises past 150 m", async () => {
     fixture = setupStreamFixture({
       carriedChannels: ["vessel.target", "vessel.dock"],
     });
@@ -191,7 +192,7 @@ describe("DistanceToTargetComponent", () => {
         relativePosition: atRange(80),
         relativeVelocity: null,
       });
-      // Dock data present throughout — the HUD enter/exit is distance-driven.
+      // Dock data present throughout: the HUD enter/exit is distance-driven.
       fixture.emit("vessel.dock", {
         relativePosition: atRange(80),
         relativeVelocity: null,
@@ -213,7 +214,7 @@ describe("DistanceToTargetComponent", () => {
         relativeVelocity: null,
       });
     });
-    // Still in HUD — 130 m is above the 100 m enter threshold but below the
+    // Still in HUD: 130 m is above the 100 m enter threshold but below the
     // 150 m exit threshold. There's no distinct settle signal to wait on
     // here (the DOM shouldn't change), so give the frame a chance to run
     // before asserting nothing has flipped.
@@ -322,14 +323,14 @@ describe("DistanceToTargetComponent", () => {
   });
 });
 
-describe("DistanceToTarget — augment slots (spec §4)", () => {
+describe("DistanceToTarget: augment slots (spec §4)", () => {
   afterEach(() => {
     // clearAugments() must come after unmount, else a still-mounted
     // AugmentSlot re-renders outside act() when the registry notifies
     // (CLAUDE.md → Testing Philosophy, act() warning pattern). RTL's
     // auto-cleanup afterEach runs AFTER this file's own afterEach hooks
     // (outer/import-time-registered hooks run after inner describe-scoped
-    // ones), so it can't be relied on to unmount first — the renderedTrees
+    // ones), so it can't be relied on to unmount first, the renderedTrees
     // tracking above is what actually guarantees the ordering.
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;

@@ -47,7 +47,7 @@ describe("applyAnalogShaping", () => {
     expect(applyAnalogShaping({ deadzone: -0.1 }, 0.5)).toBe(0.5);
   });
 
-  it("defaults to bipolar when polarity is unset — existing types unchanged", () => {
+  it("defaults to bipolar when polarity is unset, existing types unchanged", () => {
     expect(applyAnalogShaping({}, -1)).toBe(-1);
     expect(applyAnalogShaping({ polarity: undefined }, -1)).toBe(-1);
     expect(applyAnalogShaping({ deadzone: 0.2, polarity: undefined }, -1)).toBe(

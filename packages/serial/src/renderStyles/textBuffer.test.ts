@@ -96,7 +96,7 @@ describe("text-buffer render style (parameterised)", () => {
     const rows = rowsOf(out, 10);
     expect(rows).toHaveLength(4);
     for (const row of rows) expect(row).toHaveLength(10);
-    // E is dropped — only 4 rows.
+    // E is dropped, only 4 rows.
     expect(rows[0]).toBe("A 1".padEnd(10, " "));
     expect(rows[3]).toBe("D 4".padEnd(10, " "));
   });

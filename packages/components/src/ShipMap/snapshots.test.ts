@@ -19,7 +19,7 @@ import {
 } from "./shipTopology";
 
 /**
- * SVG output snapshots — locks the rendered ship diagram against
+ * SVG output snapshots: locks the rendered ship diagram against
  * unintended drift. The same `renderShipMapToSvg` helper drives the CLI
  * harness (`pnpm --filter @ksp-gonogo/components render-ship-map`) so the
  * snapshot reflects exactly what a reviewer would see when opening the
@@ -29,7 +29,7 @@ import {
  * unrelated numeric refactors don't produce noisy diffs. If you change
  * the diagram and these snapshots break, eyeball the rendered SVGs in
  * `local_docs/renders/ship-map/` (regenerate with the render-ship-map
- * script) — if the visual change is intended, run `vitest -u`.
+ * script): if the visual change is intended, run `vitest -u`.
  */
 
 interface Fixture {
@@ -112,8 +112,8 @@ describe("Ship Map SVG snapshots", () => {
 
   it("renders winged-lander (radial winglets + two solar rings)", () => {
     // Real-capture fixture: AV-T1 + AV-R8 winglets and two OX-STAT rings.
-    // Exercises azimuth foreshortening for both flat-plate types — fins
-    // (broad span radial) and panels (broad face tangential) — on parts
+    // Exercises azimuth foreshortening for both flat-plate types, fins
+    // (broad span radial) and panels (broad face tangential), on parts
     // mounted to non-root parents, so it also guards the parent-relative
     // radial basis.
     expect(renderFixture(wingedLander as Fixture)).toMatchSnapshot();

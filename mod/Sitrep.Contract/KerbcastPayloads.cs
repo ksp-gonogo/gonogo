@@ -5,19 +5,19 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// kerbcast Topic payloads — the CONTROL plane only.
+// kerbcast Topic payloads: the CONTROL plane only.
 //
 // kerbcast (the camera-streaming mod, ~/personal/kerbcam) splits cleanly in two:
 //
-//   • MEDIA — H.264 video, sidecar -> browser over WebRTC, negotiated by
+//   • MEDIA: H.264 video, sidecar -> browser over WebRTC, negotiated by
 //     HTTP POST /offer and steered on the "kerbcast-control" data channel.
 //     This Uplink does NOT carry video and never will: a keyframed,
 //     UT-indexed telemetry channel is the wrong shape for a 30fps encoded
 //     stream, and the WebRTC path already works. The client's delay authority
-//     (`useViewClock()`) is what keeps that media aligned with telemetry —
+//     (`useViewClock()`) is what keeps that media aligned with telemetry,
 //     see .superpowers/sdd/u4-kerbcast-report.md. Nothing here disturbs it.
 //
-//   • CONTROL — "what cameras exist, what can they do, which are docking
+//   • CONTROL: "what cameras exist, what can they do, which are docking
 //     cameras, is the mod healthy, point that camera there". That is ordinary
 //     Sitrep telemetry + commands, and it is what this Uplink owns.
 //
@@ -30,18 +30,18 @@ namespace Sitrep.Contract;
 // Dictionary<string, object?> (same camelCase wire keys via
 // RtConfig.CamelCaseForProperties). Adding it changes no wire bytes.
 //
-// Naming: clean full names, never kerbcast's internal wire keys — `fieldOfView`
+// Naming: clean full names, never kerbcast's internal wire keys, `fieldOfView`
 // not `fov`, `panYawMinimum` not `panYawMin`. The Uplink's contract is gonogo's
 // vocabulary, not a passthrough of the upstream mod's abbreviations.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// One kerbcast camera as it appears on the <c>kerbcast.cameras</c> channel —
+/// One kerbcast camera as it appears on the <c>kerbcast.cameras</c> channel,
 /// a bare JSON array of these.
 ///
 /// <para>Sourced by reflecting the running kerbcast plugin's public
 /// <c>Kerbcast.KerbcastControl</c> static facade (never a compile-time
-/// reference — kerbcast is CC-BY-NC-SA-4.0, so the arm's-length reflection
+/// reference: kerbcast is CC-BY-NC-SA-4.0, so the arm's-length reflection
 /// pattern is mandatory; see <c>GonogoKerbcastUplink.csproj</c>'s header).
 /// Every field below is read off kerbcast's <c>KerbcastCameraView</c>, except
 /// the docking fields, which this Uplink DERIVES from the stock KSP
@@ -59,7 +59,7 @@ namespace Sitrep.Contract;
 public class KerbcastCameraEntry
 {
     /// <summary>
-    /// kerbcast's own camera handle (<c>KerbcastCameraView.FlightId</c>) — the
+    /// kerbcast's own camera handle (<c>KerbcastCameraView.FlightId</c>): the
     /// id every kerbcast command and the WebRTC <c>subscribe</c> take. NOTE
     /// this is NOT reliably a KSP part id: kerbcast synthesises a hash for the
     /// 2nd+ camera module on a multi-camera part. Use <see cref="PartId"/> when
@@ -69,13 +69,13 @@ public class KerbcastCameraEntry
 
     /// <summary>
     /// The real stock-KSP <c>Part.flightID</c> the camera is mounted on
-    /// (<c>KerbcastCameraView.PartFlightId</c>) — the join key onto
+    /// (<c>KerbcastCameraView.PartFlightId</c>): the join key onto
     /// <c>vessel.parts</c>. Null when the camera's part could not be read.
     /// </summary>
     public long? PartId { get; set; }
 
     /// <summary>
-    /// kerbcast's camera name. NOT unique — Hullcam's docking-port patch names
+    /// kerbcast's camera name. NOT unique: Hullcam's docking-port patch names
     /// every docking-port camera "NavCam", which is precisely why
     /// <see cref="IsDockingCamera"/> is derived from the part's modules rather
     /// than sniffed from this string.
@@ -91,7 +91,7 @@ public class KerbcastCameraEntry
     /// <summary>The vessel this camera is on, as <c>vessel:&lt;guid&gt;</c>. Null when unreadable.</summary>
     public string? VesselId { get; set; }
 
-    /// <summary>Whether the camera can zoom — kerbcast runtime-detects this from the part type.</summary>
+    /// <summary>Whether the camera can zoom, kerbcast runtime-detects this from the part type.</summary>
     public bool? SupportsZoom { get; set; }
 
     /// <summary>
@@ -128,7 +128,7 @@ public class KerbcastCameraEntry
     public double? PanPitchMaximum { get; set; }
 
     /// <summary>
-    /// Whether this camera is mounted on a docking port — the operator-facing
+    /// Whether this camera is mounted on a docking port, the operator-facing
     /// question "which of my cameras can I dock with".
     ///
     /// <para>DERIVED, not reported by kerbcast: kerbcast has no docking concept
@@ -138,14 +138,14 @@ public class KerbcastCameraEntry
     /// part's actual modules. That is why it is trustworthy where sniffing
     /// <see cref="PartTitle"/> for the word "Docking" is not.</para>
     ///
-    /// <para>Null means "could not determine" (the part was unreadable) —
+    /// <para>Null means "could not determine" (the part was unreadable),
     /// distinct from <c>false</c>, "read the part, it has no docking node".</para>
     /// </summary>
     public bool? IsDockingCamera { get; set; }
 
     /// <summary>
     /// The docking node's <c>nodeType</c> (e.g. <c>size1</c>, <c>size2</c>) when
-    /// <see cref="IsDockingCamera"/> is true — what this port can mate with.
+    /// <see cref="IsDockingCamera"/> is true, what this port can mate with.
     /// Null for a non-docking camera.
     /// </summary>
     public string? DockingPortNodeType { get; set; }
@@ -159,7 +159,7 @@ public class KerbcastCameraEntry
 }
 
 /// <summary>
-/// Args for the <c>kerbcast.setFieldOfView</c> command — zoom one camera.
+/// Args for the <c>kerbcast.setFieldOfView</c> command: zoom one camera.
 /// Delayed like any other craft command: a zoom is an instruction to hardware
 /// on the vessel, so it rides the signal-delay Courier.
 /// </summary>
@@ -177,7 +177,7 @@ public class KerbcastSetFieldOfViewArgs
 }
 
 /// <summary>
-/// Args for the <c>kerbcast.setPan</c> command — aim one camera. Absolute
+/// Args for the <c>kerbcast.setPan</c> command: aim one camera. Absolute
 /// degrees, matching kerbcast's own <c>SetPan</c> facade (not a rate).
 /// </summary>
 [SitrepContract]

@@ -9,7 +9,7 @@ import type { PeerClientService } from "../peer/PeerClientService";
  * End-to-end check that `useDataSeries` works on a station: it should
  * backfill via the peer `queryRange` path, then keep appending as
  * `subscribeSamples` fires. Proves the Phase 7 plumbing lines up with the
- * hook's expectations — after this, Phase 8's find-and-replace is safe.
+ * hook's expectations: after this, Phase 8's find-and-replace is safe.
  */
 
 function makeFakeClient(backfill: { t: number[]; v: unknown[] }) {
@@ -62,7 +62,7 @@ describe("useDataSeries against PeerClientDataSource", () => {
 
     const rendered = render(<LastValue sourceId="data" k="v.altitude" />);
 
-    // queryRange backfill — awaited in a microtask inside the hook.
+    // queryRange backfill: awaited in a microtask inside the hook.
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -102,7 +102,7 @@ describe("useDataSeries against PeerClientDataSource", () => {
       await Promise.resolve();
     });
 
-    // No backfill, no samples — empty state.
+    // No backfill, no samples: empty state.
     expect(rendered.getByTestId("series").textContent).toBe("-|-|len=0");
   });
 });

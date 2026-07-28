@@ -23,19 +23,19 @@ import type { CommandStatus } from "./lifecycle";
 import { useLatestValue } from "./use-stream";
 
 /** Shared constant so `getSnapshot` returns a referentially stable value when
- * no command has been dispatched yet — a fresh object literal here would
+ * no command has been dispatched yet, a fresh object literal here would
  * make `useSyncExternalStore` believe the snapshot changes on every render
  * and loop forever. */
 const IDLE: CommandStatus = { phase: "idle" };
 
-/** Shared constant for the same reason as `IDLE` above — an empty `inFlight`
+/** Shared constant for the same reason as `IDLE` above, an empty `inFlight`
  * array must be referentially stable across renders that have nothing
  * in-flight, or every consumer re-renders needlessly. */
 const NO_IN_FLIGHT: InFlightCommand[] = [];
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
- * in `system.uplink.pending` before this hook gives up tracking it — the
+ * in `system.uplink.pending` before this hook gives up tracking it, the
  * graceful no-delay/LAN degradation path. A genuinely delayed command's
  * entry appears in the very next queue snapshot regardless of its own
  * `oneWaySeconds` (the reveal-gate stamps `dispatchedAt` the instant the
@@ -53,11 +53,11 @@ export interface UseCommandResult {
   /**
    * `opts.label` is an opaque, operator-facing description of the command
    * (e.g. line-mode's composed line text) threaded straight through to
-   * `TelemetryClient.dispatch`'s envelope — it plays no role in dispatch,
+   * `TelemetryClient.dispatch`'s envelope: it plays no role in dispatch,
    * correlation, or loss inference.
    *
    * `opts.topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>`
-   * for a terminal-scoped command), threaded through the same way — no role
+   * for a terminal-scoped command), threaded through the same way, no role
    * in dispatch, correlation, or loss inference.
    */
   send: (
@@ -66,12 +66,12 @@ export interface UseCommandResult {
   ) => Promise<unknown>;
   status: CommandStatus;
   /**
-   * Every dispatch this hook has made that hasn't yet resolved cleanly —
+   * Every dispatch this hook has made that hasn't yet resolved cleanly,
    * accumulated on `send` (not just the latest one), retained past the
    * moment `system.uplink.pending` ages an entry out of the live queue so
    * an `overdue`/`lost` command can't silently vanish. An entry is dropped
    * once it reaches `predictedPhase: "due"` under a connected path (assumed
-   * arrived) — see `classifyRetained`'s own doc for the full rule. A
+   * arrived): see `classifyRetained`'s own doc for the full rule. A
    * dispatch that never gets a queue entry at all (no-delay/LAN path) drops
    * silently after `NEVER_TRACKED_GRACE_SECONDS` instead of leaking forever.
    */
@@ -80,11 +80,11 @@ export interface UseCommandResult {
 
 type TrackedResolution =
   | { kind: "classified"; item: InFlightCommand }
-  /** No queue entry yet, but still within the never-tracked grace window — keep tracking, nothing to render yet. */
+  /** No queue entry yet, but still within the never-tracked grace window; keep tracking, nothing to render yet. */
   | { kind: "waiting" }
-  /** Reached `predictedPhase: "due"` under a connected path — assumed arrived, stop tracking. */
+  /** Reached `predictedPhase: "due"` under a connected path, assumed arrived, stop tracking. */
   | { kind: "resolved" }
-  /** No queue entry ever arrived within the grace window — assume this dispatch never used the pending-uplink queue at all. */
+  /** No queue entry ever arrived within the grace window, assume this dispatch never used the pending-uplink queue at all. */
   | { kind: "expired" };
 
 /**
@@ -130,7 +130,7 @@ function resolveTracked(
  * Fires `command` against the `TelemetryClient` from the nearest
  * `TelemetryProvider` and reactively reflects its lifecycle
  * (`idle -> in-flight -> confirmed|failed`), plus this hook's OWN set of
- * in-flight dispatches (`inFlight`) — the delayed-command-ux primitive: a
+ * in-flight dispatches (`inFlight`), the delayed-command-ux primitive: a
  * command widget gets delay state for free from the same hook it already
  * calls to dispatch, no separate opt-in.
  *
@@ -138,11 +138,11 @@ function resolveTracked(
  * more than once; `status` is read via `useSyncExternalStore` over
  * `client.subscribeStore`, so any status transition for the in-flight
  * request re-renders the caller. `inFlight` is a SEPARATE accumulating set
- * (not just the latest `requestId`) — see `UseCommandResult.inFlight`'s doc.
+ * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
  */
 export function useCommand(command: string): UseCommandResult {
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected):
-  // status stays IDLE and `send` is a no-op — you can't dispatch a command
+  // status stays IDLE and `send` is a no-op, you can't dispatch a command
   // with no link, and the hook must not throw just because the dashboard
   // rendered before a connection exists.
   const client = useTelemetryClientOptional();
@@ -173,7 +173,7 @@ export function useCommand(command: string): UseCommandResult {
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   // A synchronous, NON-subscribing read of the same undelayed clock
-  // `useUtNow` tracks (`ViewClock.utNowEstimate()`) — deliberately NOT
+  // `useUtNow` tracks (`ViewClock.utNowEstimate()`): deliberately NOT
   // `useUtNow()` itself, which subscribes to a real-wall-clock ~16ms tick
   // for the component's whole mounted lifetime. That per-frame subscription
   // is unnecessary here: `nowUt` only needs to be fresh AT the renders this
@@ -197,7 +197,7 @@ export function useCommand(command: string): UseCommandResult {
     [],
   );
 
-  // Latest `nowUt` by ref, read from `send` below — `send` is a stable
+  // Latest `nowUt` by ref, read from `send` below, `send` is a stable
   // `useCallback` (keyed on `[client, command]` only, same as before this
   // task), so it can't close over the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
@@ -228,11 +228,11 @@ export function useCommand(command: string): UseCommandResult {
   //
   // Deliberately NOT keyed on `nowUt`: reading `store.clock.utNowEstimate()`
   // synchronously (see above) means `nowUt` is a fresh value on literally
-  // EVERY render, for ANY reason — keying this effect on it would refire
+  // EVERY render, for ANY reason, keying this effect on it would refire
   // the prune on every single render of every mounted `useCommand` caller,
   // whether or not anything relevant changed. The render-time `inFlight`
   // computation above already hides a resolved entry immediately using the
-  // current `nowUt`, regardless of whether this effect has caught up yet —
+  // current `nowUt`, regardless of whether this effect has caught up yet,
   // this effect only needs to run when something that could change a
   // resolution actually changed (`queue`, or the connectivity history via
   // `pathConnectedDuring`'s identity), reading the latest `nowUt` off the

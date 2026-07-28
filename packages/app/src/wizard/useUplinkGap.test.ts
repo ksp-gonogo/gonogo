@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { RegistryIndex, UplinkDescriptor } from "../uplinks/registry";
 import { computeUplinkGap } from "./useUplinkGap";
 
-// Fixture ids are deliberately generic (never a real mod name) — this file
+// Fixture ids are deliberately generic (never a real mod name), this file
 // exercises the join logic only, and a real mod-id literal here would trip
 // the core package's uplink-boundary ratchet for no reason (this module has
 // no coupling to any specific Uplink).
@@ -40,7 +40,7 @@ function registry(
   };
 }
 
-describe("computeUplinkGap — the four (+one) resolved states", () => {
+describe("computeUplinkGap: the four (+one) resolved states", () => {
   it("loaded: an id in loadedIds resolves 'loaded' regardless of roster/hub", () => {
     const entries = computeUplinkGap(
       roster([{ id: "widget-a", available: true }]),
@@ -133,7 +133,7 @@ describe("computeUplinkGap — the four (+one) resolved states", () => {
     });
   });
 
-  it("hub-unknown: mod available, not loaded, but the hub fetch failed (hubIndex null) — never conflated with installed-no-client", () => {
+  it("hub-unknown: mod available, not loaded, but the hub fetch failed (hubIndex null); never conflated with installed-no-client", () => {
     const entries = computeUplinkGap(
       roster([{ id: "widget-a", available: true }]),
       [],
@@ -145,7 +145,7 @@ describe("computeUplinkGap — the four (+one) resolved states", () => {
       hubDescriptor: null,
     });
     // Distinct from the "confirmed no descriptor" case, which requires a
-    // real (non-null) index — same roster input, different hubIndex, must
+    // real (non-null) index: same roster input, different hubIndex, must
     // resolve to a DIFFERENT state.
     const confirmed = computeUplinkGap(
       roster([{ id: "widget-a", available: true }]),
@@ -156,7 +156,7 @@ describe("computeUplinkGap — the four (+one) resolved states", () => {
   });
 });
 
-describe("computeUplinkGap — tri-state roster handling", () => {
+describe("computeUplinkGap: tri-state roster handling", () => {
   it("roster undefined ('still waiting') contributes zero roster-derived entries", () => {
     const entries = computeUplinkGap(
       undefined,
@@ -184,7 +184,7 @@ describe("computeUplinkGap — tri-state roster handling", () => {
   });
 });
 
-describe("computeUplinkGap — join-key edge cases", () => {
+describe("computeUplinkGap: join-key edge cases", () => {
   it("an id present in the roster but absent from the hub manifest resolves installed-no-client, not silently dropped", () => {
     const entries = computeUplinkGap(
       roster([{ id: "widget-a", available: true }]),

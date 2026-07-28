@@ -7,7 +7,7 @@
   --font-size-lg: 16px;
 
   /*
-   * Colour tokens — names match `theme.colors.*` paths in
+   * Colour tokens: names match `theme.colors.*` paths in
    * `packages/ui-kit/src/defaultDarkTheme.ts`. The CSS-variable layer is
    * the single source of truth; the JS theme object is a typed handle
    * that reads from these vars (e.g. `var(--color-text-primary)`).
@@ -40,7 +40,7 @@
   --color-status-info-bg: #0d0d0d;
 
   /*
-   * Muted variants for status surfaces — used when the alert/warning
+   * Muted variants for status surfaces: used when the alert/warning
    * state needs a *darker* fill (e.g. error-button background, banner
    * inset). Distinct from the primary status colours, which are full-
    * brightness. `alert-muted` covers nogo-tone darks; `warning-bg-muted`
@@ -49,7 +49,7 @@
   --color-status-alert-muted: #4a0e0e;
   --color-status-warning-bg-muted: #3a2a0a;
   /*
-   * Warning text + border for warning chips on a *dark* surface — the
+   * Warning text + border for warning chips on a *dark* surface, the
    * `-fg` and `-bg` pair above is for bright orange chips (dark text on
    * orange); these are the inverse case (light cream text on dark amber).
    */
@@ -57,14 +57,14 @@
   --color-status-warning-border-muted: #8a6a28;
 
   /*
-   * Tag palette — used for *labeled state* with a paired fg / bg /
+   * Tag palette: used for *labeled state* with a paired fg / bg /
    * border surface. Examples: a purple "prediction" chip, a blue
    * station-link badge. Each tag has a fg / bg / border triple.
    *
    * Not for categorical data (chart series, telemetry rows, body
-   * markers) — use the `--color-data-*` palette below for that.
+   * markers): use the `--color-data-*` palette below for that.
    *
-   * Not currently typed in the theme schema — promote when a widely-
+   * Not currently typed in the theme schema, promote when a widely-
    * shared widget begins consuming them programmatically.
    */
   --color-tag-blue-fg: #4488ff;
@@ -83,7 +83,7 @@
   --color-tag-red-fg: #ff4466;
 
   /*
-   * Categorical data palette — used for chart series, telemetry rows,
+   * Categorical data palette: used for chart series, telemetry rows,
    * body markers, and anything where the role is "make this category
    * visually distinct from neighbours". Cycle by index (see
    * packages/components/src/shared/dataPalette.ts).
@@ -92,7 +92,7 @@
    * ~70%+ HSL lightness with high saturation so it reads on
    * `--color-surface-app` through `--color-surface-raised`. Hues span
    * ~360° with adjacent pairs visually distinct. None overlap the
-   * semantic palette (accent green, status orange/red/nogo) — a chart
+   * semantic palette (accent green, status orange/red/nogo): a chart
    * series should never be mistaken for a state indicator.
    */
   --color-data-1: #6cb4ff; /* steel blue */

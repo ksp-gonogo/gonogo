@@ -1,8 +1,8 @@
-// The canonical gamepad "role" vocabulary — the physical position a button
+// The canonical gamepad "role" vocabulary: the physical position a button
 // or axis occupies, independent of any vendor's letters/icons for it (see
 // the design note in the Wednesday Work gamepad-transport spec: the W3C
 // Gamepad spec itself defines button 0 as "Bottom button in right cluster",
-// never "A" or "Cross" — the vocabulary is deliberately positional, and
+// never "A" or "Cross": the vocabulary is deliberately positional, and
 // Nintendo's A/B swap is exactly why: `face-south` is the same physical
 // position on every pad, but a different letter per vendor).
 //
@@ -38,7 +38,7 @@ export type GamepadRole = (typeof GAMEPAD_ROLES)[number];
 /**
  * Standard-mapping button index → role, indices 0-16 (the W3C "standard
  * gamepad" button layout). Index 17+ (e.g. a DualSense's touchpad click) has
- * no canonical role — it stays bindable with a generic name, never a
+ * no canonical role: it stays bindable with a generic name, never a
  * guessed one.
  */
 export const STANDARD_BUTTON_ROLES: readonly GamepadRole[] = [
@@ -72,7 +72,7 @@ export const STANDARD_AXIS_ROLES: readonly GamepadRole[] = [
 /**
  * Human-readable positional wording used as the generated `DeviceInput.name`
  * default under the standard mapping (e.g. "Face South"), and as the
- * `positional` label pack's display text — the same words either way, since
+ * `positional` label pack's display text: the same words either way, since
  * `positional` means "no vendor labelling", not "no labelling at all".
  */
 export function positionalName(role: GamepadRole): string {

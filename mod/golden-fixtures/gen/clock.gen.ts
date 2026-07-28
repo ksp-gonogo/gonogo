@@ -3,7 +3,7 @@
  * Golden-fixture generator for `mod/sitrep-server/src/clock.ts`'s `ManualClock`.
  *
  * Unlike the pure-function semver fixture (`{args, expected}`), `ManualClock`
- * is stateful: a fixture here is a **scripted scenario** — a sequence of
+ * is stateful: a fixture here is a **scripted scenario**, a sequence of
  * operations (`schedule` / `advanceTo` / `cancel`) run against a real
  * `ManualClock` instance, plus the OBSERVABLE OUTPUT that instance actually
  * produced (the order callbacks fired in, and the final `now()`).
@@ -11,7 +11,7 @@
  * Callbacks are represented by string ids instead of real closures so the
  * scenario is JSON-serializable. A callback that itself schedules another
  * callback (the re-entrancy-safe-drain case) is expressed via a nested
- * `onFire` list on the `schedule` op — when the outer callback fires, it
+ * `onFire` list on the `schedule` op; when the outer callback fires, it
  * records its own id, then (still inside the same `advanceTo` drain) issues
  * each nested schedule against the same clock instance, exactly like the TS
  * reference's `clock.schedule(3, () => { order.push("three"); clock.schedule(8,

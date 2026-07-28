@@ -18,8 +18,8 @@ namespace Gonogo.ScansatUplink
     /// (<c>telemachus.ts</c> + scansat-migration-spec.md §2.3): row-major
     /// index <c>ilon * height + ilat</c>, walked at <c>degPerCellLon =
     /// 360/width</c>, <c>degPerCellLat = 180/height</c> so that <c>lon =
-    /// ilon*degPerCellLon - 180</c> and <c>lat = ilat*degPerCellLat - 90</c>
-    /// — for the standard 360×180 grid this is exactly 1°/cell (<c>lon =
+    /// ilon*degPerCellLon - 180</c> and <c>lat = ilat*degPerCellLat - 90</c>,
+    /// for the standard 360×180 grid this is exactly 1°/cell (<c>lon =
     /// ilon-180</c> ∈ [-180,179], <c>lat = ilat-90</c> ∈ [-90,89]), and
     /// <c>ilat=0</c> is the south-pole row. A sampler is called once per
     /// cell in that exact order.</para>
@@ -29,7 +29,7 @@ namespace Gonogo.ScansatUplink
         public const int Width = 720;
         public const int Height = 360;
 
-        /// <summary>Decoded pieces of a built height grid — see <see cref="BuildHeightPayload"/> for the wire dict this feeds.</summary>
+        /// <summary>Decoded pieces of a built height grid; see <see cref="BuildHeightPayload"/> for the wire dict this feeds.</summary>
         public readonly struct HeightGrid
         {
             public readonly short[] Metres;
@@ -79,7 +79,7 @@ namespace Gonogo.ScansatUplink
             if (min > max)
             {
                 // width*height is always > 0 here, so this only trips if a
-                // caller passes a zero-size grid — keep a sane, non-inverted
+                // caller passes a zero-size grid: keep a sane, non-inverted
                 // pair rather than leaving the sentinels.
                 min = 0;
                 max = 0;
@@ -115,7 +115,7 @@ namespace Gonogo.ScansatUplink
             return indices;
         }
 
-        /// <summary>Base64 of a little-endian Int16 array — the wire shape <c>SCANHeightGrid.heights</c> decodes.</summary>
+        /// <summary>Base64 of a little-endian Int16 array: the wire shape <c>SCANHeightGrid.heights</c> decodes.</summary>
         public static string Base64Int16LittleEndian(short[] values)
         {
             if (values == null) throw new ArgumentNullException(nameof(values));
@@ -129,9 +129,9 @@ namespace Gonogo.ScansatUplink
         }
 
         // ----------------------------------------------------------------
-        // Wire payload dicts — Dictionary<string, object?> keyed with the
+        // Wire payload dicts: Dictionary<string, object?> keyed with the
         // EXACT camelCase field names the client decoder reads (JsonWriter
-        // emits a dict's keys verbatim, no auto-casing — see its
+        // emits a dict's keys verbatim, no auto-casing; see its
         // AppendObject). Values are primitives/strings/lists the JsonWriter
         // already handles.
         // ----------------------------------------------------------------

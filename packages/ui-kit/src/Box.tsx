@@ -25,7 +25,7 @@ const SURFACE_VAR: Record<BoxSurface, string> = {
   sunken: "var(--color-surface-sunken)",
 };
 
-/** Background/border/padding/radius wrapper — the generic surface primitive. */
+/** Background/border/padding/radius wrapper: the generic surface primitive. */
 export function Box({
   surface,
   pad,

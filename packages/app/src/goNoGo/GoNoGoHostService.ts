@@ -138,7 +138,7 @@ export class GoNoGoHostService {
         // If an abort is already on record, treat this as a re-notification
         // (station reconnecting after a host refresh). Rebroadcast the
         // attribution so any fresh/reconnecting stations learn who aborted,
-        // but don't re-fire f.abort — the action group is a toggle in
+        // but don't re-fire f.abort: the action group is a toggle in
         // Telemachus and double-firing would undo it.
         if (this.abort) {
           this.host.broadcast({
@@ -150,12 +150,12 @@ export class GoNoGoHostService {
         }
         const stationName = this.peerIdToName.get(peerId) ?? "Unknown station";
         this.abort = { peerId, stationName, at: Date.now() };
-        // Abort alert tone — fired alongside f.abort on the first-abort path
+        // Abort alert tone: fired alongside f.abort on the first-abort path
         // (the re-notify branch above returns early, so a station re-sending
         // within the same host session doesn't chime twice). The tone is
         // deliberately coupled to f.abort: a main-screen *reload* mid-abort
         // builds a fresh host with no abort memory and re-fires both f.abort
-        // and this tone — inherited f.abort behaviour, not introduced here.
+        // and this tone: inherited f.abort behaviour, not introduced here.
         // Internally gated by isSoundEnabled(); main-only.
         playAbortTone();
         void this.dispatchCommand("f.abort");
@@ -169,12 +169,12 @@ export class GoNoGoHostService {
     );
 
     // Launch state: prefers the stream's `vessel.state.met` (the
-    // `v.missionTime` migration target — see `map-topic.ts`) via
+    // `v.missionTime` migration target: see `map-topic.ts`) via
     // `onActiveTimelineFrame`, a plain-class non-hook subscription
     // (`@ksp-gonogo/sitrep-client`) that re-runs on every ingested frame.
     // The legacy `this.dataSource.subscribe("v.missionTime", ...)` stays
     // wired as the fallback for whenever no `TelemetryProvider` is mounted
-    // yet or the stream hasn't resolved `vessel.state.met` — the same
+    // yet or the stream hasn't resolved `vessel.state.met`, the same
     // "mapped + carried -> stream, else legacy" shape `useTelemetry`'s
     // shim applies, just without a React tree to read carried-channels
     // from directly (`getVesselState()` already returns `undefined` in
@@ -190,7 +190,7 @@ export class GoNoGoHostService {
       this.unsubs.push(
         this.dataSource.subscribe("v.missionTime", (value) => {
           // Ignore the legacy echo once the stream is already resolving
-          // vessel.state.met — the stream read above wins whenever it's
+          // vessel.state.met: the stream read above wins whenever it's
           // live.
           if (getVesselState()?.met != null) return;
           const mt = typeof value === "number" ? value : 0;
@@ -199,7 +199,7 @@ export class GoNoGoHostService {
       );
     } else {
       logger.warn(
-        `[GoNoGoHostService] no '${dataSourceId}' data source — launch/abort legacy fallback disabled`,
+        `[GoNoGoHostService] no '${dataSourceId}' data source: launch/abort legacy fallback disabled`,
       );
     }
   }
@@ -209,7 +209,7 @@ export class GoNoGoHostService {
     const wasLaunched = this.launched;
     this.launched = missionTime > 0;
     if (wasLaunched && !this.launched) {
-      // Revert to pad — clear abort so the operator can try again.
+      // Revert to pad: clear abort so the operator can try again.
       this.abort = null;
     }
     if (this.launched && this.countdown) {
@@ -221,7 +221,7 @@ export class GoNoGoHostService {
   /**
    * Fire a command through the new stream when it's mapped + carried
    * (`dispatchActiveCommand`, the non-hook `useCommand` equivalent), else
-   * the legacy `DataSource.execute(action)` — same two-tier contract every
+   * the legacy `DataSource.execute(action)`: same two-tier contract every
    * other migrated read/write in the app follows. The routing decision
    * itself is synchronous (see `dispatchActiveCommand`'s doc comment), so
    * the legacy fallback fires in the same tick as before this migration.

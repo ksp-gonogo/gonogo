@@ -1,7 +1,7 @@
 // SCANsat per-scan-type coverage readout for MapView.
 //
 // Fills MapView's `map-view.sections` slot with the compact below-map
-// coverage panel — moved out of core MapView (T8b,
+// coverage panel: moved out of core MapView (T8b,
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md) so
 // core MapView no longer reads `scansat.coverage.<body>.<type>` or
 // `scansat.scanningVessels` itself (Uplink invariant #5, "augment, don't
@@ -12,16 +12,17 @@
 //
 // `map-view.sections` is a below-content panel slot: MapView passes down
 // only the mapped body name (plus per-namespace augment settings, unused
-// here) — this augment reads its own `scansat.coverage.<body>.<type>` and
+// here): this augment reads its own `scansat.coverage.<body>.<type>` and
 // `scansat.scanningVessels` Topics directly via `useDataValue`/
 // `useScanningVessels`.
 //
 // Presence-gated on `requires: "scansat"`: renders only while
 // `scansat.available` is live, so an install without SCANsat never mounts
-// it — zero impact on MapView for non-SCANsat users.
+// it: zero impact on MapView for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
@@ -109,7 +110,7 @@ function CoverageRow({
       ) : range?.inRange ? (
         <Chip $variant="in">scan</Chip>
       ) : (
-        <Chip $variant="idle">—</Chip>
+        <Chip $variant="idle">{NULL_DISPLAY}</Chip>
       )}
     </Row>
   );
@@ -161,7 +162,7 @@ const Value = styled.span`
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-  /* Numeric readout — never truncate digits. Shrink to fit the row instead
+  /* Numeric readout: never truncate digits. Shrink to fit the row instead
      of overflowing the panel edge at the 3-col minimum size. */
   min-width: 0;
   white-space: nowrap;

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "approach-closing",
-    "notes": "Vessel target at 1800m in the approach band (100m–5km). Distance + closing rate derive from vessel.target's Vec3 fields; negative radial rate = closing gap — closing rate renders in green/accent tone. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
+    "notes": "Vessel target at 1800m in the approach band (100m–5km). Distance + closing rate derive from vessel.target's Vec3 fields; negative radial rate = closing gap, closing rate renders in green/accent tone. The legacy `tar.*`/`o.closestTgtApprUT` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
   },
   "tar.name": "Test Station",
   "tar.type": "Vessel",

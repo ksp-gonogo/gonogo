@@ -32,7 +32,7 @@
 //     the old MapView-internal `CoveragePanelView`/`CoverageRow`.
 //   - `TerrainBase/AltimetryBase` + `TerrainBase/BiomeBase` →
 //     registerAugment({ id: "scansat:altimetry" | "scansat:biome",
-//     augments: "map-view.base", ... }) — two mutually-exclusive providers
+//     augments: "map-view.base", ... }): two mutually-exclusive providers
 //     for the `map-view.base` REPLACE slot (MapView overlay-host foundation
 //     plan T8c), each painting its own standalone colormap surface
 //     (altimetry or biome) modulated per-tile by the T4 coverage paint-gate,
@@ -49,12 +49,12 @@
 // The scan schema/decode/sync logic (`schema.ts`, `FogReveal/*`) is this
 // Uplink's own canonical copy (T7). `packages/core`/`packages/data` still
 // carry a duplicate for `packages/components`'s MapView, which hasn't
-// migrated off it yet — see T9 in
+// migrated off it yet: see T9 in
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md for
 // the deletion of that duplicate once MapView's augment migration lands.
 // The Minimap here (`Scanning/Minimap.tsx`) has its own mod-local coverage
 // gate (`FogReveal/useScanCoverageGate.ts`) and paints through T8c's
-// `TerrainBase/paintTile.ts`, same as BiomeBase — it no longer borrows
+// `TerrainBase/paintTile.ts`, same as BiomeBase: it no longer borrows
 // MapView's canvas hooks via @ksp-gonogo/components at all (T9-Minimap).
 
 export type {
@@ -70,7 +70,7 @@ export { parseScanScience } from "./ScienceAugment";
 // retains them and bundlers won't tree-shake the registerComponent()/
 // registerAugment() calls away.
 import "./topics"; // registerBarePrimitiveTopic("scansat.available") + TopicPayloadMap augment
-import "./uplink"; // defineUplinkClient(SCANSAT) — every widget/augment below stamps `owner: SCANSAT`
+import "./uplink"; // defineUplinkClient(SCANSAT): every widget/augment below stamps `owner: SCANSAT`
 import "./Scanning";
 import "./ScienceAugment";
 import "./AnomalyOverlay";

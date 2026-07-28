@@ -2,7 +2,7 @@
  * Smoke tests for telemetry visualisation components:
  * CurrentOrbit, DistanceToTarget, OrbitView, MapView.
  *
- * These are integration tests: real data source, real hooks, real components —
+ * These are integration tests: real data source, real hooks, real components,
  * only the network is intercepted by MSW.
  */
 
@@ -29,6 +29,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,7 +76,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// The eight `vesselStateChannel` inputs — carrying all of them makes every
+// The eight `vesselStateChannel` inputs: carrying all of them makes every
 // derived `vessel.state.*` field (here: `parentBodyName`) resolvable. Mirrors
 // the allowlist in MapView's own `stream.test.tsx`.
 const VESSEL_STATE_INPUTS = [
@@ -94,7 +95,7 @@ const VESSEL_STATE_INPUTS = [
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
 // stream path post-P1 de-Telemachus migration. Mirrors
 // `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
-// DistanceToTarget's and OrbitView's own dedicated stream tests) — duplicated
+// DistanceToTarget's and OrbitView's own dedicated stream tests), duplicated
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
 // ---------------------------------------------------------------------------
@@ -124,7 +125,7 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
 
   return {
     // Forwards the transport's optional 3rd meta arg (e.g. quality) so tests
-    // can emit an OnRails vessel.orbit — the basis vessel.state's propagated
+    // can emit an OnRails vessel.orbit, the basis vessel.state's propagated
     // apoapsis/periapsis fields require.
     emit: (...args: Parameters<typeof transport.emit>) =>
       transport.emit(...args),
@@ -143,7 +144,7 @@ describe("CurrentOrbitComponent", () => {
 
   it("shows dashes before data arrives", () => {
     renderWidget(<CurrentOrbitComponent id="t" />);
-    const dashes = screen.getAllByText("—");
+    const dashes = screen.getAllByText(NULL_DISPLAY);
     expect(dashes.length).toBeGreaterThan(0);
   });
 
@@ -198,7 +199,7 @@ describe("CurrentOrbitComponent", () => {
     // P1 de-Telemachus: the subtitle reads the derived
     // `vessel.state.referenceBodyName` now (the mapped home of the legacy
     // `o.referenceBody` scalar), which `deriveVesselState` resolves from
-    // `vessel.orbit.referenceBodyIndex` against `system.bodies` — so feed the
+    // `vessel.orbit.referenceBodyIndex` against `system.bodies`: so feed the
     // derivation those two inputs rather than the retired flat key.
     const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
     renderWidget(
@@ -225,10 +226,10 @@ describe("DistanceToTargetComponent", () => {
 
   it("shows target name and distance when telemetry arrives", async () => {
     // P1 de-Telemachus: the widget no longer reads a legacy `tar.distance`
-    // scalar — it derives distance client-side from the `vessel.target` Vec3
+    // scalar: it derives distance client-side from the `vessel.target` Vec3
     // `relativePosition` (see DistanceToTarget's own `stream.test.tsx`).
     // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
-    // same carried record, so it rides the stream too — no legacy "data"
+    // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
     const stream = setupTelemetryStream(["vessel.target"]);
     render(
@@ -256,7 +257,7 @@ describe("DistanceToTargetComponent", () => {
 
   it("shows target name with dash when distance is unavailable", async () => {
     // P1 de-Telemachus: `tar.name` has no shim left to map through (the
-    // widget reads `vessel.target` natively) — feed the name via the stream
+    // widget reads `vessel.target` natively), feed the name via the stream
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
     const stream = setupTelemetryStream(["vessel.target"]);
@@ -274,7 +275,7 @@ describe("DistanceToTargetComponent", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("Duna")).toBeInTheDocument());
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 });
 
@@ -294,7 +295,7 @@ describe("OrbitViewComponent", () => {
 
   it("renders SVG diagram when orbital data arrives", async () => {
     // P1 de-Telemachus: OrbitView reads exclusively off the canonical
-    // `useTelemetry("vessel.orbit")` stream overload now — no legacy
+    // `useTelemetry("vessel.orbit")` stream overload now: no legacy
     // DataSource fallback (see OrbitView's own `stream.test.tsx`). Apoapsis/
     // periapsis radii are derived in-widget from `sma`/`ecc`, so emitting
     // just those two (plus `argPe`) is enough to satisfy `hasOrbit`.
@@ -323,10 +324,10 @@ describe("OrbitViewComponent", () => {
 // MapView
 // ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
-  // P1 de-Telemachus: MapView reads position off the canonical stream now —
+  // P1 de-Telemachus: MapView reads position off the canonical stream now,
   // `vessel.flight.latitude`/`.longitude` for lat/lon, and the derived
   // `vessel.state.parentBodyName` (index→name resolved against `system.bodies`)
-  // for the header body label — not the old `v.body`/`v.lat`/`v.long` keys.
+  // for the header body label: not the old `v.body`/`v.lat`/`v.long` keys.
   // The body-name derivation gates on `vessel.orbit` (whole-record input) plus
   // `vessel.identity.parentBodyIndex` + `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {

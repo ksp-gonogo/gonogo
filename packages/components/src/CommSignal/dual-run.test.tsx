@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
@@ -7,18 +8,18 @@ import { CommSignalComponent } from "./index";
 /**
  * CommSignal's fork↔stream parity behavior test. This was originally a
  * dual-run back when `comm.controlState`/`comm.controlStateName`/
- * `comm.signalDelay` were GAPPED — the stream leg had to feed those three
+ * `comm.signalDelay` were GAPPED, the stream leg had to feed those three
  * through a legacy `"data"` `MockDataSource` because nothing streamed them.
  * All three are now mapped onto clean homes (control state →
  * the SDK-derived `vessel.state.commsControlState*` display maps off
  * `vessel.comms.controlState`; delay → `comms.delay.oneWaySeconds`), so the
  * legacy MockDataSource leg is dropped: every field now feeds off the real
  * stream pipeline (`TelemetryProvider` + `StubTransport`), and this test
- * proves the full readout — strength headline, bars, control label, and the
- * formatted delay — all resolve off the stream for the same signal state the
+ * proves the full readout: strength headline, bars, control label, and the
+ * formatted delay: all resolve off the stream for the same signal state the
  * `strong-direct-ksc` fixture depicts.
  */
-// Every input `vesselStateChannel` declares (vessel-state.ts) — all must be in
+// Every input `vesselStateChannel` declares (vessel-state.ts): all must be in
 // the allowlist for the derived `vessel.state.commsControlState*` fields to be
 // treated as carried; `comms.delay` backs `comm.signalDelay`.
 const CARRIED = [
@@ -33,7 +34,7 @@ const CARRIED = [
   "comms.delay",
 ];
 
-describe("CommSignal — full readout off the stream (R6 Wave 1)", () => {
+describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
   it("resolves strength, bars, control label, and delay off the stream for a strong direct link", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
@@ -50,7 +51,7 @@ describe("CommSignal — full readout off the stream (R6 Wave 1)", () => {
 
     act(() => {
       // The derived `vessel.state.commsControlState*` fields (control label +
-      // level) require `vessel.orbit` present — `deriveVesselState` returns the
+      // level) require `vessel.orbit` present, `deriveVesselState` returns the
       // whole record only once the vessel has an orbit (vessel-state.ts).
       fixture.emit("vessel.orbit", {
         sma: 680000,
@@ -85,7 +86,7 @@ describe("CommSignal — full readout off the stream (R6 Wave 1)", () => {
     expect(screen.getByText("Full")).toBeTruthy();
     expect(screen.getByText("0 ms")).toBeTruthy();
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
-    // No stray "—" placeholder — every field resolved.
-    expect(container.textContent).not.toContain("—");
+    // No stray NULL_DISPLAY placeholder: every field resolved.
+    expect(container.textContent).not.toContain(NULL_DISPLAY);
   });
 });

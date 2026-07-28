@@ -44,15 +44,15 @@ function makeLegacySource(id = "data") {
 beforeEach(() => clearRegistry());
 
 /**
- * `useDataStreamStatus` — the M3 "adopt staleness/certainty" shim
+ * `useDataStreamStatus`: the M3 "adopt staleness/certainty" shim
  * (`m3-migration-plan.md` §2 item 3, the "convert cleared-assertions into
- * held-stale-assertions" step) — the third leg alongside `useDataValue`
+ * held-stale-assertions" step): the third leg alongside `useDataValue`
  * (read) / `useExecuteAction` (write). Same dual-path contract: no provider
  * (or an uncarried/unmapped key) reads a legacy-DataSource-status-derived
  * value; a carried, mapped key reads the real `StreamStatusValue` off the
  * `TimelineStore`.
  */
-describe("useDataStreamStatus — no TelemetryProvider mounted", () => {
+describe("useDataStreamStatus: no TelemetryProvider mounted", () => {
   it("maps the legacy DataSource status onto a StreamStatusValue", () => {
     const source = makeLegacySource();
     registerDataSource(source);
@@ -80,7 +80,7 @@ describe("useDataStreamStatus — no TelemetryProvider mounted", () => {
   });
 });
 
-describe("useDataStreamStatus — mapped + carried key reads the real stream status", () => {
+describe("useDataStreamStatus: mapped + carried key reads the real stream status", () => {
   it("resyncing before any data, live once the raw topic arrives", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
@@ -116,7 +116,7 @@ describe("useDataStreamStatus — mapped + carried key reads the real stream sta
   });
 });
 
-describe("useDataStreamStatus — mapped but NOT carried falls back to legacy status", () => {
+describe("useDataStreamStatus: mapped but NOT carried falls back to legacy status", () => {
   it("reads the legacy status when the provider hasn't carried the topic yet", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);

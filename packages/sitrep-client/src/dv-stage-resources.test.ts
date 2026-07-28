@@ -64,7 +64,7 @@ const STAGES: StageDeltaVWireEntry[] = [
   },
 ];
 
-describe("deriveCurrentStageResourceCurrent/Max — the r.resourceCurrent(Max)[X] pair off dv.stages + vessel.structure.currentStage", () => {
+describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] pair off dv.stages + vessel.structure.currentStage", () => {
   it("undefined while dv.stages hasn't arrived", () => {
     expect(
       deriveCurrentStageResourceCurrent(
@@ -107,7 +107,7 @@ describe("deriveCurrentStageResourceCurrent/Max — the r.resourceCurrent(Max)[X
     ).toEqual({ LiquidFuel: 1000, Oxidizer: 1220 });
   });
 
-  it("tracks staging — a different currentStage reads a different stage's resources", () => {
+  it("tracks staging: a different currentStage reads a different stage's resources", () => {
     expect(
       deriveCurrentStageResourceCurrent(
         fakeGet(point(STAGES), point({ currentStage: 2 })),

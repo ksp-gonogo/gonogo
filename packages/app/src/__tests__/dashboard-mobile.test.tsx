@@ -82,7 +82,7 @@ function registerStubWidget(id: string, name: string) {
   });
 }
 
-describe("Dashboard — mobile / touch path", () => {
+describe("Dashboard: mobile / touch path", () => {
   beforeEach(() => {
     installCoarsePointerMatchMedia();
     localStorage.clear();
@@ -113,7 +113,7 @@ describe("Dashboard — mobile / touch path", () => {
     expect(screen.getByText("Alpha body")).toBeInTheDocument();
     expect(screen.getByText("Beta body")).toBeInTheDocument();
 
-    // Two move-up buttons (one per item) — the first item's is disabled.
+    // Two move-up buttons (one per item): the first item's is disabled.
     const upButtons = screen.getAllByRole("button", { name: "Move up" });
     expect(upButtons).toHaveLength(2);
     expect(upButtons[0]).toBeDisabled();
@@ -292,7 +292,7 @@ describe("Dashboard — mobile / touch path", () => {
   });
 
   it("per-instance mobileWidth on the item overrides the component default", () => {
-    // Component default is "half" — instance override forces it back to "full".
+    // Component default is "half", instance override forces it back to "full".
     registerComponent({
       id: "compact",
       name: "Compact",

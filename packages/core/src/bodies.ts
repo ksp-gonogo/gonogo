@@ -1,5 +1,5 @@
 /**
- * Body registry — static configuration for celestial bodies.
+ * Body registry: static configuration for celestial bodies.
  *
  * Bodies are registered once at startup (not reactive). The registry
  * follows the same extensibility pattern as components and data sources:
@@ -32,7 +32,7 @@ export interface AtmosphereModel {
 }
 
 export interface BodyDefinition {
-  /** Unique identifier — must match Telemachus v.body / o.referenceBody strings. */
+  /** Unique identifier: must match Telemachus v.body / o.referenceBody strings. */
   id: string;
   /** Human-readable display name. */
   name: string;
@@ -69,7 +69,7 @@ export interface BodyDefinition {
    * from the body's centre within which its gravity dominates the parent's;
    * the game computes it as `a·(m/M)^0.4` unless a config overrides it.
    * Stored explicitly because it drives SOI-transition markers and reveal
-   * bounds. Optional — stock bodies derive it on demand and may omit it.
+   * bounds. Optional: stock bodies derive it on demand and may omit it.
    */
   soi?: number;
   /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
@@ -88,7 +88,7 @@ export interface BodyDefinition {
   /**
    * Sidereal rotation period in seconds. Used by the trajectory predictor to
    * convert inertial positions into body-fixed lat/lon over time. Tidally
-   * locked moons still have rotation — use their orbital period around the
+   * locked moons still have rotation; use their orbital period around the
    * parent body. Omit for bodies where rotation is irrelevant (e.g. solo
    * applications never targeting the body).
    */
@@ -109,12 +109,12 @@ export interface BodyDefinition {
    */
   imagingMaxAlt?: number;
   /**
-   * Camera half-angle (degrees) — the cone half-angle used when projecting
+   * Camera half-angle (degrees): the cone half-angle used when projecting
    * the imaging footprint. Wider = larger footprint per pass but less detail.
    */
   cameraFovDeg?: number;
   /**
-   * Optional circular region revealed from the start — a known landing site
+   * Optional circular region revealed from the start, a known landing site
    * or space centre. Used so fresh fog masks aren't completely blank around
    * the player's natural starting position.
    */
@@ -130,7 +130,7 @@ export interface BodyDefinition {
  * Imaging altitude window for a body, with sensible defaults derived from
  * radius and atmosphere when explicit values are missing.
  *
- * Atmospheric bodies get a floor of (maxAtmosphere + 10 km) — you can't image
+ * Atmospheric bodies get a floor of (maxAtmosphere + 10 km), you can't image
  * through the soup. Airless bodies use 5 % of the radius as the floor.
  * The ceiling is 0.8 × radius; the ideal is 0.2 × radius.
  */
@@ -180,7 +180,7 @@ export function getAllBodies(): BodyDefinition[] {
   return Array.from(bodies.values());
 }
 
-/** For use in tests only — resets the body registry to empty. */
+/** For use in tests only, resets the body registry to empty. */
 export function clearBodies(): void {
   bodies.clear();
 }

@@ -18,11 +18,11 @@ import { OrbitalAscentComponent } from "./index";
  * `vessel.identity.parentBodyIndex` against `system.bodies`). The reference
  * curve is then computed client-side from the body registry. The two plotted
  * series (`v.altitude`/`v.horizontalVelocity`) go through the shared GraphView
- * path and are left empty here — the assertions only cover the body-driven
+ * path and are left empty here, the assertions only cover the body-driven
  * reference curve, so no series data is emitted.
  */
 
-// All eight vessel.state inputs — the carried-channels gate is
+// All eight vessel.state inputs: the carried-channels gate is
 // parent-channel-scoped, so the whole set must be carried for
 // parentBodyName to route off the stream.
 const VESSEL_STATE_INPUTS = [
@@ -38,7 +38,7 @@ const VESSEL_STATE_INPUTS = [
 
 describe("OrbitalAscentComponent", () => {
   // Trees are unmounted synchronously in afterEach before clearBodies()
-  // notifies the body-registry subscribers — that notification re-renders a
+  // notifies the body-registry subscribers, that notification re-renders a
   // still-mounted widget, the act() anti-pattern. RTL auto-cleanup runs after
   // this hook, too late to rely on for the ordering.
   const trees: Array<() => void> = [];

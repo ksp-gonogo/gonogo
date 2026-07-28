@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "empty",
-    "notes": "No contracts — muted empty state."
+    "notes": "No contracts: muted empty state."
   },
   "contracts.active": []
 }

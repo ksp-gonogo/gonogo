@@ -11,7 +11,7 @@ import type { PeerMessage } from "../peer/protocol";
 // Hand-rolled fakes mirror the surface FogSyncHostService actually
 // touches. The service ignores everything else on PeerHostService and
 // FogMaskStore, so the cast back to the real types is a deliberate
-// "trust me, this is enough" — much cheaper than mocking the full
+// "trust me, this is enough", much cheaper than mocking the full
 // interfaces just to satisfy structural type checks.
 interface FakeHost {
   service: PeerHostService;
@@ -71,7 +71,7 @@ function makeFakeFogStore(masks: StoredMask[] = []): FakeFogStore {
 // flushMicrotasks lets the service's async sendSnapshot resolve before
 // we make assertions. The host fakes synchronously fire
 // `peerConnectListeners`, but the service kicks off a Promise chain
-// (load → send) — one queued microtask round isn't enough; await a
+// (load → send): one queued microtask round isn't enough; await a
 // macrotask via setTimeout 0 to drain the queue reliably.
 const flushMacrotask = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -180,7 +180,7 @@ describe("FogSyncHostService", () => {
     await flushMacrotask();
 
     expect(host.sentMessages).toEqual([]);
-    // Still wired up afterwards — a one-off failure shouldn't poison
+    // Still wired up afterwards: a one-off failure shouldn't poison
     // future connects.
     fogStore.loadAllForProfile.mockResolvedValueOnce([
       makeStoredMask("Kerbin", [1]),
@@ -208,7 +208,7 @@ describe("FogSyncHostService", () => {
     expect(fogStore.loadAllForProfile).not.toHaveBeenCalled();
   });
 
-  it("start() is idempotent — double-start doesn't double-send", async () => {
+  it("start() is idempotent, double-start doesn't double-send", async () => {
     fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
     const sync = new FogSyncHostService({
       peerHost: host.service,

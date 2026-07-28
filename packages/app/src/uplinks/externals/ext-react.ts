@@ -1,5 +1,5 @@
 // FINDING (R1 spike): `export * from "react"` does NOT propagate react's named
-// exports through Rollup's CJS interop — a runtime importer of `useEffect` etc.
+// exports through Rollup's CJS interop: a runtime importer of `useEffect` etc.
 // fails to link ("does not provide an export named 'useEffect'"). react is CJS;
 // its named surface must be re-exported EXPLICITLY. This is exactly why the
 // design's SDK facade (a curated, explicit re-export surface) is the right shape

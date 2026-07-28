@@ -2,8 +2,8 @@
  * Feature-detect the Web Serial API and, when it's missing, work out *why* so
  * the UI can give actionable advice instead of a dead-end "not supported".
  *
- * Two failure modes look identical at the `navigator.serial` level — the
- * property is simply absent in both — but have completely different fixes:
+ * Two failure modes look identical at the `navigator.serial` level, the
+ * property is simply absent in both, but have completely different fixes:
  *
  *  - **insecure-context**: the browser *does* ship Web Serial, but only exposes
  *    `navigator.serial` in a secure context (HTTPS, or http://localhost). Load
@@ -29,7 +29,7 @@ export function getWebSerialSupport(): WebSerialSupport {
     }
   }
   // `navigator.serial` is absent. If the page isn't a secure context, that's
-  // almost certainly the cause — the implementation is there but gated.
+  // almost certainly the cause: the implementation is there but gated.
   if (typeof window !== "undefined" && window.isSecureContext === false) {
     return { supported: false, reason: "insecure-context" };
   }

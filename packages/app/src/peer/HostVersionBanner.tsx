@@ -15,7 +15,7 @@ interface Props {
  * (top: 56px in the UI primitive) so signal loss takes precedence when
  * both are active.
  *
- * Patch-only differences are silent — they don't render a banner,
+ * Patch-only differences are silent, they don't render a banner,
  * matching the doc's UX table (tooltip only, no visible chrome).
  */
 export function HostVersionBanner({ client }: Props) {
@@ -33,12 +33,12 @@ export function HostVersionBanner({ client }: Props) {
     if (kind === "same") return;
     if (kind === "patch") {
       logger.info(
-        `[version] patch-only difference with host — local=${VERSION} remote=${hostVersion?.version}`,
+        `[version] patch-only difference with host: local=${VERSION} remote=${hostVersion?.version}`,
       );
       return;
     }
     logger.warn(
-      `[version] mismatch with host — local=${VERSION} remote=${hostVersion?.version ?? "?"} kind=${kind}`,
+      `[version] mismatch with host: local=${VERSION} remote=${hostVersion?.version ?? "?"} kind=${kind}`,
     );
   }, [kind, hostVersion?.version]);
 

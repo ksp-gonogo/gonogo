@@ -45,7 +45,7 @@ function Probe({
 
 /**
  * `useVesselDeltaV` reads `dv.stages` via the canonical one-arg
- * `useTelemetry` — the retired `("data", "dv.stages")` shim read never had a
+ * `useTelemetry`: the retired `("data", "dv.stages")` shim read never had a
  * live legacy `DataSource` behind it in production (`"data"` is never
  * registered), so these tests now exercise the real
  * `TelemetryProvider`/`TelemetryClient` stream pipeline instead of a
@@ -85,7 +85,7 @@ describe("useVesselDeltaV", () => {
   });
 
   // `dv.stages` is UN-GAPPED (P4a shared-map batch) but rides an IDENTICAL
-  // topic key off either transport — the new mod's `StageDeltaVEntry` uses
+  // topic key off either transport: the new mod's `StageDeltaVEntry` uses
   // `dvVac`/`dvAsl` instead of the legacy `deltaVVac`/`deltaVASL`. Proves
   // the hook normalizes the new field names rather than silently summing
   // to NaN now that `dv.stages` always rides the stream (mirrors

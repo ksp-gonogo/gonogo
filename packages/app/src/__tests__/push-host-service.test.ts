@@ -3,7 +3,7 @@ import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { PushHostService } from "../pushToMain/PushHostService";
 
-// Thin fake — just the handlers PushHostService subscribes to.
+// Thin fake: just the handlers PushHostService subscribes to.
 interface FakeHost {
   service: PeerHostService;
   firePush: (
@@ -163,7 +163,7 @@ describe("PushHostService", () => {
     expect(changes).toHaveBeenCalledWith([]);
   });
 
-  it("dispose detaches listeners — no more notifications", () => {
+  it("dispose detaches listeners: no more notifications", () => {
     const fake = makeFakeHost();
     const svc = new PushHostService(fake.service);
     const changes = vi.fn();

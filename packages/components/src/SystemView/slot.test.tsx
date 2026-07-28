@@ -18,22 +18,22 @@ import {
 
 /**
  * SystemView augment-slot exposure (Uplink architecture). The widget is a
- * HOST exposing three slots — `system-view.actions` (header control row),
+ * HOST exposing three slots: `system-view.actions` (header control row),
  * `system-view.overlay` (layered over the body diagram, passed the diagram's
  * projection as typed slot props), and `system-view.badges` (broad header
  * escape-hatch). No first-party augment fills them here (that's an Uplink
  * augment): an empty slot must render cleanly, and a test augment registered
- * into one must appear — the overlay augment receiving the diagram projection.
+ * into one must appear, the overlay augment receiving the diagram projection.
  *
- * Everything (the body tree included) rides the stream — `useCelestialBodies`
+ * Everything (the body tree included) rides the stream, `useCelestialBodies`
  * reads `system.bodies`, no legacy `MockDataSource` leg.
  */
 
 const KERBIN_MU = 3.5316e12;
 
-describe("SystemView — augment slots (spec §4)", () => {
+describe("SystemView: augment slots (spec §4)", () => {
   let fixture: StreamFixture;
-  // Unmount each rendered tree BEFORE clearing the augment registry — a clear
+  // Unmount each rendered tree BEFORE clearing the augment registry, a clear
   // firing on a still-mounted widget is a state update outside act(). RTL
   // auto-cleanup runs after this file's afterEach, too late to unmount first.
   const renderedTrees: Array<() => void> = [];

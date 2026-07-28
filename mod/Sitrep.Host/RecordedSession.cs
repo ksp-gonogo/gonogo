@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// The full recorded timeline for one capture session — what Task 2's
+    /// The full recorded timeline for one capture session, what Task 2's
     /// <c>Recorder</c> writes to a file and <c>ReplayKspHost</c> reads back.
     /// Raw and additive by design (see the M5b plan's record-format spec): a
     /// new provider just adds keys to a snapshot's
@@ -14,8 +14,8 @@ namespace Sitrep.Host
     ///
     /// Plain POCOs all the way down (no delegates, no reference-type fields
     /// other than nested POCOs/collections) so Task 2's hand-rolled
-    /// <c>Sitrep.Core.Serialization.JsonWriter</c> (already zero-external-dep
-    /// — see <c>NanPolicy</c>) can walk this shape directly, with no external
+    /// <c>Sitrep.Core.Serialization.JsonWriter</c> (already zero-external-dep;
+    /// see <c>NanPolicy</c>) can walk this shape directly, with no external
     /// JSON library needed in Sitrep.Host.
     /// </summary>
     public sealed class RecordedSession
@@ -35,7 +35,7 @@ namespace Sitrep.Host
     /// <see cref="Event"/> is populated, matching <see cref="Kind"/>. Two
     /// nullable payload slots (rather than a single polymorphic
     /// <c>object? Payload</c> field) keep every field statically typed and
-    /// plainly serializable without needing a discriminated-union writer —
+    /// plainly serializable without needing a discriminated-union writer,
     /// Task 2's writer just checks <see cref="Kind"/> and appends whichever
     /// slot is non-null.
     /// </summary>

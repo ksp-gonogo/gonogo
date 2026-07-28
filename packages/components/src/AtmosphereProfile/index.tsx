@@ -40,7 +40,7 @@ function buildPressureCurve(
     // The log axis can't show zero, and clamping the beyond-atmosphere tail
     // to a tiny positive drew a long flat line at the chart floor that read
     // as "constant residual pressure in vacuum". Once pressure reaches zero
-    // the atmosphere has ended — stop the curve there rather than dragging a
+    // the atmosphere has ended, stop the curve there rather than dragging a
     // misleading floor segment across the rest of the plot.
     if (p <= 0) break;
     xs.push(altitude);
@@ -61,9 +61,9 @@ function AtmosphereProfileComponent({
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
   // Canonical native reads: `v.body`/`v.altitude` off the `vessel.state`
-  // derived channel (SDK-side `deriveVesselState` — `parentBodyName`/
+  // derived channel (SDK-side `deriveVesselState`: `parentBodyName`/
   // `altitudeAsl`), `v.atmosphericDensity`/`v.atmosphericTemperature`/
-  // `v.externalTemperature` off the raw `vessel.flight` Topic — replacing
+  // `v.externalTemperature` off the raw `vessel.flight` Topic: replacing
   // every legacy two-arg `data`-source shim read this widget used to make.
   const vesselState = useStream<VesselState>("vessel.state");
   const flight = useTelemetry("vessel.flight");
@@ -74,7 +74,7 @@ function AtmosphereProfileComponent({
   const liveAirTemp = flight?.atmosphericTemperature;
   const liveSkinTemp = flight?.externalTemperature;
   // Connectivity indicator (mirrors the pattern used elsewhere in this widget
-  // family) — left on the legacy `useDataStreamStatus` two-arg shim
+  // family): left on the legacy `useDataStreamStatus` two-arg shim
   // (untouched by this migration; `v.altitude` still resolves to the same
   // `vessel.state.altitudeAsl` subtopic the badge tracks).
   const streamStatus = useDataStreamStatus("data", "v.altitude");
@@ -88,7 +88,7 @@ function AtmosphereProfileComponent({
   // threshold label sweeps left across the whole plot and collides with both
   // the legend chip and the Y-axis tick labels. We can't reposition either
   // element (that's shared LineChart chrome), but both *strings* are
-  // widget-owned — shortening them pulls the right-anchored label's left edge
+  // widget-owned: shortening them pulls the right-anchored label's left edge
   // back toward the right edge and shrinks the legend chip, clearing the
   // overlap. Same responsive trick already used for the panel title.
   const narrow = cols < 6;
@@ -139,7 +139,7 @@ function AtmosphereProfileComponent({
 
   const graphConfig: GraphConfig = useMemo(
     () => ({
-      // No live series — the widget is a static body-aware reference plot
+      // No live series: the widget is a static body-aware reference plot
       // with the threshold pulling out the current altitude's pressure.
       series: [],
       windowSec: 60,
@@ -153,7 +153,7 @@ function AtmosphereProfileComponent({
   const showNoModelNotice = body?.hasAtmosphere && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
-  // Live readout chip — only meaningful when we're actually in atmosphere
+  // Live readout chip: only meaningful when we're actually in atmosphere
   // (density picks up). Outside it, density reads ~0 / NaN and the chip is
   // noise. Also suppress on very small widgets where the chip would
   // obscure most of the chart it's annotating.
@@ -178,7 +178,7 @@ function AtmosphereProfileComponent({
           title={title}
           // `GraphView`'s `WidgetHeader` always renders its actions wrapper
           // when the prop is truthy, even if the child itself renders
-          // nothing — unlike the other migrated widgets (which inline
+          // nothing: unlike the other migrated widgets (which inline
           // `StreamStatusBadge` directly in a flex title row), this leaves
           // an empty `<div>` in the header for the common "live" case
           // unless we gate on `formatStreamStatus` ourselves.
@@ -197,7 +197,7 @@ function AtmosphereProfileComponent({
       {/* `showAirlessNotice` would duplicate the GraphView empty-state
           ("No atmosphere on Mun.") that already fires when buildPressureCurve
           returns null for an airless body. Suppress the Notice for that
-          case — `showNoModelNotice` and `showNoBodyNotice` stay because
+          case: `showNoModelNotice` and `showNoBodyNotice` stay because
           they describe a missing-data state where the chart is still
           attempting to render and the operator needs the explanation. */}
       {showNoModelNotice && body && (
@@ -253,7 +253,7 @@ const Wrap = styled.div`
 `;
 
 /* Notice sits below the chart as a normal flow row rather than an
-   absolute overlay — the absolute version covered the x-axis tick
+   absolute overlay: the absolute version covered the x-axis tick
    labels at narrow heights. The LiveChip remains a HUD-style overlay
    (sized down via showLiveChip on small widgets). */
 const Notice = styled.div`

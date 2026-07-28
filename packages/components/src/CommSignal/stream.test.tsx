@@ -1,33 +1,34 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
  * CommSignal genuinely running off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` — no legacy
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`: no legacy
  * `DataSource` is registered anywhere in this file.
  *
  * All five reads are clean homes now (`map-topic.ts`):
  * - `comm.connected` -> `comms.link.connected` (the dedicated Delayed,
- *   freeze-exempt connectivity MetaTopic — comms-delay-model-consistency spec),
+ *   freeze-exempt connectivity MetaTopic: comms-delay-model-consistency spec),
  *   `comm.signalStrength` -> `vessel.comms.signalStrength` (raw field subtopic
  *   of the `vessel.comms` struct).
  * - `comm.controlState` -> `vessel.state.commsControlStateOrdinal`,
  *   `comm.controlStateName` -> `vessel.state.commsControlStateName` (both
- *   SDK-derived off `vessel.comms.controlState`'s rich `ControlState` enum —
+ *   SDK-derived off `vessel.comms.controlState`'s rich `ControlState` enum:
  *   so carrying them means carrying every `vesselStateChannel` input).
  * - `comm.signalDelay` -> `comms.delay.oneWaySeconds`.
  *
  * A fixture that carries only `vessel.comms` therefore streams
  * connected/signalStrength but leaves control state + delay unresolved (their
- * derived/other homes aren't carried, and no legacy source exists here) — the
- * widget renders the `describeControl`/delay "—" placeholders. The
+ * derived/other homes aren't carried, and no legacy source exists here), the
+ * widget renders the `describeControl`/delay NULL_DISPLAY placeholders. The
  * final test carries the full set to prove control state + delay stream too.
  */
-// Every input `vesselStateChannel` declares (vessel-state.ts) plus `comms.delay`
-// — the full allowlist needed for control state + delay to be carried.
+// Every input `vesselStateChannel` declares (vessel-state.ts) plus `comms.delay`,
+// the full allowlist needed for control state + delay to be carried.
 const FULL_CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -40,7 +41,7 @@ const FULL_CARRIED = [
   "comms.delay",
 ];
 
-describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
+describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   it("reads connected/signalStrength off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
@@ -55,11 +56,11 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — hasData is false (connected/strength/
+    // Nothing arrived yet: hasData is false (connected/strength/
     // controlState all undefined), so the empty state renders.
     expect(screen.getByText("No signal data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
 
@@ -75,9 +76,9 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control state (derived, needs the full vessel.state input set) and delay
     // (comms.delay) aren't carried in THIS fixture, and there's no legacy
-    // source, so `describeControl` falls through to "—" and the delay
-    // readout renders its "—" placeholder — two independent "—" cells.
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    // source, so `describeControl` falls through to NULL_DISPLAY and the delay
+    // readout renders its NULL_DISPLAY placeholder, two independent NULL_DISPLAY cells.
+    expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
 
@@ -106,7 +107,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
       await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
 
-      // Signal lost — the wire actively reports connected:false on comms.link
+      // Signal lost: the wire actively reports connected:false on comms.link
       // (not silence/absence). The widget must show LOS, not hold the stale 87%.
       act(() => {
         fixture.emit("comms.link", { connected: false });
@@ -122,7 +123,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
       expect(screen.getByLabelText("Signal 0 of 4")).toBeTruthy();
       expect(screen.getByText("No signal")).toBeTruthy();
       // The polite live region announces the loss (not a live-regioned
-      // percentage — see the component's own a11y doc comment).
+      // percentage: see the component's own a11y doc comment).
       expect(screen.getByText("Signal lost")).toBeTruthy();
 
       // Signal regained.
@@ -138,7 +139,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("holds the last-known value when the wire goes silent (no clear-on-disconnect)", async () => {
     // A TelemetryProvider mounted, `vessel.comms` carried. No further wire
-    // activity after the initial value — simulating the underlying
+    // activity after the initial value: simulating the underlying
     // connection having gone silent. The streamed path does NOT clear to
     // undefined the way the retired legacy `DataSource` did on a status
     // drop; it holds the last-known value instead of clearing it.
@@ -162,14 +163,14 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("90%")).toBeTruthy());
-    // No new wire samples, no status event at all — nothing further happens
+    // No new wire samples, no status event at all, nothing further happens
     // by design. The value must still be showing.
     expect(screen.getByText("90%")).toBeTruthy();
     expect(screen.queryByText("No signal data")).toBeNull();
   });
 
   it(
-    "under delay>0, a newer sample doesn't win until the delay elapses — " +
+    "under delay>0, a newer sample doesn't win until the delay elapses, " +
       "renders the OLDER confirmed value in the meantime, then catches up",
     async () => {
       // `pinnedUt` is deliberately OMITTED: ViewClock.viewUt()'s scrubTo
@@ -196,12 +197,12 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
           { validAt: 0, deliveredAt: 0 },
         );
       });
-      // Nothing renders yet — even sample A hasn't crossed the delay window
+      // Nothing renders yet, even sample A hasn't crossed the delay window
       // (confirmedEdgeUt = utNowEstimate() - delaySeconds is negative before
       // any wall time has passed).
       expect(screen.getByText("No signal data")).toBeTruthy();
 
-      // Advance the wall by exactly the delay — sample A crosses the confirmed
+      // Advance the wall by exactly the delay, sample A crosses the confirmed
       // edge. Nothing else drives a frame refresh between ingests, so the test
       // calls `beginFrame()` itself to apply the new wall time.
       act(() => {
@@ -250,7 +251,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
 
     act(() => {
       // The derived `vessel.state.commsControlState*` fields require
-      // `vessel.orbit` present — `deriveVesselState` returns the whole record
+      // `vessel.orbit` present: `deriveVesselState` returns the whole record
       // only once the vessel has an orbit (vessel-state.ts).
       fixture.emit("vessel.orbit", {
         sma: 680000,
@@ -274,7 +275,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     });
 
     // Derived control state resolves off vessel.comms via the vessel.state
-    // channel; delay off comms.delay — both streamed, no legacy source.
+    // channel; delay off comms.delay: both streamed, no legacy source.
     await waitFor(() => expect(screen.getByText("Partial")).toBeTruthy());
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
     // ceil(0.4 * 4) = 2 lit bars.

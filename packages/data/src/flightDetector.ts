@@ -45,7 +45,7 @@ const REVERT_THRESHOLD_SEC = 5;
  * Caller is responsible for persisting the returned record via the Store.
  *
  * The detector mutates its own internal map but never touches the returned
- * FlightRecord references beyond producing them — callers can safely store
+ * FlightRecord references beyond producing them: callers can safely store
  * them without defensive copies.
  */
 export class FlightDetector {
@@ -69,7 +69,7 @@ export class FlightDetector {
   }
 
   /**
-   * Forget a flight — used when the user deletes one via the flights
+   * Forget a flight: used when the user deletes one via the flights
    * manager. If it's the current flight, the next sample mints a new one.
    */
   forget(id: string): void {
@@ -99,7 +99,7 @@ export class FlightDetector {
       ? (this.knownByUid.get(input.vesselUid) ?? null)
       : null;
 
-    // UID path — authoritative once we have it (Phase 6).
+    // UID path: authoritative once we have it (Phase 6).
     if (uidMatch) {
       if (this.current?.id === uidMatch.id) {
         return this.appendTo(this.current, input);
@@ -112,7 +112,7 @@ export class FlightDetector {
       return this.appendTo(uidMatch, input, "resume");
     }
 
-    // Heuristic path — vessel name + mission time.
+    // Heuristic path: vessel name + mission time.
     if (!this.current) {
       return this.resumeOrLaunch(input);
     }
@@ -131,7 +131,7 @@ export class FlightDetector {
       return this.appendTo(this.current, input);
     }
 
-    // Vessel name changed — control switched to a different ship.
+    // Vessel name changed: control switched to a different ship.
     return this.resumeOrLaunch(input);
   }
 
@@ -153,14 +153,14 @@ export class FlightDetector {
 
   private resumable(known: FlightRecord, input: DetectorInput): boolean {
     // Mission time must be at or after what we last saw (or within revert
-    // tolerance — if it's a fresh relaunch of a same-named vessel, mission
+    // tolerance: if it's a fresh relaunch of a same-named vessel, mission
     // time resets to ~0 and we want a new flight).
     if (input.missionTime < known.lastMissionTime - REVERT_THRESHOLD_SEC) {
       return false;
     }
     // Wall-clock gap shouldn't wildly exceed the mission-time gap. If a
     // day of wall-clock has passed with only seconds of mission time gain,
-    // it's probably a fresh session on the same saved ship — treat as new.
+    // it's probably a fresh session on the same saved ship; treat as new.
     const missionGapMs = Math.max(
       0,
       (input.missionTime - known.lastMissionTime) * 1000,

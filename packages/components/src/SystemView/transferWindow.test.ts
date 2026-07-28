@@ -7,7 +7,7 @@ import {
 
 describe("hohmannPhaseAngle", () => {
   it("matches the Earth → Mars textbook value of +44°", () => {
-    // Real solar-system AU, exact ratios don't matter — the formula is
+    // Real solar-system AU, exact ratios don't matter, the formula is
     // dimensionless in (rA + rB)/rB.
     const θ = hohmannPhaseAngle(1.0, 1.524);
     expect(θ).toBeCloseTo(44.4, 1);

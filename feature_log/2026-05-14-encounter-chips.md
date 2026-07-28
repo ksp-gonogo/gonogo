@@ -1,7 +1,7 @@
-# Encounter + next-apsis chips — TargetPicker / MapView / SystemView
+# Encounter + next-apsis chips: TargetPicker / MapView / SystemView
 
 **Date:** 2026-05-14
-**Validation:** ⏳ pending — landed and tested in CI (full suite green, lint
+**Validation:** ⏳ pending: landed and tested in CI (full suite green, lint
 + typecheck clean). Not yet exercised against a live KSP flight that
 crosses an SOI boundary.
 
@@ -15,8 +15,8 @@ were missing.
 New shared chip component `packages/components/src/shared/OrbitalEventChips.tsx`
 renders a row with two optional chips:
 
-- **ENC / ESCAPE** — body + countdown to SOI transition.
-- **NEXT** — `Pe` or `Ap` + countdown.
+- **ENC / ESCAPE**: body + countdown to SOI transition.
+- **NEXT**: `Pe` or `Ap` + countdown.
 
 Renders nothing when neither has data, so the host header collapses in the
 common steady-orbit case.
@@ -52,35 +52,35 @@ because apsides only make sense relative to the vessel's parent.
 
 `Telemachus/src/VesselDataHandlers.cs:443-531`:
 
-- `o.encounterExists` — int. `-1` = escape (leaving current SOI), `0` =
+- `o.encounterExists`: int. `-1` = escape (leaving current SOI), `0` =
   none, `1` = encounter (entering another body's SOI).
-- `o.encounterBody` — string. For ENCOUNTER: the next patch's reference
+- `o.encounterBody`: string. For ENCOUNTER: the next patch's reference
   body. For ESCAPE: the *grandparent* (escaping Mun's SOI returns
   `"Kerbin"`). Empty string when none.
-- `o.encounterTime` — already a delta (seconds until transition), not an
+- `o.encounterTime`: already a delta (seconds until transition), not an
   absolute UT. Returns `-1` sentinel when no transition.
-- `o.UTsoi` — absolute UT of the transition. Not currently read by any
+- `o.UTsoi`: absolute UT of the transition. Not currently read by any
   widget; surfaced in the schema for future use.
-- `o.nextApsisType` — `-1` = Pe, `1` = Ap, `0` = N/A (hyperbolic past Pe).
-- `o.timeToNextApsis` — seconds. `NaN` for the hyperbolic past-Pe case.
+- `o.nextApsisType`: `-1` = Pe, `1` = Ap, `0` = N/A (hyperbolic past Pe).
+- `o.timeToNextApsis`: seconds. `NaN` for the hyperbolic past-Pe case.
 
-`o.encounterExists !== 0` is the master gate per advisor — the fork doesn't
+`o.encounterExists !== 0` is the master gate per advisor, the fork doesn't
 guard `UTsoi` etc. when no transition is pending, so values there are
 stale.
 
 ## Files
 
-- `packages/core/src/schemas/telemachus.ts` — six new keys.
-- `packages/data/src/schema/telemachusMeta.ts` — six new meta entries.
-- `packages/components/src/shared/OrbitalEventChips.tsx` — new shared
+- `packages/core/src/schemas/telemachus.ts`: six new keys.
+- `packages/data/src/schema/telemachusMeta.ts`: six new meta entries.
+- `packages/components/src/shared/OrbitalEventChips.tsx`: new shared
   vessel-wide chip row.
-- `packages/components/src/TargetPicker/index.tsx` — chip row +
+- `packages/components/src/TargetPicker/index.tsx`: chip row +
   `dataRequirements` additions.
-- `packages/components/src/MapView/index.tsx` — chip in header,
+- `packages/components/src/MapView/index.tsx`: chip in header,
   encounter-point marker on prediction overlay, `dataRequirements`.
-- `packages/components/src/SystemView/index.tsx` — encounter / apsis
+- `packages/components/src/SystemView/index.tsx`: encounter / apsis
   props plumbed through to AlmanacPanel; `dataRequirements`.
-- `packages/components/src/SystemView/AlmanacPanel.tsx` — four new
+- `packages/components/src/SystemView/AlmanacPanel.tsx`: four new
   optional props + matching row formatters.
 
 ## Validation checklist (next live session)
@@ -93,13 +93,13 @@ stale.
   like "ESCAPE · Kerbin · 2m 14s".
 - TargetPicker shows the same chip below the title independent of which
   tab is active; compact (`!showTabs`) branch should NOT render it.
-- SystemView: focus the body the vessel is heading for — the encounter
-  row appears in AlmanacPanel; focus the vessel's current parent — the
+- SystemView: focus the body the vessel is heading for, the encounter
+  row appears in AlmanacPanel; focus the vessel's current parent, the
   "Next Pe" / "Next Ap" row appears.
 - Test the **open question from the followups doc**: does
   `o.encounterTime` count down sensibly through warps? (Stock KSP keeps
   it relative-to-now even under warp, so it should.)
-- ESCAPE label copy — confirm "ESCAPE · Kerbin · 2m 14s" reads cleanly
+- ESCAPE label copy: confirm "ESCAPE · Kerbin · 2m 14s" reads cleanly
   in practice; tweak if it scans as "we are escaping Kerbin" rather
   than "we will re-enter Kerbin's SOI".
 

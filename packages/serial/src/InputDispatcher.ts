@@ -4,7 +4,7 @@ import type { SerialDeviceService } from "./SerialDeviceService";
 import type { InputEvent } from "./transports/DeviceTransport";
 
 /**
- * Minimal shape the dispatcher needs from each dashboard item — structural
+ * Minimal shape the dispatcher needs from each dashboard item, structural
  * so @ksp-gonogo/app's `DashboardItem` satisfies it without an explicit import
  * (keeps the dependency flowing app → serial, not the other way).
  */
@@ -32,7 +32,7 @@ interface Options {
  *        → for each dashboard item with a matching mapping,
  *            dispatchAction(instanceId, actionId, payload)
  *        → handler returns { key: value, ... }
- *        → SerialDeviceService.recordActionReturn — debounced render → transport.write()
+ *        → SerialDeviceService.recordActionReturn: debounced render → transport.write()
  *
  * Constructed per-screen; the owner calls `dispose()` on unmount.
  */

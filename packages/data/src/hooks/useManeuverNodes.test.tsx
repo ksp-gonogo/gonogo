@@ -30,7 +30,7 @@ function Probe({
 /**
  * `useManeuverNodes` reads the `vessel.maneuver.legacy` derived channel
  * (`maneuver-legacy.ts`, reshaping the raw `vessel.maneuver` wire topic) via
- * `useStream` — the retired `("data", "o.maneuverNodes")` shim read never had
+ * `useStream`: the retired `("data", "o.maneuverNodes")` shim read never had
  * a live legacy `DataSource` behind it in production, so these tests exercise
  * the real `TelemetryProvider`/`TelemetryClient` stream pipeline (emitting raw
  * `vessel.maneuver`) instead of a `MockDataSource` under id `"data"`.

@@ -11,7 +11,7 @@ import type { CelestialBody } from "../SystemView/useCelestialBodies";
 
 /*
  * Pure bridge between the streamed body model (`CelestialBody`, elements in
- * radians) and the core transfer math. No React, no side effects — the widget
+ * radians) and the core transfer math. No React, no side effects, the widget
  * calls these; tests exercise them directly.
  */
 
@@ -41,7 +41,7 @@ export function bodyTrueLongitudeDeg(body: CelestialBody): number | null {
 
 /**
  * Current phase angle (degrees, wrapped to (−180,180]) of `dest` relative to
- * `origin` — how far the destination leads (+) or trails (−) the origin as
+ * `origin`: how far the destination leads (+) or trails (−) the origin as
  * seen from their shared parent. Compared against the Hohmann ideal.
  */
 export function phaseAngleDeg(
@@ -139,7 +139,7 @@ export interface PorkchopBuildInput {
   /** Arrival-axis samples. Default 32. */
   arrivalSamples?: number;
   /**
-   * UT the grid centres its departure axis on — the ideal departure of the
+   * UT the grid centres its departure axis on, the ideal departure of the
    * window being shown. Default `nowUt`. Set it (from a selected window's
    * `departureUt`) to focus the chart on that window's Δv surface.
    */
@@ -153,8 +153,8 @@ export interface PorkchopBuildInput {
  * The grid is a tight WINDOW around the transfer optimum, not a broad survey:
  * departure spans `centerDep ± 0.4·T_Hohmann`, arrival is centred on
  * `centerDep + T_Hohmann` and spans `± 0.4·T_Hohmann`. That keeps the time of
- * flight in `[0.2, 1.8]·T_Hohmann` across every cell — always positive, never
- * near-degenerate — so the whole grid solves and the Δv field is a smooth bowl
+ * flight in `[0.2, 1.8]·T_Hohmann` across every cell; always positive, never
+ * near-degenerate: so the whole grid solves and the Δv field is a smooth bowl
  * with a single central minimum (it contours to the canonical nested-bullseye
  * porkchop). A broad survey would fold in the arr≤dep triangle and the
  * long-TOF / multi-rev region, punching no-solution holes through the plot.
@@ -219,7 +219,7 @@ export interface TransferWindowEntry {
   departureUt: number;
   /** Seconds from now until departure. */
   waitSeconds: number;
-  /** Characteristic transfer Δv (m/s) — the porkchop optimum. */
+  /** Characteristic transfer Δv (m/s): the porkchop optimum. */
   deltaV: number;
   /** Ejection burn Δv from the parking orbit (m/s). */
   ejectionDeltaV: number;

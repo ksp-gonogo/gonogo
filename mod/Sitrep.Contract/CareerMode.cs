@@ -5,11 +5,11 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The game's save mode, mirroring KSP's <c>Game.Modes</c> — the ground-side
+/// The game's save mode, mirroring KSP's <c>Game.Modes</c>, the ground-side
 /// fact that decides which career surfaces (funds, tech tree, contracts,
 /// strategies, facility upgrades) are even meaningful. Distinct from
 /// <c>CareerStatus</c>: that payload is <c>null</c> in sandbox/science (no
-/// <c>Funding</c>/<c>ContractSystem</c> to read), so it can't carry the mode —
+/// <c>Funding</c>/<c>ContractSystem</c> to read), so it can't carry the mode,
 /// a save can be in <see cref="Sandbox"/> or <see cref="Science"/> and still
 /// need widgets to know which one. Hence <c>career.mode</c> is its OWN topic,
 /// emitted in ALL modes.
@@ -34,18 +34,18 @@ public enum GameMode
 }
 
 /// <summary>
-/// The <c>career.mode</c> channel payload — a single <see cref="GameMode"/>,
+/// The <c>career.mode</c> channel payload: a single <see cref="GameMode"/>,
 /// the active save's mode. Produced by
 /// <c>Sitrep.Host.CareerViewProvider.BuildCareerMode</c>, which reads the raw
 /// <c>Game.Modes.ToString()</c> string <c>Gonogo.KSP.KspHost</c> captures each
 /// tick. The whole payload is <c>null</c> only when no game is loaded at all
-/// (main menu / no save) — a "no data yet" absence, never a fabricated mode;
+/// (main menu / no save): a "no data yet" absence, never a fabricated mode;
 /// once a save is loaded the mode is always one of the four
 /// <see cref="GameMode"/> members.
 ///
 /// <para><b>Typing-only mirror.</b> This type reproduces the EXACT serialized
 /// shape <c>CareerViewProvider.BuildCareerMode</c> emits (<c>{ "mode": &lt;int&gt; }</c>,
-/// the enum's integer ordinal, matching every other enum in this codec — see
+/// the enum's integer ordinal, matching every other enum in this codec; see
 /// <c>Sitrep.Core.Serialization.JsonWriter</c>). It is a codegen marker, not
 /// serialized itself.</para>
 /// </summary>

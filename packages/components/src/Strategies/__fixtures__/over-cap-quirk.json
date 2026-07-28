@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "KSP over-cap quirk: 3 strategies active while the admin building cap is 2. KSP's in-game UI silently allows this if the save was carried forward from a session before the building was downgraded. The widget header shows '3 active' with no warning that this exceeds the cap — the over-cap state is invisible to the operator.",
+    "notes": "KSP over-cap quirk: 3 strategies active while the admin building cap is 2. KSP's in-game UI silently allows this if the save was carried forward from a session before the building was downgraded. The widget header shows '3 active' with no warning that this exceeds the cap, the over-cap state is invisible to the operator.",
     "scenario": "over-cap-quirk"
   },
   "strategies.all": [

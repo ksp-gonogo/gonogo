@@ -16,7 +16,7 @@ import type { DeviceType } from "../types";
 const trace = logger.tag("serial:wizard");
 
 // 115200 is the modern Arduino-class default; 9600 is legacy. The other
-// rates are uncommon but not unheard of — surface them rather than make
+// rates are uncommon but not unheard of, surface them rather than make
 // users edit JSON. Wrong baud → garbled bytes → no newlines surface →
 // wizard hangs at "press a button" indefinitely.
 const COMMON_BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 230400] as const;
@@ -34,7 +34,7 @@ type Step =
   | { kind: "error"; message: string; cleanup?: () => Promise<void> }
   /**
    * The picked port matches the VID/PID of a device already registered
-   * on this screen — almost always because it was paired the manual way
+   * on this screen: almost always because it was paired the manual way
    * and autoReconnect grabbed it on screen mount, holding the port open.
    * Offering "remove & retry" lets the user migrate to self-describing
    * without going through the type editor first.
@@ -57,13 +57,13 @@ type DeviceServiceShape = ReturnType<typeof useSerialDeviceService>;
  * Two strategies, in order:
  *   1. Port identity. If any existing managed transport's live SerialPort
  *      is the same JS object the browser just handed us, that's a
- *      collision — reliable even when VID/PID is 0 or undefined.
+ *      collision: reliable even when VID/PID is 0 or undefined.
  *   2. VID/PID match, but ONLY when the picked port has a real
  *      `usbVendorId`. Otherwise `undefined === undefined` would falsely
  *      collapse every VID-less device into a single match.
  *
  * Strategy 1 misses across screen reloads (port references aren't
- * persisted), which is fine — autoReconnect repopulates the live port
+ * persisted), which is fine, autoReconnect repopulates the live port
  * before the user can hit the wizard again.
  */
 function findConflict(
@@ -71,7 +71,7 @@ function findConflict(
   port: SerialPort,
   portInfo: { usbVendorId?: number; usbProductId?: number },
 ) {
-  // Identity match first — most reliable.
+  // Identity match first: most reliable.
   for (const d of svc.getDevices()) {
     if (d.transport !== "web-serial") continue;
     const transport = svc.getTransport(d.id) as
@@ -123,7 +123,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
   // While in awaiting, listen for any sign of life: schema announcement,
   // parsed input event, OR raw line. The first two only fire if the device
   // already speaks json-state cleanly; raw lines catch the case where the
-  // device IS streaming but the parser hasn't recognised it yet — without
+  // device IS streaming but the parser hasn't recognised it yet, without
   // that fallback the wizard hangs on devices the user knows are talking.
   useEffect(() => {
     if (step.kind !== "awaiting") return;
@@ -165,7 +165,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     try {
       port = await navigator.serial.requestPort();
     } catch (err) {
-      // User-cancelled the browser's port picker — return to the start
+      // User-cancelled the browser's port picker: return to the start
       // without raising; bail entirely if it's a real error.
       logger.debug("[SelfDescribingAddWizard] requestPort cancelled", {
         err: String(err),
@@ -187,7 +187,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     });
 
     // If this VID/PID is already registered on this screen, the manual
-    // device's transport almost certainly has the port open — the next
+    // device's transport almost certainly has the port open, the next
     // port.open() will throw InvalidStateError. Catch it up front so the
     // user gets a path forward instead of a generic "port already open"
     // dump in the console.
@@ -237,7 +237,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
       // the device we just added (so we don't leave a half-paired ghost
       // referring to a port we don't actually own) and try once more to
       // route to the conflict step. Reaching here means the upfront
-      // findConflict missed something — most often a VID-less port that
+      // findConflict missed something: most often a VID-less port that
       // matches an existing VID-less device, or a race where the existing
       // device opened the port between getDevices() and connect().
       const isPortOpen =
@@ -261,7 +261,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
         setStep({
           kind: "error",
           message:
-            "This USB port is already open, but no existing pairing on this screen claims it. Another tab or app may have it — close other consumers or unplug + replug the controller, then retry.",
+            "This USB port is already open, but no existing pairing on this screen claims it. Another tab or app may have it, close other consumers or unplug + replug the controller, then retry.",
         });
         return;
       }
@@ -278,7 +278,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
   const finishNaming = () => {
     if (step.kind !== "naming") return;
     svc.updateDevice(step.deviceId, { name: name.trim() || "Controller" });
-    cleanupRef.current = null; // commit — don't tear down on close
+    cleanupRef.current = null; // commit: don't tear down on close
     onClose();
   };
 
@@ -345,7 +345,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
       {step.kind === "naming" && (
         <>
           <Status role="status" aria-live="polite">
-            ✓ Got input — give the controller a name.
+            ✓ Got input: give the controller a name.
           </Status>
           <Field>
             <FieldLabel htmlFor="sd-name">Name</FieldLabel>

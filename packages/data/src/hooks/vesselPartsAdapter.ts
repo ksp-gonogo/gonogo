@@ -13,7 +13,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * Reshapes the mod's `vessel.parts` Topic (the structural part-tree stream —
+ * Reshapes the mod's `vessel.parts` Topic (the structural part-tree stream,
  * `VesselStructure.cs`'s doc comment calls it a SIBLING channel) into the
  * legacy `VesselTopology` shape `ShipMap`/`PowerSystems`'s diagram code
  * already consumes, so `useTopology` can un-gap `v.topology`/`v.topologySeq`
@@ -21,7 +21,7 @@ import type {
  *
  * Every field the diagrams actually read maps straight across
  * (name/title/category/modules/dryMass/inverseStage/maxTemp/orgPos/up/
- * bounds/fuelLineTarget/parentFlightId — see `shipTopology.ts`'s
+ * bounds/fuelLineTarget/parentFlightId: see `shipTopology.ts`'s
  * `buildShipMapPart`/`classifyPart`). `persistentId`/`manufacturer`/
  * `crewCapacity`/`crashTolerance` have no `VesselPart` equivalent and no
  * diagram code reads them (confirmed by grep across `ShipMap`/
@@ -35,11 +35,11 @@ export function deriveTopologyFromVesselParts(
   const root = wire.parts.find((p) => p.parentId == null);
   return {
     // `vessel.parts` isn't seq-gated the way the old fork's
-    // `v.topologySeq`/`v.topology` pair was — the whole payload re-emits on
+    // `v.topologySeq`/`v.topology` pair was, the whole payload re-emits on
     // change, so there's no separate lightweight counter to mirror. The
     // part count is a cheap, honest stand-in for widgets that only used
     // `topologySeq` to detect "did the structure change" (none currently
-    // read it directly — `useTopology`'s consumers key off the returned
+    // read it directly, `useTopology`'s consumers key off the returned
     // object's own identity via `useMemo`).
     topologySeq: wire.parts.length,
     rootFlightId: root ? Number(root.id) : 0,
@@ -81,11 +81,11 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
 
 /**
  * Per-part internal temperature off the SAME `vessel.parts` payload
- * `deriveTopologyFromVesselParts` reads — the old `therm.part[flightId]`
+ * `deriveTopologyFromVesselParts` reads, the old `therm.part[flightId]`
  * live key's dual-unit shape, minus the wire round-trip. `null` when the
  * part hasn't been simulated yet this session (`currentTemp` unset,
  * KSP's `-1` "not yet simulated" sentinel already resolved to `null` on the
- * mod side) — same "thermal data not available" contract `PartThermal`'s
+ * mod side): same "thermal data not available" contract `PartThermal`'s
  * doc comment already promises callers.
  */
 export function derivePartThermal(p: VesselPart): PartThermal | null {
@@ -113,7 +113,7 @@ export function buildThermalByFlightId(
 
 /**
  * Reshapes one `VesselPart.resources` row map into the SDK's `PartResources`
- * shape — a field-for-field pass-through (see the mod's `PartResourceFlow`
+ * shape: a field-for-field pass-through (see the mod's `PartResourceFlow`
  * doc comment: the wire row already carries `amount`/`maxAmount`/
  * `flow`/`nominalFlow`), dropping `flow`/`nominalFlow` keys entirely rather
  * than carrying explicit `undefined` so callers relying on `"flow" in row`
@@ -134,7 +134,7 @@ export function derivePartResources(p: VesselPart): PartResources {
 }
 
 /** Builds the flightId-keyed resources lookup `usePartsLive` merges into its
- *  per-part live slices — the `vessel.parts` replacement for the legacy
+ *  per-part live slices: the `vessel.parts` replacement for the legacy
  *  `r.resourceFor[fid]` subscription. Empty map when `wire` hasn't arrived
  *  yet. */
 export function buildResourcesByFlightId(
@@ -163,13 +163,13 @@ function deriveModuleState(m: PartModuleState): PartStateModule {
 
 /**
  * Reshapes one `VesselPart.moduleStates` list into the SDK's `PartState`
- * shape (`{ seq, modules }`) — the `vessel.parts` replacement for the
+ * shape (`{ seq, modules }`): the `vessel.parts` replacement for the
  * legacy `v.partState[fid]` subscription. `seq` has no wire equivalent any
  * more: the whole `vessel.parts` payload re-emits atomically on change (see
  * `VesselParts`' doc comment), so there's no separate per-part dedup
  * counter left to carry forward. No `usePartsLive` consumer reads `.seq`
  * (confirmed by grep across ShipMap/PowerSystems), so this synthesizes a
- * value from the module count — stable across identical payloads, changes
+ * value from the module count: stable across identical payloads, changes
  * whenever the module set does, satisfying the field's original
  * "consumers dedup on seq" contract without a real wire counter.
  */

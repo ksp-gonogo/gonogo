@@ -3,7 +3,7 @@
   <!-- MIT, like the rest of gonogo (see LICENSING.md). Kerbalism is Unlicense
        (public domain) but this uplink takes the same arm's-length stance as
        GonogoRealAntennasUplink regardless: it NEVER links Kerbalism's assembly
-       and NEVER derives from its types — every Kerbalism member is reached by
+       and NEVER derives from its types: every Kerbalism member is reached by
        runtime reflection (KerbalismReflection), so the uplink stays clean of
        any dependency-licence surprise and loads presence-safe when Kerbalism
        is absent. Kerbalism's attribution is retained in NOTICE-Kerbalism.txt. -->
@@ -29,7 +29,7 @@
     <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
-  <!-- KSP / Unity reference assemblies — Private="false", satisfied by KSP at
+  <!-- KSP / Unity reference assemblies: Private="false", satisfied by KSP at
        runtime. Kerbalism itself is NEVER referenced (reached by reflection). -->
   <ItemGroup>
     <Reference Include="UnityEngine" Private="false">
@@ -46,7 +46,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface.
+  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface.
        NO reference to Kerbalism.dll, by design. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">

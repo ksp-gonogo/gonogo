@@ -7,7 +7,7 @@
 FROM node:24-bookworm-slim AS builder
 WORKDIR /repo
 
-# pnpm via corepack — workspace-aware install vs npm.
+# pnpm via corepack: workspace-aware install vs npm.
 RUN corepack enable
 
 # Lockfile + workspace metadata first so the install layer caches
@@ -44,7 +44,7 @@ RUN pnpm --filter @ksp-gonogo/relay deploy --prod --legacy /app
 FROM node:24-bookworm-slim
 WORKDIR /app
 
-# coturn binary — spawned by coturnManager.ts at relay startup with a
+# coturn binary: spawned by coturnManager.ts at relay startup with a
 # fresh per-restart secret. Bundling here means one container, one
 # process tree, no init scripts or shared volumes for credentials.
 RUN apt-get update \

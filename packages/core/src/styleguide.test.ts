@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Design-system guard: prevent new raw hex colour literals leaking into
- * the codebase. Ratchet-style — every refactor that drops the count
+ * the codebase. Ratchet-style: every refactor that drops the count
  * lowers the baseline, every commit that introduces new raw hex fails
  * the build with a clear pointer at the offender.
  *
@@ -19,14 +19,14 @@ import { describe, expect, it } from "vitest";
  * Run `node scripts/palette-audit.mjs` to triage existing raw hex.
  */
 
-// Files that legitimately contain raw hex — sources of truth, fixtures,
+// Files that legitimately contain raw hex: sources of truth, fixtures,
 // and data files (e.g. body-colour metadata). Anything else is an offender.
 const ALLOWED_PATHS = [
   "packages/app/src/styles/global.css",
   "packages/ui/src/themes/defaultDark.ts",
   "packages/core/src/registry.test.ts",
   // stock-bodies.ts: per-body colour metadata for celestial bodies
-  // (KSP planets/moons). These are data, not theme tokens — each body
+  // (KSP planets/moons). These are data, not theme tokens, each body
   // needs a distinct colour for map / orbit / system views.
   "packages/core/src/stock-bodies.ts",
   // rss-bodies.ts: same per-body colour metadata for the RealSolarSystem
@@ -35,10 +35,10 @@ const ALLOWED_PATHS = [
   // ShipMap/render.ts: embeds the design tokens as a literal <style>
   // block inside the standalone SVG so the snapshot harness and export
   // path render the same colours as the live widget without a runtime
-  // theme provider. Mirrors defaultDark.ts in spirit — token source of
+  // theme provider. Mirrors defaultDark.ts in spirit: token source of
   // truth duplicated for a self-contained output target.
   "packages/components/src/ShipMap/render.ts",
-  // Navball/render.ts: same pattern as ShipMap/render.ts — design
+  // Navball/render.ts: same pattern as ShipMap/render.ts, design
   // tokens duplicated into a standalone SVG for snapshot/export.
   "packages/components/src/Navball/render.ts",
   // Minimap.tsx: canvas 2D `fillStyle` only accepts colour strings,
@@ -129,7 +129,7 @@ describe("design-system: raw hex literals", () => {
       );
     }
     if (offenders.length < HEX_OCCURRENCE_BASELINE) {
-      // Cleanup is welcome — but tighten the baseline so the gate keeps
+      // Cleanup is welcome, but tighten the baseline so the gate keeps
       // ratcheting. Print rather than fail so the cleanup commit lands
       // green; updating the constant is then a tiny follow-up edit.
       console.warn(

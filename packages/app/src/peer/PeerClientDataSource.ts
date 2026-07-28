@@ -63,7 +63,7 @@ export class PeerClientDataSource implements DataSource {
     public name: string,
     private client: PeerClientService,
   ) {
-    // Re-send our current key subscriptions on each (re)connect — the
+    // Re-send our current key subscriptions on each (re)connect, the
     // host's per-peer subscription state is wiped on disconnect, so we
     // need to restore it after a reconnect or the station goes silent.
     // Optional chain because test fixtures sometimes pass a partial
@@ -140,7 +140,7 @@ export class PeerClientDataSource implements DataSource {
   subscribe(key: string, cb: (value: unknown) => void) {
     const removeLocal = this.addLocalSubscriber(key, cb);
     this.refKey(key);
-    // Sticky cache — emit the most recently received value to this new
+    // Sticky cache: emit the most recently received value to this new
     // subscriber synchronously so a second widget subscribing to a key
     // an earlier widget already requested doesn't sit on `undefined`
     // waiting for the next change. Mirrors BufferedDataSource's
@@ -155,7 +155,7 @@ export class PeerClientDataSource implements DataSource {
   }
 
   /**
-   * Internal — register a subscriber without touching the wire. Lets
+   * Internal: register a subscriber without touching the wire. Lets
    * `subscribeCollection` reuse the per-key routing logic while still
    * batching the network subscribe/unsubscribe into a single message.
    */
@@ -176,7 +176,7 @@ export class PeerClientDataSource implements DataSource {
 
   /**
    * Tunnel a single call up to whatever handle the host's Uplink registered
-   * for this source's id (via `registerUplinkHandle` — see
+   * for this source's id (via `registerUplinkHandle`: see
    * `PeerHostService.handleUplinkRelay`). Purely a station-side convenience
    * forwarder: `method`/`args`/the resolved result are opaque here, each
    * Uplink's own client code owns casting them to its real shape.
@@ -267,7 +267,7 @@ export class PeerClientDataSource implements DataSource {
   }
 
   exportFlight(id: string): Promise<FlightFixtureLike> {
-    // Bigger timeout — fixtures of long flights run into a few MB which
+    // Bigger timeout: fixtures of long flights run into a few MB which
     // can take real time to traverse the IndexedDB cursor + serialise.
     return this.client.sendFlightRpc<FlightFixtureLike>(
       { op: "export", id },
@@ -346,7 +346,7 @@ export class PeerClientDataSource implements DataSource {
   ): () => void {
     const snapshot: unknown[] = new Array<unknown>(keys.length).fill(undefined);
     // Wire the per-key routing first WITHOUT calling refKey() per
-    // iteration — that would emit one peer-data-subscribe message per
+    // iteration, that would emit one peer-data-subscribe message per
     // key. Instead, batch the keys into a single subscribe message via
     // refKeysBulk after the locals are wired.
     const removes = keys.map((key, i) =>

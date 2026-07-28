@@ -1,32 +1,32 @@
 /**
- * Widget DOM mirror — FuelStatus. Asserts the REAL ΔV totals, resource
+ * Widget DOM mirror: FuelStatus. Asserts the REAL ΔV totals, resource
  * bars, and per-stage stack on the host, and that the panel chrome mirrors
  * on the station.
  *
  * Runs against the TOPOLOGY fixture variant (`sitrep-stream-server-
- * topology.mjs`, a SEPARATE server/port from the shared snapshot — see
+ * topology.mjs`, a SEPARATE server/port from the shared snapshot; see
  * `bootstrapPair`'s `sitrepPort` option), which carries `dv.stages` /
  * `dv.summary` / `vessel.structure` on top of the shared snapshot. The
  * shared, deliberately dv-less fixture (`sitrep-stream-server.mjs`) is
- * UNTOUCHED — no other spec is affected.
+ * UNTOUCHED: no other spec is affected.
  *
  * Fixture craft (topology server): the same "Mun Tester" vessel, currently
- * on its single propulsive stage (stage 1 of 2 — stage 0 is the final
+ * on its single propulsive stage (stage 1 of 2, stage 0 is the final
  * pod+chute stage, no engine):
  *   dv.summary: totalDvActual 1310.8 m/s, totalBurnTime 210.4s ("3m 30s")
  *   dv.stages[stage 1]: deltaVActual 1310.8, TWRActual 1.4321, burnTime
  *     210.4s, resources.LiquidFuel/Oxidizer matching the shared snapshot's
- *     `vessel.resources` totals (539.8/1980, 659.8/2420) — the
+ *     `vessel.resources` totals (539.8/1980, 659.8/2420): the
  *     `dv.currentStageResource(Max)` derived channels resolve those into
  *     the "current" (stage-scoped) LiquidFuel/Oxidizer resource rows.
  *   dv.stages[stage 0]: all-zero (no engine left in that stage).
  *
  * Widget stays at 8×14 (its own defaultSize, same footprint the old
- * title-only spec already used) — wide/tall enough for the totals row,
+ * title-only spec already used): wide/tall enough for the totals row,
  * resource list, AND stage stack to all render.
  *
  * Station-side scope: only the "FUEL · ΔV" panel title (static chrome) is
- * checked on the station — real values come from live Sitrep stream data,
+ * checked on the station: real values come from live Sitrep stream data,
  * and only the MAIN screen mounts `SitrepTelemetryProvider` today (station
  * stream forwarding over PeerJS is a documented pending gap). Same pattern
  * as crew-manifest.spec.ts.
@@ -35,7 +35,7 @@ import { test } from "@playwright/test";
 import { PORTS } from "../../../playwright.config";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — FuelStatus", () => {
+test.describe("widget DOM mirror: FuelStatus", () => {
   test("real ΔV/resource data renders on host; panel chrome mirrors on station", async ({
     browser,
   }) => {
@@ -46,7 +46,7 @@ test.describe("widget DOM mirror — FuelStatus", () => {
         await expect(page.getByText("FUEL · ΔV", { exact: true })).toBeVisible({
           timeout: 30_000,
         });
-        // Full data path reached — the subtitle only renders once
+        // Full data path reached: the subtitle only renders once
         // `vessel.structure.currentStage` has arrived.
         await expect(
           page.getByText("Stage 1 / 1", { exact: true }),
@@ -54,7 +54,7 @@ test.describe("widget DOM mirror — FuelStatus", () => {
       },
     });
 
-    // Totals row — total ΔV (current-atmosphere default) + total burn.
+    // Totals row: total ΔV (current-atmosphere default) + total burn.
     await expect(
       pair.main.getByText("Total ΔV", { exact: true }),
     ).toBeVisible();
@@ -66,7 +66,7 @@ test.describe("widget DOM mirror — FuelStatus", () => {
     ).toBeVisible();
     await expect(pair.main.getByText("3m 30s", { exact: true })).toBeVisible();
 
-    // Resource list — the stage-scoped LiquidFuel/Oxidizer rows now
+    // Resource list: the stage-scoped LiquidFuel/Oxidizer rows now
     // resolve (previously always 0/0 with dv.stages absent), plus the
     // vessel-scope MonoPropellant/ElectricCharge rows from the shared
     // snapshot's vessel.resources.
@@ -83,7 +83,7 @@ test.describe("widget DOM mirror — FuelStatus", () => {
       pair.main.getByText("448.8 / 450.0", { exact: true }),
     ).toBeVisible();
 
-    // Per-stage stack — two stages, the active one (S1) carrying the ΔV.
+    // Per-stage stack: two stages, the active one (S1) carrying the ΔV.
     await expect(pair.main.getByText(/Stages · ΔV \(ACT\)/)).toBeVisible();
     await expect(pair.main.getByText(/S1/)).toBeVisible();
     await expect(pair.main.getByText(/S0/)).toBeVisible();

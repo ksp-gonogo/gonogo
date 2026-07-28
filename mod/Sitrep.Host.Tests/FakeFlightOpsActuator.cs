@@ -5,7 +5,7 @@ using Sitrep.Host;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Test double for <see cref="IFlightOpsActuator"/> — records exactly what
+    /// Test double for <see cref="IFlightOpsActuator"/>: records exactly what
     /// each call was made with (so a test can assert typed args reached the
     /// correct actuator method with the correct values) and returns a
     /// per-method, test-configurable result (defaulting to success) instead of

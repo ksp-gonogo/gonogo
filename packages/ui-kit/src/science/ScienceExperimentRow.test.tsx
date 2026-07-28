@@ -8,7 +8,7 @@ import {
 } from "./ScienceExperimentRow";
 
 // Rows read `theme.space` (via the kit's `Inline`), so every render needs a
-// theme in scope — the shared `render` mounts one by default. The `<ul>` is
+// theme in scope: the shared `render` mounts one by default. The `<ul>` is
 // here because a row is an `<li>` and needs its list parent to be valid.
 function renderRow(ui: ReactElement) {
   return render(<ul>{ui}</ul>);

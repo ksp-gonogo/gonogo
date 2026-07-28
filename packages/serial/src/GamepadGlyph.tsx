@@ -13,7 +13,7 @@ interface Props {
  * Renders a vendored button/axis glyph inline, recoloured via
  * `currentColor` so it follows the active theme in both light and dark.
  * Purely decorative: renders nothing for the `positional` pack (name-only)
- * or a role with no art in the chosen pack. Always `aria-hidden` — callers
+ * or a role with no art in the chosen pack. Always `aria-hidden`, callers
  * MUST render the input's resolved name alongside it (see
  * `describeGamepadInput`) so the meaning isn't glyph-only.
  */
@@ -24,7 +24,7 @@ export function GamepadGlyph({ role, pack, size = 16 }: Readonly<Props>) {
     <GlyphWrap
       $size={size}
       aria-hidden="true"
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: vendored asset from a fixed pack×role table (gamepadGlyphs.ts) — never user input.
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: vendored asset from a fixed pack×role table (gamepadGlyphs.ts); never user input.
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );

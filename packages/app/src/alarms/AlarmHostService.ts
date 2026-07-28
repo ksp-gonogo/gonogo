@@ -43,16 +43,16 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
  *   - When an alarm arms, drop KSP's warp to index 0 via `t.timeWarp[0]`.
  *   - Watch observed warp state for unscheduled changes (warp went up
  *     without an alarm commanding it or a station explicitly asking for
- *     it) — surface as `unscheduledWarp` in the snapshot.
+ *     it): surface as `unscheduledWarp` in the snapshot.
  *   - Broadcast snapshots to connected peers via the host service.
  *   - Accept add / update / delete from peers via the host service.
  *
  * The stateful pieces are extracted into collaborating modules:
- *   - `AlarmStateMachine` — `deriveState`, threshold-match tracking,
+ *   - `AlarmStateMachine`: `deriveState`, threshold-match tracking,
  *     slope-fit ETA, and the closest/eligible-alarm queries.
- *   - `WarpControl` — the warp-to controller and `stepWarpDown`.
- *   - `WarpObserver` — warp telemetry + unscheduled-warp detection.
- *   - `AlarmPeerBridge` — peer event wiring and broadcasts.
+ *   - `WarpControl`: the warp-to controller and `stepWarpDown`.
+ *   - `WarpObserver`: warp telemetry + unscheduled-warp detection.
+ *   - `AlarmPeerBridge`: peer event wiring and broadcasts.
  */
 
 const STORAGE_KEY = "gonogo.alarms.list";
@@ -176,7 +176,7 @@ export class AlarmHostService {
       name: input.name.trim() || "Alarm",
       notes: input.notes?.trim() || undefined,
       trigger: input.trigger,
-      // Always start "pending" — the next tick() transitions to arming /
+      // Always start "pending": the next tick() transitions to arming /
       // firing with the usual side effects, so the state machine stays
       // driven from a single place.
       state: "pending",
@@ -208,7 +208,7 @@ export class AlarmHostService {
         ? { notes: patch.notes.trim() || undefined }
         : {}),
       ...(patch.trigger !== undefined ? { trigger: patch.trigger } : {}),
-      // Empty array is the explicit "clear" sentinel — same convention as
+      // Empty array is the explicit "clear" sentinel, same convention as
       // addAlarm, which normalises [] to undefined so an alarm without
       // side effects always stores `onFire: undefined`.
       ...(patch.onFire !== undefined
@@ -245,7 +245,7 @@ export class AlarmHostService {
 
   /**
    * Dismiss a fired alarm. Threshold and time alarms both stay in the
-   * `fired` state until the user (or a peer) acks — the original "auto
+   * `fired` state until the user (or a peer) acks, the original "auto
    * purge after 5s" behaviour silently swallowed alarms before the
    * operator noticed them.
    */
@@ -264,8 +264,8 @@ export class AlarmHostService {
 
   /**
    * Begin a "warp to next alarm" session. The controller targets the
-   * closest pending alarm — time alarms by their UT, threshold alarms by
-   * a least-squares slope projected to the threshold value — and
+   * closest pending alarm: time alarms by their UT, threshold alarms by
+   * a least-squares slope projected to the threshold value, and
    * re-targets each tick.
    */
   beginWarpTo(): void {
@@ -305,7 +305,7 @@ export class AlarmHostService {
   }
 
   private tick(): void {
-    // Not a data-source key: `t.universalTime` was DROPPED — this is the
+    // Not a data-source key: `t.universalTime` was DROPPED, this is the
     // SDK's own view time, read via the non-hook `getViewUt` accessor rather
     // than the legacy telemetry reader.
     const ut = getViewUt() ?? null;
@@ -315,7 +315,7 @@ export class AlarmHostService {
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
-        // Threshold tracking must run *before* deriveState — it reads
+        // Threshold tracking must run *before* deriveState, it reads
         // last-tick's `alarm.state` to decide whether to keep the rolling
         // sample buffer. Don't reorder.
         if (alarm.trigger.kind === "threshold") {
@@ -324,7 +324,7 @@ export class AlarmHostService {
           }
         }
         // Contract-parameter tracking has the same shape (matchSinceUT
-        // + sustain) but no rolling sample buffer — the underlying
+        // + sustain) but no rolling sample buffer, the underlying
         // condition is a discrete state-string match, not a numeric
         // approach.
         if (alarm.trigger.kind === "contract-parameter") {
@@ -333,7 +333,7 @@ export class AlarmHostService {
           }
         }
         // Event triggers latch on the first matching occurrence revealed
-        // after the alarm began watching — edge-triggered, no sustain.
+        // after the alarm began watching: edge-triggered, no sustain.
         if (alarm.trigger.kind === "event") {
           if (this.stateMachine.updateEventTracking(alarm, ut)) {
             changed = true;
@@ -347,7 +347,7 @@ export class AlarmHostService {
           }
           if (alarm.state !== "firing" && nextState === "firing") {
             this.notifyFire(alarm);
-            // Force warp to 0 again — in case the warp recovered between
+            // Force warp to 0 again: in case the warp recovered between
             // `arming` and `firing`, or for threshold alarms where there
             // was no `arming` phase at all.
             this.warp.stepWarpDown();
@@ -437,7 +437,7 @@ export class AlarmHostService {
 /**
  * Convenience factory. Historically wrapped a live `BufferedDataSource`
  * lookup so the host could be constructed at MainScreen-mount time even
- * before the legacy `"data"` source was registered — now that every
+ * before the legacy `"data"` source was registered, now that every
  * telemetry read/command dispatch inside `AlarmHostService` rides the
  * stream (`getWarpState`/`getContractsActive`/`getValue`/
  * `dispatchActiveCommand`), there's nothing left to wrap; kept as a thin

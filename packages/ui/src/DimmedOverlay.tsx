@@ -5,7 +5,7 @@ export interface DimmedOverlayProps {
   /**
    * When true, the children render dimmed and an overlay banner appears
    * on top with the message. When false, children render unchanged and
-   * the wrapper is otherwise transparent — no DOM cost beyond a single
+   * the wrapper is otherwise transparent, no DOM cost beyond a single
    * positioned div.
    */
   show: boolean;
@@ -21,7 +21,7 @@ export interface DimmedOverlayProps {
 
 /**
  * Wraps any widget with a state-aware dim layer. Used to soften
- * "dead values" when a widget's underlying telemetry isn't live —
+ * "dead values" when a widget's underlying telemetry isn't live,
  * the existing render is preserved (last-good values, current layout)
  * but visibly de-emphasised, with a small banner explaining why.
  *
@@ -41,7 +41,7 @@ export function DimmedOverlay({
   children,
 }: DimmedOverlayProps) {
   if (!show) {
-    // Render children directly — no wrapper means no styling drift on
+    // Render children directly, no wrapper means no styling drift on
     // the live path (avoids accidentally affecting layout / focus).
     return <>{children}</>;
   }

@@ -7,7 +7,7 @@
  * guard in the consumer.
  *
  * KSP stock bodies all spin about the global +z inertial axis, so inertial
- * and body-fixed *latitudes* agree — only *longitude* needs a body-rotation
+ * and body-fixed *latitudes* agree: only *longitude* needs a body-rotation
  * correction. We calibrate that correction against the vessel's current
  * `v.lat` / `v.long` / `t.universalTime` (the `PredictionRef`) so the drawn
  * prediction line connects to the ship icon exactly.
@@ -83,8 +83,8 @@ export interface InertialState {
 
 /**
  * Compute the vessel's inertial state at an arbitrary UT within `patch`.
- * The UT must lie inside `[patch.startUT, patch.endUT]`; no clamping is done
- * — the caller is expected to have picked the right patch.
+ * The UT must lie inside `[patch.startUT, patch.endUT]`; no clamping is done,
+ * the caller is expected to have picked the right patch.
  */
 export function patchStateAt(patch: OrbitPatch, ut: number): InertialState {
   const dt = ut - patch.epoch;
@@ -147,11 +147,11 @@ export function geoFromInertial(
 }
 
 export interface PredictionRef {
-  /** Current universal time in seconds — `t.universalTime`. */
+  /** Current universal time in seconds: `t.universalTime`. */
   ut: number;
-  /** Vessel latitude at `ut` in degrees — `v.lat`. */
+  /** Vessel latitude at `ut` in degrees: `v.lat`. */
   lat: number;
-  /** Vessel (body-fixed) longitude at `ut` in degrees — `v.long`. */
+  /** Vessel (body-fixed) longitude at `ut` in degrees, `v.long`. */
   lon: number;
 }
 
@@ -193,7 +193,7 @@ export const MAX_TRACK_SAMPLES = 500;
 
 /**
  * Soft cap on `predictGroundTrack` invocations. MapView re-runs the
- * prediction whenever its inputs change — orbit patches change rarely
+ * prediction whenever its inputs change, orbit patches change rarely
  * (SOI changes, maneuvers), but `universalTime` ticks 4×/sec and used
  * to invalidate the memo on every tick. After the throttle that
  * quantises the ut bucket to 1 Hz, normal use should be ~1/sec across
@@ -214,14 +214,14 @@ const MIN_RENDER_ALT_M = -100;
 /**
  * Sample a predicted ground track across one or more patches sharing the
  * same reference body. Stops at the first patch boundary where the
- * reference body changes (SOI transition) — multi-SOI rendering is a
+ * reference body changes (SOI transition), multi-SOI rendering is a
  * separate feature.
  *
  * @param patches All orbit patches (as returned by `o.orbitPatches`).
  * @param bodyId  The body to render prediction for. Patches for other bodies are skipped.
  * @param bodyRadius Body mean radius in metres (for altitude calculation).
  * @param rotationPeriod Body sidereal rotation period in seconds.
- * @param ref Current vessel state (ut / lat / lon) — calibrates body rotation.
+ * @param ref Current vessel state (ut / lat / lon), calibrates body rotation.
  * @param horizonSec Maximum prediction horizon from `ref.ut`.
  * @param stepSec Sample interval in seconds.
  */
@@ -243,7 +243,7 @@ export function predictGroundTrack(
   /**
    * Patches used to calibrate body rotation against `ref`. Defaults to
    * `patches`. Override when rendering a future trajectory (e.g. a maneuver
-   * node's post-burn patches) that doesn't contain `ref.ut` — pass the
+   * node's post-burn patches) that doesn't contain `ref.ut`, pass the
    * current `o.orbitPatches` so the calibration comes from the patch the
    * vessel is actually in right now.
    */
@@ -276,8 +276,8 @@ export function predictGroundTrack(
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex];
-    if (patch.referenceBody !== bodyId) break; // SOI change — stop.
-    if (!isPatchElliptical(patch)) break; // Hyperbolic/parabolic — not supported in v1.
+    if (patch.referenceBody !== bodyId) break; // SOI change, stop.
+    if (!isPatchElliptical(patch)) break; // Hyperbolic/parabolic, not supported in v1.
     if (patch.endUT < ref.ut) continue; // Already finished.
     if (patch.startUT > endUT) break; // Past horizon.
 
@@ -288,7 +288,7 @@ export function predictGroundTrack(
       const state = patchStateAt(patch, ut);
       const geo = geoFromInertial(state, bodyRadius);
       if (geo.alt < MIN_RENDER_ALT_M) {
-        // Vessel has dipped below the surface — treat as impact and stop
+        // Vessel has dipped below the surface; treat as impact and stop
         // sampling further patches too. The previous sample is the last
         // visible point; the impact marker is rendered separately at
         // `land.predictedLat/Lon` when available.
@@ -307,7 +307,7 @@ export function predictGroundTrack(
 /**
  * Break a list of lat/lon samples into contiguous polyline segments,
  * inserting a break whenever consecutive longitudes jump by more than
- * `wrapThresholdDeg` — the telltale signature of an equirectangular
+ * `wrapThresholdDeg`: the telltale signature of an equirectangular
  * date-line crossing. Preserves sample order within each segment.
  */
 export function splitOnLongitudeWrap<T extends { lon: number }>(

@@ -2,14 +2,14 @@
 // Uplink client. `probe-entry.tsx` / `screen-entry.tsx` do a side-effect
 // `import "@ksp-gonogo/gonogo-kos-uplink"` to self-register the kOS terminal widget, and that
 // client calls the facade's `registerComponent` (and, at render, `useCommand` /
-// `useStream` / …) — all of which resolve through `getHost()` and throw "the
+// `useStream` / …): all of which resolve through `getHost()` and throw "the
 // gonogo host has not been installed" without a host. ES imports are hoisted
 // and evaluated in source order, so this module MUST be the FIRST import in
 // each probe entry, ahead of the client import.
 //
 // The bridge mirrors the kOS client's own `test/setup.ts` and the app's
 // `buildGonogoHost()` member-for-member, scoped to what the probe's sealed
-// widgets call — wiring the sdk facade's fail-loud shims to the SAME real
+// widgets call: wiring the sdk facade's fail-loud shims to the SAME real
 // core / data / sitrep-client singletons the probe already imports. Its own
 // imports carry no facade self-registration, so running it first is safe.
 import {

@@ -37,7 +37,7 @@ pnpm dev
 
 `pnpm dev` shells out to `podman compose up` to build and start the backend containers before it runs Vite, so it needs Podman installed. If you only want the telemetry board, the filtered app-only command is enough.
 
-The app serves at `http://localhost:5173`. Telemetry connects on its own — no flag to set — to `localhost:8090` by default; if KSP runs elsewhere, either set `VITE_SITREP_HOST` before starting Vite or point the running app at it from **Settings → Data Sources → Sitrep Stream**. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full walkthrough.
+The app serves at `http://localhost:5173`. Telemetry connects on its own, no flag to set: to `localhost:8090` by default; if KSP runs elsewhere, either set `VITE_SITREP_HOST` before starting Vite or point the running app at it from **Settings → Data Sources → Sitrep Stream**. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full walkthrough.
 
 ## Before you push
 

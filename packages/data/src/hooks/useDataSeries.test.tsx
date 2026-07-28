@@ -50,7 +50,7 @@ describe("useDataSeries", () => {
   });
 
   afterEach(() => {
-    // Unmount the tree before tearing the source down — disconnecting while
+    // Unmount the tree before tearing the source down, disconnecting while
     // a subscribed component is still mounted flips the source status and
     // fires a state update outside act().
     view?.unmount();
@@ -122,7 +122,7 @@ describe("useDataSeries", () => {
     const renders: SeriesRange[] = [];
     view = render(<Probe onRender={(r) => renders.push(r)} />);
 
-    // Let the backfill subscription settle before emitting — mirrors the
+    // Let the backfill subscription settle before emitting, mirrors the
     // "appends live samples" test above which does the same.
     await act(async () => {
       await Promise.resolve();

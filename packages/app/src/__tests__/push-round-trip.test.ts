@@ -118,7 +118,7 @@ describe("push-to-main round trip", () => {
 
     const snap = pushHost.snapshot();
     expect(snap).toHaveLength(1);
-    // Deep equality on the whole config — catches any field that got dropped
+    // Deep equality on the whole config: catches any field that got dropped
     // or transformed (e.g. array collapsed to [], boolean flipped, etc.).
     expect(snap[0].config).toEqual(stationConfig);
     expect(snap[0].width).toBe(8);

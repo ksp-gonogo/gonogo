@@ -1,4 +1,5 @@
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -17,7 +18,7 @@ function point(validAt: number, payload: number): TimelinePoint<number> {
 
 function Alt({ store }: { store: TimelineStore }) {
   const v = useTimelineStream<number>(store, "vessel.state.altitudeAsl");
-  return <div>alt:{v ?? "—"}</div>;
+  return <div>alt:{v ?? NULL_DISPLAY}</div>;
 }
 
 describe("useTimelineStream", () => {
@@ -26,7 +27,7 @@ describe("useTimelineStream", () => {
     const store = new TimelineStore(clock);
 
     render(<Alt store={store} />);
-    expect(screen.getByText("alt:—")).toBeTruthy(); // nothing buffered yet
+    expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy(); // nothing buffered yet
 
     act(() => {
       store.ingest("vessel.state.altitudeAsl", point(10, 500));
@@ -34,7 +35,7 @@ describe("useTimelineStream", () => {
     });
     expect(screen.getByText("alt:500")).toBeTruthy();
 
-    // A new sample arrives but the frame hasn't advanced yet — no re-render
+    // A new sample arrives but the frame hasn't advanced yet, no re-render
     // to a value the frozen frame token wouldn't itself see.
     act(() => {
       store.ingest("vessel.state.altitudeAsl", point(20, 600));

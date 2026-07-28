@@ -1,7 +1,7 @@
 /**
  * The "real" `comms` provider: wires an actual M3 `Courier` + `StubNetwork`
  * (fixed one-way delay, `COURIER_DELAY_SECONDS`) + a shared `ManualClock`,
- * all imported unchanged from `@ksp-gonogo/sitrep-server` — this file only
+ * all imported unchanged from `@ksp-gonogo/sitrep-server`: this file only
  * adapts them to the `CommsCapability` shape, it never modifies M3 code.
  *
  * This is the milestone's headline: the entire M3 delay engine collapses to

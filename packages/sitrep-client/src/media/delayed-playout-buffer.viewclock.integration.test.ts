@@ -1,23 +1,23 @@
 /**
- * Single-delay-authority proof (M2 design §5.1 / §5.5 scenario 2 — "headline
+ * Single-delay-authority proof (M2 design §5.1 / §5.5 scenario 2, "headline
  * sync"). `DelayedPlayoutBuffer` is unit-tested against a hand-rolled
  * `manualClock` double in `./DelayedPlayoutBuffer.test.ts`; this file instead
- * drives it with the REAL `ViewClock` from `@ksp-gonogo/sitrep-client` — the same
- * clock instance telemetry reads its certainty horizon off — to prove the two
+ * drives it with the REAL `ViewClock` from `@ksp-gonogo/sitrep-client`, the same
+ * clock instance telemetry reads its certainty horizon off, to prove the two
  * surfaces cross together off ONE authority, not two clocks that merely agree.
  *
  * The invariant under test: a media frame stamped UT=X becomes RELEASABLE at
  * exactly the same `confirmedEdgeUt()` crossing that flips a telemetry sample
  * stamped UT=X from `predicted` to `confirmed`. Whatever delay the one
  * authority applies (0 on LAN, N seconds under comms modelling) applies
- * identically to both — video and telemetry cannot drift apart by estimator
+ * identically to both: video and telemetry cannot drift apart by estimator
  * error, only by stamp error (§0 common-mode property).
  *
  * `ViewClock` is driven deterministically here the same way its own suite does:
- * an injected wall clock plus `observeSample` to advance the confirmed edge —
+ * an injected wall clock plus `observeSample` to advance the confirmed edge,
  * no real timers, no rAF. `buffer.pump()` is called explicitly after each clock
  * move (the buffer's `onFrame` subscription is real-time-only and irrelevant to
- * correctness — see `DelayedPlayoutBuffer`'s `pump` doc).
+ * correctness: see `DelayedPlayoutBuffer`'s `pump` doc).
  */
 
 import { describe, expect, it } from "vitest";
@@ -28,13 +28,13 @@ import {
 } from "./delayed-playout-buffer";
 
 /** A media frame carrying an opaque token (a real `MediaStream` reference in
- *  production — see the camera Uplink's delayed-stream test docstring on why jsdom
+ *  production: see the camera Uplink's delayed-stream test docstring on why jsdom
  *  can't mint one). */
 function frame(ut: number, token: string): StampedFrame<string> {
   return { ut, data: token, keyframe: true };
 }
 
-describe("DelayedPlayoutBuffer driven by the real ViewClock — one delay authority", () => {
+describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority", () => {
   it("headline sync: a media frame and a telemetry sample stamped the same UT cross together (delay = 0)", () => {
     const wall = 1000;
     const clock = new ViewClock({
@@ -54,7 +54,7 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock — one delay author
     buffer.pump();
 
     // Nothing observed yet: telemetry at UT=100 is PREDICTED and the media
-    // frame is held — both off the same not-yet-confirmed edge.
+    // frame is held, both off the same not-yet-confirmed edge.
     expect(clock.certaintyFor(100)).toBe("predicted");
     expect(released).toHaveLength(0);
 
@@ -87,13 +87,13 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock — one delay author
     buffer.push(frame(200, "past-edge"));
     buffer.pump();
 
-    // The at-edge frame releases; the past-edge one is held — and telemetry
+    // The at-edge frame releases; the past-edge one is held, and telemetry
     // agrees: UT=100 confirmed, UT=200 predicted.
     expect(released.map((f) => f.data)).toEqual(["at-edge"]);
     expect(clock.certaintyFor(100)).toBe("confirmed");
     expect(clock.certaintyFor(200)).toBe("predicted");
 
-    // A later sample advances the shared edge to 200 — both flip together.
+    // A later sample advances the shared edge to 200, both flip together.
     clock.observeSample(200, 200);
     buffer.pump();
     expect(released.map((f) => f.data)).toEqual(["at-edge", "past-edge"]);

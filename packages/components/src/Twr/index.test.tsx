@@ -7,20 +7,20 @@ import { TwrComponent } from "./index";
 /**
  * Twr's stream test: the widget genuinely runs OFF THE STREAM (a
  * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`) — no legacy `DataSource` is registered anywhere in this
+ * `StubTransport`): no legacy `DataSource` is registered anywhere in this
  * file, so a rendered TWR value can only have come from the derived
  * `vessel.state.twr` field.
  *
- * `dv.currentTWR` is MAPPED (`map-topic.ts`) to `vessel.state.twr` — TWR =
+ * `dv.currentTWR` is MAPPED (`map-topic.ts`) to `vessel.state.twr`, TWR =
  * currentThrust/(totalMass·g), derived client-side off `vessel.propulsion`
  * (`vessel-state.ts`). `carriedChannels` lists all EIGHT of
  * `vessel.state`'s declared inputs even though `deriveTwr` only consults
- * `vessel.propulsion` — the carried-channels gate is parent-channel-scoped,
+ * `vessel.propulsion`: the carried-channels gate is parent-channel-scoped,
  * not per-field (see `vesselStateChannel`'s doc comment).
  *
  * The sparkline history (`useDataSeries`) never renders here: a derived topic
  * has no buffered range, so its own shim can't serve a series and there's no
- * legacy source to fall back to — the value read is proven to come entirely off the stream.
+ * legacy source to fall back to: the value read is proven to come entirely off the stream.
  */
 const STANDARD_GRAVITY = 9.80665;
 
@@ -36,8 +36,8 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 // `deriveVesselState` produces NO record until `vessel.orbit` is whole
-// (it early-returns `undefined` otherwise), and every derived field — TWR
-// included — hangs off that record. A minimal OnRails orbit is emitted
+// (it early-returns `undefined` otherwise), and every derived field, TWR
+// included: hangs off that record. A minimal OnRails orbit is emitted
 // alongside `vessel.propulsion` so the record exists and `deriveTwr` can run.
 const ORBIT = {
   sma: 682500,
@@ -76,7 +76,7 @@ function renderTwr(fixture: ReturnType<typeof setupStreamFixture>) {
   );
 }
 
-describe("TwrComponent — genuinely runs off the stream (R6 Wave 2)", () => {
+describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
   it("shows the empty state before any telemetry arrives", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -84,7 +84,7 @@ describe("TwrComponent — genuinely runs off the stream (R6 Wave 2)", () => {
     });
     renderTwr(fixture);
     expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
-    // A real subscription must have happened for a value to ever arrive —
+    // A real subscription must have happened for a value to ever arrive,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.propulsion")).toBe(true);
   });

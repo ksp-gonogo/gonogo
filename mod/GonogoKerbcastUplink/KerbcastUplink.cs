@@ -6,16 +6,16 @@ using Sitrep.Contract;
 namespace Gonogo.KerbcastUplink
 {
     /// <summary>
-    /// The GonogoKerbcastUplink — kerbcast's CONTROL plane as a first-class
+    /// The GonogoKerbcastUplink: kerbcast's CONTROL plane as a first-class
     /// Uplink, discovered by the same <c>[SitrepUplink]</c> assembly scan as
     /// every other.
     ///
     /// <para><b>What this owns:</b> the camera inventory
-    /// (<c>kerbcast.cameras</c> — identity, capabilities, and the DERIVED
+    /// (<c>kerbcast.cameras</c>: identity, capabilities, and the DERIVED
     /// docking-port association), the presence gate
     /// (<c>kerbcast.available</c>), the aim/zoom commands
-    /// (<c>kerbcast.setFieldOfView</c>/<c>kerbcast.setPan</c>), and — the point
-    /// of the exercise — a real, contract-reported HEALTH state that lands in
+    /// (<c>kerbcast.setFieldOfView</c>/<c>kerbcast.setPan</c>), and (the point
+    /// of the exercise) a real, contract-reported HEALTH state that lands in
     /// <c>system.uplinks</c> alongside every other Uplink's.</para>
     ///
     /// <para><b>What this does NOT own: the video.</b> kerbcast's H.264 stream
@@ -24,12 +24,12 @@ namespace Gonogo.KerbcastUplink
     /// the WebRTC path already works. The client's delay authority
     /// (<c>useViewClock()</c>) is what keeps that media aligned with telemetry;
     /// this uplink deliberately does not disturb that seam. Control rides
-    /// Sitrep, media rides WebRTC — and because the control plane is Delayed
+    /// Sitrep, media rides WebRTC: and because the control plane is Delayed
     /// like everything else, the two agree.</para>
     ///
     /// <para><b>Health is why this exists.</b> Before this uplink, "is my
     /// camera feed healthy" could only be answered by reading the browser's
-    /// own <c>KerbcastDataSource.status</c> — a client-side read of a separate
+    /// own <c>KerbcastDataSource.status</c>: a client-side read of a separate
     /// WebRTC connection, bypassing the mod contract entirely. That row was
     /// deleted in <c>45111e44</c> precisely because the Uplinks list is
     /// contract-only. Implementing <see cref="ISitrepUplink.Health"/> here is
@@ -38,7 +38,7 @@ namespace Gonogo.KerbcastUplink
     /// connection, exactly like every other Uplink. This is the FIRST real
     /// <see cref="ISitrepUplink.Health"/> implementation in the repo.</para>
     ///
-    /// <para>NO compile-time reference to kerbcast's CC-BY-NC-SA-4.0 assembly —
+    /// <para>NO compile-time reference to kerbcast's CC-BY-NC-SA-4.0 assembly,
     /// every kerbcast member is reached by reflection
     /// (<see cref="KerbcastReflection"/>). Compile surface is
     /// <c>Sitrep.Contract</c> + stock KSP only.</para>
@@ -70,7 +70,7 @@ namespace Gonogo.KerbcastUplink
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                // Whether the kerbcast mod is installed at all — a GROUND-side
+                // Whether the kerbcast mod is installed at all, a GROUND-side
                 // fact about the INSTALL, not vessel telemetry, so TrueNow:
                 // the same disposition every other mod-presence and uplink-health
                 // channel carries. This is the presence gate a client augment
@@ -82,8 +82,8 @@ namespace Gonogo.KerbcastUplink
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
-                // The camera inventory IS vessel telemetry — an observation of
-                // hardware on the craft, learned over the comms link — so it is
+                // The camera inventory IS vessel telemetry, an observation of
+                // hardware on the craft, learned over the comms link, so it is
                 // Delayed like any other vessel channel. This is also what keeps
                 // the control plane honest against the WebRTC video: the feed is
                 // played out through the same delay authority, so the camera list
@@ -127,7 +127,7 @@ namespace Gonogo.KerbcastUplink
 
             // The UNGATED AddSampledSource overload, deliberately. The gated
             // overload skips the capture when nobody is subscribed to the
-            // topic — which would make Health() report a stale camera count
+            // topic, which would make Health() report a stale camera count
             // (or none at all) whenever no camera widget happens to be on the
             // dashboard. The whole point of a MANDATORY healthcheck is that it
             // answers even when nothing is watching, so this capture runs every
@@ -144,7 +144,7 @@ namespace Gonogo.KerbcastUplink
         /// <summary>
         /// kerbcast absent or unreadable: report why, and register INERT sources
         /// so <c>kerbcast.available:false</c> still reaches the client. That
-        /// false is load-bearing — it is what lets a client augment gated on
+        /// false is load-bearing, it is what lets a client augment gated on
         /// <c>requires: "kerbcast"</c> compose its slot without kerbcast rather
         /// than waiting forever on a topic that never arrives. (A sibling Uplink
         /// with no presence gate to feed registers nothing here instead.)
@@ -159,7 +159,7 @@ namespace Gonogo.KerbcastUplink
 
         /// <summary>
         /// MAIN-THREAD capture: reads kerbcast's live camera views and the stock
-        /// KSP parts behind them. Returns plain data only — no live Part or
+        /// KSP parts behind them. Returns plain data only, no live Part or
         /// kerbcast handle escapes to the Courier thread.
         /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
@@ -181,7 +181,7 @@ namespace Gonogo.KerbcastUplink
             {
                 // Definitive empty rather than "no value": kerbcast.cameras is
                 // LossyLatest, so publishing nothing would leave the previous
-                // vessel's camera list stale on the wire after a scene change —
+                // vessel's camera list stale on the wire after a scene change,
                 // the same trap RaLinkDown documents for comms.
                 Volatile.Write(ref _cameraCount, 0);
                 capture.Entries = new List<object?>();
@@ -215,7 +215,7 @@ namespace Gonogo.KerbcastUplink
         }
 
         /// <summary>
-        /// The MANDATORY healthcheck — polled on the Courier thread every
+        /// The MANDATORY healthcheck: polled on the Courier thread every
         /// <c>system.uplinks</c> sample, so it only ever reads cached volatile
         /// state written by the main-thread capture. Never touches KSP or
         /// kerbcast directly.
@@ -249,7 +249,7 @@ namespace Gonogo.KerbcastUplink
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
             // kerbcast clamps to the camera's own bounds and returns false when
-            // the id doesn't resolve — NotFound is the honest code for that.
+            // the id doesn't resolve: NotFound is the honest code for that.
             return kerbcast.SetFov(cameraId, (float)args.FieldOfView)
                 ? CommandResult.Ok()
                 : CommandResult.Fail(CommandErrorCode.NotFound);

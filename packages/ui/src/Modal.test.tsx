@@ -23,7 +23,7 @@ const SAVED_VALUE = { label: "saved" };
 
 // Config-like content that registers a sticky Save bar, so the tests exercise
 // the same path real config components use. The draft opens equal to the saved
-// value (clean baseline); "make dirty" diverges it, "mark clean" restores it —
+// value (clean baseline); "make dirty" diverges it, "mark clean" restores it,
 // driving the hook's value-vs-baseline-vs-saved comparison rather than a
 // hardcoded flag, exactly as a real config form does.
 function SaveBarContent({ onSave }: { onSave: () => void }) {
@@ -60,7 +60,7 @@ function SaveBarOpener({ onSave }: { onSave: () => void }) {
 // would read as dirty on a clean open; the hook's baseline capture must keep it
 // clean. The "edit" button is the only thing that should make it dirty.
 function SparseDefaultContent({ onSave }: { onSave: () => void }) {
-  // Persisted config is empty — every field comes from a default.
+  // Persisted config is empty, every field comes from a default.
   const saved: Record<string, unknown> = {};
   const [mode, setMode] = useState("auto");
   const value = { mode, enabled: true };
@@ -90,7 +90,7 @@ function SparseDefaultOpener({ onSave }: { onSave: () => void }) {
 }
 
 describe("Modal", () => {
-  it("closes on Escape — the only keyboard-accessible close path", async () => {
+  it("closes on Escape: the only keyboard-accessible close path", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     render(
@@ -189,7 +189,7 @@ describe("Modal", () => {
       await user.click(screen.getByRole("button", { name: "open" }));
       await user.click(screen.getByRole("button", { name: "make dirty" }));
       await user.keyboard("{Escape}");
-      // Still open — confirmation shown instead.
+      // Still open: confirmation shown instead.
       expect(screen.getByRole("dialog")).toBeInTheDocument();
       expect(screen.getByText("Discard unsaved changes?")).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Discard" }));
@@ -271,7 +271,7 @@ describe("Modal", () => {
           <SaveBarOpener onSave={vi.fn()} />
         </ModalProvider>,
       );
-      // Open and immediately Escape — the draft equals the saved value, so the
+      // Open and immediately Escape: the draft equals the saved value, so the
       // modal closes without any discard prompt.
       await user.click(screen.getByRole("button", { name: "open" }));
       await user.keyboard("{Escape}");
@@ -286,7 +286,7 @@ describe("Modal", () => {
         </ModalProvider>,
       );
       await user.click(screen.getByRole("button", { name: "open" }));
-      // The draft is denser than the stored {} config, but nothing was edited —
+      // The draft is denser than the stored {} config, but nothing was edited,
       // Escape must close silently, no discard prompt.
       await user.keyboard("{Escape}");
       expect(

@@ -1,13 +1,13 @@
 /**
  * Pure-SVG copy of the attitude dial that drives the snapshot renderer.
- * Mirrors the dial portion of `AttitudeIndicator` — horizon ribbon, pitch
+ * Mirrors the dial portion of `AttitudeIndicator`: horizon ribbon, pitch
  * ladder, fixed bezel, aircraft mark. The live React widget continues to
  * use AttitudeIndicator at runtime; this component exists so the dial can
  * be rendered to a self-contained SVG string via `renderAttitudeDialToSvg`
  * without dragging in DOM-only siblings (heading strip, readout cells).
  *
  * Visual changes here MUST be mirrored into AttitudeIndicator (and vice
- * versa) — they're parallel implementations of the same dial, and snapshot
+ * versa): they're parallel implementations of the same dial, and snapshot
  * drift here doesn't catch drift in the React-only path.
  */
 

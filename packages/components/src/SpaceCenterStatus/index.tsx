@@ -16,6 +16,7 @@ import {
   ScrollArea,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -60,7 +61,7 @@ type FacilityKey =
 /**
  * `career.status.facilities` (mod/Sitrep.Host/
  * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
- * `SpaceCenterFacility` enum name, not this widget's short codes — maps
+ * `SpaceCenterFacility` enum name, not this widget's short codes, maps
  * each enum name onto its `FacilityKey`. Names match the real wire
  * (decompile-confirmed, career-capture-extend-report.md; also the exact 9
  * keys observed in a real `career.status` capture).
@@ -85,7 +86,7 @@ interface FacilityLevel {
   /**
    * Multi-line text matching what KSP's stock upgrade dialog shows for
    * the current tier (e.g. "* Max Active Strategies: 1\n* Max Commitment: 25.0%").
-   * Empty string when the fork isn't emitting them yet — older DLLs
+   * Empty string when the fork isn't emitting them yet, older DLLs
    * before the 2026-05-13 update.
    */
   currentLevelText: string;
@@ -99,21 +100,21 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
  * Defensive parser for facility-level payloads. Accepts BOTH the legacy
- * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/... —
+ * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
  * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
  * `career.status.facilities` wire shape, keyed by the
- * full `SpaceCenterFacility` enum name — `{ currentTier, maxTier,
+ * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
  * upgradeCost }`, career-capture-extend-report.md). The new wire's
  * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
  * widget already assumes for `level`/`max` (decompile-confirmed: a fully
  * upgraded facility reports `currentTier === maxTier`, both actual-tier-
- * minus-one — see the "Lvl N of M" comment in the render below), so they
+ * minus-one: see the "Lvl N of M" comment in the render below), so they
  * map straight across with no reinterpretation. `upgradeCost` maps to
  * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
  * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
- * have no new-wire equivalent — always `""` for an enum-keyed entry,
+ * have no new-wire equivalent; always `""` for an enum-keyed entry,
  * degrading exactly like an older legacy DLL that never emitted them.
- * Drops anything that doesn't read as one of the two known shapes —
+ * Drops anything that doesn't read as one of the two known shapes,
  * sandbox saves emit zeroed entries, which is fine.
  */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
@@ -180,10 +181,10 @@ function SpaceCenterStatusComponent({
   //    (plain fields on the one SpaceCenterScene Topic).
   //  - kc.partsAvailable -> spaceCenter.partsAvailable.count.
   //  - kc.padOccupied / kc.padVesselTitle -> the DERIVED spaceCenter.state
-  //    channel (space-center-state.ts, off spaceCenter.launchSites) — read
+  //    channel (space-center-state.ts, off spaceCenter.launchSites): read
   //    via useStream, not a canonical one-arg Topic read.
   // kc.upgradeFacility[...] (the spend command) still has no command home
-  // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically —
+  // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically,
   // reads migrate first, commands come later.
   const careerStatus = useTelemetry("career.status");
   const facilitiesRaw = careerStatus?.facilities;
@@ -200,7 +201,7 @@ function SpaceCenterStatusComponent({
 
   const facilities = parseFacilityLevels(facilitiesRaw);
 
-  // Upgrades work in the Space Center scene only — KSP's upgrade
+  // Upgrades work in the Space Center scene only, KSP's upgrade
   // pipeline isn't safe to drive from elsewhere. Show the buttons
   // anyway when scene is unknown (telemetry warmup) so the operator
   // sees the affordance immediately when they walk back to SC.
@@ -214,7 +215,7 @@ function SpaceCenterStatusComponent({
   // width 5 (e.g. the tall-narrow portrait aspect) three columns squeeze
   // each cell to ~115px and the full-text bodies overflow horizontally
   // ("* Max Size: Unlimit...", "Maneuve nodes"). Reflow those to 2 columns
-  // and drop the verbose tier text — the same affordance `compact` already
+  // and drop the verbose tier text: the same affordance `compact` already
   // gives the (tiny-bucketed) narrow grid. cols>=6 keeps the reviewed
   // default-6x7 / wide / mobile layouts unchanged.
   const compactGrid = cols < 6;
@@ -239,7 +240,7 @@ function SpaceCenterStatusComponent({
               <TinyFundsUnit>f</TinyFundsUnit>
             </TinyFunds>
           ) : (
-            <TinyFunds>—</TinyFunds>
+            <TinyFunds>{NULL_DISPLAY}</TinyFunds>
           )}
           <TinyPad
             $occupied={padOccupied === true}
@@ -284,7 +285,7 @@ function SpaceCenterStatusComponent({
             // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
             // launchPad returns `{level:1, max:2}` at tier 2. So the total
             // number of tiers is `max + 1` and the operator-facing "Lvl N
-            // of M" should read `{level+1}/{max+1}` — matches KSP's stock
+            // of M" should read `{level+1}/{max+1}`, matches KSP's stock
             // R&D dialog which calls VAB tier 3 "Level 3".
             const atMax = !!f && f.max > 0 && f.level >= f.max;
             const displayLevel = f ? f.level + 1 : 0;
@@ -302,7 +303,7 @@ function SpaceCenterStatusComponent({
               canAfford;
             // Build a hover-tooltip body summarising the current tier's
             // bullet-list and (if available) the next-tier preview. The
-            // newlines from the fork stay as \n — the browser's `title`
+            // newlines from the fork stay as \n, the browser's `title`
             // attribute renders them with native multi-line wrapping in
             // the OS-level tooltip on every major platform.
             const tooltip = buildFacilityTooltip(label, f);
@@ -332,7 +333,7 @@ function SpaceCenterStatusComponent({
                       <TierMax>{displayMax}</TierMax>
                     </>
                   ) : (
-                    <Muted>—</Muted>
+                    <Muted>{NULL_DISPLAY}</Muted>
                   )}
                 </FacilityValue>
                 {f && f.upgradeFunds > 0 && !atMax && (
@@ -384,7 +385,9 @@ function SpaceCenterStatusComponent({
           <FooterCell title="Parts unlocked by current R&D tier">
             <FooterLabel>Parts unlocked</FooterLabel>
             <FooterValue>
-              {typeof partsAvailable === "number" ? partsAvailable : "—"}
+              {typeof partsAvailable === "number"
+                ? partsAvailable
+                : NULL_DISPLAY}
             </FooterValue>
           </FooterCell>
         </Footer>
@@ -451,9 +454,9 @@ function UpgradeButton({
 function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   if (!f) return label;
   if (!f.currentLevelText && !f.nextLevelText) {
-    return `${label} (older Telemachus DLL — no level descriptions)`;
+    return `${label} (older Telemachus DLL: no level descriptions)`;
   }
-  const parts: string[] = [`${label} — tier ${f.level + 1} of ${f.max + 1}`];
+  const parts: string[] = [`${label}: tier ${f.level + 1} of ${f.max + 1}`];
   if (f.currentLevelText) {
     parts.push("", "NOW", f.currentLevelText);
   }
@@ -465,7 +468,7 @@ function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
 
 // Compact funds for the tiny (2x3) bucket where the box is only ~2 grid
 // columns wide. Drops to whole-number k/M so the string stays 3-4 chars
-// ("290k", "78k", "13k") — the decimal form ("289.8k") overflows the
+// ("290k", "78k", "13k"): the decimal form ("289.8k") overflows the
 // narrowest box. The full value lives in the cell's `title` attribute.
 function formatTinyFunds(value: number): string {
   const abs = Math.abs(value);
@@ -521,7 +524,7 @@ const FacilityLabel = styled.span`
      Control" at the narrow default-6x7 3-col grid) on every cell, not
      just the ones that need it. Without this, a facility with a
      short one-line label (Runway, VAB) sits higher in its cell than
-     its row-mate with a two-line label (Launch Pad) — everything
+     its row-mate with a two-line label (Launch Pad), everything
      below (tier value, cost, Upgrade button) inherits the offset, so
      the Upgrade buttons across a row land at visibly different
      heights even though each button box itself is the same size. */
@@ -570,9 +573,9 @@ const UpgradeCost = styled.span<{ $afford: boolean }>`
   font-size: 10px;
   /* Unaffordable cost must read as a nogo signal on the dark panel cell.
      The nogo *-fg token is the foreground meant to sit on the red *-bg
-     fill — as standalone text on the near-black cell it's a pale pink that
+     fill: as standalone text on the near-black cell it's a pale pink that
      reads like ordinary light copy and the warning is lost. Use the
-     saturated nogo *-bg token as the text colour instead — the established
+     saturated nogo *-bg token as the text colour instead, the established
      "nogo text on a dark surface" treatment (PerfBudgets, Twr, ShipMap)
      with adequate contrast. */
   color: ${(p) =>
@@ -634,12 +637,12 @@ const UpgradeButtonStyled = styled.button`
   box-sizing: border-box;
   text-align: center;
   /* At the narrow default-6x7 3-col grid the facility cell interior is
-     only ~46px — narrower than "Upgrade" can render on one line. A
+     only ~46px: narrower than "Upgrade" can render on one line. A
      fixed nowrap width used to solve an old label-clipping bug by
      refusing to shrink, but that just moved the problem: the button
      kept its full intrinsic width and overflowed the cell (and, for
      the last column, right past the panel's own padding, reading as
-     a "cut off" button). Let it shrink and wrap instead — every
+     a "cut off" button). Let it shrink and wrap instead, every
      character stays visible, just spread over two lines, and the box
      never exceeds the space its row actually has. */
   min-width: 0;
@@ -661,7 +664,7 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
   color: var(--color-status-go-fg);
   border-color: transparent;
   /* The animation property must live inside the same media guard as
-     the keyframes — the bare property outside the guard fires for
+     the keyframes: the bare property outside the guard fires for
      reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
     animation: upgradePulse 1s ease-in-out infinite;
@@ -754,7 +757,7 @@ registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
   description:
-    "KSC overview — facility levels (VAB, SPH, R&D, ...), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
+    "KSC overview: facility levels (VAB, SPH, R&D, ...), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 2, h: 2 },

@@ -19,7 +19,7 @@ import {
 // reset. Augment-registry tests own their isolation and clear it explicitly.
 beforeEach(() => clearAugments());
 
-describe("augment registry — ordering", () => {
+describe("augment registry: ordering", () => {
   it("orders augments in a slot by ascending priority, ties in registration order", () => {
     registerAugment({
       id: "late-high",
@@ -40,7 +40,7 @@ describe("augment registry — ordering", () => {
       component: () => null,
       priority: 10,
     });
-    // Different slot — must not leak into this slot's list.
+    // Different slot: must not leak into this slot's list.
     registerAugment({
       id: "other-slot",
       augments: "map-view.overlay",
@@ -62,7 +62,7 @@ describe("augment registry — ordering", () => {
   });
 });
 
-describe("AugmentSlot — composition", () => {
+describe("AugmentSlot: composition", () => {
   it("renders all registered augments for a slot, ordered by priority", () => {
     registerAugment({
       id: "second",
@@ -147,7 +147,7 @@ describe("AugmentSlot — composition", () => {
   });
 });
 
-describe("AugmentSlot — Domain presence gating (spec §4.2)", () => {
+describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   it("does not render an augment whose required Domain is absent, then renders it once available", async () => {
     registerAugment({
       id: "scan-overlay",
@@ -196,7 +196,7 @@ describe("AugmentSlot — Domain presence gating (spec §4.2)", () => {
 
 // useAugmentAvailable is AugmentEntry's own gate hook, extracted (spec:
 // local_docs/spec-mapview-stackable-layers.md fix-up) so a HOST can ask "is
-// this augment's Domain live" WITHOUT rendering the augment's component —
+// this augment's Domain live" WITHOUT rendering the augment's component,
 // needed for a decision like MapView's vanilla-suppression, which must
 // respect Domain availability exactly like rendering does, not just
 // registry presence (a bundled client package registers its augments
@@ -323,7 +323,7 @@ describe("suppressesVanillaBase (mapview-stackable-layers spec)", () => {
     expect(replacer?.suppressesVanillaBase).toBe(true);
   });
 
-  it("is a pure registry read — a host can find every suppressing augment in a slot without rendering anything", () => {
+  it("is a pure registry read; a host can find every suppressing augment in a slot without rendering anything", () => {
     registerAugment({
       id: "a",
       augments: "s",

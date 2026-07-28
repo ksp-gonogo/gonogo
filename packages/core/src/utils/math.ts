@@ -7,7 +7,7 @@ export function clamp01(value: number): number {
 }
 
 /** Like clamp(), but returns `min` for non-finite inputs (NaN, ±Infinity).
- *  Use this when a graceful zero/baseline is preferable to NaN propagation —
+ *  Use this when a graceful zero/baseline is preferable to NaN propagation,
  *  e.g. UI percentages that must render even with bad input. */
 export function clampSafe(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;

@@ -22,23 +22,23 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 import { selectKerbalCamera } from "./selectKerbalCamera";
 
 /**
- * kerbcast crew-avatar augment — fills CrewManifest's `crew-manifest.avatar`
+ * kerbcast crew-avatar augment: fills CrewManifest's `crew-manifest.avatar`
  * slot (facecam-stage6 consumption design) with a live per-kerbal face,
  * layering an EVA/IVA badge and a click-to-spotlight modal over kerbcast-
  * react's shared `KerbalFaceFeed` primitive.
  *
  * Two gates, both zero-cost when off/absent:
- *  - `requires: "kerbcast"` (below) — the augment doesn't mount at all
+ *  - `requires: "kerbcast"` (below), the augment doesn't mount at all
  *    without the Uplink present; `<AugmentSlot>` enforces this.
- *  - the "kerbcast.embeddedFacecams" kill-switch (design item g) — a
+ *  - the "kerbcast.embeddedFacecams" kill-switch (design item g): a
  *    COMPONENT-BOUNDARY split: OFF returns before the subscribing child
  *    mounts, so no facecam stream is ever requested.
  *
  * `selectKerbalCamera` correlates CrewManifest's name-keyed roster row
  * against kerbcast's `kind: Kerbal` cameras by `cameraName` (see that
- * module's doc — name is the only identity stable across seat<->EVA and the
- * only one both sides carry). When no camera matches — kerbcast absent, this
- * kerbal not seated, embedded facecams off — the augment renders nothing and
+ * module's doc: name is the only identity stable across seat<->EVA and the
+ * only one both sides carry). When no camera matches, kerbcast absent, this
+ * kerbal not seated, embedded facecams off: the augment renders nothing and
  * CrewManifest's own bullet fallback shows through underneath.
  */
 export function KerbcastAvatarAugment({
@@ -58,7 +58,7 @@ function FacecamAvatar({ crewName }: { crewName: string }) {
   // Kick the MEDIA connection once a face camera is known for this kerbal.
   // Mirrors DockingCameraAugment: the camera registry is populated by the
   // control-channel handshake, but `subscribeCamera`/`useKerbcastStream`
-  // only bind a slot on an ALREADY-connected source — without this a
+  // only bind a slot on an ALREADY-connected source, without this a
   // brokered station never opens a session for a kerbal it can already see
   // in the registry.
   useEffect(() => {
@@ -101,7 +101,7 @@ function FacecamAvatarFeed({
   const { open } = useModal();
   const isEva = crewLocation === CrewLocationEnum.Eva;
   // `useModal`'s dialog renders through a `createPortal` mounted at the
-  // `ModalProvider` call site — OUTSIDE this component's own
+  // `ModalProvider` call site: OUTSIDE this component's own
   // `KerbcastProvider` ancestor. React context resolves by render-tree
   // position, not by where the JSX was constructed, so the spotlight's
   // `KerbalFaceFeed` needs its OWN provider, fed the same client/subscriptions
@@ -139,7 +139,7 @@ function FacecamAvatarFeed({
 
 /**
  * EVA/IVA corner badge, composed from the shared `Badge` (ui-kit) rather than
- * a bespoke styled span — two sizes (`avatar`: tiny, over the ~40px roster
+ * a bespoke styled span: two sizes (`avatar`: tiny, over the ~40px roster
  * cell; `spotlight`: the ui-kit default, over the 320px modal view).
  */
 function LocationBadge({
@@ -173,7 +173,7 @@ export { selectKerbalCamera };
 
 // ── Styles ────────────────────────────────────────────────────────────────
 // Inline style objects + ui-kit primitives (Badge, TextButton) rather than a
-// bespoke styled-components import — TextButton already carries the no-chrome
+// bespoke styled-components import: TextButton already carries the no-chrome
 // reset and the shared `:focus-visible` ring; only the sizing here is local.
 
 const AVATAR_BUTTON_STYLE: CSSProperties = {

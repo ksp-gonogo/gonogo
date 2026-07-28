@@ -6,12 +6,12 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The real <see cref="IScienceActuator"/> — the science-command actuation
+    /// The real <see cref="IScienceActuator"/>: the science-command actuation
     /// seam, wired to <c>ModuleScienceExperiment</c> and the stock
     /// <c>IScienceDataTransmitter</c> path (via <c>ScienceUtil.GetBestTransmitter</c>),
     /// confirmed against this KSP version's actual API shapes via decompile
     /// (see each method's own comment for the specific call). Both methods
-    /// operate on <c>FlightGlobals.ActiveVessel</c> — there is no per-call
+    /// operate on <c>FlightGlobals.ActiveVessel</c>: there is no per-call
     /// vessel selector; the science read side scopes to the active vessel the
     /// same way.
     /// The experiment is addressed by the part's <c>flightID.ToString()</c>,
@@ -20,7 +20,7 @@ namespace Gonogo.KSP
     ///
     /// <para>This is a KSP/Unity-touching class alongside <see cref="KspHost"/>
     /// (read side) and <see cref="KspVesselActuator"/> (vessel actuation). Like
-    /// them it runs on the Unity main thread — <see cref="ChannelEngine"/> is
+    /// them it runs on the Unity main thread, <see cref="ChannelEngine"/> is
     /// constructed with <c>executeCommandsOnMainThread: true</c>, so every
     /// command handler is marshaled onto the main-thread pump before it reaches
     /// this actuator.</para>
@@ -29,7 +29,7 @@ namespace Gonogo.KSP
     {
         /// <summary>
         /// Deploys (runs) the first experiment module on the addressed part
-        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c> —
+        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c>,
         /// guarded so a deploy on an already-run/spent experiment returns
         /// <see cref="CommandErrorCode.ModeUnavailable"/> rather than
         /// re-triggering. <c>ModuleScienceExperiment.DeployExperiment()</c>,
@@ -73,7 +73,7 @@ namespace Gonogo.KSP
         /// transmitted result off the module. <c>DumpData</c> is the public
         /// entry point to the same private <c>endExperiment</c>/<c>dumpData</c>
         /// path stock's transmit uses: it clears the stored data and sets the
-        /// module inoperable when it is not rerunnable — so this side effect is
+        /// module inoperable when it is not rerunnable, so this side effect is
         /// faithful to the stock behaviour, not a guess.
         /// <see cref="CommandErrorCode.ModeUnavailable"/> when the part holds no
         /// data or no transmitter is available.
@@ -132,7 +132,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Resolves the opaque <paramref name="partId"/> (a part's
         /// <c>flightID.ToString()</c>) to that part's live
-        /// <c>ModuleScienceExperiment</c> list on the active vessel — the same
+        /// <c>ModuleScienceExperiment</c> list on the active vessel: the same
         /// join key <c>KspHost.BuildScienceInstruments</c> emits. Returns
         /// <see cref="CommandErrorCode.NoVessel"/> with no active vessel,
         /// <see cref="CommandErrorCode.NotFound"/> when no part carries the id

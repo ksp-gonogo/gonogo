@@ -1,12 +1,12 @@
 /**
  * Uplink Client Contract (Phase 1, design doc §3.1/§3.3): a widget
  * registered through a `defineUplinkClient` handle carries its owner's id
- * as a search tag automatically — `effectiveSearchTags` derives it from
+ * as a search tag automatically: `effectiveSearchTags` derives it from
  * `def.owner?.id`, never a hand-set per-widget field. This exercises the
  * real registry + the real ComponentOverlay, searching by the owner's id,
  * same "mock as little as possible" shape as component-overlay-add.test.tsx.
  *
- * Fictional owner token ("mod-alpha") — a real first-party Uplink token only
+ * Fictional owner token ("mod-alpha"): a real first-party Uplink token only
  * ever appears inside its own Uplink client dir (uplink-boundary ratchet);
  * the mod-search-tags reference branch made the same choice for its own
  * core/app-level tests.
@@ -41,7 +41,7 @@ function OwnedWidget() {
 // component-overlay-add.test.tsx): this suite imports no Uplink client
 // package, so nothing registers a chrome provider, and neither widget under
 // test opens a config modal, so ComponentOverlay's useChromeWrap() has an
-// empty registered-provider list to iterate — nothing to supply.
+// empty registered-provider list to iterate: nothing to supply.
 function renderOverlay() {
   const serialService = new SerialDeviceService({ screenKey: "test" });
   return render(
@@ -55,7 +55,7 @@ function renderOverlay() {
   );
 }
 
-describe("ComponentOverlay — owner-derived mod search tags", () => {
+describe("ComponentOverlay: owner-derived mod search tags", () => {
   afterEach(() => {
     clearRegistry();
   });
@@ -74,7 +74,7 @@ describe("ComponentOverlay — owner-derived mod search tags", () => {
     renderOverlay();
 
     await user.click(screen.getByRole("button", { name: "Add component" }));
-    // Nothing matches "mod-alpha" as a literal tag on the def — only via
+    // Nothing matches "mod-alpha" as a literal tag on the def, only via
     // effectiveSearchTags deriving it from `owner.id`.
     await user.type(
       screen.getByRole("combobox", { name: "Search widgets" }),

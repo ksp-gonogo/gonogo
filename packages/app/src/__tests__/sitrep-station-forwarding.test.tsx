@@ -4,22 +4,22 @@
  *
  * The repo's prior "recorded-fixture top-level test" (the PBDS-bridge
  * two-screen harness referenced in project memory) was deleted in
- * `cb96f069` — the same commit that removed the entire legacy Telemachus
+ * `cb96f069`: the same commit that removed the entire legacy Telemachus
  * replay stack (`FlightReplayDataSource`, `replay-server`, etc.) it depended
  * on. This is its Sitrep-native successor: same "sequential render, direct
  * in-process wiring, fake peerjs" trick, new pipeline.
  *
  * What's real here: `PeerHostService`, `PeerClientService`, `SitrepPeerRelay`,
- * `PeerTransport`, `TelemetryClient`, `TelemetryProvider` — every class this
+ * `PeerTransport`, `TelemetryClient`, `TelemetryProvider`: every class this
  * milestone touches, unmocked. What's faked: PeerJS itself (an in-process
- * bidirectional mock — no real WebRTC/browser networking is available in
+ * bidirectional mock: no real WebRTC/browser networking is available in
  * jsdom) and the host's connection to the mod (a `StubTransport` standing in
  * for a live `WebSocketTransport`, driven with hand-authored frames instead
- * of a recorded fixture — the gitignored `reference-wire-fixture.json` isn't
+ * of a recorded fixture: the gitignored `reference-wire-fixture.json` isn't
  * available in CI, so this keeps the test self-contained and deterministic).
  *
  * This does NOT render the full `MainScreen`/`StationScreen` screen
- * components — those are covered by `tsc --noEmit` on the real wiring edits
+ * components: those are covered by `tsc --noEmit` on the real wiring edits
  * in those files. This test proves the forwarding PLUMBING those screens
  * mount: a host-side `TelemetryClient` -> `SitrepPeerRelay` ->
  * `PeerHostService` -> (fake PeerJS) -> `PeerClientService` -> `PeerTransport`
@@ -27,11 +27,11 @@
  */
 
 // ---------------------------------------------------------------------------
-// Fake PeerJS — bidirectional in-process mock (adapted from the retired
+// Fake PeerJS: bidirectional in-process mock (adapted from the retired
 // recorded-fixture harness at `cb96f069^`). Two `FakePeer`s in the same
 // process find each other by id through `peerRegistry`; `peer.connect(id)`
 // pairs `FakeDataConnection`s so `send()` on one side lands in the other's
-// `"data"` listener — close enough to real PeerJS to exercise the real
+// `"data"` listener: close enough to real PeerJS to exercise the real
 // `PeerHostService`/`PeerClientService` classes without any WebRTC.
 // ---------------------------------------------------------------------------
 const peerRegistry = vi.hoisted(
@@ -211,7 +211,7 @@ function HostApp({
 
 /**
  * The station-side equivalent of `SitrepTelemetryProvider transport={new
- * PeerTransport(client)}` — built directly with `useState` (rather than
+ * PeerTransport(client)}`: built directly with `useState` (rather than
  * `SitrepTelemetryProvider`'s own mount-effect) so this test drives the real
  * `PeerTransport`/`TelemetryClient`/`TelemetryProvider` classes without also
  * pulling in `StationScreen`'s full screen tree.
@@ -242,7 +242,7 @@ async function waitForHostPeerId(peerHost: PeerHostService): Promise<void> {
 
 /**
  * Connects a bare `PeerClientService` WITHOUT mounting `StationApp`'s
- * `TelemetryProvider` — used by the command-RPC test below, which builds
+ * `TelemetryProvider`: used by the command-RPC test below, which builds
  * its own standalone `PeerTransport`/`TelemetryClient` pair instead. Two
  * `TelemetryProvider`s mounted in the SAME test process (host's + a
  * station's) share the sitrep-client package's one module-level
@@ -250,8 +250,8 @@ async function waitForHostPeerId(peerHost: PeerHostService): Promise<void> {
  * earlier one. In production this can't happen (host and station are
  * separate browser contexts), but in-process it means
  * `PeerHostService.handleSitrepCommand`'s `getActiveTelemetryClient()` would
- * resolve to whichever `TelemetryProvider` mounted LAST — the station's, not
- * the host's — turning a dispatched command into an infinite request/reply
+ * resolve to whichever `TelemetryProvider` mounted LAST: the station's, not
+ * the host's: turning a dispatched command into an infinite request/reply
  * loop (the "host" dispatches back through the station's own transport,
  * which sends it to the host again, forever). Keeping the command-RPC
  * test's station client un-rendered avoids ever mounting a second
@@ -276,16 +276,16 @@ async function connectStation(
   return clientSvc;
 }
 
-describe("station Sitrep-stream forwarding — two-screen proof", () => {
+describe("station Sitrep-stream forwarding: two-screen proof", () => {
   const stationServices: PeerClientService[] = [];
   const hostServices: PeerHostService[] = [];
 
   afterEach(() => {
     // `svc.disconnect()` synchronously closes the underlying
     // `FakeDataConnection`, which ripples straight through to the paired
-    // remote's "close" handler on `PeerHostService` — still-mounted at this
+    // remote's "close" handler on `PeerHostService`: still-mounted at this
     // point (RTL's own auto-cleanup afterEach runs AFTER this describe
-    // block's, so unmounting hasn't happened yet) — firing
+    // block's, so unmounting hasn't happened yet): firing
     // `SitrepPeerRelay`'s `onPeerDisconnect`-driven `setHasConnections`
     // outside any `act()` boundary. Wrap the teardown itself in `act()`
     // rather than reordering cleanup, since the whole point is tearing
@@ -324,7 +324,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
 
     // A "confirmed" sample: validAt/deliveredAt deep in the past relative
     // to real wall time, so both screens' ViewClocks classify it the same
-    // way regardless of the small extra PeerJS-hop latency between them —
+    // way regardless of the small extra PeerJS-hop latency between them,
     // this is the delay-correctness claim from the plan's §5: a station
     // never sees a sample the host's own clock wouldn't already call
     // confirmed, because it never receives it any earlier than the host did.
@@ -356,7 +356,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
     await peerHost.start();
     await waitForHostPeerId(peerHost);
 
-    // Station 1 connects first — this is what starts SitrepPeerRelay's
+    // Station 1 connects first: this is what starts SitrepPeerRelay's
     // eager subscription (v1: nothing is subscribed until at least one
     // station is connected).
     const station1 = await connectStation(peerHost);
@@ -378,7 +378,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
 
     // Station 2 connects mid-flight, AFTER vessel.identity last changed.
     // Without SitrepPeerRelay's per-connection backfill this would stay
-    // blank forever — nothing re-emits vessel.identity after this point.
+    // blank forever: nothing re-emits vessel.identity after this point.
     const station2 = await connectStation(peerHost);
     stationServices.push(station2);
 
@@ -390,7 +390,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
     });
   });
 
-  it("a station's TelemetryClient.dispatch() — the exact call useCommand's carried branch makes — reaches the host over the command RPC", async () => {
+  it("a station's TelemetryClient.dispatch(): the exact call useCommand's carried branch makes, reaches the host over the command RPC", async () => {
     const { peerHost, hostTransport } = setupHost();
     hostTransport.setCommandHandler((command, args) => ({ command, args }));
     await peerHost.start();
@@ -415,7 +415,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
     stationClient.dispose();
   });
 
-  it("replies to a sitrep command over the dispatching station's own connection only — a second, idle station never sees it", async () => {
+  it("replies to a sitrep command over the dispatching station's own connection only, a second, idle station never sees it", async () => {
     // Targets the plan's §6 "two-client requestId namespaces" risk directly:
     // a copy-paste of `broadcast` for `PeerHostService.handleSitrepCommand`
     // instead of `conn.send` would leak this response to every connected
@@ -423,7 +423,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
     // `TelemetryClient`s each mint their own `requestId` counter starting at
     // "c0", so this also exercises the "two stations' identically-numbered
     // in-flight commands stay in separate namespaces" case the plan calls
-    // out — a broadcast bug here wouldn't just leak, it would cross-deliver
+    // out: a broadcast bug here wouldn't just leak, it would cross-deliver
     // one station's result under the other's very same in-flight id.
     const { peerHost, hostTransport } = setupHost();
     hostTransport.setCommandHandler((command, args) => ({ command, args }));
@@ -453,7 +453,7 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
       },
     );
 
-    // Station B is idle — it never dispatches anything. Only station A does.
+    // Station B is idle, it never dispatches anything. Only station A does.
     const { result } = stationAClient.dispatch("vessel.control.setSas", {
       enabled: true,
     });

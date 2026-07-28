@@ -9,7 +9,7 @@
  *
  * SpaceWeather reads flat `sw.*` keys off the `"data"` source (see its
  * `useSpaceWeather` hook), so these render through the shared MockDataSource
- * harness like the widget's own index.test.tsx — no TelemetryProvider needed.
+ * harness like the widget's own index.test.tsx: no TelemetryProvider needed.
  * Missing keys default to 0, so the board always renders populated.
  *
  * If the widget output intentionally changes, regenerate with

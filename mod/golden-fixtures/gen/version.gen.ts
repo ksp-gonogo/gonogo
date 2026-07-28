@@ -5,7 +5,7 @@
  * Imports the REAL TS reference functions, runs them over a fixed set of
  * input cases, and writes the TS-computed results (never hand-authored) to
  * `mod/golden-fixtures/version.json`. Both the TS reference and the C# port
- * (`Sitrep.Core.Tests`) are checked against this same file — it is the
+ * (`Sitrep.Core.Tests`) are checked against this same file: it is the
  * shared cross-language contract for `compareVersions` / `satisfiesKernel` /
  * `satisfiesModRange`.
  *

@@ -4,17 +4,17 @@ import { describe, expect, it } from "vitest";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * Producer↔consumer disagreements O2/O3/O4 — hyperbolic orbits and the
+ * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the
  * `vessel.state.basis` contract.
  *
  * - **O2**: `hasOrbit` must not require apoapsis. Apoapsis is `null` by
- *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists) — the gate
+ *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists), the gate
  *   must still show the diagram/pill for a fully-known escape orbit, keyed
  *   off periapsis (always real whenever there's an orbit) instead.
  * - **O3**: the apsis radii must come off `vessel.state` (which is correctly
  *   `null` for a hyperbolic apoapsis), not a client-side `sma·(1+ecc)`
  *   computation (finite but GARBAGE-negative for a hyperbolic orbit, since
- *   sma<0 there) — that garbage must never reach `overlayContext.scale` or
+ *   sma<0 there), that garbage must never reach `overlayContext.scale` or
  *   any augment slot prop.
  * - **O4**: in the "measured" (Loaded/packed) basis, the derived orbital
  *   elements are null-by-design even though raw `vessel.orbit.sma`/`ecc`
@@ -22,7 +22,7 @@ import { emitScenario, renderOrbitViewStream } from "./streamHarness";
  *   elements, and must show a distinct "packed" empty state rather than the
  *   generic "No orbital data" (which implies no orbit at all, not true here).
  */
-describe("OrbitView — O2: hyperbolic orbit still counts as hasOrbit", () => {
+describe("OrbitView: O2: hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the diagram (not 'No orbital data') for a fully hyperbolic orbit", async () => {
     const { container } = renderOrbitViewStream(
       { w: 9, h: 18 },
@@ -42,7 +42,7 @@ describe("OrbitView — O2: hyperbolic orbit still counts as hasOrbit", () => {
     });
     expect(container.textContent).not.toContain("No orbital data");
     // The periapsis marker/label renders (real on a hyperbolic orbit) but
-    // the apoapsis one doesn't (there is none) — confirms `hasOrbit`
+    // the apoapsis one doesn't (there is none), confirms `hasOrbit`
     // resolved true off periapsis alone, not a fabricated apoapsis.
     expect(
       container.querySelector('[aria-label^="Periapsis altitude"]'),
@@ -53,7 +53,7 @@ describe("OrbitView — O2: hyperbolic orbit still counts as hasOrbit", () => {
   });
 });
 
-describe("OrbitView — O3: no finite-negative apoapsis leaks into the overlay scale", () => {
+describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scale", () => {
   it("keeps overlayContext.scale periapsis-driven (never a negative apoapsis) on a hyperbolic orbit", async () => {
     const { container, fixture } = renderOrbitViewStream(
       { w: 9, h: 18 },
@@ -72,8 +72,8 @@ describe("OrbitView — O3: no finite-negative apoapsis leaks into the overlay s
       }
     });
 
-    // White-box: `vessel.state.apoapsisRadius` — the value the widget now
-    // reads for its apsis radii — must be null on this hyperbolic orbit, not
+    // White-box: `vessel.state.apoapsisRadius`: the value the widget now
+    // reads for its apsis radii, must be null on this hyperbolic orbit, not
     // the old client-side `sma·(1+ecc)` finite-negative garbage
     // (-500000 * 2.4 = -1200000).
     const apoapsisPoint = fixture.store.sample<number | null>(
@@ -91,7 +91,7 @@ describe("OrbitView — O3: no finite-negative apoapsis leaks into the overlay s
   });
 });
 
-describe("OrbitView — O4: 'measured' basis suppresses the diagram with a distinct empty state", () => {
+describe("OrbitView: O4: 'measured' basis suppresses the diagram with a distinct empty state", () => {
   it("shows the packed empty state (not the diagram, not the generic empty state) in the measured basis", async () => {
     const { container, fixture } = renderOrbitViewStream({ w: 9, h: 18 });
 

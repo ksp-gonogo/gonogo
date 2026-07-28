@@ -11,7 +11,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Compact label/state pill. This is the kit's canonical badge — the single
+ * Compact label/state pill. This is the kit's canonical badge, the single
  * tone/size vocabulary every widget's state chips should map onto, replacing
  * bespoke styled spans (e.g. a widget's own `KindBadge`/`StateTag`).
  */

@@ -4,7 +4,7 @@ import { computeUplinkPulse } from "./pendingPulse";
 const ENTRY = { dispatchedAt: 1000, oneWaySeconds: 10 };
 
 describe("computeUplinkPulse", () => {
-  it("returns null before dispatch (defensive — the queue is dispatch-time only)", () => {
+  it("returns null before dispatch (defensive: the queue is dispatch-time only)", () => {
     expect(computeUplinkPulse(ENTRY, 999)).toBeNull();
   });
 
@@ -18,7 +18,7 @@ describe("computeUplinkPulse", () => {
   it("reaches progress 1 on the outbound leg exactly at dispatchedAt + oneWaySeconds", () => {
     const pulse = computeUplinkPulse(ENTRY, 1010);
     // At the exact boundary it's still classified outbound-complete, not yet
-    // return — the return leg begins strictly after this instant.
+    // return: the return leg begins strictly after this instant.
     expect(pulse?.leg).toBe("outbound");
     expect(pulse?.progress).toBeCloseTo(1);
   });
@@ -35,7 +35,7 @@ describe("computeUplinkPulse", () => {
     expect(pulse?.progress).toBeCloseTo(1);
   });
 
-  it("expires (null) once the round trip completes — the client's own safety net, independent of server pruning", () => {
+  it("expires (null) once the round trip completes, the client's own safety net, independent of server pruning", () => {
     expect(computeUplinkPulse(ENTRY, 1020.001)).toBeNull();
   });
 

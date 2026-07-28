@@ -1,9 +1,9 @@
 // Mod-agnostic registry for fog-of-war reveal sources. A reveal source
 // contributes DATA (coverage bytes for a body under some layerId), not a
-// renderable component — that's why this is a parallel registry to
+// renderable component: that's why this is a parallel registry to
 // augments.ts rather than another AugmentSlot kind. Consumed by MapView's
 // own useCoverageGate (packages/components/src/MapView/useCoverageGate.ts)
-// as a PAINT-GATE — see that file's header for why this is not a fog
+// as a PAINT-GATE: see that file's header for why this is not a fog
 // compositor: there is no fog overlay layer in this design, only surface
 // content whose alpha is modulated per-tile by the composite of every
 // enabled source here.

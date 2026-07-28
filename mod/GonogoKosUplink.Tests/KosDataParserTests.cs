@@ -5,7 +5,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Headless tests for the pure <c>[KOSDATA]</c> parser — the C# port of
+    /// Headless tests for the pure <c>[KOSDATA]</c> parser, the C# port of
     /// the app-side <c>kos-data-parser.ts</c> (spec §4(b)). Asserts the
     /// grammar + coercion stay byte-identical to the TS so the client sees the
     /// same values after the migration.

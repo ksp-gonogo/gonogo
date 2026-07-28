@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- MIT, like the rest of gonogo (see LICENSING.md). RP-1 (the RP-0 plugin,
-       RP0.dll) is CC-BY-NC-SA-4.0 — a Non-Commercial ShareAlike CONTENT licence
+       RP0.dll) is CC-BY-NC-SA-4.0, a Non-Commercial ShareAlike CONTENT licence
        whose obligations could reach a COMBINED work. This uplink therefore NEVER
-       links RP-0's assembly and NEVER derives from its types — it reaches every
+       links RP-0's assembly and NEVER derives from its types, it reaches every
        RP-1 avionics member by runtime reflection (AvionicsReflection), the same
        arm's-length pattern gonogo uses for every third-party-mod uplink. That
        boundary is what
@@ -30,7 +30,7 @@
     <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
-  <!-- KSP / Unity reference assemblies — Private="false" (reference-only, never
+  <!-- KSP / Unity reference assemblies: Private="false" (reference-only, never
        copied to the output). Vessel/Part/PartModule live in Assembly-CSharp. The
        RP-0 plugin is NOT referenced, by design (reflection instead). -->
   <ItemGroup>
@@ -48,7 +48,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface
+  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface
        a third-party uplink needs. NO reference to RP0.dll, by design. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">

@@ -12,13 +12,13 @@ import { ScienceBenchComponent } from "./index";
  * shape); with the widget now reading its whole state off canonical Topics
  * (`science.experiments`/`science.experimentBreakdown` + the derived
  * `vessel.state`/`vessel.surface`/`career.status` channels), there is no legacy
- * read path left to compare against — same "the legacy leg is gone" story as
+ * read path left to compare against, same "the legacy leg is gone" story as
  * `ScienceOfficer/dual-run.test.tsx`'s own doc comment. What remains proves the
  * widget renders the full two-experiment career-flight state correctly off the
  * real stream pipeline, using the SAME `kerbin-flight-two-experiments` fixture,
  * with `science.experiments` emitted in its NEW `partName`-keyed wire shape.
  */
-describe("ScienceBench — stream render golden (delay=0)", () => {
+describe("ScienceBench: stream render golden (delay=0)", () => {
   it("renders the full experiment/breakdown/career state off the stream pipeline", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -111,7 +111,7 @@ describe("ScienceBench — stream render golden (delay=0)", () => {
     });
 
     // Situation line resolves off the derived vessel.state + vessel.surface.
-    expect(screen.getByText(/Flying — Water/i)).toBeInTheDocument();
+    expect(screen.getByText(/Flying: Water/i)).toBeInTheDocument();
 
     // Breakdown view (takes precedence over the plain experiment list) shows
     // both subjects, sorted by remainingPotential desc.
@@ -122,7 +122,7 @@ describe("ScienceBench — stream render golden (delay=0)", () => {
       screen.getByText("Crew Report from Kerbin's upper atmosphere"),
     ).toBeInTheDocument();
 
-    // Career strip renders (CAREER mode) — labels present.
+    // Career strip renders (CAREER mode), labels present.
     const scope = within(container);
     expect(scope.getByText("SCI")).toBeInTheDocument();
     expect(scope.getByText("FUNDS")).toBeInTheDocument();

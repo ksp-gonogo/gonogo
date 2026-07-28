@@ -15,7 +15,7 @@ import {
 } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry — clearActionHandlers() firing on a still-mounted
+// action-handler registry: clearActionHandlers() firing on a still-mounted
 // widget is a state update outside act(). RTL auto-cleanup runs after this
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];

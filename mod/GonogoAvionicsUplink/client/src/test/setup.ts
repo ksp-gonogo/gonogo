@@ -14,7 +14,7 @@ installDomStubs();
 PerfBudget.installTestGate();
 
 // Bridge the sitrep-sdk facade's fail-loud shims to the SAME real core
-// singletons this suite exercises — mirrors buildGonogoHost() member-for-member,
+// singletons this suite exercises: mirrors buildGonogoHost() member-for-member,
 // scoped to the subset this client's widget actually calls (registerComponent at
 // module load, useTelemetry at render). Without this, the facade shims throw
 // "the gonogo host has not been installed" the moment a sealed file renders.

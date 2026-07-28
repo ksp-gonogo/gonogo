@@ -1,6 +1,6 @@
-# 2026-05-16 — Ship Map Phase 2: harness, snapshots, sizing, freeze fix
+# 2026-05-16, Ship Map Phase 2: harness, snapshots, sizing, freeze fix
 
-**Status:** ⏳ pending — landed and CI-green, partially live-verified (orientation + sizing + fuel-line target captured on 2026-05-16); part-state overlays + bounds.center still need a KSP capture with `v.partState` + bounds.center pulled to fully exercise the rendering path.
+**Status:** ⏳ pending: landed and CI-green, partially live-verified (orientation + sizing + fuel-line target captured on 2026-05-16); part-state overlays + bounds.center still need a KSP capture with `v.partState` + bounds.center pulled to fully exercise the rendering path.
 
 **Commits:** `14c4756`..`2018b94` on `main`; fork side `c0cc3bd`..`2f852ec` on `telemachus/parts-topology` (plus combined-branch DLL builds on `test-combined-2026-05-16`).
 
@@ -11,10 +11,10 @@ plumbing landed here.
 
 ## What shipped
 
-### Item 1 — SVG-render harness (`14c4756`)
+### Item 1: SVG-render harness (`14c4756`)
 
 Split the SVG body of `ShipDiagram` into a pure `ShipDiagramSvg`
-component — no `Wrapper` / `ResetButton` / `Tooltip` chrome, no
+component: no `Wrapper` / `ResetButton` / `Tooltip` chrome, no
 `useZoomPan` state. `ShipDiagram` becomes the interactive shell that
 wraps it; harness + snapshot tests render via the same code path the
 live widget uses.
@@ -32,14 +32,14 @@ self-contained.
 is needed so the script outside `src/` picks up the package's
 `jsx: react-jsx` setting.
 
-### Item 5 — Drop `pos` row from tooltip (`387b95c`)
+### Item 5: Drop `pos` row from tooltip (`387b95c`)
 
 `orgPos` is an internal projection coordinate, not useful to operators.
 Tooltip now shows type / mass / temp / stage / resources only.
 
-### Item 2 — SVG snapshot tests (`0a60f4a`)
+### Item 2: SVG snapshot tests (`0a60f4a`)
 
-Five `toMatchSnapshot` assertions — one per recorded fixture plus the
+Five `toMatchSnapshot` assertions: one per recorded fixture plus the
 empty-parts placeholder. Renders go through the same
 `renderShipMapToSvg` helper as the CLI harness. Floating-point
 coordinates are rounded to 2dp before snapshotting so unrelated numeric
@@ -47,7 +47,7 @@ refactors stay diff-free. When a snapshot legitimately needs updating:
 regenerate harness output, eyeball the SVGs in
 `local_docs/ship-map-renders/`, then `vitest -u`.
 
-### Item 6 — `useTopology` destruction-cascade freeze fix (`4eddd21`)
+### Item 6: `useTopology` destruction-cascade freeze fix (`4eddd21`)
 
 Root cause: the 2 s `FETCH_TIMEOUT_MS` safety dropped the `v.topology`
 subscription on its own. During a destruction cascade Telemachus can
@@ -57,7 +57,7 @@ freezes at the pre-cascade snapshot.
 
 The timer isn't needed. The subscribe handler already unsubs on the
 first valid push, so per-bump bandwidth stays capped at one payload
-regardless. Without the timer the subscription self-heals — once
+regardless. Without the timer the subscription self-heals, once
 Telemachus catches up, its next push lands on a still-live
 subscription. Regression test exercises the exact cascade shape (emit
 seq=1 + topology=1, bump seq four times with no topology pushes, then
@@ -69,10 +69,10 @@ in lock-step after the cascade ends. The 2026-05-15 rover-crash test
 plan in `local_docs/2026-05-15-fork-v2-and-docking-test-plan.md` covers
 the relevant scenario.
 
-### Heat tint overlay (Item 3a — `eba1c78`)
+### Heat tint overlay (Item 3a: `eba1c78`)
 
 The previous `heatTint` blended via `parseHex(#RRGGBB)` against
-CSS-variable strings — `parseHex` only matches `#RRGGBB`, so the blend
+CSS-variable strings: `parseHex` only matches `#RRGGBB`, so the blend
 always short-circuited and returned the base. The temperature ramp has
 been a no-op since this code first landed.
 
@@ -83,7 +83,7 @@ Replaced with a translucent overlay rect:
 - 80–100 %: red overlay, opacity 0.55 → 0.85.
 
 Stays CSS-variable driven (no resolved-hex palette to keep in sync with
-`global.css`) and reads boldly at high temperatures — which is when the
+`global.css`) and reads boldly at high temperatures, which is when the
 operator actually needs to notice. Hottest-part highlight ring (driven
 by `therm.hottestPartName`) is unchanged.
 
@@ -91,10 +91,10 @@ by `therm.hottestPartName`) is unchanged.
 heat-soak part; confirm the per-part tint ramps up alongside the
 existing hottest-part highlight.
 
-### Sizing fix — project parts at correct prefab bounds (`a1e52bc`)
+### Sizing fix: project parts at correct prefab bounds (`a1e52bc`)
 
 User flagged on 2026-05-16 that part shapes still looked like the
-kOS-based map — bounds were "in play" but not being used meaningfully.
+kOS-based map: bounds were "in play" but not being used meaningfully.
 
 Root cause: `intrinsicSize` read `s.z / 2` as axial half-extent and
 `max(s.x, s.y) / 2` as lateral. KSP's `bounds.size` is in part-local
@@ -109,7 +109,7 @@ Fix:
   `pickLateralAxis`.
 - `axialHalfExtent = size.y / 2` (vessel-local Y is the spine).
 - `intrinsicSize` reads the precomputed fields.
-- `MIN_HALF_EXTENT` floor removed — per user preference, project tiny
+- `MIN_HALF_EXTENT` floor removed: per user preference, project tiny
   parts at their actual tiny size and let pinch-zoom handle readability
   ([[feedback-ship-map-part-sizing]]).
 
@@ -120,17 +120,17 @@ convention. SVG snapshots regenerated.
 
 Per-part orientation problem the harness surfaced: nose cones rendering pointing outward (should be up), TT-38K radial decouplers rendering as horizontal slabs (should be vertical), docking ports between two side-by-side rovers rendering wrong axis. Position-derived heuristics were possible but expensive in code + edge cases.
 
-Fork change: `PartsTopologyDataLinkHandler.SerialisePart` now emits `up: [x, y, z]` per part from `part.orgRot * Vector3.up` — the part's local +up axis in the vessel's assembly frame.
+Fork change: `PartsTopologyDataLinkHandler.SerialisePart` now emits `up: [x, y, z]` per part from `part.orgRot * Vector3.up`, the part's local +up axis in the vessel's assembly frame.
 
 Client change: `TopologyPart.up` is optional (defaults to `[0, 1, 0]` so legacy fixtures render identically). `buildShipMapPart` projects `up` into screen-space rotation by mapping vessel `+axial → screen-up` and `+picked-lateral → screen-right`. `ShipDiagramSvg` wraps each part's `<PartGroup>` in `<g transform="rotate(...)">` around the part's centre so the body shape, heat tint, fuel bars, EC/highlight rings all stay locked to the part's local frame.
 
-**Live verification:** fork DLL is in `local_docs/syncthing/kspdata/...` after the build — needs a KSP restart to take effect. Once it does, re-capture the four fixtures via the helper `tele read v.topology` to lock the new orientation data into the snapshot fold.
+**Live verification:** fork DLL is in `local_docs/syncthing/kspdata/...` after the build; needs a KSP restart to take effect. Once it does, re-capture the four fixtures via the helper `tele read v.topology` to lock the new orientation data into the snapshot fold.
 
 ### Mk1 capsule frustum + nose-cone dome + parachute dome (`2455c35`)
 
 Three shape changes for visual readability:
 
-1. **Capsule:** was a Q-curve dome whose apex fell short of the bounds top — the parachute appeared to float above the pod with a gap. Now a frustum (truncated cone) that fills bounds top-to-bottom; the parachute sits flush.
+1. **Capsule:** was a Q-curve dome whose apex fell short of the bounds top, the parachute appeared to float above the pod with a gap. Now a frustum (truncated cone) that fills bounds top-to-bottom; the parachute sits flush.
 2. **Nose-cone:** new `nose-cone` PartType (detected by `name` containing `"nose"`) with a rounded dome shape via cubic Bezier with both control points at y, so the apex reaches the bounds top. Stops nose cones rendering as fin triangles under the `Aero` category fallback.
 3. **Parachute:** was a rounded rect; now a stowed-canister dome (flat base, semicircular top, narrower than bounds to reflect the canister's footprint).
 
@@ -175,12 +175,12 @@ The handoff plan covered through Item 6; the live capture session that followed 
 
 **Fuel-line pipe + chevrons (`3416bca`).** Replaced the single source→target line with a stubby rounded-rect pipe carrying a row of dark blue chevrons pointing along the flow direction. Each pipe lives in a rotated local frame whose +X axis points source→target, so chevrons in local +X are always toward the target regardless of the pipe's screen orientation.
 
-**bounds.center for radial-mount parts (`d03a266` → `2f852ec` fork, `30b6e47` client).** `PartGeometryUtil.MergeBounds` returns both `.size` and `.center` — for radial decouplers, surface ladders, structural brackets the mesh centre doesn't sit on the attach-node anchor. Fork now pre-rotates `bounds.center` by `orgRot` and emits the vessel-frame offset alongside `bounds.size`. Client uses `orgPos + boundsCenter` to position the body box so the rendered shape sits on the mesh centre, not the anchor. Existing fixtures fall back to the zero default. **Needs a fresh capture against the rebuilt DLL** to fully verify radial decouplers no longer overlap the parent tank in the rendered SVGs.
+**bounds.center for radial-mount parts (`d03a266` → `2f852ec` fork, `30b6e47` client).** `PartGeometryUtil.MergeBounds` returns both `.size` and `.center`, for radial decouplers, surface ladders, structural brackets the mesh centre doesn't sit on the attach-node anchor. Fork now pre-rotates `bounds.center` by `orgRot` and emits the vessel-frame offset alongside `bounds.size`. Client uses `orgPos + boundsCenter` to position the body box so the rendered shape sits on the mesh centre, not the anchor. Existing fixtures fall back to the zero default. **Needs a fresh capture against the rebuilt DLL** to fully verify radial decouplers no longer overlap the parent tank in the rendered SVGs.
 
 **Part-state overlays (`ba81303`).** End-to-end plumbing for `v.partState[flightId]`:
 - `@gonogo/core`: `PartState` + `PartStateModule` types.
 - `@gonogo/data`: `usePartsLive` subscribes alongside the existing resource + thermal keys.
-- `@gonogo/components`: `ShipMapPart.partState` pass-through; `renderPartStateOverlays` adds visual indicators per supported module — engine flame (active), parachute marker / canopy / mushroom (armed / deploying / extended), deploy chevron (solar / radiator / antenna mid-animation), landing gear stand (extended), cargo bay open mark (extended). All overlays sit inside the per-part rotation transform so they project correctly on radially-mounted parts.
+- `@gonogo/components`: `ShipMapPart.partState` pass-through; `renderPartStateOverlays` adds visual indicators per supported module, engine flame (active), parachute marker / canopy / mushroom (armed / deploying / extended), deploy chevron (solar / radiator / antenna mid-animation), landing gear stand (extended), cargo bay open mark (extended). All overlays sit inside the per-part rotation transform so they project correctly on radially-mounted parts.
 
 **Inspect helper (`30b6e47`).** New `scripts/inspect_fixture.py` with subcommands `parts`, `modules`, `name`, `radial`, `fuel-lines`, `field`, `bounds` so future fixture inspection isn't ad-hoc `python3 -c …`.
 
@@ -208,7 +208,7 @@ Tracked for a future session:
 
 ```
 packages/components/scripts/render-fixtures.ts          (new)
-packages/components/src/ShipMap/ShipDiagramSvg.tsx      (new — extracted)
+packages/components/src/ShipMap/ShipDiagramSvg.tsx      (new: extracted)
 packages/components/src/ShipMap/render.ts               (new)
 packages/components/src/ShipMap/shipTopology.test.ts    (new)
 packages/components/src/ShipMap/snapshots.test.ts       (new)

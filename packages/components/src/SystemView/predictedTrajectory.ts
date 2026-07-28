@@ -8,16 +8,16 @@
  * An `o.orbitPatches` array can span several SOIs:
  *
  *   - A patch whose `referenceBody` matches the rendered frame is the vessel's
- *     trajectory **around the frame body** — drawn at the frame's plot scale,
+ *     trajectory **around the frame body**: drawn at the frame's plot scale,
  *     origin at the parent (same convention as `bodyPosition`).
  *   - A patch whose `referenceBody` is one of the frame's **children** (a moon
  *     the vessel encounters) is drawn in that child's local frame, offset to
  *     the child's drawn position. The encounter loop is small relative to the
- *     parent-orbit scale — exactly the visual cue "you pass close to this
+ *     parent-orbit scale: exactly the visual cue "you pass close to this
  *     body here".
  *
  * The first sample of any non-initial patch (ENCOUNTER / ESCAPE transition) is
- * the SOI-crossing point — surfaced separately as an encounter marker.
+ * the SOI-crossing point: surfaced separately as an encounter marker.
  */
 import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
 
@@ -100,7 +100,7 @@ export interface PredictTrajectoryArgs {
   patches: readonly OrbitPatch[];
   /** Body the diagram is framed around. */
   parentName: string;
-  /** Current universal time — identifies the live patch. */
+  /** Current universal time: identifies the live patch. */
   ut: number;
   /** metres → px (the diagram's `plotScale`). */
   scale: number;
@@ -127,7 +127,7 @@ function sameBody(a: string | null, b: string | null): boolean {
  * Sample and project every renderable patch in `patches` for the current
  * frame. Patches orbiting the frame parent draw at the origin; patches
  * orbiting a drawn child draw offset to that child. Patches orbiting a body
- * that isn't on screen (a different SOI entirely) are skipped — they belong to
+ * that isn't on screen (a different SOI entirely) are skipped, they belong to
  * another frame.
  */
 export function predictTrajectory({
@@ -179,7 +179,7 @@ export function predictTrajectory({
     }
     if (offset === null) continue; // Reference body not on this frame.
 
-    // For the live patch, only draw from `ut` forward — the past arc is behind
+    // For the live patch, only draw from `ut` forward, the past arc is behind
     // the vessel and the live-orbit ellipse already shows the full loop.
     const from =
       i === currentIndex ? Math.max(patch.startUT, ut) : patch.startUT;
@@ -252,7 +252,7 @@ export interface PatchEncounter {
 /**
  * Scan raw orbit patches for SOI crossings, independent of the rendered frame.
  * Unlike {@link predictTrajectory} this doesn't project or skip off-frame
- * patches — it's the source of truth for the AlmanacPanel encounter text,
+ * patches: it's the source of truth for the AlmanacPanel encounter text,
  * which wants every future encounter regardless of which body the diagram is
  * framed around. Returned in chronological order, filtered to `ut` onward.
  */

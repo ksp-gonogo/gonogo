@@ -15,7 +15,7 @@ import {
  * Live per-part state for a single flightId. `resources` is `{}` when the
  * part has none; `thermal` is `null` when the part hasn't been simulated
  * yet this session (mid-load). Either field may be missing on the first
- * frame after a flightId joins the set — consumers should fall back to the
+ * frame after a flightId joins the set, consumers should fall back to the
  * topology values.
  *
  * `partState` carries the per-module behavioural state (solar deployed,
@@ -32,13 +32,13 @@ export interface PartLiveSlice {
  * Live per-part state for every id in `flightIds`, returning a
  * `Map<flightId, PartLiveSlice>` that updates as new data arrives.
  *
- * Every field is derived from the mod's `vessel.parts` stream Topic — the
- * same payload `useTopology` reads — since `VesselPart` carries per-part
+ * Every field is derived from the mod's `vessel.parts` stream Topic, the
+ * same payload `useTopology` reads, since `VesselPart` carries per-part
  * `currentTemp`/`maxTemp` (thermal, via `vesselPartsAdapter.ts`'s
  * `derivePartThermal`), `resources` (per-part storage + live flow, via
  * `derivePartResources`), and `moduleStates` (per-module behavioural state,
  * via `derivePartState`). No per-id subscription is needed for any of the
- * three any more — the legacy `r.resourceFor[fid]`/`v.partState[fid]` reads
+ * three any more: the legacy `r.resourceFor[fid]`/`v.partState[fid]` reads
  * this hook used to fall back to are retired.
  *
  * `flightIds` scopes the returned map to the caller's current part set (a
@@ -66,7 +66,7 @@ export function usePartsLive(
 
   // Stable key for the dependency: the sorted id list. The caller's array
   // identity is unreliable (a new array can carry the same ids every
-  // topology rebuild) — depending on identity would rebuild the map every
+  // topology rebuild): depending on identity would rebuild the map every
   // render even when nothing changed.
   const idsKey = [...flightIds].sort((a, b) => a - b).join(",");
 

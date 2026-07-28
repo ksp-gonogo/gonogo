@@ -1,7 +1,7 @@
 import type { DataKey, TelemaachusSchema } from "@ksp-gonogo/core";
 
 // ---------------------------------------------------------------------------
-// DataSourceRegistry extension — declaration-merged so the two-arg legacy
+// DataSourceRegistry extension: declaration-merged so the two-arg legacy
 // `('data', key)` read/status/series overloads stay strongly typed. The schema
 // starts as a passthrough of the wrapped telemachus schema; as derived keys
 // land (Phase 2), they extend this type.
@@ -92,7 +92,7 @@ export interface FlightRecord {
    * User-authored chapters / markers. Window bounds are **elapsed
    * milliseconds since `launchedAt`** so they stay readable when reviewing
    * the record by hand and survive any future re-anchoring of `launchedAt`.
-   * Optional — flights start with none.
+   * Optional: flights start with none.
    */
   chapters?: FlightChapterRecord[];
   /**
@@ -106,15 +106,15 @@ export interface FlightRecord {
    * Untouched while the flight is in progress and on flights that
    * neither finished cleanly nor crashed (e.g. a save reload pulled
    * the vessel out from under the detector). Most-recent-outcome
-   * wins if both events fire for the same vessel — KSP can crash a
+   * wins if both events fire for the same vessel, KSP can crash a
    * vessel and the operator might still recover its remains.
    */
   outcome?: FlightOutcome;
   /**
-   * UT (seconds) of the first/last captured frame — populated only by
+   * UT (seconds) of the first/last captured frame, populated only by
    * `MissionHistorySource` (Missions are UT-based; `BufferedDataSource`'s
    * own flights have no UT domain at all and leave these undefined).
-   * `FlightGraph` needs the real UT bounds to call `queryRange` correctly —
+   * `FlightGraph` needs the real UT bounds to call `queryRange` correctly,
    * they can't be reconstructed from `launchedAt`/`lastSampleAt` alone,
    * since those stay wall-clock-ms-shaped for backward compatibility with
    * every other `FlightRecord` consumer (`ChaptersEditor`'s duration calc
@@ -162,7 +162,7 @@ export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
 
 /**
  * One named slice of a flight, persisted on the FlightRecord. Mirrors the
- * shape of `FlightChapter` (used in fixtures) — when the flight is exported,
+ * shape of `FlightChapter` (used in fixtures): when the flight is exported,
  * its chapters round-trip into the fixture's chapters array.
  */
 export interface FlightChapterRecord {

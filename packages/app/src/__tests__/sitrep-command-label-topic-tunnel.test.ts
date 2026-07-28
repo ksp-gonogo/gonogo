@@ -1,7 +1,7 @@
 /**
  * A station-dispatched command's `label`/`topic` must survive the PeerJS
  * hop to the host and land on the host's own `TelemetryClient.dispatch()`
- * call — before this, `PeerClientService.sendSitrepCommand` and the
+ * call: before this, `PeerClientService.sendSitrepCommand` and the
  * `sitrep-command-request` wire message only carried `command`/`args`, so
  * a station-originated kOS command showed a bare command name (and the
  * wrong scope) in the host's `system.uplink.pending` queue. Exercises the
@@ -9,7 +9,7 @@
  * channel (mirrors `kos-execute-tunnel.test.ts`'s `FakeHub`), with the
  * host's `getActiveTelemetryClient()` backed by a real `TelemetryClient` +
  * `StubTransport` so `label`/`topic` are observed on the actual
- * `command-request` envelope the host's client sends onward — not just a
+ * `command-request` envelope the host's client sends onward, not just a
  * mock's call args.
  */
 

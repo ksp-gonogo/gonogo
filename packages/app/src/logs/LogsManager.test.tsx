@@ -36,11 +36,11 @@ async function openReportForm() {
   return user;
 }
 
-describe("LogsManager — Feedback", () => {
+describe("LogsManager: Feedback", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {
     // Fake timers (shouldAdvanceTime so userEvent's internal delays still
     // run) so the post-success setTimeout(5000) that resets the form can be
-    // drained inside act() immediately after the success notice — otherwise
+    // drained inside act() immediately after the success notice; otherwise
     // it fires its state updates after the test ends, outside act().
     vi.useFakeTimers({ shouldAdvanceTime: true });
     logger.info("seed-message-for-recent-window");
@@ -56,8 +56,8 @@ describe("LogsManager — Feedback", () => {
       expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
     });
 
-    // Drain the 5s form-reset timer NOW — immediately after the notice, before
-    // any further awaits — so it fires inside this act()-wrapped drain rather
+    // Drain the 5s form-reset timer NOW: immediately after the notice, before
+    // any further awaits: so it fires inside this act()-wrapped drain rather
     // than via the background wall-clock advancer after the test ends. A
     // deliberately-drained timer callback is a synchronous setState push with
     // no testing-library equivalent (the rule-3 act() case).
@@ -137,7 +137,7 @@ describe("LogsManager — Feedback", () => {
     );
 
     // The seeded entry is well within all windows, so the count should still
-    // be >=1 — the meaningful assertion here is that the hint re-renders
+    // be >=1: the meaningful assertion here is that the hint re-renders
     // after a select change without crashing.
     expect(
       screen.getByText(/log entr(y|ies) will be attached/i),

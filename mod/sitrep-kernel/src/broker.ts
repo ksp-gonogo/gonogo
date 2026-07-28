@@ -5,7 +5,7 @@
  *
  * This module is deliberately selection-agnostic: it consumes the *already
  * selected* provider(s) per capability (post version-gate, post
- * exclusive-conflict resolution) — see `Kernel.resolve()`, which runs
+ * exclusive-conflict resolution): see `Kernel.resolve()`, which runs
  * selection first, builds one `DependencyNode` per capability from the
  * winning provider(s)' `deps`, topo-sorts with `topoSortActivationOrder`,
  * and only then invokes factories in that order.
@@ -24,12 +24,12 @@ export interface DependencyNode {
  * Kahn's algorithm topo-sort over the capability dependency graph.
  *
  * - A dep naming a capability that isn't in `nodes` is not an edge (it isn't
- *   a graph node) — it doesn't block activation. Whatever depends on it will
+ *   a graph node): it doesn't block activation. Whatever depends on it will
  *   simply get a "not exactly one active provider" error from `ctx.query` at
  *   factory time if it actually calls query for that id; the broker doesn't
  *   pre-empt that.
  * - Deterministic: ties are broken by `nodes` order (registration order),
- *   never by Set/Map iteration of intermediate structures — the initial
+ *   never by Set/Map iteration of intermediate structures, the initial
  *   ready queue is seeded in `nodes` order, and nodes that become ready
  *   later are appended to that same FIFO queue in the order their
  *   dependencies clear.
@@ -52,7 +52,7 @@ export function topoSortActivationOrder(
     for (const dep of node.deps) {
       if (!knownIds.has(dep)) {
         // Dep on a capability that isn't part of this graph (never
-        // registered) — not an edge; not this broker's problem.
+        // registered): not an edge; not this broker's problem.
         continue;
       }
       dependents.get(dep)?.push(node.id);
@@ -96,7 +96,7 @@ export function topoSortActivationOrder(
  * (i.e. everything left over is part of, or feeds into, at least one cycle).
  * Walks each node's `deps` edges directly (the "depends on" direction) using
  * a visiting/visited marker, so the returned path is an actual dependency
- * chain that loops back on itself — useful in the thrown error message.
+ * chain that loops back on itself: useful in the thrown error message.
  */
 function findCycle(
   remainingIds: readonly CapabilityId[],
@@ -146,6 +146,6 @@ function findCycle(
   }
 
   // Should be unreachable (Kahn's algorithm only leaves nodes that are part
-  // of some cycle) — fall back to naming everything left over.
+  // of some cycle): fall back to naming everything left over.
   return [...remainingIds];
 }

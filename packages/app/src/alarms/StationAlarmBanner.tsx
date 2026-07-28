@@ -4,14 +4,14 @@ import type { Alarm, AlarmSnapshot } from "./types";
 
 /**
  * Station-side companion to AlarmBanner. Surfaces only the fired-alarm
- * acknowledge flow — warp control stays on the main screen because the
+ * acknowledge flow: warp control stays on the main screen because the
  * station can't drive it directly.
  *
  * Renders nothing while no alarms are fired; mounts as a fixed-position
  * pill at the top of the station screen when one or more fire so the
  * operator can dismiss without opening the modal.
  *
- * No alarm tone here — only the main screen chimes (via AlarmBanner's
+ * No alarm tone here: only the main screen chimes (via AlarmBanner's
  * useFireBeep). With every station beeping independently the operator
  * gets a multi-tab cacophony, and the room-wide ack flow already runs
  * through the host's snapshot broadcast so visual silence is in sync

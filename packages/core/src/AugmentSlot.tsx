@@ -12,7 +12,7 @@ import { useTelemetry } from "./hooks/useTelemetry";
  * Renders every augment bound to `name`, ordered by priority (spec §4). This is
  * the composition point the **host** owns: a base widget drops an `<AugmentSlot>`
  * where Uplinks may contribute, and this component assembles whatever is
- * registered — the base widget never references any augmenting Uplink.
+ * registered: the base widget never references any augmenting Uplink.
  *
  * `props` is REQUIRED (spec §4.4): slot props are passed down to every augment,
  * typed against the slot's {@link SlotProps} entry. Overlay slots pass their
@@ -77,12 +77,12 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 
 /**
  * Domain presence gate (spec §4.2): true when `augment` declares no
- * `requires` (ungated — always available), or its `<requires>.available`
- * Topic is currently live (any defined value, not just truthy — matches
+ * `requires` (ungated; always available), or its `<requires>.available`
+ * Topic is currently live (any defined value, not just truthy, matches
  * the Topic's own "presence, not payload" semantics).
  *
  * Extracted so a HOST can ask "is this augment's Domain live right now"
- * without rendering the augment's own component — e.g. MapView's vanilla-
+ * without rendering the augment's own component: e.g. MapView's vanilla-
  * suppression decision (`suppressesVanillaBase`, augments.ts) must only
  * suppress its default surface while the declaring augment's Domain is
  * actually live, not merely because the augment is registered; reading the

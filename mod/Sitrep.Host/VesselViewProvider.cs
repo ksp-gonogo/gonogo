@@ -6,31 +6,31 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the four M1 "core" vessel channels —
+    /// KSP-free mapping logic for the four M1 "core" vessel channels,
     /// <c>vessel.identity</c>/<c>vessel.orbit</c>/<c>vessel.orbit.truth</c>/
-    /// <c>vessel.flight</c> — the Task 1 foundation for the vessel telemetry
+    /// <c>vessel.flight</c>: the Task 1 foundation for the vessel telemetry
     /// uplink. See local_docs/telemetry-mod/m1-provider-taxonomy-design.md
     /// §2.2 and telemachus-api-issues.md O-1/O-8/O-9/O-10/V-10/V-12/V-13.
     /// Reads <see cref="KspSnapshot.Values"/>'s <c>"vessel"</c> groups (see
     /// <c>Gonogo.KSP.KspHost.BuildVesselEntry</c>'s doc comment for the raw
     /// shape) and produces the typed <c>Sitrep.Contract</c> POCOs. Every
-    /// <c>Build*</c> method returns <c>null</c> — never a partially-populated
-    /// record — when its required raw data is missing (R1: absence is typed,
+    /// <c>Build*</c> method returns <c>null</c> (never a partially-populated
+    /// record) when its required raw data is missing (R1: absence is typed,
     /// never a sentinel default).
     ///
     /// <para><b>Subject provenance</b> (the M1 "must-ship, unretrofittable"
-    /// rule — design doc §6.1/§8.1): every payload's <c>Meta.Source</c> is
+    /// rule: design doc §6.1/§8.1): every payload's <c>Meta.Source</c> is
     /// stamped <c>"vessel:&lt;guid&gt;"</c> from <c>vessel.identity.id</c>, so
     /// a sample is always attributable to the vessel it describes even across
     /// a vessel switch. Epoching that switch into a clean keyframe boundary is
     /// <see cref="VesselEpochSampler"/>'s job (a registered
-    /// <see cref="ISnapshotSampler"/>) — this class only produces payloads,
+    /// <see cref="ISnapshotSampler"/>): this class only produces payloads,
     /// never touches the emitter.</para>
     ///
     /// <para><b>Wire adapter (the <c>*Wire</c> methods):</b>
     /// <see cref="Sitrep.Core.Serialization.JsonWriter.AppendValue"/> only
     /// knows how to serialize <c>null</c>/bool/numeric/string/
-    /// <c>IDictionary&lt;string, object?&gt;</c>/<c>IEnumerable</c> — an
+    /// <c>IDictionary&lt;string, object?&gt;</c>/<c>IEnumerable</c>: an
     /// arbitrary typed POCO (like <see cref="VesselIdentity"/>) falls through
     /// to its "unsupported CLR value type" throw, which
     /// <c>ChannelEngine</c>'s delivery-time guard would treat as a genuinely
@@ -38,9 +38,9 @@ namespace Sitrep.Host
     /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
     /// GenuinelyUnserializablePayloadFailsSoftTheOwningUplinkInsteadOfRecurringSilently</c>,
     /// which deliberately pins that behavior for a genuinely-unrecognized
-    /// type). Rather than widen <c>JsonWriter</c> itself — a shared,
+    /// type). Rather than widen <c>JsonWriter</c> itself: a shared,
     /// widely-depended-on class where doing so would blur that intentional
-    /// safety net — each payload type gets a small, explicit
+    /// safety net: each payload type gets a small, explicit
     /// <c>ToWire</c> flattening into the same
     /// <c>Dictionary&lt;string, object?&gt;</c> tree shape
     /// <c>SystemViewProvider.BuildSystemBodies</c> already uses. The
@@ -76,7 +76,7 @@ namespace Sitrep.Host
         public const string SurfaceTopic = "vessel.surface";
         public const string LandingTopic = "vessel.landing";
 
-        /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
+        /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics, shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
@@ -646,7 +646,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The <c>vessel.physics.mode</c> channel — the active vessel's
+        /// The <c>vessel.physics.mode</c> channel: the active vessel's
         /// physics-simulation regime (<see cref="PhysicsMode"/>), mapped from
         /// the raw <c>vessel.physics.mode</c> string
         /// <c>Gonogo.KSP.KspHost.BuildPhysics</c> derives from
@@ -889,7 +889,7 @@ namespace Sitrep.Host
             };
         }
 
-        /// <summary>The <c>vessel.dock</c> channel — see <see cref="DockAlignment"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildDock</c> omitted the raw group (no target, target isn't a docking port, or the active vessel has no free port).</summary>
+        /// <summary>The <c>vessel.dock</c> channel: see <see cref="DockAlignment"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildDock</c> omitted the raw group (no target, target isn't a docking port, or the active vessel has no free port).</summary>
         public static DockAlignment? BuildDock(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -924,7 +924,7 @@ namespace Sitrep.Host
             };
         }
 
-        /// <summary>The <c>vessel.surface</c> channel — see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet, or the vessel is orbiting/escaping -- not near any surface).</summary>
+        /// <summary>The <c>vessel.surface</c> channel: see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet, or the vessel is orbiting/escaping -- not near any surface).</summary>
         public static VesselSurface? BuildSurface(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -947,7 +947,7 @@ namespace Sitrep.Host
             };
         }
 
-        /// <summary>The <c>vessel.landing</c> channel — see <see cref="VesselLanding"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildLanding</c> omitted the raw group (the relevance gate is closed: not descending toward a solid, PQS-backed surface). A trivial copy — the atmosphere maths already ran source-side (<see cref="LandingModel"/>) and its scalar results are on the raw group; terrain fields fill in as the PQS sampler lands.</summary>
+        /// <summary>The <c>vessel.landing</c> channel: see <see cref="VesselLanding"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildLanding</c> omitted the raw group (the relevance gate is closed: not descending toward a solid, PQS-backed surface). A trivial copy: the atmosphere maths already ran source-side (<see cref="LandingModel"/>) and its scalar results are on the raw group; terrain fields fill in as the PQS sampler lands.</summary>
         public static VesselLanding? BuildLanding(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -1588,8 +1588,8 @@ namespace Sitrep.Host
         // runtime). Reflective enum parsing (Enum.TryParse/Parse) eagerly
         // resolves EVERY custom-attribute type on the enum → FileNotFoundException
         // on net10.0 (and a real crash risk on KSP's Mono). So these parsers are
-        // hand-rolled switches — case-insensitive as the originals were, Unknown
-        // fallback — and NO code path resolves a Contract enum's attributes.
+        // hand-rolled switches: case-insensitive as the originals were, Unknown
+        // fallback: and NO code path resolves a Contract enum's attributes.
 
         private static TransitionType ParseTransitionType(string? raw)
         {

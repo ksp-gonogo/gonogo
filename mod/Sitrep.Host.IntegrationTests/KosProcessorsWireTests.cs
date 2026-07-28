@@ -16,17 +16,17 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>stream-data</c> frames whenever the vessel actually had kOS CPUs.
     ///
     /// <para>Root cause was NOT the delay clock or the keyframe-on-subscribe
-    /// path (both fine — an EMPTY list delivered as <c>[]</c>): the channel
+    /// path (both fine, an EMPTY list delivered as <c>[]</c>): the channel
     /// payload was a <c>List&lt;KosProcessorInfo&gt;</c>, and <c>KosProcessorInfo</c>
     /// had no wire-flatten in <see cref="Sitrep.Core.Serialization.JsonWriter"/>,
     /// so a NON-EMPTY list threw <c>NotSupportedException</c> at the wire boundary
-    /// and fail-softed to nothing — exactly the comms.delay bug the
+    /// and fail-softed to nothing, exactly the comms.delay bug the
     /// <c>AppendCommsDelay</c> case had already fixed for that POCO.</para>
     ///
     /// <para>As of the kos migration (2026-07-18), the real
     /// <c>Gonogo.KosUplink.KosExtension.HandleProcessors</c> self-flattens
     /// each <c>KosProcessorInfo</c> via <c>KosProcessorInfoBuilder.Build</c>
-    /// before publishing — mirrored by hand below (this project doesn't take
+    /// before publishing: mirrored by hand below (this project doesn't take
     /// a dependency on the net48 <c>GonogoKosUplink</c> assembly) rather than
     /// publishing the raw POCO. This still proves a non-empty processor list
     /// reaches a raw client end-to-end, now via the self-flattened
@@ -70,7 +70,7 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddSampledSource(Capture, Handle, Topic);
             }
 
-            // Hand-mirrors KosProcessorInfoBuilder.Build's wire shape — see
+            // Hand-mirrors KosProcessorInfoBuilder.Build's wire shape: see
             // this class's doc comment for why it's not a direct reference.
             private object? Capture(KspSnapshot? snapshot) => new List<Dictionary<string, object?>>
             {

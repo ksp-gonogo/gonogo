@@ -7,7 +7,7 @@ import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 
 export interface KeplerPeriodConfig {
   /**
-   * Seconds of trace history retained. Kept short by default — the SMA
+   * Seconds of trace history retained. Kept short by default, the SMA
    * doesn't change between manoeuvres, so a long buffer just stacks
    * thousands of redundant dots on top of each other.
    */
@@ -84,7 +84,7 @@ function KeplerPeriodComponent({
     return buildPeriodCurve(body, ceiling);
   }, [body, config?.smaCeiling]);
 
-  // Plot current period vs current SMA as scatter dots — one fresh dot per
+  // Plot current period vs current SMA as scatter dots, one fresh dot per
   // sample, all stacked at the live position. Anything other than scatter
   // would draw misleading lines connecting consecutive samples that share
   // the same SMA.
@@ -101,7 +101,7 @@ function KeplerPeriodComponent({
       ],
       windowSec,
       xKey: "o.sma",
-      // SMA spans many orders of magnitude across the system — log scale
+      // SMA spans many orders of magnitude across the system, log scale
       // makes both sides of the curve readable.
       yScalePrimary: "log",
     }),
@@ -122,12 +122,12 @@ function KeplerPeriodComponent({
       </GraphSlot>
       {showNoGmNotice && body && (
         <Notice role="status">
-          No reference data for {body.name} — plotting trace only.
+          No reference data for {body.name}: plotting trace only.
         </Notice>
       )}
       {showNoBodyNotice && (
         <Notice role="status">
-          Unknown body “{bodyName}” — plotting trace only.
+          Unknown body “{bodyName}”: plotting trace only.
         </Notice>
       )}
     </Wrap>
@@ -151,7 +151,7 @@ const Wrap = styled.div`
 `;
 
 /* Notice sits below the chart as a normal flow row rather than an
-   absolute overlay — the absolute version covered the x-axis tick
+   absolute overlay: the absolute version covered the x-axis tick
    labels at narrow heights. Shrinking the chart by ~24px is a fair
    trade for keeping the axis legible while the degraded-state message
    is visible. */

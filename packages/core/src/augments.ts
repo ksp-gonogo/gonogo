@@ -8,12 +8,12 @@ import type { UplinkClientHandle } from "./uplinkClients";
 //
 // Core (or any) widgets expose named **augment slots**; any Uplink contributes
 // a component into a slot using ONLY its own Topics; the **host composes**. Two
-// mutually-unaware mods binding the same slot both render, ordered by priority —
+// mutually-unaware mods binding the same slot both render, ordered by priority,
 // neither references the other, honouring "no Uplink talks to another."
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Slot-id typing — declaration-merging seam (spec §4.6)
+// Slot-id typing: declaration-merging seam (spec §4.6)
 //
 // `TopicId` is generated centrally from the C# contract, but slot ids are
 // declared across many TS packages, so a `SlotId` union + per-slot props type
@@ -22,7 +22,7 @@ import type { UplinkClientHandle } from "./uplinkClients";
 // augmentation: each in-tree package that OWNS a slot augments this global
 // `SlotRegistry` interface, mapping its slot id → the props that slot passes
 // down to its augments. That gives full compile-time safety across all in-tree
-// Uplinks NOW — which is the whole current rollout.
+// Uplinks NOW, which is the whole current rollout.
 //
 //   // in @ksp-gonogo/components, next to registerComponent('power-systems'):
 //   declare module "@ksp-gonogo/core" {
@@ -37,11 +37,11 @@ import type { UplinkClientHandle } from "./uplinkClients";
 // requires exactly those props.
 //
 // The out-of-repo case (a third-party Uplink not in this tsconfig, which cannot
-// merge into `SlotRegistry`) is deliberately NOT solved here — that is Phase 7
+// merge into `SlotRegistry`) is deliberately NOT solved here, that is Phase 7
 // (a local type-gen script / runtime-validated string slots). This module only
 // provides the reserved seam and a graceful loose-typed fallback so an unknown
 // slot id still compiles (as `Record<string, unknown>` props) rather than
-// erroring — matching the spec's hybrid (c) fallback.
+// erroring: matching the spec's hybrid (c) fallback.
 // ---------------------------------------------------------------------------
 
 /**
@@ -57,7 +57,7 @@ export type SlotId = keyof SlotRegistry;
 /**
  * The props a slot passes to its augments. Typed precisely for a slot declared
  * in {@link SlotRegistry}; falls back to `Record<string, unknown>` for a slot
- * id not (yet) in the registry — the out-of-repo/loose case (spec §4.6 (c)).
+ * id not (yet) in the registry: the out-of-repo/loose case (spec §4.6 (c)).
  */
 export type SlotProps<S extends string> = S extends keyof SlotRegistry
   ? SlotRegistry[S]
@@ -69,7 +69,7 @@ export type SlotProps<S extends string> = S extends keyof SlotRegistry
 
 /**
  * A single per-instance setting an augment contributes. Merged (namespaced by
- * augment id) into the host widget's settings panel — see {@link getAugmentSettings}.
+ * augment id) into the host widget's settings panel; see {@link getAugmentSettings}.
  */
 export interface AugmentSettingField {
   key: string;
@@ -95,25 +95,25 @@ export interface NamespacedAugmentSettings {
 // ---------------------------------------------------------------------------
 
 /**
- * Registration descriptor for an augment — a component bound into another
+ * Registration descriptor for an augment: a component bound into another
  * widget's slot. `S` is inferred from `augments`, so `component` is typed
  * against that slot's {@link SlotProps} (spec §4.4: slot-parameterised augments).
  */
 export interface AugmentDefinition<S extends string = string> {
   /**
    * Stable id, unique per augment. Used as the React key, for de-duplication on
-   * re-registration, and as the settings namespace (spec §4.7). Required — an
+   * re-registration, and as the settings namespace (spec §4.7). Required, an
    * augment has no identity to namespace its settings without it.
    */
   id: string;
-  /** The slot this augment binds into — must match a base widget's `augmentSlots` entry. */
+  /** The slot this augment binds into: must match a base widget's `augmentSlots` entry. */
   augments: S;
   /**
    * The augment's own component, rendered inside the slot and receiving the
    * slot's props (spec §4.4). Lives in the augmenting Uplink's package.
    */
   component: ComponentType<SlotProps<S>>;
-  /** This augment's OWN Topics only (spec §4.2) — never another Uplink's. */
+  /** This augment's OWN Topics only (spec §4.2); never another Uplink's. */
   channels?: readonly TopicId[];
   /**
    * Domain presence gate (spec §4.2): the augment renders only while the
@@ -124,7 +124,7 @@ export interface AugmentDefinition<S extends string = string> {
   requires?: string;
   /**
    * Ordering within a slot. Augments render in ASCENDING priority order, so the
-   * highest-priority augment renders LAST — for overlay slots (spec §4.8) that
+   * highest-priority augment renders LAST, for overlay slots (spec §4.8) that
    * puts it on top (z-order); for section slots it appears after the others.
    * Ties preserve registration order (stable sort). Defaults to 0.
    */
@@ -137,7 +137,7 @@ export interface AugmentDefinition<S extends string = string> {
   /**
    * Declares that, while this augment's Domain is LIVE, the host's own
    * default/replaceable surface for the slot it targets is suppressed
-   * outright — a REPLACE, not an overlay. This field itself is static and
+   * outright: a REPLACE, not an overlay. This field itself is static and
    * can be read straight off the registry (e.g. via
    * {@link getAugmentsForSlot}), but the SUPPRESSION DECISION must NOT stop
    * there: registration alone only proves the augment's client package was
@@ -145,13 +145,13 @@ export interface AugmentDefinition<S extends string = string> {
    * package registers its augments unconditionally at import time, whether
    * or not the corresponding mod is running). A host must gate this field
    * by the same Domain-presence signal `<AugmentSlot>` itself uses before
-   * ever rendering the augment's component — see
-   * {@link useAugmentAvailable} — or every user without that Uplink
+   * ever rendering the augment's component: see
+   * {@link useAugmentAvailable}: or every user without that Uplink
    * installed loses the host's default surface with nothing to replace it
    * (regression fixed 2026-07-20). Independent of any other augment's
    * `settings`/per-instance visibility, and independent of whether THIS
    * augment currently has anything to draw. A host slot that has no such
-   * default surface can ignore the field entirely — it's an opt-in
+   * default surface can ignore the field entirely, it's an opt-in
    * contract between a slot and the augments that choose to use it, not a
    * universal one every slot must interpret (spec:
    * local_docs/spec-mapview-stackable-layers.md).
@@ -159,10 +159,10 @@ export interface AugmentDefinition<S extends string = string> {
   suppressesVanillaBase?: boolean;
   /**
    * The Uplink client that registered this augment (Uplink Client Contract
-   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle —
+   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle,
    * never set by hand. Purely for provenance / mod search tags on the HOST
    * widget it augments (`effectiveSearchTags` reads `augment.requires`, not
-   * this field, to derive that tag — `owner` here is provenance for the
+   * this field, to derive that tag: `owner` here is provenance for the
    * augment itself, e.g. future health/version surfaces). Plays no part in
    * augment registration or slot composition.
    */
@@ -210,7 +210,7 @@ export function registerAugment<S extends string>(
 /**
  * Every augment bound to `slotName`, ordered for rendering: ascending
  * `priority` (default 0), ties in registration order. Presence-gating
- * (`requires`) is applied at RENDER time by {@link AugmentSlot}, not here — this
+ * (`requires`) is applied at RENDER time by {@link AugmentSlot}, not here, this
  * returns all registered augments for the slot regardless of Domain availability.
  */
 export function getAugmentsForSlot(slotName: string): AnyAugment[] {
@@ -249,7 +249,7 @@ export function getAugmentSettings(
     }));
 }
 
-/** For use in tests only — resets the augment registry to empty. */
+/** For use in tests only, resets the augment registry to empty. */
 export function clearAugments(): void {
   augments.clear();
   registrationCounter = 0;

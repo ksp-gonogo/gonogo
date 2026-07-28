@@ -5,14 +5,14 @@
  * Renders every widget (fixture × mode) for ONE browser engine via the shared
  * harness, then compares each render against its committed baseline under
  * `packages/components/visual-baselines/<engine>/`. The model is per-engine
- * (each engine vs its OWN baseline), never cross-engine — engines legitimately
+ * (each engine vs its OWN baseline), never cross-engine, engines legitimately
  * rasterise differently, so only a same-engine threshold is defensible.
  *
  *   visual-gate --engine firefox            # gate: diff vs baselines, fail on drift
  *   visual-gate --engine firefox --update   # accept: (re)write baselines from renders
  *   visual-gate --engine firefox --widget thermal-status   # scope to one widget
  *
- * Baselines MUST be generated in the same OS the gate runs in (CI Linux) —
+ * Baselines MUST be generated in the same OS the gate runs in (CI Linux),
  * font rasterisation differs across OSes. Use the `update-baselines` GitHub
  * workflow to (re)generate them on the runner and commit them back.
  *
@@ -78,10 +78,10 @@ async function main(): Promise<void> {
   const widgetId = widgetIdx !== -1 ? args[widgetIdx + 1] : undefined;
 
   // Select EVERY config for this id, not just the first: multiple render
-  // configs can share a `widgetId` (e.g. landing-status has three —
+  // configs can share a `widgetId` (e.g. landing-status has three,
   // landing-widget / landing-terrains / landing-status-widget). A singular
   // getWidget() lookup rendered only the first, silently hiding the others'
-  // drift — and, via this same scoping in update-baselines, never regenerating
+  // drift: and, via this same scoping in update-baselines, never regenerating
   // their baselines. Match by widgetId OR a config's own `label`, so a label
   // still scopes to its single config.
   const all = listWidgets();
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
 
   const actualBase = resolve(ACTUAL_ROOT, engine);
   // Render every widget for this engine into an isolated, gitignored dir.
-  // outSuffix stays empty — the engine is encoded in the directory, not the
+  // outSuffix stays empty: the engine is encoded in the directory, not the
   // filename, so baseline filenames match across engines.
   await renderWidgets(configs, {
     engine: engine as Engine,
@@ -115,7 +115,7 @@ async function main(): Promise<void> {
       // good baselines and repopulate with nothing.
       if (renders.length === 0) {
         console.warn(
-          `  ! ${config.widgetId}: 0 renders produced — leaving baselines untouched.`,
+          `  ! ${config.widgetId}: 0 renders produced, leaving baselines untouched.`,
         );
         continue;
       }
@@ -134,14 +134,14 @@ async function main(): Promise<void> {
 
   // Gate mode.
   // Bootstrap escape hatch: if this engine has no committed baselines at all,
-  // the gate hasn't been established yet — pass with a loud warning rather
+  // the gate hasn't been established yet: pass with a loud warning rather
   // than fail every render as "missing baseline". This keeps `main` green on
   // first land (so the deploy pipeline runs) until `update-baselines` commits
   // the first set. Once ANY baseline exists, a missing one for a new widget is
   // a real failure again.
   if (!(await hasAnyBaseline(engine as Engine))) {
     console.warn(
-      `⚠ No ${engine} baselines committed yet — skipping the visual gate.\n` +
+      `⚠ No ${engine} baselines committed yet: skipping the visual gate.\n` +
         `  Establish them with: gh workflow run update-baselines.yml --ref ` +
         `${process.env.GITHUB_REF_NAME ?? "<branch>"}`,
     );
@@ -210,7 +210,7 @@ async function main(): Promise<void> {
     `\nIf these changes are intended, regenerate the baselines on CI:\n` +
       `    gh workflow run update-baselines.yml --ref ${ref}` +
       (widgetId ? ` -f widget=${widgetId}` : "") +
-      `\n(diff images written to local_docs/renders/_visual-gate-diffs/ — ` +
+      `\n(diff images written to local_docs/renders/_visual-gate-diffs/, ` +
       `uploaded as a CI artifact on failure).`,
   );
   process.exit(1);
@@ -226,7 +226,7 @@ async function pngFiles(dir: string): Promise<string[]> {
 }
 
 /** True if any `.png` baseline exists anywhere under this engine's baseline
- *  tree — used to detect the not-yet-bootstrapped state. */
+ *  tree: used to detect the not-yet-bootstrapped state. */
 async function hasAnyBaseline(engine: Engine): Promise<boolean> {
   try {
     const all = await readdir(resolve(BASELINE_ROOT, engine), {

@@ -44,7 +44,7 @@ export function registerComponent<TConfig = Record<string, unknown>>(
     // Re-registering the exact same def is a benign idempotent re-import (a
     // module evaluated once still calls this once, but keep the guard so a
     // repeated identical registration never throws). A DIFFERENT def under the
-    // same id is a real collision — two packages fighting for one id would
+    // same id is a real collision, two packages fighting for one id would
     // otherwise silently clobber each other, an invisible latent bug in the
     // self-registration extension model. Fail loud instead.
     if (existing === (def as AnyDef)) return;
@@ -77,7 +77,7 @@ export function unregisterDataSource(id: string): void {
 export function registerTheme(def: ThemeDefinition): void {
   const existing = themes.get(def.id);
   if (existing !== undefined) {
-    // Same idempotent-vs-collision rule as registerComponent — see its comment.
+    // Same idempotent-vs-collision rule as registerComponent: see its comment.
     if (existing === def) return;
     throw new Error(
       `Theme id "${def.id}" is already registered by "${existing.name}"; ` +
@@ -109,7 +109,7 @@ export interface ReplacementConflict {
 }
 
 /**
- * Every replacement conflict currently in the registry — targets with two or
+ * Every replacement conflict currently in the registry, targets with two or
  * more registered replacers. Empty when replacement is unambiguous. The host
  * uses this to prompt the user to choose; {@link getResolvedComponents} leaves a
  * conflicted target's original in place and hides the competing replacers until
@@ -187,12 +187,12 @@ export function getTheme(id: string): ThemeDefinition | undefined {
 }
 
 /**
- * For use in tests only — resets the component / data-source / theme
+ * For use in tests only, resets the component / data-source / theme
  * registries to empty.
  *
  * Deliberately does NOT clear the augment registry. Augments (spec §4.2) are
  * module-load registrations that an augment-consuming widget resolves through
- * the registry AT RENDER TIME (`getAugmentsForSlot`) — unlike components, which
+ * the registry AT RENDER TIME (`getAugmentsForSlot`), unlike components, which
  * a widget test renders directly, bypassing the registry. `setupMockDataSource`
  * calls this before nearly every widget test to reset per-test data-source
  * state; if that also wiped augments, a widget whose real content arrives via a
@@ -200,7 +200,7 @@ export function getTheme(id: string): ThemeDefinition | undefined {
  * because nothing re-runs the once-only module-load `registerAugment`. Augment
  * registry tests clear it explicitly with `clearAugments()` instead.
  *
- * Also deliberately does NOT clear the kOS script registry — that registry
+ * Also deliberately does NOT clear the kOS script registry, that registry
  * now lives in the kos Uplink (`@ksp-gonogo/gonogo-kos-uplink`'s `clearKosScripts`), not
  * core; core can never depend on a mod Uplink package. Tests that need a
  * clean kOS-script registry between cases call `clearKosScripts()` directly

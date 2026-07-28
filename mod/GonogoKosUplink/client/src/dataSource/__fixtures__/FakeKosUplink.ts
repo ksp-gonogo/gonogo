@@ -1,5 +1,5 @@
 /**
- * FakeKosUplink — a fake `kos.run` Uplink responder, the `kos.run`-era
+ * FakeKosUplink: a fake `kos.run` Uplink responder, the `kos.run`-era
  * counterpart to `MockKosTelnet.ts`. `KosDataSource.executeScript` no
  * longer talks to telnet at all (see `kosUplinkExecutor.ts`); this fixture
  * lets `executeScript`/CPU-discovery integration coverage keep exercising
@@ -15,13 +15,13 @@
  *   FakeKosUplink.uninstall();
  *
  * What it handles:
- *   - `kos.processors` — publishes the coreId/tag list `setCpus()` is given.
+ *   - `kos.processors`: publishes the coreId/tag list `setCpus()` is given.
  *     Subscribed eagerly on construction (a dummy listener) so it stays
  *     "carried": `KosUplinkExecutor`'s own lazy subscribe then replays the
- *     current list SYNCHRONOUSLY instead of racing an empty cache — this
+ *     current list SYNCHRONOUSLY instead of racing an empty cache, this
  *     mirrors the real app, where something (e.g. the KosProcessors widget)
  *     already has `kos.processors` flowing before a user triggers a script.
- *   - `kos.run` command dispatch — parses the LAST non-blank line of the
+ *   - `kos.run` command dispatch, parses the LAST non-blank line of the
  *     dispatched command text (works for both the bare `RUNPATH(...)` form
  *     and the multi-line managed-wrapper form, which always ends with the
  *     same RUNPATH line) via the same regex/arg-splitter `MockKosTelnet`
@@ -32,7 +32,7 @@
  *
  * What it deliberately does NOT handle:
  *   - kOS's raw REPL error-dump format (`At interpreter`, `Message:`,
- *     `VERBOSE DESCRIPTION`, ...) — that parsing (`kosComputeSession.ts`'s
+ *     `VERBOSE DESCRIPTION`, ...), that parsing (`kosComputeSession.ts`'s
  *     `parseKosError`) is telnet-REPL-text-specific and, since executeScript
  *     no longer talks to telnet, is unreachable production code. The mod
  *     does its own equivalent extraction server-side and hands back an
@@ -68,7 +68,7 @@ export type FakeKosScriptHandler = (
   invocation: FakeKosInvocation,
 ) => string | Promise<string>;
 
-// Same shape MockKosTelnetSocket matches — the wrapper's final line and a
+// Same shape MockKosTelnetSocket matches: the wrapper's final line and a
 // bare RUNPATH dispatch are textually identical.
 const RUNPATH_RE = /^RUNPATH\s*\(\s*"([^"]+)"\s*(?:,\s*(.*?))?\s*\)\s*\.\s*$/i;
 
@@ -99,7 +99,7 @@ export class FakeKosUplink {
   private readonly invocationLog: FakeKosInvocation[] = [];
 
   private constructor() {
-    // Dummy always-on subscriber — see the class doc comment above.
+    // Dummy always-on subscriber: see the class doc comment above.
     this.client.subscribe("kos.processors", () => {});
     this.transport.setCommandHandler((command, args) =>
       this.handleCommand(command, args),
@@ -201,7 +201,7 @@ function outputToResult(
 }
 
 // Splits `a, "b, c", 3` into ["a", '"b, c"', "3"]. Copied from
-// MockKosTelnet.ts (not exported there) — the production data source
+// MockKosTelnet.ts (not exported there): the production data source
 // builds these with its own escaping, so a fixture just has to round-trip
 // what it sent.
 function splitArgs(raw: string): string[] {

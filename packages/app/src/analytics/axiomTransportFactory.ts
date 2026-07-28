@@ -7,7 +7,7 @@ import {
 /**
  * Build the Axiom transport factory for the browser, reading the ingest
  * token + dataset baked in at build time. Returns `null` when no token is
- * present so a tokenless build (local dev, CI) can never install a sink —
+ * present so a tokenless build (local dev, CI) can never install a sink,
  * the {@link AxiomConsentController} then treats `apply(true)` as a no-op.
  *
  * Token = credential, consent = runtime gate: both must hold before

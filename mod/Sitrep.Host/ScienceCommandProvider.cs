@@ -3,7 +3,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free command-handling logic for the science-experiment commands —
+    /// KSP-free command-handling logic for the science-experiment commands,
     /// the command-side twin of <see cref="ScienceViewProvider"/> and the
     /// science-domain analogue of <see cref="VesselCommandProvider"/>. Each
     /// <c>Handle*</c> method is the exact delegate
@@ -12,7 +12,7 @@ namespace Sitrep.Host
     /// already-typed args, do the one check that needs no live game state (an
     /// empty <c>partId</c> resolves to nothing), then call the matching
     /// <see cref="IScienceActuator"/> method and hand back its already-typed
-    /// result. No KSP/Unity type appears anywhere in this file — every check
+    /// result. No KSP/Unity type appears anywhere in this file, every check
     /// that needs live state (whether the part resolves, whether the experiment
     /// is in a deployable/transmittable state, whether a transmitter exists) is
     /// the actuator's job and comes back as a typed
@@ -20,7 +20,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Delayed (uplink to the craft):</b> both commands actuate an
     /// experiment ON the vessel, so they ride the same light-time delay every
-    /// other actuation does — declared <c>delayed: true</c> in
+    /// other actuation does, declared <c>delayed: true</c> in
     /// <c>ScienceUplink</c>'s command table.</para>
     /// </summary>
     public static class ScienceCommandProvider
@@ -32,7 +32,7 @@ namespace Sitrep.Host
         /// <summary>
         /// An empty <c>partId</c> can never resolve to a live part, so it
         /// fail-fasts as <see cref="CommandErrorCode.NotFound"/> HERE without
-        /// ever reaching the actuator — the same fail-fast
+        /// ever reaching the actuator: the same fail-fast
         /// <see cref="VesselCommandProvider.HandleTargetSet"/> applies to a
         /// structurally-unresolvable target. A well-formed but unknown
         /// <c>partId</c> is the actuator's own <see cref="CommandErrorCode.NotFound"/>

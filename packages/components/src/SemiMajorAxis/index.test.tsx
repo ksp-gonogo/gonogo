@@ -8,7 +8,7 @@ import { SemiMajorAxisComponent } from "./index";
 // derived `vessel.state.referenceBodyName` display map (index → name against
 // `system.bodies`), which is "carried" only once ALL EIGHT `vessel.state`
 // inputs are (see `vessel-state.ts`). Both run off a real `TelemetryProvider`
-// here — no legacy `MockDataSource` is registered anywhere in this file.
+// here: no legacy `MockDataSource` is registered anywhere in this file.
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",
   "vessel.flight",
@@ -61,7 +61,7 @@ describe("SemiMajorAxisComponent", () => {
   it("renders SMA via formatDistance and includes the reference body subtitle", async () => {
     renderSma();
     act(() => {
-      // SMA from body centre — Kerbin radius 600km + 75km altitude = 675km.
+      // SMA from body centre: Kerbin radius 600km + 75km altitude = 675km.
       stream.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
       stream.emit("system.bodies", {
         bodies: [

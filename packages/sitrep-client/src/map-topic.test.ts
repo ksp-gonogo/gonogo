@@ -6,7 +6,7 @@ import {
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
 
-describe("redirectKinematicSubtopic (T3 — new-SDK topic safety net)", () => {
+describe("redirectKinematicSubtopic (T3: new-SDK topic safety net)", () => {
   it("routes short kinematic keys onto vessel.state.*", () => {
     expect(redirectKinematicSubtopic("altitude")).toBe(
       "vessel.state.altitudeAsl",
@@ -27,7 +27,7 @@ describe("redirectKinematicSubtopic (T3 — new-SDK topic safety net)", () => {
     );
   });
 
-  it("redirects a widget asking for the raw orbital-speed topic directly onto the derived surface — the real raw twin lives on vessel.flight, not vessel.orbit (elements-only, no orbitalSpeed field)", () => {
+  it("redirects a widget asking for the raw orbital-speed topic directly onto the derived surface, the real raw twin lives on vessel.flight, not vessel.orbit (elements-only, no orbitalSpeed field)", () => {
     expect(redirectKinematicSubtopic("vessel.flight.orbitalSpeed")).toBe(
       "vessel.state.orbitalSpeed",
     );
@@ -46,7 +46,7 @@ describe("redirectKinematicSubtopic (T3 — new-SDK topic safety net)", () => {
     expect(redirectKinematicSubtopic("some.unrelated.topic")).toBe(
       "some.unrelated.topic",
     );
-    // vessel.orbit is elements-only — it never had an orbitalSpeed field, so
+    // vessel.orbit is elements-only, it never had an orbitalSpeed field, so
     // nothing should route away from it under that name either.
     expect(redirectKinematicSubtopic("vessel.orbit.orbitalSpeed")).toBe(
       "vessel.orbit.orbitalSpeed",
@@ -54,7 +54,7 @@ describe("redirectKinematicSubtopic (T3 — new-SDK topic safety net)", () => {
   });
 });
 
-describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () => {
+describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
   it("maps clean-home Telemachus keys to their new stream topic", () => {
     expect(mapTopic("data", "v.altitude")).toBe("vessel.state.altitudeAsl");
     expect(mapTopic("data", "o.orbitalSpeed")).toBe(
@@ -64,18 +64,18 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "v.lat")).toBe("vessel.flight.latitude");
     // comm.connected now maps to the dedicated freeze-exempt connectivity
     // MetaTopic (comms-delay-model-consistency spec), NOT the frozen
-    // vessel.comms struct — so the disconnect edge reaches the client.
+    // vessel.comms struct: so the disconnect edge reaches the client.
     expect(mapTopic("data", "comm.connected")).toBe("comms.link.connected");
     expect(mapTopic("data", "t.currentRate")).toBe("time.warp.warpRate");
   });
 
-  it("kinematics (position/velocity/altitude/orbitalSpeed family) land on vessel.state.* — V-12", () => {
+  it("kinematics (position/velocity/altitude/orbitalSpeed family) land on vessel.state.*: V-12", () => {
     expect(mapTopic("data", "v.altitude")).toMatch(/^vessel\.state\./);
     expect(mapTopic("data", "v.orbitalVelocity")).toMatch(/^vessel\.state\./);
     expect(mapTopic("data", "o.orbitalSpeed")).toMatch(/^vessel\.state\./);
   });
 
-  it("maps the 7 derivable orbital vessel.state.* keys (M3 vessel-state-extend un-gap — M2 bridge task Fix 2's phantom entries now have a real produced field)", () => {
+  it("maps the 7 derivable orbital vessel.state.* keys (M3 vessel-state-extend un-gap, M2 bridge task Fix 2's phantom entries now have a real produced field)", () => {
     expect(mapTopic("data", "v.missionTime")).toBe("vessel.state.met");
     expect(mapTopic("data", "o.ApA")).toBe("vessel.state.apoapsisAlt");
     expect(mapTopic("data", "o.PeA")).toBe("vessel.state.periapsisAlt");
@@ -146,7 +146,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
   });
 
-  it("maps b.number onto the derived system.state.bodyCount (batch-2 migration — the plain COUNT off the raw system.bodies array)", () => {
+  it("maps b.number onto the derived system.state.bodyCount (batch-2 migration, the plain COUNT off the raw system.bodies array)", () => {
     expect(mapTopic("data", "b.number")).toBe("system.state.bodyCount");
     expect(isKnownTelemachusGap("data", "b.number")).toBe(false);
   });
@@ -248,14 +248,14 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   it("leaves the true docking-orientation axes (dock.ax/ay/az) gapped until the DistanceToTarget migrate-widget task drops them (HUD proxy is the shared prerequisite)", () => {
     // Not on the wire; the shared deriveDockAngles HUD proxy replaces them, but
     // the widget still reads them legacy-only until its migration reworks the
-    // fixtures/snapshots — so they stay tracked gaps for now.
+    // fixtures/snapshots: so they stay tracked gaps for now.
     for (const key of ["dock.ax", "dock.ay", "dock.az"]) {
       expect(mapTopic("data", key)).toBeUndefined();
       expect(isKnownTelemachusGap("data", key)).toBe(true);
     }
   });
 
-  it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources's REAL wire shape (M3 batch-1 fix: the wire wraps in a 'resources' key, ToWire(VesselResources) in VesselViewProvider.cs — a flat vessel.resources.<X>.current target silently never resolves against the real payload)", () => {
+  it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources's REAL wire shape (M3 batch-1 fix: the wire wraps in a 'resources' key, ToWire(VesselResources) in VesselViewProvider.cs, a flat vessel.resources.<X>.current target silently never resolves against the real payload)", () => {
     expect(mapTopic("data", "r.resource[LiquidFuel]")).toBe(
       "vessel.resources.resources.LiquidFuel.current",
     );
@@ -268,11 +268,11 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     // (tar.availableVessels now maps to system.vessels; see the roster
     // mapping test below. career.funds/reputation/science map onto
     // career.status.economy, and strategies.all/tech.nodes/contracts.active/
-    // contracts.offered/kc.facilityLevels map onto career.status — see
+    // contracts.offered/kc.facilityLevels map onto career.status: see
     // the career.status mapping tests below. contracts.completedRecent
-    // ships alongside active/offered — see the dedicated test below.
+    // ships alongside active/offered: see the dedicated test below.
     // The four ballistic land.* scalars AND predictedLat/Lon are
-    // client-derived onto vessel.state.landing* — see the dedicated test
+    // client-derived onto vessel.state.landing*: see the dedicated test
     // below; only slopeAngle (needs a terrain heightmap) stays gapped.)
     expect(mapTopic("data", "land.slopeAngle")).toBeUndefined();
     expect(isKnownTelemachusGap("data", "land.slopeAngle")).toBe(true);
@@ -345,7 +345,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   it("maps science.sensors as a whole-topic identity read (P4a D2)", () => {
     expect(mapTopic("data", "science.sensors")).toBe("science.sensors");
     expect(isKnownTelemachusGap("data", "science.sensors")).toBe(false);
-    // The four per-type reads are no longer read by any widget — ScienceBench
+    // The four per-type reads are no longer read by any widget, ScienceBench
     // derives every reading by filtering the whole list client-side, so they
     // are neither mapped nor a declared gap.
     expect(mapTopic("data", "s.sensor.temp")).toBeUndefined();
@@ -436,7 +436,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     );
   });
 
-  describe("kos source (U3 kOS slice) — native + compute stream routing", () => {
+  describe("kos source (U3 kOS slice): native + compute stream routing", () => {
     it("maps the static kos.processors push channel to itself", () => {
       expect(mapTopic("kos", "kos.processors")).toBe("kos.processors");
     });
@@ -481,12 +481,12 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   describe("CRITICAL fix (M2 T7 review): shape-mismatched entries are gapped, not silently corrupting", () => {
     it("gaps every entry that used to collapse a scalar/string old key onto a composite/array/vector new topic", () => {
       const shapeMismatchedKeys = [
-        // v.body / o.referenceBody were here until Step-2 migration task 1 —
+        // v.body / o.referenceBody were here until Step-2 migration task 1,
         // now that a client-side index→name display-map subtopic exists
         // (vessel.state.parentBodyName / referenceBodyName), they map cleanly;
         // see the dedicated body-name test below.
         // b.number / o.encounter* / dock.x / dock.y / tar.o.relativeVelocity
-        // were here until the shape-mismatch migration — now that
+        // were here until the shape-mismatch migration, now that
         // client-side derived subtopics exist (system.state.bodyCount,
         // vessel.state.encounter*, vessel.state.targetRelativeSpeed) and
         // dock.x/y walk into vessel.dock.relativePosition, they map cleanly;
@@ -495,16 +495,16 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // f.sasMode / tar.type were here until the enum-ordinal→name migration;
         // now that client-side ordinal→string/level display-map subtopics
         // exist (vessel.state.commsControlStateOrdinal / commsControlStateName /
-        // situationName / sasModeName / targetKind), they map cleanly — see the
+        // situationName / sasModeName / targetKind), they map cleanly; see the
         // dedicated enum-ordinal→name test above.
         // o.maneuverNodes moved to CLEAN_HOMES: the mod's
         // vessel.maneuver.nodes[].patches now carries the post-burn
-        // trajectory, reshaped onto vessel.maneuver.legacy.nodes — see the
+        // trajectory, reshaped onto vessel.maneuver.legacy.nodes: see the
         // dedicated maneuver-legacy test below.
         // dv.currentTWR moved to CLEAN_HOMES: derived on vessel.state.twr
-        // off vessel.propulsion — see the shared-derivations test above.
+        // off vessel.propulsion: see the shared-derivations test above.
         // comm.signalDelay moved to CLEAN_HOMES (Step-3): comms.delay is live
-        // on the wire — see the dedicated comm.signalDelay test above.
+        // on the wire: see the dedicated comm.signalDelay test above.
       ];
 
       for (const key of shapeMismatchedKeys) {
@@ -538,7 +538,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     });
   });
 
-  describe("P4a shared-map batch — remaining trivial raw-field walks + whole-topic reads", () => {
+  describe("P4a shared-map batch: remaining trivial raw-field walks + whole-topic reads", () => {
     it("maps f.precisionControl onto the same vessel.control field as v.precisionControlValue", () => {
       expect(mapTopic("data", "f.precisionControl")).toBe(
         "vessel.control.precisionControl",
@@ -577,7 +577,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         "robotics.available.available",
       );
       expect(isKnownTelemachusGap("data", "robotics.available")).toBe(false);
-      // The identity lists stay gapped — no stable id on the wire.
+      // The identity lists stay gapped: no stable id on the wire.
       expect(mapTopic("data", "robotics.rotors")).toBeUndefined();
       expect(mapTopic("data", "robotics.servos")).toBeUndefined();
     });

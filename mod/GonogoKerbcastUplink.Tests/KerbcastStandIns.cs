@@ -7,7 +7,7 @@ namespace Kerbcast
     // ─────────────────────────────────────────────────────────────────────────
     // STAND-INS for kerbcast's public integration seam.
     //
-    // These are NOT kerbcast's code — not a copy, not a derivation. They are
+    // These are NOT kerbcast's code, not a copy, not a derivation. They are
     // independently written test doubles that carry the same member SHAPE
     // (names/arity/types) that KerbcastReflection reflects against, so the
     // arm's-length reflection path can be exercised without a KSP install and

@@ -1,7 +1,7 @@
 /**
  * The `mapTopic` compatibility shim's data: old-Telemachus-key → new SDK
  * stream topic, cross-checked against every widget's real
- * `dataRequirements`/`useDataValue` call in `packages/components/src` — see
+ * `dataRequirements`/`useDataValue` call in `packages/components/src`: see
  * `map-topic.coverage.test.ts` in `@ksp-gonogo/core`, which enumerates the
  * live widget key set and asserts every key is either mapped here or listed
  * in `TELEMACHUS_KNOWN_GAPS`.
@@ -9,17 +9,17 @@
  * Two independent concerns live in this file:
  *
  * 1. **`redirectKinematicSubtopic`** (originally a single-arg `mapTopic`,
- *    renamed) — a narrow, sourceId-agnostic safety net that redirects a
+ *    renamed): a narrow, sourceId-agnostic safety net that redirects a
  *    handful of *new-SDK* raw topic strings onto the derived `vessel.state.*`
  *    surface, so nothing that already speaks the new topic namespace can
  *    reintroduce the dual-altitude wart. Identity fallback:
  *    safe to call on any topic string.
- * 2. **`mapTopic(sourceId, key)`** — the
+ * 2. **`mapTopic(sourceId, key)`**: the
  *    `useDataValue` migration table: old widget-facing `(dataSourceId, key)`
  *    pairs (today always `("data", "<Telemachus key>")`) → the new stream
  *    topic string, or `undefined` when there is no new home yet. `undefined`
  *    is the explicit "fall back to the legacy `DataSource` path" signal the
- *    `@ksp-gonogo/core` shim depends on — it is NOT an identity fallback, unlike
+ *    `@ksp-gonogo/core` shim depends on: it is NOT an identity fallback, unlike
  *    (1) above; the two functions have deliberately incompatible defaults
  *    because they serve different callers (a shim needs to know when it
  *    can't route; a direct-topic safety net needs to always return
@@ -29,7 +29,7 @@
  * `sourceId === "kos"` is ALSO routed: the mod publishes
  * native `kos.processors` push telemetry plus the dynamic
  * `kos.compute.<id>.<field>` compute namespace, so those topics DO exist on
- * the wire. `"kerbcast"`/other sources remain deliberately NOT routed — their
+ * the wire. `"kerbcast"`/other sources remain deliberately NOT routed, their
  * data still doesn't exist on the new SDK's wire, so mapping them would
  * silently break working functionality (the shim would call `useStream` on a
  * topic nothing ever publishes, forever `undefined`, instead of the real
@@ -40,19 +40,19 @@
  * `vessel.state.*` derived subtopics from the first migrated widget. Two
  * input shapes are handled:
  * - **Short semantic keys** (`"altitude"`, `"velocity"`, `"position"`,
- *   `"orbitalSpeed"`) — forward-compatible shorthand some SDK-native callers
+ *   `"orbitalSpeed"`): forward-compatible shorthand some SDK-native callers
  *   may use.
- * - **Raw topic strings a widget might reach for directly** —
+ * - **Raw topic strings a widget might reach for directly**,
  *   `"vessel.flight.altitudeAsl"` is redirected to `"vessel.state.altitudeAsl"`
  *   even though the raw field genuinely exists on the wire, because binding a
  *   widget straight to it reproduces the dual-altitude wart `vessel.state`
  *   exists to kill. Same story for `"vessel.flight.orbitalSpeed"` →
- *   `"vessel.state.orbitalSpeed"` — `vessel.flight` carries `orbitalSpeed` on
+ *   `"vessel.state.orbitalSpeed"`: `vessel.flight` carries `orbitalSpeed` on
  *   the wire; `vessel.orbit` is elements-only and has no such field, so a
  *   redirect keyed on that topic would never fire.
  *   Non-kinematic keys (surface-frame-only measurements with no
  *   elements-derived twin, e.g. `vessel.flight.mach`,
- *   `vessel.flight.dynamicPressureKPa`) are deliberately NOT redirected —
+ *   `vessel.flight.dynamicPressureKPa`) are deliberately NOT redirected,
  *   those stay raw; there's no dual representation to collapse.
  */
 const KINEMATIC_REDIRECTS: Readonly<Record<string, string>> = {
@@ -69,7 +69,7 @@ const KINEMATIC_REDIRECTS: Readonly<Record<string, string>> = {
  * Resolve a *new-SDK* topic string to the topic it should actually be read
  * from. Kinematics (position/velocity/altitude/orbital speed) always
  * resolve to `vessel.state.*`; everything else passes through unchanged.
- * Identity fallback — safe to call on every topic, not just kinematic ones.
+ * Identity fallback: safe to call on every topic, not just kinematic ones.
  */
 export function redirectKinematicSubtopic(topic: string): string {
   return KINEMATIC_REDIRECTS[topic] ?? topic;
@@ -84,7 +84,7 @@ export function redirectKinematicSubtopic(topic: string): string {
  * calls in `packages/components/src`) → new stream topic. "derived" entries
  * are SDK-computed values (elements propagated at view-UT, quality-picked,
  * etc.) exposed as plain topic strings via `vessel.state`'s `fields: true`
- * subtopics — `useStream` doesn't distinguish raw from derived, so
+ * subtopics: `useStream` doesn't distinguish raw from derived, so
  * the shim needs zero selector machinery.
  *
  * Extended with every literal key actually found in
@@ -97,7 +97,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.orbitalVelocity": "vessel.state.orbitalSpeed",
   "o.orbitalSpeed": "vessel.state.orbitalSpeed",
 
-  // --- vessel.state (derivable orbital fields — mapped on the wire now
+  // --- vessel.state (derivable orbital fields: mapped on the wire now
   // that deriveVesselState actually produces them, see vessel-state.ts) ---
   "v.missionTime": "vessel.state.met",
   "o.ApA": "vessel.state.apoapsisAlt",
@@ -122,13 +122,13 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.atmosphericTemperature": "vessel.flight.atmosphericTemperature",
   "v.externalTemperature": "vessel.flight.externalTemperature",
 
-  // --- vessel.attitude (raw; two named frames — see VesselAttitude.cs's
+  // --- vessel.attitude (raw; two named frames: see VesselAttitude.cs's
   // class doc for why *2 isn't a numeric-suffix pair) ---
   "n.heading": "vessel.attitude.heading",
   "n.pitch": "vessel.attitude.pitch",
   "n.roll": "vessel.attitude.roll",
   // n.heading2/pitch2/roll2: the genuinely distinct ROOT-PART-referenced
-  // frame (as opposed to the CoM-referenced n.heading/pitch/roll above) —
+  // frame (as opposed to the CoM-referenced n.heading/pitch/roll above),
   // see KspHost.BuildAttitude's doc comment for the shared surface-frame
   // construction the two only differ by POSITION reference on.
   "n.heading2": "vessel.attitude.headingRootFrame",
@@ -151,26 +151,26 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // `system.bodies`, NOT the body-NAME strings ~14 widgets read and feed to
   // `getBody(id: string)`. `deriveVesselState` (vessel-state.ts) now resolves
   // each index against `system.bodies`'s per-body `name`/`index` and exposes
-  // the resolved name as a `vessel.state.*` field subtopic — same client-side
+  // the resolved name as a `vessel.state.*` field subtopic, same client-side
   // display-map pattern as the seven orbital fields above, so the widgets get
   // the NAME string transparently with zero per-widget change. ---
   "v.body": "vessel.state.parentBodyName",
   "o.referenceBody": "vessel.state.referenceBodyName",
 
-  // --- vessel.state (derived enum-ordinal → NAME display maps — the
+  // --- vessel.state (derived enum-ordinal → NAME display maps, the
   // enum-ordinal→string-name shape-mismatch migration). Each mod field is a
   // NUMERIC contract-enum ordinal on the wire (`VesselViewProvider` serializes
   // `(int)...`); the widgets read the STRING name (or, for `comm.controlState`,
   // a Telemachus 0/1/2 numeric). `deriveVesselState` resolves each ordinal
   // against the contract's C#-declared enum order and exposes the widget-shaped
-  // value as a `vessel.state.*` field subtopic — same client-side display-map
+  // value as a `vessel.state.*` field subtopic: same client-side display-map
   // pattern as the body-NAME maps above, zero per-widget change:
   //  - situationName            (Situation enum → name; ScienceBench)
   //  - sasModeName              (SasMode enum → name; Navball's SAS_MODES)
   //  - commsControlStateName    (ControlState enum → name; CommSignal label/tone)
   //  - commsControlStateOrdinal (ControlState enum → CommSignal's 0/1/2 level)
   // (targetKind is the same display map, but TargetPicker/DistanceToTarget
-  // now read `vessel.state.targetKind` directly — no `tar.type` shim key
+  // now read `vessel.state.targetKind` directly, no `tar.type` shim key
   // left to map.)
   // ---
   "v.situationString": "vessel.state.situationName",
@@ -183,7 +183,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // same pattern as the enum maps above.
   //  - encounterExists/encounterBody/encounterTime  <- vessel.orbit.encounter
   //    (nullable OrbitEncounter record). exists = signed -1/0/1 keyed off
-  //    TransitionType (Encounter→1, Escape→-1, else 0 — the sign carries the
+  //    TransitionType (Encounter→1, Escape→-1, else 0: the sign carries the
   //    escape-vs-encounter distinction OrbitalEventChips branches on); body =
   //    bodyIndex resolved to a NAME via system.bodies; time = transitionUt.
   //  - targetRelativeSpeed <- vessel.target.relativePosition/relativeVelocity
@@ -200,9 +200,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // the wire. Same display-map/derivation pattern as above, zero
   // per-widget change:
   //  - apoapsisRadius/periapsisRadius (o.ApR/o.PeR) = sma·(1±ecc), the apsis
-  //    RADII from the body center — straight off the orbit elements, no body
+  //    RADII from the body center: straight off the orbit elements, no body
   //    table (unlike apoapsisAlt, which subtracts the radius).
-  //  - orbitalRadius (o.radius) = |propagated position| — current distance
+  //  - orbitalRadius (o.radius) = |propagated position|: current distance
   //    from the body center (ManeuverPlanner's vis-viva computeMu input).
   //  - nextApsisType/timeToNextApsis (o.nextApsisType/o.timeToNextApsis):
   //    picked from the already-derived timeToAp/timeToPe (1=Ap, -1=Pe).
@@ -252,7 +252,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // --- land.* ballistic scalars: closed-form vacuum landing solves derived
   // client-side (vessel-state.ts `deriveLanding`) off channels already on the
-  // wire — no terrain asset, no drag model, no mod-side change. Gravity is
+  // wire: no terrain asset, no drag model, no mod-side change. Gravity is
   // `mu/(radius+altitudeAsl)²` from vessel.orbit.mu (parent-body GM, valid in
   // the measured basis) + the system.bodies radius; the fall/burn kinematics
   // are off vessel.flight; the suicide-burn thrust ceiling is off
@@ -264,24 +264,24 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "land.bestSpeedAtImpact": "vessel.state.landingBestSpeedAtImpact",
   "land.suicideBurnCountdown": "vessel.state.landingSuicideBurnCountdown",
 
-  // --- system.state (derived) — b.number is a plain COUNT; system.bodies is
+  // --- system.state (derived): b.number is a plain COUNT; system.bodies is
   // the raw body ARRAY. `systemStateChannel` (system-state.ts) derives
   // `bodyCount = bodies.length` on its own SYSTEM-scoped derived channel
-  // (not vessel.state — the count must stay live even with no active vessel).
+  // (not vessel.state: the count must stay live even with no active vessel).
   "b.number": "system.state.bodyCount",
 
-  // --- dock.x/dock.y — the two lateral docking-offset scalars (metres) are
+  // --- dock.x/dock.y: the two lateral docking-offset scalars (metres) are
   // simply the x/y components of vessel.dock.relativePosition (the Vec3
   // DistanceToTarget already uses verbatim as their drop-in replacement,
   // rendering `${x.toFixed(2)} m`). Mapped via the raw-field-subtopic walk
-  // (`resolveRawFieldSubtopic`) into the Vec3 — no derived field needed, same
+  // (`resolveRawFieldSubtopic`) into the Vec3: no derived field needed, same
   // nested-walk form as the career.status.* sub-tree reads.
   "dock.x": "vessel.dock.relativePosition.x",
   "dock.y": "vessel.dock.relativePosition.y",
 
   // --- vessel.surface capture-add: biome + landedAt now ship on the
-  // mod wire (VesselSurface.Biome/LandedAt), so these two — previously gapped
-  // as "needs capture add" — migrate as raw-field walks. vessel.surface is
+  // mod wire (VesselSurface.Biome/LandedAt), so these two: previously gapped
+  // as "needs capture add", migrate as raw-field walks. vessel.surface is
   // null while ORBITING/ESCAPING (capture-side guard), so widgets see these
   // only near a surface, which matches the old Telemachus semantics.
   "v.biome": "vessel.surface.biome",
@@ -296,11 +296,11 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.brakeValue": "vessel.control.brakes",
   "v.lightValue": "vessel.control.lights",
   // v.abortValue: VesselControl.Abort now ships on the
-  // wire — see TELEMACHUS_KNOWN_GAPS's matching (removed) entry.
+  // wire: see TELEMACHUS_KNOWN_GAPS's matching (removed) entry.
   "v.abortValue": "vessel.control.abort",
   // v.precisionControlValue / f.precisionControl are mapped on the wire:
   // VesselControl now carries a plain `precisionControl` field
-  // alongside `abort` — same raw-field walk as the other vessel.control
+  // alongside `abort`: same raw-field walk as the other vessel.control
   // booleans above. ActionGroup's toggle read AND Navball's precision-mode
   // read both land on the same field.
   "v.precisionControlValue": "vessel.control.precisionControl",
@@ -319,20 +319,20 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "therm.hottestPartTempRatio": "vessel.thermal.maxInternalTempRatio",
   "therm.hottestPartMaxTemp": "vessel.thermal.hottestPart.skinMaxTemp",
   // therm.hottestPartName is mapped on the wire: ThermalHottestPart now
-  // carries a Name field (Part.partInfo.title, falling back to Part.name —
+  // carries a Name field (Part.partInfo.title, falling back to Part.name,
   // the same convention VesselPart.title already uses).
   "therm.hottestPartName": "vessel.thermal.hottestPart.name",
 
   // --- heat-shield thermal. VesselThermal now carries the hottest ablative
   // heat shield's temperature (°C) and its ablator heat flux (kW), captured
   // off the part's ModuleAblator. Plain raw-field walks onto the two new
-  // fields — ThermalStatus reads both as plain numbers.
+  // fields: ThermalStatus reads both as plain numbers.
   "therm.heatShieldTempCelsius": "vessel.thermal.heatShieldTempCelsius",
   "therm.heatShieldFlux": "vessel.thermal.heatShieldFlux",
 
   // --- engine thermal. VesselThermal now scopes the same hottest-by-ratio
   // tracking to engine parts only (any part carrying a ModuleEngines
-  // module) — raw Kelvin readings, same unit convention as hottestPart's
+  // module): raw Kelvin readings, same unit convention as hottestPart's
   // own fields; ThermalStatus converts to Celsius client-side (unchanged).
   "therm.hottestEngineTemp": "vessel.thermal.hottestEngineTemp",
   "therm.hottestEngineMaxTemp": "vessel.thermal.hottestEngineMaxTemp",
@@ -349,7 +349,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // alias flips CameraFeed / CommSignal / ActionGroup (all read the mapped
   // comm.connected key) onto the edge that actually fires "NO SIGNAL". The
   // observation field below (signalStrength) stays on the frozen vessel.comms
-  // struct — it SHOULD freeze at last-known through the outage.
+  // struct: it SHOULD freeze at last-known through the outage.
   "comm.connected": "comms.link.connected",
   "comm.signalStrength": "vessel.comms.signalStrength",
   // comm.signalDelay -> comms.delay.oneWaySeconds: gonogo's OWN SignalDelay
@@ -357,7 +357,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // reads a plain seconds number through the shared formatDuration helper.
   "comm.signalDelay": "comms.delay.oneWaySeconds",
 
-  // --- vessel.resources (parametric — see PARAMETRIC_RULES below for the
+  // --- vessel.resources (parametric: see PARAMETRIC_RULES below for the
   // r.resource[X]/r.resourceMax[X] family) ---
 
   // --- vessel.target ---
@@ -386,12 +386,12 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // trajectory) and each `vessel.maneuver.nodes[].patches` (post-burn
   // trajectory). `vessel.state.orbitPatches` (vessel-state.ts) reshapes the
   // former into the exact legacy `OrbitPatch[]` shape MapView/
-  // trajectory.ts's `predictGroundTrack` already consume — a pure field
+  // trajectory.ts's `predictGroundTrack` already consume: a pure field
   // rename, no client math needed (the mod's `OrbitPatch` already ships
   // body-name strings + the same PeA/ApA/semiLatusRectum/semiMinorAxis
   // fields KSP itself computes). `o.maneuverNodes` needs the SAME reshape
   // per node plus the `[dvRadial,dvNormal,dvPrograde]` tuple and a flatten
-  // of `orbitPatches[0]` onto the node's own headline fields — that lives
+  // of `orbitPatches[0]` onto the node's own headline fields, that lives
   // on its own small derived channel (`maneuver-legacy.ts`'s
   // `vessel.maneuver.legacy`), kept separate from `vessel.state` so this
   // reshape's `vessel.maneuver` input doesn't widen every OTHER
@@ -401,32 +401,32 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "o.maneuverNodes": "vessel.maneuver.legacy.nodes",
 
   // --- land.predictedLat / land.predictedLon: a client derivation on the
-  // same orbit-patch chain (NO mod-side terrain/impact predictor — see
+  // same orbit-patch chain (NO mod-side terrain/impact predictor; see
   // `vessel-state.ts`'s `derivePredictedImpact`/`findImpactPoint` in
   // `orbit-patches.ts`), horizon-bounded off the existing closed-form
   // `landingTimeToImpact` estimate so the walk only ever runs while a
   // landing is actually imminent. Vacuum-exact; on an atmospheric body this
-  // ignores drag (same limitation Telemachus's own — nonexistent —
+  // ignores drag (same limitation Telemachus's own: nonexistent:
   // implementation had; matches/beats it, doesn't regress it).
-  // `land.slopeAngle` stays gapped below — it needs a terrain heightmap
+  // `land.slopeAngle` stays gapped below: it needs a terrain heightmap
   // this client derivation has no source for. ---
   "land.predictedLat": "vessel.state.landingPredictedLat",
   "land.predictedLon": "vessel.state.landingPredictedLon",
 
-  // --- TargetPicker roster. NEW shape — {vessels:
+  // --- TargetPicker roster. NEW shape: {vessels:
   // [{vesselId, name, vesselType, situation, bodyIndex}]}, no position/
   // distance field (system.vessels' own doc comment,
-  // mod/Sitrep.Host/SystemViewProvider.cs) — TargetPicker normalizes both
+  // mod/Sitrep.Host/SystemViewProvider.cs): TargetPicker normalizes both
   // shapes into a common display type client-side; see index.tsx's
   // `normalizeRoster`. ---
   "tar.availableVessels": "system.vessels",
 
   // --- career.status economy scalars. Clean 1:1 raw-field
-  // reads — CareerViewProvider.BuildEconomy (mod/Sitrep.Host/
+  // reads, CareerViewProvider.BuildEconomy (mod/Sitrep.Host/
   // CareerViewProvider.cs) republishes Funding/Reputation/R&D science as
   // plain nullable doubles, same shape the widgets already expect. The
   // sibling groups (facilities/contracts/strategies/tech) do NOT get the
-  // same clean treatment — see the TELEMACHUS_KNOWN_GAPS entries below for
+  // same clean treatment: see the TELEMACHUS_KNOWN_GAPS entries below for
   // why each one is a real shape mismatch, not an oversight. ---
   "career.funds": "career.status.economy.funds",
   "career.reputation": "career.status.economy.reputation",
@@ -437,7 +437,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // parser needs (see the TELEMACHUS_KNOWN_GAPS entries these five keys
   // used to live under, just below, for the full before/after shape
   // rationale). Each target field-path is a raw walk off `career.status`
-  // (TimelineStore.resolveRawFieldSubtopic) — `facilities`/`contracts.
+  // (TimelineStore.resolveRawFieldSubtopic): `facilities`/`contracts.
   // active`/`contracts.offered`/`strategies.all`/`tech.nodes` are exactly
   // the sub-trees CareerViewProvider.BuildCareer's doc comment documents. ---
   "kc.facilityLevels": "career.status.facilities",
@@ -449,52 +449,52 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- science.experiments mapping. ScienceCapture's
   // `science.experiments` (mod/Sitrep.Host/ScienceViewProvider.cs) is a raw
   // array whose entries are a strict SUPERSET of the legacy `sci.experiments`
-  // shape — `partName` replaces `part` (same string, renamed field;
+  // shape: `partName` replaces `part` (same string, renamed field;
   // `parseExperiments` in ScienceBench/index.tsx reads `partName ?? part` so
   // both wire shapes parse identically), plus new fields
   // (location/experimentId/scienceValueRatio/baseTransmitValue/
   // transmitBonus/labValue/deployed/inoperable/situation) the widget doesn't
-  // read. `sci.count`/`sci.dataAmount` stay gapped below — no equivalent
+  // read. `sci.count`/`sci.dataAmount` stay gapped below, no equivalent
   // aggregate field exists on the new wire (they ARE derivable client-side
   // from this same array, but the widget's existing two separate reads are
   // left untouched here).
   "sci.experiments": "science.experiments",
   // sci.experimentBreakdown: the per-subject rollup (biome/situation/
-  // remainingPotential) now has a real wire home — ScienceViewProvider's
+  // remainingPotential) now has a real wire home, ScienceViewProvider's
   // ExperimentBreakdownEntry[], the same field names (subjectId/biome/
   // situation/expTitle/dataMits/remainingPotential) ScienceBench's
   // parseExperimentBreakdown already reads, whole-array identity read.
   "sci.experimentBreakdown": "science.experimentBreakdown",
 
   // --- science/parts topics: NEW capability, no legacy widget key existed
-  // for either — `parts.power` (dict: solarPanels/batteries/fuelCells/
+  // for either: `parts.power` (dict: solarPanels/batteries/fuelCells/
   // alternators/totalProductionEc, mod/Sitrep.Host/PartsViewProvider.cs) and
   // `parts.robotics` (raw array of hinge+piston+rotor servo state) are both
   // 2-segment raw wire topics read WHOLESALE (same "no legacy analogue, key
   // == topic" shape `system.vessels`'s own whole-topic mapping precedent
   // established) rather than a `<domain>.<channel>.<field>` walk. PowerSystems reads `parts.power` as a
   // MIXED-source enrichment (preferring `totalProductionEc` over its
-  // topology-summed total when carried, `??` falls back otherwise — same
+  // topology-summed total when carried, `??` falls back otherwise, same
   // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
   // RotorTachometer read `parts.robotics` (filtered by `type`) as their
-  // WHOLE identity list — partId-keyed selection and every `robotics.*`
+  // WHOLE identity list: partId-keyed selection and every `robotics.*`
   // command key off the stable stringified `partId` each entry carries.
   "parts.power": "parts.power",
   "parts.robotics": "parts.robotics",
 
   // --- science.lab mapping. NEW capability, no
-  // legacy widget key existed — `science.lab` (raw array of Mobile
+  // legacy widget key existed: `science.lab` (raw array of Mobile
   // Processing Lab entries, ScienceViewProvider.BuildLab) has no
   // pre-existing `sci.*` analogue at all (`sci.instruments` below tracks a
-  // DIFFERENT set of parts — crew-report/mystery-goo/barometer experiment
-  // modules — not the lab itself), so this is a whole-topic identity read,
+  // DIFFERENT set of parts: crew-report/mystery-goo/barometer experiment
+  // modules: not the lab itself), so this is a whole-topic identity read,
   // same `parts.power`/`parts.robotics` "key == topic" precedent above.
   // ScienceOfficer/index.tsx's `parseLab` reads it directly. ---
   "science.lab": "science.lab",
 
   // --- DeployedScience mapping. `science.deployed`
-  // (raw FLAT array of individual `ModuleGroundExperiment` entries — no
-  // legacy base/power-balance grouping — ScienceViewProvider.BuildDeployed,
+  // (raw FLAT array of individual `ModuleGroundExperiment` entries, no
+  // legacy base/power-balance grouping: ScienceViewProvider.BuildDeployed,
   // itself fed by Gonogo.KSP.KspHost.BuildDeployedScience's GLOBAL
   // FlightGlobals.Vessels walk, see that method's doc comment) is routed
   // onto the SAME widget-facing key `deployed.bases` used to point at,
@@ -503,18 +503,18 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // the shape (legacy: numeric `id`; new: string `vesselName`, no `id`) and,
   // for the new shape, groups the flat list by `vesselName` into the
   // existing `DeployedBase[]` display type
-  // (`groupFlatDeployedEntries`) — vesselName groups 1:1 with a Breaking
+  // (`groupFlatDeployedEntries`): vesselName groups 1:1 with a Breaking
   // Ground cluster, itself its own vessel. `powerAvailable`/`powerRequired`
   // (no EC numbers on the new wire, only a coarse `powerState` enum) degrade
   // to `0`/`0`, same "no new-wire equivalent, degrade" posture the
   // `currentLevelText`/`nextLevelText` career-detail fields established.
-  // `deployed.available` stays gapped below — see that entry for why. ---
+  // `deployed.available` stays gapped below: see that entry for why. ---
   "deployed.bases": "science.deployed",
 
   // --- career.mode + science.sensors. ---
 
   // career.mode: CareerMode is its own 2-segment raw wire topic
-  // ({ mode: GameMode }, CareerViewProvider) — a raw-field walk to the
+  // ({ mode: GameMode }, CareerViewProvider), a raw-field walk to the
   // single `mode` field (the numeric GameMode ordinal: Sandbox 0/Career
   // 1/Science 2/Unknown 3). useGameContext resolves the ordinal to the
   // SANDBOX/CAREER/SCIENCE/Unknown string ScienceBench and useGameContext's
@@ -522,10 +522,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "career.mode": "career.mode.mode",
 
   // science.sensors: NEW capability, no legacy per-type `s.sensor.
-  // <type>` equivalent (those four stay individually gapped below — no
+  // <type>` equivalent (those four stay individually gapped below, no
   // per-type field exists on the wire, only this general SensorEntry[]
   // list). Whole-topic identity read, same "key == topic" precedent as
-  // parts.power/parts.robotics/science.lab above — ScienceBench filters the
+  // parts.power/parts.robotics/science.lab above: ScienceBench filters the
   // array by `type` client-side (WIRE_SENSOR_TYPE in ScienceBench/index.tsx)
   // rather than the mod re-shaping it into four fixed fields.
   "science.sensors": "science.sensors",
@@ -535,33 +535,33 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // 2-segment raw topics below (game.dlc / robotics.available /
   // ksp.revertAvailability / spaceCenter.scene / dv.stages / dv.summary /
   // science.instruments) is also newly added to
-  // DEFAULT_SITREP_CARRIED_TOPICS (SitrepTelemetryProvider.tsx) — career.status
+  // DEFAULT_SITREP_CARRIED_TOPICS (SitrepTelemetryProvider.tsx): career.status
   // was already carried. ---
 
   // deployed.available: the state map's old "no DLC-presence boolean"
-  // rationale was stale — GameDlc.breakingGround IS that boolean
+  // rationale was stale, GameDlc.breakingGround IS that boolean
   // (CareerViewProvider / a plain DLC-presence check), independent of
   // whether any science.deployed cluster exists. DeployedScience reads it
   // as a plain capability flag.
   "deployed.available": "game.dlc.breakingGround",
 
   // robotics.available: RoboticsConsole/RotorTachometer's own
-  // "any deployable part present" capability flag — separate from the
+  // "any deployable part present" capability flag: separate from the
   // identity list itself (`parts.robotics` above).
   "robotics.available": "robotics.available.available",
 
   // ksp.canRevertToEditor / ksp.canRevertToLaunch: LaunchDirector's revert
-  // affordance flags — a dedicated RevertAvailability topic now ships them.
+  // affordance flags: a dedicated RevertAvailability topic now ships them.
   "ksp.canRevertToEditor": "ksp.revertAvailability.canRevertToEditor",
   "ksp.canRevertToLaunch": "ksp.revertAvailability.canRevertToLaunch",
 
-  // kc.scene: SpaceCenterStatus's current-scene read — its own 2-segment
+  // kc.scene: SpaceCenterStatus's current-scene read, its own 2-segment
   // raw topic (SpaceCenterScene.scene), a plain enum-name string on the
   // wire already, no display-map derivation needed.
   "kc.scene": "spaceCenter.scene.scene",
 
   // kc.crewRoster/kc.savedShips: StaffRoster/LaunchDirector's whole-topic
-  // identity reads — SpaceCenterUplink's dedicated crewRoster/savedShips
+  // identity reads, SpaceCenterUplink's dedicated crewRoster/savedShips
   // channels are bare arrays, same "key == topic" shape as parts.robotics/
   // science.lab above. Each widget's existing parser already accepts the
   // exact fields the mod ships (name/trait/experienceLevel/available/
@@ -570,21 +570,21 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "kc.crewRoster": "spaceCenter.crewRoster",
   "kc.savedShips": "spaceCenter.savedShips",
 
-  // kc.partsAvailable: SpaceCenterStatus's "parts unlocked" count — a
+  // kc.partsAvailable: SpaceCenterStatus's "parts unlocked" count: a
   // wrapper object ({ count }) since a bare scalar has no Topic shape of
   // its own, so this is a 1-field raw-field walk like robotics.available
   // above.
   "kc.partsAvailable": "spaceCenter.partsAvailable.count",
 
-  // kc.launchSites: LaunchDirector's launch-site picker roster — the
+  // kc.launchSites: LaunchDirector's launch-site picker roster, the
   // SpaceCenterUplink's dedicated launchSites channel, a bare array, same
   // "key == topic" whole-topic shape as kc.crewRoster/kc.savedShips above.
   // parseLaunchSites accepts BOTH the legacy shape and the new LaunchSiteEntry
-  // (editorFacility/isStock in place of facility/ready/unlocked — see that
+  // (editorFacility/isStock in place of facility/ready/unlocked: see that
   // parser).
   "kc.launchSites": "spaceCenter.launchSites",
 
-  // kc.launchSite: LaunchDirector/SpaceCenterStatus's active-site readout —
+  // kc.launchSite: LaunchDirector/SpaceCenterStatus's active-site readout:
   // SpaceCenterScene now carries the editor-selected launch site
   // (EditorLogic.launchSiteName) as its own raw field, a plain raw-field walk
   // like kc.scene above.
@@ -592,14 +592,14 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // kc.padOccupied/kc.padVesselTitle: the stock-pad occupancy pair, derived on
   // the spaceCenter.state channel (space-center-state.ts) off the stock-pad
-  // entry of spaceCenter.launchSites — the mod already carries per-site
+  // entry of spaceCenter.launchSites: the mod already carries per-site
   // occupancy there, so these are client-derived rather than a duplicated mod
   // channel. Consumed by LaunchDirector, SpaceCenterStatus and useGameContext.
   "kc.padOccupied": "spaceCenter.state.padOccupied",
   "kc.padVesselTitle": "spaceCenter.state.padVesselTitle",
 
   // crash.hasRecent/crash.lastCrash: the single-slot "last notable crash"
-  // event (CrashUplink, ReliableOrdered) — LaunchDirector's revert-recovery
+  // event (CrashUplink, ReliableOrdered): LaunchDirector's revert-recovery
   // gate and FlightOutcomeBanner's outcome parse both read these directly.
   // Whole-topic identity reads, same "key == topic" shape as parts.robotics/
   // science.lab above.
@@ -607,22 +607,22 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "crash.lastCrash": "crash.lastCrash",
 
   // recovery.hasRecent/recovery.lastSummary: the single-slot "last notable
-  // recovery" event (RecoveryUplink, ReliableOrdered) — FlightOutcomeBanner's
+  // recovery" event (RecoveryUplink, ReliableOrdered): FlightOutcomeBanner's
   // outcome parse reads these directly, the recovery-side counterpart of
   // crash.hasRecent/crash.lastCrash immediately above. Whole-topic identity
   // reads, same "key == topic" shape. Built as the pre-deletion recovery.*
-  // topic (P4c-b §2) — was never gapped (no TELEMACHUS_KNOWN_GAPS entry
+  // topic (P4c-b §2): was never gapped (no TELEMACHUS_KNOWN_GAPS entry
   // either) because nobody had wired a mapping OR a gap for it before now.
   "recovery.hasRecent": "recovery.hasRecent",
   "recovery.lastSummary": "recovery.lastSummary",
 
   // contracts.completedRecent: the state map's old "no wire equivalent"
-  // rationale was stale — CareerContracts now carries a completedRecent
+  // rationale was stale, CareerContracts now carries a completedRecent
   // list alongside active/offered.
   "contracts.completedRecent": "career.status.contracts.completedRecent",
 
   // sci.instruments: ScienceOfficer's per-instrument list (crew report/
-  // mystery goo/barometer etc, keyed by partId) now has a real wire home —
+  // mystery goo/barometer etc, keyed by partId) now has a real wire home,
   // a DIFFERENT array to science.lab (the Mobile Processing Lab), whole-topic
   // identity read same as parts.power/parts.robotics/science.lab above.
   "sci.instruments": "science.instruments",
@@ -642,12 +642,12 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // dv.total/dv.current/dv.currentFuelMass/dv.totalMass: the four
   // Graph-picker scalars `@ksp-gonogo/data`'s old `registerBuiltinDerivedKeys()`
-  // projected out of `dv.stages` client-side — never had a stream home at
+  // projected out of `dv.stages` client-side: never had a stream home at
   // all until now (they were 100% legacy-only, unlike `dv.currentTWR`
   // above). `dv-legacy-scalars.ts`'s `dvLegacyScalarsChannel` recomputes the
   // exact same rollups off the same two already-carried raw topics
   // (`dv.stages` + `vessel.structure.currentStage`) as `fields: true`
-  // subtopics — same "new derived channel, static field-subtopic mapping"
+  // subtopics: same "new derived channel, static field-subtopic mapping"
   // shape as `vessel.state.twr` itself.
   "dv.total": "dv.legacyScalars.total",
   "dv.current": "dv.legacyScalars.current",
@@ -656,7 +656,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // scansat.available/scansat.scanningVessels: GonogoScansatUplink publishes
   // both under the exact same topic names the client already reads (see
-  // ScansatUplink.cs's AvailableTopic/ScanningVesselsTopic consts) — a
+  // ScansatUplink.cs's AvailableTopic/ScanningVesselsTopic consts): a
   // whole-topic identity read, same "key == topic" shape as parts.robotics/
   // science.lab above. Was stuck in TELEMACHUS_KNOWN_GAPS even though the
   // Uplink shipped the data; useScanSatFogSync/useScanLayers/MapView/Scanning
@@ -679,14 +679,14 @@ const BODY_INDEXED_GAP = /^b\.(rotationAngle|rotates)\[-?\d+\]$/;
  * DERIVED channels (`dv-stage-resources.ts`) instead of a static raw-field
  * path: `dv.stages` carries a per-STAGE resource breakdown
  * (`Gonogo.KSP.KspHost.BuildStageResources`), but "the currently active
- * stage" is a dynamic lookup keyed off `vessel.structure.currentStage` — no
+ * stage" is a dynamic lookup keyed off `vessel.structure.currentStage`, no
  * static field-path string can express that, so a real `derive()` picks out
  * the matching array entry and republishes it as a flat resource-name-keyed
  * map. See `RESOURCE_STAGE_SCOPED`'s resolution below.
  *
  * The generated target has an extra `.resources` segment
  * (`vessel.resources.resources.<name>.<current|max>`, not the flatter
- * `vessel.resources.<name>.<current|max>` you'd expect) — found + fixed in
+ * `vessel.resources.<name>.<current|max>` you'd expect): found + fixed in
  * the FuelStatus migration. `VesselViewProvider.ToWire`
  * (`mod/Sitrep.Host/VesselViewProvider.cs`) serializes `VesselResources` as
  * `{ resources: { <name>: {current, max} }, meta: {...} }`, wrapping the
@@ -694,15 +694,15 @@ const BODY_INDEXED_GAP = /^b\.(rotationAngle|rotates)\[-?\d+\]$/;
  * the record root. `TimelineStore.resolveRawFieldSubtopic`
  * (`timeline-store.ts`) mechanically splits any 3+-segment target into a
  * 2-segment `rawTopic` (here, `"vessel.resources"`) plus a fieldPath walked
- * verbatim off that record's payload — so the fieldPath itself must include
+ * verbatim off that record's payload: so the fieldPath itself must include
  * the wrapper key. This channel was never in the 6-topic
  * `reference-wire-fixture.json` set, so the "every currently shipped
  * raw-field entry has been checked against the real wire fixture" guarantee
- * (`sampleRawFieldSubtopic`'s own doc comment) never actually covered it —
+ * (`sampleRawFieldSubtopic`'s own doc comment) never actually covered it,
  * the flat form would have silently resolved to a permanent `undefined`
  * once a widget migrated onto it and the mod deployed for real, with no
  * fallback to legacy (`isUnresolvableField`'s phantom-mapping guard is NOT
- * extended to the raw-field path either — see `sampleRawFieldSubtopic`'s
+ * extended to the raw-field path either: see `sampleRawFieldSubtopic`'s
  * doc comment). */
 const RESOURCE_VESSEL_TOTAL = /^r\.resource(Max)?\[([^\]]+)\]$/;
 const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
@@ -725,31 +725,31 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
 
   // --- Shape-mismatch gaps: each of these
   // was previously in TELEMACHUS_CLEAN_HOMES pointing at a new topic whose
-  // VALUE SHAPE does not match what the widget reads — a migrated widget
+  // VALUE SHAPE does not match what the widget reads, a migrated widget
   // would have silently rendered garbage (or thrown) instead of falling
   // back to the working legacy DataSource path. Moved here so the fallback
   // fires until the real fix (a derived display-map/field subtopic, or a
   // server-side field the contract doesn't have yet) lands.
 
   // v.body / o.referenceBody are mapped on the wire: the
-  // index→name display-map subtopic now exists — deriveVesselState resolves
+  // index→name display-map subtopic now exists, deriveVesselState resolves
   // vessel.identity.parentBodyIndex / vessel.orbit.referenceBodyIndex against
   // system.bodies into vessel.state.parentBodyName / referenceBodyName. See
   // TELEMACHUS_CLEAN_HOMES above.
 
   // b.number is mapped on the wire: the plain body COUNT the widget
   // reads is now derived on the SYSTEM-scoped `system.state.bodyCount`
-  // channel (system-state.ts, `bodies.length`) — see TELEMACHUS_CLEAN_HOMES.
+  // channel (system-state.ts, `bodies.length`): see TELEMACHUS_CLEAN_HOMES.
 
   // o.encounterExists/o.encounterBody/o.encounterTime are mapped on the
   // wire: the single nullable `vessel.orbit.encounter` record now feeds
   // three derived `vessel.state.*` fields shaped exactly as OrbitalEventChips
-  // reads them — signed -1/0/1 exists (keyed off TransitionType), the body
+  // reads them, signed -1/0/1 exists (keyed off TransitionType), the body
   // NAME (bodyIndex→system.bodies), and transitionUt. See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // dock.x/dock.y are mapped on the wire: NOT alignment axes after all
-  // — the widget renders them as metres and already uses
+  // dock.x/dock.y are mapped on the wire: NOT alignment axes after all,
+  // the widget renders them as metres and already uses
   // vessel.dock.relativePosition.{x,y} as their verbatim drop-in replacement.
   // Mapped straight through the raw-field-subtopic walk into that Vec3 (no
   // derived field). See TELEMACHUS_CLEAN_HOMES above.
@@ -757,7 +757,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // comm.controlState/comm.controlStateName are mapped on the wire: the mod
   // field `vessel.comms.controlState` is a NUMERIC
   // `Sitrep.Contract.ControlState` enum ordinal on the wire (`(int)comms.
-  // ControlState` — despite this comment's former "STRING enum" wording, the
+  // ControlState`: despite this comment's former "STRING enum" wording, the
   // host serializes the integer). `deriveVesselState` now resolves it BOTH
   // ways: the ordinal → enum name string (`vessel.state.commsControlStateName`,
   // the old `comm.controlStateName`) AND → CommSignal's Telemachus 0/1/2
@@ -767,7 +767,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- Fixture-audit finds: the grown 15-channel reference wire
   // fixture (WireFixtureGeneratorTests.cs) put real vessel.identity/
   // vessel.control/vessel.target payloads in front of these three mappings
-  // for the first time — each RESOLVES (the field path is real) but carries
+  // for the first time: each RESOLVES (the field path is real) but carries
   // the WRONG SHAPE for what the widget reads, the same class of bug as the
   // findings above, just one level deeper than the raw-path
   // check `map-topic.rawFieldRoots.coverage.test.ts` already runs. ---
@@ -776,19 +776,19 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // mod field (vessel.identity.situation /
   // vessel.control.sasMode) is a NUMERIC contract-enum
   // ordinal on the wire; `deriveVesselState` resolves each to the STRING the
-  // widget reads — `vessel.state.situationName` / `sasModeName`. See
+  // widget reads, `vessel.state.situationName` / `sasModeName`. See
   // TELEMACHUS_CLEAN_HOMES above. (`vessel.target.kind` gets the same
   // ordinal→"CelestialBody"-normalized-string treatment on
   // `vessel.state.targetKind`, which TargetPicker/DistanceToTarget now read
-  // directly — no `tar.type` shim key left to map.)
+  // directly: no `tar.type` shim key left to map.)
 
   // tar.o.relativeVelocity is mapped on the wire: the signed scalar
-  // closing-speed is now derived on `vessel.state.targetRelativeSpeed` — the
+  // closing-speed is now derived on `vessel.state.targetRelativeSpeed`, the
   // range-rate dot(relPos,relVel)/|relPos| off vessel.target's two Vec3
   // fields, positive=opening / <0=closing as the widgets expect. See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // o.maneuverNodes is mapped on the wire — see TELEMACHUS_CLEAN_HOMES
+  // o.maneuverNodes is mapped on the wire; see TELEMACHUS_CLEAN_HOMES
   // above (`vessel.maneuver.legacy.nodes`, `maneuver-legacy.ts`).
 
   // dv.currentTWR is mapped on the wire: `VesselPropulsion`
@@ -797,7 +797,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gravity 9.80665). See TELEMACHUS_CLEAN_HOMES above.
 
   // comm.signalDelay is mapped on the wire: the old rationale
-  // ("aspirational, no implementation") is STALE — comms.delay is live on the
+  // ("aspirational, no implementation") is STALE, comms.delay is live on the
   // wire (CommsCoreUplink, TrueNow) as { oneWaySeconds, source, meta } and is
   // gonogo's OWN SignalDelay authority. CommSignal reads a plain seconds
   // number, so comm.signalDelay -> comms.delay.oneWaySeconds (raw-field walk).
@@ -810,7 +810,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // (mod/Sitrep.Contract/VesselControl.cs) yet ---
 
   // v.abortValue is mapped on the wire: VesselControl now carries a
-  // plain `Abort` field (`vessel.control.abort`, camelCase on the wire) —
+  // plain `Abort` field (`vessel.control.abort`, camelCase on the wire),
   // see TELEMACHUS_CLEAN_HOMES above.
 
   // v.ag1Value..v.ag10Value are mapped on the wire: the
@@ -819,56 +819,56 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // instance reads as its own bool (plus a dynamic `vessel.state.actionGroups`
   // keyed map for Action Groups Extended's variable count). See
   // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid only
-  // on precision — `v.precisionControlValue` below.)
+  // on precision: `v.precisionControlValue` below.)
 
   // v.precisionControlValue is mapped on the wire: VesselControl
-  // now carries a `precisionControl` field — see TELEMACHUS_CLEAN_HOMES
+  // now carries a `precisionControl` field: see TELEMACHUS_CLEAN_HOMES
   // above (shared with f.precisionControl).
 
-  // land.predictedLat/Lon are mapped on the wire — see TELEMACHUS_CLEAN_HOMES
+  // land.predictedLat/Lon are mapped on the wire; see TELEMACHUS_CLEAN_HOMES
   // above (client patch-walk, `vessel.state.landingPredicted{Lat,Lon}`).
-  // (The four ballistic SCALARS — timeToImpact/speedAtImpact/
-  // bestSpeedAtImpact/suicideBurnCountdown — are ALSO client-derived on
+  // (The four ballistic SCALARS: timeToImpact/speedAtImpact/
+  // bestSpeedAtImpact/suicideBurnCountdown: are ALSO client-derived on
   // vessel.state.landing* off vessel.flight + vessel.orbit.mu + the
   // system.bodies radius + vessel.propulsion; see TELEMACHUS_CLEAN_HOMES.)
   //
   // land.slopeAngle stays gapped: it needs the terrain HEIGHTMAP around the
-  // predicted point (KSP's PQS), not just the impact coordinate itself — no
+  // predicted point (KSP's PQS), not just the impact coordinate itself, no
   // mod-side terrain asset exists yet, and the client's only candidate
   // terrain source (SCANsat's `scan.heightGrid`, `@ksp-gonogo/data`'s
   // `useScanHeightGrid`) is coverage-gated (only where a scanner has
   // actually passed over) and too coarse (1°×1° tiles) for a local slope
-  // estimate at a single point — a separately-scoped follow-up, not folded
+  // estimate at a single point: a separately-scoped follow-up, not folded
   // in here.
   "land.slopeAngle",
 
-  // o.orbitPatches is mapped on the wire — see TELEMACHUS_CLEAN_HOMES above
+  // o.orbitPatches is mapped on the wire; see TELEMACHUS_CLEAN_HOMES above
   // (`vessel.state.orbitPatches`, the mod's full patched-conic chain).
 
   // v.atmosphericTemperature / v.externalTemperature are mapped on the
-  // wire — see TELEMACHUS_CLEAN_HOMES above.
+  // wire: see TELEMACHUS_CLEAN_HOMES above.
 
   // --- thermal detail beyond headline ratios. heatShieldTempCelsius/
   // heatShieldFlux, therm.hottestPartName (ThermalHottestPart.Name), and
   // the engine-scoped hottestEngineTemp/MaxTemp/TempRatio/
-  // anyEnginesOverheating quartet are all mapped on the wire now —
+  // anyEnginesOverheating quartet are all mapped on the wire now,
   // VesselThermal carries every one of them, see TELEMACHUS_CLEAN_HOMES
   // above. ---
 
-  // v.crew / v.crewCapacity are mapped on the wire — see
+  // v.crew / v.crewCapacity are mapped on the wire; see
   // TELEMACHUS_CLEAN_HOMES above.
 
   // v.biome / v.landedAt are mapped on the wire: vessel.surface now ships
-  // Biome + LandedAt — see TELEMACHUS_CLEAN_HOMES above.
+  // Biome + LandedAt: see TELEMACHUS_CLEAN_HOMES above.
 
   // dv.stageCount/dv.stages/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
-  // dv.totalBurnTime are mapped on the wire — see
+  // dv.totalBurnTime are mapped on the wire; see
   // TELEMACHUS_CLEAN_HOMES above (dv.stages whole-topic + dv.summary.*
   // raw-field walks).
 
   // v.topology / v.topologySeq are no longer read at all: the structural
   // part-tree data they carried is on the wire as `vessel.parts`
-  // (VesselParts — a SIBLING channel of vessel.structure), and
+  // (VesselParts: a SIBLING channel of vessel.structure), and
   // `@ksp-gonogo/data`'s `useTopology` reads it directly via the canonical
   // `useTelemetry("vessel.parts")` (bypassing this shim entirely, the same
   // pattern `useVesselDeltaV`/other `@ksp-gonogo/data` hooks use for a
@@ -876,7 +876,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // client-side (`vesselPartsAdapter.ts`). ShipMap/PowerSystems no longer
   // declare either key in `dataRequirements`.
 
-  // robotics.available: a dedicated capability topic ships — see
+  // robotics.available: a dedicated capability topic ships, see
   // TELEMACHUS_CLEAN_HOMES above. robotics.rotors/robotics.servos are gone
   // from this set entirely: RotorTachometer/RoboticsConsole now build their
   // identity list (partId-keyed selection + every robotics.* command)
@@ -886,14 +886,14 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // v.isControllable is mapped on the wire: derived from
   // vessel.comms.controlState's control LEVEL on vessel.state.isControllable
   // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl is mapped on the
-  // wire alongside v.precisionControlValue — see
+  // wire alongside v.precisionControlValue: see
   // TELEMACHUS_CLEAN_HOMES above.
 
   // --- derived quantities with no named field on the wire yet ---
   // The cleanly-derivable members of this
   // cluster (o.ApR/o.PeR/o.radius/o.nextApsisType/o.timeToNextApsis/
   // v.horizontalVelocity/tar.distance/tar.o.PeA/tar.o.period/
-  // tar.o.trueAnomaly) are mapped on the wire — all now derived on
+  // tar.o.trueAnomaly) are mapped on the wire, all now derived on
   // vessel.state.* (see TELEMACHUS_CLEAN_HOMES above). The keys BELOW are
   // what genuinely can't be honestly derived from the current wire:
 
@@ -904,19 +904,19 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
 
   // v.angleToPrograde: the angle between vessel facing and the prograde
   // velocity direction. `vessel.attitude` carries only Euler heading/pitch/
-  // roll relative to the SURFACE frame — no raw facing unit vector — and
+  // roll relative to the SURFACE frame (no raw facing unit vector), and
   // "prograde" is itself frame-ambiguous (surface vs orbital). Reconstructing
   // a facing vector from Euler angles and dotting it against a chosen prograde
   // direction is neither cleanly nor unambiguously derivable from what's on
-  // the wire (and the one widget that lists it, Navball, doesn't even read it
-  // — dead requirement).
+  // the wire (and the one widget that lists it, Navball, doesn't even read it,
+  // dead requirement).
   // gap: needs a facing vector + a defined prograde frame, neither on the wire
   "v.angleToPrograde",
 
   // dock.ax/dock.ay/dock.az: the true docking-port ORIENTATION misalignment
   // axes aren't on the wire (vessel.dock carries only RelativePosition/
   // RelativeVelocity/Distance + a scalar ForwardDot). The deliberate decision
-  // is to DROP them in favour of the LINE-OF-SIGHT HUD proxy — the shared
+  // is to DROP them in favour of the LINE-OF-SIGHT HUD proxy, the shared
   // `deriveDockAngles` helper (packages/components/src/shared/dockAngles.ts)
   // computes ax/ay off dock.relativePosition. They stay gapped here
   // until DistanceToTarget removes the legacy reads +
@@ -927,7 +927,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
 
   // n.heading2/pitch2/roll2 are mapped on the wire: the
   // genuinely distinct root-part-referenced frame now has a real named field
-  // on VesselAttitude — see TELEMACHUS_CLEAN_HOMES above.
+  // on VesselAttitude: see TELEMACHUS_CLEAN_HOMES above.
 
   // a.physicsMode is neither mapped nor gapped: the Principia mod-seam
   // revert deleted the ManeuverPlanner/MapView reads entirely (physics-mode
@@ -939,32 +939,32 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- not a stream at all: sdk.view.ut() / meta.validAt ---
   "t.universalTime",
 
-  // --- out of vessel-provider scope by design — separate provider families ---
+  // --- out of vessel-provider scope by design: separate provider families ---
   // career.mode is mapped on the wire: CareerMode is
-  // its own raw wire topic ({ mode: GameMode }) — a plain raw-field walk to
+  // its own raw wire topic ({ mode: GameMode }), a plain raw-field walk to
   // career.mode.mode (the numeric GameMode ordinal). useGameContext resolves
   // the ordinal to the SANDBOX/CAREER/SCIENCE/Unknown string the widgets
-  // read (no vessel.state field needed — see TELEMACHUS_CLEAN_HOMES above).
+  // read (no vessel.state field needed; see TELEMACHUS_CLEAN_HOMES above).
   // kc.crewRoster/kc.savedShips/kc.partsAvailable are mapped on the wire:
   // SpaceCenterUplink now ships spaceCenter.crewRoster/spaceCenter.savedShips/
-  // spaceCenter.partsAvailable — see TELEMACHUS_CLEAN_HOMES above.
-  // kc.facilityLevels is mapped on the wire — see CLEAN_HOMES
+  // spaceCenter.partsAvailable: see TELEMACHUS_CLEAN_HOMES above.
+  // kc.facilityLevels is mapped on the wire; see CLEAN_HOMES
   // above (career.status.facilities, SpaceCenterStatus's parseFacilityLevels
   // now reads BOTH the legacy short-code shape and the new enum-keyed
   // currentTier/maxTier/upgradeCost shape).
   // kc.launchSite/kc.launchSites/kc.padOccupied/kc.padVesselTitle are mapped
   // on the wire: spaceCenter.launchSites carries the roster + per-site
   // occupancy, SpaceCenterScene carries the editor-selected launchSite, and the
-  // spaceCenter.state derived channel exposes the stock-pad occupancy pair —
+  // spaceCenter.state derived channel exposes the stock-pad occupancy pair,
   // see TELEMACHUS_CLEAN_HOMES above.
   // kc.scene is mapped on the wire: SpaceCenterScene now ships
-  // its own raw topic — see TELEMACHUS_CLEAN_HOMES above.
+  // its own raw topic: see TELEMACHUS_CLEAN_HOMES above.
 
   // --- facilities/contracts/strategies/tech
   // are mapped on the wire. A later capture-extend pass widened
   // CareerViewProvider's facilities/contracts/strategies/tech groups from a
   // minimal "just enough to prove the channel exists" shape to what these
-  // five widgets actually need — integer
+  // five widgets actually need, integer
   // currentTier/maxTier/upgradeCost per facility, a stable string `id` +
   // `parameters` per contract, a stable `id` + full cost/eligibility set
   // per strategy (plus the `all` roster, not just `active`), and
@@ -973,18 +973,18 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // parser (ContractManager's `parseContracts`, Strategies's
   // `parseStrategies`, TechTree's `parseTechNodes`, SpaceCenterStatus's
   // `parseFacilityLevels`) for how each now accepts BOTH the legacy shape
-  // and this new one. `contracts.completedRecent` is mapped on the wire too
-  // — CareerContracts now carries a completedRecent list
+  // and this new one. `contracts.completedRecent` is mapped on the wire too,
+  // CareerContracts now carries a completedRecent list
   // too, see TELEMACHUS_CLEAN_HOMES above. `strategies.all`'s
   // `effectiveCostReputation` also stays
-  // client-side-only — deliberately not added to the wire (no cheap
-  // decompiled source for KSP's nonlinear rep curve) — `parseStrategies`
+  // client-side-only: deliberately not added to the wire (no cheap
+  // decompiled source for KSP's nonlinear rep curve), `parseStrategies`
   // already falls back to
   // `initialCostReputation` when it's absent, unchanged here.
   // Commands (facility upgrade, contract accept/decline/cancel, strategy
   // activate/deactivate, tech unlock) have no command home yet
   // (KNOWN_COMMAND_GAPS in map-command.ts) and fall back to the legacy
-  // DataSource automatically — reads only are mapped here.
+  // DataSource automatically: reads only are mapped here.
 
   // contracts.completedRecent is mapped on the wire: see
   // TELEMACHUS_CLEAN_HOMES above.
@@ -995,31 +995,31 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // `index.tsx`) instead of two separate pre-aggregated reads, so no
   // aggregate-field gap remains.
   // sci.experimentBreakdown is mapped on the wire: a per-subject
-  // rollup now ships as its own topic — see TELEMACHUS_CLEAN_HOMES above.
+  // rollup now ships as its own topic; see TELEMACHUS_CLEAN_HOMES above.
   // sci.instruments is mapped on the wire: a per-instrument list
-  // now ships as its own topic — see TELEMACHUS_CLEAN_HOMES above. It is a
+  // now ships as its own topic: see TELEMACHUS_CLEAN_HOMES above. It is a
   // DIFFERENT array from science.lab (the Mobile Processing Lab).
   // s.sensor.temp/pres/grav/acc are no longer read by any widget: ScienceBench
   // now derives every per-type reading by filtering the whole science.sensors
   // list (CLEAN_HOMES above) client-side, so no per-type gap remains.
-  // deployed.bases is mapped on the wire — see CLEAN_HOMES
+  // deployed.bases is mapped on the wire; see CLEAN_HOMES
   // above (science.deployed, DeployedScience's parseBases now reads BOTH
   // the legacy grouped-base shape and the new flat-per-experiment shape).
   // deployed.available is mapped on the wire: the old "can't
-  // disambiguate no-DLC from empty-deployed" rationale was stale —
+  // disambiguate no-DLC from empty-deployed" rationale was stale,
   // GameDlc.breakingGround is its own independent capability boolean, not
   // derived from science.deployed's emptiness. See TELEMACHUS_CLEAN_HOMES
   // above.
-  // scansat.available/scansat.scanningVessels are mapped on the wire — see
+  // scansat.available/scansat.scanningVessels are mapped on the wire; see
   // TELEMACHUS_CLEAN_HOMES above. scansat.anomalies.<body> is resolved too,
-  // via the SCANSAT_DYNAMIC regex family below (mod's known gap 3 closed) —
+  // via the SCANSAT_DYNAMIC regex family below (mod's known gap 3 closed),
   // it was never a TELEMACHUS_KNOWN_GAPS Set member (only mentioned in this
   // comment), so there is nothing to remove from the Set itself.
   // ksp.canRevertToEditor / ksp.canRevertToLaunch are mapped on the wire:
-  // a dedicated RevertAvailability topic now ships both flags — see
+  // a dedicated RevertAvailability topic now ships both flags; see
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // --- Kerbalism sw.*/ls.* — pending KerbalismUplink Topics
+  // --- Kerbalism sw.*/ls.*: pending KerbalismUplink Topics
   // (spaceweather / lifesupport / crew, being specced). The SpaceWeather and
   // LifeSupportSystems widgets read these raw off "data" until the uplink
   // lands; gapped here so the coverage gate stays honest and the reads fall
@@ -1058,7 +1058,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "ls.process.wasteProcessor",
   "ls.process.fuelCell",
 
-  // --- fleet.vessels (FleetRoster) / crew.kerbals (CrewManifest) — new
+  // --- fleet.vessels (FleetRoster) / crew.kerbals (CrewManifest): new
   // widget reads pending their owning Uplinks. Same interim treatment as the
   // sw.*/ls.* keys above: gapped so the coverage gate stays honest and the
   // reads fall back to the legacy DataSource until the topics are registered.
@@ -1067,19 +1067,19 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Resolve a widget-facing `(dataSourceId, key)` pair — as passed to
- * `useDataValue` today — to the new SDK stream topic it should read from.
+ * Resolve a widget-facing `(dataSourceId, key)` pair, as passed to
+ * `useDataValue` today: to the new SDK stream topic it should read from.
  *
  * Returns `undefined` when there is no mapping: either `dataSourceId` isn't
  * the Telemachus `"data"` source (nothing else is wired to the new SDK yet),
  * or `key` is a known, explicitly-tracked gap (`TELEMACHUS_KNOWN_GAPS`),
  * or `key` is genuinely unrecognized. In every `undefined` case the
  * `@ksp-gonogo/core` `useDataValue` shim falls back to the legacy `DataSource`
- * path — this function intentionally does NOT identity-fallback (contrast
+ * path: this function intentionally does NOT identity-fallback (contrast
  * with `redirectKinematicSubtopic` above).
  */
 /**
- * `kos.compute.<id>.<field>` — the dynamic centralised-compute namespace.
+ * `kos.compute.<id>.<field>`: the dynamic centralised-compute namespace.
  * Identity-mapped so a future compute-feed slice reads straight off the
  * stream; `.status` sub-topics and `.dispatchNow`/`.reEnable` command keys
  * are deliberately excluded (status has no producer on this table; commands
@@ -1091,15 +1091,15 @@ const KOS_COMPUTE_NON_VALUE =
 
 /**
  * `scansat.coverage.<body>.<type>` / `scansat.mask.<body>.<type>` /
- * `scansat.height.<body>` / `scansat.biome.<body>` / `scansat.anomalies.<body>`
- * — the dynamic per-body SCANsat namespaces `ScansatUplink.Sample` publishes
+ * `scansat.height.<body>` / `scansat.biome.<body>` / `scansat.anomalies.<body>`,
+ * the dynamic per-body SCANsat namespaces `ScansatUplink.Sample` publishes
  * (see `mod/GonogoScansatUplink/ScanChannels.cs`'s `CoveragePrefix`/
  * `MaskPrefix`/`HeightPrefix`/`BiomePrefix`/`AnomaliesPrefix` +
  * `BodyTypeSubTopic`/`BodySubTopic`). Identity-mapped, same pattern as
  * `KOS_COMPUTE_FIELD` above: the widget-facing key IS the wire topic.
  *
  * `scansat.anomalies.<body>` joined this family once `ScanAnomalies.Build`
- * landed (P4c-b sign-off item, closing `ScansatUplink.cs`'s known gap 3) —
+ * landed (P4c-b sign-off item, closing `ScansatUplink.cs`'s known gap 3),
  * previously excluded/gapped because the mod didn't publish it. Like its
  * height/biome/coverage/mask siblings, resolving here does NOT yet mean it is
  * promoted to the live stream: `DEFAULT_SITREP_CARRIED_TOPICS`
@@ -1145,7 +1145,7 @@ export function mapTopic(
 
   // Stage-scoped resources: a `fields: true` subtopic off the
   // dv.currentStageResource(Max) DERIVED channels (dv-stage-resources.ts),
-  // not a raw-field path — see the RESOURCE_STAGE_SCOPED doc comment above.
+  // not a raw-field path: see the RESOURCE_STAGE_SCOPED doc comment above.
   const stageResourceMatch = RESOURCE_STAGE_SCOPED.exec(key);
   if (stageResourceMatch) {
     const [, isMax, name] = stageResourceMatch;
@@ -1168,7 +1168,7 @@ export function isKnownTelemachusGap(
 ): boolean {
   if (dataSourceId !== "data") return false;
   if (TELEMACHUS_KNOWN_GAPS.has(key)) return true;
-  // RESOURCE_STAGE_SCOPED is no longer a gap — mapTopic resolves it via the
+  // RESOURCE_STAGE_SCOPED is no longer a gap, mapTopic resolves it via the
   // dv.currentStageResource(Max) derived channels (see mapTopic above).
   return BODY_INDEXED_GAP.test(key);
 }

@@ -20,6 +20,7 @@ import {
   StatusPill,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -27,7 +28,7 @@ import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
 /**
- * Provider-optional read of a raw OR derived stream Topic — mirrors
+ * Provider-optional read of a raw OR derived stream Topic, mirrors
  * `@ksp-gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
  * `TelemetryProvider` is mounted instead of throwing. OrbitView reads its
  * derived `vessel.state.*` fields (which are not wire `TopicId`s, so the
@@ -62,7 +63,7 @@ function useStreamOptional<T>(topic: string): T | undefined {
 }
 
 /**
- * Provider-optional staleness/absence surface for a raw stream Topic — the
+ * Provider-optional staleness/absence surface for a raw stream Topic, the
  * `useStreamOptional` sibling for status. `"disconnected"` when no
  * `TelemetryProvider` is mounted, matching the empty-state posture the value
  * read degrades to.
@@ -105,16 +106,16 @@ interface OrbitViewConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `orbit-view.overlay` — an OVERLAY slot, rendered in a
+ * Props for `orbit-view.overlay`: an OVERLAY slot, rendered in a
  * layer absolutely positioned over the orbit-ellipse diagram. The diagram draws
  * body-centric in SVG user-units that match these orbital elements: the body
  * sits at `center` (the SVG origin), +x runs along the apsis line before
  * `argPe` rotation, +y is up in the orbital frame, and the visible half-extent
- * is ~`scale` units — apoapsis-driven, matching the diagram's own scale
+ * is ~`scale` units, apoapsis-driven, matching the diagram's own scale
  * reference, EXCEPT on a hyperbolic orbit (`ecc >= 1`), where apoapsis is
  * meaningless and both this and the diagram itself scale off periapsis
- * instead (see `OrbitDiagram`'s `HYPERBOLIC_SCALE`). An overlay augment —
- * e.g. a future N-body / SOI-transition Uplink — builds a matching viewBox /
+ * instead (see `OrbitDiagram`'s `HYPERBOLIC_SCALE`). An overlay augment,
+ * e.g. a future N-body / SOI-transition Uplink, builds a matching viewBox /
  * transform from these to draw markers in the diagram's coordinate space.
  */
 export interface OrbitOverlayContext {
@@ -124,7 +125,7 @@ export interface OrbitOverlayContext {
   ecc: number;
   /**
    * Apoapsis radius from body centre, same units. `undefined` on a
-   * hyperbolic orbit (`ecc >= 1`) — there is no apoapsis to report (see
+   * hyperbolic orbit (`ecc >= 1`): there is no apoapsis to report (see
    * `VesselState.apoapsisRadius`'s doc comment).
    */
   apoapsis?: number;
@@ -143,7 +144,7 @@ export interface OrbitOverlayContext {
 }
 
 /**
- * Props for `orbit-view.badges` — the widget's BROAD escape-hatch slot,
+ * Props for `orbit-view.badges`: the widget's BROAD escape-hatch slot,
  * rendered in the header next to the title. Meant for
  * small status chips an Uplink wants beside the orbit heading; badge augments
  * read their own Topics via hooks, so the only context passed down is the
@@ -200,12 +201,12 @@ function OrbitViewComponent({
   //    and the apsis RADII. It isn't a wire `TopicId`, so it reads through
   //    the provider-optional `useStreamOptional`.
   //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
-  //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`) — that
+  //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`), that
   //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
   //    makes it a finite but GARBAGE negative number) and for both apsides
   //    in the "measured" basis (Loaded-basis osculating elements). Correctly
   //    `null` in both cases per `deriveVesselState`'s `trySolve`/
-  //    `trySolveAnomalies` (non-throwing — see `vessel-state.ts`).
+  //    `trySolveAnomalies` (non-throwing: see `vessel-state.ts`).
   //  - `useBodyRotation` derives the pole marker client-side from the body's
   //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
   const orbit = useTelemetry("vessel.orbit");
@@ -217,19 +218,19 @@ function OrbitViewComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const basis = vesselState?.basis;
   // `null` on a hyperbolic orbit (no apoapsis exists) or in the "measured"
-  // basis (both apsides) — see `VesselState.apoapsisRadius`'s doc comment.
+  // basis (both apsides): see `VesselState.apoapsisRadius`'s doc comment.
   const apoapsisR = vesselState?.apoapsisRadius;
-  // `null` only in the "measured" basis — always real whenever there's a
+  // `null` only in the "measured" basis: always real whenever there's a
   // resolvable orbit, hyperbolic or not.
   const periapsisR = vesselState?.periapsisRadius;
-  // Connectivity indicator — `vessel.orbit` is this widget's representative
+  // Connectivity indicator: `vessel.orbit` is this widget's representative
   // read Topic (it gates the diagram's elements), so one badge speaks for the
   // whole widget.
   const streamStatus = useStreamStatusOptional("vessel.orbit");
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
-  // Live rotation feed — single-body subscription so we don't pay the
+  // Live rotation feed: single-body subscription so we don't pay the
   // ~17-bodies-at-4Hz fanout cost of useCelestialBodies just for the
   // marker. Atmosphere band sticks to the static body registry's
   // `maxAtmosphere`, which already covers stock bodies.
@@ -237,7 +238,7 @@ function OrbitViewComponent({
     typeof bodyName === "string" ? bodyName : null,
   );
 
-  // Apoapsis is intentionally NOT required — it's `null` on a hyperbolic
+  // Apoapsis is intentionally NOT required, it's `null` on a hyperbolic
   // orbit (no apoapsis exists) by design, not an error. Periapsis is
   // always real whenever there IS an orbit, so it (plus sma/eccentricity)
   // is the true "do we have an orbit" signal. `!= null` catches both
@@ -245,12 +246,12 @@ function OrbitViewComponent({
   // must not be able to flip this gate).
   const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
 
-  // Selective rendering — at small sizes the SVG diagram doesn't have room
+  // Selective rendering: at small sizes the SVG diagram doesn't have room
   // to be readable, so collapse to a single status pill (the user's
   // canonical example for "tiny mode"). Accept either:
   //   - Square / portrait ≥ 5 cols × 5 rows (the original threshold), or
   //   - Landscape ≥ 8 cols × 3 rows (wide-short, e.g. the dashboard's
-  //     header strip — the diagram + chrome render side-by-side so the
+  //     header strip: the diagram + chrome render side-by-side so the
   //     diagram gets a usable square slot at panel height instead of
   //     being squeezed under the title.).
   const cols = w ?? 9;
@@ -263,11 +264,11 @@ function OrbitViewComponent({
 
   // 3×3 minSize panel is ~104 px wide; the multi-word pill labels wrap
   // to two lines ("STABLE\nORBIT", "SUB-\nORBITAL"). At that size,
-  // abbreviate so the status fits on one line — abbreviations are the
+  // abbreviate so the status fits on one line, abbreviations are the
   // standard mission-control shorthand the operator already reads
   // elsewhere (e.g. flight-plan annotations).
   const compactPill = cols < 4 || rows < 4;
-  let pillLabel = "—";
+  let pillLabel = NULL_DISPLAY;
   let pillTone: ReadoutTone = "default";
   if (hasOrbit) {
     if (eccentricity >= 1) {
@@ -287,7 +288,7 @@ function OrbitViewComponent({
       variant="full"
       sma={sma}
       ecc={eccentricity}
-      // `apoapsisR` is `null` on a hyperbolic orbit — OrbitDiagram already
+      // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram already
       // detects that itself (`ecc >= 1 || sma <= 0`) and ignores this value
       // in that branch, so the fallback is never actually rendered from.
       apoapsis={apoapsisR ?? 0}
@@ -302,7 +303,7 @@ function OrbitViewComponent({
       atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
       atmosphereHasOxygen={
         // Kerbin / Laythe are the stock oxygen-bearing atmospheres.
-        // Static registry doesn't carry the flag yet — treat as oxygen
+        // Static registry doesn't carry the flag yet; treat as oxygen
         // for those names, plain for the rest. Cheap; gets replaced
         // when the static body registry grows a `hasOxygen` field.
         body !== undefined && (body.id === "Kerbin" || body.id === "Laythe")
@@ -313,7 +314,7 @@ function OrbitViewComponent({
   // Slot props. `badges` carries just the body name for labelling;
   // `overlay` carries the diagram's body-centric projection so an augment can
   // draw in the SVG's coordinate space. `overlay` is null until the elements
-  // resolve — the wrapper only mounts the slot once there's a diagram beneath.
+  // resolve: the wrapper only mounts the slot once there's a diagram beneath.
   const badgesContext: OrbitBadgesContext = { bodyName };
   // Mirrors `OrbitDiagram`'s own `HYPERBOLIC_SCALE` constant so the overlay
   // slot's declared `scale` matches the diagram's ACTUAL bounds on a
@@ -358,7 +359,7 @@ function OrbitViewComponent({
     // diagram lives in a square slot taking the full panel height, which
     // is much more visible than the portrait fallback (where the title
     // row eats most of the vertical space). Header content stacks
-    // vertically in the left chrome — title, body name, status pill.
+    // vertically in the left chrome: title, body name, status pill.
     return (
       <Panel>
         <LandscapeRow>
@@ -393,7 +394,7 @@ function OrbitViewComponent({
       {!hasOrbit ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
-              osculating elements to derive a diagram from — distinct from
+              osculating elements to derive a diagram from, distinct from
               the genuine no-data case (basis undefined, nothing has
               arrived yet). */}
           {basis === "measured"
@@ -500,7 +501,7 @@ const LandscapeChrome = styled.div`
   flex-direction: column;
   gap: 4px;
   justify-content: center;
-  /* Narrow column for header content — the diagram on the right gets
+  /* Narrow column for header content: the diagram on the right gets
      everything left over. */
   min-width: 0;
 `;

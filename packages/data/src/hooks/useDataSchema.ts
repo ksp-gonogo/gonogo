@@ -8,14 +8,14 @@ import type { DataKeyMeta } from "../types";
  * data source.
  *
  * `sourceId === "data"` (the default) is the legacy Telemachus key
- * catalog — there is no `DataSource` registered under that id any more (it
+ * catalog: there is no `DataSource` registered under that id any more (it
  * was deleted in `806e7fe2`, the R6 cutover), so this returns
  * `LEGACY_DATA_CATALOG` (`../schema/legacyDataCatalog.ts`), built straight
  * from the stream's `mapTopic`/carried-channels gate instead. Every other
- * `sourceId` (e.g. `"kos"`) still reads a live `DataSource.schema()` — those
+ * `sourceId` (e.g. `"kos"`) still reads a live `DataSource.schema()`, those
  * sources are real and registered.
  *
- * Stable for the lifetime of a session — today every live source registers
+ * Stable for the lifetime of a session, today every live source registers
  * keys at connect time, and the legacy catalog is static. Phase 6 kOS
  * datastream adds keys dynamically after connect; this memo will need a live
  * schema subscription once that lands (for the `"kos"` branch only).

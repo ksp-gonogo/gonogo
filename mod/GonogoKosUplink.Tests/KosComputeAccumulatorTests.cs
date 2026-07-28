@@ -5,7 +5,7 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Headless tests for the per-CPU <c>[KOSDATA]</c> accumulator — the piece
+    /// Headless tests for the per-CPU <c>[KOSDATA]</c> accumulator, the piece
     /// that turns the postfix's <c>PRINT</c> fragment stream into completed
     /// blocks (spec §4(b)). Covers split-across-fragments assembly, per-CPU
     /// isolation, multi-block fragments, and the runaway-buffer bound.
@@ -21,7 +21,7 @@ namespace GonogoKosUplink.Tests
 
             var block = Assert.Single(blocks);
             // CoreId is no longer known to the accumulator (keyed by screen ref,
-            // not CPU id) — it is stamped by OnPrint on completion, so it stays
+            // not CPU id): it is stamped by OnPrint on completion, so it stays
             // at the -1 sentinel here.
             Assert.Equal(-1, block.CoreId);
             Assert.Equal("t", block.Topic);
@@ -95,7 +95,7 @@ namespace GonogoKosUplink.Tests
         {
             var acc = new KosComputeAccumulator();
 
-            // Never-closing junk far exceeding the cap — must not throw or leak.
+            // Never-closing junk far exceeding the cap: must not throw or leak.
             var junk = new string('x', KosComputeAccumulator.MaxBufferChars + 5000);
             Assert.Empty(acc.Append(9, junk));
 

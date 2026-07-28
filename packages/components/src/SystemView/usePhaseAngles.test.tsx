@@ -19,7 +19,7 @@ import { usePhaseAngles } from "./usePhaseAngles";
 
 const KERBIN_MU = 3.5316e12;
 
-/** A `CelestialBody` fixture — only the orbital-longitude inputs matter here. */
+/** A `CelestialBody` fixture: only the orbital-longitude inputs matter here. */
 function makeBody(
   index: number,
   name: string,
@@ -147,7 +147,7 @@ describe("usePhaseAngles", () => {
   it("skips a body missing orbital elements, keeps the rest", async () => {
     const { fixture, result } = renderPhaseAngles([
       makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
-      makeBody(2, "Root", {}), // no elements — not orbiting anything
+      makeBody(2, "Root", {}), // no elements: not orbiting anything
     ]);
     act(() => {
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
@@ -167,7 +167,7 @@ describe("usePhaseAngles", () => {
     expect(result.current.size).toBe(0);
   });
 
-  it("is empty for a hyperbolic vessel orbit (ecc ≥ 1 — no phase reference)", async () => {
+  it("is empty for a hyperbolic vessel orbit (ecc ≥ 1, no phase reference)", async () => {
     const { fixture, result } = renderPhaseAngles([
       makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
     ]);

@@ -1,9 +1,9 @@
 # Action-group alarm UI
 
 - **Date:** 2026-05-09
-- **Validation:** ⏳ pending — exercise the bell + onFire dispatch in a live KSP session before marking confirmed.
+- **Validation:** ⏳ pending: exercise the bell + onFire dispatch in a live KSP session before marking confirmed.
 - **Commits:** `6c81cd6` (this work). Predecessor `6b0cff1` (host-side dispatch, prior session, also unvalidated).
-- **Plan:** `local_docs/action_group_alarm_ui_plan.md` (local only — `local_docs/` is gitignored)
+- **Plan:** `local_docs/action_group_alarm_ui_plan.md` (local only: `local_docs/` is gitignored)
 
 Captures what actually shipped so future me can find their way back during a
 regression hunt.
@@ -13,13 +13,13 @@ the three user-visible surfaces.
 
 ## What landed
 
-1. **Peer-protocol passthrough** — `alarm-add` and `alarm-update.patch` carry an
+1. **Peer-protocol passthrough**: `alarm-add` and `alarm-update.patch` carry an
    optional `onFire: AlarmFireAction[]`. Stations can therefore create alarms
    with attached side effects.
-2. **Modal editor** — the alarms modal grew a "When fires" section. Operators
+2. **Modal editor**: the alarms modal grew a "When fires" section. Operators
    pick action-group toggles (`f.ag1`, `f.stage`, …) and attach them to a new
    or existing alarm. Inline chip list on each alarm row with × to remove.
-3. **ActionGroup widget bell** — clicking the bell next to the state pill opens
+3. **ActionGroup widget bell**: clicking the bell next to the state pill opens
    the alarms modal pre-populated with `onFire = [{ kind: "action-group",
    action: <this group's toggle> }]` so the operator only fills in the
    trigger.
@@ -28,7 +28,7 @@ the three user-visible surfaces.
 
 - **Empty array clears `onFire`.** `addAlarm` and `updateAlarm` both normalise
   `onFire: []` to `onFire: undefined`. The wire format never carries an empty
-  array on a stored alarm — the storage form is always `undefined` or a
+  array on a stored alarm: the storage form is always `undefined` or a
   populated array. Consumer code (`a.onFire && a.onFire.length > 0`) is the
   canonical check.
 - **`undefined` in a patch leaves the field alone.** Only an array (empty or
@@ -52,51 +52,51 @@ the three user-visible surfaces.
 
 ```
 packages/app/src/alarms/
-  types.ts                       — AlarmFireAction (was already there);
+  types.ts                      : AlarmFireAction (was already there);
                                    migrateAlarm now propagates onFire via
                                    parseOnFire().
-  AlarmHostService.ts            — addAlarm/updateAlarm accept onFire; empty
+  AlarmHostService.ts           : addAlarm/updateAlarm accept onFire; empty
                                    array = clear sentinel.
-  AlarmPeerBridge.ts             — forwards onFire from peer alarm-add into
+  AlarmPeerBridge.ts            : forwards onFire from peer alarm-add into
                                    the host's addAlarm.
-  AlarmClientService.ts          — passthrough.
-  AlarmsModal.tsx                — OnFireEditor + chip list on rows; prefill
+  AlarmClientService.ts         : passthrough.
+  AlarmsModal.tsx               : OnFireEditor + chip list on rows; prefill
                                    prop seeds name + onFire on first mount.
-  AlarmsLauncherBridge.tsx       — NEW. Wraps useModal().open with the
+  AlarmsLauncherBridge.tsx      : NEW. Wraps useModal().open with the
                                    right backend bindings; provides the
                                    AlarmsLauncher context to descendants.
-  AlarmsFab.tsx                  — type updates so onFire flows through the
+  AlarmsFab.tsx                 : type updates so onFire flows through the
                                    FAB.
-  AlarmsModal.test.tsx           — NEW. Three integration tests: add with
+  AlarmsModal.test.tsx          : NEW. Three integration tests: add with
                                    onFire, clear via × on existing row,
                                    prefill round-trip.
-  AlarmHostService.test.ts       — adds peer-roundtrip onFire test, update/
+  AlarmHostService.test.ts      : adds peer-roundtrip onFire test, update/
                                    clear test, two persistence tests.
 
 packages/app/src/peer/
-  protocol.ts                    — alarm-add + alarm-update.patch types
+  protocol.ts                   : alarm-add + alarm-update.patch types
                                    carry optional onFire.
-  PeerClientService.ts           — sendAlarmAdd/sendAlarmUpdate signatures.
+  PeerClientService.ts          : sendAlarmAdd/sendAlarmUpdate signatures.
 
 packages/app/src/screens/
-  MainScreen.tsx                 — useMainAlarmsBindings hook;
+  MainScreen.tsx                : useMainAlarmsBindings hook;
                                    <MainAlarmsLauncherScope> wraps the
                                    dashboard subtree.
-  StationScreen.tsx              — <AlarmsLauncherBridge> wraps the dashboard
+  StationScreen.tsx             : <AlarmsLauncherBridge> wraps the dashboard
                                    subtree, backed by alarmClient.
 
 packages/components/src/
-  shared/AlarmsLauncher.tsx      — NEW. Cross-package contract:
+  shared/AlarmsLauncher.tsx     : NEW. Cross-package contract:
                                    AlarmsLauncherProvider + useAlarmsLauncher
                                    hook. Lives here (not in @gonogo/app) to
                                    avoid a circular import.
-  ActionGroup/index.tsx          — bell button next to the state pill.
+  ActionGroup/index.tsx         : bell button next to the state pill.
                                    Hidden when launcher context is null or
                                    group.toggle is null.
-  index.ts                       — re-exports shared/AlarmsLauncher.
+  index.ts                      : re-exports shared/AlarmsLauncher.
 
 packages/app/src/__tests__/
-  action-group.test.tsx          — three new tests for the bell behaviour.
+  action-group.test.tsx         : three new tests for the bell behaviour.
 ```
 
 ## Why the cross-package context split
@@ -106,7 +106,7 @@ modal lives in `@gonogo/app`. Importing app from components would be circular.
 Solution: define a small launcher contract (`{name?, action} → void`) in
 `@gonogo/components/shared/AlarmsLauncher.tsx`, mount the provider in app
 where it has access to the AlarmHostService / AlarmClientService and the
-ModalProvider. Components only know the contract — they never see the host
+ModalProvider. Components only know the contract: they never see the host
 or the modal directly. A test that needs to bypass the bell can render
 without the provider; the bell hides itself.
 
@@ -130,7 +130,7 @@ without the provider; the bell hides itself.
 
 ## Out of scope (deferred from the plan)
 
-- Other `AlarmFireAction.kind` cases (`kos`, `log`, `peer-message`) — the
+- Other `AlarmFireAction.kind` cases (`kos`, `log`, `peer-message`): the
   union is ready for them; each needs its own design pass.
 - Reordering attached actions (drag, up/down). Add-order is preserved.
 - Action-group dispatch on station-side (executing locally instead of

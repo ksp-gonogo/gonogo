@@ -143,7 +143,7 @@ describe("InputMappingTab press-to-map", () => {
     await user.click(
       screen.getByRole("button", { name: /capture an input for throttle/i }),
     );
-    // Synchronous external pushes into the capture-mode setState — wrap in
+    // Synchronous external pushes into the capture-mode setState, wrap in
     // act(). The first is below half-deflection (no bind), the second binds.
     act(() => transport.inject("x", 0.1));
     expect(svc.isCaptureMode()).toBe(true); // still listening
@@ -194,7 +194,7 @@ describe("InputMappingTab press-to-map", () => {
     );
 
     expect(screen.getByText(/bound to my pad · cross/i)).not.toBeNull();
-    // Decorative glyph, aria-hidden — the text above carries the meaning.
+    // Decorative glyph, aria-hidden: the text above carries the meaning.
     const glyphHost = document.querySelector('[aria-hidden="true"] svg');
     expect(glyphHost).not.toBeNull();
 

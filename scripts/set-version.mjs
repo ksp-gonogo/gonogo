@@ -36,4 +36,4 @@ for (const name of dirs) {
   changed++;
 }
 
-console.log(`done — ${changed} package.json files updated`);
+console.log(`done: ${changed} package.json files updated`);

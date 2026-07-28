@@ -37,7 +37,7 @@ interface SmaScenario {
 const SCENARIOS: Record<string, SmaScenario | null> = {
   "lko-kerbin": { sma: 680_000, ecc: 0.01, bodyName: "Kerbin" },
   "ksync-kerbin": { sma: 2_868_750, ecc: 0.01, bodyName: "Kerbin" },
-  // Hyperbolic escape trajectory — SMA is negative; exercises formatDistance
+  // Hyperbolic escape trajectory: SMA is negative; exercises formatDistance
   // with a negative value and the derived body-name read on an escape orbit.
   "escape-kerbin": { sma: -5_000_000, ecc: 1.5, bodyName: "Kerbin" },
   "mun-orbit": { sma: 215_000, ecc: 0.01, bodyName: "Mun" },

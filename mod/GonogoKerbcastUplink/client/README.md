@@ -4,15 +4,15 @@ The client half of the **GonogoKerbcastUplink**, living beside the C# mod it
 ships with. Consumer of the [kerbcast](https://github.com/jonpepler/kerbcast)
 KSP camera-streaming sidecar.
 
-The npm name is `@ksp-gonogo/gonogo-kerbcast-uplink`, not `@ksp-gonogo/kerbcast` — that
+The npm name is `@ksp-gonogo/gonogo-kerbcast-uplink`, not `@ksp-gonogo/kerbcast`, that
 one is the external kerbcast protocol SDK this package depends on from public
 npm.
 
 On module import it registers:
 
-- a `kerbcast` **DataSource** — the sidecar connection
-- a `camera-feed` **widget** — placeable from the dashboard picker
-- a `kerbcast-docking-camera` **augment** — fills DistanceToTarget's
+- a `kerbcast` **DataSource**: the sidecar connection
+- a `camera-feed` **widget**: placeable from the dashboard picker
+- a `kerbcast-docking-camera` **augment**: fills DistanceToTarget's
   `distance-to-target.camera` slot with the close-range docking-camera
   backdrop, picking the camera off the Uplink's `isDockingCamera` fact.
   Presence-gated on `kerbcast.available`, so an install without kerbcast
@@ -33,7 +33,7 @@ appears in the dashboard widget picker.
 
 Camera **control** (inventory, capabilities, docking-port association, zoom/pan)
 rides the Uplink's Topics like any other Uplink. Camera **video** does not ride
-Topics at all — it stays on kerbcast's own WebRTC path, because a keyframed
+Topics at all: it stays on kerbcast's own WebRTC path, because a keyframed
 telemetry channel is the wrong shape for encoded media. The two planes join on
 `cameraId` === kerbcast's `flightId`.
 
@@ -62,7 +62,7 @@ generated TS bindings published from the sidecar's Rust types).
 
 ## Status
 
-v0.0.1 — minimal cut. Widget connects to the sidecar, renders a
+v0.0.1: minimal cut. Widget connects to the sidecar, renders a
 single camera at a time, no operator controls yet (use the bundled
 test page at `http://<sidecar-host>:8088/` for layer / FoV /
 render-size toggles in the meantime). Per-camera controls in the

@@ -41,7 +41,7 @@ export const CompactValue = styled.span`
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-  /* Numeric readout — never truncate digits. Shrink to fit the row instead
+  /* Numeric readout: never truncate digits. Shrink to fit the row instead
      of overflowing the panel edge at the 3-col minimum size. */
   min-width: 0;
   white-space: nowrap;
@@ -49,7 +49,7 @@ export const CompactValue = styled.span`
 
 /**
  * Row container for the map canvas. (Used to also lay out the anomaly
- * side-panel beside/below the map — that panel moved into the
+ * side-panel beside/below the map, that panel moved into the
  * `AnomalyOverlay` augment, which floats over the canvas via `map-view.overlay`
  * instead of reserving row/column layout space here, so this is now a plain
  * flex row with one child.)
@@ -75,7 +75,7 @@ export const MapOuter = styled.div`
 `;
 
 /**
- * Below-content panel host for the `map-view.sections` slot — one panel per
+ * Below-content panel host for the `map-view.sections` slot, one panel per
  * registered augment, composed additively by priority exactly like
  * `objectives.sections`/`power-systems.sections`. Renders nothing (adds no
  * DOM) when the slot is empty; augments that return `null` add no DOM

@@ -5,10 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One entry in the <c>science.experiments</c> channel payload — a single
+/// One entry in the <c>science.experiments</c> channel payload, a single
 /// science module (or a container holding stored results) on the ACTIVE
 /// vessel. The channel payload is a BARE ARRAY of these (<c>ExperimentEntry[]</c>)
-/// or <c>null</c> — never a wrapper object, and never an empty-vs-absent
+/// or <c>null</c>: never a wrapper object, and never an empty-vs-absent
 /// distinction beyond "the whole array is null when there is no active
 /// vessel / the sub-group could not be built" (see
 /// <c>Sitrep.Host.ScienceViewProvider</c>).
@@ -17,8 +17,8 @@ namespace Sitrep.Contract;
 /// exact serialized shape <c>Sitrep.Host.ScienceViewProvider.BuildExperimentEntry</c>
 /// already emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
-/// itself — the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary — so adding it changes no bytes. Every field is nullable
+/// itself: the wire is written by <c>JsonWriter</c> walking the provider's
+/// dictionary: so adding it changes no bytes. Every field is nullable
 /// because each is read through <c>SnapshotDict.Get*</c>, which yields
 /// <c>null</c> (not a sentinel) whenever the raw value is absent or
 /// non-finite.</para>
@@ -59,18 +59,18 @@ public class ExperimentEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.instruments</c> channel payload — a single
+/// One entry in the <c>science.instruments</c> channel payload, a single
 /// <c>ModuleScienceExperiment</c> on the ACTIVE vessel, captured as an
 /// INVENTORY / status row keyed by <see cref="PartId"/> (the part's KSP
 /// <c>flightID</c>). This is distinct from <see cref="ExperimentEntry"/>:
 /// <c>science.experiments</c> walks the same modules but yields one row per
 /// STORED <c>ScienceData</c> result (a module with no data produces no row),
 /// whereas <c>science.instruments</c> yields one row per module regardless of
-/// whether it currently holds data — the operability picture (deployed /
+/// whether it currently holds data, the operability picture (deployed /
 /// inoperable / rerunnable / resettable / collectable) an operator needs to
 /// decide what to run next. The channel payload is a BARE ARRAY
 /// (<c>InstrumentEntry[]</c>) or <c>null</c>. Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry</c> — see
+/// <c>Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry</c>: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </summary>
@@ -81,7 +81,7 @@ public class ExperimentEntry
 #endif
 public class InstrumentEntry
 {
-    /// <summary>The part's KSP <c>flightID</c> (stringified) — the stable join key for this instrument.</summary>
+    /// <summary>The part's KSP <c>flightID</c> (stringified): the stable join key for this instrument.</summary>
     public string? PartId { get; set; }
 
     public string? PartName { get; set; }
@@ -102,10 +102,10 @@ public class InstrumentEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.lab</c> channel payload — a Mobile Processing
+/// One entry in the <c>science.lab</c> channel payload, a Mobile Processing
 /// Lab on the active vessel. The channel payload is a BARE ARRAY
 /// (<c>LabEntry[]</c>) or <c>null</c>. Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildLabEntry</c> — see
+/// <c>Sitrep.Host.ScienceViewProvider.BuildLabEntry</c>: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </summary>
@@ -136,14 +136,14 @@ public class LabEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.deployed</c> channel payload — a Breaking
+/// One entry in the <c>science.deployed</c> channel payload, a Breaking
 /// Ground deployed-science experiment. The channel payload is a BARE ARRAY
 /// (<c>DeployedEntry[]</c>) or <c>null</c>. Unlike the other two channels,
 /// <c>science.deployed</c> is captured GLOBALLY across every loaded vessel: a
 /// deployed cluster is its own ground vessel, so an entry normally describes a
 /// vessel OTHER than the active one, distinguished by <see cref="VesselName"/>.
-/// Typing-only mirror of <c>Sitrep.Host.ScienceViewProvider.BuildDeployedEntry</c>
-/// — see <see cref="ExperimentEntry"/> for the "no wire change, all fields
+/// Typing-only mirror of <c>Sitrep.Host.ScienceViewProvider.BuildDeployedEntry</c>;
+/// see <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.
 /// </summary>
 [SitrepContract]
@@ -181,21 +181,21 @@ public class DeployedEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.sensors</c> channel payload — a single
+/// One entry in the <c>science.sensors</c> channel payload, a single
 /// environmental-sensor module (<c>ModuleEnviroSensor</c>: thermometer,
 /// barometer, gravioli detector, accelerometer, and any modded sensor
 /// sharing the module) on the ACTIVE vessel. The channel payload is a BARE
 /// ARRAY (<c>SensorEntry[]</c>) or <c>null</c>.
 ///
-/// <para>Deliberately a GENERAL sensor group — one entry per sensor module,
+/// <para>Deliberately a GENERAL sensor group: one entry per sensor module,
 /// with <see cref="Type"/> carrying the raw <c>SensorType</c> enum name
-/// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) as a string — rather than
+/// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) as a string: rather than
 /// four fixed <c>temp/pres/grav/acc</c> Values. Modded sensor types and
 /// multiple instances of the same type both fall out naturally; the consumer
 /// (ScienceBench) groups/labels by <see cref="Type"/>.</para>
 ///
 /// <para>Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildSensorEntry</c> — see
+/// <c>Sitrep.Host.ScienceViewProvider.BuildSensorEntry</c>: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
@@ -211,7 +211,7 @@ public class SensorEntry
 
     public string? PartName { get; set; }
 
-    /// <summary>The raw <c>SensorType</c> enum name — <c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/… — passed through as a string so modded types survive.</summary>
+    /// <summary>The raw <c>SensorType</c> enum name (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) passed through as a string so modded types survive.</summary>
     public string? Type { get; set; }
 
     /// <summary>The sensor's current human-readable readout string (KSP's <c>readoutInfo</c>, e.g. "293.1K" or "Off").</summary>
@@ -221,31 +221,31 @@ public class SensorEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.experimentBreakdown</c> channel payload — a
+/// One entry in the <c>science.experimentBreakdown</c> channel payload, a
 /// per-SUBJECT rollup of the same stored <see cref="ScienceData"/> rows
 /// <c>science.experiments</c> lists one-row-per-blob, the new home for the old
 /// GonogoTelemetry-only <c>sci.experimentBreakdown</c> enrichment (which had
 /// no equivalent on the base wire until now). <see cref="Biome"/>/
 /// <see cref="Situation"/> are parsed straight off <c>ScienceData.subjectID</c>
 /// via KSP's own <c>ScienceUtil.GetExperimentFieldsFromScienceID</c> (confirmed
-/// via decompile — public static, splits the subject id it was built from
+/// via decompile: public static, splits the subject id it was built from
 /// rather than re-deriving from the vessel's CURRENT position, so a subject
 /// collected earlier in the flight keeps its own original biome/situation).
 /// <see cref="RemainingPotential"/> is the ABSOLUTE science still recoverable
 /// from the subject (<c>ScienceSubject.scienceCap - ScienceSubject.science</c>,
 /// via <c>ResearchAndDevelopment.GetSubjectByID</c>), matching the old
-/// GonogoTelemetry semantics — <c>0</c> in Sandbox mode (no R&D instance, no
+/// GonogoTelemetry semantics: <c>0</c> in Sandbox mode (no R&D instance, no
 /// subject caps to speak of). The channel payload is a BARE ARRAY
-/// (<c>ExperimentBreakdownEntry[]</c>) or <c>null</c> — never a wrapper
+/// (<c>ExperimentBreakdownEntry[]</c>) or <c>null</c>: never a wrapper
 /// object, and never an empty-vs-absent distinction beyond "the whole array
 /// is null when there's no active vessel / the vessel carries no stored
 /// science data" (mirrors <see cref="ExperimentEntry"/>'s convention). One row
-/// per DISTINCT subject id — multiple stored blobs for the same subject
+/// per DISTINCT subject id: multiple stored blobs for the same subject
 /// (e.g. two crew reports from the same biome) collapse into one entry with
 /// <see cref="DataMits"/> summed across them.
 ///
 /// <para><b>Typing-only mirror</b> of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry</c> — see
+/// <c>Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry</c>: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>

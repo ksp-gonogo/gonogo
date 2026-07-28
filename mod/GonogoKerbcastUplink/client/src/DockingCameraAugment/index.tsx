@@ -5,13 +5,13 @@
 // augment-slot doc block was written for: the slot was previously only
 // EXPOSED, with a built-in `HudCamera` holding the spot "until the kerbcast
 // filler and CameraFeed-out-migration land". That built-in has now been
-// removed — see this module's sibling note in `DistanceToTarget/index.tsx`.
+// removed: see this module's sibling note in `DistanceToTarget/index.tsx`.
 //
 // Why an augment and not a standalone CameraFeed instance: the backdrop has to
 // draw in the HUD's own reticle space and share its lifecycle. The slot passes
 // `DistanceToTargetHudContext` for exactly that, and `requires: "kerbcast"`
 // means an install without the kerbcast mod composes the HUD without any video
-// layer at all — rather than the core client shipping a camera path it can
+// layer at all: rather than the core client shipping a camera path it can
 // never light up.
 //
 // Presence-gated on `kerbcast.available`; camera CHOICE comes off the Uplink's
@@ -49,7 +49,7 @@ export function DockingCameraAugment({
   // augment replaced read its list via `useKerbcastCameras`, which calls
   // `ensureConnected()` as a side effect, so the connect came for free. Reading
   // the list off the Uplink topic instead means nothing else would open the
-  // WebRTC session — `useKerbcastStream`'s `subscribeCamera` only binds a slot
+  // WebRTC session: `useKerbcastStream`'s `subscribeCamera` only binds a slot
   // when the source is ALREADY connected, and never initiates. Without this a
   // brokered station stalls exactly the way `useKerbcastCameras`' own comment
   // describes: a camera is named, but no session is ever opened for it.
@@ -60,14 +60,14 @@ export function DockingCameraAugment({
   }, [flightId, ds]);
 
   // The DELAYED backdrop needs the mission-time capture clock (`useKerbcastClock`,
-  // read by `useDelayedKerbcastStream`), which lives on a `KerbcastProvider` —
+  // read by `useDelayedKerbcastStream`), which lives on a `KerbcastProvider`,
   // exactly the provider `CameraFeed` mounts for its own feed. Mounting our own,
   // fed the SAME `ds.getClient()` client, is what lets this backdrop and a
   // `CameraFeed` on the same camera share ONE delayed pipeline: the shared cache
   // in `useDelayedPlayout` keys on the raw `MediaStream`, and both providers
   // resolve the identical stream object off the one data source. Kept in the
   // inner `DockingCameraVideo` so the OUTER component (which subscribes to the
-  // control channel above) never depends on the provider — a no-kerbcast HUD
+  // control channel above) never depends on the provider, a no-kerbcast HUD
   // still composes.
   const subscriptions: KerbcastSubscriptions | undefined = useMemo(
     () =>
@@ -91,7 +91,7 @@ export function DockingCameraAugment({
 function DockingCameraVideo({ flightId }: { flightId: number }) {
   // The DELAYED stream, not the raw live one. The HUD's reticle is UT-gated by
   // the ViewClock; the backdrop must be gated on the SAME clock or it marks
-  // where the target WAS over an image of where it IS — worst precisely when
+  // where the target WAS over an image of where it IS, worst precisely when
   // closing on a docking port (decision 5: never the live stream). `null` (no
   // delayed output available) draws no backdrop rather than falling back to
   // live.
@@ -103,7 +103,7 @@ function DockingCameraVideo({ flightId }: { flightId: number }) {
     if (!v) return;
     v.srcObject = stream;
     if (stream) {
-      // play() can reject when srcObject is reassigned mid-flight — benign.
+      // play() can reject when srcObject is reassigned mid-flight, benign.
       void v.play().catch(() => {});
     }
   }, [stream]);

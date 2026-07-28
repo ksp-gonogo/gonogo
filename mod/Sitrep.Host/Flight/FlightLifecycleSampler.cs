@@ -5,13 +5,13 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Flight
 {
     /// <summary>
-    /// KSP-free flight-lifecycle engine — the reusable, headlessly-testable
+    /// KSP-free flight-lifecycle engine: the reusable, headlessly-testable
     /// half of <c>Gonogo.KSP.FlightUplink</c> (mirrors the
     /// <c>VesselViewProvider</c>/<c>VesselEpochSampler</c> split
     /// <c>Gonogo.KSP.VesselUplink</c> already follows). Owns everything the
     /// flight-lifecycle spec (<c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>)
     /// calls for except the two GameEvents a tick-driven sampler genuinely
-    /// cannot classify on its own (crash vs. destroyed vs. recovered) — those
+    /// cannot classify on its own (crash vs. destroyed vs. recovered), those
     /// arrive via <see cref="SignalEnd"/> from the KSP-facing uplink and are
     /// drained here, on the Courier thread, at the top of every <see cref="Sample"/>.
     ///
@@ -19,19 +19,19 @@ namespace Sitrep.Host.Flight
     /// deviation from the spec's suggested <c>onGameStateLoad</c>/
     /// <c>onLevelWasLoaded</c> hook):</b> a revert (or an F9 quickload) is
     /// ALREADY, unambiguously signalled by <c>KspSnapshot.Ut</c> jumping
-    /// backward — the exact same signal <c>ChannelEngine.ProcessTick</c>
+    /// backward: the exact same signal <c>ChannelEngine.ProcessTick</c>
     /// itself uses to trigger <c>Courier.ResetTimeline</c> +
     /// <c>_revealBuffer.Clear()</c>, and the exact same signal
     /// <c>VesselEpochSampler</c> already uses for its own rewind-aware
     /// resync. Driving revert detection off a raw GameEvent instead would
     /// race the engine's OWN rewind branch: <c>ChannelEngine.ProcessTick</c>
     /// runs its rewind check, THEN every registered <see cref="ISnapshotSampler"/>,
-    /// in that fixed order, every tick — so a publish made from INSIDE
+    /// in that fixed order, every tick: so a publish made from INSIDE
     /// <see cref="Sample"/> is GUARANTEED to land strictly after this same
     /// tick's <c>_revealBuffer.Clear()</c> (if this tick triggered one),
     /// never at risk of being wiped by the very clear it needs to survive. A
     /// publish fired eagerly off a main-thread GameEvent handler instead has
-    /// no such guarantee — it could race ahead of the engine's own tick and
+    /// no such guarantee: it could race ahead of the engine's own tick and
     /// get erased by the SAME unconditional clear that (correctly) erases a
     /// genuinely un-revealed counterfactual. See
     /// <c>RevertBeforeRevealErasesAReliableOrderedDelayedEventForever</c>
@@ -42,17 +42,17 @@ namespace Sitrep.Host.Flight
     ///
     /// <para><b>started vs. vesselChanged:</b> <see cref="FlightStarted"/>
     /// fires for a vessel id this SESSION has never announced as started
-    /// before (a genuine launch, or — deliberately, see <see cref="Sample"/> —
+    /// before (a genuine launch, or deliberately, see <see cref="Sample"/>,
     /// EVERY vessel active immediately after a rewind, even a same-id
     /// quickload-resume, since a rewind is treated as a hard timeline reset
     /// for lifecycle purposes). <see cref="FlightVesselChanged"/> fires on
     /// every OTHER active-vessel-id transition (docking/undocking/EVA/
-    /// tracking-station reselect) — switching focus away from a still-flying
+    /// tracking-station reselect): switching focus away from a still-flying
     /// vessel does not end its flight, and switching back to a known one is
     /// not a new flight.</para>
     ///
     /// <para><b>Flight id:</b> the mod-minted "stable id" the spec calls for
-    /// is simply <c>Vessel.id</c> (as a string) — the exact currency
+    /// is simply <c>Vessel.id</c> (as a string), the exact currency
     /// <c>VesselIdentity.VesselId</c>/<c>CrashReport.VesselId</c> already use.
     /// No separate id space; <c>FlightId == VesselId</c> always.</para>
     /// </summary>
@@ -76,7 +76,7 @@ namespace Sitrep.Host.Flight
         private string _activeVesselName = "";
 
         // The most recently ended flight (crash/recovery via ApplyEnd, OR a
-        // PRIOR revert), tracked independent of _activeVesselId's null-out —
+        // PRIOR revert), tracked independent of _activeVesselId's null-out,
         // see Sample's rewind branch doc comment for why: an end signalled
         // by ApplyEnd fires the instant KSP reports it live, with NO idea
         // whether the reveal gate has actually let it reach the operator
@@ -115,7 +115,7 @@ namespace Sitrep.Host.Flight
 
         /// <summary>
         /// Called from a MAIN-THREAD GameEvent handler (crash/recovery
-        /// detection — see <c>Gonogo.KSP.FlightUplink</c>) whenever a flight
+        /// detection: see <c>Gonogo.KSP.FlightUplink</c>) whenever a flight
         /// ends for a reason this sampler's own per-tick vessel-id comparison
         /// cannot distinguish. Thread-safe (enqueue-only); the actual state
         /// mutation + publish happens on the Courier thread, drained at the
@@ -131,7 +131,7 @@ namespace Sitrep.Host.Flight
         /// <see cref="_pendingEnds"/> first means a crash/recovery signalled
         /// just before a rewind is applied BEFORE the rewind branch below
         /// re-derives <see cref="_activeVesselId"/> from this tick's
-        /// snapshot — so an already-ended flight is never double-ended by
+        /// snapshot: so an already-ended flight is never double-ended by
         /// the revert branch too.
         /// </summary>
         public void Sample(KspSnapshot snapshot)

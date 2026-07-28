@@ -2,13 +2,13 @@
  * Presentational "Connect to Mission Control" screen used by the station
  * pre-connection state. Extracted from `@ksp-gonogo/app`'s StationScreen so the
  * exact same markup the operator sees can be driven through the component
- * render-harness at multiple mobile breakpoints — single-source, no
+ * render-harness at multiple mobile breakpoints, single-source, no
  * probe-only copy that can drift from production.
  *
  * Pure presentational: depends only on `@ksp-gonogo/ui` primitives plus injected
  * slots. The station name editor (which needs app-scoped React context) and
  * the download-logs action arrive as props/slots so this view carries no
- * `@ksp-gonogo/app` dependency — that would be a reverse edge in the workspace
+ * `@ksp-gonogo/app` dependency, that would be a reverse edge in the workspace
  * graph. State (host input value, connection status) is owned by the caller;
  * the harness exercises the idle / error / reconnecting states purely by
  * varying the props, so no PeerClientService ever has to be mocked.
@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 
 /** Connection lifecycle states surfaced on the connect screen. Mirrors the
- *  `ConnStatus` union the PeerClientService emits — duplicated here as a
+ *  `ConnStatus` union the PeerClientService emits: duplicated here as a
  *  plain string union so the view stays free of any app/peer import. */
 export type StationConnStatus =
   | "idle"
@@ -83,14 +83,14 @@ export function StationConnectView({
         {hostNotFound && everConnected && (
           <ReconnectMsg role="status" aria-live="polite">
             Host reconnecting... The main screen is restarting and will be back
-            shortly — this station reconnects automatically.
+            shortly: this station reconnects automatically.
           </ReconnectMsg>
         )}
         {hostNotFound && !everConnected && (
           <ErrorMsg>
             Couldn't find code &ldquo;{hostInput.trim().toUpperCase()}&rdquo;.
-            Check the main screen — the code may have changed, or the
-            main-screen tab may be closed/asleep.
+            Check the main screen: the code may have changed, or the main-screen
+            tab may be closed/asleep.
           </ErrorMsg>
         )}
         {!hostNotFound && connStatus === "disconnected" && (
@@ -119,7 +119,7 @@ export function describeConnStatus(
 ): string {
   if (hostNotFound) {
     return everConnected
-      ? "Host reconnecting — waiting for the main screen to come back..."
+      ? "Host reconnecting: waiting for the main screen to come back..."
       : "Broker doesn't know that code. Retrying in case it comes back...";
   }
   switch (status) {
@@ -130,7 +130,7 @@ export function describeConnStatus(
     case "connected":
       return "Connected.";
     case "reconnecting":
-      return "Reconnecting — the host or broker may be briefly unavailable.";
+      return "Reconnecting: the host or broker may be briefly unavailable.";
     case "disconnected":
       return "No connection. Use Download logs if this persists.";
   }
@@ -167,7 +167,7 @@ const ConnectLayout = styled.div`
   background: var(--color-surface-app);
 
   /* On a small phone the box should hug the viewport edges rather than
-     sit in a centred card with wide outer gutters — combined with the
+     sit in a centred card with wide outer gutters, combined with the
      ConnectBox padding reduction below this gives the form room to breathe
      on a 375px screen. */
   @media (max-width: 480px) {
@@ -245,7 +245,7 @@ const HostInput = styled.input`
 
 const ConnectButton = styled.button`
   /* Give the button a visible fill + border so its affordance matches the
-     input's visual weight — the old transparent-ish treatment read as a
+     input's visual weight: the old transparent-ish treatment read as a
      secondary link next to the prominent code field. */
   background: var(--color-status-info-bg);
   border: 1px solid var(--color-status-info-fg);
@@ -274,7 +274,7 @@ const ConnectButton = styled.button`
 
   /* Touch devices: comfortable tap target height. The button is already
      full-width on ≤480px phones via the stacked Row (flex column +
-     align-items: stretch) — we deliberately do NOT force width:100% here
+     align-items: stretch): we deliberately do NOT force width:100% here
      because on a wider coarse-pointer device (landscape phone, tablet) the
      Row is still horizontal, and a full-width flex child would crush the
      host input beside it. Height-only keeps the 44px target everywhere

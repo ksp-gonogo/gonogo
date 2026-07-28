@@ -15,26 +15,26 @@ import styled from "styled-components";
 
 /**
  * Deployed Base Monitor (Breaking Ground). Lists every deployed surface
- * science base on every body — loaded or not — with its power balance and
+ * science base on every body (loaded or not), with its power balance and
  * per-experiment science progress toward cap. Read-only: deployed science
  * auto-transmits and background bases can't be actioned remotely.
  *
  * Reads `deployed.bases` + `deployed.available`; degrades to a muted empty
  * state without Breaking Ground or when no base is deployed.
  *
- * `deployed.bases` is migrated — `map-topic.ts` routes it onto the new
+ * `deployed.bases` is migrated, `map-topic.ts` routes it onto the new
  * `science.deployed` stream topic (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
  * `BuildDeployed`, itself fed by `Gonogo.KSP.KspHost.BuildDeployedScience`'s
- * GLOBAL `FlightGlobals.Vessels` walk — a Breaking Ground cluster is its own
+ * GLOBAL `FlightGlobals.Vessels` walk: a Breaking Ground cluster is its own
  * vessel, never the active one). `parseBases` below now accepts BOTH wire
  * shapes; see its own doc comment for the field-by-field mapping.
- * `deployed.available` is migrated too — the earlier "no new-wire
+ * `deployed.available` is migrated too, the earlier "no new-wire
  * equivalent" read was stale: `game.dlc.breakingGround` is its
  * own independent capability boolean, not derived from `science.deployed`'s
  * emptiness (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`).
  *
  * Real-recording validation is deferred to the user's next Space Center
- * capture with a deployed Breaking Ground cluster in physics range — this
+ * capture with a deployed Breaking Ground cluster in physics range, this
  * migration validates against a hand-authored real-shape SYNTHETIC fixture
  * (`.superpowers/sdd/m3-deployedscience-report.md`).
  */
@@ -92,7 +92,7 @@ function parseExperiments(raw: unknown): DeployedExperiment[] {
   return out;
 }
 
-/** One flat entry off the new `science.deployed` wire — see `parseBases`'s doc comment. */
+/** One flat entry off the new `science.deployed` wire; see `parseBases`'s doc comment. */
 interface FlatDeployedEntry {
   vesselName: string;
   partName: string | null;
@@ -126,7 +126,7 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
 }
 
 /**
- * Coarse `powerState` enum ("Powered" | "NoPower" — decompile-confirmed —
+ * Coarse `powerState` enum ("Powered" | "NoPower", decompile-confirmed,
  * or any other non-empty string a future KSP version might add, e.g. a
  * hypothetical "PartiallyPowered") -> the widget's existing
  * `powered`/`partialPower` boolean pair. `ModuleGroundSciencePart.PowerState`
@@ -148,7 +148,7 @@ function powerFromState(powerState: string | null): {
 /**
  * Groups the new wire's FLAT per-experiment list (see `parseBases`'s doc
  * comment) into the widget's existing `DeployedBase[]` display shape, keyed
- * by `vesselName` — a Breaking Ground cluster is its own vessel
+ * by `vesselName`: a Breaking Ground cluster is its own vessel
  * (`Gonogo.KSP.KspHost.BuildDeployedScience`'s doc comment), so grouping by
  * vessel reproduces the legacy "one card per base" layout. Fields with no
  * new-wire equivalent degrade explicitly:
@@ -157,7 +157,7 @@ function powerFromState(powerState: string | null): {
  * - `controllerEnabled` -> derived from `connectionState === "Connected"`
  *   (closest available proxy; unused in the current render either way).
  * - `id`/`partId` -> synthesized indices (stable within one payload, and
- *   never rendered as text — only used as React list keys).
+ *   never rendered as text: only used as React list keys).
  */
 function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
   const order: string[] = [];
@@ -213,13 +213,13 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
  * so the widget can tell "no DLC support" from "no bases deployed". Two wire
  * shapes land here:
  *
- * - **Legacy GonogoTelemetry shape**: grouped per-base objects — a numeric
+ * - **Legacy GonogoTelemetry shape**: grouped per-base objects, a numeric
  *   `id`, an EC `powerAvailable`/`powerRequired` balance, and a nested
  *   `experiments` list already keyed by numeric `partId`.
  * - **New SDK `science.deployed`** (routed onto this key by
  *   `map-topic.ts`): a FLAT array of individual deployed
- *   experiments — one entry per `ModuleGroundExperiment`, no base grouping
- *   — `{ vesselName, partName, body, situation, biome, experimentId,
+ *   experiments: one entry per `ModuleGroundExperiment`, no base grouping,
+ *   `{ vesselName, partName, body, situation, biome, experimentId,
  *   scienceCompletedPercentage, scienceTransmittedPercentage, scienceValue,
  *   scienceLimit, powerState, connectionState, deployedOnGround }`
  *   (`mod/Sitrep.Host/ScienceViewProvider.cs`'s `BuildDeployedEntry`).
@@ -487,12 +487,12 @@ const BarFill = styled.div`
 /**
  * Props passed to every `deployed-science.sections` augment. The slot renders
  * once PER experiment card, so its props MUST carry that card's experiment
- * datum — a Kerbalism-style Uplink appends a background-transmission progress
+ * datum: a Kerbalism-style Uplink appends a background-transmission progress
  * bar and needs THIS experiment's identity/progress to target the right one.
  * `body` is the parent base's body, for context.
  */
 export interface DeployedExperimentContext {
-  /** The deployed experiment this card renders — the augment's datum. */
+  /** The deployed experiment this card renders, the augment's datum. */
   experiment: DeployedExperiment;
   /** The body the parent base sits on, for context. */
   body: string;
@@ -516,7 +516,7 @@ registerComponent<DeployedScienceConfig>({
   id: "deployed-science",
   name: "Deployed Science",
   description:
-    "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body — reported even while you fly something else. Read-only.",
+    "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 4, h: 4 },

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "unavailable",
-    "notes": "Breaking Ground not installed — empty state."
+    "notes": "Breaking Ground not installed: empty state."
   },
   "deployed.available": false,
   "deployed.bases": []

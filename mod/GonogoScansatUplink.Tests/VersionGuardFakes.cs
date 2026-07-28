@@ -31,7 +31,7 @@ namespace GonogoScansatUplink.Tests.Fakes.Good
 // Mirrors the REAL SCANsat 21.1 public surface (verified by decompiling the
 // shipped SCANsat.dll): SCANUtil.isCovered and SCANcontroller.getData each have
 // TWO overloads. The pre-fix guard called Type.GetMethod(name) on these, which
-// throws AmbiguousMatchException on multiple overloads — the exact drift that
+// throws AmbiguousMatchException on multiple overloads: the exact drift that
 // flipped the uplink Unavailable against 21.1. This fake reproduces the overload
 // shape so the guard is proven overload-safe against the real API.
 namespace GonogoScansatUplink.Tests.Fakes.Overloaded

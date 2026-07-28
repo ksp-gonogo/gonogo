@@ -4,17 +4,17 @@ namespace Sitrep.Core.Serialization
 {
     /// <summary>
     /// THE single definition of the NaN/Infinity wire-format sentinel policy
-    /// used by every envelope serializer in this project — see
+    /// used by every envelope serializer in this project; see
     /// <c>mod/golden-fixtures/gen/serialization.gen.ts</c> for the matching
     /// TS-side policy applied when the golden fixture is generated.
     ///
     /// A browser's <c>JSON.parse</c> rejects bare <c>NaN</c> / <c>Infinity</c>
     /// tokens (they aren't valid JSON), and KSP's own orbit math is a real
     /// source of these values on the wire (eccentric-anomaly / landing
-    /// telemetry can genuinely be NaN — see the fork's known Principia/NaN
+    /// telemetry can genuinely be NaN; see the fork's known Principia/NaN
     /// quirks). Rather than dropping the sample or crashing the writer, a
     /// non-finite <c>double</c> is encoded as one of three fixed JSON
-    /// STRING tokens — <c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c> —
+    /// STRING tokens (<c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c>)
     /// matching JavaScript's own <c>String(NaN)</c> / <c>String(Infinity)</c>
     /// / <c>String(-Infinity)</c>, so the sentinel reads naturally in logs
     /// (Axiom, browser devtools) without extra translation.
@@ -23,7 +23,7 @@ namespace Sitrep.Core.Serialization
     /// <c>Meta.ValidAt</c>/<c>DeliveredAt</c>/<c>Confidence</c>,
     /// <c>CommandRequest.SentAt</c>) and the free-form generic
     /// <c>Payload</c>/<c>Args</c>/<c>Result</c> value trees go through the
-    /// exact same <see cref="TryEncode"/> / <see cref="TryDecode"/> pair —
+    /// exact same <see cref="TryEncode"/> / <see cref="TryDecode"/> pair,
     /// see <see cref="JsonWriter.AppendNumber"/> (write side, the ONLY place
     /// a <c>double</c> is ever appended) and <see cref="JsonReader"/>'s
     /// string-value parsing (read side, the ONLY place a JSON string token

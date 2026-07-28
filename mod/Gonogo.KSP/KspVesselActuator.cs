@@ -8,31 +8,31 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The real <see cref="IVesselActuator"/> — M1 Task 3's KSP-actuation
+    /// The real <see cref="IVesselActuator"/>: M1 Task 3's KSP-actuation
     /// seam, wired to <c>Vessel.ActionGroups</c>/<c>VesselAutopilot</c>/
     /// <c>FlightInputHandler</c>/<c>StageManager</c>/
     /// <c>Vessel.patchedConicSolver</c>/<c>FlightGlobals</c>/<c>TimeWarp</c>/
-    /// <c>FlightDriver</c> — confirmed against this KSP version's actual API
+    /// <c>FlightDriver</c>: confirmed against this KSP version's actual API
     /// shapes via decompile (see each method's own comment for the specific
-    /// call). Every method operates on <c>FlightGlobals.ActiveVessel</c> —
+    /// call). Every method operates on <c>FlightGlobals.ActiveVessel</c>:
     /// there is no per-call vessel selector, matching every M1 read channel's
     /// "the vessel" scoping.
     ///
     /// <para><b>This is now the SECOND class in the mod that touches KSP/
-    /// Unity APIs directly</b> — see <see cref="KspHost"/>'s doc comment,
+    /// Unity APIs directly</b>: see <see cref="KspHost"/>'s doc comment,
     /// written before this class existed, for the READ-side half of that
     /// invariant ("the only class that touches KSP" was true for sampling;
     /// this is its actuation counterpart, deliberately separated by
     /// direction of data flow rather than folded into <see cref="KspHost"/>
     /// itself).</para>
     ///
-    /// <para><b>Main-thread marshaling (F2 — resolved):</b> every method here
+    /// <para><b>Main-thread marshaling (F2: resolved):</b> every method here
     /// now runs on the Unity main thread. <see cref="ChannelEngine"/> is
     /// constructed with <c>executeCommandsOnMainThread: true</c> (see
     /// <c>GonogoAddon.Awake</c>), so it marshals each command handler onto its
     /// main-thread queue and blocks the Courier thread until
     /// <c>GonogoAddon.FixedUpdate</c> drains it via
-    /// <c>ChannelEngine.RunPendingCommands</c> — exactly the "main-thread job
+    /// <c>ChannelEngine.RunPendingCommands</c>: exactly the "main-thread job
     /// queue drained every FixedUpdate, Courier thread blocked until the
     /// action completes" fix the RETIRED <c>GonogoTelemetry</c> staging plugin
     /// used (<c>GonogoTelemetryAddon.Defer</c>). This closes the previously-
@@ -43,7 +43,7 @@ namespace Gonogo.KSP
     {
         // M3 R3: this is now the SAME ReferenceIdRegistry<ManeuverNode>
         // instance KspHost's read-side BuildManeuverNodes assigns ids from
-        // (GonogoAddon.Awake constructs one and hands it to both) — see
+        // (GonogoAddon.Awake constructs one and hands it to both); see
         // that class's doc comment. Before this change, this actuator kept
         // its OWN throwaway Dictionary<string, ManeuverNode>, so
         // update/remove only ever worked for a node created THROUGH
@@ -56,7 +56,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Resolves the elected <see cref="IActionGroupsBackend"/> for
-        /// <see cref="SetActionGroup"/> — the WRITE-side counterpart to the
+        /// <see cref="SetActionGroup"/>: the WRITE-side counterpart to the
         /// resolver <see cref="KspHost"/> holds for the read side, and
         /// deliberately the SAME elected instance, so a group's index means the
         /// same thing whether it arrived in a sample or is being commanded.
@@ -67,7 +67,7 @@ namespace Gonogo.KSP
         /// </summary>
         private Func<IActionGroupsBackend?>? _actionGroupsBackend;
 
-        /// <summary>Installs the elected-backend resolver — called by <see cref="GonogoAddon"/> once the capability Kernel has resolved.</summary>
+        /// <summary>Installs the elected-backend resolver, called by <see cref="GonogoAddon"/> once the capability Kernel has resolved.</summary>
         public void SetActionGroupsBackendSource(Func<IActionGroupsBackend?> resolver)
         {
             _actionGroupsBackend = resolver;
@@ -98,15 +98,15 @@ namespace Gonogo.KSP
         private readonly FlightInputCallback _flyByWireCallback;
 
         /// <summary>
-        /// T-POI-4's <see cref="TargetKind.Position"/> branch — the ONE
+        /// T-POI-4's <see cref="TargetKind.Position"/> branch: the ONE
         /// <c>PositionTarget</c> this actuator ever constructs. The stock
-        /// type (global namespace, NOT <c>FinePrint.PositionTarget</c> — the
+        /// type (global namespace, NOT <c>FinePrint.PositionTarget</c>: the
         /// plan's naming guess was wrong; confirmed via decompile against
         /// Assembly-CSharp.dll) allocates its own <c>GameObject</c> in its
         /// constructor and destroys it in a finalizer, so a fresh instance
         /// per click would leak an orphaned GameObject every time the player
         /// re-picks a surface fix. Lazily constructed once, then reused via
-        /// <c>Update(body, lat, lon)</c> on every subsequent Position target —
+        /// <c>Update(body, lat, lon)</c> on every subsequent Position target,
         /// never reconstructed.
         /// </summary>
         private PositionTarget? _poiTarget;
@@ -205,7 +205,7 @@ namespace Gonogo.KSP
         /// flag; the axes resume from their last-set values (or 0 on first arm).
         /// Disarming clears the flag, detaches the callback, and neutralizes the
         /// stored axes AND trims so control is fully handed back to the player/SAS
-        /// with no residual override — a later re-arm starts from a clean stick.
+        /// with no residual override: a later re-arm starts from a clean stick.
         /// </summary>
         public CommandResult SetFlyByWire(bool enabled)
         {
@@ -232,7 +232,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Partially updates the held override — only the non-null fields of
+        /// Partially updates the held override: only the non-null fields of
         /// <paramref name="axes"/> overwrite their stored value (single-axis
         /// commands never clobber the others). Values arrive already clamped to
         /// −1..1 by <see cref="VesselCommandProvider.HandleSetControlAxes"/>. If
@@ -358,8 +358,8 @@ namespace Gonogo.KSP
         /// <summary>
         /// Delegates to the ELECTED action-groups backend rather than the magic
         /// <c>1 => Custom01 ... 10 => Custom10</c> switch this used to be. The
-        /// backend owns both the mapping and the RANGE — stock stops at 10, AGX
-        /// goes to 250 — so an index it doesn't know comes back <c>false</c>
+        /// backend owns both the mapping and the RANGE, stock stops at 10, AGX
+        /// goes to 250: so an index it doesn't know comes back <c>false</c>
         /// and becomes <c>CommandErrorCode.Range</c> here.
         /// <see cref="VesselCommandProvider.HandleSetActionGroup"/> has already
         /// rejected the non-positive case; this is the live bound it can't see.
@@ -367,7 +367,7 @@ namespace Gonogo.KSP
         /// <para>Runs on the main thread: the engine is constructed with
         /// <c>executeCommandsOnMainThread: true</c> and
         /// <see cref="GonogoAddon"/> drains the command queue from
-        /// <c>FixedUpdate</c>, so the backend's live-KSP read is safe here —
+        /// <c>FixedUpdate</c>, so the backend's live-KSP read is safe here,
         /// see <see cref="IActionGroupsBackend"/>'s threading note.</para>
         /// </summary>
         public CommandResult SetActionGroup(int group, bool state)
@@ -379,7 +379,7 @@ namespace Gonogo.KSP
                 // wrong (a vessel may well be there) and Range would lie about
                 // the group; ModeUnavailable is the honest "this isn't
                 // currently available". Only reachable if the capability never
-                // resolved — a correctly bootstrapped engine always has the
+                // resolved: a correctly bootstrapped engine always has the
                 // stock backend.
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
             }
@@ -442,7 +442,7 @@ namespace Gonogo.KSP
         /// Resolves an opaque <paramref name="nodeId"/> back to a LIVE
         /// <c>ManeuverNode</c> by scanning the active vessel's CURRENT
         /// <c>solver.maneuverNodes</c> and matching against
-        /// <see cref="_maneuverNodeIdRegistry"/> — never a cached reference
+        /// <see cref="_maneuverNodeIdRegistry"/>: never a cached reference
         /// from whenever the id was first assigned, since a stale node
         /// reference could otherwise outlive its own removal/a vessel
         /// switch. Fails (returns false) if there's no active vessel/solver,
@@ -467,15 +467,15 @@ namespace Gonogo.KSP
         /// the client never needs (or supplies) a live array index itself.
         ///
         /// <para><paramref name="lat"/>/<paramref name="lon"/> (T-POI-4) are
-        /// consumed ONLY by <see cref="TargetKind.Position"/> — a client-
+        /// consumed ONLY by <see cref="TargetKind.Position"/>: a client-
         /// picked surface fix on <paramref name="bodyIndex"/>'s body (e.g. a
         /// <c>spaceCenter.pois</c> entry's own coordinate), wired through
-        /// stock's own <c>PositionTarget</c> — the exact mechanism the stock
+        /// stock's own <c>PositionTarget</c>: the exact mechanism the stock
         /// map-view context menu itself uses to target a waypoint or anomaly
         /// (confirmed via decompile: <c>PositionTarget</c> is one of only
         /// four <c>ITargetable</c> implementers in the whole assembly,
         /// alongside <c>Vessel</c>/<c>CelestialBody</c>/
-        /// <c>ModuleDockingNode</c>) — nothing novel is being asked of the
+        /// <c>ModuleDockingNode</c>): nothing novel is being asked of the
         /// KSP API here. See <see cref="_poiTarget"/>'s own doc comment for
         /// why the instance is cached rather than reconstructed per call.</para>
         /// </summary>

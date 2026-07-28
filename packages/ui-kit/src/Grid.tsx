@@ -20,7 +20,7 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * CSS grid wrapper for fixed-column rows and auto-fill card layouts — the two
+ * CSS grid wrapper for fixed-column rows and auto-fill card layouts, the two
  * grid shapes widgets hand-roll (a labelled data row, a responsive card
  * gallery).
  */

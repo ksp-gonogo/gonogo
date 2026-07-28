@@ -18,11 +18,11 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `ship-map.overlay` — an OVERLAY slot, rendered in a
+ * Props for `ship-map.overlay`: an OVERLAY slot, rendered in a
  * layer absolutely positioned over the part-diagram canvas. Carries the
- * diagram's base-frame projection so an augment — e.g. a future Kerbalism
+ * diagram's base-frame projection so an augment: e.g. a future Kerbalism
  * `Reliability` Uplink badging a malfunctioning/critical part directly on the
- * diagram — can place marks in the diagram's own coordinate space.
+ * diagram: can place marks in the diagram's own coordinate space.
  *
  * Project a part at metre-space `(lat, axial)` to overlay px with:
  *   x = width / 2 + (lat - bounds.cx) * baseScale
@@ -47,7 +47,7 @@ export interface ShipMapOverlayContext {
 }
 
 /**
- * Props for `ship-map.badges` — the widget's BROAD escape-hatch slot (spec
+ * Props for `ship-map.badges`: the widget's BROAD escape-hatch slot (spec
  * §4.8 composable badges), rendered in the header meta row. Meant for small
  * inline status chips an Uplink wants beside the part count; badge augments
  * read their own Topics via hooks, so only labelling context is passed down.
@@ -77,18 +77,18 @@ interface ShipMapConfig {
 
 function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // Reads the `vessel.parts` stream Topic directly and reshapes it into the
-  // legacy `VesselTopology` shape (`vesselPartsAdapter.ts`) — the mod's
+  // legacy `VesselTopology` shape (`vesselPartsAdapter.ts`): the mod's
   // channel engine is itself change-gated, so no separate seq-driven
   // refetch is needed to keep steady-state wire bytes down.
   const topology = useTopology();
   const hottestPartName = useTelemetry("vessel.thermal")?.hottestPart?.name;
-  // Ambient skin temperature — drives a background tint on the diagram so
+  // Ambient skin temperature: drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top. Read straight off `vessel.flight` (the same channel
   // AtmosphereProfile's skin-temp read rides).
   const externalTemperature =
     useTelemetry("vessel.flight")?.externalTemperature;
-  // Current throttle — gates the engine-flame overlay so a staged-but-
+  // Current throttle: gates the engine-flame overlay so a staged-but-
   // idle engine doesn't render thrust. Forwarded through ShipDiagram
   // to ShipDiagramSvg.
   const throttleRaw = useTelemetry("vessel.control")?.throttle;
@@ -98,7 +98,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
       : 0;
 
   // Subscribe to per-part live data (resources + thermal). Dynamic over
-  // the topology's part list — the hook re-subscribes when the set of
+  // the topology's part list: the hook re-subscribes when the set of
   // flightIds changes.
   const flightIds = useMemo(
     () => topology?.parts.map((p) => p.flightId) ?? [],
@@ -130,7 +130,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
 
   // Measure the container so the SVG picks a size without a hardcoded
   // value. State-backed ref (rather than useRef) so the effect re-attaches
-  // when DiagramWrap mounts — it's only rendered once topology exists, so
+  // when DiagramWrap mounts: it's only rendered once topology exists, so
   // a plain useRef + [] deps would never see the element.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 320, h: 240 });
@@ -161,7 +161,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
 
   // Slot props. `badges` carries labelling context; `overlay`
   // carries the diagram's base-frame projection so an augment can draw in the
-  // diagram's coordinate space. `overlay` is null until parts resolve — the
+  // diagram's coordinate space. `overlay` is null until parts resolve, the
   // overlay layer only mounts once there's a diagram beneath it.
   const badgesContext: ShipMapBadgesContext = {
     partCount: parts.length,
@@ -204,7 +204,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
 /**
  * Map ambient external temperature (kelvin) to an rgba string that fades
  * the diagram background blue (cold) → transparent → amber → red as the
- * vessel heats up. Returns `null` when there's no signal — the styled
+ * vessel heats up. Returns `null` when there's no signal, the styled
  * background falls back to the surface colour. Keeps alpha capped at 0.25
  * so the per-part heat tints stay visible.
  */
@@ -324,7 +324,7 @@ const MetaTag = styled.span`
 // Absolutely-positioned layer over the part diagram for `ship-map.overlay`
 // augments. Sits above the SVG (z-index 1) and the ambient tint (z-index 0),
 // and stays out of the diagram's pointer path so an empty slot is visually and
-// interactively inert — an overlay augment re-enables pointer events on its own
+// interactively inert: an overlay augment re-enables pointer events on its own
 // elements when it needs them.
 const OverlayLayer = styled.div`
   position: absolute;
@@ -347,7 +347,7 @@ const DiagramWrap = styled.div<{ $tint: string | null }>`
     position: relative;
     z-index: 1;
   }
-  /* Ambient external-temperature tint — sits behind the SVG so per-part
+  /* Ambient external-temperature tint: sits behind the SVG so per-part
      heat tints render unobstructed on top. Transition smooths the band
      as temperature ramps during a reentry. */
   &::before {
@@ -379,9 +379,9 @@ registerComponent<ShipMapConfig>({
   // useTopology reads the `vessel.parts` stream Topic directly (bypassing
   // the mapTopic shim, same as useVesselDeltaV's stream-native reads); the
   // per-part thermal/resources/module-state joins in usePartsLive all ride
-  // the same payload — no per-flightId subscriptions.
-  // therm.hottestPartName/v.externalTemperature are mapped on the wire
-  // — same declared keys, now routed through the stream by mapTopic with a
+  // the same payload: no per-flightId subscriptions.
+  // therm.hottestPartName/v.externalTemperature are mapped on the wire,
+  // same declared keys, now routed through the stream by mapTopic with a
   // zero call-site change (see the reads above).
   dataRequirements: [
     "vessel.parts",

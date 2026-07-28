@@ -12,6 +12,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
@@ -29,7 +30,7 @@ interface GroundSurveyConfig {
 }
 
 /**
- * Props for `ground-survey.badges` — the widget's BROAD escape-hatch slot
+ * Props for `ground-survey.badges`: the widget's BROAD escape-hatch slot
  * for composable badges, rendered in the header beside the smoothness
  * badge. Meant for small inline status chips an Uplink wants next to the
  * verdict; badge augments read their own Topics via hooks, so only labelling
@@ -79,7 +80,7 @@ function GroundSurveyComponent({
 
   const verdict = rateSmoothness(survey.samples);
 
-  // Selective rendering — badge is the headline; strip and supporting
+  // Selective rendering: badge is the headline; strip and supporting
   // readouts drop as height/width shrink.
   const cols = w ?? 8;
   const rows = h ?? 7;
@@ -89,7 +90,7 @@ function GroundSurveyComponent({
   const showPrediction =
     rows >= 4 && survey.predictedLat !== null && survey.predictedLon !== null;
 
-  // Slot props. `badges` carries only labelling context — badge
+  // Slot props. `badges` carries only labelling context, badge
   // augments read their own Topics via hooks.
   const badgesContext: GroundSurveyBadgesContext = {
     body: survey.body,
@@ -156,7 +157,7 @@ function subtitleFor(
 }
 
 function SmoothnessBadge({ verdict }: { verdict: SmoothnessVerdict | null }) {
-  if (!verdict) return <BadgePlaceholder>—</BadgePlaceholder>;
+  if (!verdict) return <BadgePlaceholder>{NULL_DISPLAY}</BadgePlaceholder>;
   return (
     <BadgeWrap $tone={verdict.badge}>
       <BadgeGrade>{verdict.badge}</BadgeGrade>
@@ -235,10 +236,10 @@ function GroundSurveyConfigComponent({
           onChange={(e) => setSurveyCeilingM(e.target.value)}
         />
         <FieldHint>
-          Above this height-above-terrain the strip stays idle — terrain
-          readings from orbit smear over hundreds of km of ground per sample and
-          the smoothness verdict becomes meaningless. Default 10 000 m, well
-          below LKO and well above any useful reconnaissance pass.
+          Above this height-above-terrain the strip stays idle, terrain readings
+          from orbit smear over hundreds of km of ground per sample and the
+          smoothness verdict becomes meaningless. Default 10 000 m, well below
+          LKO and well above any useful reconnaissance pass.
         </FieldHint>
       </Field>
       <Field>
@@ -255,8 +256,8 @@ function GroundSurveyConfigComponent({
         />
         <FieldHint>
           Below this height-above-terrain the strip stops sampling and pads with
-          a flat dashed segment so the time-axis keeps scrolling. Default 1000 m
-          — high enough to capture the survey from a low-orbit pass and freeze
+          a flat dashed segment so the time-axis keeps scrolling. Default 1000
+          m, high enough to capture the survey from a low-orbit pass and freeze
           the verdict before final approach.
         </FieldHint>
       </Field>
@@ -375,7 +376,7 @@ registerComponent<GroundSurveyConfig>({
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
   // Broad badges escape-hatch slot in the header meta row. No
-  // filler ships here — that's an Uplink augment.
+  // filler ships here: that's an Uplink augment.
   augmentSlots: ["ground-survey.badges"],
   pushable: true,
   requires: ["flight"],

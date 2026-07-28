@@ -47,7 +47,7 @@ describe("useTelemetryHostDown", () => {
     expect(result.current).toBe(false);
   });
 
-  it("reports NOT down while reconnecting — a transient blip, not a confirmed loss", () => {
+  it("reports NOT down while reconnecting: a transient blip, not a confirmed loss", () => {
     registerDataSource(makeSitrepFixture("reconnecting"));
     const { result } = renderHook(() => useTelemetryHostDown());
     expect(result.current).toBe(false);

@@ -41,7 +41,7 @@ function Deploy() {
   );
 }
 
-/** See client.test.ts for the identical double — kept local here so this
+/** See client.test.ts for the identical double: kept local here so this
  * test file stays self-contained. */
 class FakeClock implements Clock {
   private currentUt: number;
@@ -139,7 +139,7 @@ describe("useCommand", () => {
     fireEvent.click(screen.getByText("go"));
 
     // clock.advanceTo synchronously fires the loss-inference callback,
-    // which synchronously updates the store — same as any direct
+    // which synchronously updates the store: same as any direct
     // setState-driving call, this needs an explicit act() (fireEvent
     // wraps this automatically; a bare test-double clock advance doesn't).
     act(() => {
@@ -153,7 +153,7 @@ describe("useCommand", () => {
 // ── inFlight: this hook's own accumulated dispatch set ───────────────────
 
 /**
- * Local, self-contained stream fixture — same `FixedViewClock` +
+ * Local, self-contained stream fixture: same `FixedViewClock` +
  * `StubTransport` pattern `use-route-commands.test.tsx` uses (sitrep-client
  * can't depend on `@ksp-gonogo/components`' `setupStreamFixture`, which
  * sits above it in the dependency graph).
@@ -302,10 +302,10 @@ describe("useCommand inFlight", () => {
       );
       expect(screen.getByText("count:1")).toBeTruthy();
 
-      // Drop the path at nowUt 8 — inside r2's [0,12] window.
+      // Drop the path at nowUt 8: inside r2's [0,12] window.
       // classifyRetained's `lost` check evaluates pathConnectedDuring over
       // the FULL fixed window, so this reclassifies r2 as lost immediately
-      // (not merely once nowUt reaches the reply) — a stronger failure
+      // (not merely once nowUt reaches the reply), a stronger failure
       // signal than lateness, per the design's no-path/lost distinction.
       act(() => {
         fixture.transport.emit(
@@ -317,7 +317,7 @@ describe("useCommand inFlight", () => {
       await waitFor(() => expect(screen.getByText("phases:lost")).toBeTruthy());
 
       // r2 ages out of the queue entirely (nowUt 20, past its reply at
-      // 12) — retained anyway (own-dispatch memory) and stays classified
+      // 12): retained anyway (own-dispatch memory) and stays classified
       // "lost" because the path was down somewhere inside its [0,12] window.
       act(() => {
         fixture.transport.emit(
@@ -348,15 +348,15 @@ describe("useCommand inFlight", () => {
     });
 
     fireEvent.click(screen.getByText("go1"));
-    // No queue entry has arrived yet — nothing classified to show, but the
+    // No queue entry has arrived yet, nothing classified to show, but the
     // dispatch is still tracked internally (within the grace window).
     expect(screen.getByText("count:0")).toBeTruthy();
 
     // No system.uplink.pending entry ever arrives for this dispatch (a
-    // live/no-delay path) — advance nowUt well past the grace window
+    // live/no-delay path): advance nowUt well past the grace window
     // without ever emitting a matching queue entry. The dispatch drops out
     // of tracking instead of leaking forever; observable here only as
-    // "still nothing shown, no crash, no stray entry" — see
+    // "still nothing shown, no crash, no stray entry"; see
     // resolveTracked's "expired" branch for the internal prune.
     act(() => {
       fixture.transport.emit(

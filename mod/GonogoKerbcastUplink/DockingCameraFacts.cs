@@ -1,7 +1,7 @@
 namespace Gonogo.KerbcastUplink
 {
     /// <summary>
-    /// The docking facts this uplink DERIVES about one camera's part — the
+    /// The docking facts this uplink DERIVES about one camera's part, the
     /// result shape produced by <see cref="DockingCameraDetector"/>.
     ///
     /// <para>Deliberately in its own KSP-free file: <see cref="DockingCameraDetector"/>
@@ -11,8 +11,8 @@ namespace Gonogo.KerbcastUplink
     /// headless. Same selective-Compile split the sibling Uplink test
     /// projects use.</para>
     ///
-    /// <para>All-null (<c>default</c>) is the "could not determine" reading —
-    /// an unreadable part — deliberately distinct from
+    /// <para>All-null (<c>default</c>) is the "could not determine" reading,
+    /// an unreadable part: deliberately distinct from
     /// <c>IsDockingCamera = false</c>, which means "read the part, it has no
     /// docking node". R7 typed absence: the wire must be able to say "I don't
     /// know" without lying "it isn't one".</para>

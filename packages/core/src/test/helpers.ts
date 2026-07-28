@@ -1,7 +1,7 @@
 /**
  * Shared test helpers for @ksp-gonogo/core consumers.
  *
- * Keep this file dependency-free beyond the core package itself — it must not
+ * Keep this file dependency-free beyond the core package itself, it must not
  * import from @ksp-gonogo/data, @ksp-gonogo/components, or any other downstream
  * package, or it would create a circular workspace dependency.
  */
@@ -15,7 +15,7 @@
  * `serial/src/SerialDeviceService.test.ts`. Both copies were identical, so
  * this is a drop-in replacement.
  *
- * Note: `length` is fixed at 0 and `key()` always returns null — matching the
+ * Note: `length` is fixed at 0 and `key()` always returns null, matching the
  * existing shims. Tests that rely on `Storage.length` or `Storage.key(i)`
  * will need a more complete fake.
  */

@@ -1,17 +1,17 @@
 /**
- * Docking-alignment HUD-proxy helpers — the line-of-sight offset angles +
+ * Docking-alignment HUD-proxy helpers: the line-of-sight offset angles +
  * closing-rate derivations DistanceToTarget's docking HUD renders, promoted
  * out of that widget into a shared module so other widgets (and any future
  * docking view) reuse one implementation.
  *
  * `vessel.dock` carries only `RelativePosition`/`RelativeVelocity`/`Distance`
- * + a scalar `ForwardDot` — NOT the true port-frame misalignment axes
+ * + a scalar `ForwardDot`: NOT the true port-frame misalignment axes
  * (yaw/pitch/roll) Telemachus's `dock.ax`/`ay`/`az` reported. The decision
  * is to DROP those true axes and use the LINE-OF-SIGHT offset off the
  * `relativePosition` Vec3 as a HUD proxy instead (a genuinely new derivation,
  * not a reproduction of a legacy formula).
  *
- * `targetKindLabel` lives here too — it's the same "derive off native
+ * `targetKindLabel` lives here too: it's the same "derive off native
  * `vessel.target`" family (the SDK `TargetKind` -> the display string
  * widgets render), and both DistanceToTarget and TargetPicker need the
  * identical mapping so a current-target's kind reads the same everywhere.
@@ -19,7 +19,7 @@
 import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * `{x,y,z}` — the wire shape of every `vessel.target`/`vessel.dock` Vec3
+ * `{x,y,z}`: the wire shape of every `vessel.target`/`vessel.dock` Vec3
  * field (`mod/Sitrep.Contract/Vec3.cs`).
  */
 export interface Vec3 {
@@ -33,11 +33,11 @@ export function vecMagnitude(v: Vec3): number {
 }
 
 /**
- * Signed range-rate along the line of sight — `d|relativePosition|/dt =
+ * Signed range-rate along the line of sight, `d|relativePosition|/dt =
  * dot(relativePosition, relativeVelocity) / |relativePosition|`. Matches the
  * legacy `tar.o.relativeVelocity` sign convention (positive = opening,
  * negative = closing). `undefined` when the position is exactly zero (can't
- * form a unit vector) — never divides by zero.
+ * form a unit vector): never divides by zero.
  */
 export function radialSpeed(
   position: Vec3,
@@ -56,7 +56,7 @@ export function radialSpeed(
  * `vessel.dock.relativePosition`. Assumes the docking-port-local frame's `z`
  * is the approach/boresight axis and `x`/`y` are the lateral offsets (the same
  * convention `KspVesselActuator` uses). No `az` (roll) equivalent exists on
- * the wire — `vessel.dock` carries no roll data at all.
+ * the wire: `vessel.dock` carries no roll data at all.
  */
 export function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
   const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;

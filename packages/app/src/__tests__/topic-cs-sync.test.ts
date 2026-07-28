@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 // Static, side-effecting imports of every first-party Uplink client. Importing each
 // package runs its `registerBarePrimitiveTopic(...)` calls, so by the time the assertions
-// read `getAllKnownTopicIds()` the runtime registry holds the full union — the SDK's own
+// read `getAllKnownTopicIds()` the runtime registry holds the full union, the SDK's own
 // Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
@@ -27,7 +27,7 @@ const MOD_ROOT = join(
 /**
  * Recursively collect production C# sources (skip build output, test projects, the example
  * skeleton server). Mirrors the collector the SDK's own `topics.test.ts` used before this
- * bidirectional check moved here — the SDK package cannot import the Uplink clients (that
+ * bidirectional check moved here: the SDK package cannot import the Uplink clients (that
  * would be the `^build` cycle the leaf architecture forbids), so the FULL C#↔registry sync
  * check lives here in `packages/app`, downstream of all three Uplink clients, where the
  * complete registered union actually exists.
@@ -56,7 +56,7 @@ function collectContractSources(dir: string, out: string[] = []): string[] {
 
 /**
  * Every declared channel Topic in the C# sources: `const string <Name>Topic = "<value>"`.
- * Dotted values only — drops the kOS parser's dot-less "default" fallback bucket (and never
+ * Dotted values only: drops the kOS parser's dot-less "default" fallback bucket (and never
  * matches the `kos.compute.` dynamic *prefix*, whose constant is `ComputePrefix`).
  */
 function extractDeclaredTopics(): Set<string> {
@@ -83,13 +83,13 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     const staleInRegistry = [...known].filter((t) => !declared.has(t)).sort();
 
     // missingFromRegistry: a Topic declared in C# that no client registers and the SDK
-    // does not own — either a new bare-primitive Topic whose client forgot its
+    // does not own, either a new bare-primitive Topic whose client forgot its
     // `registerBarePrimitiveTopic`, or a generated/engine Topic missing from the SDK.
     expect(
       missingFromRegistry,
       "C# Topics not known to the runtime registry",
     ).toEqual([]);
-    // staleInRegistry: a registered/SDK Topic with no matching C# declaration — a stale
+    // staleInRegistry: a registered/SDK Topic with no matching C# declaration, a stale
     // registration or a renamed/removed C# Topic.
     expect(
       staleInRegistry,

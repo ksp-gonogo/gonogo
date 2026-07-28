@@ -15,9 +15,9 @@ import {
 } from "./wizardFirstRun";
 
 /**
- * First-run auto-open host (design §1: "auto-opens once on first boot" —
+ * First-run auto-open host (design §1: "auto-opens once on first boot",
  * explicitly deferred by Task C to this task). Mounted on the MAIN screen
- * only, alongside `AnalyticsConsentHost` — station screens never load
+ * only, alongside `AnalyticsConsentHost`: station screens never load
  * Uplink clients (see `SettingsModal`'s own `showDataSources` gate), so
  * there is nothing for a station to auto-open.
  *
@@ -28,18 +28,18 @@ import {
  * dismissed/completed" guarantee holds even if the operator closes it
  * immediately.
  *
- * Renders nothing itself — it's a pure side-effect component, same shape as
+ * Renders nothing itself, it's a pure side-effect component, same shape as
  * `AnalyticsConsentHost` minus that component's own modal (this one reuses
  * `SettingsModal` via `useModal().open`, `AnalyticsConsentHost` renders its
  * modal inline).
  *
  * The modal portal renders as a sibling of `<App/>` under `ModalProvider`
  * (mounted above `MainScreen` in `main.tsx`), not nested inside this
- * component's own provider tree — so the content passed to `open()` must
+ * component's own provider tree: so the content passed to `open()` must
  * re-wrap `SettingsProvider`/`ScreenProvider`/`SerialDeviceProvider`
  * itself, exactly like `SettingsFab`'s `handleClick` already does. Also
  * wraps `ModalTelemetryBridge` so the wizard's `useUplinkGap()` (which reads
- * the live `system.uplinkHealth` stream) actually sees data — see that
+ * the live `system.uplinkHealth` stream) actually sees data; see that
  * component's own doc comment for why the portal doesn't inherit it
  * automatically.
  */

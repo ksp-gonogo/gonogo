@@ -1,7 +1,7 @@
 /**
  * In-memory cache of fog-of-war masks, backed by `FogMaskStore`.
  *
- * Masks are allocated lazily — a (body, layerId) pair only consumes memory
+ * Masks are allocated lazily, a (body, layerId) pair only consumes memory
  * once it actually gets data. First-view loads from IndexedDB are async;
  * callers subscribe via `onChange` and redraw when the mask arrives.
  *
@@ -20,7 +20,7 @@ export interface BodyMask {
   readonly layerId: string;
   readonly width: number;
   readonly height: number;
-  /** Alpha bytes, row-major. Mutable — caller writes directly. */
+  /** Alpha bytes, row-major. Mutable: caller writes directly. */
   data: Uint8Array;
 }
 
@@ -92,7 +92,7 @@ export class FogMaskCache {
    *
    * Note: a zeroed stub entry may already exist if `onChange` was called
    * first (e.g. from `useBodyFogMask` subscribing before kicking off the
-   * async load). We must still hit IDB in that case — check `loading`, not
+   * async load). We must still hit IDB in that case; check `loading`, not
    * just presence.
    */
   async acquire(bodyId: string, layerId: string): Promise<BodyMask> {
@@ -111,7 +111,7 @@ export class FogMaskCache {
     }
   }
 
-  /** Synchronous accessor — returns undefined if not yet acquired. */
+  /** Synchronous accessor: returns undefined if not yet acquired. */
   get(bodyId: string, layerId: string): BodyMask | undefined {
     return this.entries.get(makeCacheKey(bodyId, layerId))?.mask;
   }
@@ -185,7 +185,7 @@ export class FogMaskCache {
   /**
    * Re-read a (body, layerId) mask from the store and notify subscribers.
    * Called automatically on `store.onChange` for external writes (snapshots,
-   * direct saves from peer protocols) — not part of the public API.
+   * direct saves from peer protocols): not part of the public API.
    *
    * Skips when no entry exists yet (no UI subscribers, so nothing to
    * notify) and when the entry's flush is mid-flight (the cache is
@@ -282,7 +282,7 @@ export class FogMaskCache {
     this.flushTimer = setTimeout(() => {
       this.flushTimer = null;
       void this.flush().catch(() => {
-        // Swallow — next dirty mark will reschedule. Persistent failures
+        // Swallow: next dirty mark will reschedule. Persistent failures
         // would need an observable error path, but worth adding only once
         // we have a case where it matters.
       });

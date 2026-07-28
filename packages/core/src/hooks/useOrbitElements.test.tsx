@@ -15,7 +15,7 @@ import { useOrbitElements } from "./useOrbitElements";
  * `useOrbitElements` now reads the native `vessel.state` derived channel
  * (`@ksp-gonogo/sitrep-client`'s `deriveVesselState`) via `useStream`, the
  * same channel `DistanceToTarget`/`TargetPicker`/`ManeuverPlanner`/
- * `CurrentOrbit` read for their own `vessel.state.*` fields — no more legacy
+ * `CurrentOrbit` read for their own `vessel.state.*` fields, no more legacy
  * `useTelemetry("data", "o.ApR")`-style two-arg reads, no more `dataSourceId`
  * parameter (there is exactly one `vessel.state` channel to read).
  *
@@ -101,7 +101,7 @@ describe("useOrbitElements", () => {
 
     // sma·(1±ecc) with ecc=0 -> ApR = PeR = 700_000; apoapsisAlt/periapsisAlt
     // subtract the Kerbin radius (600_000) -> 100_000. A circular orbit has
-    // no well-defined time-to-apoapsis/periapsis "next pass" distinction —
+    // no well-defined time-to-apoapsis/periapsis "next pass" distinction:
     // both resolve to *some* finite countdown off the (arbitrary at ecc=0)
     // mean anomaly, so only assert they're finite numbers.
     await waitFor(() => expect(result.current.apoapsisRadius).toBe(700_000));
@@ -142,7 +142,7 @@ describe("useOrbitElements", () => {
     expect(result.current.periapsisAltitude).toBe(300_000);
   });
 
-  it("passes apoapsisRadius through as null (not undefined) for a hyperbolic orbit — CurrentOrbit's hasOrbit gate depends on this", async () => {
+  it("passes apoapsisRadius through as null (not undefined) for a hyperbolic orbit, CurrentOrbit's hasOrbit gate depends on this", async () => {
     const { transport, Provider } = makeHarness();
     const { result } = renderHook(() => useOrbitElements(), {
       wrapper: Provider,
@@ -151,7 +151,7 @@ describe("useOrbitElements", () => {
     act(() => {
       // ecc >= 1 -> hyperbolic; deriveVesselState's apoapsisRadius is an
       // explicit `null` here (no apoapsis on a hyperbolic trajectory) while
-      // periapsisRadius stays a real finite number — see vessel-state.ts's
+      // periapsisRadius stays a real finite number: see vessel-state.ts's
       // isHyperbolic doc.
       transport.emit(
         "vessel.orbit",
@@ -165,7 +165,7 @@ describe("useOrbitElements", () => {
         -2_400_000 * (1 - 1.283),
       ),
     );
-    // `null`, genuinely arrived — NOT `undefined` ("hasn't arrived yet").
+    // `null`, genuinely arrived: NOT `undefined` ("hasn't arrived yet").
     expect(result.current.apoapsisRadius).toBeNull();
     expect(result.current.apoapsisRadius).not.toBeUndefined();
   });

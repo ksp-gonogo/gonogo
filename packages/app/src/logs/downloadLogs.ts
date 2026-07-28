@@ -2,7 +2,7 @@ import { logger } from "@ksp-gonogo/logger";
 
 /**
  * Download the in-memory log buffer as a JSON file. Shared between the
- * LogsManager modal and the station connection screen — the latter is
+ * LogsManager modal and the station connection screen, the latter is
  * the only export path available when a station can't get past the
  * connect form (e.g. mobile field-test repro).
  */

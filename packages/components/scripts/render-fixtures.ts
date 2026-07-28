@@ -31,7 +31,7 @@ interface Fixture {
 }
 
 /**
- * Optional partState sidecar — keyed by stringified `flightId` →
+ * Optional partState sidecar: keyed by stringified `flightId` →
  * `PartStateModule[]`. The harness loads `<fixture>.partState.json`
  * when present so the rendered SVG exercises the engine-flame /
  * parachute-canopy / deploy-chevron overlays. Real captures pull

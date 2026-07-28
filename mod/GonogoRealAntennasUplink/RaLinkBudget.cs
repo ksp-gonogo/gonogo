@@ -6,7 +6,7 @@ namespace Gonogo.RealAntennasUplink
     /// A pure, headlessly-tested re-derivation of RealAntennas' PUBLIC link-budget
     /// formulas (comms-uplink-design.md §4.3). RA computes margin/noise transiently
     /// inside its <c>internal</c> Burst <c>Precompute</c> job and stores it nowhere
-    /// public on the live graph — so rather than reflect an unstable debug-GUI
+    /// public on the live graph: so rather than reflect an unstable debug-GUI
     /// struct, this uplink RE-DERIVES the figures from RA's public static math
     /// (<c>Physics.PathLoss</c>/<c>ReceivedPower</c>/<c>NoiseSpectralDensity</c>,
     /// all documented public), fed by the public antenna properties
@@ -15,7 +15,7 @@ namespace Gonogo.RealAntennasUplink
     ///
     /// <para>Every constant/formula here is reasoned from RA's PUBLIC constants and
     /// documented behaviour (<c>src/RealAntennasProject/Physics.cs</c>), NOT copied
-    /// from RA's internal job code — the arm's-length boundary (§4.2) holds: no RA
+    /// from RA's internal job code, the arm's-length boundary (§4.2) holds: no RA
     /// source is compiled in, no RA assembly is linked. This is a best-effort
     /// estimate, explicitly NOT a bit-for-bit match of RA's negotiated-modulation
     /// tie-break logic (§4.3: "compute its own best-effort margin rather than match
@@ -26,7 +26,7 @@ namespace Gonogo.RealAntennasUplink
         /// <summary>Speed of light RA uses (<c>Physics.c</c>), m/s.</summary>
         public const double SpeedOfLight = 2.998e8;
 
-        /// <summary>RA's <c>Physics.path_loss_constant</c> — <c>20*log10(4π/c)</c> in dB.</summary>
+        /// <summary>RA's <c>Physics.path_loss_constant</c>: <c>20*log10(4π/c)</c> in dB.</summary>
         public const double PathLossConstantDb = -147.552435289803;
 
         /// <summary>RA's <c>Physics.boltzmann_dBm</c> (Boltzmann constant expressed in dBm/Hz/K).</summary>
@@ -36,7 +36,7 @@ namespace Gonogo.RealAntennasUplink
         public const double CmbTemperatureKelvin = 2.725;
 
         /// <summary>
-        /// Free-space path loss in dB — RA's <c>Physics.PathLoss(distance, frequency)</c>
+        /// Free-space path loss in dB: RA's <c>Physics.PathLoss(distance, frequency)</c>
         /// verbatim in form: <c>20*log10(distance*frequency) + path_loss_constant</c>.
         /// </summary>
         public static double PathLossDb(double distanceMeters, double frequencyHz)
@@ -49,7 +49,7 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
-        /// Received power in dBm — RA's <c>Physics.ReceivedPower</c> minus the
+        /// Received power in dBm: RA's <c>Physics.ReceivedPower</c> minus the
         /// pointing-loss terms (a best-effort estimate that assumes on-target
         /// antennas): <c>txPower + txGain - pathLoss + rxGain</c>. All powers/gains
         /// in dBm/dBi.
@@ -61,7 +61,7 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
-        /// Noise spectral density N0 in dBm/Hz — RA's
+        /// Noise spectral density N0 in dBm/Hz: RA's
         /// <c>Physics.NoiseSpectralDensity(noiseTemp)</c>:
         /// <c>boltzmann_dBm + 10*log10(noiseTemp)</c>. A noise temp at/below 0 K is
         /// clamped to the CMB floor rather than producing -∞.

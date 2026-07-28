@@ -2,7 +2,7 @@ name: Update visual baselines
 
 # Regenerate the per-engine visual baselines on the CI runner (Linux) and
 # commit them back to the triggering branch. Baselines MUST be produced in the
-# same OS the gate runs in — font rasterisation differs across OSes — so this
+# same OS the gate runs in, font rasterisation differs across OSes: so this
 # is the only supported way to (re)generate them. Run it whenever a widget
 # legitimately changes its appearance:
 #
@@ -85,8 +85,8 @@ jobs:
           else
             # --no-verify: this commit only carries regenerated PNG baselines.
             # The local pre-commit (biome/typecheck) and pre-push (full pnpm
-            # test) hooks are redundant here — CI re-runs the whole suite on the
-            # resulting commit — and the pre-push test run was flaky enough to
+            # test) hooks are redundant here (CI re-runs the whole suite on the
+            # resulting commit) and the pre-push test run was flaky enough to
             # block the baseline push outright. Skip the hooks; let CI gate.
             git commit --no-verify -m "chore: update visual baselines (${WIDGET:-all widgets})"
             git push --no-verify origin HEAD:${{ github.ref_name }}

@@ -10,7 +10,7 @@ import type { PeerClientService } from "../peer/PeerClientService";
  * Station-side mirror of ManeuverTriggerHostService. Receives the
  * canonical trigger snapshot from the host on every change; routes user
  * arm / cancel intents back to the host as peer messages. The widget
- * can't tell the difference between this and the host service —
+ * can't tell the difference between this and the host service,
  * `ManeuverTriggerService` is the contract.
  */
 export class ManeuverTriggerClientService implements ManeuverTriggerService {

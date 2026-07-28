@@ -6,17 +6,17 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>career.status</c> channel payload — the KSC/career-mode snapshot
+/// The <c>career.status</c> channel payload: the KSC/career-mode snapshot
 /// (economy, facilities, contracts, strategies, tech). The whole payload is
 /// <c>null</c> in the SANDBOX / no-career case (no <c>"career"</c> group in
-/// the snapshot at all — see <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>);
+/// the snapshot at all: see <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>);
 /// a non-null payload with any/all sub-groups themselves <c>null</c> is the
 /// "career mode, that group genuinely unavailable this tick" case. All five
 /// top-level keys are ALWAYS emitted (each nullable), never omitted.
 ///
 /// <para><b>Typing-only mirror (P0.5).</b> This type reproduces, field for
 /// field, the EXACT serialized shape <c>CareerViewProvider.BuildCareer</c>
-/// already emits — same names, same camelCase wire keys (via
+/// already emits: same names, same camelCase wire keys (via
 /// <c>RtConfig.CamelCaseForProperties</c>), same types, same units. It is NOT
 /// serialized itself: the wire bytes are written by
 /// <c>Sitrep.Core.Serialization.JsonWriter</c> walking the provider's live
@@ -39,7 +39,7 @@ public class CareerStatus
 
     /// <summary>
     /// DYNAMIC-KEY MAP keyed by <c>SpaceCenterFacility</c> name (e.g.
-    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>) — not a fixed
+    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed
     /// record. Modelled as a <c>Dictionary&lt;string, CareerFacility&gt;</c>
     /// so codegen emits a TS index signature (<c>{ [k]: CareerFacility }</c>),
     /// matching how <c>VesselResources.Resources</c> is done.
@@ -53,7 +53,7 @@ public class CareerStatus
     public CareerTech? Tech { get; set; }
 }
 
-/// <summary>Economy sub-group of <see cref="CareerStatus"/> — funds/reputation/science, each null when absent.</summary>
+/// <summary>Economy sub-group of <see cref="CareerStatus"/>: funds/reputation/science, each null when absent.</summary>
 [SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
@@ -97,13 +97,13 @@ public class CareerContracts
     public List<CareerContract> Offered { get; set; } = new();
 
     /// <summary>
-    /// BOUNDED recently-completed list — the last N (currently 10)
+    /// BOUNDED recently-completed list: the last N (currently 10)
     /// <c>State.Completed</c> contracts from
     /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first
     /// by <c>Contract.DateFinished</c> (see
     /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same
     /// <see cref="CareerContract"/> element shape as <see cref="Active"/> /
-    /// <see cref="Offered"/> — no extra fields; <c>State</c> is always
+    /// <see cref="Offered"/>: no extra fields; <c>State</c> is always
     /// <c>"Completed"</c> here. Rides <c>career.status</c> (TrueNow).
     /// </summary>
     public List<CareerContract> CompletedRecent { get; set; } = new();
@@ -159,7 +159,7 @@ public class CareerContractParameter
 
 /// <summary>
 /// Strategies sub-group of <see cref="CareerStatus"/>.
-/// <see cref="ActiveCount"/> is NON-nullable — the provider defaults it to
+/// <see cref="ActiveCount"/> is NON-nullable, the provider defaults it to
 /// <c>Active.Count</c> when the raw value is absent.
 /// </summary>
 [SitrepContract]
@@ -223,7 +223,7 @@ public class CareerStrategy
 
 /// <summary>
 /// Tech sub-group of <see cref="CareerStatus"/>.
-/// <see cref="UnlockedCount"/> is NON-nullable — the provider defaults it to
+/// <see cref="UnlockedCount"/> is NON-nullable, the provider defaults it to
 /// <c>UnlockedIds.Count</c> when the raw value is absent.
 /// </summary>
 [SitrepContract]

@@ -20,12 +20,12 @@ import { defineConfig, type PluginOption } from "vite";
 // changes to any package are hot-reloaded exactly like app-local files.
 //
 // Workspace packages live in TWO places: `packages/*` (the app's own) and
-// `mod/*/client` (each Uplink's client half — the `mod/*/client` entry in
+// `mod/*/client` (each Uplink's client half: the `mod/*/client` entry in
 // pnpm-workspace.yaml). Both are scanned, because "every @ksp-gonogo/*
 // workspace package" above is the intent and an Uplink client is no less a
 // workspace package for living beside its .cs. Scanning only `packages/*`
 // silently downgraded any package that moved to an Uplink client from
-// source-resolution to dist-resolution — which is what happened when the
+// source-resolution to dist-resolution, which is what happened when the
 // kerbcast client moved to mod/GonogoKerbcastUplink/client.
 const packagesDir = resolve(__dirname, "..");
 const modDir = resolve(__dirname, "../../mod");
@@ -43,7 +43,7 @@ function aliasEntry(pkgDir: string): [string, string][] {
   // takes the first array match, so if the bare `name` entry came first it
   // would swallow `name/media` too and append the literal "/media" onto the
   // resolved `src/index.ts` file path (ENOTDIR at build time). Only string-
-  // valued subpaths are handled — every export in this repo's packages is one.
+  // valued subpaths are handled, every export in this repo's packages is one.
   const subpathEntries: [string, string][] = Object.entries(exportsMap ?? {})
     .filter(([key, value]) => key !== "." && typeof value === "string")
     .map(([key, value]) => [
@@ -68,12 +68,12 @@ const pkg = JSON.parse(
 
 /**
  * Extract a `export const NAME = "value";` string literal straight out of a
- * TS source file — no import, no build. A plain `import` here would resolve
+ * TS source file: no import, no build. A plain `import` here would resolve
  * through normal node_modules resolution to that package's BUILT
  * `dist/index.js` (this file runs in raw Node, before the `resolve.alias`
- * below kicks in — that alias only rewires imports inside the APP's own vite
+ * below kicks in, that alias only rewires imports inside the APP's own vite
  * module graph, not this config's own top-level imports), and `dist` is
- * gitignored — absent on a fresh checkout until `pnpm build` runs. Reading
+ * gitignored: absent on a fresh checkout until `pnpm build` runs. Reading
  * the source as text keeps the "no build step needed before `pnpm dev`"
  * property the workspace-alias comment above already establishes. Same
  * rationale as the old `readPkgVersion` this replaces, just pointed at the
@@ -92,19 +92,19 @@ function readExportedStringConst(filePath: string, exportName: string): string {
   return match[1];
 }
 
-// The app's compat identity — the values a runtime-loaded Uplink is gated
+// The app's compat identity: the values a runtime-loaded Uplink is gated
 // against BEFORE `import()` (design §5 step 3 / §6.3). Single-sourced here and
 // exposed to the app via `define` below AND written into the local registry
 // fixture by the uplink-bundle plugin, so the host and the descriptor can never
 // drift in Phase A. See src/uplinks/hostCompat.ts.
-//   • apiVersion — core's `EXTENSION_API_VERSION`
+//   • apiVersion: core's `EXTENSION_API_VERSION`
 //     (packages/core/src/uplinkVersionCompat.ts), the dedicated hand-managed
 //     API-surface gate. Previously this was a stand-in read off sitrep-sdk's
-//     package.json version ("0.0.1", unrelated to the gate's "1.0.0") — now
+//     package.json version ("0.0.1", unrelated to the gate's "1.0.0"), now
 //     single-sourced from the same constant hostCompat.ts gates on, so the
 //     two can never drift.
-//   • uiKitVersion — @ksp-gonogo/ui-kit's `UI_KIT_VERSION` (src/version.ts).
-//   • contractMajor / contractMinor — mirror the C# `ContractVersion.Major`/
+//   • uiKitVersion: @ksp-gonogo/ui-kit's `UI_KIT_VERSION` (src/version.ts).
+//   • contractMajor / contractMinor: mirror the C# `ContractVersion.Major`/
 //     `.Minor` stamp (Sitrep.Contract's `ContractVersion`, currently 4.7).
 //     Held as hand-maintained app constants (the C# contract owns bumping
 //     them, not this dedupe); both the host `define`s and the registry
@@ -121,7 +121,7 @@ const HOST_CONTRACT_MAJOR = 4;
 const HOST_CONTRACT_MINOR = 7;
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
-// bundles (Phase B: scansat + kos — the loader was proven on scansat first in
+// bundles (Phase B: scansat + kos, the loader was proven on scansat first in
 // Phase A, design §6). Each is emitted to public/uplinks/<id>.client.js and
 // recorded in the local registry fixture. Adding another Uplink here is the
 // whole change.
@@ -156,8 +156,8 @@ const UPLINK_BUNDLE_TARGETS: {
 ];
 
 // The app emits one standalone ESM "external-entry" chunk per shared package
-// (src/uplinks/externals/*.ts). Each re-exports the app's OWN module, and — because
-// a single Rollup build keeps every module in exactly one chunk — the chunk shares
+// (src/uplinks/externals/*.ts). Each re-exports the app's OWN module, and; because
+// a single Rollup build keeps every module in exactly one chunk, the chunk shares
 // the app's singleton instance (core's registry Maps, React's dispatcher, the
 // styled-components stylesheet). A runtime-loaded Uplink bundle built with these
 // specifiers `external` resolves its bare imports to these chunks via the baked
@@ -180,14 +180,14 @@ const UPLINK_EXTERNALS: {
     ["@ksp-gonogo/ui-kit", "ext-ui-kit"],
     ["@ksp-gonogo/sitrep-client", "ext-sitrep-client"],
     // The delayed-media infra (DelayedPlayoutBuffer, capture-clock helpers)
-    // lives at this sanctioned subpath (CLAUDE.md's kerbcast section) —
+    // lives at this sanctioned subpath (CLAUDE.md's kerbcast section),
     // kerbcast's client imports it directly. esbuild's `external` matching
     // already treats it as external once the bare `@ksp-gonogo/sitrep-client`
     // specifier above is listed (package-external prefix matching), but the
-    // baked import map only maps specifiers this array knows about — without
+    // baked import map only maps specifiers this array knows about, without
     // its OWN entry here, the browser's native `import()` had nothing to
     // resolve the bare "@ksp-gonogo/sitrep-client/media" specifier to
-    // (`Failed to resolve module specifier` — caught by
+    // (`Failed to resolve module specifier`: caught by
     // uplink-loader.spec.ts's kerbcast loaded-outcome assertion).
     ["@ksp-gonogo/sitrep-client/media", "ext-sitrep-client-media"],
     ["@ksp-gonogo/sitrep-sdk", "ext-sitrep-sdk"],
@@ -203,7 +203,7 @@ const UPLINK_EXTERNALS: {
 // shared package externalised, hash it, and write the local registry fixture the
 // loader reads in Phase A. Runs at build only (`apply: "build"`) via buildStart,
 // so `public/uplinks/` is populated before Vite copies publicDir into dist. In
-// dev the loader is not exercised — the bundled static-import path is the default.
+// dev the loader is not exercised, the bundled static-import path is the default.
 const uplinkBundles = (): PluginOption => ({
   name: "gonogo-uplink-bundles",
   apply: "build",
@@ -219,12 +219,12 @@ const uplinkBundles = (): PluginOption => ({
     const { build } = esbuild;
 
     // Inline every CSS import as a self-injecting <style>, folded INTO the single
-    // hashed JS bundle — mirroring what Vite does on the bundled static-import
+    // hashed JS bundle: mirroring what Vite does on the bundled static-import
     // path. Without this esbuild emits a sibling `<id>.client.css` the runtime
     // `import(bundleUrl)` never applies (the loader fetches only the JS), so a
     // loaded Uplink with a stylesheet (kOS's xterm.css) renders unstyled. Folding
     // it in also keeps the whole client under ONE integrity hash. (xterm.css is
-    // self-contained — no @import/url() to resolve; a future CSS that isn't would
+    // self-contained: no @import/url() to resolve; a future CSS that isn't would
     // need esbuild's real CSS pipeline instead of this raw-text inline.)
     const cssInjectPlugin: import("esbuild").Plugin = {
       name: "gonogo-css-inject",
@@ -335,7 +335,7 @@ const uplinkImportMap = (): PluginOption => ({
 });
 
 // Dev-channel builds append a prerelease suffix (e.g. "-dev.a1b2c3d") so a
-// deployed dev station is distinguishable from the release it forked from —
+// deployed dev station is distinguishable from the release it forked from,
 // in the hello handshake, the host's station chips, and the page meta tags.
 // compareVersions ignores the suffix, so dev↔release of the same base
 // version interoperate silently; a bumped release shows the mismatch banner.
@@ -382,7 +382,7 @@ export default defineConfig({
     target: browserslistToEsbuild(),
     rollupOptions: {
       // FINDING (R1 spike): Rollup tree-shakes re-exports of `export * from "X"`
-      // that no in-build consumer imports — so a singleton the app never uses
+      // that no in-build consumer imports: so a singleton the app never uses
       // directly (e.g. core's `AugmentSlot`) would be dropped from the
       // external-entry chunk, and a runtime Uplink that needs it fails to link
       // ("does not provide an export named 'AugmentSlot'"). "strict" preserves the
@@ -405,7 +405,7 @@ export default defineConfig({
   // network URLs at startup. Default is 127.0.0.1, which is why station
   // devices couldn't reach the dev build over wifi.
   server: { host: true },
-  // Same LAN-binding rationale as `server` — `pnpm play` serves the
+  // Same LAN-binding rationale as `server`: `pnpm play` serves the
   // production build via `vite preview`, and a phone on the wifi
   // needs to reach `http://<host-lan-ip>:4173/station?host=...`
   // when not using the deployed github.io page directly.
@@ -413,7 +413,7 @@ export default defineConfig({
   define: {
     __GONOGO_VERSION__: JSON.stringify(VERSION),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
-    // The C# contract's half of the app's Uplink-compat identity — read by
+    // The C# contract's half of the app's Uplink-compat identity; read by
     // src/uplinks/hostCompat.ts and gated against a descriptor's declared
     // versions before any bundle is loaded. apiVersion/uiKitVersion don't need
     // a define: hostCompat.ts imports EXTENSION_API_VERSION/UI_KIT_VERSION

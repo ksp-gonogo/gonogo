@@ -61,7 +61,7 @@ function hostPosts(
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-describe("PeerHostService — stable host id (derived from share code)", () => {
+describe("PeerHostService: stable host id (derived from share code)", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -145,7 +145,7 @@ describe("PeerHostService — stable host id (derived from share code)", () => {
 
     // Broker reports the id as taken (a stale ghost slot). The host should
     // surface "reclaiming", tear the dead Peer down, and schedule a retry
-    // against the SAME derived id — never a different one.
+    // against the SAME derived id: never a different one.
     const reclaiming: boolean[] = [];
     const unsub = service.onReclaimingChange((r) => reclaiming.push(r));
     await vi.advanceTimersByTimeAsync(0); // flush the replay microtask
@@ -185,7 +185,7 @@ describe("PeerHostService — stable host id (derived from share code)", () => {
     await flush();
     await flush();
 
-    // Exactly one live Peer — the guard stopped the second start from
+    // Exactly one live Peer: the guard stopped the second start from
     // leaking a duplicate claiming the same derived id.
     const live = FakePeer.instances.filter((p) => !p.destroyed);
     expect(live).toHaveLength(1);
@@ -222,7 +222,7 @@ describe("PeerHostService — stable host id (derived from share code)", () => {
     service.stop();
 
     // After stop(), a stray pagehide must NOT reach into the (already torn
-    // down) peer — the listener was removed. firstPeer is already destroyed
+    // down) peer: the listener was removed. firstPeer is already destroyed
     // by stop(); a leaked listener would re-destroy a null peer or throw.
     expect(() => window.dispatchEvent(new Event("pagehide"))).not.toThrow();
     expect(firstPeer?.destroyed).toBe(true);
@@ -298,7 +298,7 @@ describe("PeerHostService — stable host id (derived from share code)", () => {
           new Response(JSON.stringify({ iceServers: [] }), { status: 200 }),
         );
       }
-      // /host POST rejects — relay down. Discovery still works (derived id).
+      // /host POST rejects: relay down. Discovery still works (derived id).
       return Promise.reject(new Error("ECONNREFUSED"));
     });
 

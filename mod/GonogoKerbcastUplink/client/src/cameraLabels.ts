@@ -4,7 +4,7 @@
 //
 // Separator change: the shared buildCameraLabeler uses " - " (hyphen-space)
 // where the old gonogo version used an em-dash. Camera labels across the UI
-// now read "NavCam - Clamp-O-Tron Docking Port Jr." instead of "NavCam —
+// now read "NavCam - Clamp-O-Tron Docking Port Jr." instead of "NavCam,
 // Clamp-O-Tron Docking Port Jr.".
 export {
   buildCameraLabeler,

@@ -73,7 +73,7 @@ describe("CrossSection", () => {
     // The terrain skyline is an OPEN polyline (top surface only), not a stroked
     // closed shape.
     expect(container.querySelector("polyline")).not.toBeNull();
-    // Any soft fill polygon carries no stroke — so there is no perimeter/bottom
+    // Any soft fill polygon carries no stroke, so there is no perimeter/bottom
     // line drawn around the terrain.
     for (const poly of container.querySelectorAll("polygon")) {
       const stroke = poly.getAttribute("stroke");
@@ -134,7 +134,7 @@ describe("CrossSection", () => {
     const farGap = Math.abs(cx(far.container, "3") - cx(far.container, "5"));
     far.unmount();
     // At touchdown drift is ~0: the vessel (r=3) coincides with the site
-    // marker (ring r=5) — no miss.
+    // marker (ring r=5): no miss.
     const near = render(
       <CrossSection
         patch={patch}

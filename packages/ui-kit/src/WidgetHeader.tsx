@@ -12,7 +12,7 @@ export interface WidgetHeaderProps
  * Standard widget header row: a title slot on the left and an actions slot on
  * the right, separated by a subtle bottom border.
  *
- * Either pass `title` (string / node — typically a `<PanelTitle>`-shaped
+ * Either pass `title` (string / node: typically a `<PanelTitle>`-shaped
  * label) or pass arbitrary `children` for full control of the left side.
  * `actions` is an optional right-aligned slot (toggles, icon buttons, etc.).
  */
@@ -38,7 +38,7 @@ const WidgetHeader__Body = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  /* Match PanelTitle's inset (full-bleed standard) — the header is text, so it
+  /* Match PanelTitle's inset (full-bleed standard): the header is text, so it
      carries the standard 16px horizontal local padding now the Panel imposes
      no uniform inset. */
   padding: 12px 16px;

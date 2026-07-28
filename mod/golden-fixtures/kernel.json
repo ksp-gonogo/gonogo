@@ -717,7 +717,7 @@
   },
   {
     "name": "atomic-resolve-activates-nothing-on-throw",
-    "description": "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when a different capability's resolve() throws — resolve() is all-or-nothing.",
+    "description": "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when a different capability's resolve() throws: resolve() is all-or-nothing.",
     "ops": [
       {
         "op": "registerCapability",

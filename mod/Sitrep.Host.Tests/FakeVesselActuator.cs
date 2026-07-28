@@ -4,7 +4,7 @@ using Sitrep.Host;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Test double for <see cref="IVesselActuator"/> — records exactly what
+    /// Test double for <see cref="IVesselActuator"/>: records exactly what
     /// each call was made with (so a test can assert "typed args produced
     /// the correct actuator call with the correct values", per M1 Task 3's
     /// verification plan) and returns a per-method, test-configurable

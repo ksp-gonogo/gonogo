@@ -19,11 +19,11 @@ import {
  * This test locks that alignment: it walks the generated enum's own ordinal
  * order and asserts each label array has the matching entry at the matching
  * index. If a C# enum member is inserted, renamed, or reordered, this test
- * fails the same day the SDK is regenerated — instead of a silent label
+ * fails the same day the SDK is regenerated; instead of a silent label
  * drift discovered by an operator reading the wrong vessel type off a row.
  */
 
-/** Forward `name -> ordinal` entries only — filters out the reverse
+/** Forward `name -> ordinal` entries only: filters out the reverse
  * `ordinal -> name` entries TypeScript's numeric-enum runtime object also
  * carries, sorted into the enum's declared order. */
 function enumMembersByOrdinal(
@@ -36,7 +36,7 @@ function enumMembersByOrdinal(
 }
 
 // The only allowed divergence between an enum member's bare PascalCase name
-// and its display label — everything else must match verbatim.
+// and its display label: everything else must match verbatim.
 const SITUATION_DISPLAY_OVERRIDES: Readonly<Record<string, string>> = {
   PreLaunch: "Pre-Launch",
   SubOrbital: "Sub-Orbital",
@@ -50,18 +50,18 @@ function expectIndexAligned(
 ) {
   expect(
     labels.length,
-    `${arrayName} has ${labels.length} entries but the enum declares ${members.length} members — an enum member was added, removed, or the array wasn't updated to match`,
+    `${arrayName} has ${labels.length} entries but the enum declares ${members.length} members, an enum member was added, removed, or the array wasn't updated to match`,
   ).toBe(members.length);
   members.forEach((memberName, ordinal) => {
     const expected = overrides[memberName] ?? memberName;
     expect(
       labels[ordinal],
-      `${arrayName}[${ordinal}] should be "${expected}" for enum member ${memberName} (ordinal ${ordinal}), but was "${labels[ordinal]}" — the array has drifted out of index-alignment with the enum`,
+      `${arrayName}[${ordinal}] should be "${expected}" for enum member ${memberName} (ordinal ${ordinal}), but was "${labels[ordinal]}", the array has drifted out of index-alignment with the enum`,
     ).toBe(expected);
   });
 }
 
-describe("T3 — label arrays stay index-aligned with the generated SDK enums", () => {
+describe("T3: label arrays stay index-aligned with the generated SDK enums", () => {
   const vesselTypeMembers = enumMembersByOrdinal(
     VesselType as unknown as Record<string, string | number>,
   );
@@ -122,7 +122,7 @@ describe("T3 — label arrays stay index-aligned with the generated SDK enums", 
 
   it("fails if the label arrays and the enum diverge (self-check on the guard itself)", () => {
     const driftedLabels = [...TARGET_PICKER_VESSEL_TYPE_LABELS];
-    // Simulate a C# enum insertion shifting everything after it by one —
+    // Simulate a C# enum insertion shifting everything after it by one,
     // this must NOT still pass the alignment check.
     driftedLabels.splice(2, 0, "InsertedMember");
     expect(() =>

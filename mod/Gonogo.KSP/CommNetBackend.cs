@@ -7,16 +7,16 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The stock-CommNet <see cref="ICommsBackend"/> — the always-present
+    /// The stock-CommNet <see cref="ICommsBackend"/>: the always-present
     /// vanilla backend the exclusive <c>"comms"</c> capability falls back to
     /// (comms-uplink-design.md §2.2). Reads the SAME stock object graph
     /// (<c>Vessel.connection</c> / <see cref="CommNet.CommPath"/> /
-    /// <see cref="CommNet.CommNode"/>) that RealAntennas layers onto — so
+    /// <see cref="CommNet.CommNode"/>) that RealAntennas layers onto: so
     /// connectivity/strength/control-state and hop geometry come from stock
     /// members regardless of which backend won the election (§4.3).
     ///
     /// <para><b>THREADING:</b> every accessor here reads live KSP state, so it
-    /// MUST be called only on the Unity main thread — the comms core
+    /// MUST be called only on the Unity main thread, the comms core
     /// registration calls it exclusively from its capture-on-main sampler
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
     /// <c>FlightGlobals.ActiveVessel</c>, not a cached snapshot.</para>
@@ -29,13 +29,13 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The active vessel's stock CommNet connection, or null when there is
-        /// no LIVE comms to read — no vessel, not in flight, OR the active vessel
+        /// no LIVE comms to read, no vessel, not in flight, OR the active vessel
         /// is transiently UNLOADED (scene load/settle). An unloaded vessel has no
         /// valid CommNet control graph: its <c>connection</c>/<c>ControlPath</c>/
         /// <see cref="CommNet.CommNode"/> getters can dereference torn-down state
         /// and throw an NRE deep inside stock code (the "Vessel … has been
-        /// unloaded" transient). Gating on <c>vessel.loaded</c> here — plus the
-        /// per-method try/catch below — makes the whole read path NULL-SAFE:
+        /// unloaded" transient). Gating on <c>vessel.loaded</c> here (plus the
+        /// per-method try/catch below) makes the whole read path NULL-SAFE:
         /// a settling/no-control-path vessel yields a graceful "disconnected /
         /// no delay" result, which is ALSO the correct real-world meaning (no
         /// live link ⇒ no hop geometry ⇒ no computable delay), never an exception
@@ -151,7 +151,7 @@ namespace Gonogo.KSP
                             To = NodeId(link.b),
                             Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                             DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
-                            // CommNet has no per-hop RF rate — RA annotates this (§1).
+                            // CommNet has no per-hop RF rate, RA annotates this (§1).
                             BandRateBitsPerSec = null,
                         });
                     }

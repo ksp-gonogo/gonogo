@@ -1,4 +1,4 @@
-// GamepadTransport — the Web Gamepad API as a DeviceTransport.
+// GamepadTransport: the Web Gamepad API as a DeviceTransport.
 //
 // Hand-rolled, no npm dependency. Every candidate library was evaluated and
 // rejected during design: `react-gamepad` is GPL-3.0 and last touched 2019;
@@ -6,10 +6,10 @@
 // layer; `gamepad-type` pulls `ansi-styles` into a browser lib at 0 stars;
 // `gamepad_standardizer` has one force-pushed commit. The best-maintained
 // implementation in the ecosystem (VueUse's `useGamepad`) is 159 lines
-// *including* Vue reactivity — this file is the same idea without a
+// *including* Vue reactivity: this file is the same idea without a
 // framework dependency.
 //
-// `write()` no-ops in v1 — rumble is deferred (see the Wednesday Work
+// `write()` no-ops in v1: rumble is deferred (see the Wednesday Work
 // gamepad-transport spec's Out of scope: Firefox has no `playEffect` at
 // all, and DualSense gets no rumble on Chrome/Linux since `0ce6` is absent
 // from Chromium's Dualshock4 allow-list).
@@ -27,8 +27,8 @@ import type {
 import { GamepadPoller } from "./GamepadPoller";
 
 /** Sticks jitter at rest; suppress emission below this magnitude of change
- *  so idle noise doesn't run the dispatcher every frame. Separate from —
- *  and in addition to — the user's own deadzone setting. Chromium already
+ *  so idle noise doesn't run the dispatcher every frame. Separate from,
+ *  and in addition to: the user's own deadzone setting. Chromium already
  *  applies its own ~0.01 button-axis deadzone, so this can stay small. */
 const AXIS_CHANGE_EPSILON = 0.002;
 
@@ -43,7 +43,7 @@ export interface GamepadTransportOptions {
   id: string;
   deviceType: DeviceType;
   /** Remembered physical-pad id from a previous pairing, if any. Absent for
-   *  a brand new device — first pairing requires a press (see connect()). */
+   *  a brand new device: first pairing requires a press (see connect()). */
   gamepadId?: string;
 }
 
@@ -75,7 +75,7 @@ export class GamepadTransport implements DeviceTransport {
   private connectedListener: ((evt: Event) => void) | null = null;
   private disconnectedListener: ((evt: Event) => void) | null = null;
   /** Unsubscribe from the shared poller's frame loop. Set by `adopt()`,
-   *  cleared by `disconnect()` — without this the poller's subscriber Set
+   *  cleared by `disconnect()`: without this the poller's subscriber Set
    *  never returns to zero and its rAF loop never stops (see the
    *  gamepad-transport review, finding #1). */
   private frameUnsubscribe: (() => void) | null = null;
@@ -96,7 +96,7 @@ export class GamepadTransport implements DeviceTransport {
       return Promise.resolve();
     }
 
-    // No (unclaimed) live pad yet — the Gamepad API withholds
+    // No (unclaimed) live pad yet: the Gamepad API withholds
     // `getGamepads()` results until a user gesture is seen on the pad, so
     // `gamepadconnected` fires on first press, not on plug-in. Wait for it;
     // the UI is responsible for prompting "press any button to pair".
@@ -120,7 +120,7 @@ export class GamepadTransport implements DeviceTransport {
     return Promise.resolve();
   }
 
-  /** Rumble is deferred — see the Out of scope section of the
+  /** Rumble is deferred; see the Out of scope section of the
    *  gamepad-transport spec. No web API exposes adaptive triggers, Firefox
    *  has no `playEffect` at all, and DualSense gets no rumble on
    *  Chrome/Linux (0ce6 is absent from Chromium's allow-list). */
@@ -158,7 +158,7 @@ export class GamepadTransport implements DeviceTransport {
   private findClaimableLivePad(): Gamepad | null {
     if (!this.gamepadId) {
       // First pairing: nothing to match on yet. Never blind-grab an
-      // already-visible pad — it could be claimed by another device, or
+      // already-visible pad: it could be claimed by another device, or
       // simply the wrong physical controller. Always require a press.
       return null;
     }
@@ -168,7 +168,7 @@ export class GamepadTransport implements DeviceTransport {
     );
     if (candidates.length === 0) return null;
     // Rare, but some platforms can expose the same physical pad through
-    // two simultaneous entries — one "standard"-mapped, one not. Prefer
+    // two simultaneous entries: one "standard"-mapped, one not. Prefer
     // the standard one: it carries real role information, the non-standard
     // one would only give a generic-names degraded pairing for no reason.
     return candidates.find((p) => p.mapping === "standard") ?? candidates[0];
@@ -182,7 +182,7 @@ export class GamepadTransport implements DeviceTransport {
       const poller = GamepadPoller.get();
       if (poller.isClaimed(pad.index)) return;
       if (this.gamepadId) {
-        // Reconnecting a known pad — ignore a press on a different one,
+        // Reconnecting a known pad: ignore a press on a different one,
         // and re-resolve against every currently-live matching candidate
         // (not just the one that just fired) so a standard-mapped
         // duplicate wins over a non-standard one if both are visible.
@@ -191,7 +191,7 @@ export class GamepadTransport implements DeviceTransport {
         if (resolved) this.adopt(resolved);
         return;
       }
-      // First pairing — nothing to compare against yet; the press itself
+      // First pairing: nothing to compare against yet; the press itself
       // is ground truth.
       this.adopt(pad);
     };
@@ -248,7 +248,7 @@ export class GamepadTransport implements DeviceTransport {
    * Seed `lastValues` from the pad's state *at the moment of adoption*,
    * without emitting anything. Without this, the first poller tick after
    * connect would see every input as "changed" (from unset) and fire a
-   * burst of events for the pad's whole rest state — which is exactly the
+   * burst of events for the pad's whole rest state, which is exactly the
    * "unconditional emit" bug the change-only diffing is meant to catch.
    * The pad's rest state at connect isn't news; only what changes after it
    * is.
@@ -298,7 +298,7 @@ export class GamepadTransport implements DeviceTransport {
     const pad = pads[this.resolvedIndex] ?? null;
     if (!pad || (this.gamepadId && pad.id !== this.gamepadId)) {
       // The pad vanished from this slot (or a different physical pad now
-      // occupies it) between disconnect-event delivery and this tick —
+      // occupies it) between disconnect-event delivery and this tick,
       // treat it the same as an explicit disconnect.
       void this.disconnect();
       return;

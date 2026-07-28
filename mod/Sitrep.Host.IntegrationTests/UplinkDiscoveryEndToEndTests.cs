@@ -16,7 +16,7 @@ namespace Sitrep.Host.IntegrationTests
     /// + <see cref="ChannelEngine.RegisterDiscoveredUplink"/>) delivers a
     /// real sample over the wire exactly like the hand-registered
     /// <see cref="ChannelEngine.RegisterUplink(ISitrepUplink)"/> path already
-    /// proven throughout <see cref="ChannelEngineTests"/> — the foundation's
+    /// proven throughout <see cref="ChannelEngineTests"/>: the foundation's
     /// whole point is that discovery is a drop-in replacement for the old
     /// hardcoded registration list, not a parallel code path with its own
     /// behavior.

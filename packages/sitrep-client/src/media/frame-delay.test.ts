@@ -38,7 +38,7 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   };
 }
 
-/** A fake "video frame" — the minimal `FrameLike` contract, plus a spy so
+/** A fake "video frame": the minimal `FrameLike` contract, plus a spy so
  *  tests can assert `.close()` was called exactly once. */
 function fakeFrame(label: string) {
   return {
@@ -52,7 +52,7 @@ function fakeFrame(label: string) {
 type FakeFrame = ReturnType<typeof fakeFrame>;
 
 /** A source that yields a pre-supplied queue of frames one at a time, then
- *  hangs (never resolves `done: true`) until `cancel()` — mirrors a real
+ *  hangs (never resolves `done: true`) until `cancel()`, mirrors a real
  *  `ReadableStreamDefaultReader` reading a live track that never ends on
  *  its own. Each `read()` call is gated on an internal "release" queue so
  *  the test controls exactly when the pump loop advances. */
@@ -69,7 +69,7 @@ function queuedSource<T extends FrameLike>(
     async read() {
       if (cancelled) return { done: true, value: undefined } as const;
       if (state.readCount >= frames.length) {
-        // Simulate a track that's still open — never resolves further.
+        // Simulate a track that's still open: never resolves further.
         return new Promise(() => {});
       }
       const value = frames[state.readCount];
@@ -106,7 +106,7 @@ function recordingSink<T extends FrameLike>(): FrameSink<T> & {
 }
 
 describe("isFrameDelaySupported", () => {
-  it("is false in this (jsdom) test environment — no WebCodecs track-IO globals", () => {
+  it("is false in this (jsdom) test environment, no WebCodecs track-IO globals", () => {
     expect(isFrameDelaySupported()).toBe(false);
   });
 });
@@ -125,7 +125,7 @@ describe("createFrameDelayStream", () => {
 
   it("returns null when supported but the stream has no video track", () => {
     // Minimal stand-ins just to satisfy the `typeof x !== "undefined"`
-    // feature-detection check — the constructors are never invoked because
+    // feature-detection check: the constructors are never invoked because
     // the no-video-track guard returns before either is called.
     vi.stubGlobal("MediaStreamTrackProcessor", class {});
     vi.stubGlobal("MediaStreamTrackGenerator", class {});
@@ -140,11 +140,11 @@ describe("createFrameDelayStream", () => {
     }
   });
 
-  it("fails OPEN — returns null, reports via onError, never throws — when building the processor/generator pair throws", () => {
+  it("fails OPEN, returns null, reports via onError, never throws, when building the processor/generator pair throws", () => {
     // Models the plausible real-world case: a build effect rebuilds on the
     // SAME track before the PRIOR pipeline's un-awaited `source.cancel()`
     // has actually released it (React StrictMode's mount→unmount→mount
-    // cycle, or any dep change that isn't `raw`) — Chrome can throw
+    // cycle, or any dep change that isn't `raw`), Chrome can throw
     // `InvalidStateError` from `new MediaStreamTrackProcessor(...)` because a
     // `MediaStreamTrack` may have only one processor at a time. Review
     // finding #3 (`2026-07-15-per-frame-video-delay-review.md`).
@@ -176,7 +176,7 @@ describe("createFrameDelayStream", () => {
   });
 });
 
-describe("runFrameDelayPipeline — memory safety (every frame closed exactly once)", () => {
+describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)", () => {
   it("closes a released frame only after it's been written to the sink", async () => {
     const clock = manualClock(0); // edge already caught up
     const frame = fakeFrame("f1");
@@ -246,7 +246,7 @@ describe("runFrameDelayPipeline — memory safety (every frame closed exactly on
     expect(frames[0]?.closeCount).toBe(1);
     expect(frames[1]?.closeCount).toBe(1);
     expect(sink.written).toEqual([]);
-    expect(source.cancelled).toBe(false); // flush ≠ dispose — track keeps flowing
+    expect(source.cancelled).toBe(false); // flush ≠ dispose: track keeps flowing
     expect(sink.closed).toBe(false);
   });
 
@@ -307,7 +307,7 @@ describe("runFrameDelayPipeline — memory safety (every frame closed exactly on
     });
 
     pipeline.dispose();
-    // The in-flight read() resolves only now — after teardown already ran.
+    // The in-flight read() resolves only now, after teardown already ran.
     resolveRead?.({ done: false, value: late });
 
     await vi.waitFor(() => {
@@ -345,11 +345,11 @@ describe("runFrameDelayPipeline — memory safety (every frame closed exactly on
 // -- Encoded-domain frame shape (2026-07-16 encoded-transform video-delay
 // work). An RTCEncodedVideoFrame has no `.close()` (a plain data object,
 // no GPU/decoder resource), a `.type` of "key"/"delta", and a real
-// `.data.byteLength` — this section proves the pipeline handles that shape
+// `.data.byteLength`: this section proves the pipeline handles that shape
 // correctly: no crash on the optional `close?.()` calls, `isKeyframe`/
 // `frameBytes` correctly classify frames for `DelayedPlayoutBuffer`, and
 // `gopSafeEviction` protects a GOP under cap pressure end-to-end.
-describe("runFrameDelayPipeline — encoded frame shape (no close(), keyframe/bytes classification)", () => {
+describe("runFrameDelayPipeline: encoded frame shape (no close(), keyframe/bytes classification)", () => {
   /** Minimal stand-in for RTCEncodedVideoFrame: NO close() method, a
    *  `type` discriminant, and a byte-sized `data` payload. */
   function fakeEncodedFrame(type: "key" | "delta", byteLength: number) {
@@ -379,7 +379,7 @@ describe("runFrameDelayPipeline — encoded frame shape (no close(), keyframe/by
     pipeline.dispose();
   });
 
-  it("forwards isKeyframe/frameBytes/gopSafeEviction to the buffer for every ingested frame (wiring — eviction semantics themselves are DelayedPlayoutBuffer.test.ts's gopSafeEviction suite)", async () => {
+  it("forwards isKeyframe/frameBytes/gopSafeEviction to the buffer for every ingested frame (wiring, eviction semantics themselves are DelayedPlayoutBuffer.test.ts's gopSafeEviction suite)", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY); // nothing releases; only ingest/classification under test
     const k1 = fakeEncodedFrame("key", 40);
     const d1 = fakeEncodedFrame("delta", 20);
@@ -407,18 +407,18 @@ describe("runFrameDelayPipeline — encoded frame shape (no close(), keyframe/by
     expect(isKeyframe).toHaveBeenCalledWith(d1);
     expect(frameBytes).toHaveBeenCalledWith(k1);
     expect(frameBytes).toHaveBeenCalledWith(d1);
-    // Nothing released (edge = -Infinity) — ingest/classification only.
+    // Nothing released (edge = -Infinity): ingest/classification only.
     expect(sink.written).toEqual([]);
     pipeline.dispose();
   });
 
-  it("defaults isKeyframe/frameBytes to false/1 when omitted — decoded backend's existing behaviour, unchanged", async () => {
+  it("defaults isKeyframe/frameBytes to false/1 when omitted: decoded backend's existing behaviour, unchanged", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     const frame = fakeFrame("f1");
     const sink = recordingSink<FakeFrame>();
 
     // maxBufferedFrames: 1 with the OLD default (frame-count cap, `bytes`
-    // defaults to 1) means a second push evicts the first — proves
+    // defaults to 1) means a second push evicts the first, proves
     // `frameBytes` really defaults to 1, not something encoded-shaped.
     const second = fakeFrame("f2");
     runFrameDelayPipeline({

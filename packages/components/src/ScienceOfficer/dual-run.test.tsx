@@ -11,7 +11,7 @@ import { ScienceOfficerComponent } from "./index";
  * + `science.instruments` streamed against every other fixture key staying
  * legacy); with the widget now reading its whole state off canonical Topics
  * (`science.instruments`/`science.experiments`/`science.lab`), there is no
- * legacy read path left to compare against — same "the legacy leg is gone"
+ * legacy read path left to compare against, same "the legacy leg is gone"
  * story as `LaunchDirector/dual-run.test.tsx`'s own doc comment. What remains
  * proves the widget renders the full idle-lab + single-instrument state
  * correctly off the real stream pipeline (`TelemetryProvider` +
@@ -20,7 +20,7 @@ import { ScienceOfficerComponent } from "./index";
  * wire shape (string `partId`, `partName`/`experimentId`/`dataIsCollectable`)
  * to prove `parseInstruments` reconciles it to the same rendered output.
  */
-describe("ScienceOfficer — stream render golden (delay=0)", () => {
+describe("ScienceOfficer: stream render golden (delay=0)", () => {
   it("renders the full idle-lab + instrument state off the stream pipeline", async () => {
     const mode = { name: "default-6x7", w: 6, h: 7 };
 
@@ -45,7 +45,7 @@ describe("ScienceOfficer — stream render golden (delay=0)", () => {
 
     act(() => {
       // Same instrument, translated into the new science.instruments wire
-      // shape (partId stringified, field renames) — proves parseInstruments
+      // shape (partId stringified, field renames): proves parseInstruments
       // reconciles it to the same rendered output.
       streamFixture.emit("science.instruments", [
         {

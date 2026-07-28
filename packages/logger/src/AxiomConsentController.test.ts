@@ -53,7 +53,7 @@ describe("AxiomConsentController", () => {
     expect(transport.sent).toHaveLength(0);
   });
 
-  it("is idempotent — repeated apply(true) installs at most one transport", () => {
+  it("is idempotent, repeated apply(true) installs at most one transport", () => {
     const logger = new ConsoleLogger({ enabled: true });
     const make = vi.fn(makeTransport);
     const controller = new AxiomConsentController({

@@ -31,7 +31,7 @@ export function useDataSources(): DataSourceState[] {
   );
 
   // useSyncExternalStore re-reads the snapshot on every onStoreChange call,
-  // and guarantees the update is processed synchronously — eliminating act() warnings
+  // and guarantees the update is processed synchronously, eliminating act() warnings
   // caused by WebSocket/external events updating state outside React's scheduler.
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 

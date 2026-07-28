@@ -13,7 +13,7 @@ namespace Sitrep.Host.Tests
     /// De-risks M1's headless-validation anchor: proves a REAL 7.5 MB KSP
     /// capture (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
     /// preserved outside git) round-trips through <see cref="RecordedSessionCodec.Parse"/>
-    /// and replays start-to-finish through <see cref="ReplayKspHost"/> — the
+    /// and replays start-to-finish through <see cref="ReplayKspHost"/>: the
     /// exact machinery the headless validation loop will drive. This is the
     /// test that would have caught the <c>double[]</c> serialization bug
     /// (see <see cref="RecorderReplayRoundTripTests.RealisticKspHostShapedSnapshotSavesToFileAndReparsesWithoutThrowing"/>
@@ -24,8 +24,8 @@ namespace Sitrep.Host.Tests
     /// CLAUDE.md's Feature log section), so this test resolves the path via
     /// <see cref="CallerFilePathAttribute"/> walk-up (same idiom as
     /// <c>Sitrep.Propagation.Tests/GoldenFixtureConformanceTests.cs</c>'s
-    /// <c>FixturesPath</c>) and SKIPS CLEANLY — passes with a logged reason,
-    /// no failure — when the file is absent, so CI (which never has this
+    /// <c>FixturesPath</c>) and SKIPS CLEANLY (passes with a logged reason,
+    /// no failure) when the file is absent, so CI (which never has this
     /// local-only asset) stays green.
     /// </summary>
     public class ReferenceRecordingReplayTests
@@ -54,7 +54,7 @@ namespace Sitrep.Host.Tests
             if (!File.Exists(path))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -89,7 +89,7 @@ namespace Sitrep.Host.Tests
             // ----- Replay the WHOLE session via Step() -----
             // Step() is the rewind-safe driver (see its doc comment): it
             // never compares one entry's T against another's, so a real
-            // capture's backward UT jumps (F9 quickload) can't stall it —
+            // capture's backward UT jumps (F9 quickload) can't stall it,
             // unlike AdvanceTo(), which is documented as unsafe for exactly
             // this shape.
             var replay = new ReplayKspHost(session);
@@ -184,7 +184,7 @@ namespace Sitrep.Host.Tests
             if (!File.Exists(path))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -320,7 +320,7 @@ namespace Sitrep.Host.Tests
             if (!File.Exists(path))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -385,7 +385,7 @@ namespace Sitrep.Host.Tests
         /// through <see cref="VesselViewProvider"/>'s 11 new mappers
         /// (attitude/resources/thermal/control/comms/propulsion/maneuver/
         /// target/crew/structure/time.warp) and asserts each emits sane,
-        /// typed values somewhere across the session — per the build plan's
+        /// typed values somewhere across the session: per the build plan's
         /// "replay-validate against the recording" requirement, with extra
         /// weight on <c>vessel.maneuver</c> (281 snapshots per the recording
         /// manifest) and <c>vessel.target</c> (107 snapshots) since those two
@@ -400,7 +400,7 @@ namespace Sitrep.Host.Tests
             if (!File.Exists(path))
             {
                 _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
                     "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
                 return;
             }
@@ -543,13 +543,13 @@ namespace Sitrep.Host.Tests
         public void MissingRecordingFileIsSkippedNotFailed()
         {
             // Regression guard for the skip contract itself: a path that
-            // cannot possibly exist must not throw or fail the assembly —
+            // cannot possibly exist must not throw or fail the assembly,
             // this proves the "absent file -> clean no-op" behavior
             // independent of whether the real recording happens to be
             // present on this machine.
             var bogusPath = Path.Combine(Path.GetTempPath(), $"sitrep-does-not-exist-{Guid.NewGuid():N}.json");
             Assert.False(File.Exists(bogusPath));
-            // No assertion beyond "this doesn't throw" — mirrors the early-return
+            // No assertion beyond "this doesn't throw": mirrors the early-return
             // shape used in the real test above when the reference file is absent.
         }
     }

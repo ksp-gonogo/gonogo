@@ -4,7 +4,7 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// <c>Gonogo.KSP.CommsCoreUplink</c>'s <see cref="ISitrepUplink.Health"/>
-    /// state machine, as a pure function — mirrors
+    /// state machine, as a pure function: mirrors
     /// <c>Gonogo.KerbcastUplink.KerbcastHealth</c> (see that type's doc
     /// comment for the split rationale: a pure function over plain inputs so
     /// it can be exercised headless, while the live uplink only ever touches
@@ -29,7 +29,7 @@ namespace Sitrep.Host.Comms
         /// uplink always registers the vanilla CommNet backend as the
         /// capability's always-present fallback (<see cref="CommsElection.RegisterCapability"/>),
         /// so a null result here means resolution simply has not run yet, not
-        /// that comms is broken or absent — the same "registered fine, no
+        /// that comms is broken or absent, the same "registered fine, no
         /// observation yet" shape as kerbcast's pre-first-sample Degraded
         /// case.</para>
         /// </summary>

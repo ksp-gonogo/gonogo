@@ -6,7 +6,7 @@ import type { CelestialBody } from "./useCelestialBodies";
 
 /**
  * Phase angle (deg, in [0, 360)) from each body to the active vessel, keyed by
- * body index — the input the AlmanacPanel's transfer-window readout and
+ * body index: the input the AlmanacPanel's transfer-window readout and
  * SystemDiagram's per-body label consume.
  *
  * This rode Telemachus's derived `b.o.phaseAngle[i]` key, deleted in the
@@ -19,12 +19,12 @@ import type { CelestialBody } from "./useCelestialBodies";
  * The bodies arrive with their elements already on `CelestialBody` (LAN + argPe
  * off the wire, `trueAnomaly` derived at the view-UT). The vessel side reads the
  * `vessel.orbit` Topic and solves its true anomaly at the same view-UT through
- * the shared Kepler path (`deriveTrueAnomalyDeg`) — no second solver.
+ * the shared Kepler path (`deriveTrueAnomalyDeg`): no second solver.
  *
  * `L = Ω + ω + ν` is the exact in-plane longitude only for COPLANAR orbits; an
  * inclined body picks up a small projection error. That's already the
- * transfer-window's own assumption — the consumer only acts on the result when
- * the vessel and the bodies share a parent — and KSP inclinations are low, so
+ * transfer-window's own assumption: the consumer only acts on the result when
+ * the vessel and the bodies share a parent, and KSP inclinations are low, so
  * the standard approximation is used deliberately rather than a full
  * reference-plane projection.
  *
@@ -41,7 +41,7 @@ export function usePhaseAngles(
   return useMemo(() => {
     if (!orbit) return EMPTY;
     // Vessel true anomaly at the view-UT via the shared solver (null for a
-    // parabolic/hyperbolic orbit or a missing element — no phase reference).
+    // parabolic/hyperbolic orbit or a missing element: no phase reference).
     const nu = deriveTrueAnomalyDeg({
       semiMajorAxis: orbit.sma,
       eccentricity: orbit.ecc,
@@ -51,7 +51,7 @@ export function usePhaseAngles(
       ut,
     });
     if (nu === null) return EMPTY;
-    // LAN/argPe default to 0 (equatorial / circular) — the same coalescing the
+    // LAN/argPe default to 0 (equatorial / circular), the same coalescing the
     // widget uses when it draws the vessel's own orbit.
     const vesselLon = wrap360((orbit.lan ?? 0) + (orbit.argPe ?? 0) + nu);
 

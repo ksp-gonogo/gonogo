@@ -14,11 +14,11 @@
  * ```
  *
  * Backed by a `Set` per event key, so re-adding the same callback is a no-op
- * (dedup), and `emit` iterates the live Set in insertion order — matching the
+ * (dedup), and `emit` iterates the live Set in insertion order, matching the
  * hand-rolled `Set`-based listener fields it replaces.
  */
 /**
- * Internal storage type — listeners are stored type-erased and re-narrowed at
+ * Internal storage type: listeners are stored type-erased and re-narrowed at
  * the `on`/`emit` boundary, where the public generics enforce correctness.
  */
 type AnyListener = (...args: unknown[]) => void;

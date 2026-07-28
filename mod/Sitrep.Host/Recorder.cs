@@ -11,7 +11,7 @@ namespace Sitrep.Host
     /// timeline from it: <see cref="Tick"/> captures <see cref="IKspHost.Sample"/>
     /// as a snapshot entry (stamped with <see cref="IKspHost.NowUt"/>), and a
     /// subscription to <see cref="IKspHost.Lifecycle"/> captures every event as
-    /// it fires — both appended to <see cref="Session"/> in the exact order
+    /// it fires: both appended to <see cref="Session"/> in the exact order
     /// they occur, matching <see cref="RecordedSession"/>'s "interleaved
     /// exactly as captured" contract. <see cref="ToBytes"/>/<see cref="Save"/>
     /// serialize the session via <see cref="RecordedSessionCodec"/> for a
@@ -72,7 +72,7 @@ namespace Sitrep.Host
         /// <see cref="IKspHost.Sample"/> itself. This is the Track C fix:
         /// the recorder is a dev-capture tool and must record every
         /// UT-cadence tick UNCONDITIONALLY, regardless of whether any client
-        /// is subscribed to the live stream — subscription-gating applies
+        /// is subscribed to the live stream, subscription-gating applies
         /// only to that stream (see <c>Gonogo.KSP.GonogoBodiesServer</c>),
         /// never to this method. The caller (<c>GonogoAddon.FixedUpdate</c>)
         /// samples the host exactly ONCE per cadence tick and hands the same
@@ -120,7 +120,7 @@ namespace Sitrep.Host
             return Encoding.UTF8.GetBytes(json);
         }
 
-        /// <summary>Writes <see cref="Session"/> to <paramref name="path"/> as UTF-8 JSON — the file a <see cref="ReplayKspHost"/> loads back.</summary>
+        /// <summary>Writes <see cref="Session"/> to <paramref name="path"/> as UTF-8 JSON, the file a <see cref="ReplayKspHost"/> loads back.</summary>
         public void Save(string path)
         {
             File.WriteAllBytes(path, ToBytes());

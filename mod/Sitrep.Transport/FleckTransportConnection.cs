@@ -43,8 +43,8 @@ namespace Sitrep.Transport
         public string Id { get; }
 
         // Early-message buffer (fixes a genuine drop race, not just a test
-        // flake): Fleck wires OnMessage/OnBinary in this ctor — which runs
-        // during the handshake, BEFORE the connection's OnOpen fires — but the
+        // flake): Fleck wires OnMessage/OnBinary in this ctor, which runs
+        // during the handshake, BEFORE the connection's OnOpen fires, but the
         // engine only attaches its MessageReceived handler from OnOpen
         // (ChannelEngine.OnClientConnected). A client that sends its first
         // frame (e.g. a Subscribe) the instant its handshake completes can
@@ -124,7 +124,7 @@ namespace Sitrep.Transport
             }
 
             // TrySend is synchronous-handoff by design (callers are not expected
-            // to await a per-message Task) — but the actual Fleck Send() only
+            // to await a per-message Task): but the actual Fleck Send() only
             // ever runs one-at-a-time below, never overlapping, regardless of
             // how many TrySend calls land back-to-back before the first
             // completes.
@@ -137,8 +137,8 @@ namespace Sitrep.Transport
         }
 
         /// <summary>
-        /// Sends exactly one queued buffer via the underlying socket, then — once
-        /// that send's Task completes (success or fault) — recurses to send the
+        /// Sends exactly one queued buffer via the underlying socket, then, once
+        /// that send's Task completes (success or fault), recurses to send the
         /// next queued buffer, if any. This is what guarantees at most one Fleck
         /// <c>Send</c> is ever in flight for this connection at a time.
         /// </summary>
@@ -173,7 +173,7 @@ namespace Sitrep.Transport
                 // available" guard in WebSocketConnection.Send) has already
                 // torn the connection down and raised OnClose/Closed
                 // synchronously above this call. There is no Task to chain
-                // off of and nothing further worth sending — stop the chain
+                // off of and nothing further worth sending, stop the chain
                 // here instead of calling .ContinueWith on null (the
                 // unhandled-NRE bug this replaces).
                 lock (_sendLock)
@@ -197,7 +197,7 @@ namespace Sitrep.Transport
         public void Close(ushort code, string reason)
         {
             // Fleck's close frame only carries a status code (see
-            // Vendor/Fleck/WebSocketConnection.cs Close(int)) — there is no wire
+            // Vendor/Fleck/WebSocketConnection.cs Close(int)): there is no wire
             // path for a reason string, so `reason` is accepted for seam-interface
             // symmetry but intentionally not transmitted.
             _socket.Close(code);
@@ -209,7 +209,7 @@ namespace Sitrep.Transport
             // socket write completes), so a zero-copy alias back to the caller's
             // backing array would let a caller that reuses/mutates its buffer right
             // after TrySend returns (the expected pattern on the telemetry hot path)
-            // corrupt bytes still in flight. Correctness first — a zero-copy path
+            // corrupt bytes still in flight. Correctness first, a zero-copy path
             // would require holding the buffer until the send Task completes.
             var copy = new byte[segment.Count];
             Buffer.BlockCopy(segment.Array!, segment.Offset, copy, 0, segment.Count);

@@ -21,7 +21,7 @@ export interface ProjectedOrbit {
   apoapsis: number;
   periapsis: number;
   /**
-   * Optional — argument of periapsis of the projected orbit. Defaults to
+   * Optional: argument of periapsis of the projected orbit. Defaults to
    * the main orbit's argPe, which is correct for burns at an apsis (the
    * line of apsides is preserved).
    */
@@ -31,11 +31,11 @@ export interface ProjectedOrbit {
 /**
  * Interactive maneuver handles rendered at the burn point. Prograde +
  * radial ΔV are draggable along their axes; normal is out-of-plane so
- * we can't meaningfully render it in a 2-D diagram — the call site
+ * we can't meaningfully render it in a 2-D diagram, the call site
  * keeps a numeric input for that.
  *
  * The prograde axis is the tangent to the orbit (perpendicular-to-radius
- * approximation — exact at apsides, within a few degrees off-apsis for
+ * approximation: exact at apsides, within a few degrees off-apsis for
  * low-eccentricity orbits, good enough for visual preview).
  */
 export interface ManeuverHandleProps {
@@ -62,7 +62,7 @@ export interface OrbitDiagramProps {
   trueAnomaly: number;
   /** Argument of periapsis in degrees (rotates the ellipse in-plane). */
   argPe: number;
-  /** Whether the vessel is in a stable orbit — drives trajectory colour. Defaults to true. */
+  /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
   isOrbiting?: boolean;
   /** Body physical radius in same units as apoapsis/periapsis. */
   bodyRadius?: number;
@@ -96,7 +96,7 @@ export interface OrbitDiagramProps {
   /**
    * Atmosphere depth in the same units as `bodyRadius`. When provided,
    * a soft radial gradient extends from the body's surface up to the
-   * top of the atmosphere — a thin band the operator can use to gauge
+   * top of the atmosphere: a thin band the operator can use to gauge
    * where the orbit is relative to the air. Defaults to no band.
    */
   atmosphereDepthM?: number | null;
@@ -150,7 +150,7 @@ export function OrbitDiagram({
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
-  // Hyperbolic orbits — Telemachus emits `sma < 0` and `ecc ≥ 1` on
+  // Hyperbolic orbits: Telemachus emits `sma < 0` and `ecc ≥ 1` on
   // escape trajectories. The ellipse representation collapses (negative
   // rx + zero ry from b = sma·√(1-e²) when e²>1) so we render a sampled
   // hyperbolic path instead. Apoapsis is meaningless on a hyperbola so
@@ -163,7 +163,7 @@ export function OrbitDiagram({
     ? secondaryProjected.ecc >= 1 || secondaryProjected.sma <= 0
     : false;
 
-  // Orbital geometry — semi-minor axis and focus offset
+  // Orbital geometry: semi-minor axis and focus offset
   const b = sma * Math.sqrt(Math.max(0, 1 - ecc * ecc));
   const c = sma * ecc;
 
@@ -174,7 +174,7 @@ export function OrbitDiagram({
   const projC = projected ? projected.sma * projected.ecc : 0;
   const projArgPe = projected?.argPe ?? argPe;
 
-  // Secondary projected geometry — same derivation as `projected`.
+  // Secondary projected geometry: same derivation as `projected`.
   const sec2B = secondaryProjected
     ? secondaryProjected.sma *
       Math.sqrt(
@@ -188,7 +188,7 @@ export function OrbitDiagram({
 
   // Scale reference: expand to contain whichever orbit reaches furthest.
   // For hyperbolic trajectories, apoapsis is meaningless (Telemachus
-  // emits a huge sentinel — using it would zoom the diagram out to
+  // emits a huge sentinel: using it would zoom the diagram out to
   // dwarf the body); fall back to a multiple of periapsis so the
   // trajectory + body have visual breathing room.
   const HYPERBOLIC_SCALE = 5;
@@ -238,12 +238,12 @@ export function OrbitDiagram({
   // sub-orbital trajectories (apoapsis << bodyRadius) into a body-dot
   // that sat inside its own orbit and hid the "ship will crash" cue.
   // With render order orbit-then-body, the body naturally occludes any
-  // orbit segment that crosses through it — for normal orbits the
+  // orbit segment that crosses through it: for normal orbits the
   // orbit shows as a ring around the body, for sub-orbital the orbit
   // disappears into the body indicating impact.
   //
   // Floor at 4% of scaleRef so highly-eccentric orbits (apoapsis ≫
-  // bodyRadius — e.g. Kerbin 600 km against a 7 Mm Ap puts the body at
+  // bodyRadius: e.g. Kerbin 600 km against a 7 Mm Ap puts the body at
   // <2% of the visible extent) still render a visible body. This
   // exaggerates proportions in the corner case but the alternative is
   // a body that's literally invisible.
@@ -260,7 +260,7 @@ export function OrbitDiagram({
   // for orbits with non-zero argPe (the old code used apoapsis/b
   // directly, which is only correct at argPe=0). Including the body
   // bbox covers sub-orbital trajectories where the body is much larger
-  // than the orbit — without it, the body extends past the viewBox and
+  // than the orbit: without it, the body extends past the viewBox and
   // renders as a uniform colour across the whole frame.
   const mainBox = isHyperbolic
     ? hyperbolicBoundingBox(periapsis * HYPERBOLIC_SCALE)
@@ -305,7 +305,7 @@ export function OrbitDiagram({
   const r = trueAnomalyToRadius(sma, ecc, trueAnomaly);
   const { x: vx, y: vy } = orbitalToCartesian(r, trueAnomaly);
 
-  // Rotated marker positions in SVG world space — used so labels and the
+  // Rotated marker positions in SVG world space, used so labels and the
   // hover tooltip stay axis-aligned (they previously lived inside the
   // rotation group and read sideways at large argPe).
   const argPeRad = (argPe * Math.PI) / 180;
@@ -317,7 +317,7 @@ export function OrbitDiagram({
   const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
   // Apsis labels are sized in CSS pixels (~8% of the smaller container,
   // clamped). We CAN'T just multiply by vbPerPx onto the `font-size`
-  // attribute — browsers clamp computed font-size to 5000 px, which
+  // attribute: browsers clamp computed font-size to 5000 px, which
   // for our viewBoxes (often millions of user units wide) means the
   // attribute saturates and the text renders at ~1 actual pixel. Fix
   // is in ApsisLabel: it counter-scales via a parent `<g scale>` so
@@ -357,7 +357,7 @@ export function OrbitDiagram({
         role="img"
         aria-label="Orbital diagram"
       >
-        {/* Projected orbit (behind) — dashed, amber to contrast with the
+        {/* Projected orbit (behind): dashed, amber to contrast with the
           green "current" trajectory. Drawn before the current orbit so
           the live trajectory stays visually dominant. */}
         {projected && (
@@ -389,7 +389,7 @@ export function OrbitDiagram({
           </g>
         )}
 
-        {/* Secondary projection — solid amber. Used for the "final"
+        {/* Secondary projection: solid amber. Used for the "final"
           orbit on a Hohmann transfer; the (dashed) `projected` carries
           the intermediate transfer ellipse. */}
         {secondaryProjected && (
@@ -441,7 +441,7 @@ export function OrbitDiagram({
           )}
         </g>
 
-        {/* Atmosphere band — soft radial gradient from body surface to
+        {/* Atmosphere band: soft radial gradient from body surface to
             atmosphere top. Drawn before the body disc so the body's solid
             fill occludes the inner edge. */}
         {atmosphereDepthM !== null &&
@@ -466,7 +466,7 @@ export function OrbitDiagram({
           fill={bodyColor ?? cfg.defaultBodyColor}
         />
 
-        {/* Rotation marker — a small dot near the limb that rotates as
+        {/* Rotation marker: a small dot near the limb that rotates as
             `b.rotationAngle` ticks. Rendered with a thin diameter line so
             the rotation is legible even on small body discs. Only shown
             in the "full" variant; mini-variant frames are too small for
@@ -493,7 +493,7 @@ export function OrbitDiagram({
         <g transform={`rotate(${-argPe})`}>
           {showMarkers && (
             <>
-              {/* Apoapsis is undefined on a hyperbolic trajectory — skip
+              {/* Apoapsis is undefined on a hyperbolic trajectory, skip
                   the marker rather than placing it at the sentinel value
                   Telemachus emits, which would land it off-screen and
                   point a "tab to focus" target at empty space. */}
@@ -526,7 +526,7 @@ export function OrbitDiagram({
             </>
           )}
 
-          {/* Vessel — SVG y-flipped relative to orbital frame */}
+          {/* Vessel: SVG y-flipped relative to orbital frame */}
           <circle
             cx={vx}
             cy={-vy}
@@ -620,14 +620,14 @@ function ApsisLabel({
   fill: string;
   /** Target rendered size in CSS pixels. */
   fontSizePx: number;
-  /** ViewBox-units per CSS pixel — the SVG transform's scale factor. */
+  /** ViewBox-units per CSS pixel: the SVG transform's scale factor. */
   vbPerPx: number;
   text: string;
 }>) {
   // Browsers clamp computed `font-size` to ~5000 px. We typically need
   // labels at ~30–60 actual pixels; for viewBoxes measured in millions
   // of user units, the unscaled `font-size` would have to be in the
-  // hundreds of thousands — which the browser then clamps to 5000,
+  // hundreds of thousands, which the browser then clamps to 5000,
   // which the SVG transform shrinks to ~1 actual pixel.
   //
   // Counter-scale: place the text inside a `<g>` whose scale matches
@@ -666,7 +666,7 @@ function ApsisLabel({
 }
 
 // ---------------------------------------------------------------------------
-// Bounding-box pipeline — small composable steps that drive both variants'
+// Bounding-box pipeline: small composable steps that drive both variants'
 // viewBox math. The SVG group applies rotate(-argPe) and y is flipped vs
 // the orbital frame; both transforms are linear so the projected extents
 // stay axis-aligned and we can work in a single frame.
@@ -702,7 +702,7 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
   for (let theta = -180; theta <= 180; theta += 2) {
     const r = trueAnomalyToRadius(a, ecc, theta);
     if (!Number.isFinite(r) || r <= 0 || r > rMax) {
-      // Discontinuity / clipped — emit a path break so we don't draw a
+      // Discontinuity / clipped: emit a path break so we don't draw a
       // straight line across the missing arc.
       if (points.length > 0 && !points[points.length - 1].startsWith("__")) {
         points.push("__BREAK__");
@@ -712,7 +712,7 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
     const { x, y } = orbitalToCartesian(r, theta);
     points.push(`${x.toFixed(1)},${(-y).toFixed(1)}`);
   }
-  // Build path segments — each consecutive run of points becomes one
+  // Build path segments: each consecutive run of points becomes one
   // `M ... L ...` chain; `__BREAK__` tokens split runs.
   const segments: string[] = [];
   let current: string[] = [];
@@ -810,7 +810,7 @@ function toViewBox(box: BBox): { x: number; y: number; w: number; h: number } {
 }
 
 // ---------------------------------------------------------------------------
-// Maneuver handles — rendered inside the rotated <g> above so callers feed
+// Maneuver handles: rendered inside the rotated <g> above so callers feed
 // positions in the orbital plane (periapsis on +x, +y north) and we handle
 // the SVG y-flip at the edges.
 // ---------------------------------------------------------------------------
@@ -845,7 +845,7 @@ function ManeuverHandles({
   );
 
   // Prograde direction ≈ tangent to the orbit (perpendicular to radius,
-  // CCW). Exact at apsides; off by γ otherwise — close enough for a
+  // CCW). Exact at apsides; off by γ otherwise, close enough for a
   // drag gesture whose precision comes from the numeric readout.
   const progX = -Math.sin(nuRad);
   const progY = Math.cos(nuRad);

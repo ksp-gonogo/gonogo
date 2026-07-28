@@ -6,7 +6,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="CareerCommandProvider"/>'s <c>Handle*</c> glue
-    /// against a <see cref="FakeCareerActuator"/> — proves typed args reach the
+    /// against a <see cref="FakeCareerActuator"/>: proves typed args reach the
     /// correct actuator method with the correct values (never scrambled), that
     /// an empty/whitespace id is rejected as <see cref="CommandErrorCode.NotFound"/>
     /// before the actuator is ever called, and that the actuator's own typed

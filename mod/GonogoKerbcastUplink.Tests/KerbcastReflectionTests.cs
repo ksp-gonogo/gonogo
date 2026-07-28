@@ -6,7 +6,7 @@ namespace GonogoKerbcastUplink.Tests;
 /// <summary>
 /// The arm's-length reflection surface onto kerbcast. This code is the LICENCE
 /// BOUNDARY (kerbcast is CC-BY-NC-SA-4.0, so it must never be linked), and it
-/// is designed to fail soft — which means a broken probe reads exactly like a
+/// is designed to fail soft, which means a broken probe reads exactly like a
 /// missing mod unless something pins it. These pin it.
 /// </summary>
 public class KerbcastReflectionTests
@@ -38,7 +38,7 @@ public class KerbcastReflectionTests
     [Fact]
     public void ReportsAReason_WhenTheAssemblyLacksKerbcastsSurface()
     {
-        // An assembly with no Kerbcast.KerbcastControl at all — stands in for a
+        // An assembly with no Kerbcast.KerbcastControl at all, stands in for a
         // kerbcast version whose surface moved. Must degrade to a REASON, not a
         // throw and not silence.
         var kerbcast = KerbcastReflection.ForAssembly(typeof(string).Assembly);
@@ -103,7 +103,7 @@ public class KerbcastReflectionTests
         Assert.Equal(135.0, view.PanYawMax);
         Assert.Equal(-45.0, view.PanPitchMin);
         Assert.Equal(60.0, view.PanPitchMax);
-        // The Part handle must survive as an opaque object — it is what the
+        // The Part handle must survive as an opaque object, it is what the
         // docking detector reads ModuleDockingNode off in-game.
         Assert.Same(part, view.Part);
     }
@@ -142,7 +142,7 @@ public class KerbcastReflectionTests
     [Fact]
     public void CommandsFailSoft_WhenTheSurfaceIsMissing()
     {
-        // No KerbcastControl on this assembly — must return false, never throw.
+        // No KerbcastControl on this assembly: must return false, never throw.
         var kerbcast = KerbcastReflection.ForAssembly(typeof(string).Assembly);
 
         Assert.False(kerbcast.SetFov(1u, 50f));

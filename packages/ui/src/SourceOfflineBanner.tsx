@@ -16,7 +16,7 @@ export interface SourceOfflineBannerProps {
 /**
  * Inline banner listing data / stream sources that have been disconnected
  * or erroring long enough to surface. Designed to be placed inside the
- * shared `<BannerStack />` in the bottom-right corner — no fixed
+ * shared `<BannerStack />` in the bottom-right corner, no fixed
  * positioning of its own. Renders nothing when `entries` is empty.
  */
 export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {

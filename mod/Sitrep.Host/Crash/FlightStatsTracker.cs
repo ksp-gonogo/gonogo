@@ -6,7 +6,7 @@ namespace Sitrep.Host.Crash
 {
     /// <summary>
     /// Accumulates the running per-flight statistics + timestamped event log a
-    /// crash record carries (<see cref="FlightStats"/>, <c>events[]</c>) — the
+    /// crash record carries (<see cref="FlightStats"/>, <c>events[]</c>): the
     /// equivalent of the per-flight tracker the Telemachus fork kept. Pure and
     /// KSP-free: the KSP-facing producer reads the live active vessel on the
     /// main thread each sample tick and feeds plain scalars in here, so the
@@ -19,7 +19,7 @@ namespace Sitrep.Host.Crash
     ///
     /// <para>Distances (<see cref="FlightStats.TotalDistance"/> /
     /// <see cref="FlightStats.GroundDistance"/>) are integrated from the
-    /// per-tick surface speed over the elapsed UT — approximate at the sample
+    /// per-tick surface speed over the elapsed UT, approximate at the sample
     /// cadence, honest enough for a post-crash summary.</para>
     /// </summary>
     public sealed class FlightStatsTracker

@@ -22,7 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANHeightGrid } from "../schema";
 import { ALTIMETRY_LAYER_ID } from "./AltimetryBase";
 // Importing the real module (not a throwaway test double) runs its
-// module-load `registerAugment(...)` exactly once — same convention as
+// module-load `registerAugment(...)` exactly once: same convention as
 // FootprintOverlay/index.test.tsx and CoveragePanel/index.test.tsx.
 import "./AltimetryBase";
 import { BASE_LAYER_CANVAS_H, BASE_LAYER_CANVAS_W } from "./paintTile";
@@ -96,13 +96,13 @@ function renderSlot(ui: ReactElement) {
   return result;
 }
 
-describe("AltimetryBase — map-view.base slot", () => {
+describe("AltimetryBase: map-view.base slot", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
   // Shared across every getContext("2d") call in a test (mirrors a real
   // canvas: repeated getContext calls on the same element return the same
-  // logical context) — a fresh object literal per call, as FootprintOverlay's
+  // logical context): a fresh object literal per call, as FootprintOverlay's
   // test used, would silently make later `canvas.getContext("2d")` calls in
   // the test body return an empty, disconnected recorder.
   let paintCalls: string[];
@@ -201,7 +201,7 @@ describe("AltimetryBase — map-view.base slot", () => {
     const onLayer = vi.fn();
     const { transport } = mountWithAvailability(
       // Deliberately a very different "viewport size" from the fixed paint
-      // resolution — proves the canvas allocation ignores ctx.width/height.
+      // resolution: proves the canvas allocation ignores ctx.width/height.
       baseLayerProps({ onLayer, width: 321, height: 111 }),
     );
     act(() => {

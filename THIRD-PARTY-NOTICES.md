@@ -1,7 +1,7 @@
 # Third-Party Notices
 
 The gonogo/Sitrep telemetry mod integrates with several third-party KSP mods.
-gonogo/Sitrep does not bundle or redistribute their binaries — these notices
+gonogo/Sitrep does not bundle or redistribute their binaries, these notices
 cover the mods' own licenses, retained here because Sitrep's Uplink
 integrations reference their data formats, wire protocols, or (in kOS's
 case) link directly against their assemblies.
@@ -10,7 +10,7 @@ case) link directly against their assemblies.
 
 - **Integration:** the kOS Uplink links `kOS.Safe`/`kOS` directly to run
   Sitrep telemetry scripts on a vessel's kOS CPU (see `mod/GonogoKosUplink/`).
-  This direct link is why `GonogoKosUplink` — and only `GonogoKosUplink` — is licensed
+  This direct link is why `GonogoKosUplink`, and only `GonogoKosUplink`: is licensed
   **GPL-3.0-only**: kOS is GPLv3-only, and linking a GPLv3-only work requires
   the linking work to be GPLv3-compatible. `GonogoKosUplink` is a dependency leaf
   (nothing references it), so that obligation propagates no further; the rest
@@ -29,7 +29,7 @@ case) link directly against their assemblies.
   to stream `scansat.*` channels, replacing the earlier Telemachus-fork
   `scan.*` keys that gonogo's MapView / Scanning widgets consumed. It also
   replicates small public-input formulas from SCANsat's source (`getFOV`,
-  `getElevation`/`getBiomeIndex` sampling conventions — see
+  `getElevation`/`getBiomeIndex` sampling conventions: see
   `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E).
   `GonogoScansatUplink.dll` is **GPL-3.0-only, provisionally and on hold**:
   SCANsat's repository LICENSE.txt is 3-clause BSD (permissive) but its
@@ -38,7 +38,7 @@ case) link directly against their assemblies.
   the SCANsat stewards; until it is resolved this uplink is not relicensed to
   MIT with the rest of gonogo. Full rationale in
   `mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`.
-- **License:** 3-clause BSD (plus separately-licensed assets — see full
+- **License:** 3-clause BSD (plus separately-licensed assets: see full
   notice for CC0 science text, Apache-2.0 ColorBrewer palettes, and
   CC-BY-SA-4.0 additional color schemes/contract pack, all bundled
   unmodified within SCANsat itself, not by gonogo).
@@ -82,7 +82,7 @@ third-party library notices): `local_docs/reference/scansat/LICENSE.txt`.
 - **Integration:** treated as a first-class comms provider alongside
   RemoteTech in Sitrep's comms/delay model (see
   `local_docs/telemetry-mod/spec-streaming-delay-model.md` and
-  `project_new_mod_comms_remotetech` design notes) — Sitrep reads
+  `project_new_mod_comms_remotetech` design notes): Sitrep reads
   RealAntennas' link/delay state to drive signal-loss and light-delay
   telemetry. No RealAntennas code is linked into gonogo or Sitrep.
 - **License:** Creative Commons Attribution-ShareAlike 4.0 International
@@ -99,19 +99,19 @@ third-party library notices): `local_docs/reference/scansat/LICENSE.txt`.
 A scan of `package.json` (npm workspaces) and the `mod/*.csproj` files
 (NuGet) on 2026-07-17 found **no copyleft dependencies** in the production
 tree. `pnpm licenses list --prod` returns only MIT / ISC / BSD-3-Clause /
-Apache-2.0 / OFL-1.1 — no GPL, LGPL, AGPL or MPL anywhere. The only non-BCL
+Apache-2.0 / OFL-1.1: no GPL, LGPL, AGPL or MPL anywhere. The only non-BCL
 NuGet dependency, `Reinforced.Typings` (MIT, compile-time-only codegen tool
 scoped to `Sitrep.Contract`'s netstandard2.0 build via `PrivateAssets="all"`),
 is not shipped at all.
 
 `kOS` is the single copyleft thing gonogo links, and only `GonogoKosUplink` links
-it. Every other package and assembly is MIT, so third-party Uplinks — whether
+it. Every other package and assembly is MIT, so third-party Uplinks, whether
 they reference the C# contract or the TypeScript `ui-kit` / `core` / `sitrep-sdk`
-surface — need only comply with MIT's terms (retain the copyright/permission
+surface: need only comply with MIT's terms (retain the copyright/permission
 notice), regardless of the Uplink's own license (GPL, proprietary, ARR, etc.).
 See `LICENSING.md`.
 
-**Known exception — CC-BY-NC-SA-4.0 in the shipped SPA bundle.** The app
+**Known exception: CC-BY-NC-SA-4.0 in the shipped SPA bundle.** The app
 depends on `@ksp-gonogo/kerbcast` and `@ksp-gonogo/kerbcast-react` (the
 kerbcast camera client SDKs, first-party, sibling repo), which are currently
 CC-BY-NC-SA-4.0. The NonCommercial clause means the *built SPA bundle* is not

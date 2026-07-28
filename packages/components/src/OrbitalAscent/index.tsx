@@ -10,7 +10,7 @@ import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 
 export interface OrbitalAscentConfig {
-  /** Seconds of trace history retained. Default 600 (10 min — typical ascent). */
+  /** Seconds of trace history retained. Default 600 (10 min, typical ascent). */
   windowSec?: number;
   /** Override the auto-derived altitude ceiling for the reference curve (metres). */
   altitudeCeiling?: number;
@@ -23,8 +23,8 @@ const REFERENCE_SAMPLES = 60;
  * extend at least as high as a typical parking orbit so the live trace stays
  * within the plot, with a small headroom margin.
  *
- * Atmospheric bodies — 1.5× the atmosphere ceiling (Kerbin: 105 km).
- * Airless bodies   — max(20% of radius, 30 km) (Mun: 40 km, Minmus: 30 km).
+ * Atmospheric bodies: 1.5× the atmosphere ceiling (Kerbin: 105 km).
+ * Airless bodies  : max(20% of radius, 30 km) (Mun: 40 km, Minmus: 30 km).
  */
 function defaultCeiling(body: BodyDefinition): number {
   if (body.hasAtmosphere) return body.maxAtmosphere * 1.5;
@@ -58,14 +58,14 @@ function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
   // Body name reads straight off the client-derived `vessel.state` channel
-  // (`parentBodyName`, an index→name display map — see `map-topic.ts`), so no
+  // (`parentBodyName`, an index→name display map: see `map-topic.ts`), so no
   // Telemachus read-fallback is relied on for this read. The two plotted
   // series (`v.altitude` / `v.horizontalVelocity`) are consumed only via the
   // shared `GraphView` → `useDataSeries` path; both map to DERIVED
   // `vessel.state.*` channels, which have a live value but NO buffered
   // history, so `useDataSeries` structurally serves their windowed series off
   // the legacy path (`TimelineStore.sampleRange` returns `undefined` for a
-  // derived topic — see that hook's doc). That is a shared-infra property,
+  // derived topic: see that hook's doc). That is a shared-infra property,
   // not a gap in this widget.
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const body = bodyName ? getBody(bodyName) : undefined;
@@ -78,7 +78,7 @@ function OrbitalAscentComponent({
     return buildReferenceCurve(body, ceiling);
   }, [body, config?.altitudeCeiling]);
 
-  // Locked Graph config — phase-space plot of horizontal velocity vs altitude.
+  // Locked Graph config: phase-space plot of horizontal velocity vs altitude.
   // The user can't reconfigure axes here; that's the point of a preset widget.
   const graphConfig: GraphConfig = useMemo(
     () => ({
@@ -109,12 +109,12 @@ function OrbitalAscentComponent({
       />
       {showNoGmNotice && body && (
         <Notice role="status">
-          No reference data for {body.name} — plotting trace only.
+          No reference data for {body.name}: plotting trace only.
         </Notice>
       )}
       {showNoBodyNotice && (
         <Notice role="status">
-          Unknown body “{bodyName}” — plotting trace only.
+          Unknown body “{bodyName}”: plotting trace only.
         </Notice>
       )}
     </Wrap>

@@ -3,7 +3,7 @@
  *
  * jsdom omits several browser APIs that our widgets call at mount time. The
  * options are either to crash, to gate every caller behind `typeof`, or to
- * stub here once — stubbing wins. Each shim is idempotent so setup files can
+ * stub here once: stubbing wins. Each shim is idempotent so setup files can
  * call `installDomStubs()` unconditionally.
  */
 export function installDomStubs(): void {
@@ -35,7 +35,7 @@ export function installDomStubs(): void {
   // jsdom inherits Node's built-in `WebSocket` (undici-backed). Production
   // code paths that auto-connect on mount (Telemachus, kOS) end up opening
   // real sockets against localhost during tests, then crashing on a Node
-  // 24 × undici 7 incompatibility — undici fires events whose `Event` class
+  // 24 × undici 7 incompatibility: undici fires events whose `Event` class
   // doesn't satisfy Node's stricter `EventTarget.dispatchEvent` validator
   // ("The 'event' argument must be an instance of Event. Received an
   // instance of Event"). Replace with a no-op EventTarget so unintended
@@ -133,7 +133,7 @@ function installNoopWebSocket(): void {
       this.readyState = 3;
     }
   }
-  // Cast through unknown — the structural shape matches the WebSocket
+  // Cast through unknown: the structural shape matches the WebSocket
   // global closely enough for any consumer that reaches into it.
   (globalThis as unknown as { WebSocket: unknown }).WebSocket = NoopWebSocket;
 }

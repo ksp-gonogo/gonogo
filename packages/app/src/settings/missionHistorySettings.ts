@@ -11,7 +11,7 @@ registerSetting({
   type: "boolean",
   label: "Record mission history",
   description:
-    "Lets the Flight History panel record the live stream as a replayable mission. Subscription-scoped by default — it only captures the topics your dashboard already carries, so this is cheap to leave on.",
+    "Lets the Flight History panel record the live stream as a replayable mission. Subscription-scoped by default, it only captures the topics your dashboard already carries, so this is cheap to leave on.",
   category: "Mission History",
   defaultValue: true,
   screens: ["main"],
@@ -34,7 +34,7 @@ registerSetting({
   type: "boolean",
   label: "Record camera video with missions",
   description:
-    "Captures the connected camera feed alongside telemetry, synchronized for replay. Not yet implemented — this toggle reserves the setting for that fast-follow.",
+    "Captures the connected camera feed alongside telemetry, synchronized for replay. Not yet implemented, this toggle reserves the setting for that fast-follow.",
   category: "Mission History",
   defaultValue: false,
   screens: ["main"],
@@ -43,15 +43,15 @@ registerSetting({
 
 export interface MissionHistorySettings {
   missionHistoryEnabled: boolean;
-  /** Already AND-combined with `missionHistoryEnabled` — inert (always `false`) whenever history itself is off, regardless of its own stored value. */
+  /** Already AND-combined with `missionHistoryEnabled`: inert (always `false`) whenever history itself is off, regardless of its own stored value. */
   recordAllTopics: boolean;
-  /** Already AND-combined with `missionHistoryEnabled` — see `recordAllTopics`. */
+  /** Already AND-combined with `missionHistoryEnabled`: see `recordAllTopics`. */
   videoRecordingEnabled: boolean;
 }
 
 /**
  * Reactive read of all three mission-history settings, with the two
- * sub-toggles pre-combined against the master switch — callers never need
+ * sub-toggles pre-combined against the master switch: callers never need
  * to re-derive the `historyEnabled && subToggle` AND themselves (mirrors
  * `useStationWakeLock`'s own `active && enabled` combination pattern).
  */

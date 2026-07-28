@@ -3,11 +3,11 @@
  * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces: the
  * mod streams sparse orbital ELEMENTS (plus the next SOI
  * `encounter`), and the SDK reconstructs everything a widget used to read as a
- * precomputed Telemachus scalar — a post-burn maneuver preview and the
- * patched-conic chain — client-side.
+ * precomputed Telemachus scalar: a post-burn maneuver preview and the
+ * patched-conic chain: client-side.
  *
  * Everything here is deterministic and side-effect-free (no wall-clock, no
- * RNG), the same discipline as `kepler.ts` — it all bottoms out in `solve`/
+ * RNG), the same discipline as `kepler.ts`: it all bottoms out in `solve`/
  * `solveAnomalies`, so it inherits the C#-conformance the golden fixtures pin.
  * Only elliptical orbits (0 <= ecc < 1) are supported for the anomaly-based
  * pieces; `rvToElements` can emit a hyperbolic result (a post-burn escape
@@ -56,7 +56,7 @@ function normalize(a: Vector3): Vector3 {
   return m === 0 ? [0, 0, 0] : scale(a, 1 / m);
 }
 
-/** Orbital period (seconds) of an ellipse — `2π·sqrt(sma³/mu)`. `null` for a non-bound (sma ≤ 0) or non-finite orbit. */
+/** Orbital period (seconds) of an ellipse: `2π·sqrt(sma³/mu)`. `null` for a non-bound (sma ≤ 0) or non-finite orbit. */
 export function orbitalPeriod(elements: OrbitElements): number | null {
   if (elements.sma <= 0 || !Number.isFinite(elements.sma)) return null;
   const period = TWO_PI * Math.sqrt(elements.sma ** 3 / elements.mu);
@@ -78,7 +78,7 @@ export interface OsculatingElements extends OrbitElements {
 
 /**
  * Convert a parent-body-relative state vector (position + velocity, metres /
- * m/s) at `epoch` into classical elements — the inverse of `kepler.solve`,
+ * m/s) at `epoch` into classical elements: the inverse of `kepler.solve`,
  * the standard RV2COE algorithm (Vallado). Angles come out in RADIANS to
  * match `OrbitElements`. Used by `previewManeuver` to read back the orbit a
  * burn produces. Round-trips `solve` to within numerical tolerance (see
@@ -185,7 +185,7 @@ export interface ManeuverBurn {
 }
 
 /**
- * The orbit a burn produces — the consumer-side post-burn preview the
+ * The orbit a burn produces: the consumer-side post-burn preview the
  * `VesselManeuver` contract doc ("derived, SDK-side, NOT streamed") calls
  * for, replacing Telemachus's arg-order-footgun `[x,y,z]` tuple + streamed
  * preview (old `o.maneuverNodes`).
@@ -253,7 +253,7 @@ export function previewManeuver(
 
 // ── patched-conic chain reconstruction ──────────────────────────────────────
 
-/** A next-SOI transition boundary — the SDK mirror of `vessel.orbit.encounter`. */
+/** A next-SOI transition boundary: the SDK mirror of `vessel.orbit.encounter`. */
 export interface PatchEncounter {
   /** `Sitrep.Contract.TransitionType` ordinal. */
   transitionType: number;
@@ -269,7 +269,7 @@ export interface OrbitPatch {
   referenceBodyIndex: number;
   /** UT the patch begins (seconds). */
   startUt: number;
-  /** UT the patch ends — the encounter UT, or `startUt + period` for a full closed orbit; `null` if the period is undefined. */
+  /** UT the patch ends: the encounter UT, or `startUt + period` for a full closed orbit; `null` if the period is undefined. */
   endUt: number | null;
   /** The conic's own elements. */
   elements: OrbitElements;
@@ -293,7 +293,7 @@ export interface BuildPatchesOptions {
 
 /**
  * Reconstruct the patched-conic chain client-side from streamed elements +
- * the next `encounter` — replacing the old `o.orbitPatches` capture (stream
+ * the next `encounter`: replacing the old `o.orbitPatches` capture (stream
  * elements + encounter, SDK reconstructs the chain; no mod capture of the
  * full chain).
  *
@@ -302,7 +302,7 @@ export interface BuildPatchesOptions {
  * current orbit, sampled from `startUt` either to the encounter UT (an arc
  * terminated at the SOI boundary) or, with no encounter, over one full
  * period (a closed ellipse). The post-encounter conic's elements aren't on
- * the wire, so the chain does not fabricate a second patch — it carries the
+ * the wire, so the chain does not fabricate a second patch, it carries the
  * transition as `endTransition` so a widget can annotate the boundary.
  */
 export function buildOrbitPatches(

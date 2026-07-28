@@ -36,7 +36,7 @@ import { UplinkHubWizard } from "./UplinkHubWizard";
  * Proves the wizard's UI wiring: it drives `useUplinkGap` for real (a live
  * `system.uplinks` WS stream + an MSW-intercepted registry fetch, same
  * boundary `useUplinkGap.integration.test.tsx` already uses) rather than
- * mocking the hook, and only mocks `loadUplinkById` — the loader's own
+ * mocking the hook, and only mocks `loadUplinkById`, the loader's own
  * gate/consent/verify/import sequence is exhaustively covered by
  * `loader.test.ts` and re-testing it here would just duplicate that
  * coverage against a slower, harder-to-fail-cleanly boundary (a real bundle
@@ -85,8 +85,8 @@ function streamFrame(topic: string, payload: unknown): string {
 }
 
 /**
- * A fixture shaped like `packages/app/src/dataSources/sitrep.ts`'s singleton
- * — same id/name production uses — so `SetupAssistStep`'s embedded
+ * A fixture shaped like `packages/app/src/dataSources/sitrep.ts`'s singleton,
+ * same id/name production uses, so `SetupAssistStep`'s embedded
  * `SitrepConnection` has something to render.
  */
 function makeSitrepStub(): DataSource {
@@ -118,7 +118,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 /**
- * Registers the WS connection listener BEFORE mounting — `SitrepTelemetryProvider`
+ * Registers the WS connection listener BEFORE mounting, `SitrepTelemetryProvider`
  * opens its socket as soon as the wrapper mounts (not when the Results step
  * first subscribes), so a listener added after `render()` would miss the
  * connection.
@@ -162,7 +162,7 @@ async function emitRoster(
   wsClients[0]?.send(streamFrame("system.uplinks", { uplinks }));
 }
 
-describe("UplinkHubWizard — setup-assist step", () => {
+describe("UplinkHubWizard: setup-assist step", () => {
   it("shows the setup-assist step first, embedding SitrepConnection", () => {
     renderWizard();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
@@ -172,7 +172,7 @@ describe("UplinkHubWizard — setup-assist step", () => {
   });
 });
 
-describe("UplinkHubWizard — results step", () => {
+describe("UplinkHubWizard: results step", () => {
   it("shows a checking state until the roster resolves, never flashing a wrong state", async () => {
     serveRegistry({ uplinks: [] });
     const { wsClients } = renderWizard();
@@ -191,7 +191,7 @@ describe("UplinkHubWizard — results step", () => {
   it("renders one row per resolved gap state with the matching affordance", async () => {
     // `computeUplinkGap` names a row from the Hub descriptor when one exists,
     // falling back to the raw id otherwise (`useUplinkGap.test.ts` already
-    // covers that fallback) — "widget-loaded" has no Hub descriptor here, so
+    // covers that fallback): "widget-loaded" has no Hub descriptor here, so
     // the row is named "widget-loaded", not this outcome's `name` field.
     setUplinkOutcome({
       id: "widget-loaded",
@@ -290,7 +290,7 @@ describe("UplinkHubWizard — results step", () => {
   });
 });
 
-describe("UplinkHubWizard — Load action", () => {
+describe("UplinkHubWizard: Load action", () => {
   async function setUpLoadableRow() {
     serveRegistry({
       uplinks: [
@@ -383,7 +383,7 @@ describe("UplinkHubWizard — Load action", () => {
   });
 });
 
-describe("UplinkHubWizard — accessibility", () => {
+describe("UplinkHubWizard: accessibility", () => {
   it("has no axe violations on the setup-assist step", async () => {
     const { container } = renderWizard();
     expect(await axe(container)).toHaveNoViolations();
@@ -403,7 +403,7 @@ describe("UplinkHubWizard — accessibility", () => {
   });
 });
 
-describe("UplinkHubWizard — firstRun bookends (Welcome/Done)", () => {
+describe("UplinkHubWizard: firstRun bookends (Welcome/Done)", () => {
   it("starts on Welcome, not Setup, when firstRun is true", () => {
     renderWizard({ firstRun: true });
     expect(

@@ -10,7 +10,7 @@ namespace Sitrep.Core.Serialization
     /// <c>Sitrep.Contract</c> (<see cref="Meta"/>, <c>StreamData&lt;object?&gt;</c>,
     /// <c>CommandResponse&lt;object?&gt;</c>, <see cref="EventMsg"/>,
     /// <see cref="ErrorMsg"/>, <see cref="Subscribe"/>, <see cref="Unsubscribe"/>,
-    /// <c>CommandRequest&lt;object?&gt;</c>) — no Json.NET, no
+    /// <c>CommandRequest&lt;object?&gt;</c>): no Json.NET, no
     /// System.Text.Json; see <see cref="JsonWriter"/>/<see cref="JsonReader"/>.
     ///
     /// Field order in every <c>Write*</c> method matches the TS interface
@@ -18,14 +18,14 @@ namespace Sitrep.Core.Serialization
     /// exactly (and the golden-fixture generator constructs its object
     /// literals in that same order), so the on-wire shape this produces is
     /// byte-for-byte identical to what the real TS SDK serializes for the
-    /// same message — asserted in
+    /// same message: asserted in
     /// <c>Sitrep.Core.Tests/EnvelopeSerializationGoldenFixtureTests.cs</c>
     /// against <c>mod/golden-fixtures/serialization.json</c>.
     ///
     /// Optional properties (TS <c>foo?: T</c>, C# <c>string?</c>/<c>double?</c>)
-    /// are OMITTED from the object entirely when null — matching
+    /// are OMITTED from the object entirely when null, matching
     /// <c>JSON.stringify</c>'s treatment of <c>undefined</c>-valued
-    /// properties — never written as an explicit <c>null</c>. The always-present
+    /// properties: never written as an explicit <c>null</c>. The always-present
     /// generic <c>Payload</c>/<c>Args</c>/<c>Result</c> fields are the
     /// opposite: a CLR <c>null</c> there is a real value and IS written as
     /// JSON <c>null</c>, via <see cref="JsonWriter.AppendValue"/>.

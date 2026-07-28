@@ -1,5 +1,5 @@
 // Installs the injected gonogo host as the FIRST thing the app's module graph
-// does — this module MUST be main.tsx's first import.
+// does, this module MUST be main.tsx's first import.
 //
 // The facade-sealed Uplink clients call the facade's `registerComponent` (and
 // other host-injected surface) at MODULE LOAD. A sealed client's component-
@@ -11,8 +11,8 @@
 //
 // ES `import` statements are hoisted and evaluated in source order before any
 // module-body code runs, so an `installGonogoHost()` CALL later in main.tsx
-// (however early) executes only AFTER every static import — including the one
-// that self-registers a sealed client — has already thrown. Doing the install
+// (however early) executes only AFTER every static import, including the one
+// that self-registers a sealed client: has already thrown. Doing the install
 // inside a first-imported side-effect module is the only way to guarantee the
 // host exists before any client's module body runs. This module's own imports
 // (`./host` → core/data/sitrep-client) carry no facade self-registration, so

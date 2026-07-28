@@ -4,8 +4,8 @@ const QUERY = "(pointer: coarse)";
 
 /**
  * True when the primary input is touch / stylus (phones, tablets, kiosk
- * displays). Drives interaction affordances that don't translate to touch
- * — most importantly the dashboard's drag-and-drop layout, which is
+ * displays). Drives interaction affordances that don't translate to touch,
+ * most importantly the dashboard's drag-and-drop layout, which is
  * replaced by a list-with-arrows view on coarse-pointer devices.
  *
  * Width is deliberately NOT checked: a desktop user with a half-width

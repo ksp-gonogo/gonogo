@@ -16,6 +16,7 @@ import {
   PanelTitle,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -68,7 +69,7 @@ function CurrentOrbitComponent({
   //     read off the canonical whole-`vessel.orbit` Topic.
   //   - trueAnomaly/period (+ Ap/Pe/ApR/PeR/timeToAp/timeToPe via
   //     `useOrbitElements`) and referenceBody/bodyName are SDK-derived
-  //     `vessel.state.*` fields (deriveVesselState — trueAnomaly propagated at
+  //     `vessel.state.*` fields (deriveVesselState: trueAnomaly propagated at
   //     view-UT, referenceBodyName/parentBodyName resolved index → name against
   //     `system.bodies`). `vessel.state` isn't a wire `TopicId`, so it reads
   //     through `useStream`.
@@ -105,16 +106,16 @@ function CurrentOrbitComponent({
     return () => ro.disconnect();
   }, []);
 
-  // Apoapsis is intentionally NOT required — it's `null` on a hyperbolic
+  // Apoapsis is intentionally NOT required, it's `null` on a hyperbolic
   // orbit (no apoapsis exists) by design (`VesselState.apoapsisRadius`), not
   // an error. Periapsis is always real whenever there's a resolvable orbit,
   // so it (plus sma/eccentricity) is the true "do we have an orbit" signal.
-  // `!= null` catches both `null` and `undefined` — `apoapsisR`/`periapsisR`
+  // `!= null` catches both `null` and `undefined`, `apoapsisR`/`periapsisR`
   // are `useOrbitElements`' apsis radii, which pass `null` through as-is
   // (see that hook's own doc comment).
   const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
 
-  // Selective rendering — Ap/Pe always; supplementary rows drop bottom-up
+  // Selective rendering: Ap/Pe always; supplementary rows drop bottom-up
   // as height shrinks. Diagram needs real area to be readable.
   const cols = w ?? 9;
   const rows = h ?? 18;
@@ -137,7 +138,7 @@ function CurrentOrbitComponent({
   // of content width.
   const tight = cols < 4 || rows < 5;
   // Narrow panels (3–4 cols) can't fit long values like "1000.00 Mm" or
-  // "5h 15m 00s" at the 13 px tier — they clip at the panel edge. Shrink
+  // "5h 15m 00s" at the 13 px tier, they clip at the panel edge. Shrink
   // the value font on any narrow column count, not just the `tight`
   // (small-on-both-axes) case, so compact (4×6) doesn't overflow either.
   const narrow = cols < 5;
@@ -157,20 +158,20 @@ function CurrentOrbitComponent({
         <Grid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
           <Value $accent="ap">
-            {/* Hyperbolic/escape trajectories have no apoapsis — Telemachus
+            {/* Hyperbolic/escape trajectories have no apoapsis, Telemachus
                 emits its sentinel (999999999 m) which would read as a real
                 "1000.00 Mm". Render an em-dash so the operator doesn't
                 mistake an escape trajectory for a vast bound orbit. */}
             {apoapsisA === undefined
-              ? "—"
+              ? NULL_DISPLAY
               : hyperbolic
-                ? "—"
+                ? NULL_DISPLAY
                 : formatDistance(apoapsisA)}
           </Value>
 
           <Label>Pe</Label>
           {/* Sub-surface periapsis (negative altitude) means the vessel
-              will impact terrain — promote the readout to the nogo
+              will impact terrain, promote the readout to the nogo
               alert colour so the operator notices at a glance instead
               of reading "Pe = -5 km" as just another low number. */}
           <Value
@@ -178,14 +179,18 @@ function CurrentOrbitComponent({
               periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
             }
           >
-            {periapsisA === undefined ? "—" : formatDistance(periapsisA)}
+            {periapsisA === undefined
+              ? NULL_DISPLAY
+              : formatDistance(periapsisA)}
           </Value>
 
           {showInclinationRow && (
             <>
               <Label>Inc</Label>
               <Value>
-                {inclination === undefined ? "—" : `${inclination.toFixed(1)}°`}
+                {inclination === undefined
+                  ? NULL_DISPLAY
+                  : `${inclination.toFixed(1)}°`}
               </Value>
             </>
           )}
@@ -194,14 +199,14 @@ function CurrentOrbitComponent({
             <>
               <Label>t-Ap</Label>
               <Value $accent="ap">
-                {/* On hyperbolic orbits there's no apoapsis to reach —
+                {/* On hyperbolic orbits there's no apoapsis to reach,
                     Telemachus emits 0 which reads as "arriving now" on a
                     countdown. Render an em-dash so the operator doesn't
                     mistake a hyperbolic flyby for an imminent event. */}
                 {timeToAp === undefined
-                  ? "—"
+                  ? NULL_DISPLAY
                   : hyperbolic
-                    ? "—"
+                    ? NULL_DISPLAY
                     : formatDuration(timeToAp)}
               </Value>
 
@@ -209,13 +214,13 @@ function CurrentOrbitComponent({
               <Value $accent="pe">
                 {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
                     elliptical solver degrades timeToPe to null (and a legacy
-                    0-sentinel source would read as "arriving now") — render an
+                    0-sentinel source would read as "arriving now"), render an
                     em-dash rather than a countdown. `=== undefined` alone
                     misses `null` (`null === undefined` is false). */}
                 {timeToPe === undefined || timeToPe === null
-                  ? "—"
+                  ? NULL_DISPLAY
                   : hyperbolic
-                    ? "—"
+                    ? NULL_DISPLAY
                     : formatDuration(timeToPe)}
               </Value>
             </>
@@ -225,7 +230,9 @@ function CurrentOrbitComponent({
             <>
               <Label>Ecc</Label>
               <Value>
-                {eccentricity === undefined ? "—" : eccentricity.toFixed(4)}
+                {eccentricity === undefined
+                  ? NULL_DISPLAY
+                  : eccentricity.toFixed(4)}
               </Value>
 
               <Label>T</Label>
@@ -234,9 +241,9 @@ function CurrentOrbitComponent({
                     trajectory never closes); Telemachus emits 0 which
                     is again indistinguishable from "now". */}
                 {period === undefined
-                  ? "—"
+                  ? NULL_DISPLAY
                   : hyperbolic
-                    ? "—"
+                    ? NULL_DISPLAY
                     : formatDuration(period)}
               </Value>
             </>
@@ -249,7 +256,7 @@ function CurrentOrbitComponent({
               variant="mini"
               sma={sma}
               ecc={eccentricity}
-              // `apoapsisR` is `null` on a hyperbolic orbit — OrbitDiagram
+              // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
               // already detects that itself (`ecc >= 1 || sma <= 0`) and
               // ignores this value in that branch, so the fallback below is
               // never actually rendered from.
@@ -330,7 +337,7 @@ const Grid = styled.div<{
   align-items: baseline;
   align-content: start;
   ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
-  /* Force values onto one line — at tiny widget sizes the formatted
+  /* Force values onto one line: at tiny widget sizes the formatted
      distance ("85.0 km") wraps inside the value column. Pair with the
      narrow-width font tiers below so realistic values still fit the
      ~80–120 px of content width without clipping past the panel edge. */

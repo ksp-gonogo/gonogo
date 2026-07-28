@@ -4,7 +4,7 @@
     "vessel": "Ares (LEO parking orbit)",
     "body": "Earth (RSS)",
     "situation": "700 km LEO around Earth, Mars targeted, phase AT the Hohmann ideal (GO)",
-    "notes": "Stream fixture for the Transfer Window widget — RSS Sun/Earth/Mars/Venus, coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each body's true longitude equals its meanAnomalyAtEpoch. Earth at lon 0; Mars parked at +44.3deg (the Earth->Mars Hohmann ideal) so the dial reads GO and the countdown is 'now'. Venus is a second selectable destination. Mars is the current target (target.available) so the widget seeds the destination to it. The porkchop spans a full synodic period so its Δv surface + best-cell ring render regardless of the instantaneous phase."
+    "notes": "Stream fixture for the Transfer Window widget, RSS Sun/Earth/Mars/Venus, coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each body's true longitude equals its meanAnomalyAtEpoch. Earth at lon 0; Mars parked at +44.3deg (the Earth->Mars Hohmann ideal) so the dial reads GO and the countdown is 'now'. Venus is a second selectable destination. Mars is the current target (target.available) so the widget seeds the destination to it. The porkchop spans a full synodic period so its Δv surface + best-cell ring render regardless of the instantaneous phase."
   },
   "_stream": {
     "carriedChannels": ["vessel.orbit", "system.bodies", "target.available"],

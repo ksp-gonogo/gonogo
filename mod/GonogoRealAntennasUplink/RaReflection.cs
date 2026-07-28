@@ -7,7 +7,7 @@ namespace Gonogo.RealAntennasUplink
     /// <summary>
     /// The arm's-length REFLECTION surface onto RealAntennas (comms-uplink-design.md
     /// §4.2/§4.3). NO compile-time reference to RA's assembly exists anywhere in this
-    /// project — every RA member is reached by runtime reflection against the loaded
+    /// project: every RA member is reached by runtime reflection against the loaded
     /// <c>RealAntennas</c> assembly, so the CC-BY-SA-4.0 ShareAlike boundary is never
     /// crossed (§4.1): we USE the running mod's public API, we don't INCORPORATE its
     /// code.
@@ -16,11 +16,11 @@ namespace Gonogo.RealAntennasUplink
     /// and <c>RACommLink</c> are public classes with public properties
     /// (<c>Gain</c>/<c>TxPower</c>/<c>SymbolRate</c>/<c>Frequency</c>;
     /// <c>FwdDataRate</c>/<c>RevDataRate</c>) reachable straightforwardly. Link margin
-    /// is NOT stored publicly on the live graph — it is RE-DERIVED by
+    /// is NOT stored publicly on the live graph, it is RE-DERIVED by
     /// <see cref="RaLinkBudget"/> from the public antenna props, not reflected.</para>
     ///
     /// <para>Fail-soft throughout: a missing type/member (an RA version whose surface
-    /// moved) degrades to <c>null</c>/typed absence rather than throwing — the
+    /// moved) degrades to <c>null</c>/typed absence rather than throwing, the
     /// degrade path the brief asks for if the reflection surface doesn't hold up.</para>
     /// </summary>
     public sealed class RaReflection
@@ -91,12 +91,12 @@ namespace Gonogo.RealAntennasUplink
             }
         }
 
-        /// <summary>Whether RealAntennas' assembly is loaded — the election gate (§2.2/§4.2).</summary>
+        /// <summary>Whether RealAntennas' assembly is loaded, the election gate (§2.2/§4.2).</summary>
         public bool IsAvailable => _raAssembly != null;
 
         /// <summary>
         /// Probe for the loaded RealAntennas assembly. Returns null when RA is not
-        /// installed/loaded — the caller then never registers the RA comms provider,
+        /// installed/loaded: the caller then never registers the RA comms provider,
         /// leaving CommNet vanilla to win the election.
         /// </summary>
         public static RaReflection? Probe()
@@ -119,7 +119,7 @@ namespace Gonogo.RealAntennasUplink
         /// Best-effort read of a RACommLink's forward data rate (bits/sec). A stock
         /// <c>CommNet.CommLink</c> that is really an <c>RACommLink</c> at runtime
         /// exposes this; returns null if the property is absent or the read throws
-        /// (typed absence — never 0).
+        /// (typed absence: never 0).
         /// </summary>
         public double? ForwardDataRate(object commLink) => ReadDouble(_fwdDataRate, commLink);
 

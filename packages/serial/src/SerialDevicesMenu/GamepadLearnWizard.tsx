@@ -19,26 +19,26 @@ const AXIS_ROLE_SET = new Set<GamepadRole>(STANDARD_AXIS_ROLES);
 // Button-shaped roles accept EITHER a boolean press OR an axis crossing the
 // same threshold. This is deliberately more permissive than the role's name
 // implies: nobody has measured a real non-standard (`mapping === ""`) pad
-// yet (see the Wednesday Work spec's DoD item 1 — deferred, needs real
+// yet (see the Wednesday Work spec's DoD item 1, deferred, needs real
 // hardware), and the one thing that IS known to vary across pads/platforms
 // is whether a trigger (or d-pad) is wired through the buttons array or the
 // axes array once a pad drops off the standard mapping. Accepting both
 // means the wizard still captures the right control either way, without
 // having to special-case any particular vendor. Axis-shaped roles (the
-// sticks) stay analog-only — a stick's X/Y axes are never going to arrive
+// sticks) stay analog-only: a stick's X/Y axes are never going to arrive
 // as a boolean.
 const BUTTON_SHAPED_ACCEPTS = ["button", "analog"] as const;
 const AXIS_SHAPED_ACCEPTS = ["analog"] as const;
 
 interface Props {
-  /** Only `id` and `labelPack` are read — the rest of the instance is
+  /** Only `id` and `labelPack` are read, the rest of the instance is
    *  irrelevant to walking roles. */
   device: Pick<DeviceInstance, "id" | "labelPack">;
   /** The device's current DeviceType. The wizard only ever patches `role`
    *  on a copy of `type.inputs`; `id` (the binding key) is never touched. */
   type: DeviceType;
   /** Called with the next `inputs` array every time a role is assigned or
-   *  moved, so progress survives an early close — unlike CalibrateWizard,
+   *  moved, so progress survives an early close, unlike CalibrateWizard,
    *  there's no separate "Apply" step. Skipping a role never calls this. */
   onApply: (nextInputs: DeviceInput[]) => void;
   onClose: () => void;
@@ -52,17 +52,17 @@ function axisDirectionHint(role: GamepadRole): string {
 
 /**
  * Walks `GAMEPAD_ROLES` one at a time, watching live input via
- * `service.onInput` and writing the captured `inputId`'s `role` — modelled
+ * `service.onInput` and writing the captured `inputId`'s `role`, modelled
  * on `CalibrateWizard.tsx`'s "watch the live device" pattern. Meant to be
  * opened inside a `<Modal>` (see `SerialDevicesMenu/index.tsx`'s
- * "Learn roles..." offer point) — it renders no dialog chrome of its own.
+ * "Learn roles..." offer point): it renders no dialog chrome of its own.
  *
  * Button-shaped roles (face-*, bumper-*, select/start/home, stick-*-press,
  * dpad-*) capture the FIRST input crossing `isCapturable`'s threshold, same
  * as `InputMappingTab`'s "press to bind" flow, and auto-advance. Axis-
  * shaped roles (stick-*-x/y) instead track the largest excursion seen while
- * the prompt is active — a diagonal push would otherwise false-fire the
- * wrong axis — and only commit on an explicit Confirm.
+ * the prompt is active, a diagonal push would otherwise false-fire the
+ * wrong axis: and only commit on an explicit Confirm.
  *
  * A role already held by a different input is moved, not duplicated: one
  * role, one input, always. `inputId` is never touched, so re-running this
@@ -86,13 +86,13 @@ export function GamepadLearnWizard({
 
   // Best-excursion-so-far per inputId while an axis-shaped role's prompt is
   // active. Only inputs that already cross the shared capture threshold are
-  // recorded here — an idle/drifting axis never enters this map, so
+  // recorded here: an idle/drifting axis never enters this map, so
   // Confirm-with-nothing-captured is indistinguishable from Skip.
   const axisBestRef = useRef<Map<string, number>>(new Map());
   const [axisBestInputId, setAxisBestInputId] = useState<string | null>(null);
 
   // Stable identities (via useCallback) so the input-watching effect below
-  // can list them as dependencies without resubscribing on every render —
+  // can list them as dependencies without resubscribing on every render,
   // neither closes over anything but state setters/refs and the `onApply`
   // prop, so an empty-ish dependency list is correct, not a lint workaround.
   const assignRole = useCallback(
@@ -168,7 +168,7 @@ export function GamepadLearnWizard({
       unsub();
       svc.setCaptureMode(false);
     };
-    // `roleIdx` drives `role`, which IS a dependency — re-subscribing on
+    // `roleIdx` drives `role`, which IS a dependency, re-subscribing on
     // every role change is the point (a stale closure here would keep
     // assigning the PREVIOUS role to new presses).
   }, [svc, device.id, role, roleIdx, isAxisRole, assignRole, goToRole]);
@@ -185,7 +185,7 @@ export function GamepadLearnWizard({
           {assignedCount} of {GAMEPAD_ROLES.length} roles assigned
         </Progress>
         <FinishedHint role="status" aria-live="polite">
-          Walked every role. Re-open this wizard any time to relearn one — it's
+          Walked every role. Re-open this wizard any time to relearn one, it's
           safe to run again, and never touches existing bindings.
         </FinishedHint>
         <Actions>
@@ -202,8 +202,7 @@ export function GamepadLearnWizard({
   return (
     <Wrap>
       <Progress>
-        {roleIdx + 1} of {GAMEPAD_ROLES.length} — {assignedCount} assigned so
-        far
+        {roleIdx + 1} of {GAMEPAD_ROLES.length}: {assignedCount} assigned so far
       </Progress>
 
       <PromptRow>

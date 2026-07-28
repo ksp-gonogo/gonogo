@@ -96,7 +96,7 @@ describe("topoSortActivationOrder", () => {
 
   it("does not flag a cycle when a node not on the cycle depends on a cyclic node", () => {
     // "outer" depends on "a", and a<->b cycle among themselves; still a
-    // cycle overall so this should still throw — but exercises that the
+    // cycle overall so this should still throw, but exercises that the
     // cycle path found doesn't need to include "outer".
     let thrown: unknown;
     try {

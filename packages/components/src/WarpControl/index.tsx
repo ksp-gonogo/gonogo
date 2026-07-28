@@ -18,6 +18,7 @@ import {
   StreamStatusBadge,
   ToggleButton,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -25,7 +26,7 @@ import styled from "styled-components";
  * Time-warp control widget. Reads the current warp index/rate from
  * Telemachus and exposes a row of step buttons that fire the
  * `t.timeWarp[N]` actions. Manual warp (via the in-game keys or another
- * surface) is reflected here too — this widget is purely a thin UI over
+ * surface) is reflected here too, this widget is purely a thin UI over
  * the same telemetry the alarm banner reads.
  *
  * Layout is flex-flow + selective rendering rather than discrete bucket
@@ -40,9 +41,9 @@ type WarpControlConfig = Record<string, never>;
 
 // Declaration-merge this widget's slot ids → props type into core's
 // `SlotRegistry` (Uplink architecture, declaration-merging base). Both
-// slots are plain composition points with no parent context to hand down — a
+// slots are plain composition points with no parent context to hand down, a
 // contributed action fires its OWN command via `useExecuteAction`, a badge
-// reads its OWN Topics — so each passes empty props (`Record<string, never>`).
+// reads its OWN Topics, so each passes empty props (`Record<string, never>`).
 // Co-located here (not in a shared central registry file) so parallel slot
 // work on other widgets never collides on the same module.
 declare module "@ksp-gonogo/core" {
@@ -108,7 +109,7 @@ function WarpControlComponent({
 }: Readonly<ComponentProps<WarpControlConfig>>) {
   // De-Telemachus'd: the whole warp state rides one native Topic,
   // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
-  // stream — no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
+  // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
   // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
   // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
   const warp = useTelemetry("time.warp");
@@ -122,7 +123,7 @@ function WarpControlComponent({
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
   // a click before the ~250ms WS push lands sees stale `isPaused` and
-  // fires the wrong action key — explicitly observed as the "pause works,
+  // fires the wrong action key: explicitly observed as the "pause works,
   // unpause doesn't" symptom on 2026-05-15. Cleared by the reconcile effect
   // below once truth catches up.
   const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);
@@ -154,7 +155,7 @@ function WarpControlComponent({
   const setWarp = (idx: number) => {
     void execute(`t.timeWarp[${idx}]`);
   };
-  // The fork ships separate `t.pause` / `t.unpause` action keys — there's
+  // The fork ships separate `t.pause` / `t.unpause` action keys, there's
   // no toggle. Fire the inverse of the operator's last intent (or the
   // current truth if no intent is in-flight). Optimistic so back-to-back
   // clicks before the WS push catches up still pick the right action.
@@ -189,7 +190,7 @@ function WarpControlComponent({
     },
   });
 
-  // Content-priority decisions, not layout decisions — CSS handles the
+  // Content-priority decisions, not layout decisions: CSS handles the
   // arrangement once we've decided what's in the body.
   // Full ladder needs enough area for 8 buttons to wrap legibly. We only
   // require the area; auto-fit handles whether it ends up 8×1, 4×2, 2×4...
@@ -201,7 +202,7 @@ function WarpControlComponent({
 
   const rateLabel = formatRate(currentRate);
   // Physics warp (atmospheric, ≤4×) and high warp (on-rails, ≥5×) feel
-  // very different to fly — physics keeps the aerodynamics live and
+  // very different to fly: physics keeps the aerodynamics live and
   // is risky in atmosphere. Tint the Rate readout to differentiate
   // without burying the cue in the small mode caption.
   const rateTone: "physics" | "high" = mode?.toLowerCase().startsWith("phys")
@@ -327,9 +328,9 @@ function WarpControlComponent({
 
 /**
  * Maps the `time.warp` Topic's `warpMode` (`Sitrep.Contract.WarpMode`, a
- * NUMERIC enum — `0=High`, `1=Low`, `2=Unknown`; `mod/Sitrep.Contract/
+ * NUMERIC enum: `0=High`, `1=Low`, `2=Unknown`; `mod/Sitrep.Contract/
  * WarpState.cs`: "only HIGH/LOW exist... no third mode") to the caption text
- * this widget renders. The contract's "Low" is surfaced as "Physics" — the
+ * this widget renders. The contract's "Low" is surfaced as "Physics", the
  * vocabulary the caption + physics-tone detection (`rateTone` below) speak.
  * `2` (`Unknown`) and anything absent -> `null`: no caption, defaults to the
  * "high" tone.
@@ -341,7 +342,7 @@ function normalizeWarpMode(raw: number | undefined): string | null {
 }
 
 function formatRate(rate: number | null): string {
-  if (rate === null) return "—";
+  if (rate === null) return NULL_DISPLAY;
   if (rate < 1.0001) return "1×";
   if (rate >= 1000) return `${(rate / 1000).toFixed(rate >= 10_000 ? 0 : 1)}k×`;
   if (Number.isInteger(rate)) return `${rate}×`;
@@ -376,7 +377,7 @@ const Rate = styled.div<{ $tone: "physics" | "high" }>`
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  /* Physics warp (≤4×) tints amber — operator at speed in atmosphere
+  /* Physics warp (≤4×) tints amber: operator at speed in atmosphere
      needs to know it's NOT on-rails. High warp (≥5×) stays green. */
   color: ${({ $tone }) =>
     $tone === "physics"

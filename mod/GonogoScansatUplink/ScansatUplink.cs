@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Gonogo.ScansatUplink
 {
     /// <summary>
-    /// The GonogoScansatUplink reference implementation — the FIRST
+    /// The GonogoScansatUplink reference implementation: the FIRST
     /// separate (non-bundled) Uplink, establishing the packaging pattern
     /// U2-U4 reuse (see <c>.superpowers/sdd/uplink-packaging-pattern.md</c>).
     /// Reads SCANsat's public API in-process (zero Harmony,
@@ -19,18 +19,18 @@ namespace Gonogo.ScansatUplink
     /// (<c>scansat.available</c>, <c>scansat.scanningVessels</c>) only,
     /// because <c>IUplinkHost</c> had no way to register a topic set
     /// parametrized by which body a vessel is orbiting.
-    /// <see cref="IUplinkHost.RegisterDynamicNamespace"/> (Minor bump — see
+    /// <see cref="IUplinkHost.RegisterDynamicNamespace"/> (Minor bump: see
     /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>) closed that,
     /// and <see cref="Sample"/> now publishes, per the ACTIVE vessel's main
     /// body, the FULL set of dynamic channels the client consumes:
     /// <c>scansat.coverage.&lt;body&gt;.&lt;typeBit&gt;</c> (scalar %),
     /// <c>scansat.mask.&lt;body&gt;.&lt;typeBit&gt;</c> (packed
     /// <c>SCANCoverageBitmap</c>) for every client SCANtype
-    /// (<see cref="ScanChannels.ClientScanTypes"/> — 1/2/8/16/128/256),
+    /// (<see cref="ScanChannels.ClientScanTypes"/>: 1/2/8/16/128/256),
     /// <c>scansat.height.&lt;body&gt;</c> (<c>SCANHeightGrid</c>, stock PQS
     /// §0E), <c>scansat.biome.&lt;body&gt;</c> (<c>SCANBiomeGrid</c>,
     /// stock BiomeMap §0E), and <c>scansat.anomalies.&lt;body&gt;</c>
-    /// (<c>SCANAnomalyEntry[]</c>, SCANsat's own <c>SCANdata.Anomalies</c> —
+    /// (<c>SCANAnomalyEntry[]</c>, SCANsat's own <c>SCANdata.Anomalies</c>:
     /// see <see cref="BuildAnomalies"/>). Sub-topic type components are the
     /// NUMERIC SCANtype bit (matching the client) for coverage/mask; coverage
     /// carries the GetCoverage PERCENTAGE (not the plane), all keyframe-on-
@@ -39,21 +39,21 @@ namespace Gonogo.ScansatUplink
     /// (Known/Detail are themselves derived from that grid).
     ///
     /// Known gaps, disclosed not invented away:
-    /// (1) THREADING — FIXED (F1): the KSP/stock reads now run on the Unity
+    /// (1) THREADING, FIXED (F1): the KSP/stock reads now run on the Unity
     ///     main thread via the capture-on-main / handle-on-Courier seam
-    ///     (<see cref="IUplinkHost.AddSampledSource"/>) — see
+    ///     (<see cref="IUplinkHost.AddSampledSource"/>): see
     ///     <see cref="CaptureOnMain"/>/<see cref="HandleOnCourier"/> and
     ///     <c>.superpowers/sdd/f1-main-thread-sampler-report.md</c>. (The
     ///     one remaining Courier-thread KSP read is <c>scansat.scanningVessels</c>'
     ///     <see cref="BuildScanningVessels"/>, still on the old
-    ///     AddChannelSource path — a separate follow-up.)
+    ///     AddChannelSource path: a separate follow-up.)
     /// (2) No live-KSP validation (no launch/scan capture available).
-    /// (3) CLOSED — <c>scansat.anomalies.&lt;body&gt;</c> now publishes from
+    /// (3) CLOSED: <c>scansat.anomalies.&lt;body&gt;</c> now publishes from
     ///     <see cref="BuildAnomalies"/> (the P4c-b pre-deletion BUILD, see
     ///     <c>docs/superpowers/plans/2026-07-11-p4cb-deletion-plan.md</c> §1).
     ///     The DISPLAY moved out of core MapView into the client's
     ///     <c>AnomalyOverlay</c> augment (Uplink invariant #5, "augment don't
-    ///     embed") — the mod no longer has any client-side reader of raw
+    ///     embed"): the mod no longer has any client-side reader of raw
     ///     SCANsat state for this Topic.
     /// See the report for the full status and follow-ups.
     /// </summary>
@@ -66,7 +66,7 @@ namespace Gonogo.ScansatUplink
 
         // Numeric SCANtype bits (matching ScanChannels.ClientScanTypes/
         // VersionGuard's own ("AltimetryLoRes", 1) assertion), not the
-        // SCANsat.SCAN_Data.SCANtype enum type — avoids a new compile-time
+        // SCANsat.SCAN_Data.SCANtype enum type: avoids a new compile-time
         // dependency this file doesn't currently have.
         private const int AltimetryLoResBit = 1;
         private const int AltimetryHiResBit = 2;
@@ -86,15 +86,15 @@ namespace Gonogo.ScansatUplink
         private IDynamicChannelSource? _anomaliesSource;
 
         // "<body>|<typeBit>" -> last-emitted packed plane, the per-(body,type)
-        // keyframe-on-change gate (CoveragePlane — R7, spec §2.1/§2.3). One
+        // keyframe-on-change gate (CoveragePlane, R7, spec §2.1/§2.3). One
         // entry per (body,type) this uplink has ever published; a
         // (body,type) whose plane never changes never re-emits after its
         // first keyframe. COURIER-thread-owned: read/written only by
         // HandleOnCourier (via ScanPublications.Compute).
         private readonly Dictionary<string, byte[]> _lastPackedByBodyType = new Dictionary<string, byte[]>();
 
-        // "<body>" whose coarse coverage-grid hash last poll (any type's bits)
-        // — the cheap body-level gate that avoids re-packing every type's
+        // "<body>" whose coarse coverage-grid hash last poll (any type's bits),
+        // the cheap body-level gate that avoids re-packing every type's
         // plane every tick when nothing changed at all. COURIER-thread-owned,
         // same as _lastPackedByBodyType.
         private readonly Dictionary<string, ulong> _lastHashByBody = new Dictionary<string, ulong>();
@@ -102,7 +102,7 @@ namespace Gonogo.ScansatUplink
         // Bodies whose (expensive) height/biome grids have already been BUILT
         // and captured. Height/biome are stock-PQS/BiomeMap derived and
         // near-static (spec §2.2: "keyframe (near-static)"), so one keyframe
-        // per body visit is the model — rebuilding an identical ~64800-point
+        // per body visit is the model, rebuilding an identical ~64800-point
         // grid every tick would be pure waste. MAIN-thread-owned: read/written
         // only by CaptureOnMain (which is the only place the grids are built),
         // so the once-per-body decision gates the expensive build itself, not
@@ -118,10 +118,10 @@ namespace Gonogo.ScansatUplink
         // Reseed support (late-subscriber grid delivery). A dynamic grid keyframe
         // (biome/height captured once; mask/coverage change-gated) is only RECORDED
         // when the reveal gate releases it, and the reveal gate consults
-        // ConnectivityAt(entry.Ut) — connectivity at the keyframe's OWN ut. A
+        // ConnectivityAt(entry.Ut): connectivity at the keyframe's OWN ut. A
         // keyframe first published while the vessel was dark is withheld forever
         // (biome/height are then never re-captured), so it never seeds a subscriber
-        // that joins later — which is every real client. Fix: cache the last
+        // that joins later, which is every real client. Fix: cache the last
         // payload per topic here (at PUBLISH time, before the reveal gate), and on
         // a new subscription re-emit it at the CURRENT (hopefully connected) ut so
         // the reveal gate releases it to the new subscriber. All Courier-thread:
@@ -179,7 +179,7 @@ namespace Gonogo.ScansatUplink
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
         /// Unavailable with the version-guard reason when SCANsat is absent or its API drifted
-        /// (the uplink went inert at Register), else Healthy. Courier-thread cheap — reads a
+        /// (the uplink went inert at Register), else Healthy. Courier-thread cheap; reads a
         /// cached field, never a live main-thread KSP read.</summary>
         public UplinkHealth Health() =>
             _unavailableReason != null
@@ -206,7 +206,7 @@ namespace Gonogo.ScansatUplink
                 // every scansat.* channel silently inert (client subscribes,
                 // never gets stream-data) with no trace of WHY. Log the reason so
                 // a future API-drift / probe bug is never invisible again.
-                Debug.LogWarning("[Gonogo.ScansatUplink] SCANsat uplink UNAVAILABLE — "
+                Debug.LogWarning("[Gonogo.ScansatUplink] SCANsat uplink UNAVAILABLE: "
                     + (guard.Reason ?? "SCANsat unavailable")
                     + " (all scansat.* channels disabled)");
                 _unavailableReason = guard.Reason ?? "SCANsat unavailable";
@@ -229,7 +229,7 @@ namespace Gonogo.ScansatUplink
             _scienceSource = host.Publisher(ScienceTopic);
             host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier, ScienceTopic);
 
-            // Every dynamic grid namespace is Delayed — per
+            // Every dynamic grid namespace is Delayed, per
             // delay-architecture-resolution.md §3: "EVERYTHING scansat.* is
             // DELAYED except available" (a big keyframed asset can still be
             // delayed; ASSET-class and delay-role are orthogonal). Height and
@@ -256,7 +256,7 @@ namespace Gonogo.ScansatUplink
             // the hashing/packing/publishing off-thread from the plain
             // ScanCapture payload alone. This replaces the previous
             // AddSampler(this) path, whose Sample() read KSP APIs on the
-            // Courier thread (the F1 fix — see
+            // Courier thread (the F1 fix: see
             // .superpowers/sdd/f1-main-thread-sampler-report.md).
             // Subscription-gated (F1-hardening Fix #3): the coverage-grid copy,
             // per-type GetCoverage calls, and once-per-body stock PQS/BiomeMap
@@ -277,7 +277,7 @@ namespace Gonogo.ScansatUplink
             // at the current ut so the reveal gate releases it (see _lastPublishedByTopic).
             // The engine fires OnSubscribed on the Courier thread per session
             // subscribe, right after ProcessSubscribe forced a keyframe for the
-            // topic — so the re-publish emits even though the value is unchanged.
+            // topic: so the re-publish emits even though the value is unchanged.
             _host = host;
             _coverageSource.OnSubscribed(ReseedTopic);
             _maskSource.OnSubscribed(ReseedTopic);
@@ -290,7 +290,7 @@ namespace Gonogo.ScansatUplink
         /// COURIER-THREAD reseed (see <see cref="IDynamicChannelSource.OnSubscribed"/>):
         /// re-emit the last cached payload for <paramref name="fullTopic"/> at the
         /// CURRENT ut so the reveal gate releases it to the newly-subscribed client.
-        /// No main-thread state and no grid rebuild — the cached payload is
+        /// No main-thread state and no grid rebuild, the cached payload is
         /// re-published as-is. Coalesced per topic within
         /// <see cref="ReseedGraceSeconds"/> so a subscribe burst is one re-emit.
         /// </summary>
@@ -298,7 +298,7 @@ namespace Gonogo.ScansatUplink
         {
             if (!_lastPublishedByTopic.TryGetValue(fullTopic, out var pub))
             {
-                return; // nothing captured for this topic yet — the first capture will publish it
+                return; // nothing captured for this topic yet, the first capture will publish it
             }
             var nowUt = _host?.NowUt() ?? pub.Ut;
             if (_lastReseedUtByTopic.TryGetValue(fullTopic, out var last)
@@ -341,19 +341,19 @@ namespace Gonogo.ScansatUplink
         /// the Unity main thread during the sample tick, where every KSP/
         /// SCANsat/stock read below is safe. Scoped to the CURRENT active
         /// vessel's main body (mirrors <see cref="Sitrep.Host.VesselEpochSampler"/>'s
-        /// "active subject" scoping — not a per-tick sweep of every body
+        /// "active subject" scoping: not a per-tick sweep of every body
         /// SCANsat ever touched). Reads the coverage grid + per-type coverage
-        /// percentages, and — ONCE per body visit — builds the (expensive)
+        /// percentages, and (ONCE per body visit) builds the (expensive)
         /// stock PQS height and BiomeMap grids. The height grid's per-cell
         /// elevation sample branches on <c>SCANUtil.isCovered(..., AltimetryHiRes)</c>
-        /// per SCANsat's own <c>SCANmap.terrainElevation</c> tiering rule —
+        /// per SCANsat's own <c>SCANmap.terrainElevation</c> tiering rule:
         /// see <see cref="TerrainTiering.ResolveSampleCoordinate"/>. Everything is packed into a
         /// plain <see cref="ScanCapture"/> (no live KSP handles) so the
         /// Courier-side <see cref="HandleOnCourier"/> can do the
         /// hashing/keyframe/packing/publishing entirely off that data. Returns
         /// null when there is no active vessel/body (nothing to sample).
         ///
-        /// <para><b>THREADING:</b> this is the F1 fix — the SCANsat/stock reads
+        /// <para><b>THREADING:</b> this is the F1 fix, the SCANsat/stock reads
         /// (<c>FlightGlobals.ActiveVessel</c>, <c>SCANUtil.getData</c>/
         /// <c>GetCoverage</c>, <c>pqs.GetSurfaceHeight</c>, <c>BiomeMap.GetAtt</c>)
         /// now run on the Unity main thread, where the rest of the mod reads
@@ -384,12 +384,12 @@ namespace Gonogo.ScansatUplink
                     BodyName = bodyName,
                 };
 
-                // Height/biome first — they don't depend on SCANsat coverage at
+                // Height/biome first: they don't depend on SCANsat coverage at
                 // all (stock PQS/BiomeMap), so they're captured once per body even
                 // if that body has no SCANdata yet. The once-per-body gate lives
                 // HERE (main thread) so the expensive grid build itself is skipped
                 // on revisits, not merely the publish. Mark the body captured only
-                // AFTER the (Planetarium-dependent) build succeeds — otherwise an
+                // AFTER the (Planetarium-dependent) build succeeds: otherwise an
                 // early not-ready failure would mark it done and height/biome would
                 // never be retried for that body.
                 if (!_heightBiomeCapturedBodies.Contains(bodyName))
@@ -433,7 +433,7 @@ namespace Gonogo.ScansatUplink
                 {
                     _captureFailLogged = true;
                     Debug.LogWarning("[Gonogo.ScansatUplink] CaptureOnMain skipped "
-                        + "(game/Planetarium likely not ready yet) — will retry: " + ex.Message);
+                        + "(game/Planetarium likely not ready yet), will retry: " + ex.Message);
                 }
                 return null;
             }
@@ -445,8 +445,8 @@ namespace Gonogo.ScansatUplink
         /// thread with the plain <see cref="ScanCapture"/> the capture
         /// produced, applies the coarse-hash + per-(body,type) plane-changed
         /// gates via <see cref="ScanPublications.Compute"/>, and publishes each
-        /// resulting keyframe to its dynamic channel. Touches NO KSP/Unity API
-        /// — all KSP reads already happened in <see cref="CaptureOnMain"/>.
+        /// resulting keyframe to its dynamic channel. Touches NO KSP/Unity API,
+        /// all KSP reads already happened in <see cref="CaptureOnMain"/>.
         /// </summary>
         internal void HandleOnCourier(object? captured)
         {
@@ -456,14 +456,14 @@ namespace Gonogo.ScansatUplink
             }
             if (_coverageSource == null || _maskSource == null || _heightSource == null || _biomeSource == null || _anomaliesSource == null)
             {
-                return; // Register hasn't wired the dynamic sources (unavailable uplink) — nothing to publish.
+                return; // Register hasn't wired the dynamic sources (unavailable uplink), nothing to publish.
             }
 
             foreach (var publication in ScanPublications.Compute(capture, _lastHashByBody, _lastPackedByBodyType))
             {
                 SourceForKind(publication.Kind)?.Publisher(publication.SubTopic).Publish(publication.Payload, publication.Ut);
                 // Cache for late-subscriber reseed (see _lastPublishedByTopic). The
-                // payload is captured here at PUBLISH time — before the reveal gate —
+                // payload is captured here at PUBLISH time (before the reveal gate)
                 // so a keyframe later withheld at a disconnected ut can still be
                 // re-emitted for a new subscriber at a connected ut.
                 _lastPublishedByTopic[FullTopicFor(publication.Kind, publication.SubTopic)] = publication;
@@ -475,8 +475,8 @@ namespace Gonogo.ScansatUplink
         /// state (see <see cref="IUplinkHost.AddSampledSource"/>). Reads each
         /// <c>SCANexperiment</c> module's public members
         /// (<c>experimentType</c>, <c>part.flightID</c>/<c>part.partInfo.title</c>,
-        /// <c>GetScienceCount()</c>, <c>IsRerunnable()</c>) — all live KSP/SCANsat
-        /// reads, safe here on the Unity main thread — and shapes each into a
+        /// <c>GetScienceCount()</c>, <c>IsRerunnable()</c>): all live KSP/SCANsat
+        /// reads, safe here on the Unity main thread, and shapes each into a
         /// plain wire dict via the pure <see cref="ScanScience.Build"/>. Returns a
         /// self-contained holder (no live KSP handles) for
         /// <see cref="HandleScienceOnCourier"/>, or null when there is no active
@@ -525,7 +525,7 @@ namespace Gonogo.ScansatUplink
             }
             catch (Exception)
             {
-                // Not ready yet — skip this tick; the last value stands.
+                // Not ready yet: skip this tick; the last value stands.
                 return null;
             }
         }
@@ -533,7 +533,7 @@ namespace Gonogo.ScansatUplink
         /// <summary>
         /// COURIER-THREAD handle for the science capture: publishes the shaped
         /// entry list (a bare array or empty) on <see cref="ScienceTopic"/>.
-        /// Touches NO KSP/Unity API — every SCANsat read already happened in
+        /// Touches NO KSP/Unity API: every SCANsat read already happened in
         /// <see cref="CaptureScienceOnMain"/>.
         /// </summary>
         internal void HandleScienceOnCourier(object? captured)
@@ -557,7 +557,7 @@ namespace Gonogo.ScansatUplink
         }
 
         // ----------------------------------------------------------------
-        // KSP/stock reads — invoked ONLY from CaptureOnMain (main thread).
+        // KSP/stock reads, invoked ONLY from CaptureOnMain (main thread).
         // Kept as thin wrappers so ScanGrids/CoveragePlane stay pure +
         // headlessly tested.
         // ----------------------------------------------------------------
@@ -597,7 +597,7 @@ namespace Gonogo.ScansatUplink
         }
 
         /// <summary>
-        /// Reads <c>SCANdata.Anomalies</c> for the body — SCANsat's own
+        /// Reads <c>SCANdata.Anomalies</c> for the body, SCANsat's own
         /// per-anomaly Known/Detail re-derivation off the coverage grid
         /// already happened by the time this property returns, so this is a
         /// pure read + shape, no computation. Returns an empty list (never
@@ -759,7 +759,7 @@ namespace Gonogo.ScansatUplink
             }
 
             // trackColor is the per-VESSEL Color32 (SCANvessel.trackColor,
-            // SCANcontroller.cs:61) — the same tint SCANsat paints the ground
+            // SCANcontroller.cs:61): the same tint SCANsat paints the ground
             // track with, mirrored on the minimap/MapView footprint.
             var tc = v.trackColor;
             return ScanningVessels.Build(

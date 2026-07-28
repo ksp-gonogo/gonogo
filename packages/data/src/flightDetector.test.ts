@@ -57,7 +57,7 @@ describe("FlightDetector", () => {
     d.observe({ vesselName: "Lander", missionTime: 0, now: 2_000 });
     expect(d.getCurrent()?.vesselName).toBe("Lander");
 
-    // Control switches back — mission time has advanced a bit.
+    // Control switches back: mission time has advanced a bit.
     const back = d.observe({
       vesselName: "KX",
       missionTime: 20,
@@ -76,7 +76,7 @@ describe("FlightDetector", () => {
     });
     // Another vessel briefly.
     d.observe({ vesselName: "Other", missionTime: 0, now: 2_000 });
-    // "KX" returns — but mission time is near zero: relaunch of a ship
+    // "KX" returns, but mission time is near zero: relaunch of a ship
     // with the same name.
     const relaunch = d.observe({
       vesselName: "KX",
@@ -116,7 +116,7 @@ describe("FlightDetector", () => {
       sampleCount: 5,
     };
     d.hydrate([seed]);
-    // First sample after hydration — same vessel, mission time continues.
+    // First sample after hydration: same vessel, mission time continues.
     const res = d.observe({
       vesselName: "KX",
       missionTime: 51,
@@ -134,7 +134,7 @@ describe("FlightDetector", () => {
       missionTime: 0,
       now: 1_000,
     });
-    // Rename the vessel; UID stays the same — continuation, so "append".
+    // Rename the vessel; UID stays the same, continuation, so "append".
     const b = d.observe({
       vesselName: "KX 2",
       vesselUid: "uid-42",
@@ -159,7 +159,7 @@ describe("FlightDetector", () => {
       missionTime: 0,
       now: 2_000,
     });
-    // Switch back — name has been changed, but UID identifies it.
+    // Switch back: name has been changed, but UID identifies it.
     const back = d.observe({
       vesselName: "Renamed",
       vesselUid: "uid-42",

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gonogo_claude_tools.sh — purpose-scoped helpers Claude Code can invoke
+# gonogo_claude_tools.sh: purpose-scoped helpers Claude Code can invoke
 # without per-call permission prompts.
 #
 # Allow-list once in .claude/settings.local.json:
@@ -25,14 +25,14 @@
 #
 #   dump <Type> [<Type>...]
 #       Like decompile, but prints the full ilspycmd output for the type
-#       (method bodies, field initialisers, the lot) — no signature
+#       (method bodies, field initialisers, the lot): no signature
 #       filter. Same Tier 1/2/3 fallback as decompile. Use when you need
 #       to see what a method actually does, not just its signature.
 #
 #   members <Type> [<Type>...]
 #       Lists every public member (field / property / method) inside
 #       a type by line-range scan of the cached full disassembly.
-#       Unlike `decompile`, has no per-type cap — useful for large
+#       Unlike `decompile`, has no per-type cap, useful for large
 #       classes like KSP's `Part` (5000+ lines) where the 80-line
 #       decompile filter truncates before reaching the interesting
 #       fields. Output is one member per line, in source order. Falls
@@ -41,7 +41,7 @@
 #
 #   body <Type> <Method>
 #       Print one method's body from the cached disassembly. Pairs
-#       with `members` — use `members` to spot a method by signature,
+#       with `members`: use `members` to spot a method by signature,
 #       then `body` to see what it actually does. Returns the first
 #       overload that matches by name; if you have overloads, use
 #       `dump` instead. Detects the matching close-brace by indent
@@ -77,10 +77,10 @@
 #   tele read <key1> [<key2>...]
 #       GET /telemachus/datalink with each key as a `?k=k` pair against
 #       the running KSP install. Pretty-prints JSON when possible. The
-#       host is hard-coded — script can't pivot to a different target.
+#       host is hard-coded, script can't pivot to a different target.
 #
 #   tele action <key[args]>
-#       GET /telemachus/datalink with a single bracketed action key —
+#       GET /telemachus/datalink with a single bracketed action key,
 #       URL-encodes the brackets so curl doesn't choke. Used for write
 #       paths like alarm.add[Test,5475,KillWarp,Yes] or tech.unlock[start].
 #
@@ -104,9 +104,9 @@ TELE_TIMEOUT_S=15
 
 # Internal: resolve a type name to its full ilspycmd dump using a
 # three-tier strategy. Sets these globals on success:
-#   _RT_RAW          — the full ilspycmd textual output for the type
-#   _RT_SOURCE_DLL   — absolute path of the DLL that owned the type
-#   _RT_RESOLVED_FQN — empty if the bare name worked; the FQN if Tier 3
+#   _RT_RAW         : the full ilspycmd textual output for the type
+#   _RT_SOURCE_DLL  : absolute path of the DLL that owned the type
+#   _RT_RESOLVED_FQN: empty if the bare name worked; the FQN if Tier 3
 #                      had to expand a bare name
 # All three are reset to empty when the type can't be located anywhere.
 # Globals (vs. echo) keep the multi-line raw output untouched.
@@ -118,7 +118,7 @@ _resolve_type() {
   local managed_dir
   managed_dir="$(dirname "$DLL")"
 
-  # Tier 1: Assembly-CSharp.dll — almost every gameplay type lives here.
+  # Tier 1: Assembly-CSharp.dll: almost every gameplay type lives here.
   # `|| true` keeps `set -e` from killing the script when ilspycmd exits
   # non-zero on a type-not-found miss.
   _RT_RAW="$(perl -e 'alarm shift; exec @ARGV' "$DECOMPILE_TIMEOUT_S" \
@@ -129,7 +129,7 @@ _resolve_type() {
   fi
 
   # Tier 2: walk the other Managed/ DLLs until one yields a non-empty
-  # result. Bare name only — namespaced types fall through to Tier 3.
+  # result. Bare name only: namespaced types fall through to Tier 3.
   for cand in "$managed_dir"/*.dll; do
     [ "$cand" = "$DLL" ] && continue
     local try
@@ -142,7 +142,7 @@ _resolve_type() {
     fi
   done
 
-  # Tier 3: bare-name lookups all missed. Type might be namespaced —
+  # Tier 3: bare-name lookups all missed. Type might be namespaced,
   # resolve the FQN via findtype's textual-dump search and retry. Pays
   # the dump-cost once per session; cache makes repeated lookups cheap.
   local fqn_line
@@ -222,10 +222,10 @@ dump() {
 
 # Internal: extract the body line-range of a type in a cached
 # disassembly. Sets these globals:
-#   _RANGE_FILE  — cache file the type lives in
-#   _RANGE_LO    — first line number (the class/interface/struct/enum line)
-#   _RANGE_HI    — last line number, exclusive (next top-level type, or file end)
-#   _RANGE_DLL   — basename of the originating DLL
+#   _RANGE_FILE : cache file the type lives in
+#   _RANGE_LO   : first line number (the class/interface/struct/enum line)
+#   _RANGE_HI   : last line number, exclusive (next top-level type, or file end)
+#   _RANGE_DLL  : basename of the originating DLL
 # Empty file/lo/hi if the bare name isn't found. Use after the cache has
 # been built (i.e. after at least one _findtype_emit run this session).
 _resolve_type_range() {
@@ -249,7 +249,7 @@ _resolve_type_range() {
     lo="$( { grep -nE "^[[:space:]]*(public |internal |abstract |sealed |static )*((public |internal |abstract |sealed |static )*)(class|interface|struct|enum) ${name}([[:space:]<:]|$)" "$cache" 2>/dev/null || true ; } | head -1 | cut -d: -f1)"
     [ -z "$lo" ] && continue
     # Find the NEXT sibling type declaration after $lo at the SAME
-    # indent level — that's the exclusive upper bound. Picking
+    # indent level: that's the exclusive upper bound. Picking
     # "same indent" rather than "any depth" prevents nested classes
     # from cutting the parent short.
     local lo_indent
@@ -358,7 +358,7 @@ members() {
     echo "  Lists every public member (field / property / method)"
     echo "  declared inside a type, by line-range scan of the cached"
     echo "  full disassembly. Use this when 'decompile' gets truncated"
-    echo "  at 80 lines — `members` has no per-type cap."
+    echo "  at 80 lines: `members` has no per-type cap."
     return 2
   fi
   if [ ! -f "$DLL" ]; then
@@ -395,7 +395,7 @@ members() {
     # Filter to public members at any nesting depth inside the type body.
     # Skip the class-declaration line itself; skip lines that are nested
     # class declarations (those start their own scope and clutter the
-    # listing — use a separate `members` call to inspect them).
+    # listing: use a separate `members` call to inspect them).
     awk -v lo="$_RANGE_LO" -v hi="$_RANGE_HI" '
       NR > lo && NR < hi {
         # Public members appear with at least one leading tab.
@@ -551,7 +551,7 @@ build_kerbcast() {
 
   # Pull the latest CI-built sidecar binary if gh is available + auth'd.
   # The sidecar is Rust + cross-compiles to Linux x86_64 in CI (QEMU on
-  # the Mac is a non-starter — rustc segfaults under amd64 emulation).
+  # the Mac is a non-starter, rustc segfaults under amd64 emulation).
   # Best-effort: a failure here doesn't abort the helper; the existing
   # binary in place still works.
   #
@@ -584,22 +584,22 @@ build_kerbcast() {
 # users with no gh setup just keep the existing binary (or get a
 # "place it manually" warning from build_kerbcast's caller).
 fetch_kerbcast_sidecar() {
-  # Takes the sidecar *directory* (not the binary path) — the CI artefact
+  # Takes the sidecar *directory* (not the binary path), the CI artefact
   # is a binary + sibling lib/ with bundled ffmpeg .so files, and the
   # plugin's LD_LIBRARY_PATH prepend expects them as siblings on disk.
   local dest_dir="$1"
   if ! command -v gh >/dev/null 2>&1; then
-    echo "gh CLI not installed — skipping sidecar fetch"
+    echo "gh CLI not installed: skipping sidecar fetch"
     return 0
   fi
   if ! gh auth status >/dev/null 2>&1; then
-    echo "gh CLI not authed — skipping sidecar fetch (run 'gh auth login')"
+    echo "gh CLI not authed: skipping sidecar fetch (run 'gh auth login')"
     return 0
   fi
 
   local kerbcast_repo="$HOME/personal/kerbcast"
   if [ ! -d "$kerbcast_repo/.git" ]; then
-    echo "kerbcast repo not at $kerbcast_repo — skipping sidecar fetch"
+    echo "kerbcast repo not at $kerbcast_repo: skipping sidecar fetch"
     return 0
   fi
 
@@ -617,7 +617,7 @@ fetch_kerbcast_sidecar() {
         --jq '.[0].databaseId' 2>/dev/null
   )"
   if [ -z "$run_id" ]; then
-    echo "no successful sidecar-ci run found — skipping fetch"
+    echo "no successful sidecar-ci run found, skipping fetch"
     return 0
   fi
   echo "fetching from run $run_id"
@@ -643,7 +643,7 @@ fetch_kerbcast_sidecar() {
         echo "deployed sidecar + lib/ from CI run $run_id"
         [ -f "$dest_dir/build-info.txt" ] && cat "$dest_dir/build-info.txt"
       else
-        echo "warning: artefact has kerbcast-sidecar but no lib/ — older CI run before bundling landed?"
+        echo "warning: artefact has kerbcast-sidecar but no lib/, older CI run before bundling landed?"
         echo "deployed sidecar (no lib/) from CI run $run_id"
       fi
     else
@@ -672,7 +672,7 @@ build_telemachus() {
     perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
       dotnet build -c Release --nologo -v minimal
   )
-  # Output may be under bin/Release/<tfm>/ depending on csproj —
+  # Output may be under bin/Release/<tfm>/ depending on csproj,
   # search for a Telemachus.dll modified in the last 5 minutes under
   # any Release/ path inside the fork.
   local out_dll
@@ -707,7 +707,7 @@ build_gonogo() {
   fi
   mkdir -p "$install_dir"
   # Gonogo.dll + every net472-flavored Sitrep.*.dll dep copied alongside it
-  # by CopyLocalLockFileAssemblies (Sitrep.Host/Core/Transport/Contract) —
+  # by CopyLocalLockFileAssemblies (Sitrep.Host/Core/Transport/Contract):
   # deploy the whole set, no ILRepack single-file merge yet.
   local deployed=()
   local dll
@@ -849,7 +849,7 @@ tele_read() {
   body="$(cat "$tmp")"
   rm -f "$tmp"
   if [ -z "$body" ]; then
-    echo "(no response — KSP / Telemachus not running?)"
+    echo "(no response: KSP / Telemachus not running?)"
     return 4
   fi
   # Pretty-print if jq or python json is available; else raw.
@@ -868,7 +868,7 @@ tele_action() {
     return 2
   fi
   local raw="$1"
-  # URL-encode square brackets and spaces — Telemachus parses commas
+  # URL-encode square brackets and spaces: Telemachus parses commas
   # inside the brackets itself, so commas stay raw. Spaces appear in
   # arg values like "Auto-Saved Ship" and curl rejects raw-space URLs.
   local enc="${raw//\[/%5B}"
@@ -886,7 +886,7 @@ tele_action() {
   body="$(cat "$tmp")"
   rm -f "$tmp"
   if [ -z "$body" ]; then
-    echo "(no response — KSP / Telemachus not running?)"
+    echo "(no response: KSP / Telemachus not running?)"
     return 4
   fi
   if command -v jq >/dev/null 2>&1; then
@@ -904,7 +904,7 @@ tele_subscribe() {
     return 2
   fi
   if ! command -v websocat >/dev/null 2>&1; then
-    echo "websocat not installed — brew install websocat"
+    echo "websocat not installed: brew install websocat"
     return 5
   fi
   local rate_ms=1000
@@ -918,7 +918,7 @@ tele_subscribe() {
   done
   keys_json="${keys_json}]"
   # `+` adds to persistent subscriptions (streams every tick at the
-  # configured rate). `run` is a one-shot — fires once and gets cleared,
+  # configured rate). `run` is a one-shot, fires once and gets cleared,
   # which is NOT what `tele subscribe` wants. The difference matters:
   # with `run` the initial frame populates and every subsequent tick
   # is an empty diff because nothing is actually subscribed.
@@ -929,7 +929,7 @@ tele_subscribe() {
   echo "payload: $payload"
   echo "---"
   # Prepend the subscribe payload to stdin, then keep stdin open. websocat's
-  # -n flag prevents it from closing on stdin EOF — we just want a one-way
+  # -n flag prevents it from closing on stdin EOF, we just want a one-way
   # subscribe and a continuous stream back. Each frame is one line; the
   # python tail timestamps + compact-prints each frame, which gives us
   # cross-platform millisecond timestamps (BSD `date` lacks `%N`) and one

@@ -15,11 +15,11 @@ namespace Gonogo.KSP
     /// applies the source-side relevance filter, and publishes it on the
     /// <c>recovery.lastSummary</c> / <c>recovery.hasRecent</c>
     /// <see cref="Delivery.ReliableOrdered"/> channels. Mirrors
-    /// <c>CrashUplink</c> structurally — same channel shape, same
+    /// <c>CrashUplink</c> structurally: same channel shape, same
     /// filter-at-source rule, same KSP-facing/KSP-free split with
     /// <see cref="Sitrep.Host.Recovery.RecoveryPayload"/>.
     ///
-    /// <para><b>Hook choice — <see cref="GameEvents.onVesselRecoveryProcessingComplete"/>,
+    /// <para><b>Hook choice: <see cref="GameEvents.onVesselRecoveryProcessingComplete"/>,
     /// not <see cref="GameEvents.OnVesselRecoveryRequested"/> or
     /// <see cref="GameEvents.onVesselRecovered"/>:</b> decompile-confirmed
     /// (<c>KSP.UI.Screens.MissionRecoveryDialog</c>) that stock KSP's own
@@ -27,23 +27,23 @@ namespace Gonogo.KSP
     /// reputation figure and the itemized part/resource/science/crew
     /// breakdown into a <see cref="MissionRecoveryDialog"/> instance BEFORE
     /// firing <c>onVesselRecoveryProcessingComplete(ProtoVessel, MissionRecoveryDialog,
-    /// float)</c> — reusing that computation is the whole point (the same
+    /// float)</c>: reusing that computation is the whole point (the same
     /// "reuse the read, don't duplicate it" discipline <c>CareerViewProvider</c>
     /// follows for economy totals). <c>OnVesselRecoveryRequested</c> is the
-    /// pre-recovery REQUEST (nothing computed yet — see
+    /// pre-recovery REQUEST (nothing computed yet: see
     /// <c>KspFlightOpsActuator.Recover</c>, the actuator that fires it).
     /// <c>onVesselRecovered(ProtoVessel, bool)</c> is a bare completion
     /// notification with no earned/total figures at all.</para>
     ///
-    /// <para><b>Breakdown arrays — best-effort via reflection, judgement call:</b>
+    /// <para><b>Breakdown arrays: best-effort via reflection, judgement call:</b>
     /// <see cref="MissionRecoveryDialog"/>'s per-item widget lists
     /// (<c>scienceWidgets</c>/<c>partWidgets</c>/<c>resourceWidgets</c>/
-    /// <c>crewWidgets</c>) are PRIVATE fields on a UI `MonoBehaviour` — there
+    /// <c>crewWidgets</c>) are PRIVATE fields on a UI `MonoBehaviour`, there
     /// is no public API surface for the itemized breakdown, only the
     /// aggregate totals (all public). Every other decompile-confirmed read in
     /// this codebase sticks to public API; this is a deliberate, narrow
     /// exception, isolated to <see cref="ReadWidgetList{T}"/> below and
-    /// wrapped defensively — a field-name mismatch after a future KSP update
+    /// wrapped defensively: a field-name mismatch after a future KSP update
     /// degrades to an empty breakdown list (still-correct totals, less
     /// detail), never a crash or a dropped publish. Flagged in the M2c-style
     /// commit for reviewer sign-off; a public-API alternative may exist and
@@ -60,7 +60,7 @@ namespace Gonogo.KSP
         {
             Topic = topic,
             // A recovery is a flight-ending event at the vessel, so it is
-            // Delayed (rides the light-time reveal clock) — behaviourally
+            // Delayed (rides the light-time reveal clock): behaviourally
             // moot at delay 0, and correct once a comms uplink is elected.
             // Mirrors CrashUplink.Channel exactly.
             Delay = DelayRole.Delayed,
@@ -107,7 +107,7 @@ namespace Gonogo.KSP
             // DontDestroyOnLoad, so Register runs once for the whole process
             // and this handler is meant to live process-wide (recovery can
             // happen after any flight). Unsubscribe on scene teardown anyway
-            // so a hypothetical re-Register can't double-hook — mirrors
+            // so a hypothetical re-Register can't double-hook, mirrors
             // CrashUplink's own scene-unload guard.
             GameEvents.onGameSceneLoadRequested.Add(OnSceneUnload);
         }
@@ -137,7 +137,7 @@ namespace Gonogo.KSP
         /// record from the already-computed <see cref="MissionRecoveryDialog"/>,
         /// and publishes it. <see cref="IChannelPublisher.Publish"/> is
         /// main-thread-safe (it hands off to the engine job queue), so
-        /// publishing straight from a GameEvents callback is correct — same
+        /// publishing straight from a GameEvents callback is correct, same
         /// as <c>CrashUplink.HandleCrash</c>.
         /// </summary>
         private void OnRecoveryComplete(ProtoVessel vessel, MissionRecoveryDialog dialog, float recoveryPercent)
@@ -190,7 +190,7 @@ namespace Gonogo.KSP
             };
         }
 
-        // ── Breakdown extraction — see class doc comment's "judgement call" note ──
+        // ── Breakdown extraction: see class doc comment's "judgement call" note ──
 
         private static List<RecoveryScienceItem> ReadScienceBreakdown(MissionRecoveryDialog dialog)
         {
@@ -278,12 +278,12 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Reads a private <c>List&lt;T&gt;</c> instance field off
-        /// <paramref name="dialog"/> by name via reflection — see the class
+        /// <paramref name="dialog"/> by name via reflection: see the class
         /// doc comment's "breakdown arrays" note for why. Defensive by
         /// design: any failure (field renamed/retyped by a future KSP
         /// update, reflection denied, etc.) is swallowed and yields an empty
         /// list rather than throwing, so a breakdown-extraction miss can
-        /// never take down the whole recovery publish — the summary totals
+        /// never take down the whole recovery publish, the summary totals
         /// (all public-API reads) still go out.
         /// </summary>
         private static List<T> ReadWidgetList<T>(MissionRecoveryDialog dialog, string fieldName)

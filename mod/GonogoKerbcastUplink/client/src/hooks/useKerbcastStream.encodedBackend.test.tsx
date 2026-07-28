@@ -1,20 +1,20 @@
 /**
  * Backend 0: encoded transform on the receiver (encoded-video-delay work,
- * 2026-07-16 — `local_docs/reports/encoded-video-delay-report.md`'s
+ * 2026-07-16: `local_docs/reports/encoded-video-delay-report.md`'s
  * reconciliation). Proves the wiring is real: when
  * `KerbcastDataSource.getReceiverForStream` resolves a receiver and
  * `RTCRtpScriptTransform` exists, this backend is tried FIRST and, on
- * success, surfaces `raw` itself (unchanged) as the delayed stream — no new
+ * success, surfaces `raw` itself (unchanged) as the delayed stream, no new
  * track, the delay happens in place upstream of decode.
  *
  * DELIBERATELY A SEPARATE FILE from `useKerbcastStream.delay.test.tsx`:
  * `kerbcastDelayWorkerClient.ts` caches its shared `Worker` in module-level
- * state (`getSharedWorker()`, `sharedWorker !== undefined` short-circuit) —
+ * state (`getSharedWorker()`, `sharedWorker !== undefined` short-circuit):
  * once any test in a given module graph resolves it to `null` (because
  * `Worker` was undefined in jsdom at that moment), every later test in the
  * SAME file inherits that cached `null`, even after stubbing `Worker`.
  * Vitest gives each test FILE its own fresh module graph by default, so a
- * separate file is the correct isolation boundary here — not reordering
+ * separate file is the correct isolation boundary here, not reordering
  * (fragile to future edits) and not `vi.resetModules()` (this module has no
  * exported reset hook, and reaching into its internals would be more
  * fragile than just not sharing the file).
@@ -30,7 +30,7 @@ import {
   useDelayedPlayout,
 } from "./useKerbcastStream";
 
-// Testing Library auto-cleans the DOM after every test — no manual
+// Testing Library auto-cleans the DOM after every test, no manual
 // cleanup() needed here, only the registry/global teardown this file
 // actually owns.
 afterEach(() => {
@@ -58,7 +58,7 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
       });
     },
     // Backend 0 (like backend 2) only attempts when the clock is
-    // snapshot()-capable — see useKerbcastStream.ts's module doc.
+    // snapshot()-capable: see useKerbcastStream.ts's module doc.
     snapshot: () => ({
       epoch: 0,
       anchorWall: undefined,
@@ -71,7 +71,7 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   };
 }
 
-/** A fake `KerbcastDataSource` implementing `getReceiverForStream` — the
+/** A fake `KerbcastDataSource` implementing `getReceiverForStream`: the
  *  encoded-transform backend's attach point. `receiverFor` maps any `raw`
  *  stream to whatever fake `RTCRtpReceiver` stand-in the test wants Backend
  *  0 to resolve (or `undefined`, to prove it's skipped cleanly). */
@@ -83,7 +83,7 @@ function registerFakeKerbcastSourceWithReceiver(
 }
 
 /**
- * Minimal fake `Worker` — `getSharedWorker()` is shared, module-level
+ * Minimal fake `Worker`: `getSharedWorker()` is shared, module-level
  * state (`kerbcastDelayWorkerClient.ts`), so stubbing `Worker` to make
  * Backend 0 reachable ALSO makes Backend 2 (`createWorkerFrameDelayStream`)
  * reachable if Backend 0 falls through: it awaits a `pipelineReady`/
@@ -131,7 +131,7 @@ function StreamProbe({
   return null;
 }
 
-describe("useDelayedPlayout — Backend 0: encoded transform on the receiver", () => {
+describe("useDelayedPlayout, Backend 0: encoded transform on the receiver", () => {
   it("attaches directly to the resolved receiver and surfaces the SAME raw stream (no new track) when the platform supports RTCRtpScriptTransform", async () => {
     class FakeRTCRtpScriptTransform {
       static instances: FakeRTCRtpScriptTransform[] = [];
@@ -165,12 +165,12 @@ describe("useDelayedPlayout — Backend 0: encoded transform on the receiver", (
       expect(latest).toMatchObject({ kind: "delayed" });
     });
     // The transform was actually constructed and assigned onto the real
-    // receiver object — this is the "wired, not just unit-tested in
+    // receiver object: this is the "wired, not just unit-tested in
     // isolation" proof: attachEncodedWorkerFrameDelay reached the platform
     // API, not a mock of itself.
     expect(FakeRTCRtpScriptTransform.instances).toHaveLength(1);
     expect(fakeReceiver.transform).toBe(FakeRTCRtpScriptTransform.instances[0]);
-    // No new stream — the SAME raw reference, unlike backends 1/2 which
+    // No new stream: the SAME raw reference, unlike backends 1/2 which
     // always produce a fresh generator-backed stream.
     const delayed = latest as unknown as DelayedPlayoutResult & {
       kind: "delayed";
@@ -206,7 +206,7 @@ describe("useDelayedPlayout — Backend 0: encoded transform on the receiver", (
     }).not.toThrow();
 
     // Backend 1 (no WebCodecs stubbed here) can't build either, so this
-    // lands on "unavailable" — the point under test is narrower: a
+    // lands on "unavailable", the point under test is narrower: a
     // THROWING encoded-transform attach must degrade to "try the next
     // backend", never an unhandled exception or a stuck "connecting".
     await waitFor(() => {
@@ -245,7 +245,7 @@ describe("useDelayedPlayout — Backend 0: encoded transform on the receiver", (
     expect(FakeRTCRtpScriptTransform.instances).toHaveLength(0);
   });
 
-  it("skips backend 0 (but doesn't throw) when the data source has no getReceiverForStream at all — matches the existing decoded-backend fakes' shape", async () => {
+  it("skips backend 0 (but doesn't throw) when the data source has no getReceiverForStream at all, matches the existing decoded-backend fakes' shape", async () => {
     vi.stubGlobal("Worker", FakeWorker);
     // RTCRtpScriptTransform deliberately left unstubbed/absent too.
     const fake = { id: "kerbcast" }; // no getReceiverForStream, like the pre-existing test fakes

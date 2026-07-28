@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// (<see cref="HostInfo.HOST_VERSION"/>), the seam
     /// (<see cref="IKspHost"/>) is implementable with zero KSP/Unity types,
     /// and the record-format POCOs (<see cref="RecordedSession"/> et al.) are
-    /// plain, constructible, serialization-shaped data — no delegates or
+    /// plain, constructible, serialization-shaped data: no delegates or
     /// other non-serializable members. Task 2 builds the real Recorder /
     /// ReplayKspHost round-trip on top of these types.
     /// </summary>

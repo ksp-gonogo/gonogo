@@ -6,9 +6,9 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Headless tests for <see cref="KosRunManager"/> — the pure per-CPU
+    /// Headless tests for <see cref="KosRunManager"/>: the pure per-CPU
     /// arm/complete/cancel bookkeeping behind the <c>kos.run</c> command (see
-    /// <c>kos-uplink-full-migration.md</c>). No KosExtension, no kOS/Unity —
+    /// <c>kos-uplink-full-migration.md</c>). No KosExtension, no kOS/Unity:
     /// this class stands entirely on its own, exactly like
     /// <c>KosTerminalManagerTests</c> stands alone from
     /// <c>KosProcessorScreen</c>.
@@ -77,7 +77,7 @@ namespace GonogoKosUplink.Tests
             Assert.Equal(1.0, result.Fields!["v"]);
             Assert.Null(result.Error);
 
-            // Disarmed — a new run can be armed for the same CPU now.
+            // Disarmed: a new run can be armed for the same CPU now.
             Assert.False(mgr.IsArmed(7));
             Assert.True(mgr.TryArm(7, "req-2"));
         }
@@ -105,7 +105,7 @@ namespace GonogoKosUplink.Tests
             var published = new List<KosRunResult>();
             mgr.SetPublisher((_, result) => published.Add(result));
 
-            // No TryArm call — a completed block with nobody waiting (the
+            // No TryArm call: a completed block with nobody waiting (the
             // ordinary kos.compute / kos.exec path) must not publish here.
             var block = new KosComputeBlock("t", new Dictionary<string, object> { ["v"] = 1.0 });
             mgr.Complete(7, block);

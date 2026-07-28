@@ -32,7 +32,7 @@ function encodeBytes(values: number[]): string {
 }
 
 function biomeGridFixture(): SCANBiomeGrid {
-  // 2x2 grid, every cell painted the same biome — keeps the coverage-gate
+  // 2x2 grid, every cell painted the same biome; keeps the coverage-gate
   // assertions about which tiles paint entirely about the gate, not about
   // which biome index each cell happens to carry.
   return {
@@ -52,7 +52,7 @@ interface RecordedCall {
   fillStyle?: string;
 }
 
-describe("Minimap — coverage-gated scan surface (own mod-local paint gate, no components-package canvas hooks)", () => {
+describe("Minimap: coverage-gated scan surface (own mod-local paint gate, no components-package canvas hooks)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   let store: FogMaskStore;
@@ -157,7 +157,7 @@ describe("Minimap — coverage-gated scan surface (own mod-local paint gate, no 
    * paintTile always opens with a clearRect, then zero-or-more fillRects.
    * The coverage gate settles over several commits (a synchronous "data
    * hasn't resolved yet" open default, then the real composite once
-   * `cache.acquire` resolves) — Minimap repaints on every one of those, so
+   * `cache.acquire` resolves): Minimap repaints on every one of those, so
    * `calls` accumulates several whole paintTile invocations. Slicing from
    * the LAST clearRect isolates just the most recent (settled) one.
    */
@@ -186,7 +186,7 @@ describe("Minimap — coverage-gated scan surface (own mod-local paint gate, no 
     });
   });
 
-  it("falls through to the dark base — paints nothing on the colormap surface — when a registered coverage source reports full un-coverage", async () => {
+  it("falls through to the dark base (paints nothing on the colormap surface) when a registered coverage source reports full un-coverage", async () => {
     registerFogRevealSource({ id: LAYER_ID, weight: 255 });
     renderMinimap(
       <FogMaskCacheProvider store={store}>
@@ -230,7 +230,7 @@ describe("Minimap — coverage-gated scan surface (own mod-local paint gate, no 
     });
   });
 
-  it("draws exactly one drawImage onto the visible canvas per repaint — no separate dark-fog-overlay composite", async () => {
+  it("draws exactly one drawImage onto the visible canvas per repaint, no separate dark-fog-overlay composite", async () => {
     renderMinimap(
       <FogMaskCacheProvider store={store}>
         <Minimap body={BODY} vesselLat={0} vesselLon={0} />

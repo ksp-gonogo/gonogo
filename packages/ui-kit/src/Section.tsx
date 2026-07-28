@@ -7,7 +7,7 @@ export interface SectionProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * A named group of rows within a panel — `Stack` pinned to the tightest gap.
+ * A named group of rows within a panel, `Stack` pinned to the tightest gap.
  * Extracted from ScienceOfficer's `Group` (`flex-direction:column;gap:2px`).
  */
 export function Section({ children, ...rest }: SectionProps) {

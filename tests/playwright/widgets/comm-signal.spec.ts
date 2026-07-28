@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror — CommSignal. Asserts the panel renders on host and
+ * Widget DOM mirror: CommSignal. Asserts the panel renders on host and
  * station, and the LOS headline readout on the host.
  *
  * The fixture's `vessel.comms.connected` is `false`, so the widget
@@ -9,7 +9,7 @@
  *   - Signal bars aria-label: "Signal 0 of 4"
  *
  * Station-side scope: only the "COMMNET" panel title (static chrome) is
- * checked on the station — the LOS readout comes from live Sitrep stream
+ * checked on the station: the LOS readout comes from live Sitrep stream
  * data, and only the MAIN screen mounts `SitrepTelemetryProvider` today
  * (station stream forwarding over PeerJS is a documented pending gap, see
  * that provider's own doc comment). Checking the LOS state on the station
@@ -18,7 +18,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — CommSignal", () => {
+test.describe("widget DOM mirror: CommSignal", () => {
   test("panel renders on host and station; LOS headline on host", async ({
     browser,
   }) => {

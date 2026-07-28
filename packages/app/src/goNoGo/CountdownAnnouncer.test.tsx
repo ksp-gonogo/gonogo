@@ -10,7 +10,7 @@ import { CountdownAnnouncer } from "./GoNoGoComponent";
 describe("CountdownAnnouncer", () => {
   it("announces T minus 10 exactly when crossing into the 10-second milestone", () => {
     const { rerender } = render(<CountdownAnnouncer secondsLeft={11} />);
-    // At 11s there's no milestone to announce yet — the status span is empty.
+    // At 11s there's no milestone to announce yet, the status span is empty.
     expect(screen.getByRole("status").textContent).toBe("");
 
     rerender(<CountdownAnnouncer secondsLeft={10} />);

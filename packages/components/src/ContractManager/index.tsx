@@ -87,7 +87,7 @@ export interface ContractEntry {
 }
 
 /**
- * Props passed to every `contract-manager.badges` augment — one instance per
+ * Props passed to every `contract-manager.badges` augment: one instance per
  * contract row (active and offered). Carries the contract's identity so a
  * contract-pack Uplink can render custom per-contract iconography against the
  * right one. Keyed off `agency`/`title`/`contractId` because that is all a pack
@@ -99,7 +99,7 @@ export interface ContractBadgeContext {
   contractId: string;
   /** Contract title, as shown in the card header. */
   title: string;
-  /** Sponsoring agency — the natural key for contract-pack iconography. */
+  /** Sponsoring agency: the natural key for contract-pack iconography. */
   agency: string;
   /** Which list the row sits in. */
   section: "active" | "offered";
@@ -132,11 +132,11 @@ function isKnownParamState(value: string): value is ContractParameterState {
  * `contracts.completedRecent`: `agency`/`repCompletion`/`deadlineUt`) and
  * the career-detail wire shape (`career.status.contracts.active`/
  * `.offered`, mod/Sitrep.Host/CareerViewProvider.cs's `BuildContractList`:
- * `agent`/`reputationCompletion`/`dateDeadline`) — same "one parser, either
+ * `agent`/`reputationCompletion`/`dateDeadline`): same "one parser, either
  * wire shape" pattern ScienceBench's `parseExperiments` established
  * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
  * `parameters` only carry `{title, state}` (no `optional`/`parameterType`/
- * altitude bounds — decompile-confirmed exact shape, career-capture-extend-
+ * altitude bounds: decompile-confirmed exact shape, career-capture-extend-
  * report.md); those extra fields simply stay undefined on a new-wire
  * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
  * rather than breaking. Drops malformed entries; tolerates unknown
@@ -160,7 +160,7 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     if (id === null) continue;
     // agency/agent, repCompletion/reputationCompletion, deadlineUt/
     // dateDeadline: legacy vs. career.status field names for the same
-    // value — prefer whichever the payload actually carries.
+    // value: prefer whichever the payload actually carries.
     const agency =
       typeof e.agency === "string"
         ? e.agency
@@ -263,16 +263,16 @@ function ContractManagerComponent({
   h,
 }: Readonly<ComponentProps<ContractManagerConfig>>) {
   // active/offered/completedRecent all ride the `career.status` Topic's
-  // `contracts` sub-tree (map-topic.ts) — read the Topic once and pick them off.
+  // `contracts` sub-tree (map-topic.ts): read the Topic once and pick them off.
   const contracts = useTelemetry("career.status")?.contracts;
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
-  // t.universalTime is dropped as a data key — it was never a stream, it IS
+  // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
   // `v.altitude` -> derived `vessel.state.altitudeAsl` (`null` in the
-  // propagated basis) — collapse to `undefined` for the numeric comparisons.
+  // propagated basis): collapse to `undefined` for the numeric comparisons.
   const vAltitude =
     useStream<VesselState>("vessel.state")?.altitudeAsl ?? undefined;
   const execute = useExecuteAction("data");
@@ -287,7 +287,7 @@ function ContractManagerComponent({
   const showSubtitle = rows >= 4;
   // Wide-short boxes (landscape-18x5) strand the single-column card list: one
   // card fills the full width while the rest scroll off the short height, and
-  // the right ~75% sits empty. Only the shape signal can see this — the size
+  // the right ~75% sits empty. Only the shape signal can see this, the size
   // bucket reads the same `normal` at 18x5 as at 5x18. Flow the cards into a
   // width-following multi-column grid only when landscape; portrait and square
   // keep the unchanged single column so those sizes can't regress. The section
@@ -329,7 +329,7 @@ function ContractManagerComponent({
               <ContractHeader>
                 <ContractTitle>{c.title}</ContractTitle>
                 {/* Per-contract inline badges slot. Renders nothing until a
-                    contract-pack Uplink binds — the props carry this row's
+                    contract-pack Uplink binds: the props carry this row's
                     contract identity so custom iconography lands on the right
                     one. */}
                 <AugmentSlot
@@ -422,7 +422,7 @@ function ContractManagerComponent({
                               $set={isSet}
                               title={
                                 isSet
-                                  ? `Alarm set for "${p.title}" — click to clear`
+                                  ? `Alarm set for "${p.title}": click to clear`
                                   : `Alarm me when "${p.title}" completes`
                               }
                               aria-label={
@@ -459,11 +459,11 @@ function ContractManagerComponent({
                           // Number.MAX_SAFE_INTEGER) can't be addressed by the
                           // current alarm trigger shape (contractId: number).
                           // Render a disabled icon with explanation rather
-                          // than hide — keeps the row layout consistent.
+                          // than hide: keeps the row layout consistent.
                           <ParameterAlarmButton
                             type="button"
                             disabled
-                            title="Cannot alarm — contract id exceeds JS safe-integer range. Fix tracked in feature_log."
+                            title="Cannot alarm: contract id exceeds JS safe-integer range. Fix tracked in feature_log."
                             aria-label="Alarm unavailable for this contract"
                           >
                             <BellIcon size={12} />
@@ -591,7 +591,7 @@ function CancelButton({
 }) {
   const [armed, setArmed] = useState(false);
 
-  // Cancel forfeits any work in progress on the contract — same arm-then-
+  // Cancel forfeits any work in progress on the contract, same arm-then-
   // confirm pattern as Decline but stronger framing in the confirm copy
   // because the loss is bigger (you may have already spent funds /
   // achieved partial parameters).
@@ -606,7 +606,7 @@ function CancelButton({
       <CancelButtonStyled
         type="button"
         onClick={() => setArmed(true)}
-        title="Cancel this contract — forfeits all progress"
+        title="Cancel this contract: forfeits all progress"
       >
         Cancel
       </CancelButtonStyled>
@@ -723,7 +723,7 @@ const ConfirmDeclineButton = styled(ActionButton)`
   color: var(--color-status-nogo-fg);
   border-color: transparent;
   /* The animation property must live inside the same media guard as
-     the keyframes — wrapping only the keyframes leaves the animation
+     the keyframes: wrapping only the keyframes leaves the animation
      active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
     animation: declinePulse 1s ease-in-out infinite;
@@ -895,7 +895,7 @@ function AltitudeProgress({
     fillFrac = 1;
     label = "in band";
   } else if (current < min) {
-    // Below the band — show progress toward min as fraction.
+    // Below the band: show progress toward min as fraction.
     fillFrac = Math.max(0, Math.min(1, current / min));
     const delta = min - current;
     label = `−${formatAltitudeShort(delta)}`;

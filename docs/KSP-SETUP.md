@@ -6,7 +6,7 @@ gonogo reads your game through mods installed in KSP. This page lists the mods y
 
 Install all of these:
 
-- **The Gonogo mod** (hand install, below). This is how gonogo reads the game — telemetry, career state, science, comms, and more, streamed live over a WebSocket
+- **The Gonogo mod** (hand install, below). This is how gonogo reads the game, telemetry, career state, science, comms, and more, streamed live over a WebSocket
 - **[kOS](https://ksp-kos.github.io/KOS/)** for the kOS Terminal widget and the kOS-driven widgets
 - **[SCANsat](https://github.com/S-C-A-N/SCANsat)** for the map and scanning widgets
 - **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for in-game cameras
@@ -16,23 +16,23 @@ kOS and SCANsat are on CKAN. The Gonogo mod and kerbcast are hand installs; both
 
 ## Installing the Gonogo mod
 
-> **Not released yet.** The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") isn't on CKAN or SpaceDock, and there's no downloadable `GameData.zip` release yet — the publish pipeline (`.github/workflows/publish-mods.yml`) is built but still inert pending some upstream prerequisites. Until a release ships, this is a build-from-source step for anyone working in this repo; see `mod/Gonogo.KSP/RUN.md`. This section will get a straight download link once that lands.
+> **Not released yet.** The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") isn't on CKAN or SpaceDock, and there's no downloadable `GameData.zip` release yet, the publish pipeline (`.github/workflows/publish-mods.yml`) is built but still inert pending some upstream prerequisites. Until a release ships, this is a build-from-source step for anyone working in this repo; see `mod/Gonogo.KSP/RUN.md`. This section will get a straight download link once that lands.
 
-The mod replaces the old gonogo build of Telemachus as gonogo's data source. Once installed and KSP is running, it starts a WebSocket server on port **8090** automatically — you don't need to be in a flight scene, the main menu is enough.
+The mod replaces the old gonogo build of Telemachus as gonogo's data source. Once installed and KSP is running, it starts a WebSocket server on port **8090** automatically, you don't need to be in a flight scene, the main menu is enough.
 
 ## Connecting the dashboard to KSP
 
-The Sitrep stream connects on its own, no setup needed, if KSP runs on the same computer as gonogo — it defaults to `localhost:8090`.
+The Sitrep stream connects on its own, no setup needed, if KSP runs on the same computer as gonogo, it defaults to `localhost:8090`.
 
 If KSP runs on a different computer, open **Settings → Data Sources → Sitrep Stream** (the database icon in the bottom-right **+** menu) and set Host to the KSP computer's address (Port defaults to `8090`). This takes effect immediately, no restart needed. [NETWORKING.md](NETWORKING.md) walks through finding the KSP computer's address for a two-computer setup.
 
-Running the Docker bundle (see the root [README](../README.md#how-to-run-it))? `KSP_HOST` seeds this automatically, same as kOS and the camera feed — you only need the Settings panel to override it.
+Running the Docker bundle (see the root [README](../README.md#how-to-run-it))? `KSP_HOST` seeds this automatically, same as kOS and the camera feed, you only need the Settings panel to override it.
 
-Building the app from source instead and want the default baked in rather than set per-browser? `VITE_SITREP_HOST`/`VITE_SITREP_PORT` in `packages/app/.env.local` (gitignored — see [CONTRIBUTING.md](../CONTRIBUTING.md#getting-set-up)) set the build-time floor that the Settings panel and `KSP_HOST` both override.
+Building the app from source instead and want the default baked in rather than set per-browser? `VITE_SITREP_HOST`/`VITE_SITREP_PORT` in `packages/app/.env.local` (gitignored; see [CONTRIBUTING.md](../CONTRIBUTING.md#getting-set-up)) set the build-time floor that the Settings panel and `KSP_HOST` both override.
 
 ## Telemachus (optional debug tool)
 
-gonogo no longer reads from Telemachus — the Gonogo mod above is the app's telemetry source now. Telemachus is still worth having installed if you want to poke at a raw value or fire an action key by hand, outside the app; most players don't need this.
+gonogo no longer reads from Telemachus, the Gonogo mod above is the app's telemetry source now. Telemachus is still worth having installed if you want to poke at a raw value or fire an action key by hand, outside the app; most players don't need this.
 
 ### Installing the gonogo build of Telemachus
 

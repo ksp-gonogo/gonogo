@@ -1,15 +1,16 @@
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface AttitudeIndicatorProps {
   heading: number | null;
   pitch: number | null;
   roll: number | null;
-  /** Pixels — the dial draws into a square, taking the smaller of w/h. */
+  /** Pixels: the dial draws into a square, taking the smaller of w/h. */
   size: number;
 }
 
 /**
- * Compact attitude indicator — not a full 8-ball, but pulls together the
+ * Compact attitude indicator: not a full 8-ball, but pulls together the
  * three primary attitude readouts in a way that reads at a glance:
  *
  *   - The horizon ribbon rolls and pitches inside a circular viewport,
@@ -17,7 +18,7 @@ export interface AttitudeIndicatorProps {
  *   - A heading rose strip sits below, scrolling so the current heading
  *     sits at the centre.
  *
- * Markers (prograde, retrograde, normal etc.) are deferred — they need
+ * Markers (prograde, retrograde, normal etc.) are deferred, they need
  * direction vectors that Telemachus doesn't expose for a compact projection,
  * and the attitude readouts here already cover the GNC use-case for v1.
  */
@@ -93,7 +94,7 @@ export function AttitudeIndicator({
                   stroke="var(--color-text-primary)"
                   strokeWidth={1.2}
                 />
-                {/* Pitch ladder — every 10°, ± 60°. */}
+                {/* Pitch ladder: every 10°, ± 60°. */}
                 {pitchTicks(45).map((deg) => {
                   const y = cy - deg * pitchScale;
                   const w = deg % 30 === 0 ? r * 0.45 : r * 0.25;
@@ -159,7 +160,7 @@ export function AttitudeIndicator({
       <HeadingStrip>
         <HeadingTicker
           // The ticker shares the strip's width (inset:0), so translateX(50%)
-          // shifts the whole tick row right by stripWidth/2 — combined with
+          // shifts the whole tick row right by stripWidth/2, combined with
           // the per-degree shift this puts the current-heading tick directly
           // under the centred pointer instead of at the strip's left edge.
           style={{
@@ -184,15 +185,15 @@ export function AttitudeIndicator({
       <Readout>
         <Cell>
           <Lab>HDG</Lab>
-          <Val>{ready ? `${safeHeading.toFixed(0)}°` : "—"}</Val>
+          <Val>{ready ? `${safeHeading.toFixed(0)}°` : NULL_DISPLAY}</Val>
         </Cell>
         <Cell>
           <Lab>PIT</Lab>
-          <Val>{ready ? `${safePitch.toFixed(0)}°` : "—"}</Val>
+          <Val>{ready ? `${safePitch.toFixed(0)}°` : NULL_DISPLAY}</Val>
         </Cell>
         <Cell>
           <Lab>ROL</Lab>
-          <Val>{ready ? `${safeRoll.toFixed(0)}°` : "—"}</Val>
+          <Val>{ready ? `${safeRoll.toFixed(0)}°` : NULL_DISPLAY}</Val>
         </Cell>
       </Readout>
     </Wrap>

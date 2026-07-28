@@ -5,18 +5,18 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>science.*</c> channels — added THIS
+    /// KSP-free mapping logic for the <c>science.*</c> channels, added THIS
     /// session (speed prioritized, same posture as <see cref="CareerViewProvider"/>'s
     /// doc comment: a primitives-dict pass-through is fine for now, a typed
     /// <c>Sitrep.Contract</c> POCO is a follow-up). Reads
-    /// <c>Values["science"]["experiments"/"lab"/"deployed"]</c> —
-    /// <c>Gonogo.KSP.KspHost.BuildScience</c>'s raw dict — and republishes
+    /// <c>Values["science"]["experiments"/"lab"/"deployed"]</c>
+    /// (<c>Gonogo.KSP.KspHost.BuildScience</c>'s raw dict) and republishes
     /// each sub-group through <see cref="SnapshotDict"/>'s readers so every
     /// scalar gets the same R1/F-1 non-finite-is-absent rule every other
     /// provider in this assembly applies.
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildScience must
-    /// populate exactly this shape at <c>Values["science"]</c> — entirely
+    /// populate exactly this shape at <c>Values["science"]</c>: entirely
     /// OMITTED, no key at all, whenever there's no active vessel):</b></para>
     /// <code>
     /// snapshot.Values["science"] = Dictionary&lt;string, object?&gt; {
@@ -42,7 +42,7 @@ namespace Sitrep.Host
     /// distinguished by "vesselName".
     /// </code>
     /// Three separate channels (one per sub-group) rather than one combined
-    /// topic — see <c>Gonogo.KSP.ScienceUplink</c>'s doc comment for why.
+    /// topic: see <c>Gonogo.KSP.ScienceUplink</c>'s doc comment for why.
     /// </summary>
     public static class ScienceViewProvider
     {
@@ -73,7 +73,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Shared "pull a list out of Values['science'][key]" walk. Returns
-        /// <c>null</c> — never an empty list — whenever the snapshot has no
+        /// <c>null</c> (never an empty list) whenever the snapshot has no
         /// <c>"science"</c> key at all, OR the sub-group key is itself
         /// absent (KspHost's own <c>TryBuildGroup</c> can omit an individual
         /// sub-group on a build failure without taking out the others; see

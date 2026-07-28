@@ -7,14 +7,14 @@ import type { PeerMessage } from "../peer/protocol";
 import { DEFAULT_SITREP_CARRIED_TOPICS } from "./SitrepTelemetryProvider";
 
 /**
- * Fan-out budget for the host relay — separate from `SITREP_STREAM_BUDGET`
+ * Fan-out budget for the host relay: separate from `SITREP_STREAM_BUDGET`
  * (WS ingest, `SitrepTelemetryProvider.tsx`) and `PEER_BROADCAST_*` (legacy
  * `data`-type peer traffic, `PeerHostService.ts`), per this repo's "any new
  * fan-out path needs its own budget" rule. Sized off `SITREP_STREAM_BUDGET`'s
  * own 750/sec steady-state figure with headroom for 1-3 connected stations
  * (each relayed frame is broadcast to every connected station, but this
- * budget counts RELAY events — one record per frame tapped off the host's
- * own client — not per-station sends, so it doesn't need to scale with
+ * budget counts RELAY events: one record per frame tapped off the host's
+ * own client: not per-station sends, so it doesn't need to scale with
  * station count itself).
  */
 const SITREP_PEER_RELAY_BUDGET = new PerfBudget({
@@ -32,21 +32,21 @@ function isCarriedFrame(
 
 /**
  * Host-side stream forwarding: taps the host's own live `TelemetryClient`
- * (via `useTelemetryClientOptional()` — the SAME client instance
+ * (via `useTelemetryClientOptional()`: the SAME client instance
  * `SitrepTelemetryProvider` mounted, never a second connection to the mod)
  * and relays every `stream-data`/`event` frame it receives VERBATIM to every
  * connected station, wrapped in a `sitrep-frame` envelope. Architecturally a
- * live sibling of `StreamRecorder` (`@ksp-gonogo/sitrep-client`) — instead of
+ * live sibling of `StreamRecorder` (`@ksp-gonogo/sitrep-client`): instead of
  * pushing frames into an array for later replay, it pushes them onto the
  * PeerJS wire.
  *
  * Renders nothing. Mount as a child of `<SitrepTelemetryProvider>` (needs to
- * be inside the provider's subtree to read the live client) — see
+ * be inside the provider's subtree to read the live client); see
  * `MainScreen.tsx`.
  *
  * v1 is eager, broadcast-all: the moment at least one station is connected,
  * this subscribes to every topic in `DEFAULT_SITREP_CARRIED_TOPICS` (a
- * ref-count keep-alive via `client.subscribe(topic, noop)` — the actual
+ * ref-count keep-alive via `client.subscribe(topic, noop)`, the actual
  * delivery to stations happens off the `onRawMessage` tap, not these
  * no-op callbacks) and tears every subscription down once the last station
  * disconnects. See
@@ -60,7 +60,7 @@ function isCarriedFrame(
  * gap) and replays it to a NEWLY connecting peer alone (`sendToPeer`, never
  * `broadcast`) so a station connecting mid-flight doesn't sit blank on a
  * low-rate topic that hasn't changed since it joined. `event` frames are
- * one-shot by nature and deliberately NOT backfilled — same posture as
+ * one-shot by nature and deliberately NOT backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
 export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
@@ -69,7 +69,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     () => peerHost.getConnectedPeerIds().length > 0,
   );
   // Ref, not state: this cache is mutated on every relayed frame (up to
-  // hundreds/sec) and must never itself trigger a re-render — only
+  // hundreds/sec) and must never itself trigger a re-render, only
   // `hasConnections` does. Persists across connect/disconnect churn
   // (deliberately never cleared) so a station reconnecting after a gap
   // still gets the last-known value immediately.
@@ -88,7 +88,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   }, [peerHost]);
 
   // Per-connection backfill: independent of `hasConnections`'s own
-  // subscribe/teardown gating below — for the SECOND (and later) station to
+  // subscribe/teardown gating below: for the SECOND (and later) station to
   // connect while the relay is already live, the cache is already populated
   // from ongoing broadcasts and must be replayed to that connection alone.
   // For the FIRST connecting station there's nothing cached yet (nothing
@@ -114,7 +114,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     // Dynamic kos.terminal.<coreId> downlinks aren't in the static carried
     // list (the coreIds aren't known up front). A station opening a kOS
     // terminal subscribes over PeerTransport, but that subscription never
-    // reaches the host's mod client — so unless the host is itself subscribed,
+    // reaches the host's mod client: so unless the host is itself subscribed,
     // no terminal frames arrive to relay. Mirror kos.processors here and keep
     // the host subscribed to every current CPU's terminal topic while any
     // station is connected, so a station-only terminal gets its downlink. The

@@ -19,7 +19,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("Objectives — stream render golden (delay=0)", () => {
+describe("Objectives: stream render golden (delay=0)", () => {
   it("renders contract-parameter objectives off the stream for the same contract state", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],

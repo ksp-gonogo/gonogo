@@ -11,12 +11,12 @@ import type { MissionMeta } from "../storage/MissionStore";
 
 /**
  * `Clock` that runs `rate`x real wall-clock speed, anchored at construction
- * (`now()` starts at 0) — `ReplayTransport` computes every frame's fire time
+ * (`now()` starts at 0): `ReplayTransport` computes every frame's fire time
  * relative to that anchor, so this is all it needs to honor the fixture's
  * own `deliveredAt` cadence at an adjustable playback speed. `rate` is
  * intentionally NOT mutable mid-flight (matches the pre-existing
  * `ReplayController.setRate` precedent this replaces: rate is
- * constructor-only, changing it means rebuilding the session — see
+ * constructor-only, changing it means rebuilding the session; see
  * `ReplaySessionController.setRate`).
  */
 class ScaledRealTimeClock implements Pick<Clock, "now" | "schedule"> {
@@ -51,11 +51,11 @@ function isDataOrEventFrame(
 /**
  * Builds a synthetic fixture anchored at `targetDeliveredAt`: for every
  * topic, keeps only its LATEST frame at-or-before the target (a "keyframe
- * snapshot" of everything known as of that instant — mirrors the retired
+ * snapshot" of everything known as of that instant, mirrors the retired
  * `FlightReplayDataSource.seek()`'s own "rewind snapshot" behaviour), plus
  * every frame strictly after the target unchanged. The snapshot frames'
  * `meta.deliveredAt` is rewritten to `targetDeliveredAt` (so they all
- * schedule at offset zero — arriving together, near-instantly — instead of
+ * schedule at offset zero, arriving together, near-instantly, instead of
  * spread across however many real seconds separated their ORIGINAL arrival
  * times); `validAt` is left untouched, since that's what derived channels
  * (e.g. `vessel.state.met`) reason about, not scheduling.
@@ -97,7 +97,7 @@ function buildSeekFixture(
   return { subscribedTopics: fixture.subscribedTopics, frames };
 }
 
-/** The earliest `meta.deliveredAt` across a fixture's data/event frames — `start()`'s anchor point. `0` for an empty fixture. */
+/** The earliest `meta.deliveredAt` across a fixture's data/event frames, `start()`'s anchor point. `0` for an empty fixture. */
 function earliestDeliveredAt(fixture: ReplayFixture): number {
   let earliest = Number.POSITIVE_INFINITY;
   for (const raw of fixture.frames) {
@@ -130,19 +130,19 @@ const IDLE_SNAPSHOT: ReplaySessionSnapshot = {
 type Listener = () => void;
 
 /**
- * Owns exactly one in-progress mission replay session — the
+ * Owns exactly one in-progress mission replay session, the
  * `ReplayTransport`-based replacement for the retired `ReplayController` /
  * `FlightReplayDataSource`. Builds a fresh `TelemetryClient` +
  * `TimelineStore` (registering the SAME production derived channels the
  * live stream does) from a mission's `ReplayFixture`, and renders through
- * the ordinary `TelemetryProvider` surface (`ReplaySessionProvider`) — a
+ * the ordinary `TelemetryProvider` surface (`ReplaySessionProvider`): a
  * replayed widget is the exact same component reading the exact same
  * `useTelemetry`/`useDataValue` hooks a live one does, just fed from a
  * different client.
  *
  * Play/pause/seek/rate all resolve to (re)starting a fresh
- * `ReplayTransport` anchored at a chosen point — never live in-place
- * mutation of an already-armed transport's schedule — matching the
+ * `ReplayTransport` anchored at a chosen point: never live in-place
+ * mutation of an already-armed transport's schedule: matching the
  * `ReplayController.setRate` precedent this replaces ("rebuilds the whole
  * replay source since rate is constructor-only").
  */
@@ -168,7 +168,7 @@ export class ReplaySessionController {
     this.launch(meta, firstDeliveredAt, 1, true);
   }
 
-  /** Tear down the active session entirely — back to no `TelemetryProvider` override at all. */
+  /** Tear down the active session entirely: back to no `TelemetryProvider` override at all. */
   stop(): void {
     this.transport?.stop();
     this.transport = null;
@@ -177,7 +177,7 @@ export class ReplaySessionController {
     this.emit();
   }
 
-  /** Freeze playback where it currently sits. `store`/`client` stay mounted (widgets keep showing the last-delivered state) — only new frame delivery stops. */
+  /** Freeze playback where it currently sits. `store`/`client` stay mounted (widgets keep showing the last-delivered state), only new frame delivery stops. */
   pause(): void {
     if (!this.snapshot.active) return;
     this.transport?.stop();
@@ -196,7 +196,7 @@ export class ReplaySessionController {
     );
   }
 
-  /** Jump to `targetUt` (a `deliveredAt`-domain UT — the same domain the mission's `meta.firstFrameUt`/`lastFrameUt` are in). Keeps the current play/pause state. */
+  /** Jump to `targetUt` (a `deliveredAt`-domain UT: the same domain the mission's `meta.firstFrameUt`/`lastFrameUt` are in). Keeps the current play/pause state. */
   seekTo(targetUt: number): void {
     if (!this.snapshot.active || !this.fixture || !this.snapshot.meta) return;
     this.launch(
@@ -225,7 +225,7 @@ export class ReplaySessionController {
   /**
    * (Re)builds the whole session anchored at `anchorUt`: a fresh
    * `TimelineStore`/`ViewClock` primed with the keyframe snapshot as of
-   * `anchorUt` (`buildSeekFixture`), plus — only when `playing` — everything
+   * `anchorUt` (`buildSeekFixture`), plus, only when `playing`, everything
    * after it, scheduled at `rate`x real time. When NOT playing, the session
    * still gets built (so the view reflects the new position immediately)
    * but nothing beyond the snapshot is included, so no further frames ever

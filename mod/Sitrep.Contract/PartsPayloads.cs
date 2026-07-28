@@ -7,8 +7,8 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// One solar panel in the <c>parts.power</c> payload's <c>solarPanels</c> array.
-/// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildSolarPanelEntry</c>
-/// — every field nullable because each is read through <c>SnapshotDict.Get*</c>,
+/// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildSolarPanelEntry</c>,
+/// every field nullable because each is read through <c>SnapshotDict.Get*</c>,
 /// which yields <c>null</c> (not a sentinel) on absence. See
 /// <see cref="PartsPower"/> for the "no wire change" rationale.
 /// </summary>
@@ -88,20 +88,20 @@ public class AlternatorEntry
 }
 
 /// <summary>
-/// The <c>parts.power</c> channel payload — the active vessel's electric-charge
+/// The <c>parts.power</c> channel payload: the active vessel's electric-charge
 /// production surface (solar panels, batteries, fuel cells, engine
 /// alternators, and a rolled-up production total). Unlike the bare-array
 /// <c>parts.robotics</c> and the <c>science.*</c> channels, this payload is a
 /// single WRAPPER OBJECT (or <c>null</c> when there is no active vessel / no
-/// power sub-group) — so the Topic tag sits on this type directly with the
+/// power sub-group): so the Topic tag sits on this type directly with the
 /// default <c>IsArray = false</c>.
 ///
 /// <para><b>Typing-only mirror.</b> This reproduces, field-for-field, the exact
 /// serialized shape <c>Sitrep.Host.PartsViewProvider.BuildPower</c> already
 /// emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
-/// itself — the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary — so adding it changes no bytes. The four arrays and the total
+/// itself: the wire is written by <c>JsonWriter</c> walking the provider's
+/// dictionary: so adding it changes no bytes. The four arrays and the total
 /// are each nullable to mirror the provider (the arrays are always present in
 /// the emitted object, but the contract stays permissive; the total is
 /// <c>null</c> whenever <c>SnapshotDict.GetDouble</c> reads no finite value).</para>
@@ -125,18 +125,18 @@ public class PartsPower
 }
 
 /// <summary>
-/// One entry in the <c>parts.robotics</c> channel payload — a single Breaking
+/// One entry in the <c>parts.robotics</c> channel payload, a single Breaking
 /// Ground robotic servo (rotor / hinge / piston) on the active vessel. The
 /// channel payload is a BARE ARRAY of these (<c>ServoEntry[]</c>) or
-/// <c>null</c> — never a wrapper object — so the Topic tag sits on this
+/// <c>null</c> (never a wrapper object) so the Topic tag sits on this
 /// element type with <c>IsArray = true</c>.
 ///
 /// <para><see cref="Type"/> is the servo kind as a plain string on the wire
-/// (<c>"rotor"</c> / <c>"hinge"</c> / <c>"piston"</c>), NOT an enum — mirroring
+/// (<c>"rotor"</c> / <c>"hinge"</c> / <c>"piston"</c>), NOT an enum, mirroring
 /// what the provider emits today; the enum cleanup is a later phase.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
-/// <c>Sitrep.Host.PartsViewProvider.BuildServoEntry</c> — see
+/// <c>Sitrep.Host.PartsViewProvider.BuildServoEntry</c>: see
 /// <see cref="PartsPower"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
@@ -182,43 +182,43 @@ public class ServoEntry
     public double? TargetExtension { get; set; }
 
     /// <summary>
-    /// Rotor spin direction (rotor entries only — <c>null</c> for hinge/piston).
+    /// Rotor spin direction (rotor entries only: <c>null</c> for hinge/piston).
     /// Mirrors <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c>
     /// means the rotor spins counter-clockwise.
     /// </summary>
     public bool? CounterClockwise { get; set; }
 
     /// <summary>
-    /// Rotor torque ceiling in kN (rotor entries only — <c>null</c> for
-    /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c> — the
+    /// Rotor torque ceiling in kN (rotor entries only, <c>null</c> for
+    /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
     /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
     /// </summary>
     public double? MaxTorque { get; set; }
 }
 
 /// <summary>
-/// The <c>robotics.available</c> channel payload — a single wrapper object
+/// The <c>robotics.available</c> channel payload: a single wrapper object
 /// (or <c>null</c> when there is no active vessel) whose one field states
 /// whether the active vessel carries ANY Breaking Ground robotic servo
 /// (rotor / hinge / piston). This is deliberately its OWN Topic, not a field
 /// folded into the bare-array <c>parts.robotics</c>: an empty
 /// <c>ServoEntry[]</c> can't disambiguate "vessel has no robotic parts"
 /// (<c>available: false</c>) from "no snapshot / no active vessel"
-/// (payload <c>null</c>) — the very ambiguity a widget like
+/// (payload <c>null</c>): the very ambiguity a widget like
 /// <c>RoboticsConsole</c> / <c>RotorTachometer</c> needs resolved to decide
 /// whether to render a "no robotics on this craft" empty state versus stay
 /// dark. It is DISTINCT from the Breaking-Ground DLC-presence fact (that is
-/// the <c>deployed.available</c> / <c>Meta.Dlc</c> build) — this reflects
+/// the <c>deployed.available</c> / <c>Meta.Dlc</c> build): this reflects
 /// parts present on THIS vessel, so it rides the delay clock (Delayed),
 /// whereas DLC presence is a ground-side TrueNow fact.
 ///
 /// <para><see cref="Available"/> is nullable to mirror
-/// <c>SnapshotDict.GetBool</c>'s null-on-absence rule — a snapshot recorded
+/// <c>SnapshotDict.GetBool</c>'s null-on-absence rule: a snapshot recorded
 /// before this field existed reads as <c>null</c>; a live snapshot always
 /// carries a concrete <c>true</c>/<c>false</c>.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
-/// <c>Sitrep.Host.PartsViewProvider.BuildRoboticsAvailable</c> — see
+/// <c>Sitrep.Host.PartsViewProvider.BuildRoboticsAvailable</c>: see
 /// <see cref="PartsPower"/> for the "no wire change" rationale.</para>
 /// </summary>
 [SitrepContract]

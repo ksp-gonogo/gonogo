@@ -6,7 +6,7 @@ using System.Text;
 namespace Sitrep.Core.Serialization
 {
     /// <summary>
-    /// Hand-written, allocation-conscious JSON writer — no Json.NET, no
+    /// Hand-written, allocation-conscious JSON writer: no Json.NET, no
     /// System.Text.Json (the latter is a separate NuGet package on
     /// <c>netstandard2.0</c> and would break <c>Sitrep.Core</c>'s
     /// zero-PackageReference invariant; see <c>Sitrep.Core.csproj</c>).
@@ -20,7 +20,7 @@ namespace Sitrep.Core.Serialization
     internal static class JsonWriter
     {
         /// <summary>
-        /// THE only place a <see cref="double"/> is ever appended — see
+        /// THE only place a <see cref="double"/> is ever appended; see
         /// <see cref="NanPolicy"/> for why. Finite values are written as a
         /// plain JSON number (shortest round-trippable form, matching what
         /// <c>JSON.stringify</c> produces for ordinary telemetry-range
@@ -39,7 +39,7 @@ namespace Sitrep.Core.Serialization
             sb.Append(FormatFiniteNumber(value));
         }
 
-        /// <summary>Appends a JSON integer (used for <c>Meta.Seq</c> and enum ordinals) — always finite, no sentinel policy applies.</summary>
+        /// <summary>Appends a JSON integer (used for <c>Meta.Seq</c> and enum ordinals); always finite, no sentinel policy applies.</summary>
         public static void AppendInteger(StringBuilder sb, long value)
         {
             sb.Append(value.ToString(CultureInfo.InvariantCulture));
@@ -104,8 +104,8 @@ namespace Sitrep.Core.Serialization
         /// by <c>Payload</c> / <c>Args</c> / <c>Result</c>: <c>null</c>,
         /// <c>bool</c>, <c>double</c> (also accepts boxed <c>int</c>/<c>long</c>/
         /// <c>float</c> for caller convenience), <c>string</c>,
-        /// <c>Dictionary&lt;string, object?&gt;</c>, and <c>List&lt;object?&gt;</c>
-        /// — the same shape <c>CourierGoldenFixtureTests.ToClrValue</c> already
+        /// <c>Dictionary&lt;string, object?&gt;</c>, and <c>List&lt;object?&gt;</c>,
+        /// the same shape <c>CourierGoldenFixtureTests.ToClrValue</c> already
         /// uses elsewhere in this codebase. Numbers always go through
         /// <see cref="AppendNumber"/>, so the NaN/Infinity policy applies
         /// uniformly however deeply nested the value is.
@@ -113,17 +113,17 @@ namespace Sitrep.Core.Serialization
         /// WIDER NUMERIC TYPES (C2-2, second fail-soft round): a channel
         /// mapper is uplink-authored and can legitimately hand back any
         /// of the numeric CLR types <c>ChannelEmitter.TryToDouble</c>
-        /// already accepts for its deadband gate — <c>short</c>/<c>sbyte</c>/
+        /// already accepts for its deadband gate: <c>short</c>/<c>sbyte</c>/
         /// <c>byte</c>/<c>uint</c>/<c>ulong</c>/<c>decimal</c>, not just
         /// <c>double</c>/<c>float</c>/<c>int</c>/<c>long</c>. Before this
         /// fix, one of those types would clear the emitter's gate fine and
         /// only THEN throw <c>NotSupportedException</c> here, at delivery
-        /// time — every one of those is now converted (widened to
+        /// time: every one of those is now converted (widened to
         /// <c>double</c>, matching the emitter's own conversion) and routed
         /// through <see cref="AppendNumber"/> exactly like any other number.
         ///
         /// ARRAYS: anything else that's an <see cref="IEnumerable"/> (e.g.
-        /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c> — any real
+        /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c>: any real
         /// capture code writes a typed array, not a hand-built
         /// <c>List&lt;object?&gt;</c>) is written as a JSON array too, one
         /// element at a time back through THIS method, so a numeric element
@@ -198,8 +198,8 @@ namespace Sitrep.Core.Serialization
                     // Same "producer owns the flatten" boundary as CommandResult
                     // above: comms.delay's payload is a CommsDelay POCO (see
                     // Gonogo.KSP.CommsCoreUplink.HandleOnCourier, which publishes
-                    // the raw value), which JsonWriter otherwise cannot serialize
-                    // — before this case it fail-softed at the wire boundary,
+                    // the raw value), which JsonWriter otherwise cannot serialize,
+                    // before this case it fail-softed at the wire boundary,
                     // meaning a client that subscribed comms.delay got nothing.
                     // Flattened to { oneWaySeconds, source, meta:{ source,
                     // quality } } with enum ordinals + camelCase keys, matching
@@ -208,14 +208,14 @@ namespace Sitrep.Core.Serialization
                     // so nothing existing changes shape.
                     AppendCommsDelay(sb, commsDelay);
                     break;
-                // KosProcessorInfo / KosTerminalFrame / KosRunResult — kOS's
+                // KosProcessorInfo / KosTerminalFrame / KosRunResult: kOS's
                 // three raw-POCO wire types (kos.processors / kos.terminal.
-                // <coreId> / kos.run.<coreId>) — used to have their own cases
+                // <coreId> / kos.run.<coreId>), used to have their own cases
                 // here, same "producer owns the flatten" shape as CommsDelay
                 // above. As of the kos migration (2026-07-18) all three
                 // self-flatten producer-side via Gonogo.KosUplink.
                 // Kos*Builder.Build(), so JsonWriter never sees the raw POCO
-                // any more — see WirePayloadCoverageTests.FlattenedByProducer.
+                // any more: see WirePayloadCoverageTests.FlattenedByProducer.
                 case Sitrep.Contract.CommsLink link:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // CommsConnectivity below: the comms.link connectivity
@@ -233,7 +233,7 @@ namespace Sitrep.Core.Serialization
                     // publishes a CommsConnectivity POCO (see
                     // Gonogo.KSP.CommsCoreUplink.HandleOnCourier). Without a case
                     // here a populated payload threw NotSupportedException at the
-                    // wire boundary and fail-softed to nothing — the client
+                    // wire boundary and fail-softed to nothing, the client
                     // subscribed but got zero stream-data.
                     AppendCommsConnectivity(sb, connectivity);
                     break;
@@ -331,7 +331,7 @@ namespace Sitrep.Core.Serialization
         /// <c>{ success, errorCode, [payload] }</c>. <c>errorCode</c> is the
         /// enum's integer ordinal (same convention as every other enum in
         /// this codec). The <c>payload</c> key is emitted ONLY for the
-        /// generic subtype — read reflectively because <c>T</c> is open here —
+        /// generic subtype (read reflectively because <c>T</c> is open here)
         /// so a plain <see cref="Sitrep.Contract.CommandResult"/> (the "no
         /// payload" actuation ack) serializes without a payload key at all.
         /// A null payload on a <c>CommandResult&lt;T&gt;</c> (the failure
@@ -366,7 +366,7 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
         /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
-        /// <c>oneWaySeconds</c> is nullable (R7 typed absence — see
+        /// <c>oneWaySeconds</c> is nullable (R7 typed absence; see
         /// <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>'s own doc
         /// comment): written as JSON <c>null</c> when there is no measurable
         /// path, the same nullable-double wire path as
@@ -415,7 +415,7 @@ namespace Sitrep.Core.Serialization
         // Nullable-field writers for the reliability.* POCOs (nearly every field
         // is optional). Each is exactly the inline "HasValue / non-null ? value :
         // JSON null" idiom the sibling helpers already use (AppendCommsDelay's
-        // oneWaySeconds, AppendCommsControlState's reason) — named so the two
+        // oneWaySeconds, AppendCommsControlState's reason): named so the two
         // reliability writers below stay one line per field.
         private static void AppendNullableBool(StringBuilder sb, bool? value)
         {
@@ -456,7 +456,7 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
         /// object <c>{ unmodeled, malfunction, critical, source,
-        /// worstReliabilityFraction }</c> — camelCase keys, JSON null for absent
+        /// worstReliabilityFraction }</c>: camelCase keys, JSON null for absent
         /// nullable fields, matching the generated SDK interface. reliability.summary
         /// (<c>Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier</c>) publishes this
         /// POCO raw, so before this existed a populated payload threw
@@ -492,7 +492,7 @@ namespace Sitrep.Core.Serialization
         /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
         /// object <c>{ partId, title, group, broken, critical, mtbfHours,
         /// reliabilityFraction, remainingRatedBurn, ignitionsConsumed,
-        /// durationConsumed, needsRepair }</c> — camelCase keys, JSON null for absent
+        /// durationConsumed, needsRepair }</c>: camelCase keys, JSON null for absent
         /// nullable fields, matching the generated SDK interface. reliability.parts
         /// publishes a <c>List&lt;ReliabilityPartEntry&gt;</c> raw, whose elements
         /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
@@ -635,8 +635,8 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightVesselChanged"/> to the
-        /// wire object <c>{ flightId, vesselId, vesselName, previousVesselId, ut }</c>
-        /// — <c>previousVesselId</c> written as JSON <c>null</c> when absent
+        /// wire object <c>{ flightId, vesselId, vesselName, previousVesselId, ut }</c>,
+        /// <c>previousVesselId</c> written as JSON <c>null</c> when absent
         /// (R7 typed-absence), never a sentinel empty string. See the
         /// <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
@@ -698,7 +698,7 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.PendingUplink"/> entry to
         /// the wire object <c>{ id, command, label, topic, vantage,
-        /// dispatchedAt, oneWaySeconds }</c> — the SAME seven fields
+        /// dispatchedAt, oneWaySeconds }</c>: the SAME seven fields
         /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> ratchets on
         /// <see cref="Sitrep.Contract.PendingUplink"/> itself (prediction-only:
         /// dispatch-time facts only, never an execution/result field).
@@ -750,7 +750,7 @@ namespace Sitrep.Core.Serialization
         // nullable fields written as JSON null (R7 typed-absence) rather than
         // a sentinel. Without these, a POPULATED comms.* payload threw
         // NotSupportedException in AppendValue at the wire boundary and the
-        // frame was dropped — a subscribed client received only "subscribed"
+        // frame was dropped, a subscribed client received only "subscribed"
         // and zero stream-data, exactly the kos.processors / comms.delay bug.
         // ================================================================
 
@@ -1047,13 +1047,13 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Writes any non-string, non-dictionary <see cref="IEnumerable"/> as
-        /// a JSON array — covers both the hand-built <c>List&lt;object?&gt;</c>
+        /// a JSON array: covers both the hand-built <c>List&lt;object?&gt;</c>
         /// shape and a real typed array (<c>double[]</c>, <c>object?[]</c>,
         /// ...). Enumerating as plain (non-generic) <see cref="IEnumerable"/>
         /// yields each element already boxed as <c>object</c>, so a
         /// <c>double[]</c> element arrives as a boxed <c>double</c> and hits
         /// <see cref="AppendValue"/>'s <c>case double d</c> exactly like any
-        /// other numeric value — same NaN/Infinity sentinel path either way.
+        /// other numeric value: same NaN/Infinity sentinel path either way.
         /// </summary>
         private static void AppendArray(StringBuilder sb, IEnumerable list)
         {
@@ -1082,7 +1082,7 @@ namespace Sitrep.Core.Serialization
         ///
         /// NOT a claim of byte-for-byte parity with V8's exact
         /// shortest-round-trip / fixed-vs-exponential switchover algorithm
-        /// (ECMA-262 Number::ToString) across EVERY possible double — that's
+        /// (ECMA-262 Number::ToString) across EVERY possible double: that's
         /// out of scope for M5a. Telemetry values are realistically within
         /// the range where .NET's own shortest-round-trippable formatting
         /// already agrees with JS's default number-to-string conversion.

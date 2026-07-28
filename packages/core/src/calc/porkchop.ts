@@ -1,11 +1,11 @@
 /**
- * Porkchop grid builder — the departure×arrival Δv surface a Transfer Window
+ * Porkchop grid builder: the departure×arrival Δv surface a Transfer Window
  * widget renders as a heatmap (MechJeb/alexmoon style). Pure and deterministic:
  * for each (departure UT, arrival UT) cell it solves Lambert's problem for the
  * transfer and records the characteristic Δv.
  *
  * Decoupled from any propagator: the caller injects `propagateOrigin` /
- * `propagateDest` — functions returning a body's parent-relative state
+ * `propagateDest`: functions returning a body's parent-relative state
  * (position + velocity) at a UT. The widget wires the streaming Keplerian
  * propagator (`@ksp-gonogo/sitrep-client`'s `solve`); tests inject an analytic
  * one. This keeps core free of a sitrep-client dependency and keeps the builder
@@ -66,7 +66,7 @@ export interface PorkchopInput {
    */
   shortWay?: boolean;
   /**
-   * Minimum time of flight (s) to attempt a Lambert solve — skips near-zero
+   * Minimum time of flight (s) to attempt a Lambert solve, skips near-zero
    * and (optionally) near-degenerate transfers. Defaults to 0 (only arr>dep is
    * required).
    */

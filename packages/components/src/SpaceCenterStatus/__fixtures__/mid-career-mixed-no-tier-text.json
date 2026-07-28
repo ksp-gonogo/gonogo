@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Same underlying career state as mid-career-mixed.json (tiers/costs/pad/parts identical), but with currentLevelText/nextLevelText blanked out on every facility. Used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx): career.status.facilities (CareerViewProvider.BuildFacilities) has no currentLevelText/nextLevelText field at all — the real wire can never reproduce the rich tier-text block mid-career-mixed.json exercises for the legacy-only tests (index.test.tsx/snapshots.test.tsx), so a byte-identical dual-run needs a legacy fixture that already renders the same 'older DLL, no tier text' shape parseFacilityLevels produces for an enum-keyed entry.",
+    "notes": "Same underlying career state as mid-career-mixed.json (tiers/costs/pad/parts identical), but with currentLevelText/nextLevelText blanked out on every facility. Used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx): career.status.facilities (CareerViewProvider.BuildFacilities) has no currentLevelText/nextLevelText field at all, the real wire can never reproduce the rich tier-text block mid-career-mixed.json exercises for the legacy-only tests (index.test.tsx/snapshots.test.tsx), so a byte-identical dual-run needs a legacy fixture that already renders the same 'older DLL, no tier text' shape parseFacilityLevels produces for an enum-keyed entry.",
     "scenario": "mid-career-mixed-no-tier-text"
   },
   "kc.facilityLevels": {

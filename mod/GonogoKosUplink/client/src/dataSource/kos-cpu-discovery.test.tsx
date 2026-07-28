@@ -1,6 +1,6 @@
 /**
  * Integration proof that the main screen's kOS CPU registry populates purely
- * from a `kos.processors` frame on the sitrep stream — the discovery path that
+ * from a `kos.processors` frame on the sitrep stream, the discovery path that
  * replaced the old telnet menu-peek.
  *
  * Nothing internal is mocked: the REAL `KosCpuDiscovery` component adopts the
@@ -11,7 +11,7 @@
  * `useKosMainWiring` hook, since merged into this one component). A REAL
  * `TelemetryProvider` supplies the client. Only the wire is faked, via
  * `FakeKosUplink` (a `StubTransport`-backed `kos.processors`/`kos.run`
- * responder — the same fixture the executeScript integration tests use).
+ * responder: the same fixture the executeScript integration tests use).
  */
 
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
@@ -72,7 +72,7 @@ describe("kOS CPU discovery → registry", () => {
       expect(registry.list().filter((e) => e.online)).toHaveLength(2),
     );
 
-    // Vessel switch — only one CPU remains loaded.
+    // Vessel switch: only one CPU remains loaded.
     fake.setCpus([{ number: 1, tagname: "datastream" }]);
     await waitFor(() => {
       const online = registry

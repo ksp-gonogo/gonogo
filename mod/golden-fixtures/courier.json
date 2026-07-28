@@ -128,7 +128,7 @@
   },
   {
     "name": "subscribe-during-transit-schedules-in-flight",
-    "description": "A subscriber joining while a recorded sample is still in flight (validAt + delay > now) gets neither a catch-up (nothing has arrived yet) nor a miss — it is scheduled and delivered once the sample arrives.",
+    "description": "A subscriber joining while a recorded sample is still in flight (validAt + delay > now) gets neither a catch-up (nothing has arrived yet) nor a miss: it is scheduled and delivered once the sample arrives.",
     "network": {
       "setDelay": [
         {
@@ -228,7 +228,7 @@
   },
   {
     "name": "unsubscribe-before-delivery-drops-it",
-    "description": "Unsubscribing before a scheduled delivery fires removes the subscriber entirely — no event for it, even once the delivery's UT is reached.",
+    "description": "Unsubscribing before a scheduled delivery fires removes the subscriber entirely, no event for it, even once the delivery's UT is reached.",
     "network": {
       "setDelay": [
         {
@@ -460,7 +460,7 @@
   },
   {
     "name": "loss-unreachable-drops-command-with-honest-silence",
-    "description": "A command dispatched to an unreachable node is dropped entirely at dispatch time — the handler never runs and no response event ever fires, even after a huge advance.",
+    "description": "A command dispatched to an unreachable node is dropped entirely at dispatch time: the handler never runs and no response event ever fires, even after a huge advance.",
     "network": {
       "setDelay": [
         {

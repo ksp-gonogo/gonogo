@@ -114,7 +114,7 @@ function makeSyntheticSource(keyCount: number): DataSource & {
     },
     tick(now: number) {
       counter += 1;
-      // 4 Hz worth of samples — fan out to every subscribed key.
+      // 4 Hz worth of samples: fan out to every subscribed key.
       for (const key of keys) {
         const sample = { t: now, v: counter };
         sampleSubs.get(key.key)?.forEach((cb) => {
@@ -129,13 +129,13 @@ function makeSyntheticSource(keyCount: number): DataSource & {
 }
 
 describe("peer broadcast benchmark", () => {
-  it("baseline — broadcast-all: bytes/sec and count/sec on a 150-key 4Hz feed with 2 peers", async () => {
+  it("baseline, broadcast-all: bytes/sec and count/sec on a 150-key 4Hz feed with 2 peers", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const { PeerBroadcastingDataSource } = await import(
       "../peer/PeerBroadcastingDataSource"
     );
 
-    // Reset the budget rates without clearing the registry — the budget
+    // Reset the budget rates without clearing the registry, the budget
     // instances are module-level singletons; only their internal counters
     // need to start at zero for this test.
     for (const b of PerfBudget.getAll()) b.reset();
@@ -200,7 +200,7 @@ describe("peer broadcast benchmark", () => {
     );
   });
 
-  it("selective: peer with 10 subscribed keys gets only those — same scenario", async () => {
+  it("selective: peer with 10 subscribed keys gets only those, same scenario", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const { PeerBroadcastingDataSource } = await import(
       "../peer/PeerBroadcastingDataSource"
@@ -258,7 +258,7 @@ describe("peer broadcast benchmark", () => {
     // 10 keys × 4 Hz × 2 peers (disjoint sets) = 80 messages/sec.
     expect(countIn1Sec).toBeGreaterThanOrEqual(70);
     expect(countIn1Sec).toBeLessThanOrEqual(90);
-    // Bytes scale with msg count — should be roughly 1/15 of broadcast-all.
+    // Bytes scale with msg count: should be roughly 1/15 of broadcast-all.
     expect(bytesIn1Sec).toBeLessThan(10_000);
 
     // Each peer should only see its own key set (40 messages each

@@ -133,7 +133,7 @@ describe("DataKeyPicker", () => {
     expect(screen.getByText("No matches")).toBeInTheDocument();
   });
 
-  it("initially closed — aria-expanded=false and no listbox in DOM", () => {
+  it("initially closed: aria-expanded=false and no listbox in DOM", () => {
     render(
       <DataKeyPicker keys={KEYS} value={null} onChange={() => undefined} />,
     );

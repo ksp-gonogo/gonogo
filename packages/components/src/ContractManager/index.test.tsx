@@ -219,7 +219,7 @@ describe("ContractManagerComponent", () => {
     renderContract(fixture);
     act(() => {
       // Emit active (empty) so the widget exits the awaiting-telemetry
-      // early-return — without active, offered isn't rendered.
+      // early-return: without active, offered isn't rendered.
       emitContracts(fixture, {
         active: [],
         offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
@@ -264,7 +264,7 @@ describe("ContractManagerComponent", () => {
       });
     });
 
-    // First click arms — should not fire yet.
+    // First click arms: should not fire yet.
     await user.click(await screen.findByText("Decline"));
     expect(onExecute).not.toHaveBeenCalled();
 
@@ -307,7 +307,7 @@ describe("parseContracts", () => {
       { title: "missing id" },
     ]);
     expect(parsed).toHaveLength(1);
-    // IDs are stringified — JS numbers can't represent KSP's full long
+    // IDs are stringified, JS numbers can't represent KSP's full long
     // range, so the parser normalises to string regardless of input type.
     expect(parsed?.[0]?.id).toBe("1");
   });

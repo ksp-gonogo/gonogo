@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatKspDate } from "./formatKspDate";
+import { NULL_DISPLAY } from "./NullValue";
 
 describe("formatKspDate", () => {
   it("formats UT 0 as Year 1, Day 1, midnight", () => {
@@ -26,9 +27,9 @@ describe("formatKspDate", () => {
   });
 
   it("returns an em dash for non-finite input", () => {
-    expect(formatKspDate(Number.NaN)).toBe("—");
-    expect(formatKspDate(Number.POSITIVE_INFINITY)).toBe("—");
-    expect(formatKspDate(Number.NEGATIVE_INFINITY)).toBe("—");
+    expect(formatKspDate(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(formatKspDate(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
+    expect(formatKspDate(Number.NEGATIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 
   it("clamps negative UT to the epoch rather than going negative", () => {

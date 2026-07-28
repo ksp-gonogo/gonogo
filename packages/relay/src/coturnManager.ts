@@ -22,7 +22,7 @@ export interface CoturnOptions {
    * Local, bindable IP coturn should actually open relay sockets on, passed
    * as the `/private` half of coturn's `--external-ip=<public>/<private>`.
    * Needed whenever `externalIp` is a NAT / published address that isn't a
-   * local interface — the usual container case: without it coturn tries to
+   * local interface, the usual container case, without it coturn tries to
    * bind relay sockets on the non-local `externalIp`, fails `EADDRNOTAVAIL`,
    * and every allocation dies with `create_relay_ioa_sockets: no available
    * ports`. Omit only when `externalIp` is itself a local interface.
@@ -35,7 +35,7 @@ export interface CoturnOptions {
   /** Min relay port. Defaults to 49160. */
   minPort?: number;
   /**
-   * Max relay port. Defaults to 49170 — coturn allocates one relay port
+   * Max relay port. Defaults to 49170: coturn allocates one relay port
    * per active TURN session, so 11 ports comfortably covers ≤10
    * simultaneous TURN-using clients. Bumped down from the original
    * 49200 because Google Wi-Fi (and most consumer routers) require
@@ -76,7 +76,7 @@ const DEFAULT_MAX_PORT = 49170;
 
 /**
  * Spawn coturn with a fresh random secret. Resolves once the binary has
- * been spawned (not necessarily fully bound — that takes a few hundred
+ * been spawned (not necessarily fully bound, that takes a few hundred
  * ms in practice; the readiness probe from the main screen is the
  * authoritative "is it actually serving" check).
  */
@@ -97,7 +97,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     : opts.externalIp;
 
   const args = [
-    "-n", // no config file — everything via CLI
+    "-n", // no config file: everything via CLI
     "--log-file=stdout",
     "--lt-cred-mech",
     `--realm=${realm}`,
@@ -109,7 +109,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     // Hard cap on simultaneous allocations = the size of the relay pool. Once
     // every port is in use coturn returns a clean 486 "Allocation Quota
     // Reached" instead of silently spamming "create_relay_ioa_sockets: no
-    // available ports" per retry — the latter buried the real signal in the
+    // available ports" per retry: the latter buried the real signal in the
     // logs for ages. This is a diagnostic guardrail, not a connectivity fix:
     // the genuine relief for pool pressure is not handing TURN to LAN peers
     // in the first place (TURN-on-demand).
@@ -117,12 +117,12 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--external-ip=${externalIpArg}`,
     "--no-tls",
     "--no-dtls",
-    // Aggressive idle cleanup — coturn's defaults give an unused
+    // Aggressive idle cleanup: coturn's defaults give an unused
     // allocation up to 600s (10min) before reclaim. With our small
     // 11-port relay range, a station retry storm or a few quick
     // host reconnects exhaust the pool faster than the default
     // sweeper can recover, and `create_relay_ioa_sockets: no
-    // available ports` starts firing — at which point new TURN
+    // available ports` starts firing: at which point new TURN
     // allocations (including the host's own) fail and peers on
     // restrictive networks silently lose connectivity. 5 min max +
     // 1 min channel timeout halves the worst-case pin time without

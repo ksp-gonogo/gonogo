@@ -6,12 +6,12 @@ using Sitrep.Host.Reliability;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The bundled CORE reliability registration — the reliability analogue of
+    /// The bundled CORE reliability registration: the reliability analogue of
     /// <see cref="CommsCoreUplink"/>. It OWNS the exclusive <c>"reliability"</c>
     /// capability (registering <see cref="NoneReliabilityBackend"/> as the
     /// always-present Vanilla factory), declares the two <c>reliability.*</c>
     /// channels ONCE, and sources them from whichever backend the election
-    /// picked — resolved at capture time via
+    /// picked: resolved at capture time via
     /// <c>host.Kernel.Query&lt;IReliabilityBackend&gt;("reliability")</c>. Neither
     /// Kerbalism nor TestFlight declares these channels itself; that is the
     /// shared-namespace-single-declaration rule (same as comms.*).
@@ -19,7 +19,7 @@ namespace Gonogo.KSP
     /// <para>Providers register from their OWN uplink's Register:
     /// GonogoKerbalismUplink (Priority 1, reports Unmodeled when
     /// Features.Reliability off) and GonogoTestFlightUplink (Priority 10,
-    /// engine-authoritative — wins under RO). Under RO only TestFlight is live;
+    /// engine-authoritative: wins under RO). Under RO only TestFlight is live;
     /// in stock Kerbalism only Kerbalism is live; both-registered resolves by
     /// priority in the Kernel, never in the client.</para>
     /// </summary>
@@ -55,7 +55,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Declared HERE in the pre-Register capability pass (two-pass fix, same as
         /// CommsCoreUplink), so the capability exists before any provider uplink's
-        /// Register runs — a Kerbalism/TestFlight provider registration can never
+        /// Register runs, a Kerbalism/TestFlight provider registration can never
         /// race ahead of this declaration regardless of assembly-scan order.
         /// </summary>
         public void DeclareCapabilities(Kernel kernel) => ReliabilityElection.RegisterCapability(kernel);
@@ -89,7 +89,7 @@ namespace Gonogo.KSP
             {
                 // NULL-SAFE: a backend read that threw on a transient/unloaded vessel
                 // yields no reliability capture THIS tick (last-known stays), retried
-                // next tick — never fail-softs the whole uplink.
+                // next tick: never fail-softs the whole uplink.
                 return null;
             }
         }

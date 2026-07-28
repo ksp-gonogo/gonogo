@@ -59,7 +59,7 @@ function stripNonDeterministicClasses(html: string): string {
 }
 
 /**
- * Resolved CSS variables — must stay in sync with
+ * Resolved CSS variables: must stay in sync with
  * `packages/app/src/styles/global.css`. Inlined here so the SVG output is
  * standalone. Only the variables the dial actually references are
  * duplicated.

@@ -4,12 +4,12 @@ import { PrimaryButton } from "./Button";
 import { configEqual } from "./configEqual";
 
 // ---------------------------------------------------------------------------
-// Chrome context — lets content rendered *inside* a modal register a sticky
+// Chrome context: lets content rendered *inside* a modal register a sticky
 // footer (rendered outside the scrollable body) and a dirty flag that gates
 // every close path. This is the mechanism behind useModalSaveBar.
 //
 // The modal shell itself (`ModalProvider`/`ModalDialog`) stays in
-// `@ksp-gonogo/ui` — it needs `safeRandomUuid` from `@ksp-gonogo/core`,
+// `@ksp-gonogo/ui`: it needs `safeRandomUuid` from `@ksp-gonogo/core`,
 // which this package must never depend on. `ModalChromeContext` is the
 // shared seam: `ui`'s `ModalDialog` provides it, this hook (and
 // `useModalSaveBar`) consume it. Neither side needs to know about the
@@ -30,7 +30,7 @@ export const ModalChromeContext = createContext<ModalChromeValue | null>(null);
  * changes so the modal can guard its close paths. The footer lives OUTSIDE the
  * scrollable body, so it never scrolls out of view.
  *
- * Returns the rendered footer node (already portalled by the modal) — call
+ * Returns the rendered footer node (already portalled by the modal); call
  * sites render nothing inline; they just call this hook with their footer JSX.
  */
 export function useModalChrome(footer: ReactNode, dirty: boolean): void {
@@ -53,7 +53,7 @@ export interface ModalSaveBarOptions<TValue> {
   /** Fired when the user confirms the save. Typically the config's handleSave. */
   onSave: () => void;
   /**
-   * The working draft the form would persist on Save — the fully materialized
+   * The working draft the form would persist on Save, the fully materialized
    * config object. Compared against both the value at open time (the baseline)
    * and the persisted `saved` config to derive the dirty flag.
    */
@@ -89,7 +89,7 @@ export interface ModalSaveBarOptions<TValue> {
  * draft to a saved value settle back to clean.
  *
  * Renders nothing where it's called. If used outside a ModalProvider chrome
- * (e.g. an isolated unit test), it's a no-op — callers should not rely on a
+ * (e.g. an isolated unit test), it's a no-op, callers should not rely on a
  * fallback inline button.
  */
 export function useModalSaveBar<TValue>(

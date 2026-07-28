@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>harness C — decoded WebRTC VideoFrame pool exhaustion (real remote track)</title>
+<title>harness C: decoded WebRTC VideoFrame pool exhaustion (real remote track)</title>
 </head>
 <body>
 <h1>Decoded WebRTC-remote-track VideoFrame pool-exhaustion spike</h1>
@@ -14,7 +14,7 @@
 // track (after hardware/software decode via RTCPeerConnection), not a
 // canvas-captured track directly. This matters because the
 // mediacapture-transform spec's warning is specifically about a
-// "system-wide pool of GPU-memory-backed frames" — a canvas-captured
+// "system-wide pool of GPU-memory-backed frames": a canvas-captured
 // track's VideoFrames may not be backed by that same limited decoder pool,
 // so harness B alone under-tests the real risk. This is architecturally
 // identical to what the CURRENT production design's Chrome main-thread
@@ -71,7 +71,7 @@ async function run() {
   // Discourage Chrome's automatic CPU/bandwidth-adaptive downscaling so
   // the decoded remote track actually arrives near the requested
   // 1024x576 (production resolution) instead of being silently
-  // downgraded — a real risk on a headless/CPU-constrained runner.
+  // downgraded: a real risk on a headless/CPU-constrained runner.
   try { srcTrack.contentHint = "motion"; } catch {}
 
   const pc1 = new RTCPeerConnection();

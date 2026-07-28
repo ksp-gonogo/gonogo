@@ -80,7 +80,7 @@ export function GridDashboard({
         resizeHandles={RESIZE_HANDLES}
         // Vertical compaction: widgets float up to fill gaps and neighbours
         // reflow out of the way when one is moved or resized into them. This
-        // is the natural model — free placement (`compactType={null}` +
+        // is the natural model, free placement (`compactType={null}` +
         // `preventCollision`) left widgets unable to move when hemmed in by
         // others. New widgets are dropped at the bottom (see `addItem`) and
         // compaction pulls them up into the first available slot.
@@ -90,7 +90,7 @@ export function GridDashboard({
       >
         {(() => {
           // Build a single index of layout-by-id once, rather than O(items)
-          // .find() per item — pays off as the dashboard fills up.
+          // .find() per item: pays off as the dashboard fills up.
           const bpLayouts =
             currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
           const sizeById = new Map<string, Layout>();

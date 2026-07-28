@@ -6,12 +6,12 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.parts</c> channel payload — the active vessel's full
+/// The <c>vessel.parts</c> channel payload: the active vessel's full
 /// part-tree topology (P1b slice 2), the foundation ShipMap / PowerSystems
 /// topology / ThermalStatus all build on. A SINGLE WRAPPER OBJECT (or
 /// <c>null</c> when there is no active vessel / no topology group this tick),
 /// so the Topic tag sits on this type directly with the default
-/// <c>IsArray = false</c> — same posture as <see cref="VesselStructure"/> and
+/// <c>IsArray = false</c>: same posture as <see cref="VesselStructure"/> and
 /// the sibling structured <c>vessel.*</c> channels, NOT the bare-array
 /// <c>parts.robotics</c>.
 ///
@@ -19,7 +19,7 @@ namespace Sitrep.Contract;
 /// <see cref="VesselPart"/> (<see cref="VesselPart.CurrentTemp"/>/
 /// <see cref="VesselPart.MaxTemp"/>/<see cref="VesselPart.SkinTemp"/>/
 /// <see cref="VesselPart.SkinMaxTemp"/>), so the hottest-part / engine /
-/// heat-shield rollups are SDK-DERIVABLE on top of this channel — there is no
+/// heat-shield rollups are SDK-DERIVABLE on top of this channel, there is no
 /// separate <c>therm.hottestPart*</c> Topic (v-topology-redesign.md). The
 /// existing <c>vessel.thermal</c> rollup channel is NOT removed by this build;
 /// that is a later cleanup.</para>
@@ -28,8 +28,8 @@ namespace Sitrep.Contract;
 /// exact serialized shape <c>Sitrep.Host.VesselPartsViewProvider.ToWire</c>
 /// already emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
-/// itself — the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary — so adding it changes no bytes.</para>
+/// itself: the wire is written by <c>JsonWriter</c> walking the provider's
+/// dictionary: so adding it changes no bytes.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -55,8 +55,8 @@ public class VesselParts
 /// <see cref="SkinTemp"/> unset before physics runs,
 /// <see cref="FuelLineTargetId"/>) are nullable.
 ///
-/// <para><b>Join key.</b> <see cref="Id"/> is <c>Part.flightID</c> stringified
-/// — the SAME string form <c>parts.power</c>/<c>parts.robotics</c>'s
+/// <para><b>Join key.</b> <see cref="Id"/> is <c>Part.flightID</c> stringified,
+/// the SAME string form <c>parts.power</c>/<c>parts.robotics</c>'s
 /// <c>partId</c> uses, so a consumer (RoboticsConsole, PowerSystems) can
 /// id-join a part across those channels. <see cref="ParentId"/> and
 /// <see cref="FuelLineTargetId"/> are the same string form for the same
@@ -69,7 +69,7 @@ public class VesselParts
 #endif
 public class VesselPart
 {
-    /// <summary><c>Part.flightID</c> stringified — the tree/cross-channel join key. Empty string only for the uninitialized-0 sentinel (no live flight id yet).</summary>
+    /// <summary><c>Part.flightID</c> stringified: the tree/cross-channel join key. Empty string only for the uninitialized-0 sentinel (no live flight id yet).</summary>
     public string Id { get; set; } = "";
 
     /// <summary><c>Part.parent?.flightID</c> stringified; <c>null</c> for the root part.</summary>
@@ -81,7 +81,7 @@ public class VesselPart
     /// <summary><c>Part.partInfo.title</c> (the display title, e.g. <c>"OX-STAT Photovoltaic Panels"</c>).</summary>
     public string Title { get; set; } = "";
 
-    /// <summary><c>Part.orgPos</c> — the part's original vessel-local position (metres, vessel frame).</summary>
+    /// <summary><c>Part.orgPos</c>: the part's original vessel-local position (metres, vessel frame).</summary>
     public Vec3 Position { get; set; } = new();
 
     /// <summary>The part's local up axis (<c>Part.orgRot * Vector3.up</c>), for orienting flow/thrust glyphs. <c>null</c> on a snapshot recorded before this field existed.</summary>
@@ -89,31 +89,31 @@ public class VesselPart
 
     public PartBounds Bounds { get; set; } = new();
 
-    /// <summary><c>Part.mass</c> — dry mass (tonnes).</summary>
+    /// <summary><c>Part.mass</c>: dry mass (tonnes).</summary>
     public double DryMass { get; set; }
 
-    /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering, carried forward unchanged — see <see cref="VesselStructure.CurrentStage"/>).</summary>
+    /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering, carried forward unchanged; see <see cref="VesselStructure.CurrentStage"/>).</summary>
     public int InverseStage { get; set; }
 
-    /// <summary><c>Part.maxTemp</c> — internal max temperature (K).</summary>
+    /// <summary><c>Part.maxTemp</c>: internal max temperature (K).</summary>
     public double MaxTemp { get; set; }
 
     /// <summary><c>Part.skinMaxTemp</c> (K); <c>null</c> for the <c>-1</c> "no skin-thermal model" sentinel.</summary>
     public double? SkinMaxTemp { get; set; }
 
-    /// <summary><c>Part.temperature</c> — current internal temperature (K); <c>null</c> for the <c>-1</c> "not yet simulated" sentinel.</summary>
+    /// <summary><c>Part.temperature</c>: current internal temperature (K); <c>null</c> for the <c>-1</c> "not yet simulated" sentinel.</summary>
     public double? CurrentTemp { get; set; }
 
-    /// <summary><c>Part.skinTemperature</c> — current skin temperature (K).</summary>
+    /// <summary><c>Part.skinTemperature</c>: current skin temperature (K).</summary>
     public double? SkinTemp { get; set; }
 
     /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>).</summary>
     public string Category { get; set; } = "";
 
-    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>) — what ShipMap's <c>classifyPart</c> matches on.</summary>
+    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), what ShipMap's <c>classifyPart</c> matches on.</summary>
     public List<string> Modules { get; set; } = new();
 
-    /// <summary><c>Part.isRobotic()</c> — a Breaking Ground robotic servo part.</summary>
+    /// <summary><c>Part.isRobotic()</c>: a Breaking Ground robotic servo part.</summary>
     public bool IsRobotics { get; set; }
 
     /// <summary>True when the part carries a solar panel, alternator, EC-producing converter, or an ElectricCharge resource capacity.</summary>
@@ -125,7 +125,7 @@ public class VesselPart
     /// <summary>
     /// Every resource this part carries (join key: resource name, e.g.
     /// <c>"ElectricCharge"</c>), storage plus live production/consumption
-    /// flow — the per-part live-data slice the SDK's <c>usePartsLive</c>
+    /// flow: the per-part live-data slice the SDK's <c>usePartsLive</c>
     /// used to fetch off the legacy <c>r.resourceFor[flightId]</c> key.
     /// Empty dict when the part carries no resources.
     /// </summary>
@@ -133,7 +133,7 @@ public class VesselPart
 
     /// <summary>
     /// Per-module behavioural state (solar deployed, engine firing,
-    /// parachute armed, etc.) — one entry per module on the part that maps
+    /// parachute armed, etc.): one entry per module on the part that maps
     /// to <see cref="PartModuleState"/>'s vocabulary, in <c>Part.Modules</c>
     /// order. The per-part live-data slice the SDK used to fetch off the
     /// legacy <c>v.partState[flightId]</c> key. Empty list when the part
@@ -142,7 +142,7 @@ public class VesselPart
     public List<PartModuleState> ModuleStates { get; set; } = new();
 
     /// <summary>
-    /// Action-group bindings on this part — one entry per bound part action
+    /// Action-group bindings on this part: one entry per bound part action
     /// (<see cref="ActionBinding.Action"/> = <c>BaseAction.guiName</c>, and the
     /// named groups its <c>BaseAction.actionGroup</c> Flags bitmask decodes to).
     /// Per-ACTION, not per-part. Empty when no action on the part is bound to
@@ -165,15 +165,15 @@ public class VesselPart
 #endif
 public class ActionBinding
 {
-    /// <summary>The action's PAW label — <c>BaseAction.guiName</c> (e.g. "Toggle", "Extend Panel").</summary>
+    /// <summary>The action's PAW label: <c>BaseAction.guiName</c> (e.g. "Toggle", "Extend Panel").</summary>
     public string Action { get; set; } = "";
 
-    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty — an action bound to no group isn't emitted.</summary>
+    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group isn't emitted.</summary>
     public List<string> Groups { get; set; } = new();
 }
 
 /// <summary>
-/// One resource row in <see cref="VesselPart.Resources"/> — storage
+/// One resource row in <see cref="VesselPart.Resources"/>: storage
 /// (<see cref="Amount"/>/<see cref="MaxAmount"/>) plus live flow
 /// (<see cref="Flow"/>/<see cref="NominalFlow"/>). Mirrors the SDK's
 /// <c>PartResources</c> row shape field-for-field.
@@ -181,12 +181,12 @@ public class ActionBinding
 /// <para><b>Flow scope.</b> <see cref="Flow"/>/<see cref="NominalFlow"/>
 /// are populated only for the module types whose live rate is CHEAPLY
 /// derivable from public fields without hand-simulating KSP's resource
-/// solver — solar panels (<c>ModuleDeployableSolarPanel.flowRate</c>/
+/// solver: solar panels (<c>ModuleDeployableSolarPanel.flowRate</c>/
 /// <c>chargeRate</c>), alternators (<c>ModuleAlternator.outputRate</c>),
 /// and engine propellant consumption (<c>Propellant.currentRequirement</c>,
 /// signed negative). This is the SAME "if cheap" scoping
 /// <c>KspHost.BuildPartsPower</c>'s doc comment already establishes for
-/// <c>totalProductionEc</c> — resource converters / fuel cells / drills
+/// <c>totalProductionEc</c>: resource converters / fuel cells / drills
 /// report storage only (no computed rate; not cheaply derivable from
 /// static fields), matching that precedent rather than inventing a shaky
 /// approximation. <see cref="NominalFlow"/> is omitted (left <c>null</c>)
@@ -198,13 +198,13 @@ public class ActionBinding
 #endif
 public class PartResourceFlow
 {
-    /// <summary><c>PartResource.amount</c> — current stored amount.</summary>
+    /// <summary><c>PartResource.amount</c>: current stored amount.</summary>
     public double Amount { get; set; }
 
-    /// <summary><c>PartResource.maxAmount</c> — storage capacity.</summary>
+    /// <summary><c>PartResource.maxAmount</c>: storage capacity.</summary>
     public double MaxAmount { get; set; }
 
-    /// <summary>Signed units/sec — positive = producing, negative = consuming. <c>null</c> when no cheaply-derivable module contributes.</summary>
+    /// <summary>Signed units/sec: positive = producing, negative = consuming. <c>null</c> when no cheaply-derivable module contributes.</summary>
     public double? Flow { get; set; }
 
     /// <summary>Same-sign 100%-efficiency cap (rated solar output). <c>null</c> when no module supports a nominal, or when it would equal <see cref="Flow"/>.</summary>
@@ -213,7 +213,7 @@ public class PartResourceFlow
 
 /// <summary>
 /// One module's behavioural state in <see cref="VesselPart.ModuleStates"/>.
-/// Mirrors the SDK's <c>PartStateModule</c> shape field-for-field — see that
+/// Mirrors the SDK's <c>PartStateModule</c> shape field-for-field: see that
 /// interface's doc comment for the full state vocabulary per <see cref="Type"/>.
 /// </summary>
 [SitrepContract]
@@ -222,10 +222,10 @@ public class PartResourceFlow
 #endif
 public class PartModuleState
 {
-    /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> / <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> / <c>landingGear</c>. (<c>cargoBay</c> is a defined vocabulary value with no module here — see <c>KspHost.BuildPartModuleStates</c>'s doc comment for why.)</summary>
+    /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> / <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> / <c>landingGear</c>. (<c>cargoBay</c> is a defined vocabulary value with no module here; see <c>KspHost.BuildPartModuleStates</c>'s doc comment for why.)</summary>
     public string Type { get; set; } = "";
 
-    /// <summary>The standardised deploy/activation state — see <c>PartStateModule</c>'s doc comment for the per-type vocabulary.</summary>
+    /// <summary>The standardised deploy/activation state: see <c>PartStateModule</c>'s doc comment for the per-type vocabulary.</summary>
     public string State { get; set; } = "";
 
     /// <summary>Solar-panel-only: sun-tracking gimbal active. <c>null</c> for every other type.</summary>
@@ -236,11 +236,11 @@ public class PartModuleState
 }
 
 /// <summary>
-/// A <see cref="VesselPart"/>'s local bounding box — <see cref="Size"/> is the
+/// A <see cref="VesselPart"/>'s local bounding box: <see cref="Size"/> is the
 /// part's <c>prefabSize</c> (a cheap, per-part-constant proxy for the renderer
 /// bounds ShipMap could refine later), <see cref="Center"/> the mesh-centre
 /// offset from <see cref="VesselPart.Position"/> (<c>Part.boundsCentroidOffset</c>,
-/// vessel-local). Fuel-line parts report a whole-conduit-wrapping bounds — a
+/// vessel-local). Fuel-line parts report a whole-conduit-wrapping bounds, a
 /// carried-forward KSP quirk the consumer handles, not this capture.
 /// </summary>
 [SitrepContract]
@@ -249,9 +249,9 @@ public class PartModuleState
 #endif
 public class PartBounds
 {
-    /// <summary><c>Part.prefabSize</c> — the part's untransformed bounding-box extents (metres).</summary>
+    /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box extents (metres).</summary>
     public Vec3 Size { get; set; } = new();
 
-    /// <summary><c>Part.boundsCentroidOffset</c> — mesh-centre offset from <see cref="VesselPart.Position"/> (metres, vessel-local); <c>null</c> when absent.</summary>
+    /// <summary><c>Part.boundsCentroidOffset</c>: mesh-centre offset from <see cref="VesselPart.Position"/> (metres, vessel-local); <c>null</c> when absent.</summary>
     public Vec3? Center { get; set; }
 }

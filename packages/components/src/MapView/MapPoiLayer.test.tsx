@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { MapPoiLayer } from "./MapPoiLayer";
 
-// Unmount each rendered tree BEFORE clearMapPoiProviders() — clearing the
+// Unmount each rendered tree BEFORE clearMapPoiProviders(): clearing the
 // provider registry re-renders a still-mounted MapPoiLayer (providers gone), a
 // state update outside act(). RTL auto-cleanup runs after this file's afterEach,
 // too late to unmount first.

@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
     /// provenance + epoching" mechanism
     /// (local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1) in
     /// isolation, via <see cref="FakeUplinkHost"/> rather than a full
-    /// <see cref="ChannelEngine"/> — this is the "detect a vessel-guid
+    /// <see cref="ChannelEngine"/>: this is the "detect a vessel-guid
     /// change and force a keyframe on every vessel.* channel" logic on its
     /// own, decoupled from engine plumbing (which
     /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
@@ -123,19 +123,19 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Re-verification Edge 6 — <see cref="VesselEpochSampler"/> was not
+        /// Re-verification Edge 6: <see cref="VesselEpochSampler"/> was not
         /// rewind-aware: it only ever compared vessel guids, never noticing
         /// that a snapshot's own Ut had gone BACKWARD (a quickload). On a
         /// rewind, whatever vessel happens to be active in the loaded save
         /// can legitimately differ from whatever vessel was active
-        /// immediately pre-load — the sampler's plain guid check mis-reads
+        /// immediately pre-load: the sampler's plain guid check mis-reads
         /// that as a genuine subject switch and force-keyframes + resets
         /// birth, undoing <c>ChannelEngine</c>'s own archive-derived birth
         /// recompute (which already ran, correctly, earlier in the SAME
-        /// tick — see <c>ChannelEngineTests.
+        /// tick: see <c>ChannelEngineTests.
         /// RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth</c>
         /// for the full engine/wire-level proof of this same fix). The fix:
-        /// track the last snapshot Ut seen; a backward Ut is a cold start —
+        /// track the last snapshot Ut seen; a backward Ut is a cold start,
         /// resynchronize <c>_lastVesselId</c> to the current vessel WITHOUT
         /// forcing a keyframe or resetting birth. A genuine FORWARD switch
         /// (no rewind involved) must still force + reset exactly as before.

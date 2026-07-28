@@ -1,11 +1,11 @@
 /**
  * Client-side science aggregation off the `science.experiments` array.
  * The raw per-experiment array is a clean home on the new wire
- * (`ScienceViewProvider`'s `ExperimentEntry[]` — mirrored here defensively as
+ * (`ScienceViewProvider`'s `ExperimentEntry[]`: mirrored here defensively as
  * `unknown`), so the two legacy pre-aggregated scalars ScienceBench/
  * ScienceOfficer read (`sci.count` / `sci.dataAmount`) and the
  * GonogoTelemetry-only `sci.experimentBreakdown` enrichment are all derivable
- * client-side from that ONE array — no separate mod field. This shared helper
+ * client-side from that ONE array: no separate mod field. This shared helper
  * is the single source of that derivation so both widgets drop the legacy
  * reads.
  *
@@ -53,8 +53,8 @@ export interface ScienceAggregate {
 
 /**
  * Sum the experiment count + total data amount from a `science.experiments`
- * array — the client-side replacement for the two legacy scalar reads. Returns
- * `null` when `raw` isn't an array at all (nothing to sum — the caller falls
+ * array: the client-side replacement for the two legacy scalar reads. Returns
+ * `null` when `raw` isn't an array at all (nothing to sum, the caller falls
  * back / renders empty), distinct from an empty array (`{ count: 0,
  * dataAmount: 0 }`, a real "no experiments aboard").
  */
@@ -72,14 +72,14 @@ export interface DerivedBreakdownEntry {
   biome: string;
   situation: string;
   expTitle: string;
-  /** Data amount (mits) for this experiment — old breakdown `dataMits`. */
+  /** Data amount (mits) for this experiment: old breakdown `dataMits`. */
   dataMits: number;
   /**
    * How much science is still recoverable from this subject, as a 0..1 ratio
    * (`scienceValueRatio` off the wire). The old GonogoTelemetry breakdown
    * carried an ABSOLUTE `remainingPotential` (subjectScienceCap −
    * subjectScience); the new wire exposes only the ratio, so this is that
-   * ratio — enough to sort "most science left first", which is all the
+   * ratio: enough to sort "most science left first", which is all the
    * breakdown view used it for.
    */
   remainingPotential: number;

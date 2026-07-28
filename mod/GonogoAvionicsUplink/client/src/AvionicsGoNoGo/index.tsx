@@ -3,6 +3,7 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   Cluster,
+  NULL_DISPLAY,
   Panel,
   PanelTitle,
   ReadoutCaption,
@@ -14,15 +15,15 @@ import {
 type AvionicsConfig = Record<string, never>;
 
 function fmtTons(t?: number): string {
-  return t == null ? "—" : `${t.toFixed(2)} t`;
+  return t == null ? NULL_DISPLAY : `${t.toFixed(2)} t`;
 }
 
 /**
  * RP-1 ascent controllability go/no-go. Reads the single `avionics.status`
  * Topic (see GonogoAvionicsUplink) and shows whether the vessel's current mass
  * is within the active avionics unit's controllable-mass limit. The state text
- * (GO / NO-GO / NO AVIONICS) carries the meaning — colour is reinforcement, not
- * the sole signal — and the state block is a polite live region so the go/no-go
+ * (GO / NO-GO / NO AVIONICS) carries the meaning, colour is reinforcement, not
+ * the sole signal: and the state block is a polite live region so the go/no-go
  * flip is announced without flooding.
  */
 export function AvionicsGoNoGoComponent(

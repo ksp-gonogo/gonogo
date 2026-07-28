@@ -7,7 +7,7 @@ import { useMissionProfilesService } from "./MissionProfilesContext";
 import type { BindableScene, MissionProfile } from "./MissionProfilesService";
 
 interface SceneSwitchPromptProps {
-  /** Called when the profile is loaded — either via the prompt or auto-switch. */
+  /** Called when the profile is loaded, either via the prompt or auto-switch. */
   onLoad: (items: DashboardItem[], layouts: Layouts) => void;
 }
 
@@ -26,7 +26,7 @@ interface SceneSwitchPromptProps {
  * is treated as a non-transition so reloading the page doesn't fire
  * a prompt for whatever scene the host happens to be in.
  *
- * Designed to live inside a `BannerStack`, so positioning is in-flow —
+ * Designed to live inside a `BannerStack`, so positioning is in-flow,
  * no `bottom` prop. The stack owns viewport placement.
  */
 export function SceneSwitchPrompt({
@@ -51,7 +51,7 @@ export function SceneSwitchPrompt({
 
     const profile = svc.findForScene(scene);
     if (!profile) {
-      // No binding — leave any existing prompt alone (it's for the
+      // No binding: leave any existing prompt alone (it's for the
       // previous transition, the auto-dismiss will clear it).
       return;
     }

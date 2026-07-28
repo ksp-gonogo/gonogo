@@ -7,10 +7,10 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// Regression guard for the Task-2-review gap: <see cref="CommandRequest{TArgs}.Label"/>
     /// exists on the contract type (see <see cref="Sitrep.Contract.PendingUplink.Label"/>'s
-    /// doc comment — it's carried verbatim into <c>system.uplink.pending</c>
+    /// doc comment: it's carried verbatim into <c>system.uplink.pending</c>
     /// entries), but the hand-written wire codec (<see cref="EnvelopeCodec.ParseCommandRequest"/> /
     /// <see cref="EnvelopeCodec.WriteCommandRequest"/>) used to read/write only
-    /// <c>requestId, command, args, sentAt</c> — a live client's <c>label</c>
+    /// <c>requestId, command, args, sentAt</c>: a live client's <c>label</c>
     /// was silently dropped before it ever reached the host. These prove the
     /// field now survives the REAL wire round trip both directions.
     /// </summary>

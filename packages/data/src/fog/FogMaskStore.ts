@@ -3,7 +3,7 @@
  *
  * Masks are raw alpha bytes (0 = fogged, 255 = fully imaged), one per pixel
  * in an equirectangular projection of the body's surface. Stored verbatim
- * as a Uint8Array — IndexedDB structured-clone handles typed arrays natively,
+ * as a Uint8Array: IndexedDB structured-clone handles typed arrays natively,
  * so there's no encode/decode cost on read or write.
  *
  * Keys are `${profileId}:${bodyId}:${layerId}` so each (profile, body,
@@ -30,7 +30,7 @@ const DB_VERSION = 3;
 const STORE = "masks";
 
 /** Incremented if the per-record on-disk shape changes. Independent from
- *  DB_VERSION — the IDB version controls store-level migrations; the
+ *  DB_VERSION: the IDB version controls store-level migrations; the
  *  record version controls per-row migrations. */
 export const MASK_SCHEMA_VERSION = 3;
 
@@ -51,12 +51,12 @@ function makeKey(profileId: string, bodyId: string, layerId: string): string {
 /**
  * Fires whenever the store's contents change for a specific
  * `(profileId, bodyId, layerId)` triple. The listener is *not* given the
- * new bytes — it should `load(...)` if it needs them. Used by
+ * new bytes: it should `load(...)` if it needs them. Used by
  * `FogMaskCache` to detect external writes (e.g. a fog snapshot from the
  * host arriving via PeerJS, written straight to the store, bypassing the
  * cache's own mutate-then-flush path).
  *
- * `origin` lets the cache skip its own writes — if the cache itself
+ * `origin` lets the cache skip its own writes, if the cache itself
  * called `save(..., origin: this.tag)`, the listener fires with that
  * tag and the cache short-circuits. Without this, the cache would
  * race-reload its own data over a fresh in-memory mutation.
@@ -275,7 +275,7 @@ export class FogMaskStore {
           db.deleteObjectStore(STORE);
         }
         // v2 → v3: scanType (a closed SCANsat bit-value enum) generalised to
-        // layerId (an opaque string) — old rows carry a numeric field where a
+        // layerId (an opaque string): old rows carry a numeric field where a
         // string is now expected, so they're dropped the same way v1→v2 was,
         // and any registered reveal source repopulates on its own schedule.
         if (

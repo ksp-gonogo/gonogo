@@ -5,7 +5,7 @@ namespace Sitrep.Contract
     /// <summary>
     /// Why a given <see cref="ChannelEmitter.Decide"/> call chose to emit.
     /// <see cref="None"/> is only ever seen on a skipped decision (see
-    /// <see cref="EmissionDecision.ShouldEmit"/>) — it is never the reason on
+    /// <see cref="EmissionDecision.ShouldEmit"/>): it is never the reason on
     /// an emitted one.
     /// </summary>
     public enum EmissionReason
@@ -19,10 +19,10 @@ namespace Sitrep.Contract
     /// The deadband width a numeric channel must clear before a value change
     /// is considered meaningful. Either an <see cref="Absolute"/> magnitude,
     /// or a <see cref="PercentOfRange"/> fraction of a known value range
-    /// (the recommended default per the streaming-slice-1 plan — an absolute
+    /// (the recommended default per the streaming-slice-1 plan, an absolute
     /// quantum tends to either flood on a wide-range channel or over-suppress
     /// on a narrow one, whereas percent-of-range self-scales). Not consulted
-    /// at all for non-numeric (discrete/structured) values — see
+    /// at all for non-numeric (discrete/structured) values: see
     /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>, which falls back to
     /// <c>Equals</c> for those.
     /// </summary>
@@ -81,7 +81,7 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// Per-channel emission configuration for <see cref="ChannelEmitter"/>.
-    /// Every interval is expressed in UT seconds — never wall-clock — because
+    /// Every interval is expressed in UT seconds (never wall-clock) because
     /// the whole point of this policy is to scale sampling/emission cost with
     /// how fast the underlying value actually changes in game time, not with
     /// how often the host happens to call <see cref="ChannelEmitter.Decide"/>
@@ -92,7 +92,7 @@ namespace Sitrep.Contract
     {
         /// <summary>
         /// Don't even consider (sample) this channel more often than this
-        /// many UT seconds since it was last considered — the OUTER-most gate
+        /// many UT seconds since it was last considered, the OUTER-most gate
         /// within <see cref="ChannelEmitter.Decide"/> itself (distinct from
         /// <see cref="SubscriptionRegistry"/>, which gates whether Decide is
         /// called at all). <c>0</c> disables this gate (every call is
@@ -102,7 +102,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Emit unconditionally at least this often, regardless of whether
-        /// the value changed — the baseline that makes cold-start,
+        /// the value changed: the baseline that makes cold-start,
         /// quickload, and subscriber-eviction/rejoin recoverable without
         /// waiting for the next real change. Must be > 0.
         /// </summary>
@@ -119,7 +119,7 @@ namespace Sitrep.Contract
         /// Max-rate clamp: even if the deadband keeps re-tripping (a rapidly
         /// oscillating value), don't fire more than one CHANGE emission per
         /// this many UT seconds. Scoped to <see cref="EmissionReason.Change"/>
-        /// only — keyframes stay unconditional per their own cadence.
+        /// only: keyframes stay unconditional per their own cadence.
         /// <c>0</c> disables the clamp.
         /// </summary>
         public double MaxRateIntervalUt { get; }
@@ -151,7 +151,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Result of one <see cref="ChannelEmitter.Decide"/> call. A value type —
+    /// Result of one <see cref="ChannelEmitter.Decide"/> call. A value type,
     /// this is the hot-path return, called at up to physics-tick rate per
     /// channel, so it's kept allocation-free rather than a class.
     /// </summary>
@@ -195,7 +195,7 @@ namespace Sitrep.Contract
         /// <summary>Of those, how many actually emitted.</summary>
         public long Emitted { get; }
 
-        /// <summary>Considered but not emitted — gated by cadence, deadband, or max-rate clamp.</summary>
+        /// <summary>Considered but not emitted: gated by cadence, deadband, or max-rate clamp.</summary>
         public long Skipped => Considered - Emitted;
 
         internal EmissionCounters(long considered, long emitted)

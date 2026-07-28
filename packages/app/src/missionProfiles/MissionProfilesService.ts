@@ -5,7 +5,7 @@ import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 
 /**
- * Named dashboard snapshots — "Launch", "Orbit", "Rendezvous", etc. —
+ * Named dashboard snapshots: "Launch", "Orbit", "Rendezvous", etc.:
  * scoped per-screen (main vs station). A profile bundles the items + per-
  * breakpoint layouts; loading one into the dashboard swaps the whole
  * state in a single tick via `useDashboardState.replaceState`.
@@ -18,7 +18,7 @@ import type { DashboardItem } from "../components/Dashboard";
 /**
  * KSP scene names a profile can bind to. Stored as plain strings so
  * Telemachus's kc.scene values flow through unchanged. Transient scenes
- * (MainMenu, Loading, Unknown) are intentionally absent — the binding
+ * (MainMenu, Loading, Unknown) are intentionally absent, the binding
  * model only ever switches *to* a profile when entering a tagged scene,
  * never away because of one, so there's no use case for binding to a
  * transient.
@@ -52,7 +52,7 @@ export interface MissionProfile {
    * meaningful when `sceneBindings` is non-empty.
    */
   autoSwitch?: boolean;
-  /** ms — lets the UI sort by recency and detect "did I change this?". */
+  /** ms: lets the UI sort by recency and detect "did I change this?". */
   updatedAt: number;
 }
 
@@ -147,7 +147,7 @@ export class MissionProfilesService {
   /**
    * Profile that should prompt for the given scene, or undefined.
    * When multiple profiles are tagged for the same scene we resolve to
-   * the most recently updated — `list()` already returns newest-first,
+   * the most recently updated: `list()` already returns newest-first,
    * so the first match in that ordering wins.
    */
   findForScene(scene: string): MissionProfile | undefined {
@@ -179,7 +179,7 @@ export class MissionProfilesService {
             typeof p?.id === "string" && typeof p?.name === "string",
         )
         .map((p) => {
-          // Drop unknown scene names quietly — `kc.scene` could in theory
+          // Drop unknown scene names quietly: `kc.scene` could in theory
           // emit values we haven't seen yet, but a tagged binding for an
           // unknown scene would never resolve, so it's noise.
           if (Array.isArray(p.sceneBindings)) {

@@ -14,7 +14,7 @@ import {
   FogMaskStore,
 } from "@ksp-gonogo/data";
 import type { KerbcastDataSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
-// From the `/runtime` subpath, not the package root — same reason
+// From the `/runtime` subpath, not the package root, same reason
 // MainScreen.tsx does (see `@ksp-gonogo/gonogo-kos-uplink`'s `runtime.ts` doc comment):
 // avoids evaluating `./KosTerminal`'s widget-registration side effect.
 import {
@@ -108,13 +108,13 @@ export function StationScreen() {
   // Build the `PeerTransport` INSIDE an effect rather than as a stable
   // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
   // in its constructor, so its lifecycle must be tied to the effect that owns
-  // its disposal — exactly the reasoning `SitrepTelemetryProvider` gives for
+  // its disposal: exactly the reasoning `SitrepTelemetryProvider` gives for
   // building its `WebSocketTransport` in `useEffect`. The old
   // `useState(singleton)` + `useEffect(() => () => singleton.dispose())` shape
   // was subtly broken under StrictMode: `useState` preserves the SAME instance
   // across StrictMode's simulated unmount→remount, but the cleanup still fires
   // `dispose()` (tearing down the `onSitrepFrame` subscription) and setup never
-  // re-subscribes — so every relayed frame is delivered to a dead transport and
+  // re-subscribes: so every relayed frame is delivered to a dead transport and
   // station widgets sit on "SYNCING" forever. Rebuilding in the effect gives a
   // fresh, re-subscribed instance on every (real or StrictMode) remount.
   const [peerTransport, setPeerTransport] = useState<PeerTransport | null>(
@@ -186,7 +186,7 @@ export function StationScreen() {
   useEffect(() => {
     // Reopen previously-authorised serial ports (no user prompt). Covers the
     // "auto-reconnect on station refresh" live-test bug. Also re-attach the
-    // hot-plug listeners — destroy() detaches them, so a StrictMode
+    // hot-plug listeners: destroy() detaches them, so a StrictMode
     // cleanup→setup cycle would otherwise silently kill hot-plug for the
     // rest of the page lifetime.
     serialService.attachNavigatorListeners();
@@ -198,7 +198,7 @@ export function StationScreen() {
   }, [serialService]);
 
   // Gate this station's Axiom transport on the HOST's analytics consent.
-  // Stations never read a local consent value — they follow the host. The
+  // Stations never read a local consent value, they follow the host. The
   // controller defaults removed (disabled); onAnalyticsConsent fires
   // immediately with the cached value and again on every host broadcast.
   // On unmount we apply(false) so a remount starts clean and so a
@@ -216,7 +216,7 @@ export function StationScreen() {
 
   // Switch the globally-registered kerbcast source into brokered (station) mode:
   // its WebRTC handshake relays through the host (no sidecar address) and its
-  // TURN creds come from the host's relay broadcast. Wired here once — it stays
+  // TURN creds come from the host's relay broadcast. Wired here once, it stays
   // disconnected until a camera widget asks for a stream (lazy connect), and
   // the broker's negotiate just retries until the host link is up. Media flows
   // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
@@ -247,7 +247,7 @@ export function StationScreen() {
       listenerCountsBefore: client._listenerCounts(),
     });
 
-    // Drain any prior listeners before (re)registering — otherwise listener
+    // Drain any prior listeners before (re)registering: otherwise listener
     // Sets on the client grow on every retry / StrictMode cycle.
     unsubsRef.current.forEach((u) => {
       u();
@@ -259,7 +259,7 @@ export function StationScreen() {
     unsubsRef.current.push(
       client.onConnectionStatus((s) => {
         setConnStatus(s);
-        // A live connection clears the "not found" badge — the most
+        // A live connection clears the "not found" badge, the most
         // recent attempt for this host succeeded.
         if (s === "connected") {
           setHostNotFound(false);
@@ -274,17 +274,17 @@ export function StationScreen() {
     );
     // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
     // is derived from it (`gonogo-host-<code>`) and never changes for a
-    // given code, so a refresh re-derives the same target — no persistence
+    // given code, so a refresh re-derives the same target, no persistence
     // of any ephemeral id is needed here.
 
     // One-shot fog snapshot from the host. Persist each mask to the
-    // station's local FogMaskStore — the map widget reads through the
+    // station's local FogMaskStore: the map widget reads through the
     // same store so a refresh shows the host's exploration state. Both
     // sides bucket under DEFAULT_PROFILE_ID now that save-profile
     // scoping has been removed.
     unsubsRef.current.push(
       client.onFogSnapshot((msg) => {
-        logger.info(`[fog-sync] snapshot received — masks=${msg.masks.length}`);
+        logger.info(`[fog-sync] snapshot received: masks=${msg.masks.length}`);
         for (const m of msg.masks) {
           // Per-type mask routing: each mask carries its layerId (an
           // opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes").
@@ -302,7 +302,7 @@ export function StationScreen() {
             )
             .catch((err) => {
               logger.error(
-                `[fog-sync] failed to persist mask — body=${m.bodyId} layerId=${m.layerId}`,
+                `[fog-sync] failed to persist mask: body=${m.bodyId} layerId=${m.layerId}`,
                 err instanceof Error ? err : undefined,
               );
             });
@@ -326,13 +326,13 @@ export function StationScreen() {
     client.connect(trimmed);
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only — attemptConnect and client are captured once at mount; re-running would cause reconnect loops
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only, attemptConnect and client are captured once at mount; re-running would cause reconnect loops
   useEffect(() => {
     // QR-code / shared-link path: ?host=<peerId> in the URL takes
     // precedence over localStorage so a fresh device can land directly
     // on the right host without typing. Drop the param after consuming
     // it (history.replaceState) so a refresh doesn't keep a stale host
-    // pinned in the URL bar — localStorage is the authoritative store
+    // pinned in the URL bar: localStorage is the authoritative store
     // from the second load onwards.
     const params = new URLSearchParams(globalThis.location.search);
     const hostFromUrl = params.get("host");
@@ -381,7 +381,7 @@ export function StationScreen() {
   // every render once mounted; this guard is a transient-null safety (and the
   // type narrowing that lets us pass it as a non-null `transport` below).
   // Passing `null`/`undefined` here would make `SitrepTelemetryProvider` build
-  // its OWN `WebSocketTransport` straight to the mod — exactly the direct
+  // its OWN `WebSocketTransport` straight to the mod, exactly the direct
   // station→KSP connection the peer architecture forbids.
   if (!peerTransport) return null;
 

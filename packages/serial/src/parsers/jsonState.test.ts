@@ -68,7 +68,7 @@ describe("parseJsonState", () => {
     expect(r.events).toHaveLength(1);
     expect(r.events[0].inputId).toBe("X");
     expect(r.events[0].value).toBeCloseTo(-0.8, 2);
-    // No schema change — inputsUpdate should be null.
+    // No schema change, inputsUpdate should be null.
     expect(r.inputsUpdate).toBeNull();
   });
 

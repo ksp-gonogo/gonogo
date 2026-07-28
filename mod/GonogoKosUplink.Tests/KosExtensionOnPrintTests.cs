@@ -9,16 +9,16 @@ namespace GonogoKosUplink.Tests
 {
     /// <summary>
     /// Headless tests for the compute capture hot path
-    /// (<see cref="KosExtension.OnPrint"/>) — the adversarial-review I1 fix.
+    /// (<see cref="KosExtension.OnPrint"/>): the adversarial-review I1 fix.
     /// <see cref="KosExtension.Register"/> needs a live kOS/Unity process (the
     /// version guard + Harmony install), so these wire the compute source, the
     /// subscription gate, and the CPU reverse-map directly via the internal test
-    /// seams instead — no KSP, no Unity, no <c>kOSProcessor.AllInstances()</c>.
+    /// seams instead: no KSP, no Unity, no <c>kOSProcessor.AllInstances()</c>.
     /// </summary>
     public class KosExtensionOnPrintTests
     {
         // Counts calls to the CPU reverse-map so a test can prove OnPrint does
-        // NOT resolve the owning CPU per PRINT fragment — only on block close.
+        // NOT resolve the owning CPU per PRINT fragment, only on block close.
         private sealed class CoreIdCounter
         {
             public int Calls;
@@ -47,7 +47,7 @@ namespace GonogoKosUplink.Tests
             public void OnSubscribed(Action<string> callback)
             {
                 // Not exercised by the OnPrint compute-hot-path tests this
-                // fake serves — nothing here subscribes to kos.compute.*.
+                // fake serves: nothing here subscribes to kos.compute.*.
             }
         }
 
@@ -66,7 +66,7 @@ namespace GonogoKosUplink.Tests
         private static KosExtension NewExtension(RecordingChannelSource source, CoreIdCounter counter, Func<bool> subscribed)
         {
             // Internal ctor with a real (never-drained) dispatcher and a no-op
-            // addon binder — nothing here touches Unity.
+            // addon binder: nothing here touches Unity.
             var ext = new KosExtension(new MainThreadDispatcher(), _ => { });
             ext.WireComputeForTests(source, subscribed);
             ext.CoreIdResolver = counter.Resolve;
@@ -82,7 +82,7 @@ namespace GonogoKosUplink.Tests
             var screen = new object();
 
             // Ordinary terminal output and a still-open block: many fragments,
-            // no completed [KOSDATA] — the CPU reverse-map (AllInstances) must
+            // no completed [KOSDATA]: the CPU reverse-map (AllInstances) must
             // not run once (I1: no per-fragment allocation on the main thread).
             ext.OnPrint(screen, "just some terminal chatter\n");
             ext.OnPrint(screen, "[KOSDATA:feed]par");
@@ -123,7 +123,7 @@ namespace GonogoKosUplink.Tests
 
             ext.OnPrint(new object(), "[KOSDATA:a]x=1[/KOSDATA][KOSDATA:b]y=2[/KOSDATA]");
 
-            // Two blocks closed in one PRINT — still a single CPU resolve.
+            // Two blocks closed in one PRINT: still a single CPU resolve.
             Assert.Equal(1, counter.Calls);
             Assert.Contains(("a.x", (object?)1.0), source.Published);
             Assert.Contains(("b.y", (object?)2.0), source.Published);
@@ -137,8 +137,8 @@ namespace GonogoKosUplink.Tests
             var ext = NewExtension(source, counter, () => false);
             var screen = new object();
 
-            // A fully-formed block, but nobody is subscribed under kos.compute.*
-            // — OnPrint must bail before accumulate/resolve/publish (I1).
+            // A fully-formed block, but nobody is subscribed under kos.compute.*,
+            // OnPrint must bail before accumulate/resolve/publish (I1).
             ext.OnPrint(screen, "[KOSDATA:feed]v=1[/KOSDATA]");
 
             Assert.Equal(0, counter.Calls);
@@ -169,7 +169,7 @@ namespace GonogoKosUplink.Tests
 
             ext.OnPrint(screen, "[KOSDATA]v=1[/KOSDATA]");
 
-            // CoreIdCounter.Resolve always returns 42 — matches the armed CPU.
+            // CoreIdCounter.Resolve always returns 42: matches the armed CPU.
             var (coreId, result) = Assert.Single(runResults);
             Assert.Equal(42, coreId);
             Assert.Equal("req-1", result.RequestId);
@@ -205,7 +205,7 @@ namespace GonogoKosUplink.Tests
             var ext = NewExtension(source, counter, () => true);
             var runResults = new List<KosRunResult>();
             ext.WireRunForTests((_, result) => runResults.Add(result));
-            // No ArmRunForTests call — ordinary kos.compute / kos.exec path.
+            // No ArmRunForTests call: ordinary kos.compute / kos.exec path.
 
             ext.OnPrint(new object(), "[KOSDATA:feed]v=1[/KOSDATA]");
 
@@ -218,7 +218,7 @@ namespace GonogoKosUplink.Tests
         {
             var source = new RecordingChannelSource();
             var counter = new CoreIdCounter();
-            // No kos.compute.* subscriber — without the gate-widening fix this
+            // No kos.compute.* subscriber: without the gate-widening fix this
             // would short-circuit before accumulation ever ran, and the
             // caller's kos.run promise would hang forever.
             var ext = NewExtension(source, counter, () => false);
@@ -241,7 +241,7 @@ namespace GonogoKosUplink.Tests
             var runResults = new List<KosRunResult>();
             ext.WireRunForTests((_, result) => runResults.Add(result));
 
-            // Neither gate is open — the original I1 short-circuit still
+            // Neither gate is open, the original I1 short-circuit still
             // applies when nothing is armed and nobody subscribes.
             ext.OnPrint(new object(), "[KOSDATA]v=1[/KOSDATA]");
 

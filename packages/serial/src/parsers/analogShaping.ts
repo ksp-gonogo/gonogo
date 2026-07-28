@@ -7,7 +7,7 @@ import type { AnalogCurve, DeviceInput } from "../types";
  * -1..1 and rests at centre (sticks); `unipolar` spans 0..1 and rests at
  * zero (triggers). Without this distinction, a *released* unipolar input
  * fed through the bipolar deadzone math would read as fully negative
- * instead of resting at zero — bind a trigger to a throttle and the rest
+ * instead of resting at zero: bind a trigger to a throttle and the rest
  * position would read full reverse.
  *
  * Deadzone snaps values near rest to the rest value and rescales the
@@ -19,8 +19,8 @@ import type { AnalogCurve, DeviceInput } from "../types";
  *
  * Curves are sign-preserving (a no-op for unipolar's non-negative range):
  *   linear:  v
- *   squared: sign(v) · v² — finer control near centre
- *   cubic:   v³           — even finer near centre, hard pull at the ends
+ *   squared: sign(v) · v², finer control near centre
+ *   cubic:   v³, even finer near centre, hard pull at the ends
  */
 export function applyAnalogShaping(
   input: Pick<DeviceInput, "deadzone" | "curve" | "polarity">,

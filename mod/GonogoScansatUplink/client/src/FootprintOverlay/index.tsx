@@ -1,7 +1,7 @@
 // SCANsat scanning-vessel footprint overlay for MapView.
 //
 // Fills MapView's `map-view.overlay` slot with each tracked vessel's ground-
-// track rectangle — moved out of core MapView (T8a,
+// track rectangle: moved out of core MapView (T8a,
 // docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md) so
 // core MapView no longer reads `scansat.scanningVessels` or does any
 // SCANsat-shaped geometry itself (Uplink invariant #5, "augment, don't
@@ -16,16 +16,16 @@
 // onto a canvas the caller had already put through a zoom-scaling
 // `ctx.setTransform(...)`, so it pre-divided its stroke width by camera zoom
 // to cancel that transform's own scaling back out. `project()` already
-// hands back post-camera-transform SCREEN pixels — there is no second
+// hands back post-camera-transform SCREEN pixels: there is no second
 // canvas-level transform here to compensate for, so the stroke width is a
 // fixed screen-space constant instead (see `STROKE_WIDTH_PX`). Everything
-// else — the antimeridian-wrap split, the whole-globe span case — is an
+// else (the antimeridian-wrap split, the whole-globe span case) is an
 // affine (zoom+pan) transform either way, so that geometry carries over
 // unchanged.
 //
 // Presence-gated on `requires: "scansat"`: renders only while
 // `scansat.available` is live, so an install without SCANsat never mounts
-// it — zero impact on MapView for non-SCANsat users.
+// it: zero impact on MapView for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
@@ -34,7 +34,7 @@ import { useScanningVessels } from "../FogReveal/useScanLayers";
 import type { SCANScanningVessel } from "../schema";
 import { SCANSAT } from "../uplink";
 
-/** Fixed screen-pixel stroke width — see module doc comment for why this
+/** Fixed screen-pixel stroke width: see module doc comment for why this
  *  replaces the old world-space `1 / camZoom` compensation. `project()`
  *  already hands back post-camera-transform screen pixels, so a constant
  *  reads consistently at any zoom without re-deriving the camera's zoom
@@ -80,7 +80,7 @@ export function drawFootprints(
       ? `rgba(${tc.r}, ${tc.g}, ${tc.b}, 0.9)`
       : "rgba(255, 255, 255, 0.7)";
 
-    // Latitude band (no wrap — clamp to the poles, matching `project`'s
+    // Latitude band (no wrap: clamp to the poles, matching `project`'s
     // own body-offset clamp semantics before it's even applied here).
     const latTop = Math.min(90, v.subLatitude + halfLat);
     const latBot = Math.max(-90, v.subLatitude - halfLat);
@@ -102,7 +102,7 @@ export function drawFootprints(
     ctx.lineWidth = STROKE_WIDTH_PX;
 
     if (halfLon * 2 >= 360) {
-      // Spans the whole map — single full-width rect.
+      // Spans the whole map: single full-width rect.
       ctx.fillRect(0, rectY, width, rectH);
       ctx.strokeRect(0, rectY, width, rectH);
     } else if (xHiRaw > xLoRaw) {
@@ -110,7 +110,7 @@ export function drawFootprints(
       ctx.fillRect(xLoRaw, rectY, rw, rectH);
       ctx.strokeRect(xLoRaw, rectY, rw, rectH);
     } else {
-      // Wraps the antimeridian — two slices.
+      // Wraps the antimeridian: two slices.
       const rwRight = width - xLoRaw;
       ctx.fillRect(xLoRaw, rectY, rwRight, rectH);
       ctx.strokeRect(xLoRaw, rectY, rwRight, rectH);

@@ -11,9 +11,9 @@
  * is self-consistent with what the widget re-derives. Terrain (slope / roughness
  * / biome at the predicted point) is swept from rough-and-steep high up to
  * smooth-and-flat near touchdown, so the reticle's hazard verdict walks
- * DIVERT -> MARGINAL -> SAFE across the descent — a real UX story, not random.
+ * DIVERT -> MARGINAL -> SAFE across the descent, a real UX story, not random.
  *
- * NOT captured — model-generated. Run:
+ * NOT captured: model-generated. Run:
  *   pnpm --filter @ksp-gonogo/components exec tsx scripts/synthesize-landing-descent.ts
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -65,7 +65,7 @@ export function integrate(): Frame[] {
       availableThrust: THRUST,
       totalMass: MASS,
     });
-    // Burn once the full-vector burn no longer fits the remaining altitude —
+    // Burn once the full-vector burn no longer fits the remaining altitude,
     // solveSuicideBurn signals that with ignitionAltitude <= 0 ("ignite now").
     // Latch it: a real suicide burn stays committed through touchdown rather
     // than un-committing into freefall the instant the solve says it fits again.
@@ -278,7 +278,7 @@ function fixtureFromChannels(
   const emits = CARRIED.map((channel) => {
     const value = ch[channel];
     // vessel.orbit must carry quality:1 (Loaded) so vessel.state derives in the
-    // measured basis (real altitude off vessel.flight) — mirrors the tests.
+    // measured basis (real altitude off vessel.flight): mirrors the tests.
     return channel === "vessel.orbit"
       ? { channel, value, meta: { quality: 1 } }
       : { channel, value };
@@ -352,7 +352,7 @@ const PRESETS: TerrainPreset[] = [
     roughness: 15,
     biome: "Lowlands",
     patch: buildPatch((e, n) => 1.2 * Math.sin(e * 0.2) * Math.cos(n * 0.18)),
-    note: "Flat plains — near-zero slope, smooth => SAFE",
+    note: "Flat plains: near-zero slope, smooth => SAFE",
   },
   {
     name: "gentle-slope",
@@ -385,7 +385,7 @@ const PRESETS: TerrainPreset[] = [
         11 * gauss(d - PATCH_EXT * 0.28, PATCH_EXT * 0.05)
       );
     }),
-    note: "Crater — deep central dip + raised rim => MARGINAL on roughness",
+    note: "Crater: deep central dip + raised rim => MARGINAL on roughness",
   },
   {
     name: "ridge-mountainous",
@@ -411,7 +411,7 @@ const PRESETS: TerrainPreset[] = [
         4 * Math.cos(e * 0.33 + n * 0.4) +
         3 * Math.sin(e * 0.7 - n * 0.2),
     ),
-    note: "Boulder-rough — low slope, high residual roughness => MARGINAL on roughness",
+    note: "Boulder-rough: low slope, high residual roughness => MARGINAL on roughness",
   },
 ];
 
@@ -470,7 +470,7 @@ function emitAll(): void {
 
   // Pick four telling frames sweeping the hazard verdict DIVERT -> MARGINAL ->
   // SAFE plus the burn states: high (freefall, DIVERT site far downrange),
-  // ignition (first burning frame — hot band lit, still fast so DIVERT), approach
+  // ignition (first burning frame: hot band lit, still fast so DIVERT), approach
   // (slow final-approach over a MARGINAL slope), and final (SAFE soft touchdown).
   const high =
     frames.find((f) => !f.burning && f.aglMeters <= 7500) ?? frames[0];
@@ -481,7 +481,7 @@ function emitAll(): void {
     frames[frames.length - 2];
   const final =
     frames.find((f) => f.aglMeters <= 40) ?? frames[frames.length - 1];
-  // The settled touched-down frame (last): situation Landed, all motion nulled —
+  // The settled touched-down frame (last): situation Landed, all motion nulled,
   // the widget shows the landed state, no stale descent countdown.
   const landedFrame = frames.find((f) => f.landed) ?? frames[frames.length - 1];
 
@@ -511,7 +511,7 @@ function emitAll(): void {
     `${JSON.stringify(streamFixture(landedFrame, 4, "descent-landed", "Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."), null, 2)}\n`,
   );
 
-  // Terrain-type showcase — one near-touchdown frame per distinct terrain, so the
+  // Terrain-type showcase: one near-touchdown frame per distinct terrain, so the
   // reticle relief + verdict range is visible across flat/slope/crater/ridge/etc.
   const showcaseDir = resolve(
     import.meta.dirname,

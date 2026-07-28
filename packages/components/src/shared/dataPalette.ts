@@ -1,7 +1,7 @@
 import { css } from "styled-components";
 
 /**
- * Categorical data palette — 24 vivid, distinct colours intended for
+ * Categorical data palette: 24 vivid, distinct colours intended for
  * series in charts, telemetry rows, body markers, peer chips, and any
  * place where the role is "make this category visually distinct from
  * its neighbours".
@@ -13,11 +13,11 @@ import { css } from "styled-components";
  *
  * Two ways to consume:
  *
- *   1. `dataColor(i)` — index-based, JSX-side. Stable across reorderings
+ *   1. `dataColor(i)`: index-based, JSX-side. Stable across reorderings
  *      if your index is data-keyed (preferred for charts, telemetry rows,
  *      anything where colour identity should follow the *data*).
  *
- *   2. `dataPaletteCycle()` — styled-components mixin that generates
+ *   2. `dataPaletteCycle()`: styled-components mixin that generates
  *      `:nth-child(24n+k)` rules. Apply to a list container to auto-
  *      colour direct children by DOM order. Order = colour, so reordering
  *      reassigns colours; only use when the list is purely positional
@@ -66,7 +66,7 @@ export function dataColor(index: number): string {
  * Each `<li>` (or whatever the direct child is) gets its `color` set to
  * `var(--color-data-1)`, `var(--color-data-2)`, ... cycling at 24.
  *
- * @param property the CSS property to cycle — `color`, `background`,
+ * @param property the CSS property to cycle, `color`, `background`,
  *   `border-color`, etc. Pass a CSS variable name (e.g. `--data-color`)
  *   to set a custom property the children can consume themselves.
  * @param childSelector defaults to `> *`; override if the cycle should
@@ -74,7 +74,7 @@ export function dataColor(index: number): string {
  */
 export function dataPaletteCycle(property = "color", childSelector = "> *") {
   // Generated as a single template chunk so styled-components emits one
-  // styled-component class with all 24 rules — cheaper than 24 separate
+  // styled-component class with all 24 rules: cheaper than 24 separate
   // mixin invocations.
   const rules = DATA_PALETTE.map(
     (colour, i) =>

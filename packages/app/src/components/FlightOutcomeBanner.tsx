@@ -7,14 +7,14 @@ import styled from "styled-components";
 
 /**
  * Ephemeral top-of-viewport banner that fires when a fresh flight-end
- * snapshot lands — either a recovery (`recovery.lastSummary`) or a
+ * snapshot lands: either a recovery (`recovery.lastSummary`) or a
  * crash (`crash.lastCrash`). Both outcome kinds flow through this
  * single component so flight endings share the same UI slot.
  *
  * Auto-dismisses after VISIBLE_MS; tap to pin the detail modal.
  * On a new-flight transition, the announce baseline is reset to the
  * current sticky outcome's UT, so the previous flight's recovery
- * never re-triggers the banner — only an outcome captured after the
+ * never re-triggers the banner: only an outcome captured after the
  * new flight started will fire.
  */
 
@@ -136,7 +136,7 @@ interface CrashSummary {
   groundDistance: number;
 }
 
-// crash.lastCrash only ever carries notable-vessel crashes — the Telemachus
+// crash.lastCrash only ever carries notable-vessel crashes: the Telemachus
 // fork filters debris / flags / non-vessels at the source, so the banner
 // trusts whatever it receives and never second-guesses by name or type.
 function parseCrash(raw: unknown): CrashSummary | null {
@@ -232,8 +232,8 @@ export function FlightOutcomeBanner() {
     if (prevFlightId === nextFlightId) return;
     flightIdRef.current = nextFlightId;
     // Baseline the announce key only on a true flight switch (one non-null
-    // flight to another non-null flight). Transitions involving null —
-    // mount-time bootstrap, or a flight ending into "no flight" — must not
+    // flight to another non-null flight). Transitions involving null,
+    // mount-time bootstrap, or a flight ending into "no flight", must not
     // baseline, because Effect 2 hasn't had a chance to fire the banner
     // for the just-arrived outcome yet. Effect order is declaration order;
     // this effect runs before Effect 2, so if we wrote

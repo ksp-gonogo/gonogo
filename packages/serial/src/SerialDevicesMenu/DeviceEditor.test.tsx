@@ -12,7 +12,7 @@ const REAL_TYPE: DeviceType = {
   inputs: [],
 };
 
-describe("DeviceEditor — gamepad transport", () => {
+describe("DeviceEditor: gamepad transport", () => {
   it("offers gamepad alongside virtual and web-serial", () => {
     render(
       <DeviceEditor
@@ -93,7 +93,7 @@ describe("DeviceEditor — gamepad transport", () => {
         onSave={onSave}
       />,
     );
-    // Renaming only — transport/labelPack untouched.
+    // Renaming only: transport/labelPack untouched.
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Renamed Pad");
     await user.click(screen.getByRole("button", { name: "Save device" }));

@@ -6,7 +6,7 @@ namespace GonogoScansatUplink.Tests
 {
     /// <summary>
     /// Shape-tests the pure <c>scansat.science</c> wire builder
-    /// (<see cref="ScanScience"/>) — the exact camelCase keys, the friendly-name
+    /// (<see cref="ScanScience"/>): the exact camelCase keys, the friendly-name
     /// mapping, and the always-false <c>deployed</c>/<c>inoperable</c> constants
     /// the client contract (<c>Sitrep.Contract.ScanScienceEntry</c> / the
     /// ScienceOfficer augment) reads. No live SCANsat/KSP: the builder takes
@@ -32,7 +32,7 @@ namespace GonogoScansatUplink.Tests
             Assert.Equal(true, wire["hasData"]);
             Assert.Equal(true, wire["rerunnable"]);
 
-            // No SCANsat source for either — always false.
+            // No SCANsat source for either: always false.
             Assert.Equal(false, wire["deployed"]);
             Assert.Equal(false, wire["inoperable"]);
         }

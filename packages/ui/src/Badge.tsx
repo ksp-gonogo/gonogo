@@ -16,7 +16,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
  * colour treatment.
  *
  * For tagged categories with their own bespoke palette (`telemetry`, `kos`,
- * etc.) prefer the existing `Tag` primitive — `Badge` is for state colour
+ * etc.) prefer the existing `Tag` primitive: `Badge` is for state colour
  * (go/nogo/warn/info/neutral).
  */
 export function Badge({

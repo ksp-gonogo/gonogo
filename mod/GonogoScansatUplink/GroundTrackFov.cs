@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Gonogo.ScansatUplink
 {
     /// <summary>
-    /// One sensor's public inputs to <see cref="GroundTrackFov.Compute"/> —
+    /// One sensor's public inputs to <see cref="GroundTrackFov.Compute"/>,
     /// mirrors <c>SCANsensor.{fov,min_alt,max_alt,best_alt}</c>
     /// (SCANcontroller.cs:2359-2374, all public fields).
     /// </summary>
@@ -31,11 +31,11 @@ namespace Gonogo.ScansatUplink
     /// deliberately NOT the <c>doScanPass</c> FOV block (SCANcontroller.cs
     /// :2970-3007), which additionally applies a latitude-inflation term
     /// (<c>fovW = fov * (1/cosLookUp[lat])</c>) that <c>getFOV</c> does not
-    /// have — copying that block would produce a wrong, pole-inflated
+    /// have, copying that block would produce a wrong, pole-inflated
     /// footprint. See NOTICE-SCANSAT.txt for the BSD attribution this
     /// replication carries.
     ///
-    /// Pure function — no SCANsat or KSP types — unit-testable headlessly
+    /// Pure function (no SCANsat or KSP types) unit-testable headlessly
     /// against known SCANsat values.
     /// </summary>
     public static class GroundTrackFov

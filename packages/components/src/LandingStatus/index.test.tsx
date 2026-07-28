@@ -7,7 +7,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * The rebooted LandingStatus runs a FULL-VECTOR suicide-burn solve — the burn
+ * The rebooted LandingStatus runs a FULL-VECTOR suicide-burn solve, the burn
  * must null the whole surface-speed vector, not just the descent rate. These
  * tests drive real physics through a genuine `setupStreamFixture` pipeline
  * (real Mun/Kerbin body constants, `vessel.flight`/`vessel.propulsion`/
@@ -160,7 +160,7 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByRole("img", { name: /ground speed 538 m\/s/i }),
     ).toBeInTheDocument();
-    // Burn-now touchdown is a large nonzero speed — the fatal-direction fix.
+    // Burn-now touchdown is a large nonzero speed, the fatal-direction fix.
     expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
     // The burn no longer fits: ignite now, not a comfortable countdown.
     expect(screen.getByText("IGNITE")).toBeInTheDocument();
@@ -340,7 +340,7 @@ describe("LandingStatusComponent", () => {
     expect(screen.getAllByText(/predicted/i).length).toBeGreaterThan(0);
   });
 
-  it("shows a touchdown-confirmed view once landed — plots kept, countdowns gone", async () => {
+  it("shows a touchdown-confirmed view once landed: plots kept, countdowns gone", async () => {
     renderWidget({ w: 12, h: 20 });
     act(() => {
       emitVessel(stream, {
@@ -400,7 +400,7 @@ describe("LandingStatusComponent", () => {
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
   });
 
-  it("exposes no command controls — Landing is an instrument, not a command surface", async () => {
+  it("exposes no command controls: Landing is an instrument, not a command surface", async () => {
     renderWidget();
     act(() => {
       emitVessel(stream, {
@@ -424,7 +424,7 @@ describe("LandingStatusComponent", () => {
   it("escalates to role=alert when the burn is already committed (ignite now)", async () => {
     renderWidget();
     act(() => {
-      // The worked Mun case: the burn no longer fits, so ignition is now — the
+      // The worked Mun case: the burn no longer fits, so ignition is now, the
       // live-regime hero reads IGNITE and the section escalates to role=alert.
       emitVessel(stream, {
         body: MUN,

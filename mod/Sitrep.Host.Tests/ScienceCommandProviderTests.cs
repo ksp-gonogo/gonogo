@@ -6,7 +6,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="ScienceCommandProvider"/>'s <c>Handle*</c>
-    /// glue against a <see cref="FakeScienceActuator"/> — proves the typed
+    /// glue against a <see cref="FakeScienceActuator"/>: proves the typed
     /// <c>partId</c> reaches the correct actuator method, that an empty
     /// <c>partId</c> fail-fasts as <see cref="CommandErrorCode.NotFound"/>
     /// before the actuator is ever called, and that the actuator's typed

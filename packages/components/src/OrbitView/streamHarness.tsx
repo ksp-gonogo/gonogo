@@ -9,8 +9,8 @@ import { OrbitViewComponent } from "./index";
 
 /**
  * Shared stream-render harness for OrbitView's tests.
- * OrbitView now reads exclusively off the SDK stream — `vessel.orbit` (raw
- * elements) and the `vessel.state` derived channel — so every test drives it
+ * OrbitView now reads exclusively off the SDK stream, `vessel.orbit` (raw
+ * elements) and the `vessel.state` derived channel: so every test drives it
  * through a real `TelemetryProvider`/`TimelineStore` via `setupStreamFixture`
  * rather than the retired legacy `MockDataSource` path.
  */
@@ -51,11 +51,11 @@ export interface OrbitScenario {
   meanAnomalyAtEpoch?: number;
   /**
    * `vessel.orbit`'s sample quality, which drives `vessel.state.basis`
-   * (OnRails → "propagated", Loaded → "measured"). Default `Quality.OnRails`
-   * — every pre-existing scenario/test keeps its prior behaviour unchanged.
+   * (OnRails → "propagated", Loaded → "measured"). Default `Quality.OnRails`,
+   * every pre-existing scenario/test keeps its prior behaviour unchanged.
    */
   quality?: Quality;
-  /** Also emit `vessel.flight` — needed for a "measured" (Loaded) basis scenario, whose `deriveVesselState` branch reads it. Ignored under OnRails. */
+  /** Also emit `vessel.flight`: needed for a "measured" (Loaded) basis scenario, whose `deriveVesselState` branch reads it. Ignored under OnRails. */
   flight?: {
     altitudeAsl?: number;
     verticalSpeed?: number;
@@ -87,7 +87,7 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
     );
     if (s.quality === Quality.Loaded) {
       // The "measured" basis branch of `deriveVesselState` needs a whole
-      // `vessel.flight` point to resolve at all (undefined otherwise) — see
+      // `vessel.flight` point to resolve at all (undefined otherwise); see
       // that function's Loaded branch.
       fixture.emit("vessel.flight", {
         latitude: 0,
@@ -128,7 +128,7 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
 export interface RenderStreamResult {
   container: HTMLElement;
   fixture: StreamFixture;
-  /** Synchronously unmount this tree — used by tests that run a state-mutating teardown (e.g. `clearAugments()`) which must fire against an unmounted tree, before RTL auto-cleanup runs. */
+  /** Synchronously unmount this tree: used by tests that run a state-mutating teardown (e.g. `clearAugments()`) which must fire against an unmounted tree, before RTL auto-cleanup runs. */
   unmount: () => void;
 }
 

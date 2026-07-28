@@ -12,6 +12,7 @@ import {
   Input,
   PrimaryButton,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type {
@@ -24,7 +25,7 @@ import type {
 import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "./types";
 
 /**
- * Prefilled state for opening the modal in "create with hint" mode — the
+ * Prefilled state for opening the modal in "create with hint" mode, the
  * ActionGroup widget's bell button uses this to drop the operator into a
  * draft that already has the action group attached, leaving them only the
  * trigger to fill in.
@@ -58,17 +59,17 @@ function useFirableActions(): (ActionGroup & { toggle: string })[] {
 }
 
 /**
- * CRUD UI for the alarm list. Intentionally screen-agnostic — accepts a
+ * CRUD UI for the alarm list. Intentionally screen-agnostic, accepts a
  * snapshot + command callbacks so both main and station mount the same
  * component from different service backends.
  *
- * v2 — supports both time and threshold triggers via a kind selector.
+ * v2: supports both time and threshold triggers via a kind selector.
  */
 
 export interface AlarmsModalProps {
   /**
    * Read the latest snapshot. The modal calls this every render so it
-   * stays in sync with live UT — captured snapshot props go stale once
+   * stays in sync with live UT: captured snapshot props go stale once
    * the modal is open and produce time alarms anchored to the open-time
    * UT (the second alarm in a session would fire instantly).
    */
@@ -103,11 +104,11 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
-  // Value-restricted keys — threshold alarms compare against a scalar Value
+  // Value-restricted keys: threshold alarms compare against a scalar Value
   // (per the Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides
   // enums, booleans, opaque structs, untyped raws, AND any legacy key with
   // no stream home (the alarm's `readTelemetryNumber` now reads off the
-  // stream — see `AlarmStateMachine`).
+  // stream: see `AlarmStateMachine`).
   const numericKeys = useValueKeys("data");
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
@@ -143,7 +144,7 @@ export function AlarmsModal({
   const firableActions = useFirableActions();
   // Seeded lazily from the registry's first entry. The registry's custom half
   // arrives with telemetry, but the STOCK half (SAS first) is present from the
-  // first render, so this is never empty in practice — the `?? ""` is belt and
+  // first render, so this is never empty in practice, the `?? ""` is belt and
   // braces, matching the previous module-scope behaviour.
   const [pickerAction, setPickerAction] = useState<string>(
     firableActions[0]?.toggle ?? "",
@@ -167,7 +168,7 @@ export function AlarmsModal({
     if (addDisabled) return;
     let trigger: AlarmTrigger;
     if (kind === "time") {
-      // Read UT live from the ref — using the destructured `snapshot`
+      // Read UT live from the ref; using the destructured `snapshot`
       // could anchor the trigger to a stale UT if the user adds two alarms
       // in quick succession (the modal re-renders on snapshot updates,
       // but a click handler closes over its render-time snapshot).
@@ -206,7 +207,7 @@ export function AlarmsModal({
 
   const addPickerAction = () => {
     if (!pickerAction) return;
-    // Allow duplicates — operators sometimes intentionally fire the same
+    // Allow duplicates: operators sometimes intentionally fire the same
     // action twice (e.g. f.stage to drop two stages on different alarms is
     // covered by separate alarms, but this row is order-preserving so we
     // don't second-guess them).
@@ -313,7 +314,7 @@ export function AlarmsModal({
                 clearable
               />
               <FieldHint>
-                Any Telemachus key that returns a number — e.g.{" "}
+                Any Telemachus key that returns a number, e.g.{" "}
                 <code>v.altitude</code>, <code>v.surfaceVelocity</code>,{" "}
                 <code>v.verticalSpeed</code>.
               </FieldHint>
@@ -532,7 +533,7 @@ interface PresetSpec {
  * already subscribes to (`o.timeToAp`, `o.timeToPe`, `o.maneuverNodes`).
  * Each preset appears only when its data is live and yields a future UT;
  * clicking it creates a notify-only time alarm via the same `onAdd` path
- * the manual form uses. It deliberately does NOT start a warp-to session —
+ * the manual form uses. It deliberately does NOT start a warp-to session,
  * the operator drives that from the banner's existing affordance.
  */
 function RecommendedPresets({
@@ -594,7 +595,7 @@ function RecommendedPresets({
 
   // Each preset must read a fresh UT at click time (snapshotRef), not the
   // render-time `utNow`, for the same stale-anchor reason as the manual
-  // path. Visibility, however, can use the render-time `utNow` — the modal
+  // path. Visibility, however, can use the render-time `utNow`, the modal
   // re-renders every tick.
   const createPreset = (preset: PresetSpec) => {
     const liveUt = snapshotRef.current.ut;
@@ -701,7 +702,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
       </code>
     );
   }
-  // Threshold — narrow exhausted by the three `kind` checks above.
+  // Threshold: narrow exhausted by the three `kind` checks above.
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null
@@ -718,7 +719,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
 }
 
 function formatUt(s: number): string {
-  if (!Number.isFinite(s)) return "—";
+  if (!Number.isFinite(s)) return NULL_DISPLAY;
   const d = Math.floor(s / 21600);
   const rem = s - d * 21600;
   const h = Math.floor(rem / 3600);
@@ -763,7 +764,7 @@ function kspActionGroupName(toggle: string | null): string | null {
       return "Light";
     case "f.gear":
       return "Gear";
-    // KSP plural — toggle key is singular for ergonomic reasons.
+    // KSP plural: toggle key is singular for ergonomic reasons.
     case "f.brake":
       return "Brakes";
     case "f.abort":
@@ -790,7 +791,7 @@ interface AgBinding {
  * (`vessel.parts` → each part's `actionBindings`). Replaces the retired
  * `f.ag.bindings` shim: flattens the per-part `{ action, groups[] }` contract
  * into the caption's per-(group, action) {@link AgBinding} shape. `null` until
- * the parts tree arrives (vessel-scoped — empty outside Flight), so the caption
+ * the parts tree arrives (vessel-scoped: empty outside Flight), so the caption
  * falls back to the plain "(f.ag1)" label.
  */
 function useActionGroupBindings(): AgBinding[] | null {
@@ -824,8 +825,8 @@ function captionForAg(
   const matches = bindings.filter((b) => b.actionGroup === kspName);
   if (matches.length === 0) return "";
   const first = matches[0].actionGuiName || matches[0].partTitle || "bound";
-  if (matches.length === 1) return ` — ${first}`;
-  return ` — ${first} +${matches.length - 1} more`;
+  if (matches.length === 1) return `: ${first}`;
+  return `: ${first} +${matches.length - 1} more`;
 }
 
 function OnFireEditor({
@@ -837,7 +838,7 @@ function OnFireEditor({
 }: OnFireEditorProps) {
   // Action-group captions now derive from the parts tree (vessel.parts →
   // actionBindings), not the retired `f.ag.bindings` shim. Vessel-scoped, so
-  // null outside Flight — the caption falls back to the plain "(f.ag1)" label.
+  // null outside Flight: the caption falls back to the plain "(f.ag1)" label.
   const bindings = useActionGroupBindings();
   const firableActions = useFirableActions();
 

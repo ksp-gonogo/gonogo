@@ -7,7 +7,7 @@ namespace Gonogo.KerbalismUplink
 {
     /// <summary>
     /// Reflection-only bridge to Kerbalism. No compile-time reference to
-    /// Kerbalism.dll — every call degrades to null/empty on a moved/absent
+    /// Kerbalism.dll: every call degrades to null/empty on a moved/absent
     /// surface, so the uplink loads presence-safe. The reflection calls are
     /// ported verbatim from the proven mod/GonogoDevTools/GonogoDevKerbalismDump.cs,
     /// which performed exactly these reads against live Kerbalism 3.32 + CRP v112
@@ -122,19 +122,19 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>
-        /// Per-rule config CONSTANTS from the loaded KERBALISM.Profile.rules[] —
+        /// Per-rule config CONSTANTS from the loaded KERBALISM.Profile.rules[],
         /// degeneration (units/s) + fatal_threshold. Static / vessel-independent
         /// (resolved fresh each call; the list is small). These are NOT in the
         /// KerbalData accumulator the dump tool captured; they feed the stage-2
         /// death-clock. Verified against Kerbalism source (not just inferred):
         /// `Profile.rules` is `public static List&lt;Rule&gt;` (Profile/Profile.cs),
         /// and `Rule.name`/`Rule.degeneration`/`Rule.fatal_threshold` are public
-        /// instance fields (Profile/Rule.cs) — field names/types below match
+        /// instance fields (Profile/Rule.cs): field names/types below match
         /// exactly. `fatal_threshold` genuinely varies per rule: the default
         /// profile leaves it at the Rule.cs ctor default of 1.0 for every rule
         /// except radiation, which overrides it to 50.0
         /// (GameData/KerbalismConfig/Profiles/Default.cfg's `radiation` Rule
-        /// block) — confirming the CrewManifest widget's per-rule
+        /// block): confirming the CrewManifest widget's per-rule
         /// value/fatalThreshold normalization is correct, not a hardcoded-1.0 bug.
         /// </summary>
         public IReadOnlyDictionary<string, RuleConstants> RuleConstants()

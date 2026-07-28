@@ -1,15 +1,15 @@
 <!--
-  GonogoKosUplink — the kOS bridge extension for gonogo/Sitrep (mod/GonogoKosUplink).
+  GonogoKosUplink: the kOS bridge extension for gonogo/Sitrep (mod/GonogoKosUplink).
 
   This assembly compile-time links kOS (GPLv3, cloned for reference at
   local_docs/reference/kos/) and, from P1 onward, 0Harmony for one
   observe-only patch. Per local_docs/telemetry-mod/kos-migration-spec.md
-  §8 the link is deliberate — no arm's-length reflection, no loopback
+  §8 the link is deliberate, no arm's-length reflection, no loopback
   telnet.
 
   gonogo overall is MIT (see LICENSING.md). GonogoKosUplink is THE exception:
   linking GPLv3 kOS makes this assembly GPL-3.0-only. It is a dependency
-  leaf — nothing references it — so that obligation propagates nowhere, and
+  leaf (nothing references it) so that obligation propagates nowhere, and
   the MIT Sitrep.* assemblies it links are GPL-compatible in that direction.
 
   This program is free software: you can redistribute it and/or modify it
@@ -19,7 +19,7 @@
 
   Packaging: GonogoKosUplink is a SEPARATE, optional deployable extension (its
   own GameData/GonogoKosUplink folder + its own CKAN/SpaceDock listing via
-  GonogoKosUplink.netkan, GPLv3-linkage documented in NOTICE-KOS.txt) — build +
+  GonogoKosUplink.netkan, GPLv3-linkage documented in NOTICE-KOS.txt): build +
   deploy with `build gonogokosuplink` (build_gonogokosuplink in
   scripts/gonogo_claude_tools.sh). It must not bundle
   core Gonogo's or kOS's or Harmony's assemblies; every Reference/
@@ -32,7 +32,7 @@
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <!-- net48, not net472: the live kOS.dll / kOS.Safe.dll we link
          (local_docs/syncthing/kspdata/GameData/kOS/Plugins/) are built
-         against .NETFramework 4.8 (MSB3274/3275 otherwise) — KSP's Mono
+         against .NETFramework 4.8 (MSB3274/3275 otherwise): KSP's Mono
          runtime loads either target fine. Mirrors GonogoScansatUplink. -->
     <TargetFramework>net48</TargetFramework>
     <LangVersion>12</LangVersion>
@@ -57,7 +57,7 @@
     <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
   </PropertyGroup>
 
-  <!-- KSP / Unity reference assemblies — same portable copy + HintPath
+  <!-- KSP / Unity reference assemblies: same portable copy + HintPath
        pattern as Gonogo.KSP.csproj / GonogoTelemetry.csproj. Private=false:
        never copied to output; KSP's own KSP_Data/Managed satisfies the
        load at runtime. -->
@@ -76,9 +76,9 @@
     </Reference>
   </ItemGroup>
 
-  <!-- kOS — the GPLv3 link that makes this assembly GPL (see the header
+  <!-- kOS: the GPLv3 link that makes this assembly GPL (see the header
        comment above). Loaded from the live KSP install's own kOS mod
-       folder; Private=false — kOS ships and updates itself, GonogoKosUplink
+       folder; Private=false: kOS ships and updates itself, GonogoKosUplink
        must never bundle a stale copy of it. -->
   <ItemGroup>
     <Reference Include="kOS" Private="false">
@@ -89,12 +89,12 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Harmony — P1 uses it for the ONE observe-only postfix on
+  <!-- Harmony: P1 uses it for the ONE observe-only postfix on
        ScreenBuffer.Print (spec §4(b)/§6, KosComputeHarmony.cs), the compute
        feed's at-source capture. Installed only when the version-guard
        confirms the target exists; otherwise compute falls back to the
        snapshot-scrape (spec §4.4). Loaded from 000_Harmony's own
-       mod folder; Private=false — every other Harmony-dependent mod in
+       mod folder; Private=false: every other Harmony-dependent mod in
        this install already provides it, GonogoKosUplink must not bundle a
        second copy. -->
   <ItemGroup>
@@ -104,17 +104,17 @@
   </ItemGroup>
 
   <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
-       Sitrep.Transport deps) — compile-time only. ISitrepExtension/
+       Sitrep.Transport deps): compile-time only. ISitrepExtension/
        IExtensionHost/ExtensionManifest live in Sitrep.Host (see
        ExtensionContract.cs, whose IExtensionHost.AddChannelSource
        signature also reaches into Sitrep.Core's KspSnapshot); Sitrep.Contract
        is the wire-DTO assembly P1+ channel payloads will use. Core Gonogo
        already ships all four (GameData/Gonogo/Plugins/Sitrep.*.dll) and
        KSP loads every GameData plugin into one AppDomain, so this
-       extension resolves those types from core's copy at runtime — it
+       extension resolves those types from core's copy at runtime, it
        must NOT bundle its own. Private=false on every one of these keeps
        them out of this project's output/deploy set; each is listed
-       explicitly (not left to flow transitively through Sitrep.Host) —
+       explicitly (not left to flow transitively through Sitrep.Host),
        Private=false on an OUTER ProjectReference does not, by itself,
        suppress copying of that project's OWN transitive references, so
        each link in the chain needs the flag itself. Mirrors

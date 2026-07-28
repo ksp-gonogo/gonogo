@@ -1,7 +1,7 @@
 /**
  * Binds the project's theme contract onto styled-components' `DefaultTheme`,
  * so every `${({ theme }) => theme.space.md}` callback is typed rather than
- * `any`-adjacent — for this package's own primitives *and* for consumers of
+ * `any`-adjacent: for this package's own primitives *and* for consumers of
  * the published kit.
  *
  * ## Why this lives here, and not in `@ksp-gonogo/theme`
@@ -9,13 +9,13 @@
  * A `declare module` augmentation only applies where TypeScript compiles it
  * from source, or where it reaches a consumer in a `.d.ts` that still contains
  * a resolvable reference to the augmentation target. `@ksp-gonogo/theme` is
- * `private: true` and never published — the kit inlines it — so an
+ * `private: true` and never published: the kit inlines it: so an
  * augmentation living there would reach nobody. It belongs here, in the
  * package that actually ships.
  *
  * ## Why `index.ts` imports this file
  *
- * The import looks pointless — this module has no runtime surface, and the
+ * The import looks pointless: this module has no runtime surface, and the
  * bundler correctly emits zero bytes for it. It is load-bearing for *types*:
  *
  *  - `tsc --noEmit` (lint/typecheck) picks the file up via `include: ["src"]`
@@ -27,7 +27,7 @@
  *
  * So the import is what keeps `pnpm build` green. Do not "clean it up".
  *
- * ## It does survive emit — verified
+ * ## It does survive emit, verified
  *
  * An earlier iteration of this file claimed an augmentation can never ship
  * through a built `.d.ts`, because the `import type {} from "styled-components"`
@@ -41,12 +41,12 @@
  * in-file and the augmentation binds. Confirmed against a packed tarball
  * installed into a clean project: `theme.space.md` typechecks, and
  * `theme.space.bogus` errors with `Property 'bogus' does not exist on type
- * 'ThemeSpace'`. Consumers inherit the typed theme — which is what a design
+ * 'ThemeSpace'`. Consumers inherit the typed theme: which is what a design
  * system should do.
  *
  * The load-bearing part is the *bundled* emit. Reverting to a plain `tsc`
  * build, or splitting this into its own entry, silently returns it to a dead
- * augmentation — the failure mode is a consumer's `theme.x` going `any`, with
+ * augmentation: the failure mode is a consumer's `theme.x` going `any`, with
  * nothing going red here.
  */
 

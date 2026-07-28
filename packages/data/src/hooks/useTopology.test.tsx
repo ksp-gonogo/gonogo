@@ -13,7 +13,7 @@ import { useTopology } from "./useTopology";
 
 /**
  * Same pinned-clock fixture pattern as `setupStreamFixture`
- * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`) — inlined here
+ * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`): inlined here
  * so `@ksp-gonogo/data`'s tests don't reach across to `@ksp-gonogo/components`
  * (see `useDataSeries.shim.test.tsx`'s identical `buildStreamFixture`).
  */
@@ -93,7 +93,7 @@ describe("useTopology", () => {
       </fixture.Provider>,
     );
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.parts")).toBe(true);
 
@@ -104,7 +104,7 @@ describe("useTopology", () => {
     await waitFor(() => expect(readProbe()).toBe("root:1|count:3"));
   });
 
-  it("updates on the next vessel.parts emission (no seq gating needed — the channel is itself change-gated)", async () => {
+  it("updates on the next vessel.parts emission (no seq gating needed, the channel is itself change-gated)", async () => {
     const fixture = buildStreamFixture({ pinnedUt: 10 });
     render(
       <fixture.Provider>
@@ -119,7 +119,7 @@ describe("useTopology", () => {
     await waitFor(() => expect(readProbe()).toBe("root:1|count:8"));
   });
 
-  it("stays undefined with no TelemetryProvider mounted — no legacy fallback any more", () => {
+  it("stays undefined with no TelemetryProvider mounted: no legacy fallback any more", () => {
     render(<Probe />);
     expect(readProbe()).toBe("undefined");
   });

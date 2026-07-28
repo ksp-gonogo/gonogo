@@ -5,7 +5,7 @@ namespace GonogoScansatUplink.Tests
 {
     /// <summary>
     /// The sub-topic strings a client actually subscribes to are the load-
-    /// bearing contract here — an earlier pass published <c>.AltimetryLoRes</c>
+    /// bearing contract here: an earlier pass published <c>.AltimetryLoRes</c>
     /// (the enum name) while the client subscribes to <c>.1</c> (the numeric
     /// bit), so nothing ever reached it. These lock the numeric convention.
     /// </summary>
@@ -22,7 +22,7 @@ namespace GonogoScansatUplink.Tests
         public void FullConcreteTopicMatchesClientKey()
         {
             // packages/components/src/Scanning/index.tsx subscribes to
-            // `scansat.coverage.${bodyName}.${scanType}` — e.g. Kerbin.1.
+            // `scansat.coverage.${bodyName}.${scanType}`: e.g. Kerbin.1.
             Assert.Equal(
                 "scansat.coverage.Kerbin.1",
                 ScanChannels.CoveragePrefix + ScanChannels.BodyTypeSubTopic("Kerbin", 1));

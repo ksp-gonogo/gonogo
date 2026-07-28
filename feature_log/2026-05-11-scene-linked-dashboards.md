@@ -1,20 +1,20 @@
-# Scene-linked dashboards — tag profiles, prompt on scene transitions
+# Scene-linked dashboards: tag profiles, prompt on scene transitions
 
 - **Date:** 2026-05-11
 - **Commit:** `1dff591`
-- **Validation:** ⏳ pending — landed and tested in CI; not yet exercised against a real `kc.scene` stream.
+- **Validation:** ⏳ pending: landed and tested in CI; not yet exercised against a real `kc.scene` stream.
 
 ## Why
 
 Mission Profiles let the operator save and recall whole dashboard layouts, but switching between them was a manual step. The natural cue for "swap dashboards now" is KSP's scene change (Editor → Flight at launch, Flight → SpaceCenter at recovery, etc.).
 
-Auto-loading on scene change was rejected as too aggressive — the operator may have intentionally arranged a dashboard for a non-default scene, and a scene transition can fire mid-mission for transient reasons. Instead: **prompt**, never auto-switch, and never switch *away* because of a scene change.
+Auto-loading on scene change was rejected as too aggressive, the operator may have intentionally arranged a dashboard for a non-default scene, and a scene transition can fire mid-mission for transient reasons. Instead: **prompt**, never auto-switch, and never switch *away* because of a scene change.
 
 ## What
 
 ### Persistence schema change
 
-`MissionProfile.sceneBindings?: BindableScene[]` — a new optional field listing which scenes should prompt for this profile.
+`MissionProfile.sceneBindings?: BindableScene[]`: a new optional field listing which scenes should prompt for this profile.
 
 ```ts
 export const BINDABLE_SCENES = [
@@ -25,7 +25,7 @@ export const BINDABLE_SCENES = [
 ] as const;
 ```
 
-Transient scenes (`MainMenu`, `Loading`, `Unknown`) are deliberately absent. The binding model only ever *switches to* a profile when entering a tagged scene — never *away* because of one — so a transient binding would never resolve.
+Transient scenes (`MainMenu`, `Loading`, `Unknown`) are deliberately absent. The binding model only ever *switches to* a profile when entering a tagged scene; never *away* because of one: so a transient binding would never resolve.
 
 **Forward-compat:** unknown scene names are dropped quietly on load. A future BINDABLE_SCENES expansion can ship a profile with that scene tagged and older builds will just ignore it.
 
@@ -33,9 +33,9 @@ Transient scenes (`MainMenu`, `Loading`, `Unknown`) are deliberately absent. The
 
 ### `MissionProfilesService` additions
 
-- `save(name, items, layouts, sceneBindings?)` — fourth arg, defaults to empty (which normalises to `undefined` for storage tidiness).
-- `update(id, patch)` — `patch` now accepts `sceneBindings`. Empty arrays normalise back to `undefined`.
-- `findForScene(scene)` — returns the most-recently-updated profile tagged for `scene`, or `undefined`. Collision resolution piggybacks on the existing newest-first `list()` ordering.
+- `save(name, items, layouts, sceneBindings?)`: fourth arg, defaults to empty (which normalises to `undefined` for storage tidiness).
+- `update(id, patch)`: `patch` now accepts `sceneBindings`. Empty arrays normalise back to `undefined`.
+- `findForScene(scene)`: returns the most-recently-updated profile tagged for `scene`, or `undefined`. Collision resolution piggybacks on the existing newest-first `list()` ordering.
 
 Test coverage:
 - persist + retrieve via `findForScene`
@@ -48,7 +48,7 @@ Test coverage:
 ### `MissionProfilesModal` UI
 
 - Save row gains a chip-row picker (`@gonogo/ui` `FilterChip`) underneath the name input.
-- Each saved profile row gains the same chip row inline — tap a chip to toggle the binding live.
+- Each saved profile row gains the same chip row inline, tap a chip to toggle the binding live.
 
 ### `SceneSwitchPrompt` component
 
@@ -78,6 +78,6 @@ packages/app/src/missionProfiles/index.ts                       (export SceneSwi
 
 - Live verify: tag a profile for Flight, transition into Flight, confirm the sausage appears next to the FAB. Tap → dashboard swaps atomically. Dismiss → goes away. Auto-dismiss after 15s.
 - Confirm the "never switches away" invariant: leave a profile loaded, transition into a scene tagged for a *different* profile, dismiss the prompt. The current profile should stay loaded.
-- Reload page mid-Flight with a Flight-tagged profile that isn't currently loaded — confirm no prompt fires (initial-mount suppression).
-- Collision behaviour: two profiles both tagged for Flight, edit one to bump its `updatedAt`, transition into Flight — confirm the prompt offers the most-recently-edited.
+- Reload page mid-Flight with a Flight-tagged profile that isn't currently loaded, confirm no prompt fires (initial-mount suppression).
+- Collision behaviour: two profiles both tagged for Flight, edit one to bump its `updatedAt`, transition into Flight, confirm the prompt offers the most-recently-edited.
 - Station screen: `MissionProfilesService` is per-screen, so the station has its own profile list. Confirm the SceneSwitchPrompt mounts on both screens and pulls from each screen's own bindings.

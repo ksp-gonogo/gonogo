@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "firing-alarm",
-    "notes": "Alarm currently firing — red banner with Acknowledge button."
+    "notes": "Alarm currently firing: red banner with Acknowledge button."
   },
   "alarms": [
     {

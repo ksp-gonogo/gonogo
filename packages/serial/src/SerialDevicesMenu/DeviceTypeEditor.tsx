@@ -160,7 +160,7 @@ export function DeviceTypeEditor({
           value={renderStyleId}
           onChange={(e) => setRenderStyleId(e.target.value)}
         >
-          <option value="">— none —</option>
+          <option value="">(none)</option>
           {renderStyles.map((style) => (
             <option key={style.id} value={style.id}>
               {style.name}
@@ -355,8 +355,8 @@ function DiscoveredInputs({ inputs }: Readonly<{ inputs: DeviceInput[] }>) {
   if (inputs.length === 0) {
     return (
       <FieldHint>
-        No inputs reported yet. Connect the device — the inputs it announces
-        will show up here.
+        No inputs reported yet. Connect the device, the inputs it announces will
+        show up here.
       </FieldHint>
     );
   }

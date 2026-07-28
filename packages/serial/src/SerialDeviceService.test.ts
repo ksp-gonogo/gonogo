@@ -84,7 +84,7 @@ describe("SerialDeviceService", () => {
     const frame = transport.lastFrame as string;
     expect(typeof frame).toBe("string");
     // text-buffer renders as a flat 21×8 buffer (no row separators).
-    // Keys are sorted — ALT first, THR second.
+    // Keys are sorted, ALT first, THR second.
     expect(frame.slice(0, 21).startsWith("ALT 1")).toBe(true);
     expect(frame.slice(21, 42).startsWith("THR 2")).toBe(true);
   });
@@ -196,7 +196,7 @@ describe("SerialDeviceService seeding", () => {
   });
 });
 
-describe("SerialDeviceService — json-state schema updates", () => {
+describe("SerialDeviceService: json-state schema updates", () => {
   /**
    * Fake transport that pretends to be a WebSerialTransport: it hosts
    * onSchema listeners and lets the test fire schema updates manually.
@@ -341,9 +341,9 @@ describe("SerialDeviceService — json-state schema updates", () => {
   });
 });
 
-describe("SerialDeviceService — gamepad wiring", () => {
+describe("SerialDeviceService: gamepad wiring", () => {
   // Real GamepadTransport + MockGamepadAPI end-to-end, per the repo's
-  // testing philosophy — mock only the network/browser boundary
+  // testing philosophy: mock only the network/browser boundary
   // (navigator.getGamepads / gamepadconnected), not the transport itself.
   const mock = new MockGamepadAPI();
   let svc: SerialDeviceService | null = null;
@@ -442,7 +442,7 @@ describe("SerialDeviceService — gamepad wiring", () => {
     });
 
     await created.connect("gp1");
-    // A Sony vendor id would normally detect "playstation" — but a pack is
+    // A Sony vendor id would normally detect "playstation", but a pack is
     // already set, so it must survive untouched.
     mock.connectPad(0, {
       id: "054c-0ce6-DualSense Wireless Controller",
@@ -454,7 +454,7 @@ describe("SerialDeviceService — gamepad wiring", () => {
     expect(device?.labelPack).toBe("xbox");
   });
 
-  it("survives removing a never-paired gamepad device — the placeholder stays available for the next add", async () => {
+  it("survives removing a never-paired gamepad device: the placeholder stays available for the next add", async () => {
     mock.install();
     const created = await makeGamepadService();
     created.addDevice({
@@ -490,7 +490,7 @@ describe("SerialDeviceService — gamepad wiring", () => {
 
   it("loads a pre-existing (pre-gamepad-feature) localStorage payload unchanged, and still adds the placeholder type", async () => {
     // Shape of gonogo.serial.device-types / gonogo.serial.devices as saved
-    // by a build before this feature existed — no polarity/role/labelPack/
+    // by a build before this feature existed, no polarity/role/labelPack/
     // gamepadId fields anywhere, no "gamepad-unconfigured" type.
     const preExistingType: DeviceType = {
       id: "legacy-panel",
@@ -628,7 +628,7 @@ describe("SerialDeviceService autoReconnect", () => {
       });
 
       await svc.autoReconnect();
-      // Ambiguous match — device stays disconnected and the candidate ports
+      // Ambiguous match: device stays disconnected and the candidate ports
       // are parked for the UI to resolve.
       expect(svc.getStatus("hw2")).toBe("disconnected");
       const choices = svc.getPendingChoices().get("hw2");
@@ -838,7 +838,7 @@ describe("SerialDeviceService hot-plug", () => {
         portInfo: { vendorId: 0x1234, productId: 0x5678 },
       });
 
-      // Different VID — should be ignored.
+      // Different VID: should be ignored.
       const port = mock.createPort({
         info: { usbVendorId: 0xdead, usbProductId: 0xbeef },
       });

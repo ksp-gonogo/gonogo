@@ -12,20 +12,20 @@ type WizardStep = "welcome" | "setup" | "results" | "done";
 function stepLabel(step: WizardStep, firstRun: boolean): string {
   // The persistent entry point (Settings "Uplink Hub" tab, `firstRun` unset)
   // keeps Task C's original two-step numbering unchanged. `firstRun` bookends
-  // it with Welcome/Done (design §1 steps 1 and 7) — deferred by Task C, see
-  // that task's report — renumbered as a four-step sequence.
+  // it with Welcome/Done (design §1 steps 1 and 7), deferred by Task C, see
+  // that task's report: renumbered as a four-step sequence.
   if (!firstRun) {
-    return step === "setup" ? "Step 1 of 2 — Connect" : "Step 2 of 2 — Uplinks";
+    return step === "setup" ? "Step 1 of 2, Connect" : "Step 2 of 2: Uplinks";
   }
   switch (step) {
     case "welcome":
       return "Welcome";
     case "setup":
-      return "Step 2 of 4 — Connect";
+      return "Step 2 of 4: Connect";
     case "results":
-      return "Step 3 of 4 — Uplinks";
+      return "Step 3 of 4: Uplinks";
     case "done":
-      return "Step 4 of 4 — Done";
+      return "Step 4 of 4: Done";
   }
 }
 
@@ -34,14 +34,14 @@ export interface UplinkHubWizardProps {
    * True only when opened via the first-run auto-open host
    * (`UplinkHubWizardHost`): adds the Welcome/Done bookend steps (design §1)
    * that Task C explicitly scoped out. The persistent Settings-tab entry
-   * point (default, `false`) is unchanged from Task C's shipped behaviour —
+   * point (default, `false`) is unchanged from Task C's shipped behaviour,
    * always setup -> results.
    */
   firstRun?: boolean;
   /**
    * Called when the operator finishes the first-run flow (the Done step's
    * Close button). Lets the host close the enclosing modal. Ignored unless
-   * `firstRun` is true — the persistent entry point has no "finish" concept,
+   * `firstRun` is true, the persistent entry point has no "finish" concept,
    * the operator just closes Settings themselves.
    */
   onFinish?: () => void;
@@ -55,7 +55,7 @@ export interface UplinkHubWizardProps {
  * `firstRun` bookends (Welcome/Done) driven by the first-run auto-open host.
  *
  * Composed for embedding inside an existing modal (the Settings modal's
- * "Uplink Hub" tab) rather than opening a dialog of its own — no dialog
+ * "Uplink Hub" tab) rather than opening a dialog of its own, no dialog
  * chrome here, just a step heading, the step body, and a nav footer.
  */
 export function UplinkHubWizard({

@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The payload for the <c>recovery.lastSummary</c> channel — a single "last
+/// The payload for the <c>recovery.lastSummary</c> channel: a single "last
 /// notable recovery" record for the current save, delivered on the
 /// <see cref="Delivery.ReliableOrdered"/> event lane. Mirrors the wire shape
 /// the consumer already parses (<c>FlightOutcomeBanner.parseRecovery</c>)
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// hand-flattens the live-KSP recovery into a <c>Dictionary&lt;string, object?&gt;</c>
 /// via <c>Sitrep.Host.Recovery.RecoveryPayload.Build</c> before publishing, so
 /// <see cref="Sitrep.Core.Serialization.JsonWriter"/> only ever sees the
-/// dictionary — this POCO exists solely so the TS SDK has a concrete payload
+/// dictionary: this POCO exists solely so the TS SDK has a concrete payload
 /// type to name (it is on <c>WirePayloadCoverageTests</c>'s producer-flatten
 /// allowlist for exactly that reason).</para>
 /// </summary>
@@ -32,10 +32,10 @@ public class RecoveryReport
 
     public string VesselName { get; set; } = "";
 
-    /// <summary>Where the vessel came down — KSP's own recovery-location string (e.g. <c>"KSC"</c>, <c>"Water"</c>).</summary>
+    /// <summary>Where the vessel came down: KSP's own recovery-location string (e.g. <c>"KSC"</c>, <c>"Water"</c>).</summary>
     public string RecoveryLocation { get; set; } = "";
 
-    /// <summary>KSP's own recovery-factor display string (e.g. <c>"100%"</c>) — the payout multiplier for landing precision.</summary>
+    /// <summary>KSP's own recovery-factor display string (e.g. <c>"100%"</c>), the payout multiplier for landing precision.</summary>
     public string RecoveryFactor { get; set; } = "";
 
     public double ScienceEarned { get; set; }
@@ -50,7 +50,7 @@ public class RecoveryReport
 
     public double TotalReputation { get; set; }
 
-    /// <summary>Whether reputation applies to this save (off in Science/Sandbox) — gates the reputation row client-side.</summary>
+    /// <summary>Whether reputation applies to this save (off in Science/Sandbox), gates the reputation row client-side.</summary>
     public bool DisplayReputation { get; set; }
 
     public List<RecoveryScienceEntry> ScienceBreakdown { get; set; } = new();
@@ -63,7 +63,7 @@ public class RecoveryReport
 }
 
 /// <summary>
-/// One science subject recovered — an entry of <see cref="RecoveryReport.ScienceBreakdown"/>.
+/// One science subject recovered: an entry of <see cref="RecoveryReport.ScienceBreakdown"/>.
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -81,7 +81,7 @@ public class RecoveryScienceEntry
 }
 
 /// <summary>
-/// One recovered-part group — an entry of <see cref="RecoveryReport.PartBreakdown"/>.
+/// One recovered-part group: an entry of <see cref="RecoveryReport.PartBreakdown"/>.
 /// Identically-named parts are grouped, hence <see cref="Count"/>.
 /// </summary>
 [SitrepContract]
@@ -106,7 +106,7 @@ public class RecoveryPartEntry
 }
 
 /// <summary>
-/// One recovered-resource group — an entry of <see cref="RecoveryReport.ResourceBreakdown"/>.
+/// One recovered-resource group: an entry of <see cref="RecoveryReport.ResourceBreakdown"/>.
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -124,7 +124,7 @@ public class RecoveryResourceEntry
 }
 
 /// <summary>
-/// One crew member aboard at recovery — an entry of <see cref="RecoveryReport.CrewBreakdown"/>.
+/// One crew member aboard at recovery: an entry of <see cref="RecoveryReport.CrewBreakdown"/>.
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0

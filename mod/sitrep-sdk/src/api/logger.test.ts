@@ -5,12 +5,12 @@ import type { Logger, TaggedLogger } from "./index";
 import { logger } from "./index";
 
 /**
- * The `logger` facade shim (design: logger is a stateful singleton — a
+ * The `logger` facade shim (design: logger is a stateful singleton, a
  * bundled copy would be a dead logger, console-only, never fanned to Axiom
  * or the shared ring buffer). Same injected-host contract as every other
  * stateful member: delegate to the host, fail loud when absent.
  */
-describe("sitrep-sdk author-facing barrel — logger shim", () => {
+describe("sitrep-sdk author-facing barrel: logger shim", () => {
   afterEach(() => {
     resetTestHost();
   });

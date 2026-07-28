@@ -25,7 +25,7 @@ function unmountAll() {
 /**
  * `v.body`/`v.splashed`/`land.predictedLat`/`land.predictedLon` now read the
  * `vessel.state` DERIVED channel directly (`useGroundSurveySamples`'s own
- * doc comment) — no legacy `MockDataSource`/`BufferedDataSource` pair at
+ * doc comment): no legacy `MockDataSource`/`BufferedDataSource` pair at
  * all any more. `v.body`'s replacement (`vessel.state.parentBodyName`)
  * resolves `vessel.identity.parentBodyIndex` against a `system.bodies`
  * table; `v.altitude`/`v.heightFromTerrain`/`v.surfaceSpeed` stay a single
@@ -94,9 +94,9 @@ describe("GroundSurveyComponent", () => {
   }
 
   /**
-   * Emit one atomic `vessel.flight` sample — alt + hft always arrive
+   * Emit one atomic `vessel.flight` sample: alt + hft always arrive
    * paired now (see `useGroundSurveySamples`'s doc comment). `beginFrame()`
-   * is called explicitly, synchronously, in the SAME `act()` — the
+   * is called explicitly, synchronously, in the SAME `act()`, the
    * provider's own ingest scheduling (`scheduleFrame`) falls back to
    * `queueMicrotask` under jsdom (no `requestAnimationFrame`), which a
    * synchronous `act()` doesn't flush, so a manual seal is needed to make
@@ -168,7 +168,7 @@ describe("GroundSurveyComponent", () => {
   it("renders a smoothness badge once enough samples have accumulated", () => {
     renderWidget();
     prime();
-    // Build a flat profile — should hit the A band.
+    // Build a flat profile: should hit the A band.
     for (let i = 0; i < 6; i++) {
       emitFlight(50_000, 5_000); // terrain = 45 000 m, σ = 0
     }
@@ -191,7 +191,7 @@ describe("rateSmoothness", () => {
     expect(rateSmoothness(flat(2, 100))).toBeNull();
   });
 
-  it("ignores frozen samples — they're a constant and would deflate σ", () => {
+  it("ignores frozen samples: they're a constant and would deflate σ", () => {
     const samples: SurveySample[] = [
       ...flat(3, 100),
       { t: 800, terrain: 100, kind: "frozen" },

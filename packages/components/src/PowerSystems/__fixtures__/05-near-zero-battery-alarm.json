@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "near-zero-battery-alarm",
-    "notes": "Battery critically low — less than 2% remaining. Heavy consumers running (ISRU, life support). No solar (dark side). NET cell must show warning tone prominently. Alarm condition: vessel will lose control soon."
+    "notes": "Battery critically low: less than 2% remaining. Heavy consumers running (ISRU, life support). No solar (dark side). NET cell must show warning tone prominently. Alarm condition: vessel will lose control soon."
   },
   "v.topologySeq": 5,
   "v.topology": {

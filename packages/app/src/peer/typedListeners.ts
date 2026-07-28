@@ -5,7 +5,7 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * + `on<Name>` method + emit site" boilerplate that both `PeerHostService`
  * and `PeerClientService` were hand-rolling ~20 times each.
  *
- * `TMap` maps an event key to the *argument tuple* fired for that event —
+ * `TMap` maps an event key to the *argument tuple* fired for that event,
  * mirroring the existing `ListenerSet<[...]>` generics. It is NOT a
  * message-type → payload map: the services derive listener args inside their
  * dispatcher handlers (e.g. `gonogoVote` fires `(conn.peer, msg.status)`),
@@ -14,7 +14,7 @@ import { ListenerSet } from "@ksp-gonogo/data";
  *
  * Backed by a lazily-created `Map<key, ListenerSet>` so iteration order and
  * dedup semantics are byte-for-byte identical to the old per-field
- * `ListenerSet` — `emit` is a thin pass-through to `ListenerSet.fire`, so
+ * `ListenerSet`: `emit` is a thin pass-through to `ListenerSet.fire`, so
  * there's no behavioural drift from the previous code.
  */
 export class TypedListeners<TMap extends Record<string, readonly unknown[]>> {

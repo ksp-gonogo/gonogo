@@ -21,7 +21,7 @@ function StreamProbe({ flightId }: { flightId: number | null }): null {
   return null;
 }
 
-// Testing Library auto-cleans the DOM after every test — no manual cleanup()
+// Testing Library auto-cleans the DOM after every test, no manual cleanup()
 // needed here, only the registry/mock teardown this file actually owns.
 afterEach(() => {
   clearRegistry();
@@ -58,7 +58,7 @@ async function connectedSource(
   return { ds, sidecar };
 }
 
-describe("useKerbcastStream — slot subscription lifecycle", () => {
+describe("useKerbcastStream: slot subscription lifecycle", () => {
   it("subscribes the camera on mount and releases it on unmount", async () => {
     const { sidecar } = await connectedSource();
 

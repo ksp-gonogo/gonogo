@@ -6,13 +6,13 @@
  * widget.
  *
  * `index.tsx`'s headline read (`useStream<VesselState>("vessel.state")?.twr`)
- * is a pure canonical stream read with NO legacy fallback at all —
+ * is a pure canonical stream read with NO legacy fallback at all,
  * `useStream` never consults a legacy `DataSource`, so the shared
  * `snapshotWidgetMode` helper (which mounts no `TelemetryProvider` for a plain
  * legacy fixture) can never feed it. This file builds its own per-fixture
  * stream render instead, translating each fixture's flat `dv.currentTWR` value
  * into the `vessel.orbit`/`vessel.propulsion` inputs `vessel.state.twr`
- * actually derives from — same construction `index.test.tsx` uses:
+ * actually derives from: same construction `index.test.tsx` uses:
  * `thrust = twr * STANDARD_GRAVITY`, `totalMass = 1` tonne, so `deriveTwr`'s
  * `currentThrust / (totalMass · g)` reproduces the fixture's exact TWR value.
  *
@@ -21,7 +21,7 @@
  *
  * One committed-baseline nuance from this migration: `standard-launch-ok`'s
  * gauge-needle SVG coordinates differ from the pre-migration baseline at the
- * ~14th significant digit (e.g. `11.497177969980871` -> `...980866`) — the
+ * ~14th significant digit (e.g. `11.497177969980871` -> `...980866`), the
  * multiply-then-divide-by-`STANDARD_GRAVITY` round trip through `deriveTwr`
  * introduces float noise a directly-injected `1.82` literal never hit. The
  * displayed value ("1.82"), every arc/zone path, and the visual result are all
@@ -71,8 +71,8 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 // `deriveVesselState` produces NO record until `vessel.orbit` is whole (it
-// early-returns `undefined` otherwise), and every derived field — TWR
-// included — hangs off that record. A minimal OnRails orbit is emitted
+// early-returns `undefined` otherwise), and every derived field, TWR
+// included: hangs off that record. A minimal OnRails orbit is emitted
 // alongside `vessel.propulsion` so the record exists and `deriveTwr` can run.
 const ORBIT = {
   sma: 682500,
@@ -134,7 +134,7 @@ async function snapshotTwrStream(
       }
     });
   }
-  // engine-off-empty (twr null): nothing emitted at all — the empty state is
+  // engine-off-empty (twr null): nothing emitted at all, the empty state is
   // the correct, already-settled render.
 
   return stripVolatile(container.innerHTML);

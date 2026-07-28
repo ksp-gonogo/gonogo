@@ -1,5 +1,5 @@
 /**
- * Like `crypto.randomUUID()` but works on insecure-context pages — most
+ * Like `crypto.randomUUID()` but works on insecure-context pages, most
  * notably the LAN-IP dev URL (`http://192.168.x.x:5173`) station devices
  * use to reach the dev box. The Web Crypto spec gates `randomUUID` on a
  * secure context, so any code path that goes through it (KosTerminal's

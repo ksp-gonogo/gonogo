@@ -1,5 +1,5 @@
 /**
- * useKerbcastCameras — live camera-registry snapshot.
+ * useKerbcastCameras: live camera-registry snapshot.
  *
  * Exercises the real hook against a real KerbcastDataSource, with only the
  * WebRTC transport faked by the SDK's canonical MockSidecar.

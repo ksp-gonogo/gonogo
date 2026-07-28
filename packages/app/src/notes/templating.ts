@@ -2,7 +2,7 @@
  * Tag templating for note bodies.
  *
  * Syntax: `{{key.path}}` is replaced with the live value of the data
- * key at render time. Resolution is local to the device — every screen
+ * key at render time. Resolution is local to the device, every screen
  * substitutes from its own data feed, so the value reflects whatever
  * data source the consumer reads from.
  *
@@ -10,11 +10,13 @@
  * a typo from a slow-to-arrive value:
  *   - Key isn't in the data source schema  → `[?<key>]`
  *   - Key is known but value not arrived yet → `...`
- *   - Value is null/NaN                     → `—`
+ *   - Value is null/NaN                     → the null-display placeholder
  *
- * Tags must be `[a-zA-Z0-9._\[\]-]+` — covers Telemachus key shapes
+ * Tags must be `[a-zA-Z0-9._\[\]-]+`, covers Telemachus key shapes
  * including bracketed resource keys like `r.resource[Oxidizer]`.
  */
+
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 const TAG_RE = /\{\{\s*([a-zA-Z0-9._[\]-]+)\s*\}\}/g;
 
@@ -41,7 +43,7 @@ export function renderTemplate(
   options: RenderOptions = {},
 ): string {
   const { knownKeys } = options;
-  // An empty knownKeys means "we don't know what's in the schema yet" — at
+  // An empty knownKeys means "we don't know what's in the schema yet", at
   // mount time the data source may not have registered. Falling through to
   // formatValue's "..." placeholder is correct; flashing `[?key]` for every
   // tag on every fresh load would be worse than the bug the field set out
@@ -61,20 +63,20 @@ export function renderTemplate(
 
 function formatValue(value: unknown): string {
   if (value === undefined) return "...";
-  if (value === null) return "—";
+  if (value === null) return NULL_DISPLAY;
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) return "—";
+    if (!Number.isFinite(value)) return NULL_DISPLAY;
     if (Number.isInteger(value)) return String(value);
     return value.toFixed(2);
   }
   if (typeof value === "boolean") return value ? "yes" : "no";
   if (typeof value === "string") return value;
-  // Objects / arrays — best-effort. Big payloads are usable enough as
+  // Objects / arrays: best-effort. Big payloads are usable enough as
   // JSON for debug overlays; the operator can craft a more specific tag
   // if they want a single field.
   try {
     return JSON.stringify(value);
   } catch {
-    return "—";
+    return NULL_DISPLAY;
   }
 }

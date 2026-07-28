@@ -1,12 +1,12 @@
 /**
  * Backup / restore of the app's localStorage state.
  *
- * The app keeps everything device-local in localStorage — dashboard layouts,
+ * The app keeps everything device-local in localStorage, dashboard layouts,
  * data-source configs, serial device types, alarms, notes, station identity,
  * etc. This service captures that surface into a single versioned JSON file
  * the operator can download, and restores it on another machine (or after a
  * wipe) in REPLACE mode: every key present in the backup overwrites the local
- * value. Keys absent from the backup are left untouched — this is a per-key
+ * value. Keys absent from the backup are left untouched, this is a per-key
  * overwrite, not a wipe-then-restore.
  *
  * The pure halves (`buildBackup` / `applyBackup`) do no IO beyond localStorage
@@ -35,7 +35,7 @@ export interface BackupPayload {
 const GONOGO_KEY_PREFIX = /^gonogo[:.-]/;
 
 /**
- * Keys that match the prefix but are transient / machine-local noise — never
+ * Keys that match the prefix but are transient / machine-local noise; never
  * exported, never imported. The ring buffer is volatile log data, the
  * scene-banner stamp is a one-shot "have you seen this scene" marker, and the
  * station-host-id is the last host a station happened to connect to.
@@ -47,12 +47,12 @@ const TRANSIENT_KEYS = new Set<string>([
 ]);
 
 /**
- * Per-device-instance identity keys — the station's stable key + (legacy) peer
+ * Per-device-instance identity keys: the station's stable key + (legacy) peer
  * id. Restoring these onto another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
  * "Include device identity" checkbox. `gonogo.station.name` is deliberately NOT
  * here (it's a human label, safe to carry across devices), and neither is
- * `gonogo-host-share-code` — that's a chosen, portable host address you'd want
+ * `gonogo-host-share-code`: that's a chosen, portable host address you'd want
  * preserved on restore, not per-device identity, so it backs up like any other
  * config key.
  */
@@ -79,7 +79,7 @@ export function isBackupKey(key: string, includeIdentity: boolean): boolean {
 
 /**
  * Scan localStorage and assemble a versioned backup payload. Pure aside from
- * reading localStorage — no Blob, no download.
+ * reading localStorage: no Blob, no download.
  */
 export function buildBackup(options: BuildBackupOptions = {}): BackupPayload {
   const includeIdentity = options.includeIdentity ?? false;
@@ -139,7 +139,7 @@ export function validateBackup(parsed: unknown): BackupPayload {
 
 /**
  * REPLACE-mode restore: overwrite every key in the payload's `data`. Keys not
- * present in the payload are left as-is. Pure aside from writing localStorage —
+ * present in the payload are left as-is. Pure aside from writing localStorage,
  * the caller is responsible for reloading the page so services re-read the
  * restored state.
  */
@@ -169,7 +169,7 @@ export function exportAsFile(options: BuildBackupOptions = {}): void {
 }
 
 /**
- * Read + validate a backup file and apply it in REPLACE mode. Does NOT reload —
+ * Read + validate a backup file and apply it in REPLACE mode. Does NOT reload,
  * the UI confirm handler triggers `window.location.reload()` after this
  * resolves, so the pure write stays test-clean. Throws BackupValidationError on
  * a malformed or wrong-version file.

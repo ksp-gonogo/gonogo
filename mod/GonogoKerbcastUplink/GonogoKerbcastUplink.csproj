@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- MIT, like the rest of gonogo (see LICENSING.md). kerbcast is
-       CC-BY-NC-SA-4.0 — a CONTENT licence carrying BOTH NonCommercial and
+       CC-BY-NC-SA-4.0: a CONTENT licence carrying BOTH NonCommercial and
        ShareAlike terms, either of which could reach a COMBINED work. This
        uplink therefore NEVER links kerbcast's assembly and NEVER derives from
        its types: every kerbcast member is reached by runtime reflection
@@ -13,7 +13,7 @@
 
        Note the contrast with GonogoScansatUplink, which DOES take a
        Private="false" compile-time reference to SCANsat.dll. That is safe for
-       SCANsat's licence and NOT safe here — do not "simplify" this project by
+       SCANsat's licence and NOT safe here: do not "simplify" this project by
        adding a Reference to Kerbcast.dll. The reflection is the licence
        boundary, not an implementation detail. -->
   <PropertyGroup>
@@ -38,7 +38,7 @@
     <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
-  <!-- KSP / Unity reference assemblies — same portable copy + Private="false"
+  <!-- KSP / Unity reference assemblies: same portable copy + Private="false"
        pattern as GonogoRealAntennasUplink. Stock KSP's Part / ModuleDockingNode
        / FlightGlobals are stock KSP, so they are normal references; only the
        Kerbcast assembly is forbidden as a compile-time reference (reached by
@@ -60,7 +60,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface
+  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface
        a third-party uplink needs. NOTE: no reference to Kerbcast.dll, by
        design (see the licence header above). -->
   <ItemGroup>

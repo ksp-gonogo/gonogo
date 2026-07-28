@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 /**
- * Half-circle gauge / dial — value displayed as a needle within a
+ * Half-circle gauge / dial: value displayed as a needle within a
  * `min..max` arc. Zones colour the arc to highlight ranges (e.g. red below
  * 1 and green above 1.5 for TWR). Compact (2:1 aspect) and readable at a
  * glance.
@@ -135,7 +135,7 @@ export function Gauge({
       height={height}
       // `width`/`height` size the coordinate system (and the default
       // rendered box); the viewBox + `max-width: 100%; height: auto` pair
-      // make that box responsive — if the actual slot is narrower than
+      // make that box responsive: if the actual slot is narrower than
       // `width` (e.g. a tall/narrow portrait widget column), the SVG
       // scales itself and its whole coordinate space down to fit instead
       // of overflowing and getting clipped by an ancestor's

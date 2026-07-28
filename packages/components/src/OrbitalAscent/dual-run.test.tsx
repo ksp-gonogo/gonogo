@@ -13,14 +13,14 @@ import { OrbitalAscentComponent } from "./index";
  * OrbitalAscent's stream render golden. This began life as a legacy-`DataSource`
  * ↔ stream byte-identical dual-run; `v.body` now comes off the client-derived
  * `vessel.state.parentBodyName` field with NO legacy fallback at all (see
- * `stream.test.tsx`), so the legacy leg is gone — same "the legacy leg is gone"
+ * `stream.test.tsx`), so the legacy leg is gone, same "the legacy leg is gone"
  * story as the sibling widgets' own dual-runs. What remains proves the widget
  * renders correctly off the real stream pipeline for the same ascent state.
  *
  * The two plotted series (`v.altitude`/`v.horizontalVelocity`) stay on a legacy
  * AUX source: both map to DERIVED `vessel.state.*` channels, and this file
  * never emits `vessel.flight`, so `deriveVesselState` never gets a whole record
- * and the series would resolve empty off the stream regardless — the AUX keeps
+ * and the series would resolve empty off the stream regardless, the AUX keeps
  * the GraphView backfill path exercised.
  *
  * An UNKNOWN body ("Gargantua") is streamed so the body's presence is
@@ -33,7 +33,7 @@ const LEGACY_SERIES_KEYS = ["v.altitude", "v.horizontalVelocity"] as const;
 // A body name getBody() doesn't recognise, driving the "Unknown body" notice.
 const UNKNOWN_BODY = "Gargantua";
 
-describe("OrbitalAscent — stream render golden (delay=0)", () => {
+describe("OrbitalAscent: stream render golden (delay=0)", () => {
   it("renders the ascent state off the stream with v.body streamed", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: [

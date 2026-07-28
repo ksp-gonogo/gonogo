@@ -68,7 +68,7 @@ describe("fog reveal source registry", () => {
       id: "example-uplink:AltimetryHiRes",
       settings: [{ key: "show", type: "boolean", default: true }],
     });
-    registerFogRevealSource({ id: "example-uplink:Biome" }); // no settings — excluded
+    registerFogRevealSource({ id: "example-uplink:Biome" }); // no settings, excluded
     expect(getFogRevealSourceSettings()).toEqual([
       {
         augmentId: "example-uplink:AltimetryHiRes",

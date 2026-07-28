@@ -12,11 +12,11 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
     /// <c>Sitrep.Host.Tests.CommsElectionTests</c>
     /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §5.4/§9 Task
     /// 3): drives the REAL <see cref="Kernel"/> through a two-pass uplink
-    /// discovery — a capability-owning uplink (the vessel uplink's shape)
+    /// discovery: a capability-owning uplink (the vessel uplink's shape)
     /// registering the stock <c>Vanilla</c> factory, and a provider-only
     /// uplink (the AGX uplink's shape, exactly
     /// <see cref="ActionGroupsExtendedUplink"/>) registering its provider
-    /// behind a fake <see cref="IAgxApi"/> probe — through the three cases:
+    /// behind a fake <see cref="IAgxApi"/> probe: through the three cases:
     /// AGX absent ⇒ stock vanilla; AGX present ⇒ AGX wins; and the elected
     /// instance is actually queryable as an <see cref="IActionGroupsBackend"/>.
     /// </summary>
@@ -39,7 +39,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         }
 
         // An uplink that OWNS the "actionGroups" capability, declaring it in
-        // the two-pass capability pass (IUplinkCapabilityDeclarer) — the
+        // the two-pass capability pass (IUplinkCapabilityDeclarer): the
         // shape VesselUplink uses.
         private sealed class CapabilityOwningUplink : ISitrepUplink, IUplinkCapabilityDeclarer
         {
@@ -126,7 +126,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         /// AGX provider uplink is discovered BEFORE the capability-owning
         /// (vessel) uplink. The two-pass RegisterDiscoveredUplinks declares
         /// every capability first, so AGX still wins regardless of discovery
-        /// order — same regression guard as
+        /// order: same regression guard as
         /// CommsElectionTests.ProviderDiscoveredBeforeCapability_RaStillWins.
         /// </summary>
         [Fact]
@@ -155,7 +155,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
 
         /// <summary>
         /// When AGX's probe reports unavailable, the uplink calls
-        /// SetAvailability(Unavailable) and registers no provider — stock
+        /// SetAvailability(Unavailable) and registers no provider: stock
         /// stays elected, and the uplink's own availability reflects the
         /// absence (mirroring RealAntennasUplink's inert path).
         /// </summary>

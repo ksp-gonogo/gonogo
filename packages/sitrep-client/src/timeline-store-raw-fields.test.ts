@@ -7,18 +7,18 @@ import { ViewClock } from "./view-clock";
 /**
  * Raw wire topics are multi-field RECORDS
  * (`"time.warp"` carries `{ warpRate, warpRateIndex, warpMode, paused }` as
- * ONE payload — confirmed against the real
+ * ONE payload: confirmed against the real
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`), but
  * `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES` table maps old per-field keys to
  * dotted SUBTOPIC strings (`"t.currentRate" -> "time.warp.warpRate"`) for
  * nearly every raw channel (`vessel.flight.*`, `vessel.orbit.*`,
- * `vessel.control.*`, `time.warp.*`, ...) — everything except the handful of
+ * `vessel.control.*`, `time.warp.*`, ...): everything except the handful of
  * `vessel.state.*` entries, which ride the DERIVED-channel `fields: true`
  * mechanism (`vessel-state.ts`).
  *
  * Without the resolution this file exercises, `TimelineStore` would only
  * expose `"<parent>.<field>"` subtopic reads for a REGISTERED DERIVED
- * channel (`resolveDerivedTopic`) — nothing would ever resolve a RAW
+ * channel (`resolveDerivedTopic`): nothing would ever resolve a RAW
  * multi-field topic's dotted subtopic, because nothing ever publishes to the
  * literal wire topic `"time.warp.warpRate"`. A mapped raw-field key would
  * carry (once promoted to the carried-channels allowlist) forever, since
@@ -29,7 +29,7 @@ import { ViewClock } from "./view-clock";
  *
  * The fix: `TimelineStore` ALSO resolves a "<domain>.<channel>.<field...>"
  * topic (3+ dot-segments, no derived-channel match) against the raw
- * `"<domain>.<channel>"` timeline (first two segments — the actual wire
+ * `"<domain>.<channel>"` timeline (first two segments: the actual wire
  * topic, per every entry in `TELEMACHUS_CLEAN_HOMES`), walking the remaining
  * segments as a nested field path into that record's payload. Exercised here
  * with `time.warp` (WarpControl's own channel) and a synthetic nested example
@@ -63,7 +63,7 @@ function newStore(): TimelineStore {
   return new TimelineStore(clock);
 }
 
-describe("TimelineStore — raw record field-subtopic resolution", () => {
+describe("TimelineStore: raw record field-subtopic resolution", () => {
   it("resolves a mapped field off a raw multi-field record after the record itself is ingested", () => {
     const store = newStore();
     store.ingest(
@@ -161,7 +161,7 @@ describe("TimelineStore — raw record field-subtopic resolution", () => {
   it("sampleStatus for a raw field subtopic mirrors the real parent topic's status", () => {
     const store = newStore();
     const before = store.beginFrame();
-    // Nothing ingested yet — the real parent topic reads "resyncing"; the
+    // Nothing ingested yet: the real parent topic reads "resyncing"; the
     // field subtopic must report the SAME thing, not permanently "live" or
     // a distinct made-up status.
     expect(store.sampleStatus("time.warp.warpRate", before)).toBe(
@@ -185,7 +185,7 @@ describe("TimelineStore — raw record field-subtopic resolution", () => {
     );
   });
 
-  it("a genuinely 2-segment raw topic (no field to split) is unaffected — reads its own literal timeline exactly as before", () => {
+  it("a genuinely 2-segment raw topic (no field to split) is unaffected; reads its own literal timeline exactly as before", () => {
     const store = newStore();
     store.ingest("vessel.orbit", {
       validAt: 0,

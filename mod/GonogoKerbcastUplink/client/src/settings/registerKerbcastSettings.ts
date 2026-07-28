@@ -2,7 +2,7 @@ import { registerSetting } from "@ksp-gonogo/sitrep-sdk";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 
 /*
- * kerbcast's declarative settings — two rows under one "Kerbcast" category in
+ * kerbcast's declarative settings: two rows under one "Kerbcast" category in
  * the app's General settings surface. This REPLACES the old bespoke
  * `KerbcastSettings` tab (registerSettingsTab): declarative is the preferred
  * path (see @ksp-gonogo/core's settings/registry.ts), so kerbcast carries ZERO
@@ -13,7 +13,7 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
  */
 
 registerSetting({
-  // (1) The embedded-facecam kill-switch — a pure client-pref preference
+  // (1) The embedded-facecam kill-switch: a pure client-pref preference
   // (no mod round-trip). Gates ambient crew facecams (the crew-manifest.avatar
   // augment); the dedicated Facecam Wall widget is exempt (placing it is the
   // opt-in). Default ON to match the always-live UX.
@@ -23,12 +23,12 @@ registerSetting({
   category: "Kerbcast",
   label: "Embedded facecams",
   description:
-    "Show live crew faces in CrewManifest avatars. Off means no ambient facecam streams — the dedicated Facecam Wall widget still works.",
+    "Show live crew faces in CrewManifest avatars. Off means no ambient facecam streams; the dedicated Facecam Wall widget still works.",
   screens: ["main"],
 });
 
 registerSetting({
-  // (2) The throttle — a source-backed setting bound to the existing
+  // (2) The throttle: a source-backed setting bound to the existing
   // KerbcastDataSource methods (mod round-trip, persists save-side). The
   // methods are unchanged; only the rendering moves to the registry. Resolved
   // via the uplink-handle registry (`registerUplinkHandle("kerbcast", …)`).

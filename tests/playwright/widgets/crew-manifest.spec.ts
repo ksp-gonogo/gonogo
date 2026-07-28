@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror — CrewManifest. Asserts the panel renders on host and
+ * Widget DOM mirror: CrewManifest. Asserts the panel renders on host and
  * station, and the roster + headcount render on the host.
  *
  * Fixture snapshot (`sitrep-stream-server.mjs`):
@@ -11,7 +11,7 @@
  * subtitle ("1 / 1 aboard") and the roster row for Bob Kerman.
  *
  * Station-side scope: only the "CREW" panel title (static chrome) is
- * checked on the station — the roster/headcount come from live Sitrep
+ * checked on the station: the roster/headcount come from live Sitrep
  * stream data, and only the MAIN screen mounts `SitrepTelemetryProvider`
  * today (station stream forwarding over PeerJS is a documented pending
  * gap, see that provider's own doc comment). Checking the roster on the
@@ -20,7 +20,7 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — CrewManifest", () => {
+test.describe("widget DOM mirror: CrewManifest", () => {
   test("panel renders on host and station; roster + headcount on host", async ({
     browser,
   }) => {

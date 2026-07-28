@@ -21,7 +21,7 @@ export type ConnStatus =
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
-/** PeerJS error shape — `.type` is the discriminator. */
+/** PeerJS error shape: `.type` is the discriminator. */
 interface PeerJsError extends Error {
   type?: string;
 }
@@ -32,7 +32,7 @@ function isPeerJsError(e: unknown): e is PeerJsError {
 
 /**
  * peer-unavailable carries the missing peer id in the message
- * (`Could not connect to peer XYZ` — see peerjs `bundler.mjs:1575`).
+ * (`Could not connect to peer XYZ`; see peerjs `bundler.mjs:1575`).
  * Match exactly so auxiliary connects (OCISLY proxy etc.) don't
  * masquerade as a host outage, and so a host id that's a substring of
  * some other peer id can't false-positive either.
@@ -55,7 +55,7 @@ const iceLog = logger.tag("peer:ice");
  * checking, DTLS, or something later. Each transition is one log line so
  * the export is searchable per data conn.
  *
- * The underlying RTCPeerConnection is a non-public peerjs internal — we
+ * The underlying RTCPeerConnection is a non-public peerjs internal, we
  * cast through unknown to read it. Best-effort: if peerjs ever changes
  * shape we just lose the diagnostics rather than crashing.
  */
@@ -68,7 +68,7 @@ export function attachIceDiagnostics(
   const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
     .peerConnection;
   if (!pc) {
-    iceLog.debug("no underlying peerConnection — skipping ICE diagnostics", {
+    iceLog.debug("no underlying peerConnection: skipping ICE diagnostics", {
       peerId: conn.peer,
     });
     return;
@@ -89,7 +89,7 @@ export function attachIceDiagnostics(
     if (dead) return; // at most once per dead connection
     dead = true;
     clearGrace();
-    iceLog.debug(`connection dead (${why}) — signalling onDead`, {
+    iceLog.debug(`connection dead (${why}): signalling onDead`, {
       peerId: conn.peer,
     });
     onDead?.();
@@ -108,7 +108,7 @@ export function attachIceDiagnostics(
     iceLog.debug(`iceConnectionState=${pc.iceConnectionState}`, ctx);
     const state = pc.iceConnectionState;
     if (state === "failed" || state === "closed") {
-      // Terminal — no recovery from these.
+      // Terminal: no recovery from these.
       fireDead(`iceConnectionState=${state}`);
     } else if (state === "disconnected") {
       // Possibly transient (a brief network blip recovers to `connected`).
@@ -124,7 +124,7 @@ export function attachIceDiagnostics(
         }, ICE_DISCONNECT_GRACE_MS);
       }
     } else if (state === "connected" || state === "completed") {
-      // Recovered (or healthy) — cancel any pending dead-declaration.
+      // Recovered (or healthy): cancel any pending dead-declaration.
       clearGrace();
     }
   });
@@ -146,7 +146,7 @@ export function attachIceDiagnostics(
       iceLog.debug("icecandidate: end-of-candidates", ctx);
       return;
     }
-    // Strip the raw `candidate` SDP string to keep the entry compact —
+    // Strip the raw `candidate` SDP string to keep the entry compact,
     // type, protocol, and address class are the diagnostic-grade fields.
     iceLog.debug("icecandidate", {
       ...ctx,
@@ -190,7 +190,7 @@ export interface PeerClientOptions {
 }
 
 /**
- * Argument-tuple map for the station's `TypedListeners` registry — the
+ * Argument-tuple map for the station's `TypedListeners` registry, the
  * client-side analog of `HostEventMap`. Each key mirrors what the former
  * per-field `ListenerSet<[...]>` fired; the dispatcher handlers still derive
  * these args, so swapping `.fire`/`.add` for `emit`/`on` is behaviour-
@@ -218,12 +218,12 @@ type ClientEventMap = {
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   fogSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
-  // Sitrep telemetry-stream forwarding — see protocol.ts's `sitrep-frame`/
+  // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
   // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
   // the command-response/error pair is kept split (not pre-synthesized into
-  // a `ServerMessage` here) because that synthesis is `PeerTransport`'s job
-  // — this service only forwards the wire fields it received.
+  // a `ServerMessage` here) because that synthesis is `PeerTransport`'s job,
+  // this service only forwards the wire fields it received.
   sitrepFrame: [message: import("@ksp-gonogo/sitrep-sdk").ServerMessage];
   sitrepCommandResponse: [
     requestId: string,
@@ -238,12 +238,12 @@ export class PeerClientService {
   private conn: DataConnection | null = null;
   /** The host's broker peer id, derived from the operator-typed share-code
    *  (`gonogo-host-<CODE>`) in `connect()`. Stable across the session and
-   *  read by `openPeer()` as the reconnect target — a host that refreshed
+   *  read by `openPeer()` as the reconnect target, a host that refreshed
    *  and re-claimed the same derived id is reconnected to transparently. */
   private hostPeerId: string | null = null;
   /** Fresh per `openPeer()` call. Reusing the same id across retries
    *  collides with the broker's id-hold (~30–60 s) when a previous
-   *  connection didn't shut down gracefully — e.g. a mid-session WS
+   *  connection didn't shut down gracefully: e.g. a mid-session WS
    *  drop. Regenerating dodges that entirely. */
   private stationPeerId: string;
   private readonly stationKey: string;
@@ -266,12 +266,12 @@ export class PeerClientService {
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
-  // camera data source can feed them to its station↔sidecar PeerConnection —
+  // camera data source can feed them to its station↔sidecar PeerConnection,
   // a path separate from PeerJS. Empty until the first broadcast carrying creds.
   private relayIceServers: RTCIceServer[] = [];
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
-  // Host's technical-analytics consent. Stations follow the host — they
+  // Host's technical-analytics consent. Stations follow the host, they
   // never read a local value. Cached so a late subscriber gets the current
   // state on subscribe. Privacy-first default: disabled until the first
   // `analytics-consent` message lands.
@@ -285,7 +285,7 @@ export class PeerClientService {
   private pendingUplinkRelay = new RequestTracker<unknown>();
   // D6: the Uplink bundle-byte conduit. Tracked separately (its own typed
   // map) because the resolved value shape (raw bytes) differs from every
-  // other RequestTracker on this class — see sendBundleFetch.
+  // other RequestTracker on this class: see sendBundleFetch.
   private pendingBundleFetch = new RequestTracker<Uint8Array>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
@@ -298,7 +298,7 @@ export class PeerClientService {
   // fire-and-forget broadcast: a GoNoGo widget that subscribes after the
   // message landed (page still mounting, layout switch, widget remount)
   // used to miss the countdown entirely and show nothing until T-0 flipped
-  // the launch state via telemetry — the 2026-05-08 "Joel saw only T-0"
+  // the launch state via telemetry: the 2026-05-08 "Joel saw only T-0"
   // bug. Replayed to late subscribers while t0 is still in the future;
   // cleared on cancel.
   private lastCountdownT0Ms: number | null = null;
@@ -322,7 +322,7 @@ export class PeerClientService {
     this.retryPolicy = new RetryPolicy({
       retryIntervalMs,
       retryTimeoutMs,
-      // Always read the *current* peer id — a closure capture of the
+      // Always read the *current* peer id, a closure capture of the
       // initial value would log a stale id after the first regeneration.
       stationPeerId: () => this.stationPeerId,
       hostPeerId: () => this.hostPeerId,
@@ -369,14 +369,14 @@ export class PeerClientService {
     this.emitConnStatus("connecting");
     // Stations construct their Peer with no ICE config. The host's
     // relay candidates flow in via the broker as part of the offer's
-    // ICE-candidate exchange — that's enough for one-side TURN to
+    // ICE-candidate exchange: that's enough for one-side TURN to
     // bridge difficult networks. Configuring local TURN here would
-    // require the station to know the relay's URL, which it doesn't —
+    // require the station to know the relay's URL, which it doesn't,
     // and previous defaults (`turn:localhost:3478`) actively broke
     // mobile clients.
     //
     // `key: "gonogo"` puts the station in our private namespace on the
-    // public broker. MUST match PeerHostService — a station with a different
+    // public broker. MUST match PeerHostService, a station with a different
     // key is invisible to the host on the broker even if the ids match.
     this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
     this.peer.on("open", () => {
@@ -401,7 +401,7 @@ export class PeerClientService {
       // Surface the "host not on broker" case explicitly so the connect
       // screen can show a specific "couldn't find that code" message
       // instead of the generic reconnecting spinner. Fires every retry
-      // while the host stays missing — listeners debounce as they like.
+      // while the host stays missing: listeners debounce as they like.
       if (
         isPeerJsError(err) &&
         err.type === "peer-unavailable" &&
@@ -425,7 +425,7 @@ export class PeerClientService {
       // mark the ICE/PC-driven reconnect. handleUnexpectedClose() is
       // idempotent, so racing the `conn.on("close")` path is harmless.
       logger.warn(
-        "[PeerClient] host connection lost (ICE/PC dead) — reconnecting",
+        "[PeerClient] host connection lost (ICE/PC dead): reconnecting",
       );
       this.retryPolicy.handleUnexpectedClose();
     });
@@ -474,7 +474,7 @@ export class PeerClientService {
   }
 
   sendExecute(sourceId: string, action: string) {
-    logger.info(`[PeerClient] execute — source=${sourceId} action=${action}`);
+    logger.info(`[PeerClient] execute: source=${sourceId} action=${action}`);
     this.conn?.send({
       type: "execute",
       sourceId,
@@ -663,7 +663,7 @@ export class PeerClientService {
   /**
    * Ask the host to relay a single call through to whatever handle an
    * Uplink registered for `uplinkId` (via `registerUplinkHandle` on the
-   * host — see `@ksp-gonogo/core`). Generic replacement for what used to be
+   * host: see `@ksp-gonogo/core`). Generic replacement for what used to be
    * one hardcoded send-method per Uplink; each Uplink's own client code
    * owns the shape of `method`/`args`/the resolved result.
    */
@@ -694,17 +694,17 @@ export class PeerClientService {
 
   /**
    * D6: ask the host to fetch+verify an Uplink bundle's bytes and relay
-   * them back over the data channel — the station-side half of the
+   * them back over the data channel: the station-side half of the
    * "main screen downloads once, stations pull from it" split (see
    * protocol.ts's `uplink-bundle-request`/`-response` doc comment). Never
    * fetches `bundleUrl` itself; a station has no route to an author host.
    *
    * Resolves with the verified `ArrayBuffer` (converted from the wire's
-   * `Uint8Array` — see the dispatcher entry below) so this method is a
+   * `Uint8Array`: see the dispatcher entry below) so this method is a
    * drop-in for the loader's `LoaderContext.fetchBytes` seam once wrapped
    * by `../uplinks/peerBundleFetch.ts`'s `createPeerBundleFetcher`.
    * Rejects on a hash mismatch, a host-side fetch failure, a timeout, or
-   * the connection dropping mid-request — same shape as `sendUplinkRelay`.
+   * the connection dropping mid-request: same shape as `sendUplinkRelay`.
    *
    * 30s default timeout: a bundle download can be materially larger than a
    * single RPC round-trip (the host fetches the WHOLE file before
@@ -731,7 +731,7 @@ export class PeerClientService {
       expectedHash,
     } satisfies PeerMessage);
     return pending.then((bytes) => {
-      // `.slice()` copies into a fresh, exactly-sized ArrayBuffer — the
+      // `.slice()` copies into a fresh, exactly-sized ArrayBuffer, the
       // wire's Uint8Array may be a view into a larger decode buffer
       // (PeerJS's BinaryPack), and the loader's sha256Hex re-verification
       // needs the EXACT bytes, nothing extra either side.
@@ -743,7 +743,7 @@ export class PeerClientService {
   // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
   //
   // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
-  // consumer of these three — it wraps them into the `Transport` interface
+  // consumer of these three: it wraps them into the `Transport` interface
   // `@ksp-gonogo/sitrep-client` expects. No `RequestTracker` is needed for
   // the command round trip: `TelemetryClient.dispatch` already keeps its own
   // `requestId -> pending` map, so this service just needs to forward the
@@ -778,10 +778,10 @@ export class PeerClientService {
   /**
    * Forward a `TelemetryClient.dispatch()` command-request to the host over
    * PeerJS. `requestId` is the STATION's own `TelemetryClient`-minted id
-   * (the `cN` counter) — reused as-is for the PeerJS correlation key rather
+   * (the `cN` counter): reused as-is for the PeerJS correlation key rather
    * than minting a second one; see protocol.ts's `sitrep-command-request`
    * doc comment for why that's safe (the host always replies per-connection,
-   * never broadcast). Fire-and-forget on the wire — `TelemetryClient` itself
+   * never broadcast). Fire-and-forget on the wire: `TelemetryClient` itself
    * owns the pending-promise bookkeeping and any loss-inference timeout, not
    * this service.
    */
@@ -854,7 +854,7 @@ export class PeerClientService {
 
   /**
    * Resolve when the next `connected` status fires, or reject after
-   * `timeoutMs`. Returns immediately if already connected. Internal — most
+   * `timeoutMs`. Returns immediately if already connected. Internal, most
    * callers should fail loudly rather than wait.
    */
   private whenConnected(timeoutMs: number): Promise<void> {
@@ -893,7 +893,7 @@ export class PeerClientService {
 
   /**
    * Notified whenever the host's persisted flight list could have changed
-   * shape. Empty payload — subscribers re-query `listFlights()`. Mirrors
+   * shape. Empty payload: subscribers re-query `listFlights()`. Mirrors
    * the local `BufferedDataSource.onFlightListChange` so FlightsManager
    * can subscribe identically on both screens.
    */
@@ -924,7 +924,7 @@ export class PeerClientService {
    * `peer-unavailable` (i.e. nobody on the broker is registered with
    * that id right now). The connect screen uses this to swap the
    * generic "reconnecting..." copy for a specific "couldn't find that
-   * code" message — the operator's most likely problem is a typo or a
+   * code" message: the operator's most likely problem is a typo or a
    * stale main-screen tab.
    */
   onHostUnavailable(cb: (hostPeerId: string) => void) {
@@ -944,7 +944,7 @@ export class PeerClientService {
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
     const unsub = this.events.on("gonogoCountdownStart", cb);
-    // Replay a countdown that's already running to late subscribers — a
+    // Replay a countdown that's already running to late subscribers, a
     // widget that mounts mid-countdown would otherwise show nothing until
     // T-0. Stale entries (t0 already passed) are not replayed; the launch
     // state takes over from telemetry at that point.
@@ -981,7 +981,7 @@ export class PeerClientService {
     return this.events.on("triggerSnapshot", cb);
   }
 
-  /** For tests + DEBUG_PEER diagnostics — exposes listener Set sizes. */
+  /** For tests + DEBUG_PEER diagnostics: exposes listener Set sizes. */
   _listenerCounts() {
     return {
       data: this.events.size("data"),
@@ -998,19 +998,19 @@ export class PeerClientService {
       const prevToken = this.hostSessionToken;
       this.hostSessionToken = msg.sessionToken ?? null;
       logger.info(
-        `[PeerClient] host hello — v${msg.version} (build ${msg.buildTime})${msg.sessionToken ? ` session=${msg.sessionToken.slice(0, 8)}` : ""}`,
+        `[PeerClient] host hello: v${msg.version} (build ${msg.buildTime})${msg.sessionToken ? ` session=${msg.sessionToken.slice(0, 8)}` : ""}`,
       );
       // Fire restart BEFORE hello so subscribers can clear state (and any
       // refs the hello handler reads) before the hello-driven resend
       // path runs. Tokenless hosts (pre-versioned bundle) skip the
-      // restart event — legacy "always resend the current vote on hello"
+      // restart event: legacy "always resend the current vote on hello"
       // stays the safe default for them.
       if (
         msg.sessionToken &&
         prevToken !== null &&
         prevToken !== msg.sessionToken
       ) {
-        logger.info("[PeerClient] host session changed — restart detected");
+        logger.info("[PeerClient] host session changed: restart detected");
         this.events.emit("hostRestart");
       }
       this.events.emit("hostHello", this.hostVersion);
@@ -1050,7 +1050,7 @@ export class PeerClientService {
       } else if (msg.bytes) {
         this.pendingBundleFetch.resolve(msg.requestId, msg.bytes);
       } else {
-        // Neither `bytes` nor `error` — a malformed response the host
+        // Neither `bytes` nor `error`: a malformed response the host
         // should never actually send (handleUplinkBundleRequest always
         // sets one or the other), but rejecting with a clear reason beats
         // leaving the request pending until it times out.
@@ -1079,7 +1079,7 @@ export class PeerClientService {
     },
     schema: (msg) => {
       logger.info(
-        `[PeerClient] schema received — ${msg.sources.length} sources`,
+        `[PeerClient] schema received: ${msg.sources.length} sources`,
       );
       this.events.emit("schema", msg.sources);
     },
@@ -1090,7 +1090,7 @@ export class PeerClientService {
       // The station→relay camera channel is a separate peer.connect()
       // call from the station's Peer instance; without TURN the relay's
       // container-bridge candidates can't be reached from the LAN. See
-      // the 2026-05-17 evening session — every camera attempt fired
+      // the 2026-05-17 evening session: every camera attempt fired
       // `negotiation-failed` for this exact reason.
       if (msg.iceServers && msg.iceServers.length > 0) {
         this.applyRelayIceServers(msg.iceServers);
@@ -1129,7 +1129,7 @@ export class PeerClientService {
     "analytics-consent": (msg) => {
       this.analyticsConsent = msg.enabled;
       logger.info(
-        `[PeerClient] host analytics consent — ${msg.enabled ? "enabled" : "disabled"}`,
+        `[PeerClient] host analytics consent: ${msg.enabled ? "enabled" : "disabled"}`,
       );
       this.events.emit("analyticsConsent", msg.enabled);
     },
@@ -1160,7 +1160,7 @@ export class PeerClientService {
 
   /**
    * Inject the host's relay iceServers into this station's Peer config.
-   * Mirrors `PeerHostService.refreshIceConfig` — PeerJS doesn't expose a
+   * Mirrors `PeerHostService.refreshIceConfig`: PeerJS doesn't expose a
    * public setter for `iceServers`, but `_options.config` is read every
    * time the Peer constructs an underlying RTCPeerConnection, so a fresh
    * `peer.connect()` for the camera channel picks up the new value.
@@ -1169,7 +1169,7 @@ export class PeerClientService {
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
     // Expose for the brokered camera data source regardless of whether the
-    // Peer is up yet — the camera client reads these for its own connection.
+    // Peer is up yet, the camera client reads these for its own connection.
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;
@@ -1181,7 +1181,7 @@ export class PeerClientService {
     if (opts) {
       opts.config = { iceServers };
       logger.info(
-        `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast — station→relay camera channel can now use TURN`,
+        `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast, station→relay camera channel can now use TURN`,
       );
     }
   }
@@ -1210,7 +1210,7 @@ export class PeerClientService {
   }
 
   /**
-   * Synchronous snapshot of the current connection status — for a caller
+   * Synchronous snapshot of the current connection status, for a caller
    * constructed AFTER the last `connStatus` transition (e.g. `PeerTransport`,
    * built once `StationScreen` has already reached its `connected` branch)
    * and that therefore can't rely on `onConnectionStatus` alone to learn the
@@ -1228,7 +1228,7 @@ export class PeerClientService {
   }
 
   /**
-   * Notified when the host's session token changes — i.e. the host process
+   * Notified when the host's session token changes, i.e. the host process
    * restarted between two connections. Used to clear station-local state
    * that would otherwise re-broadcast stale values on reconnect (e.g. a
    * GO vote that the operator left set before refreshing the main screen).

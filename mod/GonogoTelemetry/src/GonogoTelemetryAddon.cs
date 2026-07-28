@@ -6,7 +6,7 @@ using UnityEngine;
 namespace GonogoTelemetry
 {
     /// <summary>
-    /// Phase 1 entry point — registers the gonogo telemetry handlers
+    /// Phase 1 entry point: registers the gonogo telemetry handlers
     /// with Telemachus's PluginRegistration once on game start. See
     /// `local_docs/telemachus_extension_plan.md` for the roadmap; the
     /// handlers registered here are the read-only career-view slice.
@@ -29,7 +29,7 @@ namespace GonogoTelemetry
             // Update loop that drains our deferred-action queue. The
             // plugin handlers stay registered with Telemachus's
             // PluginManager (independent lifetime), so they keep
-            // receiving HTTP requests and queueing actions — but
+            // receiving HTTP requests and queueing actions: but
             // nothing drains them. Result: actions look successful
             // (handlers return 0) but no state change in-game.
             // Telemachus's own TelemachusBehaviour calls this for the
@@ -107,7 +107,7 @@ namespace GonogoTelemetry
             catch (System.Exception ex)
             {
                 Debug.LogError("[GonogoTelemetry] Registration failed: " + ex);
-                // Latch so we don't spam the log every Update — the operator
+                // Latch so we don't spam the log every Update, the operator
                 // can re-launch KSP to retry.
                 registered = true;
             }

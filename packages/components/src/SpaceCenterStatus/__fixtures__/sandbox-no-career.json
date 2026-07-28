@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Sandbox mode. No career funds. Facility upgrades have upgradeFunds 0 — no upgrade buttons shown. partsAvailable may be 0 (the fork emits zeroed entries for sandbox). scene is SpaceCenter.",
+    "notes": "Sandbox mode. No career funds. Facility upgrades have upgradeFunds 0, no upgrade buttons shown. partsAvailable may be 0 (the fork emits zeroed entries for sandbox). scene is SpaceCenter.",
     "scenario": "sandbox-no-career"
   },
   "kc.facilityLevels": {

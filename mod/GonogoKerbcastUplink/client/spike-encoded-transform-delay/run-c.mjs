@@ -1,6 +1,6 @@
 // Playwright driver for harness C (decoded VideoFrame pool exhaustion,
 // sourced from a real WebRTC-decoded remote track rather than a raw canvas
-// capture track — see harness-c.html's header comment for why that
+// capture track: see harness-c.html's header comment for why that
 // distinction matters). Chrome is the only engine with a main-thread
 // MediaStreamTrackProcessor per the prior verification
 // (video-worker-report.md); we still probe all three so the harness

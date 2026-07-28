@@ -3,7 +3,7 @@ import type { DeviceInput } from "../types";
 import { parseCharPosition } from "./charPosition";
 
 describe("parseCharPosition", () => {
-  it("parses button inputs — '1' → true, '0' → false", () => {
+  it("parses button inputs: '1' → true, '0' → false", () => {
     const inputs: DeviceInput[] = [
       { id: "a", name: "A", kind: "button", offset: 1, length: 1 },
       { id: "b", name: "B", kind: "button", offset: 3, length: 1 },
@@ -93,7 +93,7 @@ describe("parseCharPosition", () => {
     ];
     // Raw 50 → normalised 0 → already inside the deadzone, should snap to 0.
     expect(parseCharPosition("050", inputs)[0]?.value).toBe(0);
-    // Raw 53 → normalised 0.06 — still inside the deadzone.
+    // Raw 53 → normalised 0.06: still inside the deadzone.
     expect(parseCharPosition("053", inputs)[0]?.value).toBe(0);
   });
 

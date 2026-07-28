@@ -5,13 +5,13 @@ import { act } from "@ksp-gonogo/test-utils";
 /**
  * Stands in for a real `TelemachusDataSource` wrapped in a real
  * `BufferedDataSource`, for tests that deliberately exercise the LEGACY
- * `useTelemetry("data", key)` shim branch (no `TelemetryProvider` mounted —
+ * `useTelemetry("data", key)` shim branch (no `TelemetryProvider` mounted,
  * see `map-topic.ts`'s doc comment on why that branch survives P4c-b: the
  * mapped+carried resolution never touches the actual `DataSource` instance,
  * but a genuinely-unmapped key, or a test that mounts no stream Provider at
  * all, still falls through to `getDataSource("data")`).
  *
- * Built on `@ksp-gonogo/core`'s `MockDataSource` (an in-memory fake — no
+ * Built on `@ksp-gonogo/core`'s `MockDataSource` (an in-memory fake, no
  * WS/HTTP round trip) instead of the real WS-based Telemachus client, which
  * was deleted alongside `packages/app/src/dataSources/telemachus.ts`. Toggle
  * actions (`f.<x>`) flip `v.<x>Value` and push the new value, mirroring the
@@ -26,7 +26,7 @@ export interface FakeTelemachusHandle {
   executedActions: string[];
   /**
    * Push every currently-tracked key/value to subscribers, wrapped in
-   * `act()`. Call this AFTER the consuming widget has rendered/mounted —
+   * `act()`. Call this AFTER the consuming widget has rendered/mounted,
    * mirrors the real source's "push current state right after the WS '+'
    * subscribe message" round trip.
    */
@@ -40,7 +40,7 @@ export async function setupFakeTelemachus(
 ): Promise<FakeTelemachusHandle> {
   const state: Record<string, unknown> = {
     // Default to a healthy CommNet link so BufferedDataSource's signal gate
-    // doesn't drop antenna-gated keys (v.*Value etc.) — see
+    // doesn't drop antenna-gated keys (v.*Value etc.): see
     // BufferedDataSource.handleSample's comm.connected trust-gate tracker.
     "comm.connected": true,
     ...initialState,

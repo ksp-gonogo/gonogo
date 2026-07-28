@@ -7,7 +7,7 @@ import { LaunchDirectorComponent } from "./index";
 /**
  * LaunchDirector's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` — no legacy `DataSource` is registered anywhere in this
+ * `StubTransport`: no legacy `DataSource` is registered anywhere in this
  * file. Every read this widget makes has a real wire home now:
  * `career.funds` (-> `career.status.economy.funds`, a funds spender per
  * CLAUDE.md's "always show the balance" rule), `kc.savedShips`/
@@ -21,21 +21,21 @@ import { LaunchDirectorComponent } from "./index";
  * `ksp.canRevertToLaunch`/`ksp.canRevertToEditor` (->
  * `ksp.revertAvailability`), and `crash.hasRecent`/`crash.lastCrash` (->
  * themselves, whole-topic identity reads). The vessel-switcher reads
- * `target.available` directly (a canonical topic, no shim) — see
+ * `target.available` directly (a canonical topic, no shim); see
  * `index.test.tsx`'s dedicated switcher test for coverage of that read.
  *
  * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design
  * (`vessel-state.ts`'s own doc): `met` only derives in the OnRails/
  * "propagated" basis, `altitudeAsl` only in the Loaded/"measured" basis. The
  * ACTIVE (flying) vessel this widget's in-flight panel describes is always
- * Loaded, so `missionTime` genuinely renders "—" here — a real, documented
- * gap in the migrated data (not a test omission).
+ * Loaded, so `missionTime` genuinely renders the null-display placeholder
+ * here: a real, documented gap in the migrated data (not a test omission).
  */
 afterEach(() => {
   clearActionHandlers();
 });
 
-describe("LaunchDirector — genuinely runs off the stream", () => {
+describe("LaunchDirector: genuinely runs off the stream", () => {
   it("renders the funds readout, saved ships and crew roster all off the stream", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -150,7 +150,7 @@ describe("LaunchDirector — genuinely runs off the stream", () => {
         launchUt: null,
       });
       // Loaded quality -> the "measured" basis, so altitudeAsl resolves off
-      // vessel.flight (met stays null — see this file's doc comment).
+      // vessel.flight (met stays null: see this file's doc comment).
       fixture.emit(
         "vessel.orbit",
         {
@@ -185,7 +185,7 @@ describe("LaunchDirector — genuinely runs off the stream", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/Crash in progress — return to Space Center/i),
+        screen.getByText(/Crash in progress: return to Space Center/i),
       ).toBeInTheDocument(),
     );
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });

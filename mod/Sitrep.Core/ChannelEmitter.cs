@@ -6,31 +6,31 @@ namespace Sitrep.Core
 {
     /// <summary>
     /// The v1 mod sampled every channel every physics tick into unbounded
-    /// memory — this is the perf fix (streaming-slice-1 Track A): a decision
+    /// memory, this is the perf fix (streaming-slice-1 Track A): a decision
     /// function that scales sampling/emission cost with how much a channel
     /// actually changes, not with how often the host happens to call it.
     ///
     /// Given <c>(channelId, value, ut)</c>, <see cref="Decide"/> answers
     /// emit-or-skip via four gates, in this order:
     ///
-    /// 1. Forced keyframe (subscribe / <see cref="Reset"/>) — fully
+    /// 1. Forced keyframe (subscribe / <see cref="Reset"/>), fully
     ///    unconditional, bypasses every other gate below. A brand-new
     ///    channel (one <see cref="Decide"/> has never been called for)
     ///    starts in this state, so the very first call for any channel is
     ///    always a keyframe.
-    /// 2. Keyframe cadence — unconditional emit if
+    /// 2. Keyframe cadence: unconditional emit if
     ///    <c>ut - lastKeyframeUt &gt;= KeyframeIntervalUt</c>, regardless of
     ///    whether the value changed. Evaluated BEFORE the UT-cadence gate
-    ///    below and independent of it — a due keyframe is the correctness
+    ///    below and independent of it: a due keyframe is the correctness
     ///    baseline and must not be starved even when
     ///    <c>MinSampleIntervalUt &gt;= KeyframeIntervalUt</c>.
-    /// 3. UT-cadence gate — skip if <c>ut - lastSampledUt &lt;
+    /// 3. UT-cadence gate: skip if <c>ut - lastSampledUt &lt;
     ///    MinSampleIntervalUt</c>; the channel isn't even considered for a
     ///    CHANGE emission this call. This is the INNER gate;
     ///    <see cref="SubscriptionRegistry"/> is the OUTER one (zero
-    ///    subscribers ⇒ the caller should never reach this method at all —
+    ///    subscribers ⇒ the caller should never reach this method at all,
     ///    see that class's doc comment).
-    /// 4. Deadband change-gate, itself capped by the max-rate clamp — emit
+    /// 4. Deadband change-gate, itself capped by the max-rate clamp, emit
     ///    only if the value cleared the quantum (numeric) or is not-equal
     ///    (discrete/structured) to the last emitted value, AND at least
     ///    <c>MaxRateIntervalUt</c> has passed since the last CHANGE emission.
@@ -38,14 +38,14 @@ namespace Sitrep.Core
     /// One <see cref="ChannelEmitter"/> instance manages every channel it's
     /// asked about (keyed by <c>channelId</c>) rather than one instance per
     /// channel, per the streaming-slice-1 plan's "given (channelId, value,
-    /// ut)" framing — per-channel state is a private dictionary entry,
+    /// ut)" framing: per-channel state is a private dictionary entry,
     /// created lazily on first use.
     ///
     /// All UT, never wall-clock: this class has no notion of "now" beyond
     /// whatever <c>ut</c> the caller passes into each <see cref="Decide"/>
     /// call. Calling <see cref="Decide"/> repeatedly at the SAME ut (e.g. a
     /// host that hasn't advanced the physics clock yet) can never itself
-    /// produce more than the gates above already allow — there is no
+    /// produce more than the gates above already allow, there is no
     /// <c>DateTime.Now</c>/<c>Stopwatch</c> anywhere in this file.
     /// </summary>
     public sealed class ChannelEmitter
@@ -126,12 +126,12 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Call when <see cref="SubscriptionRegistry.Subscribe"/> reports a
-        /// genuine 0 -&gt; 1 transition for <paramref name="channelId"/> — the
+        /// genuine 0 -&gt; 1 transition for <paramref name="channelId"/>, the
         /// newly-joined subscriber gets an immediate unconditional keyframe
         /// on the NEXT <see cref="Decide"/> call, rather than waiting out
         /// whatever fraction of <see cref="EmissionPolicy.KeyframeIntervalUt"/>
         /// remains. Cheap/idempotent to call on a channel that hasn't been
-        /// seen by <see cref="Decide"/> yet — it's already force-keyframed by
+        /// seen by <see cref="Decide"/> yet: it's already force-keyframed by
         /// default.
         /// </summary>
         public void NotifySubscribed(string channelId)
@@ -141,7 +141,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Timeline-reset, mirroring <see cref="IClock.Reset"/> /
-        /// <see cref="Courier.ResetTimeline"/> — call this from the same
+        /// <see cref="Courier.ResetTimeline"/>: call this from the same
         /// quickload call site (a backward UT tick) so every channel
         /// re-baselines with an unconditional keyframe on its next
         /// <see cref="Decide"/> call instead of staying gated by
@@ -149,7 +149,7 @@ namespace Sitrep.Core
         /// current timeline.
         ///
         /// <paramref name="ut"/> is accepted purely for call-site symmetry
-        /// with those two methods — <see cref="ChannelEmitter"/> has no
+        /// with those two methods: <see cref="ChannelEmitter"/> has no
         /// independent notion of "now" (see the class doc comment), so there
         /// is nothing here to stamp it against; the effect is entirely
         /// "the next Decide, at whatever ut it's called with, is a keyframe".
@@ -163,7 +163,7 @@ namespace Sitrep.Core
             }
         }
 
-        /// <summary>Per-channel emission-rate visibility — see <see cref="EmissionCounters"/>.</summary>
+        /// <summary>Per-channel emission-rate visibility: see <see cref="EmissionCounters"/>.</summary>
         public EmissionCounters CountersFor(string channelId)
         {
             var state = GetOrCreateState(channelId);
@@ -201,11 +201,11 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Numeric values (double/float/int/long/short/sbyte/byte/uint/ulong/
-        /// decimal — boxed, same
+        /// decimal: boxed, same
         /// as every other heterogeneous channel-value path in this project;
         /// see <c>StreamData&lt;object?&gt;</c> in Courier.cs) compare via the
         /// resolved <see cref="EmissionQuantum"/> deadband. Anything else
-        /// (bool, string, or a structured POCO) falls back to <c>Equals</c> —
+        /// (bool, string, or a structured POCO) falls back to <c>Equals</c>,
         /// the "discrete/structured: emit on not-equal" half of the deadband
         /// spec. Deliberately does NOT box into a
         /// <c>Dictionary&lt;string, object&gt;</c> or similar bag anywhere in

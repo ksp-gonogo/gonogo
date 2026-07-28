@@ -14,7 +14,7 @@ namespace Sitrep.Host
     /// east/north/height samples.
     ///
     /// <para>Fitting a plane (not averaging pairwise slopes) is what lets us tell
-    /// a uniform incline from a bowl, and separate slope from roughness — the two
+    /// a uniform incline from a bowl, and separate slope from roughness, the two
     /// distinct hazard axes.</para>
     /// </summary>
     public static class LandingTerrain

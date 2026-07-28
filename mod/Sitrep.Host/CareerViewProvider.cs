@@ -4,13 +4,13 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>career.status</c> channel — added
+    /// KSP-free mapping logic for the <c>career.status</c> channel, added
     /// the M3 session to get KSC/career state onto the wire quickly (speed
     /// prioritized: this is a primitives-dict pass-through, same posture
     /// <see cref="SystemViewProvider"/>'s own doc comment allows for
-    /// "fine for now" channels — a typed <c>Sitrep.Contract</c> POCO is a
-    /// follow-up, not a blocker). Reads <c>Values["career"]</c> —
-    /// <c>Gonogo.KSP.KspHost.BuildCareer</c>'s raw dict — and republishes it
+    /// "fine for now" channels: a typed <c>Sitrep.Contract</c> POCO is a
+    /// follow-up, not a blocker). Reads <c>Values["career"]</c>,
+    /// <c>Gonogo.KSP.KspHost.BuildCareer</c>'s raw dict: and republishes it
     /// through <see cref="SnapshotDict"/>'s readers so every scalar gets the
     /// same R1/F-1 non-finite-is-absent rule <see cref="SystemViewProvider"/>
     /// already applies, and so a <see cref="ReplayKspHost"/> snapshot (post
@@ -21,13 +21,13 @@ namespace Sitrep.Host
     /// strategies/tech were widened from the M3 session's "just enough to
     /// prove the channel exists" shape to what the KSC widgets
     /// (SpaceCenterStatus/ContractManager/Strategies/TechTree/Objectives)
-    /// actually need — see each <c>Build*</c> method below and
+    /// actually need; see each <c>Build*</c> method below and
     /// <c>Gonogo.KSP.KspHost</c>'s matching <c>BuildCareer*</c> methods for
     /// the decompile-confirmed KSP APIs behind each new field. Purely
-    /// additive/reshaping within each group — <c>economy</c> is untouched.</para>
+    /// additive/reshaping within each group: <c>economy</c> is untouched.</para>
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildCareer must
-    /// populate exactly this shape at <c>Values["career"]</c> — entirely
+    /// populate exactly this shape at <c>Values["career"]</c>: entirely
     /// OMITTED, no key at all, outside career mode):</b></para>
     /// <code>
     /// snapshot.Values["career"] = Dictionary&lt;string, object?&gt; {
@@ -51,7 +51,7 @@ namespace Sitrep.Host
     /// //   "parents": [ string, ... ] }
     /// </code>
     /// Any field may be omitted/null when the live game genuinely doesn't
-    /// have the value yet — mapped to <c>null</c> here, never a sentinel,
+    /// have the value yet, mapped to <c>null</c> here, never a sentinel,
     /// same discipline as every other provider in this assembly.
     /// </summary>
     public static class CareerViewProvider
@@ -60,7 +60,7 @@ namespace Sitrep.Host
         public const string Topic = "career.status";
 
         /// <summary>
-        /// The <c>career.mode</c> topic — the save's <see cref="GameMode"/>.
+        /// The <c>career.mode</c> topic: the save's <see cref="GameMode"/>.
         /// A SEPARATE channel from <see cref="Topic"/> because
         /// <see cref="BuildCareer"/> returns <c>null</c> outside career mode,
         /// so the mode can't ride the <c>career.status</c> payload; a
@@ -70,8 +70,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"career"</c> value to
-        /// the <c>career.status</c> payload. Returns <c>null</c> — the
-        /// SANDBOX / no-data-yet case — whenever the snapshot doesn't carry
+        /// the <c>career.status</c> payload. Returns <c>null</c> (the
+        /// SANDBOX / no-data-yet case) whenever the snapshot doesn't carry
         /// a <c>"career"</c> dictionary at all, distinguishing "not career
         /// mode" from "career mode with everything genuinely empty" (which
         /// still produces a non-null payload with empty groups).
@@ -102,10 +102,10 @@ namespace Sitrep.Host
         /// Maps the raw <c>Game.Modes.ToString()</c> string
         /// <c>Gonogo.KSP.KspHost</c> captures at <c>Values["gameMode"]</c> to
         /// the <c>career.mode</c> wire payload (<c>{ "mode": &lt;ordinal&gt; }</c>,
-        /// the <see cref="GameMode"/> enum's integer ordinal — same encoding
+        /// the <see cref="GameMode"/> enum's integer ordinal: same encoding
         /// every other enum in this codec uses, see
-        /// <c>VesselViewProvider.ToWire</c>). Returns <c>null</c> — "no data
-        /// yet" — only when no game is loaded at all (the key is absent, e.g.
+        /// <c>VesselViewProvider.ToWire</c>). Returns <c>null</c> ("no data
+        /// yet") only when no game is loaded at all (the key is absent, e.g.
         /// on the main menu); once a save is loaded the mode is always one of
         /// the four members, with unrecognized KSP modes folded to
         /// <see cref="GameMode.Unknown"/> rather than throwing.
@@ -407,7 +407,7 @@ namespace Sitrep.Host
             return false;
         }
 
-        // Scalar readers live in the shared SnapshotDict — see that class's
+        // Scalar readers live in the shared SnapshotDict; see that class's
         // doc comment for the R1/F-1 non-finite-is-absent rule GetDouble
         // applies.
         private static string? GetString(IDictionary<string, object?> raw, string key) => SnapshotDict.GetString(raw, key);

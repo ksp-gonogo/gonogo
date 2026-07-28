@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>career.status</c> capture surface — added THIS session so a
+    /// The <c>career.status</c> capture surface: added THIS session so a
     /// live recording carries KSC/career state (funds/reputation/science,
     /// facility levels+costs, contracts, strategies, unlocked tech count)
     /// alongside <c>system.*</c>/<c>vessel.*</c>. Mirrors
@@ -16,11 +16,11 @@ namespace Gonogo.KSP
     /// headlessly testable there. No <see cref="ISnapshotSampler"/> is
     /// registered because <c>KspHost.Sample</c> already populates the raw
     /// <c>"career"</c> snapshot key unconditionally (guarded to career mode
-    /// only — see <c>KspHost.BuildCareer</c>'s doc comment).
+    /// only: see <c>KspHost.BuildCareer</c>'s doc comment).
     ///
     /// <para>Alongside the read capture this uplink also carries the
     /// career-write COMMANDS (accept/decline/cancel contract, upgrade facility,
-    /// unlock tech, activate/deactivate strategy) — <see cref="CareerCommandProvider"/>'s
+    /// unlock tech, activate/deactivate strategy): <see cref="CareerCommandProvider"/>'s
     /// KSP-free <c>Handle*</c> glue against the <see cref="ICareerActuator"/>
     /// this uplink is constructed with (<see cref="KspCareerActuator"/> in
     /// production, <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All
@@ -41,7 +41,7 @@ namespace Gonogo.KSP
         /// The discovery-required parameterless constructor (see
         /// <c>Sitrep.Host.UplinkDiscovery</c>: a discoverable Uplink resolves any
         /// real dependency itself). Builds its own <see cref="KspCareerActuator"/>,
-        /// which needs no external state — every entity it touches is resolved
+        /// which needs no external state, every entity it touches is resolved
         /// live off the KSC singletons at command time.
         /// </summary>
         public CareerUplink() : this(new KspCareerActuator())
@@ -70,7 +70,7 @@ namespace Gonogo.KSP
                     // contract-dynamic-delay-report.md: career state (funds,
                     // contracts, strategies) is KSC/ground-side bookkeeping,
                     // not something learned over a vessel's comms link, so
-                    // TrueNow — same class as system.bodies/scansat.available.
+                    // TrueNow: same class as system.bodies/scansat.available.
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
@@ -90,7 +90,7 @@ namespace Gonogo.KSP
                 },
             },
             // Every career-write command is ground-side KSC bookkeeping, not a
-            // signal to a craft, so all seven are delayed: false — they take
+            // signal to a craft, so all seven are delayed: false, they take
             // effect immediately rather than at UT + uplink light-time. Only
             // commands sent to a vessel ride light-time.
             Commands = new List<CommandDeclaration>

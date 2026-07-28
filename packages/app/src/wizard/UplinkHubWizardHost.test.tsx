@@ -25,7 +25,7 @@ import {
 
 /**
  * Proves the first-run auto-open host (design §1: "auto-opens once on first
- * boot", deferred by Task C to this task) — real `ModalProvider` +
+ * boot", deferred by Task C to this task), real `ModalProvider` +
  * `SettingsModal`, only the Hub registry HTTP fetch intercepted (MSW), same
  * boundary `SettingsModal.test.tsx`'s own Uplink Hub describe block uses.
  */
@@ -52,7 +52,7 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-// `enabled: false` keeps the Hub registry query inert — none of this file's
+// `enabled: false` keeps the Hub registry query inert, none of this file's
 // tests assert on gap-resolution content (that's UplinkHubWizard.test.tsx's
 // job, with a real MSW-backed query); an active query here just leaves an
 // async fetch in flight that can resolve after a test's synchronous
@@ -87,7 +87,7 @@ describe("UplinkHubWizardHost", () => {
     expect(
       screen.getByRole("tab", { name: "Uplink Hub", selected: true }),
     ).toBeInTheDocument();
-    // firstRun bookend — the Welcome step, not the plain "setup" step Task C
+    // firstRun bookend: the Welcome step, not the plain "setup" step Task C
     // shipped for the persistent entry point.
     expect(screen.getByText("Welcome")).toBeInTheDocument();
   });
@@ -122,7 +122,7 @@ describe("UplinkHubWizardHost", () => {
     renderHost();
     await screen.findByRole("dialog");
     // The modal renders via a portal into `document.body`, not into RTL's
-    // `container` — same reason `Modal.tsx`'s own dialog implementation
+    // `container`: same reason `Modal.tsx`'s own dialog implementation
     // uses `createPortal`.
     expect(await axe(document.body)).toHaveNoViolations();
   });

@@ -60,7 +60,7 @@ export function registerBuiltinDerivedKeys(): void {
   });
 
   // ── Delta-V & mass, projected out of the complex dv.stages array ──────
-  // `dv.stages` is a StageInfo[] — great for the FuelStatus widget but
+  // `dv.stages` is a StageInfo[], great for the FuelStatus widget but
   // unusable as a Graph series. These derived keys expose the scalar
   // rollups most often wanted for plotting: vessel-total ΔV, active-stage
   // ΔV / fuel mass / TWR, and current total vessel mass.

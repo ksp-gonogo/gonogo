@@ -1,5 +1,5 @@
 /**
- * Screen probe entry — the screen-level analog of `probe-entry.tsx`. Bundled
+ * Screen probe entry: the screen-level analog of `probe-entry.tsx`. Bundled
  * by esbuild for the playwright render harness; exposes
  * `window.__renderScreen({...})` so the driver can mount a full-screen view
  * many times with different prop sets (idle / error / reconnecting) and at
