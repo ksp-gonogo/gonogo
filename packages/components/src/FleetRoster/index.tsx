@@ -10,7 +10,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
-import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
+import { RosterCommsControlSource, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   EmptyState,
@@ -34,7 +34,61 @@ type FleetRosterConfig = Record<string, never>;
 // uses for its own vessel-body lookups. Copy of TargetPicker/DistanceToTarget/
 // OrbitView/LandingStatus's own local `useStreamStatusOptional` — there is no
 // shared export of it yet.
+//
+// `system.vessels` is intentionally unfiltered at the source: it enumerates
+// EVERY vessel KSP tracks (craft, debris, asteroids/comets, planted flags,
+// EVA kerbals, deployed science hardware), because other consumers of the
+// same Topic (TargetPicker, in particular) legitimately want the non-craft
+// entries too - e.g. picking an asteroid as a rendezvous target. A fleet
+// roster is a different question ("what do I fly"), so `isRosterCraft`
+// below filters client-side, in this widget, rather than mod-side in the
+// capture. Stripping non-craft rows out of `system.vessels` itself would
+// break every other consumer of the shared topic.
 // ---------------------------------------------------------------------------
+
+/**
+ * Real, flyable craft: `Ship`/`Station`/`Lander`/`Probe`/`Rover`/`Base`/
+ * `Relay`. Everything else `VesselType` can hold is structurally NOT a fleet
+ * vessel an operator means when they say "Fleet":
+ *  - `Debris` and `SpaceObject` (asteroids/comets) never get a `CommNetVessel`
+ *    attached at all - verified against `CommNet.CommNetVessel.OnStart`
+ *    (decompile) - a permanent, by-design exclusion, not a data gap.
+ *  - `EVA` is a kerbal outside a craft, `Flag` is a planted flag, and
+ *    `DeployedScienceController`/`DeployedSciencePart`/`DroppedPart` are
+ *    stationary deployed hardware - none of these are vehicles either.
+ *
+ * Ordinals are Sitrep.Contract's OWN declared order (`VesselEnums.cs`), not
+ * stock KSP's - reading off the generated `VesselType` enum (not a bare
+ * numeric literal) is what keeps this safe if that order ever changes.
+ */
+const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
+  VesselType.Ship,
+  VesselType.Station,
+  VesselType.Lander,
+  VesselType.Probe,
+  VesselType.Rover,
+  VesselType.Base,
+  VesselType.Relay,
+]);
+
+/**
+ * `VesselType.Unknown` is deliberately NOT filtered out. It means the
+ * producer itself couldn't classify the vessel this tick (a raw KSP
+ * `VesselType` string the mapper doesn't recognize, see
+ * `VesselViewProvider.ParseVesselType`'s own fallback), not "this is
+ * confirmed to not be a craft" the way `Debris`/`SpaceObject`/etc. are. An
+ * unclassified vessel silently disappearing from the roster would be the
+ * same class of bug this widget already fixed once for its empty state: a
+ * real "we don't know" fact reported as nothing at all. It renders through
+ * the roster's existing null-safe row handling (body/crew fall back to the
+ * usual null placeholder, comms shows the "unknown" tier) rather than
+ * getting a fabricated craft identity.
+ */
+function isRosterCraft(vesselType: VesselType): boolean {
+  return (
+    vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)
+  );
+}
 
 function useStreamStatusOptional(topic: string): StreamStatusValue {
   const client = useTelemetryClientOptional();
@@ -120,15 +174,17 @@ function useFleet(): { known: boolean; vessels: FleetVessel[] } {
 
   const vessels = useMemo<FleetVessel[]>(
     () =>
-      (system?.vessels ?? []).map((v) => ({
-        id: v.vesselId,
-        name: v.name,
-        body:
-          v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null,
-        crewCount: v.crewCount ?? null,
-        crewCapacity: v.crewCapacity ?? null,
-        comms: rosterCommsLink(v.commsControlSource),
-      })),
+      (system?.vessels ?? [])
+        .filter((v) => isRosterCraft(v.vesselType))
+        .map((v) => ({
+          id: v.vesselId,
+          name: v.name,
+          body:
+            v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null,
+          crewCount: v.crewCount ?? null,
+          crewCapacity: v.crewCapacity ?? null,
+          comms: rosterCommsLink(v.commsControlSource),
+        })),
     [system, nameByIndex],
   );
 
@@ -141,9 +197,15 @@ function useFleet(): { known: boolean; vessels: FleetVessel[] } {
 
 type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
+// NOTE: these are used as a single foreground color (dot fill, tag border
+// AND tag text) below, not a background fill, so "info" deliberately reads
+// off `-fg` rather than `-bg` - `--color-status-info-bg` is a near-black
+// background-fill token that renders invisibly as foreground/border/text
+// against this widget's dark panel. go/warn/nogo's `-bg` tokens happen to
+// already be saturated enough to read fine in that same role.
 const TONE_HEX: Record<Tone, string> = {
   go: "var(--color-status-go-bg)",
-  info: "var(--color-status-info-bg)",
+  info: "var(--color-status-info-fg)",
   warn: "var(--color-status-warning-bg)",
   nogo: "var(--color-status-nogo-bg)",
   neutral: "var(--color-text-muted)",
@@ -470,7 +532,7 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide roster table: one row per known vessel with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) — the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. The spatial fleet view lives in SystemView.",
+    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) - the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. The spatial fleet view lives in SystemView.",
   tags: ["telemetry", "kerbalism"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },

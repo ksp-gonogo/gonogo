@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "mixed-fleet",
-    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape (Gonogo.KSP/KspHost.cs BuildVesselRosterEntry -> Sitrep.Host/SystemViewProvider.cs BuildSystemVessels), values checked against Assembly-CSharp.dll (ilspycmd decompile, KSP_Data/Managed): Vessel.GetCrewCount/GetCrewCapacity, ProtoVessel.GetVesselCrew, ProtoPartSnapshot.partPrefab.CrewCapacity, CommNet.CommNetVessel.OnStart/GetControlLevel. Seven vessels covering every roster state an operator actually sees: direct link (station), relay link (probe/lander), a real no-link reading (orbiter -- CommNet resolved and reports None, a genuine ops fact), a real debris entry (crewCount/crewCapacity are honest zeros -- Part.CrewCapacity sums to 0 for a debris part, not an unknown -- but commsConnected/commsControlSource are omitted because CommNetVessel.OnStart never attaches a CommNet node to VesselType.Debris at all: this is the vessel type's permanent by-design state, not a glitch), an asteroid entry for the same structural reason (VesselType.SpaceObject is excluded by the identical OnStart guard), and one genuinely-unresolved entry (every field omitted -- the producer's own transient 'nothing to read this tick' case: a scene-transition race or a vessel whose protoVessel/connection hasn't settled yet, NOT what a stable debris/asteroid vessel looks like). There is no reliability/health signal behind any entry - this widget does not compute a per-vessel status."
+    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape (Gonogo.KSP/KspHost.cs BuildVesselRosterEntry -> Sitrep.Host/SystemViewProvider.cs BuildSystemVessels), values checked against Assembly-CSharp.dll (ilspycmd decompile, KSP_Data/Managed): Vessel.GetCrewCount/GetCrewCapacity, ProtoVessel.GetVesselCrew, ProtoPartSnapshot.partPrefab.CrewCapacity, CommNet.CommNetVessel.OnStart/GetControlLevel. Five vessels covering the roster states an operator actually sees for real craft: a crewed station with a direct link, an uncrewed relay probe with a relay link, a crewed lander with a relay link, a crewed orbiter with a real no-link reading (CommNet resolved and reports None, a genuine ops fact), and one genuinely-unresolved contact (every field but name/situation omitted -- the producer's own transient 'nothing to read this tick' case: a scene-transition race or a vessel whose protoVessel/connection hasn't settled yet). Debris and asteroid entries were removed here (FleetRoster now filters system.vessels down to actual craft client-side -- see isRosterCraft in index.tsx -- since VesselType.Debris/SpaceObject structurally never get a CommNetVessel attached and are not fleet vessels an operator means by 'Fleet'). There is no reliability/health signal behind any entry - this widget does not compute a per-vessel status."
   },
   "_stream": {
     "carriedChannels": ["system.vessels", "system.bodies"],
@@ -65,24 +65,6 @@
               "crewCapacity": 1,
               "commsConnected": false,
               "commsControlSource": 0
-            },
-            {
-              "vesselId": "v-debris-1",
-              "name": "Stage 2 Debris",
-              "vesselType": 9,
-              "situation": 3,
-              "bodyIndex": 0,
-              "crewCount": 0,
-              "crewCapacity": 0
-            },
-            {
-              "vesselId": "v-asteroid-1",
-              "name": "Ast. XC7-142",
-              "vesselType": 10,
-              "situation": 3,
-              "bodyIndex": 0,
-              "crewCount": 0,
-              "crewCapacity": 0
             },
             {
               "vesselId": "v-unresolved-1",

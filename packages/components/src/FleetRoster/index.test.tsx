@@ -79,43 +79,102 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.None,
     },
     {
-      // Real, honest zeros for crew (Part.CrewCapacity sums to 0 for debris —
-      // ProtoVessel.GetVesselCrew()/partPrefab.CrewCapacity both resolve
-      // cleanly), but comms fields are OMITTED — verified against
-      // CommNet.CommNetVessel.OnStart (decompile): VesselType.Debris never
-      // gets a CommNetVessel attached at all, so this is the vessel's
-      // permanent state, not a glitch.
-      vesselId: "v-debris",
-      name: "Stage 2 Debris",
-      vesselType: 9,
-      situation: 3,
-      bodyIndex: 0,
-      crewCount: 0,
-      crewCapacity: 0,
-    },
-    {
-      // Same structural reason as debris — CommNetVessel.OnStart's guard
-      // excludes VesselType.SpaceObject too — but crew is still a real,
-      // resolvable zero.
-      vesselId: "v-asteroid",
-      name: "Ast. XC7-142",
-      vesselType: 10,
-      situation: 3,
-      bodyIndex: 0,
-      crewCount: 0,
-      crewCapacity: 0,
-    },
-    {
-      // No crew/comms/body fields at all — the producer's own transient
+      // No crew/comms/body fields at all - the producer's own transient
       // "could not read this tick" case (BuildVesselRosterEntry's try/catch
       // default, or a not-yet-resolved protoVessel/orbitDriver on a
-      // freshly-spawned vessel) — distinct from debris/asteroid above, whose
-      // missing comms is a permanent, structural state with perfectly real
-      // crew data. Must render as an honest unknown, never a fabricated
-      // zero/no-link.
+      // freshly-spawned vessel). vesselType 14 (Unknown) is NOT filtered out
+      // by isRosterCraft - an unclassified vessel is a real "we don't know"
+      // fact, not license to make the row vanish. Must render as an honest
+      // unknown, never a fabricated zero/no-link.
       vesselId: "v-unresolved",
       name: "New Contact",
       vesselType: 14,
+      situation: 2,
+    },
+  ],
+};
+
+/**
+ * Every non-craft `VesselType` the roster must filter out, plus one real
+ * craft and one genuinely-unclassified contact as controls. Debris and
+ * asteroids are the two the operator explicitly flagged, but the same
+ * "not a vehicle" reasoning applies to a planted flag, an EVA kerbal, and
+ * Kerbalism-style deployed science hardware - see isRosterCraft's own doc
+ * comment for why each is excluded.
+ */
+const NON_CRAFT = {
+  vessels: [
+    {
+      vesselId: "v-craft",
+      name: "Craft One",
+      vesselType: 4, // Rover
+      situation: 0,
+      bodyIndex: 0,
+      crewCount: 1,
+      crewCapacity: 1,
+      commsControlSource: RosterCommsControlSource.Full,
+    },
+    {
+      vesselId: "v-eva",
+      name: "Jebediah on EVA",
+      vesselType: 7, // EVA
+      situation: 5,
+    },
+    {
+      vesselId: "v-flag",
+      name: "Flag Planted at KSC",
+      vesselType: 8, // Flag
+      situation: 0,
+    },
+    {
+      // Real, honest zeros for crew (Part.CrewCapacity sums to 0 for debris -
+      // ProtoVessel.GetVesselCrew()/partPrefab.CrewCapacity both resolve
+      // cleanly), but comms fields are OMITTED - verified against
+      // CommNet.CommNetVessel.OnStart (decompile): VesselType.Debris never
+      // gets a CommNetVessel attached at all, so this is the vessel's
+      // permanent state, not a glitch. Must not render at all now.
+      vesselId: "v-debris",
+      name: "Stage 2 Debris",
+      vesselType: 9, // Debris
+      situation: 3,
+      bodyIndex: 0,
+      crewCount: 0,
+      crewCapacity: 0,
+    },
+    {
+      // Same structural reason as debris - CommNetVessel.OnStart's guard
+      // excludes VesselType.SpaceObject too. Must not render at all now.
+      vesselId: "v-asteroid",
+      name: "Ast. XC7-142",
+      vesselType: 10, // SpaceObject
+      situation: 3,
+      bodyIndex: 0,
+      crewCount: 0,
+      crewCapacity: 0,
+    },
+    {
+      vesselId: "v-sci-controller",
+      name: "Deployed Science Controller",
+      vesselType: 11, // DeployedScienceController
+      situation: 0,
+    },
+    {
+      vesselId: "v-sci-part",
+      name: "Deployed Science Part",
+      vesselType: 12, // DeployedSciencePart
+      situation: 0,
+    },
+    {
+      vesselId: "v-dropped-part",
+      name: "Dropped Part",
+      vesselType: 13, // DroppedPart
+      situation: 0,
+    },
+    {
+      // Unclassified, NOT a confirmed non-craft type - must still render.
+      vesselId: "v-unclassified",
+      name: "New Contact",
+      vesselType: 14, // Unknown
       situation: 2,
     },
   ],
@@ -206,31 +265,50 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("Munar Relay Probe")).toBeInTheDocument();
     expect(screen.getByText("Duna Lander Bravo")).toBeInTheDocument();
     expect(screen.getByText("Eve Orbiter Charlie")).toBeInTheDocument();
-    expect(screen.getByText("Stage 2 Debris")).toBeInTheDocument();
-    expect(screen.getByText("Ast. XC7-142")).toBeInTheDocument();
     expect(screen.getByText("New Contact")).toBeInTheDocument();
-    // Body names resolved via system.bodies. Kerbin appears three times (the
-    // station, the debris entry and the asteroid all orbit it); the
-    // unresolved contact has no resolvable body at all.
-    expect(screen.getAllByText("Kerbin")).toHaveLength(3);
+    // Body names resolved via system.bodies. Each craft orbits a distinct
+    // body; the unresolved contact has no resolvable body at all.
+    expect(screen.getByText("Kerbin")).toBeInTheDocument();
     expect(screen.getByText("Mun")).toBeInTheDocument();
     expect(screen.getByText("Duna")).toBeInTheDocument();
     expect(screen.getByText("Eve")).toBeInTheDocument();
-    // Crew: the debris and asteroid entries both report a real, honest 0/0
-    // (their crew read succeeded — only their comms read is structurally
-    // absent), same as the probe's real 0/0. Only the fully-unresolved
-    // contact renders an em-dash for crew.
-    expect(screen.getAllByText("0/0")).toHaveLength(3);
+    // Crew: the probe's real, honest 0/0; the rest are distinct crewed
+    // counts. Only the fully-unresolved contact renders an em-dash for crew.
+    expect(screen.getByText("0/0")).toBeInTheDocument();
     expect(screen.getByText("6/6")).toBeInTheDocument();
     expect(screen.getByText("2/3")).toBeInTheDocument();
-    // Em-dashes: the unresolved contact's Body AND Crew cells (2), plus the
-    // Link column's "unknown" tag on the debris, the asteroid, and the
-    // unresolved contact (3) — five in total.
-    expect(screen.getAllByText("—")).toHaveLength(5);
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+    // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link
+    // column's "unknown" tag - three in total.
+    expect(screen.getAllByText("—")).toHaveLength(3);
     // Comms link tags: direct / relay / none / unknown.
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
     expect(screen.getAllByText("RELAY")).toHaveLength(2);
     expect(screen.getByText("NONE")).toBeInTheDocument();
+  });
+
+  it("filters non-craft vessel types out of the roster, keeping real craft and one unclassified contact", async () => {
+    const fixture = newFixture();
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", NON_CRAFT);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Craft One")).toBeInTheDocument();
+    });
+    // The one truly-unclassified entry still renders (never silently
+    // dropped) alongside the real craft.
+    expect(screen.getByText("New Contact")).toBeInTheDocument();
+    // Every confirmed non-craft type is filtered out entirely.
+    expect(screen.queryByText("Jebediah on EVA")).not.toBeInTheDocument();
+    expect(screen.queryByText("Flag Planted at KSC")).not.toBeInTheDocument();
+    expect(screen.queryByText("Stage 2 Debris")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ast. XC7-142")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Deployed Science Controller"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Deployed Science Part")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dropped Part")).not.toBeInTheDocument();
   });
 
   it("rolls the fleet up into a comms-coverage badge and meter, never a health verdict", async () => {
@@ -243,15 +321,15 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
     });
-    // Four vessels are not linked (1 none + 3 unknown: debris, asteroid,
-    // unresolved contact) out of seven.
-    expect(screen.getByText("4 Not Linked")).toBeInTheDocument();
+    // Two vessels are not linked (1 none + 1 unknown: the orbiter and the
+    // unresolved contact) out of five.
+    expect(screen.getByText("2 Not Linked")).toBeInTheDocument();
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
-    ).toHaveAttribute("aria-valuenow", "43");
+    ).toHaveAttribute("aria-valuenow", "60");
     expect(screen.getByText(/3 linked/)).toBeInTheDocument();
     expect(screen.getByText(/1 no link/)).toBeInTheDocument();
-    expect(screen.getByText(/3 unknown/)).toBeInTheDocument();
+    expect(screen.getByText(/1 unknown/)).toBeInTheDocument();
   });
 
   it("shows an All Linked badge and a full meter when every vessel has a link", async () => {
