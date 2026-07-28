@@ -160,11 +160,11 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/core
       '@ksp-gonogo/kerbcast':
-        specifier: ^1.7.0
-        version: 1.7.0
+        specifier: ^1.8.1
+        version: 1.8.1
       '@ksp-gonogo/kerbcast-react':
-        specifier: ^1.7.0
-        version: 1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: ^1.8.1
+        version: 1.8.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../../../packages/logger
@@ -1819,15 +1819,15 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@ksp-gonogo/kerbcast-react@1.7.0':
-    resolution: {integrity: sha512-9AEt0+nFNPVYzq8Si/GERqAX0Nu9lm4dghxs6fGyfU0Q4nHVmjkIZ8mfSTh3eIhT437RoUYsOeMLDvJFcp7b8A==}
+  '@ksp-gonogo/kerbcast-react@1.8.1':
+    resolution: {integrity: sha512-IJKN88eDO73WYGtvXHMlj4OePP3/DzBuDRQ1tUjUJPPhodwAnIWRPBJZMXjje1gkSLu6KuyCAte5jdHfsA6Gxw==}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
       styled-components: ^6
 
-  '@ksp-gonogo/kerbcast@1.7.0':
-    resolution: {integrity: sha512-hpfDywxJfPhhPnE9sacsQc0h6qht19Kv0zbfe/jRgJ5h024BsU9aP54uHUHvyA4p+cqFbwgbyGrrQpGexTS2Fw==}
+  '@ksp-gonogo/kerbcast@1.8.1':
+    resolution: {integrity: sha512-RW8TDkj7oAzNTflq5OTq9PIRXbEyYIXwtHP07JGsNXiRmSVWG8Q/SmF2FbRVkFFxIbWr6bz6vY/L+P1OGYODsg==}
 
   '@msgpack/msgpack@2.8.0':
     resolution: {integrity: sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==}
@@ -2114,6 +2114,12 @@ packages:
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
+
+  '@types/dom-webcodecs@0.1.13':
+    resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -2905,6 +2911,9 @@ packages:
   media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
     engines: {node: '>= 0.6'}
+
+  mediabunny@1.51.0:
+    resolution: {integrity: sha512-u327374xU8Ho0gCaMII7fUK8t0PnqkabCox1k8uUwvgvGb9o6YQGZEG2Qr4DTe7nTMpzfL7ukgnHDvDROySZ+Q==}
 
   meow@13.2.0:
     resolution: {integrity: sha512-pxQJQzB6djGPXh08dacEloMFopsOqGVRKFPYvPOt9XDZ1HasbgDZA74CJGreSU4G3Ak7EFJGoiH2auq+yXISgA==}
@@ -4267,14 +4276,16 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@ksp-gonogo/kerbcast-react@1.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@ksp-gonogo/kerbcast-react@1.8.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@ksp-gonogo/kerbcast': 1.7.0
+      '@ksp-gonogo/kerbcast': 1.8.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@ksp-gonogo/kerbcast@1.7.0': {}
+  '@ksp-gonogo/kerbcast@1.8.1':
+    dependencies:
+      mediabunny: 1.51.0
 
   '@msgpack/msgpack@2.8.0': {}
 
@@ -4505,6 +4516,12 @@ snapshots:
       '@types/node': 22.19.17
 
   '@types/deep-eql@4.0.2': {}
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    dependencies:
+      '@types/dom-webcodecs': 0.1.13
+
+  '@types/dom-webcodecs@0.1.13': {}
 
   '@types/estree@1.0.8': {}
 
@@ -5422,6 +5439,11 @@ snapshots:
   mdn-data@2.27.1: {}
 
   media-typer@0.3.0: {}
+
+  mediabunny@1.51.0:
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.12
+      '@types/dom-webcodecs': 0.1.13
 
   meow@13.2.0: {}
 

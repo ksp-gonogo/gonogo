@@ -29,8 +29,8 @@
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/ui": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
-    "@ksp-gonogo/kerbcast": "^1.7.0",
-    "@ksp-gonogo/kerbcast-react": "^1.7.0",
+    "@ksp-gonogo/kerbcast": "^1.8.1",
+    "@ksp-gonogo/kerbcast-react": "^1.8.1",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
