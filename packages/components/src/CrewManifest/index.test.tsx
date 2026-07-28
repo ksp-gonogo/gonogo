@@ -19,7 +19,7 @@ import {
  * CrewManifest runs entirely off the stream: `vessel.crew`
  * (count/capacity/crew roster, read via the canonical one-arg `useTelemetry`)
  * plus the derived `vessel.state.isEVA` (from `vessel.identity.vesselType`,
- * read via `useStream`). No legacy `MockDataSource` is registered — a real
+ * read via `useStream`). No legacy `MockDataSource` is registered, a real
  * `TelemetryProvider`/`TimelineStore` pipeline feeds the widget via
  * `fixture.emit`.
  */
@@ -29,8 +29,8 @@ import {
 const VESSEL_TYPE_EVA = 7;
 
 // `deriveVesselState` produces NO record until `vessel.orbit` is whole (it
-// early-returns `undefined` otherwise), and every derived field — isEVA
-// included — hangs off that record. A minimal orbit is emitted alongside
+// early-returns `undefined` otherwise), and every derived field, isEVA
+// included, hangs off that record. A minimal orbit is emitted alongside
 // `vessel.identity` so the record exists and the EVA flag can be derived.
 const ORBIT = {
   sma: 682500,
@@ -69,7 +69,7 @@ function renderCrew(fixture: ReturnType<typeof newFixture>) {
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // Slot augments are registered globally — clear so an avatar/badges augment
+  // Slot augments are registered globally, clear so an avatar/badges augment
   // bound in one test can't leak into the "empty slot" assertions of the next.
   clearAugments();
 });
@@ -117,7 +117,7 @@ describe("CrewManifestComponent", () => {
   it("does not flash Unmanned when capacity arrives before count", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
-    // A partial payload — capacity present, count still undefined. The widget
+    // A partial payload, capacity present, count still undefined. The widget
     // must not conclude "Unmanned" from a still-undefined count.
     act(() => {
       fixture.emit("vessel.crew", { capacity: 4 });
@@ -143,7 +143,7 @@ describe("CrewManifestComponent", () => {
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
-      // Some mods return rich objects instead of plain strings — our guard
+      // Some mods return rich objects instead of plain strings, our guard
       // should fish out the name and ignore the rest.
       fixture.emit("vessel.crew", {
         count: 2,
@@ -240,15 +240,15 @@ describe("CrewManifestComponent", () => {
 });
 
 /**
- * The leading `crew-manifest.avatar` slot — the SDK-independent shell of a
+ * The leading `crew-manifest.avatar` slot, the SDK-independent shell of a
  * per-kerbal avatar/portrait. A per-kerbal square cell left of the name where
  * the bullet renders today; an Uplink can later register an augment that fills
- * it with a live face. Until then (and whenever the augment yields nothing — no
+ * it with a live face. Until then (and whenever the augment yields nothing, no
  * Uplink, the avatar source off, kerbal not seated) the cell falls back to the
  * bullet dot, so CrewManifest renders fully with the slot empty. This suite
  * builds ONLY the slot + fallback; no facecam subscription (later task).
  */
-describe("CrewManifestComponent — avatar slot", () => {
+describe("CrewManifestComponent, avatar slot", () => {
   it("falls back to the bullet in every row when no avatar augment is bound", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
@@ -271,7 +271,7 @@ describe("CrewManifestComponent — avatar slot", () => {
   });
 
   it("composes a bound crew-manifest.avatar augment once per row, carrying each kerbal's identity", async () => {
-    // A test Uplink binds the avatar slot and echoes the slot props — proves the
+    // A test Uplink binds the avatar slot and echoes the slot props, proves the
     // slot is exposed, an augment composes into it, and the per-row props carry
     // the right kerbal. `requires` omitted so no Domain presence gate applies.
     registerAugment<"crew-manifest.avatar">({
@@ -316,7 +316,7 @@ describe("CrewManifestComponent — avatar slot", () => {
   it("keeps the roster + avatar cell at both small and large widget sizes", async () => {
     // The avatar cell lives in the roster branch, which renders whenever the
     // widget is at least 4x5. Assert it survives the min-roster size and a large
-    // size — the fallback bullet is present per row in both.
+    // size, the fallback bullet is present per row in both.
     for (const [w, h] of [
       [4, 5],
       [10, 12],
@@ -347,12 +347,12 @@ describe("CrewManifestComponent — avatar slot", () => {
  * Kerbalism per-kerbal survival meters. These ride the real
  * `kerbalism.crew`/`kerbalism.lifesupport` Topics (canonical `useTelemetry`,
  * same plumbing as `LifeSupportSystems`) on the SAME stream as `vessel.crew`
- * — no legacy `MockDataSource` anywhere in this file. Absent the
+ *, no legacy `MockDataSource` anywhere in this file. Absent the
  * KerbalismUplink neither topic ever arrives, `kerbals` stays `undefined`,
- * and the meters simply never render — the roster behaves exactly as the
+ * and the meters simply never render, the roster behaves exactly as the
  * tests above assert.
  */
-describe("CrewManifestComponent — survival meters", () => {
+describe("CrewManifestComponent, survival meters", () => {
   function newSurvivalFixture() {
     return setupStreamFixture({
       carriedChannels: [
@@ -379,7 +379,7 @@ describe("CrewManifestComponent — survival meters", () => {
         food: { amount: 0.35, capacity: 1.35, rate: -0.000036 },
       });
       // Real wire shape: `rules` is an ARRAY of `{name, value, fatalThreshold}`
-      // (KerbalismCrewEntry/KerbalismCrewRule) — Kerbalism's default profile
+      // (KerbalismCrewEntry/KerbalismCrewRule), Kerbalism's default profile
       // gives radiation a fatal threshold of 50 and everything else 1, so the
       // widget must normalize each rule by its OWN threshold, not assume 0..1.
       fixture.emit("kerbalism.crew", [

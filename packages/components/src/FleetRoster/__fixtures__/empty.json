@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "empty",
-    "source": "SYNTHESISED to the real system.vessels wire shape — a genuinely empty roster (the key present, the array empty), to exercise the confirmed-zero-vessels empty state (distinct from the not-available-yet state, which needs no emit at all)."
+    "source": "SYNTHESISED to the real system.vessels wire shape, a genuinely empty roster (the key present, the array empty), to exercise the confirmed-zero-vessels empty state (distinct from the not-available-yet state, which needs no emit at all)."
   },
   "_stream": {
     "carriedChannels": ["system.vessels", "system.bodies"],

@@ -18,6 +18,7 @@ import {
   ReadoutCaption,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -38,7 +39,7 @@ type CrewManifestConfig = Record<string, never>;
 
 // ── Kerbalism per-kerbal survival (additive; absent unless the KerbalismUplink
 // is present, in which case the real `kerbalism.crew`/`kerbalism.lifesupport`
-// Topics carry per-kerbal rule accumulators and the life-support ledger — see
+// Topics carry per-kerbal rule accumulators and the life-support ledger, see
 // local_docs/kerbalism-fixtures). Reads the canonical `useTelemetry` Topics,
 // same pattern as `LifeSupportSystems`/`SpaceWeather`; this hook is the only
 // data boundary for the Kerbalism add-on. ───────────────────────────────────
@@ -56,7 +57,7 @@ interface KerbalRules {
 
 /**
  * One `kerbalism.crew[].rules[]` entry (mirrors `KerbalismCrewRule` in
- * `Sitrep.Contract`/the generated SDK contract — structurally duplicated
+ * `Sitrep.Contract`/the generated SDK contract, structurally duplicated
  * locally, matching `LifeSupportSystems`'s own `WireResource`, rather than
  * importing the generated type into a non-test file).
  */
@@ -82,7 +83,7 @@ const RULE_FIELD: Record<string, keyof KerbalRules> = {
 /**
  * Normalize one wire rule's raw accumulator to a 0..1-toward-fatal fraction.
  * Kerbalism's default profile uses `fatal_threshold=1.0` for most rules but
- * overrides it per-rule (radiation's is 50) — dividing by the rule's OWN
+ * overrides it per-rule (radiation's is 50), dividing by the rule's OWN
  * `fatalThreshold`, rather than assuming it's always 1, keeps every rule
  * comparable on the same 0..1 scale the meters/death-clock expect (see
  * local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md).
@@ -110,7 +111,7 @@ function toKerbalRules(rules: KerbalismRuleWire[] | undefined): KerbalRules {
  * "time until crew start dying" headline. `null` when nothing is draining.
  * Reads the real `kerbalism.lifesupport` Topic (same source
  * `LifeSupportSystems` reads its own consumable ledger from).
- * (Stage 2 — per-kerbal accumulator-time-to-fatal after a resource hits zero —
+ * (Stage 2, per-kerbal accumulator-time-to-fatal after a resource hits zero,
  * needs a per-rule degeneration rate; the wire carries `degenPerSec` but the
  * mod does not yet resolve a rule's linked resource, so `deathClockSec` always
  * ships `null` today. Until then, stage 2 is shown as the "% to fatal"
@@ -226,7 +227,7 @@ function EvaSuitReadout({
 
 /**
  * The per-kerbal survival-meters block: dose + stress as 0..1-toward-fatal
- * meters, plus the derived death-clock readout. Presentational (no hooks) —
+ * meters, plus the derived death-clock readout. Presentational (no hooks),
  * the shared stage-1 time-to-empty is computed once in the component and passed
  * in, so this renders once per crew row without per-row subscriptions.
  */
@@ -256,7 +257,7 @@ function SurvivalMeters({
       tone: "warn",
     };
   } else if (stage1Sec !== null) {
-    // A resource is essentially out — degeneration is underway.
+    // A resource is essentially out, degeneration is underway.
     clock = { label: `${pct(worst)} to fatal`, tone: fatalTone(worst) };
   } else {
     clock = { label: "stable", tone: "go" };
@@ -289,14 +290,14 @@ function SurvivalMeters({
 // A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
 // Uplink can badge each kerbal with comfort/radiation-dose without leaving this
 // widget. Because the slot renders once PER ROW, its props MUST carry the crew
-// member's identity so the augment badges the right kerbal — `crewName` is that
+// member's identity so the augment badges the right kerbal, `crewName` is that
 // identity (the only per-kerbal handle Telemachus/Sitrep exposes here), and
 // `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `crew-manifest.badges` augment — one per crew row. */
+/** Props passed to every `crew-manifest.badges` augment, one per crew row. */
 export interface CrewBadgeContext {
-  /** The crew member this badge row belongs to — its identity for the augment. */
+  /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
   /** Position in the roster; disambiguates duplicate names. */
   crewIndex: number;
@@ -319,17 +320,17 @@ declare module "@ksp-gonogo/core" {
 // A per-crew-row LEADING square cell (left of the name, where the bullet dot
 // renders today): the SDK-independent shell of a per-kerbal avatar/portrait. An
 // Uplink can register an augment that fills it with a live face, keyed by
-// kerbal identity. Same per-row keying as `crew-manifest.badges` — `crewName`
+// kerbal identity. Same per-row keying as `crew-manifest.badges`, `crewName`
 // is the augment's identity handle and `crewIndex` disambiguates duplicate
 // names. Whenever the augment yields nothing (no Uplink providing avatars, the
 // avatar source disabled, kerbal not seated) the cell falls back to the bullet,
-// so CrewManifest renders fully with the slot empty — the avatar augment is
+// so CrewManifest renders fully with the slot empty, the avatar augment is
 // entirely optional.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `crew-manifest.avatar` augment — one per crew row. */
+/** Props passed to every `crew-manifest.avatar` augment, one per crew row. */
 export interface CrewAvatarContext {
-  /** The crew member this avatar belongs to — its identity for the augment. */
+  /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;
   /** Position in the roster; disambiguates duplicate names. */
   crewIndex: number;
@@ -346,18 +347,18 @@ declare module "@ksp-gonogo/core" {
  * Telemachus Reborn readme. (Historical note, kept for the object-shape
  * guard below: Telemachus-era Kerbalism installs augmented this same key
  * with per-kerbal health/stress/radiation inline; that path is superseded
- * here by the dedicated `kerbalism.crew` Topic — see the Kerbalism
- * per-kerbal survival block above — but the defensive object-shape parsing
+ * here by the dedicated `kerbalism.crew` Topic, see the Kerbalism
+ * per-kerbal survival block above, but the defensive object-shape parsing
  * stays useful for any `v.crew`-shaped source.)
  *
  * `v.crew` lives on the wire at `vessel.crew.crew`, a `CrewMember[]`
  * (`contract.ts`'s `{name?, trait?, ...}`), read here off the canonical
  * `vessel.crew` Topic. The object-shape branch below (already required for
- * the Kerbalism case) is exactly what parses `CrewMember` entries too — no
+ * the Kerbalism case) is exactly what parses `CrewMember` entries too, no
  * shape fix needed.
  *
  * Guard against unknown shapes (e.g. the server returning null before
- * the first sample or a mod replacing the payload) — extract strings
+ * the first sample or a mod replacing the payload), extract strings
  * and drop anything else.
  */
 function toCrewNames(raw: unknown): string[] {
@@ -377,7 +378,7 @@ function CrewManifestComponent({
   w,
   h,
 }: Readonly<ComponentProps<CrewManifestConfig>>) {
-  // Roster, count, and capacity all ride the single `vessel.crew` Topic —
+  // Roster, count, and capacity all ride the single `vessel.crew` Topic,
   // read it once and pick the three fields off it.
   const crew = useTelemetry("vessel.crew");
   const crewRaw = crew?.crew;
@@ -392,10 +393,10 @@ function CrewManifestComponent({
   // `v.crewCount`'s stream status is representative of the whole trio.
   const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
-  // Kerbalism per-kerbal survival — additive, absent unless the KerbalismUplink
+  // Kerbalism per-kerbal survival, additive, absent unless the KerbalismUplink
   // publishes `kerbalism.crew`. Reads happen unconditionally (stable hook
   // order); the map is empty and the meters simply never render without the
-  // Uplink (canonical `useTelemetry`, so this is `undefined` — not an error —
+  // Uplink (canonical `useTelemetry`, so this is `undefined`, not an error,
   // when no `TelemetryProvider`/Uplink is present).
   const kerbals = useTelemetry("kerbalism.crew");
   const stage1Sec = useLifeSupportTimeToEmptySec();
@@ -430,7 +431,7 @@ function CrewManifestComponent({
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
 
-  // Selective rendering — at very small sizes the roster is dropped in
+  // Selective rendering, at very small sizes the roster is dropped in
   // favour of a single big "n / m" headcount readout.
   const cols = w ?? 6;
   const rows = h ?? 8;
@@ -445,7 +446,7 @@ function CrewManifestComponent({
         </TitleRow>
         {known ? (
           <TinyReadout $tone="go">
-            {crewCount !== undefined ? `${crewCount}` : "—"}
+            {crewCount !== undefined ? `${crewCount}` : NULL_DISPLAY}
             {crewCapacity !== undefined && (
               <ReadoutCaption>of {crewCapacity} aboard</ReadoutCaption>
             )}
@@ -526,14 +527,14 @@ function renderBody({
 
   // Only conclude "Unmanned" once the headcount itself has arrived. If
   // `crewCapacity` (or another key) lands before `crewCount`, `known` is
-  // already true but `crewCount` is still undefined — treating that as
+  // already true but `crewCount` is still undefined, treating that as
   // unmanned flashes a wrong "no kerbals aboard" label on a crewed vessel.
   if (crewCount === undefined) {
     return <EmptyState>Waiting for telemetry...</EmptyState>;
   }
 
   if (crewCount === 0) {
-    return <EmptyState>Unmanned — no kerbals aboard.</EmptyState>;
+    return <EmptyState>Unmanned, no kerbals aboard.</EmptyState>;
   }
 
   if (names.length === 0) {
@@ -556,7 +557,7 @@ function renderBody({
             <Row>
               {/* Leading per-crew avatar slot: a square cell where an Uplink's
                   avatar augment composes. The fallback bullet is a base
-                  layer under the slot — with no augment bound (or the augment
+                  layer under the slot, with no augment bound (or the augment
                   yielding nothing: no Uplink, facecams off, kerbal not seated)
                   it shows through, so the roster degrades gracefully. */}
               <Avatar>
@@ -572,7 +573,7 @@ function renderBody({
               </Avatar>
               <Name>{name}</Name>
               {/* Per-crew inline badges slot. Renders nothing until an Uplink
-                  (e.g. Kerbalism Habitat/Radiation) binds — the props carry
+                  (e.g. Kerbalism Habitat/Radiation) binds, the props carry
                   this row's kerbal identity so the augment badges the right
                   one. */}
               <Badges>
@@ -708,7 +709,7 @@ const Avatar = styled.div`
 
 // Base layer: the bullet dot, centred in the avatar cell. Shows whenever the
 // slot yields nothing (no augment / facecams off / kerbal not seated); an
-// augment paints over it. Decorative — the name carries the identity.
+// augment paints over it. Decorative, the name carries the identity.
 const AvatarFallback = styled.div`
   position: absolute;
   inset: 0;
@@ -762,19 +763,19 @@ registerComponent<CrewManifestConfig>({
   id: "crew-manifest",
   name: "Crew Manifest",
   description:
-    "Kerbals aboard the active vessel — count vs capacity + full roster. Shows EVA state and handles unmanned probes gracefully.",
+    "Kerbals aboard the active vessel, count vs capacity + full roster. Shows EVA state and handles unmanned probes gracefully.",
   tags: ["telemetry", "crew"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewManifestComponent,
   // Per-crew-row augment slots (augment-slot-map). Both unfilled until an Uplink
-  // binds — the roster renders as before:
-  //   crew-manifest.badges — trailing inline badges (e.g. Kerbalism dose/comfort)
-  //   crew-manifest.avatar — leading square face cell (Uplink-provided avatar), falls
+  // binds, the roster renders as before:
+  //   crew-manifest.badges, trailing inline badges (e.g. Kerbalism dose/comfort)
+  //   crew-manifest.avatar, leading square face cell (Uplink-provided avatar), falls
   //     back to the bullet when empty.
   augmentSlots: ["crew-manifest.badges", "crew-manifest.avatar"],
   dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
-  // Kerbalism per-kerbal survival — additive, present only with the
+  // Kerbalism per-kerbal survival, additive, present only with the
   // KerbalismUplink. `optionalChannels` (not `channels`): the widget's core
   // roster reads always work without Kerbalism, so these must never gate the
   // whole widget's mount the way a REQUIRED `channels` entry would (see

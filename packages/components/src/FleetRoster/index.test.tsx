@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -12,9 +13,9 @@ import { FleetRosterComponent } from "./index";
 
 /**
  * FleetRoster runs entirely off the real stream: `system.vessels` (every
- * known vessel, loaded or not — KspHost.BuildVesselRosterEntry's capture-add)
+ * known vessel, loaded or not, KspHost.BuildVesselRosterEntry's capture-add)
  * plus `system.bodies` to resolve each entry's `bodyIndex` to a display
- * name. There is no legacy `MockDataSource`/`fleet.vessels` registered here —
+ * name. There is no legacy `MockDataSource`/`fleet.vessels` registered here,
  * that key never existed at runtime (see the FleetRoster stub-fix commit);
  * this is the real `TelemetryProvider`/`TimelineStore` pipeline via
  * `setupStreamFixture`.
@@ -65,8 +66,8 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.Partial,
     },
     {
-      // A real CommNet read of "no link home" — a confirmed ops fact, not an
-      // absence. vesselType 0 (Ship), not Station — this is a crewed craft,
+      // A real CommNet read of "no link home", a confirmed ops fact, not an
+      // absence. vesselType 0 (Ship), not Station, this is a crewed craft,
       // not a habitat.
       vesselId: "v-orbiter-eve",
       name: "Eve Orbiter Charlie",
@@ -280,7 +281,7 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("1/1")).toBeInTheDocument();
     // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link
     // column's "unknown" tag - three in total.
-    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(3);
     // Comms link tags: direct / relay / none / unknown.
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
     expect(screen.getAllByText("RELAY")).toHaveLength(2);

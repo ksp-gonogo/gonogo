@@ -54,21 +54,6 @@ function isSnapshotFile(f: string): boolean {
   return f.endsWith(".snap");
 }
 
-// TEMPORARY: three widget directories were being concurrently edited by
-// other agents while this sweep ran and were explicitly out of scope
-// (see the sweep's task description). Remove this exclusion once they
-// have been swept for em dashes; until then the ratchet can't see them
-// without false-failing on work this sweep was never allowed to touch.
-const TEMP_EXCLUDED_DIRS = [
-  "packages/components/src/CrewManifest/",
-  "packages/components/src/FleetRoster/",
-  "packages/components/src/LifeSupportSystems/",
-];
-
-function isTempExcluded(f: string): boolean {
-  return TEMP_EXCLUDED_DIRS.some((dir) => f.startsWith(dir));
-}
-
 function trackedFilesWithEmdash(root: string): string[] {
   let out: string;
   try {
@@ -88,8 +73,7 @@ function trackedFilesWithEmdash(root: string): string[] {
     .filter(
       (f) => !f.includes("/__generated__/") && !f.startsWith("__generated__/"),
     )
-    .filter((f) => !isSnapshotFile(f))
-    .filter((f) => !isTempExcluded(f));
+    .filter((f) => !isSnapshotFile(f));
 }
 
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));

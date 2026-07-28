@@ -19,6 +19,7 @@ import {
   PanelTitle,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { Fragment, useCallback, useMemo, useSyncExternalStore } from "react";
 import styled from "styled-components";
 
@@ -28,11 +29,11 @@ type FleetRosterConfig = Record<string, never>;
 // Data read
 //
 // The whole roster rides the single `system.vessels` Topic (every known
-// vessel, loaded or not — KspHost.BuildVesselRosterEntry's capture-add), NOT
+// vessel, loaded or not, KspHost.BuildVesselRosterEntry's capture-add), NOT
 // a legacy `fleet.vessels` DataSource key. `system.bodies` resolves each
 // entry's `bodyIndex` to a display name, the same pattern SystemView already
 // uses for its own vessel-body lookups. Copy of TargetPicker/DistanceToTarget/
-// OrbitView/LandingStatus's own local `useStreamStatusOptional` — there is no
+// OrbitView/LandingStatus's own local `useStreamStatusOptional`, there is no
 // shared export of it yet.
 //
 // `system.vessels` is intentionally unfiltered at the source: it enumerates
@@ -116,7 +117,7 @@ function useStreamStatusOptional(topic: string): StreamStatusValue {
 }
 
 /**
- * `"unknown"` is a REAL, honestly-reported tier, not a client-side fallback —
+ * `"unknown"` is a REAL, honestly-reported tier, not a client-side fallback,
  * the producer itself emits a null `commsControlSource` whenever CommNet had
  * nothing to read for that vessel this tick (see `VesselRosterEntry`'s own
  * doc comment), and this is that null carried through to the row. It must
@@ -126,7 +127,7 @@ function useStreamStatusOptional(topic: string): StreamStatusValue {
 type CommsLink = "connected" | "relay" | "none" | "unknown";
 
 interface FleetVessel {
-  /** Stable vessel id — the row key and the line-updates slot correlation key. */
+  /** Stable vessel id, the row key and the line-updates slot correlation key. */
   id: string;
   name: string;
   /** Body the vessel orbits/sits on, resolved via `system.bodies`; null when unresolved. */
@@ -156,7 +157,7 @@ function rosterCommsLink(
 /**
  * `system.vessels` -> the widget's row shape. `known` distinguishes "the
  * topic has never delivered a sample" from "it delivered one, and the fleet
- * is genuinely empty" — the same distinction the FleetRoster stub fix
+ * is genuinely empty", the same distinction the FleetRoster stub fix
  * established, now against the real Topic instead of the retired
  * `fleet.vessels` key.
  */
@@ -212,7 +213,7 @@ const TONE_HEX: Record<Tone, string> = {
 };
 
 /** Comms tier -> tone. This is the ONLY per-row signal the roster has a real
- *  read for — there is no vessel-health/reliability tone here (see the
+ *  read for, there is no vessel-health/reliability tone here (see the
  *  widget registration's own note on why `status` was dropped). */
 const COMMS_TONE: Record<CommsLink, Tone> = {
   connected: "go",
@@ -226,11 +227,11 @@ const COMMS: Record<CommsLink, { label: string; aria: string }> = {
   connected: { label: "DIRECT", aria: "Direct link" },
   relay: { label: "RELAY", aria: "Relay link" },
   none: { label: "NONE", aria: "No link" },
-  unknown: { label: "—", aria: "Link state unknown" },
+  unknown: { label: NULL_DISPLAY, aria: "Link state unknown" },
 };
 
 function crewLabel(v: FleetVessel): string {
-  if (v.crewCount == null) return "—";
+  if (v.crewCount == null) return NULL_DISPLAY;
   if (v.crewCount === 0 && v.crewCapacity == null) return "0";
   return v.crewCapacity != null
     ? `${v.crewCount}/${v.crewCapacity}`
@@ -238,7 +239,7 @@ function crewLabel(v: FleetVessel): string {
 }
 
 /**
- * Fleet-wide comms rollup — the header badge + footer meter both read off
+ * Fleet-wide comms rollup, the header badge + footer meter both read off
  * this. Deliberately worded around LINK, never "nominal"/"critical": those
  * words would read as a reliability/health verdict this widget has no data
  * to back (see the module doc comment on why `status` isn't a thing here).
@@ -288,11 +289,11 @@ function FleetRosterComponent({
   const rollup = commsRollup(vessels);
   const cols = w ?? 8;
   // Below the width threshold the Body column and the per-vessel update lines
-  // are shed — the identity + crew + link (the at-a-glance fleet state) always
+  // are shed, the identity + crew + link (the at-a-glance fleet state) always
   // stay. Height doesn't gate columns; the list just scrolls.
   const compact = cols < 6;
 
-  // Non-reactive read — augments register at module load, before first render.
+  // Non-reactive read, augments register at module load, before first render.
   const updatesAugmentPresent =
     getAugmentsForSlot("fleet-roster.updates").length > 0;
 
@@ -324,7 +325,7 @@ function FleetRosterComponent({
           {vessels.map((v) => {
             const comms = COMMS[v.comms];
             // The per-vessel line-updates block is PURELY the
-            // `fleet-roster.updates` augment slot now — the seam for a
+            // `fleet-roster.updates` augment slot now, the seam for a
             // future Reliability/TestFlight uplink to compose real
             // alarm/health one-liners here. It carries no data of its own
             // (there is no reliability signal behind this widget; see the
@@ -344,7 +345,7 @@ function FleetRosterComponent({
                   </NameCell>
                   {!compact && (
                     <BodyCell title={v.body ?? undefined}>
-                      {v.body ?? "—"}
+                      {v.body ?? NULL_DISPLAY}
                     </BodyCell>
                   )}
                   <CrewCell>{crewLabel(v)}</CrewCell>
@@ -400,7 +401,7 @@ function FleetRosterComponent({
 // ---------------------------------------------------------------------------
 
 // Name takes the flexible 1fr; Body is content-sized (short body names don't
-// need a fixed slice), Crew/Link are just wide enough for their content — so the
+// need a fixed slice), Crew/Link are just wide enough for their content, so the
 // vessel name keeps the most room at the tight 8-wide default.
 const GRID_FULL = "minmax(0, 1fr) auto 42px 66px";
 const GRID_COMPACT = "minmax(0, 1fr) 42px 66px";

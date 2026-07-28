@@ -8,7 +8,7 @@ import { CrewManifestComponent } from "./index";
  * The stream test-adapter proof for CrewManifest (mirrors
  * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` — no legacy `DataSource` is registered anywhere in this
+ * `StubTransport`, no legacy `DataSource` is registered anywhere in this
  * file.
  *
  * `v.crewCount` / `v.crew` / `v.crewCapacity` all land on the single
@@ -21,7 +21,7 @@ import { CrewManifestComponent } from "./index";
  * stream alone, proving the mapped fields genuinely drive the widget's
  * rendering off the real pipeline.
  */
-describe("CrewManifest — genuinely runs off the stream (M3 batch 4)", () => {
+describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],
@@ -36,10 +36,10 @@ describe("CrewManifest — genuinely runs off the stream (M3 batch 4)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — known is false, so the waiting placeholder shows.
+    // Nothing arrived yet, known is false, so the waiting placeholder shows.
     expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all —
+    // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.crew")).toBe(true);
 
@@ -56,7 +56,7 @@ describe("CrewManifest — genuinely runs off the stream (M3 batch 4)", () => {
     });
 
     await waitFor(() => expect(screen.getByText("3 / 4 aboard")).toBeTruthy());
-    // The roster now renders straight off the stream — no legacy fallback
+    // The roster now renders straight off the stream, no legacy fallback
     // needed for names or capacity.
     expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
