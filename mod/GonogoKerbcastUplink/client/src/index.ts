@@ -18,7 +18,7 @@
 // The two meet at `cameraId` === kerbcast's `flightId`, which
 // `KerbcastCameraEntryBuilder.Build` establishes mod-side.
 //
-// Importing this package's entry point side-effects three registrations
+// Importing this package's entry point side-effects four registrations
 // into @ksp-gonogo/core's global registries:
 //
 //   - `KerbcastDataSource` → registerDataSource("kerbcast", ...) so the
@@ -32,21 +32,26 @@
 //     backdrop. This REPLACED that widget's built-in `HudCamera`, which had
 //     kerbcast wired directly into the core client — the thing this package's
 //     move exists to end.
+//   - `KerbcastAvatarAugment` → registerAugment({ id: "kerbcast-crew-avatar",
+//     ... }) filling @ksp-gonogo/components's CrewManifest widget's
+//     `crew-manifest.avatar` slot with a live per-kerbal face (facecam-stage6
+//     consumption design). Correlates by kerbal NAME against kerbcast's
+//     `kind: Kerbal` cameras — see CrewAvatarGate/selectKerbalCamera.ts.
 //
 // To wire it into the app: `import "@ksp-gonogo/gonogo-kerbcast-uplink";` during app
 // bootstrap (alongside the other data-source/registration imports in
 // app/src/dataSources/index.ts).
 
 export type { CameraFeedConfig } from "./CameraFeed";
-export { CameraFeed } from "./CameraFeed";
+export { CameraFeed, isPartCamera } from "./CameraFeed";
 export {
   useDelayedKerbcastStream,
   useDelayedPlaybackStatus,
 } from "./CameraFeed/useDelayedKerbcastStream";
-// The embedded-facecam kill-switch gate (read-path stub; not yet wired into a
-// slot — see its own header). Exported so the eventual crew-manifest.avatar
-// wiring is a drop-in.
+// The embedded-facecam kill-switch gate + kerbal-face augment, wired into
+// CrewManifest's `crew-manifest.avatar` slot below.
 export { KerbcastAvatarAugment } from "./CrewAvatarGate";
+export { selectKerbalCamera } from "./CrewAvatarGate/selectKerbalCamera";
 export type { LabelableCamera } from "./cameraLabels";
 export { buildCameraLabeler } from "./cameraLabels";
 // The generic delayed-media infrastructure (DelayedPlayoutBuffer, the
@@ -88,5 +93,6 @@ export * from "./runtime";
 // The imports stay un-aliased so the package's `dist/index.js` keeps
 // them as bare imports tsc / bundlers won't tree-shake away.
 import "./CameraFeed";
+import "./CrewAvatarGate"; // registerAugment("kerbcast-crew-avatar" -> crew-manifest.avatar)
 import "./DockingCameraAugment";
 import "./settings/registerKerbcastSettings"; // registerSetting × 2 (declarative "Kerbcast" category)

@@ -1,3 +1,4 @@
+import { CameraKind, type CameraState } from "@ksp-gonogo/kerbcast";
 import {
   type CameraFeedHandle,
   KerbcastProvider,
@@ -43,6 +44,20 @@ export interface CameraFeedConfig extends Record<string, unknown> {
    * default chrome stays uncluttered; toggled from the camera menu.
    */
   showDebugInfo: boolean;
+}
+
+/**
+ * Facecam kind separation (facecam-stage6 consumption design, "requirements
+ * gonogo-side" §5): kerbal face cameras get their own crew surfaces
+ * (CrewManifest's `crew-manifest.avatar` augment, and eventually a dedicated
+ * facecam-wall widget) — they should not also appear in this general
+ * part-camera picker/stepper/auto-latch. `camera.kind` defaults to `Part`
+ * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
+ * camera the SDK positively reports as a kerbal face; nothing is lost when
+ * `kind` is absent.
+ */
+export function isPartCamera(camera: CameraState): boolean {
+  return camera.kind !== CameraKind.Kerbal;
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +363,7 @@ export function CameraFeed({
           ref={feedRef}
           useStream={useDelayedKerbcastStream}
           flightId={requested}
+          cameraFilter={isPartCamera}
           onSelectCamera={(nextFlightId) =>
             onConfigChange?.({
               flightId: nextFlightId,

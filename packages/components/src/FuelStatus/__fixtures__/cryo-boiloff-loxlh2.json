@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "scenario": "cryo-boiloff-loxlh2",
+    "source": "synthesized, PLACEHOLDER-GRADE — cryo-boiloff ownership (Kerbalism vs RealFuels) is an unresolved VERIFY item (see local_docs/kerbalism-RO-design-DECISIONS.md, local_docs/kerbalism-widget-plan-CONSENSUS.md §4, and local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md, which has zero mentions of boiloff despite exhaustive source coverage). Resource names (LqdHydrogen/LqdOxygen) are common RealFuels convention, not confirmed against a live install. Boiloff-rate magnitudes are invented for UI layout purposes only. See local_docs/design/specs/2026-07-28-kerbalism-cryo-boiloff-spec.md — treat as a shape placeholder, not grounded data."
+  },
+  "v.currentStage": 1,
+  "dv.stageCount": 2,
+  "dv.totalDVVac": 6200.0,
+  "dv.totalDVASL": 5100.0,
+  "dv.totalDVActual": 6100.0,
+  "dv.totalBurnTime": 480.0,
+  "r.resource[ElectricCharge]": 380.0,
+  "r.resourceMax[ElectricCharge]": 500.0,
+  "r.resourceCurrent[ElectricCharge]": 380.0,
+  "r.resourceCurrentMax[ElectricCharge]": 500.0,
+  "fuel.cryo.LqdHydrogen.amount": 2100.0,
+  "fuel.cryo.LqdHydrogen.capacity": 2400.0,
+  "fuel.cryo.LqdHydrogen.boiloffRatePerSec": 0.045,
+  "fuel.cryo.LqdHydrogen.timeToDrySec": 46666,
+  "fuel.cryo.LqdHydrogen.insulated": true,
+  "fuel.cryo.LqdHydrogen.coolingActive": true,
+  "fuel.cryo.LqdHydrogen.coolingEcPerSec": 0.9,
+  "fuel.cryo.LqdOxygen.amount": 7400.0,
+  "fuel.cryo.LqdOxygen.capacity": 7600.0,
+  "fuel.cryo.LqdOxygen.boiloffRatePerSec": 0.012,
+  "fuel.cryo.LqdOxygen.timeToDrySec": 616666,
+  "fuel.cryo.LqdOxygen.insulated": true,
+  "fuel.cryo.LqdOxygen.coolingActive": false,
+  "fuel.cryo.LqdOxygen.coolingEcPerSec": 0
+}

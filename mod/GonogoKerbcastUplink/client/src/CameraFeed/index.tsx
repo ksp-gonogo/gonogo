@@ -3,6 +3,7 @@ import {
   CameraFeed,
   type CameraFeedConfig,
   cameraFeedActions,
+  isPartCamera,
 } from "./CameraFeed";
 import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
@@ -46,4 +47,4 @@ registerComponent<CameraFeedConfig>({
 });
 
 export type { CameraFeedConfig };
-export { CameraFeed, cameraFeedActions };
+export { CameraFeed, cameraFeedActions, isPartCamera };

@@ -29,7 +29,12 @@ import {
   getAugmentsForSlot,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import type { CameraLifecycle, Layer } from "@ksp-gonogo/kerbcast";
+import type {
+  CameraKind,
+  CameraLifecycle,
+  CrewLocation,
+  Layer,
+} from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import type {
   ComponentProps,
@@ -179,6 +184,8 @@ function toInit(c: CameraStateLike): MockCameraInit {
   return {
     flightId: c.flightId,
     lifecycle: c.lifecycle as CameraLifecycle | undefined,
+    kind: c.kind as CameraKind | undefined,
+    crewLocation: c.crewLocation as CrewLocation | undefined,
     partName: c.partName as string | undefined,
     partTitle: c.partTitle as string | undefined,
     cameraName: c.cameraName as string | undefined,
@@ -367,6 +374,34 @@ describe("CameraFeed — camera selection", () => {
       vesselName: "Kerbal X",
     }),
   ];
+
+  it("excludes kerbal face cameras from the picker (facecam kind separation)", async () => {
+    // Facecam-stage6 consumption design, "requirements gonogo-side" §5: kerbal
+    // face cams get their own crew surfaces (CrewManifest's avatar augment,
+    // eventually a dedicated facecam wall) and should never also show up in
+    // this general part-camera picker/auto-latch.
+    await buildConnectedSource([
+      ...TWO_CAMERAS,
+      makeCamera({
+        flightId: 99,
+        kind: "kerbal",
+        cameraName: "Jebediah Kerman",
+        vesselName: "Kerbal X",
+      }),
+    ]);
+
+    renderFeed({ flightId: null });
+
+    fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+    const labels = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
+    expect(labels).toEqual([
+      "Starboard Cam (Kerbal X)",
+      "Nose Cam (Kerbal X)",
+      "Tail Cam (Kerbal X)",
+    ]);
+  });
 
   it("lists every available camera in the menu", async () => {
     await buildConnectedSource(TWO_CAMERAS);
