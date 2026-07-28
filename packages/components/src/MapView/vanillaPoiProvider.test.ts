@@ -4,8 +4,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
-import { act } from "react";
+import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./vanillaPoiProvider";
@@ -18,7 +17,19 @@ function getProvider() {
   return provider;
 }
 
-afterEach(() => clearRegistry());
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
+// notifies the DataSource-registry subscribers — every useTelemetry call
+// keeps its legacy useDataSourceSubscription wired unconditionally (see that
+// hook's own doc comment), so clearRegistry() firing on a still-mounted hook
+// tree is a state update outside act(). RTL auto-cleanup runs after this
+// file's afterEach, so it can't be relied on to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearRegistry();
+});
 
 describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
   it("is registered with no `requires` gate — core Sitrep data, always potentially present", () => {
@@ -31,12 +42,13 @@ describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
     });
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       {
         wrapper: fixture.Provider,
       },
     );
+    renderedTrees.push(unmount);
 
     expect(result.current).toBeUndefined();
 
@@ -53,12 +65,13 @@ describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
     });
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       {
         wrapper: fixture.Provider,
       },
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       fixture.emit("system.bodies", {
@@ -147,12 +160,13 @@ describe("vanillaPoiProvider — KSC/launch-site/contract-target POIs", () => {
     });
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       {
         wrapper: fixture.Provider,
       },
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });

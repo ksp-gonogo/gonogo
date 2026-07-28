@@ -103,9 +103,17 @@ function makeInertQueryClient(): QueryClient {
   });
 }
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
+// notifies the DataSource-registry subscribers — every useTelemetry call
+// keeps its legacy useDataSourceSubscription wired unconditionally, so
+// clearRegistry() firing on a still-mounted SettingsModal tree is a state
+// update outside act() (CLAUDE.md -> Testing Philosophy). RTL auto-cleanup
+// runs after this file's afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 function renderModal(screen_: "main" | "station" = "main") {
   const service = new SettingsService(memoryStorage());
-  return render(
+  const view = render(
     <QueryClientProvider client={makeInertQueryClient()}>
       <ScreenProvider value={screen_}>
         <SettingsProvider service={service}>
@@ -114,6 +122,8 @@ function renderModal(screen_: "main" | "station" = "main") {
       </ScreenProvider>
     </QueryClientProvider>,
   );
+  renderedTrees.push(view.unmount);
+  return view;
 }
 
 /**
@@ -209,7 +219,7 @@ function renderModalWithStream(
   stream: ReturnType<typeof setupTelemetryStream>,
 ) {
   const service = new SettingsService(memoryStorage());
-  return render(
+  const view = render(
     <QueryClientProvider client={makeInertQueryClient()}>
       <ScreenProvider value="main">
         <SettingsProvider service={service}>
@@ -220,6 +230,8 @@ function renderModalWithStream(
       </ScreenProvider>
     </QueryClientProvider>,
   );
+  renderedTrees.push(view.unmount);
+  return view;
 }
 
 async function openDataSourcesTab() {
@@ -232,6 +244,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearRegistry();
   clearUplinkHandles();
   __clearSettingsTabsForTests();
@@ -569,13 +583,15 @@ describe("SettingsModal — Uplink Hub tab (initialTabId + attention indicator)"
 
   function renderWithRealQuery(node: ReactNode) {
     const service = new SettingsService(memoryStorage());
-    return render(
+    const view = render(
       <QueryClientProvider client={new QueryClient()}>
         <ScreenProvider value="main">
           <SettingsProvider service={service}>{node}</SettingsProvider>
         </ScreenProvider>
       </QueryClientProvider>,
     );
+    renderedTrees.push(view.unmount);
+    return view;
   }
 
   it("opens directly on the Uplink Hub tab when initialTabId is set (first-run auto-open host)", () => {

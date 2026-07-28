@@ -33,7 +33,19 @@ function wrapper(client: TelemetryClient) {
   };
 }
 
-afterEach(() => clearRegistry());
+// Rendered hook trees, tracked so afterEach can unmount them BEFORE
+// clearRegistry() notifies the DataSource-registry subscribers — every
+// useTelemetry call keeps its legacy useDataSourceSubscription wired
+// unconditionally, so clearRegistry() firing on a still-mounted hook tree is
+// a state update outside act(). RTL auto-cleanup runs after this file's
+// afterEach, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearRegistry();
+});
 
 describe("scansat:anomalies map POI provider", () => {
   it("is registered gated on the scansat domain", () => {
@@ -47,10 +59,11 @@ describe("scansat:anomalies map POI provider", () => {
     const client = new TelemetryClient(transport);
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       { wrapper: wrapper(client) },
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       transport.emit("scansat.anomalies.Kerbin", [
@@ -112,10 +125,11 @@ describe("scansat:anomalies map POI provider", () => {
     const client = new TelemetryClient(transport);
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       { wrapper: wrapper(client) },
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       client.subscribe("system.bodies", () => {});
@@ -162,10 +176,11 @@ describe("scansat:anomalies map POI provider", () => {
     const client = new TelemetryClient(transport);
     const provider = getProvider();
 
-    const { result } = renderHook(
+    const { result, unmount } = renderHook(
       () => provider.usePois({ bodyId: "Kerbin" }),
       { wrapper: wrapper(client) },
     );
+    renderedTrees.push(unmount);
 
     act(() => {
       transport.emit("scansat.anomalies.Kerbin", []);

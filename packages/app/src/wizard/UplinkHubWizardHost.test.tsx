@@ -52,10 +52,18 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
+// `enabled: false` keeps the Hub registry query inert — none of this file's
+// tests assert on gap-resolution content (that's UplinkHubWizard.test.tsx's
+// job, with a real MSW-backed query); an active query here just leaves an
+// async fetch in flight that can resolve after a test's synchronous
+// assertions/unmount and trip an act() warning, same reasoning as
+// SettingsModal.test.tsx's own `makeInertQueryClient()`.
 function renderHost() {
   const settingsService = new SettingsService(memoryStorage());
   const serialService = new SerialDeviceService({ screenKey: "test" });
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { enabled: false, retry: false } },
+  });
   return render(
     <QueryClientProvider client={queryClient}>
       <ModalProvider>

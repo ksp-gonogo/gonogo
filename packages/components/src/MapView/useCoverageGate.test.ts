@@ -6,13 +6,25 @@ import {
 } from "@ksp-gonogo/core";
 import type { BodyMask } from "@ksp-gonogo/data";
 import { FogMaskCacheProvider, FogMaskStore } from "@ksp-gonogo/data";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { compositeCoverage, useCoverageGate } from "./useCoverageGate";
 
-afterEach(() => clearFogRevealSources());
+// Rendered hook trees, tracked so afterEach can unmount them BEFORE
+// clearFogRevealSources() notifies the reveal-source registry's subscribers
+// — a still-mounted useCoverageGate instance re-rendering off that
+// notification is a state update outside act() (CLAUDE.md -> Testing
+// Philosophy). RTL auto-cleanup runs after this file's afterEach, too late
+// to unmount first.
+const renderedTrees: Array<() => void> = [];
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearFogRevealSources();
+});
 
 function mask(data: number[]): BodyMask {
   return {
@@ -64,17 +76,20 @@ describe("useCoverageGate — hook integration", () => {
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
       createElement(FogMaskCacheProvider, { store }, children);
-    const { result, rerender } = renderHook(
+    const { result, rerender, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },
     );
+    renderedTrees.push(unmount);
     expect(result.current.hasAnySource).toBe(false);
 
-    registerFogRevealSource({
-      id: "example-uplink:altimetry-hi",
-      weight: 255,
+    act(() => {
+      registerFogRevealSource({
+        id: "example-uplink:altimetry-hi",
+        weight: 255,
+      });
+      rerender();
     });
-    rerender();
     await waitFor(() => expect(result.current.hasAnySource).toBe(true));
   });
 
@@ -94,9 +109,11 @@ describe("useCoverageGate — hook integration", () => {
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
       createElement(FogMaskCacheProvider, { store }, children);
-    const { result } = renderHook(() => useCoverageGate("Kerbin", undefined), {
-      wrapper,
-    });
+    const { result, unmount } = renderHook(
+      () => useCoverageGate("Kerbin", undefined),
+      { wrapper },
+    );
+    renderedTrees.push(unmount);
 
     expect(result.current.hasAnySource).toBe(true);
   });
@@ -111,7 +128,10 @@ describe("useCoverageGate — hook integration", () => {
       weight: 255,
     });
 
-    const { result } = renderHook(() => useCoverageGate("Kerbin", undefined));
+    const { result, unmount } = renderHook(() =>
+      useCoverageGate("Kerbin", undefined),
+    );
+    renderedTrees.push(unmount);
 
     await waitFor(() => expect(result.current.hasAnySource).toBe(false));
     expect(result.current.data).toBeNull();

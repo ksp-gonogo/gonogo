@@ -101,10 +101,21 @@ function setup(targetBodyIndex?: number) {
       ],
     });
   }
+  renderedTrees.push(view.unmount);
   return { fixture, view };
 }
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
+// notifies the DataSource-registry subscribers — every useTelemetry call
+// keeps its legacy useDataSourceSubscription wired unconditionally, so
+// clearRegistry() firing on a still-mounted widget is a state update outside
+// act(). RTL auto-cleanup runs after this file's afterEach, too late to
+// unmount first.
+const renderedTrees: Array<() => void> = [];
+
 afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
   clearRegistry();
 });
 

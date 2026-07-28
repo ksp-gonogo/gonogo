@@ -37,12 +37,19 @@ function atRange(d: number) {
 /** `tar.type` legacy string -> the `vessel.target.kind` ordinal it now maps to. */
 const KIND: Record<string, number> = { Vessel: 0, CelestialBody: 1 };
 
+// Rendered trees, tracked so afterEach can unmount them BEFORE clearAugments()
+// notifies the augment-slot subscribers — clearAugments() firing on a
+// still-mounted widget's AugmentSlot is a state update outside act() (CLAUDE.md
+// -> Testing Philosophy). RTL auto-cleanup runs after this file's afterEach
+// hooks, too late to unmount first.
+const renderedTrees: Array<() => void> = [];
+
 function renderWidget(
   fixture: StreamFixture,
   config: Record<string, unknown> = {},
   props: { id?: string; w?: number; h?: number } = {},
 ) {
-  return render(
+  const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: props.id ?? "tar" }}>
         <DistanceToTargetComponent
@@ -54,12 +61,16 @@ function renderWidget(
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
+  renderedTrees.push(view.unmount);
+  return view;
 }
 
 describe("DistanceToTargetComponent", () => {
   let fixture: StreamFixture;
 
   afterEach(() => {
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearAugments();
   });
 
@@ -315,8 +326,13 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
   afterEach(() => {
     // clearAugments() must come after unmount, else a still-mounted
     // AugmentSlot re-renders outside act() when the registry notifies
-    // (CLAUDE.md → Testing Philosophy, act() warning pattern). testing-library's
-    // auto-cleanup between tests already unmounts before this runs.
+    // (CLAUDE.md → Testing Philosophy, act() warning pattern). RTL's
+    // auto-cleanup afterEach runs AFTER this file's own afterEach hooks
+    // (outer/import-time-registered hooks run after inner describe-scoped
+    // ones), so it can't be relied on to unmount first — the renderedTrees
+    // tracking above is what actually guarantees the ordering.
+    for (const unmount of renderedTrees) unmount();
+    renderedTrees.length = 0;
     clearAugments();
   });
 
