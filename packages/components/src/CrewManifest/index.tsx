@@ -149,6 +149,81 @@ function fatalTone(value: number): MeterTone {
 }
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
 
+// -----------------------------------------------------------------------
+// EVA suit resources (additive; only meaningful while the active vessel IS
+// an EVA kerbal). A stock KSP EVA kerbal is a real Vessel with its own
+// resource-carrying Part (Kerbalism source, System/Callbacks.cs's
+// ToEVA/DelayedOnEVA on GameEvents.onCrewOnEva), so the already-existing,
+// already-consumed `vessel.resources` Topic (see FuelStatus) works against
+// it unchanged - no new wire protocol needed. Kerbalism's default profile
+// (GameData/KerbalismConfig/Profiles/Default.cfg) attaches exactly two
+// resources with a nonzero `on_eva`: ElectricCharge and Oxygen. Read here as
+// plain resource-name lookups, no Kerbalism-specific shape.
+// -----------------------------------------------------------------------
+
+interface SuitResourceReadout {
+  current: number;
+  max: number;
+}
+
+/** Extracts a `{current, max}` pair off a `vessel.resources` entry, or
+ *  `undefined` when the resource is absent or has no usable capacity. */
+function toSuitResourceReadout(
+  entry: { current?: number; max?: number } | undefined,
+): SuitResourceReadout | undefined {
+  if (!entry) return undefined;
+  const { current, max } = entry;
+  if (current === undefined || max === undefined || max <= 0) return undefined;
+  return { current, max };
+}
+
+/** Tone for a resource fraction remaining: full tank is calm, empty is
+ *  alarming - the inverse of `fatalTone`'s "toward fatal" reading. */
+function suitResourceTone(fraction: number): MeterTone {
+  if (fraction <= 0.15) return "nogo";
+  if (fraction <= 0.4) return "warn";
+  return "go";
+}
+
+/**
+ * Compact EVA-suit resource block: O2 + EC meters shown only while the
+ * active vessel is an EVA kerbal and the Uplink actually publishes
+ * `vessel.resources` for it. Presentational (no hooks) - renders nothing
+ * when neither resource is available, so an Uplink without this data leaves
+ * the roster exactly as before.
+ */
+function EvaSuitReadout({
+  oxygen,
+  electricCharge,
+}: Readonly<{
+  oxygen: SuitResourceReadout | undefined;
+  electricCharge: SuitResourceReadout | undefined;
+}>) {
+  if (!oxygen && !electricCharge) return null;
+  return (
+    <SuitStack aria-label="EVA suit resources">
+      {oxygen && (
+        <Meter
+          size="sm"
+          label="O2"
+          value={oxygen.current / oxygen.max}
+          tone={suitResourceTone(oxygen.current / oxygen.max)}
+          valueLabel={`${oxygen.current.toFixed(1)} / ${oxygen.max.toFixed(1)}`}
+        />
+      )}
+      {electricCharge && (
+        <Meter
+          size="sm"
+          label="EC"
+          value={electricCharge.current / electricCharge.max}
+          tone={suitResourceTone(electricCharge.current / electricCharge.max)}
+          valueLabel={`${electricCharge.current.toFixed(0)} / ${electricCharge.max.toFixed(0)}`}
+        />
+      )}
+    </SuitStack>
+  );
+}
+
 /**
  * The per-kerbal survival-meters block: dose + stress as 0..1-toward-fatal
  * meters, plus the derived death-clock readout. Presentational (no hooks) —
@@ -339,6 +414,18 @@ function CrewManifestComponent({
   const [metersOverride, setMetersOverride] = useState<boolean | null>(null);
   const showMeters = hasSurvival && (metersOverride ?? inFlight);
 
+  // EVA suit resources - additive, only relevant while the active vessel IS
+  // an EVA kerbal (see the EvaSuitReadout block comment above). Read
+  // unconditionally (stable hook order); undefined whenever no Uplink
+  // publishes `vessel.resources` or the active vessel isn't an EVA kerbal.
+  const resources = useTelemetry("vessel.resources");
+  const suitOxygen = isEVA
+    ? toSuitResourceReadout(resources?.resources?.Oxygen)
+    : undefined;
+  const suitElectricCharge = isEVA
+    ? toSuitResourceReadout(resources?.resources?.ElectricCharge)
+    : undefined;
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -392,6 +479,7 @@ function CrewManifestComponent({
           ? formatSubtitle(isEVA, crewCount, crewCapacity)
           : "No crew data"}
       </PanelSubtitle>
+      <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       {renderBody({
         known,
         crewCount,
@@ -581,6 +669,20 @@ const SurvivalStack = styled.div`
   padding: 0 0 4px 14px;
 `;
 
+// EVA suit resources block, shown once beneath the subtitle (not per-row -
+// the suit belongs to the single EVA kerbal the whole widget is scoped to).
+// Panel imposes no content inset (full-bleed standard) - matches
+// PanelTitle/PanelSubtitle's own "0 16px" horizontal padding so the O2/EC
+// rows line up with the title/subtitle text above them instead of running
+// flush to the panel edges.
+const SuitStack = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 0 16px;
+`;
+
 // Derived death-clock readout under the meters. Tone tracks urgency.
 const DeathClock = styled.span<{ $tone: MeterTone }>`
   font-size: var(--font-size-xs);
@@ -678,8 +780,15 @@ registerComponent<CrewManifestConfig>({
   // whole widget's mount the way a REQUIRED `channels` entry would (see
   // `RequiresGuard`'s own doc comment on the distinction). `kerbalism.crew`
   // carries the rule accumulators; `kerbalism.lifesupport` drives the shared
-  // stage-1 death-clock.
-  optionalChannels: ["kerbalism.crew", "kerbalism.lifesupport"],
+  // stage-1 death-clock. `vessel.resources` is the (already-existing,
+  // already-consumed-by-FuelStatus) generic per-vessel resource Topic; here
+  // it feeds the EVA suit O2/EC readout, only relevant while the active
+  // vessel is an EVA kerbal.
+  optionalChannels: [
+    "kerbalism.crew",
+    "kerbalism.lifesupport",
+    "vessel.resources",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,
