@@ -45,7 +45,7 @@
             {
               "vesselId": "v-transfer-1",
               "name": "Jool Transfer Vehicle",
-              "vesselType": 1,
+              "vesselType": 0,
               "situation": 3,
               "bodyIndex": 1,
               "crewCount": 3,

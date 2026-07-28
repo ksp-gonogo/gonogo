@@ -65,9 +65,12 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.Partial,
     },
     {
+      // A real CommNet read of "no link home" — a confirmed ops fact, not an
+      // absence. vesselType 0 (Ship), not Station — this is a crewed craft,
+      // not a habitat.
       vesselId: "v-orbiter-eve",
       name: "Eve Orbiter Charlie",
-      vesselType: 1,
+      vesselType: 0,
       situation: 3,
       bodyIndex: 3,
       crewCount: 1,
@@ -76,14 +79,44 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.None,
     },
     {
-      // No crew/comms fields at all — the producer's own "could not read
-      // this tick" case (BuildVesselRosterEntry's try/catch default). Must
-      // render as an honest unknown, never a fabricated zero/no-link.
+      // Real, honest zeros for crew (Part.CrewCapacity sums to 0 for debris —
+      // ProtoVessel.GetVesselCrew()/partPrefab.CrewCapacity both resolve
+      // cleanly), but comms fields are OMITTED — verified against
+      // CommNet.CommNetVessel.OnStart (decompile): VesselType.Debris never
+      // gets a CommNetVessel attached at all, so this is the vessel's
+      // permanent state, not a glitch.
       vesselId: "v-debris",
-      name: "Unresolvable Debris",
+      name: "Stage 2 Debris",
       vesselType: 9,
       situation: 3,
       bodyIndex: 0,
+      crewCount: 0,
+      crewCapacity: 0,
+    },
+    {
+      // Same structural reason as debris — CommNetVessel.OnStart's guard
+      // excludes VesselType.SpaceObject too — but crew is still a real,
+      // resolvable zero.
+      vesselId: "v-asteroid",
+      name: "Ast. XC7-142",
+      vesselType: 10,
+      situation: 3,
+      bodyIndex: 0,
+      crewCount: 0,
+      crewCapacity: 0,
+    },
+    {
+      // No crew/comms/body fields at all — the producer's own transient
+      // "could not read this tick" case (BuildVesselRosterEntry's try/catch
+      // default, or a not-yet-resolved protoVessel/orbitDriver on a
+      // freshly-spawned vessel) — distinct from debris/asteroid above, whose
+      // missing comms is a permanent, structural state with perfectly real
+      // crew data. Must render as an honest unknown, never a fabricated
+      // zero/no-link.
+      vesselId: "v-unresolved",
+      name: "New Contact",
+      vesselType: 14,
+      situation: 2,
     },
   ],
 };
@@ -113,7 +146,7 @@ const ALL_LINKED = {
     {
       vesselId: "v-c",
       name: "Transfer Vehicle",
-      vesselType: 1,
+      vesselType: 0,
       situation: 3,
       bodyIndex: 0,
       crewCount: 3,
@@ -173,18 +206,27 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("Munar Relay Probe")).toBeInTheDocument();
     expect(screen.getByText("Duna Lander Bravo")).toBeInTheDocument();
     expect(screen.getByText("Eve Orbiter Charlie")).toBeInTheDocument();
-    expect(screen.getByText("Unresolvable Debris")).toBeInTheDocument();
-    // Body names resolved via system.bodies. Kerbin appears twice (the
-    // station and the debris entry both orbit it).
-    expect(screen.getAllByText("Kerbin")).toHaveLength(2);
+    expect(screen.getByText("Stage 2 Debris")).toBeInTheDocument();
+    expect(screen.getByText("Ast. XC7-142")).toBeInTheDocument();
+    expect(screen.getByText("New Contact")).toBeInTheDocument();
+    // Body names resolved via system.bodies. Kerbin appears three times (the
+    // station, the debris entry and the asteroid all orbit it); the
+    // unresolved contact has no resolvable body at all.
+    expect(screen.getAllByText("Kerbin")).toHaveLength(3);
     expect(screen.getByText("Mun")).toBeInTheDocument();
     expect(screen.getByText("Duna")).toBeInTheDocument();
-    // Crew: capacity when known, em-dash for the unresolvable entry. The
-    // unresolvable entry's crew AND link cells both render "—", so two
-    // em-dashes are expected on the page.
+    expect(screen.getByText("Eve")).toBeInTheDocument();
+    // Crew: the debris and asteroid entries both report a real, honest 0/0
+    // (their crew read succeeded — only their comms read is structurally
+    // absent), same as the probe's real 0/0. Only the fully-unresolved
+    // contact renders an em-dash for crew.
+    expect(screen.getAllByText("0/0")).toHaveLength(3);
     expect(screen.getByText("6/6")).toBeInTheDocument();
     expect(screen.getByText("2/3")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    // Em-dashes: the unresolved contact's Body AND Crew cells (2), plus the
+    // Link column's "unknown" tag on the debris, the asteroid, and the
+    // unresolved contact (3) — five in total.
+    expect(screen.getAllByText("—")).toHaveLength(5);
     // Comms link tags: direct / relay / none / unknown.
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
     expect(screen.getAllByText("RELAY")).toHaveLength(2);
@@ -201,14 +243,15 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
     });
-    // Two vessels are not linked (none + unknown) out of five.
-    expect(screen.getByText("2 Not Linked")).toBeInTheDocument();
+    // Four vessels are not linked (1 none + 3 unknown: debris, asteroid,
+    // unresolved contact) out of seven.
+    expect(screen.getByText("4 Not Linked")).toBeInTheDocument();
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
-    ).toHaveAttribute("aria-valuenow", "60");
+    ).toHaveAttribute("aria-valuenow", "43");
     expect(screen.getByText(/3 linked/)).toBeInTheDocument();
     expect(screen.getByText(/1 no link/)).toBeInTheDocument();
-    expect(screen.getByText(/1 unknown/)).toBeInTheDocument();
+    expect(screen.getByText(/3 unknown/)).toBeInTheDocument();
   });
 
   it("shows an All Linked badge and a full meter when every vessel has a link", async () => {

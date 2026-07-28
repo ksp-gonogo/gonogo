@@ -1365,10 +1365,15 @@ namespace Gonogo.KSP
         /// ever see the (always-loaded) active vessel -- so most calls here
         /// are against an UNLOADED vessel. Both the crew and comms reads are
         /// therefore their own try/catch, defaulting to a null field rather
-        /// than letting one bad vessel (mid-unload, corrupted debris, a
-        /// CommNet graph node that hasn't settled) take out this vessel's
-        /// entire roster entry -- or, since the caller has no per-vessel
-        /// guard of its own, the WHOLE <c>Sample()</c> capture for the tick.</para>
+        /// than letting one bad vessel (mid-unload, a scene-transition race
+        /// on a CommNet graph node that hasn't settled yet) take out this
+        /// vessel's entire roster entry -- or, since the caller has no
+        /// per-vessel guard of its own, the WHOLE <c>Sample()</c> capture for
+        /// the tick. Debris/asteroid/Unknown-type vessels are NOT a "bad
+        /// vessel" case for comms -- see <see cref="AddRosterCommsFields"/>'s
+        /// own doc comment: those three types never get a CommNet node at
+        /// all, by design, so their null comms fields are an expected steady
+        /// state, not a caught failure.</para>
         /// </summary>
         private static Dictionary<string, object?> BuildVesselRosterEntry(Vessel vessel)
         {
@@ -1464,6 +1469,20 @@ namespace Gonogo.KSP
         /// settle window; both fields stay null (never a fabricated "no
         /// link") if that happens here, or if CommNet has no connection
         /// object for this vessel at all.
+        ///
+        /// <para><b>Verified (decompile, <c>CommNet.CommNetVessel.OnStart</c>):</b>
+        /// a null <c>vessel.connection</c> is not only the rare scene-transition
+        /// race described above -- it is the PERMANENT, by-design state for
+        /// three <c>VesselType</c>s. <c>CommNetVessel.OnStart</c> only assigns
+        /// <c>vessel.connection = this</c> when <c>vesselType != Flag</c>,
+        /// <c>vesselType &gt; Unknown</c>, and <c>vesselType != DeployedSciencePart</c>
+        /// -- so <c>Debris</c>, <c>SpaceObject</c> (asteroids/comets) and
+        /// <c>Unknown</c> (ordinals 0/1/2, all &lt;= <c>Unknown</c>) NEVER get a
+        /// <c>CommNetVessel</c> attached at all. A debris or asteroid roster
+        /// entry therefore reports <c>commsConnected</c>/<c>commsControlSource</c>
+        /// as null on every tick of its life, not just an occasional unsettled
+        /// one -- this is the common case for those two vessel types, not an
+        /// edge case.</para>
         /// </summary>
         private static void AddRosterCommsFields(Dictionary<string, object?> entry, Vessel vessel)
         {

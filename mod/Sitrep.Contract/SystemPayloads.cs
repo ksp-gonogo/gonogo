@@ -247,16 +247,23 @@ public class VesselRosterEntry
     /// vessel right now — a raw <c>Vessel.connection.IsConnected</c> read
     /// against EVERY roster vessel (loaded or not), NOT the active-vessel-only
     /// elected-backend <c>comms.*</c> family. Null when CommNet has no
-    /// connection object to read for this vessel this tick (no CommNet graph
-    /// node yet, or the read raced a scene transition) — an honest "unknown",
-    /// not a fabricated "no link".
+    /// connection object to read for this vessel this tick — an honest
+    /// "unknown", not a fabricated "no link". Two distinct causes collapse to
+    /// the same null: a transient scene-transition race (rare), and a
+    /// PERMANENT, by-design absence for <c>Debris</c>/<c>SpaceObject</c>
+    /// (asteroids/comets)/<c>Unknown</c> vessel types — verified against
+    /// <c>CommNet.CommNetVessel.OnStart</c>, which never assigns
+    /// <c>vessel.connection</c> for those three types. A debris or asteroid
+    /// roster entry is expected to carry null here on every sample, not
+    /// occasionally.
     /// </summary>
     public bool? CommsConnected { get; set; }
 
     /// <summary>
     /// The same read's control-level tier, for the roster's connected/partial/
     /// none link-quality tag. Null under the same "nothing to read" condition
-    /// as <see cref="CommsConnected"/>.
+    /// as <see cref="CommsConnected"/> — including the permanent
+    /// Debris/SpaceObject/Unknown-vessel-type case documented there.
     /// </summary>
     public RosterCommsControlSource? CommsControlSource { get; set; }
 }
