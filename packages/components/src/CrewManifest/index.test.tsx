@@ -1,12 +1,4 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import {
-  clearAugments,
-  MockDataSource,
-  registerAugment,
-  registerDataSource,
-  unregisterDataSource,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import {
   act,
   fireEvent,
@@ -352,56 +344,30 @@ describe("CrewManifestComponent — avatar slot", () => {
 });
 
 /**
- * Kerbalism per-kerbal survival meters. These ride the legacy "data" source
- * (`crew.kerbals` + `ls.*`, same plumbing as LifeSupportSystems), so the
- * fixture here pairs the stream (for `vessel.crew`) with a registered
- * `MockDataSource`. Absent the KerbalismUplink there is no "data" source at
- * all and `useRaw` returns undefined — so the meters simply never render and
- * the roster behaves exactly as the tests above assert.
+ * Kerbalism per-kerbal survival meters. These ride the real
+ * `kerbalism.crew`/`kerbalism.lifesupport` Topics (canonical `useTelemetry`,
+ * same plumbing as `LifeSupportSystems`) on the SAME stream as `vessel.crew`
+ * — no legacy `MockDataSource` anywhere in this file. Absent the
+ * KerbalismUplink neither topic ever arrives, `kerbals` stays `undefined`,
+ * and the meters simply never render — the roster behaves exactly as the
+ * tests above assert.
  */
 describe("CrewManifestComponent — survival meters", () => {
-  const SURVIVAL_KEYS: DataKey[] = [
-    "crew.kerbals",
-    "ls.food.amount",
-    "ls.food.rate",
-    "ls.water.amount",
-    "ls.water.rate",
-    "ls.oxygen.amount",
-    "ls.oxygen.rate",
-  ].map((key) => ({ key }));
-
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-  const trees: Array<() => void> = [];
-
-  async function setup() {
-    source = new MockDataSource({ keys: SURVIVAL_KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-
-    const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.crew", "vessel.state"],
+  function newSurvivalFixture() {
+    return setupStreamFixture({
+      carriedChannels: [
+        "vessel.crew",
+        "vessel.state",
+        "kerbalism.crew",
+        "kerbalism.lifesupport",
+      ],
       pinnedUt: 10,
     });
-    const { unmount } = render(
-      <fixture.Provider>
-        <CrewManifestComponent config={{}} id="crew" w={6} h={8} />
-      </fixture.Provider>,
-    );
-    trees.push(unmount);
-    return fixture;
   }
 
-  afterEach(() => {
-    for (const unmount of trees) unmount();
-    trees.length = 0;
-    buffered?.disconnect();
-    unregisterDataSource("data");
-  });
-
   it("renders per-kerbal dose + stress meters and a death-clock once toggled on", async () => {
-    const fixture = await setup();
+    const fixture = newSurvivalFixture();
+    renderCrew(fixture);
     act(() => {
       fixture.emit("vessel.crew", {
         count: 2,
@@ -409,18 +375,29 @@ describe("CrewManifestComponent — survival meters", () => {
         crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
       });
       // A life-support resource draining → stage-1 death-clock is a real time.
-      source.emit("ls.food.amount", 0.35);
-      source.emit("ls.food.rate", -0.000036);
-      source.emit("crew.kerbals", [
+      fixture.emit("kerbalism.lifesupport", {
+        food: { amount: 0.35, capacity: 1.35, rate: -0.000036 },
+      });
+      // Real wire shape: `rules` is an ARRAY of `{name, value, fatalThreshold}`
+      // (KerbalismCrewEntry/KerbalismCrewRule) — Kerbalism's default profile
+      // gives radiation a fatal threshold of 50 and everything else 1, so the
+      // widget must normalize each rule by its OWN threshold, not assume 0..1.
+      fixture.emit("kerbalism.crew", [
         {
           name: "Jebediah Kerman",
           trait: "Pilot",
-          rules: { radiation: 0.6, stress: 0.3 },
+          rules: [
+            { name: "radiation", value: 30, fatalThreshold: 50 },
+            { name: "stress", value: 0.3, fatalThreshold: 1 },
+          ],
         },
         {
           name: "Bill Kerman",
           trait: "Engineer",
-          rules: { radiation: 0.1, stress: 0.05 },
+          rules: [
+            { name: "radiation", value: 5, fatalThreshold: 50 },
+            { name: "stress", value: 0.05, fatalThreshold: 1 },
+          ],
         },
       ]);
     });
@@ -441,7 +418,7 @@ describe("CrewManifestComponent — survival meters", () => {
     expect(doseMeters).toHaveLength(2);
     expect(screen.getAllByRole("meter", { name: "Stress" })).toHaveLength(2);
 
-    // Jeb's dose is 0.6 → 60% on his meter.
+    // Jeb's dose is 30/50 = 60% on his meter.
     const jebRow = screen.getByText("Jebediah Kerman").closest("li");
     expect(
       within(jebRow as HTMLElement).getByRole("meter", { name: "Dose" }),
@@ -452,7 +429,8 @@ describe("CrewManifestComponent — survival meters", () => {
   });
 
   it("shows no meters toggle when no per-kerbal survival data is present", async () => {
-    const fixture = await setup();
+    const fixture = newSurvivalFixture();
+    renderCrew(fixture);
     act(() => {
       fixture.emit("vessel.crew", {
         count: 1,

@@ -2,7 +2,6 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
-  useDataSourceSubscription,
   useDataStreamStatus,
   useGameContext,
   useTelemetry,
@@ -38,10 +37,13 @@ const TinyReadout = styled(BigReadout)`
 type CrewManifestConfig = Record<string, never>;
 
 // ── Kerbalism per-kerbal survival (additive; absent unless the KerbalismUplink
-// is present, in which case `crew.kerbals` carries per-kerbal rule accumulators
-// — see local_docs/kerbalism-fixtures) ─────────────────────────────────────────
+// is present, in which case the real `kerbalism.crew`/`kerbalism.lifesupport`
+// Topics carry per-kerbal rule accumulators and the life-support ledger — see
+// local_docs/kerbalism-fixtures). Reads the canonical `useTelemetry` Topics,
+// same pattern as `LifeSupportSystems`/`SpaceWeather`; this hook is the only
+// data boundary for the Kerbalism add-on. ───────────────────────────────────
 
-/** Per-kerbal Kerbalism rule accumulators, each 0..1 toward fatal. */
+/** Per-kerbal Kerbalism rule accumulators, normalized 0..1 toward fatal. */
 interface KerbalRules {
   radiation?: number;
   stress?: number;
@@ -52,59 +54,76 @@ interface KerbalRules {
   "co2 poisoning"?: number;
 }
 
-/** One entry of the `crew.kerbals` array. */
-interface KerbalEntry {
-  name: string;
-  trait?: string;
-  rules?: KerbalRules;
+/**
+ * One `kerbalism.crew[].rules[]` entry (mirrors `KerbalismCrewRule` in
+ * `Sitrep.Contract`/the generated SDK contract — structurally duplicated
+ * locally, matching `LifeSupportSystems`'s own `WireResource`, rather than
+ * importing the generated type into a non-test file).
+ */
+interface KerbalismRuleWire {
+  name?: string;
+  /** Current accumulator ("problem") value from `KerbalData.rules`. */
+  value?: number;
+  /** Fatal accumulator threshold from `Profile.rules[].fatal_threshold`. */
+  fatalThreshold?: number;
 }
 
+/** Every rule name the wire is known to send, mapped onto its `KerbalRules` field. */
+const RULE_FIELD: Record<string, keyof KerbalRules> = {
+  radiation: "radiation",
+  stress: "stress",
+  eating: "eating",
+  drinking: "drinking",
+  breathing: "breathing",
+  climatization: "climatization",
+  "co2 poisoning": "co2 poisoning",
+};
+
 /**
- * Read a raw wire key off the legacy "data" source (the KerbalismUplink's
- * `crew.kerbals`/`ls.*` ride it, same as `LifeSupportSystems`). Kept local —
- * a byte-for-byte mirror of that widget's helper — because CrewManifest's own
- * roster reads are canonical `useTelemetry` Topics; only the Kerbalism add-on
- * data comes through here.
+ * Normalize one wire rule's raw accumulator to a 0..1-toward-fatal fraction.
+ * Kerbalism's default profile uses `fatal_threshold=1.0` for most rules but
+ * overrides it per-rule (radiation's is 50) — dividing by the rule's OWN
+ * `fatalThreshold`, rather than assuming it's always 1, keeps every rule
+ * comparable on the same 0..1 scale the meters/death-clock expect (see
+ * local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md).
  */
-function useRaw<T>(key: string): T | undefined {
-  return useDataSourceSubscription<T | undefined>(
-    "data",
-    (source, onStoreChange, snapshotRef) =>
-      source.subscribe(key, (v) => {
-        snapshotRef.current = v as T;
-        onStoreChange();
-      }),
-    undefined,
-  );
+function ruleFraction(rule: KerbalismRuleWire): number {
+  const value = rule.value ?? 0;
+  const threshold = rule.fatalThreshold;
+  if (!threshold || threshold <= 0) return 0;
+  return Math.min(1, Math.max(0, value / threshold));
 }
-const useNum = (key: string): number | undefined => useRaw<number>(key);
+
+/** Reshape one kerbal's wire `rules` array into the named `KerbalRules` the meters read. */
+function toKerbalRules(rules: KerbalismRuleWire[] | undefined): KerbalRules {
+  const out: KerbalRules = {};
+  for (const rule of rules ?? []) {
+    const field = rule.name ? RULE_FIELD[rule.name] : undefined;
+    if (field) out[field] = ruleFraction(rule);
+  }
+  return out;
+}
 
 /**
  * Stage 1 of the two-stage death-clock: the soonest life-support resource
  * time-to-empty across food/water/oxygen (amount ÷ drain-rate), the shared
  * "time until crew start dying" headline. `null` when nothing is draining.
+ * Reads the real `kerbalism.lifesupport` Topic (same source
+ * `LifeSupportSystems` reads its own consumable ledger from).
  * (Stage 2 — per-kerbal accumulator-time-to-fatal after a resource hits zero —
- * needs a per-rule degeneration rate the wire does not carry yet; until the
- * KerbalismUplink adds it, stage 2 is shown as the "% to fatal" accumulator
- * fraction below, and this readout swaps to a precise countdown then with no
- * presentation change. See DECISIONS §CrewManifest.)
+ * needs a per-rule degeneration rate; the wire carries `degenPerSec` but the
+ * mod does not yet resolve a rule's linked resource, so `deathClockSec` always
+ * ships `null` today. Until then, stage 2 is shown as the "% to fatal"
+ * accumulator fraction below, and this readout swaps to a precise countdown
+ * then with no presentation change. See DECISIONS §CrewManifest.)
  */
 function useLifeSupportTimeToEmptySec(): number | null {
-  // Hooks are called unconditionally at the top level (never in a loop) so the
-  // call order is stable across renders.
-  const foodAmount = useNum("ls.food.amount");
-  const foodRate = useNum("ls.food.rate");
-  const waterAmount = useNum("ls.water.amount");
-  const waterRate = useNum("ls.water.rate");
-  const oxygenAmount = useNum("ls.oxygen.amount");
-  const oxygenRate = useNum("ls.oxygen.rate");
+  const ls = useTelemetry("kerbalism.lifesupport");
 
   const ttes: number[] = [];
-  for (const [amount, rate] of [
-    [foodAmount, foodRate],
-    [waterAmount, waterRate],
-    [oxygenAmount, oxygenRate],
-  ]) {
+  for (const c of [ls?.food, ls?.water, ls?.oxygen]) {
+    const amount = c?.amount;
+    const rate = c?.rate;
     if (amount !== undefined && rate !== undefined && rate < 0) {
       ttes.push(amount / -rate);
     }
@@ -297,14 +316,18 @@ function CrewManifestComponent({
   const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
   // Kerbalism per-kerbal survival — additive, absent unless the KerbalismUplink
-  // publishes `crew.kerbals`. Reads happen unconditionally (stable hook order);
-  // the map is empty and the meters simply never render without the Uplink.
-  const kerbals = useRaw<KerbalEntry[]>("crew.kerbals");
+  // publishes `kerbalism.crew`. Reads happen unconditionally (stable hook
+  // order); the map is empty and the meters simply never render without the
+  // Uplink (canonical `useTelemetry`, so this is `undefined` — not an error —
+  // when no `TelemetryProvider`/Uplink is present).
+  const kerbals = useTelemetry("kerbalism.crew");
   const stage1Sec = useLifeSupportTimeToEmptySec();
   const rulesByName = new Map<string, KerbalRules>();
   if (Array.isArray(kerbals)) {
     for (const k of kerbals) {
-      if (k?.name && k.rules) rulesByName.set(k.name, k.rules);
+      if (!k?.name) continue;
+      const rules = toKerbalRules(k.rules);
+      if (Object.keys(rules).length > 0) rulesByName.set(k.name, rules);
     }
   }
   const hasSurvival = rulesByName.size > 0;
@@ -646,22 +669,15 @@ registerComponent<CrewManifestConfig>({
   //   crew-manifest.avatar — leading square face cell (Uplink-provided avatar), falls
   //     back to the bullet when empty.
   augmentSlots: ["crew-manifest.badges", "crew-manifest.avatar"],
-  dataRequirements: [
-    "v.crew",
-    "v.crewCount",
-    "v.crewCapacity",
-    "v.isEVA",
-    // Kerbalism per-kerbal survival (additive; present only with the
-    // KerbalismUplink). `crew.kerbals` carries the rule accumulators; the
-    // `ls.*` amount/rate pairs drive the shared stage-1 death-clock.
-    "crew.kerbals",
-    "ls.food.amount",
-    "ls.food.rate",
-    "ls.water.amount",
-    "ls.water.rate",
-    "ls.oxygen.amount",
-    "ls.oxygen.rate",
-  ],
+  dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
+  // Kerbalism per-kerbal survival — additive, present only with the
+  // KerbalismUplink. `optionalChannels` (not `channels`): the widget's core
+  // roster reads always work without Kerbalism, so these must never gate the
+  // whole widget's mount the way a REQUIRED `channels` entry would (see
+  // `RequiresGuard`'s own doc comment on the distinction). `kerbalism.crew`
+  // carries the rule accumulators; `kerbalism.lifesupport` drives the shared
+  // stage-1 death-clock.
+  optionalChannels: ["kerbalism.crew", "kerbalism.lifesupport"],
   defaultConfig: {},
   actions: [],
   pushable: true,
