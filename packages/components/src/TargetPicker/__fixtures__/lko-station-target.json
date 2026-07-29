@@ -4,11 +4,11 @@
     "vessel": "synthetic (Mk1 pod in LKO, station targeted)",
     "body": "Kerbin",
     "situation": "Orbiting ~120km, targeting Kerbin Station I, Mun encounter ahead",
-    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons."
+    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons. tar.distance and vessel.target.relativePosition both derive from Kerbin Station I's tar.availableVessels[0].position vector (120400, -98300, 64200), magnitude 168168.6356012916m, so the CurrentSummary header distance agrees with the same vessel's row distance in the Vessels list instead of showing two different numbers for one target."
   },
   "tar.name": "Kerbin Station I",
   "tar.type": "Station",
-  "tar.distance": 184320.5,
+  "tar.distance": 168168.6356012916,
   "tar.o.relativeVelocity": 42.18,
   "o.encounterExists": 1,
   "o.encounterBody": "Mun",
@@ -461,14 +461,14 @@
           "name": "Kerbin Station I",
           "kind": 0,
           "relativePosition": {
-            "x": 184320.5,
-            "y": 0,
-            "z": 0
+            "x": 120400,
+            "y": -98300,
+            "z": 64200
           },
           "relativeVelocity": {
-            "x": -42.18,
-            "y": 0,
-            "z": 0
+            "x": -30.2,
+            "y": 24.66,
+            "z": -16.1
           }
         }
       }

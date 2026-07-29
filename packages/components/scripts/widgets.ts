@@ -426,7 +426,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "RoboticsConsole/__fixtures__",
     outPath: "renders/robotics-console-widget",
     modes: [
-      // Minimum size: readout + controls, list tight.
+      // Minimum size: readout + Target stepper only; the motor/lock toggles
+      // and the joint list both hide below h=6 so neither clips the stepper
+      // (see the showToggles/showServoList gates in RoboticsConsole/index.tsx).
       { name: "min-4x4", w: 4, h: 4 },
       // Default registered size: readout + controls + joint list.
       { name: "default-5x8", w: 5, h: 8 },

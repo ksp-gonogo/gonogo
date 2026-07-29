@@ -1460,7 +1460,14 @@ const CompositionBar__Cursor = styled.span`
 // push that bar past the widget's visible bounds on a short widget instead
 // of staying within the terminal's own bordered box (kos-nopath-block-input
 // fix). Opposite corner from `DelayBadge` so the two never overlap on the
-// (rare) render where both are showing.
+// (rare) render where both are showing: a stale delay reading can still be
+// latched (see `delay-authority.ts`) through a connectivity drop, so both
+// badges legitimately co-render. "Opposite corner" alone isn't enough at
+// narrow widths (e.g. the widget's own registered minSize, 8x6): this
+// badge's text is the longer of the two, and with no width cap it grows
+// straight across the frame into `DelayBadge`'s corner instead of stopping
+// short. Capped + truncated so it always leaves `DelayBadge` clear instead
+// of visually colliding with it.
 const NoPathBadge = styled.div`
   position: absolute;
   top: 8px;
@@ -1474,6 +1481,10 @@ const NoPathBadge = styled.div`
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-on-bg);
   border-radius: 4px;
+  max-width: 50%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 // Compact delay readout: char-mode always, line-mode only when the delay is

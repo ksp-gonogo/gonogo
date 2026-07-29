@@ -512,7 +512,9 @@ const BlackoutTag = styled.span`
   font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-status-nogo-fg);
+  /* Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
+     the 4.5:1 AA floor. -on-bg is the token for exactly this case. */
+  color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
   border-radius: 3px;
   padding: 1px 5px;

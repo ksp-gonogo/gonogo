@@ -438,6 +438,16 @@ export function SystemDiagram({
                 : prev,
             );
           };
+          // The parent's own name label is fixed at screen-space (0, 18): a
+          // child orbiting close enough to the parent (at this zoom) that
+          // its own label would land in that same few-px neighbourhood
+          // renders name-on-name unreadable, e.g. a close-in moon like Mun
+          // labelled right under Kerbin's own "Kerbin" text at a
+          // zoomed-out default view. The dot alone still marks its
+          // position; zooming in separates it from the parent enough for
+          // its label to clear.
+          const screenDistFromParent = Math.hypot(pos.x, pos.y) * zoom;
+          const labelWouldCollideWithParent = screenDistFromParent < 30;
           return (
             <g key={`body-${c.index}`}>
               <circle
@@ -452,16 +462,18 @@ export function SystemDiagram({
                 onPointerLeave={() => setHover(null)}
                 style={{ cursor: "pointer" }}
               />
-              <text
-                x={pos.x + dotR + 3 / zoom}
-                y={pos.y + 3 / zoom}
-                fill={labelFill}
-                fontSize={10 / zoom}
-                pointerEvents="none"
-              >
-                {c.name ?? NULL_DISPLAY}
-              </text>
-              {phaseAngles?.has(c.index) && (
+              {!labelWouldCollideWithParent && (
+                <text
+                  x={pos.x + dotR + 3 / zoom}
+                  y={pos.y + 3 / zoom}
+                  fill={labelFill}
+                  fontSize={10 / zoom}
+                  pointerEvents="none"
+                >
+                  {c.name ?? NULL_DISPLAY}
+                </text>
+              )}
+              {!labelWouldCollideWithParent && phaseAngles?.has(c.index) && (
                 <text
                   x={pos.x + dotR + 3 / zoom}
                   y={pos.y + 14 / zoom}

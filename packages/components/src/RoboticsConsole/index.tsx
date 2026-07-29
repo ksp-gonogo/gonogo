@@ -122,9 +122,9 @@ const roboticsActions = [
 
 export type RoboticsConsoleActions = typeof roboticsActions;
 
-function RoboticsConsoleComponent(
-  _: Readonly<ComponentProps<RoboticsConsoleConfig>>,
-) {
+function RoboticsConsoleComponent({
+  h,
+}: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
   const roboticsRaw = useTelemetry("parts.robotics");
   const available = useTelemetry("robotics.available")?.available;
   const execute = useExecuteAction("data");
@@ -188,6 +188,18 @@ function RoboticsConsoleComponent(
   }
 
   const unit = unitFor(selected.type);
+  // At the registered minSize (h=4) even the readout + Target stepper alone
+  // are within a few px of the panel's full height; adding the motor/lock
+  // toggles and the joint list on top of them clipped the Target stepper row
+  // mid-glyph (overflow:auto has no visible scroll affordance in this static
+  // Body). The readout + Target stepper are the essential "controls" the
+  // widget's render-harness mode comment means by minSize's "readout +
+  // controls"; the toggles and the joint list are both secondary and drop
+  // out below h=6 rather than fighting the stepper for space. Mirrors
+  // CommSignal/TargetPicker's rows-based section gating.
+  const rows = h ?? 8;
+  const showToggles = rows >= 6;
+  const showServoList = servos.length > 1 && rows >= 6;
 
   return (
     <Panel>
@@ -206,9 +218,11 @@ function RoboticsConsoleComponent(
             {Math.round(selected.target)}
             <Unit>{unit}</Unit>
           </Target>
-          <StatePill $atTarget={selected.atTarget} role="status">
-            {selected.atTarget ? "AT TARGET" : "MOVING"}
-          </StatePill>
+          {showToggles && (
+            <StatePill $atTarget={selected.atTarget} role="status">
+              {selected.atTarget ? "AT TARGET" : "MOVING"}
+            </StatePill>
+          )}
         </Readout>
 
         <Controls>
@@ -240,27 +254,31 @@ function RoboticsConsoleComponent(
             </Stepper>
           </ControlRow>
 
-          <ToggleRow>
-            <ToggleButton
-              size="sm"
-              active={selected.motorEngaged}
-              tone="go"
-              onClick={() => setMotor(selected.partId, !selected.motorEngaged)}
-            >
-              Motor {selected.motorEngaged ? "on" : "off"}
-            </ToggleButton>
-            <ToggleButton
-              size="sm"
-              active={selected.locked}
-              tone="warn"
-              onClick={() => setLock(selected.partId, !selected.locked)}
-            >
-              {selected.locked ? "Locked" : "Unlocked"}
-            </ToggleButton>
-          </ToggleRow>
+          {showToggles && (
+            <ToggleRow>
+              <ToggleButton
+                size="sm"
+                active={selected.motorEngaged}
+                tone="go"
+                onClick={() =>
+                  setMotor(selected.partId, !selected.motorEngaged)
+                }
+              >
+                Motor {selected.motorEngaged ? "on" : "off"}
+              </ToggleButton>
+              <ToggleButton
+                size="sm"
+                active={selected.locked}
+                tone="warn"
+                onClick={() => setLock(selected.partId, !selected.locked)}
+              >
+                {selected.locked ? "Locked" : "Unlocked"}
+              </ToggleButton>
+            </ToggleRow>
+          )}
         </Controls>
 
-        {servos.length > 1 && (
+        {showServoList && (
           <ServoList aria-label="Robotic joints">
             {servos.map((s) => (
               <ServoRow

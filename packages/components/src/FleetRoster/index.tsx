@@ -402,14 +402,21 @@ function FleetRosterComponent({
 
 // Name takes the flexible 1fr; Body is content-sized (short body names don't
 // need a fixed slice), Crew/Link are just wide enough for their content, so the
-// vessel name keeps the most room at the tight 8-wide default.
-const GRID_FULL = "minmax(0, 1fr) auto 42px 66px";
-const GRID_COMPACT = "minmax(0, 1fr) 42px 66px";
+// vessel name keeps the most room at the tight 8-wide default. Crew is 48px,
+// not 42px: 42px plus ColLabel's 12px of horizontal padding left no room for
+// the "CREW" header itself, so it silently overflowed the track (harmless
+// while ColLabel had no overflow control) until ColLabel picked up
+// overflow:hidden (to stop the flexible Vessel header colliding with it at
+// tiny widths) started ellipsis-ing "CREW" too, even at comfortable sizes.
+const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
+const GRID_COMPACT = "minmax(0, 1fr) 48px 66px";
 
 const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 2px;
   gap: 8px;
 `;
 
@@ -444,6 +451,14 @@ const ColLabel = styled.div<{ $right?: boolean }>`
   padding: 0 6px;
   text-align: ${({ $right }) => ($right ? "right" : "left")};
   white-space: nowrap;
+  /* The Vessel column's grid track is minmax(0, 1fr): at the tiny-4x4
+     minSize it shrinks well below "VESSEL"'s natural width. Body cells
+     (Name/BodyCell) already ellipsis instead of spilling into the next
+     column; the header labels need the same treatment, they were colliding
+     into "CREW" unclipped. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 `;
 
 const Row = styled.div<{ $compact: boolean }>`

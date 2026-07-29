@@ -231,12 +231,20 @@ function formatLength(metres: number): string {
 }
 
 function formatMass(kg: number): string {
-  const abs = Math.abs(kg);
-  if (abs >= 1e24) return `${(kg / 1e24).toFixed(2)} Yg`;
-  if (abs >= 1e21) return `${(kg / 1e21).toFixed(2)} Zg`;
-  if (abs >= 1e18) return `${(kg / 1e18).toFixed(2)} Eg`;
-  if (abs >= 1e15) return `${(kg / 1e15).toFixed(2)} Pg`;
-  if (abs >= 1e12) return `${(kg / 1e12).toFixed(2)} Tg`;
+  // SI mass prefixes (Yg/Zg/Eg/Pg/Tg) are gram-based, not kilogram-based:
+  // the thresholds/divisors below used to be applied straight to `kg`
+  // (e.g. `kg >= 1e21` labelled "Zg"), which is off by the kg-to-g factor
+  // of 1000, one whole prefix tier too small a label for the number shown
+  // (Kerbin's ~5.29e22 kg rendered as "52.91 Zg" when 5.29e22 kg is
+  // 5.29e25 g, i.e. Yg territory, not Zg). Convert to grams first so the
+  // standard thresholds apply correctly.
+  const grams = kg * 1000;
+  const abs = Math.abs(grams);
+  if (abs >= 1e24) return `${(grams / 1e24).toFixed(2)} Yg`;
+  if (abs >= 1e21) return `${(grams / 1e21).toFixed(2)} Zg`;
+  if (abs >= 1e18) return `${(grams / 1e18).toFixed(2)} Eg`;
+  if (abs >= 1e15) return `${(grams / 1e15).toFixed(2)} Pg`;
+  if (abs >= 1e12) return `${(grams / 1e12).toFixed(2)} Tg`;
   return `${kg.toFixed(0)} kg`;
 }
 
