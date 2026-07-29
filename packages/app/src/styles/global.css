@@ -34,6 +34,13 @@
   --color-status-go-bg: #2e5a2e;
   --color-status-nogo-fg: #ffdede;
   --color-status-nogo-bg: #ff4d4d;
+  /* Text sitting ON --color-status-nogo-bg, not beside it. The -fg token is a
+     light pink for nogo-toned text on a DARK panel, so reusing it on the red
+     badge gives 2.61:1, under the 4.5:1 AA floor. Dark text on the same red is
+     5.32:1, which is how the warn tone already works. This block duplicates
+     packages/theme/src/tokens.css: adding a token there alone does nothing,
+     because App.tsx and the render harness both load THIS file. */
+  --color-status-nogo-on-bg: #1a1a1a;
   --color-status-warning-fg: #1a1a1a;
   --color-status-warning-bg: #ff8c00;
   --color-status-info-fg: #7cf;
