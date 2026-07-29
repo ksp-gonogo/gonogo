@@ -630,11 +630,22 @@ function CancelButton({
 const Body = styled(ScrollArea)`
   flex: 1;
   min-height: 0;
+  /* Panel is full-bleed by design (no uniform inset); PanelTitle/
+     PanelSubtitle carry their own 16px horizontal padding, but this
+     ScrollArea sat directly in the Panel body with none, so the section
+     labels and the empty-state copy touched the panel border directly,
+     visibly tighter than the title above them. Match PanelBody's
+     established 16px/8px inset and publish it as the scroll-glow-pad vars
+     (Panel.tsx's documented convention) so the top/bottom scroll fade still
+     reaches the chrome edge instead of stopping short at the new padding. */
+  --scroll-glow-pad-x: 16px;
+  --scroll-glow-pad-y: 8px;
 
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 8px 16px 12px;
   }
 `;
 
@@ -778,6 +789,14 @@ const ContractHeader = styled.div`
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
+  /* At very narrow widths (compact-4x5) the title (flex:1, wrapping text)
+     and the fixed-width deadline label had no room to both sit on one row:
+     the deadline text (flex-shrink:0) claimed its full width regardless,
+     squeezing the title's flex-basis down to its longest unbreakable word
+     with no room left for the gap, so the two ran together with zero
+     space between them ("Buildno deadline"). Let the deadline wrap to its
+     own line instead of collapsing the gap. */
+  flex-wrap: wrap;
 `;
 
 const ContractTitle = styled.span`
@@ -785,7 +804,17 @@ const ContractTitle = styled.span`
   font-weight: 600;
   font-size: 12px;
   flex: 1;
-  min-width: 0;
+  /* A flex-basis:0 item (what plain "flex: 1" gives) always "fits" its
+     flex line at its pre-grow hypothetical size of zero, so ContractHeader's
+     flex-wrap never triggered even when there wasn't room: the title's box
+     shrank to near-nothing while ContractDeadline (flex-shrink:0) claimed
+     its full width, and the title's own unbreakable first word then
+     overflowed that near-zero box straight into the deadline text with no
+     gap at all ("Buildno deadline" at compact-4x5). A real min-width gives
+     the title enough box to hold at least one full word, so when the
+     deadline label can't fit alongside it, flex-wrap actually pushes the
+     deadline onto its own line instead of the two colliding. */
+  min-width: 90px;
 `;
 
 const ContractDeadline = styled.span`

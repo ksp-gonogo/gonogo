@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  formatCompactNumber,
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
@@ -273,6 +274,21 @@ function StrategiesComponent({
           </Tally>
           <StreamStatusBadge status={streamStatus} />
         </Header>
+        {/* Strategies spends career funds (activate cost), so the balance
+            must stay visible even in the tiny bucket (CLAUDE.md "spending
+            funds: always show the balance"). A dedicated row below the
+            header rather than inlined into the Header's own flex-wrap
+            group: Panel has no scroll area in tiny mode, so competing for
+            space inside Header's wrap could push the figure below the
+            visible panel bounds (it did, in an earlier version of this
+            fix: the balance wrapped clean off the bottom of a 3x3 box).
+            Compact k/M formatting plus nowrap+ellipsis keeps this to one
+            line that always fits. */}
+        {typeof funds === "number" && (
+          <TinyFundsRow title={`${Math.round(funds).toLocaleString()}f`}>
+            {formatCompactNumber(funds, 0)} f
+          </TinyFundsRow>
+        )}
       </Panel>
     );
   }
@@ -284,18 +300,21 @@ function StrategiesComponent({
         <StreamStatusBadge status={streamStatus} />
         {/* HeaderMeta wraps to a second row at narrow widths so funds /
             rep / sci aren't clipped by the title's space-between layout.
-            At very narrow widths (cols < 6) the funds/rep/sci line gets
-            dropped entirely: the active count is the headline; full
-            tallies need the wide-9x12 mode to fit on one row. */}
+            Funds must stay visible at every width, Strategies spends
+            career funds on activate (CLAUDE.md "spending funds: always
+            show the balance"). Rep/sci are supplementary tallies only,
+            those still drop at narrow widths (cols < 6) where the full
+            row won't fit; full tallies need the wide-9x12 mode to fit
+            on one row. */}
         <HeaderMeta>
           <Tally $overCap={overCap}>
             {active.length} active
             {overCap && ` / ${inferredCap}`}
           </Tally>
+          <Sep>·</Sep>
+          <Tally>{formatNumber(funds)}f</Tally>
           {(w ?? 9) >= 6 && (
             <>
-              <Sep>·</Sep>
-              <Tally>{formatNumber(funds)}f</Tally>
               <Sep>·</Sep>
               <Tally>{formatNumber(reputation)} rep</Tally>
               <Sep>·</Sep>
@@ -626,6 +645,16 @@ const Tally = styled.span<{ $overCap?: boolean }>`
 
 const Sep = styled.span`
   color: var(--color-text-dim);
+`;
+
+const TinyFundsRow = styled.div`
+  padding: 0 12px 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Section = styled.section`

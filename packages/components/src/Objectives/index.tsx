@@ -268,12 +268,26 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
       {/* Frame-level fallback: shown only while no bound source yields content
           (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
           agnostic of which sources exist; see the sibling rule on `Sections`. */}
-      <EmptyFallback role="status">No active objectives</EmptyFallback>
+      <EmptyFallbackWrap>
+        <EmptyFallback role="status">No active objectives</EmptyFallback>
+      </EmptyFallbackWrap>
     </Panel>
   );
 }
 
 const EmptyFallback = styled(EmptyState)``;
+
+// EmptyState's default "inline" layout only carries vertical padding (it's
+// designed to sit inside an already-padded container). Sections, its sibling
+// here, DOES carry its own horizontal padding (8px). A plain wrapper div
+// (rather than overriding EmptyState's own padding shorthand directly) keeps
+// this immune to styled-components injection-order: EmptyState__Body's own
+// `padding: 8px 0` shorthand would otherwise clobber a left/right override
+// applied straight to the same element whenever its rule happens to land
+// later in the stylesheet.
+const EmptyFallbackWrap = styled.div`
+  padding: 0 8px;
+`;
 
 const Sections = styled.div`
   display: flex;
@@ -285,7 +299,7 @@ const Sections = styled.div`
   /* When any source has rendered content, hide the frame's empty fallback. When
      every source renders nothing, this wrapper is genuinely empty (augments
      that return null add no DOM), the rule doesn't apply, and the fallback shows. */
-  &:not(:empty) + ${EmptyFallback} {
+  &:not(:empty) + ${EmptyFallbackWrap} {
     display: none;
   }
 `;

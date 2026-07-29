@@ -567,13 +567,19 @@ const HeaderRight = styled.div`
 const UnavailableNotice = styled.div`
   margin-top: 4px;
   padding: 2px 6px;
-  background: var(--color-status-warn-bg, transparent);
-  border: 1px solid var(--color-status-warn-fg, var(--color-text-faint));
+  background: transparent;
+  /* Token name was "warn", not "warning": the real token is
+     --color-status-warning-*, so this always missed and silently fell back
+     to --color-text-faint, a plain grey that reads as ordinary copy instead
+     of the "can't fire right now" warning it's meant to be. Same
+     saturated-bg-as-text-on-dark-surface treatment GoNoGoComponent's minor
+     badge already uses. */
+  border: 1px solid var(--color-status-warning-bg);
   border-radius: 2px;
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-status-warn-fg, var(--color-text-muted));
+  color: var(--color-status-warning-bg);
   align-self: flex-start;
 `;
 

@@ -55,7 +55,7 @@
         "channel": "career.status",
         "value": {
           "economy": {
-            "funds": 0,
+            "funds": 45000,
             "reputation": 0,
             "science": 4854
           },

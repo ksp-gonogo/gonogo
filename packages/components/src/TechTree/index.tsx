@@ -328,6 +328,12 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
   const careerScience = useTelemetry("career.status")?.economy?.science;
+  // The unlock action itself only spends science, but every researched
+  // node's parts still need a funds purchase in the VAB/SPH before they're
+  // usable (each PartRow's entryCost below), and CLAUDE.md names Tech Tree
+  // explicitly under "spending funds: always show the balance". Surface it
+  // alongside science so the operator can judge both costs from here.
+  const careerFunds = useTelemetry("career.status")?.economy?.funds;
   const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
@@ -418,6 +424,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           {sciAvailable !== null && (
             <TinySci>{Math.round(sciAvailable)} sci</TinySci>
           )}
+          {typeof careerFunds === "number" && (
+            <TinySci>{Math.round(careerFunds).toLocaleString()}f</TinySci>
+          )}
         </TinyBody>
       </Panel>
     );
@@ -456,6 +465,11 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
         <SciReadout title="Available science">
           · {Math.round(sciAvailable)} sci
         </SciReadout>
+      )}
+      {typeof careerFunds === "number" && (
+        <FundsReadout title="Available funds">
+          · {Math.round(careerFunds).toLocaleString()}f
+        </FundsReadout>
       )}
     </PanelSubtitle>
   ) : null;
@@ -1004,13 +1018,20 @@ const Controls = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 6px;
+  /* Horizontal inset matches PanelTitle/PanelSubtitle's local padding
+     (Panel itself is full-bleed, no uniform inset). Without it the filter
+     pills and search input sat flush against the panel border, visibly
+     tighter than the title above them, and at narrow widths (e.g.
+     portrait-5x18) the "Unlocked" pill overflowed past the edge and got
+     clipped mid-word instead of wrapping. */
+  padding: 0 16px 6px;
   flex-shrink: 0;
 `;
 
 const FilterRow = styled.div`
   display: inline-flex;
   gap: 4px;
+  flex-wrap: wrap;
 `;
 
 const FilterBtn = styled.button<{ $active: boolean }>`
@@ -1364,6 +1385,12 @@ const SciReadout = styled.span`
   margin-left: 2px;
 `;
 
+const FundsReadout = styled.span`
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+`;
+
 // ── Graph styles ────────────────────────────────────────────────────────────
 
 const GraphToolbar = styled.div`
@@ -1610,7 +1637,12 @@ registerComponent<TechTreeConfig>({
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 2, h: 2 },
   component: TechTreeComponent,
-  dataRequirements: ["tech.nodes", "career.science", "kc.scene"],
+  dataRequirements: [
+    "tech.nodes",
+    "career.science",
+    "career.funds",
+    "kc.scene",
+  ],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["tech-tree.badges"],
