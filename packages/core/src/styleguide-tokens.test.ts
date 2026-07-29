@@ -7,7 +7,7 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
 
 /**
  * Design-system guard: prevent new hardcoded spacing, radius, font-size,
- * line-height and z-index values leaking back in now that the scales in
+ * line-height, z-index and motion values leaking back in now that the scales in
  * `packages/theme/src/tokens.css` exist.
  *
  * Why this file exists at all: font-size had tokens BEFORE the migration
@@ -58,7 +58,13 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * documentation the ratchet cannot be.
  */
 
-type Family = "spacing" | "radius" | "fontSize" | "lineHeight" | "zIndex";
+type Family =
+  | "spacing"
+  | "radius"
+  | "fontSize"
+  | "lineHeight"
+  | "zIndex"
+  | "motion";
 
 interface Exception {
   path: string;
@@ -70,12 +76,32 @@ interface Exception {
 
 const EXCEPTIONS: Exception[] = [
   {
+    path: "packages/theme/src/tokens.css",
+    families: "all",
+    reason:
+      "The ladders themselves. Every rung in this file is a literal by definition, and flagging them would be flagging the answer as the offence. The rest of packages/theme/src IS scanned: defaultDarkTheme.ts held its own raw px for space and radii long after the migration precisely because the whole package used to be excluded, so the exclusion is now the one file rather than the directory.",
+  },
+  {
     path: "packages/app/src/styles/react-resizable.css",
     families: "all",
     reason:
       "Geometry locked to react-grid-layout's resize handles, not to our ladders: the two -10px margins are exactly half the 20px handle they centre, and the z-index 5 is a locked adjacent pair with GridItemContent's 6 inside the grid item's own stacking context. Both are already commented as such in the file. Tokenising either would make our scale responsible for a third-party widget's hit area.",
   },
 ];
+
+/**
+ * Which baseline key a scanned file counts against. Files under `packages/`
+ * are keyed by their own path, so the failure names exactly what moved.
+ * Everything under `mod/` shares one `"mod/"` bucket, because `packages/core`
+ * may not name Uplink paths: `uplink-boundary.test.ts` fails the build on any
+ * mention of an Uplink outside its owning directory, and a per-file map here
+ * would have to spell those directories out. The runtime failure still prints
+ * the exact mod file, because that comes from the scan rather than from this
+ * table; only the committed baseline is coarse.
+ */
+function baselineKey(file: string): string {
+  return file.startsWith("mod/") ? "mod/" : file;
+}
 
 /**
  * Per-family baselines: what legitimately remains after the migration,
@@ -96,20 +122,6 @@ const EXCEPTIONS: Exception[] = [
  * lower it (or delete the key) in the same commit; the tests warn rather
  * than fail on a drop, so a cleanup lands green.
  */
-/**
- * Which baseline key a scanned file counts against. Files under `packages/`
- * are keyed by their own path, so the failure names exactly what moved.
- * Everything under `mod/` shares one `"mod/"` bucket, because `packages/core`
- * may not name Uplink paths: `uplink-boundary.test.ts` fails the build on any
- * mention of an Uplink outside its owning directory, and a per-file map here
- * would have to spell those directories out. The runtime failure still prints
- * the exact mod file, because that comes from the scan rather than from this
- * table; only the committed baseline is coarse.
- */
-function baselineKey(file: string): string {
-  return file.startsWith("mod/") ? "mod/" : file;
-}
-
 const BASELINES: Record<Family, Record<string, number>> = {
   /**
    * 51 across 21 files. Mostly four groups: the `StationConnectView` page
@@ -235,6 +247,44 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui/src/Panel.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
   },
+  /**
+   * 31 across 21 files, and every one is a duration or easing that carries
+   * information rather than style. The two in global.css are the
+   * reduced-motion damper's `0.01ms !important`, which is a documented
+   * override of everything else and must not become a token. The rest are
+   * the physical animations the scale deliberately stops short of: a
+   * resource bar tied to the telemetry sample cadence, a reticle chasing a
+   * moving target, a 1Hz terminal caret, spinners, and indicators whose
+   * period is how the operator reads connection state. Folding those onto
+   * a UI-transition scale would destroy the thing they encode.
+   *
+   * A NEW literal here is almost certainly a UI transition that wants
+   * --duration-base and --ease-standard. If it genuinely is physical, say
+   * what it is timed against at the call site and raise its entry.
+   */
+  motion: {
+    "mod/": 2,
+    "packages/app/src/styles/global.css": 2,
+    "packages/components/src/ContractManager/index.tsx": 2,
+    "packages/components/src/DistanceToTarget/index.tsx": 2,
+    "packages/components/src/LaunchDirector/index.tsx": 1,
+    "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
+    "packages/components/src/Navball/index.tsx": 2,
+    "packages/components/src/PerfBudgets/index.tsx": 2,
+    "packages/components/src/ShipMap/index.tsx": 2,
+    "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+    "packages/components/src/TechTree/index.tsx": 1,
+    "packages/serial/src/InputMappingTab.tsx": 1,
+    "packages/serial/src/InputTester/index.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/SelfDescribingAddWizard.tsx": 1,
+    "packages/ui-kit/src/CommandDelay/InFlightList.tsx": 1,
+    "packages/ui-kit/src/ProgressBar.tsx": 2,
+    "packages/ui-kit/src/Readout.tsx": 1,
+    "packages/ui/src/BannerPill.tsx": 1,
+    "packages/ui/src/Fab.tsx": 1,
+    "packages/ui/src/SourceOfflineBanner.tsx": 2,
+  },
 };
 
 interface FamilySpec {
@@ -252,6 +302,31 @@ interface FamilySpec {
 const PX = /-?\d*\.?\d+px\b/g;
 function nonZeroPx(value: string): string[] {
   return (value.match(PX) ?? []).filter((hit) => Number.parseFloat(hit) !== 0);
+}
+
+/**
+ * Durations and easings inside a transition/animation value.
+ *
+ * `0s` and `0ms` are excluded for the same reason `0px` is: there is no zero
+ * rung. `!important` is stripped first so the reduced-motion damper in
+ * global.css, which is a documented override rather than a styling choice,
+ * reads as the `0.01ms` it is and gets counted once.
+ */
+const DURATION = /-?\d*\.?\d+m?s\b/g;
+const EASING_KEYWORD =
+  /\b(?:ease-in-out|ease-in|ease-out|ease|linear|step-end|step-start)\b/g;
+const EASING_FUNCTION = /(?:cubic-bezier|steps)\([^)]*\)/g;
+
+function motionHits(value: string): string[] {
+  const cleaned = value.replace(/!important/g, " ");
+  const durations = (cleaned.match(DURATION) ?? []).filter(
+    (hit) => Number.parseFloat(hit) !== 0,
+  );
+  return [
+    ...durations,
+    ...(cleaned.match(EASING_FUNCTION) ?? []),
+    ...(cleaned.match(EASING_KEYWORD) ?? []),
+  ];
 }
 
 /** A value that is nothing but a bare number, once quotes and commas go. */
@@ -345,6 +420,28 @@ const FAMILIES: Record<Family, FamilySpec> = {
       const bare = bareNumber(value);
       return bare === undefined ? [] : [bare];
     },
+  },
+  motion: {
+    label: "motion",
+    properties: [
+      "transition",
+      "transition-duration",
+      "transition-delay",
+      "transition-timing-function",
+      "transitionDuration",
+      "transitionDelay",
+      "transitionTimingFunction",
+      "animation",
+      "animation-duration",
+      "animation-delay",
+      "animation-timing-function",
+      "animationDuration",
+      "animationDelay",
+      "animationTimingFunction",
+    ],
+    remedy:
+      "use --duration-instant/fast/base/slow/entrance and --ease-standard/emphasis/linear/entrance; if the duration encodes something physical (a sample cadence, a 1Hz caret, an indicator whose period the operator reads) keep the literal, say so in a comment, and raise this baseline",
+    hits: motionHits,
   },
 };
 
@@ -588,6 +685,10 @@ describe("design-system: hardcoded design-token values", () => {
 
   it("holds the z-index baseline", () => {
     assertFamily("zIndex");
+  });
+
+  it("holds the motion baseline (transitions and animations)", () => {
+    assertFamily("motion");
   });
 
   // A guard that scans nothing passes forever. If the roots, the git

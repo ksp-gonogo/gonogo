@@ -29,6 +29,7 @@ export const SCANNED_PACKAGE_ROOTS = [
   "packages/data/src",
   "packages/serial/src",
   "packages/sitrep-client/src",
+  "packages/theme/src",
   "packages/ui/src",
   "packages/ui-kit/src",
 ];
@@ -55,11 +56,6 @@ export const UNSCANNED_PACKAGE_ROOTS: { path: string; reason: string }[] = [
     path: "packages/test-utils/src",
     reason:
       "Test harness only (a themed render/renderHook wrapper). Ships in no bundle and declares no styles of its own.",
-  },
-  {
-    path: "packages/theme/src",
-    reason:
-      "The token source of truth itself. Every colour, space, radius, z-index and duration literal in tokens.css is the definition the other roots are ratcheted towards; scanning it would flag the answer as the offence.",
   },
 ];
 

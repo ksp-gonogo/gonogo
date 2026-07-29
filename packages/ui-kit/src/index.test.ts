@@ -36,8 +36,12 @@ describe("ui-kit foundation", () => {
     expect(defaultDarkTheme.typography.letterSpacing.tight).toBe("0.05em");
     expect(defaultDarkTheme.typography.letterSpacing.label).toBe("0.1em");
     expect(defaultDarkTheme.typography.letterSpacing.wide).toBe("0.15em");
-    expect(defaultDarkTheme.radii.xs).toBe("2px");
-    expect(defaultDarkTheme.radii.pill).toBe("999px");
+    // Handles onto the ladders, not values. These asserted raw px until the
+    // theme stopped keeping its own copy of the numbers; the colours above
+    // have always been asserted this way.
+    expect(defaultDarkTheme.radii.xs).toBe("var(--radius-xs)");
+    expect(defaultDarkTheme.radii.pill).toBe("var(--radius-pill)");
+    expect(defaultDarkTheme.space.md).toBe("var(--space-8)");
   });
 
   it("exports the form-primitive + icon surface moved from @ksp-gonogo/ui", () => {

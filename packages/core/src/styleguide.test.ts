@@ -32,6 +32,8 @@ import {
 // Files that legitimately contain raw hex: sources of truth, fixtures,
 // and data files (e.g. body-colour metadata). Anything else is an offender.
 const ALLOWED_PATHS = [
+  // The colour definitions themselves.
+  "packages/theme/src/tokens.css",
   "packages/app/src/styles/global.css",
   "packages/ui/src/themes/defaultDark.ts",
   "packages/core/src/registry.test.ts",

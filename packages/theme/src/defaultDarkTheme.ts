@@ -77,18 +77,25 @@ export const defaultDarkTheme: UiKitTheme = {
       body: "0",
     },
   },
+  // Handles onto the ladders in tokens.css, not values of their own. These
+  // held raw px until the token migration, which made this object a second
+  // home for the same numbers while `typography.size` right above already
+  // pointed at `var()`. Every mapping below is exact, so nothing rendered
+  // moves; the t-shirt names are kept because they are the published
+  // `ThemeSpace` / `ThemeRadii` contract, and renaming them to match the
+  // rung numbers would break consumers for no gain.
   space: {
-    xs: "2px",
-    sm: "4px",
-    md: "8px",
-    lg: "12px",
-    xl: "16px",
+    xs: "var(--space-2)",
+    sm: "var(--space-4)",
+    md: "var(--space-8)",
+    lg: "var(--space-12)",
+    xl: "var(--space-16)",
   },
   radii: {
-    xs: "2px",
-    sm: "3px",
-    md: "4px",
-    pill: "999px",
+    xs: "var(--radius-xs)",
+    sm: "var(--radius-sm)",
+    md: "var(--radius-md)",
+    pill: "var(--radius-pill)",
   },
   borders: {
     subtle: "1px solid var(--color-border-subtle)",
