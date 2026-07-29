@@ -54,7 +54,13 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // Held at styled-components rather than respelt as inline styles: a sibling
 // Uplink client's overlay augment styles the same way, and dodging a ratchet
 // with a different CSS-in-JS spelling would defeat the point of having one.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 74;
+// 74 -> 71: the baseline was carrying stale slack, not tracking a change.
+// Counting importers under the scanned roots at d60b924e (the commit before
+// the token migration) gives 71, the same as today, so three widgets dropped
+// their last styled-components import at some earlier point and the number
+// was never lowered. The ratchet had been printing its "can be lowered" nag
+// for that whole time.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 71;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

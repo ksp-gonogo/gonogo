@@ -215,9 +215,13 @@ const PanelScrollableShell = styled(Panel)`
   padding: 0;
   gap: 0;
   /* Shell has no padding, so the inner ScrollArea already fills the panel,
-     no glow extension needed. */
-  --scroll-glow-pad-y: 0;
-  --scroll-glow-pad-x: 0;
+     no glow extension needed. Units are required, not cosmetic: these feed
+     calc(), where calc(-1 * 0) yields a number rather than a length and
+     calc(16px + 0) is invalid outright, so a unitless zero dropped BOTH the
+     glow's offset and its height and the glow never rendered inside a
+     scrollable shell at all. */
+  --scroll-glow-pad-y: 0px;
+  --scroll-glow-pad-x: 0px;
 `;
 
 const PanelScrollableArea = styled(ScrollArea)`
