@@ -30,7 +30,14 @@ export function EmptyState({
 
 const LAYOUT_STYLES = {
   inline: css`
-    padding: 8px 0;
+    /* Horizontal padding matches PanelBody's 16px. The doc above describes
+       inline as sitting inside a panel's stack of children, which implied an
+       already-padded parent, but Panel is deliberately padding: 0 full-bleed
+       and every one of the 15 call sites renders this as a direct Panel
+       child. So with no horizontal padding the empty-state text sat flush
+       against the panel border everywhere it appeared. Nothing relies on the
+       old zero, so there is no double-padding risk. */
+    padding: 8px 16px;
   `,
   fill: css`
     width: 100%;

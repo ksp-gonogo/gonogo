@@ -277,17 +277,12 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
 
 const EmptyFallback = styled(EmptyState)``;
 
-// EmptyState's default "inline" layout only carries vertical padding (it's
-// designed to sit inside an already-padded container). Sections, its sibling
-// here, DOES carry its own horizontal padding (8px). A plain wrapper div
-// (rather than overriding EmptyState's own padding shorthand directly) keeps
-// this immune to styled-components injection-order: EmptyState__Body's own
-// `padding: 8px 0` shorthand would otherwise clobber a left/right override
-// applied straight to the same element whenever its rule happens to land
-// later in the stylesheet.
-const EmptyFallbackWrap = styled.div`
-  padding: 0 8px;
-`;
+// Structural only: the sibling selector below needs an element to target so
+// the fallback hides once any source has rendered content. It used to carry
+// horizontal padding too, because EmptyState's inline layout had none, but
+// EmptyState now pads itself and doubling up would inset this further than
+// every other widget's empty state.
+const EmptyFallbackWrap = styled.div``;
 
 const Sections = styled.div`
   display: flex;
