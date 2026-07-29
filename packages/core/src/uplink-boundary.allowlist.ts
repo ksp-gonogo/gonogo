@@ -438,12 +438,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // only, no kOS import or coupling.
       "packages/sitrep-client/src/connectivity-history.ts",
       // -- comment/doc + pending-topic mentions (no kOS coupling) --
-      // FleetComms + CameraFeed doc-comments reference `KosTerminal`'s
-      // in-transit-strip / command-response pattern; Comms.cs's CommsLink doc
-      // mentions the kOS terminal reading comms.link. FleetComms/pendingPulse
-      // render `system.uplink.pending` entries whose commands include
-      // kos.run/kos.keystroke (topic-string mention, like UplinkPending.cs).
-      "packages/components/src/FleetComms/index.tsx",
+      // CameraFeed's doc-comment references `KosTerminal`'s command-response
+      // pattern; Comms.cs's CommsLink doc mentions the kOS terminal reading
+      // comms.link. FleetComms/pendingPulse render `system.uplink.pending`
+      // entries whose commands include kos.run/kos.keystroke (topic-string
+      // mention, like UplinkPending.cs); slot.test.tsx's fixture uses
+      // "kos.run" as a sample command string. FleetComms/index.tsx itself no
+      // longer carries a kos-pattern match (its own `KosTerminal` doc mention
+      // was rewritten during the comms.link connectivity migration), so it
+      // is NOT relisted here: see the 2026-07-29 systemview-overlays branch.
       "packages/components/src/FleetComms/pendingPulse.ts",
       "packages/components/src/FleetComms/slot.test.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",

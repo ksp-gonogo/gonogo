@@ -85,7 +85,7 @@ export function useStream<T>(topic: string): T | undefined {
  * But some topics are command-centre REAL-time bookkeeping, not delayed
  * craft telemetry: `system.uplink.pending` (dispatch timestamps stamped
  * the instant a command leaves the ground station) and `comms.delay`/
- * `comms.connectivity` (facts about the link itself, not about the
+ * `comms.path` (facts about the link/route itself, not about the
  * vessel) are the current examples. Sampling those through the delayed
  * frame makes them appear (and clear) a whole one-way-delay late; this hook
  * is the fix, it reads the client's sticky last value directly, the same

@@ -68,15 +68,17 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // never fires: see comms-delay-model-consistency spec.
   "comms.link",
   // System View / Fleet-Comms augment (Phase 1 spine,
-  // docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md):
-  // active-vessel comms-path highlight + connectivity styling + command-traffic
-  // (pending-uplink) overlay, read via `useLatestValue`. NOTE `comms.connectivity`
-  // is a TEMPORARY bootstrap, the augment should migrate to the `comms.link`
-  // MetaTopic above now that it's carried (follow-up:
-  // 2026-07-16-fleetcomms-use-comms-link.md). `comms.network` deliberately NOT
-  // listed (Phase 1 doesn't draw the relay graph, Phase 2).
+  // local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md):
+  // active-vessel comms-path highlight + command-traffic (pending-uplink)
+  // overlay, read via `useLatestValue` (dispatch-time bookkeeping, TrueNow).
+  // Connectivity styling now reads the `comms.link` MetaTopic already listed
+  // above (migrated off the `comms.connectivity` TrueNow bootstrap per
+  // `local_docs/Wednesday Work/2026-07-16-fleetcomms-use-comms-link.md`), so
+  // `comms.connectivity` itself is no longer carried here: no client reads
+  // it, completing the comms work's "de-publicise the TrueNow comms.*
+  // observation channels" intent. `comms.network` deliberately NOT listed
+  // (Phase 1 doesn't draw the relay graph, Phase 2).
   "comms.path",
-  "comms.connectivity",
   "system.uplink.pending",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The

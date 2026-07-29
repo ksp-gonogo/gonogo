@@ -6,15 +6,11 @@ import {
   useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type {
-  CommsConnectivity,
-  CommsPath,
-  PendingUplinkQueue,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { CommsPath, PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
 import { ToggleButton } from "@ksp-gonogo/ui";
-import { Cluster } from "@ksp-gonogo/ui-kit";
+import { Badge, Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import type { SystemOverlayContext } from "../SystemView";
+import type { SystemBadgesContext, SystemOverlayContext } from "../SystemView";
 import { describeCommsPath } from "./commsPathSummary";
 import { computeUplinkPulse } from "./pendingPulse";
 import { projectOrbitPosition } from "./projection";
@@ -26,16 +22,21 @@ import {
 
 /**
  * Fleet/Comms: the first-party Phase 1 augment for `SystemView`'s
- * `system-view.overlay`/`system-view.actions` slots
- * (`docs/superpowers/specs/2026-07-15-system-view-fleet-comms-design.md`).
+ * `system-view.overlay`/`system-view.actions`/`system-view.badges` slots
+ * (`local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md`).
  * Scoped to the ACTIVE VESSEL (the Phase 2 all-vessels enrichment is a
- * separate, later spec: see the design doc's "Out of scope").
+ * separate, later spec: see the design doc's "Out of scope"). All three
+ * slots the design doc names for this augment are now filled: `.badges` was
+ * the last of the three left unregistered (the design doc's own "Fills:"
+ * list always named it, "comms/link status indicator") until this pass.
  *
  * Draws:
  * - a comms-path highlight from the vessel to its command centre, styled by
- *   `comms.connectivity`;
+ *   `comms.link`;
  * - a command-traffic overlay: one pulse per `system.uplink.pending` entry,
- *   predicted (never confirmed) from `dispatchedAt`/`oneWaySeconds`.
+ *   predicted (never confirmed) from `dispatchedAt`/`oneWaySeconds`;
+ * - a compact link-status badge in `SystemView`'s header (`.badges` slot),
+ *   the same `comms.link` read the overlay's line colour uses.
  *
  * **Does NOT draw the vessel itself.** `SystemDiagram.tsx`'s own
  * `VesselMarker` already renders the active vessel unconditionally (it needs
@@ -63,17 +64,18 @@ import {
  * `comms.network` node positions, which is Phase 2 territory (per-vessel +
  * per-authority positional model).
  *
- * **TrueNow bootstrap (Phase 1, flagged in the design doc):** `comms.path`/
- * `comms.network`/`comms.connectivity` are TrueNow on the wire today (the
- * Delayed reclassification described in the design doc's grounding section
- * lives on the not-yet-merged `ww/comms-terminal` work, which also renames
- * connectivity to `comms.link`). Until that lands, this augment reads
- * `comms.connectivity` via `useLatestValue`: the correct hook for a TrueNow
- * command-centre topic (see `use-stream.ts`'s own doc: sampling a TrueNow
- * topic through the delayed frame `useTelemetry`/`useStream` read makes it
- * appear a whole one-way-delay late): matching `KosTerminal`'s already-
- * shipped in-transit strip, which reads the exact same three topics the
- * exact same way. Swap to `comms.link` + a Delayed read once that work merges.
+ * **Connectivity rides the delayed `comms.link` MetaTopic** (migrated off
+ * the `comms.connectivity` TrueNow bootstrap this augment originally shipped
+ * with, per `local_docs/Wednesday Work/2026-07-16-fleetcomms-use-comms-link.md`):
+ * `comms.link` is Delayed + freeze-exempt, so a plain `useTelemetry` read
+ * puts the path/badge styling in step with the diagram's own delayed vessel
+ * dot, the correct edge for "what the operator sees right now" (see
+ * `Comms.cs`'s `CommsLink` doc: it is "the ONE client-facing answer" to link
+ * state, `comms.connectivity` is its de-publicised TrueNow predecessor).
+ * `comms.path` and `system.uplink.pending` stay on `useLatestValue`
+ * (TrueNow): they are command-centre dispatch-time bookkeeping, not delayed
+ * craft telemetry, exactly the distinction `use-stream.ts`'s own doc draws;
+ * only connectivity moved.
  */
 
 const COMMLINK_ACCENT = "var(--color-status-go-fg)";
@@ -143,13 +145,15 @@ function FleetCommsOverlay({
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
   // TrueNow command-centre bookkeeping: see this file's class doc for why
-  // these three ride `useLatestValue`/`useUtNow`, not `useTelemetry`/`useViewUt`.
+  // these two ride `useLatestValue`/`useUtNow`, not `useTelemetry`/`useViewUt`.
   const commsPath = useLatestValue<CommsPath>("comms.path");
-  const connectivity = useLatestValue<CommsConnectivity>("comms.connectivity");
   const pendingQueue = useLatestValue<PendingUplinkQueue>(
     "system.uplink.pending",
   );
   const utNow = useUtNow();
+  // Delayed MetaTopic: see this file's class doc for why connectivity alone
+  // moved off `useLatestValue`/`comms.connectivity`.
+  const connectivity = useTelemetry("comms.link");
 
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
@@ -318,6 +322,45 @@ function FleetCommsActions() {
   );
 }
 
+/**
+ * `system-view.badges`: a compact link-status indicator, the design doc's
+ * "comms/link status indicator" fill this augment always intended (see this
+ * file's class doc) but never registered until now. Reads the exact same
+ * `comms.link` topic the overlay's commlink line colour derives from, so the
+ * header badge and the diagram line can never disagree.
+ *
+ * Three states, never collapsed into each other: `connected` (a real link
+ * home right now), `no link` (a real, confirmed absence: a genuine ops
+ * fact), and `NULL_DISPLAY` (`comms.link` has never delivered a sample: no
+ * Uplink mounted, or nothing received yet: an honest "unknown", not a
+ * fabricated "no link"). Ignores `frameName`: link state isn't a function of
+ * which body the diagram is framed on.
+ */
+function FleetCommsBadge(_props: Readonly<SystemBadgesContext>) {
+  const link = useTelemetry("comms.link");
+  const connected = link?.connected ?? null;
+  // `Badge` (ui-kit): the codebase's one canonical state-pill, already
+  // carrying the vetted go/nogo/neutral fg-on-bg contrast pairing, so this
+  // badge composes it rather than hand-rolling a styled dot (the widget
+  // library's own convention: no bespoke CSS where a ui-kit primitive
+  // already fits, see local_docs/telemetry-mod/ui-kit-design.md). The label
+  // text IS the accessible name; no `aria-label` needed on top of it.
+  const tone: "go" | "nogo" | "neutral" =
+    connected === true ? "go" : connected === false ? "nogo" : "neutral";
+  const label =
+    connected === true ? "LINK" : connected === false ? "NO LINK" : null;
+  // `data-testid`: the label text alone isn't a safe query target for the
+  // unknown state (`NULL_DISPLAY`, the shared null-placeholder glyph, also
+  // appears elsewhere in the diagram/almanac), so tests scope to this
+  // instead of risking an ambiguous `getByText` match, per the KCD
+  // role>label>text>testid fallback order.
+  return (
+    <Badge tone={tone} data-testid="fleet-comms-badge">
+      {label ?? NULL_DISPLAY}
+    </Badge>
+  );
+}
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerAugment({
@@ -329,7 +372,7 @@ registerAugment({
     "vessel.identity",
     "system.bodies",
     "comms.path",
-    "comms.connectivity",
+    "comms.link",
     "system.uplink.pending",
   ],
 });
@@ -340,4 +383,11 @@ registerAugment({
   component: FleetCommsActions,
 });
 
-export { FleetCommsActions, FleetCommsOverlay };
+registerAugment({
+  id: "fleet-comms-badge",
+  augments: "system-view.badges",
+  component: FleetCommsBadge,
+  channels: ["comms.link"],
+});
+
+export { FleetCommsActions, FleetCommsBadge, FleetCommsOverlay };
