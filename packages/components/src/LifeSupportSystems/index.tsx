@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  getWidgetShape,
+  registerComponent,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { Badge, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 // Side-effect import: registers the built-in `life-support.sections`
@@ -257,6 +262,17 @@ function LifeSupportSystemsComponent({
   // Shedding the Habitat summary line too preserves that invariant instead
   // of silently breaking it.
   const ultraCompact = rows < 6;
+  // Landscape (wide + short, e.g. landscape-18x5) is exactly the shape that
+  // used to break the "Power always stays visible" invariant: there is width
+  // to spare but not enough height for a vertical meter stack plus a
+  // separate footer meter, so the footer meter sat past Panel's
+  // overflow:hidden edge with zero visible bar. Flow Food/Water/Oxygen/Power
+  // into one row instead of stacking them; the row uses the width the size
+  // bucket alone can't see (getWidgetShape doc comment) and needs a fraction
+  // of the vertical space a 4-row stack does, so Power is never a separate,
+  // separately-clippable element at this shape.
+  const { shape } = getWidgetShape(w, h);
+  const landscapeFlow = shape === "landscape";
 
   const runningCount = d.processes.filter((p) => p.state === "running").length;
   const brokenCount = d.processes.filter((p) => p.state === "broken").length;
@@ -284,112 +300,159 @@ function LifeSupportSystemsComponent({
         </Badge>
       </HeaderRow>
 
-      <Section>
-        <SectionHead>
-          <SectionLabel>Consumables</SectionLabel>
-          <SectionValue $tone="info">
-            Shortest ETA {shortestEta(d)}
-          </SectionValue>
-        </SectionHead>
-        <MeterStackTight>
-          <Meter
-            label="Food"
-            value={consumableFraction(d.food)}
-            tone={levelTone(consumableFraction(d.food))}
-            valueLabel={meterLabel(d.food)}
-            size={compact ? "sm" : "md"}
-          />
-          <Meter
-            label="Water"
-            value={consumableFraction(d.water)}
-            tone={levelTone(consumableFraction(d.water))}
-            valueLabel={meterLabel(d.water)}
-            size={compact ? "sm" : "md"}
-          />
-          <Meter
-            label="Oxygen"
-            value={consumableFraction(d.oxygen)}
-            tone={levelTone(consumableFraction(d.oxygen))}
-            valueLabel={meterLabel(d.oxygen)}
-            size={compact ? "sm" : "md"}
-          />
-        </MeterStackTight>
-      </Section>
-
-      {!ultraCompact && (
+      {/* Body absorbs any vertical shortfall itself (flex:1 + min-height:0 +
+          its own overflow:hidden, the same PanelBody convention documented
+          in Panel.tsx) instead of letting the whole Panel overflow and clip
+          whatever happens to be last in source order. That guarantees
+          FooterRow below, and the Power meter inside it, always get their
+          full natural height: at worst Body's own least-critical trailing
+          content (e.g. the last few px of a habitat/process row) is what
+          gives, never the life-critical Power reading. */}
+      <Body>
         <Section>
           <SectionHead>
-            <SectionLabel>Habitat</SectionLabel>
-            <SectionValue $tone={d.pressurized ? "go" : "warn"}>
-              {d.pressurized ? "Pressurized" : "Unpressurized"}
+            <SectionLabel>Consumables</SectionLabel>
+            <SectionValue $tone="info">
+              Shortest ETA {shortestEta(d)}
             </SectionValue>
           </SectionHead>
-          {!compact && (
-            <HabitatGrid>
+          {landscapeFlow ? (
+            <MeterRow>
               <Meter
-                label="Comfort"
-                value={d.comfort}
-                tone={levelTone(d.comfort)}
+                label="Food"
+                value={consumableFraction(d.food)}
+                tone={levelTone(consumableFraction(d.food))}
+                valueLabel={meterLabel(d.food)}
                 size="sm"
               />
               <Meter
-                label="Living space"
-                value={d.livingSpace}
-                tone="info"
+                label="Water"
+                value={consumableFraction(d.water)}
+                tone={levelTone(consumableFraction(d.water))}
+                valueLabel={meterLabel(d.water)}
                 size="sm"
               />
               <Meter
-                label="CO2 poisoning"
-                value={d.co2Poisoning}
-                tone={riskTone(d.co2Poisoning)}
+                label="Oxygen"
+                value={consumableFraction(d.oxygen)}
+                tone={levelTone(consumableFraction(d.oxygen))}
+                valueLabel={meterLabel(d.oxygen)}
                 size="sm"
               />
-            </HabitatGrid>
+              <Meter
+                label="Power"
+                value={consumableFraction(d.ec)}
+                tone={levelTone(consumableFraction(d.ec))}
+                valueLabel={meterLabel(d.ec)}
+                size="sm"
+              />
+            </MeterRow>
+          ) : (
+            <MeterStackTight>
+              <Meter
+                label="Food"
+                value={consumableFraction(d.food)}
+                tone={levelTone(consumableFraction(d.food))}
+                valueLabel={meterLabel(d.food)}
+                size={compact ? "sm" : "md"}
+              />
+              <Meter
+                label="Water"
+                value={consumableFraction(d.water)}
+                tone={levelTone(consumableFraction(d.water))}
+                valueLabel={meterLabel(d.water)}
+                size={compact ? "sm" : "md"}
+              />
+              <Meter
+                label="Oxygen"
+                value={consumableFraction(d.oxygen)}
+                tone={levelTone(consumableFraction(d.oxygen))}
+                valueLabel={meterLabel(d.oxygen)}
+                size={compact ? "sm" : "md"}
+              />
+            </MeterStackTight>
           )}
         </Section>
-      )}
 
-      {!compact && (
-        <Section>
-          <SectionHead>
-            <SectionLabel>Processes</SectionLabel>
-            <SectionValue $tone={brokenCount > 0 ? "nogo" : "go"}>
-              {processSummary}
-            </SectionValue>
-          </SectionHead>
-          <ProcessGrid>
-            {d.processes.map((p) => (
-              <ProcessRowEl key={p.id}>
-                <ProcessName>{p.name}</ProcessName>
-                <Badge tone={processTone(p.state)} size="sm">
-                  {p.state}
-                </Badge>
-              </ProcessRowEl>
-            ))}
-          </ProcessGrid>
-        </Section>
-      )}
+        {!ultraCompact && (
+          <Section>
+            <SectionHead>
+              <SectionLabel>Habitat</SectionLabel>
+              <SectionValue $tone={d.pressurized ? "go" : "warn"}>
+                {d.pressurized ? "Pressurized" : "Unpressurized"}
+              </SectionValue>
+            </SectionHead>
+            {!compact && (
+              <HabitatGrid>
+                <Meter
+                  label="Comfort"
+                  value={d.comfort}
+                  tone={levelTone(d.comfort)}
+                  size="sm"
+                />
+                <Meter
+                  label="Living space"
+                  value={d.livingSpace}
+                  tone="info"
+                  size="sm"
+                />
+                <Meter
+                  label="CO2 poisoning"
+                  value={d.co2Poisoning}
+                  tone={riskTone(d.co2Poisoning)}
+                  size="sm"
+                />
+              </HabitatGrid>
+            )}
+          </Section>
+        )}
 
-      {/* Augment sections, e.g. the built-in Greenhouse readout, compose
-          here, below the process grid. A bare fragment (no extra margin)
-          until something is registered into the slot, matching
-          PowerSystems' `power-systems.sections` usage. */}
-      {!compact && (
-        <AugmentSlot
-          name="life-support.sections"
-          props={{ greenhouses: d.greenhouses }}
-        />
-      )}
+        {!compact && (
+          <Section>
+            <SectionHead>
+              <SectionLabel>Processes</SectionLabel>
+              <SectionValue $tone={brokenCount > 0 ? "nogo" : "go"}>
+                {processSummary}
+              </SectionValue>
+            </SectionHead>
+            <ProcessGrid>
+              {d.processes.map((p) => (
+                <ProcessRowEl key={p.id}>
+                  <ProcessName>{p.name}</ProcessName>
+                  <Badge tone={processTone(p.state)} size="sm">
+                    {p.state}
+                  </Badge>
+                </ProcessRowEl>
+              ))}
+            </ProcessGrid>
+          </Section>
+        )}
 
-      <FooterRow>
-        <Meter
-          label="Power"
-          value={consumableFraction(d.ec)}
-          tone={levelTone(consumableFraction(d.ec))}
-          valueLabel={meterLabel(d.ec)}
-          size={compact ? "sm" : "md"}
-        />
-      </FooterRow>
+        {/* Augment sections, e.g. the built-in Greenhouse readout, compose
+            here, below the process grid. A bare fragment (no extra margin)
+            until something is registered into the slot, matching
+            PowerSystems' `power-systems.sections` usage. */}
+        {!compact && (
+          <AugmentSlot
+            name="life-support.sections"
+            props={{ greenhouses: d.greenhouses }}
+          />
+        )}
+      </Body>
+
+      {/* Landscape folds Power into the Consumables row above instead of a
+          separate footer, see landscapeFlow's doc comment. */}
+      {!landscapeFlow && (
+        <FooterRow>
+          <Meter
+            label="Power"
+            value={consumableFraction(d.ec)}
+            tone={levelTone(consumableFraction(d.ec))}
+            valueLabel={meterLabel(d.ec)}
+            size={compact ? "sm" : "md"}
+          />
+        </FooterRow>
+      )}
     </Panel>
   );
 }
@@ -403,6 +466,18 @@ const HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+`;
+
+// Fills the remaining Panel height and lets ITS OWN bottom edge clip first
+// (see the render-site comment on <Body>), so FooterRow's Power meter never
+// has to compete with the rest of the widget for the last few px of a short
+// box.
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const Section = styled.div`
@@ -441,6 +516,18 @@ const MeterStackTight = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
+  margin-top: 2px;
+`;
+
+// Landscape's side-by-side reflow for Food/Water/Oxygen/Power: always
+// exactly 4 equal tracks (rather than an auto-fit count that could shrink
+// each track down toward its minmax floor and squeeze the label into an
+// ellipsis) so each meter gets a full quarter of the available width, the
+// width landscape has to spare in the first place.
+const MeterRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 16px;
   margin-top: 2px;
 `;
 
