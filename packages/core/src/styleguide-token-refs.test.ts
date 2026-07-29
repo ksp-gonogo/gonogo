@@ -37,22 +37,14 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *
  * A reference WITH a fallback (`var(--space-8, 8px)`) is deliberately not
  * flagged: the fallback is what makes it safe, and ui-kit uses that form on
- * purpose for hosts that mount neither stylesheet.
+ * purpose for a host that mounts no stylesheet at all.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..", "..");
 
-/**
- * Where tokens are declared. `tokens.css` is the source of truth;
- * `GonogoTokens.tsx` is its styled-components mirror and is kept identical
- * by `tokensMirror.test.ts`, but both are read here so this guard does not
- * depend on that one passing.
- */
-const TOKEN_SOURCES = [
-  "packages/theme/src/tokens.css",
-  "packages/theme/src/GonogoTokens.tsx",
-];
+/** Where tokens are declared. One file, and it is the source of truth. */
+const TOKEN_SOURCES = ["packages/theme/src/tokens.css"];
 
 /** `--foo:` in a stylesheet, and `"--foo":` in a JS style object. */
 const DECLARATION_RE = /(--[a-z0-9-]{2,})["']?\s*:/g;

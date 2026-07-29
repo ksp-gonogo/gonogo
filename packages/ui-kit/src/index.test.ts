@@ -15,7 +15,6 @@ import {
   formatAge,
   formatAgeLong,
   GhostButton,
-  GonogoTokens,
   Input,
   PrimaryButton,
   Switch,
@@ -39,10 +38,6 @@ describe("ui-kit foundation", () => {
     expect(defaultDarkTheme.typography.letterSpacing.wide).toBe("0.15em");
     expect(defaultDarkTheme.radii.xs).toBe("2px");
     expect(defaultDarkTheme.radii.pill).toBe("999px");
-  });
-
-  it("exports GonogoTokens as a styled-components global sheet", () => {
-    expect(GonogoTokens).toBeTypeOf("object");
   });
 
   it("exports the form-primitive + icon surface moved from @ksp-gonogo/ui", () => {

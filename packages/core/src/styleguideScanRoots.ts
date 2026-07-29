@@ -59,7 +59,7 @@ export const UNSCANNED_PACKAGE_ROOTS: { path: string; reason: string }[] = [
   {
     path: "packages/theme/src",
     reason:
-      "The token source of truth itself. Every colour, space, radius, z-index and duration literal in tokens.css and its GonogoTokens mirror is the definition the other roots are ratcheted towards; scanning it would flag the answer as the offence.",
+      "The token source of truth itself. Every colour, space, radius, z-index and duration literal in tokens.css is the definition the other roots are ratcheted towards; scanning it would flag the answer as the offence.",
   },
 ];
 

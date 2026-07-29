@@ -11,7 +11,7 @@ import { defineConfig } from "tsup";
  *
  *   - `noExternal` inlines the theme's JS into `dist/index.js`.
  *   - `dts.resolve` inlines the theme's *types* into `dist/index.d.ts`, so the
- *     emitted declarations carry `UiKitTheme`, `GonogoTokens` et al. outright
+ *     emitted declarations carry `UiKitTheme`, `defaultDarkTheme` et al. outright
  *     instead of re-exporting them from a package no consumer can install.
  *
  * `lucide-react` (the icon set behind `./Icons`) is inlined the same way, so

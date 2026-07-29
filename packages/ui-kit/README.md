@@ -84,13 +84,9 @@ already augment `DefaultTheme` yourself, expect a conflict.
 ## Tokens
 
 Values live in CSS custom properties; the theme object is a typed handle onto the same values.
-Two ways in, pick whichever suits your setup:
 
-- `@ksp-gonogo/ui-kit/tokens.css`: the raw `:root` block, and the only route to the custom
+- `@ksp-gonogo/ui-kit/tokens.css`: the raw `:root` block, and the route to the custom
   properties themselves. Import once at your root
-- `GonogoTokens`: the same block as a styled-components global sheet, for hosts that build
-  global styles in JS. Render once near the root. Not auto-mounted, since injecting a
-  stylesheet is a side effect
 
 Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaultDarkTheme`
 (the theme object, if you're mounting your own `ThemeProvider`), and the contract types,

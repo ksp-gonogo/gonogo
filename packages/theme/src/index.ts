@@ -3,7 +3,6 @@ export {
   type DefaultThemeProviderProps,
 } from "./DefaultThemeProvider";
 export { defaultDarkTheme } from "./defaultDarkTheme";
-export { GonogoTokens } from "./GonogoTokens";
 export type {
   ThemeBorders,
   ThemeColors,

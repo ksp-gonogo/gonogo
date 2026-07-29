@@ -20,10 +20,7 @@ import {
  *      truth: `packages/app/src/styles/global.css` only `@import`s it,
  *      and a separate ratchet (`tokenSingleSource.test.ts`) FORBIDS
  *      re-declaring a token there.
- *   2. Mirror it into `packages/theme/src/GonogoTokens.tsx`, the
- *      styled-components mounting path, which `tokensMirror.test.ts`
- *      holds byte-equal to tokens.css.
- *   3. Add the matching role to `packages/theme/src/defaultDarkTheme.ts`
+ *   2. Add the matching role to `packages/theme/src/defaultDarkTheme.ts`
  *      (re-exported through ui-kit and ui) if a call site needs it from
  *      JS rather than CSS.
  *   4. Reference via `var(--color-...)` in styled-components, or
@@ -149,7 +146,7 @@ describe("design-system: raw hex literals", () => {
       throw new Error(
         `Raw hex literal count (${offenders.length}) exceeds baseline (${HEX_OCCURRENCE_BASELINE}) by ${newCount}.\n` +
           `Add new colours to packages/theme/src/tokens.css as --color-* tokens ` +
-          `(and mirror them into GonogoTokens.tsx), or reuse an existing token. ` +
+          `or reuse an existing token. ` +
           `Do NOT add them to packages/app/src/styles/global.css: tokenSingleSource.test.ts ` +
           `forbids re-declaring a token there. Recent offenders:\n${sample}`,
       );
