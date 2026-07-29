@@ -455,6 +455,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/theme':
+        specifier: workspace:*
+        version: link:../theme
       '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui

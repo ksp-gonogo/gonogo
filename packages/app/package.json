@@ -26,6 +26,7 @@
     "@ksp-gonogo/serial": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/theme": "workspace:*",
     "@ksp-gonogo/ui": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
     "@tanstack/react-query": "^5.0.0",

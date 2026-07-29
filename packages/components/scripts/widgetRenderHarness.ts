@@ -68,7 +68,17 @@ const SCREEN_ENTRY = join(PROBE_DIR, "screen-entry.tsx");
 const SCREEN_HTML_TEMPLATE = join(PROBE_DIR, "screen-probe.html");
 const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
-const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
+// The design tokens themselves: `packages/app/src/styles/global.css` used to
+// carry its own copy of the `:root` block and this constant pointed there,
+// but that copy is gone now (it `@import`s `@ksp-gonogo/theme/tokens.css`
+// instead, see that file's header comment). Reading global.css here would
+// find no `:root` block for `extractRootBlock` to match and every probe
+// render would silently lose its colours (or throw, depending on how the
+// match failed), read the theme package's *source* tokens.css directly:
+// no bundler resolution needed, and no dependency on `pnpm --filter
+// @ksp-gonogo/theme build` having run first (its `dist/tokens.css` is a
+// gitignored build artifact; this script only ever reads plain text).
+const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const ARTIFACT_EXTS = new Set([".png"]);
 
 // Dashboard grid constants: mirrors packages/app/src/components/Dashboard/
@@ -587,7 +597,7 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(opts.htmlTemplate, "utf8");
-  const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
+  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
   const fontFace = await jetbrainsMonoFontFace();
 
   // Inline-script payload may contain `</script>` (rare but possible in
@@ -637,7 +647,7 @@ async function jetbrainsMonoFontFace(): Promise<string> {
 function extractRootBlock(css: string): string {
   const match = css.match(/:root\s*\{[\s\S]*?\}/);
   if (!match) {
-    throw new Error("global.css: no :root block found");
+    throw new Error("tokens.css: no :root block found");
   }
   return match[0];
 }

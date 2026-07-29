@@ -328,12 +328,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
   const careerScience = useTelemetry("career.status")?.economy?.science;
-  // The unlock action itself only spends science, but every researched
-  // node's parts still need a funds purchase in the VAB/SPH before they're
-  // usable (each PartRow's entryCost below), and CLAUDE.md names Tech Tree
-  // explicitly under "spending funds: always show the balance". Surface it
-  // alongside science so the operator can judge both costs from here.
-  const careerFunds = useTelemetry("career.status")?.economy?.funds;
   const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
@@ -424,9 +418,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           {sciAvailable !== null && (
             <TinySci>{Math.round(sciAvailable)} sci</TinySci>
           )}
-          {typeof careerFunds === "number" && (
-            <TinySci>{Math.round(careerFunds).toLocaleString()}f</TinySci>
-          )}
         </TinyBody>
       </Panel>
     );
@@ -465,11 +456,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
         <SciReadout title="Available science">
           · {Math.round(sciAvailable)} sci
         </SciReadout>
-      )}
-      {typeof careerFunds === "number" && (
-        <FundsReadout title="Available funds">
-          · {Math.round(careerFunds).toLocaleString()}f
-        </FundsReadout>
       )}
     </PanelSubtitle>
   ) : null;
@@ -1385,12 +1371,6 @@ const SciReadout = styled.span`
   margin-left: 2px;
 `;
 
-const FundsReadout = styled.span`
-  color: var(--color-status-go-fg);
-  font-variant-numeric: tabular-nums;
-  margin-left: 2px;
-`;
-
 // ── Graph styles ────────────────────────────────────────────────────────────
 
 const GraphToolbar = styled.div`
@@ -1637,12 +1617,7 @@ registerComponent<TechTreeConfig>({
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 2, h: 2 },
   component: TechTreeComponent,
-  dataRequirements: [
-    "tech.nodes",
-    "career.science",
-    "career.funds",
-    "kc.scene",
-  ],
+  dataRequirements: ["tech.nodes", "career.science", "kc.scene"],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["tech-tree.badges"],
