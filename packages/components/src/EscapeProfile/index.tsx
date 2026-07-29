@@ -79,6 +79,14 @@ function EscapeProfileComponent({
 
   // Plot orbital speed (a strict upper bound on horizontal-only) against
   // altitude. When the trace touches the curve the trajectory is at escape.
+  // Scatter, not line: mirrors KeplerPeriod's "one fresh dot per sample"
+  // choice (see its own doc comment). A "line" series renders NOTHING for
+  // a single sample (an SVG path with just one `M` command has no
+  // strokeable length, even with a round linecap), so the widget's core
+  // signal, where the live point sits relative to the escape-velocity
+  // curve, was invisible until a second sample landed. Scatter draws a
+  // marker per point regardless of count, matching every fixture's own
+  // "trace dot" framing.
   const graphConfig: GraphConfig = useMemo(
     () => ({
       series: [
@@ -87,7 +95,7 @@ function EscapeProfileComponent({
           key: "v.orbitalVelocity",
           label: "Orbital speed",
           axis: "primary",
-          type: "line",
+          type: "scatter",
         },
       ],
       windowSec,
@@ -101,11 +109,13 @@ function EscapeProfileComponent({
 
   return (
     <Wrap>
-      <GraphView
-        config={graphConfig}
-        referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-        title="ESCAPE PROFILE"
-      />
+      <GraphSlot>
+        <GraphView
+          config={graphConfig}
+          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+          title="ESCAPE PROFILE"
+        />
+      </GraphSlot>
       {showNoGmNotice && body && (
         <Notice role="status">
           No reference data for {body.name}: plotting trace only.
@@ -129,16 +139,33 @@ const Wrap = styled.div`
   min-height: 0;
 `;
 
+// GraphView's Panel is height:100%, so without an explicit shrinkable flex
+// slot it doesn't yield room to the Notice sibling below (the two overlap
+// instead of the chart shrinking by the Notice's height). Mirrors
+// KeplerPeriod's / AtmosphereProfile's own GraphSlot wrapper.
+const GraphSlot = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+// Normal-flow row rather than an absolute overlay: the absolute version
+// covered the x-axis tick labels at narrow heights (they physically overlap
+// regardless of the chart's own height, since an absolutely-positioned
+// element never yields flex space to a sibling). Matches KeplerPeriod's and
+// AtmosphereProfile's own Notice, which already made this switch.
 const Notice = styled.div`
-  position: absolute;
-  bottom: 4px;
-  left: 8px;
+  flex: 0 0 auto;
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  background: rgba(0, 0, 0, 0.85);
+  color: var(--color-text-faint);
+  background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 2px;
   pointer-events: none;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 4px;
 `;
 
 registerComponent<EscapeProfileConfig>({

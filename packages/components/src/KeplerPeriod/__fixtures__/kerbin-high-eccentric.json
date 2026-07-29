@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "kerbin-high-eccentric",
-    "notes": "Highly eccentric Kerbin orbit (Ap \u2248 10 Mm, Pe \u2248 100 km). SMA \u2248 5 Mm, period \u2248 5.5 hours. Dot sits in the upper-right portion of the curve. Tests that SMA, not altitude, is the x-axis."
+    "notes": "Highly eccentric Kerbin orbit (Ap \u2248 10 Mm, Pe \u2248 100 km). SMA \u2248 5 Mm, period \u2248 5.5 hours. Dot sits in the upper-right portion of the curve. Tests that SMA, not altitude, is the x-axis. The vessel.orbit emit's sma must actually be 5050000, o.sma/o.period are unread legacy mirrors; it was left at the same 700000 boilerplate as every other Navball/EscapeProfile fixture, which put the dot in the same low-sma spot as kerbin-lko regardless of scenario."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -23,8 +23,8 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
-          "ecc": 0.1,
+          "sma": 5050000,
+          "ecc": 0.876,
           "inc": 0,
           "lan": 0,
           "argPe": 0,

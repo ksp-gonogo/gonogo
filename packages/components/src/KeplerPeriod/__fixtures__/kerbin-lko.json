@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "kerbin-lko",
-    "notes": "Low Kerbin Orbit at 80 km altitude. SMA \u2248 680 km (600 km radius + 80 km), period \u2248 33 min. Dot should sit near the left-bottom of the Kepler curve."
+    "notes": "Low Kerbin Orbit at 80 km altitude. SMA \u2248 680 km (600 km radius + 80 km), period \u2248 33 min. Dot should sit near the left-bottom of the Kepler curve. The vessel.orbit emit's sma must actually be 680000, o.sma/o.period are unread legacy mirrors (o.period/o.sma map onto the derived vessel.state.period / carried vessel.orbit.sma stream topics); it was left at the same 700000 boilerplate as every other Navball/EscapeProfile fixture, which put the dot in the same spot regardless of scenario."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -23,7 +23,7 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
+          "sma": 680000,
           "ecc": 0.1,
           "inc": 0,
           "lan": 0,

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "mun-orbit",
-    "notes": "Low Mun orbit at ~15 km. Mun radius 200 km, SMA \u2248 215 km, period \u2248 54 min. Tests body switching: the Kepler curve should re-render for Mun's GM."
+    "notes": "Low Mun orbit at ~15 km. Mun radius 200 km, SMA \u2248 215 km, real period \u2248 41 min at Mun's actual GM (6.5138398e10; the 54 min originally claimed here assumed Kerbin-scale gravity). Tests body switching: the Kepler curve should re-render for Mun's GM. The vessel.orbit emit's sma/mu must actually be Mun's (215000 / 6.5138398e10), o.sma/o.period are unread legacy mirrors; the emit was left at the Kerbin 700000/3531600000000 boilerplate shared with every other Navball/EscapeProfile fixture, which plotted the dot off Mun's own curve entirely. system.bodies.radius corrected to Mun's actual 200 km too, it had inherited Kerbin's 600 km."
   },
   "v.body": "Mun",
   "o.referenceBody": "Mun",
@@ -23,14 +23,14 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
-          "ecc": 0.1,
+          "sma": 215000,
+          "ecc": 0.02,
           "inc": 0,
           "lan": 0,
           "argPe": 0,
           "meanAnomalyAtEpoch": 0,
           "epoch": 0,
-          "mu": 3531600000000.0
+          "mu": 65138398000.0
         }
       },
       {
@@ -52,7 +52,7 @@
               "name": "Mun",
               "index": 1,
               "parentIndex": 0,
-              "radius": 600000,
+              "radius": 200000,
               "orbit": null
             }
           ]

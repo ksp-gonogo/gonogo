@@ -37,10 +37,18 @@ export function AttitudeIndicator({
   const safeRoll = roll ?? 0;
   const safeHeading = heading ?? 0;
 
-  // 1° of pitch = pitchScale px on the horizon ribbon. Tuned so ±30°
-  // covers most of the viewport without horizon-bar disappearing on
-  // climbs.
-  const pitchScale = r / 45;
+  // 1° of pitch = pitchScale px on the horizon ribbon. r/90 maps the full
+  // physical pitch range (+/-90, straight up to straight down) onto the
+  // dial's radius, so the horizon line only ever reaches the very edge at
+  // the extremes: a common ~45 climb (see the Navball "gravity-turn-east"
+  // fixture) still leaves the horizon roughly mid-dial instead of pinning
+  // it off the edge. This was previously r/45, which put the horizon at
+  // the edge (ground/sky band clipped to invisible) at just +/-45, well
+  // short of "without horizon-bar disappearing on climbs" below, and left
+  // an unfilled gap across half the dial at +/-90 (the sky/ground rects
+  // only span 2r each, so a 2r offset outran them; r/90's max +/-r offset
+  // keeps a rect's span flush with the dial exactly at the extreme).
+  const pitchScale = r / 90;
   const horizonOffset = safePitch * pitchScale;
 
   // Heading band: 1° = 4px gives ~120° of context across a 480px-equivalent

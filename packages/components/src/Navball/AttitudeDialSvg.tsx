@@ -36,7 +36,10 @@ export function AttitudeDialSvg({
   const safePitch = pitch ?? 0;
   const safeRoll = roll ?? 0;
 
-  const pitchScale = r / 45;
+  // See AttitudeIndicator's matching constant for the full rationale: r/90
+  // maps the physical +/-90 pitch range onto the dial radius so the horizon
+  // doesn't vanish (or leave an unfilled gap) at a common ~45 climb.
+  const pitchScale = r / 90;
   const horizonOffset = safePitch * pitchScale;
   const clipId = `${idPrefix}-clip-${size}`;
 

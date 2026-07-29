@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "kerbin-synchronous",
-    "notes": "Kerbostationary orbit. SMA \u2248 2863.33 km, period exactly 1 Kerbin day (6 hours = 21600 s). Dot should land exactly on the Kepler curve at the synchronous crossing."
+    "notes": "Kerbostationary orbit, period exactly 1 Kerbin day (6 hours = 21600 s). Dot should land exactly on the Kepler curve at the synchronous crossing. 2863.33 km is the commonly-cited kerbosynchronous ALTITUDE, not SMA (radius from centre); the vessel.orbit emit's sma is altitude + Kerbin's 600 km radius, solved backward from T=2*pi*sqrt(sma^3/mu) at mu=3531600000000 so the dot lands exactly on this fixture's own reference curve: sma=3468751 (o.sma/o.period are unread legacy mirrors kept close to the commonly-cited numbers; the emit was left at the same 700000 boilerplate as every other Navball/EscapeProfile fixture, which put the dot in the low-sma corner regardless of scenario)."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -23,8 +23,8 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
-          "ecc": 0.1,
+          "sma": 3468751,
+          "ecc": 0,
           "inc": 0,
           "lan": 0,
           "argPe": 0,

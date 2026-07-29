@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "kerbin-escape-trajectory",
-    "notes": "Kerbin escape trajectory at 200 km altitude. Orbital speed ~3600 m/s exceeds escape velocity at this altitude (~2929 m/s). Trace dot plots above the reference curve, craft on hyperbolic trajectory."
+    "notes": "Kerbin escape trajectory at 200 km altitude. Orbital speed ~3600 m/s exceeds escape velocity at this altitude (~2929 m/s). Trace dot plots above the reference curve, craft on hyperbolic trajectory. v.altitude/v.orbitalVelocity map onto the derived vessel.state.altitudeAsl/orbitalSpeed stream topics, which only populate in the Loaded (measured) basis: the vessel.orbit emit needs quality:1 and a matching vessel.flight emit, or GraphView's X series (altitude) stays permanently null and the trace never plots."
   },
   "v.body": "Kerbin",
   "v.altitude": 200000,
@@ -30,6 +30,25 @@
           "meanAnomalyAtEpoch": 0,
           "epoch": 0,
           "mu": 3531600000000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 200000,
+          "altitudeTerrain": 200000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 3600,
+          "orbitalSpeed": 3600,
+          "gForce": 0,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
         }
       },
       {

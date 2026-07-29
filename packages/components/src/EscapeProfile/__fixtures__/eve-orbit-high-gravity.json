@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "eve-orbit-high-gravity",
-    "notes": "Eve orbit at 100 km (just above atmosphere ceiling at 90 km). Eve escape velocity at this altitude ~4526 m/s. Orbital speed ~2500 m/s, well below. High-gravity body with thick atmosphere: large scale and wide reference curve."
+    "notes": "Eve orbit at 100 km (just above atmosphere ceiling at 90 km). Eve escape velocity at this altitude ~4526 m/s. Orbital speed ~2500 m/s, well below. High-gravity body with thick atmosphere: large scale and wide reference curve. v.altitude/v.orbitalVelocity map onto the derived vessel.state.altitudeAsl/orbitalSpeed stream topics, which only populate in the Loaded (measured) basis: the vessel.orbit emit needs quality:1 and a matching vessel.flight emit, or GraphView's X series (altitude) stays permanently null and the trace never plots."
   },
   "v.body": "Eve",
   "v.altitude": 100000,
@@ -30,6 +30,25 @@
           "meanAnomalyAtEpoch": 0,
           "epoch": 0,
           "mu": 3531600000000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 100000,
+          "altitudeTerrain": 100000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 2500,
+          "orbitalSpeed": 2500,
+          "gForce": 0,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
         }
       },
       {

@@ -1,10 +1,10 @@
 {
   "_meta": {
     "scenario": "escape-trajectory",
-    "notes": "Hyperbolic escape trajectory from Kerbin (e=1.42). SMA is negative for a hyperbola; Telemachus emits a positive value for the asymptote distance. Widget should show StatusPill 'Escape'. SVG diagram geometry may be degenerate (b collapses to 0 at e=1). Catalog any visual artifact without fixing."
+    "notes": "Hyperbolic escape trajectory from Kerbin (e=1.42). SMA is negative for a hyperbola (the codebase's established Telemachus convention; see CurrentOrbit's escape-trajectory fixture and vessel-state.ts's deriveApsides), sized so periapsisRadius = sma*(1-ecc) reproduces PeR/PeA below. Widget should show StatusPill 'Escape'."
   },
   "v.body": "Kerbin",
-  "o.sma": 2100000,
+  "o.sma": -1619048,
   "o.eccentricity": 1.42,
   "o.trueAnomaly": 15,
   "o.argumentOfPeriapsis": 270,
@@ -29,7 +29,7 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 2100000,
+          "sma": -1619048,
           "ecc": 1.42,
           "inc": 0,
           "lan": 0,
