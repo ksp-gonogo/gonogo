@@ -336,12 +336,12 @@ const Current = styled.span`
 `;
 
 const Arrow = styled.span`
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const Target = styled.span`
   font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -363,7 +363,7 @@ const StatePill = styled.span<{ $atTarget: boolean }>`
   background: ${(p) =>
     p.$atTarget ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
   color: ${(p) =>
-    p.$atTarget ? "var(--color-status-go-fg)" : "var(--color-text-secondary)"};
+    p.$atTarget ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
 `;
 
 const Controls = styled.div`
@@ -384,7 +384,7 @@ const ControlLabel = styled.span`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const Stepper = styled.div`

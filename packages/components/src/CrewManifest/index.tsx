@@ -617,9 +617,9 @@ const TitleRight = styled.div`
 // per-kerbal survival data.
 const MetersToggle = styled.button`
   appearance: none;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-subtle);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -694,10 +694,10 @@ const DeathClock = styled.span<{ $tone: MeterTone }>`
   letter-spacing: 0.04em;
   color: ${({ $tone }) =>
     $tone === "nogo"
-      ? "var(--color-danger-fg)"
+      ? "var(--color-status-nogo-fg)"
       : $tone === "warn"
-        ? "var(--color-warning-fg)"
-        : "var(--color-text-secondary)"};
+        ? "var(--color-status-warning-fg-muted)"
+        : "var(--color-text-muted)"};
 `;
 
 // Leading per-crew avatar cell: a square that reserves room for an avatar-face

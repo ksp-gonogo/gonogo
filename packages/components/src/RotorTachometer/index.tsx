@@ -421,7 +421,7 @@ const ControlLabel = styled.span`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const StepBtn = styled.button`

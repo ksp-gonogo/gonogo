@@ -1135,7 +1135,7 @@ const StatValue = styled.dd`
 `;
 
 const CrashChip = styled.div`
-  background: var(--color-status-nogo-muted);
+  background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
   padding: var(--space-4) var(--space-8);

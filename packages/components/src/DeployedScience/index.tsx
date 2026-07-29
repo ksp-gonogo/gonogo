@@ -417,7 +417,7 @@ const PowerPill = styled.span<{ $state: PowerState }>`
   gap: var(--space-4);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const STATE_COLOR: Record<PowerState, string> = {
@@ -435,7 +435,7 @@ const Dot = styled.span<{ $state: PowerState }>`
 
 const PowerLine = styled.div`
   font-size: var(--font-size-2xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -463,7 +463,7 @@ const ExpName = styled.span`
 const ExpPct = styled.span`
   font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const Collecting = styled.span`

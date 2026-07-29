@@ -309,7 +309,7 @@ const List = styled.ul`
 `;
 
 const STATE_COLOR: Record<ObjectiveState, string> = {
-  pending: "var(--color-text-secondary)",
+  pending: "var(--color-text-muted)",
   active: "var(--color-status-go-fg)",
   reached: "var(--color-status-go-fg)",
   failed: "var(--color-status-nogo-fg)",
@@ -344,7 +344,7 @@ const AlarmBell = styled.button<{ $set: boolean }>`
   border: none;
   cursor: pointer;
   color: ${(p) =>
-    p.$set ? "var(--color-status-go-fg)" : "var(--color-text-secondary)"};
+    p.$set ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
 `;
 
 const Title = styled.span`
@@ -352,19 +352,19 @@ const Title = styled.span`
 `;
 
 const Optional = styled.span`
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-style: italic;
 `;
 
 const Sourced = styled.span`
   font-size: var(--font-size-2xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   letter-spacing: 0.03em;
 `;
 
 const Desc = styled.span`
   font-size: var(--font-size-2xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 `;
 
 const VisuallyHidden = styled.span`

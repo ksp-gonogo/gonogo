@@ -692,8 +692,16 @@ const StrategyCard = styled.article<{ $active?: boolean }>`
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-md);
-  background: ${({ $active }) =>
-    $active ? "var(--color-status-go-muted)" : "transparent"};
+  /* An active card is signalled by the green border above, not by a fill.
+     This read var(--color-status-go-muted), a token that has never been
+     declared, so the whole declaration was invalid and the background has
+     always resolved to transparent: what is written here now is what has
+     actually rendered all along. Restoring the intended tint needs a
+     go-tone dark added to the palette, which currently carries muted
+     variants for nogo and warning only, and every candidate green drops
+     this card's --color-text-dim text from its present 4.92:1 to below the
+     4.5:1 AA floor. That makes it a design call rather than a rename. */
+  background: transparent;
 `;
 
 const CardHeader = styled.div`
@@ -776,8 +784,8 @@ const CostChip = styled.span<{ $insufficient?: boolean }>`
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
     $insufficient
-      ? "var(--color-status-nogo-muted)"
-      : "var(--color-surface-elevated)"};
+      ? "var(--color-status-alert-muted)"
+      : "var(--color-surface-raised)"};
   color: ${({ $insufficient }) =>
     $insufficient
       ? "var(--color-status-nogo-fg)"
