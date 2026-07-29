@@ -2,9 +2,40 @@
   "_meta": {
     "scenario": "no-signal-paused",
     "notes": "Game paused and signal lost simultaneously. Both unavailability reasons active, widget should surface 'Paused' (takes priority over No signal). Widget configured for RCS (v.rcsValue).",
-    "widgetConfig": { "actionGroupId": "RCS" }
+    "widgetConfig": {
+      "actionGroupId": "RCS"
+    }
   },
   "v.rcsValue": false,
   "t.isPaused": true,
-  "comm.connected": false
+  "comm.connected": false,
+  "_stream": {
+    "carriedChannels": ["vessel.control", "time.warp", "comms.link"],
+    "emits": [
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": null,
+          "rcs": false,
+          "gear": null,
+          "brakes": null,
+          "lights": null,
+          "abort": null,
+          "precisionControl": null
+        }
+      },
+      {
+        "channel": "time.warp",
+        "value": {
+          "paused": true
+        }
+      },
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": false
+        }
+      }
+    ]
+  }
 }

@@ -7,7 +7,7 @@
   "sci.instruments": [
     {
       "partId": 1,
-      "partTitle": "Mystery Goo™ Containment Unit",
+      "partTitle": "Mystery Goo\u2122 Containment Unit",
       "expId": "mysteryGoo",
       "deployed": false,
       "hasData": false,
@@ -28,5 +28,48 @@
       "scienceRate": 0,
       "isOperational": true
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "science.instruments",
+      "science.experiments",
+      "science.lab"
+    ],
+    "emits": [
+      {
+        "channel": "science.instruments",
+        "value": [
+          {
+            "partId": 1,
+            "partTitle": "Mystery Goo\u2122 Containment Unit",
+            "expId": "mysteryGoo",
+            "deployed": false,
+            "hasData": false,
+            "rerunnable": false,
+            "inoperable": false
+          }
+        ]
+      },
+      {
+        "channel": "science.experiments",
+        "value": []
+      },
+      {
+        "channel": "science.lab",
+        "value": [
+          {
+            "partName": "Mobile Processing Lab MPL-LG-2",
+            "dataStored": 0,
+            "dataStorage": 750,
+            "storedScience": 0,
+            "processingData": false,
+            "statusText": "Operational",
+            "scientistCount": 2,
+            "scienceRate": 0,
+            "isOperational": true
+          }
+        ]
+      }
+    ]
+  }
 }

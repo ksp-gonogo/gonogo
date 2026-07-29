@@ -5,15 +5,90 @@
   },
   "_series": {
     "o.sma": [
-      { "t": -300000, "v": 679400 },
-      { "t": -250000, "v": 679550 },
-      { "t": -200000, "v": 679680 },
-      { "t": -150000, "v": 679800 },
-      { "t": -100000, "v": 679900 },
-      { "t": -50000, "v": 679960 },
-      { "t": 0, "v": 680000 }
+      {
+        "t": -300000,
+        "v": 679400
+      },
+      {
+        "t": -250000,
+        "v": 679550
+      },
+      {
+        "t": -200000,
+        "v": 679680
+      },
+      {
+        "t": -150000,
+        "v": 679800
+      },
+      {
+        "t": -100000,
+        "v": 679900
+      },
+      {
+        "t": -50000,
+        "v": 679960
+      },
+      {
+        "t": 0,
+        "v": 680000
+      }
     ]
   },
   "o.sma": 680000,
-  "o.referenceBody": "Kerbin"
+  "o.referenceBody": "Kerbin",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.flight",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 680000,
+          "ecc": 0.1,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

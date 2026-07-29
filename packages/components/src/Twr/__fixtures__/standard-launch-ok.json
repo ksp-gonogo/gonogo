@@ -1,22 +1,93 @@
 {
   "_meta": {
     "scenario": "standard-launch-ok",
-    "notes": "Standard rocket at lift-off, TWR 1.82, well into the green zone. Sparkline shows mass-burn climb from 1.32 → 1.82 across the last minute as the engine burns through propellant."
+    "notes": "Standard rocket at lift-off, TWR 1.82, well into the green zone. Sparkline shows mass-burn climb from 1.32 \u2192 1.82 across the last minute as the engine burns through propellant."
   },
   "_series": {
     "dv.currentTWR": [
-      { "t": -60000, "v": 1.32 },
-      { "t": -54000, "v": 1.38 },
-      { "t": -48000, "v": 1.43 },
-      { "t": -42000, "v": 1.49 },
-      { "t": -36000, "v": 1.55 },
-      { "t": -30000, "v": 1.6 },
-      { "t": -24000, "v": 1.66 },
-      { "t": -18000, "v": 1.71 },
-      { "t": -12000, "v": 1.77 },
-      { "t": -6000, "v": 1.8 },
-      { "t": 0, "v": 1.82 }
+      {
+        "t": -60000,
+        "v": 1.32
+      },
+      {
+        "t": -54000,
+        "v": 1.38
+      },
+      {
+        "t": -48000,
+        "v": 1.43
+      },
+      {
+        "t": -42000,
+        "v": 1.49
+      },
+      {
+        "t": -36000,
+        "v": 1.55
+      },
+      {
+        "t": -30000,
+        "v": 1.6
+      },
+      {
+        "t": -24000,
+        "v": 1.66
+      },
+      {
+        "t": -18000,
+        "v": 1.71
+      },
+      {
+        "t": -12000,
+        "v": 1.77
+      },
+      {
+        "t": -6000,
+        "v": 1.8
+      },
+      {
+        "t": 0,
+        "v": 1.82
+      }
     ]
   },
-  "dv.currentTWR": 1.82
+  "dv.currentTWR": 1.82,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 10.0,
+          "dryMass": 6.0,
+          "currentThrust": 178.48102999999998,
+          "availableThrust": 178.48102999999998
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

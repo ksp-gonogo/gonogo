@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "space-center-no-flight",
-    "notes": "KSP is in the Space Center scene (not Flight). DimmedOverlay should NOT fire, SpaceCenter is a warpable scene. Pause button should be hidden (only shown in Flight). Rate shows 1×."
+    "notes": "KSP is in the Space Center scene (not Flight). DimmedOverlay should NOT fire, SpaceCenter is a warpable scene. Pause button should be hidden (only shown in Flight). Rate shows 1\u00d7."
   },
   "kc.scene": "SpaceCenter",
   "kc.padOccupied": false,
@@ -9,5 +9,46 @@
   "t.currentRate": 1,
   "t.timeWarp": 0,
   "t.warpMode": "High",
-  "t.isPaused": false
+  "t.isPaused": false,
+  "_stream": {
+    "carriedChannels": [
+      "time.warp",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "career.mode"
+    ],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ]
+  }
 }

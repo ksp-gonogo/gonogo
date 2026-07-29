@@ -41,5 +41,71 @@
     }
   ],
   "kc.scene": "SpaceCenter",
-  "career.science": 4854
+  "career.science": 4854,
+  "_stream": {
+    "carriedChannels": ["career.status", "spaceCenter.scene"],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter"
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 0,
+            "reputation": 0,
+            "science": 4854
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": {
+            "unlockedCount": 3,
+            "unlockedIds": ["basicRocketry", "engineering101", "survivability"],
+            "nodes": [
+              {
+                "id": "basicRocketry",
+                "title": "Basic Rocketry",
+                "scienceCost": 0,
+                "unlocked": true,
+                "parents": []
+              },
+              {
+                "id": "engineering101",
+                "title": "General Rocketry",
+                "scienceCost": 15,
+                "unlocked": true,
+                "parents": ["basicRocketry"]
+              },
+              {
+                "id": "survivability",
+                "title": "Survivability",
+                "scienceCost": 15,
+                "unlocked": true,
+                "parents": ["basicRocketry"]
+              },
+              {
+                "id": "stability",
+                "title": "Stability",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["engineering101", "survivability"]
+              },
+              {
+                "id": "advRocketry",
+                "title": "Advanced Rocketry",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["engineering101"]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

@@ -3,5 +3,43 @@
     "scenario": "heavy-lifter-warn",
     "notes": "Heavy lifter at sea level, TWR 1.21, above 1 but below 1.5, in the amber warning zone. Craft can lift but barely. Needle in amber sector."
   },
-  "dv.currentTWR": 1.21
+  "dv.currentTWR": 1.21,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 10.0,
+          "dryMass": 6.0,
+          "currentThrust": 118.66046499999999,
+          "availableThrust": 118.66046499999999
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

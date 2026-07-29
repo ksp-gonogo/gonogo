@@ -54,5 +54,68 @@
     }
   ],
   "t.universalTime": 125340,
-  "v.altitude": 85000
+  "v.altitude": 85000,
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "55",
+                "title": "Land on the Mun and return",
+                "state": "Active",
+                "fundsAdvance": 8000,
+                "fundsCompletion": 40000,
+                "scienceCompletion": 20,
+                "parameters": [
+                  {
+                    "title": "Reach Mun orbit",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Land on the Mun",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Return to Kerbin and recover",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Collect surface samples",
+                    "state": "Complete"
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 8,
+                "dateDeadline": 132540
+              }
+            ],
+            "offered": [],
+            "completedRecent": [
+              {
+                "id": "31",
+                "title": "First Crewed Orbit",
+                "state": "Completed",
+                "fundsAdvance": 0,
+                "fundsCompletion": 15000,
+                "scienceCompletion": 5,
+                "parameters": [],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 10,
+                "dateDeadline": 0
+              }
+            ]
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340
+  }
 }

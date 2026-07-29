@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "retrograde-orbit",
-    "notes": "Retrograde equatorial Kerbin orbit. Inclination = 178°. Near-circular at 90 km. Exercises the inclination label at near-180°, confirms the display doesn't wrap or overflow."
+    "notes": "Retrograde equatorial Kerbin orbit. Inclination = 178\u00b0. Near-circular at 90 km. Exercises the inclination label at near-180\u00b0, confirms the display doesn't wrap or overflow."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -16,5 +16,59 @@
   "o.inclination": 178.0,
   "o.period": 1839.6,
   "o.timeToAp": 460.5,
-  "o.timeToPe": 1379.1
+  "o.timeToPe": 1379.1,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 690000,
+          "ecc": 0.0029,
+          "inc": 178.0,
+          "lan": 0,
+          "argPe": 0.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

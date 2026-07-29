@@ -12,5 +12,30 @@
   "therm.hottestEngineTempRatio": 1.0,
   "therm.anyEnginesOverheating": false,
   "therm.heatShieldTempCelsius": -271.1,
-  "therm.heatShieldFlux": 0
+  "therm.heatShieldFlux": 0,
+  "_stream": {
+    "carriedChannels": ["vessel.thermal"],
+    "emits": [
+      {
+        "channel": "vessel.thermal",
+        "value": {
+          "maxSkinTempRatio": 1.0,
+          "maxInternalTempRatio": 1.0,
+          "hottestPart": {
+            "internalTemp": 2.05,
+            "maxTemp": 2.05,
+            "skinTemp": 2.05,
+            "skinMaxTemp": 2.05,
+            "name": ""
+          },
+          "heatShieldTempCelsius": -271.1,
+          "heatShieldFlux": 0,
+          "hottestEngineTemp": 2.05,
+          "hottestEngineMaxTemp": 2.05,
+          "hottestEngineTempRatio": 1.0,
+          "anyEnginesOverheating": false
+        }
+      }
+    ]
+  }
 }

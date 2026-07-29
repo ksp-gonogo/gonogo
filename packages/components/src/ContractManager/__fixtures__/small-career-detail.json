@@ -15,8 +15,14 @@
       "repCompletion": 8,
       "deadlineUt": 2500000,
       "parameters": [
-        { "title": "Rescue Buzz Kerman", "state": "Incomplete" },
-        { "title": "Return to Kerbin", "state": "Incomplete" }
+        {
+          "title": "Rescue Buzz Kerman",
+          "state": "Incomplete"
+        },
+        {
+          "title": "Return to Kerbin",
+          "state": "Incomplete"
+        }
       ]
     },
     {
@@ -30,8 +36,14 @@
       "repCompletion": 12,
       "deadlineUt": 0,
       "parameters": [
-        { "title": "Land near the Mun's north pole", "state": "Complete" },
-        { "title": "Plant a flag", "state": "Incomplete" }
+        {
+          "title": "Land near the Mun's north pole",
+          "state": "Complete"
+        },
+        {
+          "title": "Plant a flag",
+          "state": "Incomplete"
+        }
       ]
     }
   ],
@@ -51,5 +63,81 @@
   ],
   "contracts.completedRecent": [],
   "t.universalTime": 1500500,
-  "v.altitude": 85000
+  "v.altitude": 85000,
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "8834021456123789",
+                "title": "Rescue Kerbal from orbit of Kerbin",
+                "state": "Active",
+                "fundsAdvance": 5000,
+                "fundsCompletion": 25000,
+                "scienceCompletion": 15,
+                "parameters": [
+                  {
+                    "title": "Rescue Buzz Kerman",
+                    "state": "Incomplete"
+                  },
+                  {
+                    "title": "Return to Kerbin",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Kerbin Space Agency Rescue Division",
+                "reputationCompletion": 8,
+                "dateDeadline": 2500000
+              },
+              {
+                "id": "9012345678901234",
+                "title": "Explore the Mun's surface",
+                "state": "Active",
+                "fundsAdvance": 10000,
+                "fundsCompletion": 50000,
+                "scienceCompletion": 40,
+                "parameters": [
+                  {
+                    "title": "Land near the Mun's north pole",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Plant a flag",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Global Exploration Society",
+                "reputationCompletion": 12,
+                "dateDeadline": 0
+              }
+            ],
+            "offered": [
+              {
+                "id": "1122334455667788",
+                "title": "Test RT-10 solid fuel booster in flight",
+                "state": "Offered",
+                "fundsAdvance": 0,
+                "fundsCompletion": 8500,
+                "scienceCompletion": 5,
+                "parameters": [],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 3,
+                "dateDeadline": 0
+              }
+            ],
+            "completedRecent": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 1500500
+  }
 }

@@ -73,5 +73,117 @@
   "kc.padOccupied": false,
   "kc.padVesselTitle": null,
   "kc.scene": "SpaceCenter",
-  "career.funds": 1289848
+  "career.funds": 1289848,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.scene",
+      "spaceCenter.partsAvailable",
+      "spaceCenter.launchSites"
+    ],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.partsAvailable",
+        "value": {
+          "count": 489
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 1289848,
+            "reputation": null,
+            "science": null
+          },
+          "facilities": {
+            "launchPad": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+              "nextLevelText": ""
+            },
+            "runway": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+              "nextLevelText": ""
+            },
+            "vab": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+              "nextLevelText": ""
+            },
+            "sph": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+              "nextLevelText": ""
+            },
+            "mission": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Active contracts: Unlimited",
+              "nextLevelText": ""
+            },
+            "tracking": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Patched conics (full)",
+              "nextLevelText": ""
+            },
+            "admin": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Active Strategies: Unlimited\n* Max Commitment: 100.0%",
+              "nextLevelText": ""
+            },
+            "rd": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Science archive: Unlimited",
+              "nextLevelText": ""
+            },
+            "astronaut": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max crew: Unlimited",
+              "nextLevelText": ""
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

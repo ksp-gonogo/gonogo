@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "mun-orbit",
-    "notes": "Stable low orbit around the Mun (no atmosphere). Exercises getBody() color/radius for a non-Kerbin body. argPe=270° places periapsis on the right side of the diagram, exercising the bbox rotation math for a near-vertical apsis line."
+    "notes": "Stable low orbit around the Mun (no atmosphere). Exercises getBody() color/radius for a non-Kerbin body. argPe=270\u00b0 places periapsis on the right side of the diagram, exercising the bbox rotation math for a near-vertical apsis line."
   },
   "v.body": "Mun",
   "o.sma": 215000,
@@ -12,5 +12,59 @@
   "o.PeR": 202100,
   "o.ApA": 27900,
   "o.PeA": 2100,
-  "b.number": 0
+  "b.number": 0,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 215000.0,
+          "ecc": 0.06,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 270,
+          "meanAnomalyAtEpoch": 180.0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 200000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

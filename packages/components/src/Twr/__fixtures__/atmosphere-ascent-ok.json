@@ -3,5 +3,43 @@
     "scenario": "atmosphere-ascent-ok",
     "notes": "Mid-ascent through atmosphere, fuel depleting, TWR 2.55, high-green zone. Upper-third of the dial arc."
   },
-  "dv.currentTWR": 2.55
+  "dv.currentTWR": 2.55,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 10.0,
+          "dryMass": 6.0,
+          "currentThrust": 250.06957499999996,
+          "availableThrust": 250.06957499999996
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

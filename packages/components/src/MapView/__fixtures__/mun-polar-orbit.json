@@ -17,5 +17,78 @@
   "o.encounterExists": false,
   "o.orbitPatches": [],
   "o.maneuverNodes": [],
-  "a.physicsMode": "Orbital"
+  "a.physicsMode": "Orbital",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.1,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 5555555,
+          "mu": 3531600000000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 65.0,
+          "longitude": 30.0,
+          "altitudeAsl": 35000,
+          "altitudeTerrain": 35000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 632,
+          "orbitalSpeed": 632,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 5555555
+  }
 }

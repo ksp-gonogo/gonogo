@@ -1,11 +1,86 @@
 {
   "_meta": {
     "scenario": "kerbin-reentry",
-    "notes": "Kerbin reentry at 30 km, skin temp 1500 K from aerodynamic heating. Density is measurable but low. Tests skin-temp formatting in live chip (°C conversion for very high Kelvin values)."
+    "notes": "Kerbin reentry at 30 km, skin temp 1500 K from aerodynamic heating. Density is measurable but low. Tests skin-temp formatting in live chip (\u00b0C conversion for very high Kelvin values)."
   },
   "v.body": "Kerbin",
   "v.altitude": 30000,
   "v.atmosphericDensity": 0.0184,
   "v.atmosphericTemperature": 220.0,
-  "v.externalTemperature": 1500.0
+  "v.externalTemperature": 1500.0,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 30000,
+          "altitudeTerrain": 30000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0.0184,
+          "externalTemperature": 1500.0,
+          "atmosphericTemperature": 220.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

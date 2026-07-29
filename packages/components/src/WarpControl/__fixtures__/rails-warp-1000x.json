@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "rails-warp-1000x",
-    "notes": "On-rails warp at 1000× (index 5 = '1k×' on the high ladder) in vacuum orbit above Kerbin. Mode is 'High'. The 1k× button should be highlighted in the full ladder. Rate label formats as '1.0k×'."
+    "notes": "On-rails warp at 1000\u00d7 (index 5 = '1k\u00d7' on the high ladder) in vacuum orbit above Kerbin. Mode is 'High'. The 1k\u00d7 button should be highlighted in the full ladder. Rate label formats as '1.0k\u00d7'."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -9,5 +9,46 @@
   "t.currentRate": 1000,
   "t.timeWarp": 5,
   "t.warpMode": "High",
-  "t.isPaused": false
+  "t.isPaused": false,
+  "_stream": {
+    "carriedChannels": [
+      "time.warp",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "career.mode"
+    ],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1000,
+          "warpRateIndex": 5,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ]
+  }
 }

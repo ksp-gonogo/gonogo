@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "eccentric-kerbin",
-    "notes": "Highly eccentric Kerbin orbit (e=0.85). Apoapsis out beyond Mun (~12 Mm), periapsis at 80 km altitude. argPe=45° rotates the ellipse so apsis markers exercise the radialOffset label math at a diagonal."
+    "notes": "Highly eccentric Kerbin orbit (e=0.85). Apoapsis out beyond Mun (~12 Mm), periapsis at 80 km altitude. argPe=45\u00b0 rotates the ellipse so apsis markers exercise the radialOffset label math at a diagonal."
   },
   "v.body": "Kerbin",
   "o.sma": 3800000,
@@ -12,5 +12,59 @@
   "o.PeR": 680000,
   "o.ApA": 6430000,
   "o.PeA": 80000,
-  "b.number": 0
+  "b.number": 0,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 3855000.0,
+          "ecc": 0.8236057068741893,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 45,
+          "meanAnomalyAtEpoch": 1.1177227490812358,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

@@ -2,9 +2,48 @@
   "_meta": {
     "scenario": "ag1-parachutes-armed",
     "notes": "Atmospheric descent: AG1 = parachutes armed (on). Widget configured for AG1 group. RCS off, comm strong.",
-    "widgetConfig": { "actionGroupId": "AG1", "label": "Chutes" }
+    "widgetConfig": {
+      "actionGroupId": "AG1",
+      "label": "Chutes"
+    }
   },
   "v.ag1Value": true,
   "t.isPaused": false,
-  "comm.connected": true
+  "comm.connected": true,
+  "_stream": {
+    "carriedChannels": ["vessel.control", "time.warp", "comms.link"],
+    "emits": [
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": null,
+          "rcs": null,
+          "gear": null,
+          "brakes": null,
+          "lights": null,
+          "abort": null,
+          "precisionControl": null,
+          "actionGroups": [
+            {
+              "index": 1,
+              "name": "AG1",
+              "state": true
+            }
+          ]
+        }
+      },
+      {
+        "channel": "time.warp",
+        "value": {
+          "paused": false
+        }
+      },
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      }
+    ]
+  }
 }

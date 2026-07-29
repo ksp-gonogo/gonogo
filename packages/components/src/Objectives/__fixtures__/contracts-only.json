@@ -38,8 +38,70 @@
           "state": "Incomplete",
           "optional": false
         },
-        { "title": "Bring them home", "state": "Incomplete", "optional": false }
+        {
+          "title": "Bring them home",
+          "state": "Incomplete",
+          "optional": false
+        }
       ]
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "9001",
+                "title": "Test the LV-909 in flight",
+                "state": "Active",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 9000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Test LV-909: Flying over Kerbin",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "C7 Aerospace",
+                "reputationCompletion": 2,
+                "dateDeadline": 0
+              },
+              {
+                "id": "9002",
+                "title": "Rescue a Kerbal from orbit",
+                "state": "Active",
+                "fundsAdvance": 8000,
+                "fundsCompletion": 30000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Recover the stranded Kerbal",
+                    "state": "Incomplete"
+                  },
+                  {
+                    "title": "Bring them home",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Rescue Inc",
+                "reputationCompletion": 5,
+                "dateDeadline": 0
+              }
+            ],
+            "offered": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

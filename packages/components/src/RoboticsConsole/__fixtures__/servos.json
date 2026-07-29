@@ -38,5 +38,54 @@
       "currentRPM": 0,
       "rpmLimit": 200
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": ["parts.robotics", "robotics.available"],
+    "emits": [
+      {
+        "channel": "parts.robotics",
+        "value": [
+          {
+            "partName": "Arm Hinge",
+            "partId": "11",
+            "type": "hinge",
+            "servoIsLocked": false,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": true,
+            "servoMotorLimit": 100,
+            "currentAngle": 22,
+            "targetAngle": 60
+          },
+          {
+            "partName": "Deploy Piston",
+            "partId": "12",
+            "type": "piston",
+            "servoIsLocked": false,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": true,
+            "servoMotorLimit": 70,
+            "currentExtension": 80,
+            "targetExtension": 80
+          },
+          {
+            "partName": "EM-32S Standard Rotor",
+            "partId": "13",
+            "type": "rotor",
+            "servoIsLocked": true,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": false,
+            "servoMotorLimit": 50,
+            "currentRPM": 0,
+            "rpmLimit": 200
+          }
+        ]
+      },
+      {
+        "channel": "robotics.available",
+        "value": {
+          "available": true
+        }
+      }
+    ]
+  }
 }

@@ -6,5 +6,24 @@
   "strategies.all": null,
   "career.funds": null,
   "career.reputation": null,
-  "career.science": null
+  "career.science": null,
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": null,
+            "reputation": null,
+            "science": null
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ]
+  }
 }

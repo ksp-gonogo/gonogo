@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "max-warp-100000x",
-    "notes": "Maximum on-rails warp at 100000× (index 7 = '100k×'). Rate label formats as '100k×'. The 100k× button highlighted. Typically used for long interplanetary transfers."
+    "notes": "Maximum on-rails warp at 100000\u00d7 (index 7 = '100k\u00d7'). Rate label formats as '100k\u00d7'. The 100k\u00d7 button highlighted. Typically used for long interplanetary transfers."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -9,5 +9,46 @@
   "t.currentRate": 100000,
   "t.timeWarp": 7,
   "t.warpMode": "High",
-  "t.isPaused": false
+  "t.isPaused": false,
+  "_stream": {
+    "carriedChannels": [
+      "time.warp",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "career.mode"
+    ],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 100000,
+          "warpRateIndex": 7,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ]
+  }
 }

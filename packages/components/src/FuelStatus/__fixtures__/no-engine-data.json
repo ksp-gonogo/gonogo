@@ -26,5 +26,67 @@
   "r.resourceMax[ElectricCharge]": 0.0,
   "r.resourceCurrent[ElectricCharge]": 0.0,
   "r.resourceCurrentMax[ElectricCharge]": 0.0,
-  "dv.stages": []
+  "dv.stages": [],
+  "_stream": {
+    "carriedChannels": [
+      "vessel.resources",
+      "vessel.structure",
+      "dv.summary",
+      "dv.stages"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "LiquidFuel": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "Oxidizer": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "MonoPropellant": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "XenonGas": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "ElectricCharge": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 0
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "stageCount": 0,
+          "totalDvVac": null,
+          "totalDvAsl": null,
+          "totalDvActual": null,
+          "totalBurnTime": 0.0
+        }
+      },
+      {
+        "channel": "dv.stages",
+        "value": []
+      }
+    ]
+  }
 }

@@ -12,5 +12,30 @@
   "therm.hottestEngineTempRatio": 0.13,
   "therm.anyEnginesOverheating": false,
   "therm.heatShieldTempCelsius": -271.1,
-  "therm.heatShieldFlux": 0
+  "therm.heatShieldFlux": 0,
+  "_stream": {
+    "carriedChannels": ["vessel.thermal"],
+    "emits": [
+      {
+        "channel": "vessel.thermal",
+        "value": {
+          "maxSkinTempRatio": 0.85,
+          "maxInternalTempRatio": 0.85,
+          "hottestPart": {
+            "internalTemp": 720.0,
+            "maxTemp": 1200,
+            "skinTemp": 720.0,
+            "skinMaxTemp": 1200,
+            "name": "Solar Panel (OX-STAT)"
+          },
+          "heatShieldTempCelsius": -271.1,
+          "heatShieldFlux": 0,
+          "hottestEngineTemp": 290.0,
+          "hottestEngineMaxTemp": 2273,
+          "hottestEngineTempRatio": 0.13,
+          "anyEnginesOverheating": false
+        }
+      }
+    ]
+  }
 }

@@ -17,7 +17,13 @@
         "dryMass": 0.8,
         "orgPos": [0, 0, 0],
         "up": [0, 1, 0],
-        "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.14,
+            "z": 1.25
+          }
+        },
         "category": "Pods",
         "crewCapacity": 1,
         "inverseStage": -1,
@@ -34,7 +40,13 @@
         "dryMass": 0.08,
         "orgPos": [-0.6, 0, 0],
         "up": [-1, 0, 0],
-        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "bounds": {
+          "size": {
+            "x": 0.2,
+            "y": 0.5,
+            "z": 0.2
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -49,9 +61,15 @@
         "parentFlightId": 1001,
         "modules": ["ModuleResourceConverter"],
         "dryMass": 4.25,
-        "orgPos": [0, -2.0, 0],
+        "orgPos": [0, -2, 0],
         "up": [0, -1, 0],
-        "bounds": { "size": { "x": 2.5, "y": 2.0, "z": 2.5 } },
+        "bounds": {
+          "size": {
+            "x": 2.5,
+            "y": 2,
+            "z": 2.5
+          }
+        },
         "category": "Utility",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -66,9 +84,15 @@
         "parentFlightId": 1001,
         "modules": ["ModuleResourceHarvester"],
         "dryMass": 1.5,
-        "orgPos": [0, -4.0, 0],
+        "orgPos": [0, -4, 0],
         "up": [0, -1, 0],
-        "bounds": { "size": { "x": 1.25, "y": 3.5, "z": 1.25 } },
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 3.5,
+            "z": 1.25
+          }
+        },
         "category": "Utility",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -85,7 +109,13 @@
         "dryMass": 0.1,
         "orgPos": [0, 0.8, 0],
         "up": [0, 1, 0],
-        "bounds": { "size": { "x": 0.625, "y": 0.5, "z": 0.625 } },
+        "bounds": {
+          "size": {
+            "x": 0.625,
+            "y": 0.5,
+            "z": 0.625
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -97,8 +127,8 @@
   },
   "r.resourceFor[1001]": {
     "ElectricCharge": {
-      "amount": 50.0,
-      "maxAmount": 50.0,
+      "amount": 50,
+      "maxAmount": 50,
       "flow": -0.18,
       "nominalFlow": -0.18
     }
@@ -115,7 +145,7 @@
     "ElectricCharge": {
       "amount": 0,
       "maxAmount": 0,
-      "flow": -15.0,
+      "flow": -15,
       "nominalFlow": -17.5
     }
   },
@@ -123,14 +153,224 @@
     "ElectricCharge": {
       "amount": 0,
       "maxAmount": 0,
-      "flow": -3.0,
-      "nominalFlow": -3.0
+      "flow": -3,
+      "nominalFlow": -3
     }
   },
   "r.resourceFor[1005]": {
     "ElectricCharge": {
       "amount": 72.4,
-      "maxAmount": 4000.0
+      "maxAmount": 4000
     }
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.parts", "parts.power"],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1001",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand", "ModuleReactionWheel"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 50,
+                  "maxAmount": 50,
+                  "flow": -0.18,
+                  "nominalFlow": -0.18
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1002",
+              "parentId": "1001",
+              "name": "rtg",
+              "title": "PB-NUK Radioisotope Thermoelectric Generator",
+              "position": {
+                "x": -0.6,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": -1,
+                "y": 0,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.2,
+                  "y": 0.5,
+                  "z": 0.2
+                }
+              },
+              "dryMass": 0.08,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Electrical",
+              "modules": ["ModuleGenerator"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": 0.75,
+                  "nominalFlow": 0.75
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1003",
+              "parentId": "1001",
+              "name": "ISRU",
+              "title": "Convert-O-Tron 250",
+              "position": {
+                "x": 0,
+                "y": -2,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 2.5,
+                  "y": 2,
+                  "z": 2.5
+                }
+              },
+              "dryMass": 4.25,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "modules": ["ModuleResourceConverter"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": -15,
+                  "nominalFlow": -17.5
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1004",
+              "parentId": "1001",
+              "name": "largeDrill",
+              "title": "Drill-O-Matic Mining Excavator",
+              "position": {
+                "x": 0,
+                "y": -4,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 3.5,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 1.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "modules": ["ModuleResourceHarvester"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": -3,
+                  "nominalFlow": -3
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1005",
+              "parentId": "1001",
+              "name": "batteryBankLarge",
+              "title": "Z-4K Rechargeable Battery Bank",
+              "position": {
+                "x": 0,
+                "y": 0.8,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.625,
+                  "y": 0.5,
+                  "z": 0.625
+                }
+              },
+              "dryMass": 0.1,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Electrical",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 72.4,
+                  "maxAmount": 4000
+                }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      {
+        "channel": "parts.power",
+        "value": {
+          "totalProductionEc": 0
+        }
+      }
+    ]
   }
 }

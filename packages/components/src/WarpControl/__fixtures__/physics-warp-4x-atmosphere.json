@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "physics-warp-4x-atmosphere",
-    "notes": "Physical time warp at 4× during atmospheric flight. Mode is 'Physics' and rate shows 4×. This is low-warp mode, the game uses a separate physics ladder. Pause button visible (Flight scene)."
+    "notes": "Physical time warp at 4\u00d7 during atmospheric flight. Mode is 'Physics' and rate shows 4\u00d7. This is low-warp mode, the game uses a separate physics ladder. Pause button visible (Flight scene)."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -9,5 +9,46 @@
   "t.currentRate": 4,
   "t.timeWarp": 0,
   "t.warpMode": "Physics",
-  "t.isPaused": false
+  "t.isPaused": false,
+  "_stream": {
+    "carriedChannels": [
+      "time.warp",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "career.mode"
+    ],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 4,
+          "warpRateIndex": 0,
+          "warpMode": 1,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ]
+  }
 }

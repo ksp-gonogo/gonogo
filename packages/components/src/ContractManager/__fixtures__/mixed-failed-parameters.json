@@ -66,5 +66,73 @@
   ],
   "contracts.completedRecent": [],
   "t.universalTime": 125340,
-  "v.altitude": 0
+  "v.altitude": 0,
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "88",
+                "title": "Test the Impact Sensor in flight",
+                "state": "Active",
+                "fundsAdvance": 2000,
+                "fundsCompletion": 12000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Activate a sensorAccelerometer while Flying over Kerbin",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Run the Barometer in Suborbital",
+                    "state": "Failed"
+                  },
+                  {
+                    "title": "Recover the vessel",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Experimental Engineering Group",
+                "reputationCompletion": 3,
+                "dateDeadline": 90000
+              }
+            ],
+            "offered": [
+              {
+                "id": "91",
+                "title": "Rescue Jebediah from Low Kerbin Orbit",
+                "state": "Offered",
+                "fundsAdvance": 20000,
+                "fundsCompletion": 75000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Board Jebediah Kerman",
+                    "state": "Incomplete"
+                  },
+                  {
+                    "title": "Return to Kerbin",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 15,
+                "dateDeadline": 500000
+              }
+            ],
+            "completedRecent": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340
+  }
 }

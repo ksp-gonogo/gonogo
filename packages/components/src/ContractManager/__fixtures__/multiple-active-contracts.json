@@ -88,5 +88,98 @@
     }
   ],
   "t.universalTime": 125340,
-  "v.altitude": 25000
+  "v.altitude": 25000,
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "193244571874398123",
+                "title": "Build an orbital station around Kerbin",
+                "state": "Active",
+                "fundsAdvance": 50000,
+                "fundsCompletion": 200000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Have at least 3 crew docking ports",
+                    "state": "Incomplete"
+                  },
+                  {
+                    "title": "Have at least 15 crew capacity",
+                    "state": "Complete"
+                  },
+                  {
+                    "title": "Have a science lab",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 25,
+                "dateDeadline": 0
+              },
+              {
+                "id": "100",
+                "title": "Fly by the Mun",
+                "state": "Active",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 10000,
+                "scienceCompletion": 3,
+                "parameters": [
+                  {
+                    "title": "Reach Mun SOI",
+                    "state": "Complete"
+                  }
+                ],
+                "agent": "Periapsis Rocket Parts",
+                "reputationCompletion": 2,
+                "dateDeadline": 128940
+              },
+              {
+                "id": "101",
+                "title": "Crew Report from Upper Atmosphere",
+                "state": "Active",
+                "fundsAdvance": 1000,
+                "fundsCompletion": 5000,
+                "scienceCompletion": 8,
+                "parameters": [
+                  {
+                    "title": "Crew report from upper atmosphere",
+                    "state": "Incomplete"
+                  }
+                ],
+                "agent": "Research & Development Dept.",
+                "reputationCompletion": 1,
+                "dateDeadline": 130740
+              }
+            ],
+            "offered": [],
+            "completedRecent": [
+              {
+                "id": "90",
+                "title": "Launch a new vessel",
+                "state": "Completed",
+                "fundsAdvance": 0,
+                "fundsCompletion": 3000,
+                "scienceCompletion": 0,
+                "parameters": [],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 1,
+                "dateDeadline": 0
+              }
+            ]
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340
+  }
 }

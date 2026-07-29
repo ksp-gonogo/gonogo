@@ -4,5 +4,59 @@
     "notes": "Low Mun orbit. Mun radius 200 km + ~15 km altitude = 215 km SMA. Tests the reference body label showing 'Mun'."
   },
   "o.sma": 215000,
-  "o.referenceBody": "Mun"
+  "o.referenceBody": "Mun",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.flight",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 215000,
+          "ecc": 0.1,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

@@ -17,7 +17,13 @@
         "dryMass": 0.8,
         "orgPos": [0, 0, 0],
         "up": [0, 1, 0],
-        "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.14,
+            "z": 1.25
+          }
+        },
         "category": "Pods",
         "crewCapacity": 1,
         "inverseStage": -1,
@@ -34,7 +40,13 @@
         "dryMass": 0.005,
         "orgPos": [0.6, 0, 0],
         "up": [1, 0, 0],
-        "bounds": { "size": { "x": 0.2, "y": 0.1, "z": 0.5 } },
+        "bounds": {
+          "size": {
+            "x": 0.2,
+            "y": 0.1,
+            "z": 0.5
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -51,7 +63,13 @@
         "dryMass": 0.08,
         "orgPos": [-0.6, 0, 0],
         "up": [-1, 0, 0],
-        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "bounds": {
+          "size": {
+            "x": 0.2,
+            "y": 0.5,
+            "z": 0.2
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -68,7 +86,13 @@
         "dryMass": 0.1,
         "orgPos": [0, -0.6, 0],
         "up": [0, -1, 0],
-        "bounds": { "size": { "x": 0.625, "y": 0.5, "z": 0.625 } },
+        "bounds": {
+          "size": {
+            "x": 0.625,
+            "y": 0.5,
+            "z": 0.625
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -85,7 +109,13 @@
         "dryMass": 1.25,
         "orgPos": [0, -1.5, 0],
         "up": [0, -1, 0],
-        "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1,
+            "z": 1.25
+          }
+        },
         "category": "Utility",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -98,7 +128,7 @@
   "r.resourceFor[1001]": {
     "ElectricCharge": {
       "amount": 32.5,
-      "maxAmount": 50.0,
+      "maxAmount": 50,
       "flow": -0.18,
       "nominalFlow": -0.18
     }
@@ -121,16 +151,226 @@
   },
   "r.resourceFor[1004]": {
     "ElectricCharge": {
-      "amount": 2183.0,
-      "maxAmount": 4000.0
+      "amount": 2183,
+      "maxAmount": 4000
     }
   },
   "r.resourceFor[1005]": {
     "ElectricCharge": {
       "amount": 0,
       "maxAmount": 0,
-      "flow": -6.0,
+      "flow": -6,
       "nominalFlow": -7.5
     }
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.parts", "parts.power"],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1001",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand", "ModuleReactionWheel"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 32.5,
+                  "maxAmount": 50,
+                  "flow": -0.18,
+                  "nominalFlow": -0.18
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1002",
+              "parentId": "1001",
+              "name": "solarPanels1",
+              "title": "OX-STAT Photovoltaic Panels",
+              "position": {
+                "x": 0.6,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.2,
+                  "y": 0.1,
+                  "z": 0.5
+                }
+              },
+              "dryMass": 0.005,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Electrical",
+              "modules": ["ModuleDeployableSolarPanel"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": 0.35,
+                  "nominalFlow": 0.35
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1003",
+              "parentId": "1001",
+              "name": "rtg",
+              "title": "PB-NUK Radioisotope Thermoelectric Generator",
+              "position": {
+                "x": -0.6,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": -1,
+                "y": 0,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.2,
+                  "y": 0.5,
+                  "z": 0.2
+                }
+              },
+              "dryMass": 0.08,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Electrical",
+              "modules": ["ModuleGenerator"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": 0.75,
+                  "nominalFlow": 0.75
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1004",
+              "parentId": "1001",
+              "name": "batteryBankLarge",
+              "title": "Z-4K Rechargeable Battery Bank",
+              "position": {
+                "x": 0,
+                "y": -0.6,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.625,
+                  "y": 0.5,
+                  "z": 0.625
+                }
+              },
+              "dryMass": 0.1,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Electrical",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 2183,
+                  "maxAmount": 4000
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "1005",
+              "parentId": "1001",
+              "name": "ISRU",
+              "title": "Convert-O-Tron 125",
+              "position": {
+                "x": 0,
+                "y": -1.5,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 1.25,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "modules": ["ModuleResourceConverter"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": -6,
+                  "nominalFlow": -7.5
+                }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      {
+        "channel": "parts.power",
+        "value": {
+          "totalProductionEc": 0
+        }
+      }
+    ]
   }
 }

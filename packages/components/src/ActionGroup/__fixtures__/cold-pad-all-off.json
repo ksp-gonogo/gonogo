@@ -5,5 +5,34 @@
   },
   "v.sasValue": false,
   "t.isPaused": false,
-  "comm.connected": true
+  "comm.connected": true,
+  "_stream": {
+    "carriedChannels": ["vessel.control", "time.warp", "comms.link"],
+    "emits": [
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": false,
+          "rcs": null,
+          "gear": null,
+          "brakes": null,
+          "lights": null,
+          "abort": null,
+          "precisionControl": null
+        }
+      },
+      {
+        "channel": "time.warp",
+        "value": {
+          "paused": false
+        }
+      },
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      }
+    ]
+  }
 }

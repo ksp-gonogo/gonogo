@@ -3,5 +3,43 @@
     "scenario": "pinned-high",
     "notes": "Light probe or upper stage, TWR 4.5, exceeds GAUGE_MAX=3, should render with the needle pinned at the maximum arc end. Tests clamping behaviour."
   },
-  "dv.currentTWR": 4.5
+  "dv.currentTWR": 4.5,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 10.0,
+          "dryMass": 6.0,
+          "currentThrust": 441.29925000000003,
+          "availableThrust": 441.29925000000003
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

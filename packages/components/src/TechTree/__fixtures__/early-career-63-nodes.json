@@ -79,7 +79,7 @@
           "purchased": true,
           "category": "Science",
           "name": "GooExperiment",
-          "title": "Mystery Goo™ Containment Unit",
+          "title": "Mystery Goo\u2122 Containment Unit",
           "entryCostEffective": 0,
           "entryCost": 0,
           "manufacturer": "FLOOYD Dynamics Research Labs"
@@ -2911,7 +2911,7 @@
           "purchased": false,
           "category": "Science",
           "name": "scansat-exomars-1",
-          "title": "SCAN Been There Done That®",
+          "title": "SCAN Been There Done That\u00ae",
           "entryCostEffective": 25000,
           "entryCost": 25000,
           "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
@@ -4263,5 +4263,484 @@
     }
   ],
   "career.science": 4853.60009765625,
-  "kc.scene": "Flight"
+  "kc.scene": "Flight",
+  "_stream": {
+    "carriedChannels": ["career.status", "spaceCenter.scene"],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 0,
+            "reputation": 0,
+            "science": 4853.60009765625
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": {
+            "unlockedCount": 6,
+            "unlockedIds": [
+              "start",
+              "basicRocketry",
+              "engineering101",
+              "survivability",
+              "basicScience",
+              "flightControl"
+            ],
+            "nodes": [
+              {
+                "id": "start",
+                "title": "Start",
+                "scienceCost": 0,
+                "unlocked": true,
+                "parents": []
+              },
+              {
+                "id": "basicRocketry",
+                "title": "Basic Rocketry",
+                "scienceCost": 5,
+                "unlocked": true,
+                "parents": ["start"]
+              },
+              {
+                "id": "engineering101",
+                "title": "Engineering 101",
+                "scienceCost": 5,
+                "unlocked": true,
+                "parents": ["start"]
+              },
+              {
+                "id": "survivability",
+                "title": "Survivability",
+                "scienceCost": 15,
+                "unlocked": true,
+                "parents": ["engineering101"]
+              },
+              {
+                "id": "stability",
+                "title": "Stability",
+                "scienceCost": 18,
+                "unlocked": false,
+                "parents": ["engineering101", "basicRocketry"]
+              },
+              {
+                "id": "generalRocketry",
+                "title": "General Rocketry",
+                "scienceCost": 20,
+                "unlocked": false,
+                "parents": ["basicRocketry"]
+              },
+              {
+                "id": "aviation",
+                "title": "Aviation",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["stability"]
+              },
+              {
+                "id": "basicScience",
+                "title": "Basic Science",
+                "scienceCost": 45,
+                "unlocked": true,
+                "parents": ["survivability"]
+              },
+              {
+                "id": "flightControl",
+                "title": "Flight Control",
+                "scienceCost": 45,
+                "unlocked": true,
+                "parents": ["survivability", "stability"]
+              },
+              {
+                "id": "advRocketry",
+                "title": "Advanced Rocketry",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["generalRocketry"]
+              },
+              {
+                "id": "generalConstruction",
+                "title": "General Construction",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["stability", "generalRocketry"]
+              },
+              {
+                "id": "propulsionSystems",
+                "title": "Propulsion Systems",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["advRocketry"]
+              },
+              {
+                "id": "spaceExploration",
+                "title": "Space Exploration",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["basicScience"]
+              },
+              {
+                "id": "advFlightControl",
+                "title": "Advanced Flight Control",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["flightControl"]
+              },
+              {
+                "id": "landing",
+                "title": "Landing",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["flightControl", "aviation"]
+              },
+              {
+                "id": "aerodynamicSystems",
+                "title": "Aerodynamics",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["aviation", "generalConstruction"]
+              },
+              {
+                "id": "electrics",
+                "title": "Electrics",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["basicScience"]
+              },
+              {
+                "id": "heavyRocketry",
+                "title": "Heavy Rocketry",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["advRocketry"]
+              },
+              {
+                "id": "fuelSystems",
+                "title": "Fuel Systems",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["advRocketry", "generalConstruction"]
+              },
+              {
+                "id": "advConstruction",
+                "title": "Advanced Construction",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["generalConstruction"]
+              },
+              {
+                "id": "miniaturization",
+                "title": "Miniaturization",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["basicScience"]
+              },
+              {
+                "id": "actuators",
+                "title": "Actuators",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["advConstruction"]
+              },
+              {
+                "id": "commandModules",
+                "title": "Command Modules",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["spaceExploration", "advFlightControl"]
+              },
+              {
+                "id": "heavierRocketry",
+                "title": "Heavier Rocketry",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["heavyRocketry"]
+              },
+              {
+                "id": "precisionEngineering",
+                "title": "Precision Engineering",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["miniaturization", "electrics"]
+              },
+              {
+                "id": "advExploration",
+                "title": "Advanced Exploration",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["spaceExploration"]
+              },
+              {
+                "id": "specializedControl",
+                "title": "Specialized Control",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["advFlightControl"]
+              },
+              {
+                "id": "advLanding",
+                "title": "Advanced Landing",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["landing"]
+              },
+              {
+                "id": "supersonicFlight",
+                "title": "Supersonic Flight",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["aerodynamicSystems"]
+              },
+              {
+                "id": "advFuelSystems",
+                "title": "Adv. Fuel Systems",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["propulsionSystems", "fuelSystems"]
+              },
+              {
+                "id": "advElectrics",
+                "title": "Advanced Electrics",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["electrics"]
+              },
+              {
+                "id": "specializedConstruction",
+                "title": "Specialized Construction",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["advConstruction"]
+              },
+              {
+                "id": "precisionPropulsion",
+                "title": "Precision Propulsion",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["propulsionSystems"]
+              },
+              {
+                "id": "advAerodynamics",
+                "title": "Advanced Aerodynamics",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["aerodynamicSystems"]
+              },
+              {
+                "id": "heavyLanding",
+                "title": "Heavy Landing",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advLanding"]
+              },
+              {
+                "id": "scienceTech",
+                "title": "Scanning Tech",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advExploration", "precisionEngineering"]
+              },
+              {
+                "id": "unmannedTech",
+                "title": "Unmanned Tech",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["precisionEngineering"]
+              },
+              {
+                "id": "nuclearPropulsion",
+                "title": "Nuclear Propulsion",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advFuelSystems", "heavierRocketry"]
+              },
+              {
+                "id": "advMetalworks",
+                "title": "Advanced MetalWorks",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["specializedConstruction"]
+              },
+              {
+                "id": "fieldScience",
+                "title": "Field Science",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advLanding", "advExploration"]
+              },
+              {
+                "id": "highAltitudeFlight",
+                "title": "High Altitude Flight",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["supersonicFlight"]
+              },
+              {
+                "id": "largeVolumeContainment",
+                "title": "Large Volume Containment",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advFuelSystems", "specializedConstruction"]
+              },
+              {
+                "id": "composites",
+                "title": "Composites",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["specializedConstruction"]
+              },
+              {
+                "id": "electronics",
+                "title": "Electronics",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["precisionEngineering", "advElectrics"]
+              },
+              {
+                "id": "largeElectrics",
+                "title": "High-Power Electrics",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advElectrics"]
+              },
+              {
+                "id": "heavyAerodynamics",
+                "title": "Heavy Aerodynamics",
+                "scienceCost": 300,
+                "unlocked": false,
+                "parents": ["advAerodynamics"]
+              },
+              {
+                "id": "ionPropulsion",
+                "title": "Ion Propulsion",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["scienceTech", "unmannedTech"]
+              },
+              {
+                "id": "hypersonicFlight",
+                "title": "Hypersonic Flight",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["highAltitudeFlight"]
+              },
+              {
+                "id": "nanolathing",
+                "title": "Nanolathing",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["advMetalworks"]
+              },
+              {
+                "id": "advUnmanned",
+                "title": "Advanced Unmanned Tech",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["unmannedTech"]
+              },
+              {
+                "id": "metaMaterials",
+                "title": "Meta-Materials",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["composites"]
+              },
+              {
+                "id": "veryHeavyRocketry",
+                "title": "Very Heavy Rocketry",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["largeVolumeContainment", "heavierRocketry"]
+              },
+              {
+                "id": "advScienceTech",
+                "title": "Advanced Science Tech",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["scienceTech", "fieldScience"]
+              },
+              {
+                "id": "advancedMotors",
+                "title": "Advanced Motors",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["fieldScience"]
+              },
+              {
+                "id": "specializedElectrics",
+                "title": "Specialized Electrics",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["largeElectrics"]
+              },
+              {
+                "id": "highPerformanceFuelSystems",
+                "title": "High-Performance Fuel Systems",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["largeVolumeContainment"]
+              },
+              {
+                "id": "experimentalAerodynamics",
+                "title": "Experimental Aerodynamics",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["heavyAerodynamics"]
+              },
+              {
+                "id": "automation",
+                "title": "Automation",
+                "scienceCost": 550,
+                "unlocked": false,
+                "parents": ["unmannedTech", "electronics"]
+              },
+              {
+                "id": "aerospaceTech",
+                "title": "Aerospace Tech",
+                "scienceCost": 1000,
+                "unlocked": false,
+                "parents": ["hypersonicFlight"]
+              },
+              {
+                "id": "largeUnmanned",
+                "title": "Large Probes",
+                "scienceCost": 1000,
+                "unlocked": false,
+                "parents": ["advUnmanned", "automation"]
+              },
+              {
+                "id": "experimentalScience",
+                "title": "Experimental Science",
+                "scienceCost": 1000,
+                "unlocked": false,
+                "parents": ["advScienceTech"]
+              },
+              {
+                "id": "experimentalMotors",
+                "title": "Experimental Motors",
+                "scienceCost": 1000,
+                "unlocked": false,
+                "parents": ["advancedMotors"]
+              },
+              {
+                "id": "experimentalElectrics",
+                "title": "Experimental Electrics",
+                "scienceCost": 1000,
+                "unlocked": false,
+                "parents": ["specializedElectrics"]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

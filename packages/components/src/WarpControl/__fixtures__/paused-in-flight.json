@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "paused-in-flight",
-    "notes": "Game is paused during flight (t.isPaused=true). Warp is at 1×. Pause button should render with active/play-icon state. The pause toggle is only visible in Flight scene."
+    "notes": "Game is paused during flight (t.isPaused=true). Warp is at 1\u00d7. Pause button should render with active/play-icon state. The pause toggle is only visible in Flight scene."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -9,5 +9,46 @@
   "t.currentRate": 1,
   "t.timeWarp": 0,
   "t.warpMode": "High",
-  "t.isPaused": true
+  "t.isPaused": true,
+  "_stream": {
+    "carriedChannels": [
+      "time.warp",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "career.mode"
+    ],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": true
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ]
+  }
 }

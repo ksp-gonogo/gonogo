@@ -51,5 +51,116 @@
       "thrustASL": 0.0,
       "thrustActual": 0.0
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "vessel.resources",
+      "vessel.structure",
+      "dv.summary",
+      "dv.stages"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "LiquidFuel": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "Oxidizer": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "MonoPropellant": {
+              "current": 18.5,
+              "max": 30.0,
+              "active": true
+            },
+            "XenonGas": {
+              "current": 400.0,
+              "max": 500.0,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 142.0,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 0
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "stageCount": 1,
+          "totalDvVac": 310.0,
+          "totalDvAsl": 250.0,
+          "totalDvActual": 275.0,
+          "totalBurnTime": 195.0
+        }
+      },
+      {
+        "channel": "dv.stages",
+        "value": [
+          {
+            "stage": 0,
+            "stageMass": 1.5,
+            "dryMass": 1.0,
+            "fuelMass": 0.5,
+            "startMass": 1.5,
+            "endMass": 1.0,
+            "burnTime": 195.0,
+            "deltaVVac": 310.0,
+            "deltaVASL": 250.0,
+            "deltaVActual": 275.0,
+            "TWRVac": 0.8,
+            "TWRASL": 0.0,
+            "TWRActual": 0.0,
+            "ispVac": 4200.0,
+            "ispASL": 0.0,
+            "ispActual": 0.0,
+            "thrustVac": 2.0,
+            "thrustASL": 0.0,
+            "thrustActual": 0.0,
+            "resources": {
+              "LiquidFuel": {
+                "current": 0.0,
+                "max": 0.0,
+                "active": false
+              },
+              "Oxidizer": {
+                "current": 0.0,
+                "max": 0.0,
+                "active": false
+              },
+              "MonoPropellant": {
+                "current": 18.5,
+                "max": 30.0,
+                "active": true
+              },
+              "XenonGas": {
+                "current": 400.0,
+                "max": 500.0,
+                "active": true
+              },
+              "ElectricCharge": {
+                "current": 142.0,
+                "max": 200.0,
+                "active": true
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
 }

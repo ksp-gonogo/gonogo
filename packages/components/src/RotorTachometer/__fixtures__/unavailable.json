@@ -4,5 +4,20 @@
     "notes": "Breaking Ground not installed: muted empty state, no rotors."
   },
   "robotics.available": false,
-  "parts.robotics": []
+  "parts.robotics": [],
+  "_stream": {
+    "carriedChannels": ["parts.robotics", "robotics.available"],
+    "emits": [
+      {
+        "channel": "parts.robotics",
+        "value": []
+      },
+      {
+        "channel": "robotics.available",
+        "value": {
+          "available": false
+        }
+      }
+    ]
+  }
 }

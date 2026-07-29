@@ -380,5 +380,22 @@
   "b.ocean[16]": false,
   "b.rotates[16]": true,
   "b.o.trueAnomaly[16]": -179.997388090574,
-  "b.tidallyLocked[16]": false
+  "b.tidallyLocked[16]": false,
+  "_stream": {
+    "carriedChannels": ["target.available", "vessel.target"],
+    "emits": [
+      {
+        "channel": "target.available",
+        "value": {
+          "entries": []
+        }
+      },
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "No Target Selected."
+        }
+      }
+    ]
+  }
 }

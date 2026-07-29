@@ -21,7 +21,7 @@
       "hasData": false,
       "deployed": false,
       "rerunnable": false,
-      "partTitle": "Mystery Goo™ Containment Unit",
+      "partTitle": "Mystery Goo\u2122 Containment Unit",
       "expId": "mysteryGoo",
       "partId": 1071315383
     },
@@ -35,5 +35,46 @@
       "partId": 342573834
     }
   ],
-  "sci.dataAmount": 0
+  "sci.dataAmount": 0,
+  "_stream": {
+    "carriedChannels": ["science.instruments", "science.experiments"],
+    "emits": [
+      {
+        "channel": "science.instruments",
+        "value": [
+          {
+            "inoperable": false,
+            "hasData": false,
+            "deployed": false,
+            "rerunnable": true,
+            "partTitle": "Mk1 Command Pod",
+            "expId": "crewReport",
+            "partId": 3960381880
+          },
+          {
+            "inoperable": false,
+            "hasData": false,
+            "deployed": false,
+            "rerunnable": false,
+            "partTitle": "Mystery Goo\u2122 Containment Unit",
+            "expId": "mysteryGoo",
+            "partId": 1071315383
+          },
+          {
+            "inoperable": false,
+            "hasData": false,
+            "deployed": false,
+            "rerunnable": true,
+            "partTitle": "PresMat Barometer",
+            "expId": "barometerScan",
+            "partId": 342573834
+          }
+        ]
+      },
+      {
+        "channel": "science.experiments",
+        "value": []
+      }
+    ]
+  }
 }

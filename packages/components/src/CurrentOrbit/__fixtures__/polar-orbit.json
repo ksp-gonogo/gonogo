@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "polar-orbit",
-    "notes": "Polar Kerbin orbit. Inclination = 90°. Near-circular at 100 km altitude. isOrbiting=true. Exercises inclination display at an extreme value."
+    "notes": "Polar Kerbin orbit. Inclination = 90\u00b0. Near-circular at 100 km altitude. isOrbiting=true. Exercises inclination display at an extreme value."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -16,5 +16,59 @@
   "o.inclination": 90.0,
   "o.period": 1871.3,
   "o.timeToAp": 938.7,
-  "o.timeToPe": 45.2
+  "o.timeToPe": 45.2,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.00286,
+          "inc": 90.0,
+          "lan": 0,
+          "argPe": 45.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

@@ -2,8 +2,27 @@
   "_meta": {
     "scenario": "unknown-state",
     "notes": "Widget configured for Brake group but v.brakeValue not yet received from telemetry. StateIndicator should show ', ' in faint colour.",
-    "widgetConfig": { "actionGroupId": "Brake" }
+    "widgetConfig": {
+      "actionGroupId": "Brake"
+    }
   },
   "t.isPaused": false,
-  "comm.connected": true
+  "comm.connected": true,
+  "_stream": {
+    "carriedChannels": ["time.warp", "comms.link"],
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "paused": false
+        }
+      },
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      }
+    ]
+  }
 }

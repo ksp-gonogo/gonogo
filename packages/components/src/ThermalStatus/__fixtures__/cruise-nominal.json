@@ -12,5 +12,30 @@
   "therm.hottestEngineTempRatio": 0.37,
   "therm.anyEnginesOverheating": false,
   "therm.heatShieldTempCelsius": -271.1,
-  "therm.heatShieldFlux": 0
+  "therm.heatShieldFlux": 0,
+  "_stream": {
+    "carriedChannels": ["vessel.thermal"],
+    "emits": [
+      {
+        "channel": "vessel.thermal",
+        "value": {
+          "maxSkinTempRatio": 0.22,
+          "maxInternalTempRatio": 0.22,
+          "hottestPart": {
+            "internalTemp": 287.5,
+            "maxTemp": 2000,
+            "skinTemp": 287.5,
+            "skinMaxTemp": 2000,
+            "name": "LV-T30 'Reliant'"
+          },
+          "heatShieldTempCelsius": -271.1,
+          "heatShieldFlux": 0,
+          "hottestEngineTemp": 850.0,
+          "hottestEngineMaxTemp": 2273,
+          "hottestEngineTempRatio": 0.37,
+          "anyEnginesOverheating": false
+        }
+      }
+    ]
+  }
 }

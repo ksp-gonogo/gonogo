@@ -1,5 +1,7 @@
 import {
   createFakeWallClock,
+  dvCurrentStageResourceChannel,
+  dvCurrentStageResourceMaxChannel,
   type FakeWallClock,
   StubTransport,
   spaceCenterStateChannel,
@@ -83,6 +85,14 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   const store = new TimelineStore(clock);
   store.registerDerivedChannel(vesselStateChannel);
   store.registerDerivedChannel(spaceCenterStateChannel);
+  // FuelStatus's stage-scoped resource bars (`dv.currentStageResource(Max)`,
+  // dv-stage-resources.ts) need these registered too, same story as
+  // vesselStateChannel/spaceCenterStateChannel above: every caller of this
+  // shared helper (including the probe/visual-gate render harness) gets them
+  // for free instead of each widget's own test file registering them by
+  // hand (FuelStatus/index.test.tsx used to be the only place that did).
+  store.registerDerivedChannel(dvCurrentStageResourceChannel);
+  store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   const carriedChannels = opts.carriedChannels;

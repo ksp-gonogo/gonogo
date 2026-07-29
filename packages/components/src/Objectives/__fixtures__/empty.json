@@ -3,5 +3,24 @@
     "scenario": "empty",
     "notes": "No contracts: muted empty state."
   },
-  "contracts.active": []
+  "contracts.active": [],
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "facilities": null,
+          "contracts": {
+            "active": [],
+            "offered": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
 }

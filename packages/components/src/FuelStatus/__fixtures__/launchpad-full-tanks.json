@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "launchpad-full-tanks",
-    "notes": "Vehicle sitting on the pad with all tanks full. Three stages: asparagus boosters (S2), core (S1), lander (S0). Total ΔV ~4500 m/s. All five resource categories present. This is the baseline for the fully-populated default render."
+    "notes": "Vehicle sitting on the pad with all tanks full. Three stages: asparagus boosters (S2), core (S1), lander (S0). Total \u0394V ~4500 m/s. All five resource categories present. This is the baseline for the fully-populated default render."
   },
   "v.currentStage": 2,
   "dv.stageCount": 3,
@@ -93,5 +93,158 @@
       "thrustASL": 30.0,
       "thrustActual": 30.0
     }
-  ]
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "vessel.resources",
+      "vessel.structure",
+      "dv.summary",
+      "dv.stages"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "LiquidFuel": {
+              "current": 1440.0,
+              "max": 1440.0,
+              "active": true
+            },
+            "Oxidizer": {
+              "current": 1760.0,
+              "max": 1760.0,
+              "active": true
+            },
+            "MonoPropellant": {
+              "current": 30.0,
+              "max": 30.0,
+              "active": true
+            },
+            "XenonGas": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "ElectricCharge": {
+              "current": 200.0,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 2
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "stageCount": 3,
+          "totalDvVac": 4502.0,
+          "totalDvAsl": 3850.0,
+          "totalDvActual": 3850.0,
+          "totalBurnTime": 342.0
+        }
+      },
+      {
+        "channel": "dv.stages",
+        "value": [
+          {
+            "stage": 2,
+            "stageMass": 18.5,
+            "dryMass": 4.2,
+            "fuelMass": 14.3,
+            "startMass": 18.5,
+            "endMass": 4.2,
+            "burnTime": 120.0,
+            "deltaVVac": 2100.0,
+            "deltaVASL": 1800.0,
+            "deltaVActual": 1800.0,
+            "TWRVac": 2.1,
+            "TWRASL": 1.8,
+            "TWRActual": 1.8,
+            "ispVac": 320.0,
+            "ispASL": 270.0,
+            "ispActual": 270.0,
+            "thrustVac": 215.0,
+            "thrustASL": 185.0,
+            "thrustActual": 185.0,
+            "resources": {
+              "LiquidFuel": {
+                "current": 480.0,
+                "max": 480.0,
+                "active": true
+              },
+              "Oxidizer": {
+                "current": 586.0,
+                "max": 586.0,
+                "active": true
+              },
+              "MonoPropellant": {
+                "current": 30.0,
+                "max": 30.0,
+                "active": true
+              },
+              "XenonGas": {
+                "current": 0.0,
+                "max": 0.0,
+                "active": false
+              },
+              "ElectricCharge": {
+                "current": 200.0,
+                "max": 200.0,
+                "active": true
+              }
+            }
+          },
+          {
+            "stage": 1,
+            "stageMass": 8.4,
+            "dryMass": 2.1,
+            "fuelMass": 6.3,
+            "startMass": 8.4,
+            "endMass": 2.1,
+            "burnTime": 145.0,
+            "deltaVVac": 1800.0,
+            "deltaVASL": 1600.0,
+            "deltaVActual": 1600.0,
+            "TWRVac": 1.9,
+            "TWRASL": 1.6,
+            "TWRActual": 1.6,
+            "ispVac": 345.0,
+            "ispASL": 305.0,
+            "ispActual": 305.0,
+            "thrustVac": 160.0,
+            "thrustASL": 140.0,
+            "thrustActual": 140.0
+          },
+          {
+            "stage": 0,
+            "stageMass": 2.8,
+            "dryMass": 1.0,
+            "fuelMass": 1.8,
+            "startMass": 2.8,
+            "endMass": 1.0,
+            "burnTime": 77.0,
+            "deltaVVac": 602.0,
+            "deltaVASL": 450.0,
+            "deltaVActual": 450.0,
+            "TWRVac": 1.2,
+            "TWRASL": 0.9,
+            "TWRActual": 0.9,
+            "ispVac": 345.0,
+            "ispASL": 310.0,
+            "ispActual": 310.0,
+            "thrustVac": 33.0,
+            "thrustASL": 30.0,
+            "thrustActual": 30.0
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -14,5 +14,93 @@
   "f.precisionControl": false,
   "v.rcsValue": false,
   "f.throttle": 0,
-  "v.isControllable": true
+  "v.isControllable": true,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.attitude",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.attitude",
+        "value": {
+          "heading": 90,
+          "pitch": 0,
+          "roll": 0,
+          "headingRootFrame": 90,
+          "pitchRootFrame": 0,
+          "rollRootFrame": 0
+        }
+      },
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": true,
+          "sasMode": 0,
+          "rcs": false,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "throttle": 0
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 1.0,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
 }

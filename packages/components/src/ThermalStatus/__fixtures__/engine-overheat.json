@@ -12,5 +12,30 @@
   "therm.hottestEngineTempRatio": 0.96,
   "therm.anyEnginesOverheating": true,
   "therm.heatShieldTempCelsius": -271.1,
-  "therm.heatShieldFlux": 0
+  "therm.heatShieldFlux": 0,
+  "_stream": {
+    "carriedChannels": ["vessel.thermal"],
+    "emits": [
+      {
+        "channel": "vessel.thermal",
+        "value": {
+          "maxSkinTempRatio": 0.94,
+          "maxInternalTempRatio": 0.94,
+          "hottestPart": {
+            "internalTemp": 2100.0,
+            "maxTemp": 2273,
+            "skinTemp": 2100.0,
+            "skinMaxTemp": 2273,
+            "name": "LV-T45 'Swivel'"
+          },
+          "heatShieldTempCelsius": -271.1,
+          "heatShieldFlux": 0,
+          "hottestEngineTemp": 2180.0,
+          "hottestEngineMaxTemp": 2273,
+          "hottestEngineTempRatio": 0.96,
+          "anyEnginesOverheating": true
+        }
+      }
+    ]
+  }
 }

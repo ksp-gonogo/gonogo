@@ -11,5 +11,33 @@
   "sw.shieldingValue": 0.8,
   "sw.shieldingCapacity": 3.308,
   "sw.altitudeM": 6800000,
-  "sw.ut": 149489
+  "sw.ut": 149489,
+  "_stream": {
+    "carriedChannels": ["kerbalism.spaceweather", "vessel.flight"],
+    "emits": [
+      {
+        "channel": "kerbalism.spaceweather",
+        "value": {
+          "radiationRadPerSecond": 0.001388888888888889,
+          "habitatRadiationRadPerSecond": 0.001388888888888889,
+          "magnetosphere": false,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": false,
+          "stormInProgress": true,
+          "blackout": true,
+          "inSunlight": true,
+          "shieldingAmount": 0.8,
+          "shieldingCapacity": 3.308
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 6800000,
+          "altitudeTerrain": 6800000
+        }
+      }
+    ]
+  }
 }

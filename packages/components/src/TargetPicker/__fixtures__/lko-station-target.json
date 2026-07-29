@@ -416,5 +416,62 @@
   "b.ocean[16]": false,
   "b.rotates[16]": true,
   "b.o.trueAnomaly[16]": -179.997388090574,
-  "b.tidallyLocked[16]": false
+  "b.tidallyLocked[16]": false,
+  "_stream": {
+    "carriedChannels": ["target.available", "vessel.target"],
+    "emits": [
+      {
+        "channel": "target.available",
+        "value": {
+          "entries": [
+            {
+              "kind": 0,
+              "name": "Kerbin Station I",
+              "vesselType": 1,
+              "distance": 168168.6356012916,
+              "isCurrent": true
+            },
+            {
+              "kind": 0,
+              "name": "Comsat Relay 4",
+              "vesselType": 3,
+              "distance": 950263.121456368,
+              "isCurrent": false
+            },
+            {
+              "kind": 0,
+              "name": "Munar Transfer Stage",
+              "vesselType": 0,
+              "distance": 1551805.4001710394,
+              "isCurrent": false
+            },
+            {
+              "kind": 0,
+              "name": "Ast. UQR-118",
+              "vesselType": 10,
+              "distance": 3107796.6471440825,
+              "isCurrent": false
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Kerbin Station I",
+          "kind": 0,
+          "relativePosition": {
+            "x": 184320.5,
+            "y": 0,
+            "z": 0
+          },
+          "relativeVelocity": {
+            "x": -42.18,
+            "y": 0,
+            "z": 0
+          }
+        }
+      }
+    ]
+  }
 }

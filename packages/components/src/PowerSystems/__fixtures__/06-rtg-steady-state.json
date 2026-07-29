@@ -17,7 +17,13 @@
         "dryMass": 0.04,
         "orgPos": [0, 0, 0],
         "up": [0, 1, 0],
-        "bounds": { "size": { "x": 0.625, "y": 0.4, "z": 0.625 } },
+        "bounds": {
+          "size": {
+            "x": 0.625,
+            "y": 0.4,
+            "z": 0.625
+          }
+        },
         "category": "Pods",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -34,7 +40,13 @@
         "dryMass": 0.08,
         "orgPos": [0.4, 0, 0],
         "up": [1, 0, 0],
-        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "bounds": {
+          "size": {
+            "x": 0.2,
+            "y": 0.5,
+            "z": 0.2
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -51,7 +63,13 @@
         "dryMass": 0.08,
         "orgPos": [-0.4, 0, 0],
         "up": [-1, 0, 0],
-        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "bounds": {
+          "size": {
+            "x": 0.2,
+            "y": 0.5,
+            "z": 0.2
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -68,7 +86,13 @@
         "dryMass": 0.005,
         "orgPos": [0, 0.3, 0],
         "up": [0, 1, 0],
-        "bounds": { "size": { "x": 0.625, "y": 0.15, "z": 0.625 } },
+        "bounds": {
+          "size": {
+            "x": 0.625,
+            "y": 0.15,
+            "z": 0.625
+          }
+        },
         "category": "Electrical",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -85,7 +109,13 @@
         "dryMass": 0.1,
         "orgPos": [0, -0.5, 0],
         "up": [0, -1, 0],
-        "bounds": { "size": { "x": 1.8, "y": 0.1, "z": 1.8 } },
+        "bounds": {
+          "size": {
+            "x": 1.8,
+            "y": 0.1,
+            "z": 1.8
+          }
+        },
         "category": "Communication",
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -97,8 +127,8 @@
   },
   "r.resourceFor[2001]": {
     "ElectricCharge": {
-      "amount": 10.0,
-      "maxAmount": 10.0,
+      "amount": 10,
+      "maxAmount": 10,
       "flow": -0.03
     }
   },
@@ -120,8 +150,8 @@
   },
   "r.resourceFor[2004]": {
     "ElectricCharge": {
-      "amount": 100.0,
-      "maxAmount": 100.0
+      "amount": 100,
+      "maxAmount": 100
     }
   },
   "r.resourceFor[2005]": {
@@ -130,5 +160,213 @@
       "maxAmount": 0,
       "flow": -1.47
     }
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.parts", "parts.power"],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "2001",
+              "name": "probeCoreCube",
+              "title": "OKTO2 Probe Core",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.625,
+                  "y": 0.4,
+                  "z": 0.625
+                }
+              },
+              "dryMass": 0.04,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand", "ModuleReactionWheel", "ModuleSAS"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 10,
+                  "maxAmount": 10,
+                  "flow": -0.03
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "2002",
+              "parentId": "2001",
+              "name": "rtg",
+              "title": "PB-NUK Radioisotope Thermoelectric Generator",
+              "position": {
+                "x": 0.4,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.2,
+                  "y": 0.5,
+                  "z": 0.2
+                }
+              },
+              "dryMass": 0.08,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Electrical",
+              "modules": ["ModuleGenerator"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": 0.75,
+                  "nominalFlow": 0.75
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "2003",
+              "parentId": "2001",
+              "name": "rtg",
+              "title": "PB-NUK Radioisotope Thermoelectric Generator",
+              "position": {
+                "x": -0.4,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": -1,
+                "y": 0,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.2,
+                  "y": 0.5,
+                  "z": 0.2
+                }
+              },
+              "dryMass": 0.08,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Electrical",
+              "modules": ["ModuleGenerator"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": 0.75,
+                  "nominalFlow": 0.75
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "2004",
+              "parentId": "2001",
+              "name": "batteryPack",
+              "title": "Z-100 Rechargeable Battery Pack",
+              "position": {
+                "x": 0,
+                "y": 0.3,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 0.625,
+                  "y": 0.15,
+                  "z": 0.625
+                }
+              },
+              "dryMass": 0.005,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Electrical",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 100,
+                  "maxAmount": 100
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "2005",
+              "parentId": "2001",
+              "name": "commDish88",
+              "title": "Communotron 88-88",
+              "position": {
+                "x": 0,
+                "y": -0.5,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.8,
+                  "y": 0.1,
+                  "z": 1.8
+                }
+              },
+              "dryMass": 0.1,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Communication",
+              "modules": ["ModuleDataTransmitter", "ModuleDeployableAntenna"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "ElectricCharge": {
+                  "amount": 0,
+                  "maxAmount": 0,
+                  "flow": -1.47
+                }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      {
+        "channel": "parts.power",
+        "value": {
+          "totalProductionEc": 0
+        }
+      }
+    ]
   }
 }
