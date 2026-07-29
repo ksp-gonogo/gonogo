@@ -182,7 +182,7 @@ const AVATAR_BUTTON_STYLE: CSSProperties = {
   width: "100%",
   height: "100%",
   padding: 0,
-  borderRadius: 4,
+  borderRadius: "var(--radius-md)",
   overflow: "hidden",
 };
 
@@ -191,6 +191,13 @@ const SPOTLIGHT_BODY_STYLE: CSSProperties = {
   justifyContent: "center",
 };
 
+// All five numbers stay literal and move together or not at all. The 7px font
+// is deliberately off every scale (4px below the smallest rung) so this
+// three-character badge fits the corner of a ~40px roster cell, and the 1px
+// offsets, the 3px horizontal padding and the 1.3 line box were all tuned
+// around it. Taking --space-2 (-1px per side) and --line-height-body (+0.1)
+// while the anchor value is held fixed re-tunes the badge in two directions
+// at once.
 const AVATAR_BADGE_POSITION: CSSProperties = {
   position: "absolute",
   bottom: 1,
@@ -202,6 +209,6 @@ const AVATAR_BADGE_POSITION: CSSProperties = {
 
 const SPOTLIGHT_BADGE_POSITION: CSSProperties = {
   position: "absolute",
-  bottom: 6,
-  right: 6,
+  bottom: "var(--space-6)",
+  right: "var(--space-6)",
 };

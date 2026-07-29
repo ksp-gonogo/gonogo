@@ -111,9 +111,11 @@ const PoiMarkerButton = styled.button<{ $style: PoiKindStyle }>`
   position: absolute;
   width: 10px;
   height: 10px;
+  /* Off the spacing ladder: exactly half the 10px marker above, centring it
+     on its coordinate. It tracks that size, not a rung. */
   margin: -5px 0 0 -5px;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   cursor: pointer;
   pointer-events: auto;
   background: ${({ $style }) => $style.background};
@@ -130,41 +132,44 @@ const PoiHoverCard = styled.div`
   pointer-events: auto;
   min-width: 160px;
   max-width: 240px;
-  padding: 8px 10px;
-  border-radius: 4px;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
+  /* Off the app z-index ladder: the only z-index in this file, so its value
+     is meaningless in isolation. Its contract is 1-versus-auto against the
+     markers it covers, not a place on the app ladder. */
   z-index: 1;
 `;
 
 const PoiHoverLabel = styled.div`
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-2);
 `;
 
 const PoiHoverDetail = styled.div`
   color: var(--color-text-muted);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 `;
 
 const PoiHoverCoords = styled.div`
   color: var(--color-text-dim);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 `;
 
 const PoiHoverMetaRow = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const PoiHoverActions = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
 `;
 
 export function MapPoiLayer({

@@ -907,7 +907,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -919,16 +919,16 @@ const Body = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 `;
 
 const SectionLabel = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  margin-top: 2px;
+  margin-top: var(--space-2);
 `;
 
 /* Was `styled.ul` but `<button>` is not a valid child of `<ul>` (only
@@ -938,7 +938,7 @@ const SectionLabel = styled.div`
 const ShipList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
@@ -950,14 +950,14 @@ const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
      the cost tag mid-block (beside "VAB · N parts" instead of the
      name). flex-start keeps it pinned to the first line. */
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${(p) =>
       p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: ${(p) => (p.$blocked ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$blocked ? 0.55 : 1)};
   text-align: left;
@@ -973,30 +973,30 @@ const ShipMeta = styled.span`
 `;
 
 const ShipName = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const ShipDetails = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
 `;
 
 const ShipCost = styled.span`
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-shrink: 0;
 `;
 
 const CostTag = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
 
 const BlockedTag = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-status-nogo-fg);
   font-variant-numeric: tabular-nums;
 `;
@@ -1004,22 +1004,22 @@ const BlockedTag = styled.span`
 const CrewGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const CrewChip = styled.button<{ $selected: boolean; $disabled: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
   text-align: left;
@@ -1027,12 +1027,12 @@ const CrewChip = styled.button<{ $selected: boolean; $disabled: boolean }>`
 `;
 
 const CrewName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 `;
 
 const CrewTrait = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: inherit;
   opacity: 0.7;
   letter-spacing: 0.04em;
@@ -1041,34 +1041,34 @@ const CrewTrait = styled.span`
 const SiteList = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const SiteChip = styled.button<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
 `;
 
 const SiteName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 `;
 
 const SiteMeta = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: inherit;
   opacity: 0.7;
   letter-spacing: 0.04em;
@@ -1076,40 +1076,40 @@ const SiteMeta = styled.span`
 
 const LaunchControls = styled.div`
   display: flex;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
 `;
 
 const PadActions = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 
 const InFlightWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const FlightStats = styled.dl`
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const FlightStatRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: var(--space-4) var(--space-8);
   /* When the widget is too narrow to fit label + value side by side,
      drop the value onto its own line (right-aligned) instead of
      clipping the digits off the edge. */
   flex-wrap: wrap;
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-xs);
   background: var(--color-surface-panel);
 `;
 
@@ -1138,32 +1138,32 @@ const CrashChip = styled.div`
   background: var(--color-status-nogo-muted);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-xs);
   letter-spacing: 0.04em;
 `;
 
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: 2px;
+  margin-left: var(--space-2);
   /* Keep the separator glued to the amount so a narrow subtitle wraps
      "· 42,500f" as one unit instead of orphaning the middot. */
   white-space: nowrap;
 `;
 
 const armButtonBase = `
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 4px 12px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   justify-content: center;
 
   &:disabled {
@@ -1212,37 +1212,41 @@ const TrackingStationConfirm = styled.button`
 `;
 
 const VesselSwitchPanel = styled.div`
-  margin-top: 6px;
+  margin-top: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
   max-height: 180px;
   overflow-y: auto;
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface-app);
-  padding: 2px;
+  padding: var(--space-2);
 `;
 
 const VesselSwitchRow = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8);
   background: transparent;
   color: var(--color-text-primary);
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 
   &:hover {
     background: var(--color-surface-panel);
   }
   &:focus-visible {
+    /* Focus-ring geometry, off the spacing scale by rule. The offset is
+       negative on purpose (an inset ring): VesselSwitchPanel above is
+       overflow-y: auto and would clip an outset one, so do not normalise
+       this to the +2px used elsewhere in this file. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
@@ -1261,7 +1265,7 @@ const VesselSwitchName = styled.span`
 `;
 
 const VesselSwitchMeta = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -1269,27 +1273,27 @@ const VesselSwitchMeta = styled.span`
 `;
 
 const VesselSwitchDistance = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  margin-right: 4px;
+  margin-right: var(--space-4);
 `;
 
 const VesselSwitchHint = styled.div`
-  padding: 6px 8px;
-  font-size: 10px;
+  padding: var(--space-6) var(--space-8);
+  font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 /** Same asteroid/comet visibility toggle as the TargetPicker's Vessels tab,
  * hidden by default, the count-carrying label doubles as the reveal button. */
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
-  margin: 2px 2px 4px;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  margin: var(--space-2) var(--space-2) var(--space-4);
+  font-size: var(--font-size-2xs);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);
@@ -1326,7 +1330,7 @@ const ConfirmButton = styled.button<{
      keyframes: wrapping only the keyframes leaves the animation
      active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
-    animation: armedPulse 1s ease-in-out infinite;
+    animation: armedPulse 1s var(--ease-emphasis) infinite;
     @keyframes armedPulse {
       0%,
       100% {

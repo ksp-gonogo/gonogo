@@ -995,7 +995,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -1003,28 +1003,28 @@ const TitleRow = styled.div`
 const Controls = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   /* Horizontal inset matches PanelTitle/PanelSubtitle's local padding
      (Panel itself is full-bleed, no uniform inset). Without it the filter
      pills and search input sat flush against the panel border, visibly
      tighter than the title above them, and at narrow widths (e.g.
      portrait-5x18) the "Unlocked" pill overflowed past the edge and got
      clipped mid-word instead of wrapping. */
-  padding: 0 16px 6px;
+  padding: 0 var(--space-16) var(--space-6);
   flex-shrink: 0;
 `;
 
 const FilterRow = styled.div`
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 `;
 
 const FilterBtn = styled.button<{ $active: boolean }>`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-pill);
   border: 1px solid
     ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-surface-raised)")};
   background: ${(p) =>
@@ -1049,8 +1049,8 @@ const SearchInput = styled.input`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
   font: inherit;
-  padding: 4px 6px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
   outline: none;
 
   &:focus {
@@ -1070,7 +1070,7 @@ const Body = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-4);
   }
 `;
 
@@ -1080,7 +1080,7 @@ const NodeList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const NodeRowWrap = styled.li<{
@@ -1092,7 +1092,7 @@ const NodeRowWrap = styled.li<{
   background: var(--color-surface-panel);
   border-left: 2px solid
     ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   opacity: ${(p) =>
     p.$display === "locked" ? 0.65 : p.$unaffordable ? 0.7 : 1};
 `;
@@ -1101,8 +1101,8 @@ const NodeHeader = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1120,12 +1120,12 @@ const NodeHeader = styled.button`
 `;
 
 const NodeTitle = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: 600;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1143,7 +1143,7 @@ const NodeTitleText = styled.span`
 `;
 
 const NodeId = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-family: monospace;
   color: var(--color-text-faint);
   font-weight: 400;
@@ -1152,24 +1152,24 @@ const NodeId = styled.span`
 
 const NodeMeta = styled.span`
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: center;
   flex-shrink: 0;
 `;
 
 const Cost = styled.span<{ $insufficient?: boolean }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${(p) =>
     p.$insufficient ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
   font-variant-numeric: tabular-nums;
 `;
 
 const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 1px 6px;
-  border-radius: 2px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-xs);
   color: ${(p) =>
     p.$tone === "go"
       ? "var(--color-status-go-fg)"
@@ -1183,27 +1183,27 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
 const NodeBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 10px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-10) var(--space-8);
   border-top: 1px dashed var(--color-surface-raised);
 `;
 
 const Description = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
   font-style: italic;
 `;
 
 const Parents = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 
 const ParentsLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1211,27 +1211,27 @@ const ParentsLabel = styled.span`
 
 const ParentsList = styled.span`
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 `;
 
 const ParentChip = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-family: monospace;
   color: var(--color-text-muted);
-  padding: 1px 6px;
+  padding: var(--space-hair) var(--space-6);
   background: var(--color-surface-sunken);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const Parts = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const PartsLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1243,16 +1243,16 @@ const PartsList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
 `;
 
 const PartRow = styled.li<{ $purchased: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
-  font-size: 11px;
-  padding: 1px 0;
+  gap: var(--space-8);
+  font-size: var(--font-size-xs);
+  padding: var(--space-hair) 0;
   opacity: ${(p) => (p.$purchased ? 0.7 : 1)};
 `;
 
@@ -1267,26 +1267,26 @@ const PartTitle = styled.span`
 
 const PartMeta = styled.span`
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: baseline;
   flex-shrink: 0;
 `;
 
 const PartCategory = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;
 
 const PartCost = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
 
 const PartPurchased = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-status-go-fg);
 `;
 
@@ -1296,17 +1296,17 @@ const UnlockRow = styled.div`
 `;
 
 const armButtonBase = `
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 4px 12px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   justify-content: center;
 
   &:disabled {
@@ -1336,9 +1336,12 @@ const ConfirmBtn = styled.button`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   border-color: transparent;
-  animation: techPulse 1s ease-in-out infinite;
-
+  /* The animation property must live inside the same media guard as the
+     keyframes: the bare property outside the guard fires for reduced-motion
+     users (CLAUDE.md a11y rule). 1s stays literal, it is an attention pulse
+     rather than a UI transition. */
   @media (prefers-reduced-motion: no-preference) {
+    animation: techPulse 1s var(--ease-emphasis) infinite;
     @keyframes techPulse {
       0%,
       100% {
@@ -1360,15 +1363,15 @@ const PendingBtn = styled.button`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 12px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-12);
   text-align: center;
 `;
 
 const SciReadout = styled.span`
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: 2px;
+  margin-left: var(--space-2);
 `;
 
 // ── Graph styles ────────────────────────────────────────────────────────────
@@ -1377,21 +1380,21 @@ const GraphToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   flex-shrink: 0;
   flex-wrap: wrap;
 `;
 
 const Legend = styled.div`
   display: inline-flex;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const LegendItem = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
+  gap: var(--space-4);
+  font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
@@ -1399,7 +1402,7 @@ const LegendItem = styled.span`
 const Swatch = styled.span<{ $kind: DisplayState }>`
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   border: 2px solid ${(p) => dsBorder(p.$kind)};
   background: ${(p) =>
     p.$kind === "owned"
@@ -1412,7 +1415,7 @@ const GraphScroll = styled.div`
   min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface-sunken);
   scrollbar-width: thin;
 `;
@@ -1437,13 +1440,13 @@ const GraphCard = styled.button<{
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   overflow: hidden;
   text-align: left;
   font-family: inherit;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1px solid ${(p) => dsBorder(p.$ds)};
   border-left-width: 3px;
   background: ${(p) =>
@@ -1455,7 +1458,7 @@ const GraphCard = styled.button<{
   opacity: ${(p) => (p.$dimmed ? 0.3 : p.$ds === "locked" ? 0.7 : 1)};
   box-shadow: ${(p) =>
     p.$selected ? "0 0 0 2px var(--color-accent-fg)" : "none"};
-  transition: opacity 120ms ease;
+  transition: opacity var(--duration-fast) var(--ease-standard);
 
   &:hover {
     filter: brightness(1.12);
@@ -1467,6 +1470,15 @@ const GraphCard = styled.button<{
   }
 `;
 
+/* GraphCard's type stays off both scales. The card is laid out at a fixed
+   JS height (CARD_H = 48, applied as an inline style), and after borders,
+   padding and gap the content budget is 37px against a current 2 x 11 x
+   1.15 title plus a ~12px meta row, i.e. already flush. --line-height-tight
+   (1.2) alone overflows it, and on a coarse pointer --font-size-xs (12px)
+   plus --font-size-2xs (11px) need roughly 42px, which GraphCard's
+   overflow: hidden would clip mid-line. Moving any of these four values
+   means raising CARD_H in the same edit and re-checking the
+   -webkit-line-clamp: 2. */
 const GraphCardTitle = styled.span`
   font-size: 11px;
   font-weight: 600;
@@ -1485,6 +1497,7 @@ const GraphCardMeta = styled.span`
 `;
 
 const GraphCost = styled.span<{ $ds: DisplayState }>`
+  /* Off the type scale with GraphCardTitle above: same CARD_H budget. */
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: ${(p) =>
@@ -1494,6 +1507,7 @@ const GraphCost = styled.span<{ $ds: DisplayState }>`
 `;
 
 const GraphOwned = styled.span`
+  /* Off the type scale with GraphCardTitle above: same CARD_H budget. */
   font-size: 10px;
   color: var(--color-status-go-fg);
   letter-spacing: 0.04em;
@@ -1505,12 +1519,12 @@ const Detail = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  margin-top: 6px;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-10);
+  margin-top: var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   max-height: 40%;
   overflow: auto;
 `;
@@ -1519,16 +1533,16 @@ const DetailHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const DetailTitle = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const CloseBtn = styled.button`
@@ -1536,10 +1550,10 @@ const CloseBtn = styled.button`
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 2px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-xs);
   font-family: inherit;
 
   &:hover {
@@ -1555,18 +1569,18 @@ const CloseBtn = styled.button`
 const DetailMeta = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;
 
 const ParentsInline = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-4);
   flex-wrap: wrap;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.04em;
 `;
 
@@ -1578,11 +1592,13 @@ const TinyBody = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-4);
+  padding: var(--space-4);
 `;
 
 const TinyCount = styled.div`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 24px;
   font-weight: 600;
   color: var(--color-accent-fg);
@@ -1590,18 +1606,19 @@ const TinyCount = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  line-height: 1;
+  line-height: var(--line-height-flush);
 `;
 
 const TinyLabel = styled.span`
+  /* Off the type scale: 2px below --font-size-2xs, the smallest rung. */
   font-size: 8px;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
-  margin-top: 2px;
+  margin-top: var(--space-2);
 `;
 
 const TinySci = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;

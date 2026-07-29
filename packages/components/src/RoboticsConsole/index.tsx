@@ -308,15 +308,15 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 8px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8) var(--space-8);
   overflow: auto;
 `;
 
@@ -324,10 +324,12 @@ const Readout = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const Current = styled.span`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 22px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -338,24 +340,26 @@ const Arrow = styled.span`
 `;
 
 const Target = styled.span`
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 `;
 
 const Unit = styled.span`
+  /* Off the type scale on purpose: em, so the unit stays a fixed ratio of
+     whatever size its parent readout renders at. A px rung severs that. */
   font-size: 0.6em;
   opacity: 0.7;
-  margin-left: 1px;
+  margin-left: var(--space-hair);
 `;
 
 const StatePill = styled.span<{ $atTarget: boolean }>`
   margin-left: auto;
   align-self: center;
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
-  padding: 1px 6px;
-  border-radius: 2px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-xs);
   background: ${(p) =>
     p.$atTarget ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
   color: ${(p) =>
@@ -365,19 +369,19 @@ const StatePill = styled.span<{ $atTarget: boolean }>`
 const Controls = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ControlRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px 8px;
+  gap: var(--space-4) var(--space-8);
   flex-wrap: wrap;
 `;
 
 const ControlLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
@@ -386,66 +390,66 @@ const ControlLabel = styled.span`
 const Stepper = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const StepBtn = styled.button`
   min-width: 26px;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
-  line-height: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
 `;
 
 const StepValue = styled.span`
   min-width: 52px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;
 
 const ToggleRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ServoList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ServoRow = styled.button<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
 `;
 
 const ServoName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 `;
 
 const ServoMeta = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   opacity: 0.7;
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;

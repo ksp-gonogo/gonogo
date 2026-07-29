@@ -638,14 +638,14 @@ const PickerHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-height: 0;
 `;
 
 const PickerHeaderTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -653,7 +653,7 @@ const CompactTitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -661,7 +661,7 @@ const CompactTitleRow = styled.div`
  *  data: keeps the header tight in the common steady-orbit case. */
 const OrbitalEventChipsRow = styled.div`
   display: flex;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   &:empty {
     display: none;
   }
@@ -673,28 +673,28 @@ const OrbitalEventChipsRow = styled.div`
 const AugmentSectionsRow = styled.div`
   display: flex;
   flex-direction: column;
-  margin-top: 6px;
+  margin-top: var(--space-6);
   &:empty {
     display: none;
   }
 `;
 
 const CurrentSummary = styled.div`
-  margin-top: 6px;
+  margin-top: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const CurrentSummaryTop = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const CurrentSummaryName = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-status-go-fg);
   overflow: hidden;
@@ -704,7 +704,7 @@ const CurrentSummaryName = styled.span`
 `;
 
 const CurrentSummaryDistance = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
@@ -713,19 +713,19 @@ const CurrentSummaryDistance = styled.span`
 const CurrentSummaryMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 10px;
+  gap: var(--space-10);
+  font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
 
 const FilterInput = styled.input`
-  margin-top: 6px;
-  font-size: 12px;
-  padding: 4px 6px;
+  margin-top: var(--space-6);
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -735,44 +735,44 @@ const FilterInput = styled.input`
 
 const ListScroll = styled(ScrollArea)`
   flex: 1;
-  margin-top: 6px;
+  margin-top: var(--space-6);
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 `;
 
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const SuggestedHeading = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  padding: 2px 4px;
+  padding: var(--space-2) var(--space-4);
 `;
 
 const SectionHeaderRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SectionToggle = styled.button`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   flex: 1;
   min-width: 0;
   background: none;
   border: none;
-  padding: 2px 4px;
-  font-size: 10px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -790,7 +790,7 @@ const SectionToggle = styled.button`
 
 const SectionChevron = styled.span<{ $expanded: boolean }>`
   display: inline-block;
-  transition: transform 120ms ease;
+  transition: transform var(--duration-fast) var(--ease-standard);
   transform: rotate(${({ $expanded }) => ($expanded ? "90deg" : "0deg")});
   flex-shrink: 0;
 `;
@@ -798,24 +798,24 @@ const SectionChevron = styled.span<{ $expanded: boolean }>`
 const SectionBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
 `;
 
 const Row = styled.button<{ $current: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 4px 6px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-6);
   background: ${({ $current }) =>
     $current ? "var(--color-status-go-bg)" : "transparent"};
   color: ${({ $current }) =>
     $current ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   &:hover {
     background: var(--color-surface-panel);
   }
@@ -839,7 +839,7 @@ const RowName = styled.span`
 `;
 
 const RowSubtitle = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -847,15 +847,15 @@ const RowSubtitle = styled.span`
 `;
 
 const RowDistance = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  margin-right: 6px;
+  margin-right: var(--space-6);
   flex-shrink: 0;
 `;
 
 const RowTag = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--color-status-go-fg);
@@ -863,9 +863,9 @@ const RowTag = styled.span`
 
 const SpaceObjectToggle = styled.button`
   margin-left: auto;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  font-size: var(--font-size-2xs);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);
@@ -886,10 +886,10 @@ const SpaceObjectToggle = styled.button`
 `;
 
 const Hint = styled.div`
-  margin-top: 6px;
-  font-size: 11px;
+  margin-top: var(--space-6);
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 const CompactCurrent = styled.div`
@@ -898,19 +898,19 @@ const CompactCurrent = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   text-align: center;
 `;
 
 const CompactName = styled.div`
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: 0.04em;
 `;
 
 const CompactDistance = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-accent-fg);
   letter-spacing: 0.04em;
 `;

@@ -47,6 +47,11 @@ export function FlightsFab({
 
   return (
     <Fab
+      // One rung of the cross-package FAB ladder (24, 84, 144, 204, ...): a
+      // 60px pitch derived from Fab's own 40/48px height and FabRow's
+      // calc(24px + env(safe-area-inset-bottom, 0px)) base. Held literal with
+      // the rest of that geometry chain in @ksp-gonogo/ui, which no CSS pass
+      // can see from here. Exact today; it drifts only if the base moves.
       bottom={84}
       onClick={handleClick}
       aria-label="Flight history"

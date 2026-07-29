@@ -73,5 +73,5 @@ const Value__Root = styled.span<{
   font-variant-numeric: tabular-nums;
   ${({ $tone }) => TONE_STYLES[$tone]}
   ${({ $size }) => $size && SIZE_STYLES[$size]}
-  ${({ $spaced }) => $spaced && `margin-left: 2px;`}
+  ${({ $spaced }) => $spaced && `margin-left: var(--space-2, 2px);`}
 `;

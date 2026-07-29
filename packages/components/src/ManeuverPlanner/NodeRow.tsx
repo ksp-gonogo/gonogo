@@ -158,29 +158,29 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  column-gap: 8px;
-  row-gap: 4px;
-  padding: 4px 6px;
+  column-gap: var(--space-8);
+  row-gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
   background: ${({ $completed }) =>
     $completed ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${({ $completed }) =>
       $completed ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const NodeMain = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
   min-width: 0;
 `;
 
 const NodePrimary = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: var(--space-6);
+  font-size: var(--font-size-sm);
   color: ${({ $completed }) =>
     $completed ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   font-weight: ${({ $completed }) => ($completed ? 600 : 400)};
@@ -195,7 +195,7 @@ const NodeMeta = styled.div`
 const RowActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ActionButton = styled.button<{ $active: boolean }>`
@@ -205,7 +205,7 @@ const ActionButton = styled.button<{ $active: boolean }>`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -222,7 +222,7 @@ const DeleteButton = styled.button`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -236,14 +236,14 @@ const DeleteButton = styled.button`
 const EditPanel = styled.div`
   grid-column: 1 / -1;
   border-top: 1px dashed var(--color-border-subtle);
-  padding-top: 6px;
-  margin-top: 2px;
+  padding-top: var(--space-6);
+  margin-top: var(--space-2);
 `;
 
 const EditGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const EditHint = styled.div`
@@ -256,17 +256,17 @@ const EditHint = styled.div`
 const EditActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  padding-top: 4px;
+  gap: var(--space-6);
+  padding-top: var(--space-4);
 `;
 
 const PrimaryButton = styled.button`
   background: var(--color-accent-bg);
   color: var(--color-accent-fg);
   border: 1px solid var(--color-accent-fg);
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   &:disabled {
     opacity: 0.5;
@@ -278,9 +278,9 @@ const SecondaryButton = styled.button`
   background: transparent;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border-subtle);
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   &:disabled {
     opacity: 0.5;

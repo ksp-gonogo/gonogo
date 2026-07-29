@@ -13,16 +13,31 @@ import { createGlobalStyle } from "styled-components";
  * explicitly.
  *
  * Keep this block and `tokens.css` in sync, they are two hand-maintained
- * copies of the same source of truth.
+ * copies of the same source of truth. `tokensMirror.test.ts` in
+ * `@ksp-gonogo/ui-kit` (the package that publishes this component) fails if
+ * they ever diverge again: this file had silently fallen 39 custom properties
+ * behind, so a host on the `GonogoTokens` mounting path lost every
+ * `--space-*` / `--radius-*` / `--z-*` / `--duration-*` / `--ease-*` /
+ * `--line-height-*` reference the token migration introduced, plus
+ * `--font-size-2xs` and `--color-status-nogo-on-bg`.
+ *
+ * Values only here, no prose: `tokens.css` carries the rationale for every
+ * rung and is the file to read (and to edit first) when changing one.
  */
 export const GonogoTokens = createGlobalStyle`
   :root {
     --font-family-mono:
       "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;
+    --font-size-2xs: 10px;
     --font-size-xs: 11px;
     --font-size-sm: 12px;
     --font-size-base: 14px;
     --font-size-lg: 16px;
+
+    --line-height-flush: 1;
+    --line-height-tight: 1.2;
+    --line-height-body: 1.4;
+    --line-height-prose: 1.5;
 
     --color-text-primary: #ccc;
     --color-text-muted: #888;
@@ -45,6 +60,7 @@ export const GonogoTokens = createGlobalStyle`
     --color-status-go-bg: #2e5a2e;
     --color-status-nogo-fg: #ffdede;
     --color-status-nogo-bg: #ff4d4d;
+    --color-status-nogo-on-bg: #1a1a1a;
     --color-status-warning-fg: #1a1a1a;
     --color-status-warning-bg: #ff8c00;
     --color-status-info-fg: #7cf;
@@ -96,10 +112,49 @@ export const GonogoTokens = createGlobalStyle`
     --color-data-24: #f5e07c;
 
     --color-focus: #00ff88;
+
+    --space-hair: 1px;
+    --space-2: 2px;
+    --space-4: 4px;
+    --space-6: 6px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-16: 16px;
+    --space-24: 24px;
+
+    --radius-xs: 2px;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
+    --radius-pill: 999px;
+    --radius-circle: 50%;
+
+    --z-base: 0;
+    --z-sticky: 100;
+    --z-dropdown: 200;
+    --z-overlay: 800;
+    --z-fab: 900;
+    --z-backdrop: 950;
+    --z-modal: 1000;
+    --z-toast: 1100;
+    --z-critical: 10000;
+
+    --duration-instant: 80ms;
+    --duration-fast: 120ms;
+    --duration-base: 150ms;
+    --duration-slow: 200ms;
+    --duration-entrance: 320ms;
+
+    --ease-standard: ease;
+    --ease-emphasis: ease-in-out;
+    --ease-linear: linear;
+    --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   @media (pointer: coarse) {
     :root {
+      --font-size-2xs: 11px;
       --font-size-xs: 12px;
       --font-size-sm: 13px;
       --font-size-base: 15px;

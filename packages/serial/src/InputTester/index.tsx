@@ -230,7 +230,7 @@ export { InputTesterComponent };
 const StatusRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--font-size-xs);
 `;
 
@@ -244,8 +244,8 @@ const StatusPill = styled.span<{ $status: string }>`
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   color: ${({ $status }) =>
     $status === "connected"
       ? "var(--color-status-go-fg)"
@@ -271,7 +271,7 @@ const Counts = styled.span`
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SectionLabel = styled.div`
@@ -285,7 +285,7 @@ const AnalogRow = styled.div`
   display: grid;
   grid-template-columns: 80px 1fr 48px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const AnalogName = styled.span`
@@ -296,6 +296,19 @@ const AnalogName = styled.span`
   white-space: nowrap;
 `;
 
+/*
+ * AnalogTrack / AnalogCentre / AnalogFill are one nested geometry, not three
+ * independent boxes, so every number in them stays literal:
+ *
+ *  - the track's 4px radius is half its 8px height (a stadium) and the fill's
+ *    2px is the same half taken one 1px inset further in. They are a matched
+ *    pair; --radius-md / --radius-xs would render identically today but stop
+ *    tracking the height the moment it changes.
+ *  - the 1px top/bottom insets are border compensation, cancelling the track's
+ *    1px rule so the fill sits inside it rather than under it. That is
+ *    border geometry, the same class as a focus ring, not the spacing ladder:
+ *    at 2px the fill would be a lozenge inside a 6px inner height.
+ */
 const AnalogTrack = styled.div`
   position: relative;
   height: 8px;
@@ -328,7 +341,7 @@ const AnalogThumb = styled.div<{ $live: boolean }>`
   top: 50%;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   transform: translate(-50%, -50%);
   background: ${({ $live }) =>
     $live ? "var(--color-status-info-fg)" : "var(--color-text-faint)"};
@@ -347,15 +360,15 @@ const AnalogValue = styled.span<{ $live: boolean }>`
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ButtonPill = styled.div<{ $pressed: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 3px;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
   border: 1px solid
     ${({ $pressed }) =>
       $pressed ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
@@ -364,13 +377,16 @@ const ButtonPill = styled.div<{ $pressed: boolean }>`
   color: ${({ $pressed }) =>
     $pressed ? "var(--color-status-info-fg)" : "var(--color-text-primary)"};
   font-size: var(--font-size-xs);
-  transition: background 60ms linear;
+  /* 60ms stays literal: it is deliberately faster than the 80ms binding-row
+     highlight in InputMappingTab, and --duration-instant is that 80ms. The
+     press echo reads as instant only because it undercuts the other one. */
+  transition: background 60ms var(--ease-linear);
 `;
 
 const ButtonDot = styled.span<{ $pressed: boolean }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $pressed }) =>
     $pressed ? "var(--color-status-info-fg)" : "var(--color-border-strong)"};

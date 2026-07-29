@@ -77,8 +77,10 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
       ? css`
           position: fixed;
           bottom: calc(${$bottom}px + env(safe-area-inset-bottom, 0px));
+          /* 72 is 24 (Fab's right inset) + 40 (StyledFab width) + 8. Held
+             literal with the rest of the FAB-geometry chain, see BannerStack. */
           right: calc(72px + env(safe-area-inset-right, 0px));
-          z-index: 900;
+          z-index: var(--z-fab);
         `
       : ""}
   height: 40px;
@@ -86,11 +88,20 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   align-items: stretch;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-status-info-fg);
-  border-radius: 20px;
+  /* Stadium, not a corner: the old 20px was exactly half the 40px height, and
+     the coarse block below hand-recomputed it as 24px for its 48px height.
+     --radius-pill clamps to half the shorter side either way, so the coarse
+     override is gone rather than duplicated. */
+  border-radius: var(--radius-pill);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   font-family: inherit;
-  animation: fabPromptIn 0.18s ease-out both;
+  /* Snapped, not exact: this was 0.18s ease-out. 180ms to 200ms, and
+     ease-out to ease (the scale has no ease-out rung). Both moves are inside
+     the noise of an 8px slide-and-fade. The entrance recipe
+     (--duration-entrance with --ease-entrance) is deliberately NOT used
+     here: that pairing is tuned to the 40px banner slide. */
+  animation: fabPromptIn var(--duration-slow) var(--ease-standard) both;
 
   @keyframes fabPromptIn {
     from {
@@ -105,7 +116,6 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
 
   @media (pointer: coarse) {
     height: 48px;
-    border-radius: 24px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -122,7 +132,7 @@ const Accept = styled.button`
   font-size: var(--font-size-sm);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 0 14px;
+  padding: 0 var(--space-12);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -144,9 +154,11 @@ const Dismiss = styled.button`
   background: transparent;
   color: var(--color-text-dim);
   font-family: inherit;
+  /* Display tier: the type scale stops at lg (16px). This is a glyph size
+     for the × character, not body type, so it stays literal. */
   font-size: 18px;
-  line-height: 1;
-  padding: 0 12px;
+  line-height: var(--line-height-flush);
+  padding: 0 var(--space-12);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

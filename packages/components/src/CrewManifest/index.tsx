@@ -29,6 +29,10 @@ import styled from "styled-components";
  * gets clipped by `Panel`'s `overflow: hidden`. We can't touch the shared
  * `BigReadout`, so cap the number lower here and let the centred flex box
  * keep both lines inside the box.
+ *
+ * Off the type scale on purpose: this is a fluid, viewport-responsive fit,
+ * and its endpoints are not independent font-size choices. The scale stops
+ * at --font-size-lg (16px) and a fixed rung here would freeze the fit.
  */
 const TinyReadout = styled(BigReadout)`
   font-size: clamp(20px, 4vw, 30px);
@@ -597,7 +601,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -606,7 +610,7 @@ const TitleRow = styled.div`
 const TitleRight = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 // Scene-aware meters toggle, shown only when the KerbalismUplink is feeding
@@ -619,8 +623,8 @@ const MetersToggle = styled.button`
   font-size: var(--font-size-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-md);
   cursor: pointer;
 
   &:hover {
@@ -641,11 +645,11 @@ const MetersToggle = styled.button`
 
 const Roster = styled.ul`
   list-style: none;
-  margin: 8px 0 0;
+  margin: var(--space-8) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 // One roster entry: the name/badges head line, plus (when survival data is
@@ -653,21 +657,21 @@ const Roster = styled.ul`
 const RosterItem = styled.li`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 // Per-kerbal survival meters block, indented under the name line.
 const SurvivalStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 0 0 4px 14px;
+  gap: var(--space-2);
+  padding: 0 0 var(--space-4) var(--space-12);
 `;
 
 // EVA suit resources block, shown once beneath the subtitle (not per-row -
@@ -679,9 +683,9 @@ const SurvivalStack = styled.div`
 const SuitStack = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 6px;
-  padding: 0 16px;
+  gap: var(--space-12);
+  margin-top: var(--space-6);
+  padding: 0 var(--space-16);
 `;
 
 // Derived death-clock readout under the meters. Tone tracks urgency.
@@ -736,7 +740,7 @@ const AvatarSlot = styled.div`
 const Bullet = styled.span`
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-accent-fg);
   flex: 0 0 auto;
 `;
@@ -753,7 +757,7 @@ const Name = styled.span`
 const Badges = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   margin-left: auto;
 `;
 

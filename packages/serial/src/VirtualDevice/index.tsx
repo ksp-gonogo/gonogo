@@ -163,7 +163,7 @@ registerComponent<VirtualDeviceConfig>({
 export { VirtualDeviceComponent };
 
 const Title = styled.div`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: 0.05em;
@@ -174,30 +174,30 @@ const Subtitle = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
 `;
 
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-10);
 `;
 
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const MomentaryButton = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  padding: 10px 0;
+  padding: var(--space-10) 0;
   cursor: pointer;
   user-select: none;
   touch-action: none;
@@ -221,10 +221,10 @@ const MomentaryButton = styled.button`
 `;
 
 const FrameDisplay = styled.div`
-  margin-top: 10px;
+  margin-top: var(--space-10);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const FrameLabel = styled.span`
@@ -237,11 +237,15 @@ const FrameLabel = styled.span`
 const Frame = styled.pre`
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--color-status-info-fg);
+  /* Both literal: this pre renders the device's 21x8 ASCII frame buffer, so
+     11px is the cell width that keeps 21 columns on one line (--font-size-xs
+     is 12px under @media (pointer: coarse) and reflows it) and 1.15 is the
+     buffer's physical row pitch, not typography. */
   font-size: 11px;
   line-height: 1.15;
-  padding: 8px;
+  padding: var(--space-8);
   margin: 0;
   white-space: pre;
   overflow-x: auto;

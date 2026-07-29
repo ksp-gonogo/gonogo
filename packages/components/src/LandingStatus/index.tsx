@@ -654,17 +654,33 @@ function LandingStatusComponent({
                     to the top-right corner (bleeds). */}
                 <div style={{ display: "flex", alignItems: "flex-start" }}>
                   <div
-                    style={{ flex: 1, minWidth: 0, padding: "8px 8px 0 12px" }}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding:
+                        "var(--space-8) var(--space-8) 0 var(--space-12)",
+                    }}
                   >
                     {commitLayerEl}
                   </div>
-                  <div style={{ flex: "0 0 auto", padding: "8px 8px 0 0" }}>
+                  <div
+                    style={{
+                      flex: "0 0 auto",
+                      padding: "var(--space-8) var(--space-8) 0 0",
+                    }}
+                  >
                     {twrGaugeEl}
                   </div>
                 </div>
                 {/* Two equal, ALIGNED altimetry squares in a shared row, same
                     top, size, baseline: bleeding to the right edge. */}
-                <div style={{ display: "flex", gap: "6px", padding: "8px 0" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "var(--space-6)",
+                    padding: "var(--space-8) 0",
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SectionTitle>Touchdown site</SectionTitle>
                     {reticleSquare}
@@ -682,8 +698,8 @@ function LandingStatusComponent({
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "8px",
-                    padding: "4px 16px 12px",
+                    gap: "var(--space-8)",
+                    padding: "var(--space-4) var(--space-16) var(--space-12)",
                   }}
                 >
                   {verdictBannerEl}

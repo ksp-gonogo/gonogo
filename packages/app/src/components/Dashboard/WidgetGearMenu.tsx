@@ -168,9 +168,9 @@ const GearBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
-  padding: 1px 2px;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-flush);
+  padding: var(--space-hair) var(--space-2);
 
   &:hover {
     color: var(--color-text-muted);

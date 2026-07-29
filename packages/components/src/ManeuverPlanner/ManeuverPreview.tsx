@@ -370,8 +370,8 @@ function ShortfallBanner({
 const PreviewSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 4px;
+  gap: var(--space-6);
+  padding-top: var(--space-4);
 `;
 
 const SectionTitle = styled.h4`
@@ -380,13 +380,13 @@ const SectionTitle = styled.h4`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-dim);
-  margin: 0 0 2px 0;
+  margin: 0 0 var(--space-2) 0;
 `;
 
 const PreviewGrid = styled.dl`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 2px 8px;
+  gap: var(--space-2) var(--space-8);
   align-items: baseline;
   margin: 0;
 `;
@@ -407,8 +407,8 @@ const Value = styled.dd<{ $accent?: "ap" | "pe" }>`
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 6px;
-  font-size: 13px;
+  gap: var(--space-2) var(--space-6);
+  font-size: var(--font-size-sm);
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
   margin: 0;
@@ -426,14 +426,14 @@ const PreviewContainer = styled.div`
 const PreviewMain = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 
   /* Wide-short: readouts and diagram share a row instead of stacking with a
      large empty gutter. Narrow widths keep the natural single-column stack. */
   @container (min-width: 460px) {
     flex-direction: row;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--space-16);
   }
 `;
 
@@ -463,18 +463,18 @@ const Note = styled.div`
 `;
 
 const ErrorLine = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
-  padding: 4px 6px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
 `;
 
 const CommitRow = styled.div`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  padding-top: 4px;
+  gap: var(--space-8);
+  padding-top: var(--space-4);
 `;

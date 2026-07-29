@@ -30,13 +30,26 @@ export function BannerStack({ children }: BannerStackProps) {
 
 const Stack = styled.div`
   position: fixed;
+  /* All four numbers below stay off the spacing ladder deliberately: 88 is
+     24 + 48 + 16 and 112 is 88 + 24, arithmetic on the FAB's geometry rather
+     than chosen insets, and the same chain runs through Fab's right: 24px and
+     FabPrompt's right: 72px. Tokenising only the 24s would leave 72/88/112
+     literal and silently desynchronise the cluster the first time --space-24
+     moves, so the whole chain is held literal until it can move as one. */
   right: calc(88px + env(safe-area-inset-right, 0px));
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  /* Off the z-index ladder for now. The ladder's --z-toast (1100) is a
+     deliberate correction (90 renders behind the --z-fab 900 this strip sits
+     beside), but taking it would float interactive BannerPills above a modal
+     dialog while leaving them outside its focus trap: mouse-reachable,
+     keyboard-unreachable, hidden from AT. That is a WCAG 2.1.1 / 2.4.3
+     regression the layer change would introduce. Gate pill interactivity while
+     a modal is open, then move this to --z-toast. */
   z-index: 90;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   height: 48px;
   max-width: calc(100vw - 112px - env(safe-area-inset-right, 0px));
   overflow-x: auto;

@@ -619,8 +619,8 @@ const Header = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 12px 6px;
+  gap: var(--space-8);
+  padding: 0 var(--space-12) var(--space-6);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-wrap: wrap;
 `;
@@ -628,7 +628,7 @@ const Header = styled.div`
 const HeaderMeta = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   color: var(--color-text-dim);
   font-size: var(--font-size-xs);
   flex-wrap: wrap;
@@ -648,7 +648,7 @@ const Sep = styled.span`
 `;
 
 const TinyFundsRow = styled.div`
-  padding: 0 12px 6px;
+  padding: 0 var(--space-12) var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
@@ -660,8 +660,8 @@ const TinyFundsRow = styled.div`
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-12);
   border-bottom: 1px dashed var(--color-border-subtle);
   &:last-child {
     border-bottom: none;
@@ -686,12 +686,12 @@ const Empty = styled.p`
 const StrategyCard = styled.article<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: ${({ $active }) =>
     $active ? "var(--color-status-go-muted)" : "transparent"};
 `;
@@ -700,7 +700,7 @@ const CardHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const CardTitle = styled.div`
@@ -737,10 +737,10 @@ const ExpandToggle = styled.button`
 `;
 
 const Description = styled.p`
-  margin: 2px 0 4px;
+  margin: var(--space-2) 0 var(--space-4);
   color: var(--color-text-dim);
   font-size: var(--font-size-xs);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 const EffectList = styled.ul`
@@ -749,31 +749,31 @@ const EffectList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const EffectLine = styled.li`
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
-  line-height: 1.35;
+  line-height: var(--line-height-body);
   &::before {
     content: "·";
     color: var(--color-text-dim);
-    margin-right: 6px;
+    margin-right: var(--space-6);
   }
 `;
 
 const CostRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
   font-size: var(--font-size-xs);
-  padding: 1px 6px;
-  border-radius: 999px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
     $insufficient
       ? "var(--color-status-nogo-muted)"
@@ -788,8 +788,8 @@ const CostChip = styled.span<{ $insufficient?: boolean }>`
 const FactorRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
 `;
 
 /**
@@ -815,10 +815,13 @@ const Slider = styled.input`
   appearance: none;
   -webkit-appearance: none;
 
+  /* Both tracks: a stadium, not a corner (the old 2px was half the 4px
+     height), and the two must stay identical or Chromium and Firefox
+     diverge. --radius-pill renders the same and tracks the height. */
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--radius-pill);
     background: var(--color-border-strong);
   }
 
@@ -827,15 +830,19 @@ const Slider = styled.input`
     appearance: none;
     width: 14px;
     height: 14px;
+    /* Off the spacing ladder: (4 - 14) / 2, i.e. half the difference between
+       the track height above and this thumb's own size, so it is locked to
+       two siblings and must track them rather than a rung. The Firefox thumb
+       below carries no offset at all and the two must stay in step. */
     margin-top: -5px;
-    border-radius: 50%;
+    border-radius: var(--radius-circle);
     background: var(--color-accent-fg);
   }
 
   &::-moz-range-track {
     width: 100%;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--radius-pill);
     background: var(--color-border-strong);
   }
 
@@ -843,7 +850,7 @@ const Slider = styled.input`
     width: 14px;
     height: 14px;
     border: none;
-    border-radius: 50%;
+    border-radius: var(--radius-circle);
     background: var(--color-accent-fg);
   }
 
@@ -882,8 +889,8 @@ const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
   /* At very narrow widths (portrait-5x18) the FactorTag + action button
      can't sit side by side, wrap the button onto its own line instead of
      letting it overflow the card's right edge (was clipping "DEACTIVATE"
@@ -893,7 +900,7 @@ const CardFooter = styled.div`
 
 const ConfirmRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   /* Confirm + Cancel are wider than a single action button; let them stack
      rather than overflow the card at narrow widths. */
   flex-wrap: wrap;

@@ -64,19 +64,22 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  /* 2000 -> 10000. Both consent gates (this one and uplinks/consentModal) are
+     the same class of never-occludable surface and never co-render, so one
+     critical rung serves both. */
+  z-index: var(--z-critical);
 `;
 
 const Dialog = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   max-width: 460px;
   width: 90vw;
-  padding: 24px;
+  padding: var(--space-24);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 `;
 
@@ -90,11 +93,11 @@ const Body = styled.p`
   margin: 0;
   color: var(--color-text-dim);
   font-size: var(--font-size-base);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-12);
 `;

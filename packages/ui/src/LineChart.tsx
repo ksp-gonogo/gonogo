@@ -606,6 +606,11 @@ export function LineChart({
           if (rowY + 13 > plotY1) return null;
           // Approximate text width (≈6 px per glyph at fontSize 10); clamp so
           // the chip never runs past the plot's right edge on narrow charts.
+          // Every font size in this file stays off the type scale: unlike Tape
+          // / Dial / Gauge this <svg> carries no viewBox, so its user units ARE
+          // CSS px, and the 6/8/13/16 constants here and in `yLabelKeep` are
+          // derived from them. A font token (which also grows 1px on a coarse
+          // pointer) would break the ellipsis clamp and the label thinning.
           const chipW = Math.min(s.label.length * 6 + 8, plotW - 6);
           // When the chip is clamped, the SVG <text> would still overflow the
           // plot (the root carries `overflow: visible`, which is load-bearing

@@ -37,7 +37,7 @@ const LAYOUT_STYLES = {
        child. So with no horizontal padding the empty-state text sat flush
        against the panel border everywhere it appeared. Nothing relies on the
        old zero, so there is no double-padding risk. */
-    padding: 8px 16px;
+    padding: var(--space-8, 8px) var(--space-16, 16px);
   `,
   fill: css`
     width: 100%;
@@ -48,7 +48,7 @@ const LAYOUT_STYLES = {
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 16px;
+    padding: var(--space-16, 16px);
   `,
 } as const;
 

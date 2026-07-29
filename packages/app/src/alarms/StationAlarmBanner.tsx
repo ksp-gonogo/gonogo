@@ -87,14 +87,14 @@ function describe(alarm: Alarm): string {
 const Wrap = styled.div`
   background: rgba(90, 15, 15, 0.95);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-text-primary);
-  font-size: 12px;
-  padding: 8px 16px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) var(--space-16);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
   max-width: 100%;
-  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
   will-change: transform, opacity;
 
@@ -120,13 +120,13 @@ const Wrap = styled.div`
 const Stack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
 `;
 
@@ -158,8 +158,8 @@ const AckButton = styled.button`
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;

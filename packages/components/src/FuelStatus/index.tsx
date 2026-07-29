@@ -507,7 +507,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -520,6 +520,9 @@ const TitleRow = styled.div`
  * wrapped "m/s" line gets clipped by `Panel`'s `overflow: hidden`. We can't
  * touch the shared `BigReadout` (same constraint CrewManifest hit), so cap
  * the font lower here, scoped to the hero branch only.
+ *
+ * Off the type scale on purpose: a fluid fit, not a rung. Its endpoints are
+ * terms in the clamp, not independent font-size choices.
  */
 const HeroReadout = styled(BigReadout)`
   font-size: clamp(13px, 3.5vw, 17px);
@@ -542,15 +545,15 @@ const Sections = styled.div<{ $row?: boolean }>`
   display: ${(p) => (p.$row ? "flex" : "contents")};
   ${(p) =>
     p.$row &&
-    `flex-direction: row; gap: 16px; min-height: 0; align-items: flex-start;
+    `flex-direction: row; gap: var(--space-16); min-height: 0; align-items: flex-start;
      & > * { flex: 1 1 0; min-width: 0; }`}
 `;
 
 const ResourceList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 `;
 
 const ResourceRow = styled.div`
@@ -565,8 +568,8 @@ const ResourceRow = styled.div`
      space at narrow widths. */
   grid-template-columns: minmax(0, 13em) minmax(28px, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-8);
+  font-size: var(--font-size-xs);
 `;
 
 const ResourceLabel = styled.span`
@@ -601,23 +604,23 @@ const Bar = styled.div`
 
 const BarFill = styled.div`
   height: 100%;
-  transition: width 120ms linear;
+  transition: width var(--duration-fast) var(--ease-linear);
 `;
 
 const TotalsRow = styled.div`
   display: flex;
-  gap: 16px;
-  margin-top: 8px;
-  padding: 6px 8px;
+  gap: var(--space-16);
+  margin-top: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const TotalsBlock = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const TotalsLabel = styled.span`
@@ -629,11 +632,11 @@ const TotalsLabel = styled.span`
 
 const TotalsValue = styled.span`
   color: var(--color-status-nogo-fg);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 
@@ -655,12 +658,12 @@ const TotalsModeTag = styled.span`
 `;
 
 const StageStack = styled.div`
-  margin-top: 10px;
-  padding-top: 6px;
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
 `;
 
 const StageHeader = styled.div`
@@ -668,7 +671,7 @@ const StageHeader = styled.div`
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 `;
 
 const StageRow = styled.div<{ $active?: boolean }>`
@@ -682,8 +685,8 @@ const StageRow = styled.div<{ $active?: boolean }>`
      the ΔV bar instead of beside it. */
   grid-template-columns: 3.5em minmax(28px, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-8);
+  font-size: var(--font-size-xs);
   color: ${({ $active }) => ($active ? "var(--color-status-nogo-fg)" : "var(--color-text-muted)")};
 `;
 
@@ -698,7 +701,7 @@ const StageReadout = styled.span`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
 `;
 
 const StageDv = styled.span``;

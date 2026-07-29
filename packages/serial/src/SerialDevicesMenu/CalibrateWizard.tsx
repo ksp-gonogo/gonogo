@@ -369,13 +369,26 @@ export function CalibrateWizard({
   );
 }
 
+/*
+ * The sample viewer is a character grid, not typography: `Ruler` and
+ * `SampleLine` are two parallel flex rows rendering one tick and one character
+ * button per column of the raw device line, and a tick only sits over its
+ * character because the tick width, the character width and the monospace
+ * font-size are all the same number. So all three stay literal and share one
+ * constant: --space-12 (which 14px snaps to) would desynchronise the ruler
+ * from the characters it labels and make the offset/length picker unusable,
+ * and --font-size-base is 15px under @media (pointer: coarse), which breaks
+ * the same grid on the Steam Deck.
+ */
+const SAMPLE_COL = "14px";
+
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-12);
+  padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: var(--color-surface-raised);
 `;
 
@@ -390,22 +403,24 @@ const Header = styled.h4`
 const SampleViewer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: var(--space-4);
+  padding: var(--space-8);
   background: var(--color-surface-app);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   overflow-x: auto;
 `;
 
 const Ruler = styled.div`
   display: flex;
   font-family: var(--font-mono, monospace);
+  /* Deliberately below the --font-size-2xs floor: the tick digits have to fit
+     inside a SAMPLE_COL-wide box that the characters below them set. */
   font-size: 9px;
   color: var(--color-text-faint);
 `;
 
 const RulerTick = styled.span`
-  width: 14px;
+  width: ${SAMPLE_COL};
   text-align: center;
   flex-shrink: 0;
 `;
@@ -413,11 +428,11 @@ const RulerTick = styled.span`
 const SampleLine = styled.div`
   display: flex;
   font-family: var(--font-mono, monospace);
-  font-size: 14px;
+  font-size: ${SAMPLE_COL};
 `;
 
 const Char = styled.button<{ $highlighted: boolean; $active: boolean }>`
-  width: 14px;
+  width: ${SAMPLE_COL};
   height: 22px;
   flex-shrink: 0;
   padding: 0;
@@ -448,15 +463,15 @@ const Hint = styled.div`
 const InputsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const InputRow = styled.div<{ $active: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  border-radius: 3px;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border-radius: var(--radius-sm);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
@@ -466,7 +481,7 @@ const InputRow = styled.div<{ $active: boolean }>`
 const InputLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--font-size-sm);
 `;
 
@@ -495,8 +510,8 @@ const LivePreview = styled.div`
 const RangeRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
 `;
 
 const Capturing = styled.div`
@@ -507,11 +522,11 @@ const Capturing = styled.div`
 
 const ManualRange = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-8);
 `;

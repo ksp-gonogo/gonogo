@@ -177,10 +177,15 @@ const Dropdown = styled.div`
   right: 0;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   max-height: 280px;
   overflow-y: auto;
-  z-index: 100;
+  /* Named rather than renumbered. Every caller so far mounts this inside a
+     position: relative container that is itself inside a transformed grid
+     item, so the absolute value orders nothing outside that local context and
+     the 100 -> 200 move is inert. It takes the rung because this IS a
+     popover anchored to a control, which is what the rung means. */
+  z-index: var(--z-dropdown, 200);
 `;
 
 const DropdownGroup = styled.div``;
@@ -191,7 +196,7 @@ const GroupHeader = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  padding: 8px 8px 4px;
+  padding: var(--space-8, 8px) var(--space-8, 8px) var(--space-4, 4px);
   position: sticky;
   top: 0;
   background: var(--color-surface-raised);
@@ -201,7 +206,7 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 8px;
+  padding: var(--space-6, 6px) var(--space-8, 8px);
   cursor: pointer;
   background: ${({ $active, $selected }) =>
     $active
@@ -216,8 +221,8 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
 `;
 
 const EmptyState = styled.div`
-  padding: 12px 8px;
-  font-size: 12px;
+  padding: var(--space-12, 12px) var(--space-8, 8px);
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   text-align: center;
 `;

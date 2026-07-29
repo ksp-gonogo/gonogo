@@ -66,12 +66,12 @@ const TONE_BORDER = {
 const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  padding: 6px 8px;
+  gap: var(--space-8, 8px);
+  font-size: var(--font-size-xs);
+  padding: var(--space-6, 6px) var(--space-8, 8px);
   background: var(--color-surface-raised);
   border: 1px solid;
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
 
   ${({ "data-tone": tone }) => TONE_BORDER[tone]}
 `;
@@ -97,7 +97,7 @@ const TONE_DOT = {
 const StatusIndicator__Dot = styled.span<{ "data-tone": StatusTone }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle, 50%);
   flex-shrink: 0;
 
   ${({ "data-tone": tone }) => TONE_DOT[tone]}
@@ -105,5 +105,5 @@ const StatusIndicator__Dot = styled.span<{ "data-tone": StatusTone }>`
 
 const StatusIndicator__Text = styled.span`
   color: var(--color-text-primary);
-  line-height: 1.4;
+  line-height: var(--line-height-body, 1.4);
 `;

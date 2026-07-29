@@ -178,10 +178,10 @@ const Container = styled.div`
 const PickerInput = styled.input<{ $hasValue: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   color: ${({ $hasValue }) => ($hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)")};
   font-size: var(--font-size-base);
-  padding: 6px 8px;
+  padding: var(--space-6, 6px) var(--space-8, 8px);
   box-sizing: border-box;
   width: 100%;
 
@@ -209,9 +209,9 @@ const ClearButton = styled.button`
   border: none;
   color: var(--color-text-dim);
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 2px;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-flush, 1);
+  padding: 0 var(--space-2, 2px);
 
   &:hover {
     color: var(--color-text-primary);
@@ -219,12 +219,12 @@ const ClearButton = styled.button`
 `;
 
 const ItemLabel = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 `;
 
 const ItemUnit = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  margin-left: 6px;
+  margin-left: var(--space-6, 6px);
 `;

@@ -317,7 +317,7 @@ const Body = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-2);
   }
 `;
 
@@ -330,7 +330,7 @@ const List = styled.ul<{ $multiColumn: boolean }>`
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 2px;
+  gap: var(--space-2);
   ${({ $multiColumn }) =>
     $multiColumn
       ? `display: grid;
@@ -344,15 +344,15 @@ const Row = styled.li<{ $available: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 3px;
-  padding: 4px 6px;
-  border-radius: 2px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
   background: var(--color-surface-panel);
   opacity: ${(p) => (p.$available ? 1 : 0.5)};
 `;
 
 const Name = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   min-width: 0;
@@ -364,19 +364,19 @@ const Name = styled.span`
 const Meta = styled.span`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
   align-items: center;
 `;
 
 const TraitTag = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   text-transform: uppercase;
 `;
 
 const Level = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
@@ -387,35 +387,37 @@ const TinyBody = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 4px;
+  gap: var(--space-2);
+  padding: var(--space-4);
 `;
 
 const TinyCount = styled.div`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 28px;
   font-weight: 600;
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: var(--line-height-flush);
 `;
 
 const TinyTotal = styled.span`
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   color: var(--color-text-muted);
   font-weight: 400;
 `;
 
 const TinyLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;
 
 const TinyMissing = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-status-nogo-fg);
-  margin-top: 2px;
+  margin-top: var(--space-2);
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

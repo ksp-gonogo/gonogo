@@ -42,11 +42,11 @@ const transmitPulse = keyframes`
 `;
 
 const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
-  font-size: 10px;
+  font-size: var(--font-size-2xs, 10px);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2, 2px) var(--space-8, 8px);
+  border-radius: var(--radius-xs, 2px);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);
@@ -54,7 +54,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4, 4px);
 
   &:hover:not(:disabled) {
     color: var(--color-text-primary);
@@ -74,7 +74,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
       border-color: transparent;
 
       @media (prefers-reduced-motion: no-preference) {
-        animation: ${transmitPulse} 1s ease-in-out infinite;
+        animation: ${transmitPulse} 1s var(--ease-emphasis, ease-in-out) infinite;
       }
     `}
 `;

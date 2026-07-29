@@ -279,7 +279,7 @@ function HeightToggleButton({
 const MobileList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
   align-content: flex-start;
 `;
@@ -289,7 +289,13 @@ const MobileCell = styled.div<{ $half: boolean; $height: number }>`
   flex-direction: column;
   background: transparent;
   overflow: hidden;
-  flex: 0 0 ${({ $half }) => ($half ? "calc(50% - 4px)" : "100%")};
+  /* Exactly half of MobileList's gap, expressed as arithmetic on the same
+     token rather than a second 4px literal, so a half-width cell keeps
+     tracking the gutter if --space-8 ever moves. The desktop branch's
+     GridDashboard margin={[8, 8]} is the third copy of this gutter and is a
+     react-grid-layout JS prop no CSS pass can see; keep it equal to this. */
+  flex: 0 0
+    ${({ $half }) => ($half ? "calc(50% - var(--space-8) / 2)" : "100%")};
   height: ${({ $height }) => $height}px;
   ${highlightStyle}
 `;
@@ -298,18 +304,22 @@ const MobileCellHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
+  /* Off the spacing ladder: a header height, not an inset. The 32 -> 24 snap
+     would clip ReorderBtn below (28x24 plus a 1px border, so 26px of box) top
+     and bottom, and drop a mobile-only touch target from 32px to 24px. Move
+     it only together with that button. */
   height: 32px;
   flex-shrink: 0;
   background: var(--color-surface-panel);
-  border-radius: 2px 2px 0 0;
-  padding: 0 4px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  padding: 0 var(--space-4);
 `;
 
 const MobileCellHeaderLeft = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 0;
   flex: 1;
 `;
@@ -317,12 +327,12 @@ const MobileCellHeaderLeft = styled.div`
 const MobileCellHeaderRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2);
   flex-shrink: 0;
 `;
 
 const MobileCellName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -338,10 +348,10 @@ const WidthToggleBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  padding: 1px 4px;
-  margin-left: 2px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-flush);
+  padding: var(--space-hair) var(--space-4);
+  margin-left: var(--space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -361,10 +371,10 @@ const ReorderBtn = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  line-height: 1;
+  line-height: var(--line-height-flush);
   width: 28px;
   height: 24px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;

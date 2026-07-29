@@ -14,6 +14,9 @@
      can't intercept the drag-to-resize gesture. Widget content is at
      the default stacking level inside the grid item; this handle needs
      to be reliably on top. */
+  /* Off the z-index ladder deliberately: this and GridItemContent's 6 are a
+     locked adjacent pair inside the grid item's own stacking context, where
+     only the relative order is load-bearing. */
   z-index: 5;
 }
 .react-resizable-handle-sw {
@@ -42,6 +45,8 @@
 .react-resizable-handle-w,
 .react-resizable-handle-e {
   top: 50%;
+  /* Not spacing: exactly half the 20px handle above, a centring offset that
+     must track that size rather than a rung. Same for margin-left below. */
   margin-top: -10px;
   cursor: ew-resize;
 }

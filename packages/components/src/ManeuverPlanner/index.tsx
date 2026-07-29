@@ -663,22 +663,22 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const TitleGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-top: 4px;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
 `;
 
 const SectionTitle = styled.h4`
@@ -687,7 +687,7 @@ const SectionTitle = styled.h4`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-dim);
-  margin: 0 0 2px 0;
+  margin: 0 0 var(--space-2) 0;
 `;
 
 const ScrollBody = styled(ScrollArea)`
@@ -695,24 +695,24 @@ const ScrollBody = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 `;
 
 const WaitingPanel = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const StatusList = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -721,7 +721,7 @@ const StatusList = styled.ul`
 const StatusRow = styled.li`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const StatusDot = styled.span<{ $ok: boolean }>`
@@ -730,17 +730,17 @@ const StatusDot = styled.span<{ $ok: boolean }>`
   align-items: center;
   justify-content: center;
   color: ${({ $ok }) => ($ok ? "var(--color-accent-fg)" : "var(--color-text-muted)")};
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const StatusLabel = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;
 
 const HyperbolicNotice = styled.p`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;

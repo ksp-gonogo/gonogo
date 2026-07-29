@@ -51,11 +51,11 @@ export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
 
 const StreamStatusBadge__Root = styled.span`
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-sm);
   color: var(--color-status-warning-bg);
   border: 1px solid var(--color-status-warning-bg);
   white-space: nowrap;

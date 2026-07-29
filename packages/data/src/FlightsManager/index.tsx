@@ -483,7 +483,10 @@ export function FlightsManager({
                 (confirmBulkDelete ? (
                   <ConfirmRow>
                     <span
-                      style={{ fontSize: 12, color: "var(--color-text-muted)" }}
+                      style={{
+                        fontSize: "var(--font-size-sm)",
+                        color: "var(--color-text-muted)",
+                      }}
                     >
                       Delete {selectedIds.size} selected flight
                       {selectedIds.size === 1 ? "" : "s"}?
@@ -537,7 +540,10 @@ export function FlightsManager({
               {confirmClearAll ? (
                 <ConfirmRow>
                   <span
-                    style={{ fontSize: 12, color: "var(--color-text-muted)" }}
+                    style={{
+                      fontSize: "var(--font-size-sm)",
+                      color: "var(--color-text-muted)",
+                    }}
                   >
                     Delete all flight history?
                   </span>
@@ -626,6 +632,10 @@ function AutoRecordStatus({
  */
 const SrOnly = styled.span`
   position: absolute;
+  /* The 1px box and its cancelling -1px margin are the visually-hidden
+     clip-rect idiom, not spacing: the margin exists to pull the 1px box out
+     of flow so the node cannot be scrolled to. They move together or not at
+     all, so they stay off the spacing ladder. */
   width: 1px;
   height: 1px;
   padding: 0;
@@ -650,7 +660,7 @@ const Container = styled.div`
 const RowActions = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const GraphButton = styled.button<{ $open: boolean }>`
@@ -659,8 +669,8 @@ const GraphButton = styled.button<{ $open: boolean }>`
   color: ${({ $open }) => ($open ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: 3px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -677,8 +687,8 @@ const ExportButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: 3px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -695,8 +705,8 @@ const ReplayButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: 3px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -711,9 +721,9 @@ const RecordingToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  padding-bottom: 10px;
-  margin-bottom: 4px;
+  gap: var(--space-12);
+  padding-bottom: var(--space-10);
+  margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -725,13 +735,13 @@ const MissionHint = styled.span`
 const RecordingBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
   font-size: var(--font-size-xs);
-  padding: 4px 10px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 `;
 
@@ -739,12 +749,12 @@ const Table = styled.table`
   border-collapse: collapse;
   width: 100%;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;
 
 const Th = styled.th`
   text-align: left;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -759,7 +769,9 @@ const Tr = styled.tr<{ $current: boolean }>`
 `;
 
 const Td = styled.td`
-  padding: 7px 8px;
+  /* 7px is computed, not chosen: it is Th's 6px plus the 1px that makes a body
+     row taller than the header row. It tracks Th, not a spacing rung. */
+  padding: 7px var(--space-8);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-surface-raised);
   white-space: nowrap;
@@ -767,10 +779,15 @@ const Td = styled.td`
 
 const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   display: inline-block;
-  margin-left: 6px;
+  margin-left: var(--space-6);
   font-size: var(--font-size-xs);
-  padding: 1px 5px;
-  border-radius: 8px;
+  padding: var(--space-hair) var(--space-6);
+  /* A stadium, not a corner: the badge renders about 17px tall (11px x 1.2
+     plus 1px padding and 1px border each side), so 8px was already at half
+     the height. --radius-pill clamps to the same shape and keeps it there
+     when the --space-6 inset above widens the badge. The --radius-lg that
+     8px maps to by value would visibly square these GO/NO-GO pills. */
+  border-radius: var(--radius-pill);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: help;
@@ -794,15 +811,15 @@ const DeleteButton = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 16px;
-  padding: 0 4px;
+  font-size: var(--font-size-lg);
+  padding: 0 var(--space-4);
   &:hover { color: var(--color-status-nogo-bg); }
 `;
 
 const ConfirmRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const DangerButton = styled.button`
@@ -810,9 +827,9 @@ const DangerButton = styled.button`
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-tag-red-fg);
   cursor: pointer;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   &:hover { background: var(--color-status-alert-muted); }
 `;
 
@@ -821,9 +838,9 @@ const CancelButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); }
 `;
 
@@ -831,20 +848,20 @@ const Footer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 10px 8px 4px;
+  gap: var(--space-12);
+  padding: var(--space-10) var(--space-8) var(--space-4);
   border-top: 1px solid var(--color-border-subtle);
 `;
 
 const BulkActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-height: 24px;
 `;
 
 const SelectionCount = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -852,7 +869,7 @@ const SelectionCount = styled.span`
 
 const ThCheckbox = styled.th`
   width: 28px;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -863,8 +880,8 @@ const SelectCheckbox = styled.input.attrs({ type: "checkbox" })`
 
 const ThStar = styled.th`
   width: 24px;
-  padding: 6px 4px;
-  font-size: 12px;
+  padding: var(--space-6) var(--space-4);
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   border-bottom: 1px solid var(--color-border-subtle);
   text-align: center;
@@ -874,7 +891,7 @@ const StarButton = styled.button<{ $on: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 2px;
+  padding: 0 var(--space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -891,14 +908,14 @@ const StarButton = styled.button<{ $on: boolean }>`
 const RightControls = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const AutoDeleteLabel = styled.label`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--space-6);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   cursor: pointer;
   user-select: none;
@@ -913,15 +930,15 @@ const ClearAllButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-dim);
   cursor: pointer;
-  font-size: 11px;
-  padding: 4px 12px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-xs);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;
 
 const EmptyState = styled.div`
-  padding: 24px 16px;
-  font-size: 12px;
+  padding: var(--space-24) var(--space-16);
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   text-align: center;
 `;

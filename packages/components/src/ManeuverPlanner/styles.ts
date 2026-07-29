@@ -9,8 +9,11 @@ import styled from "styled-components";
 export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   font-size: var(--font-size-xs);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
-  padding: 1px 6px;
-  border-radius: 10px;
+  padding: var(--space-hair) var(--space-6);
+  /* A stadium, not a corner: the old 10px was locked to this chip's own
+     height (1px 6px padding on 11px text). --radius-pill renders the same
+     and survives a change to that height. */
+  border-radius: var(--radius-pill);
   /* Failing state shifted brighter: the quiet maroon on dark background
      was sliding past readers. WCAG 1.4.11 non-text contrast met at 3:1. */
   background: ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-alert-muted)")};
@@ -28,22 +31,22 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
 export const FeasibilityBanner = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 10px;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: var(--color-status-nogo-fg);
 `;
 
 export const FeasibilityBannerTitle = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 `;
 
 export const FeasibilityBannerBody = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-status-nogo-fg);
 `;

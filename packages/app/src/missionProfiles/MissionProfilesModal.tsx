@@ -335,14 +335,14 @@ function formatRelative(ts: number): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-16);
   min-width: 420px;
 `;
 
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SectionTitle = styled.h3`
@@ -352,13 +352,13 @@ const SectionTitle = styled.h3`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const SaveRow = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: stretch;
 `;
 
@@ -371,30 +371,30 @@ const Hint = styled.p`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-sm);
-  padding: 8px 0;
+  padding: var(--space-8) 0;
 `;
 
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ProfileRow = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ProfileHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const ProfileName = styled.span`
@@ -410,7 +410,7 @@ const ProfileMeta = styled.span`
 
 const ProfileActions = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 
@@ -423,8 +423,8 @@ const DangerButton = styled(Button)`
 const Warning = styled.div`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
-  border-radius: 2px;
-  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  padding: var(--space-6) var(--space-10);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-sm);
 `;
@@ -432,7 +432,7 @@ const Warning = styled.div`
 const BindingsField = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const BindingsLabel = styled.span`
@@ -443,7 +443,7 @@ const BindingsLabel = styled.span`
 const BindingsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const AutoSwitchRow = styled.div<{ $disabled: boolean }>`

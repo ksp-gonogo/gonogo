@@ -140,7 +140,7 @@ function statusLabel(status: ConnStatus): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 260px;
   color: var(--color-text-primary);
 `;
@@ -149,21 +149,21 @@ const Row = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   border-top: 1px solid var(--color-border-subtle);
-  padding-top: 12px;
+  padding-top: var(--space-12);
 `;
 
 const SwitchRow = styled.div`
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--space-8);
 
   & > input {
     flex: 1;
@@ -183,13 +183,16 @@ const Label = styled.span`
 
 const Code = styled.code`
   color: var(--color-status-info-fg);
+  /* Display tier: the type scale stops at --font-size-lg on purpose,
+     everything above 16px in this codebase is a clamp, a JS fit, or locked
+     to a box width. */
   font-size: 18px;
   letter-spacing: 0.12em;
 `;
 
 const Hint = styled.p`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;

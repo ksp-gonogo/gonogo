@@ -126,13 +126,13 @@ const InFlightList__Root = styled.div`
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px;
+  gap: var(--space-2, 2px);
+  padding: var(--space-4, 4px) var(--space-8, 8px);
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md, 4px);
   box-sizing: border-box;
 `;
 
@@ -160,7 +160,7 @@ const PHASE_ROW_STYLES: Record<
 const InFlightList__Row = styled.div<{ $phase: InFlightListItem["phase"] }>`
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6, 6px);
 
   ${({ $phase }) => PHASE_ROW_STYLES[$phase]}
 `;
@@ -173,7 +173,7 @@ const InFlightList__Arrow = styled.span<{ $pulse: boolean }>`
     $pulse &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: in-flight-list-pulse 1.6s ease-in-out infinite;
+        animation: in-flight-list-pulse 1.6s var(--ease-emphasis, ease-in-out) infinite;
       }
     `}
 

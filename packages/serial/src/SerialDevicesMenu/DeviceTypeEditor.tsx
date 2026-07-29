@@ -380,7 +380,7 @@ function DiscoveredInputs({ inputs }: Readonly<{ inputs: DeviceInput[] }>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const ParserHeader = styled.div`
@@ -392,18 +392,18 @@ const ParserHeader = styled.div`
 const DiscoveredList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const DiscoveredRow = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-xs);
 `;
 
 const DiscoveredKind = styled.span`
@@ -428,17 +428,17 @@ const InputsHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: var(--space-8);
 `;
 
 const InputRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: flex-end;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-8);
 `;
 
 const SmallField = styled(Field)`
@@ -455,8 +455,8 @@ const RemoveBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 14px;
-  padding: 6px;
+  font-size: var(--font-size-base);
+  padding: var(--space-6);
   &:hover {
     color: var(--color-status-nogo-fg);
   }

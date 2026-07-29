@@ -431,27 +431,27 @@ function summarise(instruments: Instrument[]): {
 const LabList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
-  padding-bottom: 4px;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-surface-raised);
 `;
 
 const LabRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const LabHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const LabName = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -462,14 +462,14 @@ const LabName = styled.span`
 
 const LabBadges = styled.span`
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-shrink: 0;
 `;
 
 const LabMeta = styled.div`
   display: flex;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-8);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;
@@ -481,7 +481,7 @@ const Body = styled(ScrollArea)<{ $row?: boolean }>`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   /* Wide-short: groups flow into width-following columns. */
@@ -506,7 +506,7 @@ const InstrumentList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

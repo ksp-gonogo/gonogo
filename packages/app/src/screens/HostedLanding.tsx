@@ -40,6 +40,13 @@ export function HostedLanding() {
   );
 }
 
+/*
+ * The rem sizes throughout this file stay off the px token scales on
+ * purpose. This is a pre-login, full-page route that deliberately scales
+ * with the browser's root font size; converting it to px tokens would be an
+ * accessibility regression, not a cleanup. The unitless line-heights and the
+ * 6px button radius are on the scales, since neither is root-relative.
+ */
 const Wrap = styled.div`
   min-height: 100vh;
   display: flex;
@@ -74,7 +81,7 @@ const Lede = styled.p`
   margin: 1.25rem auto 0;
   max-width: 54ch;
   font-size: 1.05rem;
-  line-height: 1.55;
+  line-height: var(--line-height-prose);
   color: var(--color-text-muted);
 `;
 
@@ -82,7 +89,7 @@ const Note = styled.p`
   margin: 1.5rem auto 0;
   max-width: 50ch;
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
   color: var(--color-text-muted);
   border-left: 2px solid var(--color-accent-fg);
   padding-left: 0.9rem;
@@ -101,11 +108,14 @@ const linkReset = `
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   padding: 0.7rem 1.3rem;
   font-size: 1rem;
   font-weight: 600;
-  transition: filter 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    filter var(--duration-base),
+    border-color var(--duration-base),
+    color var(--duration-base);
 
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -143,6 +153,6 @@ const Fine = styled.p`
   margin: 1.75rem auto 0;
   max-width: 48ch;
   font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
   color: var(--color-text-muted);
 `;

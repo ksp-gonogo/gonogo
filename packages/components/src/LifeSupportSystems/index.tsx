@@ -465,7 +465,7 @@ const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 // Fills the remaining Panel height and lets ITS OWN bottom edge clip first
@@ -483,8 +483,8 @@ const Body = styled.div`
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-top: 6px;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
   flex-shrink: 0;
 `;
 
@@ -492,7 +492,7 @@ const SectionHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SectionLabel = styled.span`
@@ -512,11 +512,15 @@ const SectionValue = styled.span<{ $tone: Tone }>`
   text-overflow: ellipsis;
 `;
 
+// "Tight" is historical: the gap was 5px and snapped up to the --space-6
+// rung, which is also MeterRow's row gap below, so the name no longer
+// asserts a difference from it. There is no non-tight MeterStack to
+// contrast with, and d60b924e already had the body absorb the shortfall.
 const MeterStackTight = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 2px;
+  gap: var(--space-6);
+  margin-top: var(--space-2);
 `;
 
 // Landscape's side-by-side reflow for Food/Water/Oxygen/Power: always
@@ -527,29 +531,29 @@ const MeterStackTight = styled.div`
 const MeterRow = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px 16px;
-  margin-top: 2px;
+  gap: var(--space-6) var(--space-16);
+  margin-top: var(--space-2);
 `;
 
 const HabitatGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px 12px;
-  margin-top: 2px;
+  gap: var(--space-6) var(--space-12);
+  margin-top: var(--space-2);
 `;
 
 const ProcessGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
-  margin-top: 2px;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
 `;
 
 const ProcessRowEl = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--space-6);
   min-width: 0;
 `;
 
@@ -564,9 +568,9 @@ const ProcessName = styled.span`
 const FooterRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   margin-top: auto;
-  padding-top: 6px;
+  padding-top: var(--space-6);
   flex-shrink: 0;
 `;
 

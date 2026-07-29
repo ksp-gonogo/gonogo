@@ -408,6 +408,9 @@ function FleetRosterComponent({
 // while ColLabel had no overflow control) until ColLabel picked up
 // overflow:hidden (to stop the flexible Vessel header colliding with it at
 // tiny widths) started ellipsis-ing "CREW" too, even at comfortable sizes.
+// The 48px track is locked to ColLabel's horizontal padding (var(--space-6)
+// per side): retune that rung and this track has to be rechecked, or "CREW"
+// starts ellipsis-ing again.
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr) 48px 66px";
 
@@ -416,21 +419,21 @@ const HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  row-gap: 2px;
-  gap: 8px;
+  row-gap: var(--space-2);
+  gap: var(--space-8);
 `;
 
 const TitleRight = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const TableScroll = styled.div`
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  margin-top: 6px;
+  margin-top: var(--space-6);
 `;
 
 const ColumnHead = styled.div<{ $compact: boolean }>`
@@ -448,7 +451,7 @@ const ColLabel = styled.div<{ $right?: boolean }>`
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
-  padding: 0 6px;
+  padding: 0 var(--space-6);
   text-align: ${({ $right }) => ($right ? "right" : "left")};
   white-space: nowrap;
   /* The Vessel column's grid track is minmax(0, 1fr): at the tiny-4x4
@@ -472,16 +475,21 @@ const Row = styled.div<{ $compact: boolean }>`
 const NameCell = styled.div`
   display: flex;
   align-items: center;
+  /* Off-scale on purpose: this gap is a term in UpdatesBlock's 21px
+     hanging indent below (6px padding-left + 8px LinkDot + 7px gap), not a
+     rhythm step. Rounding it to a rung breaks the alignment it exists to
+     hold. Its 6px partner is the panel's own inset rung and does tokenise,
+     which is why the sum is spelled out here. */
   gap: 7px;
   min-width: 0;
-  padding: 0 6px;
+  padding: 0 var(--space-6);
 `;
 
 const LinkDot = styled.span<{ $tone: Tone }>`
   flex: 0 0 auto;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${({ $tone }) => TONE_HEX[$tone]};
 `;
 
@@ -496,7 +504,7 @@ const Name = styled.span`
 const BodyCell = styled.div`
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  padding: 0 6px;
+  padding: 0 var(--space-6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -507,22 +515,22 @@ const CrewCell = styled.div`
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   text-align: right;
-  padding: 0 6px;
+  padding: 0 var(--space-6);
   white-space: nowrap;
 `;
 
 const LinkCell = styled.div`
-  padding: 0 6px;
+  padding: 0 var(--space-6);
   text-align: right;
 `;
 
 const CommsTag = styled.span<{ $tone: Tone }>`
   display: inline-block;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.05em;
   font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-sm);
   border: 1px solid ${({ $tone }) => TONE_HEX[$tone]};
   color: ${({ $tone }) => TONE_HEX[$tone]};
   white-space: nowrap;
@@ -531,16 +539,20 @@ const CommsTag = styled.span<{ $tone: Tone }>`
 const UpdatesBlock = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 6px 5px 21px;
+  gap: var(--space-2);
+  /* The 21px left inset is computed, not chosen: NameCell's 6px
+     padding-left + LinkDot's 8px width + NameCell's 7px gap, so this block
+     hangs under the vessel name rather than under its status dot. It stays
+     literal; the other three sides are ordinary rhythm and do tokenise. */
+  padding: 0 var(--space-6) var(--space-6) 21px;
 `;
 
 const FooterRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   margin-top: auto;
-  padding-top: 6px;
+  padding-top: var(--space-6);
   flex-shrink: 0;
 `;
 

@@ -503,8 +503,8 @@ const FEED_BADGES_STYLE: CSSProperties = {
   top: 0,
   right: 0,
   display: "flex",
-  gap: 4,
-  padding: 4,
+  gap: "var(--space-4)",
+  padding: "var(--space-4)",
   pointerEvents: "none",
 };
 
@@ -519,13 +519,17 @@ const FEED_BADGES_STYLE: CSSProperties = {
 const FEED_UNAVAILABLE_STYLE: CSSProperties = {
   position: "absolute",
   inset: 0,
+  // Literal, and the contract is 2-versus-auto rather than 2-versus-anything:
+  // every sibling inside the feed carries no z-index at all, so this only has
+  // to be a positive number in the feed's own stacking context. It is not
+  // app-global chrome and does not belong on the --z-* ladder.
   zIndex: 2,
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
-  padding: 16,
+  gap: "var(--space-8)",
+  padding: "var(--space-16)",
   textAlign: "center",
   background: "rgba(0, 0, 0, 0.92)",
   pointerEvents: "auto",
@@ -533,6 +537,10 @@ const FEED_UNAVAILABLE_STYLE: CSSProperties = {
 
 const FEED_UNAVAILABLE_REASON_STYLE: CSSProperties = {
   color: "#c9c9c9",
+  // Root-relative on purpose: this scrim replaces the video entirely and its
+  // reason text should scale with the browser font size rather than with the
+  // widget type scale. Converting it to a px token is an accessibility
+  // regression, not a cleanup.
   fontSize: "0.8rem",
   maxWidth: "80%",
 };

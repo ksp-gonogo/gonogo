@@ -120,8 +120,10 @@ const ToggleButton = styled.button`
   border: none;
   padding: 0;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 
+  /* Focus-ring geometry, deliberately off the spacing ladder: this is a WCAG
+     indicator, not rhythm. */
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
@@ -132,14 +134,22 @@ const Dropdown = styled.div`
   position: absolute;
   top: 100%;
   right: 0;
+  /* Literal, and NOT --z-dropdown. This menu renders inside ScienceOfficer's
+     ui-kit Panel, which is overflow: hidden, so it is clipped at the panel
+     edge before any z-index is consulted; and that panel sits in a
+     .react-grid-item, which react-grid-layout gives a transform (its
+     useCSSTransforms default), making it a stacking context nothing inside
+     can escape. So the 20 orders nothing but its own siblings, of which
+     there are none, and promoting it would record a stacking fix that has
+     not happened. The real fix is to portal the dropdown out of the panel. */
   z-index: 20;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   min-width: 220px;
   max-width: 320px;
-  padding: 8px;
+  padding: var(--space-8);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 `;
 
@@ -152,7 +162,7 @@ const RowList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 registerAugment({

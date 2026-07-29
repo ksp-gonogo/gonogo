@@ -160,12 +160,12 @@ const Notice = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   background: rgba(0, 0, 0, 0.7);
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   pointer-events: none;
   align-self: flex-start;
   max-width: 100%;
-  margin-top: 4px;
+  margin-top: var(--space-4);
 `;
 
 registerComponent<KeplerPeriodConfig>({

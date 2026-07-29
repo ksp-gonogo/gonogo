@@ -327,7 +327,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -336,7 +336,7 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   min-height: 0;
 `;
 
@@ -344,7 +344,7 @@ const PillRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 // The shared StatusPill sizes itself to its label at a fixed padding,
@@ -359,6 +359,14 @@ const PillRow = styled.div`
 const CompactStatusPill = styled(StatusPill)`
   min-width: 0;
   max-width: 100%;
+  /* Off the spacing ladder: the only meaning these two numbers carry is
+     their delta from the base StatusPill in ui-kit, which the token
+     migration moved from 6px 14px to var(--space-6) var(--space-12), i.e.
+     6px 12px. So this override now tightens the base by 1px vertically and
+     pulls back 2px horizontally, a smaller delta than it was written for.
+     The nearest rungs (6, and 10 or 12) either erase the tightening or
+     erase the delta outright, so the pair stays literal until it is retuned
+     against the base in one edit across both packages. */
   padding: 5px 10px;
   letter-spacing: 0.06em;
   overflow: hidden;
@@ -367,7 +375,7 @@ const CompactStatusPill = styled(StatusPill)`
 `;
 
 const CriticalNote = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-status-nogo-fg);
   letter-spacing: 0.04em;
 `;
@@ -389,10 +397,10 @@ const RowsScroll = styled(ScrollArea)`
 const Row = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 
   & + & {
-    margin-top: 6px;
+    margin-top: var(--space-6);
   }
 `;
 
@@ -404,7 +412,7 @@ const RowHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const RowLabel = styled.div`
@@ -421,11 +429,11 @@ const RowLabel = styled.div`
 const RowBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
 `;
 
 const PartName = styled.div`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -441,17 +449,19 @@ const TempMeter = styled.div`
 
 const TempBar = styled.div`
   height: 100%;
+  /* linear is load-bearing, not stylistic: the bar is driven by telemetry
+     samples and an eased fill reads as the value stalling between them. */
   transition:
-    width 150ms linear,
-    background 150ms linear;
+    width var(--duration-base) var(--ease-linear),
+    background var(--duration-base) var(--ease-linear);
 `;
 
 const TempReadout = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px 6px;
-  font-size: 11px;
+  gap: var(--space-2) var(--space-6);
+  font-size: var(--font-size-xs);
   color: var(--color-text-primary);
 `;
 

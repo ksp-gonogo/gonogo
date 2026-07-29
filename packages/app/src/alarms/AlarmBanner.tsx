@@ -449,14 +449,14 @@ const TONE_COUNT: Record<Tone, string> = {
 const Wrap = styled.div<{ $tone: Tone }>`
   background: ${({ $tone }) => TONE_BG[$tone]};
   border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-text-primary);
-  font-size: 12px;
-  padding: 8px 16px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) var(--space-16);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
   max-width: 100%;
-  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
   will-change: transform, opacity;
 
@@ -482,7 +482,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
 const Row = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
 `;
 
@@ -499,10 +499,13 @@ const Value = styled.span`
 `;
 
 const Divider = styled.span`
+  /* A hairline RULE, not --space-hair. 1px does three different jobs in this
+     file (this rule, the 1px borders below, and the focus-ring offset); only
+     the margin under it is spacing. */
   width: 1px;
   align-self: stretch;
   background: var(--color-border-strong);
-  margin: 0 4px;
+  margin: 0 var(--space-4);
 `;
 
 const AlarmName = styled.span`
@@ -530,8 +533,8 @@ const AckButton = styled.button`
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -559,15 +562,15 @@ const WarpToButton = styled.button`
   border: 1px solid var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   font-size: var(--font-size-xs);
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);
@@ -584,15 +587,15 @@ const StopWarpButton = styled.button`
   border: 1px solid var(--color-status-warning-bg);
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);
@@ -606,14 +609,16 @@ const StopWarpButton = styled.button`
 
 const SafetyInput = styled.input`
   width: 4em;
-  font-size: 12px;
-  padding: 2px 4px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-variant-numeric: tabular-nums;
   &:focus-visible {
+    /* 1px, not the 2px house value, and off the spacing ladder either way:
+       this is WCAG indicator geometry, not an inconsistency to normalise. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 1px;
   }

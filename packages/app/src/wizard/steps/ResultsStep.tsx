@@ -176,10 +176,10 @@ function RowAffordance({
 const LoadingRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
-  padding: 8px 0;
+  padding: var(--space-8) 0;
 `;
 
 const RowList = styled.ul`
@@ -188,17 +188,17 @@ const RowList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const RowItem = styled.li`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const RowDetail = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
-  margin-left: 16px;
+  margin-left: var(--space-16);
 `;

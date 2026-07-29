@@ -124,13 +124,15 @@ const ResetButton = styled.button`
   position: absolute;
   top: 6px;
   left: 6px;
+  /* Off the app z-index ladder: local ordering inside Root, paired with the
+     Tooltip's 20 below. Only the relative order matters. */
   z-index: 10;
   font-size: var(--font-size-xs);
-  padding: 2px 8px;
+  padding: var(--space-2) var(--space-8);
   background: var(--color-surface-raised);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   &:hover {
     background: var(--color-border-subtle);
@@ -145,23 +147,25 @@ const Tooltip = styled.div`
   position: absolute;
   background: var(--color-surface-sunken);
   color: var(--color-text-primary);
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-6) var(--space-8);
   border: 1px solid var(--color-border-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   pointer-events: none;
   min-width: 140px;
+  /* Off the app z-index ladder: the upper half of the local pair with
+     ResetButton above, both inside Root. */
   z-index: 20;
   .title {
     font-weight: 600;
     color: var(--color-status-go-fg);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-4);
     word-break: break-word;
   }
   .row {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-12);
     color: var(--color-text-muted);
     span:last-child {
       color: var(--color-text-primary);

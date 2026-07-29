@@ -143,7 +143,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -153,11 +153,13 @@ const Body = styled.div`
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-6);
   min-height: 0;
 `;
 
 const Readout = styled.div`
+  /* Off the type scale: display tier (the scale stops at 16px), and in any
+     case overridden at runtime by the inline readoutFontPx style. */
   font-size: 28px;
   letter-spacing: 0.04em;
   color: var(--color-text-primary);

@@ -1,10 +1,44 @@
 :root {
   --font-family-mono:
     "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;
+  /*
+   * Type scale. `2xs` is the one step the census added: 103 of the 394
+   * hardcoded px font-sizes sit BELOW the old 11px floor (69 at 10px, 34
+   * at 9px), so the scale had no rung for the micro-labels this dense
+   * mission-control UI is built out of. Everything else maps onto the
+   * four rungs that were already here.
+   *
+   * The scale deliberately stops at `lg`. Every hardcoded size above
+   * 16px in the codebase (18/19/20/22/23/24/28) is either a fluid
+   * `clamp()`, a JS-computed fit, or a value comment-locked to a
+   * specific box width. A fixed display rung would freeze behaviour
+   * those widgets depend on, so they stay literal.
+   */
+  --font-size-2xs: 10px;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
   --font-size-base: 14px;
   --font-size-lg: 16px;
+
+  /*
+   * Line height, unitless, named by ROLE rather than by number. The
+   * census showed the values split cleanly by job, not by size: all 25
+   * `line-height: 1` sites are single-line chrome and glyph buttons that
+   * collapse the glyph box, and all 16 `1.5` sites are prose blocks with
+   * no vertical padding. Four roles cover 55 of the 68 declarations
+   * exactly.
+   *
+   * `flush`  glyph and single-line chrome. Collapses the line box so an
+   *          icon or a one-character button centres in a fixed height.
+   *          Never use on anything that can wrap.
+   * `tight`  dense multi-line readouts, label-over-value stacks.
+   * `body`   default for widget text.
+   * `prose`  running paragraphs, help text, banners.
+   */
+  --line-height-flush: 1;
+  --line-height-tight: 1.2;
+  --line-height-body: 1.4;
+  --line-height-prose: 1.5;
 
   /*
    * Colour tokens: names match `theme.colors.*` paths in
@@ -128,10 +162,189 @@
   --color-data-24: #f5e07c; /* canary */
 
   --color-focus: #00ff88;
+
+  /*
+   * SPACING. One ladder for padding, margin AND gap.
+   *
+   * The three are deliberately not split. A container's inset and its
+   * children's gap are a single design decision (a row with 4px of
+   * vertical padding and an 8px child gap spaces its children wider than
+   * the box that holds them, and both shapes exist in this codebase
+   * today). Separate scales would rename that inconsistency instead of
+   * giving anyone the vocabulary to fix it.
+   *
+   * The grid is 2px, not the conventional 4px, because that is what the
+   * code actually is: 1250 of the 1350 hardcoded px values already sit
+   * on an even step, and a 4px grid would have forced 607 declarations
+   * to move. 6px (264 uses) and 10px (73 uses) are real, load-bearing
+   * steps that the previous five-value `theme.space` guess omitted
+   * entirely; at 11px to 14px type, 2px is a visible unit.
+   *
+   * Nine rungs land 1274 declarations exactly and snap 71.
+   *
+   * Which rung to reach for:
+   *   hair  Sub-scale. Hairline separation only: the seam between two
+   *         stacked text lines in one readout, the inset that sits
+   *         against a 1px border on a pill. NOT the smallest inset step.
+   *         It exists so these sites can be tokenised without being
+   *         rounded up to 2px, which visibly inflates every chip.
+   *   2     Tightest real rhythm: row gap in a label-over-value grid,
+   *         segmented-control track inset.
+   *   4     Tight: list-item child gap, icon hit-area padding.
+   *   6     Dense inset: the row and card inset for compact widgets.
+   *   8     THE DEFAULT. Panel body gap, card inset, standard child gap.
+   *         `PanelBody` is `padding: 8px 16px 12px` with `gap: 8px`, so
+   *         8 is simultaneously the body's vertical inset and its child
+   *         gap; that equality is the repo's canonical rhythm. Start
+   *         here and only step away with a reason.
+   *   10    Roomier card and pill inset. Kept because 73 declarations
+   *         depend on it, not because the ladder needed a rung there.
+   *   12    Section inset, nesting-ladder top inside a widget.
+   *   16    Panel horizontal inset. Cross-package locked: PanelTitle,
+   *         PanelSubtitle, PanelBody and EmptyState all align on it, so
+   *         any widget re-inserting a local text inset must use this
+   *         rung or it will not line up with the title above it.
+   *   24    Screen and modal outer inset. Page chrome, not widget
+   *         chrome; do not use it inside a dashboard tile.
+   *
+   * Pair the inset and the gap from this ladder as an ordered pair. The
+   * house rule the code already half-follows: child gap <= container
+   * vertical inset, and horizontal inset >= vertical inset.
+   */
+  --space-hair: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+
+  /*
+   * RADIUS. Four numeric rungs plus two shape sentinels.
+   *
+   * 210 of the 273 radius declarations are already 2/3/4px, and radius
+   * in this codebase scales with the padding it co-occurs with: 2px
+   * accompanies chip padding, 3px accompanies row padding, 4px
+   * accompanies card padding, and the larger radii only ever appear on
+   * modal and page chrome. So `lg` is one modal rung, not two: 6px and
+   * 8px were doing the same job at 7 and 4 sites.
+   *
+   * `pill` and `circle` are SHAPES, not sizes. 50% is a circle on a
+   * square box; 999px clamps to exactly half the shorter side, so it
+   * renders identically to a hand-computed half-height while surviving a
+   * change to that height. Every stadium in the codebase (the 7px switch
+   * track, the 10px chip, the 12px filter chip, the 20px and 24px FAB
+   * prompts) should reach for `pill` rather than recomputing the half.
+   * Neither sentinel belongs on the numeric ramp.
+   */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /*
+   * Z-INDEX, as named layers rather than a numeric ramp.
+   *
+   * Only app-global chrome belongs here. Roughly half the z-index
+   * declarations in the repo (the 0/1/2, 5/6 and 10/20 families) are
+   * LOCAL sibling ordering inside one component's own stacking context,
+   * where the absolute number is meaningless and only the relative order
+   * matters. Those stay literal; pulling them onto this ladder would
+   * collapse several independent contexts into one and can invert either
+   * pair.
+   *
+   * The order below is derived from what the app does today, with two
+   * deliberate corrections where today's numbers are already inverted:
+   *
+   *   base      0      default flow.
+   *   sticky    100    in-flow chrome that pins while content scrolls
+   *                    (the replay session bar, sticky table headers).
+   *   dropdown  200    popovers anchored to a control (combobox, tag
+   *                    autocomplete, the science-augment menu). MUST
+   *                    outrank sticky: a select opened next to a pinned
+   *                    bar has to render over it. One of these menus
+   *                    currently sits at 20 and renders BEHIND the
+   *                    sticky bar; this rung is the fix.
+   *   overlay   800    full-surface overlays that replace the dashboard
+   *                    (pushed dashboard, station overlay).
+   *   fab       900    the bottom-right floating control cluster.
+   *                    Strictly BELOW backdrop: the FAB opens the
+   *                    backdrop and must be covered by it.
+   *   backdrop  950    the scrim behind a modal. Covers the FAB, sits
+   *                    under the dialog surface.
+   *   modal     1000   dialog surfaces.
+   *   toast     1100   transient notifications. ABOVE modal on purpose:
+   *                    an alarm or offline banner has to reach the
+   *                    operator even while a dialog is open. The banner
+   *                    stack sits at 90 today, which renders it behind
+   *                    the FAB it is positioned beside.
+   *   critical  10000  consent gates. Deliberately far off the ramp;
+   *                    a consent surface may never be occluded.
+   */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 800;
+  --z-fab: 900;
+  --z-backdrop: 950;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --z-critical: 10000;
+
+  /*
+   * MOTION. Durations and easings for UI transitions only.
+   *
+   * The census splits cleanly into two populations. 52 declarations are
+   * UI transitions (hover, focus, open, close) in the 60ms to 400ms
+   * band; 19 are PHYSICAL animation, where the duration encodes
+   * something real: a resource bar tied to the telemetry sample cadence,
+   * a reticle chasing a moving target, a 1Hz terminal caret, a spinner,
+   * an indicator whose 1s-versus-2s period is how the operator reads
+   * connection state. Those keep their literal values and their
+   * `linear` / `step-end` timing; folding them onto a UI scale would
+   * destroy information the widget is deliberately carrying.
+   *
+   *   instant   80ms   binary state flips, the visual echo of a press.
+   *   fast      120ms  small property changes: colour, border, opacity.
+   *   base      150ms  THE DEFAULT for a UI transition.
+   *   slow      200ms  larger moves: a panel expanding, a row sliding.
+   *   entrance  320ms  paired with `--ease-entrance`; the banner
+   *                    entrance recipe, always used together.
+   *
+   *   standard  the default curve for a UI transition.
+   *   emphasis  symmetric, for looping attention pulses.
+   *   linear    continuous physical motion. Required, not stylistic: an
+   *             eased bar fill appears to stall between samples.
+   *   entrance  an overshoot tuned to a 40px slide with
+   *             `transform-origin: right center`. Do not substitute a
+   *             generic ease-out; it changes the physical read.
+   *
+   * These tokens do NOT opt anything out of the reduced-motion damper in
+   * `packages/app/src/styles/global.css`, which clamps every duration to
+   * 0.01ms under `prefers-reduced-motion: reduce`. Indefinite animations
+   * still need their own `@media (prefers-reduced-motion: no-preference)`
+   * guard, and the `animation` shorthand must stay INSIDE that guard
+   * with its keyframes.
+   */
+  --duration-instant: 80ms;
+  --duration-fast: 120ms;
+  --duration-base: 150ms;
+  --duration-slow: 200ms;
+  --duration-entrance: 320ms;
+
+  --ease-standard: ease;
+  --ease-emphasis: ease-in-out;
+  --ease-linear: linear;
+  --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (pointer: coarse) {
   :root {
+    --font-size-2xs: 11px;
     --font-size-xs: 12px;
     --font-size-sm: 13px;
     --font-size-base: 15px;

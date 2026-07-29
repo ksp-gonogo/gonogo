@@ -272,7 +272,7 @@ const Header = styled.div`
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Titles = styled.div`
@@ -286,7 +286,7 @@ const BadgeArea = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   /* Grow to full width when wrapped onto its own line at narrow widths so the
      badge + speed stay a coherent right-aligned cluster instead of floating
      mid-line. At wide widths Titles' flex-grow keeps this pinned top-right. */
@@ -296,9 +296,9 @@ const BadgeArea = styled.div`
 const BadgeWrap = styled.div<{ $tone: SmoothnessVerdict["badge"] }>`
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 2px 6px;
-  border-radius: 2px;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   background: ${({ $tone }) =>
     $tone === "A" || $tone === "B"
       ? "var(--color-status-go-bg)"
@@ -314,7 +314,7 @@ const BadgeWrap = styled.div<{ $tone: SmoothnessVerdict["badge"] }>`
 `;
 
 const BadgeGrade = styled.span`
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 700;
   letter-spacing: 0.04em;
 `;
@@ -326,12 +326,12 @@ const BadgeLabel = styled.span`
 `;
 
 const BadgeDelta = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   opacity: 0.85;
 `;
 
 const BadgePlaceholder = styled.div`
-  font-size: 14px;
+  font-size: var(--font-size-base);
   color: var(--color-text-faint);
 `;
 
@@ -345,16 +345,16 @@ const Prediction = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
-  margin-top: 2px;
+  margin-top: var(--space-2);
 `;
 
 const StripWrap = styled.div`
   flex: 1;
   min-height: 100px;
   display: flex;
-  margin-top: 6px;
+  margin-top: var(--space-6);
   border: 1px solid var(--color-surface-panel);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   svg {
     flex: 1;
   }

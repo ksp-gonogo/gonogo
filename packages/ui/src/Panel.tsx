@@ -22,7 +22,7 @@ export const Panel = styled.div`
 
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   /* Full-bleed: no uniform content inset. Visual content (charts/maps/gauges/
      plots/full-width lists) bleeds to the body edge; text/readouts stay
      readable via LOCAL padding on PanelTitle/PanelSubtitle and PanelBody. */
@@ -41,7 +41,7 @@ export const Panel = styled.div`
    all headers readable with no per-widget change while the body below bleeds. */
 export const PanelTitle = styled.h3`
   margin: 0;
-  padding: 12px 16px 8px;
+  padding: var(--space-12) var(--space-16) var(--space-8);
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -50,10 +50,13 @@ export const PanelTitle = styled.h3`
 `;
 
 export const PanelSubtitle = styled.div`
-  padding: 0 16px;
-  font-size: 12px;
+  padding: 0 var(--space-16);
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
+  /* Off the spacing ladder: -4px is half PanelTitle's 8px bottom inset, a
+     derived value rather than a chosen one. Recompute it if that inset moves;
+     do not point it at a rung. */
   margin-top: -4px;
 `;
 
@@ -67,14 +70,14 @@ export const PanelSubtitle = styled.div`
  * still reaches the Panel chrome.
  */
 export const PanelBody = styled.div`
-  --scroll-glow-pad-y: 8px;
-  --scroll-glow-pad-x: 16px;
+  --scroll-glow-pad-y: var(--space-8);
+  --scroll-glow-pad-x: var(--space-16);
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 16px 12px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16) var(--space-12);
 `;
 
 const ScrollAreaRoot = styled.div`
@@ -121,7 +124,7 @@ const ScrollOverflowGlow = styled.div<{
   height: calc(16px + var(--scroll-glow-pad-y, 0px));
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  transition: opacity 150ms ease;
+  transition: opacity var(--duration-base) var(--ease-standard);
   /* Full-width linear fade anchored on the chrome edge, brightest right at
      the scrollable boundary and tapering inward across the whole width. A
      centred radial ellipse read as a discrete glowing blob floating over the
@@ -133,6 +136,9 @@ const ScrollOverflowGlow = styled.div<{
     rgba(255, 255, 255, 0.13),
     rgba(255, 255, 255, 0)
   );
+  /* Local sibling ordering inside ScrollAreaRoot only (the glow over the
+     scrolling inner element). Off the app-global z ladder on purpose: any
+     named rung would lift a widget-internal overlay over dashboard chrome. */
   z-index: 1;
 
   @media (prefers-reduced-motion: reduce) {
@@ -219,10 +225,10 @@ const PanelScrollableArea = styled(ScrollArea)`
 `;
 
 const PanelScrollableContent = styled.div`
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 export const PanelScrollable = forwardRef<
@@ -239,6 +245,6 @@ export const PanelScrollable = forwardRef<
 });
 
 export const Placeholder = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
 `;

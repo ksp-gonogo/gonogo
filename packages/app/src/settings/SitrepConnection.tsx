@@ -128,19 +128,19 @@ export function SitrepConnection() {
 export const ConnectionRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 export const Name = styled.span`
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 `;
 
 const Item = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const pulse = keyframes`
@@ -158,17 +158,17 @@ const statusColor: Record<DataSourceStatus, string> = {
 const Indicator = styled.span<{ $status: DataSourceStatus }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $status }) => statusColor[$status]};
   animation: ${({ $status }) =>
     $status === "connected" || $status === "reconnecting" ? pulse : "none"}
-    ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")} ease-in-out
-    infinite;
+    ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")}
+    var(--ease-emphasis) infinite;
 `;
 
 const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${({ $status }) => statusColor[$status]};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -178,34 +178,34 @@ const RetryButton = styled(GhostButton)`
   font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
   white-space: nowrap;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
 `;
 
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
   color: ${({ $active }) =>
     $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
-  font-size: 13px;
-  padding: 0 2px;
+  font-size: var(--font-size-sm);
+  padding: 0 var(--space-2);
 `;
 
 const ConfigForm = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-10);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SetupInstructions = styled.pre`
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;

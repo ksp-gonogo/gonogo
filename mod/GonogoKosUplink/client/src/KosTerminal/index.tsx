@@ -47,6 +47,23 @@ import { KOS } from "../uplink";
 import { useKosScriptListing } from "./useKosScriptListing";
 import "@xterm/xterm/css/xterm.css";
 
+/**
+ * The terminal's character size, in px, shared by xterm's own `fontSize`
+ * option and by `CompositionBar` below it.
+ *
+ * Off the type scale on purpose and in one place on purpose. The composition
+ * bar renders the operator's in-progress input line directly beneath the
+ * xterm screen in the same monospace family, so the composed characters only
+ * line up on the terminal's character pitch while the two sizes are equal,
+ * and xterm's is a JS number no CSS pass can reach. --font-size-sm is 12px on
+ * a desktop (a -1px snap that breaks the match) and 13px only on coarse
+ * pointers, so taking the token would make the pitch correct on a Steam Deck
+ * and wrong everywhere else. `CompositionBar`'s min-height and the caret
+ * block's width/height are expressed in `em` against this value, so they
+ * follow it automatically.
+ */
+const TERMINAL_FONT_PX = 13;
+
 interface KosTerminalConfig {
   /** When true, keystrokes are not forwarded, a passive downlink viewer only. */
   readOnly?: boolean;
@@ -827,7 +844,7 @@ function KosTerminalScreen({
           selectionBackground: "var(--color-status-go-bg)",
         },
         fontFamily: "monospace",
-        fontSize: 13,
+        fontSize: TERMINAL_FONT_PX,
         // Line mode hands the active caret to `CompositionBar` (its own
         // blinking cursor sits on the composed line); leaving xterm's native
         // cursor ALSO blinking at the last-painted `kOS>` position reads as
@@ -1312,7 +1329,7 @@ const TerminalShell = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 // Wraps the terminal pane so the delay badge can be pinned INSIDE its
@@ -1333,17 +1350,19 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   height: 100%;
   background: var(--color-surface-panel);
   border: 1px solid ${({ $readOnly }) => ($readOnly ? "var(--color-status-info-bg)" : "var(--color-border-subtle)")};
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-sizing: border-box;
 
   /* xterm.js mounts a child div: make it fill the container */
   .xterm {
     height: 100%;
-    padding: 8px;
+    padding: var(--space-8);
   }
+  /* Must stay the same rung as the container radius above: it clips xterm's
+     own scroll surface to the outer bordered box. */
   .xterm-viewport {
-    border-radius: 4px;
+    border-radius: var(--radius-md);
   }
 `;
 
@@ -1363,8 +1382,8 @@ const CompositionBarWrap = styled.div`
 const ScriptComposerOptions = styled.div`
   display: flex;
   align-items: center;
-  padding: 2px 4px 0;
-  font-size: 11px;
+  padding: var(--space-2) var(--space-4) 0;
+  font-size: var(--font-size-xs);
 `;
 
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
@@ -1379,15 +1398,17 @@ const ScriptComposerOptions = styled.div`
 const CompositionBar = styled.div<{ $noPath: boolean }>`
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
+  /* 1.6em, i.e. relative to TERMINAL_FONT_PX below, not to a token. */
   min-height: 1.6em;
   background: var(--color-surface-panel);
   border: 1px solid
     ${({ $noPath }) =>
       $noPath ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-family: monospace;
-  font-size: 13px;
+  /* Locked to xterm's own fontSize option; see TERMINAL_FONT_PX. */
+  font-size: ${TERMINAL_FONT_PX}px;
   box-sizing: border-box;
 `;
 
@@ -1399,8 +1420,16 @@ const CompositionBar = styled.div<{ $noPath: boolean }>`
 // `TerminalShell`).
 const CompositionBar__NoPathFlag = styled.div`
   position: absolute;
+  /* -9px is hand-computed against this flag's OWN rendered height (~16px), so
+     that it straddles the top border of CompositionBarWrap. Every value
+     that feeds that height therefore stays literal with it: the 10px font
+     (--font-size-2xs is 11px under @media (pointer: coarse), i.e. on the
+     tier-1 Steam Deck, which grows the flag while -9px stays put) and the
+     vertical padding beside it. Recompute the -9px if any of them moves. */
   top: -9px;
-  right: 8px;
+  right: var(--space-8);
+  /* Local ordering only: this flag just has to sit over the composition bar
+     it is pinned to. Not app-global chrome, so not on the --z-* ladder. */
   z-index: 1;
   padding: 1px 6px;
   font-family: monospace;
@@ -1410,7 +1439,7 @@ const CompositionBar__NoPathFlag = styled.div`
   color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 `;
 
 // No gap here: the cursor block must sit flush against the trailing
@@ -1421,7 +1450,7 @@ const CompositionBar__NoPathFlag = styled.div`
 const CompositionBar__Prompt = styled.span`
   color: var(--color-accent-fg);
   font-weight: bold;
-  margin-right: 8px;
+  margin-right: var(--space-8);
 `;
 
 const CompositionBar__Text = styled.span`
@@ -1432,12 +1461,18 @@ const CompositionBar__Text = styled.span`
 
 const CompositionBar__Cursor = styled.span`
   display: inline-block;
+  /* em-relative against TERMINAL_FONT_PX, so the caret block keeps matching
+     the terminal's cell. Converting either to px severs that. */
   width: 0.6em;
   height: 1.1em;
   background: var(--color-accent-fg);
   vertical-align: text-bottom;
 
   @media (prefers-reduced-motion: no-preference) {
+    /* Both literal: 1s is a 1Hz caret, a physical rate rather than a UI
+       transition, and step-end is what makes it a hard blink instead of a
+       fade. Neither belongs on the motion scale. The shorthand stays INSIDE
+       the reduced-motion guard with its keyframes. */
     animation: kos-caret-blink 1s step-end infinite;
   }
 
@@ -1470,17 +1505,18 @@ const CompositionBar__Cursor = styled.span`
 // of visually colliding with it.
 const NoPathBadge = styled.div`
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: var(--space-8);
+  left: var(--space-8);
+  /* Local ordering inside TerminalFrame only; see CompositionBar__NoPathFlag. */
   z-index: 1;
-  padding: 2px 8px;
+  padding: var(--space-2) var(--space-8);
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: bold;
   color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   max-width: 50%;
   overflow: hidden;
   white-space: nowrap;
@@ -1496,27 +1532,28 @@ const NoPathBadge = styled.div`
 // own bordered box instead of floating past it.
 const DelayBadge = styled.div`
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--space-8);
+  right: var(--space-8);
+  /* Local ordering inside TerminalFrame only; see CompositionBar__NoPathFlag. */
   z-index: 1;
-  padding: 2px 8px;
+  padding: var(--space-2) var(--space-8);
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 `;
 
 const CpuPicker = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
-  padding: 12px;
+  padding: var(--space-12);
 `;
 
 const CpuPicker__Label = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 `;

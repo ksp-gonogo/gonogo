@@ -501,22 +501,25 @@ const Header = styled.div`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   /* Full-bleed standard: the Panel no longer imposes a uniform inset, and this
      bespoke header (not PanelTitle) carried none of its own, so it self-pads
      to the standard local inset to stay readable. */
-  padding: 12px 16px 8px;
+  padding: var(--space-12) var(--space-16) var(--space-8);
 `;
 
 const LabelArea = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
   cursor: text;
 
   &:focus-visible {
+    /* Focus-ring geometry, not surface chrome: this radius shapes the ring
+       drawn by the outline above and tracks that recipe, not the widget's
+       radius scale. Left literal with the outline/offset it belongs to. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
     border-radius: 2px;
@@ -524,7 +527,7 @@ const LabelArea = styled.div`
 `;
 
 const GroupLabel = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -542,12 +545,12 @@ const OfficialName = styled.span`
 const LabelInput = styled.input`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-text-faint);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   letter-spacing: 0.05em;
-  padding: 1px 4px;
+  padding: var(--space-hair) var(--space-4);
   width: 100%;
   box-sizing: border-box;
   outline: none;
@@ -560,13 +563,13 @@ const LabelInput = styled.input`
 const HeaderRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   flex-shrink: 0;
 `;
 
 const UnavailableNotice = styled.div`
-  margin-top: 4px;
-  padding: 2px 6px;
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-6);
   background: transparent;
   /* Token name was "warn", not "warning": the real token is
      --color-status-warning-*, so this always missed and silently fell back
@@ -575,8 +578,8 @@ const UnavailableNotice = styled.div`
      saturated-bg-as-text-on-dark-surface treatment GoNoGoComponent's minor
      badge already uses. */
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: 2px;
-  font-size: 10px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-status-warning-bg);
@@ -586,13 +589,13 @@ const UnavailableNotice = styled.div`
 const AlarmIconButton = styled.button`
   background: transparent;
   border: none;
-  padding: 2px;
+  padding: var(--space-2);
   color: var(--color-text-faint);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 
   &:hover {
     color: var(--color-accent-fg);

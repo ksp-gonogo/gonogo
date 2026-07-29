@@ -259,7 +259,7 @@ export function GamepadLearnWizard({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Progress = styled.div`
@@ -272,10 +272,10 @@ const Progress = styled.div`
 const PromptRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: var(--space-10);
+  padding: var(--space-12);
   background: var(--color-surface-raised);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 `;
 
 const PromptName = styled.span`
@@ -292,7 +292,7 @@ const PromptPositional = styled.span`
 const ListenStatus = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-status-info-fg);
 `;
@@ -300,13 +300,17 @@ const ListenStatus = styled.div`
 const ListenDot = styled.span`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-info-fg);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
   flex-shrink: 0;
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: gamepad-learn-pulse 1.2s ease-in-out infinite;
+    /* 1.2s is physical, not a UI transition: the three listening pulses in
+       this package share it as one attention rhythm and must move as a set,
+       so it stays off the duration scale. The shorthand stays INSIDE the
+       reduced-motion guard with its keyframes. */
+    animation: gamepad-learn-pulse 1.2s var(--ease-emphasis) infinite;
   }
 
   @keyframes gamepad-learn-pulse {
@@ -323,11 +327,11 @@ const ListenDot = styled.span`
 const FinishedHint = styled.div`
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-8);
 `;

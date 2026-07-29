@@ -259,7 +259,11 @@ export function CrossSection({
         {/* Predicted landing site: a SEPARATE marker on the terrain profile. */}
         <SiteMarker cx={siteX} cy={siteY} />
       </g>
-      {/* Magnitudes. */}
+      {/* Magnitudes. The fontSize values below are SVG user units inside
+          this component's viewBox, not CSS pixels, so they are not
+          typography sites and take no --font-size-* rung: they scale with
+          the box, and a token would also pick up the coarse-pointer bump
+          that has no meaning inside a viewBox. */}
       <text
         x={8}
         y={16}

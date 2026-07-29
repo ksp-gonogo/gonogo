@@ -141,6 +141,24 @@ const highlightPulse = keyframes`
   }
 `;
 
+/*
+ * Both halves of this declaration stay off the motion scale.
+ *
+ * 1500ms is attention decay, not a UI transition, and it is locked to the
+ * 2000ms fallback timer in `useScrollIntoViewOnAdd.ts` ("animation duration +
+ * a margin") that clears `lastAddedId` for reduced-motion users, who never
+ * fire `onAnimationEnd`. Retune one without the other and the highlight is
+ * either stranded or cleared mid-pulse.
+ *
+ * `ease-out` stays literal too. The snap to --ease-standard is justified only
+ * inside the 80ms-200ms band, where `ease` and `ease-out` are perceptually
+ * identical; at 7.5x that duration `ease`'s slow-in ramp would hold the ring
+ * near full brightness for the first ~400ms instead of decaying from frame one.
+ *
+ * The shorthand also has to stay INSIDE the reduced-motion guard. Hoisting it
+ * out to reference duration/ease tokens at the rule's top level re-enables a
+ * flashing green ring for reduced-motion users.
+ */
 export const highlightStyle = css`
   &[data-highlight="true"] {
     @media (prefers-reduced-motion: no-preference) {
@@ -161,10 +179,10 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   border: none;
   color: ${({ $confirming }) => ($confirming ? "var(--color-tag-red-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
-  padding: 1px 4px;
-  margin-left: 2px;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-flush);
+  padding: var(--space-hair) var(--space-4);
+  margin-left: var(--space-2);
 
   &:hover {
     color: var(--color-status-nogo-fg);
@@ -177,10 +195,10 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   border: none;
   color: ${({ $pushed }) => ($pushed ? "var(--color-status-info-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  padding: 1px 4px;
-  margin-left: 2px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-flush);
+  padding: var(--space-hair) var(--space-4);
+  margin-left: var(--space-2);
 
   &:hover {
     color: var(--color-status-info-fg);
@@ -193,17 +211,17 @@ const WidgetErrorPanel = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px;
+  gap: var(--space-6);
+  padding: var(--space-12);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   text-align: center;
 `;
 
 const WidgetErrorTitle = styled.div`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: bold;
   color: var(--color-status-nogo-fg);
 `;
@@ -219,12 +237,12 @@ const WidgetErrorHint = styled.div`
 `;
 
 const WidgetErrorRetry = styled.button`
-  margin-top: 4px;
-  padding: 4px 10px;
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);

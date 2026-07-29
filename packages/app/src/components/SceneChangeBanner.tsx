@@ -118,17 +118,21 @@ export function SceneChangeBanner() {
 const Banner = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
   background: rgba(0, 0, 0, 0.88);
   border: 1px solid var(--color-accent-fg);
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
   pointer-events: none;
   white-space: nowrap;
-  animation: sceneBannerIn ${FADE_MS}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  /* FADE_MS stays a JS literal (it is interpolated, so no CSS pass reaches
+     it anyway); only the curve is tokenised. --ease-entrance is the same
+     overshoot the other three banners use, tuned to a 40px slide with
+     transform-origin: right center. */
+  animation: sceneBannerIn ${FADE_MS}ms var(--ease-entrance) forwards;
   transform-origin: right center;
   will-change: transform, opacity;
 
@@ -157,10 +161,10 @@ const BannerScene = styled.span<{ $emphasis?: boolean }>`
     p.$emphasis ? "var(--color-accent-fg)" : "var(--color-text-muted)"};
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const Arrow = styled.span`
   color: var(--color-text-faint);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;

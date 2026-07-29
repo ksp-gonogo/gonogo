@@ -511,7 +511,7 @@ const Wrap = styled.div`
 const SectionStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   overflow-y: auto;
   min-height: 0;
 `;
@@ -519,7 +519,7 @@ const SectionStack = styled.div`
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SectionTitle = styled.h3`
@@ -530,21 +530,24 @@ const SectionTitle = styled.h3`
   text-transform: uppercase;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-4);
 `;
 
 const Row = styled.div<{ $indented?: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-left: ${({ $indented }) => ($indented ? "20px" : "0")};
+  gap: var(--space-16);
+  /* Interpolated, so no CSS token pass reaches it. Migrated by hand onto the
+     same 20 -> 16 snap the Empty padding below takes, otherwise this
+     dependent-setting indent is the one 20px left in the file. */
+  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
 `;
 
 const RowText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   min-width: 0;
 `;
 
@@ -562,7 +565,7 @@ const RowDesc = styled.span`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-sm);
-  padding: 20px;
+  padding: var(--space-16);
   text-align: center;
 `;
 
@@ -576,27 +579,27 @@ const UplinkList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const HealthySummaryItem = styled.li`
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const HealthySummaryRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: var(--space-8);
+  padding: var(--space-6) 0;
 `;
 
 const UplinkItem = styled.li`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const UplinkVersion = styled.span`
@@ -614,13 +617,13 @@ const uplinkHealthColor: Record<UplinkHealthStateName, string> = {
 const HealthIndicator = styled.span<{ $state: UplinkHealthStateName }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $state }) => uplinkHealthColor[$state]};
 `;
 
 const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${({ $state }) => uplinkHealthColor[$state]};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -629,7 +632,7 @@ const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
 const UplinkDetail = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
-  margin-left: 16px;
+  margin-left: var(--space-16);
   /* A rich self-reported detail can be long or multi-line (an uplink that offers
      more than the trivial floor, e.g. "3 cameras" / "no comms backend elected");
      render the full string, wrapping cleanly and honouring any line breaks it
@@ -637,7 +640,7 @@ const UplinkDetail = styled.span`
   display: block;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 const loaderStatusColor: Record<UplinkLoadStatus, string> = {
@@ -649,13 +652,13 @@ const loaderStatusColor: Record<UplinkLoadStatus, string> = {
 const LoaderIndicator = styled.span<{ $status: UplinkLoadStatus }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $status }) => loaderStatusColor[$status]};
 `;
 
 const LoaderLabel = styled.span<{ $status: UplinkLoadStatus }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${({ $status }) => loaderStatusColor[$status]};
   text-transform: uppercase;
   letter-spacing: 0.05em;

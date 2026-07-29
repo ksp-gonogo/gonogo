@@ -159,8 +159,8 @@ function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-top: 6px;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
 `;
 
 const SectionLabel = styled.span`
@@ -173,14 +173,14 @@ const SectionLabel = styled.span`
 const Row = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const RowHead = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const RowTitle = styled.span`

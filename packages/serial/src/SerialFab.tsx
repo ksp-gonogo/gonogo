@@ -65,11 +65,11 @@ function describe(status: SerialAggregateStatus): string | null {
 
 const StatusDot = styled.span<{ $tone: "partial" | "error" }>`
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-4);
+  right: var(--space-4);
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${({ $tone }) =>
     $tone === "error"
       ? "var(--color-status-nogo-bg)"

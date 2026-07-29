@@ -514,15 +514,16 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
 const bannerBase = `
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-16);
   background: rgba(0, 0, 0, 0.88);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   cursor: pointer;
-  animation: flightOutcomeBannerIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: flightOutcomeBannerIn var(--duration-entrance) var(--ease-entrance)
+    forwards;
   transform-origin: right center;
   will-change: transform, opacity;
   white-space: nowrap;
@@ -571,7 +572,7 @@ const CrashBanner = styled.button`
 `;
 
 const BannerLabel = styled.span<{ $variant: "recovered" | "crashed" }>`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: ${({ $variant }) =>
     $variant === "crashed"
@@ -591,7 +592,7 @@ const BannerVessel = styled.span`
 
 const BannerStats = styled.span`
   display: inline-flex;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Stat = styled.span`
@@ -601,7 +602,7 @@ const Stat = styled.span`
 
 const BannerHint = styled.span`
   color: var(--color-text-faint);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
 `;
 
@@ -610,7 +611,7 @@ const BannerHint = styled.span`
 const DetailWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 480px;
   max-width: 640px;
   max-height: 70vh;
@@ -620,7 +621,7 @@ const DetailWrap = styled.div`
 const DetailHeader = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const DetailTitle = styled.h2`
@@ -637,10 +638,10 @@ const DetailMeta = styled.span`
 const Totals = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-12);
   background: var(--color-surface-raised);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 `;
 
 const TotalRow = styled.div`
@@ -652,8 +653,8 @@ const TotalRow = styled.div`
 const TotalsTable = styled.div`
   display: grid;
   grid-template-columns: minmax(80px, auto) 1fr 1fr;
-  column-gap: 16px;
-  row-gap: 4px;
+  column-gap: var(--space-16);
+  row-gap: var(--space-4);
   align-items: baseline;
 `;
 
@@ -662,7 +663,7 @@ const TotalsHeader = styled.div`
 `;
 
 const TotalsHeadCell = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -674,7 +675,7 @@ const TotalsRow = styled.div`
 `;
 
 const TotalLabel = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -703,7 +704,7 @@ const TotalValue = styled.span`
 const DetailSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const SectionTitle = styled.h3`
@@ -713,7 +714,7 @@ const SectionTitle = styled.h3`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -721,8 +722,8 @@ const DetailRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  padding: 4px 0;
+  gap: var(--space-12);
+  padding: var(--space-4) 0;
   font-size: var(--font-size-sm);
 `;
 

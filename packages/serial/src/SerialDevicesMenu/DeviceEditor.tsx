@@ -176,5 +176,5 @@ export function DeviceEditor({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;

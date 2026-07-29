@@ -103,16 +103,16 @@ export function DataKeyMultiPicker({
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SearchInput = styled.input`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   box-sizing: border-box;
   width: 100%;
 
@@ -134,7 +134,7 @@ const SearchInput = styled.input`
 const List = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   max-height: 260px;
   overflow-y: auto;
 `;
@@ -147,7 +147,7 @@ const GroupHeader = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  padding: 8px 8px 4px;
+  padding: var(--space-8) var(--space-8) var(--space-4);
   position: sticky;
   top: 0;
   background: var(--color-surface-panel);
@@ -172,8 +172,8 @@ const HiddenCheckbox = styled.input`
 const RowLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   cursor: pointer;
   user-select: none;
 `;
@@ -188,13 +188,13 @@ const Box = styled.span<{ $checked: boolean }>`
   background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   color: var(--color-status-go-fg);
   font-size: var(--font-size-xs);
-  line-height: 1;
-  border-radius: 2px;
+  line-height: var(--line-height-flush);
+  border-radius: var(--radius-xs);
   flex: 0 0 auto;
 `;
 
 const ItemLabel = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   flex: 1;
 `;
@@ -202,12 +202,12 @@ const ItemLabel = styled.span`
 const ItemUnit = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  margin-left: 6px;
+  margin-left: var(--space-6);
 `;
 
 const Empty = styled.div`
-  padding: 12px 8px;
-  font-size: 12px;
+  padding: var(--space-12) var(--space-8);
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   text-align: center;
 `;

@@ -84,7 +84,7 @@ const StatusDot = styled.span`
   right: 4px;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-warning-bg);
   border: 2px solid var(--color-surface-raised);
   pointer-events: none;

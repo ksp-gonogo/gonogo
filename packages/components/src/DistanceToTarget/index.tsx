@@ -783,7 +783,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -792,24 +792,30 @@ const TrackingBody = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   min-height: 0;
 `;
 
 const TargetName = styled.div`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   letter-spacing: 0.05em;
 `;
 
+/* Display tier. The type scale deliberately stops at --font-size-lg (16px);
+   everything above it in this codebase is a fluid clamp, a JS-computed fit
+   or a size locked to a box width, so a fixed rung would freeze behaviour
+   rather than name it. Dash below must stay equal to this. */
 const Distance = styled.div`
   font-size: 22px;
   font-weight: 600;
   color: var(--color-accent-fg);
   letter-spacing: 0.02em;
-  line-height: 1.1;
+  line-height: var(--line-height-tight);
 `;
 
+/* Same display tier as Distance above, and this placeholder must render at
+   the same size as the value it stands in for. */
 const Dash = styled.div`
   font-size: 22px;
   font-weight: 600;
@@ -817,13 +823,13 @@ const Dash = styled.div`
 `;
 
 const NoTarget = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 `;
 
 const SubReadout = styled.div`
-  margin-top: 4px;
-  font-size: 11px;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
@@ -836,9 +842,9 @@ const ApproachGrid = styled.div<{ $stack: boolean }>`
      the value claims the full inner width, fixes the auto/1fr collapse
      where "Closing rate" wrapped to two lines and "T−02:05" clipped. */
   grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
-  column-gap: 12px;
-  row-gap: ${({ $stack }) => ($stack ? "0" : "4px")};
-  margin-top: 6px;
+  column-gap: var(--space-12);
+  row-gap: ${({ $stack }) => ($stack ? "0" : "var(--space-4)")};
+  margin-top: var(--space-6);
 `;
 
 const ApproachLabel = styled.span`
@@ -851,7 +857,7 @@ const ApproachLabel = styled.span`
 `;
 
 const ApproachValue = styled.span<{ $tone?: "ok" | "warn" }>`
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -872,7 +878,7 @@ const HudPanel = styled.div<{ $row?: boolean }>`
   display: flex;
   flex-direction: ${({ $row }) => ($row ? "row" : "column")};
   background: var(--color-surface-app);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 `;
 
@@ -921,15 +927,27 @@ const Reticle = styled.div<{ $aligned: boolean }>`
   height: 22px;
   border: 2px solid
     ${({ $aligned }) => ($aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)")};
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   transform: translate(-50%, -50%);
-  transition: left 80ms linear, top 80ms linear, border-color 150ms linear;
+  /* left/top are an 80ms telemetry chase, not a UI transition: the reticle
+     is following a live target, so the duration stays literal rather than
+     inheriting a hover rung. Only the border-colour change is a UI-motion
+     choice. */
+  transition:
+    left 80ms linear,
+    top 80ms linear,
+    border-color var(--duration-base) var(--ease-linear);
   /* Ring only: centre stays transparent so the crosshair stays visible. */
   box-shadow: 0 0 6px
     ${({ $aligned }) =>
       $aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"};
 `;
 
+/* The two tick rules below are all derived geometry and stay off the
+   scales: the 1px is a hairline rule (a drawn line, not spacing), the 8px
+   is the tick's own length, and each translate is exactly half that length,
+   centring the tick on the crosshair. They must track the tick size, not a
+   spacing rung. */
 const tickBase = `
   position: absolute;
   background: rgba(0, 255, 136, 0.35);
@@ -953,7 +971,7 @@ const VertTick = styled.div`
 `;
 
 const HudOverlay = styled.div<{ $side?: boolean }>`
-  padding: 6px 10px 8px;
+  padding: var(--space-6) var(--space-10) var(--space-8);
   background: rgba(0, 0, 0, 0.55);
   /* Wide-short row layout docks the overlay to the side: fixed-width
      right column with a left divider instead of the full-width bottom
@@ -977,11 +995,11 @@ const HudHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-10);
 `;
 
 const HudName = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-status-go-fg);
   letter-spacing: 0.04em;
   overflow: hidden;
@@ -990,7 +1008,7 @@ const HudName = styled.span`
 `;
 
 const HudRange = styled.span`
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-accent-fg);
   white-space: nowrap;
@@ -1001,8 +1019,8 @@ const HudGrid = styled.div<{ $stack: boolean }>`
   /* Narrow widgets stack so X/Y and α/β/γ values aren't squeezed into a
      1fr column that can't hold them on one line. */
   grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
-  gap: 1px 8px;
-  margin-top: 4px;
+  gap: var(--space-hair) var(--space-8);
+  margin-top: var(--space-4);
 `;
 
 const HudLabel = styled.span`
@@ -1014,6 +1032,12 @@ const HudLabel = styled.span`
 `;
 
 const HudValue = styled.span<{ $tone?: "ok" | "warn" }>`
+  /* Off-scale on purpose. --font-size-xs is 11px on a desktop but 12px
+     under @media (pointer: coarse), and this box is already documented as
+     being at its overflow limit: at the 3x4 minSize, "0.12 m / -0.07 m"
+     barely fits ~70px of content with white-space: nowrap. The coarse
+     bump adds roughly 8px to that string and re-opens the overflow the
+     showAlignmentDetail breakpoint was drawn to avoid. */
   font-size: 11px;
   white-space: nowrap;
   color: ${({ $tone }) =>

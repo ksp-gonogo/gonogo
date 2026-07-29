@@ -40,7 +40,9 @@ export function ProgressBar({
 const ProgressBar__Track = styled.div`
   height: 6px;
   background: var(--color-surface-raised);
-  border-radius: 3px;
+  /* Stadium, not a corner: the old 3px was exactly half the 6px height, so
+     --radius-sm would have decoupled the corner from the track. */
+  border-radius: var(--radius-pill, 999px);
   overflow: hidden;
 `;
 
@@ -48,6 +50,9 @@ const ProgressBar__Fill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => `${$percent}%`};
   background: var(--color-accent-fg);
+  /* Off the motion scale on purpose: a determinate fill has to advance at a
+     constant rate, so both the 250ms and the linear timing carry meaning
+     rather than taste. The motion tokens cover UI transitions only. */
   transition: width 250ms linear;
 
   @media (prefers-reduced-motion: reduce) {

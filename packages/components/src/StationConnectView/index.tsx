@@ -157,6 +157,19 @@ export function statusTone(
   }
 }
 
+// Everything below stays off the design-token scales, deliberately, as one
+// decision for the whole file. This is a full-page route rather than a
+// dashboard tile, so it is on a page scale the widget ladders do not model:
+//   - The 40px/48px desktop inset and the 20px/24px inset in the <=480px
+//     block are one choice at two breakpoints, currently in the same 1:1.2
+//     ratio. The map exempts the desktop pair by name and would snap only
+//     the mobile one, giving 16px/24px on phones against 40px/48px on
+//     desktop, which is the opposite of what the media query is for.
+//   - The 20px headings are above the top of the type scale, and the 13px
+//     body copy is deliberately one step larger than the 12px !important
+//     error text below it. --font-size-sm covers both, which would collapse
+//     that distinction and make the !important inert.
+// Migrate this file only alongside a decision about the page scale itself.
 const ConnectLayout = styled.div`
   display: flex;
   align-items: center;

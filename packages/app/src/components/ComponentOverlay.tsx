@@ -395,25 +395,36 @@ export { useOverlay };
 
 const FAB = styled.button`
   position: fixed;
+  /* Held literal with the rest of the FAB-geometry chain in @ksp-gonogo/ui:
+     this is the primary "+" button BannerStack's right: 88px (24 + 48 + 16),
+     FabPrompt's 72px and Fab's own right: 24px are all arithmetic on. Those
+     stay literal because a CSS pass cannot see the derived numbers, so
+     tokenising only this end would desynchronise the cluster the first time
+     --space-24 moves. Do not add a safe-area wrapper here in isolation
+     either: it shifts this button relative to nothing else. */
   bottom: 24px;
   right: 24px;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-accent-fg);
   border: none;
   color: var(--color-text-inverse);
+  /* Display tier: above --font-size-lg, which the scale stops at on purpose. */
   font-size: 28px;
-  line-height: 1;
+  line-height: var(--line-height-flush);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 16px rgba(0, 204, 102, 0.3);
-  z-index: 900;
+  z-index: var(--z-fab);
+  /* Multi-line on purpose and on two different rungs: 0.15s is --duration-base
+     exactly, 0.1s snaps up to --duration-fast (+20ms). A line-oriented pass
+     rewrites one and leaves the other. */
   transition:
-    background 0.15s,
-    transform 0.1s;
+    background var(--duration-base),
+    transform var(--duration-fast);
 
   &:hover {
     background: var(--color-accent-bg);
@@ -431,13 +442,13 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 950;
+  z-index: var(--z-backdrop);
 `;
 
 const Panel = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   width: 560px;
   max-width: 95vw;
   /* Spotlight-style stable height: regardless of how many results match,
@@ -453,8 +464,12 @@ const Panel = styled.div`
 const SearchRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: var(--space-8);
+  /* Horizontal inset goes UP to the panel column, not down to --space-12 that
+     14px maps to: ResultsHeader, ChipRow and ListItem below all sit at
+     --space-16, so 14px is already 2px off that edge and snapping down would
+     double the misalignment on the widest edge of the picker. */
+  padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
@@ -463,10 +478,10 @@ const CloseBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
   &:hover {
     color: var(--color-text-primary);
     background: var(--color-surface-raised);
@@ -482,8 +497,12 @@ const SearchInput = styled.input`
   background: transparent;
   border: none;
   color: var(--color-text-primary);
+  /* Literal, not --font-size-lg: 16px is the iOS Safari auto-zoom threshold
+     and a focused input below it zooms the whole page. The token is 16px
+     today so a swap would work, but it silently reintroduces the zoom the
+     moment lg is retuned. Same exception as ui-kit/Form.tsx. */
   font-size: 16px;
-  padding: 4px 0;
+  padding: var(--space-4) 0;
 
   &:focus {
     outline: none;
@@ -495,8 +514,8 @@ const SearchInput = styled.input`
 `;
 
 const ResultsHeader = styled.div`
-  padding: 6px 16px;
-  font-size: 10px;
+  padding: var(--space-6) var(--space-16);
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -506,8 +525,8 @@ const ResultsHeader = styled.div`
 const ChipRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: var(--space-6);
+  padding: var(--space-10) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
@@ -520,13 +539,13 @@ const List = styled.div`
 const ListItem = styled.button<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   width: 100%;
   text-align: left;
   background: ${(p) => (p.$active ? "var(--color-surface-raised)" : "none")};
   border: none;
   border-bottom: 1px solid var(--color-surface-panel);
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
   cursor: pointer;
   /* The roving highlight is the keyboard cursor; mirror it with an inset
      accent rule so it reads as "selected" while DOM focus stays in the
@@ -541,32 +560,34 @@ const ListItem = styled.button<{ $active?: boolean }>`
     border-bottom: none;
   }
   &:focus-visible {
+    /* Inset ring: the ancestor is overflow: hidden, so a positive offset
+       would clip it away entirely. Ring geometry, never a spacing rung. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
 `;
 
 const ItemName = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const ItemDesc = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 const TagRow = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 `;
 
 const Empty = styled.div`
-  padding: 24px 16px;
-  font-size: 12px;
+  padding: var(--space-24) var(--space-16);
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   text-align: center;
 `;

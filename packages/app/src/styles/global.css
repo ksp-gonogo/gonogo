@@ -5,7 +5,7 @@
  * tokens in this file: two copies is exactly how `--color-status-nogo-on-bg`
  * went missing here while only the theme package got it, silently breaking
  * both the app and the render harness (see the ratchet test in
- * `noRedeclaredColorTokens.test.ts`, and `widgetRenderHarness.ts`, which
+ * `tokenSingleSource.test.ts`, beside this file, and `widgetRenderHarness.ts`, which
  * now reads the theme package's tokens.css directly instead of this file).
  * If a consumer genuinely needs an app-local override, add it under its
  * own selector (never `:root`) so it layers on top rather than shadowing
@@ -78,6 +78,10 @@ textarea {
 
 .sr-only {
   position: absolute;
+  /* Not spacing, and none of the three take --space-hair: the width/height
+     1px box and the -1px that cancels it are one visually-hidden idiom, and
+     tokenising any of them ties a screen-reader affordance to the rhythm
+     ladder. They move together or not at all. */
   width: 1px;
   height: 1px;
   padding: 0;

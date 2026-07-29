@@ -143,6 +143,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // already listed there the same way). A path string in a ratchet, not a
       // dependency.
       "packages/core/src/truenow-allowlist.test.ts",
+      // styleguide.test.ts: the raw-hex ratchet. Its scan roots now cover
+      // mod/*/client/src (they did not, which is how three raw hex literals in
+      // shipped uplink widgets went ungated), so its baseline comment names the
+      // one remaining offender by path: CameraFeed.tsx's feed-unavailable
+      // scrim colour. A path string in a ratchet inventory, same category as
+      // truenow-allowlist.test.ts above; nothing is imported.
+      "packages/core/src/styleguide.test.ts",
 
       // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
       "packages/app/src/dataSources/migrateGameHost.ts",
@@ -311,6 +318,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // justification comment while inventorying every TrueNow declaration
       // in mod/: doc-mention only, same class as CareerUplink.cs above.
       "packages/core/src/truenow-allowlist.test.ts",
+      // styleguide.test.ts: the raw-hex ratchet, whose scan roots now cover
+      // mod/*/client/src. Its ALLOWED_PATHS names the ScanSat Minimap by path,
+      // for the same canvas-2D `fillStyle` reason the packages/ copy of that
+      // widget is already allowed for (fillStyle takes a colour string, not a
+      // var()). A path string in a ratchet inventory, same class as
+      // truenow-allowlist.test.ts above; nothing is imported.
+      "packages/core/src/styleguide.test.ts",
       // -- Uplink LOADER (Phase A, 2026-07-17): the runtime client loader names
       // scansat as the first-party Uplink it loads via import() behind a flag,
       // sanctioned loader-config, the concrete shape of the "P7 retires" debt the

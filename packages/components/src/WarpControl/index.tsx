@@ -353,7 +353,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -361,7 +361,7 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
   align-content: center;
   justify-content: center;
@@ -375,7 +375,7 @@ const Rate = styled.div<{ $tone: "physics" | "high" }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-2);
   min-width: 0;
   /* Physics warp (≤4×) tints amber: operator at speed in atmosphere
      needs to know it's NOT on-rails. High warp (≥5×) stays green. */
@@ -386,10 +386,12 @@ const Rate = styled.div<{ $tone: "physics" | "high" }>`
 `;
 
 const RateValue = styled.span`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 1;
+  line-height: var(--line-height-flush);
 `;
 
 const FullLadder = styled.div`
@@ -400,7 +402,7 @@ const FullLadder = styled.div`
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-  gap: 4px;
+  gap: var(--space-4);
   align-content: center;
 `;
 
@@ -409,7 +411,7 @@ const Stepper = styled.div`
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(28px, 1fr));
-  gap: 4px;
+  gap: var(--space-4);
   align-content: center;
 `;
 
@@ -420,9 +422,9 @@ const WarpButton = styled.button<{ $active: boolean }>`
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: 3px;
-  padding: 6px 4px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-6) var(--space-4);
+  font-size: var(--font-size-sm);
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   letter-spacing: 0.04em;
   cursor: pointer;

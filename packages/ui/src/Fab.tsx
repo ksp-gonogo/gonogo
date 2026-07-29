@@ -58,13 +58,16 @@ export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
 const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   position: fixed;
   bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));
+  /* Held literal with the rest of the FAB-geometry chain (see BannerStack):
+     FabPrompt's 72px and BannerStack's 88px/112px are arithmetic on this 24px
+     plus the button widths below, and none of them are visible to a CSS pass. */
   right: calc(24px + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  z-index: 900;
+  gap: var(--space-10);
+  z-index: var(--z-fab);
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
 `;
 
@@ -74,23 +77,26 @@ const FabLabel = styled.span<{ $visible: boolean }>`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
-  padding: 4px 8px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-8);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
+  /* 0.18s stays off the duration scale: it is tuned against the 16px travel
+     above and FabCluster's LEAVE_DELAY_MS = 400, and retiming it alone makes
+     the cluster snap shut mid-cursor-move. Only the easing is a style choice. */
   transition:
-    transform 0.18s ease,
-    opacity 0.18s ease;
+    transform 0.18s var(--ease-standard),
+    opacity 0.18s var(--ease-standard);
 `;
 
 const StyledFab = styled.button<{ $visible: boolean }>`
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   color: var(--color-status-info-fg);
@@ -103,11 +109,12 @@ const StyledFab = styled.button<{ $visible: boolean }>`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
+  /* As above: 0.18s is locked to the 16px travel + LEAVE_DELAY_MS = 400. */
   transition:
-    background 0.15s,
-    transform 0.18s ease,
-    opacity 0.18s ease,
-    border-color 0.15s;
+    background var(--duration-base),
+    transform 0.18s var(--ease-standard),
+    opacity 0.18s var(--ease-standard),
+    border-color var(--duration-base);
 
   @media (hover: hover) {
     &:hover {

@@ -717,7 +717,12 @@ export { TransferWindowComponent };
 // while the Panel padding removal is still landing across the fleet.
 // Text/readouts keep this much side padding; the chart and window rows go
 // full-bleed to the body edge (the padless Panel owns no inset).
-const TEXT_PAD = "12px";
+// One constant, six call sites: the six padded rows must not drift apart, so
+// the rung is applied here rather than at each site. Deliberately --space-12
+// and not the --space-16 panel inset: the step between these padded rows and
+// the full-bleed chart/window rows beside them is the point, and widening it
+// is a layout decision, not a token migration.
+const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
@@ -730,7 +735,7 @@ const Body = styled(ScrollArea)`
     container-type: inline-size;
     display: flex;
     flex-direction: column;
-    padding-bottom: 8px;
+    padding-bottom: var(--space-8);
   }
 `;
 
@@ -742,7 +747,7 @@ const ContentGrid = styled.div`
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 
   @container (min-width: ${WIDE_AT}) {
     flex-direction: row;
@@ -753,7 +758,7 @@ const ContentGrid = styled.div`
 const LeftCol = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
   min-width: 0;
 
   @container (min-width: ${WIDE_AT}) {
@@ -766,7 +771,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
 `;
 
@@ -777,7 +782,7 @@ const RouteSelect = styled(Select)`
 
 const NowRow = styled.div`
   display: flex;
-  gap: 16px;
+  gap: var(--space-16);
   align-items: center;
   padding: 0 ${TEXT_PAD};
 `;
@@ -812,7 +817,7 @@ const NowFacts = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 0;
 `;
 
@@ -837,7 +842,7 @@ const Muted = styled.span`
 const ListWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ListTitle = styled.div`
@@ -854,7 +859,7 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ListItem = styled.li`
@@ -865,17 +870,17 @@ const ListItem = styled.li`
 const WindowRow = styled.button<{ $selected: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: center;
   width: 100%;
   text-align: left;
-  padding: 8px ${TEXT_PAD};
+  padding: var(--space-8) ${TEXT_PAD};
   background: ${({ $selected }) =>
     $selected ? "var(--color-surface-raised)" : "transparent"};
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   font-variant-numeric: tabular-nums;
@@ -905,14 +910,14 @@ const ColTof = styled.span`
 const Expander = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 8px ${TEXT_PAD} 4px;
+  gap: var(--space-2);
+  padding: var(--space-8) ${TEXT_PAD} var(--space-4);
 `;
 
 const ExpRow = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const ExpLabel = styled.span`
@@ -931,7 +936,7 @@ const ExpValue = styled.span`
 const PorkchopWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 0;
   flex: 1 1 auto;
   min-height: 260px;

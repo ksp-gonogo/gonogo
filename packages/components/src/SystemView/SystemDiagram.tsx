@@ -883,10 +883,10 @@ const Empty = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-6);
   color: var(--color-text-dim);
-  font-size: 11px;
-  padding: 20px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-16);
   text-align: center;
 `;
 
@@ -901,26 +901,29 @@ const Tooltip = styled.div`
   pointer-events: none;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-6) var(--space-10);
   font-size: var(--font-size-xs);
   color: var(--color-text-primary);
   min-width: 140px;
   max-width: 240px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  /* Off the app z-index ladder: the only z-index in this file, so its value
+     is meaningless in isolation. Its contract is above-versus-auto against
+     the diagram beneath it, not a place on the app ladder. */
   z-index: 10;
 `;
 
 const TooltipTitle = styled.div`
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
   color: var(--color-status-go-fg);
 `;
 
 const TooltipRow = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   font-family: var(--font-mono, monospace);
   color: var(--color-text-muted);
   span:last-child {
@@ -934,8 +937,8 @@ const ResetButton = styled.button`
   right: 8px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-8);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   cursor: pointer;

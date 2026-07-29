@@ -411,10 +411,10 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-12);
+  padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: var(--color-surface-raised);
 `;
 
@@ -429,7 +429,7 @@ const Header = styled.h4`
 const Status = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--font-size-sm);
   color: var(--color-status-info-fg);
 `;
@@ -437,13 +437,17 @@ const Status = styled.div`
 const PulseDot = styled.span`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-info-fg);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
   flex-shrink: 0;
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: sd-add-pulse 1.2s ease-in-out infinite;
+    /* 1.2s is physical, not a UI transition: the three listening pulses in
+       this package share it as one attention rhythm and must move as a set,
+       so it stays off the duration scale. The shorthand stays INSIDE the
+       reduced-motion guard with its keyframes. */
+    animation: sd-add-pulse 1.2s var(--ease-emphasis) infinite;
   }
 
   @keyframes sd-add-pulse {
@@ -459,16 +463,16 @@ const PulseDot = styled.span`
 
 const ErrorBox = styled.div`
   background: var(--color-status-nogo-fg);
-  border-radius: 3px;
-  padding: 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-8);
   font-size: var(--font-size-xs);
   color: var(--color-status-nogo-bg);
 `;
 
 const ConflictBox = styled.div`
   background: var(--color-status-warning-bg);
-  border-radius: 3px;
-  padding: 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-8);
   font-size: var(--font-size-xs);
   color: var(--color-text-primary);
 `;
@@ -476,5 +480,5 @@ const ConflictBox = styled.div`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-8);
 `;

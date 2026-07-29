@@ -740,9 +740,9 @@ const Body = styled.div<{ $almanac: "side" | "bottom" | "none" }>`
         ? "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 45%);"
         : "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);"}
   gap: 0;
-  margin-top: 6px;
+  margin-top: var(--space-6);
   border: 1px solid var(--color-surface-panel);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 `;
 
@@ -752,10 +752,12 @@ const CompactBody = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const CompactValue = styled.div`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -763,7 +765,7 @@ const CompactValue = styled.div`
 `;
 
 const CompactSub = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
@@ -794,14 +796,14 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const TitleControls = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   min-width: 0;
 `;
 

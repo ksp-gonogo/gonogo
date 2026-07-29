@@ -228,7 +228,7 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const Dial = styled.div`
@@ -250,6 +250,9 @@ const HeadingTicker = styled.div`
   inset: 0;
   /* The ticks position absolutely against the parent, so transform on the
      wrapper just shifts them as a group without affecting the pointer. */
+  /* Off the motion scale on purpose: an 80ms chase on live heading, not a
+     UI-motion choice. --duration-instant is the hover rung, and retuning it
+     must not change how the strip tracks telemetry. */
   transition: transform 80ms linear;
 `;
 
@@ -276,9 +279,13 @@ const HeadingTickMark = styled.div`
 `;
 
 const HeadingTickLabel = styled.div`
+  /* Off the type scale: this label sits under a 6px tick mark inside
+     HeadingStrip's fixed 22px, which leaves ~20px after its border.
+     --font-size-2xs is 11px on a coarse pointer and the strip's
+     overflow: hidden clips the label at that size. */
   font-size: 9px;
   color: var(--color-text-muted);
-  margin-top: 1px;
+  margin-top: var(--space-hair);
 `;
 
 const HeadingPointer = styled.div`
@@ -294,7 +301,7 @@ const HeadingPointer = styled.div`
 const Readout = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const Cell = styled.div`
@@ -302,9 +309,15 @@ const Cell = styled.div`
   flex-direction: column;
   align-items: center;
   border: 1px solid var(--color-surface-raised);
-  padding: 2px 0;
+  padding: var(--space-2) 0;
 `;
 
+/* Lab and Val stay off the type scale: their rendered heights are two of the
+   terms in Navball's verticalReserve = 74, the bare JS number its
+   ResizeObserver subtracts before sizing the dial. The tokens grow this
+   column ~2px on desktop and ~4px on a coarse pointer while 74 does not
+   move, which is what pushes the strip and readout past the Panel's bottom
+   edge in the wide-and-short (mobile 9x8) case that reserve exists for. */
 const Lab = styled.span`
   font-size: 9px;
   color: var(--color-text-faint);
@@ -312,6 +325,7 @@ const Lab = styled.span`
 `;
 
 const Val = styled.span`
+  /* Off the type scale with Lab above: same verticalReserve budget. */
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);

@@ -13,6 +13,6 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = styled.div<CardProps>`
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 6px 8px;
+  border-radius: var(--radius-sm, 3px);
+  padding: var(--space-6, 6px) var(--space-8, 8px);
 `;

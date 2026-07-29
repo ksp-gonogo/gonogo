@@ -48,19 +48,19 @@ function formatElapsed(ms: number): string {
 const Wrap = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-16);
   background: rgba(120, 30, 30, 0.92);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-status-nogo-fg);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   letter-spacing: 0.08em;
   white-space: nowrap;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
 
   @media (prefers-reduced-motion: reduce) {
@@ -85,9 +85,16 @@ const Wrap = styled.div`
 const Pulse = styled.span`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-nogo-bg);
   flex-shrink: 0;
+  /* Left entirely literal, and not because 1.4s is off the duration scale
+     (it is: this is an attention pulse, not a UI transition). The shorthand
+     sits OUTSIDE the prefers-reduced-motion guard below while its keyframes
+     sit inside it, which is a pre-existing accessibility bug. Rewriting half
+     of this declaration onto tokens would make the broken shape read as
+     blessed. Fix the guard first, then tokenise the easing. Readout's
+     pill-pulse and BannerPill's status-pill-pulse show the correct shape. */
   animation: pulse 1.4s ease-in-out infinite;
 
   @media (prefers-reduced-motion: no-preference) {
@@ -111,13 +118,13 @@ const Label = styled.span`
 
 const List = styled.div`
   display: flex;
-  gap: 14px;
+  gap: var(--space-12);
   flex-wrap: nowrap;
 `;
 
 const Entry = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: baseline;
 `;
 

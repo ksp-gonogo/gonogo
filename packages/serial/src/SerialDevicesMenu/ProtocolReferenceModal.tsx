@@ -181,13 +181,16 @@ function JsonStateContent() {
 const HelpLink = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   color: var(--color-status-info-fg);
   width: 18px;
   height: 18px;
   padding: 0;
+  /* Literal on purpose: 11px with a collapsed line box is what optically
+     centres the "?" glyph in this fixed 18x18 circle. --font-size-xs is 12px
+     under @media (pointer: coarse), which overflows it on the Steam Deck. */
   font-size: 11px;
-  line-height: 1;
+  line-height: var(--line-height-flush);
   cursor: pointer;
   &:hover {
     background: var(--color-border-subtle);
@@ -202,13 +205,15 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* Ties with ui's Modal backdrop on the same rung, which is correct: only
+     one of the two is ever mounted, and DOM order resolves it either way. */
+  z-index: var(--z-modal);
 `;
 
 const Dialog = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   max-width: 560px;
   width: 90vw;
   max-height: 80vh;
@@ -221,14 +226,14 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: var(--space-10) var(--space-12);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
 `;
 
 const Title = styled.h3`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -239,7 +244,7 @@ const Close = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   cursor: pointer;
   &:hover {
     color: var(--color-text-primary);
@@ -248,35 +253,39 @@ const Close = styled.button`
 
 const Body = styled.div`
   overflow-y: auto;
-  padding: 14px 18px;
+  padding: var(--space-12) var(--space-16);
   color: var(--color-text-primary);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-prose);
 
   p {
-    margin: 0 0 10px;
+    margin: 0 0 var(--space-10);
   }
   ul {
-    margin: 0 0 10px;
+    margin: 0 0 var(--space-10);
+    /* Not rhythm: with the default list-style-position: outside this is the
+       gutter the disc marker is drawn into, so it stays off the spacing
+       ladder. The 20 -> 16 snap would pull every bullet left and narrow the
+       marker's room, compounding with the Body inset above. */
     padding-left: 20px;
   }
   li {
-    margin: 4px 0;
+    margin: var(--space-4) 0;
   }
   code {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
-    padding: 1px 4px;
-    border-radius: 2px;
-    font-size: 11px;
+    padding: var(--space-hair) var(--space-4);
+    border-radius: var(--radius-xs);
+    font-size: var(--font-size-xs);
   }
   pre {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
-    padding: 8px 10px;
-    border-radius: 3px;
-    font-size: 11px;
+    padding: var(--space-8) var(--space-10);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
     overflow-x: auto;
-    margin: 0 0 10px;
+    margin: 0 0 var(--space-10);
   }
 `;

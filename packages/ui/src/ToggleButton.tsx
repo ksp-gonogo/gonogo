@@ -74,11 +74,11 @@ const TONE_ACTIVE = {
 const SIZE_STYLES = {
   sm: css`
     font-size: var(--font-size-xs);
-    padding: 3px 8px;
+    padding: var(--space-2) var(--space-8);
   `,
   md: css`
     font-size: var(--font-size-sm);
-    padding: 5px 12px;
+    padding: var(--space-6) var(--space-12);
   `,
 } as const;
 
@@ -90,14 +90,14 @@ const ToggleButton__Body = styled.button<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
 
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
@@ -125,6 +125,12 @@ const ToggleButton__Body = styled.button<{
 
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: ${({ $size }) => ($size === "sm" ? "6px 10px" : "8px 14px")};
+    /* md goes one rung wider than its base inset (--space-12), same as ui-kit
+       Button: the old 14px would have snapped onto the base rung and erased
+       the horizontal widening this block exists for. sm was already on rungs. */
+    padding: ${({ $size }) =>
+      $size === "sm"
+        ? "var(--space-6) var(--space-10)"
+        : "var(--space-8) var(--space-16)"};
   }
 `;

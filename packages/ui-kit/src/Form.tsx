@@ -3,21 +3,21 @@ import styled from "styled-components";
 export const ConfigForm = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16, 16px);
 `;
 
 /** Vertical stack: label on top, input below */
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6, 6px);
 `;
 
 /** Horizontal: label left, input right */
 export const FieldRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8, 8px);
 `;
 
 export const FieldLabel = styled.label`
@@ -35,17 +35,17 @@ export const FieldHint = styled.span`
 
 export const FormActions = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8, 8px);
   align-items: center;
 `;
 
 const inputBase = `
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  padding: 6px 8px;
+  padding: var(--space-6, 6px) var(--space-8, 8px);
   box-sizing: border-box;
 
   &:focus {
@@ -62,8 +62,11 @@ const inputBase = `
 
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: 10px 12px;
-    /* 16px prevents iOS Safari from auto-zooming on focus. */
+    padding: var(--space-10, 10px) var(--space-12, 12px);
+    /* 16px prevents iOS Safari from auto-zooming on focus. Deliberately NOT
+       var(--font-size-lg): the threshold is an absolute-px requirement, and
+       reading it from a token silently reintroduces the zoom the moment that
+       token is retuned below 16px. */
     font-size: 16px;
   }
 `;

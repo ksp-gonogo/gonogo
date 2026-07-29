@@ -747,7 +747,7 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   /* At narrow widths (portrait 5-col ≈ 192px) the title + badge row can't sit
      side by side. Let them wrap to stacked rows rather than letting the badge
      row overflow the panel's right edge (Panel has overflow:hidden, so an
@@ -757,7 +757,7 @@ const Header = styled.div`
 
 const ModeBadgeRow = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   /* Wrap badges onto a second line at narrow widths instead of pushing the
      trailing badge (RCS / PRECISION) past the clipped panel edge. Align right
      so they stay grouped under the SAS badge. */
@@ -767,11 +767,11 @@ const ModeBadgeRow = styled.div`
 `;
 
 const ModeBadge = styled.span<{ $on: boolean }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 1px 5px;
-  border-radius: 2px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-xs);
   background: ${(p) =>
     p.$on ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
   color: ${(p) =>
@@ -781,8 +781,8 @@ const ModeBadge = styled.span<{ $on: boolean }>`
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
   flex: 1;
   min-height: 0;
 `;
@@ -795,6 +795,9 @@ const DialWrap = styled.div`
   min-height: 0;
   display: flex;
   align-items: center;
+  /* Off the spacing ladder: this 10 is a term in the ResizeObserver's
+     throttleReserve = 42 ("~32 px bar + 10 px gap") in this file. It is
+     computed, not chosen, so it moves only when that constant moves. */
   gap: 10px;
   justify-content: center;
 `;
@@ -802,7 +805,7 @@ const DialWrap = styled.div`
 const NumericReadout = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   flex: 1;
   justify-content: center;
 `;
@@ -810,17 +813,19 @@ const NumericReadout = styled.div`
 const ReadoutRow = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const ReadoutLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
   min-width: 28px;
 `;
 
 const ReadoutValue = styled.span`
+  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
+     is a display-tier readout. */
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -832,12 +837,12 @@ const ThrottleColumn = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 32px;
 `;
 
 const ThrottleLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
 `;
@@ -857,11 +862,14 @@ const ThrottleFill = styled.div`
   left: 0;
   right: 0;
   background: var(--color-accent-fg);
+  /* Off the motion scale on purpose: an 80ms chase on live throttle, not a
+     UI-motion choice. --duration-instant is the hover rung, and retuning it
+     must not change how the bar tracks telemetry. */
   transition: height 80ms linear;
 `;
 
 const ThrottleVal = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 `;
@@ -869,28 +877,28 @@ const ThrottleVal = styled.span`
 const ControlWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 6px;
+  gap: var(--space-8);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--color-surface-raised);
 `;
 
 const Banner = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-status-warning-bg);
-  padding: 4px 6px;
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const Group = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const GroupLabel = styled.div`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -899,14 +907,14 @@ const GroupLabel = styled.div`
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ToggleButton = styled.button<{ $active: boolean }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  padding: 4px 6px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
   border: 1px solid
     ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-surface-raised)")};
   background: ${(p) =>
@@ -927,7 +935,7 @@ const ToggleButton = styled.button<{ $active: boolean }>`
 const SliderRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Slider = styled.input`
@@ -935,7 +943,7 @@ const Slider = styled.input`
 `;
 
 const SliderVal = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   min-width: 36px;
@@ -945,11 +953,11 @@ const SliderVal = styled.span`
 const FbwRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const FbwHint = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
 `;
 

@@ -278,13 +278,13 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 `;
 
 const Dialog = styled.div<{ $width?: string }>`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   min-width: min(320px, 100vw - 16px);
   max-width: ${({ $width }) => $width ?? "560px"};
   width: 90vw;
@@ -298,14 +298,14 @@ const DialogHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 `;
 
 const DialogTitle = styled.h2`
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -317,9 +317,9 @@ const CloseButton = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 2px 4px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  padding: var(--space-2) var(--space-4);
 
   @media (hover: hover) {
     &:hover {
@@ -336,7 +336,7 @@ const CloseButton = styled.button`
 `;
 
 const DialogBody = styled.div`
-  padding: 16px;
+  padding: var(--space-16);
   overflow-y: auto;
   /* iOS Safari momentum scrolling inside the dialog. */
   -webkit-overflow-scrolling: touch;
@@ -348,8 +348,8 @@ const DialogFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-16);
   border-top: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 `;

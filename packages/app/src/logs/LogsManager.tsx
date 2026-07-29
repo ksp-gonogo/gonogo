@@ -513,19 +513,19 @@ function ReportBug() {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-16);
   min-width: 420px;
 `;
 
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -535,50 +535,50 @@ const SectionTitle = styled.h3`
 const ModeRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const ModeButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   cursor: pointer;
 `;
 
 const ModeHint = styled.span`
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const TagList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 0 0;
+  gap: var(--space-4);
+  padding: var(--space-6) 0 0;
 `;
 
 const TagRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const TagHint = styled.span`
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const Foot = styled.div`
   color: var(--color-text-dim);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 
   code {
     background: var(--color-surface-raised);
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: var(--space-hair) var(--space-4);
+    border-radius: var(--radius-xs);
   }
 `;
 
@@ -586,62 +586,62 @@ const BufferRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Count = styled.span`
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;
 
 const ActionRow = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const ReportForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const SentNotice = styled.div`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
-  padding: 8px 10px;
-  border-radius: 3px;
-  font-size: 12px;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
 
   code {
     background: rgba(0, 0, 0, 0.2);
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: var(--space-hair) var(--space-4);
+    border-radius: var(--radius-xs);
   }
 `;
 
 const ScreenshotPreview = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding-top: 6px;
+  gap: var(--space-10);
+  padding-top: var(--space-6);
 `;
 
 const ScreenshotThumb = styled.img`
   max-width: 120px;
   max-height: 80px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const ScreenshotMeta = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;
 
 const Warn = styled.span`
   color: var(--color-status-warning-bg);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;

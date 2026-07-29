@@ -26,5 +26,5 @@ const Copy = styled.p`
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;

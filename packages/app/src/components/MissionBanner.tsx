@@ -56,11 +56,11 @@ export function MissionBanner() {
 const Banner = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-16);
   height: 30px;
   flex-shrink: 0;
-  margin-bottom: 8px;
-  padding: 0 2px;
+  margin-bottom: var(--space-8);
+  padding: 0 var(--space-2);
   background: var(--color-surface-app);
   font-variant-numeric: tabular-nums;
 `;
@@ -68,7 +68,7 @@ const Banner = styled.div`
 const Field = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const FieldLabel = styled.span`

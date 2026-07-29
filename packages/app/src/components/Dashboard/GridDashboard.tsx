@@ -72,6 +72,10 @@ export function GridDashboard({
         breakpoints={BREAKPOINTS}
         cols={COLS}
         rowHeight={ROW_HEIGHT}
+        /* The desktop dashboard gutter. This is --space-8 written as a
+           react-grid-layout JS prop, so no CSS token pass can reach it; the
+           mobile branch's MobileList gap and MobileCell half-width calc are
+           the same gutter and do use the token. Keep all three equal. */
         margin={[8, 8]}
         containerPadding={[0, 0]}
         draggableHandle=".drag-handle"

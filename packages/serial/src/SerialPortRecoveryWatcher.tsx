@@ -78,18 +78,18 @@ function RecoveryContent({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Body = styled.p`
   margin: 0;
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
   color: var(--color-text-primary);
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-8);
 `;

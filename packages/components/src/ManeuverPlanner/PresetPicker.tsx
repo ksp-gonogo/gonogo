@@ -27,7 +27,7 @@ const PresetSelect = styled.select`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
-  font-size: 12px;
-  padding: 4px 6px;
-  border-radius: 2px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
 `;

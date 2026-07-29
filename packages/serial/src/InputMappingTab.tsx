@@ -300,19 +300,19 @@ export function InputMappingTab({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: 12px;
-  padding: 8px 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) 0;
 `;
 
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const Row = styled.div<{ $listening: boolean }>`
@@ -322,16 +322,16 @@ const Row = styled.div<{ $listening: boolean }>`
       $listening
         ? "var(--color-status-info-fg)"
         : "var(--color-border-subtle)"};
-  border-radius: 4px;
-  padding: 10px 12px;
-  transition: border-color 80ms linear;
+  border-radius: var(--radius-md);
+  padding: var(--space-10) var(--space-12);
+  transition: border-color var(--duration-instant) var(--ease-linear);
 `;
 
 const ListenStatus = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-status-info-fg);
 `;
@@ -339,8 +339,8 @@ const ListenStatus = styled.div`
 const BoundReadout = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-text-dim);
 `;
@@ -353,12 +353,16 @@ const EscHint = styled.span`
 const ListenDot = styled.span`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-info-fg);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: input-mapping-pulse 1.2s ease-in-out infinite;
+    /* 1.2s is physical, not a UI transition: the three listening pulses across
+       this package share it as one attention rhythm and must move as a set,
+       so it stays off the duration scale. The shorthand stays INSIDE the
+       reduced-motion guard with its keyframes. */
+    animation: input-mapping-pulse 1.2s var(--ease-emphasis) infinite;
   }
 
   @keyframes input-mapping-pulse {

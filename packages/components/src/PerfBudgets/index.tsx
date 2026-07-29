@@ -175,28 +175,28 @@ const TONE_COLOR: Record<Tone, string> = {
 
 const List = styled.ul`
   list-style: none;
-  margin: 8px 0 0;
+  margin: var(--space-8) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Row = styled.li<{ $tone: Tone }>`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border-left: 2px solid ${(p) => TONE_COLOR[p.$tone]};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const RowHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Name = styled.span`
@@ -214,13 +214,21 @@ const Rate = styled.span<{ $tone: Tone }>`
 const Bar = styled.div`
   height: 4px;
   background: var(--color-surface-raised);
-  border-radius: 2px;
+  /* A stadium, not a corner: the old 2px was exactly half the 4px height.
+     --radius-pill clamps to half the shorter side, so it renders the same
+     and keeps tracking the height instead of freezing at 2px. */
+  border-radius: var(--radius-pill);
   overflow: hidden;
 `;
 
 const BarFill = styled.div<{ $tone: Tone }>`
   height: 100%;
   background: ${(p) => TONE_COLOR[p.$tone]};
+  /* Off the motion scale on purpose. 0.5s is 2.5x the top of the UI band
+     the tokens cover, and at that length ease-out and ease are plainly
+     different curves, so the ease-out -> --ease-standard snap does not
+     reach here. This is a determinate rate meter, the same class as
+     ui-kit ProgressBar's fill. */
   transition: width 0.5s ease-out;
 `;
 
@@ -233,12 +241,12 @@ const DotSummary = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   justify-content: center;
 `;
 
 const DotHeadline = styled.div<{ $tone: Tone }>`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: ${(p) => TONE_COLOR[p.$tone]};
   letter-spacing: 0.04em;
@@ -247,13 +255,13 @@ const DotHeadline = styled.div<{ $tone: Tone }>`
 const DotRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const Dot = styled.span<{ $tone: Tone }>`
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${(p) => TONE_COLOR[p.$tone]};
 `;
 

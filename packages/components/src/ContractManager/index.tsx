@@ -638,21 +638,27 @@ const Body = styled(ScrollArea)`
      established 16px/8px inset and publish it as the scroll-glow-pad vars
      (Panel.tsx's documented convention) so the top/bottom scroll fade still
      reaches the chrome edge instead of stopping short at the new padding. */
-  --scroll-glow-pad-x: 16px;
-  --scroll-glow-pad-y: 8px;
+  /* These two custom properties are the same decision as the padding
+     below and must move with it: Panel.tsx consumes them as
+     calc(-1 * var(--scroll-glow-pad-x)) / calc(16px + var(--scroll-glow-pad-y)).
+     A padding-family codemod cannot see a custom-property declaration,
+     so they are tokenised here by hand rather than left as literals that
+     silently desynchronise from the inset the next time --space-16 moves. */
+  --scroll-glow-pad-x: var(--space-16);
+  --scroll-glow-pad-y: var(--space-8);
 
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 8px 16px 12px;
+    gap: var(--space-8);
+    padding: var(--space-8) var(--space-16) var(--space-12);
   }
 `;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: 12px;
-  padding: 8px 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) 0;
 `;
 
 // Single column by default (portrait / square). In landscape we switch to a
@@ -671,39 +677,39 @@ const CardList = styled.div<{ $multiColumn: boolean }>`
       ? `display: grid;
          grid-template-columns: repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr));
          align-content: start;
-         gap: 8px;`
+         gap: var(--space-8);`
       : `display: flex;
          flex-direction: column;
-         gap: 8px;`}
+         gap: var(--space-8);`}
 `;
 
 const SectionLabel = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 `;
 
 const OfferedActions = styled.div`
   display: flex;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
 `;
 
 const ActiveActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
 `;
 
 const ActionButton = styled.button`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 4px 10px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   border: 1px solid var(--color-surface-raised);
   cursor: pointer;
   font-family: inherit;
@@ -737,7 +743,7 @@ const ConfirmDeclineButton = styled(ActionButton)`
      the keyframes: wrapping only the keyframes leaves the animation
      active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
-    animation: declinePulse 1s ease-in-out infinite;
+    animation: declinePulse 1s var(--ease-emphasis) infinite;
     @keyframes declinePulse {
       0%,
       100% {
@@ -753,8 +759,8 @@ const ConfirmDeclineButton = styled(ActionButton)`
 const CancelButtonStyled = styled(ActionButton)`
   background: transparent;
   color: var(--color-text-faint);
-  font-size: 10px;
-  padding: 2px 8px;
+  font-size: var(--font-size-2xs);
+  padding: var(--space-2) var(--space-8);
 
   &:hover {
     color: var(--color-status-nogo-fg);
@@ -766,29 +772,29 @@ const ConfirmCancelButton = styled(ActionButton)`
   background: var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
   border-color: transparent;
-  font-size: 10px;
-  padding: 2px 8px;
+  font-size: var(--font-size-2xs);
+  padding: var(--space-2) var(--space-8);
   /* Reuses the declinePulse @keyframes from ConfirmDeclineButton above
      (declared inside the same media guard). */
   @media (prefers-reduced-motion: no-preference) {
-    animation: declinePulse 1s ease-in-out infinite;
+    animation: declinePulse 1s var(--ease-emphasis) infinite;
   }
 `;
 
 const ContractCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: var(--space-4);
+  padding: var(--space-8);
   background: var(--color-surface-panel);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const ContractHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   /* At very narrow widths (compact-4x5) the title (flex:1, wrapping text)
      and the fixed-width deadline label had no room to both sit on one row:
      the deadline text (flex-shrink:0) claimed its full width regardless,
@@ -802,7 +808,7 @@ const ContractHeader = styled.div`
 const ContractTitle = styled.span`
   color: var(--color-text-primary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   flex: 1;
   /* A flex-basis:0 item (what plain "flex: 1" gives) always "fits" its
      flex line at its pre-grow hypothetical size of zero, so ContractHeader's
@@ -819,14 +825,14 @@ const ContractTitle = styled.span`
 
 const ContractDeadline = styled.span`
   color: var(--color-text-faint);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 `;
 
 const Agency = styled.div`
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
 `;
 
@@ -836,23 +842,23 @@ const Rewards = styled.div`
   /* row-gap kept tight so a wrapped third reward (FUNDS/SCI/REP at narrow
      widths, e.g. portrait-5x18) sits close under the first line instead of
      overflowing and clipping the panel edge. */
-  gap: 2px 12px;
+  gap: var(--space-2) var(--space-12);
 `;
 
 const Reward = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const RewardLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
 `;
 
 const RewardValue = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
@@ -860,18 +866,18 @@ const RewardValue = styled.span`
 
 const Parameters = styled.ul`
   list-style: none;
-  margin: 4px 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const Parameter = styled.li<{ $state: ContractParameterState }>`
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--space-6);
+  font-size: var(--font-size-xs);
   color: ${(p) =>
     p.$state === "Complete"
       ? "var(--color-text-muted)"
@@ -951,8 +957,8 @@ function formatAltitudeShort(m: number): string {
 const AltitudeBarRow = styled.span`
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: var(--space-6);
+  margin-top: var(--space-2);
 `;
 
 const AltitudeBarTrack = styled.span`
@@ -960,7 +966,11 @@ const AltitudeBarTrack = styled.span`
   width: 60px;
   height: 4px;
   background: var(--color-border-subtle);
-  border-radius: 2px;
+  /* A stadium, not a corner: the radius is exactly half the track height.
+     --radius-pill clamps to half the shorter side, so it renders
+     identically today and keeps tracking the height if that changes,
+     which --radius-xs (the value this 2px maps to) would not. */
+  border-radius: var(--radius-pill);
   overflow: hidden;
 `;
 
@@ -973,11 +983,11 @@ const AltitudeBarFill = styled.span.attrs<{ $frac: number; $inBand: boolean }>(
   height: 100%;
   background: ${(p) =>
     p.$inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)"};
-  transition: width 200ms ease;
+  transition: width var(--duration-slow) var(--ease-standard);
 `;
 
 const AltitudeBarLabel = styled.span<{ $inBand: boolean }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
   color: ${(p) =>
     p.$inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
@@ -987,7 +997,7 @@ const ParameterAlarmButton = styled.button<{ $set?: boolean }>`
   flex-shrink: 0;
   background: transparent;
   border: none;
-  padding: 2px 4px;
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   color: ${(p) =>
     p.$set ? "var(--color-accent-fg)" : "var(--color-text-faint)"};

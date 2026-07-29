@@ -35,7 +35,7 @@ export function Switch({
 const SwitchLabel = styled.label<{ $disabled?: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6, 6px);
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   user-select: none;
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
@@ -43,7 +43,7 @@ const SwitchLabel = styled.label<{ $disabled?: boolean }>`
   @media (pointer: coarse) {
     /* Expand tap target to 44px tall without enlarging the visual track. */
     min-height: 44px;
-    padding: 0 6px;
+    padding: 0 var(--space-6, 6px);
   }
 `;
 
@@ -57,23 +57,30 @@ const SwitchInput = styled.input`
 const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 28px;
   height: 14px;
-  border-radius: 7px;
+  /* Stadium, not a corner: the old 7px was exactly half the 14px height.
+     --radius-pill clamps to the same shape and survives a height change. */
+  border-radius: var(--radius-pill, 999px);
   background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--duration-base, 150ms), border-color var(--duration-base, 150ms);
 `;
 
 const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   position: absolute;
+  /* Off the spacing ladder on purpose: 3px is (14 - 8) / 2, the centring
+     offset for an 8px thumb in a 14px track, and the checked 16px is the
+     travel that pairs with it. Snapping either to a rung decentres the thumb
+     and desynchronises it from the JS ternary below. Recompute both if the
+     track height or thumb size changes. */
   top: 3px;
   left: ${({ $checked }) => ($checked ? "16px" : "3px")};
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle, 50%);
   background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-text-faint)" : $checked ? "var(--color-accent-fg)" : "var(--color-text-faint)")};
-  transition: left 0.15s, background 0.15s;
+  transition: left var(--duration-base, 150ms), background var(--duration-base, 150ms);
 `;
 
 const SwitchText = styled.span`

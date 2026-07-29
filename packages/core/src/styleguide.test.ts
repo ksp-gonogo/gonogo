@@ -2,6 +2,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  SCANNED_PACKAGE_ROOTS,
+  styleguideScanRoots,
+  UNSCANNED_PACKAGE_ROOTS,
+} from "./styleguideScanRoots";
 
 /**
  * Design-system guard: prevent new raw hex colour literals leaking into
@@ -10,10 +15,18 @@ import { describe, expect, it } from "vitest";
  * the build with a clear pointer at the offender.
  *
  * The expected route to landing colours:
- *   1. Add the value to `packages/app/src/styles/global.css` as a
- *      `--color-*` token (or pick an existing one).
- *   2. Add the matching role to `packages/ui/src/themes/defaultDark.ts`.
- *   3. Reference via `var(--color-...)` in styled-components, or
+ *   1. Add the value to `packages/theme/src/tokens.css` as a `--color-*`
+ *      token (or pick an existing one). It is the single source of
+ *      truth: `packages/app/src/styles/global.css` only `@import`s it,
+ *      and a separate ratchet (`tokenSingleSource.test.ts`) FORBIDS
+ *      re-declaring a token there.
+ *   2. Mirror it into `packages/theme/src/GonogoTokens.tsx`, the
+ *      styled-components mounting path, which `tokensMirror.test.ts`
+ *      holds byte-equal to tokens.css.
+ *   3. Add the matching role to `packages/theme/src/defaultDarkTheme.ts`
+ *      (re-exported through ui-kit and ui) if a call site needs it from
+ *      JS rather than CSS.
+ *   4. Reference via `var(--color-...)` in styled-components, or
  *      `${({ theme }) => theme.colors...}` if the call site needs JS.
  *
  * Run `node scripts/palette-audit.mjs` to triage existing raw hex.
@@ -51,21 +64,32 @@ const ALLOWED_PATHS = [
   // map/overlay canvases resolve theme tokens at draw time via canvasColor();
   // the raw hex is only the getComputedStyle fallback, not a styled colour.
   "packages/components/src/MapView/index.tsx",
+  // ScanSat Minimap.tsx: the mod-side copy of the same widget, and the same
+  // canvas 2D `fillStyle` constraint as the packages/ copy above. Two of its
+  // three literals are fillStyle assignments; the third is the background
+  // colour quoted inside the comment that explains them.
+  "mod/GonogoScansatUplink/client/src/Scanning/Minimap.tsx",
 ];
 
-// Source roots to scan. Excludes the relay because it's a server, not UI.
-const SCAN_ROOTS = [
-  "packages/app/src",
-  "packages/components/src",
-  "packages/core/src",
-  "packages/data/src",
-  "packages/serial/src",
-  "packages/ui/src",
-];
+// Source roots to scan, shared with the token ratchet so the two can
+// never disagree about what is covered; see `styleguideScanRoots.ts` for
+// why each `packages/*\/src` is in or out (the relay is a server, the
+// theme package is the token source of truth) and why the mod client
+// roots are resolved by listing rather than enumerated.
+const SCAN_ROOTS = styleguideScanRoots(
+  findRepoRoot(dirname(fileURLToPath(import.meta.url))),
+);
 
 // Current baseline. When you drop the count, lower this number in the
 // same commit. The test surfaces a hint when you can. Goal: hold at 0.
-const HEX_OCCURRENCE_BASELINE = 0;
+//
+// 1: `mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx`'s
+// `#c9c9c9` on the feed-unavailable scrim, the only offender the widened
+// roots turned up. It sat outside the scan for as long as the mod tree
+// did. Route it through a `--color-text-*` token (it is a near-miss of
+// `--color-text-primary`, so the swap is a visible change and wants its
+// own commit plus a baseline regen) and drop this to 0.
+const HEX_OCCURRENCE_BASELINE = 1;
 
 const HEX_RE =
   /#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b/g;
@@ -124,8 +148,10 @@ describe("design-system: raw hex literals", () => {
         .join("\n");
       throw new Error(
         `Raw hex literal count (${offenders.length}) exceeds baseline (${HEX_OCCURRENCE_BASELINE}) by ${newCount}.\n` +
-          `Add new colours to packages/app/src/styles/global.css as --color-* tokens, ` +
-          `or reuse an existing token. Recent offenders:\n${sample}`,
+          `Add new colours to packages/theme/src/tokens.css as --color-* tokens ` +
+          `(and mirror them into GonogoTokens.tsx), or reuse an existing token. ` +
+          `Do NOT add them to packages/app/src/styles/global.css: tokenSingleSource.test.ts ` +
+          `forbids re-declaring a token there. Recent offenders:\n${sample}`,
       );
     }
     if (offenders.length < HEX_OCCURRENCE_BASELINE) {
@@ -138,5 +164,50 @@ describe("design-system: raw hex literals", () => {
       );
     }
     expect(offenders.length).toBeLessThanOrEqual(HEX_OCCURRENCE_BASELINE);
+  });
+});
+
+describe("design-system: ratchet scan coverage", () => {
+  // The failure mode this catches is the one that actually happened: the
+  // hex ratchet's root list was written when the repo had six UI
+  // packages, three more landed, and nobody noticed the gate had stopped
+  // covering them. A new package is now a test failure, not a silence.
+  it("scans or explicitly excuses every packages/*/src", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const onDisk = readdirSync(join(root, "packages"))
+      .map((name) => `packages/${name}/src`)
+      .filter((rel) => existsSync(join(root, rel)))
+      .sort();
+    const accounted = new Set([
+      ...SCANNED_PACKAGE_ROOTS,
+      ...UNSCANNED_PACKAGE_ROOTS.map((entry) => entry.path),
+    ]);
+    const unaccounted = onDisk.filter((rel) => !accounted.has(rel));
+    if (unaccounted.length > 0) {
+      throw new Error(
+        `These source roots are neither scanned nor excused:\n` +
+          unaccounted.map((rel) => `  ${rel}`).join("\n") +
+          `\nAdd each to SCANNED_PACKAGE_ROOTS in packages/core/src/styleguideScanRoots.ts, ` +
+          `or to UNSCANNED_PACKAGE_ROOTS with a reason if it renders nothing.`,
+      );
+    }
+    expect(unaccounted).toEqual([]);
+  });
+
+  it("does not excuse a root that no longer exists", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const stale = UNSCANNED_PACKAGE_ROOTS.filter(
+      (entry) => !existsSync(join(root, entry.path)),
+    ).map((entry) => entry.path);
+    expect(stale).toEqual([]);
+  });
+
+  it("gives every excused root a substantive reason", () => {
+    for (const entry of UNSCANNED_PACKAGE_ROOTS) {
+      expect(
+        entry.reason.trim().length,
+        `${entry.path} needs a reason explaining why it is outside the ratchets`,
+      ).toBeGreaterThan(30);
+    }
   });
 });

@@ -77,7 +77,12 @@ const DimmedLayer = styled.div`
   opacity: 0.35;
   pointer-events: none;
   filter: saturate(0.5);
-  transition: opacity 200ms ease-out;
+  /* Snapped, not exact: this was 200ms ease-out. The duration is unchanged;
+     the curve moves ease-out to ease, because the motion scale has no
+     ease-out rung by design. On a 0.35-opacity dim that is not a read the
+     operator takes anything from, so the snap is accepted rather than
+     carved out. */
+  transition: opacity var(--duration-slow) var(--ease-standard);
 `;
 
 const Banner = styled.div`
@@ -87,11 +92,11 @@ const Banner = styled.div`
   transform: translate(-50%, -50%);
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
   border: 1px solid var(--color-surface-raised);
-  border-radius: 3px;
-  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-6) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   align-items: center;
   text-align: center;
   max-width: 80%;
@@ -101,7 +106,7 @@ const Banner = styled.div`
 `;
 
 const BannerMessage = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -109,7 +114,7 @@ const BannerMessage = styled.span`
 `;
 
 const BannerHint = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
   letter-spacing: 0.04em;
 `;

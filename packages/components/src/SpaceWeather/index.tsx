@@ -431,21 +431,21 @@ const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Section = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-top: 6px;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
 `;
 
 const SectionHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SectionLabel = styled.span`
@@ -472,8 +472,8 @@ const MidRow = styled.div<{ $compact: boolean }>`
   grid-template-columns: ${({ $compact }) =>
     $compact ? "minmax(64px, 36%) 1fr" : "minmax(90px, 42%) 1fr"};
   align-items: stretch;
-  gap: 12px;
-  margin-top: ${({ $compact }) => ($compact ? "4px" : "10px")};
+  gap: var(--space-12);
+  margin-top: ${({ $compact }) => ($compact ? "var(--space-4)" : "var(--space-10)")};
   min-height: 0;
   overflow: hidden;
 `;
@@ -482,8 +482,8 @@ const FluxSection = styled.div`
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 10px;
+  gap: var(--space-4);
+  margin-top: var(--space-10);
   min-height: 0;
 `;
 
@@ -509,15 +509,15 @@ const BlackoutTag = styled.span`
   bottom: 2px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
      the 4.5:1 AA floor. -on-bg is the token for exactly this case. */
   color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
-  border-radius: 3px;
-  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-hair) var(--space-6);
   white-space: nowrap;
 `;
 
@@ -529,6 +529,9 @@ const DoseSlot = styled.div`
 `;
 
 const DoseValue = styled.div<{ $tone: Tone; $compact: boolean }>`
+  /* Both off their scales, as one pair: 19/23px is a prop-driven display
+     tier above the 16px top of the type scale, and the 1.05 is tuned to it,
+     a body line-height on a readout this size clips descenders. */
   font-size: ${({ $compact }) => ($compact ? "19px" : "23px")};
   font-weight: 700;
   line-height: 1.05;
@@ -550,7 +553,7 @@ const FieldLabel = styled.div`
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-top: 8px;
+  margin-top: var(--space-8);
 `;
 
 const ChartSlot = styled.div`
@@ -562,23 +565,23 @@ const ChartSlot = styled.div`
 const FooterRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   margin-top: auto;
-  padding-top: 6px;
+  padding-top: var(--space-6);
 `;
 
 const EnvRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 
 const EnvTag = styled.span<{ $on: boolean; $tone?: Tone }>`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-subtle);
   color: ${({ $on, $tone }) =>
     $on ? TONE_HEX[$tone ?? "go"] : "var(--color-text-muted)"};

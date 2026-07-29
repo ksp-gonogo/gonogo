@@ -825,7 +825,7 @@ const EmptyStateOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-faint);
   pointer-events: none;
 `;
@@ -837,28 +837,28 @@ const AxisWarning = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-status-warning-bg);
   background: rgba(0, 0, 0, 0.7);
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   pointer-events: none;
 `;
 
 const SeriesRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
 `;
 
 const SeriesGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 4px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 `;
 
 const DomainRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const AddButton = styled.button`
@@ -866,10 +866,10 @@ const AddButton = styled.button`
   border: 1px dashed var(--color-text-faint);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 12px;
-  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) var(--space-8);
   width: 100%;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
 
@@ -878,9 +878,9 @@ const RemoveButton = styled.button`
   border: none;
   color: var(--color-text-dim);
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 4px;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-flush);
+  padding: 0 var(--space-4);
   flex-shrink: 0;
   &:hover { color: var(--color-text-primary); }
 `;

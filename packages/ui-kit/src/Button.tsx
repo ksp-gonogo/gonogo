@@ -4,15 +4,15 @@ import styled from "styled-components";
 export const Button = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: 600;
   letter-spacing: 0.1em;
-  padding: 5px 12px;
+  padding: var(--space-6, 6px) var(--space-12, 12px);
   cursor: pointer;
   text-transform: uppercase;
-  transition: border-color 0.1s, color 0.1s;
+  transition: border-color var(--duration-fast, 120ms), color var(--duration-fast, 120ms);
 
   @media (hover: hover) {
     &:hover {
@@ -29,7 +29,11 @@ export const Button = styled.button`
   }
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: 8px 14px;
+    /* One rung WIDER than the base inset, not the same rung. The old coarse
+       value was 14px against a 12px base; both snap to --space-12, which would
+       have erased the widening this block exists for (min-height only covers
+       the vertical target). --space-16 keeps a touch-sized horizontal target. */
+    padding: var(--space-8, 8px) var(--space-16, 16px);
   }
 `;
 
@@ -72,12 +76,12 @@ export const TextButton = styled.button`
   background: none;
   border: none;
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-family: inherit;
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
-  transition: color 0.1s;
+  transition: color var(--duration-fast, 120ms);
 
   @media (hover: hover) {
     &:hover {
@@ -101,9 +105,9 @@ export const IconButton = styled.button`
   cursor: pointer;
   color: var(--color-text-faint);
   font-size: var(--font-size-base);
-  line-height: 1;
-  padding: 2px 4px;
-  transition: color 0.1s;
+  line-height: var(--line-height-flush, 1);
+  padding: var(--space-2, 2px) var(--space-4, 4px);
+  transition: color var(--duration-fast, 120ms);
 
   @media (hover: hover) {
     &:hover {

@@ -46,12 +46,15 @@ const SpinnerEl = styled.span<{
   display: inline-block;
   width: ${({ $size }) => `${$size}px`};
   height: ${({ $size }) => `${$size}px`};
-  border-radius: 50%;
+  border-radius: var(--radius-circle, 50%);
   border: ${({ $thickness }) => `${$thickness}px`} solid
     var(--color-border-subtle);
   border-top-color: ${({ $color }) => $color};
   flex-shrink: 0;
   @media (prefers-reduced-motion: no-preference) {
+    /* Off the motion scale on purpose: this is continuous physical rotation,
+       not a UI transition, so the period and the linear timing both stay
+       literal. */
     animation: ${spin} 700ms linear infinite;
   }
 `;

@@ -80,7 +80,7 @@ export function AnalogPad({ label, onChange, onRelease }: Readonly<Props>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const Label = styled.span`
@@ -95,7 +95,7 @@ const Track = styled.div`
   height: 24px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   touch-action: none;
 `;
@@ -103,8 +103,8 @@ const Track = styled.div`
 const Centre = styled.div`
   position: absolute;
   left: 50%;
-  top: 4px;
-  bottom: 4px;
+  top: var(--space-4);
+  bottom: var(--space-4);
   width: 1px;
   background: var(--color-border-subtle);
 `;
@@ -115,7 +115,7 @@ const Thumb = styled.div<{ $active: boolean }>`
   transform: translate(-50%, -50%);
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${({ $active }) => ($active ? "var(--color-accent-fg)" : "var(--color-status-info-fg)")};
   box-shadow: 0 0 6px
     ${({ $active }) =>

@@ -62,7 +62,7 @@ export function Meter({
 export const MeterStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
 `;
 
@@ -96,7 +96,7 @@ const SIZE_TRACK = {
 const Meter__Root = styled.div<{ $size: MeterSize }>`
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
   width: 100%;
   min-width: 0;
 `;
@@ -105,7 +105,7 @@ const Meter__Head = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -129,7 +129,7 @@ const Meter__Value = styled.span`
 
 const Meter__Track = styled.div<{ $size: MeterSize }>`
   width: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   overflow: hidden;
@@ -138,8 +138,8 @@ const Meter__Track = styled.div<{ $size: MeterSize }>`
 
 const Meter__Fill = styled.div<{ $tone: MeterTone }>`
   height: 100%;
-  border-radius: 999px;
-  transition: width 200ms ease;
+  border-radius: var(--radius-pill);
+  transition: width var(--duration-slow) var(--ease-standard);
   ${({ $tone }) => TONE_FILL[$tone]}
 
   @media (prefers-reduced-motion: reduce) {

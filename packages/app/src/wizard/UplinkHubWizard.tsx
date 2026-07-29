@@ -119,7 +119,7 @@ const Intro = styled.p`
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;
 
 const StepHeading = styled.h3`
@@ -130,11 +130,11 @@ const StepHeading = styled.h3`
   text-transform: uppercase;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-4);
 `;
 
 const Nav = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-8);
 `;

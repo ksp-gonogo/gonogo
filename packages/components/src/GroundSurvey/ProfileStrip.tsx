@@ -10,6 +10,10 @@ export interface ProfileStripProps {
   height: number;
 }
 
+// Chart geometry, not insets, so these stay off the spacing scale even
+// though the viewBox is 1:1 with CSS px. PAD_BOTTOM positions the baseline
+// (y1 = height - PAD_BOTTOM) and reserves the label band beneath it; it is
+// derived from the plot, not from the layout rhythm.
 const PAD_X = 6;
 const PAD_TOP = 6;
 const PAD_BOTTOM = 14;

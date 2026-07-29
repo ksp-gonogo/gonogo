@@ -189,7 +189,10 @@ const Body = styled.div`
   justify-content: center;
   /* The Gauge SVG draws its value label inside its own bottom strip, flush
      with the SVG box edge. A generous gap keeps that label off the sparkline
-     below it: at the 4×5 default the two used to collide. */
+     below it: at the 4×5 default the two used to collide. That makes this
+     measured clearance rather than a rhythm step, so it stays off the
+     spacing ladder, the 20 -> 16 snap is the direction that reproduces the
+     collision. */
   gap: 20px;
   min-height: 0;
 `;
@@ -216,20 +219,21 @@ const TinyBody = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   min-height: 0;
 `;
 
 const TinyValue = styled.span<{ $color: string }>`
   /* 24 px keeps a three-character value ("1.8") within ~50 px so the
      leading digit doesn't clip at the panel's ~70 px inner width. The
-     panel title "TWR" supplies the unit context. */
+     panel title "TWR" supplies the unit context. Comment-locked to that box
+     width, so off the type scale, which in any case stops at 16px. */
   font-size: 24px;
   font-weight: 700;
   color: ${(p) => p.$color};
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
-  line-height: 1;
+  line-height: var(--line-height-flush);
   white-space: nowrap;
 `;
 

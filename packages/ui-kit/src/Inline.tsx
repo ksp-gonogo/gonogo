@@ -36,5 +36,5 @@ const Inline__Root = styled.span<{ $gap: SpaceToken; $inset: boolean }>`
   display: inline-flex;
   gap: ${({ theme, $gap }) => theme.space[$gap]};
   flex-shrink: 0;
-  ${({ $inset }) => $inset && `margin-left: 6px;`}
+  ${({ $inset }) => $inset && `margin-left: var(--space-6, 6px);`}
 `;

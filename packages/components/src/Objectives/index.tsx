@@ -287,8 +287,8 @@ const EmptyFallbackWrap = styled.div``;
 const Sections = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 8px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8) var(--space-8);
   overflow: auto;
 
   /* When any source has rendered content, hide the frame's empty fallback. When
@@ -305,7 +305,7 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const STATE_COLOR: Record<ObjectiveState, string> = {
@@ -317,20 +317,20 @@ const STATE_COLOR: Record<ObjectiveState, string> = {
 
 const Item = styled.li<{ $state: ObjectiveState }>`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: baseline;
   opacity: ${(p) => (p.$state === "pending" ? 0.6 : 1)};
 `;
 
 const Glyph = styled.span<{ $state: ObjectiveState }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${(p) => STATE_COLOR[p.$state]};
 `;
 
 const Text = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
   min-width: 0;
   flex: 1 1 auto;
 `;
@@ -339,7 +339,7 @@ const AlarmBell = styled.button<{ $set: boolean }>`
   flex: 0 0 auto;
   align-self: flex-start;
   display: inline-flex;
-  padding: 2px;
+  padding: var(--space-2);
   background: none;
   border: none;
   cursor: pointer;
@@ -348,7 +348,7 @@ const AlarmBell = styled.button<{ $set: boolean }>`
 `;
 
 const Title = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const Optional = styled.span`
@@ -357,13 +357,13 @@ const Optional = styled.span`
 `;
 
 const Sourced = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-secondary);
   letter-spacing: 0.03em;
 `;
 
 const Desc = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-secondary);
 `;
 

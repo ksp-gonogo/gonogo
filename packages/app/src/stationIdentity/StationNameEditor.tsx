@@ -5,10 +5,26 @@ import {
   useStationName,
 } from "./StationIdentityContext";
 
+/*
+ * The four font-size ternaries in this file stay literal, as one unit.
+ *
+ * NameSpan and NameInput are the display and edit states of the SAME chip and
+ * share font-size, padding, radius and a 1px border; migrating one and not the
+ * other changes the chip's width the instant the operator clicks to rename,
+ * and a `${...}` interpolation is invisible to a CSS token pass, so a partial
+ * sweep is the likely outcome rather than a hypothetical one.
+ *
+ * Pricing the swap: Label's 9px would take --font-size-2xs (+1px), which is
+ * 11px under `@media (pointer: coarse)`, i.e. 2px of growth on a Steam Deck.
+ * This chip renders inside StationScreen's position: fixed StationNameChip,
+ * which has a logged incident of intercepting clicks on the widgets beneath
+ * it. Growing it is not free. Padding, radius and gap are exact rungs and
+ * have migrated; the type moves when someone re-measures that overlay.
+ */
 const Wrap = styled.div<{ $compact: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-text-primary);
 `;
@@ -23,8 +39,8 @@ const Label = styled.span<{ $compact: boolean }>`
 const NameSpan = styled.button<{ $compact: boolean }>`
   background: none;
   border: 1px dashed transparent;
-  border-radius: 3px;
-  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-6);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-status-info-fg);
   cursor: text;
@@ -39,8 +55,8 @@ const NameSpan = styled.button<{ $compact: boolean }>`
 const NameInput = styled.input<{ $compact: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-text-faint);
-  border-radius: 3px;
-  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-6);
   color: var(--color-status-info-fg);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   letter-spacing: 0.05em;

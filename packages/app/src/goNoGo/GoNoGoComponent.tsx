@@ -556,7 +556,7 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   border: 2px solid ${({ $variant }) => BIG_BUTTON_BORDER[$variant]};
   background: ${({ $variant }) => BIG_BUTTON_BG[$variant]};
   color: ${({ $variant }) => BIG_BUTTON_COLOR[$variant]};
@@ -568,9 +568,9 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-6);
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
-  transition: transform 0.1s ease;
+  transition: transform var(--duration-fast) var(--ease-standard);
   /*
    * Establish a CSS containment context so ButtonLabel can size its text
    * relative to the button itself (cqmin), not the viewport. The old
@@ -591,24 +591,24 @@ const ButtonLabel = styled.span`
    * exceeding a sensible ceiling on huge wallboard layouts.
    */
   font-size: clamp(28px, 22cqmin, 120px);
-  line-height: 1;
+  line-height: var(--line-height-flush);
 `;
 
 const CountdownOverlay = styled.span`
   position: absolute;
   top: 8px;
   left: 8px;
-  padding: 4px 10px;
+  padding: var(--space-4) var(--space-10);
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--color-status-warning-bg);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   letter-spacing: 0.15em;
 `;
 
 const AbortNotice = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.08em;
   text-transform: none;
@@ -617,10 +617,10 @@ const AbortNotice = styled.span`
 const MainLayout = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
   height: 100%;
-  padding: 12px;
+  padding: var(--space-12);
   box-sizing: border-box;
 `;
 
@@ -628,11 +628,11 @@ const MainHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const HeaderLabel = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.15em;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -640,17 +640,17 @@ const HeaderLabel = styled.span`
 
 const HeaderRight = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const WarnChip = styled.span`
   font-size: var(--font-size-xs);
   letter-spacing: 0.15em;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
   border: 1px solid var(--color-status-warning-border-muted);
   background: rgba(120, 100, 40, 0.25);
   color: var(--color-status-warning-fg-muted);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   text-transform: uppercase;
 `;
 
@@ -664,7 +664,7 @@ const CountdownBanner = styled.div`
 
 const AbortBanner = styled.div`
   text-align: center;
-  padding: 6px 10px;
+  padding: var(--space-6) var(--space-10);
   border: 1px solid var(--color-status-nogo-bg);
   background: rgba(200, 40, 40, 0.2);
   color: var(--color-status-nogo-fg);
@@ -677,19 +677,19 @@ const Grid = styled.div`
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  gap: var(--space-8);
   align-content: start;
 `;
 
 const Cell = styled.div<{ $state: CellState }>`
-  padding: 8px 10px;
-  border-radius: 3px;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-sm);
   border: 1px solid ${({ $state }) => cellBorder($state)};
   background: ${({ $state }) => cellBg($state)};
   color: ${({ $state }) => cellColor($state)};
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 function cellBorder(state: CellState): string {
@@ -736,11 +736,14 @@ function cellColor(state: CellState): string {
 }
 
 const CellName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
 `;
 
 const CellStatus = styled.span`
+  /* Display tier: the type scale stops at --font-size-lg on purpose,
+     everything above 16px in this codebase is a clamp, a JS fit, or locked
+     to a box width. */
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -753,11 +756,11 @@ const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
 };
 
 const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
-  margin-top: 4px;
-  padding: 1px 6px;
+  margin-top: var(--space-4);
+  padding: var(--space-hair) var(--space-6);
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
   color: ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
   background: rgba(0, 0, 0, 0.2);
@@ -765,16 +768,16 @@ const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-align: center;
-  padding: 20px;
+  padding: var(--space-16);
 `;
 
 const ConfigWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-12);
 `;
 
 // ---------------------------------------------------------------------------

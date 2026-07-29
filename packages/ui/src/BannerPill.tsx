@@ -16,7 +16,12 @@ export interface BannerPillProps {
   anchor?: "top" | "inline";
   /** Top offset in px when anchor === "top". Default: 12. */
   top?: number;
-  /** Stack order (z-index). Default: 999. */
+  /**
+   * Stack order (z-index). Default: 999. Only reaches the DOM through the
+   * `anchor="top"` FixedPill. Off the z-index ladder because it is a TS prop
+   * default rather than CSS, so a caller can pass anything; the ladder governs
+   * the styled rules, not this escape hatch.
+   */
   zIndex?: number;
   /** Optional box-shadow glow override. */
   glow?: string;
@@ -95,11 +100,11 @@ const FixedPill = styled.div<{
   z-index: ${(p) => p.$zIndex};
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
+  gap: var(--space-10);
+  padding: var(--space-6) var(--space-12);
   background: rgba(0, 0, 0, 0.82);
   border: 1px solid ${(p) => p.$accent};
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: ${(p) => p.$accent};
   font-size: var(--font-size-sm);
   letter-spacing: 0.12em;
@@ -114,11 +119,11 @@ const InlinePill = styled.div<{
 }>`
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-12);
   background: rgba(0, 0, 0, 0.88);
   border: 1px solid ${(p) => p.$accent};
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: ${(p) => p.$accent};
   font-size: var(--font-size-sm);
   letter-spacing: 0.08em;
@@ -126,7 +131,7 @@ const InlinePill = styled.div<{
   white-space: nowrap;
   cursor: ${(p) => (p.$clickable ? "pointer" : "default")};
   pointer-events: ${(p) => (p.$clickable ? "auto" : "none")};
-  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
   will-change: transform, opacity;
   ${(p) => (p.$glow ? css`box-shadow: ${p.$glow};` : "")}
@@ -158,7 +163,7 @@ const InlinePill = styled.div<{
 const Dot = styled.span<{ $accent: string; $pulse: boolean }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${(p) => p.$accent};
   flex-shrink: 0;
 
@@ -166,7 +171,7 @@ const Dot = styled.span<{ $accent: string; $pulse: boolean }>`
     p.$pulse &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: status-pill-pulse 1.2s ease-in-out infinite;
+        animation: status-pill-pulse 1.2s var(--ease-emphasis) infinite;
       }
       @keyframes status-pill-pulse {
         0%,

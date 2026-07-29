@@ -611,14 +611,14 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const SituationLine = styled(PanelSubtitle)`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SituationText = styled.span`
@@ -630,11 +630,11 @@ const SituationText = styled.span`
 `;
 
 const NewBadge = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.1em;
-  padding: 1px 5px;
-  border-radius: 2px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-xs);
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
 `;
@@ -646,13 +646,13 @@ const Body = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-10);
   }
 `;
 
 const Section = styled.div`
   &:first-child {
-    margin-top: 4px;
+    margin-top: var(--space-4);
   }
 `;
 
@@ -661,12 +661,12 @@ const SectionTitle = styled.div`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 `;
 
 const SectionMeta = styled.span`
   color: var(--color-text-faint);
-  margin-left: 4px;
+  margin-left: var(--space-4);
   font-weight: 400;
   letter-spacing: 0.04em;
 `;
@@ -674,17 +674,20 @@ const SectionMeta = styled.span`
 const SensorList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const SensorRowWrap = styled.div`
   display: grid;
   grid-template-columns: 90px 1fr;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: baseline;
 `;
 
 const SensorLabel = styled.div`
+  /* Off the type scale: this fills the fixed 90px track of SensorRowWrap's
+     grid above with no overflow or ellipsis to fall back on, and
+     --font-size-xs is 12px on a coarse pointer. */
   font-size: 11px;
   color: var(--color-text-muted);
 `;
@@ -692,22 +695,22 @@ const SensorLabel = styled.div`
 const SensorValues = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const SensorMuted = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 `;
 
 const SensorReadingChip = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
-  padding: 1px 5px;
+  gap: var(--space-4);
+  padding: var(--space-hair) var(--space-6);
   background: var(--color-surface-panel);
-  border-radius: 2px;
-  font-size: 11px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
 `;
 
 const ChipPart = styled.span`
@@ -725,14 +728,14 @@ const ExperimentListWrap = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const ExperimentRow = styled.li`
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-8);
+  font-size: var(--font-size-xs);
 `;
 
 const ExpSubject = styled.span`
@@ -759,16 +762,16 @@ const BreakdownPotential = styled.span`
 `;
 
 const Muted = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 `;
 
 const CareerStrip = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 8px;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+  padding-top: var(--space-8);
   border-top: 1px solid var(--color-surface-raised);
 `;
 
@@ -779,13 +782,13 @@ const CareerCell = styled.div`
 `;
 
 const CareerLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
 `;
 
 const CareerValue = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 `;

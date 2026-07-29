@@ -483,7 +483,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
   flex-wrap: wrap;
 `;
@@ -495,7 +495,7 @@ const Body = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-10);
   }
 `;
 
@@ -503,22 +503,27 @@ const FacilityGrid = styled.div<{ $compact: boolean }>`
   display: grid;
   grid-template-columns: ${(p) =>
     p.$compact ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))"};
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const FacilityCell = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const FacilityLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  /* Off the line-height scale: 1.3 and the min-height below it are one
+     value written twice (2.6em = 2 x 1.3), a hand-computed two-line
+     reserve. --line-height-body (1.4) would need the reserve at 2.8em, and
+     moving one without the other brings the button-misalignment bug the
+     comment below records straight back. */
   line-height: 1.3;
   /* Reserve room for a two-line wrap (e.g. "Launch Pad" / "Mission
      Control" at the narrow default-6x7 3-col grid) on every cell, not
@@ -533,7 +538,7 @@ const FacilityLabel = styled.span`
 `;
 
 const FacilityValue = styled.span`
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -545,7 +550,7 @@ const Tier = styled.span`
 
 const Slash = styled.span`
   color: var(--color-text-faint);
-  margin: 0 2px;
+  margin: 0 var(--space-2);
 `;
 
 const TierMax = styled.span`
@@ -560,8 +565,8 @@ const UpgradeRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
   /* Allow the Upgrade button to wrap to a new line when the grid cell
      is too narrow for cost + button side-by-side (default-6x7 at
      3-col grid gives ~62 px per cell, not enough for both). The
@@ -570,7 +575,7 @@ const UpgradeRow = styled.div`
 `;
 
 const UpgradeCost = styled.span<{ $afford: boolean }>`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   /* Unaffordable cost must read as a nogo signal on the dark panel cell.
      The nogo *-fg token is the foreground meant to sit on the red *-bg
      fill: as standalone text on the near-black cell it's a pale pink that
@@ -585,30 +590,30 @@ const UpgradeCost = styled.span<{ $afford: boolean }>`
 `;
 
 const MaxBadge = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
   text-transform: uppercase;
-  margin-top: 2px;
+  margin-top: var(--space-2);
 `;
 
 const FullText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-  padding-top: 6px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
   border-top: 1px dashed var(--color-surface-raised);
 `;
 
 const FullTextBlock = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const FullTextLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -617,18 +622,18 @@ const FullTextLabel = styled.span`
 const FullTextBody = styled.pre`
   margin: 0;
   font-family: inherit;
-  font-size: 10px;
-  line-height: 1.35;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-body);
   color: var(--color-text-muted);
   white-space: pre-wrap;
 `;
 
 const UpgradeButtonStyled = styled.button`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);
@@ -667,7 +672,8 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
      the keyframes: the bare property outside the guard fires for
      reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
-    animation: upgradePulse 1s ease-in-out infinite;
+    /* 1s stays literal: an attention pulse, not a UI transition. */
+    animation: upgradePulse 1s var(--ease-emphasis) infinite;
     @keyframes upgradePulse {
       0%,
       100% {
@@ -682,9 +688,9 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
 
 const Footer = styled.div`
   display: flex;
-  gap: 16px;
-  margin-top: 6px;
-  padding-top: 8px;
+  gap: var(--space-16);
+  margin-top: var(--space-6);
+  padding-top: var(--space-8);
   border-top: 1px solid var(--color-surface-raised);
 `;
 
@@ -694,13 +700,13 @@ const FooterCell = styled.div`
 `;
 
 const FooterLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
 `;
 
 const FooterValue = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -709,7 +715,7 @@ const FooterValue = styled.span`
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: 2px;
+  margin-left: var(--space-2);
 `;
 
 const TinyBody = styled.div`
@@ -718,8 +724,8 @@ const TinyBody = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   overflow: hidden;
   container-type: inline-size;
 `;
@@ -727,24 +733,29 @@ const TinyBody = styled.div`
 const TinyFunds = styled.div`
   /* Fluid size: large in a roomy "tiny" box (e.g. compact-4x7) but small
      enough that the abbreviated value (formatCompactCurrency → "290k") still fits the
-     widget's 2x3 minSize floor (~110px wide) without clipping. */
+     widget's 2x3 minSize floor (~110px wide) without clipping. Fluid, so
+     off the fixed type scale by construction. */
   font-size: clamp(12px, 13cqw, 22px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-status-go-fg);
-  line-height: 1;
+  line-height: var(--line-height-flush);
   max-width: 100%;
   white-space: nowrap;
 `;
 
 const TinyFundsUnit = styled.span`
+  /* Off the type scale: this sits beside TinyFunds' clamp above, which is
+     pinned at its 12px floor at the 2x3 minSize. --font-size-sm is 13px on
+     a coarse pointer, which would render the "f" suffix larger than the
+     number it qualifies and eat the ~110px the value needs. */
   font-size: 12px;
   color: var(--color-text-muted);
-  margin-left: 2px;
+  margin-left: var(--space-2);
 `;
 
 const TinyPad = styled.span<{ $occupied: boolean }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${(p) =>

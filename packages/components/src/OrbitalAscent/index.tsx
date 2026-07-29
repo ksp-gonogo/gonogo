@@ -137,8 +137,8 @@ const Notice = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   background: rgba(0, 0, 0, 0.7);
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   pointer-events: none;
 `;
 

@@ -206,11 +206,11 @@ const Backdrop = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
-  z-index: 800;
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: var(--space-24);
   pointer-events: none;
 `;
 
@@ -221,7 +221,7 @@ const Panel = styled.div`
   max-width: 1600px;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
@@ -232,21 +232,21 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
   flex-shrink: 0;
 `;
 
 const Title = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--color-text-muted);
 `;
 
 const Count = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 `;
 
@@ -263,7 +263,7 @@ const ItemFrame = styled.div`
   position: absolute;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
      percentage reference: flex: 1 + min-height: 0 doesn't reliably
@@ -277,7 +277,7 @@ const ItemHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
+  padding: var(--space-4) var(--space-8);
   background: var(--color-surface-panel);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
@@ -294,9 +294,9 @@ const DismissBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: 12px;
-  line-height: 1;
-  padding: 2px 4px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-flush);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   &:hover {
     color: var(--color-tag-red-fg);
@@ -311,8 +311,8 @@ const ItemBody = styled.div`
 `;
 
 const MissingComponent = styled.div`
-  padding: 12px;
-  font-size: 11px;
+  padding: var(--space-12);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-align: center;
 `;

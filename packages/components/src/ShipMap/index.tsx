@@ -295,13 +295,13 @@ const Placeholder = styled.div`
   align-items: center;
   justify-content: center;
   color: var(--color-text-dim);
-  font-size: 11px;
-  padding: 12px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-12);
   text-align: center;
   code {
     background: var(--color-surface-raised);
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: var(--space-hair) var(--space-4);
+    border-radius: var(--radius-xs);
     color: var(--color-status-go-fg);
   }
 `;
@@ -309,8 +309,8 @@ const Placeholder = styled.div`
 const Meta = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-10);
   background: var(--color-surface-panel);
   border-bottom: 1px solid var(--color-surface-raised);
   font-size: var(--font-size-xs);
@@ -322,7 +322,11 @@ const MetaTag = styled.span`
 `;
 
 // Absolutely-positioned layer over the part diagram for `ship-map.overlay`
-// augments. Sits above the SVG (z-index 1) and the ambient tint (z-index 0),
+// augments. Off the app z-index ladder despite the name: these three values
+// (2 here, 1 on the svg, 0 on the ::before tint) are local sibling ordering
+// inside DiagramWrap, so only their relative order is load-bearing and
+// --z-overlay would lift a widget-internal layer over the app's own chrome.
+// Sits above the SVG (z-index 1) and the ambient tint (z-index 0),
 // and stays out of the diagram's pointer path so an empty slot is visually and
 // interactively inert: an overlay augment re-enables pointer events on its own
 // elements when it needs them.
@@ -356,6 +360,9 @@ const DiagramWrap = styled.div<{ $tint: string | null }>`
     inset: 0;
     pointer-events: none;
     background: ${({ $tint }) => $tint ?? "transparent"};
+    /* Off the motion scale on purpose: a reentry temperature ramp, not a
+       UI transition, and at 400ms ease-out is visibly not ease, so the
+       ease-out -> --ease-standard snap does not reach here either. */
     transition: background 400ms ease-out;
     z-index: 0;
   }

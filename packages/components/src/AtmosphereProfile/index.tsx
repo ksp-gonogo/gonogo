@@ -261,12 +261,12 @@ const Notice = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   background: rgba(0, 0, 0, 0.7);
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   pointer-events: none;
   align-self: flex-start;
   max-width: 100%;
-  margin-top: 4px;
+  margin-top: var(--space-4);
 `;
 
 const GraphSlot = styled.div`
@@ -280,17 +280,32 @@ const LiveChip = styled.div`
   position: absolute;
   /* Bottom-right keeps the chip clear of the threshold label (which
      renders near the threshold line, usually high up in the chart for
-     high-pressure altitudes) and the chart legend (top-left). */
+     high-pressure altitudes) and the chart legend (top-left).
+
+     Both values below are off the design-token scales on purpose.
+
+     The bottom offset is measured clearance over the chart's x-axis tick
+     band, not a rhythm step: it is what lifts this chip clear of the tick
+     labels the sibling Notice above was demoted out of the overlay for
+     covering. Snapping it onto --space-24 drops the chip back into them.
+
+     The z-index is local sibling ordering. Wrap is position: relative with
+     no z-index, transform, filter or opacity, so it creates no stacking
+     context and this 1 resolves in the dashboard grid item's context,
+     against the resize handles (5) and the widget control tray (6). Its
+     contract is 1-versus-auto over GraphSlot AND below 5; any app-global
+     --z-* rung lifts a widget-internal HUD chip over the dashboard's own
+     chrome. */
   bottom: 32px;
   right: 8px;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   background: rgba(0, 0, 0, 0.75);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
@@ -299,7 +314,7 @@ const LiveChip = styled.div`
 const LiveChipRow = styled.div`
   display: grid;
   grid-template-columns: 28px auto;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: baseline;
 `;
 
@@ -307,12 +322,12 @@ const LiveChipLabel = styled.span`
   color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
 `;
 
 const LiveChipValue = styled.span`
   color: var(--color-text-primary);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 registerComponent<AtmosphereProfileConfig>({

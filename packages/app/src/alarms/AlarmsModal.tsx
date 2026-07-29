@@ -895,7 +895,7 @@ function OnFireEditor({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 480px;
   max-width: 640px;
 `;
@@ -903,12 +903,12 @@ const Wrap = styled.div`
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 `;
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -917,10 +917,10 @@ const SectionTitle = styled.h3`
 
 const KindRow = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
   background: var(--color-surface-sunken);
   width: fit-content;
 `;
@@ -929,9 +929,9 @@ const KindButton = styled.button<{ $active: boolean }>`
   background: ${(p) => (p.$active ? "var(--color-status-go-bg)" : "transparent")};
   color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   border: none;
-  padding: 4px 12px;
-  border-radius: 3px;
-  font-size: 11px;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   cursor: pointer;
   &:hover {
     color: var(--color-status-go-fg);
@@ -944,40 +944,40 @@ const KindButton = styled.button<{ $active: boolean }>`
 
 const SideBySide = styled.div`
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   & > * {
     flex: 1;
   }
 `;
 
 const OpSelect = styled.select`
-  font-size: 12px;
-  padding: 4px 6px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 `;
 
 const WaitingNote = styled.div`
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const PresetSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const PresetSummary = styled.button`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   background: transparent;
   border: none;
   padding: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -993,26 +993,26 @@ const PresetSummary = styled.button`
 `;
 
 const PresetCaret = styled.span`
-  font-size: 10px;
-  line-height: 1;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-flush);
 `;
 
 const PresetList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const PresetButton = styled.button`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--space-2);
   text-align: left;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   &:hover {
     border-color: var(--color-status-go-bg);
@@ -1024,24 +1024,24 @@ const PresetButton = styled.button`
 `;
 
 const PresetButtonLabel = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-status-go-fg);
 `;
 
 const PresetButtonHint = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;
 
 const AddedNote = styled.div`
   color: var(--color-status-go-fg);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: 12px;
-  padding: 12px 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-12) 0;
 `;
 
 const List = styled.ul`
@@ -1050,14 +1050,14 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const Row = styled.li<{ $state: Alarm["state"] }>`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-10);
   background: var(--color-surface-panel);
   border: 1px solid
     ${(p) =>
@@ -1066,13 +1066,13 @@ const Row = styled.li<{ $state: Alarm["state"] }>`
         : p.$state === "arming"
           ? "var(--color-status-warning-bg)"
           : "var(--color-surface-raised)"};
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 `;
 
 const RowInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
 `;
@@ -1080,13 +1080,13 @@ const RowInfo = styled.div`
 const RowName = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--space-8);
+  font-size: var(--font-size-sm);
   color: var(--color-status-go-fg);
 `;
 
 const RowMeta = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1109,7 +1109,7 @@ const StateTag = styled.span<{ $state: Alarm["state"] }>`
 
 const RowActions = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-shrink: 0;
 `;
 
@@ -1117,9 +1117,9 @@ const DangerButton = styled.button`
   background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-alert-muted);
-  padding: 3px 10px;
-  border-radius: 3px;
-  font-size: 11px;
+  padding: var(--space-2) var(--space-10);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);
@@ -1133,18 +1133,18 @@ const DangerButton = styled.button`
 const FireList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const FireChip = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 6px;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-6);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1153,21 +1153,23 @@ const FireChip = styled.span`
 
 const FireMeta = styled.span`
   color: var(--color-text-dim);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
 `;
 
 const FireRemoveButton = styled.button`
   background: transparent;
   border: none;
   color: var(--color-text-dim);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  padding: 0 var(--space-2);
   cursor: pointer;
   &:hover {
     color: var(--color-status-nogo-bg);
   }
   &:focus-visible {
+    /* 1px, not the 2px house value, and off the spacing ladder either way:
+       this is WCAG indicator geometry, not an inconsistency to normalise. */
     outline: 2px solid var(--color-status-nogo-bg);
     outline-offset: 1px;
   }
@@ -1175,16 +1177,16 @@ const FireRemoveButton = styled.button`
 
 const PickerRow = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: stretch;
 `;
 
 const PickerSelect = styled.select`
   flex: 1;
-  font-size: 12px;
-  padding: 4px 6px;
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 `;

@@ -208,21 +208,21 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
 }
 
 const PresetDesc = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-dim);
-  padding-top: 2px;
+  padding-top: var(--space-2);
 `;
 
 const CustomInputs = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-top: 4px;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
 `;
 
 const UTModeRow = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const UTModeButton = styled.button<{ $active: boolean }>`
@@ -230,8 +230,8 @@ const UTModeButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   font-size: var(--font-size-xs);
-  padding: 3px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;

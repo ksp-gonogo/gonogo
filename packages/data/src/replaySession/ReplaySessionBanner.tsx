@@ -104,22 +104,27 @@ function formatElapsed(seconds: number): string {
 const Bar = styled.div`
   position: sticky;
   top: 0;
-  z-index: 50;
+  /* The canonical --z-sticky site: in-flow chrome pinned while the dashboard
+     scrolls under it. 50 becomes 100, which crosses ui's BannerStack at 90,
+     but the two never occupy the same pixels (this is a full-width strip at
+     top: 0, the stack is bottom-right), so the order between them is not a
+     contract. */
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-16);
   background: var(--color-tag-purple-bg, var(--color-surface-raised));
   border-bottom: 2px solid var(--color-tag-purple-fg);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   letter-spacing: 0.04em;
 `;
 
 const Section = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex-shrink: 0;
 `;
 
@@ -132,7 +137,7 @@ const Title = styled.span`
 const Strong = styled.span`
   color: var(--color-tag-purple-fg);
   font-weight: 700;
-  margin-left: 4px;
+  margin-left: var(--space-4);
 `;
 
 const PlayButton = styled.button`
@@ -140,10 +145,10 @@ const PlayButton = styled.button`
   border: none;
   color: var(--color-surface-app);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -157,7 +162,7 @@ const SeekArea = styled.div`
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -169,7 +174,7 @@ const SeekBar = styled.input`
 
 const TimeText = styled.span`
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   white-space: nowrap;
 `;
@@ -178,9 +183,9 @@ const RatePicker = styled.select`
   background: var(--color-surface-app);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  font-size: 11px;
-  padding: 3px 6px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
 `;
 
 const ExitButton = styled.button`
@@ -188,8 +193,8 @@ const ExitButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-10);
+  border-radius: var(--radius-xs);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;

@@ -58,19 +58,19 @@ const TONE_STYLES = {
 
 const SIZE_STYLES = {
   sm: css`
-    font-size: 10px;
-    padding: 1px 4px;
+    font-size: var(--font-size-2xs, 10px);
+    padding: var(--space-hair, 1px) var(--space-4, 4px);
   `,
   md: css`
     font-size: var(--font-size-xs);
-    padding: 1px 6px;
+    padding: var(--space-hair, 1px) var(--space-6, 6px);
   `,
 } as const;
 
 const Badge__Body = styled.span<{ $tone: BadgeTone; $size: BadgeSize }>`
   display: inline-block;
   border: 1px solid;
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;

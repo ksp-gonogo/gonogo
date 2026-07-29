@@ -151,19 +151,19 @@ export function BackupManager() {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-16);
   min-width: 420px;
 `;
 
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -172,38 +172,38 @@ const SectionTitle = styled.h3`
 
 const Foot = styled.div`
   color: var(--color-text-dim);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;
 
 const IdentityRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const ActionRow = styled.div`
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const ConfirmRow = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-8);
+  padding: var(--space-10);
   border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface-raised);
 `;
 
 const ConfirmText = styled.span`
   margin-right: auto;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 `;
 
 const Warn = styled.span`
   color: var(--color-status-warning-bg);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 `;

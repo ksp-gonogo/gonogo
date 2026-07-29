@@ -28,8 +28,11 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4, 4px);
   text-align: center;
+  /* Both off the type/line-height scales on purpose: the size is fluid rather
+     than a rung, and 1.05 is tuned to it. A body line-height clips descenders
+     at the top of the clamp. */
   font-size: clamp(20px, 6vw, 38px);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -45,7 +48,9 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
 export const Readout = styled.div<{ $tone?: ReadoutTone }>`
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6, 6px);
+  /* Display tier: the type scale stops at lg (16px) because everything above
+     it in this codebase is a fluid clamp or a JS-computed fit. Stays literal. */
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -54,7 +59,7 @@ export const Readout = styled.div<{ $tone?: ReadoutTone }>`
 
 /** Muted secondary line for both readout sizes (e.g. units, mode tag). */
 export const ReadoutCaption = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
@@ -70,9 +75,9 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 12px;
+  padding: var(--space-6, 6px) var(--space-12, 12px);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -106,7 +111,7 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
     $tone === "alert" &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: pill-pulse 1.4s ease-in-out infinite;
+        animation: pill-pulse 1.4s var(--ease-emphasis, ease-in-out) infinite;
       }
       @keyframes pill-pulse {
         0%,

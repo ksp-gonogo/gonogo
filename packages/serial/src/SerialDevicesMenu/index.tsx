@@ -391,12 +391,12 @@ const Wrap = styled.div`
 `;
 
 const Credit = styled.p`
-  margin: 10px 0 0;
-  padding-top: 8px;
+  margin: var(--space-10) 0 0;
+  padding-top: var(--space-8);
   border-top: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 
   a {
     color: inherit;
@@ -407,24 +407,24 @@ const Credit = styled.p`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Toolbar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const ToolbarButtons = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const Heading = styled.h3`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -433,8 +433,8 @@ const Heading = styled.h3`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: 12px;
-  padding: 8px 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) 0;
 `;
 
 const BannerLabel = styled.strong`
@@ -444,63 +444,63 @@ const BannerLabel = styled.strong`
 const WebSerialUnavailableBanner = styled.div`
   background: var(--color-border-subtle);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--color-status-warning-bg);
-  font-size: 12px;
-  line-height: 1.45;
-  padding: 10px 12px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+  padding: var(--space-10) var(--space-12);
 
   code {
     font-family: var(--font-mono, monospace);
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     word-break: break-all;
     background: var(--color-surface-raised);
-    border-radius: 3px;
-    padding: 0 3px;
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-2);
   }
 `;
 
 const Row = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const RowHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const RowName = styled.span`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const RowMeta = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 `;
 
 const RowActions = styled.div`
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
 `;
 
 const PendingPicker = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: var(--space-6);
+  padding: var(--space-8);
   background: var(--color-status-warning-bg);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
 `;
 
@@ -510,7 +510,7 @@ const PendingHint = styled.span`
 
 const PendingActions = styled.div`
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 `;
 

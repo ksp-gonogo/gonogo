@@ -27,9 +27,9 @@ const Row__Root = styled.li`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  padding: 2px 0;
+  gap: var(--space-8, 8px);
+  font-size: var(--font-size-sm);
+  padding: var(--space-2, 2px) 0;
 `;
 
 /** Truncating name/label child for a `Row`: flexes to fill, ellipsises overflow. */

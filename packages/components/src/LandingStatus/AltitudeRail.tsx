@@ -63,6 +63,9 @@ export function AltitudeRail({
         flexDirection: "column",
         alignItems: "center",
         height: "100%",
+        // Root-relative on purpose, so the rail's internal rhythm tracks the
+        // browser font size. The px spacing ladder would freeze it, which is
+        // an accessibility regression rather than a cleanup.
         gap: "0.25rem",
         minWidth: 0,
       }}
@@ -84,7 +87,7 @@ export function AltitudeRail({
       {/* The Tape (visual) bleeds to the panel edge, but this label is TEXT,
           give it a readable local left inset (matches the commit text) so it
           isn't jammed against the edge. */}
-      <div style={{ alignSelf: "stretch", paddingLeft: "12px" }}>
+      <div style={{ alignSelf: "stretch", paddingLeft: "var(--space-12)" }}>
         <Value tone={near ? "accent" : "muted"} size="xs">
           {suicideBurnCountdown == null
             ? "no burn"

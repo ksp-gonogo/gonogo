@@ -552,11 +552,11 @@ function StationWakeLockBridge() {
 }
 
 const Layout = styled.div`
-  padding: 24px;
-  padding-top: calc(24px + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(24px + env(safe-area-inset-left, 0px));
-  padding-right: calc(24px + env(safe-area-inset-right, 0px));
+  padding: var(--space-24);
+  padding-top: calc(var(--space-24) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--space-24) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--space-24) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;
 `;
@@ -591,11 +591,19 @@ const StationNameChip = styled.div`
   position: fixed;
   top: 12px;
   right: 16px;
-  padding: 4px 10px;
+  padding: var(--space-4) var(--space-10);
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  z-index: 800;
+  border-radius: var(--radius-sm);
+  /*
+   * --z-sticky, not the --z-overlay the old 800 maps to. 800 is the rung for
+   * full-surface overlays that replace the dashboard (PushedDashboardOverlay);
+   * this is a pointer-events: none corner chip, and letting it sit on the
+   * overlay rung means a future retune of --z-overlay (say, to clear the FAB
+   * column) drags the chip up past --z-fab with it. The only real constraint
+   * here is that it stays below --z-fab.
+   */
+  z-index: var(--z-sticky);
   /*
    * The chip's padding / background area used to intercept clicks on
    * widgets beneath it (operator at LFV-1b test, 2026-05-17 session).

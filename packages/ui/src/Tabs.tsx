@@ -137,7 +137,7 @@ export function Tabs({ tabs, activeId, onChange }: Readonly<TabsProps>) {
 const TabsRoot = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
   /* Fill the panel and constrain children so an active tab whose content
      uses flex:1 can actually scroll. No-op if the parent isn't a flex
      column. */
@@ -155,7 +155,7 @@ const TabBarShell = styled.div`
 
 const TabBar = styled.div`
   display: flex;
-  gap: 2px;
+  gap: var(--space-2);
   /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -182,13 +182,15 @@ const TabBarOverflowGlow = styled.div<{
   width: 28px;
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  transition: opacity 150ms ease;
+  transition: opacity var(--duration-base) var(--ease-standard);
   /* Dim white hue brightest at the overflown edge, tapering inward. */
   background: linear-gradient(
     to ${({ $position }) => ($position === "left" ? "right" : "left")},
     rgba(255, 255, 255, 0.12),
     rgba(255, 255, 255, 0) 100%
   );
+  /* Local sibling ordering inside TabBarShell only (the glow over the
+     scrolling tab bar). Off the app-global z ladder on purpose. */
   z-index: 1;
 
   @media (prefers-reduced-motion: reduce) {
@@ -200,9 +202,9 @@ const TabDot = styled.span`
   display: inline-block;
   width: 7px;
   height: 7px;
-  margin-left: 6px;
+  margin-left: var(--space-6);
   vertical-align: middle;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--color-status-warning-bg);
 `;
 
@@ -218,9 +220,12 @@ const TabButton = styled.button<{ $active: boolean }>`
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 6px 12px;
+  padding: var(--space-6) var(--space-12);
   border-bottom: 2px solid
     ${({ $active }) => ($active ? "var(--color-accent-fg)" : "transparent")};
+  /* Not spacing: this cancels TabBarShell's 1px bottom border so the active
+     tab's indicator sits on top of the rule rather than below it. Locked to a
+     border width, so it stays off the ladder. */
   margin-bottom: -1px;
 
   @media (hover: hover) {
@@ -236,7 +241,10 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: 8px 14px;
+    /* One rung wider than the base inset (--space-12), same as ui-kit Button:
+       the old 14px would have snapped onto the base rung and erased the
+       horizontal widening this block exists for. */
+    padding: var(--space-8) var(--space-16);
   }
 `;
 

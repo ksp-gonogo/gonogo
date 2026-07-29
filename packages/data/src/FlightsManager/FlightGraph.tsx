@@ -278,8 +278,8 @@ function keyGroup(key: string): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-12);
   background: var(--color-surface-panel);
   border-top: 1px solid var(--color-surface-raised);
 `;
@@ -287,7 +287,7 @@ const Wrap = styled.div`
 const Toolbar = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const PickerLabel = styled.span`
@@ -305,19 +305,22 @@ const ChartWrap = styled.div`
 const Placeholder = styled.div`
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);
-  padding: 24px 0;
+  padding: var(--space-24) 0;
   text-align: center;
 `;
 
 const LoadingBadge = styled.div`
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-4);
+  right: var(--space-4);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);
-  padding: 2px 8px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
+  /* Local sibling ordering inside ChartWrap only: this badge just has to sit
+     over the chart canvas beside it. The absolute number is meaningless
+     outside that context, so it stays off the app-global z ladder. */
   z-index: 2;
 `;
 
@@ -326,6 +329,6 @@ const ErrorLine = styled.div`
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-status-alert-muted);
-  padding: 4px 8px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-xs);
 `;

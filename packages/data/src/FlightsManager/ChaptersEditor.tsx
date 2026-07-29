@@ -255,7 +255,7 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
 }
 
 const Container = styled.div`
-  padding: 10px 12px 12px;
+  padding: var(--space-10) var(--space-12) var(--space-12);
   background: var(--color-surface-app);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
@@ -266,28 +266,28 @@ const Header = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
 `;
 
 const Hint = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-8);
 `;
 
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
 `;
 
 const Row = styled.div`
   display: grid;
   grid-template-columns: minmax(120px, 1fr) auto auto auto;
-  gap: 10px;
+  gap: var(--space-10);
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;
 
 const Label = styled.span`
@@ -306,13 +306,13 @@ const TimeText = styled.span`
 const DurationText = styled.span`
   font-family: monospace;
   color: var(--color-text-faint);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   white-space: nowrap;
 `;
 
 const Actions = styled.span`
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: center;
   justify-self: end;
 `;
@@ -322,9 +322,9 @@ const EditButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
 
@@ -333,9 +333,9 @@ const SaveButton = styled.button`
   border: 1px solid var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   cursor: pointer;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
 `;
 
 const CancelButton = styled.button`
@@ -343,9 +343,9 @@ const CancelButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); }
 `;
 
@@ -354,28 +354,34 @@ const RemoveButton = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 4px;
+  font-size: var(--font-size-base);
+  padding: 0 var(--space-4);
   &:hover { color: var(--color-status-nogo-bg); }
 `;
 
 const AddRow = styled.div`
   display: grid;
   grid-template-columns: minmax(120px, 1fr) 80px 80px auto;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: center;
-  margin-top: 4px;
+  margin-top: var(--space-4);
 `;
 
 const Field = styled.input`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-family: inherit;
-  padding: 3px 6px;
-  border-radius: 2px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-xs);
   min-width: 0;
+  /* Focus-ring geometry, deliberately off the spacing ladder even though the
+     offset happens to equal --space-hair. The whole outline/outline-offset
+     pair is a WCAG indicator, not rhythm, so it must not inherit a later
+     retune of the spacing scale. (It is also the repo's only 1px offset
+     against a 2px house rule; the fix for that is to make it 2px, not to
+     tokenise it.) */
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 1px;
@@ -387,15 +393,15 @@ const AddButton = styled.button`
   border: 1px dashed var(--color-text-faint);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-xs);
   white-space: nowrap;
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
 
 const ErrorText = styled.div`
-  margin-top: 4px;
-  font-size: 11px;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-xs);
   color: var(--color-tag-red-fg);
 `;

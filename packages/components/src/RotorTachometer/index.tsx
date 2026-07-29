@@ -376,15 +376,15 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 8px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8) var(--space-8);
   overflow: auto;
 `;
 
@@ -398,14 +398,14 @@ const GaugeWrap = styled.div`
 const Controls = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ControlRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px 8px;
+  gap: var(--space-4) var(--space-8);
   /* Drop the stepper below the label when there isn't room side-by-side
      (narrow widths) rather than clipping the +/value off the edge. */
   flex-wrap: wrap;
@@ -414,11 +414,11 @@ const ControlRow = styled.div`
 const Stepper = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ControlLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
@@ -426,61 +426,61 @@ const ControlLabel = styled.span`
 
 const StepBtn = styled.button`
   min-width: 26px;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
-  line-height: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
 `;
 
 const StepValue = styled.span`
   min-width: 48px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 `;
 
 const ToggleRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const RotorList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const RotorRow = styled.button<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
-  padding: 4px 8px;
+  gap: var(--space-hair);
+  padding: var(--space-4) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
 `;
 
 const RotorName = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 `;
 
 const RotorMeta = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   opacity: 0.7;
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;

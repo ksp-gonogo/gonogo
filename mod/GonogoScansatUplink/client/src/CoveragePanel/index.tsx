@@ -120,9 +120,12 @@ const Panel = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  /* This 3px and Row's 6px below are one decision, not two: the vertical row
+     gap is deliberately half the horizontal cell gap. Both stay literal
+     because the 3 -> 2 snap alone would turn that 2:1 into 3:1. */
   gap: 3px;
-  padding-top: 6px;
-  margin-top: 6px;
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
   border-top: 1px solid var(--color-surface-raised);
 `;
 
@@ -130,11 +133,12 @@ const Row = styled.div`
   display: grid;
   grid-template-columns: 48px 1fr 40px auto;
   align-items: center;
+  /* Half of this is Panel's row gap above; see the note there. */
   gap: 6px;
 `;
 
 const Label = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
   min-width: 28px;
@@ -143,7 +147,10 @@ const Label = styled.span`
 
 const Track = styled.div<{ $pct: number }>`
   height: 5px;
-  border-radius: 3px;
+  /* A stadium: 3px already exceeds half this 5px track, so --radius-pill is
+     the shape it means and it keeps tracking the height. --radius-sm would
+     render the same today and stop tracking it. */
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   overflow: hidden;
   position: relative;
@@ -158,6 +165,10 @@ const Track = styled.div<{ $pct: number }>`
 `;
 
 const Value = styled.span`
+  /* Literal: this sits in a fixed 40px grid column and must never truncate
+     (see below). --font-size-base is 15px under @media (pointer: coarse),
+     i.e. on the tier-1 Steam Deck, which is the wrong direction for a
+     nowrap readout in a fixed track. */
   font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -169,7 +180,7 @@ const Value = styled.span`
 `;
 
 const Chip = styled.span<{ $variant: "best" | "in" | "idle" }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: right;

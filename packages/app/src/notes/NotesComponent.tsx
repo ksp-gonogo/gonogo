@@ -347,24 +347,24 @@ const List = styled(ScrollArea)`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 `;
 
 const Item = styled.div`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: start;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 `;
 
 const ReorderColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
 `;
 
 const ReorderBtn = styled.button`
@@ -372,7 +372,7 @@ const ReorderBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: 1px 2px;
+  padding: var(--space-hair) var(--space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -390,8 +390,8 @@ const ReorderBtn = styled.button`
 
 const Body = styled.div`
   min-width: 0;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
   color: var(--color-text-primary);
   word-wrap: break-word;
 `;
@@ -399,13 +399,13 @@ const Body = styled.div`
 const RenderedBody = styled.div`
   cursor: text;
   white-space: pre-wrap;
-  padding: 2px 0;
+  padding: var(--space-2) 0;
 `;
 
 const RowActions = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   align-items: center;
 `;
 
@@ -414,7 +414,7 @@ const DoneBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: 1px 2px;
+  padding: var(--space-hair) var(--space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -430,7 +430,7 @@ const DeleteBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: 1px 2px;
+  padding: var(--space-hair) var(--space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -443,15 +443,15 @@ const DeleteBtn = styled.button`
 
 const AddRow = styled.div`
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
   flex-shrink: 0;
 `;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 12px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-12);
   text-align: center;
 `;
 

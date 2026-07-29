@@ -265,7 +265,7 @@ function describeProbeFailure(
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 260px;
   color: var(--color-text-primary);
 `;
@@ -274,18 +274,18 @@ const Row = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 `;
 
 const UrlRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const UrlValue = styled.a`
   color: var(--color-status-info-fg);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   word-break: break-all;
   text-decoration: underline;
   &:hover {
@@ -303,6 +303,9 @@ const Label = styled.span`
 
 const Code = styled.code`
   color: var(--color-status-info-fg);
+  /* Display tier: the type scale stops at --font-size-lg on purpose,
+     everything above 16px in this codebase is a clamp, a JS fit, or locked
+     to a box width. */
   font-size: 18px;
   letter-spacing: 0.12em;
 `;
@@ -310,29 +313,29 @@ const Code = styled.code`
 const QrRow = styled.div`
   display: flex;
   justify-content: center;
-  padding: 12px;
+  padding: var(--space-12);
   background: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 `;
 
 const Hint = styled.p`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 
   code {
     background: var(--color-surface-raised);
     border: 1px solid var(--color-border-subtle);
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: var(--space-hair) var(--space-4);
+    border-radius: var(--radius-xs);
     color: var(--color-text-primary);
   }
 `;
 
 const Empty = styled.div`
-  padding: 16px 0;
-  font-size: 12px;
+  padding: var(--space-16) 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-dim);
   text-align: center;
 `;
@@ -340,14 +343,14 @@ const Empty = styled.div`
 const RegenerateWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
-  padding-top: 12px;
+  padding-top: var(--space-12);
 `;
 
 const RegenerateHint = styled.p`
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;

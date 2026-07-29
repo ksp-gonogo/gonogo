@@ -312,7 +312,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -322,7 +322,7 @@ const Body = styled.div<{ $landscape: boolean }>`
   display: flex;
   flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
   align-items: ${({ $landscape }) => ($landscape ? "stretch" : "initial")};
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Grid = styled.div<{
@@ -333,7 +333,7 @@ const Grid = styled.div<{
   display: grid;
   grid-template-columns: ${({ $tight }) =>
     $tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"};
-  gap: 2px ${({ $tight }) => ($tight ? "6px" : "8px")};
+  gap: var(--space-2) ${({ $tight }) => ($tight ? "var(--space-6)" : "var(--space-8)")};
   align-items: baseline;
   align-content: start;
   ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
@@ -345,9 +345,20 @@ const Grid = styled.div<{
     white-space: nowrap;
     min-width: 0;
     /* Narrow panels (3–4 cols) shrink long values rather than clip them;
-       the tiny tier (small on both axes) goes one step smaller still. */
+       the tiny tier (small on both axes) goes one step smaller still.
+
+       The narrow tier stays a literal 12px, paired with Value's literal
+       13px base below: --font-size-sm covers both 13 and 12, so tokenising
+       the pair collapses two tiers into one and makes narrow a no-op on
+       desktop, and a 13px no-op on a coarse pointer, which is exactly the
+       size the comment above says clips at 3-4 cols. Only the tight tier
+       lands on a rung of its own. */
     ${({ $tight, $narrow }) =>
-      $tight ? "font-size: 10px;" : $narrow ? "font-size: 12px;" : ""}
+      $tight
+        ? "font-size: var(--font-size-2xs);"
+        : $narrow
+          ? "font-size: 12px;"
+          : ""}
   }
 `;
 
@@ -365,6 +376,10 @@ const accentColor = {
 };
 
 const Value = styled.span<{ $accent?: "ap" | "pe" | "alert" }>`
+  /* Off-scale on purpose: this 13px is the top of a three-tier ladder
+     (13 base / 12 narrow / 10 tight) and --font-size-sm is 12px, so
+     tokenising it merges the base into the narrow tier the Grid override
+     above exists to step down to. The two must stay one rung apart. */
   font-size: 13px;
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
@@ -380,6 +395,6 @@ const MiniDiagramWrap = styled.div<{ $landscape: boolean }>`
     min-width: 0;
   `
       : `
-    margin-top: 4px;
+    margin-top: var(--space-4);
   `}
 `;

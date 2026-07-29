@@ -4,11 +4,11 @@ export const Header = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 export const BodyLabel = styled.span`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
@@ -18,18 +18,18 @@ export const CompactReadout = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   min-height: 0;
 `;
 
 export const CompactRow = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 export const CompactLabel = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
   min-width: 28px;
@@ -37,6 +37,9 @@ export const CompactLabel = styled.span`
 `;
 
 export const CompactValue = styled.span`
+  /* Off the type scale: --font-size-base is 15px on a coarse pointer, and
+     this value is nowrap with nothing left to give (see the note below), so
+     the bump is width the row does not have at the 3-col minimum size. */
   font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -58,7 +61,7 @@ export const MapBody = styled.div`
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 /**
@@ -85,7 +88,7 @@ export const MapSections = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 /**
@@ -95,7 +98,7 @@ export const MapSections = styled.div`
 export const CanvasContainer = styled.div`
   position: relative;
   flex-shrink: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   cursor: grab;
   touch-action: none;
@@ -146,11 +149,11 @@ export const NoSignal = styled.div`
 `;
 
 export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"

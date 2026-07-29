@@ -378,44 +378,44 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 8px 8px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8) var(--space-8);
   overflow: auto;
 `;
 
 const BaseCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const BaseHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const BaseBody = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
 `;
 
 const PowerPill = styled.span<{ $state: PowerState }>`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 9px;
+  gap: var(--space-4);
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.04em;
   color: var(--color-text-secondary);
 `;
@@ -429,12 +429,12 @@ const STATE_COLOR: Record<PowerState, string> = {
 const Dot = styled.span<{ $state: PowerState }>`
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${(p) => STATE_COLOR[p.$state]};
 `;
 
 const PowerLine = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 `;
@@ -446,22 +446,22 @@ const Muted = styled.span`
 const Experiment = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 `;
 
 const ExpRow = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const ExpName = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
 `;
 
 const ExpPct = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 `;
@@ -472,7 +472,9 @@ const Collecting = styled.span`
 
 const Bar = styled.div`
   height: 4px;
-  border-radius: 2px;
+  /* A stadium, not a corner: the radius is exactly half the track height,
+     so --radius-pill renders identically and keeps tracking the height. */
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   overflow: hidden;
 `;

@@ -452,14 +452,14 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const NoData = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  padding: 8px 0;
+  padding: var(--space-8) 0;
 `;
 
 const PillFill = styled.div`
@@ -490,7 +490,7 @@ const LandscapeRow = styled.div`
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: 12px;
+  gap: var(--space-12);
   min-height: 0;
   min-width: 0;
 `;
@@ -499,7 +499,7 @@ const LandscapeChrome = styled.div`
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   justify-content: center;
   /* Narrow column for header content: the diagram on the right gets
      everything left over. */

@@ -114,15 +114,21 @@ export const GridItemContent = memo(function GridItemContent({
 });
 
 const CellHeader = styled.div`
+  /* Off the spacing ladder: this is the drag-handle height, and the 18 -> 16
+     snap would compound with the font tokens on its children. The tallest is
+     PushBtn (shared.tsx): --font-size-sm + line-height 1 + 1px 4px padding is
+     14px of box on a desktop but 15px on a coarse pointer, which is the tier-1
+     Steam Deck. 15px inside 18px is fine; inside 16px it leaves 0.5px per side
+     on the primary drag affordance. Grow this before shrinking it. */
   height: 18px;
   background: var(--color-surface-panel);
   cursor: grab;
   flex-shrink: 0;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 4px;
+  padding: 0 var(--space-4);
 
   @media (hover: hover) {
     &:hover {

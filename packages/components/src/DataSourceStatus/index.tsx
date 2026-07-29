@@ -269,13 +269,13 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Item = styled.li`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const CompactList = styled.ul`
@@ -284,25 +284,25 @@ const CompactList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 `;
 
 const CompactRow = styled.li`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: var(--space-8);
+  padding: var(--space-4) 0;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const Name = styled.span`
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 `;
 
@@ -321,17 +321,24 @@ const statusColor: Record<DataSourceStatus, string> = {
 const Indicator = styled.span<{ $status: DataSourceStatus }>`
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $status }) => statusColor[$status]};
-  animation: ${({ $status }) =>
-    $status === "connected" || $status === "reconnecting" ? pulse : "none"}
-    ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")} ease-in-out
-    infinite;
+  /* Indefinite animation, so it needs its own guard: the global damper in
+     global.css only clamps duration under prefers-reduced-motion: reduce,
+     it does not stop a looping pulse. The 1s / 2s period stays literal
+     because it is not a UI-motion choice, it is how the operator reads
+     connection state (reconnecting pulses twice as fast as connected). */
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${({ $status }) =>
+      $status === "connected" || $status === "reconnecting" ? pulse : "none"}
+      ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")}
+      var(--ease-emphasis) infinite;
+  }
 `;
 
 const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: ${({ $status }) => statusColor[$status]};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -339,37 +346,37 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
 
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
   color: ${({ $active }) => ($active ? "var(--color-text-primary)" : "var(--color-text-faint)")};
-  font-size: 13px;
-  padding: 0 2px;
+  font-size: var(--font-size-sm);
+  padding: 0 var(--space-2);
 `;
 
 const ConfigForm = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-10);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 `;
 
 const SetupInstructions = styled.pre`
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 `;
 
 const RetryButton = styled(GhostButton)`
   font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
   white-space: nowrap;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
 `;
 
 const VERSION_TAG_COLOR: Record<
@@ -387,8 +394,8 @@ const VersionTag = styled.span<{
 }>`
   font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
-  padding: 1px 6px;
-  border-radius: 999px;
+  padding: var(--space-hair) var(--space-6);
+  border-radius: var(--radius-pill);
   border: 1px solid ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
   color: ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
   background: rgba(0, 0, 0, 0.2);

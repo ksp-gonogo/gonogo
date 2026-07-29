@@ -258,7 +258,7 @@ function normalizeAngle(deg: number): number {
 const WrapOuter = styled.aside<{ $placement: "side" | "bottom" }>`
   display: flex;
   flex-direction: column;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   min-width: 0;
   /* min-height:0 is load-bearing: this aside is a grid cell, and grid items
      default to min-height:auto, which would let the inner ScrollArea grow
@@ -271,7 +271,7 @@ const WrapOuter = styled.aside<{ $placement: "side" | "bottom" }>`
     $placement === "bottom"
       ? "border-top: 1px solid var(--color-surface-raised);"
       : "border-left: 1px solid var(--color-surface-raised);"}
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;
 
@@ -280,7 +280,7 @@ const WrapScroll = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-4);
   }
 `;
 
@@ -299,7 +299,7 @@ function Wrap({
 }
 
 const Title = styled.div`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   letter-spacing: 0.04em;
@@ -307,21 +307,21 @@ const Title = styled.div`
 
 const Sub = styled.div`
   color: var(--color-text-faint);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.05em;
 `;
 
 const Rows = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  margin-top: 6px;
+  gap: var(--space-hair);
+  margin-top: var(--space-6);
 `;
 
 const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: baseline;
 `;
 
@@ -336,16 +336,16 @@ const RowValue = styled.span`
 
 const Hint = styled.div`
   color: var(--color-text-faint);
-  font-size: 10px;
-  line-height: 1.4;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-body);
 `;
 
 /** KSP's per-body flavour text. Long-form copy lives below the stats grid;
  *  the panel scroll handles overflow on shorter widget sizes. */
 const Description = styled.p`
-  margin: 8px 0 0;
+  margin: var(--space-8) 0 0;
   color: var(--color-text-muted);
-  font-size: 10px;
-  line-height: 1.4;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-body);
   white-space: pre-wrap;
 `;

@@ -37,11 +37,11 @@ const WidgetHeader__Body = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8, 8px);
   /* Match PanelTitle's inset (full-bleed standard): the header is text, so it
      carries the standard 16px horizontal local padding now the Panel imposes
      no uniform inset. */
-  padding: 12px 16px;
+  padding: var(--space-12, 12px) var(--space-16, 16px);
   border-bottom: 1px solid var(--color-border-subtle);
   /* Never let the header collapse: at very short widget heights the flex
      column would otherwise shrink this row toward zero and the body content
@@ -52,7 +52,7 @@ const WidgetHeader__Body = styled.div`
 const WidgetHeader__Title = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6, 6px);
   min-width: 0;
   flex: 1;
 `;
@@ -60,6 +60,6 @@ const WidgetHeader__Title = styled.div`
 const WidgetHeader__Actions = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4, 4px);
   flex-shrink: 0;
 `;

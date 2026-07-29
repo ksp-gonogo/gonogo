@@ -13,6 +13,9 @@ import { createRoot } from "react-dom/client";
 import styled, { type DefaultTheme, ThemeProvider } from "styled-components";
 import type { ConsentInfo } from "./consent";
 
+// The rem sizes below are root-relative on purpose: this is a pre-render
+// consent surface that scales with the browser font size. Only the unitless
+// line-height, the radius and the z-index take tokens.
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
@@ -20,14 +23,14 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-critical);
 `;
 
 const Dialog = styled.div`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   max-width: 460px;
   width: calc(100% - 2rem);
   padding: 1.5rem;
@@ -39,7 +42,7 @@ const Dialog = styled.div`
   }
   p {
     margin: 0 0 0.75rem;
-    line-height: 1.45;
+    line-height: var(--line-height-body);
     font-size: 0.9rem;
   }
   .UplinkConsent__meta {

@@ -459,11 +459,11 @@ function MainAlarmsFab() {
 }
 
 const Layout = styled.div`
-  padding: 24px;
-  padding-top: calc(24px + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(24px + env(safe-area-inset-left, 0px));
-  padding-right: calc(24px + env(safe-area-inset-right, 0px));
+  padding: var(--space-24);
+  padding-top: calc(var(--space-24) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--space-24) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--space-24) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;
 `;

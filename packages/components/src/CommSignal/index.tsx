@@ -255,7 +255,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
@@ -278,7 +278,7 @@ const Body = styled.div<{ $row?: boolean }>`
   flex: 1;
   display: flex;
   flex-direction: ${(p) => (p.$row ? "row" : "column")};
-  gap: ${(p) => (p.$row ? "24px" : "8px")};
+  gap: ${(p) => (p.$row ? "var(--space-24)" : "var(--space-8)")};
   min-height: 0;
   align-content: center;
   /* Wide-short: bars/headline cluster left, detail grid right. */
@@ -292,13 +292,13 @@ const Readout = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 `;
 
 const Bars = styled.div`
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: var(--space-2);
   height: 24px;
 `;
 
@@ -306,6 +306,9 @@ const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
   width: 6px;
   background: ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
   border: 1px solid ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
+  /* Off-scale on purpose: optical corner softening at the pixel limit on a
+     6px-wide bar. The smallest radius rung (--radius-xs, 2px) rounds this
+     into a lozenge. */
   border-radius: 1px;
   /* Staircase: short to tall. Sits at the bottom of the flex container. */
   &:nth-child(1) {
@@ -323,7 +326,7 @@ const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
 `;
 
 const StrengthPct = styled.span<{ $tone?: Tone }>`
-  font-size: 15px;
+  font-size: var(--font-size-base);
   color: ${({ $tone }) =>
     $tone === "lost"
       ? "var(--color-status-nogo-fg)"
@@ -335,7 +338,7 @@ const StrengthPct = styled.span<{ $tone?: Tone }>`
 const Grid = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 10px;
+  gap: var(--space-2) var(--space-10);
   align-items: baseline;
 `;
 
@@ -347,7 +350,7 @@ const GridLabel = styled.span`
 `;
 
 const GridValue = styled.span<{ $tone?: Tone }>`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: ${({ $tone }) => ($tone ? TONE_TEXT_COLOR[$tone] : "var(--color-text-primary)")};
 `;
 

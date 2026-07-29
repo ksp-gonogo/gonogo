@@ -54,22 +54,22 @@ export function CommandGroup<V extends Record<string, unknown>>({
 const CommandGroup__Root = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8, 8px);
 `;
 
 const CommandGroup__Inputs = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8, 8px);
   align-items: center;
 `;
 
 const CommandGroup__CommitButton = styled.button<{ $gated: boolean }>`
   align-self: flex-start;
-  padding: 4px 12px;
+  padding: var(--space-4, 4px) var(--space-12, 12px);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: var(--radius-sm, 3px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);

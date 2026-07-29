@@ -20,7 +20,16 @@ const PROBE_ENTRY = join(PROBE_DIR, "banner-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "banner-probe.html");
 const FIXTURES_DIR = join(PROBE_DIR, "__fixtures__");
 const OUT_DIR = resolve(HERE, "../../../local_docs/renders/alarm-banner");
-const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
+// The design tokens. Same source, and same reasoning, as
+// `widgetRenderHarness.ts`'s `THEME_TOKENS_CSS`: this used to point at
+// `packages/app/src/styles/global.css`, which carried its own copy of the
+// `:root` block. That copy is gone (global.css `@import`s the theme package
+// now), so `extractRootBlock` found nothing and this driver threw on every
+// run. The widget harness was repointed when the copy was deleted; this
+// sibling driver was missed and has been dead since. Read the theme
+// package's *source* tokens.css: plain text, no bundler resolution, and no
+// dependency on `@ksp-gonogo/theme` having been built first.
+const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 // Viewport sized to match the bottom-right portion of a real dashboard
 // where the BannerStack lives. Wide enough that the banner doesn't get
@@ -56,14 +65,14 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
-  const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
+  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
   // Same `$&` / `</script>` escaping as the widget harness, bundled
   // React code contains literal `$&` (sanitisation helpers) and
   // string-form .replace would treat that as a backreference.
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(
-      '<style id="probe-theme">/* injected by render-alarm-banner driver from packages/app/src/styles/global.css */</style>',
+      '<style id="probe-theme">/* injected by render-alarm-banner driver from packages/theme/src/tokens.css */</style>',
       () => `<style id="probe-theme">${themeCss}</style>`,
     )
     .replace(
@@ -131,7 +140,7 @@ async function main(): Promise<void> {
 
 function extractRootBlock(css: string): string {
   const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("global.css: no :root block found");
+  if (!m) throw new Error("tokens.css: no :root block found");
   return m[0];
 }
 

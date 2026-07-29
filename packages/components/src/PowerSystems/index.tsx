@@ -645,20 +645,20 @@ const Header = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 `;
 
 const HeaderTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 `;
 
 const ResourceSelect = styled(Select)`
   max-width: 50%;
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-6);
 `;
 
 const Totals = styled.div`
@@ -668,19 +668,19 @@ const Totals = styled.div`
      cell pairs with the smaller CellValue font (13px + nowrap) so the
      "2900 / 4050"-shape value stays on one line. */
   grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-  gap: 6px;
-  margin-top: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
 `;
 
 const TotalsCell = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
@@ -714,7 +714,7 @@ const MeasuredCell = styled(TotalsCell)`
    ~3.2:1, below the 4.5:1 AA floor for this size of text. Match NetCell's
    own tone-appropriate foreground tokens instead. */
 const CellLabel = styled.span<{ $tone?: "go" | "warn" | "neutral" }>`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: ${({ $tone }) =>
@@ -726,7 +726,7 @@ const CellLabel = styled.span<{ $tone?: "go" | "warn" | "neutral" }>`
 `;
 
 const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -747,28 +747,28 @@ const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
 const StoredValue = styled(CellValue)`
   /* Break only at the " / " separator (whitespace), never mid-number. */
   white-space: normal;
-  line-height: 1.15;
+  line-height: var(--line-height-tight);
 `;
 
 const SparklineRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 6px 8px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 `;
 
 const SparklineLabel = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-4);
   flex-shrink: 0;
 `;
 
@@ -798,7 +798,7 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
        consumers / idle breakdown fits in the short height by using the
        spare width instead of dropping to the compact net-only readout. */
     flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
-    gap: ${({ $landscape }) => ($landscape ? "12px" : "8px")};
+    gap: ${({ $landscape }) => ($landscape ? "var(--space-12)" : "var(--space-8)")};
     ${({ $landscape }) =>
       $landscape ? "align-items: stretch; overflow: hidden;" : ""}
   }
@@ -807,34 +807,34 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
 const Section = styled.section<{ $landscape?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   ${({ $landscape }) =>
     $landscape ? "flex: 1 1 0; min-width: 0; min-height: 0;" : ""}
 `;
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;
 
 const SectionCount = styled.span`
-  margin-left: 4px;
+  margin-left: var(--space-4);
   color: var(--color-text-muted);
 `;
 
 const SectionEmpty = styled.div`
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  padding: 2px 0;
+  padding: var(--space-2) 0;
 `;
 
 const ContribList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
 `;
 
 const IdleList = styled(ContribList)`
@@ -844,11 +844,11 @@ const IdleList = styled(ContribList)`
 const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 6px;
-  padding: 3px 6px;
-  font-size: 11px;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-6);
+  font-size: var(--font-size-xs);
   background: var(--color-surface-app);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   &:hover {
     background: var(--color-surface-panel);
   }
@@ -862,7 +862,7 @@ const RowName = styled.span`
 `;
 
 const RowEff = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
   font-variant-numeric: tabular-nums;
 `;
@@ -878,10 +878,10 @@ const RowValue = styled.span<{ $sign: "pos" | "neg" | "zero" }>`
 `;
 
 const Hint = styled.div`
-  margin-top: 6px;
-  font-size: 11px;
+  margin-top: var(--space-6);
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
 `;
 
 const CompactBody = styled.div`
@@ -890,12 +890,12 @@ const CompactBody = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-4);
   text-align: center;
 `;
 
 const CompactResource = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -910,7 +910,11 @@ const CompactResource = styled.div`
    font-size a notch buys headroom for the common case, and max-width +
    ellipsis is the safety net for genuinely long values (3-digit rates,
    longer unit strings) so any residual overflow degrades to a visible "..."
-   instead of an abruptly amputated character. */
+   instead of an abruptly amputated character. This is also why the value
+   stays off the type scale: --font-size-lg is identical on desktop but
+   17px under @media (pointer: coarse), and the Steam Deck is both coarse
+   and the tier-1 target, so the token would put the clipping bug back on
+   the one platform that matters most. */
 const CompactNet = styled.div<{ $tone: "go" | "warn" | "neutral" }>`
   max-width: 100%;
   overflow: hidden;

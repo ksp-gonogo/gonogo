@@ -268,8 +268,8 @@ const inputStyles = `
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
   font: inherit;
-  padding: 4px 6px;
-  border-radius: 2px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-xs);
   width: 100%;
   box-sizing: border-box;
   outline: none;
@@ -293,10 +293,10 @@ const Popover = styled.div`
   position: absolute;
   left: 0;
   top: calc(100% + 4px);
-  z-index: 200;
+  z-index: var(--z-dropdown);
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.96));
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   max-height: 240px;
   width: max(280px, 100%);
@@ -309,8 +309,8 @@ const PopoverItem = styled.button<{ $selected: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
-  gap: 1px 12px;
-  padding: 6px 10px;
+  gap: var(--space-hair) var(--space-12);
+  padding: var(--space-6) var(--space-10);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "transparent"};
   border: none;
@@ -320,26 +320,28 @@ const PopoverItem = styled.button<{ $selected: boolean }>`
   color: var(--color-text-primary);
 
   &:focus-visible {
+    /* Inset ring: the ancestor is overflow: hidden, so a positive offset
+       would clip it away entirely. Ring geometry, never a spacing rung. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
 `;
 
 const OptLabel = styled.span`
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-primary);
 `;
 
 const OptKey = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-family: monospace;
   color: var(--color-text-faint);
   align-self: end;
 `;
 
 const OptGroup = styled.span`
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--color-accent-fg);
   letter-spacing: 0.08em;
   text-transform: uppercase;
