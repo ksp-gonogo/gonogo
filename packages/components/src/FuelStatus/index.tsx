@@ -340,18 +340,22 @@ function FuelStatusComponent({
           <TotalsBlock>
             <TotalsLabel>Total ΔV</TotalsLabel>
             <TotalsValue>
-              {totalDv !== undefined
-                ? `${fmtFixed(totalDv, 0)} m/s`
-                : NULL_DISPLAY}
+              <TotalsValueText>
+                {totalDv !== undefined
+                  ? `${fmtFixed(totalDv, 0)} m/s`
+                  : NULL_DISPLAY}
+              </TotalsValueText>
               <TotalsModeTag>{DELTA_V_MODE_SHORT[mode]}</TotalsModeTag>
             </TotalsValue>
           </TotalsBlock>
           <TotalsBlock>
             <TotalsLabel>Total burn</TotalsLabel>
             <TotalsValue>
-              {totalBurnTime !== undefined
-                ? formatDuration(totalBurnTime)
-                : NULL_DISPLAY}
+              <TotalsValueText>
+                {totalBurnTime !== undefined
+                  ? formatDuration(totalBurnTime)
+                  : NULL_DISPLAY}
+              </TotalsValueText>
             </TotalsValue>
           </TotalsBlock>
         </TotalsRow>
@@ -630,6 +634,18 @@ const TotalsValue = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+  flex-wrap: wrap;
+`;
+
+/**
+ * Same "number must never wrap away from its unit" constraint `HeroValue`
+ * documents above: at narrow widths (compact-4x4) the "<n> m/s" text used
+ * to wrap mid-string, stranding "m/s" on its own line below the mode tag.
+ * `TotalsValue` now wraps at the flex level (whole value vs. mode tag) via
+ * `flex-wrap: wrap` above instead of splitting this text node internally.
+ */
+const TotalsValueText = styled.span`
+  white-space: nowrap;
 `;
 
 const TotalsModeTag = styled.span`

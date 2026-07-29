@@ -5,7 +5,7 @@
   },
   "v.currentStage": 0,
   "dv.stageCount": 0,
-  "dv.totalBurnTime": 0.0,
+  "dv.totalBurnTime": null,
   "r.resource[LiquidFuel]": 0.0,
   "r.resourceMax[LiquidFuel]": 0.0,
   "r.resourceCurrent[LiquidFuel]": 0.0,
@@ -80,7 +80,7 @@
           "totalDvVac": null,
           "totalDvAsl": null,
           "totalDvActual": null,
-          "totalBurnTime": 0.0
+          "totalBurnTime": null
         }
       },
       {

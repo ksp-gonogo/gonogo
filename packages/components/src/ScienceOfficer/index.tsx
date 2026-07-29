@@ -237,8 +237,22 @@ function ScienceOfficerComponent({
   const labStreamStatus = useDataStreamStatus("data", "science.lab");
 
   const rows = h ?? 8;
+  const cols = w ?? 6;
   const showSubtitle = rows >= 4;
-  const showLab = rows >= 4;
+  // At the narrowest tested width (min-3x4, cols === 3) the lab name column
+  // has nothing left after the status badge claims its `flex-shrink: 0`
+  // width, and the freed-up wrapped line pushes the meta row (scientist
+  // count / data amount) past Panel's overflow:hidden bottom edge, clipping
+  // it mid-glyph. Require the same cols >= 4 floor as the header badge above
+  // rather than just a row count.
+  const showLab = rows >= 4 && cols >= 4;
+  // Cluster (the title row) is a non-wrapping flex row: at the narrowest
+  // tested width (min-3x4) "SCIENCE LAB" plus the status pill don't both
+  // fit, and the pill overflows past Panel's overflow:hidden edge with no
+  // text visible at all, just a stray border corner. Shed the pill rather
+  // than let it render invisibly; the title alone still communicates the
+  // widget's identity at that size.
+  const showStatusBadge = cols >= 4;
   // Wide-short: flow the instrument groups into columns so they use the width
   // instead of a single stranded column.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
@@ -248,7 +262,7 @@ function ScienceOfficerComponent({
       <Panel>
         <Cluster>
           <PanelTitle>SCIENCE LAB</PanelTitle>
-          <StreamStatusBadge status={labStreamStatus} />
+          {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
         </Cluster>
         {showSubtitle && (
           <PanelSubtitle>Awaiting instrument telemetry</PanelSubtitle>
@@ -263,7 +277,7 @@ function ScienceOfficerComponent({
       <Panel>
         <Cluster>
           <PanelTitle>SCIENCE LAB</PanelTitle>
-          <StreamStatusBadge status={labStreamStatus} />
+          {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
         </Cluster>
         {showSubtitle && <PanelSubtitle>No instruments aboard</PanelSubtitle>}
         {showLab && <LabSection labs={labs} />}
@@ -281,7 +295,7 @@ function ScienceOfficerComponent({
     <Panel>
       <Cluster>
         <PanelTitle>SCIENCE LAB</PanelTitle>
-        <StreamStatusBadge status={labStreamStatus} />
+        {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
         {/* Header escape-hatch slot: a broad badge/summary augment
             composes next to the title. Empty (renders nothing) until an Uplink
             registers into it. */}

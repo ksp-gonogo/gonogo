@@ -436,7 +436,7 @@ function PowerSystemsComponent({
 
       <Totals>
         <NetCell $tone={netTone}>
-          <CellLabel>NET</CellLabel>
+          <CellLabel $tone={netTone}>NET</CellLabel>
           <CellValue>
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
@@ -708,11 +708,21 @@ const MeasuredCell = styled(TotalsCell)`
   border-color: var(--color-status-warning-bg);
 `;
 
-const CellLabel = styled.span`
+/* $tone is only passed for the label inside NetCell: --color-text-faint
+   reads fine on the flat panel background every other CellLabel sits on,
+   but against NetCell's tinted go/warn backgrounds it drops to ~1.9:1 /
+   ~3.2:1, below the 4.5:1 AA floor for this size of text. Match NetCell's
+   own tone-appropriate foreground tokens instead. */
+const CellLabel = styled.span<{ $tone?: "go" | "warn" | "neutral" }>`
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
+  color: ${({ $tone }) =>
+    $tone === "go"
+      ? "var(--color-status-go-fg)"
+      : $tone === "warn"
+        ? "var(--color-status-warning-fg-muted)"
+        : "var(--color-text-faint)"};
 `;
 
 const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`

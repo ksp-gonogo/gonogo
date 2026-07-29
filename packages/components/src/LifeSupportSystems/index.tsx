@@ -249,6 +249,14 @@ function LifeSupportSystemsComponent({
   // process grid down to a one-line summary, the consumable ledger and
   // power meter (the life-critical numbers) always stay.
   const compact = cols < 7 || rows < 9;
+  // At very short heights (e.g. a wide-but-shallow landscape placement)
+  // even compact's reduced stack, 3 consumable meters + the Habitat
+  // summary line + the footer Power meter, doesn't fit the box: Panel's
+  // overflow:hidden then clips the Habitat line mid-glyph and pushes the
+  // "life-critical" Power meter (see comment above) out of view entirely.
+  // Shedding the Habitat summary line too preserves that invariant instead
+  // of silently breaking it.
+  const ultraCompact = rows < 6;
 
   const runningCount = d.processes.filter((p) => p.state === "running").length;
   const brokenCount = d.processes.filter((p) => p.state === "broken").length;
@@ -308,36 +316,38 @@ function LifeSupportSystemsComponent({
         </MeterStackTight>
       </Section>
 
-      <Section>
-        <SectionHead>
-          <SectionLabel>Habitat</SectionLabel>
-          <SectionValue $tone={d.pressurized ? "go" : "warn"}>
-            {d.pressurized ? "Pressurized" : "Unpressurized"}
-          </SectionValue>
-        </SectionHead>
-        {!compact && (
-          <HabitatGrid>
-            <Meter
-              label="Comfort"
-              value={d.comfort}
-              tone={levelTone(d.comfort)}
-              size="sm"
-            />
-            <Meter
-              label="Living space"
-              value={d.livingSpace}
-              tone="info"
-              size="sm"
-            />
-            <Meter
-              label="CO2 poisoning"
-              value={d.co2Poisoning}
-              tone={riskTone(d.co2Poisoning)}
-              size="sm"
-            />
-          </HabitatGrid>
-        )}
-      </Section>
+      {!ultraCompact && (
+        <Section>
+          <SectionHead>
+            <SectionLabel>Habitat</SectionLabel>
+            <SectionValue $tone={d.pressurized ? "go" : "warn"}>
+              {d.pressurized ? "Pressurized" : "Unpressurized"}
+            </SectionValue>
+          </SectionHead>
+          {!compact && (
+            <HabitatGrid>
+              <Meter
+                label="Comfort"
+                value={d.comfort}
+                tone={levelTone(d.comfort)}
+                size="sm"
+              />
+              <Meter
+                label="Living space"
+                value={d.livingSpace}
+                tone="info"
+                size="sm"
+              />
+              <Meter
+                label="CO2 poisoning"
+                value={d.co2Poisoning}
+                tone={riskTone(d.co2Poisoning)}
+                size="sm"
+              />
+            </HabitatGrid>
+          )}
+        </Section>
+      )}
 
       {!compact && (
         <Section>
