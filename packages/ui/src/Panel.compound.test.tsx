@@ -19,9 +19,9 @@ describe("Panel (compound)", () => {
     expect(Panel.Body).toBeDefined();
   });
 
-  it("renders title and subtitle from props", () => {
+  it("renders panelTitle and panelSubtitle from props", () => {
     render(
-      <Panel title="ORBIT" subtitle="KERBIN">
+      <Panel panelTitle="ORBIT" panelSubtitle="KERBIN">
         <span>body</span>
       </Panel>,
     );
@@ -46,7 +46,7 @@ describe("Panel (compound)", () => {
   it("accepts a className so styled(Panel) keeps working", () => {
     // Panel is a function component now; styled(Panel) silently produces an
     // unstyled panel if className is not forwarded.
-    const { container } = render(<Panel className="probe" title="X" />);
+    const { container } = render(<Panel className="probe" panelTitle="X" />);
     expect(container.querySelector(".probe")).not.toBeNull();
   });
 });

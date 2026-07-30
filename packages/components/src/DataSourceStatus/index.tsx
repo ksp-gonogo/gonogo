@@ -16,7 +16,6 @@ import {
   IconButton,
   Input,
   Panel,
-  PanelScrollable,
   PanelTitle,
   Placeholder,
   PrimaryButton,
@@ -140,8 +139,7 @@ function DataSourceStatusComponent({
   }
 
   return (
-    <PanelScrollable>
-      <PanelTitle>Data Sources</PanelTitle>
+    <Panel panelTitle="Data Sources">
       {sources.length === 0 ? (
         <Placeholder>No data sources registered</Placeholder>
       ) : (
@@ -232,7 +230,7 @@ function DataSourceStatusComponent({
           })}
         </List>
       )}
-    </PanelScrollable>
+    </Panel>
   );
 }
 
