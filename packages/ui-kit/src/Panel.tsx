@@ -1,3 +1,4 @@
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -12,6 +13,7 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import { StreamStatusBadge } from "./StreamStatusBadge";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -37,6 +39,51 @@ export function PanelContextProvider({ children }: { children?: ReactNode }) {
     [scroller],
   );
   return <PanelCtx.Provider value={value}>{children}</PanelCtx.Provider>;
+}
+
+/**
+ * The stream status of the widget this panel belongs to, supplied by the
+ * host rather than by the widget.
+ *
+ * A widget's status is derivable: it already declares `dataRequirements` when
+ * it registers, and the host already knows how stale each of those topics is.
+ * Twenty-five widgets nonetheless hand-wired their own
+ * `useDataStreamStatus("data", <a key picked by hand>)` and rendered their own
+ * badge, and twenty-two of those keys were simply one of the widget's own
+ * declared requirements. That is a derivation, written out longhand,
+ * twenty-five times, and it is worse than the derivation: a widget whose
+ * SECOND topic goes stale keeps reporting "live", because only the
+ * hand-picked one was ever consulted.
+ *
+ * So the host provides it and the panel renders it. `null` means no host is
+ * providing one (a panel outside the dashboard: a settings modal, the station
+ * connect view), which renders no badge at all, the same as healthy.
+ *
+ * The type comes from the sdk rather than `@ksp-gonogo/sitrep-client`: the kit
+ * is published and the client is private, so only the sdk's mirrored copy can
+ * be named here. It is a type-only import, erased at build.
+ */
+const PanelStatusCtx = createContext<StreamStatusValue | null>(null);
+
+export function PanelStatusProvider({
+  status,
+  children,
+}: {
+  status: StreamStatusValue | null;
+  children?: ReactNode;
+}) {
+  return (
+    <PanelStatusCtx.Provider value={status}>{children}</PanelStatusCtx.Provider>
+  );
+}
+
+/**
+ * The host-derived stream status for the current widget, or `null` outside a
+ * dashboard. Exposed for the rare widget that wants to react to staleness in
+ * its body rather than just show the badge.
+ */
+export function usePanelStreamStatus(): StreamStatusValue | null {
+  return useContext(PanelStatusCtx);
 }
 
 export const PanelContainer = styled.div`
@@ -82,6 +129,62 @@ export const PanelSubtitle = styled.div`
      do not point it at a rung. */
   margin-top: -4px;
 `;
+
+const PanelHeader__Row = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8, 8px);
+  min-width: 0;
+  /* Never shrink: at very short widget heights the flex column would squeeze
+     the header toward zero and the body would overprint the title. */
+  flex-shrink: 0;
+`;
+
+const PanelHeader__Titles = styled.div`
+  min-width: 0;
+`;
+
+const PanelHeader__Aside = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  flex-shrink: 0;
+  /* PanelTitle owns the left inset and the vertical rhythm; mirror both here
+     so the badges line up with the title rather than the panel edge. */
+  padding: var(--space-12, 12px) var(--space-16, 16px) var(--space-8, 8px);
+`;
+
+/**
+ * Title, optional subtitle, and an optional right-hand aside on one row.
+ *
+ * The aside is why this exists. Twenty-seven of forty-three widgets had grown
+ * a bespoke `TitleRow`/`Header` styled div for exactly this, and what went in
+ * it was not varied: a stream-status badge (37 occurrences), an `AugmentSlot`
+ * for Uplink badges (19), the odd state `Badge` or `Select`. Twenty-seven
+ * hand-rolled rows for two recurring things is a missing name, so this is the
+ * name.
+ */
+export function PanelHeader({
+  title,
+  subtitle,
+  aside,
+  ...rest
+}: Omit<ComponentPropsWithoutRef<"div">, "title"> & {
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  aside?: ReactNode;
+}) {
+  return (
+    <PanelHeader__Row {...rest}>
+      <PanelHeader__Titles>
+        {title !== undefined && <PanelTitle>{title}</PanelTitle>}
+        {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
+      </PanelHeader__Titles>
+      {aside !== undefined && <PanelHeader__Aside>{aside}</PanelHeader__Aside>}
+    </PanelHeader__Row>
+  );
+}
 
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
   flex: 1;
@@ -396,6 +499,25 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   panelTitle?: ReactNode;
   panelSubtitle?: ReactNode;
   /**
+   * Extra content for the right of the header row, beside the stream-status
+   * badge: state chips, an `AugmentSlot` for Uplink badges, a small control.
+   *
+   * Keep it small. This is a header slot, not a second body; anything that
+   * wants real layout should be in the body or in a hand-composed
+   * `Panel.Header`.
+   */
+  panelBadges?: ReactNode;
+  /**
+   * Override the host-derived stream status.
+   *
+   * Leave it unset: the panel reads the status the host derived from this
+   * widget's own `dataRequirements`, which is both less wiring and more
+   * accurate than a hand-picked representative key. Set it only for a panel
+   * whose staleness genuinely is not its widget's (a sub-panel reading one
+   * specific topic), or to `"none"` to suppress the badge entirely.
+   */
+  panelStatus?: StreamStatusValue | "none";
+  /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
    */
@@ -405,21 +527,45 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
 function PanelRoot({
   panelTitle,
   panelSubtitle,
+  panelBadges,
+  panelStatus,
   fitToSize,
   children,
   ...rest
 }: PanelProps) {
-  if (panelTitle === undefined && panelSubtitle === undefined) {
+  const derived = usePanelStreamStatus();
+  const status = panelStatus ?? derived;
+  const statusBadge =
+    status === null || status === "none" ? null : (
+      <StreamStatusBadge status={status} />
+    );
+  // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
+  // and skips the box, where a null child would still render the padded slot.
+  const aside =
+    panelBadges === undefined && statusBadge === null ? undefined : (
+      <>
+        {panelBadges}
+        {statusBadge}
+      </>
+    );
+
+  const hasHeader =
+    panelTitle !== undefined ||
+    panelSubtitle !== undefined ||
+    aside !== undefined;
+
+  if (!hasHeader) {
     return <PanelContainer {...rest}>{children}</PanelContainer>;
   }
   return (
     <PanelContextProvider>
       <PanelContainer {...rest}>
         <PanelGlow>
-          {panelTitle !== undefined && <PanelTitle>{panelTitle}</PanelTitle>}
-          {panelSubtitle !== undefined && (
-            <PanelSubtitle>{panelSubtitle}</PanelSubtitle>
-          )}
+          <PanelHeader
+            title={panelTitle}
+            subtitle={panelSubtitle}
+            aside={aside}
+          />
           <PanelBody fitToSize={fitToSize}>{children}</PanelBody>
         </PanelGlow>
       </PanelContainer>
@@ -430,8 +576,11 @@ function PanelRoot({
 export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,
   Container: PanelContainer,
+  Header: PanelHeader,
   Title: PanelTitle,
   Subtitle: PanelSubtitle,
   Glow: PanelGlow,
   Body: PanelBody,
+  Status: PanelStatusProvider,
+  useStreamStatus: usePanelStreamStatus,
 });

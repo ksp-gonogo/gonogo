@@ -2,19 +2,11 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   formatDistance,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import {
-  EmptyState,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  Sparkline,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
+import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -45,12 +37,11 @@ function SemiMajorAxisComponent({
   const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
   // Connectivity indicator keyed off the headline `o.sma` -> `vessel.orbit.sma`.
-  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const cols = w ?? 4;
   const rows = h ?? 4;
   // Subtitle is "what is this widget" elaboration, suppress when there's
-  // no room without crowding the readout. At default 4×4 the PanelTitle
+  // no room without crowding the readout. At default 4×4 the panel title
   // ("SMA") + value already cover the operator's read-at-a-glance need.
   const showSubtitle = rows >= 5 && cols >= 4;
   const showSparkline = rows >= 4 && cols >= 3;
@@ -95,27 +86,21 @@ function SemiMajorAxisComponent({
 
   if (sma === undefined || !Number.isFinite(sma)) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>SMA</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel panelTitle="SMA">
         <EmptyState>No orbit data</EmptyState>
       </Panel>
     );
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>SMA</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && (
-        <PanelSubtitle>
-          Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
-        </PanelSubtitle>
-      )}
+    <Panel
+      panelTitle="SMA"
+      panelSubtitle={
+        showSubtitle
+          ? `Semi-major axis${referenceBody ? ` · ${referenceBody}` : ""}`
+          : undefined
+      }
+    >
       <Body>
         <Readout
           role="status"
@@ -138,14 +123,6 @@ function SemiMajorAxisComponent({
     </Panel>
   );
 }
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div`
   flex: 1;

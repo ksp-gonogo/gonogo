@@ -179,10 +179,13 @@ export {
   PanelContainer,
   PanelContextProvider,
   PanelGlow,
+  PanelHeader,
   type PanelProps,
+  PanelStatusProvider,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
+  usePanelStreamStatus,
 } from "./Panel";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
 export {
@@ -202,6 +205,11 @@ export {
   type StatusIndicatorProps,
   type StatusTone,
 } from "./StatusIndicator";
+export {
+  formatStreamStatus,
+  StreamStatusBadge,
+  type StreamStatusBadgeProps,
+} from "./StreamStatusBadge";
 export { Switch } from "./Switch";
 export {
   ScienceExperimentRow,

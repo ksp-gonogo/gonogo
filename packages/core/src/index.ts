@@ -22,6 +22,7 @@ export * from "./hooks/useTelemetry";
 export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTouchDevice";
 export * from "./hooks/useUplinkHealthFor";
+export * from "./hooks/useWidgetStreamStatus";
 // ErrorBoundary stays in core (React-specific). The rest of the
 // logger surface: `logger`, `AxiomTransport`, `tagRegistry`, types,
 // debugPeer, handleError: moved to `@ksp-gonogo/logger` so Node services

@@ -1,11 +1,14 @@
 import { RequiresGuard } from "@ksp-gonogo/components";
+import type { ComponentDefinition } from "@ksp-gonogo/core";
 import {
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
+  useWidgetStreamStatus,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
-import { memo, useCallback, useMemo } from "react";
+import { PanelStatusProvider } from "@ksp-gonogo/ui-kit";
+import { memo, type ReactNode, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
 import {
@@ -96,22 +99,46 @@ export const GridItemContent = memo(function GridItemContent({
       </CellHeader>
       <ComponentWrapper>
         <DashboardItemContext.Provider value={itemContext}>
-          <ErrorBoundary fallback={renderErrorFallback}>
-            <RequiresGuard requires={def.requires} channels={def.channels}>
-              <Comp
-                id={item.i}
-                config={item.config}
-                w={w}
-                h={h}
-                onConfigChange={onSaveConfig}
-              />
-            </RequiresGuard>
-          </ErrorBoundary>
+          <WidgetStreamStatus def={def}>
+            <ErrorBoundary fallback={renderErrorFallback}>
+              <RequiresGuard requires={def.requires} channels={def.channels}>
+                <Comp
+                  id={item.i}
+                  config={item.config}
+                  w={w}
+                  h={h}
+                  onConfigChange={onSaveConfig}
+                />
+              </RequiresGuard>
+            </ErrorBoundary>
+          </WidgetStreamStatus>
         </DashboardItemContext.Provider>
       </ComponentWrapper>
     </>
   );
 });
+
+/**
+ * Derives the widget's stream status from the `dataRequirements` it already
+ * registered, and hands it to whatever `Panel` the widget renders. The widget
+ * itself wires nothing: it is the dashboard that knows both which topics the
+ * widget declared and how stale each of them is, so it is the dashboard that
+ * should answer the question.
+ *
+ * Its own component rather than a hook call in `GridItemContent` because that
+ * function returns early when a component id is unknown, and a hook cannot sit
+ * behind that.
+ */
+function WidgetStreamStatus({
+  def,
+  children,
+}: {
+  def: ComponentDefinition;
+  children: ReactNode;
+}) {
+  const status = useWidgetStreamStatus(def.dataRequirements);
+  return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
+}
 
 const CellHeader = styled.div`
   /* Off the spacing ladder: this is the drag-handle height, and the 18 -> 16
