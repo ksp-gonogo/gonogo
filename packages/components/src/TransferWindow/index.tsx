@@ -17,8 +17,6 @@ import {
   FieldRow,
   NULL_DISPLAY,
   Panel,
-  PanelTitle,
-  ScrollArea,
   Select,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
@@ -223,16 +221,14 @@ function TransferWindowComponent({
 
   if (!orbit || !origin) {
     return (
-      <Panel>
-        <PanelTitle>Transfer Window</PanelTitle>
+      <Panel panelTitle="Transfer Window">
         <Placeholder>Waiting for vessel orbit...</Placeholder>
       </Panel>
     );
   }
   if (dests.length === 0 || !dest) {
     return (
-      <Panel>
-        <PanelTitle>Transfer Window</PanelTitle>
+      <Panel panelTitle="Transfer Window">
         <Placeholder>
           No transfer destinations. {origin.name ?? "The origin body"} has no
           sibling bodies to transfer to.
@@ -242,82 +238,86 @@ function TransferWindowComponent({
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>Transfer Window</PanelTitle>
-        <FieldRow>
-          <FieldLabel htmlFor="transfer-dest">
-            {origin.name ?? "Origin"} to
-          </FieldLabel>
-          <RouteSelect
-            id="transfer-dest"
-            value={dest.index}
-            onChange={(e) => setDestIndex(Number(e.target.value))}
-          >
-            {dests.map((d) => (
-              <option key={d.index} value={d.index}>
-                {d.name ?? `Body ${d.index}`}
-              </option>
-            ))}
-          </RouteSelect>
-        </FieldRow>
-      </TitleRow>
+    <Panel.Context>
+      <Panel.Container>
+        <TitleRow>
+          <Panel.Title>Transfer Window</Panel.Title>
+          <FieldRow>
+            <FieldLabel htmlFor="transfer-dest">
+              {origin.name ?? "Origin"} to
+            </FieldLabel>
+            <RouteSelect
+              id="transfer-dest"
+              value={dest.index}
+              onChange={(e) => setDestIndex(Number(e.target.value))}
+            >
+              {dests.map((d) => (
+                <option key={d.index} value={d.index}>
+                  {d.name ?? `Body ${d.index}`}
+                </option>
+              ))}
+            </RouteSelect>
+          </FieldRow>
+        </TitleRow>
 
-      <Body>
-        {solution ? (
-          // Responsive on the body's own width (container query): stacked when
-          // narrow: dial + list, then the chart below; side-by-side when wide,
-          // dial + list on the left, the chart flowing to the right. The
-          // chart holds a minimum size and grows to fill whatever space is free.
-          <ContentGrid>
-            <LeftCol>
-              <NowRow>
-                <PhaseDial solution={solution} />
-                <NowFacts role="status" aria-live="polite">
-                  <NowLabel>Current phase</NowLabel>
-                  <NowValue>
-                    {solution.currentPhaseDeg.toFixed(1)}°
-                    <Muted>
-                      {" / ideal "}
-                      {solution.idealPhaseDeg.toFixed(1)}°
-                    </Muted>
-                  </NowValue>
-                  <Badge tone={STATUS_TONE[solution.status]}>
-                    {STATUS_LABEL[solution.status]}
-                  </Badge>
-                </NowFacts>
-              </NowRow>
+        <Panel.Glow>
+          <Body>
+            {solution ? (
+              // Responsive on the body's own width (container query): stacked when
+              // narrow: dial + list, then the chart below; side-by-side when wide,
+              // dial + list on the left, the chart flowing to the right. The
+              // chart holds a minimum size and grows to fill whatever space is free.
+              <ContentGrid>
+                <LeftCol>
+                  <NowRow>
+                    <PhaseDial solution={solution} />
+                    <NowFacts role="status" aria-live="polite">
+                      <NowLabel>Current phase</NowLabel>
+                      <NowValue>
+                        {solution.currentPhaseDeg.toFixed(1)}°
+                        <Muted>
+                          {" / ideal "}
+                          {solution.idealPhaseDeg.toFixed(1)}°
+                        </Muted>
+                      </NowValue>
+                      <Badge tone={STATUS_TONE[solution.status]}>
+                        {STATUS_LABEL[solution.status]}
+                      </Badge>
+                    </NowFacts>
+                  </NowRow>
 
-              <WindowsList
-                windows={windows}
-                selectedIndex={selIdx}
-                onSelect={setSelectedWindow}
-                destName={dest.name ?? "target"}
-                createAlarm={
-                  createAlarm
-                    ? (w) =>
-                        createAlarm({
-                          name: `Transfer: ${origin.name} to ${dest.name}`,
-                          trigger: {
-                            kind: "time",
-                            ut: w.departureUt,
-                            leadSeconds,
-                          },
-                        })
-                    : null
-                }
-              />
-            </LeftCol>
+                  <WindowsList
+                    windows={windows}
+                    selectedIndex={selIdx}
+                    onSelect={setSelectedWindow}
+                    destName={dest.name ?? "target"}
+                    createAlarm={
+                      createAlarm
+                        ? (w) =>
+                            createAlarm({
+                              name: `Transfer: ${origin.name} to ${dest.name}`,
+                              trigger: {
+                                kind: "time",
+                                ut: w.departureUt,
+                                leadSeconds,
+                              },
+                            })
+                        : null
+                    }
+                  />
+                </LeftCol>
 
-            {showPorkchop && focusedPorkchop && (
-              <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
+                {showPorkchop && focusedPorkchop && (
+                  <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
+                )}
+              </ContentGrid>
+            ) : (
+              <Placeholder>Waiting for orbital elements...</Placeholder>
             )}
-          </ContentGrid>
-        ) : (
-          <Placeholder>Waiting for orbital elements...</Placeholder>
-        )}
-      </Body>
-    </Panel>
+          </Body>
+        </Panel.Glow>
+      </Panel.Container>
+    </Panel.Context>
   );
 }
 
@@ -706,37 +706,20 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// The scrolling body: fills the Panel below the fixed title row and scrolls
-// its content within the tile (with ui-kit's fade/glow affordance). The
-// scrolling children lay out via the inner element, per ScrollArea's contract.
-// Full-bleed body (standing rule): the widget body reaches the widget edge,
-// the dashboard grid owns the outer gutter, and the ui-kit Panel no longer adds
-// its own padding. Text/readouts keep a local horizontal pad for readability;
-// the Δv map and the window rows bleed back out to the edges (negative margin =
-// this pad) so the chart uses the full width. The pad also cushions content
-// while the Panel padding removal is still landing across the fleet.
-// Text/readouts keep this much side padding; the chart and window rows go
-// full-bleed to the body edge (the padless Panel owns no inset).
-// One constant, six call sites: the six padded rows must not drift apart, so
-// the rung is applied here rather than at each site. Deliberately --space-12
-// and not the --space-16 panel inset: the step between these padded rows and
-// the full-bleed chart/window rows beside them is the point, and widening it
-// is a layout decision, not a token migration.
+// Internal padding for the two boxes that draw their own edge: the selectable
+// window row (a bordered button) and the expander beneath it. Panel.Body owns
+// the panel-wide inset now, so this is only about the gap between a box's
+// border and its own text. One constant, two call sites, so the pair cannot
+// drift apart.
 const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    /* query container so the layout reflows on the body's own width */
-    container-type: inline-size;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: var(--space-8);
-  }
+/* Panel.Body already scrolls, pads and lays out as a flex column; the only
+   thing this adds is the query container, so the content grid reflows on the
+   body's own width rather than the viewport's. */
+const Body = styled(Panel.Body)`
+  container-type: inline-size;
 `;
 
 // Holds the dial + list + chart. Stacked (dial/list, then chart below) when
@@ -773,6 +756,10 @@ const TitleRow = styled.div`
   justify-content: space-between;
   gap: var(--space-8);
   flex-wrap: wrap;
+  /* Panel.Title carries the left inset; the destination select on the right
+     needs the matching one, or it sits against the panel border. */
+  padding-right: var(--space-16);
+  flex-shrink: 0;
 `;
 
 const RouteSelect = styled(Select)`
@@ -784,7 +771,6 @@ const NowRow = styled.div`
   display: flex;
   gap: var(--space-16);
   align-items: center;
-  padding: 0 ${TEXT_PAD};
 `;
 
 // The chart box grows to fill whatever space the tile/column gives it, down to
@@ -850,7 +836,6 @@ const ListTitle = styled.div`
   font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0 ${TEXT_PAD};
 `;
 
 const List = styled.ul`
@@ -949,7 +934,6 @@ const PorkchopWrap = styled.div`
 const PorkchopTitle = styled.div`
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  padding: 0 ${TEXT_PAD};
 `;
 
 const Inspector = styled.div`
@@ -957,5 +941,4 @@ const Inspector = styled.div`
   color: var(--color-text-dim);
   font-variant-numeric: tabular-nums;
   min-height: 1.2em;
-  padding: 0 ${TEXT_PAD};
 `;

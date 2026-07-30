@@ -1,12 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { PerfBudget, registerComponent } from "@ksp-gonogo/core";
-import {
-  BigReadout,
-  EmptyState,
-  Panel,
-  PanelTitle,
-  ReadoutCaption,
-} from "@ksp-gonogo/ui";
+import { BigReadout, EmptyState, Panel, ReadoutCaption } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -53,8 +47,7 @@ function PerfBudgetsComponent({
 
   if (snapshots.length === 0) {
     return (
-      <Panel>
-        <PanelTitle>PERF BUDGETS</PanelTitle>
+      <Panel panelTitle="PERF BUDGETS">
         <EmptyState>
           No budgets registered yet. Budgets self-register at module load; make
           sure the relevant services are imported.
@@ -71,8 +64,7 @@ function PerfBudgetsComponent({
 
   if (!showFullRows && !showDots) {
     return (
-      <Panel>
-        <PanelTitle>PERF</PanelTitle>
+      <Panel panelTitle="PERF">
         <BigReadout $tone={overCount > 0 ? "alert" : "go"}>
           {overCount > 0 ? `${overCount} OVER` : `${snapshots.length} OK`}
           <ReadoutCaption>
@@ -85,8 +77,7 @@ function PerfBudgetsComponent({
 
   if (showDots) {
     return (
-      <Panel>
-        <PanelTitle>PERF</PanelTitle>
+      <Panel panelTitle="PERF">
         <DotSummary>
           <DotHeadline $tone={tone}>
             {overCount > 0
@@ -107,8 +98,7 @@ function PerfBudgetsComponent({
   }
 
   return (
-    <Panel>
-      <PanelTitle>PERF BUDGETS</PanelTitle>
+    <Panel panelTitle="PERF BUDGETS">
       <List>
         {snapshots.map((s) => {
           const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
@@ -175,7 +165,9 @@ const TONE_COLOR: Record<Tone, string> = {
 
 const List = styled.ul`
   list-style: none;
-  margin: var(--space-8) 0 0;
+  /* No top margin: Panel.Body supplies the inset and the gap between the
+     title and the first row. */
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;

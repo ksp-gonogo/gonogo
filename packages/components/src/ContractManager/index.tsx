@@ -12,13 +12,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  BellIcon,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  ScrollArea,
-} from "@ksp-gonogo/ui";
+import { BellIcon, Panel } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
@@ -297,12 +291,10 @@ function ContractManagerComponent({
 
   if (active === null) {
     return (
-      <Panel>
-        <PanelTitle>CONTRACT MANAGER</PanelTitle>
-        {showSubtitle && (
-          <PanelSubtitle>Awaiting contract telemetry</PanelSubtitle>
-        )}
-      </Panel>
+      <Panel
+        panelTitle="CONTRACT MANAGER"
+        panelSubtitle={showSubtitle ? "Awaiting contract telemetry" : undefined}
+      />
     );
   }
 
@@ -311,234 +303,235 @@ function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
 
   return (
-    <Panel>
-      <PanelTitle>CONTRACT MANAGER</PanelTitle>
-      {showSubtitle && (
-        <PanelSubtitle role="status" aria-live="polite">
-          {activeCount} active · {offeredCount} offered · {recentCount} recent
-        </PanelSubtitle>
+    <Panel
+      panelTitle="CONTRACT MANAGER"
+      panelSubtitle={
+        showSubtitle ? (
+          <span role="status" aria-live="polite">
+            {activeCount} active · {offeredCount} offered · {recentCount} recent
+          </span>
+        ) : undefined
+      }
+    >
+      {activeCount === 0 && offeredCount === 0 && (
+        <Empty>No active contracts. Pick one up in Mission Control.</Empty>
       )}
-      <Body>
-        {activeCount === 0 && offeredCount === 0 && (
-          <Empty>No active contracts. Pick one up in Mission Control.</Empty>
-        )}
-        {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
-        <CardList $multiColumn={multiColumn}>
-          {active.map((c) => (
-            <ContractCard key={c.id}>
-              <ContractHeader>
-                <ContractTitle>{c.title}</ContractTitle>
-                {/* Per-contract inline badges slot. Renders nothing until a
+      {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
+      <CardList $multiColumn={multiColumn}>
+        {active.map((c) => (
+          <ContractCard key={c.id}>
+            <ContractHeader>
+              <ContractTitle>{c.title}</ContractTitle>
+              {/* Per-contract inline badges slot. Renders nothing until a
                     contract-pack Uplink binds: the props carry this row's
                     contract identity so custom iconography lands on the right
                     one. */}
-                <AugmentSlot
-                  name="contract-manager.badges"
-                  props={{
-                    contractId: c.id,
-                    title: c.title,
-                    agency: c.agency,
-                    section: "active",
-                  }}
-                />
-                <ContractDeadline>
-                  {formatDeadline(c.deadlineUt, universalTime ?? 0)}
-                </ContractDeadline>
-              </ContractHeader>
-              {c.agency && <Agency>{c.agency}</Agency>}
-              <Rewards>
-                {c.fundsCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>FUNDS</RewardLabel>
-                    <RewardValue>
-                      {formatCompactCurrency(c.fundsCompletion)}
-                    </RewardValue>
-                  </Reward>
-                )}
-                {c.scienceCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>SCI</RewardLabel>
-                    <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                  </Reward>
-                )}
-                {c.repCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>REP</RewardLabel>
-                    <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                  </Reward>
-                )}
-              </Rewards>
-              {c.parameters.length > 0 && (
-                <Parameters>
-                  {c.parameters.map((p) => (
-                    <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
-                      <ParameterMark $state={p.state}>
-                        {p.state === "Complete"
-                          ? "✓"
-                          : p.state === "Failed"
-                            ? "✕"
-                            : "○"}
-                      </ParameterMark>
-                      <ParameterTitle>
-                        {p.title}
-                        {p.optional && <Optional> (optional)</Optional>}
-                        {p.state === "Incomplete" &&
-                          p.parameterType === "ReachAltitudeEnvelope" &&
-                          p.minAltitude !== undefined &&
-                          p.maxAltitude !== undefined &&
-                          typeof vAltitude === "number" && (
-                            <AltitudeProgress
-                              min={p.minAltitude}
-                              max={p.maxAltitude}
-                              current={vAltitude}
-                            />
-                          )}
-                      </ParameterTitle>
+              <AugmentSlot
+                name="contract-manager.badges"
+                props={{
+                  contractId: c.id,
+                  title: c.title,
+                  agency: c.agency,
+                  section: "active",
+                }}
+              />
+              <ContractDeadline>
+                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+              </ContractDeadline>
+            </ContractHeader>
+            {c.agency && <Agency>{c.agency}</Agency>}
+            <Rewards>
+              {c.fundsCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>FUNDS</RewardLabel>
+                  <RewardValue>
+                    {formatCompactCurrency(c.fundsCompletion)}
+                  </RewardValue>
+                </Reward>
+              )}
+              {c.scienceCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>SCI</RewardLabel>
+                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+              {c.repCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>REP</RewardLabel>
+                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+            </Rewards>
+            {c.parameters.length > 0 && (
+              <Parameters>
+                {c.parameters.map((p) => (
+                  <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
+                    <ParameterMark $state={p.state}>
+                      {p.state === "Complete"
+                        ? "✓"
+                        : p.state === "Failed"
+                          ? "✕"
+                          : "○"}
+                    </ParameterMark>
+                    <ParameterTitle>
+                      {p.title}
+                      {p.optional && <Optional> (optional)</Optional>}
                       {p.state === "Incomplete" &&
-                        createAlarm &&
-                        contractIdToSafeNumber(c.id) !== null &&
-                        (() => {
-                          const numericId = contractIdToSafeNumber(c.id);
-                          if (numericId === null) return null;
-                          const existingId =
-                            alarmManager?.find((trigger) => {
-                              if (
-                                !trigger ||
-                                typeof trigger !== "object" ||
-                                Array.isArray(trigger)
-                              )
-                                return false;
-                              const t = trigger as Record<string, unknown>;
-                              return (
-                                t.kind === "contract-parameter" &&
-                                t.contractId === numericId &&
-                                t.parameterTitle === p.title
-                              );
-                            }) ?? null;
-                          const isSet = existingId !== null;
-                          return (
-                            <ParameterAlarmButton
-                              type="button"
-                              $set={isSet}
-                              title={
-                                isSet
-                                  ? `Alarm set for "${p.title}": click to clear`
-                                  : `Alarm me when "${p.title}" completes`
-                              }
-                              aria-label={
-                                isSet
-                                  ? `Clear alarm for ${p.title}`
-                                  : `Set alarm for ${p.title} completion`
-                              }
-                              aria-pressed={isSet}
-                              onClick={() => {
-                                if (isSet && existingId && alarmManager) {
-                                  alarmManager.remove(existingId);
-                                  return;
-                                }
-                                createAlarm({
-                                  name: `${p.title} → Complete`,
-                                  trigger: {
-                                    kind: "contract-parameter",
-                                    contractId: numericId,
-                                    parameterTitle: p.title,
-                                    targetState: "Complete",
-                                    sustainSeconds: 0,
-                                  },
-                                });
-                              }}
-                            >
-                              <BellIcon size={12} />
-                            </ParameterAlarmButton>
-                          );
-                        })()}
-                      {p.state === "Incomplete" &&
-                        createAlarm &&
-                        contractIdToSafeNumber(c.id) === null && (
-                          // Big-id contracts (KSP-generated longs above
-                          // Number.MAX_SAFE_INTEGER) can't be addressed by the
-                          // current alarm trigger shape (contractId: number).
-                          // Render a disabled icon with explanation rather
-                          // than hide: keeps the row layout consistent.
+                        p.parameterType === "ReachAltitudeEnvelope" &&
+                        p.minAltitude !== undefined &&
+                        p.maxAltitude !== undefined &&
+                        typeof vAltitude === "number" && (
+                          <AltitudeProgress
+                            min={p.minAltitude}
+                            max={p.maxAltitude}
+                            current={vAltitude}
+                          />
+                        )}
+                    </ParameterTitle>
+                    {p.state === "Incomplete" &&
+                      createAlarm &&
+                      contractIdToSafeNumber(c.id) !== null &&
+                      (() => {
+                        const numericId = contractIdToSafeNumber(c.id);
+                        if (numericId === null) return null;
+                        const existingId =
+                          alarmManager?.find((trigger) => {
+                            if (
+                              !trigger ||
+                              typeof trigger !== "object" ||
+                              Array.isArray(trigger)
+                            )
+                              return false;
+                            const t = trigger as Record<string, unknown>;
+                            return (
+                              t.kind === "contract-parameter" &&
+                              t.contractId === numericId &&
+                              t.parameterTitle === p.title
+                            );
+                          }) ?? null;
+                        const isSet = existingId !== null;
+                        return (
                           <ParameterAlarmButton
                             type="button"
-                            disabled
-                            title="Cannot alarm: contract id exceeds JS safe-integer range. Fix tracked in feature_log."
-                            aria-label="Alarm unavailable for this contract"
+                            $set={isSet}
+                            title={
+                              isSet
+                                ? `Alarm set for "${p.title}": click to clear`
+                                : `Alarm me when "${p.title}" completes`
+                            }
+                            aria-label={
+                              isSet
+                                ? `Clear alarm for ${p.title}`
+                                : `Set alarm for ${p.title} completion`
+                            }
+                            aria-pressed={isSet}
+                            onClick={() => {
+                              if (isSet && existingId && alarmManager) {
+                                alarmManager.remove(existingId);
+                                return;
+                              }
+                              createAlarm({
+                                name: `${p.title} → Complete`,
+                                trigger: {
+                                  kind: "contract-parameter",
+                                  contractId: numericId,
+                                  parameterTitle: p.title,
+                                  targetState: "Complete",
+                                  sustainSeconds: 0,
+                                },
+                              });
+                            }}
                           >
                             <BellIcon size={12} />
                           </ParameterAlarmButton>
-                        )}
-                    </Parameter>
-                  ))}
-                </Parameters>
-              )}
-              <ActiveActions>
-                <CancelButton contractId={c.id} execute={execute} />
-              </ActiveActions>
-            </ContractCard>
-          ))}
-        </CardList>
-        {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
-        <CardList $multiColumn={multiColumn}>
-          {offered?.map((c) => (
-            <ContractCard key={c.id}>
-              <ContractHeader>
-                <ContractTitle>{c.title}</ContractTitle>
-                {/* Per-contract inline badges slot (offered list). Same slot as
+                        );
+                      })()}
+                    {p.state === "Incomplete" &&
+                      createAlarm &&
+                      contractIdToSafeNumber(c.id) === null && (
+                        // Big-id contracts (KSP-generated longs above
+                        // Number.MAX_SAFE_INTEGER) can't be addressed by the
+                        // current alarm trigger shape (contractId: number).
+                        // Render a disabled icon with explanation rather
+                        // than hide: keeps the row layout consistent.
+                        <ParameterAlarmButton
+                          type="button"
+                          disabled
+                          title="Cannot alarm: contract id exceeds JS safe-integer range. Fix tracked in feature_log."
+                          aria-label="Alarm unavailable for this contract"
+                        >
+                          <BellIcon size={12} />
+                        </ParameterAlarmButton>
+                      )}
+                  </Parameter>
+                ))}
+              </Parameters>
+            )}
+            <ActiveActions>
+              <CancelButton contractId={c.id} execute={execute} />
+            </ActiveActions>
+          </ContractCard>
+        ))}
+      </CardList>
+      {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
+      <CardList $multiColumn={multiColumn}>
+        {offered?.map((c) => (
+          <ContractCard key={c.id}>
+            <ContractHeader>
+              <ContractTitle>{c.title}</ContractTitle>
+              {/* Per-contract inline badges slot (offered list). Same slot as
                     the active rows; `section` distinguishes them for augments
                     that want to style offered contracts differently. */}
-                <AugmentSlot
-                  name="contract-manager.badges"
-                  props={{
-                    contractId: c.id,
-                    title: c.title,
-                    agency: c.agency,
-                    section: "offered",
-                  }}
-                />
-                <ContractDeadline>
-                  {formatDeadline(c.deadlineUt, universalTime ?? 0)}
-                </ContractDeadline>
-              </ContractHeader>
-              {c.agency && <Agency>{c.agency}</Agency>}
-              <Rewards>
-                {c.fundsCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>FUNDS</RewardLabel>
-                    <RewardValue>
-                      {formatCompactCurrency(c.fundsCompletion)}
-                    </RewardValue>
-                  </Reward>
-                )}
-                {c.scienceCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>SCI</RewardLabel>
-                    <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                  </Reward>
-                )}
-                {c.repCompletion > 0 && (
-                  <Reward>
-                    <RewardLabel>REP</RewardLabel>
-                    <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                  </Reward>
-                )}
-              </Rewards>
-              <OfferedActions>
-                <AcceptButton
-                  type="button"
-                  onClick={() => {
-                    void execute(`contracts.accept[${c.id}]`);
-                  }}
-                >
-                  Accept
-                </AcceptButton>
-                <DeclineButton contractId={c.id} execute={execute} />
-              </OfferedActions>
-            </ContractCard>
-          ))}
-        </CardList>
-      </Body>
+              <AugmentSlot
+                name="contract-manager.badges"
+                props={{
+                  contractId: c.id,
+                  title: c.title,
+                  agency: c.agency,
+                  section: "offered",
+                }}
+              />
+              <ContractDeadline>
+                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+              </ContractDeadline>
+            </ContractHeader>
+            {c.agency && <Agency>{c.agency}</Agency>}
+            <Rewards>
+              {c.fundsCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>FUNDS</RewardLabel>
+                  <RewardValue>
+                    {formatCompactCurrency(c.fundsCompletion)}
+                  </RewardValue>
+                </Reward>
+              )}
+              {c.scienceCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>SCI</RewardLabel>
+                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+              {c.repCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>REP</RewardLabel>
+                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+            </Rewards>
+            <OfferedActions>
+              <AcceptButton
+                type="button"
+                onClick={() => {
+                  void execute(`contracts.accept[${c.id}]`);
+                }}
+              >
+                Accept
+              </AcceptButton>
+              <DeclineButton contractId={c.id} execute={execute} />
+            </OfferedActions>
+          </ContractCard>
+        ))}
+      </CardList>
     </Panel>
   );
 }
@@ -626,34 +619,6 @@ function CancelButton({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-  /* Panel is full-bleed by design (no uniform inset); PanelTitle/
-     PanelSubtitle carry their own 16px horizontal padding, but this
-     ScrollArea sat directly in the Panel body with none, so the section
-     labels and the empty-state copy touched the panel border directly,
-     visibly tighter than the title above them. Match PanelBody's
-     established 16px/8px inset and publish it as the scroll-glow-pad vars
-     (Panel.tsx's documented convention) so the top/bottom scroll fade still
-     reaches the chrome edge instead of stopping short at the new padding. */
-  /* These two custom properties are the same decision as the padding
-     below and must move with it: Panel.tsx consumes them as
-     calc(-1 * var(--scroll-glow-pad-x)) / calc(16px + var(--scroll-glow-pad-y)).
-     A padding-family codemod cannot see a custom-property declaration,
-     so they are tokenised here by hand rather than left as literals that
-     silently desynchronise from the inset the next time --space-16 moves. */
-  --scroll-glow-pad-x: var(--space-16);
-  --scroll-glow-pad-y: var(--space-8);
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-    padding: var(--space-8) var(--space-16) var(--space-12);
-  }
-`;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
