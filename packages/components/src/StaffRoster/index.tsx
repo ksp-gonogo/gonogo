@@ -6,7 +6,13 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Badge, Panel } from "@ksp-gonogo/ui";
+import {
+  Badge,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@ksp-gonogo/ui";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
@@ -157,21 +163,23 @@ function StaffRosterComponent({
 
   if (staff === null) {
     return (
-      <Panel
-        panelTitle="STAFF ROSTER"
-        panelSubtitle={showSubtitle ? "Awaiting roster telemetry" : undefined}
-      />
+      <Panel>
+        <PanelTitle>STAFF ROSTER</PanelTitle>
+        {showSubtitle && (
+          <PanelSubtitle>Awaiting roster telemetry</PanelSubtitle>
+        )}
+      </Panel>
     );
   }
 
   if (staff.length === 0) {
     return (
-      <Panel
-        panelTitle="STAFF ROSTER"
-        panelSubtitle={
-          showSubtitle ? "Roster empty: no kerbals hired." : undefined
-        }
-      />
+      <Panel>
+        <PanelTitle>STAFF ROSTER</PanelTitle>
+        {showSubtitle && (
+          <PanelSubtitle>Roster empty: no kerbals hired.</PanelSubtitle>
+        )}
+      </Panel>
     );
   }
 
@@ -199,7 +207,8 @@ function StaffRosterComponent({
     // keep it for the taller-but-narrow tiny boxes (e.g. 2×8) that have room.
     const showMissing = missing > 0 && rows >= 4;
     return (
-      <Panel panelTitle="STAFF">
+      <Panel>
+        <PanelTitle>STAFF</PanelTitle>
         <TinyBody role="status" aria-live="polite">
           <TinyCount>
             {available}
@@ -213,94 +222,104 @@ function StaffRosterComponent({
   }
 
   return (
-    <Panel
-      panelTitle="STAFF ROSTER"
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {available}/{staff.length} available
-          </span>
-        ) : undefined
-      }
-    >
-      <List $multiColumn={multiColumn}>
-        {sorted.map((kerbal, i) => (
-          <Row
-            key={rowKeys[i]}
-            $available={kerbal.available}
-            title={buildTooltip(kerbal)}
-          >
-            <Name>{kerbal.name}</Name>
-            <Meta>
-              <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
-                {kerbal.trait || NULL_DISPLAY}
-              </TraitTag>
-              <Level
-                title={`Experience level ${kerbal.experienceLevel}`}
-                aria-label={`Experience level ${kerbal.experienceLevel}`}
-              >
-                L{kerbal.experienceLevel}
-              </Level>
-              {kerbal.veteran && (
-                <Badge
-                  tone="go"
-                  size="sm"
-                  aria-label="veteran"
-                  title="Veteran: has flown a notable mission"
+    <Panel>
+      <PanelTitle>STAFF ROSTER</PanelTitle>
+      {showSubtitle && (
+        <PanelSubtitle role="status" aria-live="polite">
+          {available}/{staff.length} available
+        </PanelSubtitle>
+      )}
+      <Body>
+        <List $multiColumn={multiColumn}>
+          {sorted.map((kerbal, i) => (
+            <Row
+              key={rowKeys[i]}
+              $available={kerbal.available}
+              title={buildTooltip(kerbal)}
+            >
+              <Name>{kerbal.name}</Name>
+              <Meta>
+                <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
+                  {kerbal.trait || NULL_DISPLAY}
+                </TraitTag>
+                <Level
+                  title={`Experience level ${kerbal.experienceLevel}`}
+                  aria-label={`Experience level ${kerbal.experienceLevel}`}
                 >
-                  ★
-                </Badge>
-              )}
-              {kerbal.isBadass && (
-                <Badge
-                  tone="warn"
-                  size="sm"
-                  aria-label="badass"
-                  title="Badass: KSP's brave trait; rarely panics"
-                >
-                  BA
-                </Badge>
-              )}
-              {kerbal.careerFlights > 0 && (
-                <Badge
-                  tone="neutral"
-                  size="sm"
-                  aria-label={`${kerbal.careerFlights} flights`}
-                  title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
-                >
-                  {kerbal.careerFlights}F
-                </Badge>
-              )}
-              {!kerbal.available && (
-                <Badge
-                  tone="nogo"
-                  size="sm"
-                  title={
-                    kerbal.currentVesselName
-                      ? `${kerbal.unavailableReason || "Unavailable"} (${kerbal.currentVesselName})`
-                      : kerbal.unavailableReason || "Unavailable"
-                  }
-                >
-                  {kerbal.unavailableReason || "Unavailable"}
-                </Badge>
-              )}
-              {/* Per-kerbal inline badges slot. Renders nothing until an Uplink
+                  L{kerbal.experienceLevel}
+                </Level>
+                {kerbal.veteran && (
+                  <Badge
+                    tone="go"
+                    size="sm"
+                    aria-label="veteran"
+                    title="Veteran: has flown a notable mission"
+                  >
+                    ★
+                  </Badge>
+                )}
+                {kerbal.isBadass && (
+                  <Badge
+                    tone="warn"
+                    size="sm"
+                    aria-label="badass"
+                    title="Badass: KSP's brave trait; rarely panics"
+                  >
+                    BA
+                  </Badge>
+                )}
+                {kerbal.careerFlights > 0 && (
+                  <Badge
+                    tone="neutral"
+                    size="sm"
+                    aria-label={`${kerbal.careerFlights} flights`}
+                    title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
+                  >
+                    {kerbal.careerFlights}F
+                  </Badge>
+                )}
+                {!kerbal.available && (
+                  <Badge
+                    tone="nogo"
+                    size="sm"
+                    title={
+                      kerbal.currentVesselName
+                        ? `${kerbal.unavailableReason || "Unavailable"} (${kerbal.currentVesselName})`
+                        : kerbal.unavailableReason || "Unavailable"
+                    }
+                  >
+                    {kerbal.unavailableReason || "Unavailable"}
+                  </Badge>
+                )}
+                {/* Per-kerbal inline badges slot. Renders nothing until an Uplink
                     (e.g. Kerbalism Habitat/Radiation) binds: the props carry
                     this row's kerbal identity so the augment badges the right
                     one. */}
-              <AugmentSlot
-                name="staff-roster.badges"
-                props={{ staffName: kerbal.name, staffIndex: i }}
-              />
-            </Meta>
-          </Row>
-        ))}
-      </List>
+                <AugmentSlot
+                  name="staff-roster.badges"
+                  props={{ staffName: kerbal.name, staffIndex: i }}
+                />
+              </Meta>
+            </Row>
+          ))}
+        </List>
+      </Body>
     </Panel>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const Body = styled(ScrollArea)`
+  flex: 1;
+  min-height: 0;
+
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+`;
 
 // Single column by default (portrait / square). In landscape we switch to a
 // width-following grid: `auto-fill` + a min row width derives the column count
@@ -369,6 +388,7 @@ const TinyBody = styled.div`
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  padding: var(--space-4);
 `;
 
 const TinyCount = styled.div`

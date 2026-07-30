@@ -7,6 +7,8 @@ import {
   Gauge,
   type GaugeZone,
   Panel,
+  PanelSubtitle,
+  PanelTitle,
   Sparkline,
   useElementSize,
 } from "@ksp-gonogo/ui";
@@ -113,7 +115,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (twr === undefined || !Number.isFinite(twr)) {
     return (
-      <Panel panelTitle="TWR">
+      <Panel>
+        <PanelTitle>TWR</PanelTitle>
         {/* Tiny widget has ~70 px of inner width, the full "No engine
             data" sentence clips to just "No". A single em-dash conveys
             "no data" without crowding the panel; the panel title alone
@@ -129,7 +132,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (variant === "tiny") {
     return (
-      <Panel panelTitle="TWR">
+      <Panel>
+        <PanelTitle>TWR</PanelTitle>
         <TinyBody>
           {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
               two-character value, which clips the leading digit of "1.82"
@@ -143,12 +147,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   }
 
   return (
-    <Panel
-      panelTitle="TWR"
-      panelSubtitle={
-        showSubtitle ? `Current stage · last ${SPARK_WINDOW_SEC}s` : undefined
-      }
-    >
+    <Panel>
+      <PanelTitle>TWR</PanelTitle>
+      {showSubtitle && (
+        <PanelSubtitle>Current stage · last {SPARK_WINDOW_SEC}s</PanelSubtitle>
+      )}
       <Body>
         <GaugeSlot ref={gaugeRef}>
           <Gauge

@@ -13,6 +13,8 @@ import {
   InFlightList,
   type InFlightListItem,
   Panel,
+  PanelSubtitle,
+  PanelTitle,
   Section,
   SectionTitle,
 } from "@ksp-gonogo/ui-kit";
@@ -181,14 +183,14 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   });
 
   return (
-    <Panel
-      panelTitle="MechJeb"
-      panelSubtitle={
-        oneWay != null
+    <Panel>
+      <PanelTitle>MechJeb</PanelTitle>
+      <PanelSubtitle>
+        {oneWay != null
           ? `Remote autopilot (${oneWay.toFixed(1)} s one-way delay)`
-          : "Remote autopilot"
-      }
-    >
+          : "Remote autopilot"}
+      </PanelSubtitle>
+
       <Section>
         <SectionTitle>Ascent</SectionTitle>
         <Cluster gap="sm">
