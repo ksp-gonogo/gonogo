@@ -1,0 +1,26 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@ksp-gonogo/sitrep-sdk/src": {
+                "message": "Import from the package root instead. Everything supported is re-exported from `@ksp-gonogo/sitrep-sdk` (or `/testing` for the harness); `src/` is internal layout and moves without a major bump."
+              },
+              "@ksp-gonogo/sitrep-sdk/dist": {
+                "message": "Import from the package root instead. `dist/` is build output, not API: its file layout is a bundler detail and will change."
+              },
+              "@ksp-gonogo/sitrep-sdk/src/__generated__/contract": {
+                "message": "Import the contract types from the package root. The generated module is regenerated from Sitrep.Contract on every mod build and its path is not stable."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

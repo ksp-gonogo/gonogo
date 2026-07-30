@@ -73,3 +73,20 @@ import { parseServerMessage, type ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 
 const msg: ServerMessage = parseServerMessage(rawJson);
 ```
+
+## Lint config
+
+This package ships a Biome config you can extend, so a lint error tells you when
+you have reached past the supported API instead of a runtime surprise later:
+
+```json
+{ "extends": ["@ksp-gonogo/sitrep-sdk/biome"] }
+```
+
+`extends` takes an array and merges least-relevant-first, with your own config
+winning last, so you can combine this with other shared configs and override any
+rule locally.
+
+It is deliberately named `biome.shared.json` rather than `biome.json`: Biome
+auto-discovers a nested `biome.json` as a *project* config, and a shipped file
+must stand alone rather than inherit from the repo that publishes it.
