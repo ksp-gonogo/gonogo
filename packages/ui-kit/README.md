@@ -32,12 +32,11 @@ The host app mounts the tokens and the theme once. Inside a Gonogo dashboard tha
 done for you: widgets just compose:
 
 ```tsx
-import { Panel, PanelTitle, Row, Value } from "@ksp-gonogo/ui-kit";
+import { Panel, Row, Value } from "@ksp-gonogo/ui-kit";
 
 export function Altitude({ metres }: { metres: number }) {
   return (
-    <Panel>
-      <PanelTitle>ALTITUDE</PanelTitle>
+    <Panel panelTitle="ALTITUDE">
       <ul>
         <Row>
           <Row.Name>ASL</Row.Name>
@@ -48,6 +47,35 @@ export function Altitude({ metres }: { metres: number }) {
   );
 }
 ```
+
+`Panel` gives you the heading and a padded, scrolling body. Pass `panelTitle`
+and `panelSubtitle` rather than rendering a title yourself; the panel owns its
+own presentation so a change to how titles look is one edit here, not one per
+widget.
+
+If you need a different arrangement, `Panel` is nothing but a composition of
+parts you can reach individually:
+
+```tsx
+<Panel.Context>
+  <Panel.Container>
+    <Panel.Glow>
+      <Panel.Title>ALTITUDE</Panel.Title>
+      <Panel.Body>{/* … */}</Panel.Body>
+    </Panel.Glow>
+  </Panel.Container>
+</Panel.Context>
+```
+
+`Panel.Body` owns the inset and the scrolling; `Panel.Glow` owns the overflow
+glow and finds the scroller through `Panel.Context`, so it does not care
+whether it wraps the body or sits beside it. `fitToSize` on either `Panel` or
+`Panel.Body` is for content sized to the tile that must never scroll.
+
+Visual content, an SVG diagram or a canvas, goes in `FramedDisplay` rather than
+fighting the body inset: the frame gives it a defined edge, and in a widget
+with a sidebar it does the dividing too.
+
 
 Standing the kit up yourself: Storybook, a test, a preview outside the app:
 
@@ -96,7 +124,7 @@ Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaul
 
 **Layout**: `Box`, `Stack`, `Inline`, `Cluster`, `Grid`, `Section`, `Row`, `RowName`
 
-**Panels and chrome**: `Panel`, `PanelTitle`, `PanelSubtitle`, `ScrollArea`, `Card`,
+**Panels and chrome**: `Panel` (see below), `ScrollArea`, `Card`,
 `WidgetHeader`, `SectionTitle`
 
 **Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Value`, `Badge`, `StatusPill`,
