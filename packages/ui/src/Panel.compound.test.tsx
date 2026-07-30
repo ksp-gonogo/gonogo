@@ -1,0 +1,52 @@
+import { render, screen } from "@ksp-gonogo/test-utils";
+import { describe, expect, it } from "vitest";
+import { Panel } from "./Panel";
+
+/**
+ * The compound Panel exists so that presentation is controlled centrally
+ * rather than by 46 widgets. These tests pin the two properties that make that
+ * true: the composition is exclusively named subcomponents, and the legacy
+ * passthrough still works while widgets migrate.
+ */
+describe("Panel (compound)", () => {
+  it("exposes every piece it composes", () => {
+    // The governing principle: if Panel renders something not reachable here,
+    // a widget needing a variant cannot reproduce it by hand.
+    expect(Panel.Container).toBeDefined();
+    expect(Panel.Title).toBeDefined();
+    expect(Panel.Subtitle).toBeDefined();
+    expect(Panel.Glow).toBeDefined();
+    expect(Panel.Body).toBeDefined();
+  });
+
+  it("renders title and subtitle from props", () => {
+    render(
+      <Panel title="ORBIT" subtitle="KERBIN">
+        <span>body</span>
+      </Panel>,
+    );
+    expect(screen.getByRole("heading", { name: "ORBIT" })).toBeInTheDocument();
+    expect(screen.getByText("KERBIN")).toBeInTheDocument();
+    expect(screen.getByText("body")).toBeInTheDocument();
+  });
+
+  it("passes children straight through when given no title or subtitle", () => {
+    // The migration bridge. A widget still rendering its own PanelTitle keeps
+    // today's unpadded behaviour, so widgets move one at a time and each
+    // render change is attributable. Remove with the named exports.
+    const { container } = render(
+      <Panel>
+        <span>legacy</span>
+      </Panel>,
+    );
+    expect(screen.getByText("legacy")).toBeInTheDocument();
+    expect(container.querySelector("h3")).toBeNull();
+  });
+
+  it("accepts a className so styled(Panel) keeps working", () => {
+    // Panel is a function component now; styled(Panel) silently produces an
+    // unstyled panel if className is not forwarded.
+    const { container } = render(<Panel className="probe" title="X" />);
+    expect(container.querySelector(".probe")).not.toBeNull();
+  });
+});

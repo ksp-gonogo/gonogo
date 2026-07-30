@@ -1,6 +1,7 @@
 import {
   type ComponentPropsWithoutRef,
   forwardRef,
+  type ReactNode,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -8,7 +9,7 @@ import {
 } from "react";
 import styled from "styled-components";
 
-export const Panel = styled.div`
+export const PanelContainer = styled.div`
   /* Glow extension picked up by ScrollArea: descendant glows extend by these
      amounts so they sit flush with the panel chrome rather than the inner
      scroll-container edge. Panel's overflow:hidden clips the overhang. The
@@ -69,7 +70,7 @@ export const PanelSubtitle = styled.div`
  * ScrollArea glow-pad vars to its own inset so a nested ScrollArea's edge glow
  * still reaches the Panel chrome.
  */
-export const PanelBody = styled.div`
+export const PanelBody = styled.div<{ $fitToSize?: boolean }>`
   --scroll-glow-pad-y: var(--space-8);
   --scroll-glow-pad-x: var(--space-16);
   flex: 1;
@@ -78,6 +79,11 @@ export const PanelBody = styled.div`
   flex-direction: column;
   gap: var(--space-8);
   padding: var(--space-8) var(--space-16) var(--space-12);
+  /* Fit-to-size content is sized to the tile and never scrolls. It lives here
+     rather than on Panel so that hand-composing the same arrangement gives the
+     same result: a top-level prop that changed WHICH subcomponents render
+     would not be reproducible. */
+  ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
 `;
 
 const ScrollAreaRoot = styled.div`
@@ -211,7 +217,25 @@ export const ScrollArea = forwardRef<
   );
 });
 
-const PanelScrollableShell = styled(Panel)`
+/**
+ * Scroll region for a panel, and the owner of the glow that indicates more
+ * content. WRAPS what should scroll rather than sitting beside it, so the
+ * inset compensation the glow needs belongs to the component that draws the
+ * glow. Previously `--scroll-glow-pad-*` was a contract between Panel,
+ * PanelBody and ScrollArea with no owner, which is how an invalid unitless
+ * zero survived in it unnoticed.
+ */
+export const PanelGlow = styled(ScrollArea)`
+  --scroll-glow-pad-y: var(--space-8);
+  --scroll-glow-pad-x: var(--space-16);
+  flex: 1;
+  min-height: 0;
+`;
+
+/* Legacy shell, retired with the named exports. It wants the CHROME, not the
+   composition, so it extends PanelContainer directly: it was only ever
+   `styled(Panel)` because Panel was the chrome before it became a composition. */
+const PanelScrollableShell = styled(PanelContainer)`
   padding: 0;
   gap: 0;
   /* Shell has no padding, so the inner ScrollArea already fills the panel,
@@ -252,3 +276,78 @@ export const Placeholder = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);
 `;
+
+// ---------------------------------------------------------------------------
+// The compound Panel
+//
+// Governing principle: `Panel` is EXCLUSIVELY the composition of named
+// subcomponents, with no bespoke markup or styling of its own. If it grew a
+// `<div>`, a widget needing a variant could no longer reproduce it by hand.
+// Every piece below is reachable as `Panel.Container` / `.Title` / `.Subtitle`
+// / `.Glow` / `.Body`.
+//
+// `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so it
+// owns both the glow's behaviour and the inset compensation it needs. That
+// replaces a `--scroll-glow-pad-*` var contract shared between three
+// components with no owner, which is exactly how a unitless `0` sat in the
+// scrollable shell making `calc(-1 * 0)` invalid, so the glow never rendered
+// there at all.
+//
+// Title and subtitle sit INSIDE the glow, so they scroll with the body. That
+// is today's behaviour (`PanelScrollable` wraps all its children in the scroll
+// area, so a widget passing a title gets a scrolling title) and it is kept
+// deliberately: pinning the header is wanted, but as its own pass rather than
+// as a side effect of adding padding to 43 widgets. Because the composition is
+// explicit, that later pass changes this one default rather than every widget.
+// ---------------------------------------------------------------------------
+
+export interface PanelProps
+  // `title` is omitted from the div props because HTML types it as a string
+  // (the tooltip attribute) and a panel heading may be any node.
+  extends Omit<ComponentPropsWithoutRef<"div">, "title"> {
+  /**
+   * Panel heading. Supplying it opts into the composed model: the panel
+   * renders its own title and pads its body.
+   *
+   * Widgets that instead render `PanelTitle` as a child get today's
+   * unpadded passthrough, so the migration can move one widget at a time and
+   * each render change is attributable to that widget. This fallback goes
+   * when the named subcomponent exports are retired.
+   */
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  /**
+   * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
+   * rather than handled here, so manual composition stays reproducible.
+   */
+  fitToSize?: boolean;
+}
+
+function PanelRoot({
+  title,
+  subtitle,
+  fitToSize,
+  children,
+  ...rest
+}: PanelProps) {
+  if (title === undefined && subtitle === undefined) {
+    return <PanelContainer {...rest}>{children}</PanelContainer>;
+  }
+  return (
+    <PanelContainer {...rest}>
+      <PanelGlow>
+        {title !== undefined && <PanelTitle>{title}</PanelTitle>}
+        {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
+        <PanelBody $fitToSize={fitToSize}>{children}</PanelBody>
+      </PanelGlow>
+    </PanelContainer>
+  );
+}
+
+export const Panel = Object.assign(PanelRoot, {
+  Container: PanelContainer,
+  Title: PanelTitle,
+  Subtitle: PanelSubtitle,
+  Glow: PanelGlow,
+  Body: PanelBody,
+});
