@@ -1,5 +1,5 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Panel } from "./Panel";
 
 /**
@@ -48,5 +48,30 @@ describe("Panel (compound)", () => {
     // unstyled panel if className is not forwarded.
     const { container } = render(<Panel className="probe" panelTitle="X" />);
     expect(container.querySelector(".probe")).not.toBeNull();
+  });
+});
+
+describe("Panel.Glow coordination", () => {
+  it("exposes the context provider it composes", () => {
+    expect(Panel.Context).toBeDefined();
+  });
+
+  it("warns when it has no scroller to observe", () => {
+    // Fail loudly, not silently. Outside a Panel.Context the glow renders
+    // perfectly and does nothing, which is exactly how the previous glow bug
+    // (an invalid unitless zero in a calc) survived unnoticed.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Panel.Glow />);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Panel.Glow rendered outside a Panel.Context"),
+    );
+    warn.mockRestore();
+  });
+
+  it("stays quiet when composed inside a Panel", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Panel panelTitle="X">body</Panel>);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

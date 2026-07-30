@@ -1,26 +1,47 @@
 import {
   type ComponentPropsWithoutRef,
+  createContext,
   forwardRef,
   type ReactNode,
+  useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import styled from "styled-components";
 
-export const PanelContainer = styled.div`
-  /* Glow extension picked up by ScrollArea: descendant glows extend by these
-     amounts so they sit flush with the panel chrome rather than the inner
-     scroll-container edge. Panel's overflow:hidden clips the overhang. The
-     Panel itself imposes NO content inset (full-bleed standard, content
-     reaches every edge; margin lives outside, in the dashboard gutter), so a
-     ScrollArea that sits DIRECTLY in the Panel body needs no glow extension.
-     A ScrollArea nested inside a padded PanelBody re-sets these to PanelBody's
-     inset so its glow still reaches the chrome. */
-  --scroll-glow-pad-y: 0px;
-  --scroll-glow-pad-x: 0px;
+interface PanelContextValue {
+  scroller: HTMLElement | null;
+  registerScroller: (el: HTMLElement | null) => void;
+}
 
+const PanelCtx = createContext<PanelContextValue | null>(null);
+
+/**
+ * Coordination between the panel's parts. `Panel.Body` registers the element
+ * that scrolls; `Panel.Glow` observes it.
+ *
+ * This exists so neither subcomponent has to reach into the other, and so the
+ * pieces do not depend on nesting order. Keep it to the scroll element: a
+ * context that accrues speculative fields becomes the same kind of unowned
+ * contract that the glow-pad CSS vars were, which is the bug this rework
+ * removes.
+ */
+export function PanelContextProvider({ children }: { children?: ReactNode }) {
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  const value = useMemo(
+    () => ({ scroller, registerScroller: setScroller }),
+    [scroller],
+  );
+  return <PanelCtx.Provider value={value}>{children}</PanelCtx.Provider>;
+}
+
+export const PanelContainer = styled.div`
+  /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
+     this is the border, the surface and the clip, and nothing else. */
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -61,30 +82,56 @@ export const PanelSubtitle = styled.div`
   margin-top: -4px;
 `;
 
-/**
- * Padded body region for TEXT/readout content, restoring the standard inset the
- * Panel no longer imposes (full-bleed standard). Wrap a widget's textual body
- * in this so it stays readable; leave VISUAL content (charts, maps, gauges,
- * plots, full-width list rows) directly in the Panel so it bleeds to the edge.
- * Fills the remaining Panel height (`flex:1; min-height:0`) and re-sets the
- * ScrollArea glow-pad vars to its own inset so a nested ScrollArea's edge glow
- * still reaches the Panel chrome.
- */
-export const PanelBody = styled.div<{ $fitToSize?: boolean }>`
-  --scroll-glow-pad-y: var(--space-8);
-  --scroll-glow-pad-x: var(--space-16);
+const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
   padding: var(--space-8) var(--space-16) var(--space-12);
+  /* Body IS the scroller. It owns overflow so that Panel.Glow can own only the
+     glow; the inset therefore sits INSIDE the scrolling box, which is what
+     stops overflow content being clipped by the padding. */
+  overflow: auto;
+  /* The glow communicates scroll state, so the native bar is redundant.
+     Wheel, trackpad and keyboard scrolling all still work. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
   /* Fit-to-size content is sized to the tile and never scrolls. It lives here
      rather than on Panel so that hand-composing the same arrangement gives the
      same result: a top-level prop that changed WHICH subcomponents render
      would not be reproducible. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
 `;
+
+/**
+ * The content box, the inset, and the scrolling. Registers itself with the
+ * panel context so `Panel.Glow` can observe it without reaching into the tree.
+ */
+export function PanelBody({
+  children,
+  fitToSize,
+  ...rest
+}: ComponentPropsWithoutRef<"div"> & { fitToSize?: boolean }) {
+  const ctx = useContext(PanelCtx);
+  const register = ctx?.registerScroller;
+  const ref = useCallback(
+    (el: HTMLDivElement | null) => {
+      register?.(el);
+    },
+    [register],
+  );
+  return (
+    <PanelBody__Box ref={ref} $fitToSize={fitToSize} {...rest}>
+      {children}
+    </PanelBody__Box>
+  );
+}
 
 const ScrollAreaRoot = styled.div`
   position: relative;
@@ -217,20 +264,82 @@ export const ScrollArea = forwardRef<
   );
 });
 
-/**
- * Scroll region for a panel, and the owner of the glow that indicates more
- * content. WRAPS what should scroll rather than sitting beside it, so the
- * inset compensation the glow needs belongs to the component that draws the
- * glow. Previously `--scroll-glow-pad-*` was a contract between Panel,
- * PanelBody and ScrollArea with no owner, which is how an invalid unitless
- * zero survived in it unnoticed.
- */
-export const PanelGlow = styled(ScrollArea)`
-  --scroll-glow-pad-y: var(--space-8);
-  --scroll-glow-pad-x: var(--space-16);
+const PanelGlow__Root = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 `;
+
+/**
+ * Owns the overflow glow and NOTHING else. It does not scroll; it decorates
+ * whatever does.
+ *
+ * It finds the scroller through the panel context rather than by inspecting
+ * its children, which means it does not depend on nesting order: it can wrap
+ * the body or sit beside it and still work. That is what keeps hand-composed
+ * panels behaving identically to `Panel`.
+ *
+ * The previous arrangement passed `--scroll-glow-pad-*` between Panel,
+ * PanelBody and ScrollArea: three participants, no owner, and an invalid
+ * unitless zero sat in it unnoticed so the glow never rendered at all. There
+ * is no pad var now, because the inset lives inside the scroller.
+ */
+export function PanelGlow({
+  children,
+  ...rest
+}: ComponentPropsWithoutRef<"div">) {
+  const ctx = useContext(PanelCtx);
+  const el = ctx?.scroller ?? null;
+  const [overflow, setOverflow] = useState({ top: false, bottom: false });
+
+  useEffect(() => {
+    if (!ctx && process.env.NODE_ENV !== "production") {
+      // Loud rather than silent: without a context this renders correctly and
+      // does nothing, which is precisely how the last glow bug survived.
+      console.warn(
+        "Panel.Glow rendered outside a Panel.Context, so it has no scroller " +
+          "to observe and will never show. Wrap it in Panel.Context (or use " +
+          "Panel, which does).",
+      );
+    }
+  }, [ctx]);
+
+  useEffect(() => {
+    if (!el) return;
+    const update = () => {
+      const top = el.scrollTop > 1;
+      const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+      setOverflow((prev) =>
+        prev.top === top && prev.bottom === bottom ? prev : { top, bottom },
+      );
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+    const mo = new MutationObserver(() => {
+      for (const child of Array.from(el.children)) ro.observe(child);
+      update();
+    });
+    mo.observe(el, { childList: true });
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [el]);
+
+  return (
+    <PanelGlow__Root {...rest}>
+      {children}
+      <ScrollOverflowGlow $position="top" $visible={overflow.top} />
+      <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
+    </PanelGlow__Root>
+  );
+}
 
 export const Placeholder = styled.span`
   font-size: var(--font-size-sm);
@@ -297,19 +406,22 @@ function PanelRoot({
     return <PanelContainer {...rest}>{children}</PanelContainer>;
   }
   return (
-    <PanelContainer {...rest}>
-      <PanelGlow>
-        {panelTitle !== undefined && <PanelTitle>{panelTitle}</PanelTitle>}
-        {panelSubtitle !== undefined && (
-          <PanelSubtitle>{panelSubtitle}</PanelSubtitle>
-        )}
-        <PanelBody $fitToSize={fitToSize}>{children}</PanelBody>
-      </PanelGlow>
-    </PanelContainer>
+    <PanelContextProvider>
+      <PanelContainer {...rest}>
+        <PanelGlow>
+          {panelTitle !== undefined && <PanelTitle>{panelTitle}</PanelTitle>}
+          {panelSubtitle !== undefined && (
+            <PanelSubtitle>{panelSubtitle}</PanelSubtitle>
+          )}
+          <PanelBody fitToSize={fitToSize}>{children}</PanelBody>
+        </PanelGlow>
+      </PanelContainer>
+    </PanelContextProvider>
   );
 }
 
 export const Panel = Object.assign(PanelRoot, {
+  Context: PanelContextProvider,
   Container: PanelContainer,
   Title: PanelTitle,
   Subtitle: PanelSubtitle,
