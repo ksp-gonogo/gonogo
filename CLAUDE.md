@@ -362,7 +362,11 @@ Top-level fields you can filter on:
 
 ## UI Components
 
-Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in `@ksp-gonogo/ui`, not co-located with the feature that first needs them. If a primitive doesn't exist in `@ksp-gonogo/ui` yet and you need it, add it there rather than creating a local one-off. Duplication in files you're not actively editing is easy to miss, a consistent home in `@ksp-gonogo/ui` prevents that.
+Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in a shared package, not co-located with the feature that first needs them. If a primitive doesn't exist yet and you need it, add it there rather than creating a local one-off. Duplication in files you're not actively editing is easy to miss; a consistent home prevents that.
+
+**Which package: `@ksp-gonogo/ui-kit` is the default.** It is the *published* package, so it is the only one a third-party Uplink can import. Anything an Uplink might plausibly want (every layout primitive, badge, readout, form control, the Panel family) goes there. `@ksp-gonogo/ui` is private and app-side: it holds only what an Uplink has no business reaching (dashboard chrome, the settings modal's furniture, PeerJS banners). When a primitive lives in ui-kit and the app wants the short import too, `packages/ui/src/X.tsx` becomes a one-line re-export; a dozen files already are.
+
+**Never implement the same name in both.** `styleguide-duplicate-primitives.test.ts` fails the build if you do, and names the two files. It exists because `Panel` was copied into ui-kit instead of aliased when that package was created: the copies drifted, `panelTitle` became a type error from one of them, and ui-kit's `PanelBody` silently clipped where the other scrolled, across 29 widgets. `Badge` was going the same way and was caught by the guard.
 
 ---
 

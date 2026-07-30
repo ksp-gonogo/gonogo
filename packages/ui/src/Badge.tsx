@@ -1,85 +1,18 @@
-import type { HTMLAttributes, ReactNode } from "react";
-import styled, { css } from "styled-components";
-
-export type BadgeTone = "neutral" | "go" | "nogo" | "warn" | "info";
-export type BadgeSize = "sm" | "md";
-
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: BadgeTone;
-  size?: BadgeSize;
-  children: ReactNode;
-}
-
 /**
- * Compact label/state pill. Replaces ad-hoc styled spans (e.g. AlarmsModal's
- * `KindBadge` and `StateTag`) so widgets get a consistent typographic and
- * colour treatment.
+ * `Badge` lives in `@ksp-gonogo/ui-kit`, which is the published package and so
+ * the only place an Uplink can reach it. This file is the app-side alias, the
+ * same arrangement as Button / Form / Icons / Panel / Readout and the rest.
  *
- * For tagged categories with their own bespoke palette (`telemetry`, `kos`,
- * etc.) prefer the existing `Tag` primitive: `Badge` is for state colour
- * (go/nogo/warn/info/neutral).
+ * Add nothing to it. There were two Badges for a while, byte-identical apart
+ * from the doc comment, four widgets importing one and nine the other; the
+ * Panel that went the same way is what it looks like once the copies have had
+ * time to drift. `styleguide-duplicate-primitives.test.ts` now fails the build
+ * if a name is implemented in both packages, so the split cannot come back
+ * without someone being told.
  */
-export function Badge({
-  tone = "neutral",
-  size = "md",
-  children,
-  ...rest
-}: BadgeProps) {
-  return (
-    <Badge__Body $tone={tone} $size={size} {...rest}>
-      {children}
-    </Badge__Body>
-  );
-}
-
-const TONE_STYLES = {
-  neutral: css`
-    background: var(--color-surface-raised);
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-muted);
-  `,
-  go: css`
-    background: var(--color-status-go-bg);
-    border-color: var(--color-status-go-bg);
-    color: var(--color-status-go-fg);
-  `,
-  nogo: css`
-    background: var(--color-status-nogo-bg);
-    border-color: var(--color-status-nogo-bg);
-    color: var(--color-status-nogo-on-bg);
-  `,
-  warn: css`
-    background: var(--color-status-warning-bg);
-    border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg);
-  `,
-  info: css`
-    background: var(--color-status-info-bg);
-    border-color: var(--color-status-info-bg);
-    color: var(--color-status-info-fg);
-  `,
-} as const;
-
-const SIZE_STYLES = {
-  sm: css`
-    font-size: var(--font-size-2xs);
-    padding: var(--space-hair) var(--space-4);
-  `,
-  md: css`
-    font-size: var(--font-size-xs);
-    padding: var(--space-hair) var(--space-6);
-  `,
-} as const;
-
-const Badge__Body = styled.span<{ $tone: BadgeTone; $size: BadgeSize }>`
-  display: inline-block;
-  border: 1px solid;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  ${({ $size }) => SIZE_STYLES[$size]}
-  ${({ $tone }) => TONE_STYLES[$tone]}
-`;
+export {
+  Badge,
+  type BadgeProps,
+  type BadgeSize,
+  type BadgeTone,
+} from "@ksp-gonogo/ui-kit";
