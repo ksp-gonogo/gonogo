@@ -13,6 +13,7 @@ export * from "./FabPrompt";
 export * from "./FileInput";
 export * from "./FilterChip";
 export * from "./Form";
+export * from "./FramedDisplay";
 export * from "./Gauge";
 export * from "./Icons";
 export * from "./LineChart";
