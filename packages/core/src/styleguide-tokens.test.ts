@@ -151,7 +151,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/ui-kit/src/Panel.tsx": 1,
     "packages/ui/src/FileInput.tsx": 1,
-    "packages/ui/src/Panel.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
     "packages/ui/src/VisuallyHidden.tsx": 1,
   },
@@ -244,7 +243,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/Panel.tsx": 1,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
-    "packages/ui/src/Panel.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
   },
   /**
