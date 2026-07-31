@@ -5,18 +5,11 @@ import {
   getBody,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import {
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -85,7 +78,6 @@ function CurrentOrbitComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
-  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const body =
     (bodyName ?? refBody) === undefined
@@ -145,15 +137,10 @@ function CurrentOrbitComponent({
   const hyperbolic = typeof eccentricity === "number" && eccentricity >= 1;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>ORBIT</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && refBody !== undefined && (
-        <PanelSubtitle>{refBody}</PanelSubtitle>
-      )}
-
+    <Panel
+      panelTitle="ORBIT"
+      panelSubtitle={showSubtitle ? refBody : undefined}
+    >
       <Body ref={bodyRef} $landscape={isLandscape}>
         <Grid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
@@ -307,14 +294,6 @@ registerComponent<CurrentOrbitConfig>({
 });
 
 export { CurrentOrbitComponent };
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div<{ $landscape: boolean }>`
   flex: 1;

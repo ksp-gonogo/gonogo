@@ -3,22 +3,18 @@ import {
   AugmentSlot,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useExecuteAction,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
-  DimmedOverlay,
+  NULL_DISPLAY,
   Panel,
-  PanelTitle,
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
-  StreamStatusBadge,
-  ToggleButton,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -118,7 +114,6 @@ function WarpControlComponent({
   const mode = normalizeWarpMode(warp?.warpMode);
   const isPaused = warp?.paused;
   const execute = useExecuteAction("data");
-  const streamStatus = useDataStreamStatus("data", "t.timeWarp");
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -213,15 +208,13 @@ function WarpControlComponent({
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>WARP</PanelTitle>
-        {/* Broad-escape-hatch badges slot: an Uplink surfaces an inline
-            indicator next to the title. Empty (renders nothing) until an
-            augment binds `warp-control.badges`. */}
-        <AugmentSlot name="warp-control.badges" props={{}} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
+    <Panel
+      panelTitle="WARP"
+      /* Broad-escape-hatch badges slot: an Uplink surfaces an inline indicator
+         next to the title, beside the panel's own stream-status badge. Empty
+         (renders nothing) until an augment binds `warp-control.badges`. */
+      panelBadges={<AugmentSlot name="warp-control.badges" props={{}} />}
+    >
       <DimmedOverlay
         show={dimBody}
         message="No active save"
@@ -348,14 +341,6 @@ function formatRate(rate: number | null): string {
   if (Number.isInteger(rate)) return `${rate}×`;
   return `${rate.toFixed(2)}×`;
 }
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div`
   flex: 1;

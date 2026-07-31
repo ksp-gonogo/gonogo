@@ -1,20 +1,17 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
-  useDataStreamStatus,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
-  DimmedOverlay,
+  NULL_DISPLAY,
   Panel,
   PanelSubtitle,
-  PanelTitle,
   ScrollArea,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -305,10 +302,6 @@ function ScienceBenchComponent({
 
   const sciExperimentsRaw = useTelemetry("science.experiments");
   const sciBreakdownRaw = useTelemetry("science.experimentBreakdown");
-  const experimentsStreamStatus = useDataStreamStatus(
-    "data",
-    "sci.experiments",
-  );
 
   // career.mode reads through useGameContext rather than a raw
   // telemetry read, the stream carries it as the mod's GameMode enum
@@ -385,11 +378,7 @@ function ScienceBenchComponent({
   const showCareerStrip = showCareer && rows >= 9;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>SCIENCE</PanelTitle>
-        <StreamStatusBadge status={experimentsStreamStatus} />
-      </TitleRow>
+    <Panel panelTitle="SCIENCE">
       <DimmedOverlay
         show={dimNonCareer}
         message="Sensors require flight"
@@ -606,14 +595,6 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const SituationLine = styled(PanelSubtitle)`
   display: flex;

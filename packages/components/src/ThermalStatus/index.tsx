@@ -4,19 +4,16 @@ import {
   clampSafe,
   kelvinToCelsius,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
+  NULL_DISPLAY,
   Panel,
-  PanelTitle,
   type ReadoutTone,
   ScrollArea,
   StatusPill,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 // Empty config: room to add a "hide heat shield" toggle later.
@@ -144,7 +141,6 @@ function ThermalStatusComponent({
   // TELEMACHUS_KNOWN_GAPS "thermal detail beyond headline ratios") and stay on
   // legacy regardless, so a single representative mapped key drives this badge
   // rather than conflating "stream carried" with "legacy connected".
-  const streamStatus = useDataStreamStatus("data", "therm.hottestPartTemp");
 
   // Sentinel guard: drop the whole group when its max (or temp) is at the
   // absolute-zero floor. The ratio is meaningless in that case and rendering
@@ -209,16 +205,14 @@ function ThermalStatusComponent({
   const showInlineAlert = anyHotOrAbove && cols >= 6;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>THERMAL</PanelTitle>
-        {/* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
-            into the header next to the stream-status badge. AugmentSlot renders
-            a fragment: nothing in the DOM: until an augment registers, so the
-            unfilled slot leaves the header's existing output untouched. */}
-        <AugmentSlot name="thermal-status.badges" props={{}} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
+    <Panel
+      panelTitle="THERMAL"
+      /* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
+         into the header next to the panel's own stream-status badge.
+         AugmentSlot renders a fragment, nothing in the DOM, until an augment
+         registers, so the unfilled slot leaves the header untouched. */
+      panelBadges={<AugmentSlot name="thermal-status.badges" props={{}} />}
+    >
       {noData ? (
         <EmptyState>No thermal data</EmptyState>
       ) : (
@@ -322,15 +316,6 @@ function ThermalStatusComponent({
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
 
 const Body = styled.div`
   flex: 1;
