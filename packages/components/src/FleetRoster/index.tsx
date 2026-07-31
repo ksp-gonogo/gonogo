@@ -5,15 +5,10 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  type StreamStatusValue,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-} from "@ksp-gonogo/sitrep-client";
 import { RosterCommsControlSource, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
 import { Badge, EmptyState, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
-import { Fragment, useCallback, useMemo, useSyncExternalStore } from "react";
+import { Fragment, useMemo } from "react";
 import styled from "styled-components";
 
 type FleetRosterConfig = Record<string, never>;
@@ -82,31 +77,6 @@ function isRosterCraft(vesselType: VesselType): boolean {
   return (
     vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)
   );
-}
-
-function useStreamStatusOptional(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback((): StreamStatusValue => {
-    if (!store) return "disconnected";
-    return store.sampleStatus(topic, store.currentFrame());
-  }, [store, topic]);
-  return useSyncExternalStore(subscribe, getSnapshot);
 }
 
 /**
