@@ -1,4 +1,8 @@
-import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import {
+  DashboardItemContext,
+  getComponent,
+  registerStockBodies,
+} from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -153,32 +157,37 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   // while Orbiting/Escaping and under signal delay), so a badge bound to
   // vessel.flight read healthy even when the shown height had silently dropped
   // to the CoM fallback.
-  it("binds the health badge to vessel.surface, not vessel.flight (L2)", async () => {
+  it("keeps the CoM-datum fallback, and declares vessel.surface so the panel's status covers it (L2)", async () => {
     // Small size renders the plain AGL readout (at wide sizes altitude is the
-    // full-height rail, which carries no "AGL" text); the badge binding under
-    // test is size-independent.
+    // full-height rail, which carries no "AGL" text).
     renderWidget({ w: 4, h: 10 });
 
-    // A full descent WITH flight flowing but vessel.surface WITHHELD, the
+    // A full descent WITH flight flowing but vessel.surface WITHHELD: the
     // widget falls back to the CoM datum (usingComDatum) and keeps rendering.
     act(() => {
       emitMunDescent(); // emits vessel.flight, NOT vessel.surface
     });
     await screen.findByText("AGL");
 
-    // Badge reflects the withheld PRIMARY datum, not the live fallback channel:
-    // vessel.surface is carried but not yet delivered -> a non-live status
-    // ("SYNCING"). Before the fix it watched vessel.flight -> "live" -> no
-    // badge span at all, so this assertion would fail.
-    expect(screen.getByText("SYNCING")).toBeInTheDocument();
+    // The badge itself is no longer this widget's to render: the host derives
+    // it from every declared requirement and the panel shows it. What this
+    // widget still owes that guarantee is the DECLARATION, so a withheld
+    // vessel.surface reaches the derivation at all. The original bug this test
+    // was written for (a badge hand-bound to the live fallback channel,
+    // vessel.flight, so a withheld primary datum read as healthy) cannot recur
+    // under a worst-of-all-requirements derivation, but only while the primary
+    // datum is one of them.
+    expect(getComponent("landing-status")?.dataRequirements).toContain(
+      "vessel.surface",
+    );
 
-    // Once vessel.surface arrives the badge clears (live) and the shown AGL
-    // switches to the lowest-point datum.
+    // Once vessel.surface arrives the shown AGL switches to the lowest-point
+    // datum.
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });
     await waitFor(() =>
-      expect(screen.queryByText("SYNCING")).not.toBeInTheDocument(),
+      expect(screen.getByText(/4\.80 km/)).toBeInTheDocument(),
     );
     expect(screen.getByText(/4\.80 km/)).toBeInTheDocument();
   });

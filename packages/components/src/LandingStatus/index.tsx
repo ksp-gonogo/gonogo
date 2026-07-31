@@ -5,37 +5,26 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  type StreamStatusValue,
-  useStream,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
-import { Gauge, Sparkline, StreamStatusBadge } from "@ksp-gonogo/ui";
+import { Gauge, Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
-  Cluster,
   EmptyState,
   FramedDisplay,
   formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
-  PanelBody,
-  PanelSubtitle,
-  PanelTitle,
   ReadoutCaption,
   type ReadoutTone,
-  ScrollArea,
   Section,
   SectionTitle,
   Stack,
   StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer } from "./CommitLayer";
@@ -143,35 +132,6 @@ function StackedField({
   );
 }
 
-/** Native per-topic stream status (same helper OrbitView/DistanceToTarget use),
- * `"disconnected"` when no `TelemetryProvider` is mounted. Bound to
- * `vessel.surface`, the lowest-point burn datum the widget actually shows. */
-function useStreamStatusOptional(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback(
-    (): StreamStatusValue =>
-      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
-    [store, topic],
-  );
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
-
 const DESCENT_HISTORY_MAX = 60;
 
 function LandingStatusComponent({
@@ -255,8 +215,6 @@ function LandingStatusComponent({
       : staticMaxAccel != null && localGravity != null && localGravity > 0
         ? staticMaxAccel / localGravity
         : null;
-
-  const streamStatus = useStreamStatusOptional("vessel.surface");
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
   // when the vessel.landing channel carries a terminal velocity, only in an
@@ -607,34 +565,34 @@ function LandingStatusComponent({
   ) : null;
 
   return (
-    <Panel>
-      <Cluster>
-        <PanelTitle>LANDING</PanelTitle>
+    <Panel
+      panelTitle="LANDING"
+      panelSubtitle={
+        bodyName !== undefined
+          ? `${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`
+          : undefined
+      }
+      // Host-derived now, so the hand-picked `vessel.surface` badge goes: the
+      // panel watches every topic this widget declares instead of the one key
+      // that hook chose.
+      panelAside={
         <AugmentSlot name="landing-status.badges" props={badgesContext} />
-        <StreamStatusBadge status={streamStatus} />
-      </Cluster>
-      {bodyName !== undefined && (
-        <PanelSubtitle>
-          {bodyName}
-          {atmospheric ? " · atmospheric" : " · vacuum"}
-        </PanelSubtitle>
-      )}
-
+      }
+    >
       {board === "not-descending" && !landed ? (
-        <PanelBody>
-          <EmptyState>No landing in progress</EmptyState>
-        </PanelBody>
+        <EmptyState>No landing in progress</EmptyState>
       ) : (
-        // Full-bleed body: the altitude rail runs full height at the very left
-        // edge (visual, bleeds); the main content fills the rest. Panel padding
-        // is 0, so VISUAL bodies (rail, plots, gauge) reach the edge while TEXT
-        // bands carry their own local inset.
+        // The rail beside the content, both inside the panel's own body. This
+        // used to bleed to the panel edge with `padding: 0` and every text band
+        // paying its own inset, which is how the widget ended up with five
+        // different insets and read tight. The body owns one inset now.
         <div
           style={{
             display: "flex",
             flex: 1,
             minHeight: 0,
             alignItems: "stretch",
+            gap: "var(--space-8)",
           }}
         >
           {showRail && (
@@ -648,40 +606,18 @@ function LandingStatusComponent({
               />
             </div>
           )}
-          <ScrollArea>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {showReticle ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
                 {/* Top band: commit text (inset) + the larger TWR gauge pinned
                     to the top-right corner (bleeds). */}
                 <div style={{ display: "flex", alignItems: "flex-start" }}>
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding:
-                        "var(--space-8) var(--space-8) 0 var(--space-12)",
-                    }}
-                  >
-                    {commitLayerEl}
-                  </div>
-                  <div
-                    style={{
-                      flex: "0 0 auto",
-                      padding: "var(--space-8) var(--space-8) 0 0",
-                    }}
-                  >
-                    {twrGaugeEl}
-                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>{commitLayerEl}</div>
+                  <div style={{ flex: "0 0 auto" }}>{twrGaugeEl}</div>
                 </div>
                 {/* Two equal, ALIGNED altimetry squares in a shared row, same
                     top, size, baseline: bleeding to the right edge. */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "var(--space-6)",
-                    padding: "var(--space-8) 0",
-                  }}
-                >
+                <div style={{ display: "flex", gap: "var(--space-6)" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SectionTitle>Touchdown site</SectionTitle>
                     {/* Flush: each plot SVG already insets its content by 4,
@@ -703,7 +639,6 @@ function LandingStatusComponent({
                     display: "flex",
                     flexDirection: "column",
                     gap: "var(--space-8)",
-                    padding: "var(--space-4) var(--space-16) var(--space-12)",
                   }}
                 >
                   {verdictBannerEl}
@@ -715,12 +650,12 @@ function LandingStatusComponent({
                 </div>
               </div>
             ) : (
-              <PanelBody>
+              <>
                 {commitLayerEl}
                 {detailStack}
-              </PanelBody>
+              </>
             )}
-          </ScrollArea>
+          </div>
         </div>
       )}
     </Panel>
