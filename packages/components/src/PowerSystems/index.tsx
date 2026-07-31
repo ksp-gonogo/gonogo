@@ -8,26 +8,22 @@ import {
   getWidgetShape,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
+import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
+  NULL_DISPLAY,
   Panel,
   PanelSubtitle,
-  PanelTitle,
   ScrollArea,
   Select,
-  Sparkline,
-  StreamStatusBadge,
   useModalSaveBar,
-  VisuallyHidden,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -142,7 +138,6 @@ function PowerSystemsComponent({
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
   const streamPower = useTelemetry("parts.power");
-  const streamStatus = useDataStreamStatus("data", "parts.power");
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
@@ -343,11 +338,7 @@ function PowerSystemsComponent({
 
   if (!topology) {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>POWER SYSTEMS</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </Header>
+      <Panel panelTitle="POWER SYSTEMS">
         <Hint>Waiting for vessel topology...</Hint>
       </Panel>
     );
@@ -355,14 +346,12 @@ function PowerSystemsComponent({
 
   if (resourcesWithFlow.length === 0) {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>POWER SYSTEMS</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </Header>
-        {showHeader && (
-          <PanelSubtitle>No active flow on any resource</PanelSubtitle>
-        )}
+      <Panel
+        panelTitle="POWER SYSTEMS"
+        panelSubtitle={
+          showHeader ? "No active flow on any resource" : undefined
+        }
+      >
         <Hint>
           Deploy a solar panel, run a generator, or fire an engine to see flow
           contributions here.
@@ -376,11 +365,7 @@ function PowerSystemsComponent({
 
   if (!showFullList) {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>POWER</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </Header>
+      <Panel panelTitle="POWER">
         <CompactBody>
           <CompactResource>{splitCamel(resource)}</CompactResource>
           <CompactNet $tone={netTone}>
@@ -393,29 +378,28 @@ function PowerSystemsComponent({
   }
 
   return (
-    <Panel>
-      <Header>
-        <HeaderTitle>
-          <PanelTitle>POWER SYSTEMS</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
+    <Panel
+      panelTitle="POWER SYSTEMS"
+      panelBadges={
+        <>
           <AugmentSlot name="power-systems.badges" props={slotProps} />
-        </HeaderTitle>
-        <ResourceSelect
-          value={resource}
-          onChange={(e) => {
-            setResource(e.target.value);
-            setUserPicked(true);
-          }}
-          aria-label="Resource"
-        >
-          {pickerResources.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </ResourceSelect>
-      </Header>
-
+          <ResourceSelect
+            value={resource}
+            onChange={(e) => {
+              setResource(e.target.value);
+              setUserPicked(true);
+            }}
+            aria-label="Resource"
+          >
+            {pickerResources.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </ResourceSelect>
+        </>
+      }
+    >
       {/* Discrete power-state announcement for assistive tech, the visible NET
           readout communicates surplus/deficit through colour + a ticking
           number; this narrates the state word and updates only when the state
@@ -640,20 +624,6 @@ function PowerSystemsConfigComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Header = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
-
-const HeaderTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const ResourceSelect = styled(Select)`
   max-width: 50%;

@@ -176,7 +176,13 @@ export function PanelHeader({
   aside?: ReactNode;
 }) {
   return (
-    <PanelHeader__Row {...rest}>
+    /* `data-panel-header` is a stable targeting hook, the same contract as
+       ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
+       into two boxes so they can align independently, which means walking up
+       from the title with `closest("div")` reaches the titles box and NOT the
+       aside beside it. Anything that wants "the whole header" should say so
+       by name rather than by counting ancestors. */
+    <PanelHeader__Row data-panel-header="" {...rest}>
       <PanelHeader__Titles>
         {title !== undefined && <PanelTitle>{title}</PanelTitle>}
         {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}

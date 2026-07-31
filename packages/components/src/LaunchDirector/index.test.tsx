@@ -743,7 +743,9 @@ describe("LaunchDirectorComponent augment slots", () => {
     // Default site is "LaunchPad" and the pre-launch scene is not flight.
     expect(badge).toHaveTextContent("LaunchPad/false");
     // The badge sits in the header, beside the title.
-    const header = screen.getByText("LAUNCH & RECOVERY").closest("div");
+    const header = screen
+      .getByText("LAUNCH & RECOVERY")
+      .closest("[data-panel-header]");
     expect(header).not.toBeNull();
     expect(within(header as HTMLElement).getByTestId("ld-badge")).toBeTruthy();
   });

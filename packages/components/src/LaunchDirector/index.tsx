@@ -3,7 +3,6 @@ import {
   AugmentSlot,
   formatDistance,
   registerComponent,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -18,15 +17,7 @@ import {
   type TargetListEntry,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  ScrollArea,
-  Spinner,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, ScrollArea, Spinner } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -246,7 +237,6 @@ function LaunchDirectorComponent({
   // facilities gap), the others are separate provider families or
   // vessel-provider gaps with no wire home yet. The vessel-switcher below
   // reads `target.available` directly (a canonical topic, no shim).
-  const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context: populated when scene === "Flight".
   const vesselName = useTelemetry("vessel.identity")?.name;
   const missionTime = useStream<VesselState>("vessel.state")?.met;
@@ -354,15 +344,12 @@ function LaunchDirectorComponent({
 
   if (ships === null) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
-        {showSubtitle && (
-          <PanelSubtitle>Awaiting launch-pad telemetry</PanelSubtitle>
-        )}
-      </Panel>
+      <Panel
+        panelTitle="LAUNCH & RECOVERY"
+        panelSubtitle={
+          showSubtitle ? "Awaiting launch-pad telemetry" : undefined
+        }
+      />
     );
   }
 
@@ -395,29 +382,31 @@ function LaunchDirectorComponent({
         lastCrash.vesselName === vesselName);
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
-        {/* Inline header badges: an Uplink (e.g. a life-support summary) can
-            surface an indicator beside the title without a bespoke slot (spec
-            §4.8). Renders nothing until an augment binds. */}
+    <Panel
+      panelTitle="LAUNCH & RECOVERY"
+      /* Inline header badges: an Uplink (e.g. a life-support summary) can
+         surface an indicator beside the title without a bespoke slot (spec
+         §4.8). Renders nothing until an augment binds. */
+      panelBadges={
         <AugmentSlot name="launch-director.badges" props={slotContext} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && (
-        <PanelSubtitle role="status" aria-live="polite">
-          {inFlight
-            ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
-            : padOccupied
-              ? `On pad: ${activeName}`
-              : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
-          {typeof careerFunds === "number" && (
-            <FundsReadout title="Available funds">
-              · {Math.round(careerFunds).toLocaleString()}f
-            </FundsReadout>
-          )}
-        </PanelSubtitle>
-      )}
+      }
+      panelSubtitle={
+        showSubtitle ? (
+          <span role="status" aria-live="polite">
+            {inFlight
+              ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
+              : padOccupied
+                ? `On pad: ${activeName}`
+                : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
+            {typeof careerFunds === "number" && (
+              <FundsReadout title="Available funds">
+                · {Math.round(careerFunds).toLocaleString()}f
+              </FundsReadout>
+            )}
+          </span>
+        ) : undefined
+      }
+    >
       <Body>
         {inFlight ? (
           <InFlightPanel
@@ -902,15 +891,6 @@ function ArmedButton({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
 
 const Body = styled(ScrollArea)`
   flex: 1;

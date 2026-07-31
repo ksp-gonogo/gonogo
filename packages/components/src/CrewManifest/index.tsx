@@ -2,23 +2,18 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
-  useDataStreamStatus,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
   EmptyState,
-  Meter,
-  type MeterTone,
+  NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
   ReadoutCaption,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -395,7 +390,6 @@ function CrewManifestComponent({
   // Connectivity indicator (mirroring the WarpControl pilot): count, roster,
   // and capacity all land on the same `vessel.crew` wire channel, so
   // `v.crewCount`'s stream status is representative of the whole trio.
-  const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
   // Kerbalism per-kerbal survival, additive, absent unless the KerbalismUplink
   // publishes `kerbalism.crew`. Reads happen unconditionally (stable hook
@@ -443,11 +437,7 @@ function CrewManifestComponent({
 
   if (!showRoster) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>CREW</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel panelTitle="CREW">
         {known ? (
           <TinyReadout $tone="go">
             {crewCount !== undefined ? `${crewCount}` : NULL_DISPLAY}
@@ -463,27 +453,23 @@ function CrewManifestComponent({
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>CREW</PanelTitle>
-        <TitleRight>
-          {hasSurvival && (
-            <MetersToggle
-              type="button"
-              aria-pressed={showMeters}
-              onClick={() => setMetersOverride(!showMeters)}
-            >
-              {showMeters ? "Hide meters" : "Show meters"}
-            </MetersToggle>
-          )}
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRight>
-      </TitleRow>
-      <PanelSubtitle>
-        {known
-          ? formatSubtitle(isEVA, crewCount, crewCapacity)
-          : "No crew data"}
-      </PanelSubtitle>
+    <Panel
+      panelTitle="CREW"
+      panelBadges={
+        hasSurvival ? (
+          <MetersToggle
+            type="button"
+            aria-pressed={showMeters}
+            onClick={() => setMetersOverride(!showMeters)}
+          >
+            {showMeters ? "Hide meters" : "Show meters"}
+          </MetersToggle>
+        ) : undefined
+      }
+      panelSubtitle={
+        known ? formatSubtitle(isEVA, crewCount, crewCapacity) : "No crew data"
+      }
+    >
       <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       {renderBody({
         known,
@@ -597,22 +583,7 @@ function renderBody({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
-
 // Trailing cluster in the title row: meters toggle + stream badge.
-const TitleRight = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-`;
-
 // Scene-aware meters toggle, shown only when the KerbalismUplink is feeding
 // per-kerbal survival data.
 const MetersToggle = styled.button`
