@@ -76,6 +76,7 @@ export {
 } from "./CommandDelay/CommandGroup";
 export {
   InFlightList,
+  type InFlightListDensity,
   type InFlightListItem,
   type InFlightListMode,
   type InFlightListProps,
