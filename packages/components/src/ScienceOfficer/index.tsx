@@ -3,18 +3,14 @@ import {
   AugmentSlot,
   getWidgetShape,
   registerComponent,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
   formatNumber,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
   ScienceExperimentRow,
   ScrollArea,
   Section,
@@ -234,7 +230,6 @@ function ScienceOfficerComponent({
   // the instrument list above.
   const labRaw = useTelemetry("science.lab");
   const labs = parseLab(labRaw);
-  const labStreamStatus = useDataStreamStatus("data", "science.lab");
 
   const rows = h ?? 8;
   const cols = w ?? 6;
@@ -246,27 +241,18 @@ function ScienceOfficerComponent({
   // it mid-glyph. Require the same cols >= 4 floor as the header badge above
   // rather than just a row count.
   const showLab = rows >= 4 && cols >= 4;
-  // Cluster (the title row) is a non-wrapping flex row: at the narrowest
-  // tested width (min-3x4) "SCIENCE LAB" plus the status pill don't both
-  // fit, and the pill overflows past Panel's overflow:hidden edge with no
-  // text visible at all, just a stray border corner. Shed the pill rather
-  // than let it render invisibly; the title alone still communicates the
-  // widget's identity at that size.
-  const showStatusBadge = cols >= 4;
   // Wide-short: flow the instrument groups into columns so they use the width
   // instead of a single stranded column.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
 
   if (instruments === null) {
     return (
-      <Panel>
-        <Cluster>
-          <PanelTitle>SCIENCE LAB</PanelTitle>
-          {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
-        </Cluster>
-        {showSubtitle && (
-          <PanelSubtitle>Awaiting instrument telemetry</PanelSubtitle>
-        )}
+      <Panel
+        panelTitle="SCIENCE LAB"
+        panelSubtitle={
+          showSubtitle ? "Awaiting instrument telemetry" : undefined
+        }
+      >
         {showLab && <LabSection labs={labs} />}
       </Panel>
     );
@@ -274,12 +260,10 @@ function ScienceOfficerComponent({
 
   if (instruments.length === 0) {
     return (
-      <Panel>
-        <Cluster>
-          <PanelTitle>SCIENCE LAB</PanelTitle>
-          {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
-        </Cluster>
-        {showSubtitle && <PanelSubtitle>No instruments aboard</PanelSubtitle>}
+      <Panel
+        panelTitle="SCIENCE LAB"
+        panelSubtitle={showSubtitle ? "No instruments aboard" : undefined}
+      >
         {showLab && <LabSection labs={labs} />}
       </Panel>
     );
@@ -292,29 +276,31 @@ function ScienceOfficerComponent({
   const totals = summarise(instruments);
 
   return (
-    <Panel>
-      <Cluster>
-        <PanelTitle>SCIENCE LAB</PanelTitle>
-        {showStatusBadge && <StreamStatusBadge status={labStreamStatus} />}
-        {/* Header escape-hatch slot: a broad badge/summary augment
-            composes next to the title. Empty (renders nothing) until an Uplink
-            registers into it. */}
+    <Panel
+      panelTitle="SCIENCE LAB"
+      /* Header escape-hatch slot: a broad badge/summary augment composes next
+         to the title. Empty (renders nothing) until an Uplink registers. */
+      panelAside={
         <AugmentSlot
           name="science-officer.badges"
           props={{ instruments, dataAmount: totalDataMits }}
         />
-      </Cluster>
-      {showSubtitle && (
-        <PanelSubtitle role="status" aria-live="polite">
-          {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
-          {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
-          {totalDataMits > 0 && (
-            <Value spaced title="Total stored science data (mits)">
-              · {formatNumber(totalDataMits, { decimals: 1 })} mits
-            </Value>
-          )}
-        </PanelSubtitle>
-      )}
+      }
+      panelSubtitle={
+        showSubtitle ? (
+          <span role="status" aria-live="polite">
+            {totals.hasData}/{totals.total} with data · {totals.deployed}{" "}
+            deployed
+            {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
+            {totalDataMits > 0 && (
+              <Value spaced title="Total stored science data (mits)">
+                · {formatNumber(totalDataMits, { decimals: 1 })} mits
+              </Value>
+            )}
+          </span>
+        ) : undefined
+      }
+    >
       {showLab && <LabSection labs={labs} />}
       <Body $row={isLandscape}>
         {grouped.map(({ expId, items }) => (

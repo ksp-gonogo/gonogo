@@ -4,19 +4,11 @@ import {
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
-import {
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  ScrollArea,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -196,7 +188,6 @@ function SpaceCenterStatusComponent({
   const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
-  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const facilities = parseFacilityLevels(facilitiesRaw);
@@ -231,8 +222,7 @@ function SpaceCenterStatusComponent({
 
   if (sizeBucket === "tiny") {
     return (
-      <Panel>
-        <PanelTitle>KSC</PanelTitle>
+      <Panel panelTitle="KSC">
         <TinyBody>
           {typeof careerFunds === "number" ? (
             <TinyFunds title={`${Math.round(careerFunds).toLocaleString()}f`}>
@@ -256,26 +246,25 @@ function SpaceCenterStatusComponent({
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>SPACE CENTER</PanelTitle>
-        {/* Header escape-hatch slot (augment-slot-map ".badges broad
-            escape-hatch"): any Uplink can drop an inline badge next to the
-            title. Renders nothing until an augment binds it. */}
-        <AugmentSlot name="space-center-status.badges" props={{}} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && (
-        <PanelSubtitle role="status" aria-live="polite">
-          {padLine}
-          {typeof careerFunds === "number" && (
-            <FundsReadout title="Available funds">
-              · {Math.round(careerFunds).toLocaleString()}f
-            </FundsReadout>
-          )}
-        </PanelSubtitle>
-      )}
-
+    <Panel
+      panelTitle="SPACE CENTER"
+      /* Header escape-hatch slot (augment-slot-map ".badges broad
+         escape-hatch"): any Uplink can drop an inline badge next to the title.
+         Renders nothing until an augment binds it. */
+      panelAside={<AugmentSlot name="space-center-status.badges" props={{}} />}
+      panelSubtitle={
+        showSubtitle ? (
+          <span role="status" aria-live="polite">
+            {padLine}
+            {typeof careerFunds === "number" && (
+              <FundsReadout title="Available funds">
+                · {Math.round(careerFunds).toLocaleString()}f
+              </FundsReadout>
+            )}
+          </span>
+        ) : undefined
+      }
+    >
       <Body>
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
@@ -478,15 +467,6 @@ function formatTinyFunds(value: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
 
 const Body = styled(ScrollArea)`
   flex: 1;
