@@ -8,7 +8,6 @@ import {
   clampSafe,
   getWidgetShape,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type ResourceAmountMap, useStream } from "@ksp-gonogo/sitrep-client";
@@ -18,15 +17,13 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  formatDuration,
+  NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
   ReadoutCaption,
   Select,
-  StreamStatusBadge,
   useModalSaveBar,
-} from "@ksp-gonogo/ui";
-import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -226,17 +223,6 @@ function FuelStatusComponent({
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
   const currentStage = useTelemetry("vessel.structure")?.currentStage;
   // Connectivity indicator, mirroring the WarpControl pilot.
-  // `v.currentStage` is this widget's one representative MAPPED key
-  // (-> `vessel.structure.currentStage`). The ΔV totals/stage-stack `dv.*`
-  // keys are UN-GAPPED (`dv.stages` ->
-  // whole-topic `dv.stages`; `dv.stageCount`/`totalDV*`/`totalBurnTime` ->
-  // raw-field walks on the sibling `dv.summary` topic, map-topic.ts's
-  // `TELEMACHUS_CLEAN_HOMES`) and route through the stream too. The
-  // LiquidFuel/Oxidizer resource bars' stage-scoped `r.resourceCurrent(Max)[X]`
-  // keys are ALSO un-gapped now (the `dv.currentStageResource(Max)`
-  // DERIVED channels, dv-stage-resources.ts), so every key this badge
-  // could plausibly stand in for rides the same transport together.
-  const streamStatus = useDataStreamStatus("data", "v.currentStage");
   const summary = useTelemetry("dv.summary");
   const stageCount = summary?.stageCount;
   const totalDVVac = summary?.totalDvVac;
@@ -304,22 +290,21 @@ function FuelStatusComponent({
   const compactStageMeta = cols < 7;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>FUEL · ΔV</PanelTitle>
-        {/* Header escape-hatch slot (augment-slot-map "Feedback round 1"):
-            any Uplink can drop an inline badge next to the title. Renders
-            nothing until an augment binds `fuel-status.badges`. */}
-        <AugmentSlot name="fuel-status.badges" props={{}} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && currentStage !== undefined && (
-        <PanelSubtitle>
-          Stage {currentStage}
-          {stageCount !== undefined && ` / ${Math.max(stageCount - 1, 0)}`}
-        </PanelSubtitle>
-      )}
-
+    // `panelAside` is the header escape-hatch slot (augment-slot-map "Feedback
+    // round 1"): any Uplink can drop an inline badge next to the title. Renders
+    // nothing until an augment binds `fuel-status.badges`.
+    <Panel
+      panelTitle="FUEL · ΔV"
+      panelAside={<AugmentSlot name="fuel-status.badges" props={{}} />}
+      panelSubtitle={
+        showSubtitle && currentStage !== undefined ? (
+          <>
+            Stage {currentStage}
+            {stageCount !== undefined && ` / ${Math.max(stageCount - 1, 0)}`}
+          </>
+        ) : undefined
+      }
+    >
       {showHeroDv && (
         <HeroReadout $tone="alert">
           <HeroValue>{`${fmtFixed(totalDv, 0)} m/s`}</HeroValue>
@@ -502,15 +487,6 @@ function formatAmount(value: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
 
 /**
  * `BigReadout`'s font-size clamps up to 38px regardless of the widget's own

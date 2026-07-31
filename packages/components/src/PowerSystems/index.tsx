@@ -19,7 +19,6 @@ import {
   FieldLabel,
   NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
   ScrollArea,
   Select,
   useModalSaveBar,
@@ -380,6 +379,13 @@ function PowerSystemsComponent({
   return (
     <Panel
       panelTitle="POWER SYSTEMS"
+      panelSubtitle={
+        contributions.length === 0 ? (
+          <span role="status">
+            No active {splitCamel(resource)} flow right now.
+          </span>
+        ) : undefined
+      }
       panelAside={
         <>
           <AugmentSlot name="power-systems.badges" props={slotProps} />
@@ -411,12 +417,6 @@ function PowerSystemsComponent({
             ? "Power deficit"
             : "Power balanced"}
       </VisuallyHidden>
-
-      {contributions.length === 0 && (
-        <PanelSubtitle role="status">
-          No active {splitCamel(resource)} flow right now.
-        </PanelSubtitle>
-      )}
 
       <Totals>
         <NetCell $tone={netTone}>

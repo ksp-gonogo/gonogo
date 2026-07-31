@@ -647,16 +647,13 @@ const SurvivalStack = styled.div`
 
 // EVA suit resources block, shown once beneath the subtitle (not per-row -
 // the suit belongs to the single EVA kerbal the whole widget is scoped to).
-// Panel imposes no content inset (full-bleed standard) - matches
-// PanelTitle/PanelSubtitle's own "0 16px" horizontal padding so the O2/EC
-// rows line up with the title/subtitle text above them instead of running
-// flush to the panel edges.
+// No inset of its own: this sits inside Panel.Body, which supplies the
+// content inset that lines the O2/EC rows up with the title above them.
 const SuitStack = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-12);
   margin-top: var(--space-6);
-  padding: 0 var(--space-16);
 `;
 
 // Derived death-clock readout under the meters. Tone tracks urgency.

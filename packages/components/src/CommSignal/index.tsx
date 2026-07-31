@@ -3,18 +3,15 @@ import {
   AugmentSlot,
   getWidgetShape,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   EmptyState,
+  formatDuration,
+  NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -96,7 +93,6 @@ function CommSignalComponent({
   const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
   const controlStateName = vesselState?.commsControlStateName ?? undefined;
   const delay = useTelemetry("comms.delay")?.oneWaySeconds;
-  const streamStatus = useDataStreamStatus("data", "comm.connected");
 
   const hasData =
     connected !== undefined ||
@@ -105,12 +101,10 @@ function CommSignalComponent({
 
   if (!hasData) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>COMMNET</PanelTitle>
-          <AugmentSlot name="comm-signal.badges" props={{}} />
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel
+        panelTitle="COMMNET"
+        panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
+      >
         <EmptyState>No signal data</EmptyState>
       </Panel>
     );
@@ -179,18 +173,17 @@ function CommSignalComponent({
         ? "Signal connected"
         : "";
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>COMMNET</PanelTitle>
-        <AugmentSlot name="comm-signal.badges" props={{}} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && (
-        <PanelSubtitle>
-          {connected === false ? "No signal" : "Signal to KSC"}
-        </PanelSubtitle>
-      )}
-
+    <Panel
+      panelTitle="COMMNET"
+      panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
+      panelSubtitle={
+        showSubtitle
+          ? connected === false
+            ? "No signal"
+            : "Signal to KSC"
+          : undefined
+      }
+    >
       <LiveStatus role="status" aria-live="polite">
         {liveAnnouncement}
       </LiveStatus>
@@ -250,14 +243,6 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   warn: "var(--color-status-warning-fg-muted)",
   lost: "var(--color-status-nogo-fg)",
 };
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 // Visually hidden, but read by screen readers. Only its text content changes
 // (and only on a connection-state transition), so the polite live region

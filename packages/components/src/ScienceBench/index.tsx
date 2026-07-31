@@ -596,10 +596,15 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+/* Subtitle typography, but a body element: the situation line lives inside the
+   DimmedOverlay with the sensors it describes, so it dims with them rather
+   than sitting in the pinned header. It therefore drops the horizontal inset
+   PanelSubtitle carries as a header part, since Panel.Body already pays it. */
 const SituationLine = styled(PanelSubtitle)`
   display: flex;
   align-items: center;
   gap: var(--space-8);
+  padding: 0;
 `;
 
 const SituationText = styled.span`

@@ -6,33 +6,21 @@ import {
   resolveTargetName,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  type StreamStatusValue,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-  useViewUt,
-} from "@ksp-gonogo/sitrep-client";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
+  formatDuration,
+  NULL_DISPLAY,
   Panel,
-  PanelTitle,
   Select,
-  StreamStatusBadge,
   Switch,
   useModalSaveBar,
-} from "@ksp-gonogo/ui";
-import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
+} from "@ksp-gonogo/ui-kit";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   deriveDockAngles,
@@ -43,34 +31,6 @@ import {
 } from "../shared/dockAngles";
 
 type DockingHudMode = "hud" | "hud-with-camera";
-
-/** Native per-topic stream status (copy of OrbitView's helper),
- * `"disconnected"` when no `TelemetryProvider` is mounted. */
-function useStreamStatusOptional(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback(
-    (): StreamStatusValue =>
-      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
-    [store, topic],
-  );
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
 
 interface DistanceToTargetConfig {
   /**
@@ -227,7 +187,6 @@ function DistanceToTargetComponent({
   const dockRelVelVec = dock?.relativeVelocity as Vec3 | undefined;
   const dockDistanceStream = dock?.distance;
   const dockForwardDot = dock?.forwardDot;
-  const streamStatus = useStreamStatusOptional("vessel.target");
 
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const relVel =
@@ -255,9 +214,9 @@ function DistanceToTargetComponent({
   const dockingDistance = dockDistanceStream ?? tarDistance;
 
   // Header `.badges` slot context: a fresh object each render so the indicator
-  // tracks live target data. Rendered next to the widget
-  // title (its canonical header, `TitleRow`); the specialised approach/docking
-  // modes keep their own bespoke headers.
+  // tracks live target data. Passed as the tracking panel's `panelAside`, so it
+  // renders next to the widget title; the specialised approach/docking modes
+  // keep their own bespoke headers.
   const badgeContext: DistanceToTargetBadgeContext = {
     targetName: tarName,
     targetType: tarType,
@@ -308,12 +267,12 @@ function DistanceToTargetComponent({
 
   if (tarName === undefined) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>TARGET</PanelTitle>
+      <Panel
+        panelTitle="TARGET"
+        panelAside={
           <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+        }
+      >
         <NoTarget>No target set in KSP</NoTarget>
       </Panel>
     );
@@ -367,12 +326,12 @@ function DistanceToTargetComponent({
   const showTargetName = rows >= 4 || cols >= 5;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>TARGET</PanelTitle>
+    <Panel
+      panelTitle="TARGET"
+      panelAside={
         <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
+      }
+    >
       <TrackingBody>
         {showTargetName && <TargetName>{tarName}</TargetName>}
         {tarDistance === undefined ? (
@@ -448,8 +407,7 @@ function ApproachHud({
   // and is the cut space forces here.
   if (rows < 5) {
     return (
-      <Panel>
-        <PanelTitle>APPROACH</PanelTitle>
+      <Panel panelTitle="APPROACH">
         <TrackingBody>
           <TargetName>{name}</TargetName>
           {distance === undefined ? (
@@ -469,8 +427,7 @@ function ApproachHud({
   }
 
   return (
-    <Panel>
-      <PanelTitle>APPROACH</PanelTitle>
+    <Panel panelTitle="APPROACH">
       <TargetName>{name}</TargetName>
       <ApproachGrid $stack={stack}>
         <ApproachLabel>Distance</ApproachLabel>
@@ -778,14 +735,6 @@ registerComponent<DistanceToTargetConfig>({
 export { DistanceToTargetComponent };
 
 // ── Styles: compact mode ─────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const TrackingBody = styled.div`
   flex: 1;
