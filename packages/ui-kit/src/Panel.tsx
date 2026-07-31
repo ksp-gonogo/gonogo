@@ -130,7 +130,7 @@ export const PanelSubtitle = styled.div`
   margin-top: -4px;
 `;
 
-const PanelHeader__Row = styled.div`
+const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -145,13 +145,45 @@ const PanelHeader__Row = styled.div`
   /* Never shrink: at very short widget heights the flex column would squeeze
      the header toward zero and the body would overprint the title. */
   flex-shrink: 0;
+  /* Overlay: the header stops reserving a row and floats over the content, so
+     a map/plot/globe fills the whole tile and the title sits on top of its
+     quiet corner. Anchors to PanelGlow__Root, which is already positioned.
+     The row itself goes transparent to hit-testing (see OVERLAY_BOX). */
+  ${({ $overlay }) =>
+    $overlay
+      ? `position: absolute;
+         top: 0;
+         left: 0;
+         right: 0;
+         pointer-events: none;
+         /* Local sibling ordering inside the panel's own stacking context,
+            the same rung the scroll glow uses and for the same reason: it is
+            widget-internal, so it stays off the app-global z ladder. */
+         z-index: 1;`
+      : ""}
 `;
 
-const PanelHeader__Titles = styled.div`
+/* Applied to the two header boxes (not to the row) when the header floats over
+   the content. Backing only the boxes is the point: the gap between the titles
+   and the aside stays transparent, so the drawing underneath shows through
+   between them rather than behind a full-width bar. The surface matches the
+   panel's own so the text reads as panel chrome that the content runs beneath,
+   not as a card sitting on top of it.
+
+   `pointer-events: auto` restores what the row gives up: the row spans the full
+   width invisibly, so it takes them away to keep drags reaching the map, and
+   each box takes them back for the controls it actually holds. */
+const OVERLAY_BOX = `
+  background: var(--color-surface-panel);
+  pointer-events: auto;
+`;
+
+const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
   min-width: 0;
+  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
-const PanelHeader__Aside = styled.div`
+const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--space-4, 4px);
@@ -163,6 +195,7 @@ const PanelHeader__Aside = styled.div`
   /* PanelTitle owns the left inset and the vertical rhythm; mirror both here
      so the badges line up with the title rather than the panel edge. */
   padding: var(--space-12, 12px) var(--space-16, 16px) var(--space-8, 8px);
+  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
 /**
@@ -179,11 +212,22 @@ export function PanelHeader({
   title,
   subtitle,
   aside,
+  toolbar,
+  overlay,
   ...rest
 }: Omit<ComponentPropsWithoutRef<"div">, "title"> & {
   title?: ReactNode;
   subtitle?: ReactNode;
   aside?: ReactNode;
+  /**
+   * A row of controls on its own line below the title. See `Panel.Toolbar`.
+   */
+  toolbar?: ReactNode;
+  /**
+   * Float the header over the content instead of reserving a row above it.
+   * Pair with a `Panel.Body bleed`, which is what `Panel headerOverlay` does.
+   */
+  overlay?: boolean;
 }) {
   return (
     /* `data-panel-header` is a stable targeting hook, the same contract as
@@ -192,17 +236,59 @@ export function PanelHeader({
        from the title with `closest("div")` reaches the titles box and NOT the
        aside beside it. Anything that wants "the whole header" should say so
        by name rather than by counting ancestors. */
-    <PanelHeader__Row data-panel-header="" {...rest}>
-      <PanelHeader__Titles>
+    <PanelHeader__Row data-panel-header="" $overlay={overlay} {...rest}>
+      <PanelHeader__Titles $overlay={overlay}>
         {title !== undefined && <PanelTitle>{title}</PanelTitle>}
         {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
       </PanelHeader__Titles>
-      {aside !== undefined && <PanelHeader__Aside>{aside}</PanelHeader__Aside>}
+      {aside !== undefined && (
+        <PanelHeader__Aside $overlay={overlay}>{aside}</PanelHeader__Aside>
+      )}
+      {toolbar !== undefined && (
+        <PanelToolbar $overlay={overlay}>{toolbar}</PanelToolbar>
+      )}
     </PanelHeader__Row>
   );
 }
 
-const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
+/**
+ * A full-width row of controls under the header, pinned like the header and
+ * outside the scrolling body.
+ *
+ * Distinct from `panelAside`, which is the small slot BESIDE the title: a chip,
+ * a badge, one select. A toolbar is for widgets whose controls are a row in
+ * their own right (a map's layer and projection pickers, a graph's series
+ * toggles and time window). Putting those in the aside squeezes the title at
+ * every realistic tile width; putting them in the body scrolls them away from
+ * the content they steer.
+ *
+ * It wraps rather than scrolls, so a narrow tile gets a taller toolbar and the
+ * controls stay reachable. If a widget's toolbar is tall enough at tile width
+ * for that to hurt, the controls belong behind a disclosure, not in a row.
+ */
+export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-8, 8px);
+  /* Mirrors the header's horizontal inset so controls line up with the title
+     above them, and carries only a bottom gap of its own: the header already
+     paid the top inset. */
+  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
+  min-width: 0;
+  /* Same reason as the header row: at short tile heights the flex column would
+     otherwise squeeze the controls toward zero. */
+  flex-shrink: 0;
+  /* A full basis inside the wrapping header row, so the toolbar always takes a
+     line of its own below the title rather than competing with the aside for
+     the first one. Living inside that row (rather than beside it) is what makes
+     it float correctly under an overlay header instead of colliding with it. */
+  flex-basis: 100%;
+  width: 100%;
+  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
+`;
+
+const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   flex: 1;
   min-height: 0;
   display: flex;
@@ -227,6 +313,14 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
      same result: a top-level prop that changed WHICH subcomponents render
      would not be reproducible. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
+  /* Bleed: the content reaches the panel chrome on every side and never
+     scrolls. For the widgets that ARE a drawing (map, globe, plot): the inset
+     that makes a list readable only crops a canvas, and a canvas sized to its
+     container cannot overflow, so there is nothing to scroll. Written after
+     $fitToSize so the two can be combined without the order mattering, though
+     bleed alone is the usual case. */
+  ${({ $bleed }) =>
+    $bleed ? "flex: 1; overflow: hidden; padding: 0; gap: 0;" : ""}
 `;
 
 /**
@@ -236,8 +330,12 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
 export function PanelBody({
   children,
   fitToSize,
+  bleed,
   ...rest
-}: ComponentPropsWithoutRef<"div"> & { fitToSize?: boolean }) {
+}: ComponentPropsWithoutRef<"div"> & {
+  fitToSize?: boolean;
+  bleed?: boolean;
+}) {
   const ctx = useContext(PanelCtx);
   const register = ctx?.registerScroller;
   const ref = useCallback(
@@ -247,7 +345,7 @@ export function PanelBody({
     [register],
   );
   return (
-    <PanelBody__Box ref={ref} $fitToSize={fitToSize} {...rest}>
+    <PanelBody__Box ref={ref} $fitToSize={fitToSize} $bleed={bleed} {...rest}>
       {children}
     </PanelBody__Box>
   );
@@ -488,13 +586,11 @@ export function PanelGlow({
 // scrollable shell making `calc(-1 * 0)` invalid, so the glow never rendered
 // there at all.
 //
-// Title and subtitle sit INSIDE the glow, so they scroll with the body. That
-// is today's behaviour (the retired `PanelScrollable` wrapped ALL its children
-// in the scroll area, so a widget passing a title got a scrolling title) and it
-// is kept deliberately: pinning the header is wanted, but as its own pass
-// rather than as a side effect of adding padding to 43 widgets. Because the
-// composition is explicit, that later pass changes this one default rather
-// than every widget.
+// Title, subtitle and toolbar sit inside the glow but BESIDE the body rather
+// than in it, and the body is the scroller, so the header stays pinned while
+// the content scrolls under the glow. (The retired `PanelScrollable` wrapped
+// all its children in the scroll area, so a widget passing a title got a title
+// that scrolled away; that is what this arrangement fixes.)
 // ---------------------------------------------------------------------------
 
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
@@ -540,6 +636,39 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelStatus?: StreamStatusValue | "none";
   /**
+   * A full-width row of controls under the header, pinned outside the
+   * scrolling body. For widgets whose controls are a row in their own right
+   * (a map's layer pickers, a graph's series toggles); a single chip or select
+   * belongs in `panelAside` instead. See `Panel.Toolbar`.
+   */
+  panelToolbar?: ReactNode;
+  /**
+   * The header floats over the content rather than reserving a row above it,
+   * and the body bleeds to the panel chrome and stops scrolling.
+   *
+   * For the widgets that ARE a drawing: an orbit view, a map, a globe. Their
+   * content wants the whole tile, and cropping it to leave room for a title is
+   * the wrong trade at the sizes these run at. The title and the aside keep a
+   * panel-coloured backing so they stay legible over whatever passes beneath.
+   *
+   * Deliberately NOT folded into `fitToSize`, though they do go together. That
+   * prop is already set by widgets which want their content sized to the tile
+   * and still want an ordinary header, and every one of them would sprout a
+   * floating title the day the two merged. Two questions, two props: does the
+   * content scroll, and does the header sit above it or on it.
+   */
+  headerOverlay?: boolean;
+  /**
+   * The body reaches the panel chrome on every side and stops scrolling,
+   * while the header keeps its own row above it.
+   *
+   * For a widget that IS a drawing but whose chrome is too heavy to float: a
+   * map with a layer toolbar wants every pixel for the canvas, and would still
+   * rather have its controls pinned above the map than sitting on it.
+   * `headerOverlay` implies this; this is the half of it without the float.
+   */
+  bleedBody?: boolean;
+  /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
    */
@@ -551,6 +680,9 @@ function PanelRoot({
   panelSubtitle,
   panelAside,
   panelStatus,
+  panelToolbar,
+  headerOverlay,
+  bleedBody,
   fitToSize,
   children,
   ...rest
@@ -564,7 +696,8 @@ function PanelRoot({
   const hasHeader =
     panelTitle !== undefined ||
     panelSubtitle !== undefined ||
-    panelAside !== undefined;
+    panelAside !== undefined ||
+    panelToolbar !== undefined;
 
   const derived = usePanelStreamStatus();
   const status = panelStatus ?? derived;
@@ -593,8 +726,16 @@ function PanelRoot({
             title={panelTitle}
             subtitle={panelSubtitle}
             aside={aside}
+            toolbar={panelToolbar}
+            overlay={headerOverlay}
           />
-          <PanelBody fitToSize={fitToSize}>{children}</PanelBody>
+          {/* Header order is deliberate: the header is written first so it
+              stays first in the DOM, and therefore first in reading and tab
+              order, whether it floats or reserves a row. Overlay is a paint
+              change, not a structural one. */}
+          <PanelBody fitToSize={fitToSize} bleed={bleedBody || headerOverlay}>
+            {children}
+          </PanelBody>
         </PanelGlow>
       </PanelContainer>
     </PanelContextProvider>
@@ -605,6 +746,7 @@ export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,
   Container: PanelContainer,
   Header: PanelHeader,
+  Toolbar: PanelToolbar,
   Title: PanelTitle,
   Subtitle: PanelSubtitle,
   Glow: PanelGlow,

@@ -25,8 +25,8 @@ import {
   type VesselManeuverLegacyState,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
@@ -1177,13 +1177,23 @@ function MapViewComponent({
     );
   }
 
-  return (
-    <Panel>
-      <Header>
-        <PanelTitle>MAP VIEW</PanelTitle>
-        <AugmentSlot name="map-view.badges" props={badgesContext} />
-        <AugmentSlot name="map-view.actions" props={actionsContext} />
-        <StreamStatusBadge status={streamStatus} />
+  // Eight children in one title row was the case the toolbar exists for. They
+  // split by kind rather than by size: the two augment slots are badges and
+  // stay beside the title, while the body label, the imaging chip, the follow
+  // toggle and the event chips are a row of state and controls in their own
+  // right, so they get their own line under it. The stream badge is dropped
+  // here because the composed header renders the host-derived one, which
+  // watches every topic this widget declares.
+  //
+  // `bleedBody` rather than `headerOverlay`: the map does want every pixel,
+  // but this much chrome floating on top of it would cover more map than the
+  // reserved rows do, and a follow toggle sitting on the terrain it controls
+  // is harder to read than one pinned above it.
+  const toolbar =
+    (showBodyLabel && displayName) ||
+    (showImagingChip && vesselOnThisBody && imagingStatus) ||
+    (showFollowToggle && vesselOnThisBody) ? (
+      <>
         {showBodyLabel && displayName && (
           <BodyLabel>
             {displayName}
@@ -1203,8 +1213,21 @@ function MapViewComponent({
           />
         )}
         {showImagingChip && vesselOnThisBody && <OrbitalEventChips />}
-      </Header>
+      </>
+    ) : undefined;
 
+  return (
+    <Panel
+      panelTitle="MAP VIEW"
+      panelAside={
+        <>
+          <AugmentSlot name="map-view.badges" props={badgesContext} />
+          <AugmentSlot name="map-view.actions" props={actionsContext} />
+        </>
+      }
+      panelToolbar={toolbar}
+      bleedBody
+    >
       <MapBody>
         <MapOuter ref={outerRef}>
           <CanvasContainer

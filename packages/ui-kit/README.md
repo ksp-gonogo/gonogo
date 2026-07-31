@@ -72,6 +72,27 @@ glow and finds the scroller through `Panel.Context`, so it does not care
 whether it wraps the body or sits beside it. `fitToSize` on either `Panel` or
 `Panel.Body` is for content sized to the tile that must never scroll.
 
+### Heavier chrome
+
+Three props cover the widgets whose header is more than a title row:
+
+- **`panelAside`** is the small slot beside the title: a chip, a badge, one
+  select. Reach for it first.
+- **`panelToolbar`** is a full-width row of controls on its own line below the
+  title, pinned outside the scrolling body (a map's layer pickers, a graph's
+  series toggles). Use it when the controls are a row in their own right;
+  crowding them into the aside squeezes the title at realistic tile widths, and
+  putting them in the body scrolls them away from what they steer.
+- **`headerOverlay`** floats the header over the content and lets the body
+  bleed to the panel chrome without scrolling. For widgets that ARE a drawing
+  (an orbit view, a globe): the title keeps a panel-coloured backing so it
+  stays legible, and the drawing gets the whole tile. `bleedBody` is the same
+  full-bleed body without the float, for a drawing whose chrome is too heavy to
+  sit on top of it.
+
+All three are reachable for hand-composition too, as `Panel.Toolbar` and the
+`overlay` / `bleed` props on `Panel.Header` and `Panel.Body`.
+
 Visual content, an SVG diagram or a canvas, goes in `FramedDisplay` rather than
 fighting the body inset: the frame gives it a defined edge, and in a widget
 with a sidebar it does the dividing too.

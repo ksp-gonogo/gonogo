@@ -380,17 +380,32 @@ function OrbitViewComponent({
     );
   }
 
+  // The diagram runs under the title rather than beside it. In portrait the
+  // title row was eating most of the vertical space (the comment on the
+  // landscape branch above says so), and an orbit ellipse is the kind of
+  // content that wants the whole tile: the corner it loses to a backed title
+  // is far cheaper than the row the title used to reserve. Only when there IS
+  // a diagram, though. The no-data and pill-only branches are centred text,
+  // and floating a title over centred text just overlaps it.
+  const drawingFillsPanel = hasOrbit && showDiagram;
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>ORBIT VIEW</PanelTitle>
+    <Panel
+      panelTitle="ORBIT VIEW"
+      // Overlaying costs the subtitle no vertical space, so the size gate that
+      // used to hide it does not apply in that mode.
+      panelSubtitle={
+        (showSubtitle || drawingFillsPanel) && bodyName !== undefined
+          ? bodyName
+          : undefined
+      }
+      // The stream badge is gone from here on purpose: the composed header
+      // renders the host-derived status, which watches every topic this widget
+      // declares rather than the one this hook picked by hand.
+      panelAside={
         <AugmentSlot name="orbit-view.badges" props={badgesContext} />
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {showSubtitle && bodyName !== undefined && (
-        <PanelSubtitle>{bodyName}</PanelSubtitle>
-      )}
-
+      }
+      headerOverlay={drawingFillsPanel}
+    >
       {!hasOrbit ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no

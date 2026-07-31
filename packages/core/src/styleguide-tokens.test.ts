@@ -240,7 +240,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ShipMap/ShipDiagram.tsx": 2,
     "packages/components/src/SystemView/SystemDiagram.tsx": 1,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
-    "packages/ui-kit/src/Panel.tsx": 1,
+    // Two, both local sibling ordering inside the panel's own stacking
+    // context: the scroll glow over the scrolling body, and the overlay
+    // header over the content that runs beneath it. Neither is app-global
+    // chrome, so a named rung would lift a widget-internal overlay above the
+    // dashboard's.
+    "packages/ui-kit/src/Panel.tsx": 2,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
