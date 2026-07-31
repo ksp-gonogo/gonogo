@@ -271,14 +271,9 @@ export function TouchdownReticle({
       {/* Neutral, BORDERLESS site panel. The verdict is carried by the widget's
             text banner below; a verdict-tinted box border read as inconsistent
             noise, so it's gone (the grey relief stays legible either way). */}
-      <rect
-        x={4}
-        y={4}
-        width={SIZE - 8}
-        height={SIZE - 8}
-        rx={4}
-        fill="var(--color-surface-raised)"
-      />
+      {/* Surface comes from the enclosing FramedDisplay now. The note above
+          still holds: the frame's border is neutral, never verdict-tinted, so
+          the verdict stays carried by the text banner alone. */}
 
       {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
             iso-lines painted to a canvas + up-scaled. Fallback (no canvas, e.g.

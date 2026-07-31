@@ -214,15 +214,10 @@ export function CrossSection({
           <rect x={4} y={4} width={SIZE - 8} height={SIZE - 8} rx={6} />
         </clipPath>
       </defs>
-      <rect
-        x={4}
-        y={4}
-        width={SIZE - 8}
-        height={SIZE - 8}
-        rx={6}
-        fill="var(--color-surface-raised)"
-        stroke="var(--color-border-subtle)"
-      />
+      {/* No frame drawn here: the plot sits in a FramedDisplay, which owns the
+          border and the surface. Drawing a second one inside it read as a
+          double border. The clipPath above keeps its own geometry, so the
+          skyline still cannot spill past the rounded corners. */}
       <g clipPath={`url(#${clipId})`}>
         {/* Soft fill beneath the terrain (no stroke) so "ground below, sky
             above" reads without drawing any perimeter or bottom line. */}

@@ -111,6 +111,10 @@ export {
   Select,
   Textarea,
 } from "./Form";
+export {
+  FramedDisplay,
+  type FramedDisplayProps,
+} from "./FramedDisplay";
 // ── Formatters ───────────────────────────────────────────────────────────────
 export { type FormatNumberOptions, formatNumber } from "./format";
 export { formatAge, formatAgeLong } from "./formatAge";

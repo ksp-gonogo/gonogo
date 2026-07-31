@@ -18,6 +18,7 @@ import {
   Badge,
   Cluster,
   EmptyState,
+  FramedDisplay,
   formatDuration,
   Grid,
   NULL_DISPLAY,
@@ -683,12 +684,15 @@ function LandingStatusComponent({
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SectionTitle>Touchdown site</SectionTitle>
-                    {reticleSquare}
+                    {/* Flush: each plot SVG already insets its content by 4,
+                        so the frame supplies the edge and lets that inset be
+                        the gutter rather than stacking a second one. */}
+                    <FramedDisplay flush>{reticleSquare}</FramedDisplay>
                   </div>
                   {crossSectionEl && (
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <SectionTitle>Cross-section</SectionTitle>
-                      {crossSectionEl}
+                      <FramedDisplay flush>{crossSectionEl}</FramedDisplay>
                     </div>
                   )}
                 </div>
