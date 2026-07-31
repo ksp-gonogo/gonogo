@@ -3,17 +3,10 @@ import {
   AugmentSlot,
   getSizeBucket,
   registerComponent,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  ScrollArea,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
+import { Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -328,7 +321,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
   const careerScience = useTelemetry("career.status")?.economy?.science;
-  const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
   const allNodes = parseTechNodes(nodesRaw);
@@ -377,24 +369,18 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>TECH TREE</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
-        {showSubtitle && <PanelSubtitle>Awaiting tech telemetry</PanelSubtitle>}
-      </Panel>
+      <Panel
+        panelTitle="TECH TREE"
+        panelSubtitle={showSubtitle ? "Awaiting tech telemetry" : undefined}
+      />
     );
   }
   if (allNodes.length === 0) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>TECH TREE</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
-        {showSubtitle && <PanelSubtitle>No tech nodes loaded</PanelSubtitle>}
-      </Panel>
+      <Panel
+        panelTitle="TECH TREE"
+        panelSubtitle={showSubtitle ? "No tech nodes loaded" : undefined}
+      />
     );
   }
 
@@ -405,11 +391,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Tiny mode: single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>TECH</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel panelTitle="TECH">
         <TinyBody>
           <TinyCount>
             {counts.researchable}
@@ -449,7 +431,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   };
 
   const subtitle = showSubtitle ? (
-    <PanelSubtitle role="status" aria-live="polite">
+    <span role="status" aria-live="polite">
       {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
       researchable
       {sciAvailable !== null && (
@@ -457,8 +439,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           · {Math.round(sciAvailable)} sci
         </SciReadout>
       )}
-    </PanelSubtitle>
-  ) : null;
+    </span>
+  ) : undefined;
 
   // ── Graph mode: tiered dependency view (wide enough only) ────────────
   const useGraph = w !== undefined && w >= GRAPH_MIN_COLS;
@@ -471,12 +453,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       n.description.toLowerCase().includes(q);
 
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>TECH TREE</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
-        {subtitle}
+      <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
         <GraphToolbar>
           <Legend aria-hidden="true">
             <LegendItem>
@@ -541,12 +518,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const sorted = sortNodes(filtered, researchable);
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>TECH TREE</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
-      {subtitle}
+    <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
           <FilterBtn
@@ -991,26 +963,16 @@ function dsBorder(ds: DisplayState): string {
 
 // ── Styles ────────────────────────────────────────────────────────────────
 
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-  flex-wrap: wrap;
-`;
-
 const Controls = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  /* Horizontal inset matches PanelTitle/PanelSubtitle's local padding
-     (Panel itself is full-bleed, no uniform inset). Without it the filter
-     pills and search input sat flush against the panel border, visibly
-     tighter than the title above them, and at narrow widths (e.g.
-     portrait-5x18) the "Unlocked" pill overflowed past the edge and got
-     clipped mid-word instead of wrapping. */
-  padding: 0 var(--space-16) var(--space-6);
+  /* No horizontal inset of its own any more: Panel.Body supplies exactly the
+     16px the title carries, so the pills line up with the title without it.
+     Keeping the old local padding here would double the inset and push the
+     "Unlocked" pill back past the panel edge at narrow widths (e.g.
+     portrait-5x18), which is the clipping the padding was added to avoid. */
+  padding-bottom: var(--space-6);
   flex-shrink: 0;
 `;
 

@@ -6,7 +6,6 @@ import {
   getBody,
   registerComponent,
   resolveTargetName,
-  useDataStreamStatus,
   useExecuteAction,
   useOrbitElements,
   useTelemetry,
@@ -21,14 +20,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  CheckIcon,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  ScrollArea,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
+import { CheckIcon, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -171,7 +163,6 @@ function ManeuverPlannerComponent({
   // correlated by ARRAY POSITION (both server-side lists reflect the same
   // ordering): `resolveNodeId` below is the correlation point.
   const streamNodeIds = useTelemetry("vessel.maneuver")?.nodes;
-  const nodeIdStreamStatus = useDataStreamStatus("data", "o.maneuverNodeIds");
 
   /**
    * Resolves the command-string id for the node at legacy array position
@@ -531,18 +522,13 @@ function ManeuverPlannerComponent({
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <TitleGroup>
-          <PanelTitle>MANEUVER PLANNER</PanelTitle>
-          <AugmentSlot
-            name="maneuver-planner.badges"
-            props={EMPTY_SLOT_PROPS}
-          />
-        </TitleGroup>
-        <StreamStatusBadge status={nodeIdStreamStatus} />
-      </TitleRow>
-      {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
+    <Panel
+      panelTitle="MANEUVER PLANNER"
+      panelAside={
+        <AugmentSlot name="maneuver-planner.badges" props={EMPTY_SLOT_PROPS} />
+      }
+      panelSubtitle={refBody ?? undefined}
+    >
       <ScrollBody>
         {renderNodesSection()}
         {renderArmedTriggersSection()}
@@ -658,21 +644,6 @@ export { ManeuverPlannerComponent };
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
-
-const TitleGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Section = styled.section`
   display: flex;
