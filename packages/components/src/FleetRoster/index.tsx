@@ -11,15 +11,8 @@ import {
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
 import { RosterCommsControlSource, VesselType } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Badge,
-  EmptyState,
-  Meter,
-  Panel,
-  PanelTitle,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Meter } from "@ksp-gonogo/ui";
+import { Badge, EmptyState, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import { Fragment, useCallback, useMemo, useSyncExternalStore } from "react";
 import styled from "styled-components";
 
@@ -285,7 +278,6 @@ function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
   const { known, vessels } = useFleet();
-  const streamStatus = useStreamStatusOptional("system.vessels");
   const rollup = commsRollup(vessels);
   const cols = w ?? 8;
   // Below the width threshold the Body column and the per-vessel update lines
@@ -300,15 +292,10 @@ function FleetRosterComponent({
   const total = vessels.length;
 
   return (
-    <Panel>
-      <HeaderRow>
-        <PanelTitle>Fleet</PanelTitle>
-        <TitleRight>
-          <Badge tone={rollup.tone}>{rollup.badgeLabel}</Badge>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRight>
-      </HeaderRow>
-
+    <Panel
+      panelTitle="Fleet"
+      panelAside={<Badge tone={rollup.tone}>{rollup.badgeLabel}</Badge>}
+    >
       {total === 0 ? (
         <EmptyState>
           {known ? "No vessels tracked." : "Fleet data not available yet."}
@@ -413,21 +400,6 @@ function FleetRosterComponent({
 // starts ellipsis-ing again.
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr) 48px 66px";
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  row-gap: var(--space-2);
-  gap: var(--space-8);
-`;
-
-const TitleRight = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-`;
 
 const TableScroll = styled.div`
   flex: 1 1 auto;

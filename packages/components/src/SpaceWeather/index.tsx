@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { Badge, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
+import { Meter } from "@ksp-gonogo/ui";
+import { Badge, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -348,9 +349,9 @@ function SpaceWeatherComponent({
     d.shieldingCapacity > 0 ? d.shieldingValue / d.shieldingCapacity : 0;
 
   return (
-    <Panel>
-      <HeaderRow>
-        <PanelTitle>Space Weather</PanelTitle>
+    <Panel
+      panelTitle="Space Weather"
+      panelAside={
         <Badge
           role="status"
           aria-live="polite"
@@ -364,8 +365,8 @@ function SpaceWeatherComponent({
         >
           {status.label}
         </Badge>
-      </HeaderRow>
-
+      }
+    >
       <StormTimeline state={d.stormState} />
 
       <MidRow $compact={compact}>
@@ -426,13 +427,6 @@ function SpaceWeatherComponent({
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
 
 const Section = styled.div`
   display: flex;

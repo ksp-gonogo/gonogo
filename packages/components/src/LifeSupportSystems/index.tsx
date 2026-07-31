@@ -5,7 +5,8 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Badge, Meter, Panel, PanelTitle } from "@ksp-gonogo/ui";
+import { Meter } from "@ksp-gonogo/ui";
+import { Badge, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 // Side-effect import: registers the built-in `life-support.sections`
 // augment filler (the Greenhouse section) and the SlotRegistry declaration
@@ -282,9 +283,9 @@ function LifeSupportSystemsComponent({
       : `${runningCount} / ${d.processes.length} running`;
 
   return (
-    <Panel>
-      <HeaderRow>
-        <PanelTitle>Life Support</PanelTitle>
+    <Panel
+      panelTitle="Life Support"
+      panelAside={
         <Badge
           role="status"
           aria-live="polite"
@@ -298,8 +299,8 @@ function LifeSupportSystemsComponent({
         >
           {status.label}
         </Badge>
-      </HeaderRow>
-
+      }
+    >
       {/* Body absorbs any vertical shortfall itself (flex:1 + min-height:0 +
           its own overflow:hidden, the same PanelBody convention documented
           in Panel.tsx) instead of letting the whole Panel overflow and clip
@@ -460,13 +461,6 @@ function LifeSupportSystemsComponent({
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
 
 // Fills the remaining Panel height and lets ITS OWN bottom edge clip first
 // (see the render-site comment on <Body>), so FooterRow's Power meter never

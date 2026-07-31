@@ -3,21 +3,17 @@ import {
   formatCompactNumber,
   getSizeBucket,
   registerComponent,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   Button,
   GhostButton,
+  NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
   PrimaryButton,
   ScrollArea,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -164,7 +160,6 @@ function StrategiesComponent({
   const funds = career?.economy?.funds;
   const reputation = career?.economy?.reputation;
   const science = career?.economy?.science;
-  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
@@ -212,13 +207,10 @@ function StrategiesComponent({
 
   if (strategies === null) {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>Strategies</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </Header>
-        {showSubtitle && <PanelSubtitle>Awaiting career data...</PanelSubtitle>}
-      </Panel>
+      <Panel
+        panelTitle="Strategies"
+        panelSubtitle={showSubtitle ? "Awaiting career data..." : undefined}
+      />
     );
   }
 
@@ -265,15 +257,15 @@ function StrategiesComponent({
   // ── Tiny mode ─────────────────────────────────────────────────────────
   if (bucket === "tiny") {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>Strategies</PanelTitle>
+      <Panel
+        panelTitle="Strategies"
+        panelAside={
           <Tally $overCap={overCap}>
             {active.length} active
             {overCap && ` / ${inferredCap}`}
           </Tally>
-          <StreamStatusBadge status={streamStatus} />
-        </Header>
+        }
+      >
         {/* Strategies spends career funds (activate cost), so the balance
             must stay visible even in the tiny bucket (CLAUDE.md "spending
             funds: always show the balance"). A dedicated row below the
@@ -294,18 +286,15 @@ function StrategiesComponent({
   }
 
   return (
-    <Panel>
-      <Header>
-        <PanelTitle>Admin Building</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-        {/* HeaderMeta wraps to a second row at narrow widths so funds /
-            rep / sci aren't clipped by the title's space-between layout.
-            Funds must stay visible at every width, Strategies spends
-            career funds on activate (CLAUDE.md "spending funds: always
-            show the balance"). Rep/sci are supplementary tallies only,
-            those still drop at narrow widths (cols < 6) where the full
-            row won't fit; full tallies need the wide-9x12 mode to fit
-            on one row. */}
+    <Panel
+      panelTitle="Admin Building"
+      /* The tallies wrap to a second row at narrow widths, which Panel.Header
+         now does for any aside rather than each widget arranging its own.
+         Funds must stay visible at every width: Strategies spends career funds
+         on activate (CLAUDE.md "spending funds: always show the balance").
+         Rep/sci are supplementary and still drop below cols 6, where even a
+         wrapped row cannot hold them. */
+      panelAside={
         <HeaderMeta>
           <Tally $overCap={overCap}>
             {active.length} active
@@ -322,7 +311,8 @@ function StrategiesComponent({
             </>
           )}
         </HeaderMeta>
-      </Header>
+      }
+    >
       <ScrollArea>
         <Section aria-label="Active">
           <SectionLabel>Active</SectionLabel>
@@ -615,19 +605,10 @@ function formatPct(v: number): string {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Header = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-8);
-  padding: 0 var(--space-12) var(--space-6);
-  border-bottom: 1px solid var(--color-border-subtle);
-  flex-wrap: wrap;
-`;
-
 const HeaderMeta = styled.div`
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: var(--space-6);
   color: var(--color-text-dim);
   font-size: var(--font-size-xs);

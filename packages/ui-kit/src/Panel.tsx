@@ -136,6 +136,12 @@ const PanelHeader__Row = styled.div`
   justify-content: space-between;
   gap: var(--space-8, 8px);
   min-width: 0;
+  /* Wrap rather than crush. Widgets are small and get smaller, and an aside
+     carrying a tally or a select will not fit beside the title at every tile
+     width. Given the choice between the aside dropping to its own row and the
+     title being squeezed to an ellipsis, the second row is the honest one:
+     both stay readable, and the panel grows by exactly the height it needs. */
+  flex-wrap: wrap;
   /* Never shrink: at very short widget heights the flex column would squeeze
      the header toward zero and the body would overprint the title. */
   flex-shrink: 0;
@@ -149,6 +155,10 @@ const PanelHeader__Aside = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-4, 4px);
+  /* Wraps internally too, so a multi-chip aside stacks its own contents
+     rather than forcing the whole aside onto a third row. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
   flex-shrink: 0;
   /* PanelTitle owns the left inset and the vertical rhythm; mirror both here
      so the badges line up with the title rather than the panel edge. */
