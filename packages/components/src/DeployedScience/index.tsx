@@ -284,7 +284,7 @@ function DeployedScienceComponent(
            Any Uplink can drop an inline badge next to the title, beside the
            panel's own stream-status badge. Renders nothing until an augment
            binds `deployed-science.badges`. */
-        panelBadges={<AugmentSlot name="deployed-science.badges" props={{}} />}
+        panelAside={<AugmentSlot name="deployed-science.badges" props={{}} />}
       >
         <EmptyState role="status">
           {available === false
@@ -302,7 +302,7 @@ function DeployedScienceComponent(
          Any Uplink can drop an inline badge next to the title, beside the
          panel's own stream-status badge. Renders nothing until an augment
          binds `deployed-science.badges`. */
-      panelBadges={<AugmentSlot name="deployed-science.badges" props={{}} />}
+      panelAside={<AugmentSlot name="deployed-science.badges" props={{}} />}
     >
       <Body>
         {bases.map((base) => {

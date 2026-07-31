@@ -225,6 +225,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
+      // -- ratchet inventory: the shadowed-primitives baseline is a list of
+      // repo-relative paths, two of which happen to sit in the Scansat
+      // Uplink. It names files, not APIs, and shrinks as the backlog is
+      // cleared. No code coupling.
+      "packages/core/src/styleguide-shadowed-primitives.test.ts",
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",

@@ -211,7 +211,7 @@ function ThermalStatusComponent({
          into the header next to the panel's own stream-status badge.
          AugmentSlot renders a fragment, nothing in the DOM, until an augment
          registers, so the unfilled slot leaves the header untouched. */
-      panelBadges={<AugmentSlot name="thermal-status.badges" props={{}} />}
+      panelAside={<AugmentSlot name="thermal-status.badges" props={{}} />}
     >
       {noData ? (
         <EmptyState>No thermal data</EmptyState>

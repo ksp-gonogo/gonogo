@@ -505,14 +505,20 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   panelTitle?: ReactNode;
   panelSubtitle?: ReactNode;
   /**
-   * Extra content for the right of the header row, beside the stream-status
-   * badge: state chips, an `AugmentSlot` for Uplink badges, a small control.
+   * Content for the right of the header row, beside the stream-status badge:
+   * state chips, an `AugmentSlot` for Uplink badges, a small control such as a
+   * select or a show/hide button.
    *
-   * Keep it small. This is a header slot, not a second body; anything that
-   * wants real layout should be in the body or in a hand-composed
-   * `Panel.Header`.
+   * Named `aside` rather than `badges` because it is not only badges. It began
+   * as a badge slot and immediately started carrying PowerSystems' resource
+   * select and CrewManifest's meters toggle, which is the normal case rather
+   * than an abuse: whatever a widget puts next to its title belongs here.
+   *
+   * Keep it small all the same. This is a header slot, not a second body;
+   * anything that wants real layout should be in the body or in a
+   * hand-composed `Panel.Header`.
    */
-  panelBadges?: ReactNode;
+  panelAside?: ReactNode;
   /**
    * Override the host-derived stream status.
    *
@@ -533,7 +539,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
 function PanelRoot({
   panelTitle,
   panelSubtitle,
-  panelBadges,
+  panelAside,
   panelStatus,
   fitToSize,
   children,
@@ -548,7 +554,7 @@ function PanelRoot({
   const hasHeader =
     panelTitle !== undefined ||
     panelSubtitle !== undefined ||
-    panelBadges !== undefined;
+    panelAside !== undefined;
 
   const derived = usePanelStreamStatus();
   const status = panelStatus ?? derived;
@@ -559,9 +565,9 @@ function PanelRoot({
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
   // and skips the box, where a null child would still render the padded slot.
   const aside =
-    panelBadges === undefined && statusBadge === null ? undefined : (
+    panelAside === undefined && statusBadge === null ? undefined : (
       <>
-        {panelBadges}
+        {panelAside}
         {statusBadge}
       </>
     );

@@ -213,7 +213,7 @@ function WarpControlComponent({
       /* Broad-escape-hatch badges slot: an Uplink surfaces an inline indicator
          next to the title, beside the panel's own stream-status badge. Empty
          (renders nothing) until an augment binds `warp-control.badges`. */
-      panelBadges={<AugmentSlot name="warp-control.badges" props={{}} />}
+      panelAside={<AugmentSlot name="warp-control.badges" props={{}} />}
     >
       <DimmedOverlay
         show={dimBody}

@@ -387,7 +387,7 @@ function LaunchDirectorComponent({
       /* Inline header badges: an Uplink (e.g. a life-support summary) can
          surface an indicator beside the title without a bespoke slot (spec
          §4.8). Renders nothing until an augment binds. */
-      panelBadges={
+      panelAside={
         <AugmentSlot name="launch-director.badges" props={slotContext} />
       }
       panelSubtitle={

@@ -59,7 +59,7 @@ describe("Panel stream status", () => {
   it("puts widget badges beside the status badge, not instead of it", () => {
     render(
       <Panel.Status status="held-stale">
-        <Panel panelTitle="FUEL" panelBadges={<span>LOW</span>}>
+        <Panel panelTitle="FUEL" panelAside={<span>LOW</span>}>
           body
         </Panel>
       </Panel.Status>,

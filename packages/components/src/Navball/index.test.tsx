@@ -224,8 +224,13 @@ describe("NavballComponent", () => {
     // actual text content across `screen.getAllByRole("status")` rather than
     // an accessible-name query.
     function findDelayStatus(): HTMLElement | undefined {
+      // queryAll, not getAll: getAllByRole THROWS on zero matches rather than
+      // returning [], and zero is now the normal case. The widget used to
+      // render its own stream-status badge (role=status) unconditionally, so
+      // there was always at least one; the panel derives that badge from the
+      // host now, and a widget test mounts no host.
       return screen
-        .getAllByRole("status")
+        .queryAllByRole("status")
         .find((el) => /High signal delay/i.test(el.textContent ?? ""));
     }
 

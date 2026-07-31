@@ -382,7 +382,7 @@ function TargetPickerComponent({
     return (
       <Panel
         panelTitle="TARGET"
-        panelBadges={<AugmentSlot name="target-picker.badges" props={{}} />}
+        panelAside={<AugmentSlot name="target-picker.badges" props={{}} />}
       >
         <CompactCurrent>
           {tarName ? (
@@ -431,7 +431,7 @@ function TargetPickerComponent({
   return (
     <Panel
       panelTitle="TARGET PICKER"
-      panelBadges={<AugmentSlot name="target-picker.badges" props={{}} />}
+      panelAside={<AugmentSlot name="target-picker.badges" props={{}} />}
     >
       <OrbitalEventChipsRow>
         <OrbitalEventChips />

@@ -455,7 +455,7 @@ function CrewManifestComponent({
   return (
     <Panel
       panelTitle="CREW"
-      panelBadges={
+      panelAside={
         hasSurvival ? (
           <MetersToggle
             type="button"

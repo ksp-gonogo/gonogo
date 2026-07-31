@@ -7,29 +7,25 @@ import {
   AugmentSlot,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
+  Badge,
   Button,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
-  Panel,
-  PanelTitle,
-  Select,
-  StreamStatusBadge,
-  Switch,
-  useModalSaveBar,
-} from "@ksp-gonogo/ui";
-import {
-  Badge,
   formatDuration,
   NULL_DISPLAY,
+  Panel,
+  Select,
   StatusIndicator,
+  Switch,
+  ToggleButton,
+  useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -172,7 +168,6 @@ function NavballComponent({
   // n.heading2 are mapped on the wire now, off the same
   // vessel.attitude topic): so it stays a stable status source across
   // config changes rather than switching with `useCoM`.
-  const streamStatus = useDataStreamStatus("data", "n.heading");
 
   const execute = useExecuteAction("data");
 
@@ -396,13 +391,10 @@ function NavballComponent({
   showThrottleColumnRef.current = showThrottleColumn;
 
   return (
-    <Panel>
-      <Header>
-        <PanelTitle>
-          {showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
-        </PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-        {showModeBadges && (
+    <Panel
+      panelTitle={showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
+      panelAside={
+        showModeBadges ? (
           <ModeBadgeRow>
             <ModeBadge $on={sasOn}>
               SAS{sasMode ? `: ${sasMode}` : ""}
@@ -419,9 +411,9 @@ function NavballComponent({
                 until an augment binds `navball.badges`. */}
             <AugmentSlot name="navball.badges" props={{}} />
           </ModeBadgeRow>
-        )}
-      </Header>
-
+        ) : undefined
+      }
+    >
       <Body>
         {showDial ? (
           <DialWrap ref={dialRef}>
@@ -532,7 +524,7 @@ function ControlSurface({
         <ButtonGrid>
           <ToggleButton
             type="button"
-            $active={sasOn}
+            active={sasOn}
             onClick={() => void execute("f.sas")}
             disabled={disabled}
           >
@@ -540,13 +532,13 @@ function ControlSurface({
           </ToggleButton>
           <ToggleButton
             type="button"
-            $active={rcsOn}
+            active={rcsOn}
             onClick={() => void execute("f.rcs")}
             disabled={disabled}
           >
             {rcsOn ? "RCS ON" : "RCS OFF"}
           </ToggleButton>
-          <ToggleButton type="button" $active={precisionOn} disabled>
+          <ToggleButton type="button" active={precisionOn} disabled>
             PRECISION
           </ToggleButton>
         </ButtonGrid>
@@ -559,7 +551,7 @@ function ControlSurface({
             <ToggleButton
               key={mode}
               type="button"
-              $active={sasMode === mode}
+              active={sasMode === mode}
               onClick={() => void execute(`f.setSASMode[${mode}]`)}
               disabled={disabled}
             >
@@ -625,7 +617,7 @@ function ControlSurface({
         <FbwRow>
           <ToggleButton
             type="button"
-            $active={fbwArmed}
+            active={fbwArmed}
             onClick={fbwArmed ? onDisarmFbw : onArmFbw}
             disabled={disabled}
           >
@@ -742,18 +734,6 @@ function NavballConfigComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  /* At narrow widths (portrait 5-col ≈ 192px) the title + badge row can't sit
-     side by side. Let them wrap to stacked rows rather than letting the badge
-     row overflow the panel's right edge (Panel has overflow:hidden, so an
-     overflowing RCS/PRECISION badge was getting clipped). */
-  flex-wrap: wrap;
-`;
 
 const ModeBadgeRow = styled.div`
   display: flex;
@@ -908,28 +888,6 @@ const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
   gap: var(--space-4);
-`;
-
-const ToggleButton = styled.button<{ $active: boolean }>`
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-xs);
-  border: 1px solid
-    ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-surface-raised)")};
-  background: ${(p) =>
-    p.$active ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
-  color: ${(p) =>
-    p.$active ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
-  cursor: pointer;
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
 `;
 
 const SliderRow = styled.div`

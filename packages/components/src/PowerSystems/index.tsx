@@ -380,7 +380,7 @@ function PowerSystemsComponent({
   return (
     <Panel
       panelTitle="POWER SYSTEMS"
-      panelBadges={
+      panelAside={
         <>
           <AugmentSlot name="power-systems.badges" props={slotProps} />
           <ResourceSelect
